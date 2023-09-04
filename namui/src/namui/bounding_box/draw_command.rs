@@ -8,8 +8,7 @@ impl BoundingBox for RenderingData {
     fn bounding_box(&self) -> Option<Rect<Px>> {
         self.draw_calls
             .iter()
-            .map(|draw_call| draw_call.bounding_box())
-            .filter_map(|bounding_box| bounding_box)
+            .filter_map(|draw_call| draw_call.bounding_box())
             .reduce(|acc, bounding_box| {
                 crate::Rect::get_minimum_rectangle_containing(&acc, bounding_box)
             })
@@ -24,8 +23,7 @@ impl BoundingBox for DrawCall {
     fn bounding_box(&self) -> Option<Rect<Px>> {
         self.commands
             .iter()
-            .map(|command| command.bounding_box())
-            .filter_map(|bounding_box| bounding_box)
+            .filter_map(|command| command.bounding_box())
             .reduce(|acc, bounding_box| {
                 crate::Rect::get_minimum_rectangle_containing(&acc, bounding_box)
             })
@@ -63,7 +61,7 @@ impl BoundingBox for TextDrawCommand {
     }
 
     fn bounding_box(&self) -> Option<Rect<Px>> {
-        if self.text.len() == 0 {
+        if self.text.is_empty() {
             return None;
         }
 
@@ -90,7 +88,7 @@ impl BoundingBox for TextDrawCommand {
                     .iter()
                     .map(|bound| (bound.top(), bound.bottom()))
                     .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
-                    .and_then(|(top, bottom)| {
+                    .map(|(top, bottom)| {
                         let widths = group_glyph.widths(&self.text);
                         let width = widths.iter().fold(px(0.0), |prev, curr| prev + curr);
                         let x_axis_anchor = get_left_in_align(self.x, self.align, width);
@@ -98,12 +96,12 @@ impl BoundingBox for TextDrawCommand {
                         let metrics = group_glyph.font_metrics();
                         let y_axis_anchor = y + get_bottom_of_baseline(self.baseline, metrics);
 
-                        Some(Rect::Ltrb {
+                        Rect::Ltrb {
                             left: x_axis_anchor,
                             top: top + y_axis_anchor,
                             right: x_axis_anchor + width,
                             bottom: bottom + y_axis_anchor,
-                        })
+                        }
                     })
             })
             .fold(None, |acc, rect| {

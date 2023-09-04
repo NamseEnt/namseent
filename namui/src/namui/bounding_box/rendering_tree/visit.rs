@@ -32,7 +32,7 @@ impl Visit for RenderingTree {
     where
         F: FnMut(&Self, VisitUtils) -> ControlFlow<()>,
     {
-        self.try_visit_rln(&mut callback, &vec![]);
+        self.try_visit_rln(&mut callback, &[]);
     }
     fn try_visit_rln<F>(&self, callback: &mut F, ancestors: &[&Self]) -> ControlFlow<()>
     where
@@ -61,7 +61,7 @@ impl Visit for RenderingTree {
         }
 
         let utils = VisitUtils {
-            ancestors: ancestors,
+            ancestors,
             rendering_tree: self,
         };
         callback(self, utils)
@@ -69,8 +69,8 @@ impl Visit for RenderingTree {
     fn to_local_xy(&self, xy: Xy<Px>, ancestors: &[&Self]) -> Xy<Px> {
         let mut result_xy = xy;
         for ancestor in ancestors.iter() {
-            match ancestor {
-                RenderingTree::Special(special) => match special {
+            if let RenderingTree::Special(special) = ancestor {
+                match special {
                     SpecialRenderingNode::Translate(translate) => {
                         result_xy.x -= translate.x;
                         result_xy.y -= translate.y;
@@ -93,8 +93,7 @@ impl Visit for RenderingTree {
                     SpecialRenderingNode::Clip(_)
                     | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::OnTop(_) => {}
-                },
-                _ => {}
+                }
             }
         }
         result_xy
@@ -245,10 +244,8 @@ mod tests {
 
         let mut called_ids = vec![];
         node_0.visit_rln(|rendering_tree, _| {
-            if let RenderingTree::Special(rendering_tree) = rendering_tree {
-                if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
-                    called_ids.push(with_id.id.clone());
-                }
+            if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) = rendering_tree {
+                called_ids.push(with_id.id);
             }
             ControlFlow::Continue(())
         });
@@ -308,67 +305,65 @@ mod tests {
                 x: px(10.0),
                 y: px(10.0),
             };
-            if let RenderingTree::Special(rendering_tree) = rendering_tree {
-                if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
-                    let local_xy = utils.to_local_xy(xy);
-                    match with_id.id {
-                        id if id == id_0 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_1 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_2 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_3 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_4 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_5 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_6 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_7 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_8 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_9 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_10 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        _ => {}
+            if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) = rendering_tree {
+                let local_xy = utils.to_local_xy(xy);
+                match with_id.id {
+                    id if id == id_0 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
+                        call_count += 1;
                     }
+                    id if id == id_1 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_2 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_3 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_4 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_5 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_6 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_7 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_8 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_9 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_10 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    _ => {}
                 }
             }
             ControlFlow::Continue(())
@@ -445,67 +440,65 @@ mod tests {
                 x: px(10.0),
                 y: px(10.0),
             };
-            if let RenderingTree::Special(rendering_tree) = rendering_tree {
-                if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
-                    let local_xy = utils.to_local_xy(xy);
-                    match with_id.id {
-                        id if id == id_0 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_1 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_2 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_3 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_4 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_5 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_6 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_7 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_8 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_9 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_10 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        _ => {}
+            if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) = rendering_tree {
+                let local_xy = utils.to_local_xy(xy);
+                match with_id.id {
+                    id if id == id_0 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
+                        call_count += 1;
                     }
+                    id if id == id_1 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_2 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_3 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_4 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_5 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_6 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_7 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_8 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_9 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_10 => {
+                        assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    _ => {}
                 }
             }
             ControlFlow::Continue(())
@@ -535,34 +528,32 @@ mod tests {
                 x: px(10.0),
                 y: px(10.0),
             };
-            if let RenderingTree::Special(rendering_tree) = rendering_tree {
-                if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
-                    let local_xy_0_0 = utils.to_local_xy(xy_0_0);
-                    let local_xy_10_10 = utils.to_local_xy(xy_10_10);
-                    match with_id.id {
-                        id if id == id_0 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 8.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 8.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_1 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -1.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -1.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 4.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 4.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_2 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 2.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        _ => {}
+            if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) = rendering_tree {
+                let local_xy_0_0 = utils.to_local_xy(xy_0_0);
+                let local_xy_10_10 = utils.to_local_xy(xy_10_10);
+                match with_id.id {
+                    id if id == id_0 => {
+                        assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 8.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 8.0, ulps = 2);
+                        call_count += 1;
                     }
+                    id if id == id_1 => {
+                        assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -1.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -1.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 4.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 4.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    id if id == id_2 => {
+                        assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -3.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -3.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 2.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 2.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    _ => {}
                 }
             }
             ControlFlow::Continue(())
@@ -589,27 +580,25 @@ mod tests {
                 x: px(10.0),
                 y: px(10.0),
             };
-            if let RenderingTree::Special(rendering_tree) = rendering_tree {
-                if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
-                    let local_xy_0_0 = utils.to_local_xy(xy_0_0);
-                    let local_xy_10_10 = utils.to_local_xy(xy_10_10);
-                    match with_id.id {
-                        id if id == id_0 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), 0.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), 0.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 5.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 5.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_1 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 3.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        _ => {}
+            if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) = rendering_tree {
+                let local_xy_0_0 = utils.to_local_xy(xy_0_0);
+                let local_xy_10_10 = utils.to_local_xy(xy_10_10);
+                match with_id.id {
+                    id if id == id_0 => {
+                        assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), 0.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), 0.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 5.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 5.0, ulps = 2);
+                        call_count += 1;
                     }
+                    id if id == id_1 => {
+                        assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 3.0, ulps = 2);
+                        assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 3.0, ulps = 2);
+                        call_count += 1;
+                    }
+                    _ => {}
                 }
             }
             ControlFlow::Continue(())
@@ -649,10 +638,8 @@ mod tests {
             ancestors
                 .iter()
                 .filter_map(|node| {
-                    if let RenderingTree::Special(rendering_tree) = node {
-                        if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
-                            return Some(with_id.id);
-                        }
+                    if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) = node {
+                        return Some(with_id.id);
                     }
                     None
                 })
@@ -660,43 +647,41 @@ mod tests {
         }
 
         node_0.visit_rln(|rendering_tree, utils| {
-            if let RenderingTree::Special(rendering_tree) = rendering_tree {
-                if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
-                    match with_id.id {
-                        id if id == id_0 => {
-                            utils.with_ancestors(|ancestors| {
-                                let ancestors_ids = get_ancestor_ids(ancestors);
-                                with_ancestors_call_count += 1;
-                                assert_eq!(ancestors_ids, Vec::<Uuid>::new());
-                            });
-                        }
-                        id if id == id_1 => utils.with_ancestors(|ancestors| {
+            if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) = rendering_tree {
+                match with_id.id {
+                    id if id == id_0 => {
+                        utils.with_ancestors(|ancestors| {
                             let ancestors_ids = get_ancestor_ids(ancestors);
                             with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0]);
-                        }),
-                        id if id == id_2 => utils.with_ancestors(|ancestors| {
-                            let ancestors_ids = get_ancestor_ids(ancestors);
-                            with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0]);
-                        }),
-                        id if id == id_3 => utils.with_ancestors(|ancestors| {
-                            let ancestors_ids = get_ancestor_ids(ancestors);
-                            with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0, id_1]);
-                        }),
-                        id if id == id_4 => utils.with_ancestors(|ancestors| {
-                            let ancestors_ids = get_ancestor_ids(ancestors);
-                            with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0, id_1]);
-                        }),
-                        id if id == id_5 => utils.with_ancestors(|ancestors| {
-                            let ancestors_ids = get_ancestor_ids(ancestors);
-                            with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0, id_2]);
-                        }),
-                        _ => {}
+                            assert_eq!(ancestors_ids, Vec::<Uuid>::new());
+                        });
                     }
+                    id if id == id_1 => utils.with_ancestors(|ancestors| {
+                        let ancestors_ids = get_ancestor_ids(ancestors);
+                        with_ancestors_call_count += 1;
+                        assert_eq!(ancestors_ids, vec![id_0]);
+                    }),
+                    id if id == id_2 => utils.with_ancestors(|ancestors| {
+                        let ancestors_ids = get_ancestor_ids(ancestors);
+                        with_ancestors_call_count += 1;
+                        assert_eq!(ancestors_ids, vec![id_0]);
+                    }),
+                    id if id == id_3 => utils.with_ancestors(|ancestors| {
+                        let ancestors_ids = get_ancestor_ids(ancestors);
+                        with_ancestors_call_count += 1;
+                        assert_eq!(ancestors_ids, vec![id_0, id_1]);
+                    }),
+                    id if id == id_4 => utils.with_ancestors(|ancestors| {
+                        let ancestors_ids = get_ancestor_ids(ancestors);
+                        with_ancestors_call_count += 1;
+                        assert_eq!(ancestors_ids, vec![id_0, id_1]);
+                    }),
+                    id if id == id_5 => utils.with_ancestors(|ancestors| {
+                        let ancestors_ids = get_ancestor_ids(ancestors);
+                        with_ancestors_call_count += 1;
+                        assert_eq!(ancestors_ids, vec![id_0, id_2]);
+                    }),
+                    _ => {}
                 }
             }
             ControlFlow::Continue(())

@@ -32,7 +32,7 @@ impl CkTextBlob {
             Some(CkTextBlob {
                 canvas_kit_text_blob: canvas_kit()
                     .TextBlob()
-                    .MakeFromGlyphs(glyph_ids, &ck_font.canvas_kit()),
+                    .MakeFromGlyphs(glyph_ids, ck_font.canvas_kit()),
             })
         })
     }

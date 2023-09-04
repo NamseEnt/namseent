@@ -17,7 +17,7 @@ impl<Key: serde::Serialize, Value> SerdeMap<Key, Value> {
     }
 
     pub fn get_or_create(&self, key: &Key, create: impl FnOnce(&Key) -> Value) -> Arc<Value> {
-        let map = self.map.get_or_init(|| Default::default());
+        let map = self.map.get_or_init(Default::default);
 
         let mut map = map.lock().unwrap();
         let serde_key = postcard::to_allocvec(&key).unwrap();
@@ -31,7 +31,7 @@ impl<Key: serde::Serialize, Value> SerdeMap<Key, Value> {
         key: &Key,
         try_crate: impl Fn(&Key) -> Option<Value>,
     ) -> Option<Arc<Value>> {
-        let map = self.map.get_or_init(|| Default::default());
+        let map = self.map.get_or_init(Default::default);
         let mut map = map.lock().unwrap();
         let serde_key = postcard::to_allocvec(&key).unwrap();
 
@@ -49,14 +49,14 @@ impl<Key: serde::Serialize, Value> SerdeMap<Key, Value> {
     }
 
     pub fn insert(&self, key: &Key, value: Value) {
-        let map = self.map.get_or_init(|| Default::default());
+        let map = self.map.get_or_init(Default::default);
         let mut map = map.lock().unwrap();
         let serde_key = postcard::to_allocvec(&key).unwrap();
         map.insert(serde_key, Arc::new(value));
     }
 
     pub fn get(&self, key: &Key) -> Option<Arc<Value>> {
-        let map = self.map.get_or_init(|| Default::default());
+        let map = self.map.get_or_init(Default::default);
         let map = map.lock().unwrap();
         let serde_key = postcard::to_allocvec(&key).unwrap();
         map.get(&serde_key).cloned()

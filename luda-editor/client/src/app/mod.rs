@@ -33,7 +33,10 @@ impl Component for App {
                 set_loading_state.mutate(|x| {
                     *x = match result {
                         Ok(_) => LoadingState::Loaded,
-                        Err(err) => LoadingState::Error(err.to_string()),
+                        Err(err) => {
+                            crate::log!("Login error: {}", err);
+                            LoadingState::Error(err.to_string())
+                        }
                     }
                 });
             });

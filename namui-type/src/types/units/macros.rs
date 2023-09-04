@@ -21,14 +21,20 @@ macro_rules! common_for_f32_type {
         });
     };
     ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident) => {
-        use crate::*;
+        use $crate::*;
 
         #[type_derives(Default, PartialOrd, Copy)]
         pub struct $your_type(f32);
 
-        $crate::impl_single_trait!(from|lhs: $your_type| -> f32 { $to_f32(lhs) });
+        $crate::impl_single_trait!(from|lhs: $your_type| -> f32 {
+            #[allow(clippy::redundant_closure_call)]
+            $to_f32(lhs)
+        });
         $crate::impl_single_trait!(from|lhs: &$your_type| -> f32 { f32::from(*lhs) });
-        $crate::impl_single_trait!(from|lhs: f32| -> $your_type { $from(lhs) });
+        $crate::impl_single_trait!(from|lhs: f32| -> $your_type {
+            #[allow(clippy::redundant_closure_call)]
+            $from(lhs)
+        });
         $crate::impl_single_trait!(from|lhs: i32| -> $your_type { From::from(lhs as f32) });
         $crate::impl_single_trait!(from|lhs: usize| -> $your_type { From::from(lhs as f32) });
 

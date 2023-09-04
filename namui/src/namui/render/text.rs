@@ -61,10 +61,9 @@ pub fn text(param: TextParam) -> RenderingTree {
                     Some(draw_text(&param, &param.font)),
                 ]
                 .into_iter()
-                .filter_map(|command| command)
+                .flatten()
                 .collect(),
             }],
-            ..Default::default()
         }),
         draw_background(&param, &param.font),
     ])
@@ -194,7 +193,6 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
             }),
             ..Default::default()
         },
-        ..Default::default()
     })
 }
 

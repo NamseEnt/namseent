@@ -100,7 +100,7 @@ impl<'a> RenderCtx {
         self.renderer().render(
             key_vec,
             component,
-            self.matrix.lock().unwrap().clone(),
+            *self.matrix.lock().unwrap(),
             self.clippings.clone(),
         )
     }
@@ -156,7 +156,7 @@ impl<'a> RenderCtx {
             let mut compose_ctx = ComposeCtx::new(
                 self.tree_ctx.clone(),
                 KeyVec::new_child(self.get_next_component_index()),
-                self.matrix.lock().unwrap().clone(),
+                *self.matrix.lock().unwrap(),
                 self.renderer(),
                 lazy.clone(),
                 self.raw_event.clone(),

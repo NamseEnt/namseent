@@ -29,12 +29,11 @@ impl MouseSystem {
             y: px(0.0),
         }));
         let mouse_cursor = Arc::new(RwLock::new("default".to_string()));
-        let mouse = Self {
+
+        Self {
             mouse_position,
             mouse_cursor,
-        };
-
-        mouse
+        }
     }
 }
 
@@ -50,5 +49,5 @@ pub fn set_mouse_cursor(cursor: &MouseCursor) {
 }
 
 pub fn position() -> Xy<Px> {
-    MOUSE_SYSTEM.mouse_position.read().unwrap().clone()
+    *MOUSE_SYSTEM.mouse_position.read().unwrap()
 }

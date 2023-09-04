@@ -1,9 +1,9 @@
 use super::*;
 
-pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
-    ctx: &'a RenderCtx,
+pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
+    ctx: &RenderCtx,
     init: impl FnOnce() -> State,
-) -> (Sig<'a, State>, SetState<State>) {
+) -> (Sig<'_, State>, SetState<State>) {
     let instance = ctx.instance.as_ref();
     let mut state_list = instance.state_list.lock().unwrap();
 
@@ -66,9 +66,12 @@ pub(crate) enum SetStateItem {
     },
     Mutate {
         sig_id: SigId,
-        mutate: Arc<Mutex<Option<Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>>>>,
+        mutate: Arc<Mutex<Option<MutateFnOnce>>>,
     },
 }
+
+pub(crate) type MutateFnOnce = Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>;
+
 impl SetStateItem {
     pub(crate) fn sig_id(&self) -> SigId {
         match self {
@@ -108,10 +111,7 @@ impl<State: 'static + Debug + Send + Sync> Debug for SetState<State> {
 
 impl<State: 'static + Debug + Send + Sync> Clone for SetState<State> {
     fn clone(&self) -> Self {
-        Self {
-            sig_id: self.sig_id,
-            _state: std::marker::PhantomData,
-        }
+        *self
     }
 }
 

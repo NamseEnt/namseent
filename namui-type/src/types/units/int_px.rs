@@ -38,9 +38,9 @@ impl From<Px> for IntPx {
     }
 }
 
-impl Into<Px> for IntPx {
-    fn into(self) -> Px {
-        Px::from(self.0 as f32)
+impl From<IntPx> for Px {
+    fn from(val: IntPx) -> Self {
+        Px::from(val.0 as f32)
     }
 }
 

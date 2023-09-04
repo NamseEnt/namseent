@@ -72,7 +72,7 @@ impl TextInputCtx {
 }
 
 impl Component for TextInput<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let id = self.instance.id;
         let (atom, set_atom) = ctx.atom_init(&TEXT_INPUT_ATOM, Default::default);
         let is_focused = ctx.track_eq(&atom.is_focused(id));
@@ -202,13 +202,13 @@ impl Component for TextInput<'_> {
         });
 
         ctx.effect("Blur on umount if focused", || {
-            return move || {
+            move || {
                 set_atom.mutate(move |atom| {
                     if atom.is_focused(id) {
                         *atom = Default::default();
                     }
                 })
-            };
+            }
         });
 
         let selection = atom.get_selection_of_text_input(id);
@@ -299,7 +299,7 @@ impl Component for TextInput<'_> {
                             event.selection_direction,
                             event.selection_start,
                             event.selection_end,
-                            &event.text,
+                            event.text,
                         );
                         let Selection::Range(range) = selection else {
                             return Selection::None;
@@ -328,8 +328,7 @@ impl Component for TextInput<'_> {
 
                             let caret_after_move = caret.get_caret_on_key(key);
 
-                            let next_selection_end = caret_after_move.to_selection_index();
-                            next_selection_end
+                            caret_after_move.to_selection_index()
                         }
                     };
 
@@ -344,7 +343,7 @@ impl Component for TextInput<'_> {
 
                         let selection = get_selection_on_keyboard_down(caret_key);
 
-                        let Some(utf16_selection) = selection.as_utf16(&event.text) else {
+                        let Some(utf16_selection) = selection.as_utf16(event.text) else {
                             return;
                         };
 

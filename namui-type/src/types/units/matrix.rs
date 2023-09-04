@@ -14,11 +14,6 @@ impl Default for Matrix3x3 {
 }
 
 impl Matrix3x3 {
-    pub fn new(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, g: f32, h: f32, i: f32) -> Self {
-        Matrix3x3 {
-            values: nalgebra::Matrix3::new(a, b, c, d, e, f, g, h, i),
-        }
-    }
     pub fn from_slice(values: [[f32; 3]; 3]) -> Self {
         Matrix3x3 {
             values: nalgebra::Matrix3::new(
@@ -35,15 +30,15 @@ impl Matrix3x3 {
         }
     }
     pub fn from_translate(x: f32, y: f32) -> Self {
-        Self::new(1.0, 0.0, x, 0.0, 1.0, y, 0.0, 0.0, 1.0)
+        Self::from_slice([[1.0, 0.0, x], [0.0, 1.0, y], [0.0, 0.0, 1.0]])
     }
     pub fn from_scale(sx: f32, sy: f32) -> Self {
-        Self::new(sx, 0.0, 0.0, 0.0, sy, 0.0, 0.0, 0.0, 1.0)
+        Self::from_slice([[sx, 0.0, 0.0], [0.0, sy, 0.0], [0.0, 0.0, 1.0]])
     }
     pub fn from_rotate(angle: Angle) -> Self {
         let s = angle.sin();
         let c = angle.cos();
-        Self::new(c, -s, 0.0, s, c, 0.0, 0.0, 0.0, 1.0)
+        Self::from_slice([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
     }
     pub fn identity() -> Self {
         Self::from_slice([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
@@ -234,29 +229,14 @@ mod tests {
 
         assert_approx_eq!(f32, *inverse.values.index((0, 0)), -2.0, ulps = 2);
         assert_approx_eq!(f32, *inverse.values.index((0, 1)), 1.0, ulps = 2);
-        assert_approx_eq!(
-            f32,
-            *inverse.values.index((0, 2)),
-            0.57142857142857142856,
-            ulps = 2
-        );
+        assert_approx_eq!(f32, *inverse.values.index((0, 2)), 0.571_428_6, ulps = 2);
 
         assert_approx_eq!(f32, *inverse.values.index((1, 0)), 1.5, ulps = 2);
         assert_approx_eq!(f32, *inverse.values.index((1, 1)), -0.5, ulps = 2);
-        assert_approx_eq!(
-            f32,
-            *inverse.values.index((1, 2)),
-            -0.64285714285714285713,
-            ulps = 2
-        );
+        assert_approx_eq!(f32, *inverse.values.index((1, 2)), -0.642_857_13, ulps = 2);
 
         assert_approx_eq!(f32, *inverse.values.index((2, 0)), 0.0, ulps = 2);
         assert_approx_eq!(f32, *inverse.values.index((2, 1)), 0.0, ulps = 2);
-        assert_approx_eq!(
-            f32,
-            *inverse.values.index((2, 2)),
-            0.14285714285714285714,
-            ulps = 2
-        );
+        assert_approx_eq!(f32, *inverse.values.index((2, 2)), 0.142_857_15, ulps = 2);
     }
 }

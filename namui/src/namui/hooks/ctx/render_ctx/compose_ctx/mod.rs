@@ -34,7 +34,7 @@ impl Drop for ComposeCtx {
                     rendering_tree: x,
                 })))
             })
-            .chain(lazy_children.into_iter());
+            .chain(lazy_children);
 
         self.lazy
             .lock()

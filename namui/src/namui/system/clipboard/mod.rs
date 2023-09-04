@@ -89,7 +89,7 @@ pub trait ClipboardItem {
 
 impl ClipboardItem for ClipboardItem_ {
     fn types(&self) -> Vec<String> {
-        let types: Array = Reflect::get(&self, &"types".into()).unwrap().into();
+        let types: Array = Reflect::get(self, &"types".into()).unwrap().into();
         types
             .iter()
             .map(|type_| type_.as_string().unwrap())
@@ -135,7 +135,7 @@ pub async fn write_text(text: impl AsRef<str>) -> Result<()> {
 
 pub async fn write_image(image: &Image) -> Result<()> {
     let type_ = "image/png";
-    let png_bytes = crate::system::drawer::encode_loaded_image_to_png(&image).await;
+    let png_bytes = crate::system::drawer::encode_loaded_image_to_png(image).await;
     let blob_parts = {
         let array = js_sys::Array::new();
         array.push(&Uint8Array::from(png_bytes.as_ref()).into());

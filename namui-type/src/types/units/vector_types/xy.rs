@@ -34,7 +34,7 @@ mod tests {
     fn xy_sub_xy() {
         let xy = Xy::new(1.px(), 2.px());
         let result = xy - Xy::new(2.px(), 3.px());
-        assert_eq!(result, Xy::new(-1.px(), -1.px()));
+        assert_eq!(result, Xy::new(-(1.px()), -(1.px())));
     }
 
     #[test]

@@ -16,7 +16,7 @@ impl<Key: Hash + Eq + PartialEq, Value> StaticHashMap<Key, Value> {
     }
 
     pub fn get_or_create(&self, key: Key, create: impl FnOnce(&Key) -> Value) -> Arc<Value> {
-        let map = self.map.get_or_init(|| Default::default());
+        let map = self.map.get_or_init(Default::default);
 
         let mut map = map.lock().unwrap();
         map.entry(key)
@@ -29,7 +29,7 @@ impl<Key: Hash + Eq + PartialEq, Value> StaticHashMap<Key, Value> {
         key: Key,
         try_crate: impl Fn(&Key) -> Option<Value>,
     ) -> Option<Arc<Value>> {
-        let map = self.map.get_or_init(|| Default::default());
+        let map = self.map.get_or_init(Default::default);
         let mut map = map.lock().unwrap();
 
         match map.get(&key) {
@@ -46,13 +46,13 @@ impl<Key: Hash + Eq + PartialEq, Value> StaticHashMap<Key, Value> {
     }
 
     pub fn insert(&self, key: Key, value: Value) {
-        let map = self.map.get_or_init(|| Default::default());
+        let map = self.map.get_or_init(Default::default);
         let mut map = map.lock().unwrap();
         map.insert(key, Arc::new(value));
     }
 
     pub fn get(&self, key: &Key) -> Option<Arc<Value>> {
-        let map = self.map.get_or_init(|| Default::default());
+        let map = self.map.get_or_init(Default::default);
         let map = map.lock().unwrap();
         map.get(key).cloned()
     }
