@@ -21,11 +21,11 @@ extern "C" {
     /// @param opts - Options that will get passed to the creation of the WebGL context.
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn MakeWebGLCanvasSurface(
+    fn MakeWebGLCanvasSurface(
         this: &CanvasKit,
         canvas: &HtmlCanvasElement,
-        // colorSpace?: ColorSpace,
-        // opts?: WebGLOptions
+        colorSpace: Option<CanvasKitColorSpace>,
+        opts: Option<js_sys::Object>,
     ) -> Option<CanvasKitSurface>;
 
     // ///
@@ -142,6 +142,20 @@ impl CanvasKit {
         // image.makeCopyWithDefaultMipmaps() // Do we need this?
         self.MakeLazyImageFromTextureSource(src, info, src_is_premul)
     }
+
+    pub fn make_web_glcanvas_surface(
+        &self,
+        canvas: &HtmlCanvasElement,
+        color_space: Option<ColorSpace>,
+        opts: Option<WebGLOptions>,
+    ) -> CanvasKitSurface {
+        self.MakeWebGLCanvasSurface(
+            canvas,
+            color_space.map(|x| x.into()),
+            opts.map(|opts| opts.into_js_object()),
+        )
+        .expect("Failed to create WebGLCanvasSurface")
+    }
 }
 
 pub(crate) trait AsJsObject {
@@ -181,6 +195,30 @@ impl AsJsObject for ImageInfo {
             &wasm_bindgen::JsValue::from(canvas_kit_alpha_type),
         )
         .expect("Failed to set alphaType");
+
+        obj
+    }
+}
+
+/// https://github.com/google/skia/blob/c9d527e6b5356ec097610f4b97b1988bc31d9c7e/modules/canvaskit/npm_build/types/index.d.ts#L3158
+pub struct WebGLOptions {
+    pub preserve_drawing_buffer: Option<bool>,
+}
+impl IntoJsObject for WebGLOptions {
+    fn into_js_object(&self) -> js_sys::Object {
+        let obj = js_sys::Object::new();
+
+        if let Some(preserve_drawing_buffer) = self.preserve_drawing_buffer {
+            js_sys::Reflect::set(
+                &obj,
+                &wasm_bindgen::JsValue::from("preserveDrawingBuffer"),
+                &wasm_bindgen::JsValue::from(match preserve_drawing_buffer {
+                    true => 1,
+                    false => 0,
+                }),
+            )
+            .expect("Failed to set preserveDrawingBuffer");
+        }
 
         obj
     }
