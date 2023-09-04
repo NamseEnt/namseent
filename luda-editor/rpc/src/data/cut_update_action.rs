@@ -50,6 +50,9 @@ pub enum CutUpdateAction {
     SetCut {
         cut: Cut,
     },
+    DeleteGraphic {
+        graphic_index: Uuid,
+    },
 }
 
 impl CutUpdateAction {
@@ -182,6 +185,15 @@ impl CutUpdateAction {
             }),
             CutUpdateAction::SetCut { cut: _cut } => {
                 *cut = _cut;
+            }
+            CutUpdateAction::DeleteGraphic { graphic_index } => {
+                if let Some(position) = cut
+                    .screen_graphics
+                    .iter()
+                    .position(|(index, _)| *index == graphic_index)
+                {
+                    cut.screen_graphics.remove(position);
+                }
             }
         }
     }

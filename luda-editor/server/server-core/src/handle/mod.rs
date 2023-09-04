@@ -28,7 +28,7 @@ pub async fn handle_with_wrapped_error(
             Ok(response)
         }
         Err(error) => {
-            eprintln!("{:#?}", error);
+            eprintln!("{:?}", error);
             Ok(Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::from(error.to_string()))
