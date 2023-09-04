@@ -3,7 +3,7 @@ use namui::prelude::*;
 pub async fn main() {
     let namui_context = namui::init().await;
 
-    namui::start(namui_context, || App::new()).await
+    namui::start(namui_context, App::new).await
 }
 
 #[component]
@@ -16,7 +16,7 @@ impl App {
 }
 
 impl Component for App {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let size = namui::screen::size();
 
         let jpg_length = 14;
