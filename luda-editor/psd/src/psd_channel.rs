@@ -105,7 +105,7 @@ pub trait IntoRgba {
             }
             // https://en.wikipedia.org/wiki/PackBits
             ChannelBytes::RleCompressed(channel_bytes) => {
-                self.insert_rle_channel(rgba, channel_kind, &channel_bytes);
+                self.insert_rle_channel(rgba, channel_kind, channel_bytes);
             }
         }
     }
@@ -122,7 +122,7 @@ pub trait IntoRgba {
         channel_kind: PsdChannelKind,
         channel_bytes: &[u8],
     ) {
-        let mut cursor = PsdCursor::new(&channel_bytes[..]);
+        let mut cursor = PsdCursor::new(channel_bytes);
 
         let mut idx = 0;
         let offset = channel_kind.rgba_offset().unwrap();
