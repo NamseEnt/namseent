@@ -36,6 +36,82 @@ impl Component for BackgroundWithEvent<'_> {
         } = self;
         let cut_id = cut.id;
 
+        let handle_paste = |event: &KeyboardEvent| {
+            if !(event.code == Code::KeyV && namui::keyboard::ctrl_press()) {
+                return;
+            }
+            spawn_local(async move {
+                if let Ok(buffers) = clipboard::read_image_buffers().await {
+                    for png_bytes in buffers {
+                        add_new_image(project_id, cut_id, png_bytes);
+                    }
+                }
+
+                if let Ok(items) = clipboard::read().await {
+                    for item in items {
+                        if item
+                            .types()
+                            .iter()
+                            .any(|type_| type_ == "web application/luda-editor-cg+json")
+                        {
+                            if let Ok(cg) = item
+                                .get_type("web application/luda-editor-cg+json")
+                                .await
+                                .map(|graphic_bytes| {
+                                    serde_json::from_slice::<ScreenCg>(&graphic_bytes).unwrap()
+                                })
+                            {
+                                add_cg(cut_id, cg);
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        let handle_key_move = |event: &KeyboardEvent| {
+            if !(event.code == Code::ArrowUp
+                || event.code == Code::ArrowDown
+                || event.code == Code::Tab && !is_selecting_target)
+            {
+                return;
+            }
+
+            let up_down = if event.code == Code::ArrowUp
+                || (namui::keyboard::shift_press() && event.code == Code::Tab)
+            {
+                UpDown::Up
+            } else {
+                UpDown::Down
+            };
+
+            on_event(Event::MoveCutRequest { up_down });
+        };
+
+        let handle_undo_redo = |event: &KeyboardEvent| {
+            let ctrl_press = namui::keyboard::ctrl_press();
+
+            let undo_redo = if ctrl_press && event.code == Code::KeyY
+                || ctrl_press && namui::keyboard::shift_press() && event.code == Code::KeyZ
+            {
+                UndoRedo::Redo
+            } else if ctrl_press && event.code == Code::KeyZ {
+                UndoRedo::Undo
+            } else {
+                return;
+            };
+
+            SEQUENCE_ATOM.mutate(move |sequence| match undo_redo {
+                UndoRedo::Undo => sequence.undo(),
+                UndoRedo::Redo => sequence.redo(),
+            });
+
+            enum UndoRedo {
+                Undo,
+                Redo,
+            }
+        };
+
         ctx.component(
             simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND).attach_event(
                 |event| {
@@ -52,51 +128,9 @@ impl Component for BackgroundWithEvent<'_> {
                             }
                         }
                         namui::Event::KeyDown { event } => {
-                            if event.code == Code::KeyV && namui::keyboard::ctrl_press() {
-                                spawn_local(async move {
-                                    if let Ok(buffers) = clipboard::read_image_buffers().await {
-                                        for png_bytes in buffers {
-                                            add_new_image(project_id, cut_id, png_bytes);
-                                        }
-                                    }
-
-                                    if let Ok(items) = clipboard::read().await {
-                                        for item in items {
-                                            if item.types().iter().any(|type_| {
-                                                type_ == "web application/luda-editor-cg+json"
-                                            }) {
-                                                if let Ok(cg) = item
-                                                    .get_type("web application/luda-editor-cg+json")
-                                                    .await
-                                                    .map(|graphic_bytes| {
-                                                        serde_json::from_slice::<ScreenCg>(
-                                                            &graphic_bytes,
-                                                        )
-                                                        .unwrap()
-                                                    })
-                                                {
-                                                    add_cg(cut_id, cg);
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
-                            } else if event.code == Code::ArrowUp
-                                || event.code == Code::ArrowDown
-                                || event.code == Code::Tab && !is_selecting_target
-                            {
-                                if event.code == Code::ArrowUp
-                                    || (namui::keyboard::shift_press() && event.code == Code::Tab)
-                                {
-                                    on_event(Event::MoveCutRequest {
-                                        up_down: UpDown::Up,
-                                    })
-                                } else {
-                                    on_event(Event::MoveCutRequest {
-                                        up_down: UpDown::Down,
-                                    })
-                                };
-                            }
+                            handle_paste(&event);
+                            handle_key_move(&event);
+                            handle_undo_redo(&event);
                         }
                         namui::Event::DragAndDrop { event } => {
                             if event.is_local_xy_in() {
