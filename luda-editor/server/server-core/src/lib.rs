@@ -1,4 +1,4 @@
-mod apis;
+pub mod apis;
 mod documents;
 mod handle;
 mod session;

@@ -29,8 +29,8 @@ async fn run() {
 
     match cli.command {
         Command::AddUser(AddUser { username }) => {
-            let result = server_core::services::auth::get_or_create_user(
-                server_core::services::auth::UserIdentity::Github {
+            let result = server_core::apis::auth::shared::get_or_create_user(
+                server_core::apis::auth::shared::UserIdentity::Github {
                     github_user_id: "ONLY_FOR_LOCAL_TEST".to_string(),
                     username,
                 },
