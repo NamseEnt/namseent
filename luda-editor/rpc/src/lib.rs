@@ -5,7 +5,7 @@ pub mod utils;
 pub use define_rpc::RpcFuture;
 pub use namui_type::{uuid, Uuid};
 pub use revert_json_patch as json_patch;
-pub use rpc_macro::{define_rpc, handler_query_matching};
+pub use rpc_macro::define_rpc;
 
 #[macro_export]
 macro_rules! simple_error_impl {
