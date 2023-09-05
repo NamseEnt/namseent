@@ -1,4 +1,5 @@
 use crate::documents::*;
+use rpc::get_user_id::{Error, Request, Response};
 
 pub async fn get_user_id(
     session: Option<SessionDocument>,

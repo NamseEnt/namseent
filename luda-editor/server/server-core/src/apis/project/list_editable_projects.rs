@@ -1,8 +1,10 @@
+use super::shared::*;
 use crate::documents::*;
+use rpc::list_editable_projects::{Error, Request, Response};
 
 pub async fn list_editable_projects(
     session: Option<SessionDocument>,
-    req: rpc::list_editable_projects::Request,
+    Request {}: Request,
 ) -> rpc::list_editable_projects::Result {
     todo!()
 }

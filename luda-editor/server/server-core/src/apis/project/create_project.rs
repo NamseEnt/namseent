@@ -1,8 +1,10 @@
+use super::shared::*;
 use crate::documents::*;
+use rpc::create_project::{Error, Request, Response};
 
 pub async fn create_project(
     session: Option<SessionDocument>,
-    req: rpc::create_project::Request,
+    Request {}: Request,
 ) -> rpc::create_project::Result {
     todo!()
 }

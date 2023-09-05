@@ -4,7 +4,7 @@ mod delete_image;
 mod list_images;
 mod prepare_upload_image;
 mod put_image_meta_data;
-mod shared;
+pub mod shared;
 
 pub use delete_image::delete_image;
 pub use list_images::list_images;

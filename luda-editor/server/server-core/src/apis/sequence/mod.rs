@@ -5,7 +5,7 @@ mod delete_sequence;
 mod get_sequence_and_project_shared_data;
 mod list_project_sequences;
 mod redo_update;
-mod shared;
+pub mod shared;
 mod undo_update;
 mod update_sequence;
 mod update_sequence_cut;

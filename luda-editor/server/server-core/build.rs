@@ -5,6 +5,8 @@ use std::{fs, path::PathBuf};
 fn main() {
     let rpc_libe_file_path = "../../rpc/src/lib.rs";
     println!("cargo:rerun-if-changed={rpc_libe_file_path}");
+    println!("cargo:rerun-if-changed=src/build.rs");
+    println!("cargo:rerun-if-changed=src/apis");
 
     let rpc_lib_file = std::fs::read_to_string(rpc_libe_file_path).unwrap();
 
@@ -43,11 +45,12 @@ fn main() {
             if !api_file_path.exists() {
                 let api_file_content = format!(
                     "use crate::documents::*;
-                    use super::common::*;
+                    use super::shared::*;
+                    use rpc::{snake_cased_api_name}::{{Error, Request, Response}};
                     
                     pub async fn {snake_cased_api_name}(
                         session: Option<SessionDocument>,
-                        req: rpc::{snake_cased_api_name}::Request,
+                        Request{{}}: Request,
                     ) -> rpc::{snake_cased_api_name}::Result {{
                         todo!()
                     }}"
@@ -59,7 +62,7 @@ fn main() {
 
         let api_mod_file_path = format!("{api_dir_path}/mod.rs");
         let mod_file_content = dont_edit_manually_warning.to_string()
-            + "mod shared;\n"
+            + "pub mod shared;\n"
             + &snake_cased_api_names
                 .iter()
                 .map(|snake_cased_api_name| format!("mod {snake_cased_api_name};\n"))
@@ -76,9 +79,11 @@ fn main() {
         fs::write(api_mod_file_path, mod_file_content).unwrap();
 
         let api_shared_dir_path = format!("{api_dir_path}/shared");
-        let api_shared_file_path = format!("{api_shared_dir_path}/mod.rs");
+        let api_shared_file_path = PathBuf::from(format!("{api_shared_dir_path}/mod.rs"));
         fs::create_dir_all(api_shared_dir_path).unwrap();
-        fs::write(api_shared_file_path, "").unwrap();
+        if !api_shared_file_path.exists() {
+            fs::write(api_shared_file_path, "").unwrap();
+        }
     }
 
     let apis_mod_file_path = format!("src/apis/mod.rs");

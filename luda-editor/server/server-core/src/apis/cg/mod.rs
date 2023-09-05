@@ -4,7 +4,7 @@ mod complete_put_psd;
 mod get_cg_file;
 mod list_cg_files;
 mod request_put_psd_presigned_url;
-mod shared;
+pub mod shared;
 
 pub use complete_put_psd::complete_put_psd;
 pub use get_cg_file::get_cg_file;

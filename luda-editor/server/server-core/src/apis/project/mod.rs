@@ -3,7 +3,7 @@
 mod create_project;
 mod edit_user_acl;
 mod list_editable_projects;
-mod shared;
+pub mod shared;
 mod update_client_project_shared_data;
 mod update_server_project_shared_data;
 

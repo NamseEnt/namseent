@@ -1,4 +1,5 @@
 use crate::documents::*;
+use rpc::validate_session::{Error, Request, Response};
 
 pub async fn validate_session(
     session: Option<SessionDocument>,

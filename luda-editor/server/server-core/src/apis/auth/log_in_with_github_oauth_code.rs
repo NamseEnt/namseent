@@ -1,6 +1,7 @@
 use super::shared::*;
 use crate::documents::*;
 use lambda_web::is_running_on_lambda;
+use rpc::log_in_with_github_oauth_code::{Error, Request, Response};
 use std::sync::OnceLock;
 
 pub async fn log_in_with_github_oauth_code(

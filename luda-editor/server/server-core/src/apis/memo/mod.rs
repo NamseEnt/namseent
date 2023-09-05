@@ -3,7 +3,7 @@
 mod create_memo;
 mod delete_memo;
 mod list_sequence_memos;
-mod shared;
+pub mod shared;
 
 pub use create_memo::create_memo;
 pub use delete_memo::delete_memo;

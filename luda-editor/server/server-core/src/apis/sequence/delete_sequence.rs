@@ -1,8 +1,10 @@
+use super::shared::*;
 use crate::documents::*;
+use rpc::delete_sequence::{Error, Request, Response};
 
 pub async fn delete_sequence(
     session: Option<SessionDocument>,
-    req: rpc::delete_sequence::Request,
+    Request {}: Request,
 ) -> rpc::delete_sequence::Result {
     todo!()
 }

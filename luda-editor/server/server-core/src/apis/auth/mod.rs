@@ -2,7 +2,7 @@
 
 mod get_user_id;
 mod log_in_with_github_oauth_code;
-mod shared;
+pub mod shared;
 mod validate_session;
 
 pub use get_user_id::get_user_id;

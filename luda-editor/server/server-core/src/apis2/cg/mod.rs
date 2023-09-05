@@ -35,40 +35,7 @@ impl rpc::CgService<SessionDocument> for CgService {
                 + Send,
         >,
     > {
-        Box::pin(async move {
-            crate::services()
-                .project_service
-                .check_session_project_editor(
-                    session,
-                    project_id,
-                    || rpc::request_put_psd_presigned_url::Error::Unauthorized,
-                    |err| rpc::request_put_psd_presigned_url::Error::Unknown(err),
-                )
-                .await?;
-
-            let psd_id = namui_type::uuid_from_hash(&psd_file_name);
-
-            let psd_s3_key = format!("{project_id}/psd/{psd_id}");
-
-            let presigned_url = crate::s3()
-                .request_put_presigned_url(
-                    psd_s3_key,
-                    crate::storage::s3::PutPresignedUrlOptions {
-                        expires_in: std::time::Duration::from_secs(60),
-                        content_type: Some("image/vnd.adobe.photoshop".to_string()),
-                        content_length: Some(psd_file_size),
-                    },
-                )
-                .await
-                .map_err(|err| {
-                    rpc::request_put_psd_presigned_url::Error::Unknown(err.to_string())
-                })?;
-
-            Ok(rpc::request_put_psd_presigned_url::Response {
-                presigned_url,
-                psd_id,
-            })
-        })
+        Box::pin(async move {})
     }
 
     fn complete_put_psd<'a>(
@@ -188,27 +155,7 @@ impl rpc::CgService<SessionDocument> for CgService {
         rpc::list_cg_files::Request { project_id }: rpc::list_cg_files::Request,
     ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::list_cg_files::Result> + Send>>
     {
-        Box::pin(async move {
-            let cg_files = CgDocumentQuery {
-                pk_project_id: project_id,
-                last_sk: None, // TODO
-            }
-            .run()
-            .await
-            .map_err(|err| rpc::list_cg_files::Error::Unknown(err.to_string()))?
-            .documents
-            .into_iter()
-            .map(
-                |CgDocument {
-                     project_id: _,
-                     cg_id: _,
-                     cg_file,
-                 }| cg_file,
-            )
-            .collect();
-
-            Ok(rpc::list_cg_files::Response { cg_files })
-        })
+        Box::pin(async move {})
     }
 
     fn get_cg_file<'a>(
