@@ -1,44 +1,16 @@
 use namui_type::Uuid;
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct CircularIndex<const N: usize> {
-    index: usize,
-}
-
-impl<const N: usize> std::fmt::Display for CircularIndex<N> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.index)
-    }
-}
-
-impl<const N: usize> CircularIndex<N> {
-    pub const fn new() -> Self {
-        Self { index: 0 }
-    }
-    pub fn next(&self) -> Self {
-        Self {
-            index: (self.index + 1) % N,
-        }
-    }
-    pub fn increase(&mut self) {
-        *self = self.next();
-    }
-    pub fn decrease(&self) -> Self {
-        Self {
-            index: (self.index + N - 1) % N,
-        }
-    }
-}
-
 #[document_macro::document]
+/// SequenceIndexDocument is a document that contains the most recent index of the sequence.
 pub struct SequenceIndexDocument {
     #[pk]
     pub id: rpc::Uuid,
 
     pub project_id: rpc::Uuid,
+    /// The index of the most recent sequence version.
     pub index: CircularIndex<8>,
-    pub undoable_count: usize,
-    pub redoable_count: usize,
+    pub undoable_count: BoundedUsize<8>,
+    pub redoable_count: BoundedUsize<8>,
 }
 
 #[document_macro::document]
@@ -88,4 +60,59 @@ pub struct ProjectSequenceDocument {
     pub project_id: rpc::Uuid,
     #[sk]
     pub sequence_id: rpc::Uuid,
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct CircularIndex<const N: usize> {
+    index: usize,
+}
+
+impl<const N: usize> std::fmt::Display for CircularIndex<N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.index)
+    }
+}
+
+impl<const N: usize> CircularIndex<N> {
+    pub const fn new() -> Self {
+        Self { index: 0 }
+    }
+    pub fn increase(&mut self) {
+        self.index = (self.index + 1) % N;
+    }
+    pub fn decrease(&mut self) {
+        self.index = (self.index + N - 1) % N;
+    }
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct BoundedUsize<const N: usize> {
+    value: usize,
+}
+
+impl<const N: usize> BoundedUsize<N> {
+    pub const fn new() -> Self {
+        Self { value: 0 }
+    }
+    pub fn make_zero(&mut self) {
+        self.value = 0;
+    }
+    pub fn increase(&mut self) {
+        if self.value < N - 1 {
+            self.value += 1;
+        }
+    }
+    pub fn decrease(&mut self) {
+        if self.value > 0 {
+            self.value -= 1;
+        }
+    }
+}
+
+impl<const N: usize> std::ops::Deref for BoundedUsize<N> {
+    type Target = usize;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
 }

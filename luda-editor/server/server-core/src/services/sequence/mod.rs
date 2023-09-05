@@ -102,8 +102,8 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                     id: sequence_id,
                     project_id: req.project_id,
                     index: CircularIndex::new(),
-                    undoable_count: 0,
-                    redoable_count: 0,
+                    undoable_count: BoundedUsize::new(),
+                    redoable_count: BoundedUsize::new(),
                 })
                 .create_item(SequenceDocument {
                     id: sequence_id,
@@ -148,11 +148,11 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                         return Err(rpc::undo_update::Error::Forbidden);
                     }
 
-                    if document.undoable_count == 0 {
+                    if *document.undoable_count == 0 {
                         return Err(rpc::undo_update::Error::NoMoreUndo);
                     }
-                    document.undoable_count -= 1;
-                    document.redoable_count += 1;
+                    document.undoable_count.decrease();
+                    document.redoable_count.increase();
                     document.index.decrease();
 
                     Ok(document)
@@ -195,11 +195,11 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                         return Err(rpc::redo_update::Error::Forbidden);
                     }
 
-                    if document.redoable_count == 0 {
+                    if *document.redoable_count == 0 {
                         return Err(rpc::redo_update::Error::NoMoreRedo);
                     }
-                    document.redoable_count -= 1;
-                    document.undoable_count += 1;
+                    document.redoable_count.decrease();
+                    document.undoable_count.increase();
                     document.index.increase();
 
                     Ok(document)
@@ -263,6 +263,8 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             .map_err(|error| rpc::update_sequence::Error::Unknown(error.to_string()))?;
 
             sequence_index_document.index.increase();
+            sequence_index_document.undoable_count.increase();
+            sequence_index_document.redoable_count.make_zero();
             sequence_document.index.increase();
 
             let transact = crate::dynamo_db()
@@ -369,6 +371,8 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             .map_err(|error| rpc::update_sequence_cut::Error::Unknown(error.to_string()))?;
 
             sequence_index_document.index.increase();
+            sequence_index_document.undoable_count.increase();
+            sequence_index_document.redoable_count.make_zero();
             sequence_document.index.increase();
 
             let cut = sequence_document
