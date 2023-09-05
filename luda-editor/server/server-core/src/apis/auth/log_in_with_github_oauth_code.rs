@@ -6,25 +6,21 @@ use std::sync::OnceLock;
 
 pub async fn log_in_with_github_oauth_code(
     session: Option<SessionDocument>,
-    req: rpc::log_in_with_github_oauth_code::Request,
+    req: Request,
 ) -> rpc::log_in_with_github_oauth_code::Result {
     if session.is_some() {
-        return Err(rpc::log_in_with_github_oauth_code::Error::AlreadyLoggedIn);
+        return Err(Error::AlreadyLoggedIn);
     }
 
     let access_token = exchange_github_auth_code_to_access_token(req.code).await;
     if let Err(error) = access_token {
-        return Err(rpc::log_in_with_github_oauth_code::Error::Unknown(
-            error.to_string(),
-        ));
+        return Err(Error::Unknown(error.to_string()));
     }
     let access_token = access_token.unwrap();
 
     let github_user = get_github_user(access_token).await;
     if let Err(error) = github_user {
-        return Err(rpc::log_in_with_github_oauth_code::Error::Unknown(
-            error.to_string(),
-        ));
+        return Err(Error::Unknown(error.to_string()));
     }
     let github_user = github_user.unwrap();
 
@@ -34,21 +30,17 @@ pub async fn log_in_with_github_oauth_code(
     })
     .await;
     if let Err(error) = user {
-        return Err(rpc::log_in_with_github_oauth_code::Error::Unknown(
-            error.to_string(),
-        ));
+        return Err(Error::Unknown(error.to_string()));
     }
     let user = user.unwrap();
 
     let session = crate::session::create_session(user.id).await;
     if let Err(error) = session {
-        return Err(rpc::log_in_with_github_oauth_code::Error::Unknown(
-            error.to_string(),
-        ));
+        return Err(Error::Unknown(error.to_string()));
     }
     let session = session.unwrap();
 
-    Ok(rpc::log_in_with_github_oauth_code::Response {
+    Ok(Response {
         session_id: session.id,
     })
 }

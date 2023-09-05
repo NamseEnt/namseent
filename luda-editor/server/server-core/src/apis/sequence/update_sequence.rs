@@ -1,10 +1,102 @@
-use super::shared::*;
 use crate::documents::*;
 use rpc::update_sequence::{Error, Request, Response};
 
 pub async fn update_sequence(
     session: Option<SessionDocument>,
-    Request {}: Request,
+    Request {
+        sequence_id,
+        action,
+    }: Request,
 ) -> rpc::update_sequence::Result {
-    todo!()
+    let Some(session) = session else {
+        return Err(Error::Unauthorized);
+    };
+
+    let mut sequence_index_document = SequenceIndexDocumentGetWithVersion { pk_id: sequence_id }
+        .run()
+        .await
+        .map_err(|error| match error {
+            crate::storage::dynamo_db::GetItemError::NotFound => Error::SequenceNotFound,
+            _ => Error::Unknown(error.to_string()),
+        })?;
+
+    let is_project_editor = crate::apis::project::shared::is_project_editor(
+        session.user_id,
+        sequence_index_document.project_id,
+    )
+    .await
+    .map_err(|error| Error::Unknown(error.to_string()))?;
+
+    if !is_project_editor {
+        return Err(Error::Forbidden);
+    }
+
+    let mut sequence_document = SequenceDocumentGet {
+        pk_id: sequence_id,
+        sk_index: sequence_index_document.index,
+    }
+    .run()
+    .await
+    .map_err(|error| Error::Unknown(error.to_string()))?;
+
+    sequence_index_document.index.increase();
+    sequence_index_document.undoable_count.increase();
+    sequence_index_document.redoable_count.make_zero();
+    sequence_document.index.increase();
+
+    let transact = crate::dynamo_db()
+        .transact_with_cancel::<Error>()
+        .manual_update_item(sequence_index_document);
+    match action {
+        rpc::data::SequenceUpdateAction::InsertCut { cut, after_cut_id } => {
+            let cut_insert_index = match after_cut_id {
+                Some(after_cut_id) => sequence_document
+                    .cuts
+                    .iter()
+                    .position(|cut| cut.cut_id == after_cut_id)
+                    .ok_or(Error::CutNotFound)?,
+                None => sequence_document.cuts.len(),
+            };
+
+            sequence_document.cuts.insert(
+                cut_insert_index,
+                CutIndex {
+                    cut_id: cut.id,
+                    index: CircularIndex::new(),
+                },
+            );
+
+            transact.create_item(SequenceCutDocument {
+                sequence_id,
+                cut_id: cut.id,
+                cut_index: CircularIndex::new(),
+                cut,
+            })
+        }
+        rpc::data::SequenceUpdateAction::RenameSequence { name } => {
+            sequence_document.name = name;
+            transact
+        }
+        rpc::data::SequenceUpdateAction::DeleteCut { cut_id } => {
+            let cut_position = sequence_document
+                .cuts
+                .iter()
+                .position(|cut| cut.cut_id == cut_id)
+                .ok_or(Error::CutNotFound)?;
+
+            sequence_document.cuts.remove(cut_position);
+            transact
+        }
+    }
+    .put_item(sequence_document)
+    .send()
+    .await
+    .map_err(|error| match error {
+        crate::storage::dynamo_db::TransactError::Canceled(canceled) => canceled,
+        crate::storage::dynamo_db::TransactError::Unknown(unknown) => {
+            Error::Unknown(unknown.to_string())
+        }
+    })?;
+
+    Ok(Response {})
 }

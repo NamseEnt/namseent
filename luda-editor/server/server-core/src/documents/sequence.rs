@@ -38,10 +38,6 @@ pub struct CutIndex {
     pub index: CircularIndex<8>,
 }
 
-impl SequenceDocument {
-    pub fn update(&mut self) {}
-}
-
 #[document_macro::document]
 pub struct SequenceCutDocument {
     #[pk]

@@ -3,17 +3,17 @@ use rpc::request_put_psd_presigned_url::{Error, Request, Response};
 
 pub async fn request_put_psd_presigned_url(
     session: Option<SessionDocument>,
-    rpc::request_put_psd_presigned_url::Request {
+    Request {
         project_id,
         psd_file_name,
         psd_file_size,
-    }: rpc::request_put_psd_presigned_url::Request,
+    }: Request,
 ) -> rpc::request_put_psd_presigned_url::Result {
     crate::apis::project::shared::check_session_project_editor(
         session,
         project_id,
-        || rpc::request_put_psd_presigned_url::Error::Unauthorized,
-        |err| rpc::request_put_psd_presigned_url::Error::Unknown(err),
+        || Error::Unauthorized,
+        |err| Error::Unknown(err),
     )
     .await?;
 
@@ -31,9 +31,9 @@ pub async fn request_put_psd_presigned_url(
             },
         )
         .await
-        .map_err(|err| rpc::request_put_psd_presigned_url::Error::Unknown(err.to_string()))?;
+        .map_err(|err| Error::Unknown(err.to_string()))?;
 
-    Ok(rpc::request_put_psd_presigned_url::Response {
+    Ok(Response {
         presigned_url,
         psd_id,
     })

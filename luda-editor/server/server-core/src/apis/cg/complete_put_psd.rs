@@ -5,22 +5,22 @@ use rpc::complete_put_psd::{Error, Request, Response};
 
 pub async fn complete_put_psd(
     session: Option<SessionDocument>,
-    rpc::complete_put_psd::Request {
+    Request {
         project_id,
         psd_file_name,
         psd_id,
-    }: rpc::complete_put_psd::Request,
+    }: Request,
 ) -> rpc::complete_put_psd::Result {
     crate::apis::project::shared::check_session_project_editor(
         session,
         project_id,
-        || rpc::complete_put_psd::Error::Unauthorized,
-        |err: String| rpc::complete_put_psd::Error::Unknown(err),
+        || Error::Unauthorized,
+        |err: String| Error::Unknown(err),
     )
     .await?;
 
     if namui_type::uuid_from_hash(&psd_file_name) != psd_id {
-        return Err(rpc::complete_put_psd::Error::WrongPsdFileName);
+        return Err(Error::WrongPsdFileName);
     };
 
     let psd_s3_key = format!("{project_id}/psd/{psd_id}");
@@ -29,12 +29,8 @@ pub async fn complete_put_psd(
         .get_object(psd_s3_key)
         .await
         .map_err(|err| match err {
-            crate::storage::s3::GetObjectError::NotFound => {
-                rpc::complete_put_psd::Error::PsdFileNotFound
-            }
-            crate::storage::s3::GetObjectError::Unknown(err) => {
-                rpc::complete_put_psd::Error::Unknown(err.to_string())
-            }
+            crate::storage::s3::GetObjectError::NotFound => Error::PsdFileNotFound,
+            crate::storage::s3::GetObjectError::Unknown(err) => Error::Unknown(err.to_string()),
         })?;
 
     let PsdParsingResult {
@@ -42,7 +38,7 @@ pub async fn complete_put_psd(
         cg_file,
         cg_thumbnail_webp,
     } = psd_to_webps_and_cg_file(&psd_bytes, &psd_file_name)
-        .map_err(|e| rpc::complete_put_psd::Error::WrongPsdFile(e.to_string()))?;
+        .map_err(|e| Error::WrongPsdFile(e.to_string()))?;
 
     let cg_file_id = cg_file.id;
 
@@ -57,9 +53,7 @@ pub async fn complete_put_psd(
                         crate::s3()
                             .put_object(cg_key, variant_webp_bytes.clone())
                             .await
-                            .map_err(|err| {
-                                rpc::complete_put_psd::Error::Unknown(err.to_string())
-                            })?;
+                            .map_err(|err| Error::Unknown(err.to_string()))?;
 
                         Ok(())
                     },
@@ -78,9 +72,7 @@ pub async fn complete_put_psd(
                         crate::s3()
                             .put_object(cg_key, cg_thumbnail_webp.clone())
                             .await
-                            .map_err(|err| {
-                                rpc::complete_put_psd::Error::Unknown(err.to_string())
-                            })?;
+                            .map_err(|err| Error::Unknown(err.to_string()))?;
 
                         Ok(())
                     },
@@ -101,7 +93,7 @@ pub async fn complete_put_psd(
             cg_file,
         })
         .await
-        .map_err(|err| rpc::complete_put_psd::Error::Unknown(err.to_string()))?;
+        .map_err(|err| Error::Unknown(err.to_string()))?;
 
-    Ok(rpc::complete_put_psd::Response { cg_id })
+    Ok(Response { cg_id })
 }

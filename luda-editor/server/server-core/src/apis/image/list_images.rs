@@ -4,7 +4,7 @@ use rpc::list_images::{Error, Request, Response};
 
 pub async fn list_images(
     _session: Option<SessionDocument>,
-    rpc::list_images::Request { project_id }: rpc::list_images::Request,
+    Request { project_id }: Request,
 ) -> rpc::list_images::Result {
     let query = ProjectImageDocumentQuery {
         pk_project_id: project_id,
@@ -12,9 +12,9 @@ pub async fn list_images(
     }
     .run()
     .await
-    .map_err(|error| rpc::list_images::Error::Unknown(error.to_string()))?;
+    .map_err(|error| Error::Unknown(error.to_string()))?;
 
-    Ok(rpc::list_images::Response {
+    Ok(Response {
         images: query
             .documents
             .into_iter()
