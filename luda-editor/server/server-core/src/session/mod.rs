@@ -1,13 +1,6 @@
-use rpc::hyper::{Body, Request};
+use crate::documents::*;
+use hyper::{Body, Request};
 use std::str::FromStr;
-
-#[document_macro::document]
-pub struct SessionDocument {
-    #[pk]
-    pub id: rpc::Uuid,
-    pub user_id: rpc::Uuid,
-}
-
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum IdentitySource {
     Github,

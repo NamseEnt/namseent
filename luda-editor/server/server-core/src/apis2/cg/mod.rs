@@ -7,7 +7,7 @@ use self::{
     documents::{CgDocument, CgDocumentQuery},
     psd_to_cg_file::{psd_to_webps_and_cg_file, PsdParsingResult},
 };
-use crate::{services::cg::documents::CgDocumentGet, session::SessionDocument};
+use crate::{apis::cg::documents::CgDocumentGet, session::SessionDocument};
 use futures::FutureExt;
 
 #[derive(Debug)]

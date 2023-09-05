@@ -151,15 +151,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 
 [[package]]
-name = "convert_case"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1262,7 +1253,6 @@ name = "rpc"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "hyper",
  "migration",
  "namui",
  "namui-type",
@@ -1278,7 +1268,15 @@ dependencies = [
 name = "rpc-macro"
 version = "0.1.0"
 dependencies = [
- "convert_case",
+ "quote",
+ "rpc-parser",
+ "syn 2.0.29",
+]
+
+[[package]]
+name = "rpc-parser"
+version = "0.1.0"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.29",

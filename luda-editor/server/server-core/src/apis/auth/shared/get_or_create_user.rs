@@ -1,4 +1,5 @@
-use super::{documents::*, *};
+use super::*;
+use crate::documents::*;
 use crate::storage::dynamo_db::{GetItemError, NoCancel, TransactError};
 
 pub async fn get_or_create_user(

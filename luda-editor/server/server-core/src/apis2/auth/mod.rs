@@ -58,68 +58,6 @@ impl AuthService {
 }
 
 impl rpc::AuthService<SessionDocument> for AuthService {
-    fn exchange_google_auth_code_to_access_token<'a>(
-        &'a self,
-        _session: Option<SessionDocument>,
-        _req: rpc::exchange_google_auth_code_to_access_token::Request,
-    ) -> std::pin::Pin<
-        Box<
-            dyn 'a
-                + std::future::Future<
-                    Output = Result<
-                        rpc::exchange_google_auth_code_to_access_token::Response,
-                        rpc::exchange_google_auth_code_to_access_token::Error,
-                    >,
-                >
-                + Send,
-        >,
-    > {
-        todo!("https://namseent.zulipchat.com/#narrow/stream/332914-.EA.B8.B0.EC.88.A0.EC.97.B0.EA.B5.AC.EC.86.8C/topic/CRDT.20Lock-free.20Editor/near/295555692")
-        // Box::pin(async move {
-        //     // NOTE: https://developers.google.com/identity/protocols/oauth2/web-server#exchange-authorization-code
-
-        //     let result = self.reqwest_client
-        //         .request(Method::POST, "https://oauth2.googleapis.com/token")
-        //         .header("Content-Type", "application/x-www-form-urlencoded")
-        //         .header("Accept", "application/json")
-        //         .body(format!("code={code}&client_id={client_id}&client_secret={client_secret}&redirect_uri={redirect_uri}&grant_type=authorization_code",
-        //             code=req.code,
-        //             client_id=self.google_client_setting.client_id,
-        //             client_secret=self.google_client_setting.client_secret,
-        //             redirect_uri=self.google_client_setting.redirect_uri,
-        //         )).send().await;
-
-        //     match result {
-        //         Ok(response) => {
-        //             if !response.status().is_success() {
-        //                 return Err(rpc::exchange_google_auth_code_to_access_token::Error::Unknown(format!("{:?}", response.status())));
-        //             }
-        //             let body = response.text().await.unwrap();
-
-        //             struct ResponseBody {
-        //                 "access_token": "1/fFAGRNJru1FTz70BzhT3Zg",
-        //                 "expires_in": 3920,
-        //                 "token_type": "Bearer",
-        //                 "scope": "https://www.googleapis.com/auth/drive.metadata.readonly",
-        //                 "refresh_token": "1//xEoDL4iW3cxlI7yDbSRFYNG01kVKM2C-259HOF2aQbI"
-        //             }
-
-        //         },
-        //         Err(error) => {
-        //             eprintln!(
-        //                 "Fail to exchange google auth code to access token: {}",
-        //                 error
-        //             );
-        //             Err(
-        //                 rpc::exchange_google_auth_code_to_access_token::Error::Unknown(
-        //                     error.to_string(),
-        //                 ),
-        //             )
-        //         }
-        //     }
-        // })
-    }
-
     fn log_in_with_github_oauth_code<'a>(
         &'a self,
         session: Option<SessionDocument>,
@@ -196,22 +134,6 @@ impl rpc::AuthService<SessionDocument> for AuthService {
             match session {
                 Some(_) => Ok(rpc::validate_session::Response {}),
                 None => Err(rpc::validate_session::Error::InvalidSession),
-            }
-        })
-    }
-
-    fn get_user_id<'a>(
-        &'a self,
-        session: Option<SessionDocument>,
-        _req: rpc::get_user_id::Request,
-    ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::get_user_id::Result> + Send>>
-    {
-        Box::pin(async move {
-            match session {
-                Some(session) => Ok(rpc::get_user_id::Response {
-                    user_id: session.user_id,
-                }),
-                None => Err(rpc::get_user_id::Error::InvalidSession),
             }
         })
     }
