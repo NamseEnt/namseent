@@ -35,7 +35,7 @@ pub fn s3<'a>() -> &'a S3 {
 
 pub async fn init() {
     let server_path = {
-        let item = env!("CARGO_MANIFEST_DIR").split("/").collect::<Vec<_>>();
+        let item = env!("CARGO_MANIFEST_DIR").split('/').collect::<Vec<_>>();
         item[..item.len() - 1].join("/") + "/"
     };
 

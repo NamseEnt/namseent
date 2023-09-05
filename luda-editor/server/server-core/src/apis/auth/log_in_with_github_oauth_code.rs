@@ -145,8 +145,7 @@ async fn get_github_user(github_access_token: String) -> Result<GithubUser, Stri
                     "get_github_user_id failed: {:?}\n{body}",
                     response.status(),
                     body = response.text().await.unwrap()
-                )
-                .into())
+                ))
             }
         }
         Err(error) => Err(error.to_string()),

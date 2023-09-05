@@ -20,7 +20,7 @@ pub async fn get_or_create_user(
             }
             .run()
             .await
-            .map_err(|error| GetOrCreateUserError::GetUserError(error))?;
+            .map_err(GetOrCreateUserError::GetUser)?;
             Ok(user_document)
         }
         Err(error) => match error {
@@ -40,12 +40,12 @@ pub async fn get_or_create_user(
                     })
                     .send()
                     .await
-                    .map_err(|error| GetOrCreateUserError::CreateError(error))?;
+                    .map_err(GetOrCreateUserError::Create)?;
 
                 Ok(user_document)
             }
             GetItemError::DeserializeFailed(_) | GetItemError::Unknown(_) => {
-                Err(GetOrCreateUserError::GetIdentityError(error))
+                Err(GetOrCreateUserError::GetIdentity(error))
             }
         },
     }
@@ -53,8 +53,8 @@ pub async fn get_or_create_user(
 
 #[derive(Debug)]
 pub enum GetOrCreateUserError {
-    GetIdentityError(GetItemError),
-    GetUserError(GetItemError),
-    CreateError(TransactError<NoCancel>),
+    GetIdentity(GetItemError),
+    GetUser(GetItemError),
+    Create(TransactError<NoCancel>),
 }
 crate::simple_error_impl!(GetOrCreateUserError);

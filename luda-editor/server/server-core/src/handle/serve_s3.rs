@@ -29,8 +29,8 @@ pub async fn serve_s3(
         key
     );
 
-    return Ok(response_builder
+    Ok(response_builder
         .status(302)
         .header("Location", s3_location)
-        .body(Body::empty())?);
+        .body(Body::empty())?)
 }

@@ -10,14 +10,14 @@ pub struct MemoDocument {
     pub user_name: String,
 }
 
-impl Into<rpc::data::Memo> for MemoDocument {
-    fn into(self) -> rpc::data::Memo {
+impl From<MemoDocument> for rpc::data::Memo {
+    fn from(val: MemoDocument) -> Self {
         rpc::data::Memo {
-            id: self.memo_id,
-            content: self.content,
-            cut_id: self.cut_id,
-            user_id: self.user_id,
-            user_name: self.user_name,
+            id: val.memo_id,
+            content: val.content,
+            cut_id: val.cut_id,
+            user_id: val.user_id,
+            user_name: val.user_name,
         }
     }
 }

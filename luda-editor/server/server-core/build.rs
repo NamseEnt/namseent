@@ -86,7 +86,7 @@ fn main() {
         }
     }
 
-    let apis_mod_file_path = format!("src/apis/mod.rs");
+    let apis_mod_file_path = "src/apis/mod.rs".to_string();
     let mod_file_content = dont_edit_manually_warning.to_string()
         + &snake_cased_service_names
             .into_iter()

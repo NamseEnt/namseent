@@ -15,7 +15,7 @@ pub async fn complete_put_psd(
         session,
         project_id,
         || Error::Unauthorized,
-        |err: String| Error::Unknown(err),
+        Error::Unknown,
     )
     .await?;
 

@@ -39,9 +39,9 @@ pub async fn create_memo(
 
     let memo_document = MemoDocument {
         sequence_id: sequence_document.id,
-        cut_id: cut_id,
+        cut_id,
         memo_id: rpc::Uuid::new_v4(),
-        content: content,
+        content,
         user_id: session.user_id,
         user_name: user_document.name,
     };

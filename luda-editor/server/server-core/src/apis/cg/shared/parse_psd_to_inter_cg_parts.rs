@@ -15,24 +15,24 @@ pub struct InterCgVariant<'a> {
     pub blend_mode: BlendMode,
 }
 
-pub fn parse_psd_to_inter_cg_parts<'a>(psd: &'a psd::Psd) -> Vec<InterCgPart<'a>> {
+pub fn parse_psd_to_inter_cg_parts(psd: &psd::Psd) -> Vec<InterCgPart<'_>> {
     let layer_tree = make_tree(psd).expect("Failed to make tree");
     let parts = create_inter_cg_part_from_layer_tree(layer_tree, vec![], BlendMode::Normal);
     parts
 }
 
-fn create_inter_cg_part_from_layer_tree<'psd>(
-    layer_tree: Vec<LayerTree<'psd>>,
+fn create_inter_cg_part_from_layer_tree(
+    layer_tree: Vec<LayerTree<'_>>,
     layer_full_names: Vec<String>,
     blend_mode: BlendMode,
-) -> Vec<InterCgPart<'psd>> {
+) -> Vec<InterCgPart<'_>> {
     let mut merging_layer_tree = vec![];
     let mut parts = vec![];
 
     fn push_merging_layer_tree_as_always_on_part<'psd>(
         merging_layer_tree: &mut Vec<LayerTree<'psd>>,
         parts: &mut Vec<InterCgPart<'psd>>,
-        layer_full_names: &Vec<String>,
+        layer_full_names: &[String],
         blend_mode: BlendMode,
     ) {
         if merging_layer_tree.is_empty() {

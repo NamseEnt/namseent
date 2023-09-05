@@ -11,7 +11,7 @@ impl UserDocument {
     pub fn migrate(previous: v0::UserDocument) -> Self {
         Self {
             id: previous.id,
-            name: format!("anonymous"),
+            name: "anonymous".to_string(),
         }
     }
 }

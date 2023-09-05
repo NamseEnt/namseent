@@ -63,7 +63,7 @@ pub(crate) fn psd_to_webps_and_cg_file(
                  ..
              }| {
                 let webp =
-                    encode_rgba_webp(&image_buffer, image_buffer.width(), image_buffer.height());
+                    encode_rgba_webp(image_buffer, image_buffer.width(), image_buffer.height());
                 (variant_id, webp)
             },
         )
@@ -77,13 +77,7 @@ pub(crate) fn psd_to_webps_and_cg_file(
                 part.variants.first().map(|variant| {
                     image_buffers
                         .iter()
-                        .find_map(|image_buffer| {
-                            if image_buffer.variant_id == variant.id {
-                                Some(image_buffer)
-                            } else {
-                                None
-                            }
-                        })
+                        .find(|image_buffer| image_buffer.variant_id == variant.id)
                         .unwrap()
                 })
             })

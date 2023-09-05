@@ -24,7 +24,7 @@ pub async fn create_sequence(
         .transact()
         .create_item(SequenceIndexDocument {
             id: sequence_id,
-            project_id: project_id,
+            project_id,
             index: CircularIndex::new(),
             undoable_count: BoundedUsize::new(),
             redoable_count: BoundedUsize::new(),
@@ -32,12 +32,12 @@ pub async fn create_sequence(
         .create_item(SequenceDocument {
             id: sequence_id,
             index: CircularIndex::new(),
-            project_id: project_id,
-            name: name,
+            project_id,
+            name,
             cuts: vec![],
         })
         .create_item(ProjectSequenceDocument {
-            project_id: project_id,
+            project_id,
             sequence_id,
         })
         .send()

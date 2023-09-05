@@ -13,7 +13,7 @@ pub async fn request_put_psd_presigned_url(
         session,
         project_id,
         || Error::Unauthorized,
-        |err| Error::Unknown(err),
+        Error::Unknown,
     )
     .await?;
 

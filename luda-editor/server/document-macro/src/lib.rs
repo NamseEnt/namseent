@@ -91,7 +91,7 @@ pub fn document(
             }
             impl ToString for #sk_struct_ident {
                 fn to_string(&self) -> String {
-                    vec![
+                    [
                         #(#to_string_rows)*
                     ].join("&")
                 }
