@@ -105,65 +105,6 @@ impl Component for WysiwygEditor<'_> {
             },
         );
 
-        let graphic_clip_on_event = Box::new(move |e: graphic_clip::Event| match e {
-            graphic_clip::Event::WysiwygTool(e) => match e {
-                wysiwyg_tool::Event::Mover { event } => match event {
-                    mover::Event::MoveStart {
-                        start_global_xy,
-                        end_global_xy,
-                        container_wh,
-                    } => {
-                        set_dragging.set(Some(Dragging::Mover {
-                            context: mover::MoverDraggingContext {
-                                start_global_xy,
-                                end_global_xy,
-                                container_wh,
-                            },
-                        }));
-                    }
-                },
-                wysiwyg_tool::Event::Resizer { event } => match event {
-                    resizer::Event::OnResize {
-                        circumscribed,
-                        graphic_index,
-                    } => {
-                        SEQUENCE_ATOM.mutate(move |sequence| {
-                            sequence.update_cut(
-                                cut_id,
-                                CutUpdateAction::UpdateCircumscribed {
-                                    graphic_index,
-                                    circumscribed,
-                                },
-                            )
-                        });
-                    }
-                    resizer::Event::OnUpdateDraggingContext { context } => {
-                        set_dragging.set(context.map(|context| Dragging::Resizer { context }));
-                    }
-                },
-            },
-            graphic_clip::Event::SelectImage { graphic_index } => {
-                set_editing_image_index.set(Some(graphic_index))
-            }
-            graphic_clip::Event::GraphicRightClick {
-                global_xy,
-                cut_id,
-                graphic_index,
-                graphic_wh,
-                graphic,
-            } => {
-                open_context_menu(
-                    global_xy,
-                    ContextMenu::WysiwygEditor {
-                        cut_id,
-                        graphic_index,
-                        graphic_wh,
-                        graphic: graphic.clone(),
-                    },
-                );
-            }
-        });
-
         ctx.compose(|ctx| {
             let mut ctx = ctx.clip(
                 Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
@@ -171,19 +112,85 @@ impl Component for WysiwygEditor<'_> {
             );
 
             for (graphic_index, screen_graphic) in screen_graphics.iter() {
-                let graphic_clip_on_event = graphic_clip_on_event.clone();
                 ctx.add_with_key(
                     graphic_index,
                     graphic_clip::GraphicClip {
                         cut_id,
                         graphic_index: *graphic_index,
-                        graphic: screen_graphic.clone(),
+                        graphic: &screen_graphic,
                         is_editing_graphic: editing_image_index.as_ref() == &Some(*graphic_index),
                         project_id,
                         wh,
-                        dragging: dragging.deref().clone(),
-                        cg_files: cg_files.clone(),
-                        on_event: graphic_clip_on_event,
+                        dragging: dragging.as_ref(),
+                        cg_files: &cg_files,
+                        on_event: &move |e: graphic_clip::Event| match e {
+                            graphic_clip::Event::WysiwygTool(e) => match e {
+                                wysiwyg_tool::Event::Mover { event } => match event {
+                                    mover::Event::MoveStart {
+                                        start_global_xy,
+                                        end_global_xy,
+                                        container_wh,
+                                    } => {
+                                        set_dragging.set(Some(Dragging::Mover {
+                                            context: mover::MoverDraggingContext {
+                                                start_global_xy,
+                                                end_global_xy,
+                                                container_wh,
+                                            },
+                                        }));
+                                    }
+                                },
+                                wysiwyg_tool::Event::Resizer { event } => match event {
+                                    resizer::Event::OnResize {
+                                        circumscribed,
+                                        graphic_index,
+                                    } => {
+                                        SEQUENCE_ATOM.mutate(move |sequence| {
+                                            sequence.update_cut(
+                                                cut_id,
+                                                CutUpdateAction::UpdateCircumscribed {
+                                                    graphic_index,
+                                                    circumscribed,
+                                                },
+                                            )
+                                        });
+                                    }
+                                    resizer::Event::OnUpdateDraggingContext { context } => {
+                                        set_dragging.set(
+                                            context.map(|context| Dragging::Resizer { context }),
+                                        );
+                                    }
+                                },
+                            },
+                            graphic_clip::Event::SelectImage { graphic_index } => {
+                                set_editing_image_index.set(Some(graphic_index))
+                            }
+                            graphic_clip::Event::GraphicRightClick {
+                                global_xy,
+                                cut_id,
+                                graphic_index,
+                                graphic_wh,
+                                graphic,
+                            } => {
+                                open_context_menu(
+                                    global_xy,
+                                    ContextMenu::WysiwygEditor {
+                                        cut_id,
+                                        graphic_index,
+                                        graphic_wh,
+                                        graphic: graphic.clone(),
+                                    },
+                                );
+                            }
+                            graphic_clip::Event::DeleteGraphic { graphic_index } => {
+                                SEQUENCE_ATOM.mutate(move |sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::DeleteGraphic { graphic_index },
+                                    )
+                                });
+                            }
+                        },
                     },
                 );
             }
