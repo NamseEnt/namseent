@@ -80,16 +80,16 @@ impl Component for ProjectListPage {
                     2.0,
                     table::hooks::vertical([
                         table::hooks::fixed(40.px(), |wh, ctx| {
-                            ctx.add(namui_prebuilt::button::text_button(
-                                Rect::from_xy_wh(Xy::single(0.px()), wh),
-                                "[+] Add Project",
-                                Color::WHITE,
-                                Color::grayscale_f01(0.5),
-                                1.px(),
-                                Color::BLACK,
-                                [MouseButton::Left],
-                                move |_| on_add_button_clicked(),
-                            ));
+                            ctx.add(namui_prebuilt::button::TextButton {
+                                rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
+                                text: "[+] Add Project",
+                                text_color: Color::WHITE,
+                                stroke_color: Color::grayscale_f01(0.5),
+                                stroke_width: 1.px(),
+                                fill_color: Color::BLACK,
+                                mouse_buttons: vec![MouseButton::Left],
+                                on_mouse_up_in: Box::new(|_| on_add_button_clicked()),
+                            });
                         }),
                         table::hooks::ratio(1.0, |wh, ctx| {
                             let item_wh = Wh::new(wh.width, 40.px());
@@ -162,15 +162,15 @@ impl Component for ProjectCell {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let project_id = self.project.id;
 
-        ctx.component(namui_prebuilt::button::text_button(
-            Rect::from_xy_wh(Xy::single(0.px()), self.wh),
-            self.project.name.as_str(),
-            Color::WHITE,
-            Color::grayscale_f01(0.3),
-            1.px(),
-            Color::BLACK,
-            [MouseButton::Left],
-            move |event: MouseEvent| {
+        ctx.component(namui_prebuilt::button::TextButton {
+            rect: Rect::from_xy_wh(Xy::single(0.px()), self.wh),
+            text: self.project.name.as_str(),
+            text_color: Color::WHITE,
+            stroke_color: Color::grayscale_f01(0.3),
+            stroke_width: 1.px(),
+            fill_color: Color::BLACK,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: Box::new(|event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
                     super::router::move_to(super::router::Route::SequenceList { project_id });
                 } else if event.button == Some(MouseButton::Right) {
@@ -180,8 +180,8 @@ impl Component for ProjectCell {
                     //     project_id,
                     // });
                 }
-            },
-        ))
+            }),
+        })
         .done()
     }
 }

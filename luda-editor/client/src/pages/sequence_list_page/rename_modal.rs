@@ -42,23 +42,23 @@ impl Component for RenameModal<'_> {
         ctx.compose(|ctx| {
             let mut ctx = ctx.absolute((0.px(), 0.px()));
             ctx.translate((modal_xy.x, modal_xy.y))
-                .add(namui_prebuilt::button::text_button(
-                    enter_button_rect_in_modal,
-                    "Save",
-                    Color::WHITE,
-                    Color::WHITE,
-                    1.px(),
-                    Color::BLACK,
-                    [MouseButton::Left],
-                    {
+                .add(namui_prebuilt::button::TextButton {
+                    rect: enter_button_rect_in_modal,
+                    text: "Save",
+                    text_color: Color::WHITE,
+                    stroke_color: Color::WHITE,
+                    stroke_width: 1.px(),
+                    fill_color: Color::BLACK,
+                    mouse_buttons: vec![MouseButton::Left],
+                    on_mouse_up_in: Box::new({
                         let on_rename_done = on_rename_done.clone();
                         let sequence_name = sequence_name.clone();
-
                         move |_| {
+                            let sequence_name = sequence_name.clone();
                             on_rename_done(sequence_name);
                         }
-                    },
-                ))
+                    }),
+                })
                 .add(TextInput {
                     instance: text_input_instance,
                     rect: text_input_rect_in_modal,

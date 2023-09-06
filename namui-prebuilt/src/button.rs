@@ -2,13 +2,11 @@ use crate::{simple_rect, typography::center_text_full_height};
 use namui::prelude::*;
 
 fn attach_text_button_event<'a>(
-    button: impl 'a + Component,
-    mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
-) -> impl 'a + Component {
-    let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
-
-    button.attach_event(move |event| {
+    ctx: &mut ComposeCtx,
+    mouse_buttons: Vec<MouseButton>,
+    on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
+) {
+    ctx.attach_event(|event| {
         if let Event::MouseUp { event } = event {
             if !event.is_local_xy_in() {
                 return;
@@ -20,131 +18,182 @@ fn attach_text_button_event<'a>(
                 on_mouse_up_in(event);
             }
         }
-    })
+    });
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn text_button<'a>(
-    rect: Rect<Px>,
-    text: &str,
-    text_color: Color,
-    stroke_color: Color,
-    stroke_width: Px,
-    fill_color: Color,
-    mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
-) -> impl 'a + Component {
-    attach_text_button_event(
-        translate(
-            rect.x(),
-            rect.y(),
-            render([
-                center_text_full_height(rect.wh(), text, text_color),
-                simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
-            ]),
-        ),
-        mouse_buttons,
-        on_mouse_up_in,
-    )
+#[component]
+pub struct TextButton<'a> {
+    pub rect: Rect<Px>,
+    pub text: &'a str,
+    pub text_color: Color,
+    pub stroke_color: Color,
+    pub stroke_width: Px,
+    pub fill_color: Color,
+    pub mouse_buttons: Vec<MouseButton>,
+    pub on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
 }
-
-#[allow(clippy::too_many_arguments)]
-pub fn text_button_fit<'a>(
-    height: Px,
-    text: &str,
-    text_color: Color,
-    stroke_color: Color,
-    stroke_width: Px,
-    fill_color: Color,
-    side_padding: Px,
-    mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
-) -> impl 'a + Component {
-    let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
-    let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
-    let width = match center_text.bounding_box() {
-        Some(bounding_box) => bounding_box.width(),
-        None => return None,
-    };
-
-    Some(attach_text_button_event(
-        render([
-            translate(width / 2 + side_padding, 0.px(), center_text),
-            simple_rect(
-                Wh::new(width + side_padding * 2, height),
-                stroke_color,
-                stroke_width,
-                fill_color,
-            ),
-        ]),
-        mouse_buttons,
-        on_mouse_up_in,
-    ))
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn text_button_fit_align<'a>(
-    wh: Wh<Px>,
-    align: TextAlign,
-    text: &str,
-    text_color: Color,
-    stroke_color: Color,
-    stroke_width: Px,
-    fill_color: Color,
-    side_padding: Px,
-    mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
-) -> impl 'a + Component {
-    let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
-    let center_text = center_text_full_height(Wh::new(0.px(), wh.height), text, text_color);
-    let center_text_width = match center_text.bounding_box() {
-        Some(bounding_box) => bounding_box.width(),
-        None => return None,
-    };
-    let center_text_x = (wh.width - center_text_width)
-        * match align {
-            TextAlign::Left => 0.0,
-            TextAlign::Center => 0.5,
-            TextAlign::Right => 1.0,
-        };
-
-    Some(attach_text_button_event(
-        render([
-            translate(center_text_x, 0.px(), center_text),
-            translate(
-                center_text_x - center_text_width / 2 - side_padding,
-                0.px(),
-                simple_rect(
-                    Wh::new(center_text_width + side_padding * 2, wh.height),
+impl Component for TextButton<'_> {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            rect,
+            text,
+            text_color,
+            stroke_color,
+            stroke_width,
+            fill_color,
+            mouse_buttons,
+            on_mouse_up_in,
+        } = self;
+        ctx.compose(|ctx| {
+            ctx.translate((rect.x(), rect.y()))
+                .add(center_text_full_height(rect.wh(), text, text_color))
+                .add(simple_rect(
+                    rect.wh(),
                     stroke_color,
                     stroke_width,
                     fill_color,
-                ),
-            ),
-        ]),
-        mouse_buttons,
-        on_mouse_up_in,
-    ))
+                ));
+            attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
+        });
+        ctx.done()
+    }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn body_text_button<'a>(
-    rect: Rect<Px>,
-    text: &str,
-    text_color: Color,
-    stroke_color: Color,
-    stroke_width: Px,
-    fill_color: Color,
-    text_align: TextAlign,
-    mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
-) -> impl 'a + Component {
-    attach_text_button_event(
-        translate(
-            rect.x(),
-            rect.y(),
-            render([
-                match text_align {
+#[component]
+pub struct TextButtonFit<'a> {
+    pub height: Px,
+    pub text: &'a str,
+    pub text_color: Color,
+    pub stroke_color: Color,
+    pub stroke_width: Px,
+    pub fill_color: Color,
+    pub side_padding: Px,
+    pub mouse_buttons: Vec<MouseButton>,
+    pub on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
+}
+impl Component for TextButtonFit<'_> {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            height,
+            text,
+            text_color,
+            stroke_color,
+            stroke_width,
+            fill_color,
+            side_padding,
+            mouse_buttons,
+            on_mouse_up_in,
+        } = self;
+        let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
+        let width = center_text
+            .bounding_box()
+            .map(|bounding_box| bounding_box.width());
+
+        ctx.compose(|ctx| {
+            if let Some(width) = width {
+                ctx.translate((width / 2 + side_padding, 0.px()))
+                    .add(center_text);
+                ctx.add(simple_rect(
+                    Wh::new(width + side_padding * 2, height),
+                    stroke_color,
+                    stroke_width,
+                    fill_color,
+                ));
+                attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
+            }
+        });
+
+        ctx.done()
+    }
+}
+
+#[component]
+pub struct TextButtonFitAlign<'a> {
+    pub wh: Wh<Px>,
+    pub align: TextAlign,
+    pub text: &'a str,
+    pub text_color: Color,
+    pub stroke_color: Color,
+    pub stroke_width: Px,
+    pub fill_color: Color,
+    pub side_padding: Px,
+    pub mouse_buttons: Vec<MouseButton>,
+    pub on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
+}
+impl Component for TextButtonFitAlign<'_> {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            wh,
+            align,
+            text,
+            text_color,
+            stroke_color,
+            stroke_width,
+            fill_color,
+            side_padding,
+            mouse_buttons,
+            on_mouse_up_in,
+        } = self;
+        let center_text = center_text_full_height(Wh::new(0.px(), wh.height), text, text_color);
+        let center_text_width = center_text
+            .bounding_box()
+            .map(|bounding_box| bounding_box.width());
+
+        ctx.compose(|ctx| {
+            if let Some(center_text_width) = center_text_width {
+                let center_text_x = (wh.width - center_text_width)
+                    * match align {
+                        TextAlign::Left => 0.0,
+                        TextAlign::Center => 0.5,
+                        TextAlign::Right => 1.0,
+                    };
+
+                ctx.translate((center_text_x, 0.px())).add(center_text);
+                ctx.translate((center_text_x - center_text_width / 2 - side_padding, 0.px()))
+                    .add(simple_rect(
+                        Wh::new(center_text_width + side_padding * 2, wh.height),
+                        stroke_color,
+                        stroke_width,
+                        fill_color,
+                    ));
+
+                attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
+            }
+        });
+
+        ctx.done()
+    }
+}
+
+#[component]
+pub struct BodyTextButton<'a> {
+    pub rect: Rect<Px>,
+    pub text: &'a str,
+    pub text_color: Color,
+    pub stroke_color: Color,
+    pub stroke_width: Px,
+    pub fill_color: Color,
+    pub text_align: TextAlign,
+    pub mouse_buttons: Vec<MouseButton>,
+    pub on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
+}
+impl Component for BodyTextButton<'_> {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            rect,
+            text,
+            text_color,
+            stroke_color,
+            stroke_width,
+            fill_color,
+            text_align,
+            mouse_buttons,
+            on_mouse_up_in,
+        } = self;
+
+        ctx.compose(|ctx| {
+            ctx.translate(rect.xy())
+                .add(match text_align {
                     TextAlign::Left => {
                         crate::typography::body::left(rect.wh().height, text, text_color)
                     }
@@ -152,11 +201,17 @@ pub fn body_text_button<'a>(
                         crate::typography::body::center(rect.wh(), text, text_color)
                     }
                     TextAlign::Right => crate::typography::body::right(rect.wh(), text, text_color),
-                },
-                simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
-            ]),
-        ),
-        mouse_buttons,
-        on_mouse_up_in,
-    )
+                })
+                .add(simple_rect(
+                    rect.wh(),
+                    stroke_color,
+                    stroke_width,
+                    fill_color,
+                ));
+
+            attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
+        });
+
+        ctx.done()
+    }
 }
