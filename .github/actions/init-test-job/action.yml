@@ -15,6 +15,10 @@ runs:
       shell: bash
       run: cargo install --version 0.11.1 wasm-pack
 
+    - name: clippy install
+      shell: bash
+      run: rustup component add clippy-preview
+
     - shell: bash
       run: time rustup target add wasm32-unknown-unknown
 
