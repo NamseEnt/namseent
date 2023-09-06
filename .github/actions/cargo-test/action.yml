@@ -45,3 +45,17 @@ runs:
         else
             echo "Good. Cargo.lock is up to date (or it ignored by gitignore)"
         fi
+
+    - name: Clippy
+      shell: bash
+      run: cargo clippy --manifest-path ${{ inputs.path }}/Cargo.toml -- -D warnings
+
+    - name: Did you forget run cargo clippy
+      shell: bash
+      run: |
+        if [[ $? ]]; then
+            echo "::error::Clippy failed. Please check code with 'cargo clippy' before push"
+            exit 1
+        else
+            echo "Good. Clippy passed"
+        fi
