@@ -50,7 +50,7 @@ runs:
       shell: bash
       run: |
         cargo clippy --manifest-path ${{ inputs.path }}/Cargo.toml -- -D warnings
-        if [[ $? ]]; then
+        if [ $? -ne 0 ]; then
             echo "::error::Clippy failed. Please check code with 'cargo clippy' before push"
             exit 1
         else
