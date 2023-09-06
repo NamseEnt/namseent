@@ -255,7 +255,7 @@ impl Component for SequenceCell<'_> {
             [MouseButton::Left, MouseButton::Right],
             move |event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
-                    super::router::move_to(super::router::Route::SequenceEditPage {
+                    super::router::move_to(super::router::Route::SequenceEdit {
                         project_id,
                         sequence_id,
                     });

@@ -19,13 +19,13 @@ impl Component for Router {
         let wh = self.wh;
 
         ctx.compose(|ctx| match *route {
-            Route::ProjectListPage => {
+            Route::ProjectList => {
                 ctx.add(project_list_page::ProjectListPage { wh });
             }
-            Route::SequenceListPage { project_id } => {
+            Route::SequenceList { project_id } => {
                 ctx.add(sequence_list_page::SequenceListPage { wh, project_id });
             }
-            Route::SequenceEditPage {
+            Route::SequenceEdit {
                 project_id,
                 sequence_id,
             } => {
@@ -41,12 +41,11 @@ impl Component for Router {
     }
 }
 
-#[allow(clippy::enum_variant_names)]
 #[derive(Debug)]
 pub enum Route {
-    ProjectListPage,
-    SequenceListPage { project_id: Uuid },
-    SequenceEditPage { project_id: Uuid, sequence_id: Uuid },
+    ProjectList,
+    SequenceList { project_id: Uuid },
+    SequenceEdit { project_id: Uuid, sequence_id: Uuid },
 }
 impl From<String> for Route {
     fn from(mut path_string: String) -> Self {
@@ -55,7 +54,7 @@ impl From<String> for Route {
         if path_string.starts_with("/sequence_list") {
             let rest = path_string.split_off("/sequence_list".len());
             if let Ok(project_id) = Uuid::parse_str(rest.trim_matches('/')) {
-                return Self::SequenceListPage { project_id };
+                return Self::SequenceList { project_id };
             }
         }
 
@@ -70,7 +69,7 @@ impl From<String> for Route {
                 if let (Ok(project_id), Ok(sequence_id)) =
                     (Uuid::parse_str(project_id), Uuid::parse_str(sequence_id))
                 {
-                    return Self::SequenceEditPage {
+                    return Self::SequenceEdit {
                         project_id,
                         sequence_id,
                     };
@@ -78,15 +77,15 @@ impl From<String> for Route {
             }
         }
 
-        Self::ProjectListPage
+        Self::ProjectList
     }
 }
 impl ToString for Route {
     fn to_string(&self) -> String {
         match self {
-            Self::ProjectListPage => "/".to_string(),
-            Self::SequenceListPage { project_id } => format!("/sequence_list/{project_id}"),
-            Self::SequenceEditPage {
+            Self::ProjectList => "/".to_string(),
+            Self::SequenceList { project_id } => format!("/sequence_list/{project_id}"),
+            Self::SequenceEdit {
                 project_id,
                 sequence_id,
             } => format!("/sequence_edit/{project_id}/{sequence_id}"),

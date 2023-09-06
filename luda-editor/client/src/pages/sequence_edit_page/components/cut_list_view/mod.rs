@@ -16,12 +16,11 @@ pub struct CutListView<'a> {
     pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
-#[allow(clippy::enum_variant_names)]
 pub enum Event {
-    OnPressEnterOnCut { cut_id: Uuid },
-    OnMoveToNextCutByKeyboard { next_cut_id: Uuid },
-    OnClickCutEvent { cut_id: Uuid },
-    OnRightClickEvent { global_xy: Xy<Px> },
+    PressEnterOnCut { cut_id: Uuid },
+    MoveToNextCutByKeyboard { next_cut_id: Uuid },
+    ClickCut { cut_id: Uuid },
+    RightClick { global_xy: Xy<Px> },
 }
 impl Component for CutListView<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -44,7 +43,7 @@ impl Component for CutListView<'_> {
                     return;
                 };
                 if event.code == Code::Enter {
-                    on_event(Event::OnPressEnterOnCut {
+                    on_event(Event::PressEnterOnCut {
                         cut_id: selected_cut_id,
                     });
                 } else {
@@ -83,7 +82,7 @@ impl Component for CutListView<'_> {
                             cuts[cut_index + 1].id
                         }
                     };
-                    on_event(Event::OnMoveToNextCutByKeyboard { next_cut_id });
+                    on_event(Event::MoveToNextCutByKeyboard { next_cut_id });
                 }
             }
         };
@@ -108,9 +107,7 @@ impl Component for CutListView<'_> {
                             memo_count: memos.map_or(0, |memos| memos.len()),
                             is_selected: selected_cut_id == Some(cut.id),
                             is_focused,
-                            on_click: boxed(|cut_id: Uuid| {
-                                on_event(Event::OnClickCutEvent { cut_id })
-                            }),
+                            on_click: boxed(|cut_id: Uuid| on_event(Event::ClickCut { cut_id })),
                         },
                     )
                 })
@@ -121,7 +118,7 @@ impl Component for CutListView<'_> {
                 move |event| match event {
                     namui::Event::MouseDown { event } => {
                         if event.is_local_xy_in() && event.button == Some(MouseButton::Right) {
-                            on_event(Event::OnRightClickEvent {
+                            on_event(Event::RightClick {
                                 global_xy: event.global_xy,
                             });
                         }

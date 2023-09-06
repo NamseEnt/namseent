@@ -48,37 +48,36 @@ impl Component for LoadedSequenceEditorPage {
         let project_id = project_shared_data.id();
         let sequence_id = sequence.id;
 
-        #[allow(clippy::enum_variant_names)]
         enum InternalEvent {
-            CutListViewEvent { event: cut_list_view::Event },
-            CutEditorEvent { event: cut_editor::Event },
-            CharacterEdtiorEvent { event: character_editor::Event },
-            MemoListViewEvent { event: memo_list_view::Event },
-            MemoEditorEvent { event: memo_editor::Event },
+            CutListView { event: cut_list_view::Event },
+            CutEditor { event: cut_editor::Event },
+            CharacterEdtior { event: character_editor::Event },
+            MemoListView { event: memo_list_view::Event },
+            MemoEditor { event: memo_editor::Event },
         }
         let on_internal_event = &|event: InternalEvent| match event {
-            InternalEvent::CutListViewEvent { event } => match event {
-                cut_list_view::Event::OnPressEnterOnCut { cut_id } => {
+            InternalEvent::CutListView { event } => match event {
+                cut_list_view::Event::PressEnterOnCut { cut_id } => {
                     assert_eq!(*focused_component, Some(FocusableComponent::CutListView));
                     assert_eq!(*selected_cut_id, Some(cut_id));
 
                     set_focused_component.set(Some(FocusableComponent::CutEditor));
                 }
-                cut_list_view::Event::OnMoveToNextCutByKeyboard { next_cut_id } => {
+                cut_list_view::Event::MoveToNextCutByKeyboard { next_cut_id } => {
                     assert_eq!(*focused_component, Some(FocusableComponent::CutListView));
 
                     set_selected_cut_id.set(Some(next_cut_id));
                 }
-                cut_list_view::Event::OnClickCutEvent { cut_id } => {
+                cut_list_view::Event::ClickCut { cut_id } => {
                     set_selected_cut_id.set(Some(cut_id));
                     set_focused_component.set(Some(FocusableComponent::CutListView));
                 }
-                cut_list_view::Event::OnRightClickEvent { global_xy } => {
+                cut_list_view::Event::RightClick { global_xy } => {
                     open_context_menu(global_xy, ContextMenu::CutListView);
                     set_focused_component.set(Some(FocusableComponent::CutListView));
                 }
             },
-            InternalEvent::CutEditorEvent { event } => match event {
+            InternalEvent::CutEditor { event } => match event {
                 cut_editor::Event::AddMemo { cut_id } => {
                     set_editing_memo.set(Some(SequenceIdCutId {
                         sequence_id,
@@ -93,7 +92,7 @@ impl Component for LoadedSequenceEditorPage {
                 }
                 _ => {}
             },
-            InternalEvent::CharacterEdtiorEvent { event } => match event {
+            InternalEvent::CharacterEdtior { event } => match event {
                 character_editor::Event::Close => set_character_editor_target.set(None),
                 character_editor::Event::CgChangeButtonClicked => {
                     if let Some(EditTarget::ExistingCharacterPart {
@@ -112,7 +111,7 @@ impl Component for LoadedSequenceEditorPage {
                     set_character_editor_target.set(Some(edit_target));
                 }
             },
-            InternalEvent::MemoListViewEvent { event } => match event {
+            InternalEvent::MemoListView { event } => match event {
                 memo_list_view::Event::DoneClicked { cut_id, memo_id } => {
                     spawn_local(async move {
                         match crate::RPC
@@ -137,7 +136,7 @@ impl Component for LoadedSequenceEditorPage {
                     });
                 }
             },
-            InternalEvent::MemoEditorEvent { event } => match event {
+            InternalEvent::MemoEditor { event } => match event {
                 memo_editor::Event::Close => set_editing_memo.set(None),
                 memo_editor::Event::SaveButtonClicked {
                     sequence_id,
@@ -186,7 +185,7 @@ impl Component for LoadedSequenceEditorPage {
                             memos: memos.clone(),
                             user_id,
                             on_event: Box::new(|event| {
-                                on_internal_event(InternalEvent::MemoListViewEvent { event })
+                                on_internal_event(InternalEvent::MemoListView { event })
                             }),
                         });
                     })
@@ -206,7 +205,7 @@ impl Component for LoadedSequenceEditorPage {
                             edit_target: character_editor_target,
                             cut: selected_cut,
                             on_event: boxed(|event: character_editor::Event| {
-                                on_internal_event(InternalEvent::CharacterEdtiorEvent { event })
+                                on_internal_event(InternalEvent::CharacterEdtior { event })
                             }),
                         });
                     })
@@ -222,9 +221,7 @@ impl Component for LoadedSequenceEditorPage {
                 selected_cut_id: *selected_cut_id,
                 is_focused: *focused_component == Some(FocusableComponent::CutListView),
                 cut_id_memos_map: cut_id_memos_map.as_ref(),
-                on_event: Box::new(|event| {
-                    on_internal_event(InternalEvent::CutListViewEvent { event })
-                }),
+                on_event: Box::new(|event| on_internal_event(InternalEvent::CutListView { event })),
             });
         };
 
@@ -238,7 +235,7 @@ impl Component for LoadedSequenceEditorPage {
                     project_id,
                     cg_files: &cg_files,
                     on_event: Box::new(|event| {
-                        on_internal_event(InternalEvent::CutEditorEvent { event })
+                        on_internal_event(InternalEvent::CutEditor { event })
                     }),
                 });
             }
@@ -265,7 +262,7 @@ impl Component for LoadedSequenceEditorPage {
                     sequence_id,
                     cut_id,
                     on_event: Box::new(|event| {
-                        on_internal_event(InternalEvent::MemoEditorEvent { event })
+                        on_internal_event(InternalEvent::MemoEditor { event })
                     }),
                 });
             }
