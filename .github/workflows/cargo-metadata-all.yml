@@ -1,5 +1,8 @@
 name: cargo-metadata-all
-on: push
+on:
+  push:
+    branches-ignore:
+      - master
 concurrency:
   group: ${{ github.ref }}-cargo-metadata-all
   cancel-in-progress: true
