@@ -27,16 +27,7 @@ pub mod types {
 }
 
 define_rpc! {
-    AuthService: {
-        exchange_google_auth_code_to_access_token: {
-            struct Request {
-                pub code: String,
-            }
-            struct Response {}
-            enum Error {
-                Unknown(String)
-            }
-        },
+    Auth: {
         log_in_with_github_oauth_code: {
             struct Request {
                 pub code: String,
@@ -68,7 +59,7 @@ define_rpc! {
             }
         },
     },
-    SequenceService: {
+    Sequence: {
         list_project_sequences: {
             struct Request {
                 pub project_id: crate::Uuid,
@@ -181,7 +172,7 @@ define_rpc! {
             }
         },
     },
-    ImageService: {
+    Image: {
         put_image_meta_data: {
             struct Request {
                 pub project_id: crate::Uuid,
@@ -232,7 +223,7 @@ define_rpc! {
             }
         },
     },
-    ProjectService: {
+    Project: {
         create_project: {
             struct Request {
                 pub name: String,
@@ -298,7 +289,7 @@ define_rpc! {
             }
         },
     },
-    CgService: {
+    Cg: {
         request_put_psd_presigned_url: {
             struct Request {
                 pub project_id: crate::Uuid,
@@ -356,7 +347,7 @@ define_rpc! {
             }
         },
     },
-    MemoService: {
+    Memo: {
         list_sequence_memos: {
             struct Request {
                 pub sequence_id: crate::Uuid,

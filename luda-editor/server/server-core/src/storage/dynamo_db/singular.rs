@@ -37,9 +37,7 @@ impl DynamoDb {
         let item = result.unwrap().item;
         match item {
             Some(item) => Ok(item),
-            None => {
-                return Err(GetItemInternalError::NotFound);
-            }
+            None => Err(GetItemInternalError::NotFound),
         }
     }
 

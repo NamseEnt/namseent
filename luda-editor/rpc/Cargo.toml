@@ -9,7 +9,6 @@ edition = "2021"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 namui = { path = "../../namui", optional = true }
-hyper = { version = "0.14", optional = true }
 revert-json-patch = { path = "../revert-json-patch" }
 migration = { path = "../migration" }
 namui-type = { path = "../../namui-type" }
@@ -20,4 +19,4 @@ rpc-macro = { path = "./rpc-macro" }
 
 [features]
 client = ["dep:namui"]
-server = ["dep:hyper", "dep:tokio", "dep:rand"]
+server = ["dep:tokio", "dep:rand"]

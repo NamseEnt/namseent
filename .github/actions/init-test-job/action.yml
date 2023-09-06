@@ -2,9 +2,9 @@ name: Init test job
 runs:
   using: composite
   steps:
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: 1.65
+    - name: update rust stable
+      shell: bash
+      run: rustup update
 
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.3

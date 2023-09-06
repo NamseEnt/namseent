@@ -1,13 +1,6 @@
-use rpc::hyper::{Body, Request};
+use crate::documents::*;
+use hyper::{Body, Request};
 use std::str::FromStr;
-
-#[document_macro::document]
-pub struct SessionDocument {
-    #[pk]
-    pub id: rpc::Uuid,
-    pub user_id: rpc::Uuid,
-}
-
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum IdentitySource {
     Github,
@@ -31,9 +24,7 @@ pub async fn get_session(req: &Request<Body>) -> Result<Option<SessionDocument>,
     match result {
         Ok(session) => Ok(Some(session)),
         Err(error) => match error {
-            crate::storage::dynamo_db::GetItemError::NotFound => {
-                return Ok(None);
-            }
+            crate::storage::dynamo_db::GetItemError::NotFound => Ok(None),
             crate::storage::dynamo_db::GetItemError::DeserializeFailed(_)
             | crate::storage::dynamo_db::GetItemError::Unknown(_) => {
                 eprintln!("fail to get session from dynamo db: {:?}", error);
@@ -51,9 +42,7 @@ pub async fn create_session(user_id: rpc::Uuid) -> Result<SessionDocument, Creat
 
     let result = crate::dynamo_db().create_item(session.clone()).await;
     match result {
-        Ok(_) => {
-            return Ok(session);
-        }
+        Ok(_) => Ok(session),
         Err(error) => match error {
             crate::storage::dynamo_db::CreateItemError::SerializeFailed(_) => {
                 panic!("fail to serialize session to dynamo db: {:?}", error);

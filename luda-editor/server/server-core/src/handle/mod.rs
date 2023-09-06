@@ -1,10 +1,9 @@
 mod serve_s3;
 
+use crate::documents::*;
+use hyper::{Body, Method, Request, Response, StatusCode};
 use lambda_web::LambdaError;
-use rpc::{
-    hyper::{Body, Method, Request, Response, StatusCode},
-    Uuid,
-};
+use rpc::Uuid;
 use serve_s3::serve_s3;
 
 pub async fn handle_with_wrapped_error(
@@ -64,19 +63,43 @@ async fn handle(request: Request<Body>) -> Result<Response<Body>, LambdaError> {
     }
     let session = session.unwrap();
 
-    let services = crate::services();
-    let response = rpc::handle_rpc(
-        request,
-        response_builder,
-        &services.auth_service,
-        &services.sequence_service,
-        &services.image_service,
-        &services.project_service,
-        &services.cg_service,
-        &services.memo_service,
-        session,
-    )
-    .await?;
+    let response = handle_rpc(request, response_builder, session).await?;
 
     Ok(response)
+}
+
+pub async fn handle_rpc<'a>(
+    request: hyper::Request<hyper::Body>,
+    response_builder: hyper::http::response::Builder,
+    session: Option<SessionDocument>,
+) -> Result<hyper::Response<hyper::Body>, Box<dyn std::error::Error + Send + Sync>> {
+    let query = request.uri().query();
+    if query.is_none() {
+        return Ok(response_builder
+            .status(hyper::StatusCode::BAD_REQUEST)
+            .body(hyper::Body::from("No query"))
+            .unwrap());
+    }
+    let query = query.unwrap().to_string();
+
+    let body = match hyper::body::to_bytes(request.into_body()).await {
+        Ok(body) => body,
+        Err(error) => {
+            return Ok(response_builder
+                .status(hyper::StatusCode::BAD_REQUEST)
+                .body(hyper::Body::from(error.to_string()))
+                .unwrap());
+        }
+    };
+
+    match crate::apis::handle_api(&query, session, &body).await {
+        Ok(response_body) => Ok(response_builder
+            .status(hyper::StatusCode::OK)
+            .body(hyper::Body::from(response_body))
+            .unwrap()),
+        Err(error) => Ok(response_builder
+            .status(hyper::StatusCode::BAD_REQUEST)
+            .body(hyper::Body::from(error.to_string()))
+            .unwrap()),
+    }
 }

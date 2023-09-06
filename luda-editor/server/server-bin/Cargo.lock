@@ -2006,7 +2006,6 @@ name = "rpc"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "hyper",
  "migration",
  "namui-type",
  "rand",
@@ -2021,7 +2020,15 @@ dependencies = [
 name = "rpc-macro"
 version = "0.1.0"
 dependencies = [
- "convert_case",
+ "quote",
+ "rpc-parser",
+ "syn 2.0.22",
+]
+
+[[package]]
+name = "rpc-parser"
+version = "0.1.0"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.22",
@@ -2253,9 +2260,11 @@ dependencies = [
  "aws-types",
  "bincode",
  "chrono",
+ "convert_case",
  "document-macro",
  "env_logger",
  "futures",
+ "hyper",
  "image",
  "lambda-web",
  "log",
@@ -2266,8 +2275,10 @@ dependencies = [
  "rayon",
  "reqwest",
  "rpc",
+ "rpc-parser",
  "serde",
  "serde_json",
+ "syn 2.0.22",
  "tokio",
 ]
 
