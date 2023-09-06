@@ -3,8 +3,6 @@ runs:
   using: composite
   steps:
     - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: 1.65
 
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.3
