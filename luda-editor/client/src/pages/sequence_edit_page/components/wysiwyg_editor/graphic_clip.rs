@@ -132,6 +132,7 @@ impl Component for GraphicClip<'_> {
                 }
                 namui::Event::KeyDown { event } => {
                     let ctrl_press = namui::keyboard::ctrl_press();
+
                     if is_editing_graphic && ctrl_press && event.code == Code::KeyC {
                         match graphic {
                             ScreenGraphic::Image(_) => {

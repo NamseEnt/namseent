@@ -82,18 +82,19 @@ globalThisAny.loadImage = (
 
 globalThisAny.encodeLoadedImageToPng = async (image: Uint8Array) => {
     const id = getNextMessageId();
+    const imageBuffer = image.buffer;
     drawWorker.postMessage(
         {
             type: "encodeLoadedImageToPng",
-            image,
+            imageBuffer,
             id,
         },
-        [image],
+        [imageBuffer],
     );
     const { pngBytes } = (await waitForMessage(id)) as {
-        pngBytes: Uint8Array;
+        pngBytes: ArrayBuffer;
     };
-    return pngBytes;
+    return new Uint8Array(pngBytes);
 };
 
 (async () => {

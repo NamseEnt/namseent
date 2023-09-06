@@ -35,7 +35,7 @@ pub(crate) fn start_load_image(src: &ImageSource) {
                             .unwrap()
                             .read()
                             .unwrap()
-                            .load_image(&src, &image_bitmap);
+                            .load_image(src, image_bitmap);
                         onLoadImage();
                     }
                     Err(_) => {
