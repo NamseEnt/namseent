@@ -12,4 +12,10 @@ js-sys = "0.3.64"
 namui-type = { path = "../../namui-type" }
 serde = { version = "1.0.183", features = ["derive"] }
 wasm-bindgen = "0.2.87"
-web-sys = { version = "0.3.64", features = ["ImageBitmap"] }
+web-sys = { version = "0.3.64", features = [
+    "ImageBitmap",
+    "OffscreenCanvas",
+    "OffscreenCanvasRenderingContext2d",
+    "Blob",
+] }
+wasm-bindgen-futures = "0.4.37"

@@ -5,10 +5,10 @@ pub struct WysiwygTool<'a> {
     pub graphic_dest_rect: Rect<Px>,
     pub original_graphic_size: Wh<Px>,
     pub graphic_index: Uuid,
-    pub graphic: ScreenGraphic,
-    pub dragging: Option<Dragging>,
+    pub graphic: &'a ScreenGraphic,
+    pub dragging: &'a Option<Dragging>,
     pub wh: Wh<Px>,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 pub enum Event {
@@ -22,10 +22,10 @@ impl Component for WysiwygTool<'_> {
             graphic_dest_rect,
             original_graphic_size,
             graphic_index,
-            ref graphic,
-            ref dragging,
+            graphic,
+            dragging,
             wh,
-            ref on_event,
+            on_event,
         } = self;
 
         ctx.component(Resizer {

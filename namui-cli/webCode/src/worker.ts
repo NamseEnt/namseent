@@ -79,11 +79,15 @@ self.onmessage = async (event) => {
             break;
         case "encodeLoadedImageToPng":
             {
-                const { id, image } = event.data as {
+                const { id, imageBuffer } = event.data as {
                     id: number;
-                    image: Uint8Array;
+                    imageBuffer: ArrayBuffer;
                 };
-                const pngBytes = encode_loaded_image_to_png(image);
+                const pngBytes = (
+                    await encode_loaded_image_to_png(
+                        new Uint8Array(imageBuffer),
+                    )
+                ).buffer;
                 self.postMessage(
                     {
                         type: "encodeLoadedImageToPng",

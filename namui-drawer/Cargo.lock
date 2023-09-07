@@ -294,6 +294,7 @@ name = "namui-drawer"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "console_error_panic_hook",
  "float-cmp",
  "js-sys",
  "lazy_static",
@@ -321,6 +322,7 @@ dependencies = [
  "namui-type",
  "serde",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
@@ -823,9 +825,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.34"
+version = "0.4.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f219e0d211ba40266969f6dbdd90636da12f75bee4fc9d6c23d1260dadb51454"
+checksum = "c02dbc21516f9f1f04f187958890d7e6026df8d16540b7ad9492bc34a67cea03"
 dependencies = [
  "cfg-if",
  "js-sys",

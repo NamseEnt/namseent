@@ -1,0 +1,35 @@
+name: cargo-metadata-all
+on:
+  push:
+    branches-ignore:
+      - master
+concurrency:
+  group: ${{ github.ref }}-cargo-metadata-all
+  cancel-in-progress: true
+
+jobs:
+  cargo-metadata-all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: rustup update
+
+      - run: CARGO_VERSION=$(cargo --version | cut -d ' ' -f 2) && echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-metadata-all-${{ env.CARGO_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-metadata-all-${{ env.CARGO_VERSION }}
+
+      - run: ./cargo-metadata-all.py
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update Cargo metadata

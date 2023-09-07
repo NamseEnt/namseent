@@ -16,10 +16,11 @@ extern "C" {
     /// @param fmt - PNG is the default value.
     /// @param quality - a value from 0 to 100; 100 is the least lossy. May be ignored.
     /// NOTE: This doesn't work well with lazy image. You should call readPixels() first.
-    #[wasm_bindgen(method)]
-    pub fn encodeToBytes(
-        this: &CanvasKitImage, // , fmt?: EncodedImageFormat, quality?: number
-    ) -> Uint8Array;
+    /// NOTE: This api is very expensive. You can use HTML Canvas API to do this.
+    // #[wasm_bindgen(method)]
+    // pub fn encodeToBytes(
+    //     this: &CanvasKitImage, // , fmt?: EncodedImageFormat, quality?: number
+    // ) -> Uint8Array;
 
     // ///
     // /// Returns the color space associated with this object.
