@@ -29,7 +29,8 @@ pub struct Cli {
     pub clippy: bool,
 
     #[arg(long)]
-    /// Runs `cargo test` or `namui test` if it is a namui project.
-    /// for namui project, you need to set `namui = true` in [package] table of Cargo.toml.
+    /// Runs custom test script, `namui test` if it is a namui project, or `cargo test`.
+    /// To run custom test script, you need to set `test = "YOUR_CUSTOM_SCRIPT"` in [package.metadata] table of Cargo.toml.
+    /// For namui project, you need to set `namui = true` in [package.metadata] table of Cargo.toml.
     pub test: bool,
 }
