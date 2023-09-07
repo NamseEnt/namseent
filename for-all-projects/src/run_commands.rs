@@ -27,7 +27,7 @@ pub async fn run_commands_in_parallel(cli: Cli, cargo_project_dirs: Vec<PathBuf>
                 let cargo_project_dir = cargo_project_dir.clone();
                 async move {
                     let command_str = command.as_str(&cargo_project_dir).await?;
-                    run_command(cargo_project_dir, command_str).await
+                    run_command(cargo_project_dir, &command_str).await
                 }
             });
             if join_set.len() >= throttle {
@@ -68,22 +68,16 @@ impl Command {
             Command::Test => cli.test,
         }
     }
-    async fn as_str<'a, 'b>(&'a self, cargo_project_dir: &'b Path) -> Result<&'static str> {
+    async fn as_str<'a, 'b>(&'a self, cargo_project_dir: &'b Path) -> Result<String> {
         Ok(match self {
-            Command::Clean => "cargo clean",
-            Command::Update => "cargo update",
-            Command::Metadata => "cargo metadata",
-            Command::Check => "cargo check",
-            Command::Fmt => "cargo fmt",
-            Command::Fix => "cargo fix --allow-dirty --allow-staged",
-            Command::Clippy => "cargo clippy --fix --allow-dirty --allow-staged",
-            Command::Test => {
-                if is_namui_project(cargo_project_dir).await? {
-                    "namui test"
-                } else {
-                    "cargo test"
-                }
-            }
+            Command::Clean => "cargo clean".to_string(),
+            Command::Update => "cargo update".to_string(),
+            Command::Metadata => "cargo metadata".to_string(),
+            Command::Check => "cargo check".to_string(),
+            Command::Fmt => "cargo fmt".to_string(),
+            Command::Fix => "cargo fix --allow-dirty --allow-staged".to_string(),
+            Command::Clippy => "cargo clippy --fix --allow-dirty --allow-staged".to_string(),
+            Command::Test => get_test_command(cargo_project_dir).await?,
         })
     }
 }
@@ -182,25 +176,33 @@ async fn run_command(cargo_project_dir: PathBuf, command: &str) -> Result<()> {
     Ok(())
 }
 
-async fn is_namui_project(cargo_project_dir: &Path) -> Result<bool> {
-    let cargo_toml_path = cargo_project_dir.join("Cargo.toml");
-    println!("cargo_toml_path: {:?}", cargo_toml_path);
-    let cargo_toml_str = fs::read_to_string(&cargo_toml_path).await?;
+async fn get_test_command(cargo_project_dir: &Path) -> Result<String> {
+    let cargo_toml_str = fs::read_to_string(cargo_project_dir.join("Cargo.toml")).await?;
 
     let cargo_toml = cargo_toml_str.parse::<toml::Value>()?;
 
     let package = cargo_toml
         .get("package")
-        .ok_or_else(|| anyhow::anyhow!("No [package] table in {}", cargo_toml_path.display()))?
+        .ok_or_else(|| anyhow::anyhow!("No [package] table in {cargo_toml_str}"))?
         .as_table()
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "Failed to parse [package] table in {}",
-                cargo_toml_path.display()
-            )
-        })?;
+        .ok_or_else(|| anyhow::anyhow!("Failed to parse [package] table in {cargo_toml_str}"))?;
+
+    let custom_test_script = (|| package.get("metadata")?.get("test")?.as_str())();
+    if let Some(custom_test_script) = custom_test_script {
+        let (command, _args) = custom_test_script
+            .split_once(" ")
+            .unwrap_or((custom_test_script, ""));
+        if ["/", "."].iter().any(|x| command.contains(x)) {
+            return Ok(format!("bash {custom_test_script}"));
+        } else {
+            return Ok(custom_test_script.to_string());
+        }
+    }
 
     let is_namui_project = (|| package.get("metadata")?.get("namui")?.as_bool())().unwrap_or(false);
+    if is_namui_project {
+        return Ok("namui test".to_string());
+    }
 
-    Ok(is_namui_project)
+    Ok("cargo test".to_string())
 }

@@ -3,6 +3,10 @@ name = "server-core"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata]
+test = "../run_test.sh"
+
+
 [dependencies]
 rpc = { path = "../../rpc", features = ["server"] }
 namui-type = { path = "../../../namui-type" }
