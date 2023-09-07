@@ -26,7 +26,7 @@ jobs:
             ~/.cargo/git/db/
           key: ${{ runner.os }}-cargo-metadata-all-${{ env.CARGO_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-metadata-all--${{ env.CARGO_VERSION }}
+            ${{ runner.os }}-cargo-metadata-all-${{ env.CARGO_VERSION }}
 
       - run: ./cargo-metadata-all.py
 
