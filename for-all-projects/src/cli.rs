@@ -18,8 +18,11 @@ pub struct Cli {
     pub check: bool,
 
     #[arg(long)]
-    /// Runs `cargo fmt --allow-dirty --allow-staged`
     pub fmt: bool,
+
+    #[arg(long)]
+    /// Runs `cargo fix --allow-dirty --allow-staged`
+    pub fix: bool,
 
     #[arg(long)]
     /// Runs `cargo clippy --fix --allow-dirty --allow-staged`

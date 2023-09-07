@@ -1,13 +1,39 @@
 use crate::cli::Cli;
 use anyhow::Result;
-use std::path::PathBuf;
-use tokio::{fs, process};
+use std::path::{Path, PathBuf};
+use tokio::{fs, io::AsyncReadExt, process};
 
 pub async fn run_commands_in_parallel(cli: Cli, cargo_project_dirs: Vec<PathBuf>) -> Result<()> {
     let mut join_set = tokio::task::JoinSet::new();
 
-    for cargo_project_dir in cargo_project_dirs {
-        join_set.spawn(async move { run_commands(cli, cargo_project_dir).await });
+    let throttle = std::thread::available_parallelism()?.get();
+
+    let commands = [
+        Command::Clean,
+        Command::Update,
+        Command::Metadata,
+        Command::Check,
+        Command::Fmt,
+        Command::Fix,
+        Command::Clippy,
+        Command::Test,
+    ]
+    .into_iter()
+    .filter(|command| command.requested(cli));
+
+    for command in commands {
+        for cargo_project_dir in &cargo_project_dirs {
+            join_set.spawn({
+                let cargo_project_dir = cargo_project_dir.clone();
+                async move {
+                    let command_str = command.as_str(&cargo_project_dir).await?;
+                    run_command(cargo_project_dir, command_str).await
+                }
+            });
+            if join_set.len() >= throttle {
+                join_set.join_next().await.unwrap()??;
+            }
+        }
     }
 
     while let Some(result) = join_set.join_next().await {
@@ -17,63 +43,148 @@ pub async fn run_commands_in_parallel(cli: Cli, cargo_project_dirs: Vec<PathBuf>
     Ok(())
 }
 
-async fn run_commands(cli: Cli, cargo_project_dir: PathBuf) -> Result<()> {
-    let mut commands = [
-        (cli.clean, "cargo clean"),
-        (cli.update, "cargo update"),
-        (cli.metadata, "cargo metadata"),
-        (cli.check, "cargo check"),
-        (cli.fmt, "cargo fmt --allow-dirty --allow-staged"),
-        (
-            cli.clippy,
-            "cargo clippy --fix --allow-dirty --allow-staged",
-        ),
-    ]
-    .into_iter()
-    .filter_map(|(flag, command)| if flag { Some(command) } else { None })
-    .collect::<Vec<_>>();
+#[derive(Clone, Copy)]
+enum Command {
+    Clean,
+    Update,
+    Metadata,
+    Check,
+    Fmt,
+    Fix,
+    Clippy,
+    Test,
+}
 
-    if cli.test {
-        let command = if is_namui_project(&cargo_project_dir).await? {
-            "namui test"
-        } else {
-            "cargo test"
-        };
-        commands.push(command);
-    }
-
-    for command in commands {
-        let mut split = command.split_ascii_whitespace();
-        let mut child = process::Command::new(split.next().unwrap())
-            .args(split)
-            .current_dir(&cargo_project_dir)
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null()) // TODO: Show stderr and stdout when status is not success
-            .spawn()?;
-
-        println!(
-            "{}",
-            format!("Running `{command}` in {cargo_project_dir:?}",)
-        );
-
-        let status = child.wait().await?;
-
-        if !status.success() {
-            anyhow::bail!("Failed to run `{command}` in {cargo_project_dir:?}",);
+impl Command {
+    fn requested(&self, cli: Cli) -> bool {
+        match self {
+            Command::Clean => cli.clean,
+            Command::Update => cli.update,
+            Command::Metadata => cli.metadata,
+            Command::Check => cli.check,
+            Command::Fmt => cli.fmt,
+            Command::Fix => cli.fix,
+            Command::Clippy => cli.clippy,
+            Command::Test => cli.test,
         }
-
-        println!(
-            "{}",
-            format!("Finished `{command}` in {cargo_project_dir:?}",)
-        );
     }
+    async fn as_str<'a, 'b>(&'a self, cargo_project_dir: &'b Path) -> Result<&'static str> {
+        Ok(match self {
+            Command::Clean => "cargo clean",
+            Command::Update => "cargo update",
+            Command::Metadata => "cargo metadata",
+            Command::Check => "cargo check",
+            Command::Fmt => "cargo fmt",
+            Command::Fix => "cargo fix --allow-dirty --allow-staged",
+            Command::Clippy => "cargo clippy --fix --allow-dirty --allow-staged",
+            Command::Test => {
+                if is_namui_project(cargo_project_dir).await? {
+                    "namui test"
+                } else {
+                    "cargo test"
+                }
+            }
+        })
+    }
+}
+
+async fn run_command(cargo_project_dir: PathBuf, command: &str) -> Result<()> {
+    let mut split = command.split_ascii_whitespace();
+
+    let mut child = process::Command::new(split.next().unwrap())
+        .args(split)
+        .current_dir(&cargo_project_dir)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()?;
+
+    // NOTE: This is for multi-thread locked-printing.
+    let print_output = format!("Running `{command}` in {cargo_project_dir:?}");
+    println!("{}", print_output);
+
+    let mut stdout_pipe = child.stdout.take().unwrap();
+    let mut stderr_pipe = child.stderr.take().unwrap();
+
+    let mut stdout_buf = vec![];
+    let mut stdout_eof = false;
+    let mut stderr_buf = vec![];
+    let mut stderr_eof = false;
+
+    let mut lines = vec![];
+
+    fn push_lines(lines: &mut Vec<Vec<u8>>, buf: &mut Vec<u8>) {
+        while let Some(linebreak_index) = buf.iter().position(|x| *x == b'\n') {
+            let line = buf.drain(..=linebreak_index).collect::<Vec<_>>();
+            lines.push(line);
+        }
+    }
+
+    while !stdout_eof || !stderr_eof {
+        if stdout_eof {
+            let count = stderr_pipe.read_buf(&mut stderr_buf).await?;
+            if count == 0 {
+                stderr_eof = true;
+                lines.push(std::mem::take(&mut stderr_buf));
+            } else {
+                push_lines(&mut lines, &mut stderr_buf)
+            }
+        } else if stderr_eof {
+            let count = stdout_pipe.read_buf(&mut stdout_buf).await?;
+            if count == 0 {
+                stdout_eof = true;
+                lines.push(std::mem::take(&mut stdout_buf));
+            } else {
+                push_lines(&mut lines, &mut stdout_buf)
+            }
+        } else {
+            tokio::select! {
+                count = stdout_pipe.read_buf(&mut stdout_buf) => {
+                    if count? == 0 {
+                        stdout_eof = true;
+                        lines.push(std::mem::take(&mut stdout_buf));
+                    } else {
+                        push_lines(&mut lines, &mut stdout_buf)
+                    }
+                },
+                count = stderr_pipe.read_buf(&mut stderr_buf) => {
+                    if count? == 0 {
+                        stderr_eof = true;
+                        lines.push(std::mem::take(&mut stderr_buf));
+                    } else {
+                        push_lines(&mut lines, &mut stderr_buf)
+                    }
+                }
+            };
+        }
+    }
+
+    child.wait().await?;
+
+    let output = child.wait_with_output().await?;
+
+    if !output.status.success() {
+        let print_output = format!(
+            "Failed to run `{command}` in {cargo_project_dir:?}\n{}",
+            lines
+                .iter()
+                .map(|line| String::from_utf8_lossy(line))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        eprintln!("{}", print_output);
+        anyhow::bail!("Failed to run `{command}` in {cargo_project_dir:?}");
+    }
+
+    let print_output = format!("Finished `{command}` in {cargo_project_dir:?}");
+    println!("{print_output}");
 
     Ok(())
 }
 
-async fn is_namui_project(cargo_project_dir: &PathBuf) -> Result<bool> {
+async fn is_namui_project(cargo_project_dir: &Path) -> Result<bool> {
     let cargo_toml_path = cargo_project_dir.join("Cargo.toml");
+    println!("cargo_toml_path: {:?}", cargo_toml_path);
     let cargo_toml_str = fs::read_to_string(&cargo_toml_path).await?;
 
     let cargo_toml = cargo_toml_str.parse::<toml::Value>()?;
@@ -89,10 +200,7 @@ async fn is_namui_project(cargo_project_dir: &PathBuf) -> Result<bool> {
             )
         })?;
 
-    let is_namui_project = package
-        .get("namui")
-        .and_then(|namui| namui.as_bool())
-        .unwrap_or(false);
+    let is_namui_project = (|| package.get("metadata")?.get("namui")?.as_bool())().unwrap_or(false);
 
     Ok(is_namui_project)
 }

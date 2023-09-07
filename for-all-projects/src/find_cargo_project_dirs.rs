@@ -19,9 +19,11 @@ fn find_cargo_project_dirs_internal(
             git_root = Some(dir.clone())
         }
 
-        let gitignore = match &git_root {
-            Some(git_root) => build_gitignore(git_root, &dir, &[".gitignore", ".projectsignore"])?,
-            None => Gitignore::empty(),
+        let gitignores = match &git_root {
+            Some(git_root) => {
+                build_gitignores(git_root, &dir, &[".gitignore", ".projectsignore"]).await?
+            }
+            None => Gitignores::empty(),
         };
 
         let sub_dirs = {
@@ -30,7 +32,9 @@ fn find_cargo_project_dirs_internal(
             let mut entries = fs::read_dir(&dir).await?;
             while let Some(entry) = entries.next_entry().await? {
                 let path = entry.path();
-                if entry.file_type().await?.is_dir() && !gitignore.matched(&path, true).is_ignore()
+                if entry.file_name() != "git"
+                    && entry.file_type().await?.is_dir()
+                    && !gitignores.ignore(&path)
                 {
                     sub_dirs.push(path);
                 }
@@ -39,15 +43,14 @@ fn find_cargo_project_dirs_internal(
             sub_dirs
         };
 
+        let mut cargo_project_dirs = vec![];
+
         let mut join_set = tokio::task::JoinSet::new();
         for sub_dir in sub_dirs {
             let git_root = git_root.clone();
             join_set
                 .spawn(async move { find_cargo_project_dirs_internal(sub_dir, git_root).await });
         }
-
-        let mut cargo_project_dirs = vec![];
-
         while let Some(result) = join_set.join_next().await {
             cargo_project_dirs.extend(result??);
         }
@@ -62,37 +65,54 @@ fn find_cargo_project_dirs_internal(
     .boxed()
 }
 
-fn build_gitignore(
-    git_root: &Path,
-    mut dir: &Path,
-    ignore_file_names: &[&str],
-) -> Result<Gitignore> {
-    let mut dirs = vec![];
+struct Gitignores {
+    ignores: Vec<Gitignore>,
+}
 
-    while dir != git_root {
-        dirs.push(dir);
-        dir = dir.parent().unwrap();
+impl Gitignores {
+    fn empty() -> Self {
+        Self { ignores: vec![] }
     }
+    fn ignore(&self, dir: &Path) -> bool {
+        self.ignores
+            .iter()
+            .any(|ignore| ignore.matched(dir, true).is_ignore())
+    }
+}
 
-    let mut gitignore_builder: Option<GitignoreBuilder> = None;
+async fn build_gitignores(
+    git_root: &Path,
+    dir: &Path,
+    ignore_file_names: &[&str],
+) -> Result<Gitignores> {
+    let dirs = {
+        let mut dir = dir;
+        let mut dirs = vec![];
+        while dir != git_root {
+            dirs.push(dir);
+            dir = dir.parent().unwrap();
+        }
+        dirs.push(git_root);
+        dirs
+    };
 
-    for dir in dirs {
-        for ignore_file_name in ignore_file_names {
-            match &mut gitignore_builder {
-                Some(builder) => {
-                    builder.add(dir.join(ignore_file_name));
-                }
-                None => {
-                    gitignore_builder = Some(GitignoreBuilder::new(dir.join(ignore_file_name)));
-                }
-            }
+    let ignore_file_paths = dirs
+        .into_iter()
+        .flat_map(|dir| {
+            ignore_file_names
+                .iter()
+                .map(|ignore_file_name| dir.join(ignore_file_name))
+        })
+        .collect::<Vec<_>>();
+
+    let mut ignores = vec![];
+    for ignore_file_path in ignore_file_paths {
+        if fs::try_exists(&ignore_file_path).await? {
+            ignores.push(Gitignore::new(ignore_file_path).0);
         }
     }
 
-    match gitignore_builder {
-        Some(gitignore_builder) => Ok(gitignore_builder.build()?),
-        None => Ok(Gitignore::empty()),
-    }
+    Ok(Gitignores { ignores })
 }
 
 async fn find_git_root(dir: &Path) -> Result<Option<PathBuf>> {
