@@ -3,6 +3,9 @@ name = "namui-skia"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata]
+namui = true
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -19,3 +22,6 @@ web-sys = { version = "0.3.64", features = [
     "Blob",
 ] }
 wasm-bindgen-futures = "0.4.37"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.2"

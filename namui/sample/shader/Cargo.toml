@@ -2,6 +2,8 @@
 name = "shader"
 version = "0.1.0"
 edition = "2021"
+
+[package.metadata]
 namui = true
 
 [lib]

@@ -1,5 +1,8 @@
 # same grammar as .gitignore
 
 luda-adventure
-namui/sample
+luda-adventure/**
+namui/sample/**
 quick
+quick/**
+luda-editor/psd
