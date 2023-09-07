@@ -52,7 +52,10 @@ async fn run_commands(cli: Cli, cargo_project_dir: PathBuf) -> Result<()> {
             .stderr(std::process::Stdio::null()) // TODO: Show stderr and stdout when status is not success
             .spawn()?;
 
-        println!("Running `{command}` in {cargo_project_dir:?}",);
+        println!(
+            "{}",
+            format!("Running `{command}` in {cargo_project_dir:?}",)
+        );
 
         let status = child.wait().await?;
 
@@ -60,16 +63,36 @@ async fn run_commands(cli: Cli, cargo_project_dir: PathBuf) -> Result<()> {
             anyhow::bail!("Failed to run `{command}` in {cargo_project_dir:?}",);
         }
 
-        println!("Finished `{command}` in {cargo_project_dir:?}",);
+        println!(
+            "{}",
+            format!("Finished `{command}` in {cargo_project_dir:?}",)
+        );
     }
 
     Ok(())
 }
 
 async fn is_namui_project(cargo_project_dir: &PathBuf) -> Result<bool> {
-    fs::read_to_string(cargo_project_dir.join("Cargo.toml"))
-        .await?
-        .parse::<toml::Value>()?["package"]["namui"]
-        .as_bool()
-        .ok_or_else(|| anyhow::anyhow!("Failed to parse Cargo.toml"))
+    let cargo_toml_path = cargo_project_dir.join("Cargo.toml");
+    let cargo_toml_str = fs::read_to_string(&cargo_toml_path).await?;
+
+    let cargo_toml = cargo_toml_str.parse::<toml::Value>()?;
+
+    let package = cargo_toml
+        .get("package")
+        .ok_or_else(|| anyhow::anyhow!("No [package] table in {}", cargo_toml_path.display()))?
+        .as_table()
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "Failed to parse [package] table in {}",
+                cargo_toml_path.display()
+            )
+        })?;
+
+    let is_namui_project = package
+        .get("namui")
+        .and_then(|namui| namui.as_bool())
+        .unwrap_or(false);
+
+    Ok(is_namui_project)
 }
