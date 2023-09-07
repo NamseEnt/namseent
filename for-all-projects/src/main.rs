@@ -98,10 +98,12 @@ fn find_cargo_project_dirs(
 fn build_gitignore(git_root: &Path, current_dir: &Path) -> Result<Gitignore> {
     let mut gitignore_builder = GitignoreBuilder::new(current_dir.join(".gitignore"));
 
-    let mut parent = current_dir.parent().unwrap();
-    while parent != git_root {
-        gitignore_builder.add(parent.join(".gitignore"));
-        parent = parent.parent().unwrap();
+    if git_root != current_dir {
+        let mut parent = current_dir.parent().unwrap();
+        while parent != git_root {
+            gitignore_builder.add(parent.join(".gitignore"));
+            parent = parent.parent().unwrap();
+        }
     }
 
     let gitignore = gitignore_builder.build()?;
@@ -137,23 +139,58 @@ async fn run_commands_in_parallel(cli: Cli, cargo_project_dirs: Vec<PathBuf>) ->
 }
 
 async fn run_commands(cli: Cli, cargo_project_dir: PathBuf) -> Result<()> {
+    async fn run_cargo(cargo_args: &[&str], cargo_project_dir: &PathBuf) -> Result<()> {
+        let mut child = process::Command::new("cargo")
+            .args(cargo_args)
+            .current_dir(cargo_project_dir)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()?;
+
+        println!(
+            "Running `cargo {}` in {:?}",
+            cargo_args.join(" "),
+            cargo_project_dir
+        );
+
+        child.wait().await?;
+
+        println!(
+            "Finished `cargo {}` in {:?}",
+            cargo_args.join(" "),
+            cargo_project_dir
+        );
+
+        Ok(())
+    }
+
     macro_rules! run_command {
         (
-            $($command:ident),*
+            $(
+                ($command:ident, $opts:literal)
+            ),*
         ) => {
             $(
                 if cli.$command {
-                    let mut command = process::Command::new("cargo")
-                        .arg(stringify!($command))
-                        .current_dir(&cargo_project_dir)
-                        .spawn()?;
-
-                    command.wait().await?;
+                    let args = [stringify!($command)]
+                        .into_iter()
+                        .chain($opts.split(" "))
+                        .collect::<Vec<_>>();
+                    run_cargo(&args, &cargo_project_dir).await?;
                 }
             )*
         };
     }
-    run_command!(check, clean, metadata, update, clippy, fmt);
+
+    run_command!(
+        (clean, ""),
+        (update, ""),
+        (metadata, ""),
+        (check, ""),
+        (fmt, "--allow-dirty --allow-staged"),
+        (clippy, "--fix --allow-dirty --allow-staged")
+    );
 
     Ok(())
 }
