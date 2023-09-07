@@ -21,7 +21,8 @@ runs:
 
     - name: Test
       shell: bash
-      run: time namui test ${{ inputs.target }} -m ${{ inputs.path }}/Cargo.toml
+      working-directory: ${{ inputs.path }}
+      run: time namui test ${{ inputs.target }}
 
     - name: Did you push Cargo.lock
       shell: bash
@@ -36,7 +37,8 @@ runs:
 
     - name: Fmt
       shell: bash
-      run: cargo fmt --manifest-path ${{ inputs.path }}/Cargo.toml
+      working-directory: ${{ inputs.path }}
+      run: cargo fmt
 
     - name: Did you forget run fmt
       shell: bash
@@ -51,8 +53,10 @@ runs:
 
     - name: Did you forget run cargo clippy
       shell: bash
+      working-directory: ${{ inputs.path }}
       run: |
-        cargo clippy --manifest-path ${{ inputs.path }}/Cargo.toml -- -D warnings
+        # NOTE: `cargo clippy` seems not respect .cargo/config.toml when use --manifest-path.
+        cargo clippy -- -D warnings
         if [ $? -ne 0 ]; then
             echo "::error::Clippy failed. Please check code with 'cargo clippy' before push"
             exit 1
