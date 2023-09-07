@@ -3,6 +3,7 @@ name = "luda-editor-client"
 version = "0.1.0"
 authors = ["namse <skatpgusskat@naver.com>"]
 edition = "2021"
+namui = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]
