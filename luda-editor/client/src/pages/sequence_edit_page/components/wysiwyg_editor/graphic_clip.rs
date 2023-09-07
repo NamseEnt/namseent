@@ -4,13 +4,13 @@ use super::{wysiwyg_tool::WysiwygTool, *};
 pub struct GraphicClip<'a> {
     pub cut_id: Uuid,
     pub graphic_index: Uuid,
-    pub graphic: ScreenGraphic,
+    pub graphic: &'a ScreenGraphic,
     pub is_editing_graphic: bool,
     pub project_id: Uuid,
     pub wh: Wh<Px>,
-    pub dragging: Option<Dragging>,
-    pub cg_files: Vec<CgFile>,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub dragging: &'a Option<Dragging>,
+    pub cg_files: &'a Vec<CgFile>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 pub enum Event<'a> {
@@ -25,6 +25,9 @@ pub enum Event<'a> {
         graphic_wh: Wh<Px>,
         graphic: &'a ScreenGraphic,
     },
+    DeleteGraphic {
+        graphic_index: Uuid,
+    },
 }
 
 impl Component for GraphicClip<'_> {
@@ -32,15 +35,14 @@ impl Component for GraphicClip<'_> {
         let Self {
             cut_id,
             graphic_index,
-            ref graphic,
+            graphic,
             is_editing_graphic,
             project_id,
             wh,
-            ref dragging,
-            ref cg_files,
-            ref on_event,
+            dragging,
+            cg_files,
+            on_event,
         } = self;
-        let on_event = on_event.clone();
 
         let url = match &graphic {
             ScreenGraphic::Image(image) => get_project_image_url(project_id, image.id).unwrap(),
@@ -123,20 +125,15 @@ impl Component for GraphicClip<'_> {
                                 cut_id,
                                 graphic_index,
                                 graphic_wh,
-                                graphic,
+                                graphic: &graphic,
                             });
                         }
                     }
                 }
                 namui::Event::KeyDown { event } => {
-                    if is_editing_graphic {
-                        let graphic = graphic.clone();
-                        namui::log!("key down: {:?}", event.code);
-                        let graphic = graphic.clone();
-                        if event.code != Code::KeyC || !namui::keyboard::ctrl_press() {
-                            return;
-                        }
+                    let ctrl_press = namui::keyboard::ctrl_press();
 
+                    if is_editing_graphic && ctrl_press && event.code == Code::KeyC {
                         match graphic {
                             ScreenGraphic::Image(_) => {
                                 let image = image.clone();
@@ -172,6 +169,10 @@ impl Component for GraphicClip<'_> {
                             }
                         }
                     }
+
+                    if is_editing_graphic && event.code == Code::Delete {
+                        on_event(Event::DeleteGraphic { graphic_index })
+                    }
                 }
                 _ => {}
             });
@@ -183,10 +184,10 @@ impl Component for GraphicClip<'_> {
                     graphic_dest_rect: graphic_rendering_rect,
                     original_graphic_size: graphic_wh,
                     graphic_index,
-                    graphic: graphic.clone(),
-                    dragging: dragging.clone(),
+                    graphic,
+                    dragging,
                     wh,
-                    on_event: Box::new(|event| on_event(Event::WysiwygTool(event))),
+                    on_event: &|event| on_event(Event::WysiwygTool(event)),
                 });
             }
         });

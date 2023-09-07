@@ -8,6 +8,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+console_error_panic_hook = "0.1.7"
 wasm-bindgen = { version = "0.2.63", features = ["serde-serialize"]  }
 js-sys = "0.3.55"
 wasm-bindgen-futures = "0.4.28"

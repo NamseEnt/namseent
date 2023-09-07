@@ -33,7 +33,7 @@ impl SkSkia for CkSkia {
         CkTypeface::load(typeface_name, bytes)
     }
 
-    fn load_image(&self, image_source: &ImageSource, image_bitmap: &web_sys::ImageBitmap) {
+    fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap) {
         CkImage::load(image_source, image_bitmap)
     }
 
@@ -49,7 +49,11 @@ impl SkSkia for CkSkia {
         CkPath::get(path).bounding_box(paint)
     }
 
-    fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8> {
-        CkImage::get(&image.src).unwrap().encode_to_png()
+    fn encode_loaded_image_to_png(
+        &self,
+        image: &Image,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<u8>>>> {
+        let ck_image = CkImage::get(&image.src).unwrap();
+        Box::pin(async move { ck_image.encode_to_png().await })
     }
 }

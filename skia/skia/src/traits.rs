@@ -7,11 +7,14 @@ pub trait SkSkia {
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph>;
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics>;
     fn load_typeface(&self, typeface_name: &str, bytes: &[u8]);
-    fn load_image(&self, image_source: &ImageSource, image_bitmap: &web_sys::ImageBitmap);
+    fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
     fn image(&self, image_source: &ImageSource) -> Option<Image>;
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool;
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>>;
-    fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8>;
+    fn encode_loaded_image_to_png(
+        &self,
+        image: &Image,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<u8>>>>;
 }
 
 pub trait SkSurface {

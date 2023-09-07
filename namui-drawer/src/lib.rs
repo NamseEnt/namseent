@@ -18,6 +18,8 @@ static SKIA: OnceLock<RwLock<Arc<dyn SkSkia + Send + Sync>>> = OnceLock::new();
 
 #[wasm_bindgen]
 pub fn init(canvas: web_sys::HtmlCanvasElement) {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
     namui_type::set_log(|x| log::log(x));
 
     SKIA.set(RwLock::new(init_skia(Some(&canvas))))
@@ -53,17 +55,21 @@ pub fn load_image(image_source: Vec<u8>, image_bitmap: web_sys::ImageBitmap) {
         .unwrap()
         .read()
         .unwrap()
-        .load_image(&image_source, &image_bitmap);
+        .load_image(image_source, image_bitmap);
 }
 
 #[wasm_bindgen]
-pub fn encode_loaded_image_to_png(image: Vec<u8>) -> Vec<u8> {
+pub async fn encode_loaded_image_to_png(image: Vec<u8>) -> wasm_bindgen::JsValue {
     let image = Image::from_postcard_bytes(&image);
-    SKIA.get()
+    let vec = SKIA
+        .get()
         .unwrap()
         .read()
         .unwrap()
         .encode_loaded_image_to_png(&image)
+        .await;
+
+    js_sys::Uint8Array::from(vec.as_ref()).into()
 }
 
 #[wasm_bindgen]
