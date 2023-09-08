@@ -34,4 +34,4 @@ jobs:
           path: "for-all-projects"
           registry-token: ${{ secrets.CARGO_API_TOKEN }}
 
-      - run: cargo install for-all-porjects
+      - run: cargo install for-all-projects
