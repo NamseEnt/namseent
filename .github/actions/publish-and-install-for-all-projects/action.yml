@@ -16,11 +16,6 @@ runs:
           ~/.cargo/bin/for-all-projects
         key: ${{ runner.os }}-for-all-projects-${{ steps.for-all-projects-cargo-toml.outputs.value }}
 
-    - uses: katyo/publish-crates@v2
-      with:
-        path: "for-all-projects"
-        registry-token: ${{ secrets.CARGO_API_TOKEN }}
-
     - name: Install for-all-projects
       shell: bash
       run: if [ ! -f ~/.cargo/bin/for-all-projects ]; then cargo install for-all-projects; fi

@@ -8,6 +8,11 @@ concurrency:
   group: ${{ github.ref }}-all
   cancel-in-progress: true
 
+env:
+  SCCACHE_GHA_ENABLED: true
+  RUSTC_WRAPPER: sccache
+  CARGO_INCREMENTAL: 0
+
 jobs:
   list-projects:
     runs-on: ubuntu-latest
@@ -15,28 +20,15 @@ jobs:
       project-dirs: ${{ steps.project-dirs.outputs.dirs }}
     steps:
       - uses: actions/checkout@v3
+      - uses: mozilla-actions/sccache-action@v0.0.3
       - uses: ./.github/actions/rustup-update
-      - uses: ./.github/actions/publish-and-install-for-all-projects
-
-      - uses: SebRollen/toml-action@v1.0.2
-        id: for-all-projects-cargo-toml
-        with:
-          file: for-all-projects/Cargo.toml
-          field: package.version
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/for-all-projects
-          key: ${{ runner.os }}-for-all-projects-${{ steps.for-all-projects-cargo-toml.outputs.value }}
 
       - uses: katyo/publish-crates@v2
         with:
           path: "for-all-projects"
           registry-token: ${{ secrets.CARGO_API_TOKEN }}
 
-      - name: Install for-all-projects
-        run: if [ ! -f ~/.cargo/bin/for-all-projects ]; then cargo install for-all-projects; fi
+      - uses: ./.github/actions/publish-and-install-for-all-projects
 
       - name: Output list of project directories
         id: project-dirs
@@ -51,6 +43,7 @@ jobs:
         dir: ${{ fromJSON(needs.list-projects.outputs.project-dirs) }}
     steps:
       - uses: actions/checkout@v3
+      - uses: mozilla-actions/sccache-action@v0.0.3
       - uses: ./.github/actions/rustup-update
       - uses: ./.github/actions/publish-and-install-for-all-projects
 
