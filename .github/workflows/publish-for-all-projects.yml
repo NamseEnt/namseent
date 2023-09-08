@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: mozilla-actions/sccache-action@v0.0.3
-      - uses: rustup update
+      - run: rustup update
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: publish-for-all-projects
