@@ -9,21 +9,12 @@ runs:
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.3
 
-    - uses: Swatinem/rust-cache@v2
-
     - name: wasm-pack install
       shell: bash
-      run: cargo install --version 0.11.1 wasm-pack
+      run: cargo install wasm-pack
 
     - shell: bash
-      run: time rustup target add wasm32-unknown-unknown
-
-    - uses: actions/cache@v3
-      with:
-        path: |
-          namui-cli/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('namui-cli/Cargo.lock') }}
-        restore-keys: ${{ runner.os }}-cargo-
+      run: rustup target add wasm32-unknown-unknown
 
     - name: Get npm cache directory
       id: npm-cache-dir
@@ -31,13 +22,17 @@ runs:
       run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
 
     - uses: actions/cache@v3
-      id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
       with:
         path: ${{ steps.npm-cache-dir.outputs.dir }}
         key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-node-
 
+    - uses: Swatinem/rust-cache@v2
+      with:
+        prefix-key: namui-cli
+        cache-directories: namui-cli
+
     - name: install namui-cli
       shell: bash
-      run: time bash namui-cli/scripts/install.sh
+      run: bash namui-cli/scripts/install.sh
