@@ -9,7 +9,7 @@ use std::{
     str::FromStr,
 };
 
-pub fn test(manifest_path: &PathBuf) -> Result<()> {
+pub fn test(manifest_path: &Path) -> Result<()> {
     let source_root_directory_to_bind =
         find_source_root_directory_to_bind_to_podman(manifest_path)?;
     let source_bind_path = PathBuf::from_str("/namui-test")?;
@@ -67,20 +67,18 @@ pub fn test(manifest_path: &PathBuf) -> Result<()> {
         .expect("No parent directory found");
 
     let rust_flags = std::env::var("RUSTFLAGS").unwrap_or_else(|_| "".to_string());
-    let command_to_pass_to_podman = format!(
-        "{}",
-        [
-            format!("rustc --version"),
-            format!(
-                "RUSTFLAGS=\"{}\" wasm-pack test --headless --chrome {}",
-                rust_flags,
-                directory.to_str().unwrap()
-            ),
-        ]
-        .into_iter()
-        .collect::<Vec<String>>()
-        .join("; ")
-    );
+    let command_to_pass_to_podman = [
+        "rustc --version".to_string(),
+        format!(
+            "RUSTFLAGS=\"{}\" wasm-pack test --headless --chrome {}",
+            rust_flags,
+            directory.to_str().unwrap()
+        ),
+    ]
+    .into_iter()
+    .collect::<Vec<String>>()
+    .join("; ")
+    .to_string();
 
     build_docker_image()?;
 
@@ -96,7 +94,7 @@ pub fn test(manifest_path: &PathBuf) -> Result<()> {
     let result = Command::new("podman").args(args).status()?;
 
     if !result.success() {
-        return Err(anyhow!("test failed").into());
+        return Err(anyhow!("test failed"));
     }
     Ok(())
 }
@@ -140,15 +138,14 @@ fn get_cargo_directory() -> PathBuf {
 }
 
 fn get_manifest_path_in_podman(
-    original_manifest_path: &PathBuf,
+    original_manifest_path: &Path,
     directory_to_bind: &PathBuf,
-    bind_path: &PathBuf,
+    bind_path: &Path,
 ) -> PathBuf {
     bind_path.join(
         original_manifest_path
             .strip_prefix(directory_to_bind)
-            .expect("No prefix found")
-            .to_path_buf(),
+            .expect("No prefix found"),
     )
 }
 
@@ -184,7 +181,7 @@ mod tests {
     }
 }
 
-fn find_source_root_directory_to_bind_to_podman(manifest_path: &PathBuf) -> Result<PathBuf> {
+fn find_source_root_directory_to_bind_to_podman(manifest_path: &Path) -> Result<PathBuf> {
     let manifest_paths = get_all_path_dependencies_recursively(manifest_path)?;
 
     let source_root_directory = get_common_path(manifest_paths.iter());
@@ -201,13 +198,12 @@ fn find_source_root_directory_to_bind_to_podman(manifest_path: &PathBuf) -> Resu
     })
 }
 
-fn get_all_path_dependencies_recursively(manifest_path: &PathBuf) -> Result<HashSet<PathBuf>> {
-    let mut searching_manifest_paths = vec![manifest_path.clone()];
+fn get_all_path_dependencies_recursively(manifest_path: &Path) -> Result<HashSet<PathBuf>> {
+    let mut searching_manifest_paths = vec![manifest_path.to_path_buf()];
 
     let mut manifest_paths: HashSet<PathBuf> = HashSet::new();
 
-    while searching_manifest_paths.len() > 0 {
-        let manifest_path = searching_manifest_paths.pop().unwrap();
+    while let Some(manifest_path) = searching_manifest_paths.pop() {
         manifest_paths.insert(manifest_path.clone());
 
         let new_path_dependency_manifest_paths =
@@ -254,9 +250,7 @@ fn get_common_path_of_two(path_a: &Path, path_b: &Path) -> Option<PathBuf> {
 fn get_path_dependency_manifest_paths(manifest_path: &PathBuf) -> Result<Vec<PathBuf>> {
     let path_dependency_regex = Regex::new(r"\(path\+file://([^\)]+)\)$").unwrap();
 
-    let metadata = MetadataCommand::new()
-        .manifest_path(&manifest_path)
-        .exec()?;
+    let metadata = MetadataCommand::new().manifest_path(manifest_path).exec()?;
 
     let mut manifest_paths = HashSet::new();
 

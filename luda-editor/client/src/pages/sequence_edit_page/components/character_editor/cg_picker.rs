@@ -23,7 +23,7 @@ pub enum Event {
 }
 
 impl Component for CgPicker<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             project_id,

@@ -4,7 +4,7 @@ pub enum TableCell<'a> {
     Empty,
     Some {
         unit: Unit<'a>,
-        render: Box<dyn 'a + FnOnce(Direction, Wh<Px>, &mut ComposeCtx)>,
+        render: TableCellRenderFn<'a>,
         need_clip: bool,
     },
     NeedBoundingBox {
@@ -12,6 +12,7 @@ pub enum TableCell<'a> {
         func: Box<dyn 'a + FnOnce(&RenderCtx) -> TableCell<'a>>,
     },
 }
+type TableCellRenderFn<'a> = Box<dyn 'a + FnOnce(Direction, Wh<Px>, &mut ComposeCtx)>;
 
 pub enum Unit<'a> {
     Ratio(f32),
@@ -21,17 +22,17 @@ pub enum Unit<'a> {
 }
 
 pub trait F32OrI32 {
-    fn as_f32(self) -> f32;
+    fn into_f32(self) -> f32;
 }
 
 impl F32OrI32 for i32 {
-    fn as_f32(self) -> f32 {
+    fn into_f32(self) -> f32 {
         self as f32
     }
 }
 
 impl F32OrI32 for f32 {
-    fn as_f32(self) -> f32 {
+    fn into_f32(self) -> f32 {
         self
     }
 }
@@ -41,7 +42,7 @@ pub fn ratio<'a>(
     cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
-        unit: Unit::Ratio(ratio.as_f32()),
+        unit: Unit::Ratio(ratio.into_f32()),
         render: Box::new(|_direction, wh, ctx| {
             cell_render_closure(wh, ctx);
         }),
@@ -54,7 +55,7 @@ pub fn ratio_no_clip<'a>(
     cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
-        unit: Unit::Ratio(ratio.as_f32()),
+        unit: Unit::Ratio(ratio.into_f32()),
         render: Box::new(|_direction, wh, ctx| {
             cell_render_closure(wh, ctx);
         }),

@@ -115,7 +115,7 @@ fn main() {
     fn test_position_is_in_async_block_outside() {
         let actual =
             position_is_in_async_block(FILE_TEXT, LineColumn { line: 1, column: 0 }).unwrap();
-        assert_eq!(actual, false);
+        assert!(!actual);
     }
 
     #[test]
@@ -128,13 +128,13 @@ fn main() {
             },
         )
         .unwrap();
-        assert_eq!(actual, true);
+        assert!(actual);
     }
 
     #[test]
     fn test_position_is_in_closure_outside() {
         let actual = position_is_in_closure(FILE_TEXT, LineColumn { line: 3, column: 0 }).unwrap();
-        assert_eq!(actual, false);
+        assert!(!actual);
     }
 
     #[test]
@@ -147,7 +147,7 @@ fn main() {
             },
         )
         .unwrap();
-        assert_eq!(actual, true);
+        assert!(actual);
     }
 
     #[test]

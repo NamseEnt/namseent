@@ -14,14 +14,12 @@ pub async fn upload_images_using_picker(
     let futures = files
         .chunks(file_count_per_channel)
         .map(|files_in_channel| async move {
-            for file in files_in_channel.into_iter() {
+            for file in files_in_channel.iter() {
                 let data = file.content().await;
 
-                if let Err(error) = create_image(project_id, data.to_vec()).await {
-                    return Err(error);
-                }
+                create_image(project_id, data.to_vec()).await?;
             }
-            Ok(())
+            Result::<(), Box<dyn std::error::Error>>::Ok(())
         });
 
     try_join_all(futures).await?;

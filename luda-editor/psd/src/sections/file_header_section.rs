@@ -148,7 +148,7 @@ pub struct ChannelCount(u8);
 impl ChannelCount {
     /// Create a new ChannelCount
     pub fn new(channel_count: u8) -> Option<ChannelCount> {
-        if channel_count < 1 || channel_count > 56 {
+        if !(1..=56).contains(&channel_count) {
             return None;
         }
 
@@ -173,7 +173,7 @@ pub struct PsdHeight(pub(crate) u32);
 impl PsdHeight {
     /// Create a new PsdHeight
     pub fn new(height: u32) -> Option<PsdHeight> {
-        if height < 1 || height > 30000 {
+        if !(1..=30000).contains(&height) {
             return None;
         }
 
@@ -193,7 +193,7 @@ pub struct PsdWidth(pub(crate) u32);
 impl PsdWidth {
     /// Create a new PsdWidth
     pub fn new(width: u32) -> Option<PsdWidth> {
-        if width < 1 || width > 30000 {
+        if !(1..=30000).contains(&width) {
             return None;
         }
 
@@ -335,7 +335,7 @@ mod tests {
     }
 
     fn error_from_bytes(bytes: &[u8]) -> FileHeaderSectionError {
-        FileHeaderSection::from_bytes(&bytes).expect_err("error")
+        FileHeaderSection::from_bytes(bytes).expect_err("error")
     }
 
     // [0, 1, 2, ..., 25]

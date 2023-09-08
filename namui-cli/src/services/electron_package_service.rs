@@ -41,9 +41,9 @@ impl std::fmt::Display for Arch {
         )
     }
 }
-impl Into<Option<Arch>> for &ElectronPackageArch {
-    fn into(self) -> Option<Arch> {
-        match self {
+impl From<&ElectronPackageArch> for Option<Arch> {
+    fn from(val: &ElectronPackageArch) -> Self {
+        match val {
             ElectronPackageArch::Auto => None,
             ElectronPackageArch::X64 => Some(Arch::X64),
         }
@@ -85,9 +85,9 @@ fn parse_package_output(output: &Output) -> Result<PackageResult> {
     Ok(package_result)
 }
 
-fn trim_json_string(json_string: &String) -> Result<String> {
-    let json_start_position = json_string.find("{");
-    let json_end_position = json_string.rfind("}");
+fn trim_json_string(json_string: &str) -> Result<String> {
+    let json_start_position = json_string.find('{');
+    let json_end_position = json_string.rfind('}');
     if json_start_position.is_none() || json_end_position.is_none() {
         bail!("Invalid json string");
     }

@@ -130,8 +130,7 @@ impl CancelableBuilder {
                                 return Err(anyhow!(
                                     "rollup build failed {stderr}",
                                     stderr = stderr_reading_thread.join().unwrap()
-                                )
-                                .into());
+                                ));
                             }
                             match parse_rollup_build_result(rollup_outputs) {
                                 Ok(result) => {

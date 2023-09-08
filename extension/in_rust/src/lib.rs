@@ -74,7 +74,7 @@ fn action_to_put_clone_in_block(lc_in_stmt: LineColumn, variable_name: &str) -> 
         column: lc_in_stmt.column,
         text: format!("let {variable_name} = {variable_name}.clone();\n"),
     });
-    return Ok(edit_action);
+    Ok(edit_action)
 }
 
 fn action_to_create_block_and_put_clone(
@@ -98,7 +98,7 @@ fn action_to_create_block_and_put_clone(
     edit_action.insert.push(EditInsertAction {
         line: closure_span.end().line,
         column: closure_span.end().column,
-        text: format!("\n}}"),
+        text: "\n}".to_string(),
     });
     edit_action.insert.push(EditInsertAction {
         line: closure_span.start().line,
@@ -140,14 +140,14 @@ pub fn action_to_create_block(expr_span: proc_macro2::Span) -> Result<EditAction
     edit_action.insert.push(EditInsertAction {
         line: expr_span.end().line,
         column: expr_span.end().column,
-        text: format!("}}"),
+        text: "}".to_string(),
     });
     edit_action.insert.push(EditInsertAction {
         line: expr_span.start().line,
         column: expr_span.start().column,
-        text: format!("{{"),
+        text: "{".to_string(),
     });
-    return Ok(edit_action);
+    Ok(edit_action)
 }
 
 fn find_parent_block_span(file: &syn::File, lc: LineColumn) -> Result<proc_macro2::Span> {

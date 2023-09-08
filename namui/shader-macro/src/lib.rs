@@ -167,7 +167,7 @@ pub fn shader(item: TokenStream) -> TokenStream {
     let new_body = {
         uniforms
             .iter()
-            .map(|uniform| format!("{}", uniform.ident))
+            .map(|uniform| uniform.ident.to_string())
             .collect::<Vec<_>>()
             .join(",\n")
     };

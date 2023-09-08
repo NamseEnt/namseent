@@ -74,9 +74,7 @@ impl RustProjectWatchService {
         let project_root_path = manifest_path.parent().unwrap();
         let mut local_dependencies_root_paths = HashSet::new();
 
-        let metadata = MetadataCommand::new()
-            .manifest_path(&manifest_path)
-            .exec()?;
+        let metadata = MetadataCommand::new().manifest_path(manifest_path).exec()?;
 
         if let Some(resolve) = metadata.resolve {
             for node in resolve.nodes {
@@ -95,7 +93,6 @@ impl RustProjectWatchService {
         let watched_paths = watching_paths.clone();
         let next_watching_paths = local_dependencies_root_paths
             .union(&HashSet::from_iter([project_root_path.to_path_buf()]))
-            .into_iter()
             .flat_map(|root_path| {
                 WATCHING_ITEMS_IN_PROJECT
                     .iter()

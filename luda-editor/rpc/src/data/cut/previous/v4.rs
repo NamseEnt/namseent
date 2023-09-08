@@ -21,7 +21,7 @@ impl Cut {
             screen_graphics: previous
                 .screen_images
                 .into_iter()
-                .map(|screen_image| ScreenGraphic::Image(screen_image))
+                .map(ScreenGraphic::Image)
                 .collect(),
         }
     }

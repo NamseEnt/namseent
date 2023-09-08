@@ -9,7 +9,7 @@ pub struct ToolTip {
 }
 
 impl Component for ToolTip {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { global_xy, text } = self;
 
         const OFFSET: Px = px(16.0);

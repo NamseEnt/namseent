@@ -26,13 +26,13 @@ def run():
         if dir_path in ignored_projects:
             continue
 
-        print(f"cd {dir_path} && cargo fix --allow-dirty --allow-staged --broken-code")
+        print(f"cd {dir_path} && cargo clippy --fix --allow-dirty --allow-staged --broken-code")
         exit = os.system(
-            f"cd {dir_path} && cargo fix --allow-dirty --allow-staged --broken-code"
+            f"cd {dir_path} && cargo clippy --fix --allow-dirty --allow-staged --broken-code"
         )
         if exit != 0:
             print(
-                f"\n\n-- fail cargo fix --allow-dirty --allow-staged --broken-code on {dir_path}\n\n"
+                f"\n\n-- fail cargo clippy --fix --allow-dirty --allow-staged --broken-code on {dir_path}\n\n"
             )
             return
 

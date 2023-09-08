@@ -133,8 +133,7 @@ impl CancelableBuilder {
                                 return Err(anyhow!(
                                     "cargo build failed {stderr}",
                                     stderr = stderr_reading_thread.join().unwrap()
-                                )
-                                .into());
+                                ));
                             }
                             match parse_cargo_build_result(cargo_outputs.as_bytes()) {
                                 Ok(result) => {
@@ -142,7 +141,7 @@ impl CancelableBuilder {
                                         return Err(anyhow!(
                                             "build process exited with code {exit_status}\nstderr: {stderr}",
                                             stderr = stderr_reading_thread.join().unwrap()
-                                        ).into());
+                                        ));
                                     }
                                     return Ok(BuildResult::Successful(result));
                                 }

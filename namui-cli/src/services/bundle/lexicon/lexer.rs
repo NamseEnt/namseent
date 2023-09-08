@@ -24,7 +24,7 @@ impl Lexer {
         }
     }
 
-    pub fn parse(self: &mut Self) -> Result<ParseResult> {
+    pub fn parse(&mut self) -> Result<ParseResult> {
         let mut include: Vec<IncludeOperation> = Vec::new();
         let mut exclude: Vec<ExcludeOperation> = Vec::new();
 
@@ -38,15 +38,15 @@ impl Lexer {
         }
     }
 
-    fn last_token(self: &Self) -> Token {
+    fn last_token(&self) -> Token {
         self.last_token.clone()
     }
 
-    fn next_token(self: &mut Self) {
+    fn next_token(&mut self) {
         self.last_token = self.tokenizer.next();
     }
 
-    fn parse_exclude_operation(self: &mut Self) -> Result<ExcludeOperation> {
+    fn parse_exclude_operation(&mut self) -> Result<ExcludeOperation> {
         self.next_token();
         match self.last_token {
             Token::Word(_)
@@ -54,18 +54,15 @@ impl Lexer {
             | Token::EndOfLine
             | Token::EndOfFile
             | Token::CurrentDirectory
-            | Token::ParentDirectory => return Ok(ExcludeOperation::new(self.parse_path(true)?)),
-            _ => {
-                return Err(anyhow!(
-                    "parse_exclude_operation: Unexpected token {:?}",
-                    &self.last_token
-                )
-                .into())
-            }
+            | Token::ParentDirectory => Ok(ExcludeOperation::new(self.parse_path(true)?)),
+            _ => Err(anyhow!(
+                "parse_exclude_operation: Unexpected token {:?}",
+                &self.last_token
+            )),
         }
     }
 
-    fn parse_include_operation(self: &mut Self) -> Result<IncludeOperation> {
+    fn parse_include_operation(&mut self) -> Result<IncludeOperation> {
         let src_path = match self.last_token {
             Token::Word(_)
             | Token::Asterisk
@@ -78,8 +75,7 @@ impl Lexer {
                 return Err(anyhow!(
                     "parse_include_operation: Unexpected token {:?}",
                     &self.last_token
-                )
-                .into())
+                ))
             }
         };
 
@@ -97,8 +93,7 @@ impl Lexer {
                 return Err(anyhow!(
                     "parse_include_operation: Unexpected token {:?}",
                     &self.last_token
-                )
-                .into())
+                ))
             }
         }
 
@@ -113,15 +108,14 @@ impl Lexer {
                 return Err(anyhow!(
                     "parse_include_operation: Unexpected token {:?}",
                     &self.last_token
-                )
-                .into())
+                ))
             }
         };
 
         Ok(IncludeOperation::new(src_path, dest_path))
     }
 
-    fn parse_path(self: &mut Self, allow_wildcard: bool) -> Result<Path> {
+    fn parse_path(&mut self, allow_wildcard: bool) -> Result<Path> {
         let mut elements = Vec::new();
         loop {
             match &self.last_token {
@@ -135,9 +129,10 @@ impl Lexer {
                     continue;
                 }
                 Token::Exclude | Token::Comment(_) => {
-                    return Err(
-                        anyhow!("parse_dest_path: Unexpected token {:?}", &self.last_token).into(),
-                    )
+                    return Err(anyhow!(
+                        "parse_dest_path: Unexpected token {:?}",
+                        &self.last_token
+                    ))
                 }
                 Token::SrcDestSeparator | Token::EndOfLine | Token::EndOfFile => {
                     return Ok(Path { elements })
@@ -146,14 +141,14 @@ impl Lexer {
         }
     }
 
-    fn parse_path_element(self: &mut Self, allow_wildcard: bool) -> Result<PathElement> {
+    fn parse_path_element(&mut self, allow_wildcard: bool) -> Result<PathElement> {
         let mut element_name_regex = String::new();
         let mut element_name_raw_string = String::new();
         loop {
             match self.last_token() {
                 Token::DoubleAsterisk => {
                     if !allow_wildcard {
-                        return Err(anyhow!("parse_path_element: Wildcard not allowed").into());
+                        return Err(anyhow!("parse_path_element: Wildcard not allowed"));
                     }
                     self.next_token();
                     return Ok(PathElement::DoubleAsterisk);
@@ -165,7 +160,7 @@ impl Lexer {
                 }
                 Token::Asterisk => {
                     if !allow_wildcard {
-                        return Err(anyhow!("parse_path_element: Wildcard not allowed").into());
+                        return Err(anyhow!("parse_path_element: Wildcard not allowed"));
                     }
                     self.next_token();
                     element_name_regex.push('*');
@@ -193,8 +188,7 @@ impl Lexer {
                     return Err(anyhow!(
                         "parse_path_element: Unexpected token {:?}",
                         &self.last_token
-                    )
-                    .into())
+                    ))
                 }
             }
         }

@@ -12,6 +12,6 @@ pub fn test(target: &Target, manifest_path: &PathBuf) -> Result<()> {
             _ => unimplemented!(),
         }
     } else {
-        Result::Err(anyhow!("{} is unsupported os", std::env::consts::OS).into())
+        Result::Err(anyhow!("{} is unsupported os", std::env::consts::OS))
     }
 }

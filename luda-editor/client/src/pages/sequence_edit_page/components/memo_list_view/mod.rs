@@ -1,6 +1,6 @@
 use crate::color;
 use namui::prelude::*;
-use namui_prebuilt::button::text_button_fit_align;
+use namui_prebuilt::button::TextButtonFitAlign;
 use namui_prebuilt::scroll_view::{self};
 use namui_prebuilt::{simple_rect, table, transparent_rect};
 use rpc::data::Memo;
@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for MemoListView<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             ref memos,
@@ -38,7 +38,7 @@ impl Component for MemoListView<'_> {
                             width: wh.width,
                             memo,
                             user_id,
-                            on_event: Box::new(|event| on_event(event)),
+                            on_event: Box::new(&on_event),
                         },
                     )
                 }))(wh, ctx);
@@ -60,10 +60,10 @@ struct MemoComponent<'a> {
     width: Px,
     memo: &'a Memo,
     user_id: Uuid,
-    on_event: callback!('a, Event),
+    on_event: Box<dyn 'a + Fn(Event)>,
 }
 impl Component for MemoComponent<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         const MARGIN: Px = px(8.0);
         const PADDING: Px = px(8.0);
 
@@ -110,10 +110,10 @@ struct MemoContent<'a> {
     width: Px,
     memo: &'a Memo,
     user_id: Uuid,
-    on_event: callback!('a, Event),
+    on_event: Box<dyn 'a + Fn(Event)>,
 }
 impl Component for MemoContent<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         const MARGIN: Px = px(8.0);
         const PADDING: Px = px(8.0);
         const BUTTON_HEIGHT: Px = px(24.0);
@@ -152,20 +152,20 @@ impl Component for MemoContent<'_> {
 
         let done_button = match memo.user_id == user_id {
             true => Some(
-                text_button_fit_align(
-                    Wh::new(inner_width, BUTTON_HEIGHT),
-                    TextAlign::Right,
-                    "완료",
-                    color::STROKE_NORMAL,
-                    color::STROKE_NORMAL,
-                    1.px(),
-                    Color::TRANSPARENT,
-                    PADDING,
-                    [MouseButton::Left],
-                    move |_| {
+                TextButtonFitAlign {
+                    wh: Wh::new(inner_width, BUTTON_HEIGHT),
+                    align: TextAlign::Right,
+                    text: "완료",
+                    text_color: color::STROKE_NORMAL,
+                    stroke_color: color::STROKE_NORMAL,
+                    stroke_width: 1.px(),
+                    fill_color: Color::TRANSPARENT,
+                    side_padding: PADDING,
+                    mouse_buttons: vec![MouseButton::Left],
+                    on_mouse_up_in: Box::new(|_| {
                         on_event(Event::DoneClicked { cut_id, memo_id });
-                    },
-                )
+                    }),
+                }
                 .with_mouse_cursor(MouseCursor::Pointer),
             ),
             false => None,

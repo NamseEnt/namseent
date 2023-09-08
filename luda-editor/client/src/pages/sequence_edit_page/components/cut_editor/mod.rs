@@ -42,7 +42,7 @@ enum ContextMenu {
 }
 
 impl Component for CutEditor<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             cut,
@@ -59,8 +59,8 @@ impl Component for CutEditor<'_> {
 
         let content_rect = sequence_player::get_inner_content_rect(wh);
         let cut_id: Uuid = cut.id;
-        let prev_cut_id = prev_cut_id(&cuts, cut_id);
-        let next_cut_id = next_cut_id(&cuts, cut_id);
+        let prev_cut_id = prev_cut_id(cuts, cut_id);
+        let next_cut_id = next_cut_id(cuts, cut_id);
         let selected_target = ctx.track_eq(&if cut_text_input_instance.focused() {
             Some(ClickTarget::CutText)
         } else if cut_name_input_instance.focused() {
@@ -84,12 +84,12 @@ impl Component for CutEditor<'_> {
             if let Some(selected_target) = *selected_target {
                 let target = match (selected_target, up_down) {
                     (ClickTarget::CharacterName, UpDown::Up) => {
-                        prev_cut_id.is_some().then(|| ClickTarget::CutText)
+                        prev_cut_id.is_some().then_some(ClickTarget::CutText)
                     }
                     (ClickTarget::CharacterName, UpDown::Down) => Some(ClickTarget::CutText),
                     (ClickTarget::CutText, UpDown::Up) => Some(ClickTarget::CharacterName),
                     (ClickTarget::CutText, UpDown::Down) => {
-                        next_cut_id.is_some().then(|| ClickTarget::CharacterName)
+                        next_cut_id.is_some().then_some(ClickTarget::CharacterName)
                     }
                 };
                 if let Some(target) = target {
@@ -138,7 +138,7 @@ impl Component for CutEditor<'_> {
                 text_input_instance: cut_name_input_instance,
                 text: character_name,
                 wh,
-                candidates: character_name_candidates.clone(),
+                candidates: character_name_candidates,
                 style: text_input::Style {
                     text: sequence_player::character_name_text_style(1.one_zero()),
                     rect: RectStyle {
@@ -187,13 +187,12 @@ impl Component for CutEditor<'_> {
                     text_input::Event::SelectionUpdated { selection: _ } => {}
                 },
             })
-            .attach_event(|event| match event {
-                namui::Event::MouseDown { event } => {
+            .attach_event(|event| {
+                if let namui::Event::MouseDown { event } = event {
                     if !event.is_local_xy_in() {
                         cut_name_input_instance.blur()
                     }
                 }
-                _ => {}
             });
         };
 
@@ -202,7 +201,7 @@ impl Component for CutEditor<'_> {
             let cut_id = cut.id;
 
             let focused = is_focused && *selected_target == Some(ClickTarget::CutText);
-            let move_cut_request = move_cut_request.clone();
+            let move_cut_request = *move_cut_request;
             ctx.add(TextInput {
                 instance: cut_text_input_instance,
                 rect: wh.to_rect(),
@@ -255,13 +254,12 @@ impl Component for CutEditor<'_> {
                     }
                 },
             })
-            .attach_event(|event| match event {
-                namui::Event::MouseDown { event } => {
+            .attach_event(|event| {
+                if let namui::Event::MouseDown { event } = event {
                     if !event.is_local_xy_in() {
                         cut_text_input_instance.blur()
                     }
                 }
-                _ => {}
             });
         };
 
@@ -327,7 +325,7 @@ enum UpDown {
     Down,
 }
 
-fn prev_cut_id(cuts: &Vec<Cut>, cut_id: Uuid) -> Option<Uuid> {
+fn prev_cut_id(cuts: &[Cut], cut_id: Uuid) -> Option<Uuid> {
     cuts.iter().enumerate().find_map(|(i, cut)| {
         if cut.id == cut_id {
             if i == 0 {

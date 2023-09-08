@@ -15,7 +15,7 @@ pub struct SequencePlayer<'a> {
 }
 
 impl Component for SequencePlayer<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let (cut_index, _) = ctx.state(|| self.init_cut_index);
 
         #[derive(Debug)]
@@ -65,7 +65,7 @@ impl Component for SequencePlayer<'_> {
         });
 
         let go_to_next_cut = |do_transition: bool| {
-            if self.sequence.cuts.len() == 0 {
+            if self.sequence.cuts.is_empty() {
                 return;
             }
 
@@ -117,8 +117,8 @@ impl Component for SequencePlayer<'_> {
 
         ctx.compose(|ctx| {
             ctx.translate(inner_content_rect.xy())
-                .compose(|ctx| match state.as_ref() {
-                    &State::ShowingCut { cut_index } => {
+                .compose(|ctx| match *state.as_ref() {
+                    State::ShowingCut { cut_index } => {
                         let cut = self.sequence.cuts.get(cut_index).unwrap();
                         render_graphics(
                             ctx,
@@ -126,11 +126,11 @@ impl Component for SequencePlayer<'_> {
                             inner_content_rect.wh(),
                             cut,
                             1.0.one_zero(),
-                            &self.cg_files,
+                            self.cg_files,
                         );
                         ctx.add((
                             render_text(
-                                &self.project_shared_data,
+                                self.project_shared_data,
                                 inner_content_rect.wh(),
                                 cut,
                                 1.0.one_zero(),
@@ -142,17 +142,16 @@ impl Component for SequencePlayer<'_> {
                                 0.px(),
                                 Color::TRANSPARENT,
                             )
-                            .attach_event(|event| match event {
-                                Event::MouseDown { event } => {
+                            .attach_event(|event| {
+                                if let Event::MouseDown { event } = event {
                                     if event.is_local_xy_in() {
                                         go_to_next_cut(true)
                                     }
                                 }
-                                _ => {}
                             }),
                         ));
                     }
-                    &State::Transitioning {
+                    State::Transitioning {
                         from_cut_index,
                         transition_progress,
                         start_time: _start_time,
@@ -168,7 +167,7 @@ impl Component for SequencePlayer<'_> {
                         ctx.add((
                             render_text_box(inner_content_rect.wh()),
                             render_text(
-                                &self.project_shared_data,
+                                self.project_shared_data,
                                 inner_content_rect.wh(),
                                 from_cut,
                                 1.0.one_zero() - transition_progress,
@@ -176,15 +175,14 @@ impl Component for SequencePlayer<'_> {
                         ));
                     }
                 })
-                .attach_event(|event| match event {
-                    Event::KeyDown { event } => {
+                .attach_event(|event| {
+                    if let Event::KeyDown { event } = event {
                         if event.code == Code::ArrowLeft {
                             go_to_prev_cut()
                         } else if event.code == Code::ArrowRight {
                             go_to_next_cut(false)
                         }
                     }
-                    _ => {}
                 });
         });
 
@@ -386,8 +384,7 @@ pub fn calculate_graphic_wh_on_screen(
     let image_radius_px = original_graphic_size.length() / 2;
     let radius_px = screen_radius * circumscribed.radius;
 
-    let wh = original_graphic_size * (radius_px / image_radius_px);
-    wh
+    original_graphic_size * (radius_px / image_radius_px)
 }
 
 pub fn calculate_graphic_rect_on_screen(
@@ -439,7 +436,7 @@ pub struct SequencePlayerGraphic<'a> {
 }
 
 impl Component for SequencePlayerGraphic<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let graphic = ctx.track_eq(self.graphic);
         let url = ctx.memo(|| match graphic.as_ref() {
             ScreenGraphic::Image(screen_image) => {

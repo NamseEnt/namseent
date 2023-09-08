@@ -12,7 +12,7 @@ pub struct Dropdown<'a> {
 }
 
 impl Component for Dropdown<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             rect,
             items,
@@ -33,19 +33,20 @@ impl Component for Dropdown<'_> {
             ctx.compose(|ctx| {
                 ctx.add(
                     simple_rect(rect.wh(), Color::BLACK, 1.px(), Color::WHITE).attach_event(
-                        move |event| match event {
-                            namui::Event::MouseDown { event } => match event.is_local_xy_in() {
-                                true => {
-                                    event.stop_propagation();
-                                    set_is_opened.set(true);
-                                    set_mouse_over_item_index.set(None);
+                        move |event| {
+                            if let namui::Event::MouseDown { event } = event {
+                                match event.is_local_xy_in() {
+                                    true => {
+                                        event.stop_propagation();
+                                        set_is_opened.set(true);
+                                        set_mouse_over_item_index.set(None);
+                                    }
+                                    false => {
+                                        set_is_opened.set(false);
+                                        set_mouse_over_item_index.set(None);
+                                    }
                                 }
-                                false => {
-                                    set_is_opened.set(false);
-                                    set_mouse_over_item_index.set(None);
-                                }
-                            },
-                            _ => {}
+                            }
                         },
                     ),
                 );
@@ -150,7 +151,7 @@ struct InternalItem {
 }
 
 impl Component for InternalItem {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             text,

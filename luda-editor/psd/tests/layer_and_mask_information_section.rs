@@ -54,18 +54,14 @@ fn layer_with_clipping() {
     let psd = Psd::from_bytes(psd).unwrap();
 
     assert_eq!(psd.layers().len(), 3);
-    assert_eq!(
-        psd.layer_by_name("Clipping base")
-            .unwrap()
-            .is_clipping_mask(),
-        true
-    );
-    assert_eq!(
-        psd.layer_by_name("First clipped layer")
-            .unwrap()
-            .is_clipping_mask(),
-        false
-    );
+    assert!(psd
+        .layer_by_name("Clipping base")
+        .unwrap()
+        .is_clipping_mask());
+    assert!(!psd
+        .layer_by_name("First clipped layer")
+        .unwrap()
+        .is_clipping_mask());
 }
 
 const TOP_LEVEL_ID: u32 = 1;

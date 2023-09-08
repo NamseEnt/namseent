@@ -21,6 +21,6 @@ pub async fn build(
             }
         }
     } else {
-        Result::Err(anyhow!("{} is unsupported os", std::env::consts::OS).into())
+        Result::Err(anyhow!("{} is unsupported os", std::env::consts::OS))
     }
 }

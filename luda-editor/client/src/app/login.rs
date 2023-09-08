@@ -48,8 +48,8 @@ async fn request_github_auth_code() -> Result<String> {
         https://sslwiheugl5ojmqlecerzhng740cekqc.lambda-url.ap-northeast-2.on.aws/{redirect_uri}
     "
     )
-    .replace(" ", "")
-    .replace("\n", "");
+    .replace(' ', "")
+    .replace('\n', "");
 
     let code: String = namui::web::execute_async_function(
         "

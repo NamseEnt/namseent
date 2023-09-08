@@ -114,7 +114,7 @@ enum Item {
 pub struct ContextMenu;
 
 impl Component for ContextMenu {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.state(|| None);
         let (atom, _) = ctx.atom_init(&CONTEXT_MENU_ATOM, Default::default);
 
@@ -194,15 +194,13 @@ impl Component for ContextMenu {
                                 }
                                 Event::MouseMove { event } => {
                                     if is_mouse_over {
-                                        if !event.is_local_xy_in() {
-                                            if *mouse_over_item_idx == Some(index) {
-                                                set_mouse_over_item_idx.set(None);
-                                            }
+                                        if !event.is_local_xy_in()
+                                            && *mouse_over_item_idx == Some(index)
+                                        {
+                                            set_mouse_over_item_idx.set(None);
                                         }
-                                    } else {
-                                        if event.is_local_xy_in() {
-                                            set_mouse_over_item_idx.set(Some(index));
-                                        }
+                                    } else if event.is_local_xy_in() {
+                                        set_mouse_over_item_idx.set(Some(index));
                                     }
                                 }
                                 _ => {}
@@ -227,14 +225,13 @@ impl Component for ContextMenu {
             0.px(),
             Color::grayscale_f01(0.2),
         )
-        .attach_event(|event| match event {
-            Event::MouseDown { event } => {
+        .attach_event(|event| {
+            if let Event::MouseDown { event } = event {
                 event.stop_propagation();
                 if !event.is_local_xy_in() {
                     close_context_menu();
                 }
             }
-            _ => {}
         });
 
         let global_xy_within_screen = global_xy_within_screen(atom.global_xy, context_menu_wh);

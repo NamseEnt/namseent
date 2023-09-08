@@ -19,7 +19,7 @@ pub struct AutoScrollView<C: Component> {
 }
 
 impl<C: Component> Component for AutoScrollView<C> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
         ctx.component(ScrollView {
@@ -36,7 +36,7 @@ impl<C: Component> Component for AutoScrollView<C> {
 }
 
 impl<C: Component> Component for ScrollView<C> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         ctx.component(ScrollViewWithCtx {
             xy: self.xy,
             scroll_bar_width: self.scroll_bar_width,
@@ -61,7 +61,7 @@ pub struct AutoScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
 }
 
 impl<Func: FnOnce(&mut ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
         ctx.component(ScrollViewWithCtx {
@@ -89,7 +89,7 @@ pub struct ScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
 }
 
 impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             xy,
             scroll_bar_width,
@@ -150,7 +150,6 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                     }),
                     ..Default::default()
                 },
-                ..Default::default()
             }),
             false => RenderingTree::Empty,
         };
@@ -167,7 +166,6 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                 }),
                 ..Default::default()
             },
-            ..Default::default()
         });
 
         ctx.compose(|ctx| {

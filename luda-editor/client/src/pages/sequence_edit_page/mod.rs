@@ -18,7 +18,7 @@ pub struct SequenceEditPage {
 }
 
 impl Component for SequenceEditPage {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             project_id,
@@ -50,7 +50,7 @@ impl Component for SequenceEditPage {
                     }),
                     Err(err) => ctx.add(typography::body::center(
                         wh,
-                        &format!("Error: {}", err),
+                        format!("Error: {}", err),
                         Color::WHITE,
                     )),
                 },

@@ -2,13 +2,14 @@ use super::drawer_watch_build_service;
 use super::{bundle::NamuiBundleManifest, deep_link_manifest_service::DeepLinkManifest};
 use crate::*;
 use crate::{cli::Target, debug_println, util::get_cli_root_path};
+use std::path::Path;
 use std::{
     fs::{create_dir_all, remove_dir_all},
     path::PathBuf,
 };
 
 pub fn collect_all(
-    project_path: &PathBuf,
+    project_path: &Path,
     dest_path: &PathBuf,
     target: Target,
     bundle_manifest: NamuiBundleManifest,
@@ -20,22 +21,22 @@ pub fn collect_all(
     collect_bundle(&mut ops, &bundle_manifest)?;
     collect_deep_link_manifest(&mut ops, project_path, target)?;
 
-    collect_resources(&project_path, &dest_path, ops)?;
+    collect_resources(project_path, dest_path, ops)?;
 
-    bundle_manifest.create_bundle_metadata_file(&dest_path)?;
+    bundle_manifest.create_bundle_metadata_file(dest_path)?;
     Ok(())
 }
 
 fn collect_resources(
-    project_root_path: &PathBuf,
+    project_root_path: &Path,
     dest_path: &PathBuf,
     ops: Vec<CollectOperation>,
 ) -> Result<()> {
     println!("start collecting resources");
-    remove_dir(&dest_path)?;
-    ensure_dir(&dest_path)?;
+    remove_dir(dest_path)?;
+    ensure_dir(dest_path)?;
     for op in ops {
-        op.execute(&project_root_path, &dest_path)?
+        op.execute(project_root_path, dest_path)?
     }
     Ok(())
 }
@@ -56,7 +57,7 @@ fn collect_runtime(
     }
     if let Some(additional_runtime_path) = additional_runtime_path {
         ops.push(CollectOperation::new(
-            &additional_runtime_path,
+            additional_runtime_path,
             &PathBuf::from(""),
         ));
     }
@@ -65,7 +66,7 @@ fn collect_runtime(
 
 fn collect_rust_build(
     ops: &mut Vec<CollectOperation>,
-    project_path: &PathBuf,
+    project_path: &Path,
     target: Target,
 ) -> Result<()> {
     match target {
@@ -105,13 +106,13 @@ fn collect_bundle(
 
 fn collect_deep_link_manifest(
     ops: &mut Vec<CollectOperation>,
-    project_path: &PathBuf,
+    project_path: &Path,
     target: Target,
 ) -> Result<()> {
     match target {
         Target::WasmUnknownWeb => {}
         Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
-            if let Some(namui_deep_link_manifest) = DeepLinkManifest::try_load(&project_path)? {
+            if let Some(namui_deep_link_manifest) = DeepLinkManifest::try_load(project_path)? {
                 ops.push(CollectOperation::new(
                     namui_deep_link_manifest.path(),
                     &PathBuf::from(""),
@@ -128,14 +129,14 @@ pub struct CollectOperation {
 }
 
 impl CollectOperation {
-    pub fn new(src_path: &PathBuf, dest_path: &PathBuf) -> Self {
+    pub fn new(src_path: &Path, dest_path: &Path) -> Self {
         Self {
-            src_path: src_path.clone(),
-            dest_path: dest_path.clone(),
+            src_path: src_path.to_path_buf(),
+            dest_path: dest_path.to_path_buf(),
         }
     }
 
-    fn execute(self: &Self, project_root_path: &PathBuf, release_path: &PathBuf) -> Result<()> {
+    fn execute(&self, project_root_path: &Path, release_path: &Path) -> Result<()> {
         let src_path = project_root_path.join(&self.src_path);
         let dest_path = release_path.join(&self.dest_path);
         copy_resource(&src_path, &dest_path)
@@ -144,14 +145,14 @@ impl CollectOperation {
 
 fn copy_resource(from: &PathBuf, to: &PathBuf) -> Result<()> {
     debug_println!("resource_collect_service: copy {:?} -> {:?}", &from, &to);
-    ensure_dir(&to)?;
+    ensure_dir(to)?;
     match from.is_dir() {
         true => copy_dir(from, to),
         false => copy_file(from, to),
     }
 }
 
-fn copy_file(from: &PathBuf, to: &PathBuf) -> Result<()> {
+fn copy_file(from: &PathBuf, to: &Path) -> Result<()> {
     const COPY_OPTION: fs_extra::file::CopyOptions = fs_extra::file::CopyOptions {
         overwrite: true,
         skip_exist: false,
@@ -195,10 +196,10 @@ fn remove_dir(path: &PathBuf) -> Result<()> {
         return Ok(());
     }
     remove_dir_all(path)
-        .map_err(|error| anyhow!("resource_collect_service: remove dir failed\n\t{}", error).into())
+        .map_err(|error| anyhow!("resource_collect_service: remove dir failed\n\t{}", error))
 }
 
 fn ensure_dir(path: &PathBuf) -> Result<()> {
     create_dir_all(path)
-        .map_err(|error| anyhow!("resource_collect_service: ensure dir failed\n\t{}", error).into())
+        .map_err(|error| anyhow!("resource_collect_service: ensure dir failed\n\t{}", error))
 }

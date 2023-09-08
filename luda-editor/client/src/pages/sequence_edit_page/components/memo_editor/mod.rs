@@ -19,7 +19,7 @@ pub enum Event {
 }
 
 impl Component for MemoEditor<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         const MEMO_EDITOR_WH: Wh<Px> = Wh {
             width: px(512.0),
             height: px(256.0),
@@ -53,35 +53,31 @@ impl Component for MemoEditor<'_> {
             1.px(),
             color::BACKGROUND,
         )
-        .attach_event(|event| match event {
-            namui::Event::MouseDown { event } => {
+        .attach_event(|event| {
+            if let namui::Event::MouseDown { event } = event {
                 if !event.is_local_xy_in() {
                     event.stop_propagation();
                     on_event(Event::Close);
                 }
             }
-            _ => {}
         });
 
         let render_close_button = |height: Px| {
             table::hooks::fit(
                 table::hooks::FitAlign::LeftTop,
-                button::text_button_fit(
+                button::TextButtonFit {
                     height,
-                    "취소",
-                    color::STROKE_NORMAL,
-                    color::STROKE_NORMAL,
-                    1.px(),
-                    color::BACKGROUND,
-                    PADDING,
-                    [MouseButton::Left],
-                    {
-                        let on_event = on_event.clone();
-                        move |_event| {
-                            on_event(Event::Close);
-                        }
-                    },
-                )
+                    text: "취소",
+                    text_color: color::STROKE_NORMAL,
+                    stroke_color: color::STROKE_NORMAL,
+                    stroke_width: 1.px(),
+                    fill_color: color::BACKGROUND,
+                    side_padding: PADDING,
+                    mouse_buttons: vec![MouseButton::Left],
+                    on_mouse_up_in: Box::new(|_event| {
+                        on_event(Event::Close);
+                    }),
+                }
                 .with_mouse_cursor(MouseCursor::Pointer),
             )
         };
@@ -89,26 +85,23 @@ impl Component for MemoEditor<'_> {
         let render_save_button = |height: Px| {
             table::hooks::fit(
                 table::hooks::FitAlign::RightBottom,
-                button::text_button_fit(
+                button::TextButtonFit {
                     height,
-                    "저장",
-                    color::BACKGROUND,
-                    color::STROKE_NORMAL,
-                    1.px(),
-                    color::STROKE_NORMAL,
-                    PADDING,
-                    [MouseButton::Left],
-                    {
-                        let on_event = on_event.clone();
-                        |_event| {
-                            on_event(Event::SaveButtonClicked {
-                                sequence_id,
-                                cut_id,
-                                content: text.to_string(),
-                            });
-                        }
-                    },
-                )
+                    text: "저장",
+                    text_color: color::BACKGROUND,
+                    stroke_color: color::STROKE_NORMAL,
+                    stroke_width: 1.px(),
+                    fill_color: color::STROKE_NORMAL,
+                    side_padding: PADDING,
+                    mouse_buttons: vec![MouseButton::Left],
+                    on_mouse_up_in: Box::new(|_event| {
+                        on_event(Event::SaveButtonClicked {
+                            sequence_id,
+                            cut_id,
+                            content: text.to_string(),
+                        });
+                    }),
+                }
                 .with_mouse_cursor(MouseCursor::Pointer),
             )
         };
@@ -173,11 +166,10 @@ impl Component for MemoEditor<'_> {
                             },
                         },
                         prevent_default_codes: vec![],
-                        on_event: &|event| match event {
-                            text_input::Event::TextUpdated { text } => {
+                        on_event: &|event| {
+                            if let text_input::Event::TextUpdated { text } = event {
                                 set_text.set(text.to_string())
                             }
-                            _ => {}
                         },
                     });
                 })(wh, ctx);

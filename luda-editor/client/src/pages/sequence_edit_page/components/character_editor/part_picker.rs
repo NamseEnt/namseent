@@ -35,7 +35,7 @@ pub enum Event {
 }
 
 impl Component for PartPicker<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             cg_file,
@@ -52,13 +52,12 @@ impl Component for PartPicker<'_> {
             ctx.add(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
-                    .attach_event(|event| match event {
-                        namui::Event::MouseDown { event } => {
+                    .attach_event(|event| {
+                        if let namui::Event::MouseDown { event } = event {
                             if event.is_local_xy_in() {
                                 on_event(Event::CgChangeButtonClicked);
                             }
                         }
-                        _ => {}
                     }),
             )
             .add(center_text_full_height(
@@ -74,16 +73,16 @@ impl Component for PartPicker<'_> {
                 .iter()
                 .filter(|part| part.selection_type != PartSelectionType::AlwaysOn)
                 .flat_map(|cg_part| {
-                    render_cg_part_group(
-                        wh.width,
+                    render_cg_part_group(RenderCgPartGroupProps {
+                        width: wh.width,
                         cg_part,
                         project_id,
                         cg_id,
                         cut_id,
                         graphic_index,
                         screen_cg,
-                        &on_event,
-                    )
+                        on_event: &on_event,
+                    })
                 }),
         );
 
@@ -109,16 +108,17 @@ impl Component for PartPicker<'_> {
     }
 }
 
-fn render_cg_part_group<'a>(
-    width: Px,
-    cg_part: &'a CgPart,
-    project_id: Uuid,
-    cg_id: Uuid,
-    cut_id: Uuid,
-    graphic_index: Uuid,
-    screen_cg: &'a ScreenCg,
-    on_event: &'a (dyn 'a + Fn(Event)),
-) -> Vec<TableCell<'a>> {
+fn render_cg_part_group(props: RenderCgPartGroupProps) -> Vec<TableCell> {
+    let RenderCgPartGroupProps {
+        width,
+        cg_part,
+        project_id,
+        cg_id,
+        cut_id,
+        graphic_index,
+        screen_cg,
+        on_event,
+    } = props;
     let no_selection = screen_cg.part(&cg_part.name).unwrap().is_not_selected();
 
     let title_bar = render_title_bar(cg_part);
@@ -134,16 +134,16 @@ fn render_cg_part_group<'a>(
             chunk_remainder
                 .iter()
                 .map(move |variant| {
-                    render_thumbnail(
+                    render_thumbnail(RenderThumbnailProps {
                         cg_part,
-                        variant,
+                        cg_part_variant: variant,
                         project_id,
                         cg_id,
                         cut_id,
                         graphic_index,
                         screen_cg,
                         on_event,
-                    )
+                    })
                 })
                 .chain(once(no_selection_button)),
         )
@@ -152,16 +152,16 @@ fn render_cg_part_group<'a>(
         table::hooks::fixed(
             THUMBNAIL_WH.height,
             table::hooks::horizontal(row.iter().map(move |variant| {
-                render_thumbnail(
+                render_thumbnail(RenderThumbnailProps {
                     cg_part,
-                    variant,
+                    cg_part_variant: variant,
                     project_id,
                     cg_id,
                     cut_id,
                     graphic_index,
                     screen_cg,
                     on_event,
-                )
+                })
             })),
         )
     });
@@ -171,6 +171,17 @@ fn render_cg_part_group<'a>(
         .chain(once(last_variant_row))
         .chain(once(render_divider(BUTTON_HEIGHT)))
         .collect()
+}
+
+struct RenderCgPartGroupProps<'a> {
+    width: Px,
+    cg_part: &'a CgPart,
+    project_id: Uuid,
+    cg_id: Uuid,
+    cut_id: Uuid,
+    graphic_index: Uuid,
+    screen_cg: &'a ScreenCg,
+    on_event: &'a (dyn 'a + Fn(Event)),
 }
 
 fn render_title_bar(cg_part: &CgPart) -> TableCell {
@@ -207,8 +218,8 @@ fn render_no_selection_button(
                     Color::TRANSPARENT,
                 )
                 .with_mouse_cursor(MouseCursor::Pointer)
-                .attach_event(move |event| match event {
-                    namui::Event::MouseDown { event } => {
+                .attach_event(move |event| {
+                    if let namui::Event::MouseDown { event } = event {
                         if event.is_local_xy_in() {
                             let cg_part_name = cg_part.name.clone();
                             SEQUENCE_ATOM.mutate(move |sequence| {
@@ -222,7 +233,6 @@ fn render_no_selection_button(
                             });
                         }
                     }
-                    _ => {}
                 }),
             )
             .add(center_text(
@@ -242,16 +252,17 @@ fn render_divider<'a>(height: Px) -> TableCell<'a> {
     table::hooks::fixed(height, |_wh, _ctx| {})
 }
 
-fn render_thumbnail<'a>(
-    cg_part: &'a CgPart,
-    cg_part_variant: &'a CgPartVariant,
-    project_id: Uuid,
-    cg_id: Uuid,
-    cut_id: Uuid,
-    graphic_index: Uuid,
-    screen_cg: &'a ScreenCg,
-    on_event: &'a (dyn 'a + Fn(Event)),
-) -> TableCell<'a> {
+fn render_thumbnail(props: RenderThumbnailProps) -> TableCell {
+    let RenderThumbnailProps {
+        cg_part,
+        cg_part_variant,
+        project_id,
+        cg_id,
+        cut_id,
+        graphic_index,
+        screen_cg,
+        on_event,
+    } = props;
     let variant_selected = screen_cg
         .part(&cg_part.name)
         .unwrap()
@@ -346,4 +357,14 @@ fn render_thumbnail<'a>(
             );
         }),
     )
+}
+struct RenderThumbnailProps<'a> {
+    cg_part: &'a CgPart,
+    cg_part_variant: &'a CgPartVariant,
+    project_id: Uuid,
+    cg_id: Uuid,
+    cut_id: Uuid,
+    graphic_index: Uuid,
+    screen_cg: &'a ScreenCg,
+    on_event: &'a (dyn 'a + Fn(Event)),
 }

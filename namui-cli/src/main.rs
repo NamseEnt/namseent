@@ -28,9 +28,9 @@ async fn main() {
         } => {
             let target = option_target.as_ref().unwrap_or(&current_target);
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
-            procedures::test(target, &manifest_path)
+            procedures::test(target, manifest_path)
         }
-        Commands::Target { target } => set_user_config(&target.clone().into()),
+        Commands::Target { target } => set_user_config(&(*target).into()),
         Commands::Print { printable_object } => match printable_object {
             cli::PrintableObject::Cfg => print_namui_cfg(),
             cli::PrintableObject::Target => print_namui_target(),
@@ -41,7 +41,7 @@ async fn main() {
         } => {
             let target = option_target.as_ref().unwrap_or(&current_target);
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
-            procedures::start(&target, &manifest_path).await
+            procedures::start(target, manifest_path).await
         }
         Commands::Build {
             target: option_target,
@@ -50,7 +50,7 @@ async fn main() {
         } => {
             let target = option_target.as_ref().unwrap_or(&current_target);
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
-            procedures::build(&target, &manifest_path, arch.into()).await
+            procedures::build(target, manifest_path, arch.into()).await
         }
     };
 

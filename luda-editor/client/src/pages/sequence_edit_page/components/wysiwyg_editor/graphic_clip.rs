@@ -125,7 +125,7 @@ impl Component for GraphicClip<'_> {
                                 cut_id,
                                 graphic_index,
                                 graphic_wh,
-                                graphic: &graphic,
+                                graphic,
                             });
                         }
                     }

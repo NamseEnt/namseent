@@ -16,17 +16,17 @@ enum Unit {
 }
 
 pub trait F32OrI32 {
-    fn as_f32(self) -> f32;
+    fn into_f32(self) -> f32;
 }
 
 impl F32OrI32 for i32 {
-    fn as_f32(self) -> f32 {
+    fn into_f32(self) -> f32 {
         self as f32
     }
 }
 
 impl F32OrI32 for f32 {
-    fn as_f32(self) -> f32 {
+    fn into_f32(self) -> f32 {
         self
     }
 }
@@ -36,7 +36,7 @@ pub fn ratio<'a>(
     cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
     TableCell {
-        unit: Unit::Ratio(ratio.as_f32()),
+        unit: Unit::Ratio(ratio.into_f32()),
         render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: true,
     }
@@ -47,7 +47,7 @@ pub fn ratio_no_clip<'a>(
     cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
     TableCell {
-        unit: Unit::Ratio(ratio.as_f32()),
+        unit: Unit::Ratio(ratio.into_f32()),
         render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: false,
     }
@@ -364,21 +364,9 @@ mod tests {
             height: px(500.0),
         });
 
-        assert_eq!(
-            true,
-            button_render_called.load(std::sync::atomic::Ordering::Relaxed)
-        );
-        assert_eq!(
-            true,
-            label_render_called.load(std::sync::atomic::Ordering::Relaxed)
-        );
-        assert_eq!(
-            true,
-            body_render_called.load(std::sync::atomic::Ordering::Relaxed)
-        );
-        assert_eq!(
-            true,
-            body_inner_render_called.load(std::sync::atomic::Ordering::Relaxed)
-        );
+        assert!(button_render_called.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(label_render_called.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(body_render_called.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(body_inner_render_called.load(std::sync::atomic::Ordering::Relaxed));
     }
 }
