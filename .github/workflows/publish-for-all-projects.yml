@@ -9,8 +9,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SCCACHE_GHA_ENABLED: true
-  RUSTC_WRAPPER: sccache
   CARGO_INCREMENTAL: 0
   RUSTFLAGS: -D warnings
 
@@ -19,7 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: mozilla-actions/sccache-action@v0.0.3
       - run: rustup update
       - uses: Swatinem/rust-cache@v2
         with:
