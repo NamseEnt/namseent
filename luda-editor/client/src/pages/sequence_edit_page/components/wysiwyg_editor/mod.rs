@@ -117,12 +117,12 @@ impl Component for WysiwygEditor<'_> {
                     graphic_clip::GraphicClip {
                         cut_id,
                         graphic_index: *graphic_index,
-                        graphic: &screen_graphic,
+                        graphic: screen_graphic,
                         is_editing_graphic: editing_image_index.as_ref() == &Some(*graphic_index),
                         project_id,
                         wh,
                         dragging: dragging.as_ref(),
-                        cg_files: &cg_files,
+                        cg_files,
                         on_event: &move |e: graphic_clip::Event| match e {
                             graphic_clip::Event::WysiwygTool(e) => match e {
                                 wysiwyg_tool::Event::Mover { event } => match event {
