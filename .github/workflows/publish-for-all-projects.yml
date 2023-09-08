@@ -1,0 +1,45 @@
+name: Publish for-all-projects
+on:
+  push:
+    branches: master
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref }}-publish-for-all-projects
+  cancel-in-progress: true
+
+env:
+  SCCACHE_GHA_ENABLED: true
+  RUSTC_WRAPPER: sccache
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: -D warnings
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mozilla-actions/sccache-action@v0.0.3
+      - uses: rustup update
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: publish-for-all-projects
+          cache-directories: for-all-projects
+
+      - working-directory: for-all-projects
+        run: |
+          cargo check
+          cargo fmt
+          cargo clippy
+
+          if [[ $(git diff --name-only) ]]; then
+              echo "::error::File change detected. Please check."
+              echo "::error::$(git diff --name-only)"
+              exit 1
+          fi
+
+      - uses: katyo/publish-crates@v2
+        with:
+          path: "for-all-projects"
+          registry-token: ${{ secrets.CARGO_API_TOKEN }}
+          dry-run: ${{ github.ref != 'refs/heads/master' }}

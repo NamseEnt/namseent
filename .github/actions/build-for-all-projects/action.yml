@@ -1,0 +1,26 @@
+name: Publish and install for-all-projects
+env:
+  RUSTFLAGS: -D warnings
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          ./for-all-projects/target
+        key: ${{ runner.os }}-build-for-all-projects-${{ hashFiles('for-all-projects/Cargo.lock') }}
+
+    - name: Build for-all-projects
+      shell: bash
+      working-directory: for-all-projects
+      run: cargo build
+
+    - name: Symlink for-all-projects
+      shell: bash
+      run: |
+        rm -f ~/.cargo/bin/for-all-projects
+        ln -s $(pwd)/for-all-projects/target/debug/for-all-projects ~/.cargo/bin/for-all-projects
