@@ -19,9 +19,10 @@ pub async fn run_commands_in_parallel(run: Run, cargo_project_dirs: Vec<PathBuf>
         Command::Test,
     ]
     .into_iter()
-    .filter(|command| command.requested(&run));
+    .filter(|command| command.requested(&run))
+    .collect::<Vec<_>>();
 
-    if commands.clone().count() == 0 {
+    if commands.is_empty() {
         anyhow::bail!("No command is requested");
     }
 
@@ -38,11 +39,13 @@ pub async fn run_commands_in_parallel(run: Run, cargo_project_dirs: Vec<PathBuf>
                 join_set.join_next().await.unwrap()??;
             }
         }
+
+        while let Some(result) = join_set.join_next().await {
+            result??;
+        }
     }
 
-    while let Some(result) = join_set.join_next().await {
-        result??;
-    }
+    assert!(join_set.join_next().await.is_none());
 
     Ok(())
 }
