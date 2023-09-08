@@ -19,7 +19,6 @@ jobs:
       project-dirs: ${{ steps.project-dirs.outputs.dirs }}
     steps:
       - uses: actions/checkout@v3
-      - run: rustup update
       - uses: ./.github/actions/build-for-all-projects
 
       - name: Output list of project directories
@@ -33,15 +32,21 @@ jobs:
     strategy:
       matrix:
         dir: ${{ fromJSON(needs.list-projects.outputs.project-dirs) }}
+    env:
+      CARGO_LOCK_PATH: ${{ matrix.dir }}/Cargo.lock
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/init-test-job
       - uses: ./.github/actions/build-for-all-projects
 
-      - uses: Swatinem/rust-cache@v2
+      - run: CARGO_VERSION=$(cargo --version | cut -d ' ' -f 2) && echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
         with:
-          prefix-key: all-${{ matrix.dir }}
-          cache-directories: ${{ matrix.dir }}
+          path: |
+            ~/.cargo/
+            ${{ matrix.dir }}/target/
+          key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-command-${{ matrix.dir }}-${{ hashFiles(env.CARGO_LOCK_PATH) }}
 
       - run: |
           for-all-projects run --only ${{ matrix.dir }} --check --fmt --fix --clippy --test

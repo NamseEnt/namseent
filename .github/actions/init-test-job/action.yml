@@ -2,13 +2,18 @@ name: Init test job
 runs:
   using: composite
   steps:
-    - uses: Swatinem/rust-cache@v2
-      with:
-        prefix-key: init-test-job
-
-    - name: update rust stable
+    - name: rust update & cargo version env set
       shell: bash
-      run: rustup update
+      run: |
+        rustup update
+        CARGO_VERSION=$(cargo --version | cut -d ' ' -f 2) && echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_ENV
+
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/
+          namui-cli/target/
+        key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-init-test-${{ hashFiles('namui-cli/Cargo.lock') }}
 
     - name: wasm-pack install
       shell: bash
@@ -28,11 +33,6 @@ runs:
         key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-node-
-
-    - uses: Swatinem/rust-cache@v2
-      with:
-        prefix-key: namui-cli
-        cache-directories: namui-cli
 
     - name: install namui-cli
       shell: bash
