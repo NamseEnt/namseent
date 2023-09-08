@@ -1,10 +1,26 @@
-use clap::Parser;
+use clap::{Args, Parser};
 
-#[derive(Parser, Clone, Copy)]
+#[derive(Parser, Clone)]
 #[command(version, name = "for-all-projects")]
 /// You can set CARGO_TARGET_DIR to speed up the process.
 /// Order of command is preserved, please check the source code.
-pub struct Cli {
+pub enum Cli {
+    Run(Run),
+    List,
+}
+
+#[derive(Parser, Clone)]
+pub struct Run {
+    #[arg(long)]
+    /// Cargo project directory to run commands. If set, it will ignore all other Cargo project directories.
+    pub only: Option<String>,
+
+    #[command(flatten)]
+    pub command: Command,
+}
+
+#[derive(Args, Clone, Copy)]
+pub struct Command {
     #[arg(long)]
     pub clean: bool,
 

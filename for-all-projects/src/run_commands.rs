@@ -1,9 +1,9 @@
-use crate::cli::Cli;
+use crate::cli::Run;
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 use tokio::{fs, io::AsyncReadExt, process};
 
-pub async fn run_commands_in_parallel(cli: Cli, cargo_project_dirs: Vec<PathBuf>) -> Result<()> {
+pub async fn run_commands_in_parallel(run: Run, cargo_project_dirs: Vec<PathBuf>) -> Result<()> {
     let mut join_set = tokio::task::JoinSet::new();
 
     let throttle = std::thread::available_parallelism()?.get();
@@ -19,7 +19,11 @@ pub async fn run_commands_in_parallel(cli: Cli, cargo_project_dirs: Vec<PathBuf>
         Command::Test,
     ]
     .into_iter()
-    .filter(|command| command.requested(cli));
+    .filter(|command| command.requested(&run));
+
+    if commands.clone().count() == 0 {
+        anyhow::bail!("No command is requested");
+    }
 
     for command in commands {
         for cargo_project_dir in &cargo_project_dirs {
@@ -56,16 +60,16 @@ enum Command {
 }
 
 impl Command {
-    fn requested(&self, cli: Cli) -> bool {
+    fn requested(&self, run: &Run) -> bool {
         match self {
-            Command::Clean => cli.clean,
-            Command::Update => cli.update,
-            Command::Metadata => cli.metadata,
-            Command::Check => cli.check,
-            Command::Fmt => cli.fmt,
-            Command::Fix => cli.fix,
-            Command::Clippy => cli.clippy,
-            Command::Test => cli.test,
+            Command::Clean => run.command.clean,
+            Command::Update => run.command.update,
+            Command::Metadata => run.command.metadata,
+            Command::Check => run.command.check,
+            Command::Fmt => run.command.fmt,
+            Command::Fix => run.command.fix,
+            Command::Clippy => run.command.clippy,
+            Command::Test => run.command.test,
         }
     }
     async fn as_str<'a, 'b>(&'a self, cargo_project_dir: &'b Path) -> Result<String> {
@@ -190,7 +194,7 @@ async fn get_test_command(cargo_project_dir: &Path) -> Result<String> {
     let custom_test_script = (|| package.get("metadata")?.get("test")?.as_str())();
     if let Some(custom_test_script) = custom_test_script {
         let (command, _args) = custom_test_script
-            .split_once(" ")
+            .split_once(' ')
             .unwrap_or((custom_test_script, ""));
         if ["/", "."].iter().any(|x| command.contains(x)) {
             return Ok(format!("bash {custom_test_script}"));
