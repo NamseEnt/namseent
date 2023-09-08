@@ -41,6 +41,11 @@ jobs:
       - uses: ./.github/actions/init-test-job
       - uses: ./.github/actions/build-for-all-projects
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: all-${{ matrix.dir }}
+          cache-directories: ${{ matrix.dir }}
+
       - run: |
           for-all-projects run --only ${{ matrix.dir }} --check --fmt --fix --clippy --test
 
