@@ -2,13 +2,17 @@ name: Init test job
 runs:
   using: composite
   steps:
+    - uses: Swatinem/rust-cache@v2
+      with:
+        prefix-key: init-test-job
+
     - name: update rust stable
       shell: bash
       run: rustup update
 
     - name: wasm-pack install
       shell: bash
-      run: cargo install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 
     - shell: bash
       run: rustup target add wasm32-unknown-unknown
