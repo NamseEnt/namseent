@@ -4,15 +4,10 @@ env:
 runs:
   using: composite
   steps:
-    - uses: actions/cache@v3
+    - uses: Swatinem/rust-cache@v2
       with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          ./for-all-projects/target
-        key: ${{ runner.os }}-build-for-all-projects-${{ hashFiles('for-all-projects/Cargo.lock') }}
+        prefix-key: for-all-projects
+        cache-directories: for-all-projects
 
     - name: Build for-all-projects
       shell: bash

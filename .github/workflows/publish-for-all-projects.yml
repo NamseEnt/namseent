@@ -23,7 +23,7 @@ jobs:
       - run: rustup update
       - uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: publish-for-all-projects
+          prefix-key: for-all-projects
           cache-directories: for-all-projects
 
       - working-directory: for-all-projects
