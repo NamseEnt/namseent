@@ -12,7 +12,9 @@ use token_consume::*;
 /// Because this macro is using `namui::MakeShader` trait, so to import namui, you need to use `use crate::namui`.
 ///
 /// # Example
-/// ```
+///
+/// ```ignore
+///
 /// // macro call
 /// shader!(MyShader, {
 ///     uniform float rad_scale;

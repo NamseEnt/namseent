@@ -2,28 +2,25 @@ name: Init test job
 runs:
   using: composite
   steps:
-    - name: update rust stable
+    - name: rust update & cargo version env set
       shell: bash
-      run: rustup update
-
-    - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.3
-
-    - uses: Swatinem/rust-cache@v2
-
-    - name: wasm-pack install
-      shell: bash
-      run: cargo install --version 0.11.1 wasm-pack
-
-    - shell: bash
-      run: time rustup target add wasm32-unknown-unknown
+      run: |
+        rustup update
+        CARGO_VERSION=$(cargo --version | cut -d ' ' -f 2) && echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_ENV
 
     - uses: actions/cache@v3
       with:
         path: |
+          ~/.cargo/
           namui-cli/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('namui-cli/Cargo.lock') }}
-        restore-keys: ${{ runner.os }}-cargo-
+        key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-init-test-${{ hashFiles('namui-cli/Cargo.lock') }}
+
+    - name: wasm-pack install
+      shell: bash
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+
+    - shell: bash
+      run: rustup target add wasm32-unknown-unknown
 
     - name: Get npm cache directory
       id: npm-cache-dir
@@ -31,7 +28,6 @@ runs:
       run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
 
     - uses: actions/cache@v3
-      id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
       with:
         path: ${{ steps.npm-cache-dir.outputs.dir }}
         key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -40,4 +36,4 @@ runs:
 
     - name: install namui-cli
       shell: bash
-      run: time bash namui-cli/scripts/install.sh
+      run: bash namui-cli/scripts/install.sh

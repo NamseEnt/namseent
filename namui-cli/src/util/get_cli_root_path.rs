@@ -6,6 +6,7 @@ use std::{
 
 pub fn get_cli_root_path() -> PathBuf {
     let mut exe_path = current_exe().expect("Current exe path not found.");
+    println!("exe_path: {:?}", exe_path);
     exe_path.pop();
     for ancestor in exe_path.ancestors() {
         let cargo_toml_exist = check_cargo_toml_exist(ancestor);
