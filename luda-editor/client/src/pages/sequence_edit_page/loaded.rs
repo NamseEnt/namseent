@@ -16,6 +16,7 @@ pub struct LoadedSequenceEditorPage {
     pub user_id: Uuid,
     pub sequence: Sequence,
     pub cg_files: Vec<CgFile>,
+    pub images: Vec<ImageWithLabels>,
 }
 
 #[derive(Debug)]
@@ -32,10 +33,12 @@ impl Component for LoadedSequenceEditorPage {
             sequence,
             wh,
             cg_files,
+            images,
         } = self;
         let (sequence, set_seqenece) =
             ctx.atom_init(&SEQUENCE_ATOM, || SequenceWrapped::new(sequence.clone()));
         let (cg_files, _set_cg_files) = ctx.atom_init(&CG_FILES_ATOM, || cg_files.clone());
+        let (_images, _set_cg_files) = ctx.atom_init(&IMAGES_ATOM, || images.clone());
 
         let (selected_cut_id, set_selected_cut_id) = ctx.state::<Option<Uuid>>(|| None);
         let (focused_component, set_focused_component) = ctx.state(|| None);
@@ -43,6 +46,7 @@ impl Component for LoadedSequenceEditorPage {
             ctx.state::<Option<EditTarget>>(|| None);
         let (cut_id_memos_map, set_cut_id_memos_map) = ctx.state(|| cut_id_memos_map.clone());
         let (editing_memo, set_editing_memo) = ctx.state(|| None);
+        let (image_picker_open, set_image_picker_open) = ctx.state(|| false);
 
         let selected_cut = selected_cut_id.and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
         let project_id = project_shared_data.id();
@@ -54,6 +58,7 @@ impl Component for LoadedSequenceEditorPage {
             CharacterEdtior { event: character_editor::Event },
             MemoListView { event: memo_list_view::Event },
             MemoEditor { event: memo_editor::Event },
+            ImagePicker { event: image_picker::Event },
         }
         let on_internal_event = &|event: InternalEvent| match event {
             InternalEvent::CutListView { event } => match event {
@@ -89,6 +94,9 @@ impl Component for LoadedSequenceEditorPage {
                 }
                 cut_editor::Event::Focus => {
                     set_focused_component.set(Some(FocusableComponent::CutEditor))
+                }
+                cut_editor::Event::AddImageButtonClicked => {
+                    set_image_picker_open.set(true);
                 }
                 _ => {}
             },
@@ -171,6 +179,11 @@ impl Component for LoadedSequenceEditorPage {
                     });
                 }
             },
+            InternalEvent::ImagePicker { event } => match event {
+                image_picker::Event::Close => {
+                    set_image_picker_open.set(false);
+                }
+            },
         };
         let memo_list_view_cell: table::hooks::TableCell = {
             const MEMO_WINDOW_WIDTH: Px = px(256.0);
@@ -211,6 +224,21 @@ impl Component for LoadedSequenceEditorPage {
                     })
                 }
                 None => table::hooks::empty(),
+            }
+        };
+        let image_picker_cell = {
+            const IMAGE_PICKER_WIDTH: Px = px(496.0);
+
+            match (*image_picker_open, selected_cut) {
+                (true, Some(cut)) => table::hooks::fixed(IMAGE_PICKER_WIDTH, move |wh, ctx| {
+                    ctx.add(image_picker::ImagePicker {
+                        wh,
+                        project_id,
+                        cut,
+                        on_event: &|event| on_internal_event(InternalEvent::ImagePicker { event }),
+                    });
+                }),
+                _ => table::hooks::empty(),
             }
         };
 
@@ -274,6 +302,7 @@ impl Component for LoadedSequenceEditorPage {
                 table::hooks::ratio(4, cut_editor_cell),
                 character_editor_cell,
                 memo_list_view_cell,
+                image_picker_cell,
             ])(wh, ctx)
         });
 

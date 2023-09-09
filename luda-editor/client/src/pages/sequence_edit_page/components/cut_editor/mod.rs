@@ -34,6 +34,7 @@ pub enum Event {
         cut_id: Uuid,
     },
     Focus,
+    AddImageButtonClicked,
 }
 
 #[derive(Debug)]
@@ -127,6 +128,10 @@ impl Component for CutEditor<'_> {
                             edit_target: character_editor::EditTarget::NewCharacter { cut_id },
                         })
                     }),
+                )
+                .add_button(
+                    "Add Image",
+                    Box::new(|| on_event(Event::AddImageButtonClicked)),
                 )
                 .add_button("Add Memo", Box::new(|| on_event(Event::AddMemo { cut_id }))),
         });

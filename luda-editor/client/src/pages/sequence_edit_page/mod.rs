@@ -7,7 +7,7 @@ use ::futures::try_join;
 use loaded::LoadedSequenceEditorPage;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use rpc::data::{CgFile, Memo, ProjectSharedData, Sequence};
+use rpc::data::{CgFile, ImageWithLabels, Memo, ProjectSharedData, Sequence};
 use std::collections::HashMap;
 
 #[namui::component]
@@ -47,6 +47,7 @@ impl Component for SequenceEditPage {
                         user_id: data.user_id,
                         wh,
                         cg_files: data.cg_files.clone(),
+                        images: data.images.clone(),
                     }),
                     Err(err) => ctx.add(typography::body::center(
                         wh,
@@ -68,22 +69,25 @@ struct LoadData {
     cut_id_memos_map: HashMap<Uuid, Vec<Memo>>,
     user_id: Uuid,
     cg_files: Vec<CgFile>,
+    images: Vec<ImageWithLabels>,
 }
 async fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Result<LoadData, String> {
     let result = try_join!(
         load_sequence_and_project_shared_data(sequence_id),
         load_memos(sequence_id),
         get_user_id(),
-        get_cg_files(project_id)
+        get_cg_files(project_id),
+        get_images(project_id),
     );
     return match result {
-        Ok(((sequence, project_shared_data), cut_id_memos_map, user_id, cg_files)) => {
+        Ok(((sequence, project_shared_data), cut_id_memos_map, user_id, cg_files, images)) => {
             Ok(LoadData {
                 sequence,
                 project_shared_data,
                 cut_id_memos_map,
                 user_id,
                 cg_files,
+                images,
             })
         }
         Err(error) => Err(error.to_string()),
@@ -135,5 +139,13 @@ async fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Result<
             .list_cg_files(rpc::list_cg_files::Request { project_id })
             .await?;
         Ok(response.cg_files)
+    }
+    async fn get_images(
+        project_id: Uuid,
+    ) -> Result<Vec<rpc::data::ImageWithLabels>, Box<dyn std::error::Error>> {
+        let response = crate::RPC
+            .list_images(rpc::list_images::Request { project_id })
+            .await?;
+        Ok(response.images)
     }
 }
