@@ -26,7 +26,7 @@ jobs:
         with:
           path: |
             ~/.cargo/
-            for-all-projects/
+            for-all-projects/target/
           key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-for-all-projects-${{ hashFiles('namui-cli/Cargo.lock') }}
 
       - working-directory: for-all-projects
