@@ -11,6 +11,7 @@ concurrency:
 env:
   CARGO_INCREMENTAL: 0
   RUSTFLAGS: -D warnings
+  CARGO_VERSION: "" # Should be set in the job
 
 jobs:
   list-projects:
