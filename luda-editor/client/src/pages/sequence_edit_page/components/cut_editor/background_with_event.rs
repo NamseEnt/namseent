@@ -117,14 +117,12 @@ impl Component for BackgroundWithEvent<'_> {
                 |event| {
                     match event {
                         namui::Event::MouseDown { event } => {
-                            if event.is_local_xy_in() {
+                            if event.is_local_xy_in() && event.button == Some(MouseButton::Right) {
                                 event.stop_propagation();
-                                if event.button == Some(MouseButton::Right) {
-                                    on_internal_event(InternalEvent::MouseRightButtonDown {
-                                        global_xy: event.global_xy,
-                                        cut_id,
-                                    })
-                                }
+                                on_internal_event(InternalEvent::MouseRightButtonDown {
+                                    global_xy: event.global_xy,
+                                    cut_id,
+                                })
                             }
                         }
                         namui::Event::KeyDown { event } => {
