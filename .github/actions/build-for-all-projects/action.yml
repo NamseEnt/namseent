@@ -15,7 +15,7 @@ runs:
         path: |
           ~/.cargo/
           for-all-projects/target/
-        key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-for-all-projects-${{ hashFiles('for-all-projects/Cargo.lock') }}
+        key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-for-all-projects-${{ hashFiles('./for-all-projects/Cargo.lock') }}
 
     - name: Build for-all-projects
       shell: bash
