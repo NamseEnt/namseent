@@ -1,93 +1,46 @@
 use super::*;
 use chumsky::prelude::*;
-use web_sys::{window, Element};
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+
+static INSPECT_TOGGLE_ON: AtomicBool = AtomicBool::new(false);
+
+#[wasm_bindgen]
+pub fn set_inspect_toggle_on(is_on: bool) {
+    INSPECT_TOGGLE_ON.store(is_on, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen()]
+    fn onInspect(inspect_tree: JsValue);
+}
 
 impl ComponentInstance {
     pub(crate) fn inspect(&self) {
-        let document = window().unwrap().document().unwrap();
-        let body = document.body().unwrap();
-
-        let style_element = body
-            .query_selector(&format!("#inspect-style"))
-            .unwrap()
-            .unwrap_or_else(|| {
-                let style_element = document.create_element("style").unwrap();
-                style_element.set_attribute("type", "text/css").unwrap();
-                style_element.set_attribute("id", "inspect-style").unwrap();
-                body.append_child(&style_element).unwrap();
-                style_element
-            });
-
-        let inspect_root = body
-            .query_selector(&format!("inspect"))
-            .unwrap()
-            .unwrap_or_else(|| {
-                let inspect_root = document.create_element("inspect").unwrap();
-                body.append_child(&inspect_root).unwrap();
-                inspect_root
-            });
-
-        style_element.set_inner_html("");
-        inspect_root.set_inner_html("");
-
-        self.internal_inspect(&inspect_root, &style_element, vec![0]);
-    }
-
-    fn internal_inspect(
-        &self,
-        container_element: &Element,
-        style_element: &Element,
-        children_indexes: Vec<usize>,
-    ) {
-        let short_name = static_type_short_name(self.component_type_name);
-        let escaped_short_name = short_name.replace("<", "__").replace(">", "__");
-
-        let document = window().unwrap().document().unwrap();
-
-        let element = document
-            .create_element(&format!("_{escaped_short_name}"))
-            .map_err(|_err| format!("Failed to create element: {}", escaped_short_name))
-            .unwrap();
-        element.set_attribute("name", &short_name).unwrap();
-
-        if let Some(bounding_box) = self.debug_bounding_box.lock().unwrap().as_ref() {
-            let inner_html = style_element.inner_html();
-            let nth_children = children_indexes
-                .iter()
-                .map(|x| format!(":nth-child({})", x + 1))
-                .collect::<Vec<_>>()
-                .join(" > ");
-            style_element.set_inner_html(&format!(
-                "{inner_html}\n\
-                inspect > {nth_children} {{
-                    position: fixed;
-                    left: {left};
-                    top: {top};
-                    width: {width};
-                    height: {height};
-                }}
-            ",
-                left = bounding_box.left(),
-                top = bounding_box.top(),
-                width = bounding_box.width(),
-                height = bounding_box.height()
-            ));
+        if !INSPECT_TOGGLE_ON.load(std::sync::atomic::Ordering::Relaxed) {
+            return;
         }
 
-        container_element.append_child(&element).unwrap();
+        let tree = self.generate_inspect_tree();
+        onInspect(serde_wasm_bindgen::to_value(&tree).unwrap());
+    }
 
-        self.children_instances
-            .lock()
-            .unwrap()
-            .values()
-            .enumerate()
-            .for_each(|(index, child)| {
-                child.internal_inspect(&element, style_element, {
-                    let mut children_indexes = children_indexes.clone();
-                    children_indexes.push(index);
-                    children_indexes
-                })
-            });
+    fn generate_inspect_tree(&self) -> InspectTree {
+        let bounding_box = self.debug_bounding_box.lock().unwrap();
+        InspectTree {
+            short_name: static_type_short_name(self.component_type_name),
+            left: bounding_box.map(|x| x.left().as_f32()),
+            top: bounding_box.map(|x| x.top().as_f32()),
+            width: bounding_box.map(|x| x.width().as_f32()),
+            height: bounding_box.map(|x| x.height().as_f32()),
+            children: self
+                .children_instances
+                .lock()
+                .unwrap()
+                .values()
+                .map(|child| child.generate_inspect_tree())
+                .collect(),
+        }
     }
 }
 
@@ -96,20 +49,31 @@ fn static_type_short_name(static_type_name: &str) -> String {
     short_name.to_string()
 }
 
+#[derive(serde::Serialize)]
+struct InspectTree {
+    #[serde(rename = "shortName")]
+    short_name: String,
+    left: Option<f32>,
+    top: Option<f32>,
+    width: Option<f32>,
+    height: Option<f32>,
+    children: Vec<InspectTree>,
+}
+
 #[derive(Clone)]
 struct ShortName {
     name: String,
     generic: Option<Box<ShortName>>,
 }
-impl ShortName {
-    fn to_string(&self) -> String {
-        let mut s = self.name.clone();
+impl std::fmt::Display for ShortName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.name)?;
         if let Some(generic) = &self.generic {
-            s.push('<');
-            s.push_str(&generic.to_string());
-            s.push('>');
+            f.write_str("<")?;
+            f.write_str(&generic.to_string())?;
+            f.write_str(">")?;
         }
-        s
+        Ok(())
     }
 }
 fn parser() -> impl Parser<char, ShortName, Error = Simple<char>> {
@@ -138,7 +102,7 @@ fn parser() -> impl Parser<char, ShortName, Error = Simple<char>> {
                     .or_not(),
             )
             .map(|(mut name, generic)| {
-                name.generic = generic.map(|x| Box::new(x));
+                name.generic = generic.map(Box::new);
                 name
             })
     });
