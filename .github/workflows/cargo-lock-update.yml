@@ -28,7 +28,7 @@ jobs:
 
       - name: Check for changes
         run: |
-          filtered_files=$(git diff --name-only | grep -v 'Cargo.lock')
+          filtered_files=$(git diff --name-only | grep -v 'Cargo.lock' || true)
           if [ -n "$filtered_files" ]; then
             echo "Error: Detected changes in files other than Cargo.lock:"
             echo "$filtered_files"
