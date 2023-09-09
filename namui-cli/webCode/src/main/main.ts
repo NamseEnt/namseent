@@ -2,6 +2,12 @@ import { cacheGet, cacheSet } from "../cache";
 import { initHotReload } from "../hotReload";
 import { initCanvasKit } from "../canvasKit";
 import { getNextMessageId, onMessage, waitForMessage } from "./messageWaiting";
+import {
+    InspectTree,
+    isInspectOn,
+    setInspectTree,
+    toggleInspectOn,
+} from "../inspect/inspect";
 
 declare global {
     const NAMUI_ENV: "production" | "development";
@@ -97,11 +103,19 @@ globalThisAny.encodeLoadedImageToPng = async (image: Uint8Array) => {
     return new Uint8Array(pngBytes);
 };
 
+globalThisAny.onInspect = async (inspectTree: InspectTree) => {
+    setInspectTree(inspectTree);
+};
+
 (async () => {
-    const [{ start, on_load_image }, _] = await Promise.all([
-        wasm_bindgen("./bundle_bg.wasm"),
-        initCanvasKit(),
-    ]);
+    const [{ start, on_load_image, set_inspect_toggle_on }, _] =
+        await Promise.all([wasm_bindgen("./bundle_bg.wasm"), initCanvasKit()]);
+
+    globalThisAny.inspect = () => {
+        toggleInspectOn();
+        set_inspect_toggle_on(isInspectOn());
+    };
+    set_inspect_toggle_on(isInspectOn());
 
     drawWorker.onmessage = (message) => {
         switch (message.data.type) {
