@@ -1,4 +1,7 @@
+mod inspect;
+
 use super::*;
+use crate::*;
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -18,6 +21,7 @@ pub struct ComponentInstance {
     pub(crate) is_first_render: AtomicBool,
     is_rendered_on_this_tick: AtomicBool,
     children_instances: Mutex<HashMap<(KeyVec, &'static str), Arc<ComponentInstance>>>,
+    pub(crate) debug_bounding_box: Mutex<Option<Rect<Px>>>,
 }
 
 unsafe impl Send for ComponentInstance {}
@@ -54,6 +58,9 @@ impl Debug for ComponentInstance {
                 &self.track_eq_value_list.lock().unwrap(),
             )
             .field("is_first_render", &self.is_first_render)
+            .field("is_rendered_on_this_tick", &self.is_rendered_on_this_tick)
+            .field("children_instances", &self.children_instances.lock())
+            .field("debug_bounding_box", &self.debug_bounding_box.lock())
             .finish()
     }
 }
@@ -84,6 +91,7 @@ impl ComponentInstance {
             is_first_render: AtomicBool::new(true),
             is_rendered_on_this_tick: Default::default(),
             children_instances: Default::default(),
+            debug_bounding_box: Default::default(),
         }
     }
     pub(crate) fn get_or_create_child_instance(

@@ -3,9 +3,9 @@ use super::*;
 pub(crate) fn set_up_event_handler() {
     prevent_context_menu_open();
 
-    let canvas_element = canvas_element();
+    let document = document();
 
-    canvas_element
+    document
         .add_event_listener_with_callback(
             "mousedown",
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
@@ -31,7 +31,7 @@ pub(crate) fn set_up_event_handler() {
         )
         .unwrap();
 
-    canvas_element
+    document
         .add_event_listener_with_callback(
             "mousemove",
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
@@ -56,7 +56,7 @@ pub(crate) fn set_up_event_handler() {
         )
         .unwrap();
 
-    canvas_element
+    document
         .add_event_listener_with_callback(
             "mouseup",
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
@@ -81,7 +81,7 @@ pub(crate) fn set_up_event_handler() {
         )
         .unwrap();
 
-    canvas_element
+    document
         .add_event_listener_with_callback_and_add_event_listener_options(
             "wheel",
             Closure::wrap(Box::new(move |event: web_sys::WheelEvent| {

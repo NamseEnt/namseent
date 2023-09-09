@@ -13,6 +13,7 @@ pub(crate) struct TreeContext {
     pub(crate) raw_event: Arc<Mutex<Option<Arc<RawEvent>>>>,
     pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
     pub(crate) is_cursor_determined: Arc<AtomicBool>,
+    root_instance: Arc<ComponentInstance>,
     #[derivative(Debug = "ignore")]
     call_root_render: Arc<dyn Fn(HashSet<SigId>) -> RenderingTree>,
     #[derivative(Debug = "ignore")]
@@ -32,6 +33,7 @@ impl TreeContext {
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
             is_cursor_determined: Default::default(),
+            root_instance: root_instance.clone(),
             call_root_render: Arc::new(|_| {
                 unreachable!();
             }),
@@ -97,6 +99,8 @@ impl TreeContext {
         }
 
         (self.clear_unrendered_components)();
+
+        self.root_instance.inspect();
     }
 
     pub(crate) fn render(
