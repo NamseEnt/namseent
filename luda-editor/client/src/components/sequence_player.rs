@@ -234,7 +234,7 @@ pub fn get_inner_content_rect(wh: Wh<Px>) -> Rect<Px> {
     }
 }
 
-pub fn render_text_box(screen_wh: Wh<Px>) -> RenderingTree {
+pub fn render_text_box(screen_wh: Wh<Px>) -> impl Component {
     table::vertical([
         table::ratio(3, |_wh| RenderingTree::Empty),
         table::ratio(1, |wh| {
@@ -254,6 +254,13 @@ pub fn render_text_box(screen_wh: Wh<Px>) -> RenderingTree {
             })
         }),
     ])(screen_wh)
+    .attach_event(|event| {
+        if let Event::MouseDown { event } = event {
+            if event.is_local_xy_in() {
+                event.stop_propagation();
+            }
+        }
+    })
 }
 
 pub fn character_name_font() -> Font {
