@@ -38,3 +38,4 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update Cargo.lock
+          token: ${{ secrets.PAT_CARGO_LOCK_UPDATE }} # https://github.com/stefanzweifel/git-auto-commit-action#commits-made-by-this-action-do-not-trigger-new-workflow-runs
