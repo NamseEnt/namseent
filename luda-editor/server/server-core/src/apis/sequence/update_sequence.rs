@@ -104,7 +104,6 @@ pub async fn update_sequence(
                             .iter()
                             .position(|cut| cut.cut_id == after_cut_id)
                             .unwrap()
-                            + 1
                     }
                     None => 0,
                 }
