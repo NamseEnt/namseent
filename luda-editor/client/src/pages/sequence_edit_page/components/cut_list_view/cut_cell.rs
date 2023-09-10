@@ -60,7 +60,8 @@ impl Component for CutCell<'_> {
                                 event.stop_propagation();
                             }
                         }
-                    }),
+                    })
+                    .with_mouse_cursor(MouseCursor::Grabbing),
             );
         });
 
