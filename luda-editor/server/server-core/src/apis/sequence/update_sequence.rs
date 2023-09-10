@@ -98,13 +98,11 @@ pub async fn update_sequence(
                 .unwrap();
             let mut index_after_move = {
                 match after_cut_id {
-                    Some(after_cut_id) => {
-                        sequence_document
-                            .cuts
-                            .iter()
-                            .position(|cut| cut.cut_id == after_cut_id)
-                            .unwrap()
-                    }
+                    Some(after_cut_id) => sequence_document
+                        .cuts
+                        .iter()
+                        .position(|cut| cut.cut_id == after_cut_id)
+                        .unwrap(),
                     None => 0,
                 }
             };
