@@ -126,6 +126,24 @@ impl Component for CutListView<'_> {
             set_dragging.set(None);
         };
 
+        ctx.compose(|ctx| {
+            const PADDING: Px = px(24.0);
+            const STROKE_WIDTH: Px = px(4.0);
+            let Some(dragging) = *dragging else {
+                return;
+            };
+            let cursor_y = item_wh.height * ((dragging.end_index) as f32) - *scroll_y;
+            let path = Path::new()
+                .move_to(PADDING, cursor_y)
+                .line_to(item_wh.width - PADDING, cursor_y);
+            let paint = Paint::new()
+                .set_style(PaintStyle::Stroke)
+                .set_stroke_width(STROKE_WIDTH)
+                .set_stroke_cap(StrokeCap::Round)
+                .set_color(color::STROKE_FOCUS);
+            ctx.add(namui::path(path, paint));
+        });
+
         ctx.component(list_view::ListView {
             xy: Xy::zero(),
             height: wh.height,
