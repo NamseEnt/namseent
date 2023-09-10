@@ -1,4 +1,4 @@
-use crate::{list_view::ListView, simple_rect, typography};
+use crate::{list_view::AutoListView, simple_rect, typography};
 use namui::prelude::*;
 use std::{fmt::Debug, ops::Deref};
 
@@ -72,7 +72,7 @@ impl Component for Dropdown<'_> {
 
                 ctx.on_top()
                     .translate((0.px(), rect.height()))
-                    .add(ListView {
+                    .add(AutoListView {
                         xy: Xy::zero(),
                         height: body_height,
                         scroll_bar_width: 5.px(),
