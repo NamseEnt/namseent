@@ -41,8 +41,14 @@ pub struct Command {
     pub fix: bool,
 
     #[arg(long)]
-    /// Runs `cargo clippy --fix --allow-dirty --allow-staged`
+    /// Runs `cargo clippy`
     pub clippy: bool,
+
+    #[arg(long)]
+    /// Runs `cargo clippy --fix --allow-dirty --allow-staged`
+    /// `cargo clippy --fix` won't return exit code 1 even with '-D warnings'.
+    /// https://github.com/rust-lang/rust-clippy/issues/1209
+    pub clippy_fix: bool,
 
     #[arg(long)]
     /// Runs custom test script, `namui test` if it is a namui project, or `cargo test`.

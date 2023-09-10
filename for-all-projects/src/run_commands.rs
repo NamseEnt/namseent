@@ -16,6 +16,7 @@ pub async fn run_commands_in_parallel(run: Run, cargo_project_dirs: Vec<PathBuf>
         Command::Fmt,
         Command::Fix,
         Command::Clippy,
+        Command::ClippyFix,
         Command::Test,
     ]
     .into_iter()
@@ -59,6 +60,7 @@ enum Command {
     Fmt,
     Fix,
     Clippy,
+    ClippyFix,
     Test,
 }
 
@@ -72,6 +74,7 @@ impl Command {
             Command::Fmt => run.command.fmt,
             Command::Fix => run.command.fix,
             Command::Clippy => run.command.clippy,
+            Command::ClippyFix => run.command.clippy_fix,
             Command::Test => run.command.test,
         }
     }
@@ -83,7 +86,8 @@ impl Command {
             Command::Check => "cargo check".to_string(),
             Command::Fmt => "cargo fmt".to_string(),
             Command::Fix => "cargo fix --allow-dirty --allow-staged".to_string(),
-            Command::Clippy => "cargo clippy --fix --allow-dirty --allow-staged".to_string(),
+            Command::Clippy => "cargo clippy".to_string(),
+            Command::ClippyFix => "cargo clippy --fix --allow-dirty --allow-staged".to_string(),
             Command::Test => get_test_command(cargo_project_dir).await?,
         })
     }

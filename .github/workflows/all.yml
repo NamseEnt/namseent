@@ -50,7 +50,7 @@ jobs:
           key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-command-${{ matrix.dir }}-${{ hashFiles(env.CARGO_LOCK_PATH) }}
 
       - run: |
-          for-all-projects run --only ${{ matrix.dir }} --check --fmt --fix --clippy --test
+          for-all-projects run --only ${{ matrix.dir }} --check --fmt --clippy --test
 
           if [[ $(git diff --name-only) ]]; then
               echo "::error::File change detected. Please check."
