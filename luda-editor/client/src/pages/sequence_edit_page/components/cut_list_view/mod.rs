@@ -106,23 +106,23 @@ impl Component for CutListView<'_> {
             }
         };
         let on_mouse_up = |_event: MouseEvent| {
-            if let Some(dragging) = *dragging {
-                if dragging.start_index == dragging.end_index {
-                    return;
+            match *dragging {
+                Some(dragging) if dragging.start_index != dragging.end_index => {
+                    let after_cut_id = {
+                        match dragging.end_index {
+                            0 => None,
+                            index => cuts.get(index).map(|cut| cut.id),
+                        }
+                    };
+                    SEQUENCE_ATOM.mutate(move |sequence| {
+                        sequence.update(rpc::data::SequenceUpdateAction::MoveCut {
+                            cut_id: dragging.cut_id,
+                            after_cut_id,
+                        })
+                    });
                 }
-                let after_cut_id = {
-                    match dragging.end_index {
-                        0 => None,
-                        index => cuts.get(index).map(|cut| cut.id),
-                    }
-                };
-                SEQUENCE_ATOM.mutate(move |sequence| {
-                    sequence.update(rpc::data::SequenceUpdateAction::MoveCut {
-                        cut_id: dragging.cut_id,
-                        after_cut_id,
-                    })
-                });
-            }
+                _ => {}
+            };
             set_dragging.set(None);
         };
 
