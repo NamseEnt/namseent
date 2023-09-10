@@ -13,4 +13,8 @@ pub enum SequenceUpdateAction {
     DeleteCut {
         cut_id: Uuid,
     },
+    MoveCut {
+        cut_id: Uuid,
+        after_cut_id: Option<Uuid>,
+    },
 }
