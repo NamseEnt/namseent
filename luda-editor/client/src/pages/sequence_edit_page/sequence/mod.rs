@@ -76,14 +76,11 @@ impl SequenceWrapped {
                         .unwrap();
                     let mut index_after_move = {
                         match after_cut_id {
-                            Some(after_cut_id) => {
-                                sequence
-                                    .cuts
-                                    .iter()
-                                    .position(|cut| cut.id == after_cut_id)
-                                    .unwrap()
-                                    + 1
-                            }
+                            Some(after_cut_id) => sequence
+                                .cuts
+                                .iter()
+                                .position(|cut| cut.id == after_cut_id)
+                                .unwrap(),
                             None => 0,
                         }
                     };
