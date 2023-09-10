@@ -46,15 +46,15 @@ impl Component for ImagePicker<'_> {
             }
         };
 
-        let max_items_per_row = ctx.memo(|| (wh.width / (THUMBNAIL_WH.width)).floor() as usize);
         ctx.compose(|ctx| {
             table::hooks::padding(OUTER_PADDING, |wh, ctx| {
+                let max_items_per_row = (wh.width / (THUMBNAIL_WH.width)).floor() as usize;
                 ctx.add(scroll_view::AutoScrollViewWithCtx {
                     xy: Xy::zero(),
                     scroll_bar_width: 4.px(),
                     height: wh.height,
                     content: |ctx| {
-                        table::hooks::vertical(images.chunks(*max_items_per_row).map(|images| {
+                        table::hooks::vertical(images.chunks(max_items_per_row).map(|images| {
                             table::hooks::fixed(THUMBNAIL_WH.height, {
                                 table::hooks::horizontal(images.iter().map(|image| {
                                     render_thumbnail(image, project_id, &on_internal_event)
