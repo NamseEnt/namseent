@@ -35,6 +35,7 @@ impl Component for CutCell<'_> {
 
         let stroke_color = color::stroke_color(is_selected, is_focused);
         let cut_id = cut.id;
+        let (dragging, set_dragging) = ctx.atom(&DRAGGING_CONTEXT);
 
         if_context_menu_for::<ContextMenu>(|context_menu, builder| match context_menu {
             &ContextMenu::CutCell { cut_id } => builder.add_button("Delete Cut", || {
@@ -42,6 +43,26 @@ impl Component for CutCell<'_> {
                     sequence.update(SequenceUpdateAction::DeleteCut { cut_id })
                 });
             }),
+        });
+
+        ctx.compose(|ctx| {
+            let Some(dragging) = *dragging else {
+                return;
+            };
+            if dragging.cut_id != cut_id {
+                return;
+            }
+            ctx.add(
+                simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::from_u8(0, 0, 0, 128))
+                    .attach_event(|event| {
+                        if let namui::Event::MouseDown { event } = event {
+                            if event.is_local_xy_in() {
+                                event.stop_propagation();
+                            }
+                        }
+                    })
+                    .with_mouse_cursor(MouseCursor::Grabbing),
+            );
         });
 
         ctx.component(transparent_rect(wh).attach_event(|event| {
@@ -74,25 +95,44 @@ impl Component for CutCell<'_> {
                         ])(wh, ctx)
                     }),
                     table::hooks::ratio(1, |wh, ctx| {
-                        ctx.add(simple_rect(
+                        let thumbnail = simple_rect(
                             wh,
                             stroke_color,
                             if is_selected { 2.px() } else { 1.px() },
                             Color::BLACK,
-                        ))
-                        .attach_event(|event| {
-                            if let namui::Event::MouseDown { event } = event {
-                                if event.is_local_xy_in()
-                                    && event.button == Some(MouseButton::Right)
-                                {
-                                    open_context_menu(
-                                        event.global_xy,
-                                        ContextMenu::CutCell { cut_id },
-                                    );
-                                    event.stop_propagation();
-                                }
+                        );
+                        match *dragging {
+                            Some(dragging) if dragging.cut_id == cut_id => {
+                                ctx.on_top()
+                                    .absolute(
+                                        mouse::position() - dragging.thumbnail_clicked_offset_xy,
+                                    )
+                                    .add(thumbnail);
                             }
-                        });
+                            _ => {
+                                ctx.add(thumbnail).attach_event(|event| {
+                                    if let namui::Event::MouseDown { event } = event {
+                                        if event.is_local_xy_in() {
+                                            if event.button == Some(MouseButton::Left) {
+                                                set_dragging.set(Some(DraggingContext {
+                                                    cut_id,
+                                                    thumbnail_clicked_offset_xy: event.local_xy(),
+                                                    start_index: index,
+                                                    end_index: index,
+                                                }));
+                                            }
+                                            if event.button == Some(MouseButton::Right) {
+                                                open_context_menu(
+                                                    event.global_xy,
+                                                    ContextMenu::CutCell { cut_id },
+                                                );
+                                                event.stop_propagation();
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        };
                     }),
                     table::hooks::fixed(8.px(), |_wh, _ctx| {}),
                 ]),

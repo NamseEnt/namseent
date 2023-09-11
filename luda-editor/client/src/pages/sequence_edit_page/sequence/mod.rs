@@ -65,6 +65,33 @@ impl SequenceWrapped {
                         sequence.cuts.swap_remove(position);
                     }
                 }
+                rpc::data::SequenceUpdateAction::MoveCut {
+                    cut_id,
+                    after_cut_id,
+                } => {
+                    let index_before_move = sequence
+                        .cuts
+                        .iter()
+                        .position(|cut| cut.id == cut_id)
+                        .unwrap();
+                    let mut index_after_move = {
+                        match after_cut_id {
+                            Some(after_cut_id) => sequence
+                                .cuts
+                                .iter()
+                                .position(|cut| cut.id == after_cut_id)
+                                .unwrap(),
+                            None => 0,
+                        }
+                    };
+
+                    let cut = sequence.cuts.remove(index_before_move);
+                    if index_after_move > index_before_move {
+                        index_after_move -= 1;
+                    }
+
+                    sequence.cuts.insert(index_after_move, cut);
+                }
             }
 
             self.syncer.send(SyncReq::UpdateSequence {

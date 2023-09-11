@@ -87,6 +87,34 @@ pub async fn update_sequence(
             sequence_document.cuts.remove(cut_position);
             transact
         }
+        rpc::data::SequenceUpdateAction::MoveCut {
+            cut_id,
+            after_cut_id,
+        } => {
+            let index_before_move = sequence_document
+                .cuts
+                .iter()
+                .position(|cut| cut.cut_id == cut_id)
+                .unwrap();
+            let mut index_after_move = {
+                match after_cut_id {
+                    Some(after_cut_id) => sequence_document
+                        .cuts
+                        .iter()
+                        .position(|cut| cut.cut_id == after_cut_id)
+                        .unwrap(),
+                    None => 0,
+                }
+            };
+
+            let cut = sequence_document.cuts.remove(index_before_move);
+            if index_after_move > index_before_move {
+                index_after_move -= 1;
+            }
+
+            sequence_document.cuts.insert(index_after_move, cut);
+            transact
+        }
     }
     .put_item(sequence_document)
     .send()
