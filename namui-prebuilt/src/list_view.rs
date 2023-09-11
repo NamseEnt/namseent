@@ -2,7 +2,7 @@ use crate::scroll_view::{self};
 use namui::prelude::*;
 
 #[namui::component]
-pub struct ListView<C: Component> {
+pub struct AutoListView<C: Component> {
     pub xy: Xy<Px>,
     pub height: Px,
     pub scroll_bar_width: Px,
@@ -10,7 +10,7 @@ pub struct ListView<C: Component> {
     pub items: Vec<(String, C)>,
 }
 
-impl<C: Component> Component for ListView<C> {
+impl<C: Component> Component for AutoListView<C> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             xy,
@@ -32,6 +32,47 @@ impl<C: Component> Component for ListView<C> {
                 scroll_y: *scroll_y,
             },
             scroll_y: *scroll_y,
+            set_scroll_y,
+        });
+
+        ctx.done()
+    }
+}
+
+#[namui::component]
+pub struct ListView<C: Component> {
+    pub xy: Xy<Px>,
+    pub height: Px,
+    pub scroll_bar_width: Px,
+    pub item_wh: Wh<Px>,
+    pub items: Vec<(String, C)>,
+    pub scroll_y: Px,
+    pub set_scroll_y: SetState<Px>,
+}
+
+impl<C: Component> Component for ListView<C> {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            xy,
+            height,
+            scroll_bar_width,
+            item_wh,
+            items,
+            scroll_y,
+            set_scroll_y,
+        } = self;
+
+        ctx.component(scroll_view::ScrollView {
+            xy,
+            scroll_bar_width,
+            height,
+            content: ListViewInner {
+                height,
+                item_wh,
+                items,
+                scroll_y,
+            },
+            scroll_y,
             set_scroll_y,
         });
 

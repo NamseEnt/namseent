@@ -16,6 +16,10 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 static SKIA: OnceLock<RwLock<Arc<dyn SkSkia + Send + Sync>>> = OnceLock::new();
 
+fn skia() -> Arc<dyn SkSkia + Send + Sync> {
+    SKIA.get().unwrap().read().unwrap().clone()
+}
+
 #[wasm_bindgen]
 pub fn init(canvas: web_sys::HtmlCanvasElement) {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -32,7 +36,7 @@ pub fn draw(bytes: &[u8]) {
     let input = DrawInput::from_postcard_bytes(bytes);
     let rendering_tree = input.rendering_tree;
 
-    let ctx = { DrawContext::new(SKIA.get().unwrap().read().unwrap().clone()) };
+    let ctx = { DrawContext::new(skia()) };
 
     ctx.canvas().clear(Color::WHITE);
     rendering_tree.draw(&ctx);
@@ -41,33 +45,20 @@ pub fn draw(bytes: &[u8]) {
 
 #[wasm_bindgen]
 pub fn load_typeface(typeface_name: &str, bytes: &[u8]) {
-    SKIA.get()
-        .unwrap()
-        .read()
-        .unwrap()
-        .load_typeface(typeface_name, bytes);
+    skia().load_typeface(typeface_name, bytes);
 }
 
 #[wasm_bindgen]
 pub fn load_image(image_source: Vec<u8>, image_bitmap: web_sys::ImageBitmap) {
     let image_source: ImageSource = postcard::from_bytes(&image_source).unwrap();
-    SKIA.get()
-        .unwrap()
-        .read()
-        .unwrap()
-        .load_image(image_source, image_bitmap);
+    skia().load_image(image_source, image_bitmap);
 }
 
 #[wasm_bindgen]
 pub async fn encode_loaded_image_to_png(image: Vec<u8>) -> wasm_bindgen::JsValue {
     let image = Image::from_postcard_bytes(&image);
-    let vec = SKIA
-        .get()
-        .unwrap()
-        .read()
-        .unwrap()
-        .encode_loaded_image_to_png(&image)
-        .await;
+
+    let vec = skia().encode_loaded_image_to_png(&image).await;
 
     js_sys::Uint8Array::from(vec.as_ref()).into()
 }

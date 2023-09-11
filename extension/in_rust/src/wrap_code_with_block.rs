@@ -87,10 +87,10 @@ enum ExprType {
 }
 impl ExprType {
     fn is_same_type_with(&self, other: &syn::Expr) -> bool {
-        match (self, other) {
-            (Self::Async, syn::Expr::Async(..)) | (Self::Closure, syn::Expr::Closure(..)) => true,
-            _ => false,
-        }
+        matches!(
+            (self, other),
+            (Self::Async, syn::Expr::Async(..)) | (Self::Closure, syn::Expr::Closure(..))
+        )
     }
 }
 
