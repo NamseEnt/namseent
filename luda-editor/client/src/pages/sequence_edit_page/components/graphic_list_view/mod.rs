@@ -17,8 +17,6 @@ pub struct GraphicListView<'a> {
     pub selected_cut: Option<&'a rpc::data::Cut>,
 }
 
-pub enum Event {}
-
 impl Component for GraphicListView<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         const HEADER_HEIGHT: Px = px(32.0);

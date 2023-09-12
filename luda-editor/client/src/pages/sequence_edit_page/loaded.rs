@@ -185,7 +185,6 @@ impl Component for LoadedSequenceEditorPage {
                         });
                     }
                 },
-                side_bar::Event::GraphicList(event) => match event {},
             },
         };
         let side_bar_cell: table::hooks::TableCell = {

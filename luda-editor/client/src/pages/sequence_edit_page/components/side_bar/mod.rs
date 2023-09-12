@@ -16,7 +16,6 @@ pub struct SideBar<'a> {
 
 pub enum Event {
     MemoListView(memo_list_view::Event),
-    GraphicList(graphic_list_view::Event),
 }
 
 impl Component for SideBar<'_> {
