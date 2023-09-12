@@ -12,8 +12,6 @@ use crate::{
 use namui::prelude::*;
 use namui_prebuilt::{scroll_view, simple_rect, table};
 
-static DRAGGING: Atom<Option<DraggingContext>> = Atom::uninitialized_new();
-
 #[component]
 pub struct GraphicListView<'a> {
     pub project_id: Uuid,
@@ -36,7 +34,7 @@ impl Component for GraphicListView<'_> {
         let cut_id = selected_cut.map(|cut| cut.id);
 
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
-        let (dragging, set_dragging) = ctx.atom_init(&DRAGGING, || None);
+        let (dragging, set_dragging) = ctx.state::<Option<DraggingContext>>(|| None);
         let (editing_graphic_index, set_editing_graphic_index) =
             ctx.atom_init(&EDITING_GRAPHIC_INDEX_ATOM, || None);
 
