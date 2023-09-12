@@ -1,7 +1,7 @@
 use crate::{
     color,
     components::cg_render,
-    pages::sequence_edit_page::atom::CG_FILES_ATOM,
+    pages::sequence_edit_page::atom::{CG_FILES_ATOM, EDITING_GRAPHIC_INDEX_ATOM},
     storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
 };
 use namui::prelude::*;
@@ -55,6 +55,7 @@ impl Component for GraphicListView<'_> {
                                                         project_id,
                                                         wh,
                                                         graphic,
+                                                        graphic_index,
                                                     },
                                                 );
                                             })(wh, ctx);
@@ -131,6 +132,7 @@ struct GraphicListItem<'a> {
     project_id: Uuid,
     wh: Wh<Px>,
     graphic: &'a ScreenGraphic,
+    graphic_index: Uuid,
 }
 impl Component for GraphicListItem<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -140,10 +142,20 @@ impl Component for GraphicListItem<'_> {
             project_id,
             wh,
             graphic,
+            graphic_index,
         } = self;
         let graphic_name = match graphic {
             ScreenGraphic::Image(image) => image.id.to_string(),
             ScreenGraphic::Cg(cg) => cg.name.clone(),
+        };
+        let (editing_graphic_index, set_editing_graphic_index) =
+            ctx.atom_init(&EDITING_GRAPHIC_INDEX_ATOM, || None);
+
+        let is_selected = editing_graphic_index.as_ref() == &Some(graphic_index);
+        let stroke_color = color::stroke_color(is_selected, false);
+        let stroke_width = match is_selected {
+            true => 2.px(),
+            false => 1.px(),
         };
 
         ctx.compose(|ctx| {
@@ -168,7 +180,7 @@ impl Component for GraphicListItem<'_> {
                                 name: "NotoSansKR-Regular".to_string(),
                             },
                             style: TextStyle {
-                                color: color::STROKE_NORMAL,
+                                color: stroke_color,
                                 ..Default::default()
                             },
                             max_width: None,
@@ -178,12 +190,18 @@ impl Component for GraphicListItem<'_> {
             ])(wh, ctx);
         });
 
-        ctx.component(simple_rect(
-            wh,
-            color::STROKE_NORMAL,
-            1.px(),
-            color::BACKGROUND,
-        ));
+        ctx.component(
+            simple_rect(wh, stroke_color, stroke_width, color::BACKGROUND)
+                .attach_event(|event| {
+                    if let namui::Event::MouseDown { event } = event {
+                        if event.is_local_xy_in() && (event.button == Some(MouseButton::Left)) {
+                            event.stop_propagation();
+                            set_editing_graphic_index.set(Some(graphic_index));
+                        }
+                    }
+                })
+                .with_mouse_cursor(MouseCursor::Pointer),
+        );
 
         ctx.done()
     }
