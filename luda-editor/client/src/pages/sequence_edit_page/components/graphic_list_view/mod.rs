@@ -188,9 +188,6 @@ impl Component for GraphicListView<'_> {
             })(wh, ctx);
 
             ctx.attach_event(|event| match event {
-                namui::Event::MouseDown { event } => {
-                    namui::log!("MouseDown: {:?}", event.local_xy().y + *scroll_y);
-                }
                 namui::Event::MouseMove { event } => {
                     on_mouse_move(event);
                 }
