@@ -32,8 +32,6 @@ impl Component for SideBar<'_> {
             on_event,
         } = self;
 
-        let graphics = selected_cut.map(|cut| &cut.screen_graphics);
-
         ctx.compose(|ctx| {
             table::hooks::vertical([
                 table::hooks::ratio(1, |wh, ctx| {
@@ -48,7 +46,7 @@ impl Component for SideBar<'_> {
                     ctx.add(graphic_list_view::GraphicListView {
                         project_id,
                         wh,
-                        graphics,
+                        selected_cut,
                     });
                 }),
             ])(wh, ctx);
