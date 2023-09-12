@@ -56,9 +56,9 @@ impl Component for LoadedSequenceEditorPage {
             CutListView { event: cut_list_view::Event },
             CutEditor { event: cut_editor::Event },
             CharacterEdtior { event: character_editor::Event },
-            MemoListView { event: memo_list_view::Event },
             MemoEditor { event: memo_editor::Event },
             ImagePicker { event: image_picker::Event },
+            SideBar { event: side_bar::Event },
         }
         let on_internal_event = &|event: InternalEvent| match event {
             InternalEvent::CutListView { event } => match event {
@@ -119,31 +119,6 @@ impl Component for LoadedSequenceEditorPage {
                     set_character_editor_target.set(Some(edit_target));
                 }
             },
-            InternalEvent::MemoListView { event } => match event {
-                memo_list_view::Event::DoneClicked { cut_id, memo_id } => {
-                    spawn_local(async move {
-                        match crate::RPC
-                            .delete_memo(rpc::delete_memo::Request {
-                                sequence_id,
-                                memo_id,
-                            })
-                            .await
-                        {
-                            Ok(_) => {
-                                set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
-                                    cut_id_memos_map
-                                        .get_mut(&cut_id)
-                                        .unwrap()
-                                        .retain(|memo| memo.id != memo_id);
-                                });
-                            }
-                            Err(error) => {
-                                namui::log!("Failed to delete memo: {:?}", error)
-                            }
-                        };
-                    });
-                }
-            },
             InternalEvent::MemoEditor { event } => match event {
                 memo_editor::Event::Close => set_editing_memo.set(None),
                 memo_editor::Event::SaveButtonClicked {
@@ -184,27 +159,52 @@ impl Component for LoadedSequenceEditorPage {
                     set_image_picker_open.set(false);
                 }
             },
+            InternalEvent::SideBar { event } => match event {
+                side_bar::Event::MemoListView(event) => match event {
+                    memo_list_view::Event::DoneClicked { cut_id, memo_id } => {
+                        spawn_local(async move {
+                            match crate::RPC
+                                .delete_memo(rpc::delete_memo::Request {
+                                    sequence_id,
+                                    memo_id,
+                                })
+                                .await
+                            {
+                                Ok(_) => {
+                                    set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
+                                        cut_id_memos_map
+                                            .get_mut(&cut_id)
+                                            .unwrap()
+                                            .retain(|memo| memo.id != memo_id);
+                                    });
+                                }
+                                Err(error) => {
+                                    namui::log!("Failed to delete memo: {:?}", error)
+                                }
+                            };
+                        });
+                    }
+                },
+                side_bar::Event::GraphicList(event) => match event {},
+            },
         };
-        let memo_list_view_cell: table::hooks::TableCell = {
-            const MEMO_WINDOW_WIDTH: Px = px(256.0);
+        let side_bar_cell: table::hooks::TableCell = {
+            const SIDE_BAR_WIDTH: Px = px(256.0);
 
             let memos = selected_cut.and_then(|cut| cut_id_memos_map.get(&cut.id));
 
-            match memos {
-                Some(memos) if !memos.is_empty() => {
-                    table::hooks::fixed(MEMO_WINDOW_WIDTH, move |wh, ctx| {
-                        ctx.add(memo_list_view::MemoListView {
-                            wh,
-                            memos: memos.clone(),
-                            user_id,
-                            on_event: Box::new(|event| {
-                                on_internal_event(InternalEvent::MemoListView { event })
-                            }),
-                        });
-                    })
-                }
-                _ => table::hooks::empty(),
-            }
+            table::hooks::fixed(SIDE_BAR_WIDTH, move |wh, ctx| {
+                ctx.add(side_bar::SideBar {
+                    wh,
+                    project_id,
+                    user_id,
+                    selected_cut,
+                    memos,
+                    on_event: Box::new(|event| {
+                        on_internal_event(InternalEvent::SideBar { event });
+                    }),
+                });
+            })
         };
         let character_editor_cell = {
             const CHARACTER_EDITOR_WIDTH: Px = px(496.0);
@@ -301,7 +301,7 @@ impl Component for LoadedSequenceEditorPage {
                 table::hooks::fixed(220.px(), cut_list_view_cell),
                 table::hooks::ratio(4, cut_editor_cell),
                 character_editor_cell,
-                memo_list_view_cell,
+                side_bar_cell,
                 image_picker_cell,
             ])(wh, ctx)
         });

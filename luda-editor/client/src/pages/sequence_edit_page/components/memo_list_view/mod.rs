@@ -8,7 +8,7 @@ use rpc::data::Memo;
 #[namui::component]
 pub struct MemoListView<'a> {
     pub wh: Wh<Px>,
-    pub memos: Vec<Memo>,
+    pub memos: Option<&'a Vec<Memo>>,
     pub user_id: Uuid,
     pub on_event: Box<dyn 'a + Fn(Event)>,
 }
@@ -30,6 +30,9 @@ impl Component for MemoListView<'_> {
             scroll_bar_width: 4.px(),
             wh,
             content: |ctx| {
+                let Some(memos) = memos else {
+                    return;
+                };
                 table::hooks::vertical(memos.iter().map(|memo| {
                     table::hooks::fit(
                         table::hooks::FitAlign::LeftTop,
@@ -37,7 +40,7 @@ impl Component for MemoListView<'_> {
                             width: wh.width,
                             memo,
                             user_id,
-                            on_event: Box::new(&on_event),
+                            on_event: &on_event,
                         },
                     )
                 }))(wh, ctx);
@@ -59,7 +62,7 @@ struct MemoComponent<'a> {
     width: Px,
     memo: &'a Memo,
     user_id: Uuid,
-    on_event: Box<dyn 'a + Fn(Event)>,
+    on_event: &'a dyn Fn(Event),
 }
 impl Component for MemoComponent<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -109,7 +112,7 @@ struct MemoContent<'a> {
     width: Px,
     memo: &'a Memo,
     user_id: Uuid,
-    on_event: Box<dyn 'a + Fn(Event)>,
+    on_event: &'a dyn Fn(Event),
 }
 impl Component for MemoContent<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
