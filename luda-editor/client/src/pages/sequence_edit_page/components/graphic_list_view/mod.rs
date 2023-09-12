@@ -92,24 +92,6 @@ impl Component for GraphicListView<'_> {
                 return;
             };
 
-            ctx.compose(|ctx| {
-                const PADDING: Px = px(24.0);
-                const STROKE_WIDTH: Px = px(4.0);
-                let Some(dragging) = *dragging else {
-                    return;
-                };
-                let cursor_y = GRAPHIC_LIST_ITEM_HEIGHT * ((dragging.end_index) as f32) - *scroll_y;
-                let path = Path::new()
-                    .move_to(PADDING, cursor_y)
-                    .line_to(wh.width - PADDING, cursor_y);
-                let paint = Paint::new()
-                    .set_style(PaintStyle::Stroke)
-                    .set_stroke_width(STROKE_WIDTH)
-                    .set_stroke_cap(StrokeCap::Round)
-                    .set_color(color::STROKE_FOCUS);
-                ctx.add(namui::path(path, paint));
-            });
-
             table::hooks::vertical(graphics.iter().map(|(graphic_index, graphic)| {
                 table::hooks::fixed(GRAPHIC_LIST_ITEM_HEIGHT, |wh, ctx| {
                     table::hooks::padding(PADDING, |wh, ctx| {
@@ -161,6 +143,25 @@ impl Component for GraphicListView<'_> {
         };
 
         let body_cell = table::hooks::ratio(1, |wh, ctx| {
+            ctx.compose(|ctx| {
+                const SIDE_MARGIN: Px = px(24.0);
+                const STROKE_WIDTH: Px = px(4.0);
+                let Some(dragging) = *dragging else {
+                    return;
+                };
+                let cursor_y =
+                    GRAPHIC_LIST_ITEM_HEIGHT * ((dragging.end_index) as f32) - *scroll_y + PADDING;
+                let path = Path::new()
+                    .move_to(SIDE_MARGIN, cursor_y)
+                    .line_to(wh.width - SIDE_MARGIN, cursor_y);
+                let paint = Paint::new()
+                    .set_style(PaintStyle::Stroke)
+                    .set_stroke_width(STROKE_WIDTH)
+                    .set_stroke_cap(StrokeCap::Round)
+                    .set_color(color::STROKE_FOCUS);
+                ctx.add(namui::path(path, paint));
+            });
+
             table::hooks::padding(PADDING, |wh, ctx| {
                 ctx.add(scroll_view::ScrollViewWithCtx {
                     xy: Xy::zero(),
@@ -171,25 +172,31 @@ impl Component for GraphicListView<'_> {
                     set_scroll_y,
                 });
             })(wh, ctx);
+
+            ctx.attach_event(|event| match event {
+                namui::Event::MouseDown { event } => {
+                    namui::log!("MouseDown: {:?}", event.local_xy().y + *scroll_y);
+                }
+                namui::Event::MouseMove { event } => {
+                    on_mouse_move(event);
+                }
+                namui::Event::MouseUp { event } => {
+                    on_mouse_up(event);
+                }
+                _ => {}
+            });
         });
 
         ctx.compose(|ctx| {
             table::hooks::vertical([header_cell, body_cell])(wh, ctx);
         });
 
-        ctx.component(
-            simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND).attach_event(
-                |event| match event {
-                    namui::Event::MouseMove { event } => {
-                        on_mouse_move(event);
-                    }
-                    namui::Event::MouseUp { event } => {
-                        on_mouse_up(event);
-                    }
-                    _ => {}
-                },
-            ),
-        );
+        ctx.component(simple_rect(
+            wh,
+            color::STROKE_NORMAL,
+            1.px(),
+            color::BACKGROUND,
+        ));
 
         ctx.done()
     }
