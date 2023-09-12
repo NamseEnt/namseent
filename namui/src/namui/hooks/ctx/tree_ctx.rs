@@ -13,6 +13,7 @@ pub(crate) struct TreeContext {
     pub(crate) raw_event: Arc<Mutex<Option<Arc<RawEvent>>>>,
     pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
     pub(crate) is_cursor_determined: Arc<AtomicBool>,
+    pub(crate) enable_event_handling: Arc<AtomicBool>,
     root_instance: Arc<ComponentInstance>,
     #[derivative(Debug = "ignore")]
     call_root_render: Arc<dyn Fn(HashSet<SigId>) -> RenderingTree>,
@@ -33,6 +34,7 @@ impl TreeContext {
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
             is_cursor_determined: Default::default(),
+            enable_event_handling: Arc::new(AtomicBool::new(true)),
             root_instance: root_instance.clone(),
             call_root_render: Arc::new(|_| {
                 unreachable!();
@@ -137,6 +139,10 @@ impl TreeContext {
     pub(crate) fn stop_event_propagation(&self) {
         self.is_stop_event_propagation
             .store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    pub(crate) fn enable_event_handling(&self, enable: bool) -> bool {
+        self.enable_event_handling
+            .swap(enable, std::sync::atomic::Ordering::SeqCst)
     }
 }
 

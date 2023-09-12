@@ -51,16 +51,6 @@ impl<'a> RenderCtx {
         }
     }
 
-    pub fn ghost_render(&self, component: impl Component) -> RenderingTree {
-        self.disable_event_handling();
-        let rendering_tree = self.render_children(
-            KeyVec::new_child(self.get_next_component_index()),
-            component,
-        );
-        self.enable_event_handling();
-        rendering_tree
-    }
-
     pub fn done(&self) -> RenderDone {
         let vec: Vec<RenderingTree> = std::mem::take(self.children.lock().unwrap().as_mut());
         let rendering_tree = crate::render(vec);
@@ -73,23 +63,78 @@ impl<'a> RenderCtx {
         RenderDone { rendering_tree }
     }
 
-    pub fn ghost_compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> RenderingTree {
-        self.disable_event_handling();
-        let rendering_tree = self.compose_inner(compose);
-        self.enable_event_handling();
+    /// Get RenderingTree but don't add it to the children.
+    pub fn ghost_compose(
+        &self,
+        compose: impl FnOnce(&mut ComposeCtx),
+        GhostComposeOption {
+            enable_event_handling,
+        }: GhostComposeOption,
+    ) -> RenderingTree {
+        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        {
+            let mut compose_ctx = ComposeCtx::new(
+                self.tree_ctx.clone(),
+                KeyVec::new_child(self.get_next_component_index()),
+                *self.matrix.lock().unwrap(),
+                self.renderer(),
+                lazy.clone(),
+                self.raw_event.clone(),
+                self.clippings.clone(),
+            );
+
+            let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
+
+            compose(&mut compose_ctx);
+
+            self.tree_ctx.enable_event_handling(prev_enable_event);
+        }
+        let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
         rendering_tree
     }
-    pub fn component(&self, component: impl Component) -> &Self {
-        self.add(
-            KeyVec::new_child(self.get_next_component_index()),
-            component,
-        );
-        self
+
+    /// Get RenderingTree but don't add it to the children.
+    pub fn ghost_component(
+        &self,
+        component: impl Component,
+        GhostComposeOption {
+            enable_event_handling,
+        }: GhostComposeOption,
+    ) -> RenderingTree {
+        let key = KeyVec::new_child(self.get_next_component_index());
+
+        let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
+
+        let rendering_tree = self.render_children(key, component);
+
+        self.tree_ctx.enable_event_handling(prev_enable_event);
+
+        rendering_tree
     }
+
     pub fn compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> &Self {
-        let rendering_tree = self.compose_inner(compose);
+        let rendering_tree = self.ghost_compose(
+            compose,
+            GhostComposeOption {
+                enable_event_handling: true,
+            },
+        );
         self.children.lock().unwrap().push(rendering_tree);
 
         self
     }
+    pub fn component(&self, component: impl Component) -> &Self {
+        let rendering_tree = self.ghost_component(
+            component,
+            GhostComposeOption {
+                enable_event_handling: true,
+            },
+        );
+        self.children.lock().unwrap().push(rendering_tree);
+        self
+    }
+}
+
+pub struct GhostComposeOption {
+    pub enable_event_handling: bool,
 }

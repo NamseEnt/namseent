@@ -73,7 +73,6 @@ impl Component for Dropdown<'_> {
                 ctx.on_top()
                     .translate((0.px(), rect.height()))
                     .add(AutoListView {
-                        xy: Xy::zero(),
                         height: body_height,
                         scroll_bar_width: 5.px(),
                         item_wh: rect.wh(),

@@ -8,7 +8,6 @@ where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
 {
-    pub xy: Xy<Px>,
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
     pub items: TItems,
@@ -23,7 +22,6 @@ where
 {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
-            xy,
             wh,
             scroll_bar_width,
             items,
@@ -34,7 +32,6 @@ where
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
         ctx.component(VHListView {
-            xy,
             wh,
             scroll_bar_width,
             items,
@@ -53,7 +50,6 @@ where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
 {
-    pub xy: Xy<Px>,
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
     pub items: TItems,
@@ -70,7 +66,6 @@ where
 {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
-            xy,
             wh,
             scroll_bar_width,
             items,
@@ -97,9 +92,8 @@ where
             };
 
             ctx.add(ScrollView {
-                xy,
+                wh,
                 scroll_bar_width,
-                height: wh.height,
                 content,
                 scroll_y,
                 set_scroll_y,

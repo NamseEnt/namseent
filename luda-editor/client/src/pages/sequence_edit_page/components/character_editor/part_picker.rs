@@ -94,8 +94,7 @@ impl Component for PartPicker<'_> {
                     render_divider(BUTTON_HEIGHT),
                     table::hooks::ratio(1, |wh, ctx| {
                         ctx.add(scroll_view::AutoScrollViewWithCtx {
-                            xy: Xy::zero(),
-                            height: wh.height,
+                            wh,
                             scroll_bar_width: 4.px(),
                             content: |ctx| cg_part_group_list(wh, ctx),
                         });

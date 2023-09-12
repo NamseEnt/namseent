@@ -3,7 +3,6 @@ use namui::prelude::*;
 
 #[namui::component]
 pub struct AutoListView<C: Component> {
-    pub xy: Xy<Px>,
     pub height: Px,
     pub scroll_bar_width: Px,
     pub item_wh: Wh<Px>,
@@ -13,7 +12,6 @@ pub struct AutoListView<C: Component> {
 impl<C: Component> Component for AutoListView<C> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
-            xy,
             height,
             scroll_bar_width,
             item_wh,
@@ -21,18 +19,13 @@ impl<C: Component> Component for AutoListView<C> {
         } = self;
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-        ctx.component(scroll_view::ScrollView {
-            xy,
-            scroll_bar_width,
-            height,
-            content: ListViewInner {
-                height,
-                item_wh,
-                items,
-                scroll_y: *scroll_y,
-            },
+        ctx.component(ListView {
             scroll_y: *scroll_y,
             set_scroll_y,
+            height,
+            scroll_bar_width,
+            item_wh,
+            items,
         });
 
         ctx.done()
@@ -41,7 +34,6 @@ impl<C: Component> Component for AutoListView<C> {
 
 #[namui::component]
 pub struct ListView<C: Component> {
-    pub xy: Xy<Px>,
     pub height: Px,
     pub scroll_bar_width: Px,
     pub item_wh: Wh<Px>,
@@ -53,7 +45,6 @@ pub struct ListView<C: Component> {
 impl<C: Component> Component for ListView<C> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
-            xy,
             height,
             scroll_bar_width,
             item_wh,
@@ -63,9 +54,8 @@ impl<C: Component> Component for ListView<C> {
         } = self;
 
         ctx.component(scroll_view::ScrollView {
-            xy,
+            wh: Wh::new(item_wh.width, height),
             scroll_bar_width,
-            height,
             content: ListViewInner {
                 height,
                 item_wh,
