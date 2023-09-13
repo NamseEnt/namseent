@@ -84,6 +84,7 @@ impl ImageResourcesSection {
         }
 
         let resource_id = cursor.read_i16();
+        let _name = cursor.read_pascal_string();
 
         let data_len = cursor.read_u32();
         let pos = cursor.position() as usize;
