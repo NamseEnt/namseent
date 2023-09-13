@@ -45,22 +45,11 @@ impl Component for GraphicListItem<'_> {
                 }),
                 table::hooks::ratio(1, |wh, ctx| {
                     table::hooks::padding(PADDING, |wh, ctx| {
-                        ctx.add(text(TextParam {
-                            text: graphic_name,
-                            x: 0.px(),
-                            y: wh.height / 2.0,
-                            align: TextAlign::Left,
-                            baseline: TextBaseline::Middle,
-                            font: Font {
-                                size: 12.int_px(),
-                                name: "NotoSansKR-Regular".to_string(),
-                            },
-                            style: TextStyle {
-                                color: stroke_color,
-                                ..Default::default()
-                            },
-                            max_width: None,
-                        }));
+                        ctx.add(namui_prebuilt::typography::body::left(
+                            wh.height,
+                            graphic_name,
+                            stroke_color,
+                        ));
                     })(wh, ctx);
                 }),
             ])(wh, ctx);
