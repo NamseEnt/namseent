@@ -175,9 +175,8 @@ impl Component for GraphicListView<'_> {
                 };
 
                 ctx.add(scroll_view::ScrollViewWithCtx {
-                    xy: Xy::zero(),
+                    wh,
                     scroll_bar_width: 4.px(),
-                    height: wh.height,
                     content,
                     scroll_y: *scroll_y,
                     set_scroll_y,
