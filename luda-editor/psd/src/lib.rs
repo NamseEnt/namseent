@@ -1,343 +1,159 @@
-//! Data structures and methods for working with PSD files.
-//!
-//! You are encouraged to read the PSD specification before contributing to this codebase.
-//! This will help you better understand the current approach and discover ways to improve it.
-//!
-//! psd spec: https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
+use nom::{bytes::complete::*, multi::*, number::complete::*, *};
 
-#![deny(missing_docs)]
-
-use std::collections::HashMap;
-use std::ops::Deref;
-
-use thiserror::Error;
-
-use sections::file_header_section::FileHeaderSectionError;
-use sections::image_data_section::ImageDataSectionError;
-use sections::image_resources_section::ImageResourcesSectionError;
-use sections::layer_and_mask_information_section::layer::PsdLayerError;
-
-use crate::psd_channel::IntoRgba;
-pub use crate::psd_channel::{PsdChannelCompression, PsdChannelKind};
-pub use crate::sections::file_header_section::{ColorMode, PsdDepth};
-use crate::sections::image_data_section::ChannelBytes;
-use crate::sections::image_data_section::ImageDataSection;
-pub use crate::sections::image_resources_section::ImageResource;
-use crate::sections::image_resources_section::ImageResourcesSection;
-pub use crate::sections::image_resources_section::{DescriptorField, UnitFloatStructure};
-pub use crate::sections::layer_and_mask_information_section::layer::BlendMode;
-pub use crate::sections::layer_and_mask_information_section::layer::PsdGroup;
-pub use crate::sections::layer_and_mask_information_section::layer::PsdLayer;
-use crate::sections::layer_and_mask_information_section::LayerAndMaskInformationSection;
-use crate::sections::MajorSections;
-
-use self::sections::file_header_section::FileHeaderSection;
-
-mod blend;
-mod psd_channel;
-mod render;
-mod sections;
-
-/// An list of errors returned when processing PSD file.
-///
-/// This list is intended to grow over time and it is not recommended to exhaustively match against it.
-#[derive(PartialEq, Debug, Error)]
-#[non_exhaustive]
-pub enum PsdError {
-    /// Failed to parse PSD header
-    #[error("Failed to parse PSD header: '{0}'.")]
-    HeaderError(FileHeaderSectionError),
-    /// Failed to parse PSD layer
-    #[error("Failed to parse PSD layer: '{0}'.")]
-    LayerError(PsdLayerError),
-    /// Failed to parse PSD data section
-    #[error("Failed to parse PSD data section: '{0}'.")]
-    ImageError(ImageDataSectionError),
-    /// Failed to parse PSD resource section
-    #[error("Failed to parse PSD resource section: '{0}'.")]
-    ResourceError(ImageResourcesSectionError),
+struct PhotoshopFileFormat {
+    file_header: FileHeaderSection,
+    color_mode_data: ColorModeDataSection,
+    image_resources: ImageResourcesSection,
+    layer_and_mask_information: LayerAndMaskInformationSection,
+    image_data: ImageDataSection,
 }
 
-/// Represents the contents of a PSD file
-///
-/// ## PSB Support
-///
-/// We do not currently support PSB since the original authors didn't need it, but adding
-/// support should be trivial. If you'd like to support PSB please open an issue.
-#[derive(Debug)]
-pub struct Psd {
-    file_header_section: FileHeaderSection,
-    image_resources_section: ImageResourcesSection,
-    layer_and_mask_information_section: LayerAndMaskInformationSection,
-    image_data_section: ImageDataSection,
+struct FileHeaderSection {
+    /// supports 1 ~ 56
+    image_channel_count: u16,
+    height: u32,
+    width: u32,
+    /// supports 1, 8, 16, 32
+    depth_bits: u16,
+    color_mode: ColorMode,
 }
 
-impl Psd {
-    /// Create a Psd from a byte slice.
-    ///
-    /// You'll typically get these bytes from a PSD file.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let psd_bytes = include_bytes!("./my-psd-file.psd");
-    ///
-    /// let psd = Psd::from_bytes(psd_bytes);
-    /// ```
-    pub fn from_bytes(bytes: &[u8]) -> Result<Psd, PsdError> {
-        let major_sections = MajorSections::from_bytes(bytes).map_err(PsdError::HeaderError)?;
-
-        let file_header_section = FileHeaderSection::from_bytes(major_sections.file_header)
-            .map_err(PsdError::HeaderError)?;
-
-        let psd_width = file_header_section.width.0;
-        let psd_height = file_header_section.height.0;
-        let channel_count = file_header_section.channel_count.count();
-
-        let layer_and_mask_information_section = LayerAndMaskInformationSection::from_bytes(
-            major_sections.layer_and_mask,
-            psd_width,
-            psd_height,
-        )
-        .map_err(PsdError::LayerError)?;
-
-        let image_data_section = ImageDataSection::from_bytes(
-            major_sections.image_data,
-            file_header_section.depth,
-            psd_height,
-            channel_count,
-        )
-        .map_err(PsdError::ImageError)?;
-
-        let image_resources_section =
-            ImageResourcesSection::from_bytes(major_sections.image_resources)
-                .map_err(PsdError::ResourceError)?;
-
-        Ok(Psd {
-            file_header_section,
-            image_resources_section,
-            layer_and_mask_information_section,
-            image_data_section,
-        })
-    }
+enum ColorMode {
+    Bitmap,
+    Grayscale,
+    Indexed,
+    Rgb,
+    Cmyk,
+    Multichannel,
+    Duotone,
+    Lab,
 }
 
-// Methods for working with the file section header
-impl Psd {
-    /// The width of the PSD file
-    pub fn width(&self) -> u32 {
-        self.file_header_section.width.0
-    }
+/// Not supported
+struct ColorModeDataSection {}
 
-    /// The height of the PSD file
-    pub fn height(&self) -> u32 {
-        self.file_header_section.height.0
-    }
+struct ImageResourcesSection {}
 
-    /// The number of bits per channel
-    pub fn depth(&self) -> PsdDepth {
-        self.file_header_section.depth
-    }
+struct ImageResourceBlock {}
 
-    /// The color mode of the file
-    pub fn color_mode(&self) -> ColorMode {
-        self.file_header_section.color_mode
-    }
+struct LayerAndMaskInformationSection {}
+
+struct ImageDataSection {}
+
+fn photoshop_file_format(input: &[u8]) -> IResult<&[u8], PhotoshopFileFormat> {
+    let (input, file_header) = file_header_section(input)?;
+    let (input, color_mode_data) = color_mode_data_section(input)?;
+    let (input, image_resources) = image_resources_section(input)?;
+    let (input, layer_and_mask_information) = layer_and_mask_information_section(input)?;
+    let (input, image_data) = image_data_section(input)?;
+
+    Ok((
+        input,
+        PhotoshopFileFormat {
+            file_header,
+            color_mode_data,
+            image_resources,
+            layer_and_mask_information,
+            image_data,
+        },
+    ))
 }
 
-// Methods for working with layers
-impl Psd {
-    /// Get all of the layers in the PSD
-    pub fn layers(&self) -> &Vec<PsdLayer> {
-        &self.layer_and_mask_information_section.layers
-    }
+fn file_header_section(input: &[u8]) -> IResult<&[u8], FileHeaderSection> {
+    let (input, _) = tag("8BPS")(input)?;
+    let (input, _) = tag([0, 1])(input)?;
+    let (input, _) = tag([0, 0, 0, 0, 0, 0])(input)?;
+    let (input, image_channel_count) = be_u16(input)?;
 
-    /// Get a layer by name
-    pub fn layer_by_name(&self, name: &str) -> Option<&PsdLayer> {
-        self.layer_and_mask_information_section
-            .layers
-            .item_by_name(name)
-    }
+    let (input, height) = be_u32(input)?;
+    let (input, width) = be_u32(input)?;
+    let (input, depth_bits) = be_u16(input)?;
+    let (input, color_mode) = be_u16(input)?;
 
-    /// Get a layer by index.
-    ///
-    /// index 0 is the bottom layer, index 1 is the layer above that, etc
-    pub fn layer_by_idx(&self, idx: usize) -> &PsdLayer {
-        self.layer_and_mask_information_section
-            .layers
-            .get(idx)
-            .unwrap()
-    }
+    let color_mode = match color_mode {
+        0 => ColorMode::Bitmap,
+        1 => ColorMode::Grayscale,
+        2 => ColorMode::Indexed,
+        3 => ColorMode::Rgb,
+        4 => ColorMode::Cmyk,
+        7 => ColorMode::Multichannel,
+        8 => ColorMode::Duotone,
+        9 => ColorMode::Lab,
+        _ => panic!("unsupported color mode"),
+    };
 
-    /// Get all of the groups in the PSD, in the order that they appear in the PSD file.
-    pub fn groups(&self) -> &HashMap<u32, PsdGroup> {
-        &self.layer_and_mask_information_section.groups
-    }
-
-    /// Get the group ID's in the order that they appear in Photoshop.
-    /// (i.e. from the bottom of layers view to the top of the layers view).
-    pub fn group_ids_in_order(&self) -> &Vec<u32> {
-        self.layer_and_mask_information_section
-            .groups
-            .group_ids_in_order()
-    }
-
-    /// Returns sub layers of group by group id
-    pub fn get_group_sub_layers(&self, id: &u32) -> Option<&[PsdLayer]> {
-        match self.groups().get(id) {
-            Some(group) => Some(
-                &self.layer_and_mask_information_section.layers.deref()
-                    [group.contained_layers.clone()],
-            ),
-            None => None,
-        }
-    }
-
-    /// Given a filter, combine all layers in the PSD that pass the filter into a vector
-    /// of RGBA pixels.
-    ///
-    /// We'll start from the top most layer and iterate through the pixels.
-    ///
-    /// If the pixel is transparent, recursively blend it with the pixels below it until
-    /// we hit an opaque pixel or we hit the bottom of the stack.
-    ///
-    /// TODO: Take the layer's blend mode into account when blending layers. Right now
-    /// we just use ONE_MINUS_SRC_ALPHA blending regardless of the layer.
-    pub fn flatten_layers_rgba(
-        &self,
-        filter: &dyn Fn((usize, &PsdLayer)) -> bool,
-    ) -> Result<Vec<u8>, PsdError> {
-        // When you create a PSD but don't create any new layers the bottom layer might not
-        // show up in the layer and mask information section, so we won't see any layers.
-        //
-        // TODO: We should try and figure out where the layer name is so that we can return
-        // a completely transparent image if it is filtered out. But this should be a rare
-        // use case so we can just always return the final image for now.
-        if self.layers().is_empty() {
-            return Ok(self.rgba());
-        }
-
-        // Filter out layers based on the passed in filter.
-        let layers_to_flatten_top_down: Vec<&PsdLayer> = self
-            .layers()
-            .iter()
-            .enumerate()
-            // here we filter transparent layers and invisible layers
-            .filter(|(_, layer)| (layer.opacity > 0 && layer.visible) || layer.clipping_mask)
-            .filter(|(idx, layer)| filter((*idx, layer)))
-            .map(|(_, layer)| layer)
-            .collect();
-
-        let pixel_count = self.width() * self.height();
-
-        // If there aren't any layers left after filtering we return a complete transparent image.
-        if layers_to_flatten_top_down.is_empty() {
-            return Ok(vec![0; pixel_count as usize * 4]);
-        }
-
-        // During the process of flattening the PSD we might need to look at the pixels on one of
-        // the layers below if an upper layer is transparent.
-        //
-        // Anytime we need to calculate the RGBA for a layer we cache it so that we don't need
-        // to perform that operation again.
-        let renderer = render::Renderer::new(&layers_to_flatten_top_down, self.width() as usize);
-
-        let mut flattened_pixels = Vec::with_capacity((pixel_count * 4) as usize);
-
-        // Iterate over each pixel and, if it is transparent, blend it with the pixel below it
-        // recursively.
-        for pixel_idx in 0..pixel_count as usize {
-            let left = pixel_idx % self.width() as usize;
-            let top = pixel_idx / self.width() as usize;
-            let pixel_coord = (left, top);
-
-            let blended_pixel = renderer.flattened_pixel(pixel_coord);
-
-            flattened_pixels.push(blended_pixel[0]);
-            flattened_pixels.push(blended_pixel[1]);
-            flattened_pixels.push(blended_pixel[2]);
-            flattened_pixels.push(blended_pixel[3]);
-        }
-
-        Ok(flattened_pixels)
-    }
+    Ok((
+        input,
+        FileHeaderSection {
+            image_channel_count,
+            height,
+            width,
+            depth_bits,
+            color_mode,
+        },
+    ))
 }
 
-// Methods for working with the final flattened image data
-impl Psd {
-    /// Get the RGBA pixels for the PSD
-    /// [ R,G,B,A, R,G,B,A, R,G,B,A, ...]
-    pub fn rgba(&self) -> Vec<u8> {
-        self.generate_rgba()
-    }
-
-    /// Get the compression level for the flattened image data
-    pub fn compression(&self) -> &PsdChannelCompression {
-        &self.image_data_section.compression
-    }
+fn color_mode_data_section(input: &[u8]) -> IResult<&[u8], ColorModeDataSection> {
+    tag([0, 0, 0, 0])(input).map(|(input, _)| (input, ColorModeDataSection {}))
 }
 
-// Methods for working with the image resources section
-impl Psd {
-    /// Resources from the image resources section of the PSD file
-    pub fn resources(&self) -> &Vec<ImageResource> {
-        &self.image_resources_section.resources
-    }
+fn image_resources_section(input: &[u8]) -> IResult<&[u8], ImageResourcesSection> {
+    // NOTE: section_byte_length seems not equal to the byte length of image_resources for clip-studio's psd exports.
+    let (input, _section_byte_length) = be_u32(input)?;
+    let (input, _image_resources) = many0(image_resource_block)(input)?;
+
+    Ok((input, ImageResourcesSection {}))
 }
 
-impl IntoRgba for Psd {
-    /// The PSD's final image is always the same size as the PSD so we don't need to transform
-    /// indices like we do with layers.
-    fn rgba_idx(&self, idx: usize) -> Option<usize> {
-        Some(idx)
-    }
+fn image_resource_block(input: &[u8]) -> IResult<&[u8], ImageResourceBlock> {
+    let (input, _signature) = tag("8BIM")(input)?;
+    let (input, _resource_id) = be_u16(input)?;
+    let (input, _name) = pascal_string(input, true)?;
+    let (input, resource_byte_length) = be_u32(input)?;
+    let (input, _resource_data) = take(resource_byte_length)(input)?;
 
-    fn red(&self) -> &ChannelBytes {
-        &self.image_data_section.red
-    }
-
-    fn green(&self) -> Option<&ChannelBytes> {
-        match self.color_mode() {
-            // For 16 bit grayscale images I'm sometimes seeing two channels.
-            // Really not sure what the second channel is so until we know what it is we're ignoring it..
-            ColorMode::Grayscale => None,
-            _ => self.image_data_section.green.as_ref(),
-        }
-    }
-
-    fn blue(&self) -> Option<&ChannelBytes> {
-        self.image_data_section.blue.as_ref()
-    }
-
-    fn alpha(&self) -> Option<&ChannelBytes> {
-        self.image_data_section.alpha.as_ref()
-    }
-
-    fn psd_width(&self) -> u32 {
-        self.width()
-    }
-
-    fn psd_height(&self) -> u32 {
-        self.height()
-    }
+    Ok((input, ImageResourceBlock {}))
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::sections::file_header_section::FileHeaderSectionError;
+fn pascal_string(input: &[u8], padding_even: bool) -> IResult<&[u8], ()> {
+    let (input, length) = be_u8(input)?;
+    let (input, string) = take(length)(input)?;
+    let (input, _) = if padding_even && length % 2 == 1 {
+        tag([0])(input)?
+    } else {
+        (input, &[] as &[u8])
+    };
 
-    use super::*;
+    Ok((input, ()))
+}
 
-    // Makes sure non PSD files get caught right away before getting a chance to create problems
-    #[test]
-    fn psd_signature_fail() {
-        let psd = include_bytes!("../tests/fixtures/green-1x1.png");
-
-        let err = Psd::from_bytes(psd).expect_err("Psd::from_bytes() didn't catch the PNG file");
-
-        assert_eq!(
-            err,
-            PsdError::HeaderError(FileHeaderSectionError::InvalidSignature {})
-        );
+fn layer_and_mask_information_section(
+    input: &[u8],
+) -> IResult<&[u8], LayerAndMaskInformationSection> {
+    let (input, section_byte_length) = be_u32(input)?;
+    if section_byte_length == 0 {
+        return Ok((input, LayerAndMaskInformationSection {}));
     }
+
+    let (input, _layer_info) = layer_info(input)?;
+    let (input, _global_layer_mask_info) = global_layer_mask_info(input)?;
+    let (input, _additional_layer_info) = additional_layer_info(input)?;
+
+    Ok((input, LayerAndMaskInformationSection {}))
+}
+
+fn layer_info(input: &[u8]) -> IResult<&[u8], ()> {
+    let (input, _layer_info_byte_length) = be_u32(input)?;
+    let (input, layer_count) = be_i16(input)?;
+    let first_alpha_channel_contains_transparency = layer_count < 0;
+    let layer_count = layer_count.abs();
+    let (input, _layer_info) = count(layer_record, layer_count as usize)(input)?;
+    let (input, _channel_image_data) = many0(channel_image_data)(input)?;
+
+    Ok((input, ()))
+}
+
+fn image_data_section(input: &[u8]) -> IResult<&[u8], ImageDataSection> {
+    todo!()
 }
