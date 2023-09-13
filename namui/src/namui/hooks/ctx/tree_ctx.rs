@@ -144,6 +144,11 @@ impl TreeContext {
         self.enable_event_handling
             .swap(enable, std::sync::atomic::Ordering::SeqCst)
     }
+
+    pub(crate) fn event_handling_enabled(&self) -> bool {
+        self.enable_event_handling
+            .load(std::sync::atomic::Ordering::SeqCst)
+    }
 }
 
 fn handle_atom_events(channel_events: &mut Vec<Item>, updated_sigs: &mut HashSet<SigId>) {

@@ -116,4 +116,8 @@ impl RenderCtx {
 
         ret
     }
+
+    pub(crate) fn event_handling_enabled(&self) -> bool {
+        self.tree_ctx.event_handling_enabled()
+    }
 }
