@@ -1,0 +1,12 @@
+[package]
+name = "namui-panic-hook"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0"
+description = "Panic hook for namui"
+repository = "https://github.com/namseent/namseent"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wasm-bindgen = "0.2.87"

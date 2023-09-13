@@ -108,7 +108,7 @@ globalThisAny.onInspect = async (inspectTree: InspectTree) => {
 };
 
 (async () => {
-    const [{ start, on_load_image, set_inspect_toggle_on }, _] =
+    const [{ start, on_load_image, set_inspect_toggle_on, panicked }, _] =
         await Promise.all([wasm_bindgen("./bundle_bg.wasm"), initCanvasKit()]);
 
     globalThisAny.inspect = () => {
@@ -116,6 +116,14 @@ globalThisAny.onInspect = async (inspectTree: InspectTree) => {
         set_inspect_toggle_on(isInspectOn());
     };
     set_inspect_toggle_on(isInspectOn());
+
+    globalThisAny.panic = async (msg: string) => {
+        console.error(msg);
+        panicked();
+        drawWorker.postMessage({
+            type: "panic",
+        });
+    };
 
     drawWorker.onmessage = (message) => {
         switch (message.data.type) {
@@ -127,6 +135,11 @@ globalThisAny.onInspect = async (inspectTree: InspectTree) => {
             case "encodeLoadedImageToPng":
                 {
                     onMessage(message.data);
+                }
+                break;
+            case "panic":
+                {
+                    panicked();
                 }
                 break;
         }

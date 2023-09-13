@@ -78,29 +78,31 @@ impl TreeContext {
     }
 
     pub(crate) fn render_and_draw(&self) {
-        self.is_stop_event_propagation
-            .store(false, std::sync::atomic::Ordering::Relaxed);
-        self.is_cursor_determined
-            .store(false, std::sync::atomic::Ordering::Relaxed);
+        if !system::panick::is_panicked() {
+            self.is_stop_event_propagation
+                .store(false, std::sync::atomic::Ordering::Relaxed);
+            self.is_cursor_determined
+                .store(false, std::sync::atomic::Ordering::Relaxed);
 
-        let mut channel_events = channel::drain();
+            let mut channel_events = channel::drain();
 
-        let mut updated_sigs = Default::default();
-        handle_atom_events(&mut channel_events, &mut updated_sigs);
+            let mut updated_sigs = Default::default();
+            handle_atom_events(&mut channel_events, &mut updated_sigs);
 
-        self.channel_events.lock().unwrap().extend(channel_events);
+            self.channel_events.lock().unwrap().extend(channel_events);
 
-        let rendering_tree = (self.call_root_render)(updated_sigs);
-        crate::system::drawer::request_draw_rendering_tree(rendering_tree);
+            let rendering_tree = (self.call_root_render)(updated_sigs);
+            crate::system::drawer::request_draw_rendering_tree(rendering_tree);
 
-        if !self
-            .is_cursor_determined
-            .load(std::sync::atomic::Ordering::Relaxed)
-        {
-            system::mouse::set_mouse_cursor(&MouseCursor::Default);
+            if !self
+                .is_cursor_determined
+                .load(std::sync::atomic::Ordering::Relaxed)
+            {
+                system::mouse::set_mouse_cursor(&MouseCursor::Default);
+            }
+
+            (self.clear_unrendered_components)();
         }
-
-        (self.clear_unrendered_components)();
 
         self.root_instance.inspect();
     }

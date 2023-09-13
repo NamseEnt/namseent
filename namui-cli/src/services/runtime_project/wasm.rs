@@ -20,7 +20,7 @@ crate-type = ["cdylib", "rlib"]
 {project_name} = {{ path = "{project_path}" }}
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
-console_error_panic_hook = "0.1"
+namui-panic-hook = "0.1"
 
 [profile.release]
 lto = true
@@ -39,7 +39,7 @@ opt-level = 2
 
 #[wasm_bindgen]
 pub async fn start() {{
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    namui_panic_hook::set_once();
 
     {project_name_underscored}::main().await;
 }}

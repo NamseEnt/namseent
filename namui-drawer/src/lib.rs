@@ -22,7 +22,7 @@ fn skia() -> Arc<dyn SkSkia + Send + Sync> {
 
 #[wasm_bindgen]
 pub fn init(canvas: web_sys::HtmlCanvasElement) {
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    namui_panic_hook::set_once();
 
     namui_type::set_log(|x| log::log(x));
 

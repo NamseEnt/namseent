@@ -13,6 +13,8 @@ const {
     refresh_surface,
 } = wasm_bindgen;
 
+const globalThisAny = globalThis as any;
+
 function createWaiter(): { waiter: Promise<void>; resolve: () => void } {
     let resolve: any;
     const waiter = new Promise<void>((_resolve) => {
@@ -27,8 +29,8 @@ const { waiter: initWaiter, resolve: finishInit } = createWaiter();
     await initCanvasKit();
     await wasm_bindgen("./drawer/bundle_bg.wasm");
 
-    (globalThis as any).CanvasKit = CanvasKit;
-    (globalThis as any).getCanvasKit = () => CanvasKit;
+    globalThisAny.CanvasKit = CanvasKit;
+    globalThisAny.getCanvasKit = () => CanvasKit;
 
     finishInit();
 })();
@@ -108,12 +110,23 @@ self.onmessage = async (event) => {
                 screenResizeRequest = { width, height };
             }
             break;
+        case "panic":
+            {
+                onPanic();
+            }
+            break;
     }
 };
 
-(globalThis as any).loadImageBitmap = async (
-    url: string,
-): Promise<ImageBitmap> => {
+globalThisAny.panic = async (msg: string) => {
+    console.error(msg);
+    onPanic();
+    self.postMessage({
+        type: "panic",
+    });
+};
+
+globalThisAny.loadImageBitmap = async (url: string): Promise<ImageBitmap> => {
     if (url.startsWith("bundle:")) {
         url = url.replace(
             "bundle:",
@@ -130,7 +143,7 @@ self.onmessage = async (event) => {
     const bitmap = await createImageBitmap(blob, { premultiplyAlpha: "none" });
     return bitmap;
 };
-(globalThis as any).onLoadImage = () => {
+globalThisAny.onLoadImage = () => {
     self.postMessage({
         type: "onLoadImage",
     });
@@ -139,7 +152,7 @@ self.onmessage = async (event) => {
 let lastDrawnInput: Uint8Array;
 let frameCount = 0;
 
-requestAnimationFrame(function onAnimationFrame() {
+let animationFrameRequest = requestAnimationFrame(function onAnimationFrame() {
     try {
         if (!lastRequestedDrawInput) {
             return;
@@ -162,11 +175,16 @@ requestAnimationFrame(function onAnimationFrame() {
         draw(lastRequestedDrawInput);
         lastDrawnInput = lastRequestedDrawInput;
     } finally {
-        requestAnimationFrame(onAnimationFrame);
+        animationFrameRequest = requestAnimationFrame(onAnimationFrame);
     }
 });
 
-setInterval(() => {
+const fpsInternal = setInterval(() => {
     console.log("fps", frameCount);
     frameCount = 0;
 }, 1000);
+
+function onPanic() {
+    clearInterval(fpsInternal);
+    cancelAnimationFrame(animationFrameRequest);
+}
