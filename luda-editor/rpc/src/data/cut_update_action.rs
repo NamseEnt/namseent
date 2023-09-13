@@ -53,6 +53,10 @@ pub enum CutUpdateAction {
     DeleteGraphic {
         graphic_index: Uuid,
     },
+    ChangeGraphicOrder {
+        graphic_index: Uuid,
+        after_graphic_index: Option<Uuid>,
+    },
 }
 
 impl CutUpdateAction {
@@ -194,6 +198,33 @@ impl CutUpdateAction {
                 {
                     cut.screen_graphics.remove(position);
                 }
+            }
+            CutUpdateAction::ChangeGraphicOrder {
+                graphic_index,
+                after_graphic_index,
+            } => {
+                let index_before_move = cut
+                    .screen_graphics
+                    .iter()
+                    .position(|(index, _)| index == &graphic_index)
+                    .unwrap();
+                let mut index_after_move = {
+                    match after_graphic_index {
+                        Some(after_graphic_index) => cut
+                            .screen_graphics
+                            .iter()
+                            .position(|(index, _)| index == &after_graphic_index)
+                            .unwrap(),
+                        None => 0,
+                    }
+                };
+
+                let graphic = cut.screen_graphics.remove(index_before_move);
+                if index_after_move > index_before_move {
+                    index_after_move -= 1;
+                }
+
+                cut.screen_graphics.insert(index_after_move, graphic);
             }
         }
     }

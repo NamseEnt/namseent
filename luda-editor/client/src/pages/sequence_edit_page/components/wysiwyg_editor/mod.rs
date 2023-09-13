@@ -14,7 +14,7 @@ use crate::{
         context_menu::*,
         sequence_player::{calculate_graphic_rect_on_screen, calculate_graphic_wh_on_screen},
     },
-    pages::sequence_edit_page::atom::SEQUENCE_ATOM,
+    pages::sequence_edit_page::atom::{EDITING_GRAPHIC_INDEX_ATOM, SEQUENCE_ATOM},
     storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
 };
 use mover::Mover;
@@ -54,16 +54,17 @@ impl Component for WysiwygEditor<'_> {
             ref on_click_character_edit,
         } = self;
         let (dragging, set_dragging) = ctx.state(|| None);
-        let (editing_image_index, set_editing_image_index) = ctx.state(|| None);
+        let (editing_graphic_index, set_editing_graphic_index) =
+            ctx.atom_init(&EDITING_GRAPHIC_INDEX_ATOM, || None);
 
         let background = simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
             |event: Event<'_>| {
                 let screen_graphics = screen_graphics.clone();
-                let editing_image_index = *editing_image_index;
+                let editing_image_index = *editing_graphic_index;
                 match event {
                     Event::MouseDown { event } => {
                         if event.is_local_xy_in() && event.button == Some(MouseButton::Left) {
-                            set_editing_image_index.set(None);
+                            set_editing_graphic_index.set(None);
                         }
                     }
                     Event::MouseMove { event } => {
@@ -118,7 +119,7 @@ impl Component for WysiwygEditor<'_> {
                         cut_id,
                         graphic_index: *graphic_index,
                         graphic: screen_graphic,
-                        is_editing_graphic: editing_image_index.as_ref() == &Some(*graphic_index),
+                        is_editing_graphic: editing_graphic_index.as_ref() == &Some(*graphic_index),
                         project_id,
                         wh,
                         dragging: dragging.as_ref(),
@@ -163,7 +164,7 @@ impl Component for WysiwygEditor<'_> {
                                 },
                             },
                             graphic_clip::Event::SelectImage { graphic_index } => {
-                                set_editing_image_index.set(Some(graphic_index))
+                                set_editing_graphic_index.set(Some(graphic_index))
                             }
                             graphic_clip::Event::GraphicRightClick {
                                 global_xy,
