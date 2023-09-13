@@ -87,60 +87,55 @@ impl Component for GraphicListView<'_> {
             ctx.add(Header { wh });
         });
 
-        let content = |ctx: &mut ComposeCtx| {
-            let Some(graphics) = graphics else {
-                return;
+        let render_list_item = |wh: Wh<Px>,
+                                ctx: &mut ComposeCtx,
+                                graphic_index: Uuid,
+                                graphic,
+                                graphics: &Vec<(Uuid, _)>| {
+            let is_selected = editing_graphic_index.as_ref() == &Some(graphic_index);
+            let graphic_list_item = GraphicListItem {
+                project_id,
+                wh,
+                graphic,
+                is_selected,
             };
-
-            table::hooks::vertical(graphics.iter().map(|(graphic_index, graphic)| {
-                let list_item = |wh, ctx: &mut ComposeCtx| {
-                    let graphic_index = *graphic_index;
-                    let is_selected = editing_graphic_index.as_ref() == &Some(graphic_index);
-                    let graphic_list_item = GraphicListItem {
-                        project_id,
-                        wh,
-                        graphic,
-                        is_selected,
-                    };
-                    match *dragging {
-                        Some(dragging) if dragging.graphic_index == graphic_index => ctx
-                            .on_top()
-                            .absolute(mouse::position() - dragging.thumbnail_clicked_offset_xy)
-                            .add_with_key(
+            match *dragging {
+                Some(dragging) if dragging.graphic_index == graphic_index => ctx
+                    .on_top()
+                    .absolute(mouse::position() - dragging.thumbnail_clicked_offset_xy)
+                    .add_with_key(
+                        graphic_index,
+                        graphic_list_item.with_mouse_cursor(MouseCursor::Grabbing),
+                    ),
+                _ => {
+                    let on_event = move |event: Event<'_>| match event {
+                        Event::MouseDown { event }
+                            if event.is_local_xy_in()
+                                && (event.button == Some(MouseButton::Left)) =>
+                        {
+                            let start_index = graphics
+                                .iter()
+                                .position(|(index, _)| index == &graphic_index)
+                                .unwrap();
+                            event.stop_propagation();
+                            set_editing_graphic_index.set(Some(graphic_index));
+                            set_dragging.set(Some(DraggingContext {
                                 graphic_index,
-                                graphic_list_item.with_mouse_cursor(MouseCursor::Grabbing),
-                            ),
-                        _ => ctx.add_with_key(
-                            graphic_index,
-                            graphic_list_item
-                                .attach_event(|event| match event {
-                                    Event::MouseDown { event }
-                                        if event.is_local_xy_in()
-                                            && (event.button == Some(MouseButton::Left)) =>
-                                    {
-                                        let start_index = graphics
-                                            .iter()
-                                            .position(|(index, _)| index == &graphic_index)
-                                            .unwrap();
-                                        event.stop_propagation();
-                                        set_editing_graphic_index.set(Some(graphic_index));
-                                        set_dragging.set(Some(DraggingContext {
-                                            graphic_index,
-                                            thumbnail_clicked_offset_xy: event.local_xy(),
-                                            start_index,
-                                            end_index: start_index,
-                                        }));
-                                    }
-                                    _ => {}
-                                })
-                                .with_mouse_cursor(MouseCursor::Pointer),
-                        ),
+                                thumbnail_clicked_offset_xy: event.local_xy(),
+                                start_index,
+                                end_index: start_index,
+                            }));
+                        }
+                        _ => {}
                     };
-                };
-                table::hooks::fixed(GRAPHIC_LIST_ITEM_HEIGHT, move |wh, ctx| {
-                    table::hooks::padding(PADDING, list_item)(wh, ctx);
-                })
-            }))(wh, ctx);
+                    ctx.add_with_key(
+                        graphic_index,
+                        graphic_list_item
+                            .attach_event(on_event)
+                            .with_mouse_cursor(MouseCursor::Pointer),
+                    )
+                }
+            };
         };
 
         let body_cell = table::hooks::ratio(1, |wh, ctx| {
@@ -164,6 +159,21 @@ impl Component for GraphicListView<'_> {
             });
 
             table::hooks::padding(PADDING, |wh, ctx| {
+                let content = |ctx: &mut ComposeCtx| {
+                    let Some(graphics) = graphics else {
+                        return;
+                    };
+
+                    table::hooks::vertical(graphics.iter().map(|(graphic_index, graphic)| {
+                        let list_item = |wh, ctx: &mut ComposeCtx| {
+                            render_list_item(wh, ctx, *graphic_index, graphic, graphics);
+                        };
+                        table::hooks::fixed(GRAPHIC_LIST_ITEM_HEIGHT, move |wh, ctx| {
+                            table::hooks::padding(PADDING, list_item)(wh, ctx);
+                        })
+                    }))(wh, ctx);
+                };
+
                 ctx.add(scroll_view::ScrollViewWithCtx {
                     xy: Xy::zero(),
                     scroll_bar_width: 4.px(),
@@ -207,6 +217,3 @@ struct DraggingContext {
     start_index: usize,
     end_index: usize,
 }
-
-#[component]
-struct Body {}
