@@ -1,4 +1,5 @@
 use namui::prelude::*;
+use std::{rc::Rc, sync::OnceLock};
 
 pub enum TableCell<'a> {
     Empty,
@@ -8,8 +9,7 @@ pub enum TableCell<'a> {
         need_clip: bool,
     },
     NeedBoundingBox {
-        component_type_name: &'static str,
-        func: Box<dyn 'a + FnOnce(&RenderCtx) -> TableCell<'a>>,
+        func: Box<dyn 'a + FnOnce(&mut ComposeCtx) -> TableCell<'a>>,
     },
 }
 type TableCellRenderFn<'a> = Box<dyn 'a + FnOnce(Direction, Wh<Px>, &mut ComposeCtx)>;
@@ -171,14 +171,10 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                     units.push(unit);
                     for_renders.push_back((key, render, need_clip));
                 }
-                TableCell::NeedBoundingBox {
-                    func,
-                    component_type_name,
-                } => {
+                TableCell::NeedBoundingBox { func } => {
                     let mut output = None;
-                    ctx.ghost_render(Some(key.clone()), component_type_name, |ctx| {
+                    ctx.ghost_compose(Some(key.clone().into()), |ctx| {
                         output = Some(func(ctx));
-                        ctx.done()
                     });
                     match output.unwrap() {
                         TableCell::Empty => {}
@@ -333,53 +329,92 @@ pub fn vertical_padding_no_clip<'a>(
     ])
 }
 
+#[derive(Debug)]
 pub enum FitAlign {
     LeftTop,
     CenterMiddle,
     RightBottom,
 }
+
+#[component]
+struct Fit<'a, Comp: Component> {
+    align: FitAlign,
+    #[skip_debug]
+    component: Comp,
+    #[skip_debug]
+    table_cell: Rc<OnceLock<TableCell<'a>>>,
+}
+
+impl<'a, Comp: 'a + Component> Component for Fit<'a, Comp> {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let (bounding_box, set_bounding_box) = ctx.state::<Option<Rect<Px>>>(|| None);
+
+        let Some(bounding_box) = *bounding_box else {
+            let rendering_tree = ctx.ghost_component(
+                self.component,
+                GhostComposeOption {
+                    enable_event_handling: false,
+                },
+            );
+            if let Some(bounding_box) = rendering_tree.bounding_box() {
+                set_bounding_box.set(Some(bounding_box));
+            }
+            return ctx.done();
+        };
+
+        self.table_cell
+            .set(TableCell::Some {
+                unit: Unit::Responsive(Box::new(move |direction| match direction {
+                    Direction::Vertical => bounding_box.y() + bounding_box.height(),
+                    Direction::Horizontal => bounding_box.x() + bounding_box.width(),
+                })),
+                render: Box::new(move |direction, wh, ctx| {
+                    let x = match direction {
+                        Direction::Vertical => match self.align {
+                            FitAlign::LeftTop => 0.px(),
+                            FitAlign::CenterMiddle => (wh.width - bounding_box.width()) / 2.0,
+                            FitAlign::RightBottom => wh.width - bounding_box.width(),
+                        },
+                        Direction::Horizontal => 0.px(),
+                    };
+                    let y = match direction {
+                        Direction::Vertical => 0.px(),
+                        Direction::Horizontal => match self.align {
+                            FitAlign::LeftTop => 0.px(),
+                            FitAlign::CenterMiddle => (wh.height - bounding_box.height()) / 2.0,
+                            FitAlign::RightBottom => wh.height - bounding_box.height(),
+                        },
+                    };
+                    let mut ctx = ctx.translate((x, y));
+
+                    let new_bounding_box = ctx.add_and_get_bounding_box(self.component);
+                    if new_bounding_box != Some(bounding_box) {
+                        set_bounding_box.set(new_bounding_box);
+                    }
+                }),
+                need_clip: true,
+            })
+            .map_err(|_| unreachable!())
+            .unwrap();
+
+        ctx.done()
+    }
+}
+
 pub fn fit<'a>(align: FitAlign, component: impl 'a + Component) -> TableCell<'a> {
     TableCell::NeedBoundingBox {
-        component_type_name: component.static_type_name(),
         func: Box::new(|ctx| {
-            let (bounding_box, set_bounding_box) = ctx.state::<Option<Rect<Px>>>(|| None);
+            let table_cell = Rc::new(OnceLock::new());
+            ctx.add(Fit {
+                align,
+                component,
+                table_cell: table_cell.clone(),
+            });
 
-            if let Some(bounding_box) = *bounding_box {
-                TableCell::Some {
-                    unit: Unit::Responsive(Box::new(move |direction| match direction {
-                        Direction::Vertical => bounding_box.y() + bounding_box.height(),
-                        Direction::Horizontal => bounding_box.x() + bounding_box.width(),
-                    })),
-                    render: Box::new(move |direction, wh, ctx| {
-                        let x = match direction {
-                            Direction::Vertical => match align {
-                                FitAlign::LeftTop => 0.px(),
-                                FitAlign::CenterMiddle => (wh.width - bounding_box.width()) / 2.0,
-                                FitAlign::RightBottom => wh.width - bounding_box.width(),
-                            },
-                            Direction::Horizontal => 0.px(),
-                        };
-                        let y = match direction {
-                            Direction::Vertical => 0.px(),
-                            Direction::Horizontal => match align {
-                                FitAlign::LeftTop => 0.px(),
-                                FitAlign::CenterMiddle => (wh.height - bounding_box.height()) / 2.0,
-                                FitAlign::RightBottom => wh.height - bounding_box.height(),
-                            },
-                        };
-                        ctx.translate((x, y)).add(component);
-                    }),
-                    need_clip: true,
-                }
-            } else {
-                let rendering_tree = ctx.ghost_render(component);
-                let bounding_box = rendering_tree.bounding_box();
-                if bounding_box.is_some() {
-                    set_bounding_box.set(bounding_box);
-                }
-
-                TableCell::Empty
-            }
+            Rc::into_inner(table_cell)
+                .unwrap()
+                .take()
+                .unwrap_or(TableCell::Empty)
         }),
     }
 }

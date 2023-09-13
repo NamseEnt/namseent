@@ -2,45 +2,18 @@ use namui::prelude::*;
 
 #[component]
 pub struct ScrollView<C: Component> {
-    pub xy: Xy<Px>,
+    pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
-    pub height: Px,
     pub content: C,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<Px>,
 }
 
-#[component]
-pub struct AutoScrollView<C: Component> {
-    pub xy: Xy<Px>,
-    pub scroll_bar_width: Px,
-    pub height: Px,
-    pub content: C,
-}
-
-impl<C: Component> Component for AutoScrollView<C> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
-
-        ctx.component(ScrollView {
-            xy: self.xy,
-            scroll_bar_width: self.scroll_bar_width,
-            height: self.height,
-            content: self.content,
-            scroll_y: *scroll_y,
-            set_scroll_y,
-        });
-
-        ctx.done()
-    }
-}
-
 impl<C: Component> Component for ScrollView<C> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         ctx.component(ScrollViewWithCtx {
-            xy: self.xy,
+            wh: self.wh,
             scroll_bar_width: self.scroll_bar_width,
-            height: self.height,
             content: |ctx| {
                 ctx.add(self.content);
             },
@@ -52,10 +25,32 @@ impl<C: Component> Component for ScrollView<C> {
 }
 
 #[component]
-pub struct AutoScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
-    pub xy: Xy<Px>,
+pub struct AutoScrollView<C: Component> {
+    pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
-    pub height: Px,
+    pub content: C,
+}
+
+impl<C: Component> Component for AutoScrollView<C> {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
+
+        ctx.component(ScrollView {
+            wh: self.wh,
+            scroll_bar_width: self.scroll_bar_width,
+            content: self.content,
+            scroll_y: *scroll_y,
+            set_scroll_y,
+        });
+
+        ctx.done()
+    }
+}
+
+#[component]
+pub struct AutoScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
+    pub wh: Wh<Px>,
+    pub scroll_bar_width: Px,
     #[skip_debug]
     pub content: Func,
 }
@@ -65,9 +60,8 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
         ctx.component(ScrollViewWithCtx {
-            xy: self.xy,
+            wh: self.wh,
             scroll_bar_width: self.scroll_bar_width,
-            height: self.height,
             content: self.content,
             scroll_y: *scroll_y,
             set_scroll_y,
@@ -79,9 +73,8 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
 
 #[component]
 pub struct ScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
-    pub xy: Xy<Px>,
+    pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
-    pub height: Px,
     #[skip_debug]
     pub content: Func,
     pub scroll_y: Px,
@@ -91,87 +84,73 @@ pub struct ScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
 impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
-            xy,
+            wh,
             scroll_bar_width,
-            height,
             content,
             scroll_y,
             set_scroll_y,
         } = self;
-        let (bounding_box, set_bounding_box) = ctx.state(|| None);
 
-        let Some(bounding_box) = *bounding_box else {
-            let content = ctx.ghost_compose(content);
+        let height = wh.height;
 
-            if let Some(bounding_box) = content.bounding_box() {
-                set_bounding_box.set(Some(bounding_box));
+        ctx.compose(|ctx| {
+            let rendering_tree = ctx
+                .clip(
+                    namui::Path::new().add_rect(wh.to_rect()),
+                    namui::ClipOp::Intersect,
+                )
+                .translate((0.px(), -scroll_y.floor()))
+                .ghost_compose(None, content);
+            let Some(bounding_box) = rendering_tree.bounding_box() else {
+                return;
             };
-            return ctx.done();
-        };
 
-        let scroll_y = namui::math::num::clamp(
-            scroll_y,
-            px(0.0),
-            px(0.0).max(bounding_box.height() - height),
-        );
-
-        let inner = |ctx: &mut ComposeCtx| {
-            content(
-                &mut ctx
-                    .clip(
-                        namui::Path::new().add_rect(Rect::Xywh {
-                            x: bounding_box.x(),
-                            y: bounding_box.y(),
-                            width: bounding_box.width(),
-                            height,
-                        }),
-                        namui::ClipOp::Intersect,
-                    )
-                    .translate((0.px(), -scroll_y.floor())),
+            let clamped_scroll_y = namui::math::num::clamp(
+                scroll_y,
+                px(0.0),
+                px(0.0).max(bounding_box.height() - height),
             );
-        };
 
-        let scroll_bar_handle_height = height * (height / bounding_box.height());
+            if clamped_scroll_y != scroll_y {
+                set_scroll_y.set(clamped_scroll_y);
+            }
 
-        let scroll_bar_y =
-            (height - scroll_bar_handle_height) * (scroll_y / (bounding_box.height() - height));
+            let scroll_bar = |ctx: &mut ComposeCtx| {
+                if bounding_box.height() > height {
+                    let scroll_bar_handle_height = height * (height / bounding_box.height());
 
-        let scroll_bar = match bounding_box.height() > height {
-            true => rect(RectParam {
-                rect: Rect::Xywh {
-                    x: bounding_box.width() - scroll_bar_width, // iOS Style!
-                    y: scroll_bar_y,
-                    width: scroll_bar_width,
-                    height: scroll_bar_handle_height,
-                },
+                    let scroll_bar_y = (height - scroll_bar_handle_height)
+                        * (scroll_y / (bounding_box.height() - height));
+
+                    ctx.add(namui::rect(RectParam {
+                        rect: Rect::Xywh {
+                            x: wh.width - scroll_bar_width, // iOS Style!
+                            y: scroll_bar_y,
+                            width: scroll_bar_width,
+                            height: scroll_bar_handle_height,
+                        },
+                        style: RectStyle {
+                            fill: Some(RectFill {
+                                color: Color::grayscale_f01(0.5),
+                            }),
+                            ..Default::default()
+                        },
+                    }));
+                }
+            };
+
+            let wheeler = namui::rect(RectParam {
+                rect: wh.to_rect(),
                 style: RectStyle {
                     fill: Some(RectFill {
-                        color: Color::grayscale_f01(0.5),
+                        color: Color::TRANSPARENT,
                     }),
                     ..Default::default()
                 },
-            }),
-            false => RenderingTree::Empty,
-        };
-        let whole_rect = rect(RectParam {
-            rect: Rect::Xywh {
-                x: px(0.0),
-                y: px(0.0),
-                width: bounding_box.width(),
-                height,
-            },
-            style: RectStyle {
-                fill: Some(RectFill {
-                    color: Color::TRANSPARENT,
-                }),
-                ..Default::default()
-            },
-        });
-
-        ctx.compose(|ctx| {
-            ctx.translate(xy)
-                .add(whole_rect.attach_event(|event| match event {
-                    Event::Wheel { event } if event.is_local_xy_in() => {
+            })
+            .attach_event(|event| {
+                if let Event::Wheel { event } = event {
+                    if event.is_local_xy_in() {
                         let next_scroll_y = namui::math::num::clamp(
                             scroll_y + px(event.delta_xy.y),
                             px(0.0),
@@ -181,10 +160,19 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                         set_scroll_y.set(next_scroll_y);
                         event.stop_propagation();
                     }
-                    _ => {}
-                }))
-                .compose(inner)
-                .add(scroll_bar);
+                }
+            });
+
+            ctx.compose(scroll_bar)
+                .compose(|ctx| {
+                    ctx.clip(
+                        namui::Path::new().add_rect(wh.to_rect()),
+                        namui::ClipOp::Intersect,
+                    )
+                    .translate((0.px(), -scroll_y.floor()))
+                    .add(rendering_tree);
+                })
+                .add(wheeler);
         })
         .done()
     }

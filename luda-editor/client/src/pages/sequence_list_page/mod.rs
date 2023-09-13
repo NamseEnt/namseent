@@ -141,7 +141,6 @@ impl Component for SequenceListPage {
                             let item_wh = Wh::new(wh.width, 40.px());
 
                             ctx.add(list_view::AutoListView {
-                                xy: Xy::single(0.px()),
                                 height: wh.height,
                                 scroll_bar_width: 10.px(),
                                 item_wh,

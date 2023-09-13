@@ -145,7 +145,6 @@ impl Component for CutListView<'_> {
         });
 
         ctx.component(list_view::ListView {
-            xy: Xy::zero(),
             height: wh.height,
             scroll_bar_width: 12.px(),
             item_wh,

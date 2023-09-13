@@ -27,9 +27,8 @@ impl Component for MemoListView<'_> {
         } = self;
 
         ctx.component(scroll_view::AutoScrollViewWithCtx {
-            xy: Xy::zero(),
             scroll_bar_width: 4.px(),
-            height: wh.height,
+            wh,
             content: |ctx| {
                 table::hooks::vertical(memos.iter().map(|memo| {
                     table::hooks::fit(

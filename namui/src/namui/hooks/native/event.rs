@@ -30,7 +30,7 @@ impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
         ctx.component(self.component);
         let done = ctx.done();
 
-        if ctx.event_handling_disabled() {
+        if !ctx.event_handling_enabled() {
             return done;
         }
 

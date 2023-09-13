@@ -36,9 +36,8 @@ impl Component for CgPicker<'_> {
                 let max_items_per_row =
                     (wh.width / (CHARACTER_THUMBNAIL_WH.width)).floor() as usize;
                 ctx.add(scroll_view::AutoScrollViewWithCtx {
-                    xy: Xy::zero(),
                     scroll_bar_width: 4.px(),
-                    height: wh.height,
+                    wh,
                     content: |ctx| {
                         table::hooks::vertical(cg_file_list.chunks(max_items_per_row).map(
                             |cg_files| {

@@ -14,10 +14,7 @@ use renderer::*;
 use std::{
     collections::HashSet,
     fmt::Debug,
-    sync::{
-        atomic::{AtomicBool, AtomicUsize},
-        Arc, Mutex,
-    },
+    sync::{atomic::AtomicUsize, Arc, Mutex},
 };
 
 type RawEventContainer = Arc<Mutex<Option<Arc<RawEvent>>>>;
@@ -33,7 +30,6 @@ pub struct RenderCtx {
     children: Arc<Mutex<Vec<RenderingTree>>>,
     pub(crate) matrix: Mutex<Matrix3x3>,
     component_index: AtomicUsize,
-    event_handling_disabled: AtomicBool,
     raw_event: RawEventContainer,
     clippings: Vec<Clipping>,
 }
@@ -44,7 +40,7 @@ impl Drop for RenderCtx {
     }
 }
 
-impl<'a> RenderCtx {
+impl RenderCtx {
     pub(crate) fn new(
         instance: Arc<ComponentInstance>,
         updated_sigs: HashSet<SigId>,
@@ -65,7 +61,6 @@ impl<'a> RenderCtx {
             children: Default::default(),
             matrix: Mutex::new(matrix),
             component_index: Default::default(),
-            event_handling_disabled: Default::default(),
             raw_event,
             clippings,
         }
@@ -101,27 +96,8 @@ impl<'a> RenderCtx {
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 
-    pub(crate) fn add(&'a self, key: KeyVec, component: impl Component) {
-        let rendering_tree = self.render_children(key, component);
-        self.children.lock().unwrap().push(rendering_tree);
-    }
-
     pub(crate) fn inverse_matrix(&self) -> Matrix3x3 {
         self.matrix.lock().unwrap().inverse().unwrap()
-    }
-
-    fn disable_event_handling(&self) {
-        self.event_handling_disabled
-            .store(true, std::sync::atomic::Ordering::SeqCst);
-    }
-    pub(crate) fn event_handling_disabled(&self) -> bool {
-        self.event_handling_disabled
-            .load(std::sync::atomic::Ordering::SeqCst)
-    }
-
-    fn enable_event_handling(&self) {
-        self.event_handling_disabled
-            .store(false, std::sync::atomic::Ordering::SeqCst);
     }
 
     pub(crate) fn get_channel_events_items_for(&self, sig_id: SigId) -> Vec<Item> {
@@ -141,22 +117,7 @@ impl<'a> RenderCtx {
         ret
     }
 
-    fn compose_inner(&self, compose: impl FnOnce(&mut ComposeCtx)) -> RenderingTree {
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
-        {
-            let mut compose_ctx = ComposeCtx::new(
-                self.tree_ctx.clone(),
-                KeyVec::new_child(self.get_next_component_index()),
-                *self.matrix.lock().unwrap(),
-                self.renderer(),
-                lazy.clone(),
-                self.raw_event.clone(),
-                self.clippings.clone(),
-            );
-
-            compose(&mut compose_ctx);
-        }
-        let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
-        rendering_tree
+    pub(crate) fn event_handling_enabled(&self) -> bool {
+        self.tree_ctx.event_handling_enabled()
     }
 }
