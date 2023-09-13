@@ -289,6 +289,23 @@ impl<'a> PsdCursor<'a> {
             &[] as &[u8]
         }
     }
+
+    /// Reads 'Pascal string'
+    ///
+    /// Pascal string is UTF-8 string, padded to make the size even
+    /// (a null name consists of two bytes of 0)
+    pub fn read_pascal_string(&mut self) -> String {
+        let len = self.read_u8();
+        let data = self.read(len as u32);
+        let result = String::from_utf8_lossy(data).into_owned();
+
+        if len % 2 == 0 {
+            // If the total length is odd, read an extra null byte
+            self.read_u8();
+        }
+
+        result
+    }
 }
 
 fn u8_slice_to_u16(bytes: &[u8]) -> Vec<u16> {
