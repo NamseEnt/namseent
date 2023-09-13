@@ -38,7 +38,7 @@ impl Component for SideBar<'_> {
                         wh,
                         memos,
                         user_id,
-                        on_event: Box::new(|event| on_event(Event::MemoListView(event))),
+                        on_event: &|event| on_event(Event::MemoListView(event)),
                     });
                 }),
                 table::hooks::fixed(GRAPHIC_LIST_VIEW_HEIGHT, |wh, ctx| {
