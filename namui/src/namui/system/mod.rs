@@ -11,6 +11,7 @@ pub mod keyboard;
 pub mod log;
 pub mod mouse;
 pub mod network;
+pub(crate) mod panick;
 mod platform_utils;
 pub mod screen;
 pub(crate) mod skia;
@@ -37,6 +38,7 @@ pub(crate) async fn init() -> InitResult {
         log::init(),
         mouse::init(),
         network::init(),
+        panick::init(),
         screen::init(),
         time::init(),
         deep_link::init(),
