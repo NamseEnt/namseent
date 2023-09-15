@@ -294,11 +294,11 @@ name = "namui-drawer"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "console_error_panic_hook",
  "float-cmp",
  "js-sys",
  "lazy_static",
  "lru",
+ "namui-panic-hook",
  "namui-skia",
  "namui-type",
  "num",
@@ -311,6 +311,13 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
+]
+
+[[package]]
+name = "namui-panic-hook"
+version = "0.1.1"
+dependencies = [
+ "wasm-bindgen",
 ]
 
 [[package]]
