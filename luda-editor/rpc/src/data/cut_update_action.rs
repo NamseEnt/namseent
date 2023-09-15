@@ -203,28 +203,29 @@ impl CutUpdateAction {
                 graphic_index,
                 after_graphic_index,
             } => {
-                let index_before_move = cut
+                let Some(moving_graphic_position) = cut
                     .screen_graphics
                     .iter()
                     .position(|(index, _)| index == &graphic_index)
-                    .unwrap();
-                let mut index_after_move = {
-                    match after_graphic_index {
-                        Some(after_graphic_index) => cut
+                else {
+                    return;
+                };
+                let moving_graphic = cut.screen_graphics.remove(moving_graphic_position);
+                let insert_position = match after_graphic_index {
+                    Some(after_graphic_index) => {
+                        let Some(position) = cut
                             .screen_graphics
                             .iter()
-                            .position(|(index, _)| index == &after_graphic_index)
-                            .unwrap(),
-                        None => 0,
+                            .position(|(index, _)| *index == after_graphic_index)
+                        else {
+                            return;
+                        };
+                        position + 1
                     }
+                    None => 0,
                 };
 
-                let graphic = cut.screen_graphics.remove(index_before_move);
-                if index_after_move > index_before_move {
-                    index_after_move -= 1;
-                }
-
-                cut.screen_graphics.insert(index_after_move, graphic);
+                cut.screen_graphics.insert(insert_position, moving_graphic);
             }
         }
     }
