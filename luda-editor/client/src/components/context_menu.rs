@@ -86,6 +86,10 @@ impl ContextMenuBuilder {
         self.button_index += 1;
         self
     }
+    pub fn add_divider(mut self) -> Self {
+        self.items.push(Item::Divider);
+        self
+    }
     pub fn and<'then, Modifier>(self, then: Modifier) -> Self
     where
         Modifier: 'then + Fn(Self) -> Self,
@@ -102,11 +106,7 @@ impl ContextMenuBuilder {
 
 #[derive(Debug, PartialEq)]
 enum Item {
-    Button {
-        text: String,
-    },
-
-    #[allow(dead_code)]
+    Button { text: String },
     Divider,
 }
 
