@@ -117,7 +117,6 @@ impl Component for CutCell<'_> {
                                                 set_dragging.set(Some(DraggingContext {
                                                     cut_id,
                                                     thumbnail_clicked_offset_xy: event.local_xy(),
-                                                    start_index: index,
                                                     end_index: index,
                                                 }));
                                             }

@@ -45,40 +45,40 @@ impl Component for GraphicListView<'_> {
             if dragging.is_none() {
                 return;
             }
-            let cursor_located_graphic_index = {
+            let cursor_located_graphic_position = {
                 let local_y_in_content = event.local_xy().y + *scroll_y;
                 ((local_y_in_content / GRAPHIC_LIST_ITEM_HEIGHT).round() as usize)
-                    .clamp(0, graphics.len() - 1)
+                    .clamp(0, graphics.len())
             };
             set_dragging.mutate(move |dragging| {
                 let Some(dragging) = dragging else {
                     return;
                 };
-                dragging.end_index = cursor_located_graphic_index;
+                dragging.end_position = cursor_located_graphic_position;
             })
         };
         let on_mouse_up = |_event: MouseEvent| {
-            match (graphics, cut_id, *dragging) {
-                (Some(graphics), Some(cut_id), Some(dragging))
-                    if dragging.start_index != dragging.end_index =>
-                {
-                    let after_graphic_index = {
-                        match dragging.end_index {
-                            0 => None,
-                            index => graphics.get(index).map(|(graphic_index, _)| *graphic_index),
-                        }
-                    };
-                    SEQUENCE_ATOM.mutate(move |sequence| {
-                        sequence.update_cut(
-                            cut_id,
-                            rpc::data::CutUpdateAction::ChangeGraphicOrder {
-                                graphic_index: dragging.graphic_index,
-                                after_graphic_index,
-                            },
-                        );
-                    });
+            if let (Some(graphics), Some(cut_id), Some(dragging)) = (graphics, cut_id, *dragging) {
+                let after_graphic_index = dragging
+                    .end_position
+                    .checked_sub(1)
+                    .and_then(|position| graphics.get(position))
+                    .map(|(index, _)| *index);
+
+                match after_graphic_index {
+                    Some(after_graphic_index) if after_graphic_index == dragging.graphic_index => {}
+                    _ => {
+                        SEQUENCE_ATOM.mutate(move |sequence| {
+                            sequence.update_cut(
+                                cut_id,
+                                rpc::data::CutUpdateAction::ChangeGraphicOrder {
+                                    graphic_index: dragging.graphic_index,
+                                    after_graphic_index,
+                                },
+                            );
+                        });
+                    }
                 }
-                _ => {}
             };
             set_dragging.set(None);
         };
@@ -102,7 +102,7 @@ impl Component for GraphicListView<'_> {
             match *dragging {
                 Some(dragging) if dragging.graphic_index == graphic_index => ctx
                     .on_top()
-                    .absolute(mouse::position() - dragging.thumbnail_clicked_offset_xy)
+                    .absolute(mouse::position() - dragging.clicked_offset_xy)
                     .add_with_key(
                         graphic_index,
                         graphic_list_item.with_mouse_cursor(MouseCursor::Grabbing),
@@ -121,9 +121,8 @@ impl Component for GraphicListView<'_> {
                             set_editing_graphic_index.set(Some(graphic_index));
                             set_dragging.set(Some(DraggingContext {
                                 graphic_index,
-                                thumbnail_clicked_offset_xy: event.local_xy(),
-                                start_index,
-                                end_index: start_index,
+                                clicked_offset_xy: event.local_xy(),
+                                end_position: start_index,
                             }));
                         }
                         _ => {}
@@ -145,8 +144,9 @@ impl Component for GraphicListView<'_> {
                 let Some(dragging) = *dragging else {
                     return;
                 };
-                let cursor_y =
-                    GRAPHIC_LIST_ITEM_HEIGHT * ((dragging.end_index) as f32) - *scroll_y + PADDING;
+                let cursor_y = GRAPHIC_LIST_ITEM_HEIGHT * ((dragging.end_position) as f32)
+                    - *scroll_y
+                    + PADDING;
                 let path = Path::new()
                     .move_to(SIDE_MARGIN, cursor_y)
                     .line_to(wh.width - SIDE_MARGIN, cursor_y);
@@ -212,7 +212,6 @@ impl Component for GraphicListView<'_> {
 #[derive(Debug, Clone, Copy)]
 struct DraggingContext {
     graphic_index: Uuid,
-    thumbnail_clicked_offset_xy: Xy<Px>,
-    start_index: usize,
-    end_index: usize,
+    clicked_offset_xy: Xy<Px>,
+    end_position: usize,
 }

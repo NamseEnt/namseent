@@ -95,7 +95,7 @@ impl Component for CutListView<'_> {
             if dragging.is_some() {
                 let cursor_located_cut_index = {
                     let local_y_in_content = event.local_xy().y + *scroll_y;
-                    ((local_y_in_content / item_wh.height).round() as usize).min(cuts.len() - 1)
+                    ((local_y_in_content / item_wh.height).round() as usize).clamp(0, cuts.len())
                 };
                 set_dragging.mutate(move |dragging| {
                     let Some(dragging) = dragging else {
@@ -106,23 +106,25 @@ impl Component for CutListView<'_> {
             }
         };
         let on_mouse_up = |_event: MouseEvent| {
-            match *dragging {
-                Some(dragging) if dragging.start_index != dragging.end_index => {
-                    let after_cut_id = {
-                        match dragging.end_index {
-                            0 => None,
-                            index => cuts.get(index).map(|cut| cut.id),
-                        }
-                    };
-                    SEQUENCE_ATOM.mutate(move |sequence| {
-                        sequence.update(rpc::data::SequenceUpdateAction::MoveCut {
-                            cut_id: dragging.cut_id,
-                            after_cut_id,
-                        })
-                    });
+            if let Some(dragging) = *dragging {
+                let after_cut_id = dragging
+                    .end_index
+                    .checked_sub(1)
+                    .and_then(|index| cuts.get(index))
+                    .map(|cut| cut.id);
+
+                match after_cut_id {
+                    Some(after_cut_id) if after_cut_id == dragging.cut_id => {}
+                    _ => {
+                        SEQUENCE_ATOM.mutate(move |sequence| {
+                            sequence.update(rpc::data::SequenceUpdateAction::MoveCut {
+                                cut_id: dragging.cut_id,
+                                after_cut_id,
+                            })
+                        });
+                    }
                 }
-                _ => {}
-            };
+            }
             set_dragging.set(None);
         };
 
@@ -202,6 +204,5 @@ impl Component for CutListView<'_> {
 struct DraggingContext {
     cut_id: Uuid,
     thumbnail_clicked_offset_xy: Xy<Px>,
-    start_index: usize,
     end_index: usize,
 }
