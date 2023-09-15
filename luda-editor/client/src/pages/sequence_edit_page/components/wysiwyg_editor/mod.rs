@@ -209,32 +209,30 @@ impl Component for WysiwygEditor<'_> {
                     let image_width_per_height_ratio = graphic_wh.width / graphic_wh.height;
                     builder
                         .add_button("Send To Back", || {
-                            let Some(last_graphic_index) =
+                            if let Some(last_graphic_index) =
                                 screen_graphics.last().map(|(index, _)| *index)
-                            else {
-                                return;
-                            };
-
-                            SEQUENCE_ATOM.mutate(move |sequence| {
-                                sequence.update_cut(
-                                    cut_id,
-                                    CutUpdateAction::ChangeGraphicOrder {
-                                        graphic_index,
-                                        after_graphic_index: Some(last_graphic_index),
-                                    },
-                                )
-                            });
+                            {
+                                SEQUENCE_ATOM.mutate(move |sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::ChangeGraphicOrder {
+                                            graphic_index,
+                                            after_graphic_index: Some(last_graphic_index),
+                                        },
+                                    )
+                                });
+                            }
                         })
                         .add_button("Send Backward", || {
                             let Some(next_or_last_graphic_index) = ({
-                                let Some(position) = screen_graphics
+                                screen_graphics
                                     .iter()
                                     .position(|(index, _)| *index == graphic_index)
-                                else {
-                                    return;
-                                };
-                                let next_position = (position + 1).min(screen_graphics.len() - 1);
-                                screen_graphics.get(next_position).map(|(index, _)| *index)
+                                    .and_then(|position| {
+                                        let next_position =
+                                            (position + 1).min(screen_graphics.len() - 1);
+                                        screen_graphics.get(next_position).map(|(index, _)| *index)
+                                    })
                             }) else {
                                 return;
                             };
@@ -251,18 +249,15 @@ impl Component for WysiwygEditor<'_> {
                         })
                         .add_button("Bring Forward", || {
                             let previous_graphic_index = {
-                                let Some(position) = screen_graphics
+                                screen_graphics
                                     .iter()
                                     .position(|(index, _)| *index == graphic_index)
-                                else {
-                                    return;
-                                };
-                                match position.checked_sub(2) {
-                                    Some(position) => {
-                                        screen_graphics.get(position).map(|(index, _)| *index)
-                                    }
-                                    None => None,
-                                }
+                                    .and_then(|position| match position.checked_sub(2) {
+                                        Some(position) => {
+                                            screen_graphics.get(position).map(|(index, _)| *index)
+                                        }
+                                        None => None,
+                                    })
                             };
 
                             SEQUENCE_ATOM.mutate(move |sequence| {
