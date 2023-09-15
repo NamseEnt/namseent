@@ -69,28 +69,25 @@ impl SequenceWrapped {
                     cut_id,
                     after_cut_id,
                 } => {
-                    let index_before_move = sequence
+                    let moving_cut_position = sequence
                         .cuts
                         .iter()
                         .position(|cut| cut.id == cut_id)
                         .unwrap();
-                    let mut index_after_move = {
-                        match after_cut_id {
-                            Some(after_cut_id) => sequence
+                    let moving_cut = sequence.cuts.remove(moving_cut_position);
+                    let insert_position = match after_cut_id {
+                        Some(after_cut_id) => {
+                            let position = sequence
                                 .cuts
                                 .iter()
                                 .position(|cut| cut.id == after_cut_id)
-                                .unwrap(),
-                            None => 0,
+                                .unwrap();
+                            position + 1
                         }
+                        None => 0,
                     };
 
-                    let cut = sequence.cuts.remove(index_before_move);
-                    if index_after_move > index_before_move {
-                        index_after_move -= 1;
-                    }
-
-                    sequence.cuts.insert(index_after_move, cut);
+                    sequence.cuts.insert(insert_position, moving_cut);
                 }
             }
 

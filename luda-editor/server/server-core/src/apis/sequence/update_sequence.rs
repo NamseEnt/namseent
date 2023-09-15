@@ -91,28 +91,25 @@ pub async fn update_sequence(
             cut_id,
             after_cut_id,
         } => {
-            let index_before_move = sequence_document
+            let moving_cut_position = sequence_document
                 .cuts
                 .iter()
                 .position(|cut| cut.cut_id == cut_id)
                 .unwrap();
-            let mut index_after_move = {
-                match after_cut_id {
-                    Some(after_cut_id) => sequence_document
+            let moving_cut = sequence_document.cuts.remove(moving_cut_position);
+            let insert_position = match after_cut_id {
+                Some(after_cut_id) => {
+                    let position = sequence_document
                         .cuts
                         .iter()
                         .position(|cut| cut.cut_id == after_cut_id)
-                        .unwrap(),
-                    None => 0,
+                        .unwrap();
+                    position + 1
                 }
+                None => 0,
             };
 
-            let cut = sequence_document.cuts.remove(index_before_move);
-            if index_after_move > index_before_move {
-                index_after_move -= 1;
-            }
-
-            sequence_document.cuts.insert(index_after_move, cut);
+            sequence_document.cuts.insert(insert_position, moving_cut);
             transact
         }
     }
