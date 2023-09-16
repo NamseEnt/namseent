@@ -41,22 +41,27 @@ impl Component for Mover<'_> {
                         Color::TRANSPARENT,
                     )
                     .with_mouse_cursor({
-                        let is_dragging = matches!(dragging, Some(Dragging::Mover { context }) if context.moving_with == MovingWith::Mouse);
-                        if is_dragging {
-                            namui::MouseCursor::Move
-                        } else {
-                            namui::MouseCursor::Pointer
+                        match *dragging {
+                            Some(Dragging::Mover { context })
+                                if context.moving_with == MovingWith::Mouse =>
+                            {
+                                namui::MouseCursor::Move
+                            }
+                            _ => namui::MouseCursor::Pointer,
                         }
                     })
                     .attach_event(|event| {
                         if let namui::Event::MouseDown { event } = event {
-                            if event.is_local_xy_in() && dragging.is_none() && event.button == Some(MouseButton::Left) {
+                            if event.is_local_xy_in()
+                                && dragging.is_none()
+                                && event.button == Some(MouseButton::Left)
+                            {
                                 event.stop_propagation();
                                 on_event(Event::MoveStart {
                                     start_global_xy: event.global_xy,
                                     end_global_xy: event.global_xy,
                                     container_wh,
-                                    moving_with: MovingWith::Mouse
+                                    moving_with: MovingWith::Mouse,
                                 });
                             }
                         }
