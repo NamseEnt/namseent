@@ -14,6 +14,7 @@ pub enum Event {
         start_global_xy: Xy<Px>,
         end_global_xy: Xy<Px>,
         container_wh: Wh<Px>,
+        moving_with: MovingWith,
     },
 }
 
@@ -40,7 +41,7 @@ impl Component for Mover<'_> {
                         Color::TRANSPARENT,
                     )
                     .with_mouse_cursor({
-                        let is_dragging = matches!(dragging, Some(Dragging::Mover { .. }));
+                        let is_dragging = matches!(dragging, Some(Dragging::Mover { context }) if context.moving_with == MovingWith::Mouse);
                         if is_dragging {
                             namui::MouseCursor::Move
                         } else {
@@ -49,12 +50,13 @@ impl Component for Mover<'_> {
                     })
                     .attach_event(|event| {
                         if let namui::Event::MouseDown { event } = event {
-                            if event.is_local_xy_in() && event.button == Some(MouseButton::Left) {
+                            if event.is_local_xy_in() && dragging.is_none() && event.button == Some(MouseButton::Left) {
                                 event.stop_propagation();
                                 on_event(Event::MoveStart {
                                     start_global_xy: event.global_xy,
                                     end_global_xy: event.global_xy,
                                     container_wh,
+                                    moving_with: MovingWith::Mouse
                                 });
                             }
                         }
@@ -71,6 +73,7 @@ pub struct MoverDraggingContext {
     pub start_global_xy: Xy<Px>,
     pub end_global_xy: Xy<Px>,
     pub container_wh: Wh<Px>,
+    pub moving_with: MovingWith,
 }
 
 impl MoverDraggingContext {
@@ -86,6 +89,26 @@ impl MoverDraggingContext {
         Circumscribed {
             center_xy: circumscribed.center_xy + delta_xy_percent,
             ..circumscribed
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MovingWith {
+    Mouse,
+    KeyLeft,
+    KeyRight,
+    KeyUp,
+    KeyDown,
+}
+impl MovingWith {
+    pub fn key_changed(&self, code: namui::Code) -> bool {
+        match self {
+            MovingWith::Mouse => true,
+            MovingWith::KeyLeft => code != namui::Code::ArrowLeft,
+            MovingWith::KeyRight => code != namui::Code::ArrowRight,
+            MovingWith::KeyUp => code != namui::Code::ArrowUp,
+            MovingWith::KeyDown => code != namui::Code::ArrowDown,
         }
     }
 }
