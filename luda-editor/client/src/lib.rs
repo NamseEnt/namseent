@@ -1,4 +1,5 @@
 mod app;
+mod clipboard;
 mod color;
 mod components;
 mod late_init;
