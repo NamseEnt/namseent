@@ -1,6 +1,7 @@
 use super::*;
 use crate::{
     app::notification::{push_notification, remove_notification, Notification},
+    clipboard::TryReadLudaEditorClipboardItem,
     color,
     pages::sequence_edit_page::{
         atom::{UpdateCgFile, CG_FILES_ATOM, SEQUENCE_ATOM},
@@ -49,21 +50,9 @@ impl Component for BackgroundWithEvent<'_> {
 
                 if let Ok(items) = clipboard::read().await {
                     for item in items {
-                        if item
-                            .types()
-                            .iter()
-                            .any(|type_| type_ == "web application/luda-editor-cg+json")
-                        {
-                            if let Ok(cg) = item
-                                .get_type("web application/luda-editor-cg+json")
-                                .await
-                                .map(|graphic_bytes| {
-                                    serde_json::from_slice::<ScreenCg>(&graphic_bytes).unwrap()
-                                })
-                            {
-                                add_cg(cut_id, cg);
-                            }
-                        }
+                        if let Some(cg) = item.try_read_from_clipboard().await {
+                            add_cg(cut_id, cg);
+                        };
                     }
                 }
             });
