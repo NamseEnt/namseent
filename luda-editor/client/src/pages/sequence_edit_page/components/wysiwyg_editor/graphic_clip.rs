@@ -1,5 +1,5 @@
 use super::{wysiwyg_tool::WysiwygTool, *};
-use crate::clipboard::LudaEditorClipboardItem;
+use crate::{app::notification, clipboard::LudaEditorClipboardItem};
 
 #[namui::component]
 pub struct GraphicClip<'a> {
@@ -155,7 +155,13 @@ impl Component for GraphicClip<'_> {
                                 spawn_local(async move {
                                     match cg.write_to_clipboard().await {
                                         Ok(()) => namui::log!("Cg copied to clipboard"),
-                                        Err(error) => namui::log!("{error}"),
+                                        Err(error) => {
+                                            notification::push_notification(
+                                                notification::Notification::error(
+                                                    error.to_string(),
+                                                ),
+                                            );
+                                        }
                                     }
                                 })
                             }

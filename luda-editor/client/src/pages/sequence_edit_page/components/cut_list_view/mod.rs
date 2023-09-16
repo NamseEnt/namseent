@@ -1,5 +1,6 @@
 mod cut_cell;
 use crate::{
+    app::notification,
     clipboard::{LudaEditorClipboardItem, TryReadLudaEditorClipboardItem},
     color,
     pages::sequence_edit_page::atom::SEQUENCE_ATOM,
@@ -88,7 +89,9 @@ impl Component for CutListView<'_> {
                         let selected_cut = selected_cut.clone();
                         spawn_local(async move {
                             if let Err(error) = selected_cut.write_to_clipboard().await {
-                                namui::log!("{error}");
+                                notification::push_notification(notification::Notification::error(
+                                    error.to_string(),
+                                ));
                             };
                         });
                     };
