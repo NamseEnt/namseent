@@ -1,5 +1,9 @@
 mod cut_cell;
-use crate::{color, pages::sequence_edit_page::atom::SEQUENCE_ATOM};
+use crate::{
+    clipboard::{LudaEditorClipboardItem, TryReadLudaEditorClipboardItem},
+    color,
+    pages::sequence_edit_page::atom::SEQUENCE_ATOM,
+};
 use cut_cell::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
@@ -44,13 +48,50 @@ impl Component for CutListView<'_> {
                 if !is_focused {
                     return;
                 }
+
+                let ctrl_press = namui::keyboard::ctrl_press();
+                if ctrl_press && event.code == Code::KeyV {
+                    spawn_local(async move {
+                        if let Ok(items) = clipboard::read().await {
+                            for item in items {
+                                if let Some(mut cut) =
+                                    TryReadLudaEditorClipboardItem::<Cut>::try_read_from_clipboard(
+                                        &item,
+                                    )
+                                    .await
+                                {
+                                    cut.id = uuid();
+                                    SEQUENCE_ATOM.mutate(move |sequence| {
+                                        sequence.update(
+                                            rpc::data::SequenceUpdateAction::InsertCut {
+                                                cut,
+                                                after_cut_id: selected_cut_id,
+                                            },
+                                        )
+                                    });
+                                };
+                            }
+                        }
+                    });
+                }
+
                 let Some(selected_cut_id) = selected_cut_id else {
                     return;
                 };
+
                 if event.code == Code::Enter {
                     on_event(Event::PressEnterOnCut {
                         cut_id: selected_cut_id,
                     });
+                } else if ctrl_press && event.code == Code::KeyC {
+                    if let Some(selected_cut) = cuts.iter().find(|cut| cut.id == selected_cut_id) {
+                        let selected_cut = selected_cut.clone();
+                        spawn_local(async move {
+                            if let Err(error) = selected_cut.write_to_clipboard().await {
+                                namui::log!("{error}");
+                            };
+                        });
+                    };
                 } else {
                     enum UpDown {
                         Up,

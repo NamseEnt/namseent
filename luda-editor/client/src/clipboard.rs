@@ -1,6 +1,6 @@
 use futures::Future;
 use namui::{clipboard::ClipboardItem, prelude::*};
-use rpc::data::ScreenCg;
+use rpc::data::{Cut, ScreenCg};
 use serde::de::DeserializeOwned;
 use std::pin::Pin;
 
@@ -18,6 +18,12 @@ pub trait TryReadLudaEditorClipboardItem<T> {
 impl LudaEditorClipboardItem for ScreenCg {
     fn type_name() -> &'static str {
         "web application/luda-editor-cg+json"
+    }
+}
+
+impl LudaEditorClipboardItem for Cut {
+    fn type_name() -> &'static str {
+        "web application/luda-editor-cut+json"
     }
 }
 
