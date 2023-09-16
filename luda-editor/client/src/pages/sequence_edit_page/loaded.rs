@@ -41,7 +41,7 @@ impl Component for LoadedSequenceEditorPage {
         let (_images, _set_cg_files) = ctx.atom_init(&IMAGES_ATOM, || images.clone());
 
         let (selected_cut_id, set_selected_cut_id) = ctx.state::<Option<Uuid>>(|| None);
-        let (focused_component, set_focused_component) = ctx.state(|| None);
+        let (focused_component, set_focused_component) = ctx.atom_init(&FOCUSED_COMPONENT, || None);
         let (character_editor_target, set_character_editor_target) =
             ctx.state::<Option<EditTarget>>(|| None);
         let (cut_id_memos_map, set_cut_id_memos_map) = ctx.state(|| cut_id_memos_map.clone());
@@ -307,12 +307,6 @@ impl Component for LoadedSequenceEditorPage {
 
         ctx.done()
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum FocusableComponent {
-    CutListView,
-    CutEditor,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

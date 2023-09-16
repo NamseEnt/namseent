@@ -15,7 +15,9 @@ use crate::{
         context_menu::*,
         sequence_player::{calculate_graphic_rect_on_screen, calculate_graphic_wh_on_screen},
     },
-    pages::sequence_edit_page::atom::{EDITING_GRAPHIC_INDEX_ATOM, SEQUENCE_ATOM},
+    pages::sequence_edit_page::atom::{
+        FocusableComponent, EDITING_GRAPHIC_INDEX_ATOM, FOCUSED_COMPONENT, SEQUENCE_ATOM,
+    },
     storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
 };
 use mover::Mover;
@@ -58,6 +60,9 @@ impl Component for WysiwygEditor<'_> {
         let (dragging, set_dragging) = ctx.state(|| None);
         let (editing_graphic_index, set_editing_graphic_index) =
             ctx.atom_init(&EDITING_GRAPHIC_INDEX_ATOM, || None);
+        let (focused_component, _set_focused_component) = ctx.atom(&FOCUSED_COMPONENT);
+
+        let cut_editor_focused = matches!(*focused_component, Some(FocusableComponent::CutEditor));
 
         let update_sequence_with_mover = |context: MoverDraggingContext, graphic_index: Uuid| {
             let (_, graphic) = screen_graphics
@@ -114,7 +119,7 @@ impl Component for WysiwygEditor<'_> {
                             Code::ArrowUp | Code::ArrowLeft | Code::ArrowRight | Code::ArrowDown
                         );
                         if let Some(graphic_index) = *editing_graphic_index {
-                            if arrow_key_down {
+                            if cut_editor_focused && arrow_key_down {
                                 let set_new_dragging = || {
                                     let moving_with = match event.code {
                                         Code::ArrowLeft => MovingWith::KeyLeft,
@@ -173,7 +178,7 @@ impl Component for WysiwygEditor<'_> {
                         if let Some(Dragging::Mover { context }) = *dragging {
                             if let Some(graphic_index) = editing_image_index {
                                 let moving_key_up = !context.moving_with.key_changed(event.code);
-                                if moving_key_up {
+                                if cut_editor_focused && moving_key_up {
                                     update_sequence_with_mover(context, graphic_index);
                                     set_dragging.set(None);
                                 }
