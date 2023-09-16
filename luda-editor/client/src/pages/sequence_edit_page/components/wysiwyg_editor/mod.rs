@@ -114,20 +114,12 @@ impl Component for WysiwygEditor<'_> {
                         set_dragging.set(None);
                     }
                     Event::KeyDown { event } => {
-                        let arrow_key_down = matches!(
-                            event.code,
-                            Code::ArrowUp | Code::ArrowLeft | Code::ArrowRight | Code::ArrowDown
-                        );
-                        if let Some(graphic_index) = *editing_graphic_index {
-                            if cut_editor_focused && arrow_key_down {
+                        let moving_with = MovingWith::try_from(event.code);
+                        if let (Some(graphic_index), Ok(moving_with)) =
+                            (*editing_graphic_index, moving_with)
+                        {
+                            if cut_editor_focused {
                                 let set_new_dragging = || {
-                                    let moving_with = match event.code {
-                                        Code::ArrowLeft => MovingWith::KeyLeft,
-                                        Code::ArrowRight => MovingWith::KeyRight,
-                                        Code::ArrowUp => MovingWith::KeyUp,
-                                        Code::ArrowDown => MovingWith::KeyDown,
-                                        _ => unreachable!(),
-                                    };
                                     set_dragging.set(Some(Dragging::Mover {
                                         context: MoverDraggingContext {
                                             start_global_xy: Xy::zero(),
@@ -138,13 +130,7 @@ impl Component for WysiwygEditor<'_> {
                                     }));
                                 };
                                 let mutate_dragging = || {
-                                    let mut delta_xy = match event.code {
-                                        Code::ArrowLeft => Xy::new(-(1.0.px()), 0.0.px()),
-                                        Code::ArrowRight => Xy::new(1.0.px(), 0.0.px()),
-                                        Code::ArrowUp => Xy::new(0.0.px(), -(1.0.px())),
-                                        Code::ArrowDown => Xy::new(0.0.px(), 1.0.px()),
-                                        _ => unreachable!(),
-                                    };
+                                    let mut delta_xy = moving_with.delta_xy();
                                     if !namui::keyboard::shift_press() {
                                         delta_xy *= 10.0;
                                     }

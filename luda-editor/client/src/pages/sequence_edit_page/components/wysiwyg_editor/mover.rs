@@ -111,4 +111,25 @@ impl MovingWith {
             MovingWith::KeyDown => code != namui::Code::ArrowDown,
         }
     }
+    pub fn delta_xy(&self) -> Xy<Px> {
+        match self {
+            MovingWith::Mouse => Xy::new(0.0.px(), 0.0.px()),
+            MovingWith::KeyLeft => Xy::new(-(1.0.px()), 0.0.px()),
+            MovingWith::KeyRight => Xy::new(1.0.px(), 0.0.px()),
+            MovingWith::KeyUp => Xy::new(0.0.px(), -(1.0.px())),
+            MovingWith::KeyDown => Xy::new(0.0.px(), 1.0.px()),
+        }
+    }
+}
+impl TryFrom<namui::Code> for MovingWith {
+    type Error = ();
+    fn try_from(code: namui::Code) -> Result<Self, Self::Error> {
+        match code {
+            namui::Code::ArrowLeft => Ok(MovingWith::KeyLeft),
+            namui::Code::ArrowRight => Ok(MovingWith::KeyRight),
+            namui::Code::ArrowUp => Ok(MovingWith::KeyUp),
+            namui::Code::ArrowDown => Ok(MovingWith::KeyDown),
+            _ => Err(()),
+        }
+    }
 }
