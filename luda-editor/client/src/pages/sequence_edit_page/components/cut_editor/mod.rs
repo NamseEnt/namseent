@@ -268,6 +268,16 @@ impl Component for CutEditor<'_> {
             });
         };
 
+        ctx.component(
+            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
+                if let namui::Event::MouseDown { event } = event {
+                    if event.is_local_xy_in() {
+                        on_event(Event::Focus)
+                    }
+                }
+            }),
+        );
+
         ctx.compose(|ctx| {
             let mut ctx = ctx.translate(content_rect.xy());
 

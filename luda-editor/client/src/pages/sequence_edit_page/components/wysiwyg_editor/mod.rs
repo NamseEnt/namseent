@@ -4,9 +4,10 @@ mod mover;
 mod resizer;
 mod wysiwyg_tool;
 
-use std::ops::Deref;
-
-use self::grid_guide::render_grid_guide;
+use self::{
+    grid_guide::render_grid_guide,
+    mover::{MoverDraggingContext, MovingWith},
+};
 use super::character_editor;
 use crate::{
     components::{
@@ -14,7 +15,9 @@ use crate::{
         context_menu::*,
         sequence_player::{calculate_graphic_rect_on_screen, calculate_graphic_wh_on_screen},
     },
-    pages::sequence_edit_page::atom::{EDITING_GRAPHIC_INDEX_ATOM, SEQUENCE_ATOM},
+    pages::sequence_edit_page::atom::{
+        FocusableComponent, EDITING_GRAPHIC_INDEX_ATOM, FOCUSED_COMPONENT, SEQUENCE_ATOM,
+    },
     storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
 };
 use mover::Mover;
@@ -22,6 +25,7 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 use resizer::Resizer;
 use rpc::data::{CgFile, CutUpdateAction, ScreenGraphic};
+use std::ops::Deref;
 
 #[namui::component]
 pub struct WysiwygEditor<'a> {
@@ -56,10 +60,30 @@ impl Component for WysiwygEditor<'_> {
         let (dragging, set_dragging) = ctx.state(|| None);
         let (editing_graphic_index, set_editing_graphic_index) =
             ctx.atom_init(&EDITING_GRAPHIC_INDEX_ATOM, || None);
+        let (focused_component, _set_focused_component) = ctx.atom(&FOCUSED_COMPONENT);
+
+        let cut_editor_focused = matches!(*focused_component, Some(FocusableComponent::CutEditor));
+
+        let update_sequence_with_mover = |context: MoverDraggingContext, graphic_index: Uuid| {
+            let (_, graphic) = screen_graphics
+                .iter()
+                .find(|(index, _)| *index == graphic_index)
+                .unwrap();
+            let circumscribed = context.move_circumscribed(graphic.circumscribed());
+
+            SEQUENCE_ATOM.mutate(move |sequence| {
+                sequence.update_cut(
+                    cut_id,
+                    CutUpdateAction::ChangeGraphicCircumscribed {
+                        graphic_index,
+                        circumscribed,
+                    },
+                )
+            });
+        };
 
         let background = simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
             |event: Event<'_>| {
-                let screen_graphics = screen_graphics.clone();
                 let editing_image_index = *editing_graphic_index;
                 match event {
                     Event::MouseDown { event } => {
@@ -71,35 +95,81 @@ impl Component for WysiwygEditor<'_> {
                         if event.is_local_xy_in() {
                             set_dragging.mutate(move |dragging| {
                                 if let Some(Dragging::Mover { context }) = dragging {
-                                    context.end_global_xy = event.global_xy;
+                                    if context.moving_with == MovingWith::Mouse {
+                                        context.end_global_xy = event.global_xy;
+                                    }
                                 }
                             });
                         }
                     }
                     Event::MouseUp { event } => {
                         if let Some(Dragging::Mover { mut context }) = dragging.deref() {
-                            if let Some(graphic_index) = editing_image_index {
-                                context.end_global_xy = event.global_xy;
-
-                                let (_, graphic) = screen_graphics
-                                    .iter()
-                                    .find(|(index, _)| index == &graphic_index)
-                                    .unwrap();
-                                let circumscribed =
-                                    context.move_circumscribed(graphic.circumscribed());
-
-                                SEQUENCE_ATOM.mutate(move |sequence| {
-                                    sequence.update_cut(
-                                        cut_id,
-                                        CutUpdateAction::ChangeGraphicCircumscribed {
-                                            graphic_index,
-                                            circumscribed,
-                                        },
-                                    )
-                                });
+                            if context.moving_with == MovingWith::Mouse {
+                                if let Some(graphic_index) = editing_image_index {
+                                    context.end_global_xy = event.global_xy;
+                                    update_sequence_with_mover(context, graphic_index);
+                                }
                             }
                         }
                         set_dragging.set(None);
+                    }
+                    Event::KeyDown { event } => {
+                        let moving_with = MovingWith::try_from(event.code);
+                        if let (Some(graphic_index), Ok(moving_with)) =
+                            (*editing_graphic_index, moving_with)
+                        {
+                            if cut_editor_focused {
+                                let set_new_dragging = || {
+                                    set_dragging.set(Some(Dragging::Mover {
+                                        context: MoverDraggingContext {
+                                            start_global_xy: Xy::zero(),
+                                            end_global_xy: Xy::zero(),
+                                            container_wh: wh,
+                                            moving_with,
+                                        },
+                                    }));
+                                };
+                                let mutate_dragging = || {
+                                    let mut delta_xy = moving_with.delta_xy();
+                                    if !namui::keyboard::shift_press() {
+                                        delta_xy *= 10.0;
+                                    }
+                                    set_dragging.mutate(move |dragging| {
+                                        if let Some(Dragging::Mover { context }) = dragging {
+                                            context.end_global_xy =
+                                                context.end_global_xy + delta_xy;
+                                        }
+                                    });
+                                };
+                                match *dragging {
+                                    Some(Dragging::Mover { context }) => {
+                                        if context.moving_with.key_changed(event.code) {
+                                            update_sequence_with_mover(context, graphic_index);
+                                            set_new_dragging();
+                                        }
+                                        mutate_dragging();
+                                        event.stop_propagation();
+                                    }
+                                    None => {
+                                        set_new_dragging();
+                                        mutate_dragging();
+                                        event.stop_propagation();
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+                    Event::KeyUp { event } => {
+                        if let Some(Dragging::Mover { context }) = *dragging {
+                            if let Some(graphic_index) = editing_image_index {
+                                let moving_key_up = !context.moving_with.key_changed(event.code);
+                                if cut_editor_focused && moving_key_up {
+                                    update_sequence_with_mover(context, graphic_index);
+                                    set_dragging.set(None);
+                                }
+                            }
+                        }
                     }
                     _ => {}
                 }
@@ -131,12 +201,14 @@ impl Component for WysiwygEditor<'_> {
                                         start_global_xy,
                                         end_global_xy,
                                         container_wh,
+                                        moving_with,
                                     } => {
                                         set_dragging.set(Some(Dragging::Mover {
                                             context: mover::MoverDraggingContext {
                                                 start_global_xy,
                                                 end_global_xy,
                                                 container_wh,
+                                                moving_with,
                                             },
                                         }));
                                     }
