@@ -1,4 +1,5 @@
 use super::{wysiwyg_tool::WysiwygTool, *};
+use crate::clipboard::LudaEditorClipboardItem;
 
 #[namui::component]
 pub struct GraphicClip<'a> {
@@ -152,19 +153,10 @@ impl Component for GraphicClip<'_> {
                             ScreenGraphic::Cg(cg) => {
                                 let cg = cg.clone();
                                 spawn_local(async move {
-                                    match clipboard::write([(
-                                        "web application/luda-editor-cg+json",
-                                        serde_json::to_string(&cg).unwrap(),
-                                    )])
-                                    .await
-                                    {
-                                        Ok(_) => {
-                                            namui::log!("Cg copied to clipboard")
-                                        }
-                                        Err(_) => {
-                                            namui::log!("Failed to copy cg to clipboard")
-                                        }
-                                    };
+                                    match cg.write_to_clipboard().await {
+                                        Ok(()) => namui::log!("Cg copied to clipboard"),
+                                        Err(error) => namui::log!("{error}"),
+                                    }
                                 })
                             }
                         }
