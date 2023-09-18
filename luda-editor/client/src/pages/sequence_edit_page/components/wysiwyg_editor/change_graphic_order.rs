@@ -2,11 +2,7 @@ use crate::pages::sequence_edit_page::atom::SEQUENCE_ATOM;
 use namui::Uuid;
 use rpc::data::{CutUpdateAction, ScreenGraphic};
 
-pub fn send_to_back(
-    screen_graphics: &Vec<(Uuid, ScreenGraphic)>,
-    cut_id: Uuid,
-    graphic_index: Uuid,
-) {
+pub fn send_to_back(screen_graphics: &[(Uuid, ScreenGraphic)], cut_id: Uuid, graphic_index: Uuid) {
     if let Some(last_graphic_index) = screen_graphics.last().map(|(index, _)| *index) {
         if last_graphic_index == graphic_index {
             return;
@@ -23,11 +19,7 @@ pub fn send_to_back(
     }
 }
 
-pub fn send_backward(
-    screen_graphics: &Vec<(Uuid, ScreenGraphic)>,
-    cut_id: Uuid,
-    graphic_index: Uuid,
-) {
+pub fn send_backward(screen_graphics: &[(Uuid, ScreenGraphic)], cut_id: Uuid, graphic_index: Uuid) {
     let Some(next_or_last_graphic_index) = ({
         screen_graphics
             .iter()
@@ -54,11 +46,7 @@ pub fn send_backward(
     });
 }
 
-pub fn bring_forward(
-    screen_graphics: &Vec<(Uuid, ScreenGraphic)>,
-    graphic_index: Uuid,
-    cut_id: Uuid,
-) {
+pub fn bring_forward(screen_graphics: &[(Uuid, ScreenGraphic)], graphic_index: Uuid, cut_id: Uuid) {
     let previous_graphic_index = {
         screen_graphics
             .iter()
@@ -84,7 +72,7 @@ pub fn bring_forward(
 }
 
 pub fn bring_to_front(
-    screen_graphics: &Vec<(Uuid, ScreenGraphic)>,
+    screen_graphics: &[(Uuid, ScreenGraphic)],
     cut_id: Uuid,
     graphic_index: Uuid,
 ) {
