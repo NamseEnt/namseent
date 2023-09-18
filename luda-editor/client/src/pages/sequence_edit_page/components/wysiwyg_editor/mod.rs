@@ -314,17 +314,17 @@ impl Component for WysiwygEditor<'_> {
                 } => {
                     let image_width_per_height_ratio = graphic_wh.width / graphic_wh.height;
                     builder
-                        .add_button("Send To Back", || {
-                            send_to_back(screen_graphics, cut_id, graphic_index)
+                        .add_button("Bring To Front (Ctrl+Shift+↑)", || {
+                            bring_to_front(screen_graphics, cut_id, graphic_index);
                         })
-                        .add_button("Send Backward", || {
-                            send_backward(screen_graphics, cut_id, graphic_index)
-                        })
-                        .add_button("Bring Forward", || {
+                        .add_button("Bring Forward (Ctrl+↑)", || {
                             bring_forward(screen_graphics, graphic_index, cut_id);
                         })
-                        .add_button("Bring To Front", || {
-                            bring_to_front(screen_graphics, cut_id, graphic_index);
+                        .add_button("Send Backward (Ctrl+↓)", || {
+                            send_backward(screen_graphics, cut_id, graphic_index)
+                        })
+                        .add_button("Send To Back (Ctrl+Shift+↓)", || {
+                            send_to_back(screen_graphics, cut_id, graphic_index)
                         })
                         .add_divider()
                         .add_button("Fit - contain", || {
