@@ -1,3 +1,4 @@
+mod change_graphic_order;
 mod graphic_clip;
 mod grid_guide;
 mod mover;
@@ -5,6 +6,7 @@ mod resizer;
 mod wysiwyg_tool;
 
 use self::{
+    change_graphic_order::{bring_forward, bring_to_front, send_backward, send_to_back},
     grid_guide::render_grid_guide,
     mover::{MoverDraggingContext, MovingWith},
 };
@@ -82,6 +84,81 @@ impl Component for WysiwygEditor<'_> {
             });
         };
 
+        let handle_graphic_order_change_shortcut = |event: &KeyboardEvent| {
+            let Some(graphic_index) = *editing_graphic_index else {
+                return false;
+            };
+            let ctrl_press = namui::keyboard::ctrl_press();
+            let shift_press = namui::keyboard::shift_press();
+            let code = event.code;
+
+            match (ctrl_press, shift_press, code) {
+                (true, true, Code::ArrowUp) => {
+                    bring_to_front(screen_graphics, cut_id, graphic_index)
+                }
+                (true, false, Code::ArrowUp) => {
+                    bring_forward(screen_graphics, graphic_index, cut_id)
+                }
+                (true, false, Code::ArrowDown) => {
+                    send_backward(screen_graphics, cut_id, graphic_index)
+                }
+                (true, true, Code::ArrowDown) => {
+                    send_to_back(screen_graphics, cut_id, graphic_index)
+                }
+                _ => {
+                    return false;
+                }
+            }
+            true
+        };
+
+        let handle_graphic_move_shortcut = |event: &KeyboardEvent| {
+            let moving_with = MovingWith::try_from(event.code);
+            if let (Some(graphic_index), Ok(moving_with)) = (*editing_graphic_index, moving_with) {
+                if cut_editor_focused {
+                    let set_new_dragging = || {
+                        set_dragging.set(Some(Dragging::Mover {
+                            context: MoverDraggingContext {
+                                start_global_xy: Xy::zero(),
+                                end_global_xy: Xy::zero(),
+                                container_wh: wh,
+                                moving_with,
+                            },
+                        }));
+                    };
+                    let mutate_dragging = || {
+                        let mut delta_xy = moving_with.delta_xy();
+                        if !namui::keyboard::shift_press() {
+                            delta_xy *= 10.0;
+                        }
+                        set_dragging.mutate(move |dragging| {
+                            if let Some(Dragging::Mover { context }) = dragging {
+                                context.end_global_xy = context.end_global_xy + delta_xy;
+                            }
+                        });
+                    };
+                    match *dragging {
+                        Some(Dragging::Mover { context }) => {
+                            if context.moving_with.key_changed(event.code) {
+                                update_sequence_with_mover(context, graphic_index);
+                                set_new_dragging();
+                            }
+                            mutate_dragging();
+                            event.stop_propagation();
+                        }
+                        None => {
+                            set_new_dragging();
+                            mutate_dragging();
+                            event.stop_propagation();
+                        }
+                        _ => return false,
+                    }
+                    return true;
+                }
+            }
+            false
+        };
+
         let background = simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
             |event: Event<'_>| {
                 let editing_image_index = *editing_graphic_index;
@@ -114,51 +191,8 @@ impl Component for WysiwygEditor<'_> {
                         set_dragging.set(None);
                     }
                     Event::KeyDown { event } => {
-                        let moving_with = MovingWith::try_from(event.code);
-                        if let (Some(graphic_index), Ok(moving_with)) =
-                            (*editing_graphic_index, moving_with)
-                        {
-                            if cut_editor_focused {
-                                let set_new_dragging = || {
-                                    set_dragging.set(Some(Dragging::Mover {
-                                        context: MoverDraggingContext {
-                                            start_global_xy: Xy::zero(),
-                                            end_global_xy: Xy::zero(),
-                                            container_wh: wh,
-                                            moving_with,
-                                        },
-                                    }));
-                                };
-                                let mutate_dragging = || {
-                                    let mut delta_xy = moving_with.delta_xy();
-                                    if !namui::keyboard::shift_press() {
-                                        delta_xy *= 10.0;
-                                    }
-                                    set_dragging.mutate(move |dragging| {
-                                        if let Some(Dragging::Mover { context }) = dragging {
-                                            context.end_global_xy =
-                                                context.end_global_xy + delta_xy;
-                                        }
-                                    });
-                                };
-                                match *dragging {
-                                    Some(Dragging::Mover { context }) => {
-                                        if context.moving_with.key_changed(event.code) {
-                                            update_sequence_with_mover(context, graphic_index);
-                                            set_new_dragging();
-                                        }
-                                        mutate_dragging();
-                                        event.stop_propagation();
-                                    }
-                                    None => {
-                                        set_new_dragging();
-                                        mutate_dragging();
-                                        event.stop_propagation();
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
+                        let _ = handle_graphic_order_change_shortcut(&event)
+                            || handle_graphic_move_shortcut(&event);
                     }
                     Event::KeyUp { event } => {
                         if let Some(Dragging::Mover { context }) = *dragging {
@@ -281,77 +315,16 @@ impl Component for WysiwygEditor<'_> {
                     let image_width_per_height_ratio = graphic_wh.width / graphic_wh.height;
                     builder
                         .add_button("Send To Back", || {
-                            if let Some(last_graphic_index) =
-                                screen_graphics.last().map(|(index, _)| *index)
-                            {
-                                SEQUENCE_ATOM.mutate(move |sequence| {
-                                    sequence.update_cut(
-                                        cut_id,
-                                        CutUpdateAction::ChangeGraphicOrder {
-                                            graphic_index,
-                                            after_graphic_index: Some(last_graphic_index),
-                                        },
-                                    )
-                                });
-                            }
+                            send_to_back(screen_graphics, cut_id, graphic_index)
                         })
                         .add_button("Send Backward", || {
-                            let Some(next_or_last_graphic_index) = ({
-                                screen_graphics
-                                    .iter()
-                                    .position(|(index, _)| *index == graphic_index)
-                                    .and_then(|position| {
-                                        let next_position =
-                                            (position + 1).min(screen_graphics.len() - 1);
-                                        screen_graphics.get(next_position).map(|(index, _)| *index)
-                                    })
-                            }) else {
-                                return;
-                            };
-
-                            SEQUENCE_ATOM.mutate(move |sequence| {
-                                sequence.update_cut(
-                                    cut_id,
-                                    CutUpdateAction::ChangeGraphicOrder {
-                                        graphic_index,
-                                        after_graphic_index: Some(next_or_last_graphic_index),
-                                    },
-                                )
-                            });
+                            send_backward(screen_graphics, cut_id, graphic_index)
                         })
                         .add_button("Bring Forward", || {
-                            let previous_graphic_index = {
-                                screen_graphics
-                                    .iter()
-                                    .position(|(index, _)| *index == graphic_index)
-                                    .and_then(|position| match position.checked_sub(2) {
-                                        Some(position) => {
-                                            screen_graphics.get(position).map(|(index, _)| *index)
-                                        }
-                                        None => None,
-                                    })
-                            };
-
-                            SEQUENCE_ATOM.mutate(move |sequence| {
-                                sequence.update_cut(
-                                    cut_id,
-                                    CutUpdateAction::ChangeGraphicOrder {
-                                        graphic_index,
-                                        after_graphic_index: previous_graphic_index,
-                                    },
-                                )
-                            });
+                            bring_forward(screen_graphics, graphic_index, cut_id);
                         })
                         .add_button("Bring To Front", || {
-                            SEQUENCE_ATOM.mutate(move |sequence| {
-                                sequence.update_cut(
-                                    cut_id,
-                                    CutUpdateAction::ChangeGraphicOrder {
-                                        graphic_index,
-                                        after_graphic_index: None,
-                                    },
-                                )
-                            });
+                            bring_to_front(screen_graphics, cut_id, graphic_index);
                         })
                         .add_divider()
                         .add_button("Fit - contain", || {
