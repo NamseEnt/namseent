@@ -68,27 +68,30 @@ impl SequenceWrapped {
                 rpc::data::SequenceUpdateAction::MoveCut {
                     cut_id,
                     after_cut_id,
-                } => {
-                    let moving_cut_position = sequence
-                        .cuts
-                        .iter()
-                        .position(|cut| cut.id == cut_id)
-                        .unwrap();
-                    let moving_cut = sequence.cuts.remove(moving_cut_position);
-                    let insert_position = match after_cut_id {
-                        Some(after_cut_id) => {
-                            let position = sequence
-                                .cuts
-                                .iter()
-                                .position(|cut| cut.id == after_cut_id)
-                                .unwrap();
-                            position + 1
-                        }
-                        None => 0,
-                    };
+                } => match after_cut_id {
+                    Some(after_cut_id) if after_cut_id == cut_id => {}
+                    after_cut_id => {
+                        let moving_cut_position = sequence
+                            .cuts
+                            .iter()
+                            .position(|cut| cut.id == cut_id)
+                            .unwrap();
+                        let moving_cut = sequence.cuts.remove(moving_cut_position);
+                        let insert_position = match after_cut_id {
+                            Some(after_cut_id) => {
+                                let position = sequence
+                                    .cuts
+                                    .iter()
+                                    .position(|cut| cut.id == after_cut_id)
+                                    .unwrap();
+                                position + 1
+                            }
+                            None => 0,
+                        };
 
-                    sequence.cuts.insert(insert_position, moving_cut);
-                }
+                        sequence.cuts.insert(insert_position, moving_cut);
+                    }
+                },
                 rpc::data::SequenceUpdateAction::SplitCutText {
                     cut_id,
                     new_cut_id,

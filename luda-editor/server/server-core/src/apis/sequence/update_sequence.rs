@@ -91,25 +91,30 @@ pub async fn update_sequence(
             cut_id,
             after_cut_id,
         } => {
-            let moving_cut_position = sequence_document
-                .cuts
-                .iter()
-                .position(|cut| cut.cut_id == cut_id)
-                .unwrap();
-            let moving_cut = sequence_document.cuts.remove(moving_cut_position);
-            let insert_position = match after_cut_id {
-                Some(after_cut_id) => {
-                    let position = sequence_document
+            match after_cut_id {
+                Some(after_cut_id) if after_cut_id == cut_id => {}
+                after_cut_id => {
+                    let moving_cut_position = sequence_document
                         .cuts
                         .iter()
-                        .position(|cut| cut.cut_id == after_cut_id)
+                        .position(|cut| cut.cut_id == cut_id)
                         .unwrap();
-                    position + 1
-                }
-                None => 0,
-            };
+                    let moving_cut = sequence_document.cuts.remove(moving_cut_position);
+                    let insert_position = match after_cut_id {
+                        Some(after_cut_id) => {
+                            let position = sequence_document
+                                .cuts
+                                .iter()
+                                .position(|cut| cut.cut_id == after_cut_id)
+                                .unwrap();
+                            position + 1
+                        }
+                        None => 0,
+                    };
 
-            sequence_document.cuts.insert(insert_position, moving_cut);
+                    sequence_document.cuts.insert(insert_position, moving_cut);
+                }
+            }
             transact
         }
         rpc::data::SequenceUpdateAction::SplitCutText {
