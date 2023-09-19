@@ -112,6 +112,61 @@ pub async fn update_sequence(
             sequence_document.cuts.insert(insert_position, moving_cut);
             transact
         }
+        rpc::data::SequenceUpdateAction::SplitCutText {
+            cut_id,
+            new_cut_id,
+            split_at,
+        } => {
+            let cut_insert_index = sequence_document
+                .cuts
+                .iter()
+                .position(|cut| cut.cut_id == cut_id)
+                .ok_or(Error::CutNotFound)?;
+
+            let cut = sequence_document
+                .cut_mut(cut_id)
+                .ok_or(Error::CutNotFound)?;
+            let cut_index = cut.index;
+            let mut cut_document = SequenceCutDocumentGet {
+                pk_sequence_id: sequence_id,
+                pk_cut_id: cut_id,
+                sk_cut_index: cut_index,
+            }
+            .run()
+            .await
+            .map_err(|error| Error::Unknown(error.to_string()))?;
+
+            let (front_line, back_line) = {
+                let line = cut_document.cut.line.chars().collect::<Vec<_>>();
+                let (front_line, back_line) = line.split_at(split_at);
+                (front_line.iter().collect(), back_line.iter().collect())
+            };
+
+            cut.index.increase();
+            cut_document.cut_index.increase();
+            cut_document.cut.line = front_line;
+
+            let new_cut_index = CircularIndex::new();
+            let mut new_cut = cut_document.cut.clone();
+            new_cut.line = back_line;
+            sequence_document.cuts.insert(
+                cut_insert_index,
+                CutIndex {
+                    cut_id: new_cut_id,
+                    index: new_cut_index,
+                },
+            );
+            let new_cut_document = SequenceCutDocument {
+                sequence_id,
+                cut_id: new_cut_id,
+                cut_index: new_cut_index,
+                cut: new_cut,
+            };
+
+            transact
+                .put_item(cut_document)
+                .create_item(new_cut_document)
+        }
     }
     .put_item(sequence_document)
     .send()

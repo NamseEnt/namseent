@@ -17,4 +17,9 @@ pub enum SequenceUpdateAction {
         cut_id: Uuid,
         after_cut_id: Option<Uuid>,
     },
+    SplitCutText {
+        cut_id: Uuid,
+        new_cut_id: Uuid,
+        split_at: usize,
+    },
 }

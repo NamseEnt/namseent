@@ -9,7 +9,7 @@ use crate::{
 use background_with_event::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use rpc::data::{CgFile, Cut, CutUpdateAction};
+use rpc::data::{CgFile, Cut, CutUpdateAction, SequenceUpdateAction};
 use std::collections::BTreeSet;
 
 #[namui::component]
@@ -246,14 +246,30 @@ impl Component for CutEditor<'_> {
                     text_input::Event::SelectionUpdated { selection: _ } => {}
                     text_input::Event::KeyDown { event } => {
                         if !event.is_composing {
+                            let shift_press = namui::keyboard::shift_press();
+                            let ctrl_press = namui::keyboard::ctrl_press();
+
                             if event.code == Code::Tab {
-                                if namui::keyboard::shift_press() {
+                                if shift_press {
                                     cut_name_input_instance.focus();
                                 } else {
                                     move_cut_request(UpDown::Down)
                                 }
                             } else if event.code == Code::Escape {
                                 cut_text_input_instance.blur();
+                            }
+
+                            if ctrl_press && shift_press && event.code == Code::Enter {
+                                event.prevent_default();
+                                let left_most_cursor =
+                                    event.selection_start.min(event.selection_end);
+                                SEQUENCE_ATOM.mutate(move |sequence| {
+                                    sequence.update(SequenceUpdateAction::SplitCutText {
+                                        cut_id,
+                                        new_cut_id: uuid(),
+                                        split_at: left_most_cursor,
+                                    })
+                                });
                             }
                         }
                     }

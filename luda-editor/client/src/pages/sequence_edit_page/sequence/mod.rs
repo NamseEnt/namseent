@@ -89,6 +89,29 @@ impl SequenceWrapped {
 
                     sequence.cuts.insert(insert_position, moving_cut);
                 }
+                rpc::data::SequenceUpdateAction::SplitCutText {
+                    cut_id,
+                    new_cut_id,
+                    split_at,
+                } => {
+                    let insert_index =
+                        sequence.cuts.iter().position(|c| c.id == cut_id).unwrap() + 1;
+                    let cut = sequence.cuts.iter_mut().find(|c| c.id == cut_id).unwrap();
+
+                    let (front_line, back_line) = {
+                        let line = cut.line.chars().collect::<Vec<_>>();
+                        let (front_line, back_line) = line.split_at(split_at);
+                        (front_line.iter().collect(), back_line.iter().collect())
+                    };
+
+                    cut.line = front_line;
+
+                    let mut new_cut = cut.clone();
+                    new_cut.id = new_cut_id;
+                    new_cut.line = back_line;
+
+                    sequence.cuts.insert(insert_index, new_cut);
+                }
             }
 
             self.syncer.send(SyncReq::UpdateSequence {
