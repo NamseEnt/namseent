@@ -27,7 +27,7 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 use resizer::Resizer;
 use rpc::data::{CgFile, CutUpdateAction, ScreenGraphic};
-use std::ops::Deref;
+use std::ops::{ControlFlow, Deref};
 
 #[namui::component]
 pub struct WysiwygEditor<'a> {
@@ -86,77 +86,73 @@ impl Component for WysiwygEditor<'_> {
 
         let handle_graphic_order_change_shortcut = |event: &KeyboardEvent| {
             let Some(graphic_index) = *editing_graphic_index else {
-                return false;
+                return ControlFlow::Continue(());
             };
-            let ctrl_press = namui::keyboard::ctrl_press();
-            let shift_press = namui::keyboard::shift_press();
-            let code = event.code;
-
-            match (ctrl_press, shift_press, code) {
-                (true, true, Code::ArrowUp) => {
-                    bring_to_front(screen_graphics, cut_id, graphic_index)
-                }
-                (true, false, Code::ArrowUp) => {
-                    bring_forward(screen_graphics, graphic_index, cut_id)
-                }
-                (true, false, Code::ArrowDown) => {
-                    send_backward(screen_graphics, cut_id, graphic_index)
-                }
-                (true, true, Code::ArrowDown) => {
-                    send_to_back(screen_graphics, cut_id, graphic_index)
-                }
-                _ => {
-                    return false;
-                }
+            if !namui::keyboard::ctrl_press() {
+                return ControlFlow::Continue(());
             }
-            true
+
+            let command = match (event.code, namui::keyboard::shift_press()) {
+                (Code::ArrowUp, true) => change_graphic_order::Command::BringToFront,
+                (Code::ArrowUp, false) => change_graphic_order::Command::BringForward,
+                (Code::ArrowDown, true) => change_graphic_order::Command::SendToBack,
+                (Code::ArrowDown, false) => change_graphic_order::Command::SendBackward,
+                _ => return ControlFlow::Continue(()),
+            };
+
+            change_graphic_order::run_command(screen_graphics, cut_id, graphic_index, command);
+            ControlFlow::Break(())
         };
 
         let handle_graphic_move_shortcut = |event: &KeyboardEvent| {
-            let moving_with = MovingWith::try_from(event.code);
-            if let (Some(graphic_index), Ok(moving_with)) = (*editing_graphic_index, moving_with) {
-                if cut_editor_focused {
-                    let set_new_dragging = || {
-                        set_dragging.set(Some(Dragging::Mover {
-                            context: MoverDraggingContext {
-                                start_global_xy: Xy::zero(),
-                                end_global_xy: Xy::zero(),
-                                container_wh: wh,
-                                moving_with,
-                            },
-                        }));
-                    };
-                    let mutate_dragging = || {
-                        let mut delta_xy = moving_with.delta_xy();
-                        if !namui::keyboard::shift_press() {
-                            delta_xy *= 10.0;
-                        }
-                        set_dragging.mutate(move |dragging| {
-                            if let Some(Dragging::Mover { context }) = dragging {
-                                context.end_global_xy = context.end_global_xy + delta_xy;
-                            }
-                        });
-                    };
-                    match *dragging {
-                        Some(Dragging::Mover { context }) => {
-                            if context.moving_with.key_changed(event.code) {
-                                update_sequence_with_mover(context, graphic_index);
-                                set_new_dragging();
-                            }
-                            mutate_dragging();
-                            event.stop_propagation();
-                        }
-                        None => {
-                            set_new_dragging();
-                            mutate_dragging();
-                            event.stop_propagation();
-                        }
-                        _ => return false,
-                    }
-                    return true;
-                }
+            if !cut_editor_focused {
+                return ControlFlow::Continue(());
             }
-            false
+
+            let Some(graphic_index) = *editing_graphic_index else {
+                return ControlFlow::Continue(());
+            };
+
+            let Ok(moving_with) = MovingWith::try_from(event.code) else {
+                return ControlFlow::Continue(());
+            };
+            let new_context = || MoverDraggingContext {
+                start_global_xy: Xy::zero(),
+                end_global_xy: Xy::zero(),
+                container_wh: wh,
+                moving_with,
+            };
+
+            let next_mover_context = match *dragging {
+                Some(Dragging::Mover { context }) => {
+                    if context.moving_with.key_changed(event.code) {
+                        update_sequence_with_mover(context, graphic_index);
+                        new_context()
+                    } else {
+                        context
+                    }
+                }
+                None => new_context(),
+                _ => {
+                    return ControlFlow::Continue(());
+                }
+            };
+
+            set_dragging.set(Some(Dragging::Mover {
+                context: MoverDraggingContext {
+                    end_global_xy: next_mover_context.end_global_xy
+                        + moving_with.delta_xy()
+                            * if !namui::keyboard::shift_press() {
+                                10.0
+                            } else {
+                                1.0
+                            },
+                    ..next_mover_context
+                },
+            }));
+
+            event.stop_propagation();
+            ControlFlow::Break(())
         };
 
         let background = simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
@@ -191,8 +187,13 @@ impl Component for WysiwygEditor<'_> {
                         set_dragging.set(None);
                     }
                     Event::KeyDown { event } => {
-                        let _ = handle_graphic_order_change_shortcut(&event)
-                            || handle_graphic_move_shortcut(&event);
+                        series_event_handle!(
+                            event,
+                            [
+                                handle_graphic_order_change_shortcut,
+                                handle_graphic_move_shortcut,
+                            ],
+                        );
                     }
                     Event::KeyUp { event } => {
                         if let Some(Dragging::Mover { context }) = *dragging {
@@ -441,3 +442,20 @@ pub enum Dragging {
         context: mover::MoverDraggingContext,
     },
 }
+
+macro_rules! series_event_handle {
+    (
+        $event:ident,
+        [$($event_handler:expr),+ $(,)?]$(,)?
+    ) => {
+        loop {
+            $(
+                if let std::ops::ControlFlow::Break(_) = $event_handler(&$event) {
+                    break;
+                }
+            )*
+            break;
+        }
+    };
+}
+use series_event_handle;
