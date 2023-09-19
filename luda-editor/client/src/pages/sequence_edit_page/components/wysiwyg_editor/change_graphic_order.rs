@@ -46,7 +46,7 @@ pub fn send_backward(screen_graphics: &[(Uuid, ScreenGraphic)], cut_id: Uuid, gr
     });
 }
 
-pub fn bring_forward(screen_graphics: &[(Uuid, ScreenGraphic)], graphic_index: Uuid, cut_id: Uuid) {
+pub fn bring_forward(screen_graphics: &[(Uuid, ScreenGraphic)], cut_id: Uuid, graphic_index: Uuid) {
     let previous_graphic_index = {
         screen_graphics
             .iter()
@@ -88,4 +88,25 @@ pub fn bring_to_front(
             },
         )
     });
+}
+
+pub enum Command {
+    SendToBack,
+    SendBackward,
+    BringForward,
+    BringToFront,
+}
+
+pub fn run_command(
+    screen_graphics: &[(Uuid, ScreenGraphic)],
+    cut_id: Uuid,
+    graphic_index: Uuid,
+    command: Command,
+) {
+    match command {
+        Command::SendToBack => send_to_back(screen_graphics, cut_id, graphic_index),
+        Command::SendBackward => send_backward(screen_graphics, cut_id, graphic_index),
+        Command::BringForward => bring_forward(screen_graphics, cut_id, graphic_index),
+        Command::BringToFront => bring_to_front(screen_graphics, cut_id, graphic_index),
+    }
 }
