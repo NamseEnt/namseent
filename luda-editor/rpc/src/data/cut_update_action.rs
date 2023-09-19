@@ -203,10 +203,8 @@ impl CutUpdateAction {
                 graphic_index,
                 after_graphic_index,
             } => {
-                if let Some(after_graphic_index) = after_graphic_index {
-                    if after_graphic_index == graphic_index {
-                        return;
-                    }
+                if after_graphic_index == Some(graphic_index) {
+                    panic!("Cannot move cut after itself");
                 }
                 let Some(moving_graphic_position) = cut
                     .screen_graphics

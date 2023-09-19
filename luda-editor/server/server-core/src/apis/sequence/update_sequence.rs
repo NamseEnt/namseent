@@ -90,9 +90,9 @@ pub async fn update_sequence(
         rpc::data::SequenceUpdateAction::MoveCut {
             cut_id,
             after_cut_id,
-        } => 'handle_move_cut_action: {
+        } => {
             if after_cut_id == Some(cut_id) {
-                break 'handle_move_cut_action transact;
+                return Err(Error::Unknown("Cannot move cut after itself".to_string()));
             }
             let moving_cut_position = sequence_document
                 .cuts

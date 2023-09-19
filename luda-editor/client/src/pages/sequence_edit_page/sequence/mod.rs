@@ -70,7 +70,7 @@ impl SequenceWrapped {
                     after_cut_id,
                 } => {
                     if after_cut_id == Some(cut_id) {
-                        return;
+                        panic!("Cannot move cut after itself");
                     }
                     let moving_cut_position = sequence
                         .cuts
