@@ -1,6 +1,7 @@
 use super::*;
 use crate::simple_error_impl;
 use namui_type::Uuid;
+use std::marker::PhantomData;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum SequenceUpdateAction {
@@ -23,8 +24,9 @@ pub enum SequenceUpdateAction {
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MoveCutAction {
-    cut_id: Uuid,
-    after_cut_id: Option<Uuid>,
+    pub cut_id: Uuid,
+    pub after_cut_id: Option<Uuid>,
+    _prevent_direct_creation: PhantomData<()>,
 }
 impl MoveCutAction {
     pub fn new(cut_id: Uuid, after_cut_id: Option<Uuid>) -> Result<Self, MoveCutActionCreateError> {
@@ -34,13 +36,8 @@ impl MoveCutAction {
         Ok(Self {
             cut_id,
             after_cut_id,
+            _prevent_direct_creation: PhantomData,
         })
-    }
-    pub fn cut_id(&self) -> Uuid {
-        self.cut_id
-    }
-    pub fn after_cut_id(&self) -> Option<Uuid> {
-        self.after_cut_id
     }
 }
 impl From<MoveCutAction> for SequenceUpdateAction {

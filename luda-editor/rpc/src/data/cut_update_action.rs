@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use super::*;
 use crate::simple_error_impl;
 use namui_type::Uuid;
@@ -58,8 +60,9 @@ pub enum CutUpdateAction {
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChangeGraphicOrderAction {
-    pub(crate) graphic_index: Uuid,
-    pub(crate) after_graphic_index: Option<Uuid>,
+    pub graphic_index: Uuid,
+    pub after_graphic_index: Option<Uuid>,
+    prevent_direct_creation: PhantomData<()>,
 }
 impl ChangeGraphicOrderAction {
     pub fn new(
@@ -72,6 +75,7 @@ impl ChangeGraphicOrderAction {
         Ok(Self {
             graphic_index,
             after_graphic_index,
+            prevent_direct_creation: PhantomData,
         })
     }
 }
@@ -229,6 +233,7 @@ impl CutUpdateAction {
             CutUpdateAction::ChangeGraphicOrder(ChangeGraphicOrderAction {
                 graphic_index,
                 after_graphic_index,
+                ..
             }) => {
                 let Some(moving_graphic_position) = cut
                     .screen_graphics
