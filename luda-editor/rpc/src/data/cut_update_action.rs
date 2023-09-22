@@ -1,4 +1,5 @@
 use super::*;
+use crate::simple_error_impl;
 use namui_type::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -53,10 +54,36 @@ pub enum CutUpdateAction {
     DeleteGraphic {
         graphic_index: Uuid,
     },
-    ChangeGraphicOrder {
+    ChangeGraphicOrder(ChangeGraphicOrderAction),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ChangeGraphicOrderAction {
+    pub(crate) graphic_index: Uuid,
+    pub(crate) after_graphic_index: Option<Uuid>,
+}
+impl ChangeGraphicOrderAction {
+    pub fn new(
         graphic_index: Uuid,
         after_graphic_index: Option<Uuid>,
-    },
+    ) -> Result<Self, ChangeGraphicOrderActionCreateError> {
+        if after_graphic_index == Some(graphic_index) {
+            return Err(ChangeGraphicOrderActionCreateError::MoveAfterItself);
+        }
+        Ok(Self {
+            graphic_index,
+            after_graphic_index,
+        })
+    }
+}
+impl Into<CutUpdateAction> for ChangeGraphicOrderAction {
+    fn into(self) -> CutUpdateAction {
+        CutUpdateAction::ChangeGraphicOrder(self)
+    }
+}
+simple_error_impl!(ChangeGraphicOrderActionCreateError);
+#[derive(Debug)]
+pub enum ChangeGraphicOrderActionCreateError {
+    MoveAfterItself,
 }
 
 impl CutUpdateAction {
@@ -199,13 +226,10 @@ impl CutUpdateAction {
                     cut.screen_graphics.remove(position);
                 }
             }
-            CutUpdateAction::ChangeGraphicOrder {
+            CutUpdateAction::ChangeGraphicOrder(ChangeGraphicOrderAction {
                 graphic_index,
                 after_graphic_index,
-            } => {
-                if after_graphic_index == Some(graphic_index) {
-                    panic!("Cannot move cut after itself");
-                }
+            }) => {
                 let Some(moving_graphic_position) = cut
                     .screen_graphics
                     .iter()
