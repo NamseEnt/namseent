@@ -25,7 +25,7 @@ impl Cut {
             screen_graphics: previous
                 .screen_graphics
                 .into_iter()
-                .map(|sg| (Uuid::new_v4(), sg))
+                .map(|sg| (Uuid::new_v4(), ScreenGraphic::migrate(sg)))
                 .collect(),
         }
     }
