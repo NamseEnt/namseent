@@ -66,10 +66,9 @@ impl Component for GraphicListView<'_> {
                     .and_then(|position| graphics.get(position))
                     .map(|(index, _)| *index);
 
-                let change_graphic_order_action =
-                    ChangeGraphicOrderAction::new(dragging.graphic_index, after_graphic_index);
-
-                if let Ok(change_graphic_order_action) = change_graphic_order_action {
+                if let Ok(change_graphic_order_action) =
+                    ChangeGraphicOrderAction::new(dragging.graphic_index, after_graphic_index)
+                {
                     SEQUENCE_ATOM.mutate(move |sequence| {
                         sequence.update_cut(
                             cut_id,
