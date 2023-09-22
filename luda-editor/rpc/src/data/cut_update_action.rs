@@ -75,9 +75,9 @@ impl ChangeGraphicOrderAction {
         })
     }
 }
-impl Into<CutUpdateAction> for ChangeGraphicOrderAction {
-    fn into(self) -> CutUpdateAction {
-        CutUpdateAction::ChangeGraphicOrder(self)
+impl From<ChangeGraphicOrderAction> for CutUpdateAction {
+    fn from(value: ChangeGraphicOrderAction) -> Self {
+        Self::ChangeGraphicOrder(value)
     }
 }
 simple_error_impl!(ChangeGraphicOrderActionCreateError);

@@ -43,9 +43,9 @@ impl MoveCutAction {
         self.after_cut_id
     }
 }
-impl Into<SequenceUpdateAction> for MoveCutAction {
-    fn into(self) -> SequenceUpdateAction {
-        SequenceUpdateAction::MoveCut(self)
+impl From<MoveCutAction> for SequenceUpdateAction {
+    fn from(value: MoveCutAction) -> Self {
+        Self::MoveCut(value)
     }
 }
 simple_error_impl!(MoveCutActionCreateError);
