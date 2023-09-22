@@ -87,10 +87,9 @@ pub async fn update_sequence(
             sequence_document.cuts.remove(cut_position);
             transact
         }
-        rpc::data::SequenceUpdateAction::MoveCut {
-            cut_id,
-            after_cut_id,
-        } => {
+        rpc::data::SequenceUpdateAction::MoveCut(move_cut_action) => {
+            let cut_id = move_cut_action.cut_id();
+            let after_cut_id = move_cut_action.after_cut_id();
             let moving_cut_position = sequence_document
                 .cuts
                 .iter()

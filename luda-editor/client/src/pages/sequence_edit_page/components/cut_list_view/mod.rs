@@ -8,7 +8,7 @@ use crate::{
 use cut_cell::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use rpc::data::{Cut, Memo};
+use rpc::data::{Cut, Memo, MoveCutAction};
 use std::collections::HashMap;
 
 static DRAGGING_CONTEXT: Atom<Option<DraggingContext>> = Atom::uninitialized_new();
@@ -156,17 +156,8 @@ impl Component for CutListView<'_> {
                     .checked_sub(1)
                     .and_then(|index| cuts.get(index))
                     .map(|cut| cut.id);
-
-                match after_cut_id {
-                    Some(after_cut_id) if after_cut_id == dragging.cut_id => {}
-                    _ => {
-                        SEQUENCE_ATOM.mutate(move |sequence| {
-                            sequence.update(rpc::data::SequenceUpdateAction::MoveCut {
-                                cut_id: dragging.cut_id,
-                                after_cut_id,
-                            })
-                        });
-                    }
+                if let Ok(move_cut_action) = MoveCutAction::new(dragging.cut_id, after_cut_id) {
+                    SEQUENCE_ATOM.mutate(move |sequence| sequence.update(move_cut_action.into()));
                 }
             }
             set_dragging.set(None);

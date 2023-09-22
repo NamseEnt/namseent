@@ -65,10 +65,9 @@ impl SequenceWrapped {
                         sequence.cuts.swap_remove(position);
                     }
                 }
-                rpc::data::SequenceUpdateAction::MoveCut {
-                    cut_id,
-                    after_cut_id,
-                } => {
+                rpc::data::SequenceUpdateAction::MoveCut(move_cut_action) => {
+                    let cut_id = move_cut_action.cut_id();
+                    let after_cut_id = move_cut_action.after_cut_id();
                     let moving_cut_position = sequence
                         .cuts
                         .iter()
