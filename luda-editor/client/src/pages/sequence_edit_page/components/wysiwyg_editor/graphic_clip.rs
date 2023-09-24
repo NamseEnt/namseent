@@ -177,20 +177,28 @@ impl Component for GraphicClip<'_> {
         };
 
         ctx.compose(|ctx| {
-            if is_editing_graphic {
-                ctx.add(WysiwygTool {
-                    graphic_dest_rect: graphic_rendering_rect,
-                    original_graphic_size: graphic_wh,
-                    graphic_index,
-                    graphic,
-                    dragging,
-                    wh,
-                    on_event: &|event| on_event(Event::WysiwygTool(event)),
-                });
-            }
-        });
+            let center_xy = graphic_rendering_rect.center();
+            let mut ctx = ctx
+                .translate(center_xy)
+                .rotate(graphic.rotation())
+                .translate(center_xy * -1.0);
 
-        ctx.compose(graphic_rendering_tree);
+            ctx.compose(|ctx| {
+                if is_editing_graphic {
+                    ctx.add(WysiwygTool {
+                        graphic_dest_rect: graphic_rendering_rect,
+                        original_graphic_size: graphic_wh,
+                        graphic_index,
+                        graphic,
+                        dragging,
+                        wh,
+                        on_event: &|event| on_event(Event::WysiwygTool(event)),
+                    });
+                }
+            });
+
+            ctx.compose(graphic_rendering_tree);
+        });
 
         ctx.done()
     }
