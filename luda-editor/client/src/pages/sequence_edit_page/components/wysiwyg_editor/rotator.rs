@@ -112,7 +112,7 @@ impl RotatorDraggingContext {
     pub fn rotation(&self, snap: bool) -> Angle {
         const SNAP_ANGLE_DEGREE: f32 = 15.0;
         let angle =
-            Xy::new(0.0.px(), -1.0.px()).angle_to(self.end_global_xy - self.origin_global_xy);
+            Xy::new(0.0.px(), -(1.0.px())).angle_to(self.end_global_xy - self.origin_global_xy);
 
         if !snap {
             return angle;
