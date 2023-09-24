@@ -1,5 +1,8 @@
 use crate::documents::*;
-use rpc::update_sequence::{Error, Request, Response};
+use rpc::{
+    data::MoveCutAction,
+    update_sequence::{Error, Request, Response},
+};
 
 pub async fn update_sequence(
     session: Option<SessionDocument>,
@@ -87,10 +90,11 @@ pub async fn update_sequence(
             sequence_document.cuts.remove(cut_position);
             transact
         }
-        rpc::data::SequenceUpdateAction::MoveCut {
+        rpc::data::SequenceUpdateAction::MoveCut(MoveCutAction {
             cut_id,
             after_cut_id,
-        } => {
+            ..
+        }) => {
             let moving_cut_position = sequence_document
                 .cuts
                 .iter()

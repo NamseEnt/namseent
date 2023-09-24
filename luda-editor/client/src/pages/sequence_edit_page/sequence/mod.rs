@@ -3,7 +3,7 @@ mod syncer;
 
 use self::{history::*, syncer::*};
 use namui::Uuid;
-use rpc::data::{CutUpdateAction, Sequence};
+use rpc::data::{CutUpdateAction, MoveCutAction, Sequence};
 
 const MAX_EDIT_HISTORY: usize = 8;
 
@@ -65,10 +65,11 @@ impl SequenceWrapped {
                         sequence.cuts.swap_remove(position);
                     }
                 }
-                rpc::data::SequenceUpdateAction::MoveCut {
+                rpc::data::SequenceUpdateAction::MoveCut(MoveCutAction {
                     cut_id,
                     after_cut_id,
-                } => {
+                    ..
+                }) => {
                     let moving_cut_position = sequence
                         .cuts
                         .iter()

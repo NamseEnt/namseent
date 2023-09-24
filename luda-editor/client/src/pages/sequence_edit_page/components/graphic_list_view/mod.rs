@@ -11,6 +11,7 @@ use crate::{
 };
 use namui::prelude::*;
 use namui_prebuilt::{scroll_view, simple_rect, table};
+use rpc::data::ChangeGraphicOrderAction;
 
 #[component]
 pub struct GraphicListView<'a> {
@@ -65,19 +66,17 @@ impl Component for GraphicListView<'_> {
                     .and_then(|position| graphics.get(position))
                     .map(|(index, _)| *index);
 
-                match after_graphic_index {
-                    Some(after_graphic_index) if after_graphic_index == dragging.graphic_index => {}
-                    _ => {
-                        SEQUENCE_ATOM.mutate(move |sequence| {
-                            sequence.update_cut(
-                                cut_id,
-                                rpc::data::CutUpdateAction::ChangeGraphicOrder {
-                                    graphic_index: dragging.graphic_index,
-                                    after_graphic_index,
-                                },
-                            );
-                        });
-                    }
+                if let Ok(change_graphic_order_action) =
+                    ChangeGraphicOrderAction::new(dragging.graphic_index, after_graphic_index)
+                {
+                    SEQUENCE_ATOM.mutate(move |sequence| {
+                        sequence.update_cut(
+                            cut_id,
+                            rpc::data::CutUpdateAction::ChangeGraphicOrder(
+                                change_graphic_order_action,
+                            ),
+                        );
+                    })
                 }
             };
             set_dragging.set(None);

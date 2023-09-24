@@ -1,4 +1,7 @@
+use std::marker::PhantomData;
+
 use super::*;
+use crate::simple_error_impl;
 use namui_type::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -53,10 +56,38 @@ pub enum CutUpdateAction {
     DeleteGraphic {
         graphic_index: Uuid,
     },
-    ChangeGraphicOrder {
+    ChangeGraphicOrder(ChangeGraphicOrderAction),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ChangeGraphicOrderAction {
+    pub graphic_index: Uuid,
+    pub after_graphic_index: Option<Uuid>,
+    prevent_direct_creation: PhantomData<()>,
+}
+impl ChangeGraphicOrderAction {
+    pub fn new(
         graphic_index: Uuid,
         after_graphic_index: Option<Uuid>,
-    },
+    ) -> Result<Self, ChangeGraphicOrderActionCreateError> {
+        if after_graphic_index == Some(graphic_index) {
+            return Err(ChangeGraphicOrderActionCreateError::MoveAfterItself);
+        }
+        Ok(Self {
+            graphic_index,
+            after_graphic_index,
+            prevent_direct_creation: PhantomData,
+        })
+    }
+}
+impl From<ChangeGraphicOrderAction> for CutUpdateAction {
+    fn from(value: ChangeGraphicOrderAction) -> Self {
+        Self::ChangeGraphicOrder(value)
+    }
+}
+simple_error_impl!(ChangeGraphicOrderActionCreateError);
+#[derive(Debug)]
+pub enum ChangeGraphicOrderActionCreateError {
+    MoveAfterItself,
 }
 
 impl CutUpdateAction {
@@ -199,10 +230,11 @@ impl CutUpdateAction {
                     cut.screen_graphics.remove(position);
                 }
             }
-            CutUpdateAction::ChangeGraphicOrder {
+            CutUpdateAction::ChangeGraphicOrder(ChangeGraphicOrderAction {
                 graphic_index,
                 after_graphic_index,
-            } => {
+                ..
+            }) => {
                 let Some(moving_graphic_position) = cut
                     .screen_graphics
                     .iter()

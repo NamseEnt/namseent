@@ -1,21 +1,16 @@
 use crate::pages::sequence_edit_page::atom::SEQUENCE_ATOM;
 use namui::Uuid;
-use rpc::data::{CutUpdateAction, ScreenGraphic};
+use rpc::data::{ChangeGraphicOrderAction, ScreenGraphic};
 
 pub fn send_to_back(screen_graphics: &[(Uuid, ScreenGraphic)], cut_id: Uuid, graphic_index: Uuid) {
     if let Some(last_graphic_index) = screen_graphics.last().map(|(index, _)| *index) {
-        if last_graphic_index == graphic_index {
-            return;
-        }
-        SEQUENCE_ATOM.mutate(move |sequence| {
-            sequence.update_cut(
-                cut_id,
-                CutUpdateAction::ChangeGraphicOrder {
-                    graphic_index,
-                    after_graphic_index: Some(last_graphic_index),
-                },
-            )
-        });
+        if let Ok(change_graphic_order_action) =
+            ChangeGraphicOrderAction::new(graphic_index, Some(last_graphic_index))
+        {
+            SEQUENCE_ATOM.mutate(move |sequence| {
+                sequence.update_cut(cut_id, change_graphic_order_action.into())
+            });
+        };
     }
 }
 
@@ -31,19 +26,13 @@ pub fn send_backward(screen_graphics: &[(Uuid, ScreenGraphic)], cut_id: Uuid, gr
     }) else {
         return;
     };
-    if next_or_last_graphic_index == graphic_index {
-        return;
-    }
-
-    SEQUENCE_ATOM.mutate(move |sequence| {
-        sequence.update_cut(
-            cut_id,
-            CutUpdateAction::ChangeGraphicOrder {
-                graphic_index,
-                after_graphic_index: Some(next_or_last_graphic_index),
-            },
-        )
-    });
+    if let Ok(change_graphic_order_action) =
+        ChangeGraphicOrderAction::new(graphic_index, Some(next_or_last_graphic_index))
+    {
+        SEQUENCE_ATOM.mutate(move |sequence| {
+            sequence.update_cut(cut_id, change_graphic_order_action.into())
+        });
+    };
 }
 
 pub fn bring_forward(screen_graphics: &[(Uuid, ScreenGraphic)], cut_id: Uuid, graphic_index: Uuid) {
@@ -56,19 +45,13 @@ pub fn bring_forward(screen_graphics: &[(Uuid, ScreenGraphic)], cut_id: Uuid, gr
                 None => None,
             })
     };
-    if previous_graphic_index == Some(graphic_index) {
-        return;
+    if let Ok(change_graphic_order_action) =
+        ChangeGraphicOrderAction::new(graphic_index, previous_graphic_index)
+    {
+        SEQUENCE_ATOM.mutate(move |sequence| {
+            sequence.update_cut(cut_id, change_graphic_order_action.into())
+        });
     }
-
-    SEQUENCE_ATOM.mutate(move |sequence| {
-        sequence.update_cut(
-            cut_id,
-            CutUpdateAction::ChangeGraphicOrder {
-                graphic_index,
-                after_graphic_index: previous_graphic_index,
-            },
-        )
-    });
 }
 
 pub fn bring_to_front(
@@ -79,15 +62,11 @@ pub fn bring_to_front(
     if screen_graphics.first().map(|(index, _)| *index) == Some(graphic_index) {
         return;
     }
-    SEQUENCE_ATOM.mutate(move |sequence| {
-        sequence.update_cut(
-            cut_id,
-            CutUpdateAction::ChangeGraphicOrder {
-                graphic_index,
-                after_graphic_index: None,
-            },
-        )
-    });
+    if let Ok(change_graphic_order_action) = ChangeGraphicOrderAction::new(graphic_index, None) {
+        SEQUENCE_ATOM.mutate(move |sequence| {
+            sequence.update_cut(cut_id, change_graphic_order_action.into())
+        });
+    }
 }
 
 pub enum Command {
