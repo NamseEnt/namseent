@@ -93,7 +93,7 @@ impl RenderCtx {
     }
 
     pub(crate) fn matrix(&self) -> Matrix3x3 {
-        self.matrix.lock().unwrap().clone()
+        *self.matrix.lock().unwrap()
     }
 
     pub(crate) fn inverse_matrix(&self) -> Matrix3x3 {
