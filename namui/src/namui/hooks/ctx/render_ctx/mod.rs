@@ -83,17 +83,17 @@ impl RenderCtx {
     }
 
     fn render_children(&self, key_vec: KeyVec, component: impl Component) -> RenderingTree {
-        self.renderer().render(
-            key_vec,
-            component,
-            *self.matrix.lock().unwrap(),
-            self.clippings.clone(),
-        )
+        self.renderer()
+            .render(key_vec, component, self.matrix(), self.clippings.clone())
     }
 
     fn get_next_component_index(&self) -> usize {
         self.component_index
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    }
+
+    pub(crate) fn matrix(&self) -> Matrix3x3 {
+        self.matrix.lock().unwrap().clone()
     }
 
     pub(crate) fn inverse_matrix(&self) -> Matrix3x3 {
