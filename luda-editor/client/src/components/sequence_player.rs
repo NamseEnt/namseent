@@ -463,40 +463,53 @@ impl Component for SequencePlayerGraphic<'_> {
             return ctx.done();
         };
 
-        ctx.compose(|ctx| match graphic.as_ref() {
-            ScreenGraphic::Image(screen_image) => {
-                let rect =
-                    calculate_graphic_rect_on_screen(image.wh, self.wh, screen_image.circumscribed);
+        ctx.compose(|ctx| {
+            let center_xy = image.wh.to_rect().center();
+            let mut ctx = ctx
+                .translate(center_xy)
+                .rotate(graphic.rotation())
+                .translate(center_xy * -1.0);
+            match graphic.as_ref() {
+                ScreenGraphic::Image(screen_image) => {
+                    let rect = calculate_graphic_rect_on_screen(
+                        image.wh,
+                        self.wh,
+                        screen_image.circumscribed,
+                    );
 
-                ctx.add(namui::image(ImageParam {
-                    rect,
-                    source: ImageSource::Url {
-                        url: url.clone_inner(),
-                    },
-                    style: ImageStyle {
-                        fit: ImageFit::Fill,
-                        paint: self.paint,
-                    },
-                }));
-            }
-            ScreenGraphic::Cg(screen_cg) => {
-                let outer_rect =
-                    calculate_graphic_rect_on_screen(image.wh, self.wh, screen_cg.circumscribed);
+                    ctx.add(namui::image(ImageParam {
+                        rect,
+                        source: ImageSource::Url {
+                            url: url.clone_inner(),
+                        },
+                        style: ImageStyle {
+                            fit: ImageFit::Fill,
+                            paint: self.paint,
+                        },
+                    }));
+                }
+                ScreenGraphic::Cg(screen_cg) => {
+                    let outer_rect = calculate_graphic_rect_on_screen(
+                        image.wh,
+                        self.wh,
+                        screen_cg.circumscribed,
+                    );
 
-                let cg_file = self
-                    .cg_files
-                    .iter()
-                    .find(|cg_file| cg_file.name == screen_cg.name);
+                    let cg_file = self
+                        .cg_files
+                        .iter()
+                        .find(|cg_file| cg_file.name == screen_cg.name);
 
-                match cg_file {
-                    Some(cg_file) => ctx.add(cg_render::CgRender {
-                        project_id: self.project_id,
-                        rect: outer_rect,
-                        screen_cg,
-                        cg_file,
-                    }),
-                    None => ctx.add(RenderingTree::Empty),
-                };
+                    match cg_file {
+                        Some(cg_file) => ctx.add(cg_render::CgRender {
+                            project_id: self.project_id,
+                            rect: outer_rect,
+                            screen_cg,
+                            cg_file,
+                        }),
+                        None => ctx.add(RenderingTree::Empty),
+                    };
+                }
             }
         })
         .done()

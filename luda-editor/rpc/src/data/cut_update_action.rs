@@ -1,8 +1,7 @@
-use std::marker::PhantomData;
-
 use super::*;
 use crate::simple_error_impl;
-use namui_type::Uuid;
+use namui_type::{Angle, Uuid};
+use std::marker::PhantomData;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum CutUpdateAction {
@@ -57,6 +56,10 @@ pub enum CutUpdateAction {
         graphic_index: Uuid,
     },
     ChangeGraphicOrder(ChangeGraphicOrderAction),
+    UpdateGraphicRotation {
+        graphic_index: Uuid,
+        rotation: Angle,
+    },
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChangeGraphicOrderAction {
@@ -259,6 +262,10 @@ impl CutUpdateAction {
 
                 cut.screen_graphics.insert(insert_position, moving_graphic);
             }
+            CutUpdateAction::UpdateGraphicRotation {
+                graphic_index,
+                rotation,
+            } => update_graphic(cut, graphic_index, |graphic| graphic.set_rotation(rotation)),
         }
     }
 }

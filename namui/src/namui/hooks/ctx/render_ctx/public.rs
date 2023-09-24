@@ -133,6 +133,11 @@ impl<'a> RenderCtx {
         self.children.lock().unwrap().push(rendering_tree);
         self
     }
+    pub fn global_xy(&self, local_xy: Xy<Px>) -> Xy<Px> {
+        let local_xy = Matrix3x3::from_translate(local_xy.x.as_f32(), local_xy.y.as_f32());
+        let global_xy = self.matrix() * local_xy;
+        Xy::new(global_xy.x().px(), global_xy.y().px())
+    }
 }
 
 pub struct GhostComposeOption {

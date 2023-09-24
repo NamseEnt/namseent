@@ -12,6 +12,7 @@ pub enum MouseCursor {
     Grabbing,
     Move,
     Pointer,
+    Crosshair,
     Custom(RenderingTree),
 }
 impl MouseCursor {
@@ -27,6 +28,7 @@ impl MouseCursor {
             Self::Grabbing => "grabbing",
             Self::Move => "move",
             Self::Pointer => "pointer",
+            Self::Crosshair => "crosshair",
             MouseCursor::Custom(_) => "none",
         }
     }

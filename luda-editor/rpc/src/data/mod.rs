@@ -1,12 +1,14 @@
 mod cg;
 mod cut;
 mod cut_update_action;
+mod screen_graphic;
 mod sequence_update_action;
 
 pub use cg::*;
 pub use cut::*;
 pub use cut_update_action::*;
 use namui_type::{Percent, PercentExt, Uuid, Xy};
+pub use screen_graphic::*;
 pub use sequence_update_action::*;
 use std::collections::HashSet;
 
@@ -86,77 +88,6 @@ pub struct Circumscribed<T> {
     pub center_xy: Xy<T>,
     /// 1.0 = 100% of the screen's radius
     pub radius: T,
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ScreenGraphic {
-    Image(ScreenImage),
-    Cg(ScreenCg),
-}
-impl ScreenGraphic {
-    pub fn circumscribed_mut(&mut self) -> &mut Circumscribed<Percent> {
-        match self {
-            Self::Image(screen_image) => &mut screen_image.circumscribed,
-            Self::Cg(screen_cg) => &mut screen_cg.circumscribed,
-        }
-    }
-    pub fn circumscribed(&self) -> Circumscribed<Percent> {
-        match self {
-            Self::Image(screen_image) => screen_image.circumscribed,
-            Self::Cg(screen_cg) => screen_cg.circumscribed,
-        }
-    }
-    pub fn set_circumscribed(&mut self, circumscribed: Circumscribed<Percent>) {
-        match self {
-            Self::Image(screen_image) => screen_image.circumscribed = circumscribed,
-            Self::Cg(screen_cg) => screen_cg.circumscribed = circumscribed,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct ScreenImage {
-    pub id: Uuid,
-    pub circumscribed: Circumscribed<Percent>,
-}
-impl ScreenImage {
-    pub fn new(id: Uuid) -> Self {
-        Self {
-            id,
-            circumscribed: Circumscribed {
-                center_xy: Xy::new(50.percent(), 50.percent()),
-                radius: 50.percent(),
-            },
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct ScreenCg {
-    pub id: Uuid,
-    pub name: String,
-    pub parts: Vec<ScreenCgPart>,
-    pub circumscribed: Circumscribed<Percent>,
-}
-impl ScreenCg {
-    pub fn new(cg_file: &CgFile) -> Self {
-        Self {
-            id: cg_file.id,
-            name: cg_file.name.clone(),
-            parts: cg_file
-                .parts
-                .iter()
-                .map(|part| ScreenCgPart::new(&part.name, part.selection_type))
-                .collect(),
-            circumscribed: Circumscribed {
-                center_xy: Xy::new(50.percent(), 50.percent()),
-                radius: 50.percent(),
-            },
-        }
-    }
-    pub fn part(&self, part_name: &str) -> Option<&ScreenCgPart> {
-        self.parts.iter().find(|part| part.name() == part_name)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]

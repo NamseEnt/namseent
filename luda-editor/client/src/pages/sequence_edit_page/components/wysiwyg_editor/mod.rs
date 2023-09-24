@@ -3,6 +3,7 @@ mod graphic_clip;
 mod grid_guide;
 mod mover;
 mod resizer;
+mod rotator;
 mod wysiwyg_tool;
 
 use self::{
@@ -26,6 +27,7 @@ use mover::Mover;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use resizer::Resizer;
+use rotator::Rotator;
 use rpc::data::{CgFile, CutUpdateAction, ScreenGraphic};
 use std::ops::{ControlFlow, Deref};
 
@@ -269,6 +271,27 @@ impl Component for WysiwygEditor<'_> {
                                         );
                                     }
                                 },
+                                wysiwyg_tool::Event::Rotator { event } => match event {
+                                    rotator::Event::OnRotate {
+                                        rotation,
+                                        graphic_index,
+                                    } => {
+                                        SEQUENCE_ATOM.mutate(move |sequence| {
+                                            sequence.update_cut(
+                                                cut_id,
+                                                CutUpdateAction::UpdateGraphicRotation {
+                                                    graphic_index,
+                                                    rotation,
+                                                },
+                                            )
+                                        });
+                                    }
+                                    rotator::Event::OnUpdateDraggingContext { context } => {
+                                        set_dragging.set(
+                                            context.map(|context| Dragging::Rotator { context }),
+                                        );
+                                    }
+                                },
                             },
                             graphic_clip::Event::SelectImage { graphic_index } => {
                                 set_editing_graphic_index.set(Some(graphic_index))
@@ -440,6 +463,9 @@ pub enum Dragging {
     },
     Mover {
         context: mover::MoverDraggingContext,
+    },
+    Rotator {
+        context: rotator::RotatorDraggingContext,
     },
 }
 

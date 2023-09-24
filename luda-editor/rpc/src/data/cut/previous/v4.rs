@@ -1,5 +1,5 @@
 use super::*;
-use crate::data::ScreenGraphic;
+use crate::data::screen_graphic;
 use crate::Uuid;
 
 #[migration::version(4)]
@@ -9,7 +9,7 @@ pub struct Cut {
     /// The text that the character speaks in this cut.
     pub line: String,
     pub character_name: String,
-    pub screen_graphics: Vec<ScreenGraphic>,
+    pub screen_graphics: Vec<screen_graphic::previous::v0::ScreenGraphic>,
 }
 
 impl Cut {
@@ -21,7 +21,7 @@ impl Cut {
             screen_graphics: previous
                 .screen_images
                 .into_iter()
-                .map(ScreenGraphic::Image)
+                .map(screen_graphic::previous::v0::ScreenGraphic::Image)
                 .collect(),
         }
     }
