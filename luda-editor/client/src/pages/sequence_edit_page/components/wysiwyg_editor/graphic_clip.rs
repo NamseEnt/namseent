@@ -82,6 +82,10 @@ impl Component for GraphicClip<'_> {
 
                         calculate_graphic_rect_on_screen(graphic_wh, wh, circumscribed)
                     }
+                    Dragging::Rotator { context: _context } => {
+                        let image_left_top_xy = center_xy - graphic_wh_on_screen.as_xy() / 2.0;
+                        Rect::from_xy_wh(image_left_top_xy, graphic_wh_on_screen)
+                    }
                 },
                 _ => {
                     let image_left_top_xy = center_xy - graphic_wh_on_screen.as_xy() / 2.0;
@@ -89,6 +93,15 @@ impl Component for GraphicClip<'_> {
                     Rect::from_xy_wh(image_left_top_xy, graphic_wh_on_screen)
                 }
             }
+        };
+        let graphic_rendering_rotation = 'get_rotation: {
+            if is_editing_graphic {
+                if let Some(Dragging::Rotator { context }) = dragging.as_ref() {
+                    let rotation = context.rotation(keyboard::shift_press());
+                    break 'get_rotation rotation;
+                }
+            }
+            graphic.rotation()
         };
 
         let graphic_rendering_tree = |ctx: &mut ComposeCtx| {
@@ -180,7 +193,7 @@ impl Component for GraphicClip<'_> {
             let center_xy = graphic_rendering_rect.center();
             let mut ctx = ctx
                 .translate(center_xy)
-                .rotate(graphic.rotation())
+                .rotate(graphic_rendering_rotation)
                 .translate(center_xy * -1.0);
 
             ctx.compose(|ctx| {
