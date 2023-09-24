@@ -20,6 +20,8 @@ pub enum Event {
 
 impl Component for Rotator<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
+        const HANDLE_RADIUS: Px = px(5.0);
+        const HANDLE_OFFSET: Px = px(18.0);
         let Self {
             rect,
             dragging_context,
@@ -27,9 +29,6 @@ impl Component for Rotator<'_> {
             ref on_event,
         } = self;
         let on_event = on_event.clone();
-
-        const HANDLE_RADIUS: Px = px(5.0);
-        const HANDLE_OFFSET: Px = px(18.0);
 
         let center_x = rect.center().x;
         let top_y = rect.y();
@@ -70,7 +69,7 @@ impl Component for Rotator<'_> {
                     on_event(Event::OnUpdateDraggingContext {
                         context: Some(RotatorDraggingContext {
                             origin_global_xy: context.origin_global_xy,
-                            end_global_xy: event.local_xy(),
+                            end_global_xy: event.global_xy,
                         }),
                     });
                 }
@@ -89,7 +88,7 @@ impl Component for Rotator<'_> {
                         event.stop_propagation();
                         on_event(Event::OnUpdateDraggingContext {
                             context: Some(RotatorDraggingContext {
-                                origin_global_xy: rect.center(),
+                                origin_global_xy: ctx.global_xy(rect.center()),
                                 end_global_xy: event.global_xy,
                             }),
                         });
