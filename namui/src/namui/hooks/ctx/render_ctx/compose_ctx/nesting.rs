@@ -79,6 +79,24 @@ impl ComposeCtx {
             vec![],
         )
     }
+    pub fn rotate(&mut self, angle: Angle) -> Self {
+        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        self.add_lazy(LazyRenderingTree::Rotate {
+            angle,
+            lazy: lazy.clone(),
+        });
+
+        let matrix = self.matrix * Matrix3x3::from_rotate(angle);
+        ComposeCtx::new(
+            self.tree_ctx.clone(),
+            self.next_child_key_vec(),
+            matrix,
+            self.renderer.clone(),
+            lazy,
+            self.raw_event.clone(),
+            self.clippings.clone(),
+        )
+    }
     pub fn attach_event(&mut self, on_event: impl FnOnce(Event<'_>)) -> &mut Self {
         if let Some(raw_event) = self.raw_event.lock().unwrap().clone() {
             let rendering_tree = {
