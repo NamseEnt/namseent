@@ -5,7 +5,7 @@ pub struct Rotator<'a> {
     pub rect: Rect<Px>,
     pub dragging_context: Option<RotatorDraggingContext>,
     pub graphic_index: Uuid,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 pub enum Event {
@@ -26,9 +26,8 @@ impl Component for Rotator<'_> {
             rect,
             dragging_context,
             graphic_index,
-            ref on_event,
+            on_event,
         } = self;
-        let on_event = on_event.clone();
 
         let center_x = rect.center().x;
         let top_y = rect.y();
@@ -112,31 +111,12 @@ pub struct RotatorDraggingContext {
 impl RotatorDraggingContext {
     pub fn rotation(&self, snap: bool) -> Angle {
         const SNAP_ANGLE_DEGREE: f32 = 15.0;
-        let angle = calculate_angle(
-            Xy::new(0.0, -1.0),
-            self.end_global_xy - self.origin_global_xy,
-        );
+        let angle =
+            Xy::new(0.0.px(), -1.0.px()).angle_to(self.end_global_xy - self.origin_global_xy);
+
         if !snap {
             return angle;
         }
         Angle::Degree((angle.as_degrees() / SNAP_ANGLE_DEGREE).round() * SNAP_ANGLE_DEGREE)
     }
-}
-
-fn calculate_angle<IntoF32A, IntoF32B>(
-    vector_2d_a: Xy<IntoF32A>,
-    vector_2d_b: Xy<IntoF32B>,
-) -> Angle
-where
-    IntoF32A: Into<f32> + Sized,
-    IntoF32B: Into<f32> + Sized,
-{
-    let a_x = vector_2d_a.x.into();
-    let a_y = vector_2d_a.y.into();
-    let b_x = vector_2d_b.x.into();
-    let b_y = vector_2d_b.y.into();
-
-    let dot = a_x * b_x + a_y * b_y;
-    let determinant = a_x * b_y - a_y * b_x;
-    Angle::Radian(determinant.atan2(dot))
 }

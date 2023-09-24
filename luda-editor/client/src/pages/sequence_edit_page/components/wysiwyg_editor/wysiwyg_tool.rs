@@ -46,6 +46,7 @@ impl Component for WysiwygTool<'_> {
             on_event: Box::new(|event| on_event(Event::Resizer { event })),
         });
 
+        let on_rotator_event = |event| on_event(Event::Rotator { event });
         ctx.component(Rotator {
             rect: graphic_dest_rect,
             dragging_context: if let Some(Dragging::Rotator { context }) = self.dragging.as_ref() {
@@ -54,7 +55,7 @@ impl Component for WysiwygTool<'_> {
                 None
             },
             graphic_index,
-            on_event: Box::new(|event| on_event(Event::Rotator { event })),
+            on_event: &on_rotator_event,
         });
 
         ctx.component(Mover {
