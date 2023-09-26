@@ -1,3 +1,4 @@
+mod auto_column_list;
 mod cg_list;
 mod image_list;
 mod side_bar;

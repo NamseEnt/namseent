@@ -1,4 +1,8 @@
+use super::{auto_column_list::AutoColumnList, IMAGES_ATOM};
+use crate::{color, storage::get_project_image_url};
 use namui::prelude::*;
+use namui_prebuilt::simple_rect;
+use rpc::data::ImageWithLabels;
 
 #[component]
 pub(super) struct ImageList {
@@ -8,7 +12,74 @@ pub(super) struct ImageList {
 
 impl Component for ImageList {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        // TODO: Draw List
+        let Self { wh, project_id } = self;
+
+        let (images, _set_images) = ctx.atom(&IMAGES_ATOM);
+
+        ctx.component(AutoColumnList {
+            wh,
+            items: images,
+            name_specifier: &|image: &ImageWithLabels| image.id.to_string(),
+            thumbnail_renderer: &|image, wh, ctx| {
+                ctx.add(Thumbnail {
+                    wh,
+                    project_id,
+                    image,
+                });
+            },
+        });
+
+        ctx.component(simple_rect(
+            wh,
+            color::STROKE_NORMAL,
+            1.px(),
+            color::BACKGROUND,
+        ));
+
+        ctx.done()
+    }
+}
+
+#[component]
+struct Thumbnail<'a> {
+    wh: Wh<Px>,
+    project_id: Uuid,
+    image: &'a ImageWithLabels,
+}
+impl Component for Thumbnail<'_> {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            wh,
+            image,
+            project_id,
+        } = self;
+
+        ctx.component(
+            simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
+                .with_mouse_cursor(MouseCursor::Pointer)
+                .attach_event({
+                    |event| {
+                        if let namui::Event::MouseDown { event } = event {
+                            if event.is_local_xy_in() {}
+                        }
+                    }
+                }),
+        );
+        ctx.component(get_project_image_url(project_id, image.id).map_or(
+            RenderingTree::Empty,
+            |cg_thumbnail_image_url| {
+                namui::image(ImageParam {
+                    rect: Rect::from_xy_wh(Xy::zero(), wh),
+                    source: ImageSource::Url {
+                        url: cg_thumbnail_image_url,
+                    },
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint: None,
+                    },
+                })
+            },
+        ));
         ctx.done()
     }
 }
