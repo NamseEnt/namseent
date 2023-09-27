@@ -1,8 +1,10 @@
-use super::{auto_column_list::AutoColumnList, IMAGES_ATOM};
+use super::{auto_column_list::AutoColumnList, SelectedAsset, IMAGES_ATOM, SELECTED_ASSET_ATOM};
 use crate::{color, storage::get_project_image_url};
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 use rpc::data::ImageWithLabels;
+
+const DOUBLE_CLICK_TIME: Time = Time::Sec(0.3);
 
 #[component]
 pub(super) struct ImageList {
@@ -54,13 +56,24 @@ impl Component for Thumbnail<'_> {
             project_id,
         } = self;
 
+        let (_, set_selected_asset) = ctx.atom(&SELECTED_ASSET_ATOM);
+        let (last_clicked_time, set_last_clicked_time) = ctx.state(|| Time::Day(-1.0));
+
         ctx.component(
             simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                 .with_mouse_cursor(MouseCursor::Pointer)
                 .attach_event({
                     |event| {
                         if let namui::Event::MouseDown { event } = event {
-                            if event.is_local_xy_in() {}
+                            if !event.is_local_xy_in() {
+                                return;
+                            }
+                            let now = now();
+                            if now - *last_clicked_time > DOUBLE_CLICK_TIME {
+                                set_last_clicked_time.set(now);
+                                return;
+                            }
+                            set_selected_asset.set(Some(SelectedAsset::Image(image.clone())));
                         }
                     }
                 }),

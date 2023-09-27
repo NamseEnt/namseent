@@ -1,23 +1,27 @@
 mod auto_column_list;
 mod cg_list;
 mod image_list;
+mod image_viewer;
 mod side_bar;
 mod top_bar;
 
 use crate::{
     app::notification::{self, Notification},
     pages::graphic_asset_manage_page::{
-        cg_list::CgList, image_list::ImageList, side_bar::SideBar, top_bar::TopBar,
+        cg_list::CgList, image_list::ImageList, image_viewer::ImageViewer, side_bar::SideBar,
+        top_bar::TopBar,
     },
 };
 use futures::join;
 use namui::prelude::*;
 use namui_prebuilt::table::hooks::*;
 use rpc::data::{CgFile, ImageWithLabels};
+use std::ops::Deref;
 
 static TAB_ATOM: Atom<Tab> = Atom::uninitialized_new();
 static IMAGES_ATOM: Atom<Vec<ImageWithLabels>> = Atom::uninitialized_new();
 static CG_FILES_ATOM: Atom<Vec<CgFile>> = Atom::uninitialized_new();
+static SELECTED_ASSET_ATOM: Atom<Option<SelectedAsset>> = Atom::uninitialized_new();
 
 #[namui::component]
 pub struct GraphicAssetManagePage {
@@ -36,6 +40,7 @@ impl Component for GraphicAssetManagePage {
         let (tab, _set_tab) = ctx.atom_init(&TAB_ATOM, || Tab::Image);
         let (_, set_images) = ctx.atom_init(&IMAGES_ATOM, Vec::new);
         let (_, set_cg_files) = ctx.atom_init(&CG_FILES_ATOM, Vec::new);
+        let (selected_asset, _) = ctx.atom_init(&SELECTED_ASSET_ATOM, || None);
 
         let start_fetch_graphic_assets = |project_id: Uuid| {
             spawn_local(async move {
@@ -81,6 +86,30 @@ impl Component for GraphicAssetManagePage {
 
         ctx.effect("Fetch graphic assets every project_id changes", || {
             start_fetch_graphic_assets(*project_id);
+        });
+
+        let on_viewer_close = || {
+            SELECTED_ASSET_ATOM.set(None);
+        };
+        ctx.compose(|ctx| {
+            let Some(selected_asset) = selected_asset.deref() else {
+                return;
+            };
+
+            match selected_asset {
+                SelectedAsset::Image(image) => {
+                    ctx.add_with_key(
+                        "image_viewer",
+                        ImageViewer {
+                            wh,
+                            image,
+                            project_id: *project_id,
+                            on_close: &on_viewer_close,
+                        },
+                    );
+                }
+                SelectedAsset::Cg(_) => todo!(),
+            }
         });
 
         ctx.compose(|ctx| {
@@ -129,4 +158,10 @@ impl ToString for Tab {
             Tab::Cg => "Cg".to_string(),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+enum SelectedAsset {
+    Image(ImageWithLabels),
+    Cg(CgFile),
 }
