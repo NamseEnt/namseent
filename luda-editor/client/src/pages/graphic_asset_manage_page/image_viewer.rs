@@ -107,20 +107,41 @@ impl Component for ImageViewer<'_> {
                 }),
             ])(modal_rect.wh(), &mut ctx);
 
-            ctx.add(simple_rect(
-                modal_rect.wh(),
-                color::STROKE_NORMAL,
-                1.px(),
-                color::BACKGROUND,
-            ));
+            ctx.add(
+                simple_rect(
+                    modal_rect.wh(),
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    color::BACKGROUND,
+                )
+                .attach_event(|event| {
+                    if let namui::Event::MouseDown { event } = event {
+                        if !event.is_local_xy_in() {
+                            return;
+                        }
+                        event.stop_propagation();
+                    }
+                }),
+            );
         });
 
-        ctx.component(simple_rect(
-            *wh,
-            Color::TRANSPARENT,
-            0.px(),
-            Color::from_u8(0, 0, 0, 128),
-        ));
+        ctx.component(
+            simple_rect(
+                *wh,
+                Color::TRANSPARENT,
+                0.px(),
+                Color::from_u8(0, 0, 0, 128),
+            )
+            .attach_event(|event| {
+                if let namui::Event::MouseDown { event } = event {
+                    if !event.is_local_xy_in() {
+                        return;
+                    }
+                    event.stop_propagation();
+                    on_close();
+                }
+            }),
+        );
 
         ctx.done()
     }
