@@ -34,8 +34,8 @@ impl Component for GraphicAssetManagePage {
 
         let project_id = ctx.track_eq(&project_id);
         let (tab, _set_tab) = ctx.atom_init(&TAB_ATOM, || Tab::Image);
-        let (_, set_images) = ctx.atom_init(&IMAGES_ATOM, || Vec::new());
-        let (_, set_cg_files) = ctx.atom_init(&CG_FILES_ATOM, || Vec::new());
+        let (_, set_images) = ctx.atom_init(&IMAGES_ATOM, Vec::new);
+        let (_, set_cg_files) = ctx.atom_init(&CG_FILES_ATOM, Vec::new);
 
         let start_fetch_graphic_assets = |project_id: Uuid| {
             spawn_local(async move {

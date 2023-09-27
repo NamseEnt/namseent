@@ -59,7 +59,7 @@ where
                                     fixed(NAME_HEIGHT, |wh, ctx| {
                                         ctx.add(Name {
                                             wh,
-                                            name: name_specifier(&item),
+                                            name: name_specifier(item),
                                         });
                                     }),
                                 ])(wh, ctx)
