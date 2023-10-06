@@ -260,10 +260,10 @@ fn update_cg_part<Updater>(screen_cg: &mut ScreenCg, part_name: &str, updater: U
 where
     Updater: Fn(&mut ScreenCgPart),
 {
-    let mut part = screen_cg
+    let part = screen_cg
         .parts
         .iter_mut()
         .find(|part| part.name() == part_name)
         .unwrap();
-    updater(&mut part)
+    updater(part)
 }

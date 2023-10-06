@@ -18,9 +18,6 @@ impl Component for RenameModal<'_> {
         let (sequence_name, set_sequence_name) = ctx.state(|| init_sequence_name.clone());
         let text_input_instance = namui::text_input::TextInputInstance::new(ctx);
 
-        let close_modal = close_modal.clone();
-        let on_rename_done = on_rename_done.clone();
-
         let screen_wh = namui::screen::size();
         let screen_wh = Wh::new(screen_wh.width.into_px(), screen_wh.height.into_px());
         let modal_wh = screen_wh * 0.5;
@@ -51,7 +48,7 @@ impl Component for RenameModal<'_> {
                     fill_color: Color::BLACK,
                     mouse_buttons: vec![MouseButton::Left],
                     on_mouse_up_in: Box::new({
-                        let on_rename_done = on_rename_done.clone();
+                        let on_rename_done = on_rename_done;
                         let sequence_name = sequence_name.clone();
                         move |_| {
                             let sequence_name = sequence_name.clone();
@@ -94,7 +91,7 @@ impl Component for RenameModal<'_> {
                         }
                         text_input::Event::SelectionUpdated { selection: _ } => {}
                         text_input::Event::KeyDown { event } => {
-                            let on_rename_done = on_rename_done.clone();
+                            let on_rename_done = on_rename_done;
                             let sequence_name = sequence_name.clone();
                             if event.code == Code::Enter {
                                 on_rename_done(sequence_name);

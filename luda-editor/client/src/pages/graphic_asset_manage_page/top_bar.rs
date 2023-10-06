@@ -23,7 +23,7 @@ impl Component for TopBar {
         let on_upload_button_clicked = || {
             spawn_local(async move {
                 let files = open().await;
-                join_all(files.into_iter().map(|file| upload_file(&file, project_id))).await;
+                join_all(files.iter().map(|file| upload_file(file, project_id))).await;
             });
         };
 

@@ -31,7 +31,6 @@ impl Component for Resizer<'_> {
             graphic_index,
             ref on_event,
         } = self;
-        let on_event = on_event.clone();
 
         const HANDLE_RADIUS: Px = px(5.0);
 
