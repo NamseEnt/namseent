@@ -48,7 +48,6 @@ impl Component for RenameModal<'_> {
                     fill_color: Color::BLACK,
                     mouse_buttons: vec![MouseButton::Left],
                     on_mouse_up_in: Box::new({
-                        let on_rename_done = on_rename_done;
                         let sequence_name = sequence_name.clone();
                         move |_| {
                             let sequence_name = sequence_name.clone();
@@ -91,7 +90,6 @@ impl Component for RenameModal<'_> {
                         }
                         text_input::Event::SelectionUpdated { selection: _ } => {}
                         text_input::Event::KeyDown { event } => {
-                            let on_rename_done = on_rename_done;
                             let sequence_name = sequence_name.clone();
                             if event.code == Code::Enter {
                                 on_rename_done(sequence_name);
