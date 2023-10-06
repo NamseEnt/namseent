@@ -1,14 +1,13 @@
 use crate::{
-    app::notification::{push_notification, Notification},
     color,
     pages::{
-        graphic_asset_manage_page::upload_asset::{add_new_cg, add_new_image},
+        graphic_asset_manage_page::upload_asset::upload_file,
         router::{move_to, Route},
     },
 };
+use futures::future::join_all;
 use namui::{file::picker::open, prelude::*};
 use namui_prebuilt::{button::TextButtonFit, simple_rect, table::hooks::*, typography};
-use std::path::PathBuf;
 
 #[component]
 pub(super) struct TopBar {
@@ -24,26 +23,7 @@ impl Component for TopBar {
         let on_upload_button_clicked = || {
             spawn_local(async move {
                 let files = open().await;
-                for file in files.into_iter() {
-                    let file_name = PathBuf::from(file.name());
-                    let extension_name = file_name
-                        .extension()
-                        .map(|extension_name| extension_name.to_str().unwrap());
-                    match extension_name {
-                        Some("png") | Some("jpg") | Some("jpeg") => {
-                            add_new_image(project_id, file.content().await.to_vec());
-                        }
-                        Some("psd") => {
-                            let psd_name = file.name().trim_end_matches(".psd").to_string();
-                            add_new_cg(project_id, psd_name, file.content().await.to_vec())
-                        }
-                        _ => {
-                            push_notification(Notification::error(format!(
-                                "Unsupported file type {file_name:?}"
-                            )));
-                        }
-                    }
-                }
+                join_all(files.into_iter().map(|file| upload_file(&file, project_id))).await;
             });
         };
 

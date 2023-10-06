@@ -10,8 +10,13 @@ mod upload_asset;
 use crate::{
     app::notification::{self, Notification},
     pages::graphic_asset_manage_page::{
-        cg_list::CgList, cg_viewer::CgViewer, image_list::ImageList, image_viewer::ImageViewer,
-        side_bar::SideBar, top_bar::TopBar, upload_asset::add_new_image,
+        cg_list::CgList,
+        cg_viewer::CgViewer,
+        image_list::ImageList,
+        image_viewer::ImageViewer,
+        side_bar::SideBar,
+        top_bar::TopBar,
+        upload_asset::{add_new_image, upload_file},
     },
 };
 use futures::join;
@@ -127,6 +132,14 @@ impl Component for GraphicAssetManagePage {
                                 }
                             }
                         });
+                    }
+                    Event::DragAndDrop { event } => {
+                        let project_id = *project_id;
+                        for file in event.files {
+                            spawn_local(async move {
+                                upload_file(&file, project_id).await;
+                            });
+                        }
                     }
                     _ => {}
                 }

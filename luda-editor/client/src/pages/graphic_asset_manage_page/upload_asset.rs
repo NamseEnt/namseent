@@ -4,6 +4,28 @@ use crate::{
     components::{cg_upload::create_cg, image_upload::create_image},
 };
 use namui::prelude::*;
+use std::path::PathBuf;
+
+pub async fn upload_file(file: &File, project_id: Uuid) {
+    let file_name = PathBuf::from(file.name());
+    let extension_name = file_name
+        .extension()
+        .map(|extension_name| extension_name.to_str().unwrap());
+    match extension_name {
+        Some("png") | Some("jpg") | Some("jpeg") => {
+            add_new_image(project_id, file.content().await.to_vec());
+        }
+        Some("psd") => {
+            let psd_name = file.name().trim_end_matches(".psd").to_string();
+            add_new_cg(project_id, psd_name, file.content().await.to_vec())
+        }
+        _ => {
+            push_notification(Notification::error(format!(
+                "Unsupported file type {file_name:?}"
+            )));
+        }
+    }
+}
 
 pub fn add_new_image(project_id: Uuid, png_bytes: Vec<u8>) {
     spawn_local(async move {
