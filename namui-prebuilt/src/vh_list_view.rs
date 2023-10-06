@@ -137,7 +137,7 @@ where
                 return;
             }
 
-            let total_item_height = items.iter().map(|item| (item_height)(item)).sum();
+            let total_item_height = items.iter().map(&item_height).sum();
             let max_scroll_y = total_item_height - wh.height;
             let scroll_y = namui::math::num::clamp(scroll_y, px(0.0), px(0.0).max(max_scroll_y));
 
