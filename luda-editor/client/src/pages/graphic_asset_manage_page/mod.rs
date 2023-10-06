@@ -1,5 +1,6 @@
 mod auto_column_list;
 mod cg_list;
+mod cg_viewer;
 mod image_list;
 mod image_viewer;
 mod side_bar;
@@ -8,8 +9,8 @@ mod top_bar;
 use crate::{
     app::notification::{self, Notification},
     pages::graphic_asset_manage_page::{
-        cg_list::CgList, image_list::ImageList, image_viewer::ImageViewer, side_bar::SideBar,
-        top_bar::TopBar,
+        cg_list::CgList, cg_viewer::CgViewer, image_list::ImageList, image_viewer::ImageViewer,
+        side_bar::SideBar, top_bar::TopBar,
     },
 };
 use futures::join;
@@ -108,7 +109,17 @@ impl Component for GraphicAssetManagePage {
                         },
                     );
                 }
-                SelectedAsset::Cg(_) => todo!(),
+                SelectedAsset::Cg(cg_file) => {
+                    ctx.add_with_key(
+                        "cg_viewer",
+                        CgViewer {
+                            wh,
+                            cg_file,
+                            project_id: *project_id,
+                            on_close: &on_viewer_close,
+                        },
+                    );
+                }
             }
         });
 

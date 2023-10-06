@@ -148,6 +148,57 @@ impl ScreenCgPart {
             ScreenCgPart::AlwaysOn { .. } => unreachable!(),
         }
     }
+    pub fn unselect(&mut self) {
+        match self {
+            ScreenCgPart::Single {
+                name: _,
+                variant_name,
+            } => {
+                *variant_name = None;
+            }
+            ScreenCgPart::Multi {
+                name: _,
+                variant_names,
+            } => {
+                variant_names.clear();
+            }
+            ScreenCgPart::AlwaysOn { .. } => unreachable!(),
+        }
+    }
+    pub fn turn_on(&mut self, cg_part_variant_name: String) {
+        match self {
+            ScreenCgPart::Single {
+                name: _,
+                variant_name,
+            } => {
+                *variant_name = Some(cg_part_variant_name);
+            }
+            ScreenCgPart::Multi {
+                name: _,
+                variant_names,
+            } => {
+                variant_names.insert(cg_part_variant_name);
+            }
+            ScreenCgPart::AlwaysOn { .. } => unreachable!(),
+        }
+    }
+    pub fn turn_off(&mut self, cg_part_variant_name: String) {
+        match self {
+            ScreenCgPart::Single {
+                name: _,
+                variant_name,
+            } => {
+                *variant_name = None;
+            }
+            ScreenCgPart::Multi {
+                name: _,
+                variant_names,
+            } => {
+                variant_names.remove(&cg_part_variant_name);
+            }
+            ScreenCgPart::AlwaysOn { .. } => unreachable!(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

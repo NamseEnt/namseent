@@ -1,10 +1,10 @@
 mod cg_picker;
 mod part_picker;
-mod tool_tip;
 
-use self::{cg_picker::CgPicker, part_picker::PartPicker, tool_tip::ToolTip};
+use self::{cg_picker::CgPicker, part_picker::PartPicker};
 use crate::{
     color,
+    components::tool_tip::ToolTip,
     pages::sequence_edit_page::atom::{CG_FILES_ATOM, SEQUENCE_ATOM},
 };
 use namui::prelude::*;
