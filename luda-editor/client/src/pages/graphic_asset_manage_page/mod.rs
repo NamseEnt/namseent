@@ -11,12 +11,12 @@ use crate::{
     app::notification::{self, Notification},
     pages::graphic_asset_manage_page::{
         cg_list::CgList, cg_viewer::CgViewer, image_list::ImageList, image_viewer::ImageViewer,
-        side_bar::SideBar, top_bar::TopBar,
+        side_bar::SideBar, top_bar::TopBar, upload_asset::add_new_image,
     },
 };
 use futures::join;
 use namui::prelude::*;
-use namui_prebuilt::table::hooks::*;
+use namui_prebuilt::{simple_rect, table::hooks::*};
 use rpc::data::{CgFile, ImageWithLabels};
 use std::ops::Deref;
 
@@ -111,6 +111,27 @@ impl Component for GraphicAssetManagePage {
                 }),
             ])(wh, ctx)
         });
+
+        ctx.component(
+            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
+                match event {
+                    Event::KeyDown { event } => {
+                        if !(event.code == Code::KeyV && namui::keyboard::ctrl_press()) {
+                            return;
+                        }
+                        let project_id = *project_id;
+                        spawn_local(async move {
+                            if let Ok(buffers) = clipboard::read_image_buffers().await {
+                                for png_bytes in buffers {
+                                    add_new_image(project_id, png_bytes);
+                                }
+                            }
+                        });
+                    }
+                    _ => {}
+                }
+            }),
+        );
 
         ctx.done()
     }
