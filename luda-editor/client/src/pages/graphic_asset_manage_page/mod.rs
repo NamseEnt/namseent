@@ -5,6 +5,7 @@ mod image_list;
 mod image_viewer;
 mod side_bar;
 mod top_bar;
+mod upload_asset;
 
 use crate::{
     app::notification::{self, Notification},
@@ -39,51 +40,9 @@ impl Component for GraphicAssetManagePage {
 
         let project_id = ctx.track_eq(&project_id);
         let (tab, _set_tab) = ctx.atom_init(&TAB_ATOM, || Tab::Image);
-        let (_, set_images) = ctx.atom_init(&IMAGES_ATOM, Vec::new);
-        let (_, set_cg_files) = ctx.atom_init(&CG_FILES_ATOM, Vec::new);
+        let (_, _) = ctx.atom_init(&IMAGES_ATOM, Vec::new);
+        let (_, _) = ctx.atom_init(&CG_FILES_ATOM, Vec::new);
         let (selected_asset, _) = ctx.atom_init(&SELECTED_ASSET_ATOM, || None);
-
-        let start_fetch_graphic_assets = |project_id: Uuid| {
-            spawn_local(async move {
-                let fetch_images = || async {
-                    let loading_notification =
-                        Notification::info("Loading images...".to_string()).set_loading(true);
-                    let notification_id = notification::push_notification(loading_notification);
-                    match crate::RPC
-                        .list_images(rpc::list_images::Request { project_id })
-                        .await
-                    {
-                        Ok(rpc::list_images::Response { images }) => set_images.set(images),
-                        Err(error) => {
-                            let _ = notification::push_notification(Notification::error(format!(
-                                "Loading images failed: {error}"
-                            )));
-                        }
-                    };
-                    notification::remove_notification(notification_id);
-                };
-
-                let fetch_cg_files = || async {
-                    let loading_notification =
-                        Notification::info("Loading cg_files...".to_string()).set_loading(true);
-                    let notification_id = notification::push_notification(loading_notification);
-                    match crate::RPC
-                        .list_cg_files(rpc::list_cg_files::Request { project_id })
-                        .await
-                    {
-                        Ok(rpc::list_cg_files::Response { cg_files }) => set_cg_files.set(cg_files),
-                        Err(error) => {
-                            let _ = notification::push_notification(Notification::error(format!(
-                                "Loading images failed: {error}"
-                            )));
-                        }
-                    };
-                    notification::remove_notification(notification_id);
-                };
-
-                join!(fetch_images(), fetch_cg_files());
-            })
-        };
 
         ctx.effect("Fetch graphic assets every project_id changes", || {
             start_fetch_graphic_assets(*project_id);
@@ -175,4 +134,46 @@ impl ToString for Tab {
 enum SelectedAsset {
     Image(ImageWithLabels),
     Cg(CgFile),
+}
+
+fn start_fetch_graphic_assets(project_id: Uuid) {
+    spawn_local(async move {
+        let fetch_images = || async {
+            let loading_notification =
+                Notification::info("Loading images...".to_string()).set_loading(true);
+            let notification_id = notification::push_notification(loading_notification);
+            match crate::RPC
+                .list_images(rpc::list_images::Request { project_id })
+                .await
+            {
+                Ok(rpc::list_images::Response { images }) => IMAGES_ATOM.set(images),
+                Err(error) => {
+                    let _ = notification::push_notification(Notification::error(format!(
+                        "Loading images failed: {error}"
+                    )));
+                }
+            };
+            notification::remove_notification(notification_id);
+        };
+
+        let fetch_cg_files = || async {
+            let loading_notification =
+                Notification::info("Loading cg_files...".to_string()).set_loading(true);
+            let notification_id = notification::push_notification(loading_notification);
+            match crate::RPC
+                .list_cg_files(rpc::list_cg_files::Request { project_id })
+                .await
+            {
+                Ok(rpc::list_cg_files::Response { cg_files }) => CG_FILES_ATOM.set(cg_files),
+                Err(error) => {
+                    let _ = notification::push_notification(Notification::error(format!(
+                        "Loading images failed: {error}"
+                    )));
+                }
+            };
+            notification::remove_notification(notification_id);
+        };
+
+        join!(fetch_images(), fetch_cg_files());
+    })
 }
