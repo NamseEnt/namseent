@@ -32,8 +32,7 @@ impl Component for CgViewer<'_> {
             on_close,
         } = self;
 
-        let wh = ctx.track_eq(&wh);
-        let modal_rect = ctx.memo(|| {
+        let modal_rect = {
             let modal_wh = Wh {
                 width: (wh.width - MODAL_MIN_MARGIN * 2.0).min(MODAL_MAX_WH.width),
                 height: (wh.height - MODAL_MIN_MARGIN * 2.0).min(MODAL_MAX_WH.height),
@@ -43,7 +42,7 @@ impl Component for CgViewer<'_> {
                 y: (wh.height - modal_wh.height) / 2.0,
             };
             Rect::from_xy_wh(modal_xy, modal_wh)
-        });
+        };
         let (screen_cg, set_screen_cg) = ctx.state(|| ScreenCg::new(cg_file));
 
         let title_bar = |wh, ctx: &mut ComposeCtx| {
@@ -168,21 +167,17 @@ impl Component for CgViewer<'_> {
         });
 
         ctx.component(
-            simple_rect(
-                *wh,
-                Color::TRANSPARENT,
-                0.px(),
-                Color::from_u8(0, 0, 0, 128),
-            )
-            .attach_event(|event| {
-                if let namui::Event::MouseDown { event } = event {
-                    if !event.is_local_xy_in() {
-                        return;
+            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::from_u8(0, 0, 0, 128)).attach_event(
+                |event| {
+                    if let namui::Event::MouseDown { event } = event {
+                        if !event.is_local_xy_in() {
+                            return;
+                        }
+                        event.stop_propagation();
+                        on_close();
                     }
-                    event.stop_propagation();
-                    on_close();
-                }
-            }),
+                },
+            ),
         );
 
         ctx.done()
@@ -205,41 +200,16 @@ impl Component for RenderCgContainFit<'_> {
             cg_file,
         } = self;
 
-        let wh = ctx.track_eq(&wh);
         let cg_thumbnail_image =
             ctx.image(&get_project_cg_thumbnail_image_url(project_id, cg_file.id).unwrap());
-        let rect = ctx.memo(|| {
-            let container_wh = *wh;
-            let Some(cg_wh) = cg_thumbnail_image
-                .deref()
-                .as_ref()
-                .and_then(|cg_thumbnail_image| cg_thumbnail_image.as_ref().ok())
-                .map(|cg_thumbnail_image| cg_thumbnail_image.wh)
-            else {
-                return None;
-            };
-            let container_ratio = container_wh.width / container_wh.height;
-            let cg_ratio = cg_wh.width / cg_wh.height;
-            let contain_fit_cg_wh = if container_ratio > cg_ratio {
-                Wh {
-                    width: container_wh.height * cg_ratio,
-                    height: container_wh.height,
-                }
-            } else {
-                Wh {
-                    width: container_wh.width,
-                    height: container_wh.width / cg_ratio,
-                }
-            };
-            let xy = Xy {
-                x: (container_wh.width - contain_fit_cg_wh.width) / 2.0,
-                y: (container_wh.height - contain_fit_cg_wh.height) / 2.0,
-            };
-            Some(Rect::from_xy_wh(xy, contain_fit_cg_wh))
-        });
+        let rect = cg_thumbnail_image
+            .deref()
+            .as_ref()
+            .and_then(|cg_thumbnail_image| cg_thumbnail_image.as_ref().ok())
+            .map(|cg_thumbnail_image| calculate_cg_rect(wh, cg_thumbnail_image.wh));
 
         ctx.compose(|ctx| {
-            let Some(rect) = *rect else {
+            let Some(rect) = rect else {
                 return;
             };
             ctx.add(CgRender {
@@ -264,4 +234,25 @@ where
         .find(|part| part.name() == part_name)
         .unwrap();
     updater(part)
+}
+
+fn calculate_cg_rect(container_wh: Wh<Px>, cg_wh: Wh<Px>) -> Rect<Px> {
+    let container_ratio = container_wh.width / container_wh.height;
+    let cg_ratio = cg_wh.width / cg_wh.height;
+    let contain_fit_cg_wh = if container_ratio > cg_ratio {
+        Wh {
+            width: container_wh.height * cg_ratio,
+            height: container_wh.height,
+        }
+    } else {
+        Wh {
+            width: container_wh.width,
+            height: container_wh.width / cg_ratio,
+        }
+    };
+    let xy = Xy {
+        x: (container_wh.width - contain_fit_cg_wh.width) / 2.0,
+        y: (container_wh.height - contain_fit_cg_wh.height) / 2.0,
+    };
+    Rect::from_xy_wh(xy, contain_fit_cg_wh)
 }

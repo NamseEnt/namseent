@@ -35,22 +35,20 @@ where
             thumbnail_renderer,
         } = self;
 
-        let wh = ctx.track_eq(&wh);
-        let item_wh = ctx.memo(|| Wh {
+        let item_wh = Wh {
             width: (THUMBNAIL_WH.width + MINIMUM_SIDE_MARGIN * 2.0).max(NAME_MIN_WIDTH),
             height: THUMBNAIL_WH.height + NAME_HEIGHT + VERTICAL_MARGIN * 3.0,
-        });
-        let max_items_per_row = ctx.memo(|| (wh.width / item_wh.width).floor() as usize);
-        let side_margin = ctx.memo(|| {
-            (wh.width - item_wh.width * *max_items_per_row) / (*max_items_per_row as f32 * 2.0)
-        });
+        };
+        let max_items_per_row = (wh.width / item_wh.width).floor() as usize;
+        let side_margin =
+            (wh.width - item_wh.width * max_items_per_row) / (max_items_per_row as f32 * 2.0);
 
-        let image_rows = items.chunks(*max_items_per_row).map(|items_in_row| {
+        let image_rows = items.chunks(max_items_per_row).map(|items_in_row| {
             fixed(item_wh.height, {
                 horizontal(items_in_row.iter().map(|item| {
-                    fixed(item_wh.width + *side_margin * 2.0, {
+                    fixed(item_wh.width + side_margin * 2.0, {
                         horizontal_padding(
-                            *side_margin + MINIMUM_SIDE_MARGIN,
+                            side_margin + MINIMUM_SIDE_MARGIN,
                             vertical_padding(
                                 VERTICAL_MARGIN,
                                 vertical([
@@ -74,12 +72,12 @@ where
 
         ctx.component(scroll_view::AutoScrollViewWithCtx {
             scroll_bar_width: 4.px(),
-            wh: *wh,
-            content: |ctx| vertical(image_rows)(*wh, ctx),
+            wh,
+            content: |ctx| vertical(image_rows)(wh, ctx),
         });
 
         ctx.component(simple_rect(
-            *wh,
+            wh,
             color::STROKE_NORMAL,
             1.px(),
             color::BACKGROUND,

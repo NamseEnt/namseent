@@ -27,7 +27,7 @@ impl Component for ImageViewer<'_> {
         } = self;
 
         let wh = ctx.track_eq(&wh);
-        let modal_rect = ctx.memo(|| {
+        let modal_rect = {
             let modal_wh = Wh {
                 width: (wh.width - MODAL_MIN_MARGIN * 2.0).min(MODAL_MAX_WH.width),
                 height: (wh.height - MODAL_MIN_MARGIN * 2.0).min(MODAL_MAX_WH.height),
@@ -37,7 +37,7 @@ impl Component for ImageViewer<'_> {
                 y: (wh.height - modal_wh.height) / 2.0,
             };
             Rect::from_xy_wh(modal_xy, modal_wh)
-        });
+        };
 
         let title_bar = |wh, ctx: &mut ComposeCtx| {
             let background = simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT);
