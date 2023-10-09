@@ -46,10 +46,6 @@ impl Component for SequenceListPage {
         };
 
         let on_manage_graphic_assets_button_click = move || {
-            namui::log!(
-                "{}",
-                super::router::Route::GraphicAssetManage { project_id }.to_string()
-            );
             super::router::move_to(super::router::Route::GraphicAssetManage { project_id });
         };
 
