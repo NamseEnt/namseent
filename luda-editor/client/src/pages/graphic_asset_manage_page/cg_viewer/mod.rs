@@ -95,7 +95,6 @@ impl Component for CgViewer<'_> {
         let on_picker_event = |event| match event {
             part_picker::Event::UnselectCgPart { cg_part_name } => {
                 set_screen_cg.mutate(move |screen_cg| {
-                    let cg_part_name = cg_part_name.clone();
                     update_cg_part(screen_cg, &cg_part_name, |part| part.unselect())
                 })
             }
