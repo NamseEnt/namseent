@@ -208,7 +208,8 @@ impl Component for CgPartGroup<'_> {
 
         let title_bar = render_title_bar(cg_part);
 
-        let no_selection_button = fixed(thumbnail_container_wh.width, |wh, ctx| {
+        let no_selection_button = fixed(
+            thumbnail_container_wh.width,
             horizontal_padding(thumbnail_container_side_padding, |wh, ctx| {
                 ctx.add(NoSelectionButton {
                     wh,
@@ -216,8 +217,8 @@ impl Component for CgPartGroup<'_> {
                     cg_part,
                     on_event,
                 });
-            })(wh, ctx)
-        });
+            }),
+        );
 
         let chunks = cg_part.variants.chunks_exact(max_thumbnails_per_row);
         let chunk_remainder = chunks.remainder();
@@ -229,7 +230,8 @@ impl Component for CgPartGroup<'_> {
                     chunk_remainder
                         .iter()
                         .map(|variant| {
-                            fixed(thumbnail_container_wh.width, |wh, ctx| {
+                            fixed(
+                                thumbnail_container_wh.width,
                                 horizontal_padding(thumbnail_container_side_padding, |wh, ctx| {
                                     ctx.add(Thumbnail {
                                         wh,
@@ -241,8 +243,8 @@ impl Component for CgPartGroup<'_> {
                                         on_event,
                                         on_internal_event,
                                     });
-                                })(wh, ctx);
-                            })
+                                }),
+                            )
                         })
                         .chain(once(no_selection_button)),
                 ),
@@ -254,7 +256,8 @@ impl Component for CgPartGroup<'_> {
                 vertical_padding(
                     ROW_VERTICAL_PADDING,
                     horizontal(row.iter().map(|variant| {
-                        fixed(thumbnail_container_wh.width, |wh, ctx| {
+                        fixed(
+                            thumbnail_container_wh.width,
                             horizontal_padding(thumbnail_container_side_padding, |wh, ctx| {
                                 ctx.add(Thumbnail {
                                     wh,
@@ -266,8 +269,8 @@ impl Component for CgPartGroup<'_> {
                                     on_event,
                                     on_internal_event,
                                 });
-                            })(wh, ctx);
-                        })
+                            }),
+                        )
                     })),
                 ),
             )

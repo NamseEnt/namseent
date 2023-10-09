@@ -95,7 +95,8 @@ impl Component for GraphicAssetManagePage {
                         project_id: *project_id,
                     });
                 }),
-                ratio(1, |wh, ctx| {
+                ratio(
+                    1,
                     horizontal([
                         fixed(SIDE_BAR_WIDTH, |wh, ctx| {
                             ctx.add(SideBar { wh });
@@ -112,8 +113,8 @@ impl Component for GraphicAssetManagePage {
                                 }),
                             };
                         }),
-                    ])(wh, ctx);
-                }),
+                    ]),
+                ),
             ])(wh, ctx)
         });
 

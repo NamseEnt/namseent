@@ -146,9 +146,7 @@ impl Component for CgViewer<'_> {
                 fixed(TITLE_BAR_HEIGHT, |wh, ctx| {
                     title_bar(wh, ctx);
                 }),
-                ratio(1, |wh, ctx| {
-                    content(wh, ctx);
-                }),
+                ratio(1, content),
             ])(modal_rect.wh(), &mut ctx);
 
             ctx.add(

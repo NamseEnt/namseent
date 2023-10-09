@@ -49,8 +49,10 @@ where
             fixed(item_wh.height, {
                 horizontal(items_in_row.iter().map(|item| {
                     fixed(item_wh.width + *side_margin * 2.0, {
-                        horizontal_padding(*side_margin + MINIMUM_SIDE_MARGIN, move |wh, ctx| {
-                            vertical_padding(VERTICAL_MARGIN, move |wh, ctx| {
+                        horizontal_padding(
+                            *side_margin + MINIMUM_SIDE_MARGIN,
+                            vertical_padding(
+                                VERTICAL_MARGIN,
                                 vertical([
                                     fixed(THUMBNAIL_WH.height, |wh, ctx| {
                                         thumbnail_renderer(item, wh, ctx);
@@ -62,9 +64,9 @@ where
                                             name: name_specifier(item),
                                         });
                                     }),
-                                ])(wh, ctx)
-                            })(wh, ctx)
-                        })
+                                ]),
+                            ),
+                        )
                     })
                 }))
             })
