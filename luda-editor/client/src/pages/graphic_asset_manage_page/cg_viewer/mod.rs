@@ -44,6 +44,13 @@ impl Component for CgViewer<'_> {
             Rect::from_xy_wh(modal_xy, modal_wh)
         };
         let (screen_cg, set_screen_cg) = ctx.state(|| ScreenCg::new(cg_file));
+        let cg_file_id = ctx.track_eq(&cg_file.id);
+
+        ctx.effect("Initialize screen_cg on cg_file changed", || {
+            // Roughly detect cg_file change
+            let _ = cg_file_id.deref();
+            set_screen_cg.set(ScreenCg::new(cg_file));
+        });
 
         let title_bar = |wh, ctx: &mut ComposeCtx| {
             let background = simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT);
