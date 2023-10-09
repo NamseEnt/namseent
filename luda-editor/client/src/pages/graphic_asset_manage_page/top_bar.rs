@@ -17,8 +17,9 @@ pub(super) struct TopBar {
 
 impl Component for TopBar {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        const PADDING: Px = px(8.0);
         let Self { wh, project_id } = self;
+
+        const PADDING: Px = px(8.0);
 
         let on_upload_button_clicked = || {
             spawn_local(async move {

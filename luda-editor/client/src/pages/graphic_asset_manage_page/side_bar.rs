@@ -10,10 +10,11 @@ pub(super) struct SideBar {
 
 impl Component for SideBar {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { wh } = self;
+
         const PADDING: Px = px(8.0);
         const MARGIN: Px = px(4.0);
         const ITEM_HEIGHT: Px = px(36.0);
-        let Self { wh } = self;
 
         ctx.compose(|ctx| {
             vertical_padding(PADDING, |wh, ctx| {
@@ -50,9 +51,9 @@ struct TabButton {
 }
 impl Component for TabButton {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        const PADDING: Px = px(4.0);
-
         let Self { wh, tab } = self;
+
+        const PADDING: Px = px(4.0);
 
         let (current_tab, set_tab) = ctx.atom(&TAB_ATOM);
 

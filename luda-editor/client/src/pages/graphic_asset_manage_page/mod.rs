@@ -38,10 +38,10 @@ pub struct GraphicAssetManagePage {
 
 impl Component for GraphicAssetManagePage {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { wh, project_id } = self;
+
         const TOP_BAR_HEIGHT: Px = px(48.0);
         const SIDE_BAR_WIDTH: Px = px(192.0);
-
-        let Self { wh, project_id } = self;
 
         let project_id = ctx.track_eq(&project_id);
         let (tab, _set_tab) = ctx.atom_init(&TAB_ATOM, || Tab::Image);

@@ -46,8 +46,6 @@ pub enum InternalEvent {
 
 impl Component for PartPicker<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        const PADDING: Px = px(8.0);
-
         let Self {
             wh,
             cg_file,
@@ -55,6 +53,8 @@ impl Component for PartPicker<'_> {
             screen_cg,
             on_event,
         } = self;
+
+        const PADDING: Px = px(8.0);
 
         let (mouse_hovering_part_variant, set_mouse_hovering_part_variant) =
             ctx.state::<Option<MouseHoveringPartVariant>>(|| None);

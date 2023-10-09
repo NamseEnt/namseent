@@ -19,8 +19,10 @@ enum ContextMenu {
 
 impl Component for SequenceListPage {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        const ITEM_HEIGHT: Px = px(40.0);
         let Self { wh, project_id } = self;
+
+        const ITEM_HEIGHT: Px = px(40.0);
+
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
         let (sequence_list, set_sequence_list) =
