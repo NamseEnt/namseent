@@ -122,23 +122,20 @@ impl Component for CgPartList<'_> {
             on_internal_event,
         } = self;
 
-        let wh = ctx.track_eq(&wh);
-        let max_thumbnails_per_row = ctx.memo(|| {
-            (wh.width / (THUMBNAIL_WH.width + MIN_THUMBNAIL_CONTAINER_SIDE_PADDING * 2.0)).floor()
-                as usize
-        });
-        let thumbnail_container_side_padding = ctx.memo(|| {
-            (wh.width - THUMBNAIL_WH.width * *max_thumbnails_per_row)
-                / (*max_thumbnails_per_row as f32 * 2.0)
-        });
-        let thumbnail_container_wh = ctx.memo(|| Wh {
-            width: (THUMBNAIL_WH.width + *thumbnail_container_side_padding * 2.0),
+        let max_thumbnails_per_row = (wh.width
+            / (THUMBNAIL_WH.width + MIN_THUMBNAIL_CONTAINER_SIDE_PADDING * 2.0))
+            .floor() as usize;
+        let thumbnail_container_side_padding = (wh.width
+            - THUMBNAIL_WH.width * max_thumbnails_per_row)
+            / (max_thumbnails_per_row as f32 * 2.0);
+        let thumbnail_container_wh = Wh {
+            width: (THUMBNAIL_WH.width + thumbnail_container_side_padding * 2.0),
             height: THUMBNAIL_WH.height,
-        });
-        let row_height = ctx.memo(|| thumbnail_container_wh.height + ROW_VERTICAL_PADDING * 2.0);
+        };
+        let row_height = thumbnail_container_wh.height + ROW_VERTICAL_PADDING * 2.0;
 
         ctx.component(scroll_view::AutoScrollViewWithCtx {
-            wh: *wh,
+            wh,
             scroll_bar_width: 4.px(),
             content: |ctx| {
                 vertical(
@@ -157,11 +154,10 @@ impl Component for CgPartList<'_> {
                                     screen_cg,
                                     on_event,
                                     on_internal_event: &on_internal_event,
-                                    row_height: *row_height,
-                                    thumbnail_container_wh: *thumbnail_container_wh,
-                                    max_thumbnails_per_row: *max_thumbnails_per_row,
-                                    thumbnail_container_side_padding:
-                                        *thumbnail_container_side_padding,
+                                    row_height,
+                                    thumbnail_container_wh,
+                                    max_thumbnails_per_row,
+                                    thumbnail_container_side_padding,
                                 },
                             )
                         }),
