@@ -18,6 +18,9 @@ const PICKER_WIDTH: Px = px(512.0);
 #[component]
 pub struct CgViewer<'a> {
     pub wh: Wh<Px>,
+    /// NOTE: cg_viewer does not change the cg_file.
+    /// cg_file is used to init screen_cg then cg_viewer modifies screen_cg.
+    /// Change of cg_file means that the user opened a preview of another cg_file.
     pub cg_file: &'a rpc::data::CgFile,
     pub project_id: Uuid,
     pub on_close: &'a dyn Fn(),
@@ -43,9 +46,6 @@ impl Component for CgViewer<'_> {
             };
             Rect::from_xy_wh(modal_xy, modal_wh)
         };
-        // NOTE: cg_viewer does not change the cg_file
-        // cg_file is used to init screen_cg then cg_viewer modifies screen_cg
-        // Change of cg_file means that the user opened a preview of another cg_file.
         let (screen_cg, set_screen_cg) = ctx.state(|| ScreenCg::new(cg_file));
         let cg_file_id = ctx.track_eq(&cg_file.id);
 
