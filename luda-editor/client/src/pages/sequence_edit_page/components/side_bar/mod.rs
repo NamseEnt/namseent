@@ -1,7 +1,11 @@
 use super::*;
 use crate::color;
 use namui::prelude::*;
-use namui_prebuilt::{simple_rect, table};
+use namui_prebuilt::{
+    button::{self},
+    simple_rect,
+    table::{self, hooks::padding},
+};
 use rpc::data::{Cut, Memo};
 
 #[component]
@@ -20,8 +24,6 @@ pub enum Event {
 
 impl Component for SideBar<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        const GRAPHIC_LIST_VIEW_HEIGHT: Px = px(384.0);
-
         let Self {
             wh,
             project_id,
@@ -31,8 +33,32 @@ impl Component for SideBar<'_> {
             on_event,
         } = self;
 
+        const GRAPHIC_LIST_VIEW_HEIGHT: Px = px(384.0);
+        const NAME_QUICK_SLOT_BUTTON_CONTAINER_HEIGHT: Px = px(42.0);
+        const NAME_QUICK_SLOT_BUTTON_CONTAINER_PADDING: Px = px(8.0);
+
         ctx.compose(|ctx| {
             table::hooks::vertical([
+                table::hooks::fixed(
+                    NAME_QUICK_SLOT_BUTTON_CONTAINER_HEIGHT,
+                    padding(NAME_QUICK_SLOT_BUTTON_CONTAINER_PADDING, |wh, ctx| {
+                        ctx.add(
+                            button::TextButton {
+                                rect: wh.to_rect(),
+                                text: "Name Quick Slot",
+                                text_color: color::STROKE_NORMAL,
+                                stroke_color: color::STROKE_NORMAL,
+                                stroke_width: 1.px(),
+                                fill_color: color::BACKGROUND,
+                                mouse_buttons: vec![MouseButton::Left],
+                                on_mouse_up_in: Box::new(|_event| {
+                                    todo!();
+                                }),
+                            }
+                            .with_mouse_cursor(MouseCursor::Pointer),
+                        );
+                    }),
+                ),
                 table::hooks::ratio(1, |wh, ctx| {
                     ctx.add(memo_list_view::MemoListView {
                         wh,
