@@ -1,7 +1,9 @@
 use super::{atom::*, components::*, sequence::SequenceWrapped};
 use crate::{
     components::context_menu::{if_context_menu_for, open_context_menu},
-    pages::sequence_edit_page::components::character_editor::EditTarget,
+    pages::sequence_edit_page::components::{
+        character_editor::EditTarget, name_quick_slot_modal::NameQuickSlotModal,
+    },
 };
 use namui::prelude::*;
 use namui_prebuilt::*;
@@ -47,6 +49,7 @@ impl Component for LoadedSequenceEditorPage {
         let (cut_id_memos_map, set_cut_id_memos_map) = ctx.state(|| cut_id_memos_map.clone());
         let (editing_memo, set_editing_memo) = ctx.state(|| None);
         let (image_picker_open, set_image_picker_open) = ctx.state(|| false);
+        let (name_quick_slot_open, set_name_quick_slot_open) = ctx.state(|| false);
 
         let selected_cut = selected_cut_id.and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
         let project_id = project_shared_data.id();
@@ -59,6 +62,7 @@ impl Component for LoadedSequenceEditorPage {
             MemoEditor { event: memo_editor::Event },
             ImagePicker { event: image_picker::Event },
             SideBar { event: side_bar::Event },
+            NameQuickSlot { event: name_quick_slot_modal::Event },
         }
         let on_internal_event = &|event: InternalEvent| match event {
             InternalEvent::CutListView { event } => match event {
@@ -185,6 +189,12 @@ impl Component for LoadedSequenceEditorPage {
                         });
                     }
                 },
+                side_bar::Event::NameQuickSlotButtonClicked => {
+                    set_name_quick_slot_open.set(true);
+                }
+            },
+            InternalEvent::NameQuickSlot { event } => match event {
+                name_quick_slot_modal::Event::Close => set_name_quick_slot_open.set(false),
             },
         };
         let side_bar_cell: table::hooks::TableCell = {
@@ -293,6 +303,16 @@ impl Component for LoadedSequenceEditorPage {
                     }),
                 });
             }
+        });
+
+        ctx.compose(|ctx| {
+            if !*name_quick_slot_open {
+                return;
+            }
+            ctx.add(NameQuickSlotModal {
+                wh,
+                on_event: &|event| on_internal_event(InternalEvent::NameQuickSlot { event }),
+            });
         });
 
         ctx.compose(|ctx| {

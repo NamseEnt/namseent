@@ -3,6 +3,7 @@ mod components;
 mod loaded;
 mod sequence;
 
+use self::atom::{NameQuickSlot, NAME_QUICK_SLOT};
 use ::futures::try_join;
 use loaded::LoadedSequenceEditorPage;
 use namui::prelude::*;
@@ -25,6 +26,7 @@ impl Component for SequenceEditPage {
             sequence_id,
         } = self;
         let (data, set_data) = ctx.state::<Option<Result<LoadData, String>>>(|| None);
+        let _ = ctx.atom_init(&NAME_QUICK_SLOT, NameQuickSlot::new);
 
         ctx.effect("Load data", || {
             spawn_local(async move {

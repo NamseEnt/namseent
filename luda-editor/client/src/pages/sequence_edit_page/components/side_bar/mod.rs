@@ -20,6 +20,7 @@ pub struct SideBar<'a> {
 
 pub enum Event {
     MemoListView(memo_list_view::Event),
+    NameQuickSlotButtonClicked,
 }
 
 impl Component for SideBar<'_> {
@@ -52,7 +53,7 @@ impl Component for SideBar<'_> {
                                 fill_color: color::BACKGROUND,
                                 mouse_buttons: vec![MouseButton::Left],
                                 on_mouse_up_in: Box::new(|_event| {
-                                    todo!();
+                                    on_event(Event::NameQuickSlotButtonClicked);
                                 }),
                             }
                             .with_mouse_cursor(MouseCursor::Pointer),
