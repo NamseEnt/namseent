@@ -115,7 +115,10 @@ impl Component for BackgroundWithEvent<'_> {
                     return;
                 }
             };
-            let name = name_quick_slot.names[quick_slot_index].clone();
+            let name = name_quick_slot
+                .get_name(quick_slot_index)
+                .cloned()
+                .unwrap_or_default();
 
             SEQUENCE_ATOM.mutate(move |sequence| {
                 sequence.update_cut(cut_id, CutUpdateAction::ChangeCharacterName { name })

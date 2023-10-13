@@ -75,98 +75,94 @@ impl Component for NameQuickSlotModal<'_> {
             ));
         });
 
-        let body_cell = ratio(
-            1,
-            vertical(
-                name_quick_slot
-                    .names
-                    .iter()
-                    .enumerate()
-                    .map(|(index, name)| {
-                        fixed(
-                            ITEM_HEIGHT,
-                            padding(
-                                ITEM_PADDING,
-                                horizontal([
-                                    fixed(
-                                        NAME_LABEL_WIDTH,
-                                        horizontal_padding(ITEM_PADDING, move |wh, ctx| {
-                                            ctx.add(typography::body::right(
-                                                wh,
-                                                format!("Ctrl+{}", index + 1),
-                                                color::STROKE_NORMAL,
-                                            ));
-                                        }),
-                                    ),
-                                    ratio(1, move |wh, ctx| {
-                                        let instance = text_input_instances[index];
-                                        ctx.add(
-                                            TextInput {
-                                                instance,
-                                                rect: wh.to_rect(),
-                                                text: name.clone(),
-                                                text_align: TextAlign::Left,
-                                                text_baseline: TextBaseline::Top,
-                                                font: Font {
-                                                    size: 12.int_px(),
-                                                    name: "NotoSansKR-Regular".to_string(),
-                                                },
-                                                style: Style {
-                                                    rect: RectStyle {
-                                                        stroke: Some(RectStroke {
-                                                            color: color::STROKE_NORMAL,
-                                                            width: 1.px(),
-                                                            border_position: BorderPosition::Inside,
-                                                        }),
-                                                        fill: None,
-                                                        round: None,
-                                                    },
-                                                    text: TextStyle {
-                                                        border: None,
-                                                        drop_shadow: None,
-                                                        color: color::STROKE_NORMAL,
-                                                        background: None,
-                                                        line_height_percent: 100.percent(),
-                                                        underline: None,
-                                                    },
-                                                    padding: TEXT_INPUT_PADDING,
-                                                },
-                                                prevent_default_codes: Vec::new(),
-                                                on_event: &|event| {
-                                                    let text_input::Event::TextUpdated { text } =
-                                                        event
-                                                    else {
-                                                        return;
-                                                    };
-                                                    let name = text.to_string();
-                                                    set_name_quick_slot.mutate(
-                                                        move |name_quick_slot| {
-                                                            name_quick_slot.names[index] = name;
-                                                        },
-                                                    );
-                                                },
-                                            }
-                                            .attach_event(|event| {
-                                                if !instance.focused() {
-                                                    return;
-                                                }
-                                                let namui::Event::MouseDown { event } = event
-                                                else {
-                                                    return;
-                                                };
-                                                if event.is_local_xy_in() {
-                                                    return;
-                                                }
-                                                instance.blur();
+        let body_cell =
+            ratio(
+                1,
+                vertical(
+                    text_input_instances
+                        .into_iter()
+                        .enumerate()
+                        .map(|(index, instance)| {
+                            let name = name_quick_slot.get_name(index).cloned().unwrap_or_default();
+                            fixed(
+                                ITEM_HEIGHT,
+                                padding(
+                                    ITEM_PADDING,
+                                    horizontal([
+                                        fixed(
+                                            NAME_LABEL_WIDTH,
+                                            horizontal_padding(ITEM_PADDING, move |wh, ctx| {
+                                                ctx.add(typography::body::right(
+                                                    wh,
+                                                    format!("Ctrl+{}", index + 1),
+                                                    color::STROKE_NORMAL,
+                                                ));
                                             }),
-                                        );
+                                        ),
+                                        ratio(1, move |wh, ctx| {
+                                            ctx.add(
+                                    TextInput {
+                                        instance,
+                                        rect: wh.to_rect(),
+                                        text: name.clone(),
+                                        text_align: TextAlign::Left,
+                                        text_baseline: TextBaseline::Top,
+                                        font: Font {
+                                            size: 12.int_px(),
+                                            name: "NotoSansKR-Regular".to_string(),
+                                        },
+                                        style: Style {
+                                            rect: RectStyle {
+                                                stroke: Some(RectStroke {
+                                                    color: color::STROKE_NORMAL,
+                                                    width: 1.px(),
+                                                    border_position: BorderPosition::Inside,
+                                                }),
+                                                fill: None,
+                                                round: None,
+                                            },
+                                            text: TextStyle {
+                                                border: None,
+                                                drop_shadow: None,
+                                                color: color::STROKE_NORMAL,
+                                                background: None,
+                                                line_height_percent: 100.percent(),
+                                                underline: None,
+                                            },
+                                            padding: TEXT_INPUT_PADDING,
+                                        },
+                                        prevent_default_codes: Vec::new(),
+                                        on_event: &|event| {
+                                            let text_input::Event::TextUpdated { text } = event
+                                            else {
+                                                return;
+                                            };
+                                            let name = text.to_string();
+                                            set_name_quick_slot.mutate(move |name_quick_slot| {
+                                                name_quick_slot.set_name(index, name);
+                                            });
+                                        },
+                                    }
+                                    .attach_event(|event| {
+                                        if !instance.focused() {
+                                            return;
+                                        }
+                                        let namui::Event::MouseDown { event } = event else {
+                                            return;
+                                        };
+                                        if event.is_local_xy_in() {
+                                            return;
+                                        }
+                                        instance.blur();
                                     }),
-                                ]),
-                            ),
-                        )
-                    }),
-            ),
-        );
+                                );
+                                        }),
+                                    ]),
+                                ),
+                            )
+                        }),
+                ),
+            );
 
         ctx.compose(|ctx| {
             let mut ctx = ctx.translate(modal_xy);

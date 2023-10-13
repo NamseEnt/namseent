@@ -19,6 +19,7 @@ pub struct LoadedSequenceEditorPage {
     pub sequence: Sequence,
     pub cg_files: Vec<CgFile>,
     pub images: Vec<ImageWithLabels>,
+    pub name_quick_slot: NameQuickSlot,
 }
 
 #[derive(Debug)]
@@ -36,11 +37,13 @@ impl Component for LoadedSequenceEditorPage {
             wh,
             cg_files,
             images,
+            name_quick_slot,
         } = self;
         let (sequence, set_seqenece) =
             ctx.atom_init(&SEQUENCE_ATOM, || SequenceWrapped::new(sequence.clone()));
         let (cg_files, _set_cg_files) = ctx.atom_init(&CG_FILES_ATOM, || cg_files.clone());
         let (_images, _set_cg_files) = ctx.atom_init(&IMAGES_ATOM, || images.clone());
+        let _ = ctx.atom_init(&NAME_QUICK_SLOT, || name_quick_slot);
 
         let (selected_cut_id, set_selected_cut_id) = ctx.state::<Option<Uuid>>(|| None);
         let (focused_component, set_focused_component) = ctx.atom_init(&FOCUSED_COMPONENT, || None);
