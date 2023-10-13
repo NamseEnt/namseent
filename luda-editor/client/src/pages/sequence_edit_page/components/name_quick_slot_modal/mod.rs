@@ -99,50 +99,67 @@ impl Component for NameQuickSlotModal<'_> {
                                         }),
                                     ),
                                     ratio(1, move |wh, ctx| {
-                                        ctx.add(TextInput {
-                                            instance: text_input_instances[index],
-                                            rect: wh.to_rect(),
-                                            text: name.clone(),
-                                            text_align: TextAlign::Left,
-                                            text_baseline: TextBaseline::Top,
-                                            font: Font {
-                                                size: 12.int_px(),
-                                                name: "NotoSansKR-Regular".to_string(),
-                                            },
-                                            style: Style {
-                                                rect: RectStyle {
-                                                    stroke: Some(RectStroke {
+                                        let instance = text_input_instances[index];
+                                        ctx.add(
+                                            TextInput {
+                                                instance,
+                                                rect: wh.to_rect(),
+                                                text: name.clone(),
+                                                text_align: TextAlign::Left,
+                                                text_baseline: TextBaseline::Top,
+                                                font: Font {
+                                                    size: 12.int_px(),
+                                                    name: "NotoSansKR-Regular".to_string(),
+                                                },
+                                                style: Style {
+                                                    rect: RectStyle {
+                                                        stroke: Some(RectStroke {
+                                                            color: color::STROKE_NORMAL,
+                                                            width: 1.px(),
+                                                            border_position: BorderPosition::Inside,
+                                                        }),
+                                                        fill: None,
+                                                        round: None,
+                                                    },
+                                                    text: TextStyle {
+                                                        border: None,
+                                                        drop_shadow: None,
                                                         color: color::STROKE_NORMAL,
-                                                        width: 1.px(),
-                                                        border_position: BorderPosition::Inside,
-                                                    }),
-                                                    fill: None,
-                                                    round: None,
+                                                        background: None,
+                                                        line_height_percent: 100.percent(),
+                                                        underline: None,
+                                                    },
+                                                    padding: TEXT_INPUT_PADDING,
                                                 },
-                                                text: TextStyle {
-                                                    border: None,
-                                                    drop_shadow: None,
-                                                    color: color::STROKE_NORMAL,
-                                                    background: None,
-                                                    line_height_percent: 100.percent(),
-                                                    underline: None,
+                                                prevent_default_codes: Vec::new(),
+                                                on_event: &|event| {
+                                                    let text_input::Event::TextUpdated { text } =
+                                                        event
+                                                    else {
+                                                        return;
+                                                    };
+                                                    let name = text.to_string();
+                                                    set_name_quick_slot.mutate(
+                                                        move |name_quick_slot| {
+                                                            name_quick_slot.names[index] = name;
+                                                        },
+                                                    );
                                                 },
-                                                padding: TEXT_INPUT_PADDING,
-                                            },
-                                            prevent_default_codes: Vec::new(),
-                                            on_event: &|event| {
-                                                let text_input::Event::TextUpdated { text } = event
+                                            }
+                                            .attach_event(|event| {
+                                                if !instance.focused() {
+                                                    return;
+                                                }
+                                                let namui::Event::MouseDown { event } = event
                                                 else {
                                                     return;
                                                 };
-                                                let name = text.to_string();
-                                                set_name_quick_slot.mutate(
-                                                    move |name_quick_slot| {
-                                                        name_quick_slot.names[index] = name;
-                                                    },
-                                                );
-                                            },
-                                        });
+                                                if event.is_local_xy_in() {
+                                                    return;
+                                                }
+                                                instance.blur();
+                                            }),
+                                        );
                                     }),
                                 ]),
                             ),
