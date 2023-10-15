@@ -22,7 +22,7 @@ use crate::{
 use futures::join;
 use namui::prelude::*;
 use namui_prebuilt::{simple_rect, table::hooks::*};
-use rpc::data::{CgFile, ImageWithLabels};
+use rpc::data::{CgFile, ImageWithLabels, ScreenCg, ScreenCgPart};
 use std::ops::Deref;
 
 static TAB_ATOM: Atom<Tab> = Atom::uninitialized_new();
@@ -47,7 +47,7 @@ impl Component for GraphicAssetManagePage {
         let (tab, _set_tab) = ctx.atom_init(&TAB_ATOM, || Tab::Image);
         let (selected_asset, _) = ctx.atom_init(&SELECTED_ASSET_ATOM, || None);
         let _ = ctx.atom_init(&IMAGES_ATOM, Vec::new);
-        let _ = ctx.atom_init(&CG_FILES_ATOM, Vec::new);
+        let (cg_files, _) = ctx.atom_init(&CG_FILES_ATOM, Vec::new);
 
         ctx.effect("Fetch graphic assets every project_id changes", || {
             start_fetch_graphic_assets(*project_id);
@@ -73,14 +73,36 @@ impl Component for GraphicAssetManagePage {
                         },
                     );
                 }
-                SelectedAsset::Cg(cg_file) => {
+                SelectedAsset::Cg(screen_cg) => {
+                    let cg_file = cg_files
+                        .iter()
+                        .find(|cg_file| screen_cg.id == cg_file.id)
+                        .unwrap();
                     ctx.add_with_key(
                         "cg_viewer",
                         CgViewer {
                             wh,
-                            cg_file,
                             project_id: *project_id,
-                            on_close: &on_viewer_close,
+                            cg_file,
+                            screen_cg,
+                            on_event: &|event| match event {
+                                cg_viewer::Event::Close => on_viewer_close(),
+                                cg_viewer::Event::UnselectCgPart { cg_part_name } => {
+                                    update_cg_part(cg_part_name, |part| part.unselect())
+                                }
+                                cg_viewer::Event::TurnOnCgPartVariant {
+                                    cg_part_name,
+                                    cg_part_variant_name,
+                                } => update_cg_part(cg_part_name, move |part| {
+                                    part.turn_on(cg_part_variant_name.clone())
+                                }),
+                                cg_viewer::Event::TurnOffCgPartVariant {
+                                    cg_part_name,
+                                    cg_part_variant_name,
+                                } => update_cg_part(cg_part_name, move |part| {
+                                    part.turn_off(cg_part_variant_name.clone())
+                                }),
+                            },
                         },
                     );
                 }
@@ -168,7 +190,7 @@ impl ToString for Tab {
 #[derive(Debug, Clone)]
 enum SelectedAsset {
     Image(ImageWithLabels),
-    Cg(CgFile),
+    Cg(ScreenCg),
 }
 
 fn start_fetch_graphic_assets(project_id: Uuid) {
@@ -211,4 +233,21 @@ fn start_fetch_graphic_assets(project_id: Uuid) {
 
         join!(fetch_images(), fetch_cg_files());
     })
+}
+
+fn update_cg_part<Update>(part_name: String, update: Update)
+where
+    Update: Fn(&mut ScreenCgPart) + Send + Sync + 'static,
+{
+    SELECTED_ASSET_ATOM.mutate(move |selected_asset| {
+        let Some(SelectedAsset::Cg(screen_cg)) = selected_asset else {
+            return;
+        };
+        let part = screen_cg
+            .parts
+            .iter_mut()
+            .find(|part| part.name() == part_name)
+            .unwrap();
+        update(part);
+    });
 }

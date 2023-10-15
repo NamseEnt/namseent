@@ -2,7 +2,7 @@ use super::{auto_column_list::AutoColumnList, CG_FILES_ATOM, SELECTED_ASSET_ATOM
 use crate::{color, storage::get_project_cg_thumbnail_image_url};
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
-use rpc::data::CgFile;
+use rpc::data::{CgFile, ScreenCg};
 
 const DOUBLE_CLICK_TIME: Time = Time::Sec(0.3);
 
@@ -72,7 +72,8 @@ impl Component for Thumbnail<'_> {
                             set_last_clicked_time.set(now);
                             return;
                         }
-                        set_selected_asset.set(Some(super::SelectedAsset::Cg(cg_file.clone())))
+                        set_selected_asset
+                            .set(Some(super::SelectedAsset::Cg(ScreenCg::new(cg_file))))
                     }
                 }),
         );

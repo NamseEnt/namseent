@@ -1,3 +1,4 @@
+use super::Event;
 use crate::{color, components::tool_tip::ToolTip, storage::get_project_cg_part_variant_image_url};
 use namui::prelude::*;
 use namui_prebuilt::{
@@ -23,20 +24,6 @@ pub struct PartPicker<'a> {
     pub project_id: Uuid,
     pub screen_cg: &'a ScreenCg,
     pub on_event: &'a dyn Fn(Event),
-}
-
-pub enum Event {
-    UnselectCgPart {
-        cg_part_name: String,
-    },
-    TurnOnCgPartVariant {
-        cg_part_name: String,
-        cg_part_variant_name: String,
-    },
-    TurnOffCgPartVariant {
-        cg_part_name: String,
-        cg_part_variant_name: String,
-    },
 }
 
 pub enum InternalEvent {

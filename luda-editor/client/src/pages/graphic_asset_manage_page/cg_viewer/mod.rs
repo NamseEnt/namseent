@@ -4,7 +4,7 @@ use self::part_picker::PartPicker;
 use crate::{color, components::cg_render::CgRender, storage::get_project_cg_thumbnail_image_url};
 use namui::prelude::*;
 use namui_prebuilt::{button, simple_rect, table::hooks::*, typography};
-use rpc::data::{ScreenCg, ScreenCgPart};
+use rpc::data::{CgFile, ScreenCg};
 use std::ops::Deref;
 
 const MODAL_MAX_WH: Wh<Px> = Wh {
@@ -15,24 +15,38 @@ const MODAL_MIN_MARGIN: Px = px(16.0);
 const TITLE_BAR_HEIGHT: Px = px(48.0);
 const PICKER_WIDTH: Px = px(512.0);
 
+pub enum Event {
+    Close,
+    UnselectCgPart {
+        cg_part_name: String,
+    },
+    TurnOnCgPartVariant {
+        cg_part_name: String,
+        cg_part_variant_name: String,
+    },
+    TurnOffCgPartVariant {
+        cg_part_name: String,
+        cg_part_variant_name: String,
+    },
+}
+
 #[component]
 pub struct CgViewer<'a> {
     pub wh: Wh<Px>,
-    /// NOTE: cg_viewer does not change the cg_file.
-    /// cg_file is used to init screen_cg then cg_viewer modifies screen_cg.
-    /// Change of cg_file means that the user opened a preview of another cg_file.
-    pub cg_file: &'a rpc::data::CgFile,
     pub project_id: Uuid,
-    pub on_close: &'a dyn Fn(),
+    pub cg_file: &'a CgFile,
+    pub screen_cg: &'a ScreenCg,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 impl Component for CgViewer<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
-            cg_file,
             project_id,
-            on_close,
+            cg_file,
+            screen_cg,
+            on_event,
         } = self;
 
         let modal_rect = {
@@ -46,14 +60,6 @@ impl Component for CgViewer<'_> {
             };
             Rect::from_xy_wh(modal_xy, modal_wh)
         };
-        let (screen_cg, set_screen_cg) = ctx.state(|| ScreenCg::new(cg_file));
-        let cg_file_id = ctx.track_eq(&cg_file.id);
-
-        ctx.effect("Initialize screen_cg on cg_file changed", || {
-            // Roughly detect cg_file change
-            let _ = cg_file_id.deref();
-            set_screen_cg.set(ScreenCg::new(cg_file));
-        });
 
         let title_bar = |wh, ctx: &mut ComposeCtx| {
             let background = simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT);
@@ -74,7 +80,7 @@ impl Component for CgViewer<'_> {
                     fill_color: color::BACKGROUND,
                     mouse_buttons: vec![MouseButton::Left],
                     on_mouse_up_in: Box::new(|_event| {
-                        on_close();
+                        on_event(Event::Close);
                     }),
                 }
                 .with_mouse_cursor(MouseCursor::Pointer),
@@ -102,31 +108,6 @@ impl Component for CgViewer<'_> {
             ctx.add(background);
         };
 
-        let on_picker_event = |event| match event {
-            part_picker::Event::UnselectCgPart { cg_part_name } => {
-                set_screen_cg.mutate(move |screen_cg| {
-                    update_cg_part(screen_cg, &cg_part_name, |part| part.unselect())
-                })
-            }
-            part_picker::Event::TurnOnCgPartVariant {
-                cg_part_name,
-                cg_part_variant_name,
-            } => set_screen_cg.mutate(move |screen_cg| {
-                update_cg_part(screen_cg, &cg_part_name, |part| {
-                    let cg_part_variant_name = cg_part_variant_name.clone();
-                    part.turn_on(cg_part_variant_name)
-                })
-            }),
-            part_picker::Event::TurnOffCgPartVariant {
-                cg_part_name,
-                cg_part_variant_name,
-            } => set_screen_cg.mutate(move |screen_cg| {
-                update_cg_part(screen_cg, &cg_part_name, |part| {
-                    let cg_part_variant_name = cg_part_variant_name.clone();
-                    part.turn_on(cg_part_variant_name)
-                })
-            }),
-        };
         let picker = |wh, ctx: &mut ComposeCtx| {
             let background = simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT);
             ctx.add(PartPicker {
@@ -134,7 +115,7 @@ impl Component for CgViewer<'_> {
                 cg_file,
                 project_id,
                 screen_cg: &screen_cg,
-                on_event: &on_picker_event,
+                on_event,
             });
             ctx.add(background);
         };
@@ -183,7 +164,7 @@ impl Component for CgViewer<'_> {
                             return;
                         }
                         event.stop_propagation();
-                        on_close();
+                        on_event(Event::Close);
                     }
                 },
             ),
@@ -231,18 +212,6 @@ impl Component for RenderCgContainFit<'_> {
 
         ctx.done()
     }
-}
-
-fn update_cg_part<Updater>(screen_cg: &mut ScreenCg, part_name: &str, updater: Updater)
-where
-    Updater: Fn(&mut ScreenCgPart),
-{
-    let part = screen_cg
-        .parts
-        .iter_mut()
-        .find(|part| part.name() == part_name)
-        .unwrap();
-    updater(part)
 }
 
 fn calculate_cg_rect(container_wh: Wh<Px>, cg_wh: Wh<Px>) -> Rect<Px> {
