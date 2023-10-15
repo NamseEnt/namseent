@@ -88,7 +88,7 @@ impl Component for CgViewer<'_> {
 
             ctx.add(typography::center_text_full_height(
                 wh,
-                cg_file.name.to_string(),
+                &cg_file.name,
                 color::STROKE_NORMAL,
             ));
 
