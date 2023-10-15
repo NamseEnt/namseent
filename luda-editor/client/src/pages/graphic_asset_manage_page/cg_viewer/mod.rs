@@ -88,7 +88,7 @@ impl Component for CgViewer<'_> {
 
             ctx.add(typography::center_text_full_height(
                 wh,
-                cg_file.id.to_string(),
+                cg_file.name.to_string(),
                 color::STROKE_NORMAL,
             ));
 
@@ -101,7 +101,7 @@ impl Component for CgViewer<'_> {
             ctx.add(RenderCgContainFit {
                 wh,
                 project_id,
-                screen_cg: &screen_cg,
+                screen_cg,
                 cg_file,
             });
 
@@ -114,7 +114,7 @@ impl Component for CgViewer<'_> {
                 wh,
                 cg_file,
                 project_id,
-                screen_cg: &screen_cg,
+                screen_cg,
                 on_event,
             });
             ctx.add(background);

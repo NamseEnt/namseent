@@ -21,7 +21,7 @@ impl Component for CgList {
         ctx.component(AutoColumnList {
             wh,
             items: cg_files,
-            name_specifier: &|cg_file| cg_file.id.to_string(),
+            name_specifier: &|cg_file| cg_file.name.to_string(),
             thumbnail_renderer: &|image, wh, ctx| {
                 ctx.add(Thumbnail {
                     wh,
