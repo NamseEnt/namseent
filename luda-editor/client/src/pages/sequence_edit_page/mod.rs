@@ -3,14 +3,13 @@ mod components;
 mod loaded;
 mod sequence;
 
+use crate::components::name_quick_slot::NameQuickSlot;
 use ::futures::try_join;
 use loaded::LoadedSequenceEditorPage;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, ImageWithLabels, Memo, ProjectSharedData, Sequence};
 use std::collections::HashMap;
-
-use crate::components::name_quick_slot::NameQuickSlot;
 
 #[namui::component]
 pub struct SequenceEditPage {
