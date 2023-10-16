@@ -25,7 +25,7 @@ impl NameQuickSlot {
                 return;
             };
             push_notification(Notification::error(format!(
-                "NameQuickSlot cache set error: {error}"
+                "Failed to save NameQuickSlot, refresh and try again: {error}"
             )));
         });
     }
@@ -47,7 +47,7 @@ impl NameQuickSlot {
                 return;
             };
             push_notification(Notification::error(format!(
-                "NameQuickSlot cache clear error: {error}"
+                "Failed to clear NameQuickSlot, check browser's indexedDB and clear manually if you needed : {error}"
             )));
         });
     }
