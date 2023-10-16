@@ -1,5 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
+use std::fmt::Write;
 use syn::{parse_macro_input, DataStruct, Field};
 
 #[proc_macro_attribute]
@@ -206,18 +207,20 @@ pub fn document(
     let impl_document = {
         let pk = {
             let pk_double_quote_content: TokenStream = ("\"".to_string()
-                + &pk_fields
-                    .iter()
-                    .map(|field| format!("#{}:{{}}", field.ident.as_ref().unwrap()))
-                    .collect::<String>()
+                + &pk_fields.iter().fold(String::new(), |mut content, field| {
+                    let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                    content
+                })
                 + "\"")
                 .parse()
                 .unwrap();
 
             let parameters: TokenStream = pk_fields
                 .iter()
-                .map(|field| format!(", self.{}", field.ident.as_ref().unwrap()))
-                .collect::<String>()
+                .fold(String::new(), |mut content, field| {
+                    let _ = write!(content, ", self.{}", field.ident.as_ref().unwrap());
+                    content
+                })
                 .parse()
                 .unwrap();
             quote! {format!(#pk_double_quote_content #parameters)}
@@ -228,18 +231,20 @@ pub fn document(
                 quote! { Option::<String>::None }
             } else {
                 let sk_double_quote_content: TokenStream = ("\"".to_string()
-                    + &sk_fields
-                        .iter()
-                        .map(|field| format!("#{}:{{}}", field.ident.as_ref().unwrap()))
-                        .collect::<String>()
+                    + &sk_fields.iter().fold(String::new(), |mut content, field| {
+                        let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                        content
+                    })
                     + "\"")
                     .parse()
                     .unwrap();
 
                 let parameters: TokenStream = sk_fields
                     .iter()
-                    .map(|field| format!(", self.{}", field.ident.as_ref().unwrap()))
-                    .collect::<String>()
+                    .fold(String::new(), |mut content, field| {
+                        let _ = write!(content, ", self.{}", field.ident.as_ref().unwrap());
+                        content
+                    })
                     .parse()
                     .unwrap();
                 quote! { Some(format!(#sk_double_quote_content #parameters)) }
@@ -282,18 +287,20 @@ fn prefixed_value(
 ) -> (TokenStream, TokenStream) {
     let prefixed_pk = {
         let pk_double_quote_content: TokenStream = ("\"".to_string()
-            + &pk_fields
-                .iter()
-                .map(|field| format!("#{}:{{}}", field.ident.as_ref().unwrap()))
-                .collect::<String>()
+            + &pk_fields.iter().fold(String::new(), |mut content, field| {
+                let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                content
+            })
             + "\"")
             .parse()
             .unwrap();
 
         let parameters: TokenStream = pk_fields
             .iter()
-            .map(|field| format!(", self.pk_{}", field.ident.as_ref().unwrap()))
-            .collect::<String>()
+            .fold(String::new(), |mut content, field| {
+                let _ = write!(content, ", self.pk_{}", field.ident.as_ref().unwrap());
+                content
+            })
             .parse()
             .unwrap();
         quote! {format!(#pk_double_quote_content #parameters)}
@@ -304,18 +311,20 @@ fn prefixed_value(
             quote! { Option::<String>::None }
         } else {
             let sk_double_quote_content: TokenStream = ("\"".to_string()
-                + &sk_fields
-                    .iter()
-                    .map(|field| format!("#{}:{{}}", field.ident.as_ref().unwrap()))
-                    .collect::<String>()
+                + &sk_fields.iter().fold(String::new(), |mut content, field| {
+                    let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                    content
+                })
                 + "\"")
                 .parse()
                 .unwrap();
 
             let parameters: TokenStream = sk_fields
                 .iter()
-                .map(|field| format!(", self.sk_{}", field.ident.as_ref().unwrap()))
-                .collect::<String>()
+                .fold(String::new(), |mut content, field| {
+                    let _ = write!(content, ", self.sk_{}", field.ident.as_ref().unwrap());
+                    content
+                })
                 .parse()
                 .unwrap();
             quote! { Some(format!(#sk_double_quote_content #parameters)) }

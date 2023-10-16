@@ -35,6 +35,9 @@ impl Component for Router {
                     sequence_id,
                 });
             }
+            Route::GraphicAssetManage { project_id } => {
+                ctx.add(graphic_asset_manage_page::GraphicAssetManagePage { wh, project_id });
+            }
         });
 
         ctx.done()
@@ -46,6 +49,7 @@ pub enum Route {
     ProjectList,
     SequenceList { project_id: Uuid },
     SequenceEdit { project_id: Uuid, sequence_id: Uuid },
+    GraphicAssetManage { project_id: Uuid },
 }
 impl From<String> for Route {
     fn from(mut path_string: String) -> Self {
@@ -77,6 +81,13 @@ impl From<String> for Route {
             }
         }
 
+        if path_string.starts_with("/graphic_asset_manage") {
+            let rest = path_string.split_off("/graphic_asset_manage".len());
+            if let Ok(project_id) = Uuid::parse_str(rest.trim_matches('/')) {
+                return Self::GraphicAssetManage { project_id };
+            }
+        }
+
         Self::ProjectList
     }
 }
@@ -89,6 +100,9 @@ impl ToString for Route {
                 project_id,
                 sequence_id,
             } => format!("/sequence_edit/{project_id}/{sequence_id}"),
+            Self::GraphicAssetManage { project_id } => {
+                format!("/graphic_asset_manage/{project_id}")
+            }
         }
     }
 }

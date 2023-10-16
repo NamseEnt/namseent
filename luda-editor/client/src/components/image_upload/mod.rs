@@ -1,9 +1,6 @@
-mod upload_images;
-
 use namui::prelude::*;
 use rpc::data::*;
 use rpc::utils::retry_on_error;
-pub use upload_images::*;
 
 pub async fn create_image(
     project_id: namui::Uuid,

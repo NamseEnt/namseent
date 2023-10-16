@@ -94,7 +94,7 @@ impl SkCanvas for CkCanvas {
             return;
         };
 
-        let mut paint = paint.clone().unwrap_or(Paint::new());
+        let mut paint = paint.clone().unwrap_or_default();
 
         let image_shader = image.get_default_shader();
 

@@ -3,10 +3,8 @@ use crate::{
     app::notification::{push_notification, remove_notification, Notification},
     clipboard::TryReadLudaEditorClipboardItem,
     color,
-    pages::sequence_edit_page::{
-        atom::{UpdateCgFile, CG_FILES_ATOM, SEQUENCE_ATOM},
-        components::{cg_upload::create_cg, image_upload::create_image},
-    },
+    components::{cg_upload::create_cg, image_upload::create_image},
+    pages::sequence_edit_page::atom::{UpdateCgFile, CG_FILES_ATOM, SEQUENCE_ATOM},
 };
 use namui_prebuilt::*;
 use rpc::data::{CutUpdateAction, ScreenCg, ScreenGraphic, ScreenImage};

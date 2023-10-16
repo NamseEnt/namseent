@@ -20,6 +20,9 @@ enum ContextMenu {
 impl Component for SequenceListPage {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh, project_id } = self;
+
+        const ITEM_HEIGHT: Px = px(40.0);
+
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
         let (sequence_list, set_sequence_list) =
@@ -42,6 +45,10 @@ impl Component for SequenceListPage {
                 }
                 set_is_loading.set(false);
             })
+        };
+
+        let on_manage_graphic_assets_button_click = move || {
+            super::router::move_to(super::router::Route::GraphicAssetManage { project_id });
         };
 
         let on_add_button_click = move || {
@@ -125,7 +132,23 @@ impl Component for SequenceListPage {
                 table::hooks::ratio(
                     2.0,
                     table::hooks::vertical([
-                        table::hooks::fixed(40.px(), |wh, ctx| {
+                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
+                            ctx.add(button::TextButton {
+                                rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
+                                text: "Manage Graphic Assets",
+                                text_color: Color::WHITE,
+                                stroke_color: Color::grayscale_f01(0.5),
+                                stroke_width: 1.px(),
+                                fill_color: Color::BLACK,
+                                mouse_buttons: vec![MouseButton::Left],
+                                // TODO: unwrap box
+                                on_mouse_up_in: Box::new(|_| {
+                                    on_manage_graphic_assets_button_click()
+                                }),
+                            });
+                        }),
+                        table::hooks::fixed(ITEM_HEIGHT, |_wh, _ctx| {}),
+                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
                             ctx.add(button::TextButton {
                                 rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 text: "[+] Add Sequence",
@@ -138,7 +161,7 @@ impl Component for SequenceListPage {
                             });
                         }),
                         table::hooks::ratio(1.0, |wh, ctx| {
-                            let item_wh = Wh::new(wh.width, 40.px());
+                            let item_wh = Wh::new(wh.width, ITEM_HEIGHT);
 
                             ctx.add(list_view::AutoListView {
                                 height: wh.height,

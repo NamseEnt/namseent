@@ -295,14 +295,7 @@ impl Eq for Time {}
 
 impl PartialOrd for Time {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match self {
-            Time::Ms(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_millis())),
-            Time::Sec(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_seconds())),
-            Time::Minute(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_minutes())),
-            Time::Hour(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_hours())),
-            Time::Day(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_days())),
-            Time::Week(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_weeks())),
-        }
+        Some(self.cmp(other))
     }
 }
 

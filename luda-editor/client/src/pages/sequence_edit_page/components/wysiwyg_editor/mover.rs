@@ -26,7 +26,6 @@ impl Component for Mover<'_> {
             container_wh,
             ref on_event,
         } = self;
-        let on_event = on_event.clone();
 
         ctx.compose(|ctx| {
             ctx.translate((image_dest_rect.x(), image_dest_rect.y()))

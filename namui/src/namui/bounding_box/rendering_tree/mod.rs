@@ -31,7 +31,7 @@ impl BoundingBox for RenderingTree {
                 rendering_trees
                     .into_iter()
                     .filter_map(|child| {
-                        get_bounding_box_with_matrix(child.borrow(), matrix, bounding_box_context)
+                        get_bounding_box_with_matrix(child, matrix, bounding_box_context)
                     })
                     .reduce(|acc, bounding_box| {
                         Rect::get_minimum_rectangle_containing(&acc, bounding_box)

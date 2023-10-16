@@ -168,7 +168,6 @@ impl Component for CutEditor<'_> {
                 on_event: &|e| match e {
                     text_input::Event::TextUpdated { text } => {
                         let name = text.to_string();
-                        let cut_id = cut_id;
                         SEQUENCE_ATOM.mutate(move |sequence| {
                             sequence
                                 .update_cut(cut_id, CutUpdateAction::ChangeCharacterName { name })
