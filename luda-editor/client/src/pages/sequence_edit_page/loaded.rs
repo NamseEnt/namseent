@@ -1,6 +1,9 @@
 use super::{atom::*, components::*, sequence::SequenceWrapped};
 use crate::{
-    components::context_menu::{if_context_menu_for, open_context_menu},
+    components::{
+        context_menu::{if_context_menu_for, open_context_menu},
+        name_quick_slot::NameQuickSlot,
+    },
     pages::sequence_edit_page::components::{
         character_editor::EditTarget, name_quick_slot_modal::NameQuickSlotModal,
     },

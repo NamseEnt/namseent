@@ -3,13 +3,14 @@ mod components;
 mod loaded;
 mod sequence;
 
-use self::atom::NameQuickSlot;
 use ::futures::try_join;
 use loaded::LoadedSequenceEditorPage;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, ImageWithLabels, Memo, ProjectSharedData, Sequence};
 use std::collections::HashMap;
+
+use crate::components::name_quick_slot::NameQuickSlot;
 
 #[namui::component]
 pub struct SequenceEditPage {
@@ -81,7 +82,7 @@ async fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Result<
         get_user_id(),
         get_cg_files(project_id),
         get_images(project_id),
-        get_name_quick_slot(),
+        get_name_quick_slot(sequence_id),
     );
     return match result {
         Ok((
@@ -158,8 +159,10 @@ async fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Result<
             .await?;
         Ok(response.images)
     }
-    async fn get_name_quick_slot() -> Result<NameQuickSlot, Box<dyn std::error::Error>> {
-        let name_quick_slot = NameQuickSlot::load_from_cache().await?;
+    async fn get_name_quick_slot(
+        sequence_id: Uuid,
+    ) -> Result<NameQuickSlot, Box<dyn std::error::Error>> {
+        let name_quick_slot = NameQuickSlot::load_from_cache(sequence_id).await?;
         Ok(name_quick_slot)
     }
 }
