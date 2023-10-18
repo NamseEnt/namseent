@@ -115,15 +115,17 @@ impl Component for BackgroundWithEvent<'_> {
                     return;
                 }
             };
-            let name = name_quick_slot
-                .get_name(quick_slot_index)
-                .cloned()
-                .unwrap_or_default();
+            event.prevent_default();
+            let Some(name) = name_quick_slot.get_name(quick_slot_index).cloned() else {
+                push_notification(Notification::error(format!(
+                    "Name quick slot {quick_slot_index} not registered. Please register it first"
+                )));
+                return;
+            };
 
             SEQUENCE_ATOM.mutate(move |sequence| {
                 sequence.update_cut(cut_id, CutUpdateAction::ChangeCharacterName { name })
             });
-            event.prevent_default();
         };
 
         ctx.component(
