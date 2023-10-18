@@ -88,6 +88,7 @@ impl ContextMenuBuilder {
     }
     pub fn add_divider(mut self) -> Self {
         self.items.push(Item::Divider);
+        self.button_index += 1;
         self
     }
     pub fn and<'then, Modifier>(self, then: Modifier) -> Self
