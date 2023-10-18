@@ -249,6 +249,8 @@ impl Component for LoadedSequenceEditorPage {
                 is_focused: *focused_component == Some(FocusableComponent::CutListView),
                 cut_id_memos_map: cut_id_memos_map.as_ref(),
                 on_event: Box::new(|event| on_internal_event(InternalEvent::CutListView { event })),
+                project_id,
+                cg_files: &cg_files,
             });
         };
 
