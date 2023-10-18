@@ -1,10 +1,7 @@
 mod rename_modal;
 
 use self::rename_modal::RenameModal;
-use crate::components::{
-    context_menu::{if_context_menu_for, open_context_menu},
-    name_quick_slot::NameQuickSlot,
-};
+use crate::components::context_menu::{if_context_menu_for, open_context_menu};
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::list_project_sequences::SequenceNameAndId;
@@ -212,7 +209,6 @@ impl Component for SequenceListPage {
                         {
                             Ok(_) => {
                                 start_fetch_list();
-                                NameQuickSlot::clear_cache(sequence_id);
                             }
                             Err(error) => {
                                 set_error_message.set(Some(error.to_string()));

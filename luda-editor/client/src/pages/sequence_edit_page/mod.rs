@@ -81,7 +81,7 @@ async fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Result<
         get_user_id(),
         get_cg_files(project_id),
         get_images(project_id),
-        get_name_quick_slot(sequence_id),
+        get_name_quick_slot(project_id),
     );
     return match result {
         Ok((
@@ -159,9 +159,9 @@ async fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Result<
         Ok(response.images)
     }
     async fn get_name_quick_slot(
-        sequence_id: Uuid,
+        project_id: Uuid,
     ) -> Result<NameQuickSlot, Box<dyn std::error::Error>> {
-        let name_quick_slot = NameQuickSlot::load_from_cache(sequence_id).await?;
+        let name_quick_slot = NameQuickSlot::load_from_cache(project_id).await?;
         Ok(name_quick_slot)
     }
 }
