@@ -4,7 +4,7 @@ use crate::{
     clipboard::TryReadLudaEditorClipboardItem,
     color,
     components::{cg_upload::create_cg, image_upload::create_image},
-    pages::sequence_edit_page::atom::{UpdateCgFile, CG_FILES_ATOM, SEQUENCE_ATOM},
+    pages::sequence_edit_page::atom::{UpdateCgFile, CG_FILES_ATOM, NAME_QUICK_SLOT},
 };
 use namui_prebuilt::*;
 use rpc::data::{CutUpdateAction, ScreenCg, ScreenGraphic, ScreenImage};
@@ -34,6 +34,7 @@ impl Component for BackgroundWithEvent<'_> {
             project_id,
         } = self;
         let cut_id = cut.id;
+        let (name_quick_slot, _) = ctx.atom(&NAME_QUICK_SLOT);
 
         let handle_paste = |event: &KeyboardEvent| {
             if !(event.code == Code::KeyV && namui::keyboard::ctrl_press()) {
@@ -99,6 +100,34 @@ impl Component for BackgroundWithEvent<'_> {
             }
         };
 
+        let handle_name_quick_slot_shortcut = |event: &KeyboardEvent| {
+            let ctrl_press = namui::keyboard::ctrl_press();
+            if !ctrl_press {
+                return;
+            }
+            let quick_slot_index = match event.code {
+                Code::Digit1 => 0,
+                Code::Digit2 => 1,
+                Code::Digit3 => 2,
+                Code::Digit4 => 3,
+                Code::Digit5 => 4,
+                _ => {
+                    return;
+                }
+            };
+            event.prevent_default();
+            let Some(name) = name_quick_slot.get_name(quick_slot_index).cloned() else {
+                push_notification(Notification::error(format!(
+                    "Name quick slot {quick_slot_index} not registered. Please register it first"
+                )));
+                return;
+            };
+
+            SEQUENCE_ATOM.mutate(move |sequence| {
+                sequence.update_cut(cut_id, CutUpdateAction::ChangeCharacterName { name })
+            });
+        };
+
         ctx.component(
             simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND).attach_event(
                 |event| {
@@ -116,6 +145,7 @@ impl Component for BackgroundWithEvent<'_> {
                             handle_paste(&event);
                             handle_key_move(&event);
                             handle_undo_redo(&event);
+                            handle_name_quick_slot_shortcut(&event);
                         }
                         namui::Event::DragAndDrop { event } => {
                             if event.is_local_xy_in() {
