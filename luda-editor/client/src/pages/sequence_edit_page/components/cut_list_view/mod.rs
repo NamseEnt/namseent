@@ -8,7 +8,7 @@ use crate::{
 use cut_cell::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use rpc::data::{Cut, Memo, MoveCutAction};
+use rpc::data::{CgFile, Cut, Memo, MoveCutAction};
 use std::collections::HashMap;
 
 static DRAGGING_CONTEXT: Atom<Option<DraggingContext>> = Atom::uninitialized_new();
@@ -21,6 +21,8 @@ pub struct CutListView<'a> {
     pub is_focused: bool,
     pub cut_id_memos_map: &'a HashMap<Uuid, Vec<Memo>>,
     pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub project_id: Uuid,
+    pub cg_files: &'a Vec<CgFile>,
 }
 
 pub enum Event {
@@ -38,6 +40,8 @@ impl Component for CutListView<'_> {
             is_focused,
             cut_id_memos_map,
             on_event,
+            project_id,
+            cg_files,
         } = self;
         let on_event = on_event.as_ref();
         let item_wh = Wh::new(wh.width, 128.px());
@@ -200,6 +204,8 @@ impl Component for CutListView<'_> {
                             is_selected: selected_cut_id == Some(cut.id),
                             is_focused,
                             on_click: boxed(|cut_id: Uuid| on_event(Event::ClickCut { cut_id })),
+                            project_id,
+                            cg_files,
                         },
                     )
                 })
