@@ -117,6 +117,7 @@ impl Component for ProjectListPage {
             ])(wh, ctx)
         });
 
+        // TODO: Clear name quick slot cache on project delete
         // TODO
         // self.context_menu
         //     .as_ref()
