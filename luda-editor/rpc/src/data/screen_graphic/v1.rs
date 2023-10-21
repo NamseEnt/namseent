@@ -62,7 +62,7 @@ impl ScreenImage {
                 center_xy: Xy::new(50.percent(), 50.percent()),
                 radius: 50.percent(),
             },
-            rotation: Angle::Degree(25.0),
+            rotation: Angle::Degree(0.0),
         }
     }
     pub fn migrate(previous: v0::ScreenImage) -> Self {
