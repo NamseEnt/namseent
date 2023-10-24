@@ -158,6 +158,14 @@ pub async fn handle_api(
             let response = project::edit_user_acl(session, api_request).await;
             Ok(serde_json::to_vec(&response).unwrap())
         }
+        "list_user_acls" => {
+            let Ok(api_request) = serde_json::from_slice::<rpc::list_user_acls::Request>(body)
+            else {
+                return Err("Fail to parse body".into());
+            };
+            let response = project::list_user_acls(session, api_request).await;
+            Ok(serde_json::to_vec(&response).unwrap())
+        }
         "update_server_project_shared_data" => {
             let Ok(api_request) =
                 serde_json::from_slice::<rpc::update_server_project_shared_data::Request>(body)

@@ -47,10 +47,6 @@ impl Component for SequenceListPage {
             })
         };
 
-        let on_manage_graphic_assets_button_click = move || {
-            super::router::move_to(super::router::Route::GraphicAssetManage { project_id });
-        };
-
         let on_add_button_click = move || {
             set_is_loading.set(true);
             spawn_local(async move {
@@ -143,7 +139,26 @@ impl Component for SequenceListPage {
                                 mouse_buttons: vec![MouseButton::Left],
                                 // TODO: unwrap box
                                 on_mouse_up_in: Box::new(|_| {
-                                    on_manage_graphic_assets_button_click()
+                                    super::router::move_to(
+                                        super::router::Route::GraphicAssetManage { project_id },
+                                    );
+                                }),
+                            });
+                        }),
+                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
+                            ctx.add(button::TextButton {
+                                rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
+                                text: "Manage Project ACL",
+                                text_color: Color::WHITE,
+                                stroke_color: Color::grayscale_f01(0.5),
+                                stroke_width: 1.px(),
+                                fill_color: Color::BLACK,
+                                mouse_buttons: vec![MouseButton::Left],
+                                // TODO: unwrap box
+                                on_mouse_up_in: Box::new(|_| {
+                                    super::router::move_to(super::router::Route::ProjectAclManage {
+                                        project_id,
+                                    })
                                 }),
                             });
                         }),
