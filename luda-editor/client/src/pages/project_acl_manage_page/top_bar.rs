@@ -17,8 +17,6 @@ impl Component for TopBar {
 
         const PADDING: Px = px(8.0);
 
-        let on_back_button_clicked = || move_to(Route::SequenceList { project_id });
-
         ctx.compose(|ctx| {
             padding(PADDING, |wh, ctx| {
                 horizontal([
@@ -34,7 +32,9 @@ impl Component for TopBar {
                             fill_color: color::STROKE_NORMAL,
                             side_padding: PADDING,
                             mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: Box::new(|_| on_back_button_clicked()),
+                            on_mouse_up_in: Box::new(|_| {
+                                move_to(Route::SequenceList { project_id })
+                            }),
                         }
                         .with_mouse_cursor(MouseCursor::Pointer),
                     ),
