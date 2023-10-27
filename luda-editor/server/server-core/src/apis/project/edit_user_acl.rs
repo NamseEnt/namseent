@@ -33,15 +33,35 @@ pub async fn edit_user_acl(
     match permission {
         Some(permission) => crate::dynamo_db()
             .transact()
-            .put_item(UserInProjectAclDocument {
-                project_id,
-                user_id,
-                permission,
+            .update_or_create_item(UserInProjectAclDocumentUpdateOrCreate {
+                pk_project_id: project_id,
+                sk_user_id: user_id,
+                update: move |mut document| async move {
+                    document.permission = permission;
+                    Ok(document)
+                },
+                create: move || async move {
+                    Ok(UserInProjectAclDocument {
+                        user_id,
+                        project_id,
+                        permission,
+                    })
+                },
             })
-            .put_item(ProjectAclUserInDocument {
-                user_id,
-                project_id,
-                permission,
+            .update_or_create_item(ProjectAclUserInDocumentUpdateOrCreate {
+                pk_user_id: user_id,
+                sk_project_id: project_id,
+                update: move |mut document| async move {
+                    document.permission = permission;
+                    Ok(document)
+                },
+                create: move || async move {
+                    Ok(ProjectAclUserInDocument {
+                        user_id,
+                        project_id,
+                        permission,
+                    })
+                },
             })
             .send()
             .await

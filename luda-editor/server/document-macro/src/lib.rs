@@ -204,6 +204,85 @@ pub fn document(
         }
     };
 
+    let update_or_create_struct_output = {
+        let update_or_create_struct_ident = Ident::new(
+            &format!("{}UpdateOrCreate", struct_ident),
+            struct_ident.span(),
+        );
+        let update_or_create_struct_fields =
+            prefixed_pk_fields.iter().chain(prefixed_sk_fields.iter());
+        quote! {
+            pub struct #update_or_create_struct_ident<Update, Create, TCancelError, TUpdateFuture, TCreateFuture>
+            where
+                Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
+                Create: FnOnce() -> TCreateFuture + 'static + Send,
+                TCancelError: std::error::Error + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+                TCreateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+            {
+                #(#update_or_create_struct_fields,)*
+                pub update: Update,
+                pub create: Create,
+            }
+            impl<Update, Create, TCancelError, TUpdateFuture, TCreateFuture> #update_or_create_struct_ident<Update, Create, TCancelError, TUpdateFuture, TCreateFuture>
+            where
+                Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
+                Create: FnOnce() -> TCreateFuture + 'static + Send,
+                TCancelError: std::error::Error + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+                TCreateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+            {
+                pub async fn run(self) -> Result<(), crate::storage::dynamo_db::UpdateItemError<TCancelError>> {
+                    let pk = #prefixed_pk;
+                    let sk = #prefixed_sk;
+                    crate::dynamo_db().update_or_create_item::<#struct_ident, TCancelError, TUpdateFuture, TCreateFuture>(pk, sk, self.update, self.create).await
+                }
+            }
+
+            impl<Update, Create, TCancelError, TUpdateFuture, TCreateFuture>
+                Into<
+                    crate::storage::dynamo_db::TransactUpdateOrCreateCommand<
+                        #struct_ident,
+                        Update,
+                        Create,
+                        TCancelError,
+                        TUpdateFuture,
+                        TCreateFuture,
+                    >,
+                > for #update_or_create_struct_ident<Update, Create, TCancelError, TUpdateFuture, TCreateFuture>
+            where
+                Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
+                Create: FnOnce() -> TCreateFuture + 'static + Send,
+                TCancelError: std::error::Error + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+                TCreateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+            {
+                fn into(
+                    self,
+                ) -> crate::storage::dynamo_db::TransactUpdateOrCreateCommand<
+                    #struct_ident,
+                    Update,
+                    Create,
+                    TCancelError,
+                    TUpdateFuture,
+                    TCreateFuture,
+                > {
+                    let pk = #prefixed_pk;
+                    let sk = #prefixed_sk;
+                    crate::storage::dynamo_db::TransactUpdateOrCreateCommand {
+                        partition_prefix: stringify!(#struct_ident).to_string(),
+                        partition_key_without_prefix: pk,
+                        sort_key: sk,
+                        update: self.update,
+                        create: self.create,
+                        _phantom: std::marker::PhantomData,
+                    }
+                }
+            }
+
+        }
+    };
+
     let impl_document = {
         let pk = {
             let pk_double_quote_content: TokenStream = ("\"".to_string()
@@ -276,6 +355,7 @@ pub fn document(
         #query_struct_output
         #delete_struct_output
         #update_struct_output
+        #update_or_create_struct_output
     };
 
     output.into()
