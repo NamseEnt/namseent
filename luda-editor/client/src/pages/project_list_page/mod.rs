@@ -82,7 +82,12 @@ impl Component for ProjectListPage {
                             error
                         )));
                         push_notification(Notification::info(format!("user id: {}", user_id)));
+                        return;
                     };
+
+                    push_notification(Notification::info(
+                        "User id copied to clipboard.".to_string(),
+                    ));
                 }
                 .then(move |()| async move { remove_notification(loading_notification_id) }),
             );
