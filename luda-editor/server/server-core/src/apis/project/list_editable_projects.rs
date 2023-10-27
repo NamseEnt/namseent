@@ -38,13 +38,14 @@ pub async fn list_editable_projects(
         );
 
     let editable_projects = try_join_all(editable_project_ids.map(|project_id| async move {
-        match (ProjectDocumentGet { pk_id: project_id }).run().await {
-            Ok(project) => Ok(rpc::list_editable_projects::EditableProject {
+        (ProjectDocumentGet { pk_id: project_id })
+            .run()
+            .await
+            .map(|project| rpc::list_editable_projects::EditableProject {
                 id: project_id,
                 name: project.name,
-            }),
-            Err(error) => Err(Error::Unknown(error.to_string())),
-        }
+            })
+            .map_err(|error| Error::Unknown(error.to_string()))
     }))
     .await;
     if let Err(error) = editable_projects {
