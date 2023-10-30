@@ -119,7 +119,7 @@ impl Component for ProjectListPage {
                                 stroke_width: 1.px(),
                                 fill_color: Color::BLACK,
                                 mouse_buttons: vec![MouseButton::Left],
-                                on_mouse_up_in: Box::new(|_| on_copy_id_button_clicked()),
+                                on_mouse_up_in: &|_| on_copy_id_button_clicked(),
                             });
                         }),
                         table::hooks::fixed(ITEM_HEIGHT, |_, _| {}),
@@ -132,7 +132,7 @@ impl Component for ProjectListPage {
                                 stroke_width: 1.px(),
                                 fill_color: Color::BLACK,
                                 mouse_buttons: vec![MouseButton::Left],
-                                on_mouse_up_in: Box::new(|_| on_add_button_clicked()),
+                                on_mouse_up_in: &|_| on_add_button_clicked(),
                             });
                         }),
                         table::hooks::ratio(1.0, |wh, ctx| {
@@ -214,7 +214,7 @@ impl Component for ProjectCell {
             stroke_width: 1.px(),
             fill_color: Color::BLACK,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: Box::new(|event: MouseEvent| {
+            on_mouse_up_in: &|event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
                     super::router::move_to(super::router::Route::SequenceList { project_id });
                 } else if event.button == Some(MouseButton::Right) {
@@ -224,7 +224,7 @@ impl Component for ProjectCell {
                     //     project_id,
                     // });
                 }
-            }),
+            },
         })
         .done()
     }

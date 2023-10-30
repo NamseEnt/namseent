@@ -79,9 +79,9 @@ impl Component for CgViewer<'_> {
                     stroke_width: 1.px(),
                     fill_color: color::BACKGROUND,
                     mouse_buttons: vec![MouseButton::Left],
-                    on_mouse_up_in: Box::new(|_event| {
+                    on_mouse_up_in: &|_event| {
                         on_event(Event::Close);
-                    }),
+                    },
                 }
                 .with_mouse_cursor(MouseCursor::Pointer),
             );

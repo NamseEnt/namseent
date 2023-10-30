@@ -137,12 +137,11 @@ impl Component for SequenceListPage {
                                 stroke_width: 1.px(),
                                 fill_color: Color::BLACK,
                                 mouse_buttons: vec![MouseButton::Left],
-                                // TODO: unwrap box
-                                on_mouse_up_in: Box::new(|_| {
+                                on_mouse_up_in: &|_| {
                                     super::router::move_to(
                                         super::router::Route::GraphicAssetManage { project_id },
                                     );
-                                }),
+                                },
                             });
                         }),
                         table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
@@ -154,12 +153,11 @@ impl Component for SequenceListPage {
                                 stroke_width: 1.px(),
                                 fill_color: Color::BLACK,
                                 mouse_buttons: vec![MouseButton::Left],
-                                // TODO: unwrap box
-                                on_mouse_up_in: Box::new(|_| {
+                                on_mouse_up_in: &|_| {
                                     super::router::move_to(super::router::Route::ProjectAclManage {
                                         project_id,
                                     })
-                                }),
+                                },
                             });
                         }),
                         table::hooks::fixed(ITEM_HEIGHT, |_wh, _ctx| {}),
@@ -172,7 +170,7 @@ impl Component for SequenceListPage {
                                 stroke_width: 1.px(),
                                 fill_color: Color::BLACK,
                                 mouse_buttons: vec![MouseButton::Left],
-                                on_mouse_up_in: Box::new(|_| on_add_button_click()),
+                                on_mouse_up_in: &|_| on_add_button_click(),
                             });
                         }),
                         table::hooks::ratio(1.0, |wh, ctx| {
@@ -290,7 +288,7 @@ impl Component for SequenceCell<'_> {
             stroke_width: 1.px(),
             fill_color: Color::BLACK,
             mouse_buttons: vec![MouseButton::Left, MouseButton::Right],
-            on_mouse_up_in: Box::new(|event: MouseEvent| {
+            on_mouse_up_in: &|event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
                     super::router::move_to(super::router::Route::SequenceEdit {
                         project_id,
@@ -299,7 +297,7 @@ impl Component for SequenceCell<'_> {
                 } else if event.button == Some(MouseButton::Right) {
                     on_right_click(event);
                 }
-            }),
+            },
         })
         .done()
     }

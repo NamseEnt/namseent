@@ -1,10 +1,10 @@
 use crate::{simple_rect, typography::center_text_full_height};
 use namui::prelude::*;
 
-fn attach_text_button_event<'a>(
+fn attach_text_button_event(
     ctx: &mut ComposeCtx,
     mouse_buttons: Vec<MouseButton>,
-    on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
+    on_mouse_up_in: impl Fn(MouseEvent<'_>),
 ) {
     ctx.attach_event(|event| {
         if let Event::MouseUp { event } = event {
@@ -30,7 +30,7 @@ pub struct TextButton<'a> {
     pub stroke_width: Px,
     pub fill_color: Color,
     pub mouse_buttons: Vec<MouseButton>,
-    pub on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
+    pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for TextButton<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -69,7 +69,7 @@ pub struct TextButtonFit<'a> {
     pub fill_color: Color,
     pub side_padding: Px,
     pub mouse_buttons: Vec<MouseButton>,
-    pub on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
+    pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for TextButtonFit<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -118,7 +118,7 @@ pub struct TextButtonFitAlign<'a> {
     pub fill_color: Color,
     pub side_padding: Px,
     pub mouse_buttons: Vec<MouseButton>,
-    pub on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
+    pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for TextButtonFitAlign<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -175,7 +175,7 @@ pub struct BodyTextButton<'a> {
     pub fill_color: Color,
     pub text_align: TextAlign,
     pub mouse_buttons: Vec<MouseButton>,
-    pub on_mouse_up_in: Box<dyn 'a + Fn(MouseEvent)>,
+    pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for BodyTextButton<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {

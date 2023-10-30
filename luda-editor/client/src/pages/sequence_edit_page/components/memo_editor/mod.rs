@@ -62,6 +62,9 @@ impl Component for MemoEditor<'_> {
             }
         });
 
+        let on_close_button_clicked = |_event: MouseEvent<'_>| {
+            on_event(Event::Close);
+        };
         let render_close_button = |height: Px| {
             table::hooks::fit(
                 table::hooks::FitAlign::LeftTop,
@@ -74,14 +77,19 @@ impl Component for MemoEditor<'_> {
                     fill_color: color::BACKGROUND,
                     side_padding: PADDING,
                     mouse_buttons: vec![MouseButton::Left],
-                    on_mouse_up_in: Box::new(|_event| {
-                        on_event(Event::Close);
-                    }),
+                    on_mouse_up_in: &on_close_button_clicked,
                 }
                 .with_mouse_cursor(MouseCursor::Pointer),
             )
         };
 
+        let on_save_button_clicked = |_event: MouseEvent<'_>| {
+            on_event(Event::SaveButtonClicked {
+                sequence_id,
+                cut_id,
+                content: text.to_string(),
+            });
+        };
         let render_save_button = |height: Px| {
             table::hooks::fit(
                 table::hooks::FitAlign::RightBottom,
@@ -94,13 +102,7 @@ impl Component for MemoEditor<'_> {
                     fill_color: color::STROKE_NORMAL,
                     side_padding: PADDING,
                     mouse_buttons: vec![MouseButton::Left],
-                    on_mouse_up_in: Box::new(|_event| {
-                        on_event(Event::SaveButtonClicked {
-                            sequence_id,
-                            cut_id,
-                            content: text.to_string(),
-                        });
-                    }),
+                    on_mouse_up_in: &on_save_button_clicked,
                 }
                 .with_mouse_cursor(MouseCursor::Pointer),
             )

@@ -47,13 +47,13 @@ impl Component for RenameModal<'_> {
                     stroke_width: 1.px(),
                     fill_color: Color::BLACK,
                     mouse_buttons: vec![MouseButton::Left],
-                    on_mouse_up_in: Box::new({
+                    on_mouse_up_in: &{
                         let sequence_name = sequence_name.clone();
                         move |_| {
                             let sequence_name = sequence_name.clone();
                             on_rename_done(sequence_name);
                         }
-                    }),
+                    },
                 })
                 .add(TextInput {
                     instance: text_input_instance,

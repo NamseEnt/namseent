@@ -32,9 +32,7 @@ impl Component for TopBar {
                             fill_color: color::STROKE_NORMAL,
                             side_padding: PADDING,
                             mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: Box::new(|_| {
-                                move_to(Route::SequenceList { project_id })
-                            }),
+                            on_mouse_up_in: &|_| move_to(Route::SequenceList { project_id }),
                         }
                         .with_mouse_cursor(MouseCursor::Pointer),
                     ),
