@@ -54,6 +54,13 @@ impl Component for NotificationRoot {
                                         ));
                                     }),
                                     namui_prebuilt::table::hooks::fixed(wh.height, |wh, ctx| {
+                                        ctx.add(CopyButton {
+                                            wh,
+                                            color: notification.level.text_color(),
+                                            content: &notification.message,
+                                        });
+                                    }),
+                                    namui_prebuilt::table::hooks::fixed(wh.height, |wh, ctx| {
                                         if !notification.loading {
                                             ctx.add(
                                                 CloseButton {
