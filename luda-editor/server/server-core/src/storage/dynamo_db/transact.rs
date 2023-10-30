@@ -171,6 +171,43 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
 
         self
     }
+    pub fn update_or_create_item<
+        Update: FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
+        Create: FnOnce() -> TCreateFuture + 'static + Send,
+        TDocument: Document + std::marker::Send,
+        TUpdateFuture: Future<Output = Result<TDocument, TCancelError>> + Send,
+        TCreateFuture: Future<Output = Result<TDocument, TCancelError>> + Send,
+    >(
+        self,
+        command: impl Into<
+            TransactUpdateOrCreateCommand<
+                TDocument,
+                Update,
+                Create,
+                TCancelError,
+                TUpdateFuture,
+                TCreateFuture,
+            >,
+        >,
+    ) -> Self {
+        let command: TransactUpdateOrCreateCommand<
+            TDocument,
+            Update,
+            Create,
+            TCancelError,
+            TUpdateFuture,
+            TCreateFuture,
+        > = command.into();
+        self.update_or_create_item_internal(
+            concat_partition_key(
+                command.partition_prefix,
+                command.partition_key_without_prefix,
+            ),
+            command.sort_key,
+            command.update,
+            command.create,
+        )
+    }
     fn update_item_internal<
         TDocument: Document + std::marker::Send,
         TUpdateFuture: Future<Output = Result<TDocument, TCancelError>> + Send,
@@ -274,6 +311,103 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
 
         self
     }
+
+    fn update_or_create_item_internal<
+        TDocument: Document + std::marker::Send,
+        TUpdateFuture: Future<Output = Result<TDocument, TCancelError>> + Send,
+        TCreateFuture: Future<Output = Result<TDocument, TCancelError>> + Send,
+    >(
+        mut self,
+        partition_key: impl ToString,
+        sort_key: Option<impl ToString>,
+        update: impl FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
+        create: impl FnOnce() -> TCreateFuture + 'static + Send,
+    ) -> Self {
+        let partition_key = partition_key.to_string();
+        let sort_key = sort_key
+            .map(|sort_key| sort_key.to_string())
+            .unwrap_or(DEFAULT_SORT_KEY.to_string())
+            .to_string();
+        let dynamo_db = self.dynamo_db.clone();
+        let table_name = self.table_name.clone();
+
+        let future = Box::pin(async move {
+            match dynamo_db
+                .get_raw_item(partition_key.clone(), Some(sort_key.clone()))
+                .await
+            {
+                Ok(raw_item) => {
+                    let version = {
+                        let version_value = raw_item.get(LOCK_VERSION_KEY).unwrap().clone();
+                        let version_n = version_value.as_n().unwrap();
+                        str::parse::<u128>(version_n).unwrap()
+                    };
+                    let bytes = raw_item.get(BYTES_KEY).unwrap().as_b().unwrap().as_ref();
+                    let migration_version = raw_item
+                        .get(MIGRATION_VERSION_KEY)
+                        .unwrap()
+                        .as_n()
+                        .unwrap()
+                        .parse::<u64>()
+                        .unwrap();
+
+                    let document: TDocument =
+                        migration::Migration::deserialize(bytes, migration_version).unwrap(); // TODO: Remove unwrap
+                    let document = update(document)
+                        .await
+                        .map_err(|error| TransactUpdateError::Canceled(error))?;
+
+                    let mut raw_item = document.as_dynamodb_item().unwrap(); // TODO: Remove unwrap
+                    let next_version = version + 1;
+                    raw_item.insert(
+                        LOCK_VERSION_KEY.to_string(),
+                        AttributeValue::N(next_version.to_string()),
+                    );
+                    Ok(model::TransactWriteItem::builder()
+                        .put(
+                            model::Put::builder()
+                                .table_name(table_name)
+                                .set_item(Some(raw_item))
+                                .condition_expression("#LOCK_VERSION = :lock_version")
+                                .expression_attribute_names("#LOCK_VERSION", LOCK_VERSION_KEY)
+                                .expression_attribute_values(
+                                    ":lock_version",
+                                    AttributeValue::N(version.to_string()),
+                                )
+                                .build(),
+                        )
+                        .build())
+                }
+                Err(GetItemInternalError::NotFound) => {
+                    let mut raw_item = create()
+                        .await
+                        .map_err(|error| TransactUpdateError::Canceled(error))?
+                        .as_dynamodb_item()
+                        .unwrap(); // TODO: Remove unwrap
+                    raw_item.insert(
+                        LOCK_VERSION_KEY.to_string(),
+                        AttributeValue::N("0".to_string()),
+                    );
+
+                    Ok(model::TransactWriteItem::builder()
+                        .put(
+                            model::Put::builder()
+                                .table_name(table_name)
+                                .set_item(Some(raw_item))
+                                .condition_expression("attribute_not_exists(#PARTITION)")
+                                .expression_attribute_names("#PARTITION", PARTITION_KEY)
+                                .build(),
+                        )
+                        .build())
+                }
+                Err(error) => Err(TransactUpdateError::Unknown(error.to_string())),
+            }
+        });
+
+        self.update_items.push(UpdateItem { future });
+
+        self
+    }
 }
 
 pub struct TransactDeleteCommand {
@@ -292,6 +426,28 @@ where
     pub partition_key_without_prefix: String,
     pub sort_key: Option<String>,
     pub update: Update,
+    pub _phantom: std::marker::PhantomData<(TDocument, TUpdateFuture)>,
+}
+
+pub struct TransactUpdateOrCreateCommand<
+    TDocument,
+    Update,
+    Create,
+    TCancelError,
+    TUpdateFuture,
+    TCreateFuture,
+> where
+    Update: FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
+    Create: FnOnce() -> TCreateFuture + 'static + Send,
+    TCancelError: std::error::Error + Send,
+    TUpdateFuture: std::future::Future<Output = Result<TDocument, TCancelError>> + Send,
+    TCreateFuture: std::future::Future<Output = Result<TDocument, TCancelError>> + Send,
+{
+    pub partition_prefix: String,
+    pub partition_key_without_prefix: String,
+    pub sort_key: Option<String>,
+    pub update: Update,
+    pub create: Create,
     pub _phantom: std::marker::PhantomData<(TDocument, TUpdateFuture)>,
 }
 

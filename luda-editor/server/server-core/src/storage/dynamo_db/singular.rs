@@ -194,6 +194,105 @@ impl DynamoDb {
     }
 
     /// Do not use this function directly.
+    pub async fn update_or_create_item<
+        TDocument: Document,
+        TCancelError: std::error::Error,
+        TUpdateFuture: Future<Output = Result<TDocument, TCancelError>>,
+        TCreateFuture: Future<Output = Result<TDocument, TCancelError>>,
+    >(
+        &self,
+        partition_key: impl ToString,
+        sort_key: Option<impl ToString>,
+        update: impl FnOnce(TDocument) -> TUpdateFuture,
+        create: impl FnOnce() -> TCreateFuture,
+    ) -> Result<(), UpdateItemError<TCancelError>> {
+        let partition_key = partition_key.to_string();
+        let sort_key = sort_key
+            .map(|sort_key| sort_key.to_string())
+            .unwrap_or(DEFAULT_SORT_KEY.to_string());
+
+        let result = match self
+            .get_raw_item(partition_key.clone(), Some(sort_key.clone()))
+            .await
+        {
+            Ok(item) => {
+                let version = {
+                    let version_value = item.get(LOCK_VERSION_KEY).unwrap().clone();
+                    let version_n = version_value.as_n().unwrap();
+                    str::parse::<u128>(version_n).unwrap()
+                };
+                let bytes = item.get(BYTES_KEY).unwrap().as_b().unwrap().as_ref();
+                let migration_version = item
+                    .get(MIGRATION_VERSION_KEY)
+                    .unwrap()
+                    .as_n()
+                    .unwrap()
+                    .parse::<u64>()
+                    .unwrap();
+
+                let document: TDocument =
+                    migration::Migration::deserialize(bytes, migration_version)?;
+                let document = update(document)
+                    .await
+                    .map_err(|error| UpdateItemError::Canceled(error))?;
+
+                let mut raw_item: RawItem = document.as_dynamodb_item()?;
+                let next_version = version + 1;
+                raw_item.insert(
+                    LOCK_VERSION_KEY.to_string(),
+                    AttributeValue::N(next_version.to_string()),
+                );
+
+                self.client
+                    .put_item()
+                    .table_name(&self.table_name)
+                    .set_item(Some(raw_item))
+                    .condition_expression("#LOCK_VERSION = :lock_version")
+                    .expression_attribute_names("#LOCK_VERSION", LOCK_VERSION_KEY)
+                    .expression_attribute_values(
+                        ":lock_version",
+                        AttributeValue::N(version.to_string()),
+                    )
+                    .send()
+                    .await
+            }
+            Err(GetItemInternalError::NotFound) => {
+                let mut raw_item = create()
+                    .await
+                    .map_err(|error| UpdateItemError::Canceled(error))?
+                    .as_dynamodb_item()
+                    .unwrap(); // TODO: Remove unwrap
+                raw_item.insert(
+                    LOCK_VERSION_KEY.to_string(),
+                    AttributeValue::N("0".to_string()),
+                );
+
+                self.client
+                    .put_item()
+                    .table_name(&self.table_name)
+                    .set_item(Some(raw_item))
+                    .condition_expression("attribute_not_exists(#PARTITION)")
+                    .expression_attribute_names("#PARTITION", PARTITION_KEY)
+                    .send()
+                    .await
+            }
+            Err(error) => return Err(UpdateItemError::Unknown(error.to_string())),
+        };
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(error) => {
+                let error: aws_sdk_dynamodb::Error = error.into();
+                if let aws_sdk_dynamodb::Error::ConditionalCheckFailedException(_) = error {
+                    Err(UpdateItemError::Conflict)
+                } else {
+                    Err(UpdateItemError::Unknown(error.to_string()))
+                }
+            }
+        }
+    }
+
+    /// Do not use this function directly.
     pub async fn query<TDocument: Document + Send>(
         &self,
         partition_key_without_prefix: impl ToString,

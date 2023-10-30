@@ -33,20 +33,34 @@ pub async fn edit_user_acl(
     match permission {
         Some(permission) => crate::dynamo_db()
             .transact()
-            .update_item(UserInProjectAclDocumentUpdate {
-                pk_project_id: project.id,
+            .update_or_create_item(UserInProjectAclDocumentUpdateOrCreate {
+                pk_project_id: project_id,
                 sk_user_id: user_id,
-                update: move |mut document: UserInProjectAclDocument| async move {
+                update: move |mut document| async move {
                     document.permission = permission;
                     Ok(document)
                 },
+                create: move || async move {
+                    Ok(UserInProjectAclDocument {
+                        user_id,
+                        project_id,
+                        permission,
+                    })
+                },
             })
-            .update_item(ProjectAclUserInDocumentUpdate {
-                pk_user_id: session.user_id,
-                sk_project_id: project.id,
-                update: move |mut document: ProjectAclUserInDocument| async move {
+            .update_or_create_item(ProjectAclUserInDocumentUpdateOrCreate {
+                pk_user_id: user_id,
+                sk_project_id: project_id,
+                update: move |mut document| async move {
                     document.permission = permission;
                     Ok(document)
+                },
+                create: move || async move {
+                    Ok(ProjectAclUserInDocument {
+                        user_id,
+                        project_id,
+                        permission,
+                    })
                 },
             })
             .send()
@@ -57,10 +71,10 @@ pub async fn edit_user_acl(
             .transact()
             .delete_item(UserInProjectAclDocumentDelete {
                 pk_project_id: project.id,
-                sk_user_id: session.user_id,
+                sk_user_id: user_id,
             })
             .delete_item(ProjectAclUserInDocumentDelete {
-                pk_user_id: session.user_id,
+                pk_user_id: user_id,
                 sk_project_id: project.id,
             })
             .send()

@@ -3,6 +3,7 @@
 mod create_project;
 mod edit_user_acl;
 mod list_editable_projects;
+mod list_user_acls;
 pub mod shared;
 mod update_client_project_shared_data;
 mod update_server_project_shared_data;
@@ -10,5 +11,6 @@ mod update_server_project_shared_data;
 pub use create_project::create_project;
 pub use edit_user_acl::edit_user_acl;
 pub use list_editable_projects::list_editable_projects;
+pub use list_user_acls::list_user_acls;
 pub use update_client_project_shared_data::update_client_project_shared_data;
 pub use update_server_project_shared_data::update_server_project_shared_data;

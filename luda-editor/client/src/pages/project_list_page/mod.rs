@@ -1,3 +1,8 @@
+use crate::{
+    app::notification::{push_notification, remove_notification, Notification},
+    RPC,
+};
+use futures::FutureExt;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::list_editable_projects::EditableProject;
@@ -10,6 +15,7 @@ pub struct ProjectListPage {
 impl Component for ProjectListPage {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh } = self;
+        const ITEM_HEIGHT: Px = px(40.0);
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
         let (project_list, set_project_list) =
@@ -57,6 +63,36 @@ impl Component for ProjectListPage {
             })
         };
 
+        let on_copy_id_button_clicked = || {
+            let loading_notification_id = push_notification(
+                Notification::info("Getting user id...".to_string()).set_loading(true),
+            );
+            spawn_local(
+                async move {
+                    let Ok(rpc::get_user_id::Response { user_id }) =
+                        RPC.get_user_id(rpc::get_user_id::Request {}).await
+                    else {
+                        push_notification(Notification::error("Failed to get user id".to_string()));
+                        return;
+                    };
+
+                    if let Err(error) = clipboard::write_text(user_id.to_string()).await {
+                        push_notification(Notification::error(format!(
+                            "Failed to copy: {}",
+                            error
+                        )));
+                        push_notification(Notification::info(format!("user id: {}", user_id)));
+                        return;
+                    };
+
+                    push_notification(Notification::info(
+                        "User id copied to clipboard.".to_string(),
+                    ));
+                }
+                .then(move |()| async move { remove_notification(loading_notification_id) }),
+            );
+        };
+
         ctx.effect("Fetch project list on mount", || {
             start_fetch_list();
         });
@@ -79,7 +115,20 @@ impl Component for ProjectListPage {
                 table::hooks::ratio(
                     2.0,
                     table::hooks::vertical([
-                        table::hooks::fixed(40.px(), |wh, ctx| {
+                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
+                            ctx.add(namui_prebuilt::button::TextButton {
+                                rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
+                                text: "Copy User ID",
+                                text_color: Color::WHITE,
+                                stroke_color: Color::grayscale_f01(0.5),
+                                stroke_width: 1.px(),
+                                fill_color: Color::BLACK,
+                                mouse_buttons: vec![MouseButton::Left],
+                                on_mouse_up_in: Box::new(|_| on_copy_id_button_clicked()),
+                            });
+                        }),
+                        table::hooks::fixed(ITEM_HEIGHT, |_, _| {}),
+                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
                             ctx.add(namui_prebuilt::button::TextButton {
                                 rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 text: "[+] Add Project",
@@ -92,7 +141,7 @@ impl Component for ProjectListPage {
                             });
                         }),
                         table::hooks::ratio(1.0, |wh, ctx| {
-                            let item_wh = Wh::new(wh.width, 40.px());
+                            let item_wh = Wh::new(wh.width, ITEM_HEIGHT);
                             ctx.add(list_view::AutoListView {
                                 height: wh.height,
                                 scroll_bar_width: 10.px(),

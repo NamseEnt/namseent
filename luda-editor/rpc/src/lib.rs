@@ -264,6 +264,25 @@ define_rpc! {
                 Unknown(String),
             }
         },
+        list_user_acls: {
+            struct Request {
+                pub project_id: crate::Uuid,
+                pub last_key: Option<crate::Uuid>,
+            }
+            struct Response {
+                pub user_acls: Vec<UserAcl>,
+                pub next_key: Option<crate::Uuid>,
+            }
+            struct UserAcl {
+                pub user_id: crate::Uuid,
+                pub user_name: String,
+                pub permission: crate::types::ProjectAclUserPermission,
+            }
+            enum Error {
+                Unauthorized,
+                Unknown(String),
+            }
+        },
         update_server_project_shared_data: {
             struct Request {
                 pub project_id: crate::Uuid,

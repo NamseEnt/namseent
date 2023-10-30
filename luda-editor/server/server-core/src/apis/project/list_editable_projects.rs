@@ -18,22 +18,35 @@ pub async fn list_editable_projects(
     .await
     .map_err(|error| Error::Unknown(error.to_string()))?;
 
-    let editable_projects = try_join_all(owner_project_query.documents.into_iter().map(
-        |owner_project_document| async move {
-            match (ProjectDocumentGet {
-                pk_id: owner_project_document.project_id,
-            })
+    let project_acl_user_query = ProjectAclUserInDocumentQuery {
+        pk_user_id: session.user_id,
+        last_sk: None, // TODO
+    }
+    .run()
+    .await
+    .map_err(|error| Error::Unknown(error.to_string()))?;
+
+    let editable_project_ids = owner_project_query
+        .documents
+        .into_iter()
+        .map(|owner_project_document| owner_project_document.project_id)
+        .chain(
+            project_acl_user_query
+                .documents
+                .into_iter()
+                .map(|project_acl_user_document| project_acl_user_document.project_id),
+        );
+
+    let editable_projects = try_join_all(editable_project_ids.map(|project_id| async move {
+        (ProjectDocumentGet { pk_id: project_id })
             .run()
             .await
-            {
-                Ok(project) => Ok(rpc::list_editable_projects::EditableProject {
-                    id: owner_project_document.project_id,
-                    name: project.name,
-                }),
-                Err(error) => Err(Error::Unknown(error.to_string())),
-            }
-        },
-    ))
+            .map(|project| rpc::list_editable_projects::EditableProject {
+                id: project_id,
+                name: project.name,
+            })
+            .map_err(|error| Error::Unknown(error.to_string()))
+    }))
     .await;
     if let Err(error) = editable_projects {
         return Err(Error::Unknown(error.to_string()));
