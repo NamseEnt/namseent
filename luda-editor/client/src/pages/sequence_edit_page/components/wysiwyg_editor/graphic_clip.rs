@@ -169,11 +169,8 @@ impl Component for GraphicClip<'_> {
                                     match cg.write_to_clipboard().await {
                                         Ok(()) => namui::log!("Cg copied to clipboard"),
                                         Err(error) => {
-                                            notification::push_notification(
-                                                notification::Notification::error(
-                                                    error.to_string(),
-                                                ),
-                                            );
+                                            notification::Notification::error(error.to_string())
+                                                .push();
                                         }
                                     }
                                 })

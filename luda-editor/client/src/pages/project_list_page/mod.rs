@@ -1,5 +1,5 @@
 use crate::{
-    app::notification::{push_notification, remove_notification, Notification},
+    app::notification::{remove_notification, Notification},
     RPC,
 };
 use futures::FutureExt;
@@ -64,30 +64,25 @@ impl Component for ProjectListPage {
         };
 
         let on_copy_id_button_clicked = || {
-            let loading_notification_id = push_notification(
-                Notification::info("Getting user id...".to_string()).set_loading(true),
-            );
+            let loading_notification_id = Notification::info("Getting user id...".to_string())
+                .set_loading(true)
+                .push();
             spawn_local(
                 async move {
                     let Ok(rpc::get_user_id::Response { user_id }) =
                         RPC.get_user_id(rpc::get_user_id::Request {}).await
                     else {
-                        push_notification(Notification::error("Failed to get user id".to_string()));
+                        Notification::error("Failed to get user id".to_string()).push();
                         return;
                     };
 
                     if let Err(error) = clipboard::write_text(user_id.to_string()).await {
-                        push_notification(Notification::error(format!(
-                            "Failed to copy: {}",
-                            error
-                        )));
-                        push_notification(Notification::info(format!("user id: {}", user_id)));
+                        Notification::error(format!("Failed to copy: {}", error)).push();
+                        Notification::info(format!("user id: {}", user_id)).push();
                         return;
                     };
 
-                    push_notification(Notification::info(
-                        "User id copied to clipboard.".to_string(),
-                    ));
+                    Notification::info("User id copied to clipboard.".to_string()).push();
                 }
                 .then(move |()| async move { remove_notification(loading_notification_id) }),
             );

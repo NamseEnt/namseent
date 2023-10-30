@@ -34,6 +34,9 @@ impl Notification {
     pub fn error(message: String) -> Self {
         Self::new(NotificationLevel::Error, message)
     }
+    pub fn push(self) -> Uuid {
+        push_notification(self)
+    }
 }
 
 #[derive(Debug)]

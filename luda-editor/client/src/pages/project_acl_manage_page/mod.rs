@@ -1,6 +1,5 @@
 mod top_bar;
 
-use crate::app::notification::push_notification;
 use crate::color;
 use crate::{app::notification::Notification, RPC};
 use namui::prelude::*;
@@ -48,10 +47,11 @@ impl Component for ProjectAclManagePage {
                     start_fetch_graphic_assets(project_id, set_acls);
                 }
                 Err(error) => {
-                    push_notification(Notification::error(format!(
+                    Notification::error(format!(
                         "Failed to update user acl - {}: {}",
                         user_id, error
-                    )));
+                    ))
+                    .push();
                 }
             });
         };
@@ -199,9 +199,7 @@ impl Component for EditorAdder<'_> {
         let text_input_instance = TextInputInstance::new(ctx);
         let add_user_as_editor = || {
             let Ok(user_id) = Uuid::parse_str(&input_value) else {
-                push_notification(Notification::error(format!(
-                    "Invalid user id - {input_value}",
-                )));
+                Notification::error(format!("Invalid user id - {input_value}",)).push();
                 return;
             };
             update_acl(user_id, Some(ProjectAclUserPermission::Editor));
@@ -305,7 +303,7 @@ fn start_fetch_graphic_assets(
                             let _ = write!(error_message, "{:?}", error);
                         }
                     }
-                    push_notification(Notification::error(error_message));
+                    Notification::error(error_message).push();
                 }
             }
             break;

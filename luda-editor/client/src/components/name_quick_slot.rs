@@ -1,4 +1,4 @@
-use crate::app::notification::{push_notification, Notification};
+use crate::app::notification::Notification;
 use namui::prelude::*;
 use std::collections::HashMap;
 
@@ -24,9 +24,10 @@ impl NameQuickSlot {
             let Err(error) = cache::set(&cache_key, string.as_bytes()).await else {
                 return;
             };
-            push_notification(Notification::error(format!(
+            Notification::error(format!(
                 "Failed to save NameQuickSlot, refresh and try again: {error}"
-            )));
+            ))
+            .push();
         });
     }
     pub fn get_name(&self, index: usize) -> Option<&String> {
