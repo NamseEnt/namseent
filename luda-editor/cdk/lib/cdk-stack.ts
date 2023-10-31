@@ -114,6 +114,10 @@ export class CdkStack extends cdk.Stack {
 
         const fnUrl = lambda.addFunctionUrl({
             authType: cdk.aws_lambda.FunctionUrlAuthType.NONE,
+            cors: {
+                allowedOrigins: ["https://luda-editor.s3.ap-northeast-2.amazonaws.com"],
+                allowedHeaders: ["*"],
+            }
         });
 
         new cdk.CfnOutput(this, "FunctionUrl", {
