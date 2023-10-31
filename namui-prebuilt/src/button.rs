@@ -4,7 +4,7 @@ use namui::prelude::*;
 fn attach_text_button_event(
     ctx: &mut ComposeCtx,
     mouse_buttons: Vec<MouseButton>,
-    on_mouse_up_in: impl Fn(MouseEvent<'_>),
+    on_mouse_up_in: impl FnOnce(MouseEvent<'_>),
 ) {
     ctx.attach_event(|event| {
         if let Event::MouseUp { event } = event {
