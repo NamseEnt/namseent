@@ -34,6 +34,9 @@ impl Notification {
     pub fn error(message: String) -> Self {
         Self::new(NotificationLevel::Error, message)
     }
+    pub fn push(self) -> Uuid {
+        push_notification(self)
+    }
 }
 
 #[derive(Debug)]
@@ -74,3 +77,17 @@ pub fn remove_notification(id: Uuid) {
         }
     })
 }
+
+macro_rules! info {
+    ($($arg:tt)*) => {{
+        $crate::app::notification::Notification::info(format!($($arg)*))
+    }}
+}
+pub(crate) use info;
+
+macro_rules! error {
+    ($($arg:tt)*) => {{
+        $crate::app::notification::Notification::error(format!($($arg)*))
+    }}
+}
+pub(crate) use error;

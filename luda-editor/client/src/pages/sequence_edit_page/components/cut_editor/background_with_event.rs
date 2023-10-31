@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    app::notification::{push_notification, remove_notification, Notification},
+    app::notification::{self, remove_notification},
     clipboard::TryReadLudaEditorClipboardItem,
     color,
     components::{cg_upload::create_cg, image_upload::create_image},
@@ -117,9 +117,10 @@ impl Component for BackgroundWithEvent<'_> {
             };
             event.prevent_default();
             let Some(name) = name_quick_slot.get_name(quick_slot_index).cloned() else {
-                push_notification(Notification::error(format!(
+                notification::error!(
                     "Name quick slot {quick_slot_index} not registered. Please register it first"
-                )));
+                )
+                .push();
                 return;
             };
 
@@ -182,9 +183,9 @@ impl Component for BackgroundWithEvent<'_> {
 
 fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
     spawn_local(async move {
-        let notification_id = push_notification(
-            Notification::info("Uploading image...".to_string()).set_loading(true),
-        );
+        let notification_id = notification::info!("Uploading image...")
+            .set_loading(true)
+            .push();
         match create_image(project_id, png_bytes).await {
             Ok(image_id) => {
                 SEQUENCE_ATOM.mutate(move |sequence| {
@@ -198,9 +199,7 @@ fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
                 });
             }
             Err(error) => {
-                push_notification(Notification::error(format!(
-                    "Failed to upload image: {error}"
-                )));
+                notification::error!("Failed to upload image: {error}").push();
             }
         };
         remove_notification(notification_id);
@@ -209,9 +208,9 @@ fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
 
 fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u8>) {
     spawn_local(async move {
-        let notification_id = push_notification(
-            Notification::info(format!("Uploading CG {psd_name}...")).set_loading(true),
-        );
+        let notification_id = notification::info!("Uploading CG {psd_name}...")
+            .set_loading(true)
+            .push();
         match create_cg(project_id, psd_name, psd_bytes).await {
             Ok(cg_file) => {
                 CG_FILES_ATOM.mutate({
@@ -237,7 +236,7 @@ fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u
                 });
             }
             Err(error) => {
-                push_notification(Notification::error(format!("Failed to upload CG: {error}")));
+                notification::error!("Failed to upload CG: {error}").push();
             }
         }
         remove_notification(notification_id);

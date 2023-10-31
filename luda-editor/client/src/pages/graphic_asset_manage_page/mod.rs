@@ -8,7 +8,7 @@ mod top_bar;
 mod upload_asset;
 
 use crate::{
-    app::notification::{self, Notification},
+    app::notification::{self},
     pages::graphic_asset_manage_page::{
         cg_list::CgList,
         cg_viewer::CgViewer,
@@ -196,36 +196,31 @@ enum SelectedAsset {
 fn start_fetch_graphic_assets(project_id: Uuid) {
     spawn_local(async move {
         let fetch_images = || async {
-            let loading_notification =
-                Notification::info("Loading images...".to_string()).set_loading(true);
-            let notification_id = notification::push_notification(loading_notification);
+            let loading_notification = notification::info!("Loading images...").set_loading(true);
+            let notification_id = loading_notification.push();
             match crate::RPC
                 .list_images(rpc::list_images::Request { project_id })
                 .await
             {
                 Ok(rpc::list_images::Response { images }) => IMAGES_ATOM.set(images),
                 Err(error) => {
-                    let _ = notification::push_notification(Notification::error(format!(
-                        "Loading images failed: {error}"
-                    )));
+                    notification::error!("Loading images failed: {error}").push();
                 }
             };
             notification::remove_notification(notification_id);
         };
 
         let fetch_cg_files = || async {
-            let loading_notification =
-                Notification::info("Loading cg_files...".to_string()).set_loading(true);
-            let notification_id = notification::push_notification(loading_notification);
+            let notification_id = notification::info!("Loading cg_files...")
+                .set_loading(true)
+                .push();
             match crate::RPC
                 .list_cg_files(rpc::list_cg_files::Request { project_id })
                 .await
             {
                 Ok(rpc::list_cg_files::Response { cg_files }) => CG_FILES_ATOM.set(cg_files),
                 Err(error) => {
-                    let _ = notification::push_notification(Notification::error(format!(
-                        "Loading images failed: {error}"
-                    )));
+                    notification::error!("Loading images failed: {error}").push();
                 }
             };
             notification::remove_notification(notification_id);
