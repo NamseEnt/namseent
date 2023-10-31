@@ -111,6 +111,7 @@ export class CdkStack extends cdk.Stack {
                 }),
             ],
             timeout: cdk.Duration.seconds(30),
+            memorySize: 512,
         });
 
         const fnUrl = lambda.addFunctionUrl({
