@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    app::notification::{remove_notification, Notification},
+    app::notification::{self, remove_notification},
     clipboard::TryReadLudaEditorClipboardItem,
     color,
     components::{cg_upload::create_cg, image_upload::create_image},
@@ -117,9 +117,9 @@ impl Component for BackgroundWithEvent<'_> {
             };
             event.prevent_default();
             let Some(name) = name_quick_slot.get_name(quick_slot_index).cloned() else {
-                Notification::error(format!(
+                notification::error!(
                     "Name quick slot {quick_slot_index} not registered. Please register it first"
-                ))
+                )
                 .push();
                 return;
             };
@@ -183,7 +183,7 @@ impl Component for BackgroundWithEvent<'_> {
 
 fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
     spawn_local(async move {
-        let notification_id = Notification::info("Uploading image...".to_string())
+        let notification_id = notification::info!("Uploading image...")
             .set_loading(true)
             .push();
         match create_image(project_id, png_bytes).await {
@@ -199,7 +199,7 @@ fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
                 });
             }
             Err(error) => {
-                Notification::error(format!("Failed to upload image: {error}")).push();
+                notification::error!("Failed to upload image: {error}").push();
             }
         };
         remove_notification(notification_id);
@@ -208,7 +208,7 @@ fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
 
 fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u8>) {
     spawn_local(async move {
-        let notification_id = Notification::info(format!("Uploading CG {psd_name}..."))
+        let notification_id = notification::info!("Uploading CG {psd_name}...")
             .set_loading(true)
             .push();
         match create_cg(project_id, psd_name, psd_bytes).await {
@@ -236,7 +236,7 @@ fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u
                 });
             }
             Err(error) => {
-                Notification::error(format!("Failed to upload CG: {error}")).push();
+                notification::error!("Failed to upload CG: {error}").push();
             }
         }
         remove_notification(notification_id);

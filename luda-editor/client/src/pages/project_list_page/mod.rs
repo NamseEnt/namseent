@@ -1,5 +1,5 @@
 use crate::{
-    app::notification::{remove_notification, Notification},
+    app::notification::{self, remove_notification},
     RPC,
 };
 use futures::FutureExt;
@@ -64,7 +64,7 @@ impl Component for ProjectListPage {
         };
 
         let on_copy_id_button_clicked = || {
-            let loading_notification_id = Notification::info("Getting user id...".to_string())
+            let loading_notification_id = notification::info!("Getting user id...")
                 .set_loading(true)
                 .push();
             spawn_local(
@@ -72,17 +72,17 @@ impl Component for ProjectListPage {
                     let Ok(rpc::get_user_id::Response { user_id }) =
                         RPC.get_user_id(rpc::get_user_id::Request {}).await
                     else {
-                        Notification::error("Failed to get user id".to_string()).push();
+                        notification::error!("Failed to get user id").push();
                         return;
                     };
 
                     if let Err(error) = clipboard::write_text(user_id.to_string()).await {
-                        Notification::error(format!("Failed to copy: {}", error)).push();
-                        Notification::info(format!("user id: {}", user_id)).push();
+                        notification::error!("Failed to copy: {error}");
+                        notification::info!("user id: {user_id}").push();
                         return;
                     };
 
-                    Notification::info("User id copied to clipboard.".to_string()).push();
+                    notification::info!("User id copied to clipboard").push();
                 }
                 .then(move |()| async move { remove_notification(loading_notification_id) }),
             );

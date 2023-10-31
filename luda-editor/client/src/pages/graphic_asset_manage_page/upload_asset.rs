@@ -1,6 +1,6 @@
 use super::start_fetch_graphic_assets;
 use crate::{
-    app::notification::{remove_notification, Notification},
+    app::notification::{self, remove_notification},
     components::{cg_upload::create_cg, image_upload::create_image},
 };
 use namui::prelude::*;
@@ -20,14 +20,14 @@ pub async fn upload_file(file: &File, project_id: Uuid) {
             add_new_cg(project_id, psd_name, file.content().await.to_vec())
         }
         _ => {
-            Notification::error(format!("Unsupported file type {file_name:?}")).push();
+            notification::error!("Unsupported file type {file_name:?}").push();
         }
     }
 }
 
 pub fn add_new_image(project_id: Uuid, png_bytes: Vec<u8>) {
     spawn_local(async move {
-        let notification_id = Notification::info("Uploading image...".to_string())
+        let notification_id = notification::info!("Uploading image...")
             .set_loading(true)
             .push();
         match create_image(project_id, png_bytes).await {
@@ -35,7 +35,7 @@ pub fn add_new_image(project_id: Uuid, png_bytes: Vec<u8>) {
                 start_fetch_graphic_assets(project_id);
             }
             Err(error) => {
-                Notification::error(format!("Failed to upload image: {error}")).push();
+                notification::error!("Failed to upload image: {error}").push();
             }
         };
 
@@ -45,7 +45,7 @@ pub fn add_new_image(project_id: Uuid, png_bytes: Vec<u8>) {
 
 pub fn add_new_cg(project_id: Uuid, psd_name: String, psd_bytes: Vec<u8>) {
     spawn_local(async move {
-        let notification_id = Notification::info(format!("Uploading CG {psd_name}..."))
+        let notification_id = notification::info!("Uploading CG {psd_name}...")
             .set_loading(true)
             .push();
         match create_cg(project_id, psd_name, psd_bytes).await {
@@ -53,7 +53,7 @@ pub fn add_new_cg(project_id: Uuid, psd_name: String, psd_bytes: Vec<u8>) {
                 start_fetch_graphic_assets(project_id);
             }
             Err(error) => {
-                Notification::error(format!("Failed to upload CG: {error}")).push();
+                notification::error!("Failed to upload CG: {error}").push();
             }
         }
 

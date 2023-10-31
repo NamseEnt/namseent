@@ -93,7 +93,7 @@ impl Component for CutListView<'_> {
                         let selected_cut = selected_cut.clone();
                         spawn_local(async move {
                             if let Err(error) = selected_cut.write_to_clipboard().await {
-                                notification::Notification::error(error.to_string()).push();
+                                notification::error!("{error}").push();
                             };
                         });
                     };

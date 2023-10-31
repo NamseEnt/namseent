@@ -1,7 +1,6 @@
+use crate::app::notification::{self};
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
-
-use crate::app::notification::Notification;
 
 #[component]
 pub struct CopyButton<'a> {
@@ -71,7 +70,7 @@ impl Component for CopyButton<'_> {
                                         set_copied.set(true);
                                         return;
                                     };
-                                    Notification::error(error.to_string()).push();
+                                    notification::error!("{error}").push();
                                 })
                             }
                             Event::MouseUp { event } => {
