@@ -9,7 +9,6 @@ use serve_s3::serve_s3;
 pub async fn handle_with_wrapped_error(
     request: Request<Body>,
 ) -> Result<Response<Body>, LambdaError> {
-    println!("{request:#?}");
     let request_id = Uuid::new_v4();
     let method = request.method().clone();
     let path = request
