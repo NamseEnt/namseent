@@ -110,6 +110,9 @@ export class CdkStack extends cdk.Stack {
                     ],
                 }),
             ],
+            timeout: cdk.Duration.seconds(30),
+            // https://github.com/NamseEnt/namseent/pull/715#discussion_r1379615534
+            memorySize: 1621,
         });
 
         const fnUrl = lambda.addFunctionUrl({
