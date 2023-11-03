@@ -56,9 +56,9 @@ impl Component for NameQuickSlotModal<'_> {
                         stroke_width: 1.px(),
                         fill_color: Color::TRANSPARENT,
                         mouse_buttons: vec![MouseButton::Left],
-                        on_mouse_up_in: Box::new(|_| {
+                        on_mouse_up_in: &|_| {
                             on_event(Event::Close);
-                        }),
+                        },
                     });
                 }),
             ])(wh, ctx);

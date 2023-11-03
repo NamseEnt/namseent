@@ -162,9 +162,9 @@ impl Component for ListItem<'_> {
                         stroke_width: 1.px(),
                         fill_color: color::BACKGROUND,
                         mouse_buttons: vec![MouseButton::Left],
-                        on_mouse_up_in: Box::new(|_| {
+                        on_mouse_up_in: &|_| {
                             update_acl(acl.user_id, None);
-                        }),
+                        },
                     });
                 }),
             ])(wh, ctx)
@@ -257,9 +257,9 @@ impl Component for EditorAdder<'_> {
                         stroke_width: 1.px(),
                         fill_color: color::BACKGROUND,
                         mouse_buttons: vec![MouseButton::Left],
-                        on_mouse_up_in: Box::new(|_| {
+                        on_mouse_up_in: &|_| {
                             add_user_as_editor();
-                        }),
+                        },
                     });
                 }),
             ])(wh, ctx)

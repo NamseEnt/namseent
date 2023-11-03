@@ -44,7 +44,7 @@ impl Component for TopBar {
                             fill_color: color::STROKE_NORMAL,
                             side_padding: PADDING,
                             mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: Box::new(|_| on_upload_button_clicked()),
+                            on_mouse_up_in: &|_| on_upload_button_clicked(),
                         }
                         .with_mouse_cursor(MouseCursor::Pointer),
                     ),
@@ -60,7 +60,7 @@ impl Component for TopBar {
                             fill_color: color::STROKE_NORMAL,
                             side_padding: PADDING,
                             mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: Box::new(|_| on_back_button_clicked()),
+                            on_mouse_up_in: &|_| on_back_button_clicked(),
                         }
                         .with_mouse_cursor(MouseCursor::Pointer),
                     ),

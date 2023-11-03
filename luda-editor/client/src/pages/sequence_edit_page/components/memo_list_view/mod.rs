@@ -152,6 +152,9 @@ impl Component for MemoContent<'_> {
             max_width: None,
         });
 
+        let on_done_button_clicked = |_: MouseEvent<'_>| {
+            on_event(Event::DoneClicked { cut_id, memo_id });
+        };
         let done_button = match memo.user_id == user_id {
             true => Some(
                 TextButtonFitAlign {
@@ -164,9 +167,7 @@ impl Component for MemoContent<'_> {
                     fill_color: Color::TRANSPARENT,
                     side_padding: PADDING,
                     mouse_buttons: vec![MouseButton::Left],
-                    on_mouse_up_in: Box::new(|_| {
-                        on_event(Event::DoneClicked { cut_id, memo_id });
-                    }),
+                    on_mouse_up_in: &on_done_button_clicked,
                 }
                 .with_mouse_cursor(MouseCursor::Pointer),
             ),
