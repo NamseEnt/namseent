@@ -207,6 +207,7 @@ impl Component for TextInput<'_> {
                     if atom.is_focused(id) {
                         *atom = Default::default();
                     }
+                    crate::system::text_input::blur();
                 })
             }
         });

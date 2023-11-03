@@ -212,3 +212,7 @@ pub(crate) fn set_selection_range(
 pub(crate) fn focus() {
     element().focus().unwrap();
 }
+
+pub(crate) fn blur() {
+    element().blur().unwrap();
+}

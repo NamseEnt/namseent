@@ -32,6 +32,7 @@ impl TextInputInstance {
         TEXT_INPUT_ATOM.mutate(move |text_input| {
             if text_input.focused_id() == Some(id) {
                 *text_input = Default::default();
+                crate::system::text_input::blur();
             }
         });
     }
