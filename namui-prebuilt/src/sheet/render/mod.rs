@@ -76,7 +76,7 @@ impl Sheet {
                                 )
                                 .attach_event(|builder| {
                                     let on_mouse_down = cell.on_mouse_down.clone();
-                                    builder.on_mouse_down_in(move |event| {
+                                    builder.on_mouse_down_in(move |event: MouseEvent| {
                                         if event.button == Some(MouseButton::Left) {
                                             namui::event::send(InternalEvent::CellMouseLeftDown {
                                                 cell_index,
@@ -88,8 +88,7 @@ impl Sheet {
                                     });
                                 }),
                                 clip(
-                                    PathBuilder::new()
-                                        .add_rect(Rect::from_xy_wh(Xy::zero(), cell_wh)),
+                                    Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), cell_wh)),
                                     ClipOp::Intersect,
                                     cell.inner.render(cell::Props {
                                         wh: cell_wh,
@@ -148,9 +147,8 @@ impl Sheet {
                                         left + stroke_width / 2 - 1.px(),
                                         top - 1.px(),
                                         path(
-                                            PathBuilder::new()
-                                                .line_to(0.px(), cell_wh.height + 2.px()),
-                                            PaintBuilder::new()
+                                            Path::new().line_to(0.px(), cell_wh.height + 2.px()),
+                                            Paint::new()
                                                 .set_color(stroke_color)
                                                 .set_style(PaintStyle::Stroke)
                                                 .set_stroke_width(stroke_width)
@@ -168,9 +166,8 @@ impl Sheet {
                                         right - stroke_width / 2 + 1.px(),
                                         top - 1.px(),
                                         path(
-                                            PathBuilder::new()
-                                                .line_to(0.px(), cell_wh.height + 2.px()),
-                                            PaintBuilder::new()
+                                            Path::new().line_to(0.px(), cell_wh.height + 2.px()),
+                                            Paint::new()
                                                 .set_color(stroke_color)
                                                 .set_style(PaintStyle::Stroke)
                                                 .set_stroke_width(stroke_width)
@@ -188,9 +185,8 @@ impl Sheet {
                                         left - 1.px(),
                                         top + stroke_width / 2 - 1.px(),
                                         path(
-                                            PathBuilder::new()
-                                                .line_to(cell_wh.width + 2.px(), 0.px()),
-                                            PaintBuilder::new()
+                                            Path::new().line_to(cell_wh.width + 2.px(), 0.px()),
+                                            Paint::new()
                                                 .set_color(stroke_color)
                                                 .set_style(PaintStyle::Stroke)
                                                 .set_stroke_width(stroke_width)
@@ -208,9 +204,8 @@ impl Sheet {
                                         left - 1.px(),
                                         top + cell_wh.height - stroke_width / 2 + 1.px(),
                                         path(
-                                            PathBuilder::new()
-                                                .line_to(cell_wh.width + 2.px(), 0.px()),
-                                            PaintBuilder::new()
+                                            Path::new().line_to(cell_wh.width + 2.px(), 0.px()),
+                                            Paint::new()
                                                 .set_color(stroke_color)
                                                 .set_style(PaintStyle::Stroke)
                                                 .set_stroke_width(stroke_width)
@@ -232,7 +227,7 @@ impl Sheet {
             let on_paste = on_paste.clone();
             // TODO: Move using arrow key
             // TODO: Select using shift + arrow key
-            builder.on_key_down(move |event| {
+            builder.on_key_down(move |event: KeyboardEvent| {
                 if [Code::ControlLeft, Code::KeyC]
                     .iter()
                     .all(|code| event.pressing_codes.contains(code))

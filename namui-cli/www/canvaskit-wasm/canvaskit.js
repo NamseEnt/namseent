@@ -1,1 +1,0 @@
-../../node_modules/canvaskit-wasm/bin/full/canvaskit.js

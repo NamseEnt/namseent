@@ -1,8 +1,8 @@
 use super::*;
-use crate::data::ScreenImage;
+use crate::data::screen_graphic;
 use crate::Uuid;
 
-pub type ScreenImages = [Option<ScreenImage>; 5];
+pub type ScreenImages = [Option<screen_graphic::previous::v0::ScreenImage>; 5];
 
 #[migration::version(2)]
 #[derive(Debug, Clone, Default)]
@@ -21,9 +21,9 @@ impl Cut {
             line: previous.line,
             character_name: "".to_string(),
             screen_images: previous.screen_images.map(|image| {
-                image.map(|image| ScreenImage {
+                image.map(|image| screen_graphic::previous::v0::ScreenImage {
                     id: image.id,
-                    circumscribed: image.circumscribed.clone(),
+                    circumscribed: image.circumscribed,
                 })
             }),
         }
@@ -44,7 +44,7 @@ impl Cut {
             id,
             line: self.line.clone(),
             character_name: self.character_name.clone(),
-            screen_images: self.screen_images.clone(),
+            screen_images: self.screen_images,
         }
     }
 }

@@ -1,5 +1,7 @@
 use super::*;
-use namui_type::Uuid;
+use crate::simple_error_impl;
+use namui_type::{Angle, Uuid};
+use std::marker::PhantomData;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum CutUpdateAction {
@@ -50,6 +52,45 @@ pub enum CutUpdateAction {
     SetCut {
         cut: Cut,
     },
+    DeleteGraphic {
+        graphic_index: Uuid,
+    },
+    ChangeGraphicOrder(ChangeGraphicOrderAction),
+    UpdateGraphicRotation {
+        graphic_index: Uuid,
+        rotation: Angle,
+    },
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ChangeGraphicOrderAction {
+    pub graphic_index: Uuid,
+    pub after_graphic_index: Option<Uuid>,
+    prevent_direct_creation: PhantomData<()>,
+}
+impl ChangeGraphicOrderAction {
+    pub fn new(
+        graphic_index: Uuid,
+        after_graphic_index: Option<Uuid>,
+    ) -> Result<Self, ChangeGraphicOrderActionCreateError> {
+        if after_graphic_index == Some(graphic_index) {
+            return Err(ChangeGraphicOrderActionCreateError::MoveAfterItself);
+        }
+        Ok(Self {
+            graphic_index,
+            after_graphic_index,
+            prevent_direct_creation: PhantomData,
+        })
+    }
+}
+impl From<ChangeGraphicOrderAction> for CutUpdateAction {
+    fn from(value: ChangeGraphicOrderAction) -> Self {
+        Self::ChangeGraphicOrder(value)
+    }
+}
+simple_error_impl!(ChangeGraphicOrderActionCreateError);
+#[derive(Debug)]
+pub enum ChangeGraphicOrderActionCreateError {
+    MoveAfterItself,
 }
 
 impl CutUpdateAction {
@@ -75,58 +116,20 @@ impl CutUpdateAction {
             CutUpdateAction::UnselectCgPart {
                 graphic_index,
                 cg_part_name,
-            } => update_cg_part(cut, graphic_index, cg_part_name, |part| match part {
-                ScreenCgPart::Single {
-                    name: _,
-                    variant_name,
-                } => {
-                    *variant_name = None;
-                }
-                ScreenCgPart::Multi {
-                    name: _,
-                    variant_names,
-                } => {
-                    variant_names.clear();
-                }
-                ScreenCgPart::AlwaysOn { .. } => unreachable!(),
-            }),
+            } => update_cg_part(cut, graphic_index, cg_part_name, |part| part.unselect()),
             CutUpdateAction::TurnOffCgPartVariant {
                 graphic_index,
                 cg_part_name,
                 cg_part_variant_name,
-            } => update_cg_part(cut, graphic_index, cg_part_name, |part| match part {
-                ScreenCgPart::Single {
-                    name: _,
-                    variant_name,
-                } => {
-                    *variant_name = None;
-                }
-                ScreenCgPart::Multi {
-                    name: _,
-                    variant_names,
-                } => {
-                    variant_names.remove(&cg_part_variant_name);
-                }
-                ScreenCgPart::AlwaysOn { .. } => unreachable!(),
+            } => update_cg_part(cut, graphic_index, cg_part_name, |part| {
+                part.turn_off(cg_part_variant_name)
             }),
             CutUpdateAction::TurnOnCgPartVariant {
                 graphic_index,
                 cg_part_name,
                 cg_part_variant_name,
-            } => update_cg_part(cut, graphic_index, cg_part_name, |part| match part {
-                ScreenCgPart::Single {
-                    name: _,
-                    variant_name,
-                } => {
-                    *variant_name = Some(cg_part_variant_name);
-                }
-                ScreenCgPart::Multi {
-                    name: _,
-                    variant_names,
-                } => {
-                    variant_names.insert(cg_part_variant_name);
-                }
-                ScreenCgPart::AlwaysOn { .. } => unreachable!(),
+            } => update_cg_part(cut, graphic_index, cg_part_name, |part| {
+                part.turn_on(cg_part_variant_name)
             }),
             CutUpdateAction::UpdateCircumscribed {
                 graphic_index,
@@ -157,7 +160,7 @@ impl CutUpdateAction {
                     Xy::new(width, height).length()
                 };
 
-                let mut circumscribed = graphic.circumscribed_mut();
+                let circumscribed = graphic.circumscribed_mut();
                 circumscribed.center_xy = Xy::single(50.percent());
                 circumscribed.radius = Percent::from(radius);
             }),
@@ -176,13 +179,55 @@ impl CutUpdateAction {
                     Xy::new(width, height).length()
                 };
 
-                let mut circumscribed = graphic.circumscribed_mut();
+                let circumscribed = graphic.circumscribed_mut();
                 circumscribed.center_xy = Xy::single(50.percent());
                 circumscribed.radius = Percent::from(radius);
             }),
             CutUpdateAction::SetCut { cut: _cut } => {
                 *cut = _cut;
             }
+            CutUpdateAction::DeleteGraphic { graphic_index } => {
+                if let Some(position) = cut
+                    .screen_graphics
+                    .iter()
+                    .position(|(index, _)| *index == graphic_index)
+                {
+                    cut.screen_graphics.remove(position);
+                }
+            }
+            CutUpdateAction::ChangeGraphicOrder(ChangeGraphicOrderAction {
+                graphic_index,
+                after_graphic_index,
+                ..
+            }) => {
+                let Some(moving_graphic_position) = cut
+                    .screen_graphics
+                    .iter()
+                    .position(|(index, _)| index == &graphic_index)
+                else {
+                    return;
+                };
+                let moving_graphic = cut.screen_graphics.remove(moving_graphic_position);
+                let insert_position = match after_graphic_index {
+                    Some(after_graphic_index) => {
+                        let Some(position) = cut
+                            .screen_graphics
+                            .iter()
+                            .position(|(index, _)| *index == after_graphic_index)
+                        else {
+                            return;
+                        };
+                        position + 1
+                    }
+                    None => 0,
+                };
+
+                cut.screen_graphics.insert(insert_position, moving_graphic);
+            }
+            CutUpdateAction::UpdateGraphicRotation {
+                graphic_index,
+                rotation,
+            } => update_graphic(cut, graphic_index, |graphic| graphic.set_rotation(rotation)),
         }
     }
 }

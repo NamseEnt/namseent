@@ -3,10 +3,11 @@ mod syncer;
 
 use self::{history::*, syncer::*};
 use namui::Uuid;
-use rpc::data::{CutUpdateAction, Sequence};
+use rpc::data::{CutUpdateAction, MoveCutAction, Sequence};
 
 const MAX_EDIT_HISTORY: usize = 8;
 
+#[derive(Debug)]
 pub struct SequenceWrapped {
     history: History<MAX_EDIT_HISTORY, Sequence>,
     syncer: Syncer,
@@ -58,6 +59,59 @@ impl SequenceWrapped {
                 }
                 rpc::data::SequenceUpdateAction::RenameSequence { name } => {
                     sequence.name = name;
+                }
+                rpc::data::SequenceUpdateAction::DeleteCut { cut_id } => {
+                    if let Some(position) = sequence.cuts.iter().position(|cut| cut.id == cut_id) {
+                        sequence.cuts.swap_remove(position);
+                    }
+                }
+                rpc::data::SequenceUpdateAction::MoveCut(MoveCutAction {
+                    cut_id,
+                    after_cut_id,
+                    ..
+                }) => {
+                    let moving_cut_position = sequence
+                        .cuts
+                        .iter()
+                        .position(|cut| cut.id == cut_id)
+                        .unwrap();
+                    let moving_cut = sequence.cuts.remove(moving_cut_position);
+                    let insert_position = match after_cut_id {
+                        Some(after_cut_id) => {
+                            let position = sequence
+                                .cuts
+                                .iter()
+                                .position(|cut| cut.id == after_cut_id)
+                                .unwrap();
+                            position + 1
+                        }
+                        None => 0,
+                    };
+
+                    sequence.cuts.insert(insert_position, moving_cut);
+                }
+                rpc::data::SequenceUpdateAction::SplitCutText {
+                    cut_id,
+                    new_cut_id,
+                    split_at,
+                } => {
+                    let insert_index =
+                        sequence.cuts.iter().position(|c| c.id == cut_id).unwrap() + 1;
+                    let cut = sequence.cuts.iter_mut().find(|c| c.id == cut_id).unwrap();
+
+                    let (front_line, back_line) = {
+                        let line = cut.line.chars().collect::<Vec<_>>();
+                        let (front_line, back_line) = line.split_at(split_at);
+                        (front_line.iter().collect(), back_line.iter().collect())
+                    };
+
+                    cut.line = front_line;
+
+                    let mut new_cut = cut.clone();
+                    new_cut.id = new_cut_id;
+                    new_cut.line = back_line;
+
+                    sequence.cuts.insert(insert_index, new_cut);
                 }
             }
 

@@ -1,5 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
+use std::fmt::Write;
 use syn::{parse_macro_input, DataStruct, Field};
 
 #[proc_macro_attribute]
@@ -91,7 +92,7 @@ pub fn document(
             }
             impl ToString for #sk_struct_ident {
                 fn to_string(&self) -> String {
-                    vec![
+                    [
                         #(#to_string_rows)*
                     ].join("&")
                 }
@@ -203,21 +204,102 @@ pub fn document(
         }
     };
 
+    let update_or_create_struct_output = {
+        let update_or_create_struct_ident = Ident::new(
+            &format!("{}UpdateOrCreate", struct_ident),
+            struct_ident.span(),
+        );
+        let update_or_create_struct_fields =
+            prefixed_pk_fields.iter().chain(prefixed_sk_fields.iter());
+        quote! {
+            pub struct #update_or_create_struct_ident<Update, Create, TCancelError, TUpdateFuture, TCreateFuture>
+            where
+                Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
+                Create: FnOnce() -> TCreateFuture + 'static + Send,
+                TCancelError: std::error::Error + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+                TCreateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+            {
+                #(#update_or_create_struct_fields,)*
+                pub update: Update,
+                pub create: Create,
+            }
+            impl<Update, Create, TCancelError, TUpdateFuture, TCreateFuture> #update_or_create_struct_ident<Update, Create, TCancelError, TUpdateFuture, TCreateFuture>
+            where
+                Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
+                Create: FnOnce() -> TCreateFuture + 'static + Send,
+                TCancelError: std::error::Error + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+                TCreateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+            {
+                pub async fn run(self) -> Result<(), crate::storage::dynamo_db::UpdateItemError<TCancelError>> {
+                    let pk = #prefixed_pk;
+                    let sk = #prefixed_sk;
+                    crate::dynamo_db().update_or_create_item::<#struct_ident, TCancelError, TUpdateFuture, TCreateFuture>(pk, sk, self.update, self.create).await
+                }
+            }
+
+            impl<Update, Create, TCancelError, TUpdateFuture, TCreateFuture>
+                Into<
+                    crate::storage::dynamo_db::TransactUpdateOrCreateCommand<
+                        #struct_ident,
+                        Update,
+                        Create,
+                        TCancelError,
+                        TUpdateFuture,
+                        TCreateFuture,
+                    >,
+                > for #update_or_create_struct_ident<Update, Create, TCancelError, TUpdateFuture, TCreateFuture>
+            where
+                Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
+                Create: FnOnce() -> TCreateFuture + 'static + Send,
+                TCancelError: std::error::Error + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+                TCreateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+            {
+                fn into(
+                    self,
+                ) -> crate::storage::dynamo_db::TransactUpdateOrCreateCommand<
+                    #struct_ident,
+                    Update,
+                    Create,
+                    TCancelError,
+                    TUpdateFuture,
+                    TCreateFuture,
+                > {
+                    let pk = #prefixed_pk;
+                    let sk = #prefixed_sk;
+                    crate::storage::dynamo_db::TransactUpdateOrCreateCommand {
+                        partition_prefix: stringify!(#struct_ident).to_string(),
+                        partition_key_without_prefix: pk,
+                        sort_key: sk,
+                        update: self.update,
+                        create: self.create,
+                        _phantom: std::marker::PhantomData,
+                    }
+                }
+            }
+
+        }
+    };
+
     let impl_document = {
         let pk = {
             let pk_double_quote_content: TokenStream = ("\"".to_string()
-                + &pk_fields
-                    .iter()
-                    .map(|field| format!("#{}:{{}}", field.ident.as_ref().unwrap()))
-                    .collect::<String>()
+                + &pk_fields.iter().fold(String::new(), |mut content, field| {
+                    let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                    content
+                })
                 + "\"")
                 .parse()
                 .unwrap();
 
             let parameters: TokenStream = pk_fields
                 .iter()
-                .map(|field| format!(", self.{}", field.ident.as_ref().unwrap()))
-                .collect::<String>()
+                .fold(String::new(), |mut content, field| {
+                    let _ = write!(content, ", self.{}", field.ident.as_ref().unwrap());
+                    content
+                })
                 .parse()
                 .unwrap();
             quote! {format!(#pk_double_quote_content #parameters)}
@@ -228,18 +310,20 @@ pub fn document(
                 quote! { Option::<String>::None }
             } else {
                 let sk_double_quote_content: TokenStream = ("\"".to_string()
-                    + &sk_fields
-                        .iter()
-                        .map(|field| format!("#{}:{{}}", field.ident.as_ref().unwrap()))
-                        .collect::<String>()
+                    + &sk_fields.iter().fold(String::new(), |mut content, field| {
+                        let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                        content
+                    })
                     + "\"")
                     .parse()
                     .unwrap();
 
                 let parameters: TokenStream = sk_fields
                     .iter()
-                    .map(|field| format!(", self.{}", field.ident.as_ref().unwrap()))
-                    .collect::<String>()
+                    .fold(String::new(), |mut content, field| {
+                        let _ = write!(content, ", self.{}", field.ident.as_ref().unwrap());
+                        content
+                    })
                     .parse()
                     .unwrap();
                 quote! { Some(format!(#sk_double_quote_content #parameters)) }
@@ -271,6 +355,7 @@ pub fn document(
         #query_struct_output
         #delete_struct_output
         #update_struct_output
+        #update_or_create_struct_output
     };
 
     output.into()
@@ -282,18 +367,20 @@ fn prefixed_value(
 ) -> (TokenStream, TokenStream) {
     let prefixed_pk = {
         let pk_double_quote_content: TokenStream = ("\"".to_string()
-            + &pk_fields
-                .iter()
-                .map(|field| format!("#{}:{{}}", field.ident.as_ref().unwrap()))
-                .collect::<String>()
+            + &pk_fields.iter().fold(String::new(), |mut content, field| {
+                let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                content
+            })
             + "\"")
             .parse()
             .unwrap();
 
         let parameters: TokenStream = pk_fields
             .iter()
-            .map(|field| format!(", self.pk_{}", field.ident.as_ref().unwrap()))
-            .collect::<String>()
+            .fold(String::new(), |mut content, field| {
+                let _ = write!(content, ", self.pk_{}", field.ident.as_ref().unwrap());
+                content
+            })
             .parse()
             .unwrap();
         quote! {format!(#pk_double_quote_content #parameters)}
@@ -304,18 +391,20 @@ fn prefixed_value(
             quote! { Option::<String>::None }
         } else {
             let sk_double_quote_content: TokenStream = ("\"".to_string()
-                + &sk_fields
-                    .iter()
-                    .map(|field| format!("#{}:{{}}", field.ident.as_ref().unwrap()))
-                    .collect::<String>()
+                + &sk_fields.iter().fold(String::new(), |mut content, field| {
+                    let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                    content
+                })
                 + "\"")
                 .parse()
                 .unwrap();
 
             let parameters: TokenStream = sk_fields
                 .iter()
-                .map(|field| format!(", self.sk_{}", field.ident.as_ref().unwrap()))
-                .collect::<String>()
+                .fold(String::new(), |mut content, field| {
+                    let _ = write!(content, ", self.sk_{}", field.ident.as_ref().unwrap());
+                    content
+                })
                 .parse()
                 .unwrap();
             quote! { Some(format!(#sk_double_quote_content #parameters)) }

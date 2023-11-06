@@ -83,34 +83,6 @@ pub trait IntoRgba {
         rgba
     }
 
-    /// Generate an RGBA Vec<u8> from a composite image or layer that uses 16 bits per
-    /// pixel. We do this by mapping the 16 bits back down to 8 bits.
-    ///
-    /// The 16 bits are stored across the red and green channels (first and second).
-    fn generate_16_bit_grayscale_rgba(&self) -> Vec<u8> {
-        match self.red() {
-            ChannelBytes::RawData(red) => match self.green().unwrap() {
-                ChannelBytes::RawData(green) => sixteen_to_eight_rgba(red, green),
-                ChannelBytes::RleCompressed(green) => {
-                    let green = &rle_decompress(green);
-
-                    sixteen_to_eight_rgba(red, green)
-                }
-            },
-            ChannelBytes::RleCompressed(red) => {
-                let red = &rle_decompress(red);
-
-                match self.green().unwrap() {
-                    ChannelBytes::RawData(green) => sixteen_to_eight_rgba(red, green),
-                    ChannelBytes::RleCompressed(green) => {
-                        let green = &rle_decompress(green);
-                        sixteen_to_eight_rgba(red, green)
-                    }
-                }
-            }
-        }
-    }
-
     /// Given some vector of bytes, insert the bytes from the given channel into the vector.
     ///
     /// Doing it this way allows us to allocate for one vector and insert all 4 (RGBA) channels into
@@ -133,7 +105,7 @@ pub trait IntoRgba {
             }
             // https://en.wikipedia.org/wiki/PackBits
             ChannelBytes::RleCompressed(channel_bytes) => {
-                self.insert_rle_channel(rgba, channel_kind, &channel_bytes);
+                self.insert_rle_channel(rgba, channel_kind, channel_bytes);
             }
         }
     }
@@ -150,7 +122,7 @@ pub trait IntoRgba {
         channel_kind: PsdChannelKind,
         channel_bytes: &[u8],
     ) {
-        let mut cursor = PsdCursor::new(&channel_bytes[..]);
+        let mut cursor = PsdCursor::new(channel_bytes);
 
         let mut idx = 0;
         let offset = channel_kind.rgba_offset().unwrap();
@@ -194,76 +166,6 @@ pub trait IntoRgba {
             };
         }
     }
-}
-
-/// Rle decompress a channel
-fn rle_decompress(bytes: &[u8]) -> Vec<u8> {
-    let mut cursor = PsdCursor::new(&bytes[..]);
-
-    let mut decompressed = vec![];
-
-    while cursor.position() != cursor.get_ref().len() as u64 {
-        let header = cursor.read_i8() as i16;
-
-        if header == -128 {
-            continue;
-        } else if header >= 0 {
-            let bytes_to_read = 1 + header;
-            for byte in cursor.read(bytes_to_read as u32) {
-                decompressed.push(*byte);
-            }
-        } else {
-            let repeat = 1 - header;
-            let byte = cursor.read_1()[0];
-            for _ in 0..repeat {
-                decompressed.push(byte);
-            }
-        };
-    }
-
-    decompressed
-}
-
-/// Take two 8 bit channels that together represent a 16 bit channel and convert them down
-/// into an 8 bit channel.
-///
-/// We store the final bytes in the first channel (overwriting the old bytes)
-fn sixteen_to_eight_rgba(channel1: &[u8], channel2: &[u8]) -> Vec<u8> {
-    let mut eight = Vec::with_capacity(channel1.len());
-
-    for idx in 0..channel1.len() {
-        if idx % 2 == 1 {
-            continue;
-        }
-
-        let sixteen_bit = [channel1[idx], channel1[idx + 1]];
-        let sixteen_bit = u16::from_be_bytes(sixteen_bit);
-
-        let eight_bit = (sixteen_bit / 256) as u8;
-
-        eight.push(eight_bit);
-        eight.push(eight_bit);
-        eight.push(eight_bit);
-        eight.push(255);
-    }
-
-    for idx in 0..channel2.len() {
-        if idx % 2 == 1 {
-            continue;
-        }
-
-        let sixteen_bit = [channel2[idx], channel2[idx + 1]];
-        let sixteen_bit = u16::from_be_bytes(sixteen_bit);
-
-        let eight_bit = (sixteen_bit / 256) as u8;
-
-        eight.push(eight_bit);
-        eight.push(eight_bit);
-        eight.push(eight_bit);
-        eight.push(255);
-    }
-
-    eight
 }
 
 /// Indicates how a channe'sl data is compressed

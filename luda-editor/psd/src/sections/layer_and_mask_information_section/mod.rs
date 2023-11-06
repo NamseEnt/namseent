@@ -113,7 +113,7 @@ impl LayerAndMaskInformationSection {
         // TODO: If the layer count was negative we were supposed to treat the first alpha
         // channel as transparency data for the merged result.. So add a new test with a transparent
         // PSD and make sure that we're handling this case properly.
-        let layer_count: u16 = layer_count.abs() as u16;
+        let layer_count: u16 = layer_count.unsigned_abs();
         let (group_count, layer_records) =
             LayerAndMaskInformationSection::read_layer_records(&mut cursor, layer_count)?;
 
@@ -164,7 +164,7 @@ impl LayerAndMaskInformationSection {
             match layer_record.divider_type {
                 // open the folder
                 Some(GroupDivider::CloseFolder) | Some(GroupDivider::OpenFolder) => {
-                    already_viewed = already_viewed + 1;
+                    already_viewed += 1;
 
                     let frame = Frame {
                         start_idx: layers.len(),
@@ -230,7 +230,7 @@ impl LayerAndMaskInformationSection {
 
             match layer_record.divider_type {
                 Some(GroupDivider::BoundingSection) => {
-                    groups_count = groups_count + 1;
+                    groups_count += 1;
                 }
                 _ => {}
             }
@@ -261,7 +261,7 @@ impl LayerAndMaskInformationSection {
         channels: LayerChannels,
     ) -> Result<PsdLayer, PsdLayerError> {
         Ok(PsdLayer::new(
-            &layer_record,
+            layer_record,
             psd_size.0,
             psd_size.1,
             if parent_id > 0 { Some(parent_id) } else { None },

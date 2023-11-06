@@ -42,7 +42,7 @@ impl Entity for TabToNextTextInputExample {
                 text_align: TextAlign::Left,
                 text_baseline: TextBaseline::Top,
                 text: text.clone(),
-                font_type: namui::FontType {
+                font: namui::Font {
                     font_weight: namui::FontWeight::REGULAR,
                     language: namui::Language::Ko,
                     serif: false,
@@ -63,14 +63,18 @@ impl Entity for TabToNextTextInputExample {
                     },
                     ..Default::default()
                 },
-                event_handler: Some(text_input::EventHandler::new().on_key_down(move |event| {
-                    if event.code == Code::Tab {
-                        event.prevent_default();
-                        let shift =
-                            namui::keyboard::any_code_press([Code::ShiftLeft, Code::ShiftRight]);
-                        namui::event::send(Event::TabPress { index, shift });
-                    }
-                })),
+                event_handler: Some(text_input::EventHandler::new().on_key_down(
+                    move |event: KeyDownEvent| {
+                        if event.code == Code::Tab {
+                            event.prevent_default();
+                            let shift = namui::keyboard::any_code_press([
+                                Code::ShiftLeft,
+                                Code::ShiftRight,
+                            ]);
+                            namui::event::send(Event::TabPress { index, shift });
+                        }
+                    },
+                )),
             }));
         }
 

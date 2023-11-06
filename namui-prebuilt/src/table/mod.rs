@@ -1,3 +1,5 @@
+pub mod hooks;
+
 use namui::prelude::*;
 
 pub struct TableCell<'a> {
@@ -14,17 +16,17 @@ enum Unit {
 }
 
 pub trait F32OrI32 {
-    fn as_f32(self) -> f32;
+    fn into_f32(self) -> f32;
 }
 
 impl F32OrI32 for i32 {
-    fn as_f32(self) -> f32 {
+    fn into_f32(self) -> f32 {
         self as f32
     }
 }
 
 impl F32OrI32 for f32 {
-    fn as_f32(self) -> f32 {
+    fn into_f32(self) -> f32 {
         self
     }
 }
@@ -34,7 +36,7 @@ pub fn ratio<'a>(
     cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
     TableCell {
-        unit: Unit::Ratio(ratio.as_f32()),
+        unit: Unit::Ratio(ratio.into_f32()),
         render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: true,
     }
@@ -45,7 +47,7 @@ pub fn ratio_no_clip<'a>(
     cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
     TableCell {
-        unit: Unit::Ratio(ratio.as_f32()),
+        unit: Unit::Ratio(ratio.into_f32()),
         render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: false,
     }
@@ -185,16 +187,16 @@ fn slice_internal<'a>(
                 xywh.x(),
                 xywh.y(),
                 if need_clip {
-                    namui::clip(
-                        PathBuilder::new().add_rect(Rect::Xywh {
+                    RenderingTree::Special(SpecialRenderingNode::Clip(ClipNode {
+                        path: Path::new().add_rect(Rect::Xywh {
                             x: px(0.0),
                             y: px(0.0),
                             width: xywh.width(),
                             height: xywh.height(),
                         }),
-                        ClipOp::Intersect,
-                        render_fn(direction, xywh.wh()),
-                    )
+                        clip_op: ClipOp::Intersect,
+                        rendering_tree: Box::new(render_fn(direction, xywh.wh())),
+                    }))
                 } else {
                     render_fn(direction, xywh.wh())
                 },
@@ -203,7 +205,7 @@ fn slice_internal<'a>(
             rendering_tree_list.push(rendering_tree);
             advanced_pixel_size += pixel_size;
         }
-        RenderingTree::Children(rendering_tree_list)
+        render(rendering_tree_list)
     }
 }
 
@@ -274,7 +276,7 @@ pub enum FitAlign {
     RightBottom,
 }
 pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> {
-    match rendering_tree.get_bounding_box() {
+    match rendering_tree.bounding_box() {
         Some(bounding_box) => TableCell {
             unit: Unit::Responsive(Box::new(move |direction| match direction {
                 Direction::Vertical => bounding_box.y() + bounding_box.height(),
@@ -362,21 +364,9 @@ mod tests {
             height: px(500.0),
         });
 
-        assert_eq!(
-            true,
-            button_render_called.load(std::sync::atomic::Ordering::Relaxed)
-        );
-        assert_eq!(
-            true,
-            label_render_called.load(std::sync::atomic::Ordering::Relaxed)
-        );
-        assert_eq!(
-            true,
-            body_render_called.load(std::sync::atomic::Ordering::Relaxed)
-        );
-        assert_eq!(
-            true,
-            body_inner_render_called.load(std::sync::atomic::Ordering::Relaxed)
-        );
+        assert!(button_render_called.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(label_render_called.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(body_render_called.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(body_inner_render_called.load(std::sync::atomic::Ordering::Relaxed));
     }
 }

@@ -3,7 +3,7 @@ use crate::data::ScreenGraphic;
 use crate::Uuid;
 
 #[migration::version(5)]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Cut {
     pub id: Uuid,
 
@@ -25,7 +25,7 @@ impl Cut {
             screen_graphics: previous
                 .screen_graphics
                 .into_iter()
-                .map(|sg| (Uuid::new_v4(), sg))
+                .map(|sg| (Uuid::new_v4(), ScreenGraphic::migrate(sg)))
                 .collect(),
         }
     }

@@ -1,33 +1,29 @@
 use super::*;
-use crate::{font::with_fallbacks, namui::*, system::text_input::Selection, text::*};
+use crate::*;
 
-impl TextInput {
+impl TextInput<'_> {
     /// Caret is drawn at the end of the text.
     pub(crate) fn draw_caret(
         &self,
-        props: &Props,
-        line_texts: &LineTexts,
+        props: &TextInput,
+        paragraph: &Paragraph,
         selection: &Selection,
-        paint: Arc<Paint>,
     ) -> RenderingTree {
         let Selection::Range(range) = selection else {
             return RenderingTree::Empty;
         };
-        let caret = line_texts.clone().into_multiline_caret(range.end);
+        let caret = paragraph.caret(range.end);
 
         let line_height = props.line_height_px();
 
-        let multiline_y_baseline_offset = get_multiline_y_baseline_offset(
-            props.text_baseline,
-            line_height,
-            line_texts.line_len(),
-        );
+        let multiline_y_baseline_offset =
+            get_multiline_y_baseline_offset(props.text_baseline, line_height, paragraph.line_len());
 
         let y = props.text_y() + multiline_y_baseline_offset + line_height * caret.line_index;
 
-        let right_new_line_by = line_texts.get_line(caret.line_index).unwrap().new_line_by;
+        let right_new_line_by = paragraph.get_line(caret.line_index).unwrap().new_line_by;
         let line = {
-            let line = line_texts
+            let line = paragraph
                 .iter_str()
                 .nth(caret.line_index)
                 .unwrap()
@@ -45,15 +41,8 @@ impl TextInput {
         let left_text_string: String = char_vec[..caret.caret_index_in_line].iter().collect();
         let right_text_string: String = char_vec[caret.caret_index_in_line..].iter().collect();
 
-        let Some(font) = namui::font::get_font(props.font_type) else {
-            return RenderingTree::Empty;
-        };
-
-        let font_metrics = font.metrics;
-        let fonts = with_fallbacks(font);
-
-        let left_text_width = get_text_width_with_fonts(&fonts, &left_text_string, paint.clone());
-        let right_text_width = get_text_width_with_fonts(&fonts, &right_text_string, paint.clone());
+        let left_text_width = paragraph.group_glyph.width(&left_text_string);
+        let right_text_width = paragraph.group_glyph.width(&right_text_string);
 
         let total_width = left_text_width + right_text_width;
 
@@ -63,6 +52,7 @@ impl TextInput {
             namui::TextAlign::Right => props.text_x() - total_width + 1.px(),
         } + left_text_width;
 
+        let font_metrics = paragraph.group_glyph.font_metrics();
         let top = get_bottom_of_baseline(props.text_baseline, font_metrics)
             + font_metrics.ascent
             + font_metrics.descent

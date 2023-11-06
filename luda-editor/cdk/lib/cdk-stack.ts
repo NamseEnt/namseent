@@ -55,11 +55,11 @@ export class CdkStack extends cdk.Stack {
             tableName: props?.stackName,
             billingMode: cdk.aws_dynamodb.BillingMode.PAY_PER_REQUEST,
             partitionKey: {
-                name: "__partition_key__",
+                name: "p",
                 type: cdk.aws_dynamodb.AttributeType.STRING,
             },
             sortKey: {
-                name: "__sort_key__",
+                name: "s",
                 type: cdk.aws_dynamodb.AttributeType.STRING,
             },
             removalPolicy:
@@ -110,6 +110,9 @@ export class CdkStack extends cdk.Stack {
                     ],
                 }),
             ],
+            timeout: cdk.Duration.seconds(30),
+            // https://github.com/NamseEnt/namseent/pull/715#discussion_r1379615534
+            memorySize: 1621,
         });
 
         const fnUrl = lambda.addFunctionUrl({

@@ -1,0 +1,89 @@
+name: publish-extension
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref }}-publish-extension
+  cancel-in-progress: true
+env:
+  SCCACHE_GHA_ENABLED: true
+  RUSTC_WRAPPER: sccache
+  CARGO_INCREMENTAL: 0
+  VSCE_PAT: ${{ secrets.AZURE_DEV_OPS_MARKETPLACE_MANAGE_KEY }}
+jobs:
+  publish-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: wasm-pack install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: rustup wasm32-unknown-unknown
+        run: rustup target add wasm32-unknown-unknown
+
+      - uses: actions/cache@v3
+        id: extension-rust-cache
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            extension/in_rust/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('extension/in_rust/Cargo.lock') }}
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Test extension rust part
+        working-directory: extension/in_rust
+        run: cargo test
+
+      - name: create tag
+        id: tag
+        if: success() && startsWith(github.ref, 'refs/heads/master')
+        working-directory: extension
+        run: |
+          git config --local user.email ""
+          git config --local user.name "GitHub Action"
+
+          export EXTENSION_VERSION=$(node -p "require('./package.json').version")
+          echo "Extension version: $EXTENSION_VERSION"
+
+          export TAG="extension/$EXTENSION_VERSION"
+          echo "Tag: $TAG"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "tag already exists";
+          else
+            git tag -a "$TAG" -m "$TAG"
+            git push origin "$TAG"
+            
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: create release
+        if: steps.tag.outputs.tag
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+
+      - name: publish
+        if: steps.tag.outputs.tag
+        working-directory: extension
+        run: |
+          npm install -g vsce
+          npm install
+          npm run publish

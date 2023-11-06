@@ -1,8 +1,9 @@
 use super::NamuiUserConfig;
 use crate::get_user_config_path;
+use anyhow::*;
 use std::fs;
 
-pub fn get_namui_user_config() -> Result<NamuiUserConfig, Box<dyn std::error::Error>> {
+pub fn get_namui_user_config() -> Result<NamuiUserConfig> {
     let namui_user_config_path = get_user_config_path()?;
     let namui_user_config: NamuiUserConfig = match namui_user_config_path.exists() {
         true => {

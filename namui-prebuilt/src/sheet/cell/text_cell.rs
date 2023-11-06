@@ -1,10 +1,9 @@
 use super::*;
 use crate::typography::adjust_font_size;
-use std::sync::Arc;
 
 pub struct TextCell {
     text: String,
-    on_change: Option<Arc<dyn Fn(&str)>>,
+    on_change: Option<Closure<dyn Fn(&String)>>,
     font_size: Option<IntPx>,
     borders: Borders,
 }
@@ -17,9 +16,9 @@ pub fn text(text: impl AsRef<str>) -> TextCell {
     }
 }
 impl TextCell {
-    pub fn on_change(self, on_change: impl Fn(&str) + 'static) -> Self {
+    pub fn on_change(self, on_change: impl IntoClosure<dyn Fn(&String)>) -> Self {
         Self {
-            on_change: Some(Arc::new(on_change)),
+            on_change: Some(on_change.into_arc()),
             ..self
         }
     }
@@ -57,7 +56,7 @@ impl CellTrait for TextCell {
                     text: self.text.clone(),
                     text_align: TextAlign::Center,
                     text_baseline: TextBaseline::Middle,
-                    font_type: FontType {
+                    font: Font {
                         serif: false,
                         size: font_size,
                         language: Language::Ko,
@@ -86,7 +85,7 @@ impl CellTrait for TextCell {
                 y: props.wh.height / 2.0,
                 align: TextAlign::Center,
                 baseline: TextBaseline::Middle,
-                font_type: FontType {
+                font: Font {
                     font_weight: FontWeight::REGULAR,
                     language: Language::Ko,
                     serif: false,
@@ -109,13 +108,15 @@ impl CellTrait for TextCell {
         ClipboardItem::Text(self.text.clone())
     }
 
-    fn on_paste(&self) -> Option<Arc<dyn Fn(ClipboardItem)>> {
-        self.on_change.clone().map(|on_change| {
-            Arc::new(move |clipboard_item| {
+    fn on_paste(&self) -> Option<Closure<dyn Fn(ClipboardItem)>> {
+        if let Some(on_change) = self.on_change.clone() {
+            Some(closure(move |clipboard_item: ClipboardItem| {
                 if let ClipboardItem::Text(text) = clipboard_item {
                     on_change(&text);
                 }
-            }) as Arc<dyn Fn(ClipboardItem)>
-        })
+            }))
+        } else {
+            None
+        }
     }
 }

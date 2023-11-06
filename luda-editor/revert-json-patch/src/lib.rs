@@ -103,7 +103,7 @@ fn split_pointer(pointer: &str) -> Result<(&str, String), PatchError> {
 }
 
 fn add(doc: &mut Value, path: &str, value: Value) -> Result<Option<Value>, PatchError> {
-    if path == "" {
+    if path.is_empty() {
         return Ok(Some(mem::replace(doc, value)));
     }
 

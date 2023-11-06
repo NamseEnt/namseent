@@ -68,9 +68,9 @@ macro_rules! append_slash {
             if result.is_empty() {
                 result = x;
             } else if result.ends_with('/') {
-                if x.starts_with('/') {
-                    result.push_str(&x[1..]);
-                } else {
+                if let Some(x) = x.strip_prefix('/') {
+                    result.push_str(x);
+                } else  {
                     result.push_str(&x);
                 }
             } else {

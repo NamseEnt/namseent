@@ -1,5 +1,5 @@
+use hyper::{http::response::Builder, Body, Request, Response, StatusCode};
 use lambda_web::{is_running_on_lambda, LambdaError};
-use rpc::hyper::{http::response::Builder, Body, Request, Response, StatusCode};
 
 pub async fn serve_s3(
     request: Request<Body>,
@@ -29,8 +29,8 @@ pub async fn serve_s3(
         key
     );
 
-    return Ok(response_builder
+    Ok(response_builder
         .status(302)
         .header("Location", s3_location)
-        .body(Body::empty())?);
+        .body(Body::empty())?)
 }

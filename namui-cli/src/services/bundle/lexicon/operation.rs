@@ -1,4 +1,5 @@
 use super::{Path, PathElement};
+use crate::*;
 use std::{fs::DirEntry, path::PathBuf};
 
 #[derive(PartialEq, Eq, Debug)]
@@ -14,10 +15,10 @@ impl IncludeOperation {
         }
     }
     pub fn join_dest_path_under_dest_root_path(
-        self: &Self,
-        dest_root_path: &PathBuf,
-    ) -> Result<PathBuf, crate::Error> {
-        let mut target_dest_path = dest_root_path.clone();
+        &self,
+        dest_root_path: &std::path::Path,
+    ) -> Result<PathBuf> {
+        let mut target_dest_path = dest_root_path.to_path_buf();
         for element in &self.dest_path.elements {
             match element {
                 PathElement::FileOrDir {
@@ -25,10 +26,9 @@ impl IncludeOperation {
                     regex: _,
                 } => target_dest_path.push(raw_string),
                 PathElement::DoubleAsterisk => {
-                    return Err(format!(
+                    return Err(anyhow!(
                         "join_dest_path_under_dest_root_path: No wildcard allowed to dest_path"
-                    )
-                    .into())
+                    ))
                 }
                 PathElement::CurrentDirectory => continue,
                 PathElement::ParentDirectory => {
@@ -40,13 +40,13 @@ impl IncludeOperation {
     }
 
     pub fn visit<F>(
-        self: &Self,
+        &self,
         target_src_path: &PathBuf,
         target_dest_path: &PathBuf,
         src_path_depth: usize,
         keep_directory_structure: bool,
         op: &mut F,
-    ) -> Result<(), crate::Error>
+    ) -> Result<()>
     where
         F: FnMut(PathBuf, PathBuf),
     {
@@ -60,7 +60,7 @@ impl IncludeOperation {
                     regex,
                 } => {
                     visit_just_under_directory(target_src_path, &mut |dirent| {
-                        if !regex.is_match(&dirent.file_name().to_str().unwrap()) {
+                        if !regex.is_match(dirent.file_name().to_str().unwrap()) {
                             return Ok(());
                         }
                         let target_dest_path =
@@ -144,11 +144,11 @@ impl ExcludeOperation {
     }
 
     pub fn visit<F>(
-        self: &Self,
+        &self,
         target_src_path: &PathBuf,
         src_path_depth: usize,
         op: &mut F,
-    ) -> Result<(), crate::Error>
+    ) -> Result<()>
     where
         F: FnMut(PathBuf),
     {
@@ -162,7 +162,7 @@ impl ExcludeOperation {
                     regex,
                 } => {
                     visit_just_under_directory(target_src_path, &mut |dirent| {
-                        if !regex.is_match(&dirent.file_name().to_str().unwrap()) {
+                        if !regex.is_match(dirent.file_name().to_str().unwrap()) {
                             return Ok(());
                         }
                         self.visit(&dirent.path(), src_path_depth + 1, op)
@@ -196,19 +196,19 @@ impl ExcludeOperation {
     }
 }
 
-fn visit_just_under_directory<F>(directory: &PathBuf, op: &mut F) -> Result<(), crate::Error>
+fn visit_just_under_directory<F>(directory: &PathBuf, op: &mut F) -> Result<()>
 where
-    F: FnMut(DirEntry) -> Result<(), crate::Error>,
+    F: FnMut(DirEntry) -> Result<()>,
 {
     if !directory.is_dir() {
         return Ok(());
     }
     for dirent in directory
         .read_dir()
-        .map_err(|error| format!("error while read dir {:?}:\n\t{}", directory, error))?
+        .map_err(|error| anyhow!("error while read dir {:?}:\n\t{}", directory, error))?
     {
         let dirent = dirent
-            .map_err(|error| format!("error while read dirent {:?}:\n\t{}", directory, error))?;
+            .map_err(|error| anyhow!("error while read dirent {:?}:\n\t{}", directory, error))?;
         op(dirent)?;
     }
     Ok(())

@@ -19,11 +19,7 @@ macro_rules! append_slash {
             if result.is_empty() {
                 result = x;
             } else if result.ends_with('/') {
-                if x.starts_with('/') {
-                    result.push_str(&x[1..]);
-                } else {
-                    result.push_str(&x);
-                }
+                result.push_str(x.strip_prefix('/').unwrap_or(&x));
             } else {
                 if x.starts_with('/') {
                     result.push_str(&x);

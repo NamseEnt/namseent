@@ -9,10 +9,8 @@ pub fn left(height: Px, text: impl AsRef<str>, color: Color) -> RenderingTree {
         y: height / 2.0,
         align: TextAlign::Left,
         baseline: TextBaseline::Middle,
-        font_type: FontType {
-            font_weight: FontWeight::BOLD,
-            language: Language::Ko,
-            serif: false,
+        font: Font {
+            name: "NotoSansKR-Bold".to_string(),
             size: FONT_SIZE,
         },
         style: TextStyle {
@@ -29,10 +27,8 @@ pub fn left_top(text: impl AsRef<str>, color: Color) -> RenderingTree {
         y: 0.px(),
         align: TextAlign::Left,
         baseline: TextBaseline::Top,
-        font_type: FontType {
-            font_weight: FontWeight::BOLD,
-            language: Language::Ko,
-            serif: false,
+        font: Font {
+            name: "NotoSansKR-Bold".to_string(),
             size: FONT_SIZE,
         },
         style: TextStyle {
@@ -49,10 +45,8 @@ pub fn center(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree 
         y: wh.height / 2.0,
         align: TextAlign::Center,
         baseline: TextBaseline::Middle,
-        font_type: FontType {
-            font_weight: FontWeight::BOLD,
-            language: Language::Ko,
-            serif: false,
+        font: Font {
+            name: "NotoSansKR-Bold".to_string(),
             size: FONT_SIZE,
         },
         style: TextStyle {
@@ -69,10 +63,8 @@ pub fn right(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
         y: wh.height / 2.0,
         align: TextAlign::Right,
         baseline: TextBaseline::Middle,
-        font_type: FontType {
-            font_weight: FontWeight::BOLD,
-            language: Language::Ko,
-            serif: false,
+        font: Font {
+            name: "NotoSansKR-Bold".to_string(),
             size: FONT_SIZE,
         },
         style: TextStyle {

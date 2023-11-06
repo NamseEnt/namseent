@@ -25,7 +25,7 @@ lazy_static! {
 
 #[proc_macro_attribute]
 pub fn namui_cfg(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let expression = parse(&format!("cfg({})", attr.to_string().replace("\n", " "))).unwrap();
+    let expression = parse(&format!("cfg({})", attr.to_string().replace('\n', " "))).unwrap();
     match expression.matches(&CFG_VALUES) {
         true => item,
         false => TokenStream::new(),
@@ -34,7 +34,7 @@ pub fn namui_cfg(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 fn load_cfg_from_user_config(cfg_map: &mut CfgMap) -> Result<(), Box<dyn std::error::Error>> {
     let user_config = get_namui_user_config()?;
-    cfg_map.extend(user_config.cfg_map.into_iter());
+    cfg_map.extend(user_config.cfg_map);
     Ok(())
 }
 

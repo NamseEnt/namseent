@@ -1,94 +1,108 @@
-mod cg_files_atom;
+mod atom;
+mod components;
 mod loaded;
 mod sequence;
-mod sequence_atom;
 
-use futures::try_join;
+use crate::components::name_quick_slot::NameQuickSlot;
+use ::futures::try_join;
 use loaded::LoadedSequenceEditorPage;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use rpc::data::{CgFile, Memo, ProjectSharedData, Sequence};
+use rpc::data::{CgFile, ImageWithLabels, Memo, ProjectSharedData, Sequence};
 use std::collections::HashMap;
 
-pub enum SequenceEditPage {
-    Loading { error: Option<String> },
-    Loaded(LoadedSequenceEditorPage),
-}
-
-enum Event {
-    ErrorOnLoading(String),
-    DataLoaded {
-        sequence: Sequence,
-        project_shared_data: ProjectSharedData,
-        cut_id_memo_map: HashMap<Uuid, Vec<Memo>>,
-        user_id: Uuid,
-        cg_files: Vec<CgFile>,
-    },
-}
-pub struct Props {
+#[namui::component]
+pub struct SequenceEditPage {
     pub wh: Wh<Px>,
+    pub project_id: Uuid,
+    pub sequence_id: Uuid,
 }
 
-impl SequenceEditPage {
-    pub fn new(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Self {
-        load_data(project_id, sequence_id);
-        Self::Loading { error: None }
-    }
-    pub fn update(&mut self, event: &namui::Event) {
-        event.is::<Event>(|event| match event {
-            Event::DataLoaded {
-                project_shared_data,
-                sequence,
-                cut_id_memo_map,
-                user_id,
-                cg_files,
-            } => match self {
-                SequenceEditPage::Loading { .. } => {
-                    *self = SequenceEditPage::Loaded(LoadedSequenceEditorPage::new(
-                        project_shared_data.clone(),
-                        sequence.clone(),
-                        cut_id_memo_map.clone(),
-                        *user_id,
-                        cg_files.clone(),
-                    ));
+impl Component for SequenceEditPage {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            wh,
+            project_id,
+            sequence_id,
+        } = self;
+        let (data, set_data) = ctx.state::<Option<Result<LoadData, String>>>(|| None);
+
+        ctx.effect("Load data", || {
+            spawn_local(async move {
+                match load_data(project_id, sequence_id).await {
+                    Ok(data) => set_data.set(Some(Ok(data))),
+                    Err(error) => {
+                        set_data.set(Some(Err(error)));
+                    }
                 }
-                SequenceEditPage::Loaded(_) => unreachable!(),
-            },
-            Event::ErrorOnLoading(error) => match self {
-                SequenceEditPage::Loading {
-                    error: page_error, ..
-                } => {
-                    *page_error = Some(error.clone());
-                }
-                SequenceEditPage::Loaded(_) => unreachable!(),
-            },
+            })
         });
-        match self {
-            SequenceEditPage::Loading { error: _ } => {}
-            SequenceEditPage::Loaded(loaded) => loaded.update(event),
-        }
-    }
-    pub fn render(&self, props: Props) -> RenderingTree {
-        match self {
-            SequenceEditPage::Loading { error, .. } => match error {
-                Some(error) => typography::body::center(props.wh, error, Color::RED),
-                None => typography::body::center(props.wh, "loading...", Color::WHITE),
-            },
-            SequenceEditPage::Loaded(loaded_sequence_editor_page) => {
-                loaded_sequence_editor_page.render(loaded::Props { wh: props.wh })
-            }
-        }
+
+        ctx.compose(|ctx| {
+            match data.as_ref() {
+                Some(result) => match result {
+                    Ok(data) => ctx.add(LoadedSequenceEditorPage {
+                        cut_id_memos_map: data.cut_id_memos_map.clone(),
+                        project_shared_data: data.project_shared_data.clone(),
+                        sequence: data.sequence.clone(),
+                        user_id: data.user_id,
+                        wh,
+                        cg_files: data.cg_files.clone(),
+                        images: data.images.clone(),
+                        name_quick_slot: data.name_quick_slot.clone(),
+                    }),
+                    Err(err) => ctx.add(typography::body::center(
+                        wh,
+                        format!("Error: {}", err),
+                        Color::WHITE,
+                    )),
+                },
+                None => ctx.add(typography::body::center(wh, "loading...", Color::WHITE)),
+            };
+        })
+        .done()
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct SequenceLocalCache {
-    update_v2: Vec<u8>,
-    e_tag: String,
-    server_state_vector: Vec<u8>,
+#[derive(Debug)]
+struct LoadData {
+    sequence: Sequence,
+    project_shared_data: ProjectSharedData,
+    cut_id_memos_map: HashMap<Uuid, Vec<Memo>>,
+    user_id: Uuid,
+    cg_files: Vec<CgFile>,
+    images: Vec<ImageWithLabels>,
+    name_quick_slot: NameQuickSlot,
 }
+async fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Result<LoadData, String> {
+    let result = try_join!(
+        load_sequence_and_project_shared_data(sequence_id),
+        load_memos(sequence_id),
+        get_user_id(),
+        get_cg_files(project_id),
+        get_images(project_id),
+        get_name_quick_slot(project_id),
+    );
+    return match result {
+        Ok((
+            (sequence, project_shared_data),
+            cut_id_memos_map,
+            user_id,
+            cg_files,
+            images,
+            name_quick_slot,
+        )) => Ok(LoadData {
+            sequence,
+            project_shared_data,
+            cut_id_memos_map,
+            user_id,
+            cg_files,
+            images,
+            name_quick_slot,
+        }),
+        Err(error) => Err(error.to_string()),
+    };
 
-fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) {
     async fn load_sequence_and_project_shared_data(
         sequence_id: namui::Uuid,
     ) -> Result<(Sequence, ProjectSharedData), Box<dyn std::error::Error>> {
@@ -109,7 +123,7 @@ fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) {
         let response = crate::RPC
             .list_sequence_memos(rpc::list_sequence_memos::Request { sequence_id })
             .await?;
-        let cut_id_memo_map =
+        let cut_id_memos_map =
             response
                 .memos
                 .into_iter()
@@ -122,7 +136,7 @@ fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) {
                     };
                     acc
                 });
-        Ok(cut_id_memo_map)
+        Ok(cut_id_memos_map)
     }
     async fn get_user_id() -> Result<Uuid, Box<dyn std::error::Error>> {
         let response = crate::RPC.get_user_id(rpc::get_user_id::Request {}).await?;
@@ -136,26 +150,18 @@ fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) {
             .await?;
         Ok(response.cg_files)
     }
-    spawn_local(async move {
-        let result = try_join!(
-            load_sequence_and_project_shared_data(sequence_id),
-            load_memos(sequence_id),
-            get_user_id(),
-            get_cg_files(project_id)
-        );
-        match result {
-            Ok(((sequence, project_shared_data), cut_id_memo_map, user_id, cg_files)) => {
-                namui::event::send(Event::DataLoaded {
-                    sequence,
-                    project_shared_data,
-                    cut_id_memo_map,
-                    user_id,
-                    cg_files,
-                });
-            }
-            Err(error) => {
-                namui::event::send(Event::ErrorOnLoading(error.to_string()));
-            }
-        }
-    })
+    async fn get_images(
+        project_id: Uuid,
+    ) -> Result<Vec<rpc::data::ImageWithLabels>, Box<dyn std::error::Error>> {
+        let response = crate::RPC
+            .list_images(rpc::list_images::Request { project_id })
+            .await?;
+        Ok(response.images)
+    }
+    async fn get_name_quick_slot(
+        project_id: Uuid,
+    ) -> Result<NameQuickSlot, Box<dyn std::error::Error>> {
+        let name_quick_slot = NameQuickSlot::load_from_cache(project_id).await?;
+        Ok(name_quick_slot)
+    }
 }

@@ -1,6 +1,7 @@
 use crate::util::get_electron_root_path;
+use crate::*;
 use std::{
-    path::PathBuf,
+    path::Path,
     process::{Child, Command, Stdio},
 };
 
@@ -12,16 +13,16 @@ pub enum CrossPlatform {
 pub fn start_electron_dev_service(
     port: &u16,
     cross_platform: CrossPlatform,
-    project_root_path: &PathBuf,
+    project_root_path: &Path,
     deep_link_schemes: &Vec<String>,
-) -> Result<Child, crate::Error> {
+) -> Result<Child> {
     let mut args = Vec::new();
     args.push("run".to_string());
     args.push(match cross_platform {
         CrossPlatform::WslToWindows => "start:windows".to_string(),
         CrossPlatform::None => "start".to_string(),
     });
-    args.push(format!("port={}", port.to_string()));
+    args.push(format!("port={}", port));
     args.push(format!(
         "applicationRoot={}",
         project_root_path.to_str().unwrap_or("")

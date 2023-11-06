@@ -14,7 +14,6 @@ pub mod layer_and_mask_information_section;
 #[derive(Debug)]
 pub struct MajorSections<'a> {
     pub(crate) file_header: &'a [u8],
-    pub(crate) color_mode_data: &'a [u8],
     pub(crate) image_resources: &'a [u8],
     pub(crate) layer_and_mask: &'a [u8],
     pub(crate) image_data: &'a [u8],
@@ -76,7 +75,7 @@ impl<'a> MajorSections<'a> {
         let file_header = &bytes[0..FILE_HEADER_SECTION_LEN];
         cursor.read(FILE_HEADER_SECTION_LEN as u32);
 
-        let (color_start, color_end) = read_major_section_start_end(&mut cursor);
+        let (_color_start, _color_end) = read_major_section_start_end(&mut cursor);
         let (img_res_start, img_res_end) = read_major_section_start_end(&mut cursor);
         let (layer_mask_start, layer_mask_end) = read_major_section_start_end(&mut cursor);
 
@@ -85,7 +84,6 @@ impl<'a> MajorSections<'a> {
 
         Ok(MajorSections {
             file_header,
-            color_mode_data: &bytes[color_start..color_end],
             image_resources: &bytes[img_res_start..img_res_end],
             layer_and_mask: &bytes[layer_mask_start..layer_mask_end],
             image_data,
@@ -313,7 +311,6 @@ impl<'a> PsdCursor<'a> {
 fn u8_slice_to_u16(bytes: &[u8]) -> Vec<u16> {
     return Vec::from(bytes)
         .chunks_exact(2)
-        .into_iter()
         .map(|a| u16::from_be_bytes([a[0], a[1]]))
         .collect();
 }

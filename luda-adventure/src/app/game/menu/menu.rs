@@ -1,5 +1,5 @@
 use super::{render_in_game_menu, render_start_menu};
-use namui::{on_top, screen, Code, RenderingTree};
+use namui::prelude::*;
 use namui_prebuilt::event_trap;
 
 pub struct Menu {
@@ -36,7 +36,7 @@ impl Menu {
         };
 
         tree.attach_event(|builder| {
-            builder.on_key_down(|event| {
+            builder.on_key_down(|event: KeyboardEvent| {
                 if event.code == Code::Escape {
                     namui::event::send(InternalEvent::EscapeKeyDown);
                 }

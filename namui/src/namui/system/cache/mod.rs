@@ -1,7 +1,8 @@
 use super::InitResult;
+use crate::*;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
-#[wasm_bindgen(raw_module = "./cache.js")]
+#[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(catch)]
     async fn cacheGet(key: &str) -> Result<JsValue, JsValue>;
@@ -13,7 +14,7 @@ pub(crate) async fn init() -> InitResult {
     Ok(())
 }
 
-pub async fn get(key: &str) -> Result<Option<Box<[u8]>>, Box<dyn std::error::Error>> {
+pub async fn get(key: &str) -> Result<Option<Box<[u8]>>> {
     match cacheGet(key).await {
         Ok(value) => {
             if value.is_undefined() {
@@ -28,13 +29,11 @@ pub async fn get(key: &str) -> Result<Option<Box<[u8]>>, Box<dyn std::error::Err
                 ))
             }
         }
-        Err(error) => Err(format!("{:?}", error).into()),
+        Err(error) => Err(anyhow!("{:?}", error)),
     }
 }
 
-pub async fn get_serde<T: serde::de::DeserializeOwned>(
-    key: &str,
-) -> Result<Option<T>, Box<dyn std::error::Error>> {
+pub async fn get_serde<T: serde::de::DeserializeOwned>(key: &str) -> Result<Option<T>> {
     match cacheGet(key).await {
         Ok(value) => {
             if value.is_undefined() {
@@ -45,29 +44,26 @@ pub async fn get_serde<T: serde::de::DeserializeOwned>(
                 )?))
             }
         }
-        Err(error) => Err(format!("{:?}", error).into()),
+        Err(error) => Err(anyhow!("{:?}", error)),
     }
 }
 
-pub async fn set(key: &str, value: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn set(key: &str, value: &[u8]) -> Result<()> {
     let data = js_sys::Uint8Array::from(value);
     cacheSet(key, data.into())
         .await
-        .map_err(|error| format!("{:?}", error).into())
+        .map_err(|error| anyhow!("{:?}", error))
 }
 
-pub async fn set_serde<T: serde::Serialize>(
-    key: &str,
-    value: &T,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn set_serde<T: serde::Serialize>(key: &str, value: &T) -> Result<()> {
     let data = serde_json::to_vec(value)?;
     cacheSet(key, js_sys::Uint8Array::from(data.as_slice()).into())
         .await
-        .map_err(|error| format!("{:?}", error).into())
+        .map_err(|error| anyhow!("{:?}", error))
 }
 
-pub async fn delete(key: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn delete(key: &str) -> Result<()> {
     cacheSet(key, JsValue::UNDEFINED)
         .await
-        .map_err(|error| format!("{:?}", error).into())
+        .map_err(|error| anyhow!("{:?}", error))
 }

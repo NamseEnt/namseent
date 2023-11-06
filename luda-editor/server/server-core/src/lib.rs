@@ -1,35 +1,21 @@
+pub mod apis;
+mod documents;
 mod handle;
-pub mod services;
 mod session;
-pub mod storage;
+mod storage;
 mod utils;
 
 use anyhow::Result;
 use aws_smithy_async::rt::sleep::default_async_sleep;
-use lambda_web::{is_running_on_lambda, run_hyper_on_lambda, LambdaError};
-use once_cell::sync::OnceCell;
-use rpc::hyper::{
+use hyper::{
     service::{make_service_fn, service_fn},
     Server, Uri,
 };
+use lambda_web::{is_running_on_lambda, run_hyper_on_lambda, LambdaError};
+use once_cell::sync::OnceCell;
 use std::io::Write;
 use std::net::SocketAddr;
 use storage::{dynamo_db::DynamoDb, s3::S3};
-
-#[derive(Debug)]
-struct Services {
-    auth_service: services::auth::AuthService,
-    image_service: services::image::ImageService,
-    sequence_service: services::sequence::SequenceService,
-    project_service: services::project::ProjectService,
-    cg_service: services::cg::CgService,
-    memo_service: services::memo::MemoService,
-}
-
-static SERVICES: OnceCell<Services> = OnceCell::new();
-fn services() -> &'static Services {
-    SERVICES.get().unwrap()
-}
 
 #[derive(Debug)]
 struct Storage {
@@ -49,7 +35,7 @@ pub fn s3<'a>() -> &'a S3 {
 
 pub async fn init() {
     let server_path = {
-        let item = env!("CARGO_MANIFEST_DIR").split("/").collect::<Vec<_>>();
+        let item = env!("CARGO_MANIFEST_DIR").split('/').collect::<Vec<_>>();
         item[..item.len() - 1].join("/") + "/"
     };
 
@@ -80,17 +66,6 @@ pub async fn init() {
         .init();
 
     log::info!("starting up");
-
-    SERVICES
-        .set(Services {
-            auth_service: services::auth::AuthService::new(),
-            sequence_service: services::sequence::SequenceService::new(),
-            project_service: services::project::ProjectService::new(),
-            image_service: services::image::ImageService::new(),
-            cg_service: services::cg::CgService::new(),
-            memo_service: services::memo::MemoService::new(),
-        })
-        .unwrap();
 
     if is_running_on_lambda() {
         log::info!("running on lambda");

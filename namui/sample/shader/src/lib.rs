@@ -52,7 +52,7 @@ impl Entity for ShaderExample {
                         .map(|tab| dropdown::Item {
                             is_selected: self.tab == tab,
                             text: tab.to_string(),
-                            on_select_item: move || namui::event::send(Event::SelectTab { tab }),
+                            on_select_item: move |_| namui::event::send(Event::SelectTab { tab }),
                         }),
                     rect: Rect::from_xy_wh(
                         Xy::single(0.px()),
@@ -90,8 +90,8 @@ impl Entity for ShaderExample {
                     let in_colors1 = [0.0, 1.0, 0.0, 1.0];
 
                     let shader = SpiralShader::new(red_scale, in_center, in_colors0, in_colors1);
-                    let paint = PaintBuilder::new().set_shader(shader.make());
-                    let rect = PathBuilder::new().add_rect(Rect::Xywh {
+                    let paint = Paint::new().set_shader(shader.make());
+                    let rect = Path::new().add_rect(Rect::Xywh {
                         x: 100.px(),
                         y: 100.px(),
                         width: 200.px(),
@@ -201,8 +201,8 @@ impl Entity for ShaderExample {
                         image_left_top,
                         image_shader,
                     );
-                    let paint = PaintBuilder::new().set_shader(shader.make());
-                    let rect = PathBuilder::new()
+                    let paint = Paint::new().set_shader(shader.make());
+                    let rect = Path::new()
                         .add_rect(Rect::from_xy_wh(Xy::zero().into(), display_rect.wh()));
 
                     translate(
@@ -255,8 +255,8 @@ impl Entity for ShaderExample {
                     let delta_y = -(namui::now().as_seconds() * wh[1] * 3.0);
 
                     let shader = ScrollShader::new(xy, wh, delta_y, image_wh, image_shader);
-                    let paint = PaintBuilder::new().set_shader(shader.make());
-                    let rect = PathBuilder::new().add_rect(Rect::Xywh {
+                    let paint = Paint::new().set_shader(shader.make());
+                    let rect = Path::new().add_rect(Rect::Xywh {
                         x: 100.px(),
                         y: 100.px(),
                         width: 200.px(),

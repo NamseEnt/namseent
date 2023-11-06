@@ -1,10 +1,11 @@
 use super::GenerateRuntimeProjectArgs;
+use crate::*;
 use std::path::PathBuf;
 
-pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<(), crate::Error> {
+pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
     let project_name = get_project_name(args.project_path.clone());
 
-    std::fs::create_dir_all(&args.target_dir.join("src"))?;
+    std::fs::create_dir_all(args.target_dir.join("src"))?;
 
     let cargo_toml = format!(
         r#"[package]
@@ -19,7 +20,7 @@ crate-type = ["cdylib", "rlib"]
 {project_name} = {{ path = "{project_path}" }}
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
-console_error_panic_hook = "0.1"
+namui-panic-hook = "0.1"
 
 [profile.release]
 lto = true
@@ -38,12 +39,12 @@ opt-level = 2
 
 #[wasm_bindgen]
 pub async fn start() {{
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    namui_panic_hook::set_once();
 
     {project_name_underscored}::main().await;
 }}
 "#,
-        project_name_underscored = project_name.replace("-", "_"),
+        project_name_underscored = project_name.replace('-', "_"),
     );
     std::fs::write(args.target_dir.join("src/lib.rs"), lib_rs)?;
 
@@ -52,12 +53,12 @@ pub async fn start() {{
 
 fn get_project_name(project_path: PathBuf) -> String {
     let manifest_path = project_path.join("Cargo.toml");
-    let manifest_contents = std::fs::read_to_string(&manifest_path).unwrap();
+    let manifest_contents = std::fs::read_to_string(manifest_path).unwrap();
     manifest_contents
         .split("name = ")
         .nth(1)
         .unwrap()
-        .split("\n")
+        .split('\n')
         .next()
         .unwrap()
         .trim()
@@ -79,10 +80,8 @@ mod tests {
         std::fs::create_dir_all(&project_path).unwrap();
         std::fs::write(
             manifest_path,
-            format!(
-                r#"[package]
-    name = "namui-runtime-wasm"#
-            ),
+            r#"[package]
+    name = "namui-runtime-wasm"#,
         )
         .unwrap();
 
@@ -101,10 +100,8 @@ mod tests {
         std::fs::create_dir_all(&project_path).unwrap();
         std::fs::write(
             manifest_path,
-            format!(
-                r#"[package]
-    name = "namui-runtime-wasm"#
-            ),
+            r#"[package]
+    name = "namui-runtime-wasm"#,
         )
         .unwrap();
 

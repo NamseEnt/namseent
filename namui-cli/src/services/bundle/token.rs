@@ -29,7 +29,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn next(self: &mut Self) -> Token {
+    pub fn next(&mut self) -> Token {
         loop {
             match self.last_char {
                 Some(char) => match char {
@@ -75,63 +75,54 @@ impl Tokenizer {
         }
     }
 
-    fn next_char(self: &mut Self) -> Option<char> {
+    fn next_char(&mut self) -> Option<char> {
         self.last_char = self.chars.pop_front();
         self.last_char
     }
 
-    fn consume_if_next_char_is_asterisk(self: &mut Self) -> bool {
+    fn consume_if_next_char_is_asterisk(&mut self) -> bool {
         match self.next_char() {
-            Some(next_char) => match next_char {
-                '*' => {
+            Some('*') => {
+                self.next_char();
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn consume_any_char_until_end_of_line(&mut self) -> String {
+        let mut content = String::new();
+        while let Some(char) = self.last_char {
+            match char {
+                '\n' => break,
+                _ => {
+                    content.push(char);
                     self.next_char();
-                    true
                 }
-                _ => false,
-            },
-            None => false,
-        }
-    }
-
-    fn consume_any_char_until_end_of_line(self: &mut Self) -> String {
-        let mut content = String::new();
-        loop {
-            match self.last_char {
-                Some(char) => match char {
-                    '\n' => break,
-                    _ => {
-                        content.push(char);
-                        self.next_char();
-                    }
-                },
-                None => break,
             }
         }
         content
     }
 
-    fn consume_word(self: &mut Self) -> String {
+    fn consume_word(&mut self) -> String {
         let mut content = String::new();
-        loop {
-            match self.last_char {
-                Some(char) => match char {
-                    '/' | ':' | '*' | '\n' => break,
-                    '\\' => match self.consume_if_next_char_is_escapable_char() {
-                        Some(escaped_char) => content.push(escaped_char),
-                        None => content.push(char),
-                    },
-                    _ => {
-                        content.push(char);
-                        self.next_char();
-                    }
+        while let Some(char) = self.last_char {
+            match char {
+                '/' | ':' | '*' | '\n' => break,
+                '\\' => match self.consume_if_next_char_is_escapable_char() {
+                    Some(escaped_char) => content.push(escaped_char),
+                    None => content.push(char),
                 },
-                None => break,
+                _ => {
+                    content.push(char);
+                    self.next_char();
+                }
             }
         }
         content
     }
 
-    fn consume_if_next_char_is_escapable_char(self: &mut Self) -> Option<char> {
+    fn consume_if_next_char_is_escapable_char(&mut self) -> Option<char> {
         match self.next_char() {
             Some(next_char) => match next_char {
                 ':' | '*' => {

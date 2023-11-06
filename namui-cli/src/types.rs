@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ErrorMessage {
     #[serde(rename = "relativeFile")]
     pub relative_file: String,
@@ -14,6 +14,9 @@ pub struct ErrorMessage {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum WebsocketMessage {
+    #[serde(rename = "buildStart")]
+    BuildStart,
+
     #[serde(rename = "reload")]
     Reload,
 
@@ -23,5 +26,3 @@ pub enum WebsocketMessage {
         error_messages: Vec<ErrorMessage>,
     },
 }
-
-pub type Error = Box<dyn std::error::Error>;

@@ -7,5 +7,7 @@ macro_rules! simple_error_impl {
             }
         }
         impl std::error::Error for $error_struct {}
+        unsafe impl Send for $error_struct {}
+        unsafe impl Sync for $error_struct {}
     };
 }

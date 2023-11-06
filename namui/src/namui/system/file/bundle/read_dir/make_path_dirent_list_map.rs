@@ -1,6 +1,6 @@
 use crate::file::types::{Dirent, DirentKind};
 use dashmap::DashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use url::Url;
 
 pub fn make_path_dirent_list_map(bundle_metadata: &Vec<PathBuf>) -> DashMap<PathBuf, Vec<Dirent>> {
@@ -21,7 +21,7 @@ pub fn make_path_dirent_list_map(bundle_metadata: &Vec<PathBuf>) -> DashMap<Path
 
 fn create_all_dirent_in_path(
     path_dirent_list_map: &DashMap<PathBuf, DashMap<PathBuf, Dirent>>,
-    path: &PathBuf,
+    path: &Path,
 ) {
     let component_names =
         path.components()
@@ -59,7 +59,7 @@ fn push_dirent(
     let pre_dirent_set = path_dirent_list_map.get_mut(dir_path).unwrap();
     let path = dir_path.join(name);
     let url_string = format!("bundle:{}", path.display());
-    let url = Url::parse(&url_string).expect(&format!("url parse error: {}", url_string));
+    let url = Url::parse(&url_string).unwrap_or_else(|_| panic!("url parse error: {}", url_string));
     pre_dirent_set.insert(path.clone(), Dirent::new(url, kind));
 }
 
@@ -108,15 +108,12 @@ mod tests {
             1
         );
 
-        assert_eq!(
-            path_dirent_list_map
-                .get(&PathBuf::from("three/two/one"))
-                .unwrap()
-                .first()
-                .unwrap()
-                .is_file(),
-            true
-        );
+        assert!(path_dirent_list_map
+            .get(&PathBuf::from("three/two/one"))
+            .unwrap()
+            .first()
+            .unwrap()
+            .is_file());
         assert_eq!(
             path_dirent_list_map
                 .get(&PathBuf::from("three/two/one"))
@@ -157,14 +154,11 @@ mod tests {
                 .len(),
             1
         );
-        assert_eq!(
-            path_dirent_list_map
-                .get(&PathBuf::from("path"))
-                .unwrap()
-                .first()
-                .unwrap()
-                .is_dir(),
-            true
-        );
+        assert!(path_dirent_list_map
+            .get(&PathBuf::from("path"))
+            .unwrap()
+            .first()
+            .unwrap()
+            .is_dir());
     }
 }

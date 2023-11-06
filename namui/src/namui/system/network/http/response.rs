@@ -18,7 +18,7 @@ impl Response {
     /// Get the `Headers` of this `Response`.
     #[inline]
     pub fn headers(&self) -> &HeaderMap {
-        &self.reqwest_response.headers()
+        self.reqwest_response.headers()
     }
 
     /// Get a mutable reference to the `Headers` of this `Response`.
@@ -41,13 +41,13 @@ impl Response {
     /// Get the final `Url` of this `Response`.
     #[inline]
     pub fn url(&self) -> &Url {
-        &self.reqwest_response.url()
+        self.reqwest_response.url()
     }
 
     pub async fn json<T: serde::de::DeserializeOwned>(self) -> Result<T, HttpError> {
         let full = self.reqwest_response.bytes().await?;
 
-        serde_json::from_slice(&full).map_err(|error| HttpError::JsonParseError(error))
+        serde_json::from_slice(&full).map_err(HttpError::JsonParseError)
     }
 
     /// Get the response text.
@@ -72,7 +72,7 @@ impl Response {
 
     pub async fn error_for_400599(self) -> Result<Self, HttpError> {
         let status_code = self.status().as_u16();
-        if 400 <= status_code && status_code <= 599 {
+        if (400..=599).contains(&status_code) {
             Err(HttpError::Status {
                 status: status_code,
                 message: self

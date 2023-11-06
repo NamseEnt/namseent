@@ -60,12 +60,12 @@ struct DirentFromJs {
     path: String,
     is_dir: bool,
 }
-impl Into<Dirent> for DirentFromJs {
-    fn into(self) -> Dirent {
-        let url_string = format!("bundle:{}", self.path);
+impl From<DirentFromJs> for Dirent {
+    fn from(val: DirentFromJs) -> Self {
+        let url_string = format!("bundle:{}", val.path);
         Dirent::new(
-            Url::parse(&url_string).expect(&format!("fail to parse url: {}", url_string)),
-            match self.is_dir {
+            Url::parse(&url_string).unwrap_or_else(|_| panic!("fail to parse url: {}", url_string)),
+            match val.is_dir {
                 true => DirentKind::Directory,
                 false => DirentKind::File,
             },

@@ -1,4 +1,4 @@
-#[derive(Clone, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct Setting {
     pub rpc_endpoint: String,
     pub resource_base_url: String,
