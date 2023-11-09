@@ -72,17 +72,17 @@ fn generate_predetermined_graphic_map() {
 fn read_image_as_image_id(image_name: &str) -> Uuid {
     let static_image = IMAGES_DIR
         .get_file(&format!("{image_name}.png"))
-        .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.jpg")))
-        .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.gif")))
-        .expect(&format!("image not found: {image_name}"));
+        .or_else(|| IMAGES_DIR.get_file(format!("{image_name}.jpg")))
+        .or_else(|| IMAGES_DIR.get_file(format!("{image_name}.gif")))
+        .unwrap_or_else(|| panic!("image not found: {image_name}"));
 
     let image_id = get_image_id(static_image.contents());
     image_id
 }
 
-fn read_predetermined_graphic_map_cached<'psd>(
-    psd_all_cases: &'psd Vec<(PsdCase, DynamicImage)>,
-) -> PredeterminedGraphicMap<'psd> {
+fn read_predetermined_graphic_map_cached(
+    psd_all_cases: &Vec<(PsdCase, DynamicImage)>,
+) -> PredeterminedGraphicMap<'_> {
     let predetermined_graphic_map_only_id: BTreeMap<Uuid, PredeterminedGraphicOnlyId> =
         serde_json::from_slice(&fs::read(PREDETERMINED_GRAPHIC_MAP_JSON_PATH).unwrap()).unwrap();
     predetermined_graphic_map_only_id

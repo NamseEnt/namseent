@@ -7,10 +7,10 @@ use namui_type::*;
 use rayon::prelude::*;
 use rpc::data::*;
 
-pub(crate) struct PsdParsingResult {
-    pub(crate) variants_webps: Vec<(Uuid, Vec<u8>)>,
-    pub(crate) cg_file: CgFile,
-    pub(crate) cg_thumbnail_webp: Vec<u8>,
+pub struct PsdParsingResult {
+    pub variants_webps: Vec<(Uuid, Vec<u8>)>,
+    pub cg_file: CgFile,
+    pub cg_thumbnail_webp: Vec<u8>,
 }
 
 pub(crate) struct VariantImageBuffer {
@@ -19,7 +19,7 @@ pub(crate) struct VariantImageBuffer {
     pub(crate) xy: Xy<Px>,
 }
 
-pub(crate) fn psd_to_webps_and_cg_file(
+pub fn psd_to_webps_and_cg_file(
     psd_bytes: &[u8],
     filename: &str,
 ) -> Result<PsdParsingResult, psd::PsdError> {

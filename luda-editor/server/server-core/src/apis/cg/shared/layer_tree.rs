@@ -163,10 +163,10 @@ pub fn make_tree(psd: &psd::Psd) -> anyhow::Result<Vec<LayerTree<'_>>> {
     Ok(tree)
 }
 
-pub(crate) struct RenderResult {
-    pub(crate) x: u32,
-    pub(crate) y: u32,
-    pub(crate) image_buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+pub struct RenderResult {
+    pub x: u32,
+    pub y: u32,
+    pub image_buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 }
 pub(crate) fn render_layer_tree<'psd>(
     psd: &'psd psd::Psd,
@@ -279,7 +279,7 @@ fn clip_buffer(source: &RenderResult, destination: &RenderResult) -> RenderResul
     }
 }
 
-fn blend_buffer(
+pub fn blend_buffer(
     source: &RenderResult,
     destination: &RenderResult,
     blend_mode: psd::BlendMode,

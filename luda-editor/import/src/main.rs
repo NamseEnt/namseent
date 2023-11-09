@@ -1,10 +1,10 @@
 mod additional_graphic;
 mod predetermined_graphic;
-mod psd_parsing;
 
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
-use namui_type::{percent, Percent, Uuid, Xy};
+use namui_type::{percent, Percent, Uuid, Xy, Wh, Angle};
+use server_core::apis::cg::shared::{psd_to_cg_file::PsdParsingResult, layer_tree::RenderResult};
 // use opencv::prelude::*;
 use crate::{
     additional_graphic::push_additional_graphic_map,
@@ -12,7 +12,6 @@ use crate::{
 };
 use image::{imageops::FilterType, DynamicImage, ImageBuffer, Luma};
 use predetermined_graphic::PredeterminedGraphic;
-use psd_parsing::{parse_psd, PsdParsingResult};
 use rayon::prelude::*;
 use rpc::{
     data::{
@@ -133,15 +132,14 @@ fn main() -> Result<()> {
 
     println!("Used background image urls, please upload them to project as image");
     let mut used_background_image_names = used_background_images
-        .into_iter()
-        .map(|(_, name)| name)
+        .into_values()
         .collect::<Vec<_>>();
     used_background_image_names.sort();
     for image_name in used_background_image_names.iter() {
         println!("{image_name}");
     }
 
-    println!("");
+    println!();
     println!("Used cg file names, please upload them to project as cg file");
     let used_cg_file_names: Vec<_> = used_cg_file_names.into_iter().collect();
     for cg_file_name in used_cg_file_names.iter() {
@@ -160,9 +158,9 @@ fn main() -> Result<()> {
 fn list_similar_psd_cases(psd_all_cases: &[(PsdCase, DynamicImage)], image_name: &str) {
     let static_image = IMAGES_DIR
         .get_file(&format!("{image_name}.png"))
-        .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.jpg")))
-        .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.gif")))
-        .expect(&format!("image not found: {image_name}"));
+        .or_else(|| IMAGES_DIR.get_file(format!("{image_name}.jpg")))
+        .or_else(|| IMAGES_DIR.get_file(format!("{image_name}.gif")))
+        .unwrap_or_else(|| panic!("image not found: {image_name}"));
 
     let image = image::load_from_memory_with_format(
         static_image.contents(),
@@ -196,7 +194,7 @@ fn list_similar_psd_cases(psd_all_cases: &[(PsdCase, DynamicImage)], image_name:
                 ))
                 .unwrap();
 
-            let (distance, _) = context.compare(&image, &psd_image_dssim);
+            let (distance, _) = context.compare(&image, psd_image_dssim);
 
             (f64::from(distance), case)
         })
@@ -227,7 +225,6 @@ fn copy_used_assets(used_background_image_names: &Vec<String>, used_cg_file_name
     let additional_image_names = additional_image_dir
         .read_dir()
         .unwrap()
-        .into_iter()
         .filter_map(|dirent| {
             let dirent = dirent.unwrap();
             if !dirent.file_type().unwrap().is_file() {
@@ -277,7 +274,7 @@ fn copy_assets(asset_names: &Vec<String>, source_dir: &PathBuf, dest_dir_path: &
     for asset_name in asset_names {
         let file = files
             .get(asset_name)
-            .expect(&format!("Asset not found: {asset_name:}"));
+            .unwrap_or_else(|| panic!("Asset not found: {asset_name:}"));
         fs::copy(
             source_dir.join(file.path().file_name().unwrap()),
             dest_dir_path.join(file.path().file_name().unwrap()),
@@ -287,7 +284,8 @@ fn copy_assets(asset_names: &Vec<String>, source_dir: &PathBuf, dest_dir_path: &
 }
 
 fn get_image_id(bytes: &[u8]) -> Uuid {
-    let image_id = {
+    
+    {
         let mut hasher = crc32fast::Hasher::new();
         hasher.update(bytes);
         let hash = hasher.finalize().to_le_bytes();
@@ -296,8 +294,7 @@ fn get_image_id(bytes: &[u8]) -> Uuid {
             hash[1], hash[2], hash[3], hash[0], hash[1], hash[2], hash[3],
         ];
         Uuid::from_bytes(bytes)
-    };
-    image_id
+    }
 }
 
 fn get_distance_psd_image_triples<'psd>(
@@ -305,7 +302,7 @@ fn get_distance_psd_image_triples<'psd>(
     psd_all_cases: &'psd Vec<(PsdCase, image::DynamicImage)>,
 ) -> Vec<(f64, &'psd PsdCase, String, Uuid)> {
     if CHECKPOINT == 1 {
-        let result = {
+        let _result = {
             let mut image_urls: BTreeSet<String> = BTreeSet::new();
 
             input.pages.iter().for_each(|x| {
@@ -321,9 +318,9 @@ fn get_distance_psd_image_triples<'psd>(
                     let image_name = image_url.split('/').last().unwrap();
                     let static_image = IMAGES_DIR
                         .get_file(&format!("{image_name}.png"))
-                        .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.jpg")))
-                        .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.gif")))
-                        .expect(&format!("image not found: {image_name}"));
+                        .or_else(|| IMAGES_DIR.get_file(format!("{image_name}.jpg")))
+                        .or_else(|| IMAGES_DIR.get_file(format!("{image_name}.gif")))
+                        .unwrap_or_else(|| panic!("image not found: {image_name}"));
 
                     // let image_hash =
                     //     get_image_hash(&format!("src/images/{}", image_path.to_str().unwrap()));
@@ -362,7 +359,7 @@ fn get_distance_psd_image_triples<'psd>(
                                 ))
                                 .unwrap();
 
-                            let (distance, _) = context.compare(&image, &psd_image_dssim);
+                            let (distance, _) = context.compare(&image, psd_image_dssim);
 
                             (f64::from(distance), case)
                         })
@@ -416,7 +413,7 @@ fn get_distance_psd_image_triples<'psd>(
         let psd_all_cases: HashMap<Uuid, &'psd PsdCase> = HashMap::from_iter(
             psd_all_cases
                 .iter()
-                .map(|(psd_case, _image)| (psd_case.case_id.clone(), psd_case)),
+                .map(|(psd_case, _image)| (psd_case.case_id, psd_case)),
         );
 
         distance_psd_image_triples_json
@@ -456,7 +453,7 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
             .files()
             .par_bridge()
             .map(|psd_file| {
-                parse_psd(
+                server_core::apis::cg::shared::psd_to_cg_file::psd_to_webps_and_cg_file(
                     psd_file.contents(),
                     psd_file
                         .path()
@@ -466,12 +463,12 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                         .unwrap()
                         .trim_end_matches(".psd"),
                 )
-                .expect(format!("failed to parse psd: {:?}", psd_file.path()).as_str())
+                .unwrap_or_else(|_| panic!("failed to parse psd: {:?}", psd_file.path()))
             })
             .collect::<Vec<_>>();
 
         for psd in psds.iter() {
-            if psd.variants_images.is_empty() {
+            if psd.variants_webps.is_empty() {
                 panic!("psd has no variants: {:?}", psd.cg_file);
             }
         }
@@ -482,12 +479,12 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
             .into_par_iter()
             .flat_map(
                 |PsdParsingResult {
-                     variants_images,
-                     cg_file,
-                     wh,
+                    variants_webps,
+                    cg_file,
+                    cg_thumbnail_webp,
                  }| {
                     fn generate_all_cases(parts: Vec<CgPart>) -> Vec<Vec<ScreenCgPart>> {
-                        if parts.len() == 0 {
+                        if parts.is_empty() {
                             return vec![];
                         }
                         let (first_part, rest_parts) = parts.split_first().unwrap();
@@ -510,46 +507,73 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                             .collect()
                     }
 
+                    let variant_image_buffers = variants_webps.into_par_iter().map(|(variant_id, webp)| {
+                        let image_buffer = image::load_from_memory_with_format(
+                            &webp,
+                            image::ImageFormat::WebP,
+                        ).expect("failed to load webp").to_rgba8();
+                        (variant_id, image_buffer)
+                    }).collect::<Vec<_>>();
+                    
+                    let cg_wh = {
+                        let cg_thumbnail_image_buffer = image::load_from_memory_with_format(&cg_thumbnail_webp, image::ImageFormat::WebP).expect("failed to load webp");
+                        Wh::new(cg_thumbnail_image_buffer.width(), cg_thumbnail_image_buffer.height())
+                    };
+
                     let all_cases = generate_all_cases(cg_file.parts.clone());
                     all_cases.into_par_iter().map(move |parts| {
                         let cg_file = cg_file.clone();
 
-                        let layer_images = parts
-                            .clone()
-                            .into_par_iter()
-                            .filter_map(|part| {
-                                variants_images.iter().find_map(|variants_image| {
-                                    if variants_image.part_name != part.name() {
-                                        return None;
-                                    }
+                        let variants = parts.iter().flat_map(|screen_cg_part| {
+                            cg_file.parts.iter().find(|cg_part| cg_part.name == screen_cg_part.name()).expect("cg_part not found")
+                            .variants.iter()
+                            .filter(move |cg_part_variant| screen_cg_part.is_variant_selected(&cg_part_variant.name))
+                        }).collect::<Vec<_>>();
 
-                                    match part {
-                                        ScreenCgPart::Single { .. }
-                                        | ScreenCgPart::Multi { .. } => {
-                                            if !part
-                                                .is_variant_selected(&variants_image.variant_name)
-                                            {
-                                                return None;
-                                            }
-                                        }
-                                        _ => {}
-                                    }
-
-                                    Some(variants_image.clone())
-                                })
+                        let mut bottom = RenderResult {
+                            x: 0,
+                            y: 0,
+                            image_buffer: image::ImageBuffer::<image::Rgba<u8>, _>::new(cg_wh.width, cg_wh.height),
+                        };
+                        for variant in variants {
+                            let (_, image_buffer) = variant_image_buffers.iter().find(|(variant_id, _)| 
+                                variant_id == &variant.id
+                            ).expect("variant not found");
+                            let src = RenderResult {
+                                x: (cg_wh.width as f32 * variant.rect.x().as_f32()) as u32,
+                                y: (cg_wh.height as f32 * variant.rect.y().as_f32()) as u32,
+                                image_buffer: image_buffer.clone(),
+                            };
+                            bottom = server_core::apis::cg::shared::layer_tree::blend_buffer(&src, &bottom, match variant.blend_mode {
+                                rpc::data::CgPartVariantBlendMode::PassThrough => psd::BlendMode::PassThrough,
+                                rpc::data::CgPartVariantBlendMode::Normal => psd::BlendMode::Normal,
+                                rpc::data::CgPartVariantBlendMode::Dissolve => psd::BlendMode::Dissolve,
+                                rpc::data::CgPartVariantBlendMode::Darken => psd::BlendMode::Darken,
+                                rpc::data::CgPartVariantBlendMode::Multiply => psd::BlendMode::Multiply,
+                                rpc::data::CgPartVariantBlendMode::ColorBurn => psd::BlendMode::ColorBurn,
+                                rpc::data::CgPartVariantBlendMode::LinearBurn => psd::BlendMode::LinearBurn,
+                                rpc::data::CgPartVariantBlendMode::DarkerColor => psd::BlendMode::DarkerColor,
+                                rpc::data::CgPartVariantBlendMode::Lighten => psd::BlendMode::Lighten,
+                                rpc::data::CgPartVariantBlendMode::Screen => psd::BlendMode::Screen,
+                                rpc::data::CgPartVariantBlendMode::ColorDodge => psd::BlendMode::ColorDodge,
+                                rpc::data::CgPartVariantBlendMode::LinearDodge => psd::BlendMode::LinearDodge,
+                                rpc::data::CgPartVariantBlendMode::LighterColor => psd::BlendMode::LighterColor,
+                                rpc::data::CgPartVariantBlendMode::Overlay => psd::BlendMode::Overlay,
+                                rpc::data::CgPartVariantBlendMode::SoftLight => psd::BlendMode::SoftLight,
+                                rpc::data::CgPartVariantBlendMode::HardLight => psd::BlendMode::HardLight,
+                                rpc::data::CgPartVariantBlendMode::VividLight => psd::BlendMode::VividLight,
+                                rpc::data::CgPartVariantBlendMode::LinearLight => psd::BlendMode::LinearLight,
+                                rpc::data::CgPartVariantBlendMode::PinLight => psd::BlendMode::PinLight,
+                                rpc::data::CgPartVariantBlendMode::HardMix => psd::BlendMode::HardMix,
+                                rpc::data::CgPartVariantBlendMode::Difference => psd::BlendMode::Difference,
+                                rpc::data::CgPartVariantBlendMode::Exclusion => psd::BlendMode::Exclusion,
+                                rpc::data::CgPartVariantBlendMode::Subtract => psd::BlendMode::Subtract,
+                                rpc::data::CgPartVariantBlendMode::Divide => psd::BlendMode::Divide,
+                                rpc::data::CgPartVariantBlendMode::Hue => psd::BlendMode::Hue,
+                                rpc::data::CgPartVariantBlendMode::Saturation => psd::BlendMode::Saturation,
+                                rpc::data::CgPartVariantBlendMode::Color => psd::BlendMode::Color,
+                                rpc::data::CgPartVariantBlendMode::Luminosity => psd::BlendMode::Luminosity,
                             })
-                            .collect::<Vec<_>>();
-
-                        let mut bottom =
-                            image::ImageBuffer::<image::Rgba<u8>, _>::new(wh.width, wh.height);
-
-                        for part_image_buffer in layer_images.into_iter().rev() {
-                            image::imageops::overlay(
-                                &mut bottom,
-                                &part_image_buffer.image_buffer,
-                                part_image_buffer.rect.x() as i64,
-                                part_image_buffer.rect.y() as i64,
-                            );
                         }
 
                         let case_id = {
@@ -570,13 +594,11 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                                                     vec![variants_in_part
                                                         .iter()
                                                         .find(|x| x.name == *variant_name)
-                                                        .expect(&format!(
-                                                            "Variant {} not found in {} / {}\n{:#?}",
-                                                            variant_name,
-                                                            cg_file.name,
-                                                            part.name(),
-                                                            cg_file
-                                                        )).clone()]
+                                                        .unwrap_or_else(|| panic!("Variant {} not found in {} / {}\n{:#?}",
+                                                        variant_name,
+                                                        cg_file.name,
+                                                        part.name(),
+                                                        cg_file)).clone()]
                                                 }
                                                 None => vec![],
                                             }
@@ -599,7 +621,7 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                         };
 
                         let file_path = format!("output/{case_id}.png");
-                        bottom.save(&file_path).unwrap();
+                        bottom.image_buffer.save(&file_path).unwrap();
 
                         // let image_hash = get_image_hash(&file_path);
                         let image_hash = 0;
@@ -776,9 +798,21 @@ fn handle_images<'psd>(
 
         let Some(predetermined_graphic) = predetermined_graphic_map.get(image_id) else {
             if *distance >= BACKGROUND_IMAGE_DISTANCE_THRESHOLD {
-                insert_image(used_background_images, &mut background_images, image, psd_case, *image_id);
+                insert_image(
+                    used_background_images,
+                    &mut background_images,
+                    image,
+                    psd_case,
+                    *image_id,
+                );
             } else {
-                insert_cg(used_cg_file_names, &mut character_images, image, psd_case, *image_id);
+                insert_cg(
+                    used_cg_file_names,
+                    &mut character_images,
+                    image,
+                    psd_case,
+                    *image_id,
+                );
             }
             continue;
         };
@@ -808,6 +842,7 @@ fn handle_images<'psd>(
             ScreenGraphic::Image(ScreenImage {
                 id: image_id,
                 circumscribed: percent_xywh_to_circumscribed(image.xywh, ASPECT_RATIO),
+                rotation: Angle::Degree(0.0)
             }),
         )
     });
@@ -819,6 +854,7 @@ fn handle_images<'psd>(
                 name: psd_case.cg_file.name.clone(),
                 parts: psd_case.parts.clone(),
                 circumscribed: percent_xywh_to_circumscribed(image.xywh, ASPECT_RATIO),
+                rotation: Angle::Degree(0.0)
             }),
         )
     });
@@ -827,7 +863,7 @@ fn handle_images<'psd>(
 }
 
 fn handle_texts(cut: &mut Cut, texts: Vec<Text>) {
-    if texts.len() == 0 {
+    if texts.is_empty() {
         // nothing
     } else if texts.len() >= 2 {
         let mut it = texts.into_iter();
