@@ -145,7 +145,7 @@ impl ScreenCgPart {
                 .as_ref()
                 .map(|n| n == variant_name)
                 .unwrap_or(false),
-            ScreenCgPart::AlwaysOn { .. } => unreachable!(),
+            ScreenCgPart::AlwaysOn { .. } => true,
         }
     }
     pub fn unselect(&mut self) {
