@@ -6,6 +6,9 @@
         "circumscribed": {
           "center_xy": { "x": 57.276123, "y": 17.537315 },
           "radius": 14.53912
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -17,6 +20,9 @@
         "circumscribed": {
           "center_xy": { "x": 57.276123, "y": 17.537315 },
           "radius": 14.53912
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -28,6 +34,9 @@
         "circumscribed": {
           "center_xy": { "x": 64.272385, "y": 19.21642 },
           "radius": 20.871418
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -37,6 +46,9 @@
       "Cg": {
         "id": "54ecccfd-ac21-b9b5-2851-2c6d527fd424",
         "name": "오하연-쭈뼛-사복(test)",
+        "rotation": {
+          "Degree": 0.0
+        },
         "parts": [
           { "Single": { "name": "표정.눈썹_s", "variant_name": "일반" } },
           { "Single": { "name": "표정.눈_s", "variant_name": "11" } },
@@ -57,6 +69,9 @@
         "circumscribed": {
           "center_xy": { "x": 62.31343, "y": 18.28358 },
           "radius": 15.154116
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -66,6 +81,9 @@
       "Cg": {
         "id": "54ecccfd-ac21-b9b5-2851-2c6d527fd424",
         "name": "오하연-쭈뼛-사복(test)",
+        "rotation": {
+          "Degree": 0.0
+        },
         "parts": [
           { "Single": { "name": "표정.눈썹_s", "variant_name": "일반" } },
           { "Single": { "name": "표정.눈_s", "variant_name": "11" } },
@@ -86,6 +104,9 @@
         "circumscribed": {
           "center_xy": { "x": 62.31343, "y": 18.28358 },
           "radius": 15.154116
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -97,6 +118,9 @@
         "circumscribed": {
           "center_xy": { "x": 59.65485, "y": 12.5 },
           "radius": 16.226303
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -108,6 +132,9 @@
         "circumscribed": {
           "center_xy": { "x": 59.65485, "y": 12.5 },
           "radius": 16.226303
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -119,6 +146,9 @@
         "circumscribed": {
           "center_xy": { "x": 55.31716, "y": 21.82836 },
           "radius": 21.821262
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -130,6 +160,9 @@
         "circumscribed": {
           "center_xy": { "x": 60.494404, "y": 12.873134 },
           "radius": 15.393613
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -141,6 +174,9 @@
         "circumscribed": {
           "center_xy": { "x": 60.494404, "y": 12.873134 },
           "radius": 15.393613
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -152,6 +188,9 @@
         "circumscribed": {
           "center_xy": { "x": 60.494404, "y": 12.873134 },
           "radius": 15.393613
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -163,6 +202,9 @@
         "circumscribed": {
           "center_xy": { "x": 30.130598, "y": 26.305971 },
           "radius": 15.488974
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -174,6 +216,9 @@
         "circumscribed": {
           "center_xy": { "x": 30.130598, "y": 26.305971 },
           "radius": 15.488974
+        },
+        "rotation": {
+          "Degree": 0.0
         }
       }
     }
@@ -183,6 +228,9 @@
       "Cg": {
         "id": "1eb4357c-0ee3-9088-4bdc-009701346974",
         "name": "오하연-의심-사복(test)",
+        "rotation": {
+          "Degree": 0.0
+        },
         "parts": [
           { "Single": { "name": "표정.기타_s", "variant_name": null } },
           { "Single": { "name": "표정.눈썹_s", "variant_name": "일반" } },
@@ -203,6 +251,9 @@
       "Cg": {
         "id": "5a5ec517-9f14-fa32-02d9-3c313c758929",
         "name": "오하연-찡찡-사복(test)",
+        "rotation": {
+          "Degree": 0.0
+        },
         "parts": [
           { "Single": { "name": "표정.눈썹_s", "variant_name": "일반" } },
           { "Single": { "name": "표정.눈_s", "variant_name": "놀람" } },
@@ -223,6 +274,9 @@
       "Cg": {
         "id": "5a5ec517-9f14-fa32-02d9-3c313c758929",
         "name": "오하연-찡찡-사복(test)",
+        "rotation": {
+          "Degree": 0.0
+        },
         "parts": [
           { "Single": { "name": "표정.눈썹_s", "variant_name": "일반" } },
           { "Single": { "name": "표정.눈_s", "variant_name": "놀람" } },
@@ -243,6 +297,9 @@
       "Cg": {
         "id": "5a5ec517-9f14-fa32-02d9-3c313c758929",
         "name": "오하연-찡찡-사복(test)",
+        "rotation": {
+          "Degree": 0.0
+        },
         "parts": [
           { "Single": { "name": "표정.눈썹_s", "variant_name": "일반" } },
           { "Single": { "name": "표정.눈_s", "variant_name": "놀람" } },
@@ -263,6 +320,9 @@
       "Cg": {
         "id": "5a5ec517-9f14-fa32-02d9-3c313c758929",
         "name": "오하연-찡찡-사복(test)",
+        "rotation": {
+          "Degree": 0.0
+        },
         "parts": [
           { "Single": { "name": "표정.눈썹_s", "variant_name": "일반" } },
           { "Single": { "name": "표정.눈_s", "variant_name": "놀람" } },
