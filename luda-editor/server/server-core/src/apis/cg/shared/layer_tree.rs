@@ -306,13 +306,15 @@ pub fn blend_buffer(
                 .flat_map(move |x| {
                     let default = Rgba([0, 0, 0, 0]);
 
-                    let source_pixel = source
-                        .image_buffer
-                        .get_pixel_checked(x - source.x, y - source.y)
+                    let source_pixel = x
+                        .checked_sub(source.x)
+                        .zip(y.checked_sub(source.y))
+                        .and_then(|(x, y)| source.image_buffer.get_pixel_checked(x, y))
                         .unwrap_or(&default);
-                    let destination_pixel = destination
-                        .image_buffer
-                        .get_pixel_checked(x - destination.x, y - destination.y)
+                    let destination_pixel = x
+                        .checked_sub(destination.x)
+                        .zip(y.checked_sub(destination.y))
+                        .and_then(|(x, y)| source.image_buffer.get_pixel_checked(x, y))
                         .unwrap_or(&default);
 
                     blend_pixel(source_pixel, destination_pixel, blend_function).0
