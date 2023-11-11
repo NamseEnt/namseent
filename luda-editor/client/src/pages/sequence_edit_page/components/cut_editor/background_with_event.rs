@@ -5,9 +5,11 @@ use crate::{
     color,
     components::{cg_upload::create_cg, image_upload::create_image},
     pages::sequence_edit_page::atom::{UpdateCgFile, CG_FILES_ATOM, NAME_QUICK_SLOT},
+    RPC,
 };
 use namui_prebuilt::*;
 use rpc::data::{CutUpdateAction, ScreenCg, ScreenGraphic, ScreenImage};
+use std::{collections::HashMap, path::PathBuf};
 
 #[namui::component]
 pub struct BackgroundWithEvent<'a> {
@@ -152,19 +154,68 @@ impl Component for BackgroundWithEvent<'_> {
                             if event.is_local_xy_in() {
                                 for file in event.files {
                                     spawn_local(async move {
-                                        let content = file.content().await;
-                                        match file.name().ends_with(".psd") {
-                                            true => {
-                                                let psd_bytes = content.into();
+                                        let file_name = PathBuf::from(file.name());
+                                        let extension_name = file_name
+                                            .extension()
+                                            .map(|extension_name| extension_name.to_str().unwrap());
+
+                                        match extension_name {
+                                            Some("json") => if file.name().as_str() == "memos.json" {
+                                                let memos: HashMap<usize, Vec<String>> =
+                                                    serde_json::from_slice(&file.content().await).unwrap();
+                                                let sequence = SEQUENCE_ATOM.get();
+                                                let total_length = memos.len();
+                                                const INFO_PRINT_INTERVAL: namui::Time = Time::Sec(1.0);
+                                                let mut last_info_printed_time = namui::now();
+                                                for (memos_index, (cut_index, memos)) in memos.into_iter().enumerate() {
+                                                    let now = namui::now();
+                                                    if now - last_info_printed_time >= INFO_PRINT_INTERVAL {
+                                                        namui::log!("memo uploading {memos_index}/{total_length}");
+                                                        last_info_printed_time = now;
+                                                    }
+                                                    if let Some(cut) = sequence.cuts.get(cut_index) {
+                                                        let cut_id = cut.id;
+                                                        for memo in memos {
+                                                            RPC.create_memo(rpc::create_memo::Request {
+                                                                sequence_id: sequence.id,
+                                                                cut_id,
+                                                                content: memo,
+                                                            })
+                                                            .await
+                                                            .unwrap();
+                                                        }
+                                                    }
+                                                }
+                                            } else  {
+                                                notification::error!(
+                                                    "Unsupported file type {file_name:?}"
+                                                )
+                                                .push();
+                                            },
+                                            Some("png") | Some("jpg") | Some("jpeg") => {
+                                                add_new_image(
+                                                    project_id,
+                                                    cut_id,
+                                                    file.content().await.to_vec(),
+                                                );
+                                            }
+                                            Some("psd") => {
                                                 let psd_name = file
                                                     .name()
                                                     .trim_end_matches(".psd")
                                                     .to_string();
-                                                add_new_cg(project_id, cut_id, psd_name, psd_bytes);
+                                                add_new_cg(
+                                                    project_id,
+                                                    cut_id,
+                                                    psd_name,
+                                                    file.content().await.to_vec(),
+                                                );
                                             }
-                                            false => {
-                                                let png_bytes = content.into();
-                                                add_new_image(project_id, cut_id, png_bytes);
+                                            _ => {
+                                                notification::error!(
+                                                    "Unsupported file type {file_name:?}"
+                                                )
+                                                .push();
                                             }
                                         }
                                     });

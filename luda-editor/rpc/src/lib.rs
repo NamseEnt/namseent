@@ -81,6 +81,7 @@ define_rpc! {
                 pub name: String,
             }
             struct Response {
+                pub sequence_id: crate::Uuid,
             }
             enum Error {
                 Unauthorized,

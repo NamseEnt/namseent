@@ -44,5 +44,5 @@ pub async fn create_sequence(
         .await
         .map_err(|error| Error::Unknown(error.to_string()))?;
 
-    Ok(Response {})
+    Ok(Response { sequence_id })
 }
