@@ -535,7 +535,7 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                             y: 0,
                             image_buffer: image::ImageBuffer::<image::Rgba<u8>, _>::new(cg_wh.width, cg_wh.height),
                         };
-                        for variant in variants {
+                        for variant in variants.iter().rev() {
                             let (_, image_buffer) = variant_image_buffers.iter().find(|(variant_id, _)| 
                                 variant_id == &variant.id
                             ).expect("variant not found");
