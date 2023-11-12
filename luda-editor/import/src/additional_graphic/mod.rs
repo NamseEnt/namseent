@@ -12,7 +12,7 @@ pub(crate) fn push_additional_graphic_map(sequence: &mut Sequence) {
     for (cut_index, graphics) in cut_index_graphic_map.into_iter() {
         let cut = sequence.cuts.get_mut(cut_index).unwrap();
         for graphic in graphics {
-            cut.screen_graphics.push((uuid(), graphic))
+            cut.screen_graphics.insert(0, (uuid(), graphic))
         }
     }
 }

@@ -146,7 +146,7 @@ fn main() -> Result<()> {
         println!("{cg_file_name}");
     }
 
-    let sequence_json = serde_json::to_string(&sequence).unwrap();
+    let sequence_json = serde_json::to_string_pretty(&sequence).unwrap();
 
     fs::write("sequence.json", sequence_json).unwrap();
 
@@ -780,7 +780,7 @@ fn handle_images<'psd>(
         image_id: Uuid,
     ) {
         used_background_images.insert(image_id, image.url.split('/').last().unwrap().to_string());
-        background_images.push((image, psd_case, image_id));
+        background_images.insert(0, (image, psd_case, image_id));
     }
     fn insert_cg<'psd>(
         used_cg_file_names: &mut BTreeSet<String>,
@@ -790,7 +790,7 @@ fn handle_images<'psd>(
         image_id: Uuid,
     ) {
         used_cg_file_names.insert(psd_case.cg_file.name.clone());
-        character_images.push((image, psd_case, image_id));
+        character_images.insert(0, (image, psd_case, image_id));
     }
 
     for image in images {
