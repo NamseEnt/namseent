@@ -429,7 +429,8 @@ fn blend_function(blend_mode: psd::BlendMode) -> BlendFunction {
         }
     }
     match blend_mode {
-        psd::BlendMode::PassThrough => todo!(),
+        // TODO: Implement PassThrough
+        psd::BlendMode::PassThrough => normal,
         psd::BlendMode::Normal => normal,
         psd::BlendMode::Dissolve => todo!(),
         psd::BlendMode::Darken => todo!(),
