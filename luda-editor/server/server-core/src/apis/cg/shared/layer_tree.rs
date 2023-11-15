@@ -314,7 +314,7 @@ pub fn blend_buffer(
                     let destination_pixel = x
                         .checked_sub(destination.x)
                         .zip(y.checked_sub(destination.y))
-                        .and_then(|(x, y)| source.image_buffer.get_pixel_checked(x, y))
+                        .and_then(|(x, y)| destination.image_buffer.get_pixel_checked(x, y))
                         .unwrap_or(&default);
 
                     blend_pixel(source_pixel, destination_pixel, blend_function).0
