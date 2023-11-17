@@ -859,7 +859,7 @@ fn handle_images<'psd>(
         )
     });
 
-    cut.screen_graphics = backgrounds.chain(characters).collect();
+    cut.screen_graphics = characters.chain(backgrounds).collect();
 }
 
 fn handle_texts(cut: &mut Cut, texts: Vec<Text>) {
