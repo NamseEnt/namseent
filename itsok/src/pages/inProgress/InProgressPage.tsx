@@ -5,7 +5,7 @@ import { NearToDeadlineBody } from "./NearToDeadlineBody";
 import { Typo } from "../../components/typography";
 
 export const InProgressPage: React.FC = () => {
-  const body = parseInt("1") ? <NearToDeadlineBody /> : <FarFromDeadlineBody />;
+  const body = parseInt("0") ? <NearToDeadlineBody /> : <FarFromDeadlineBody />;
   return (
     <Box>
       <Typo.H4 align="center">하는 일은 잘 되고 있나요?</Typo.H4>

@@ -1,6 +1,7 @@
 import { RootRoute, Route, Router } from "@tanstack/react-router";
 import { Root } from "./Root";
 import { InProgressPage } from "./pages/inProgress/InProgressPage";
+import { WaitForResponsePage } from "./pages/WaitForResponsePage";
 
 const rootRoute = new RootRoute({
   component: Root,
@@ -11,6 +12,11 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/",
     component: InProgressPage,
+  }),
+  new Route({
+    getParentRoute: () => rootRoute,
+    path: "/wait-for-response",
+    component: WaitForResponsePage,
   }),
 ]);
 
