@@ -13,17 +13,12 @@ export const NearToDeadlineBody: React.FC = () => {
       <Space />
       <Divider variant="middle" />
 
-      <Box
-        sx={{
-          m: 2,
-        }}
-      >
+      <Box m={2}>
         <Typo.H6>1. 『웹 디자인』 - 잘 진행하셨나요?</Typo.H6>
         <Box m={2}>
           <Typo.Body1>한번 점수를 매겨봅시다.</Typo.Body1>
           <Space />
           <Slider
-            aria-label="Restricted values"
             defaultValue={20}
             step={1}
             valueLabelDisplay="auto"

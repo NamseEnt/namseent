@@ -2,13 +2,20 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { router } from "./router.tsx";
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import {
+  CssBaseline,
+  ThemeProvider,
+  createTheme,
+  getContrastRatio,
+} from "@mui/material";
 
+const primaryMain = "#BEADFA";
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#BEADFA",
-      contrastText: "#000000",
+      main: primaryMain,
+      contrastText:
+        getContrastRatio(primaryMain, "#fff") > 4.5 ? "#fff" : "#111",
     },
     secondary: {
       main: "#FFF8C9",

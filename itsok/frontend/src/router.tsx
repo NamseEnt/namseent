@@ -3,6 +3,7 @@ import { Root } from "./Root";
 import { InProgressPage } from "./pages/inProgress/InProgressPage";
 import { WaitForResponsePage } from "./pages/WaitForResponsePage";
 import { ResponsePage } from "./pages/ResponsePage";
+import { NewGoalPage } from "./pages/NewGoalPage";
 
 const rootRoute = new RootRoute({
   component: Root,
@@ -11,7 +12,12 @@ const rootRoute = new RootRoute({
 const routeTree = rootRoute.addChildren([
   new Route({
     getParentRoute: () => rootRoute,
-    path: "/",
+    path: "/new-goal",
+    component: NewGoalPage,
+  }),
+  new Route({
+    getParentRoute: () => rootRoute,
+    path: "/in-progress",
     component: InProgressPage,
   }),
   new Route({
