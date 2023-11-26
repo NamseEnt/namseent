@@ -2,8 +2,9 @@ mod additional_graphic;
 mod predetermined_graphic;
 
 use anyhow::Result;
+use import::*;
 use include_dir::{include_dir, Dir};
-use namui_type::{percent, Percent, Uuid, Xy, Wh, Angle};
+use namui_type::{percent, Percent, Uuid, Xy, Wh, Xywh};
 use server_core::apis::cg::shared::{psd_to_cg_file::PsdParsingResult, layer_tree::RenderResult};
 // use opencv::prelude::*;
 use crate::{
@@ -24,14 +25,15 @@ use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     fs::{self, DirEntry},
     io::ErrorKind,
-    path::PathBuf,
+    path::{PathBuf, Path},
     str::FromStr,
 };
 
 static PSDS_DIR: Dir<'_> = include_dir!("src/psds");
 static IMAGES_DIR: Dir<'_> = include_dir!("src/images");
-const CHARACTER_NAMES: [&str; 15] = [
+const CHARACTER_NAMES: [&str; 16] = [
     "오하연",
+    "하연",
     "피디",
     "선임피디",
     "김혜진",
@@ -247,7 +249,7 @@ fn copy_used_assets(used_background_image_names: &Vec<String>, used_cg_file_name
     );
 }
 
-fn copy_assets(asset_names: &Vec<String>, source_dir: &PathBuf, dest_dir_path: &PathBuf) {
+fn copy_assets(asset_names: &Vec<String>, source_dir: &Path, dest_dir_path: &PathBuf) {
     if let Err(error) = fs::remove_dir_all(dest_dir_path) {
         if error.kind() != ErrorKind::NotFound {
             panic!("{:?}", error);
@@ -332,6 +334,7 @@ fn get_distance_psd_image_triples<'psd>(
                         match static_image.path().extension().unwrap().to_str().unwrap() {
                             "png" => image::ImageFormat::Png,
                             "jpg" => image::ImageFormat::Jpeg,
+                            "gif" => image::ImageFormat::Gif,
                             _ => unreachable!(),
                         },
                     )
@@ -835,14 +838,14 @@ fn handle_images<'psd>(
         }
     }
 
-    const ASPECT_RATIO: f64 = 4.0 / 3.0;
+    const ASPECT_RATIO: f32 = 4.0 / 3.0;
     let backgrounds = background_images.into_iter().map(|(image, _, image_id)| {
         (
             Uuid::new_v4(),
             ScreenGraphic::Image(ScreenImage {
                 id: image_id,
                 circumscribed: percent_xywh_to_circumscribed(image.xywh, ASPECT_RATIO),
-                rotation: Angle::Degree(0.0)
+                rotation: image.rotate
             }),
         )
     });
@@ -854,7 +857,7 @@ fn handle_images<'psd>(
                 name: psd_case.cg_file.name.clone(),
                 parts: psd_case.parts.clone(),
                 circumscribed: percent_xywh_to_circumscribed(image.xywh, ASPECT_RATIO),
-                rotation: Angle::Degree(0.0)
+                rotation: image.rotate
             }),
         )
     });
@@ -862,16 +865,15 @@ fn handle_images<'psd>(
     cut.screen_graphics = characters.chain(backgrounds).collect();
 }
 
-fn handle_texts(cut: &mut Cut, texts: Vec<Text>) {
+fn handle_texts(cut: &mut Cut, mut texts: Vec<Text>) {
     if texts.is_empty() {
         // nothing
     } else if texts.len() >= 2 {
-        let mut it = texts.into_iter();
-        let character = it.next().unwrap();
-        let texts = it.collect::<Vec<_>>();
-        assert!(CHARACTER_NAMES.contains(&character.content.as_ref()));
-
-        cut.character_name = character.content;
+        let character_index = texts.iter().position(|text| CHARACTER_NAMES.contains(&text.content.as_str()));
+        if let Some(character_index) = character_index {
+            let character = texts.remove(character_index);
+            cut.character_name = character.content;
+        }
 
         cut.line = texts
             .into_iter()
@@ -887,61 +889,19 @@ fn handle_texts(cut: &mut Cut, texts: Vec<Text>) {
     }
 }
 
-#[derive(serde::Deserialize, Debug)]
-struct Input {
-    pages: Vec<Page>,
-}
-
-#[derive(serde::Deserialize, Debug)]
-struct Page {
-    images: Vec<Image>,
-    texts: Vec<Text>,
-}
-
-#[derive(serde::Deserialize, Debug)]
-struct Image {
-    url: String,
-    xywh: Xywh,
-}
-
-#[derive(serde::Deserialize, Debug)]
-struct Xywh {
-    x: f64,
-    y: f64,
-    width: f64,
-    height: f64,
-}
-
-#[derive(serde::Deserialize, Debug)]
-struct Text {
-    content: String,
-    font: Font,
-}
-
-#[derive(serde::Deserialize, Debug)]
-struct Font {
-    size: usize,
-    weight: usize,
-    family: String,
-    bold: bool,
-    italic: bool,
-    strikethrough: bool,
-    underline: bool,
-}
-
 /// aspect_ratio = width / height;
 ///
 /// ex) 4:3 should be 1.333...
-fn percent_xywh_to_circumscribed(xywh: Xywh, aspect_ratio: f64) -> Circumscribed<Percent> {
+fn percent_xywh_to_circumscribed(xywh: Xywh<Percent>, aspect_ratio: f32) -> Circumscribed<Percent> {
     let center_xy = Xy {
-        x: percent(((xywh.x + xywh.width / 2.0) * 100.0) as f32),
-        y: percent(((xywh.y + xywh.height / 2.0) * 100.0) as f32),
+        x: percent((xywh.x.as_f32() + xywh.width.as_f32() / 2.0) * 100.0),
+        y: percent((xywh.y.as_f32() + xywh.height.as_f32() / 2.0) * 100.0),
     };
     let radius = percent(
-        ((((xywh.width * aspect_ratio).powi(2) + (xywh.height).powi(2))
+        (((xywh.width.as_f32() * aspect_ratio).powi(2) + (xywh.height.as_f32()).powi(2))
             / (1.0 + aspect_ratio.powi(2)))
         .sqrt()
-            * 100.0) as f32,
+            * 100.0,
     );
     Circumscribed { center_xy, radius }
 }
