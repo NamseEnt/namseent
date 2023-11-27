@@ -724,14 +724,17 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
 // }
 
 fn variant_cases(part: CgPart) -> Vec<ScreenCgPart> {
+    const NOT_NULLABLE_PART_NAMES: [&str; 4] = ["몸_s", "표정.눈_s", "표정.눈썹_s", "표정.입_s"];
     match part.selection_type {
         rpc::data::PartSelectionType::Single => {
             let name = part.name;
             let mut cases = vec![];
-            cases.push(ScreenCgPart::Single {
-                name: name.clone(),
-                variant_name: None,
-            });
+            if !NOT_NULLABLE_PART_NAMES.contains(&name.as_str()) {
+                cases.push(ScreenCgPart::Single {
+                    name: name.clone(),
+                    variant_name: None,
+                });
+            }
             for variant in part.variants {
                 let variant_name = Some(variant.name);
                 cases.push(ScreenCgPart::Single {
