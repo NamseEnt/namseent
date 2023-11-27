@@ -4,6 +4,7 @@ import { InProgressPage } from "./pages/inProgress/InProgressPage";
 import { WaitForResponsePage } from "./pages/WaitForResponsePage";
 import { ResponsePage } from "./pages/ResponsePage";
 import { NewGoalPage } from "./pages/NewGoalPage";
+import { HistoryPage } from "./pages/history/HistoryPage";
 
 const rootRoute = new RootRoute({
   component: Root,
@@ -29,6 +30,11 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/response",
     component: ResponsePage,
+  }),
+  new Route({
+    getParentRoute: () => rootRoute,
+    path: "/history",
+    component: HistoryPage,
   }),
 ]);
 

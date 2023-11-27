@@ -1,0 +1,889 @@
+{
+    "transcripts": [
+        {
+            "transcript": "저희 팀에서는 당신이 일주일 동안 웹 디자인 작업을 훌륭하게 수행해 주셨음 감사드립니다. 여러 어려운 과제들을 효과적으로 해결하고 창의적이고 혁신적인 디자인 아이디어로 프로젝트의 새로운 빛을 불어넣어 주셨습니다. 당신의 전문성과 헌신적인 태도는 팀 전체에 영감을 주었고 결과물은 예상을 뛰어넘는 수준의 완성도를 보여주었습니다. 당신의 기술적 능력과 커뮤니케이션 기술은 프로젝트의 원활한 진행에 큰 기여를 했습니다. 우리는 당신이 함께 일할 수 있어서 행운이 었고 미래에도 높은 수준의 협업을 기대하고 있습니다. 당신의 뛰어난 기여해 다시 한 번 감사해 인사를 드립니다. 좋은 작업에 감사드리며 앞으로의 프로젝트 에서도 함께 성장해 나가길 기대합니다. 감사합니다. 좋은 하루 되세요."
+        }
+    ],
+    "items": [
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.969",
+                    "content": "저희"
+                }
+            ],
+            "start_time": "5.01",
+            "end_time": "5.269"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.994",
+                    "content": "팀에서는"
+                }
+            ],
+            "start_time": "5.28",
+            "end_time": "6.0"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.998",
+                    "content": "당신이"
+                }
+            ],
+            "start_time": "6.01",
+            "end_time": "6.5"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "일주일"
+                }
+            ],
+            "start_time": "6.51",
+            "end_time": "6.98"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.976",
+                    "content": "동안"
+                }
+            ],
+            "start_time": "6.989",
+            "end_time": "7.38"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.998",
+                    "content": "웹"
+                }
+            ],
+            "start_time": "7.389",
+            "end_time": "7.409"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.701",
+                    "content": "디자인"
+                }
+            ],
+            "start_time": "7.42",
+            "end_time": "7.889"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.994",
+                    "content": "작업을"
+                }
+            ],
+            "start_time": "7.9",
+            "end_time": "8.38"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "훌륭하게"
+                }
+            ],
+            "start_time": "8.39",
+            "end_time": "8.97"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "수행해"
+                }
+            ],
+            "start_time": "8.979",
+            "end_time": "9.35"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.768",
+                    "content": "주셨음"
+                }
+            ],
+            "start_time": "9.359",
+            "end_time": "9.88"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "감사드립니다"
+                }
+            ],
+            "start_time": "9.89",
+            "end_time": "10.989"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "여러"
+                }
+            ],
+            "start_time": "11.47",
+            "end_time": "11.829"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "어려운"
+                }
+            ],
+            "start_time": "11.84",
+            "end_time": "12.189"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "과제들을"
+                }
+            ],
+            "start_time": "12.199",
+            "end_time": "12.77"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "효과적으로"
+                }
+            ],
+            "start_time": "12.779",
+            "end_time": "13.43"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "해결하고"
+                }
+            ],
+            "start_time": "13.439",
+            "end_time": "14.289"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "창의적이고"
+                }
+            ],
+            "start_time": "14.319",
+            "end_time": "15.069"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "혁신적인"
+                }
+            ],
+            "start_time": "15.079",
+            "end_time": "15.72"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "디자인"
+                }
+            ],
+            "start_time": "15.729",
+            "end_time": "16.149"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.988",
+                    "content": "아이디어로"
+                }
+            ],
+            "start_time": "16.159",
+            "end_time": "16.899"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.857",
+                    "content": "프로젝트의"
+                }
+            ],
+            "start_time": "16.909",
+            "end_time": "17.649"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "새로운"
+                }
+            ],
+            "start_time": "17.659",
+            "end_time": "18.09"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "빛을"
+                }
+            ],
+            "start_time": "18.1",
+            "end_time": "18.459"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.995",
+                    "content": "불어넣어"
+                }
+            ],
+            "start_time": "18.469",
+            "end_time": "18.93"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.832",
+                    "content": "주셨습니다"
+                }
+            ],
+            "start_time": "18.94",
+            "end_time": "19.86"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "당신의"
+                }
+            ],
+            "start_time": "20.6",
+            "end_time": "21.079"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "전문성과"
+                }
+            ],
+            "start_time": "21.09",
+            "end_time": "21.85"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "헌신적인"
+                }
+            ],
+            "start_time": "21.86",
+            "end_time": "22.53"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "태도는"
+                }
+            ],
+            "start_time": "22.54",
+            "end_time": "23.139"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.998",
+                    "content": "팀"
+                }
+            ],
+            "start_time": "23.149",
+            "end_time": "23.54"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.903",
+                    "content": "전체에"
+                }
+            ],
+            "start_time": "23.549",
+            "end_time": "24.129"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "영감을"
+                }
+            ],
+            "start_time": "24.139",
+            "end_time": "24.59"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "주었고"
+                }
+            ],
+            "start_time": "24.6",
+            "end_time": "25.229"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "결과물은"
+                }
+            ],
+            "start_time": "25.239",
+            "end_time": "25.959"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "예상을"
+                }
+            ],
+            "start_time": "25.969",
+            "end_time": "26.399"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "뛰어넘는"
+                }
+            ],
+            "start_time": "26.409",
+            "end_time": "27.02"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "수준의"
+                }
+            ],
+            "start_time": "27.03",
+            "end_time": "27.469"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.995",
+                    "content": "완성도를"
+                }
+            ],
+            "start_time": "27.479",
+            "end_time": "28.12"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "보여주었습니다"
+                }
+            ],
+            "start_time": "28.129",
+            "end_time": "29.26"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "당신의"
+                }
+            ],
+            "start_time": "29.719",
+            "end_time": "30.19"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.998",
+                    "content": "기술적"
+                }
+            ],
+            "start_time": "30.2",
+            "end_time": "30.7"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.995",
+                    "content": "능력과"
+                }
+            ],
+            "start_time": "30.709",
+            "end_time": "31.29"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.993",
+                    "content": "커뮤니케이션"
+                }
+            ],
+            "start_time": "31.299",
+            "end_time": "32.119"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "기술은"
+                }
+            ],
+            "start_time": "32.13",
+            "end_time": "32.74"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.971",
+                    "content": "프로젝트의"
+                }
+            ],
+            "start_time": "32.75",
+            "end_time": "33.549"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "원활한"
+                }
+            ],
+            "start_time": "33.56",
+            "end_time": "33.99"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "진행에"
+                }
+            ],
+            "start_time": "34.0",
+            "end_time": "34.5"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "큰"
+                }
+            ],
+            "start_time": "34.509",
+            "end_time": "34.81"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "기여를"
+                }
+            ],
+            "start_time": "34.819",
+            "end_time": "35.22"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "했습니다"
+                }
+            ],
+            "start_time": "35.229",
+            "end_time": "35.979"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "우리는"
+                }
+            ],
+            "start_time": "36.68",
+            "end_time": "37.119"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "당신이"
+                }
+            ],
+            "start_time": "37.13",
+            "end_time": "37.58"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "함께"
+                }
+            ],
+            "start_time": "37.59",
+            "end_time": "37.93"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "일할"
+                }
+            ],
+            "start_time": "37.939",
+            "end_time": "38.169"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "수"
+                }
+            ],
+            "start_time": "38.18",
+            "end_time": "38.319"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.998",
+                    "content": "있어서"
+                }
+            ],
+            "start_time": "38.33",
+            "end_time": "38.819"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.662",
+                    "content": "행운이"
+                }
+            ],
+            "start_time": "38.83",
+            "end_time": "39.259"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.362",
+                    "content": "었고"
+                }
+            ],
+            "start_time": "39.27",
+            "end_time": "39.849"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "미래에도"
+                }
+            ],
+            "start_time": "39.88",
+            "end_time": "40.459"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "높은"
+                }
+            ],
+            "start_time": "40.47",
+            "end_time": "40.81"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "수준의"
+                }
+            ],
+            "start_time": "40.819",
+            "end_time": "41.209"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "협업을"
+                }
+            ],
+            "start_time": "41.22",
+            "end_time": "41.72"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "기대하고"
+                }
+            ],
+            "start_time": "41.729",
+            "end_time": "42.229"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "있습니다"
+                }
+            ],
+            "start_time": "42.24",
+            "end_time": "43.009"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.985",
+                    "content": "당신의"
+                }
+            ],
+            "start_time": "43.45",
+            "end_time": "43.959"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.998",
+                    "content": "뛰어난"
+                }
+            ],
+            "start_time": "43.97",
+            "end_time": "44.409"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.026",
+                    "content": "기여해"
+                }
+            ],
+            "start_time": "44.419",
+            "end_time": "44.919"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "다시"
+                }
+            ],
+            "start_time": "44.93",
+            "end_time": "45.299"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "한"
+                }
+            ],
+            "start_time": "45.31",
+            "end_time": "45.459"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.62",
+                    "content": "번"
+                }
+            ],
+            "start_time": "45.47",
+            "end_time": "45.61"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.994",
+                    "content": "감사해"
+                }
+            ],
+            "start_time": "45.619",
+            "end_time": "46.22"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "인사를"
+                }
+            ],
+            "start_time": "46.229",
+            "end_time": "46.759"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.998",
+                    "content": "드립니다"
+                }
+            ],
+            "start_time": "46.77",
+            "end_time": "47.49"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "좋은"
+                }
+            ],
+            "start_time": "48.18",
+            "end_time": "48.569"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.994",
+                    "content": "작업에"
+                }
+            ],
+            "start_time": "48.58",
+            "end_time": "49.0"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.977",
+                    "content": "감사드리며"
+                }
+            ],
+            "start_time": "49.009",
+            "end_time": "50.04"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.998",
+                    "content": "앞으로의"
+                }
+            ],
+            "start_time": "50.11",
+            "end_time": "50.63"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.997",
+                    "content": "프로젝트"
+                }
+            ],
+            "start_time": "50.639",
+            "end_time": "51.159"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.187",
+                    "content": "에서도"
+                }
+            ],
+            "start_time": "51.169",
+            "end_time": "51.65"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "함께"
+                }
+            ],
+            "start_time": "51.659",
+            "end_time": "52.029"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.998",
+                    "content": "성장해"
+                }
+            ],
+            "start_time": "52.04",
+            "end_time": "52.49"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.933",
+                    "content": "나가길"
+                }
+            ],
+            "start_time": "52.5",
+            "end_time": "52.959"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "기대합니다"
+                }
+            ],
+            "start_time": "52.97",
+            "end_time": "53.83"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "감사합니다"
+                }
+            ],
+            "start_time": "54.54",
+            "end_time": "55.59"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.999",
+                    "content": "좋은"
+                }
+            ],
+            "start_time": "56.31",
+            "end_time": "56.68"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.996",
+                    "content": "하루"
+                }
+            ],
+            "start_time": "56.689",
+            "end_time": "56.95"
+        },
+        {
+            "alternatives": [
+                {
+                    "confidence": "0.99",
+                    "content": "되세요"
+                }
+            ],
+            "start_time": "56.959",
+            "end_time": "57.75"
+        }
+    ]
+}
