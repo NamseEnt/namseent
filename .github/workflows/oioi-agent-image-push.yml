@@ -51,85 +51,85 @@ jobs:
         run: |
           cargo build --release --target aarch64-unknown-linux-gnu
 
-      # # -- Docker
+      # -- Docker
 
-      # - uses: docker/setup-qemu-action@v3
-      #   with:
-      #     platforms: arm64
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
-      # - uses: docker/setup-buildx-action@v3
-      #   with:
-      #     install: true
+      - uses: docker/setup-buildx-action@v3
+        with:
+          install: true
 
-      # - name: Configure AWS Credentials
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-role
-      #     aws-region: us-east-1 # for public ECR
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-role
+          aws-region: us-east-1 # for public ECR
 
-      # - name: Login to Amazon ECR
-      #   id: login-ecr-public
-      #   uses: aws-actions/amazon-ecr-login@v2
-      #   with:
-      #     registry-type: public
+      - name: Login to Amazon ECR
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
 
-      # - name: Build, tag, and push docker image to Amazon ECR Public
-      #   env:
-      #     REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-      #     REGISTRY_ALIAS: o4b6l4b3 # should be replaced to namseent after the alias is approved by AWS.
-      #     REPOSITORY: oioi
-      #     IMAGE_TAG: ${{ github.sha }}
-      #   working-directory: oioi/agent
-      #   run: |
-      #     IMAGE_PATH=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY
+      - name: Build, tag, and push docker image to Amazon ECR Public
+        env:
+          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          REGISTRY_ALIAS: o4b6l4b3 # should be replaced to namseent after the alias is approved by AWS.
+          REPOSITORY: oioi
+          IMAGE_TAG: ${{ github.sha }}
+        working-directory: oioi/agent
+        run: |
+          IMAGE_PATH=$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY
 
-      #     for i in "linux/arm64 aarch64-unknown-linux-gnu"
-      #     do
-      #         set -- $i # Convert the "tuple" into the param args $1 $2...
+          for i in "linux/arm64 aarch64-unknown-linux-gnu"
+          do
+              set -- $i # Convert the "tuple" into the param args $1 $2...
 
-      #         docker build \
-      #           -t $IMAGE_PATH:$IMAGE_TAG \
-      #           -t $IMAGE_PATH:latest \
-      #           --platform $1 \
-      #           --build-arg TARGET=$2 \
-      #           --push \
-      #           --cache-to mode=max,image-manifest=true,oci-mediatypes=true,type=registry,ref=$IMAGE_PATH:cache \
-      #           --cache-from type=registry,ref=$IMAGE_PATH:cache \
-      #           .
-      #     done
+              docker build \
+                -t $IMAGE_PATH:$IMAGE_TAG \
+                -t $IMAGE_PATH:latest \
+                --platform $1 \
+                --build-arg TARGET=$2 \
+                --push \
+                --cache-to mode=max,image-manifest=true,oci-mediatypes=true,type=registry,ref=$IMAGE_PATH:cache \
+                --cache-from type=registry,ref=$IMAGE_PATH:cache \
+                .
+          done
 
-      # # -- CDK
+      # -- CDK
 
-      # - uses: actions/setup-node@v3
-      #   with:
-      #     node-version: 20
-      #     cache: "npm"
-      #     cache-dependency-path: |
-      #       oioi/cdk/package-lock.json
-      #       oioi/oioi-test-cdk/package-lock.json
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: |
+            oioi/cdk/package-lock.json
+            oioi/oioi-test-cdk/package-lock.json
 
-      # - name: Deploy test cdk
-      #   working-directory: oioi
-      #   run: |
-      #     export BRANCH_NAME=$(echo "${{ github.event.ref }}" | tr "[:upper:]" "[:lower:]" | sed -e "s#refs/heads/##g" -e 's/\//-/g' -e 's/|/-/g')
-      #     echo $BRANCH_NAME
-      #     export STACK_NAME=$(echo $BRANCH_NAME | tr "[:upper:]" "[:lower:]" | tr -cd '[:alnum:]')
-      #     echo $STACK_NAME
+      - name: Deploy test cdk
+        working-directory: oioi
+        run: |
+          export BRANCH_NAME=$(echo "${{ github.event.ref }}" | tr "[:upper:]" "[:lower:]" | sed -e "s#refs/heads/##g" -e 's/\//-/g' -e 's/|/-/g')
+          echo $BRANCH_NAME
+          export STACK_NAME=$(echo $BRANCH_NAME | tr "[:upper:]" "[:lower:]" | tr -cd '[:alnum:]')
+          echo $STACK_NAME
 
-      #     cd cdk
-      #     npm ci
-      #     npm run build
+          cd cdk
+          npm ci
+          npm run build
 
-      #     cd ../oioi-test-cdk
-      #     npm ci
-      #     npx cdk bootstrap
-      #     npx cdk deploy --require-approval never
+          cd ../oioi-test-cdk
+          npm ci
+          npx cdk bootstrap
+          npx cdk deploy --require-approval never
 
-      #     ENDPOINT=$(aws cloudformation describe-stacks \
-      #         --stack-name $STACK_NAME \
-      #         --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" \
-      #         --output text)
+          ENDPOINT=$(aws cloudformation describe-stacks \
+              --stack-name $STACK_NAME \
+              --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" \
+              --output text)
 
-      #     curl $ENDPOINT
+          curl $ENDPOINT
 
-      #     aws cloudformation delete-stack --stack-name $STACK_NAME
+          aws cloudformation delete-stack --stack-name $STACK_NAME
