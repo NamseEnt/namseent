@@ -35,7 +35,7 @@ export class Oioi extends Construct {
         );
 
         new cdk.aws_ssm.StringParameter(this, "ImageParameter", {
-            parameterName: `oioi/${props.groupName}/image`,
+            parameterName: `/oioi/${props.groupName}/image`,
             stringValue: props.image,
         });
 
