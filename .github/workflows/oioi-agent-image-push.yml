@@ -108,6 +108,12 @@ jobs:
             oioi/cdk/package-lock.json
             oioi/oioi-test-cdk/package-lock.json
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.CDK_DEFAULT_ACCOUNT }}:role/github-actions-role
+          aws-region: ${{ env.CDK_DEFAULT_REGION }}
+
       - name: Deploy test cdk
         working-directory: oioi
         run: |
