@@ -13,10 +13,8 @@ concurrency:
   group: ${{ github.ref }}-oioi
   cancel-in-progress: true
 env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_DEFAULT_REGION: ap-northeast-2
   AWS_ACCOUNT_ID: 962920162112
+  AWS_DEFAULT_REGION: ap-northeast-2
   CDK_DEFAULT_ACCOUNT: 962920162112
   CDK_DEFAULT_REGION: ap-northeast-2
 permissions:
