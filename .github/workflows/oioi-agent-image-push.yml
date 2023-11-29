@@ -1,16 +1,16 @@
-name: oioi
+name: oioi-agent-image-push
 on:
   push:
     paths:
-      - "oioi/**"
-      - ".github/workflows/oioi.yml"
+      - "oioi/agent/**"
+      - ".github/workflows/oioi-agent-image-push.yml"
   # push:
   #   branches:
   #     - master
   # pull_request:
 
 concurrency:
-  group: ${{ github.ref }}-oioi
+  group: ${{ github.ref }}-oioi-agent-image-push
   cancel-in-progress: true
 env:
   AWS_ACCOUNT_ID: 962920162112
@@ -21,7 +21,7 @@ permissions:
   id-token: write
   contents: read
 jobs:
-  publish-extension:
+  oioi-agent-image-push:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
