@@ -1,6 +1,9 @@
 name: oioi
 on:
-  push
+  push:
+    paths:
+      - "oioi/**"
+      - ".github/workflows/oioi.yml"
   # push:
   #   branches:
   #     - master
@@ -35,6 +38,12 @@ jobs:
       - uses: docker/setup-buildx-action@v3
         with:
           install: true
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-role
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr-public
