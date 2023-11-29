@@ -2,7 +2,7 @@ name: oioi-agent-image-push
 on:
   push:
     paths:
-      - "oioi/agent/**"
+      - "oioi/**"
       - ".github/workflows/oioi-agent-image-push.yml"
   # push:
   #   branches:
