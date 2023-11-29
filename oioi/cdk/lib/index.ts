@@ -29,8 +29,10 @@ export class Oioi extends Construct {
                     cdk.aws_ec2.InstanceClass.T4G,
                     cdk.aws_ec2.InstanceSize.MICRO,
                 ),
-                userData: getUserData(props.groupName),
-                machineImage: cdk.aws_ec2.MachineImage.latestAmazonLinux2023(),
+                machineImage: cdk.aws_ec2.MachineImage.latestAmazonLinux2023({
+                    cpuType: cdk.aws_ec2.AmazonLinuxCpuType.ARM_64,
+                    userData: getUserData(props.groupName),
+                }),
             },
         );
 
