@@ -29,3 +29,9 @@ For now, oioi system saves docker images in AWS ECR.
 # Auto scaling
 
 oioi doesn't provide auto scaling feature directly. It uses AWS Ec2 Auto Scaling.
+
+# How it works
+
+1. create oioi-agent image to ecr with cdk
+2. run new ec2 instance with ec2 auto scaling
+3. put user-data to ec2 instance to run oioi-agent
