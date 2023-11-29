@@ -49,5 +49,51 @@ export class OioiTestCdkStack extends cdk.Stack {
         new cdk.CfnOutput(this, "LoadBalancerDnsName", {
             value: alb.loadBalancerDnsName,
         });
+
+        // remove this stack after about 1 hour using lambda
+
+        const lambda = new cdk.aws_lambda.Function(this, "Lambda", {
+            // https://aws.amazon.com/ko/blogs/infrastructure-and-automation/scheduling-automatic-deletion-of-aws-cloudformation-stacks/
+            code: cdk.aws_lambda.Code.fromInline(`
+                import boto3
+                import os
+                import json
+
+                stack_name = os.environ['stackName']
+
+                def delete_cfn(stack_name):
+                    try:
+                        cfn = boto3.resource('cloudformation')
+                        stack = cfn.Stack(stack_name)
+                        stack.delete()
+                        return "SUCCESS"
+                    except:
+                        return "ERROR"
+
+                def handler(event, context):
+                    print("Received event:")
+                    print(json.dumps(event))
+                    return delete_cfn(stack_name)
+            `),
+            handler: "index.handler",
+            runtime: cdk.aws_lambda.Runtime.PYTHON_3_12,
+            timeout: cdk.Duration.minutes(1),
+            environment: {
+                STACK_NAME: this.stackName,
+            },
+        });
+
+        const now = new Date();
+        const minutes = now.getMinutes();
+
+        const minus5Minutes = (60 + (minutes - 5)) % 60;
+
+        new cdk.aws_events.Rule(this, "Rule", {
+            schedule: cdk.aws_events.Schedule.cron({
+                minute: minus5Minutes.toString(),
+                hour: "*",
+            }),
+            targets: [new cdk.aws_events_targets.LambdaFunction(lambda)],
+        });
     }
 }
