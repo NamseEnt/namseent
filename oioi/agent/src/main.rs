@@ -9,18 +9,20 @@ async fn main() -> Result<()> {
 const INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
 const CONTAINER_NAME: &str = "oioi";
 const GRACEFUL_SHUTDOWN_TIMEOUT_SECS: i64 = 30;
+lazy_static::lazy_static! {
+    static ref GROUP_NAME: String = std::env::var("GROUP_NAME").expect("GROUP_NAME env var not set");
+    static ref EC2_INSTANCE_ID: String = std::env::var("EC2_INSTANCE_ID").expect("EC2_INSTANCE_ID env var not set");
+}
 
 async fn real_main() -> Result<()> {
-    let group_name = std::env::var("GROUP_NAME")?;
-
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::v2023_11_09()).await;
     let aws_ssm_client = aws_sdk_ssm::Client::new(&config);
 
     let docker = Docker::connect_with_local_defaults()?;
 
     loop {
-        let Some(image) = get_image(&aws_ssm_client, &group_name).await? else {
-            println!("No image found for group {}.", group_name);
+        let Some(image) = get_image(&aws_ssm_client).await? else {
+            println!("No image found for group {}.", *GROUP_NAME);
             tokio::time::sleep(INTERVAL).await;
             continue;
         };
@@ -44,11 +46,8 @@ async fn real_main() -> Result<()> {
     }
 }
 
-async fn get_image(
-    aws_ssm_client: &aws_sdk_ssm::Client,
-    group_name: &str,
-) -> Result<Option<String>> {
-    let parameter_path = format!("/oioi/{group_name}/image");
+async fn get_image(aws_ssm_client: &aws_sdk_ssm::Client) -> Result<Option<String>> {
+    let parameter_path = format!("/oioi/{}/image", *GROUP_NAME);
 
     let image = aws_ssm_client
         .get_parameter()
@@ -117,6 +116,20 @@ async fn run_new_container(docker: &Docker, image: &str) -> Result<()> {
             }),
             bollard::container::Config {
                 image: Some(image.to_string()),
+                host_config: Some(bollard::models::HostConfig {
+                    log_config: Some(bollard::models::HostConfigLogConfig {
+                        typ: Some("awslogs".to_string()),
+                        config: Some(std::collections::HashMap::from_iter([
+                            ("awslogs-group".to_string(), format!("oioi-{}", *GROUP_NAME)),
+                            (
+                                "awslogs-stream".to_string(),
+                                format!("oioi-{}-{}", *GROUP_NAME, *EC2_INSTANCE_ID),
+                            ),
+                            ("awslogs-create-group".to_string(), "true".to_string()),
+                        ])),
+                    }),
+                    ..Default::default()
+                }),
                 ..Default::default()
             },
         )

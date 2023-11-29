@@ -56,11 +56,12 @@ function getUserData(groupName: string): cdk.aws_ec2.UserData {
         "--log-opt awslogs-create-group=true",
 
         `-e GROUP_NAME=${groupName}`,
+        `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
         "-v /var/run/docker.sock:/var/run/docker.sock docker",
     ].join(" ");
 
     userData.addCommands(
-        "EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
+        "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
         "yum install -y docker",
         "systemctl start docker",
         "systemctl enable docker",
