@@ -77,6 +77,7 @@ export class OioiTestCdkStack extends cdk.Stack {
             `),
             handler: "index.handler",
             runtime: cdk.aws_lambda.Runtime.PYTHON_3_12,
+            architecture: cdk.aws_lambda.Architecture.ARM_64,
             timeout: cdk.Duration.minutes(1),
             environment: {
                 STACK_NAME: this.stackName,
