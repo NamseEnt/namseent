@@ -42,8 +42,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-role
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-          disable-retry: true
+          aws-region: us-east-1 # for public ECR
 
       - name: Login to Amazon ECR
         id: login-ecr-public
