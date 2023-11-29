@@ -1,0 +1,60 @@
+name: oioi
+on:
+  push
+  # push:
+  #   branches:
+  #     - master
+  # pull_request:
+
+concurrency:
+  group: ${{ github.ref }}-oioi
+  cancel-in-progress: true
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ap-northeast-2
+  AWS_ACCOUNT_ID: 962920162112
+  CDK_DEFAULT_ACCOUNT: 962920162112
+  CDK_DEFAULT_REGION: ap-northeast-2
+jobs:
+  publish-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+
+      - name: Login to Amazon ECR
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+
+      - name: Build, tag, and push docker image to Amazon ECR Public
+        env:
+          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          REGISTRY_ALIAS: namseent
+          REPOSITORY: oioi
+          IMAGE_TAG: ${{ github.sha }}
+        working-directory: oioi/agent
+        run: |
+          docker build \
+            -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG \
+            -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:latest \
+            --platform linux/amd64,linux/arm64 \
+            --push \
+            --cache-to mode=max,image-manifest=true,oci-mediatypes=true,type=registry,ref=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPOSITORY:cache \
+            --cache-from type=registry,ref=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPOSITORY:cache \
+            .
