@@ -34,7 +34,7 @@ jobs:
           path: |
             ~/.cargo/
             oioi/agent/target/
-          key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-oioi-${{ hashFiles('oioi/agent/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-oioi-${{ hashFiles('oioi/agent/Cargo.lock') }}-musl
 
       - name: Set up rust
         run: |
