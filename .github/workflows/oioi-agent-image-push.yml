@@ -91,8 +91,8 @@ jobs:
                 --platform $1 \
                 --build-arg TARGET=$2 \
                 --push \
-                --cache-to mode=max,image-manifest=true,oci-mediatypes=true,type=registry,ref=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPOSITORY:cache \
-                --cache-from type=registry,ref=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPOSITORY:cache \
+                --cache-to mode=max,image-manifest=true,oci-mediatypes=true,type=registry,ref=$REGISTRY/$REPOSITORY:cache \
+                --cache-from type=registry,ref=$REGISTRY/$REPOSITORY:cache \
                 .
           done
 
