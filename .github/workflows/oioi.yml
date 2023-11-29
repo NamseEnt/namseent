@@ -19,6 +19,9 @@ env:
   AWS_ACCOUNT_ID: 962920162112
   CDK_DEFAULT_ACCOUNT: 962920162112
   CDK_DEFAULT_REGION: ap-northeast-2
+permissions:
+  id-token: write
+  contents: read
 jobs:
   publish-extension:
     runs-on: ubuntu-latest
