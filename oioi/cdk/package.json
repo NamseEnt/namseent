@@ -1,0 +1,21 @@
+{
+  "name": "@namseent/oioi",
+  "version": "0.1.0",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.8",
+    "@types/node": "20.9.0",
+    "aws-cdk-lib": "2.111.0",
+    "constructs": "^10.0.0",
+    "typescript": "~5.2.2"
+  },
+  "peerDependencies": {
+    "aws-cdk-lib": "2.111.0",
+    "constructs": "^10.0.0"
+  }
+}
