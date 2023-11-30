@@ -40,7 +40,7 @@ export class Oioi extends Construct {
                     subnetType: cdk.aws_ec2.SubnetType.PUBLIC,
                 },
                 healthCheck: cdk.aws_autoscaling.HealthCheck.elb({
-                    grace: cdk.Duration.seconds(30),
+                    grace: cdk.Duration.seconds(60),
                 }),
             },
         );
