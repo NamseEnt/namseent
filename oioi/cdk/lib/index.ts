@@ -87,6 +87,7 @@ export class Oioi extends Construct {
 
         const dockerOptions = [
             "-d",
+            "--restart always",
             "--name oioi-agent",
 
             "--log-driver awslogs",
@@ -106,7 +107,7 @@ export class Oioi extends Construct {
             "yum install -y docker",
             "systemctl start docker",
             "systemctl enable docker",
-            `docker run -d ${dockerOptions} public.ecr.aws/o4b6l4b3/oioi ./oioi-agent`,
+            `docker run ${dockerOptions} public.ecr.aws/o4b6l4b3/oioi ./oioi-agent`,
             `/opt/aws/bin/cfn-signal -e $? --stack ${
                 stack.stackName
             } --resource ${stack.getLogicalId(
