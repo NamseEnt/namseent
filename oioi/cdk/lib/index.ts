@@ -23,6 +23,7 @@ export class Oioi extends Construct {
                 restrictDefaultSecurityGroup: false,
             });
 
+        const userData = cdk.aws_ec2.UserData.forLinux();
         this.autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
             this,
             "ASG",
@@ -34,7 +35,7 @@ export class Oioi extends Construct {
                 ),
                 machineImage: cdk.aws_ec2.MachineImage.latestAmazonLinux2023({
                     cpuType: cdk.aws_ec2.AmazonLinuxCpuType.ARM_64,
-                    userData: getUserData(this, props),
+                    userData,
                 }),
                 associatePublicIpAddress: true,
                 signals: cdk.aws_autoscaling.Signals.waitForMinCapacity(),
@@ -77,6 +78,45 @@ export class Oioi extends Construct {
             },
         );
 
+        const portMappingsString =
+            props.portMappings
+                ?.map(
+                    ({ containerPort, hostPort, protocol }) =>
+                        `${
+                            hostPort ?? containerPort
+                        }:${containerPort}/${protocol}`,
+                )
+                .join(",") ?? "";
+
+        const dockerOptions = [
+            "-d",
+            "--name oioi-agent",
+
+            "--log-driver awslogs",
+            `--log-opt awslogs-group=oioi-agent-${props.groupName}`,
+            `--log-opt awslogs-stream=oioi-agent-${props.groupName}-$EC2_INSTANCE_ID`,
+            "--log-opt awslogs-create-group=true",
+
+            `-e GROUP_NAME=${props.groupName}`,
+            `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
+            `-e PORT_MAPPINGS=${portMappingsString}`,
+            "-v /var/run/docker.sock:/var/run/docker.sock docker",
+        ].join(" ");
+
+        userData.addCommands(
+            "echo Hello, oioi!",
+            "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
+            "yum install -y docker",
+            "systemctl start docker",
+            "systemctl enable docker",
+            `docker run -d ${dockerOptions} public.ecr.aws/namseent/oioi ./oioi-agent`,
+            `/opt/aws/bin/cfn-signal -e $? --stack ${
+                stack.stackName
+            } --resource ${stack.getLogicalId(
+                this.autoScalingGroup.node.defaultChild as cdk.CfnElement,
+            )} --region ${stack.region}`,
+        );
+
         new cdk.aws_ssm.StringParameter(this, "ImageParameter", {
             parameterName: `/oioi/${props.groupName}/image`,
             stringValue: props.image,
@@ -91,46 +131,3 @@ type PortMapping = {
     hostPort: number;
     protocol: "tcp" | "udp";
 };
-
-function getUserData(
-    construct: Construct,
-    { groupName, portMappings }: OioiProps,
-): cdk.aws_ec2.UserData {
-    const userData = cdk.aws_ec2.UserData.forLinux();
-    const portMappingsString =
-        portMappings
-            ?.map(
-                ({ containerPort, hostPort, protocol }) =>
-                    `${hostPort ?? containerPort}:${containerPort}/${protocol}`,
-            )
-            .join(",") ?? "";
-
-    const dockerOptions = [
-        "-d",
-        "--name oioi-agent",
-
-        "--log-driver awslogs",
-        `--log-opt awslogs-group=oioi-agent-${groupName}`,
-        `--log-opt awslogs-stream=oioi-agent-${groupName}-$EC2_INSTANCE_ID`,
-        "--log-opt awslogs-create-group=true",
-
-        `-e GROUP_NAME=${groupName}`,
-        `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
-        `-e PORT_MAPPINGS=${portMappingsString}`,
-        "-v /var/run/docker.sock:/var/run/docker.sock docker",
-    ].join(" ");
-
-    userData.addCommands(
-        "echo Hello, oioi!",
-        "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
-        "yum install -y docker",
-        "systemctl start docker",
-        "systemctl enable docker",
-        `docker run -d ${dockerOptions} public.ecr.aws/namseent/oioi ./oioi-agent`,
-        `/opt/aws/bin/cfn-signal -e $? --stack ${
-            cdk.Stack.of(construct).stackName
-        } --resource ASG --region ${cdk.Stack.of(construct).region}`,
-    );
-
-    return userData;
-}
