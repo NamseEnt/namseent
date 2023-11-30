@@ -62,30 +62,43 @@ export class OioiTestCdkStack extends cdk.Stack {
         const lambda = new cdk.aws_lambda.Function(this, "Lambda", {
             // https://aws.amazon.com/ko/blogs/infrastructure-and-automation/scheduling-automatic-deletion-of-aws-cloudformation-stacks/
             code: cdk.aws_lambda.Code.fromInline(`
-                import boto3
-                import os
-                import json
+import boto3
+import os
+import json
 
-                stack_name = os.environ['stackName']
+stack_name = os.environ['STACK_NAME']
 
-                def delete_cfn(stack_name):
-                    try:
-                        cfn = boto3.resource('cloudformation')
-                        stack = cfn.Stack(stack_name)
-                        stack.delete()
-                        return "SUCCESS"
-                    except:
-                        return "ERROR"
+def delete_cfn(stack_name):
+    try:
+        cfn = boto3.resource('cloudformation')
+        stack = cfn.Stack(stack_name)
+        stack.delete()
+        return "SUCCESS"
+    except Exception as e:
+        print(e)
+        return "ERROR"
 
-                def handler(event, context):
-                    print("Received event:")
-                    print(json.dumps(event))
-                    return delete_cfn(stack_name)
+def handler(event, context):
+    print("Received event:")
+    print(json.dumps(event))
+    return delete_cfn(stack_name)
             `),
             handler: "index.handler",
             runtime: cdk.aws_lambda.Runtime.PYTHON_3_12,
             architecture: cdk.aws_lambda.Architecture.ARM_64,
             timeout: cdk.Duration.minutes(1),
+            initialPolicy: [
+                new cdk.aws_iam.PolicyStatement({
+                    actions: ["cloudformation:DeleteStack"],
+                    resources: [
+                        cdk.Stack.of(this).formatArn({
+                            service: "cloudformation",
+                            resource: "stack",
+                            resourceName: this.stackName,
+                        }),
+                    ],
+                }),
+            ],
             environment: {
                 STACK_NAME: this.stackName,
             },
