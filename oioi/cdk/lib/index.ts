@@ -32,7 +32,7 @@ export class Oioi extends Construct {
                 ),
                 machineImage: cdk.aws_ec2.MachineImage.latestAmazonLinux2023({
                     cpuType: cdk.aws_ec2.AmazonLinuxCpuType.ARM_64,
-                    userData: getUserData(props),
+                    userData: getUserData(this, props),
                 }),
                 associatePublicIpAddress: true,
                 signals: cdk.aws_autoscaling.Signals.waitForMinCapacity(),
@@ -60,10 +60,10 @@ type PortMapping = {
     protocol: "tcp" | "udp";
 };
 
-function getUserData({
-    groupName,
-    portMappings,
-}: OioiProps): cdk.aws_ec2.UserData {
+function getUserData(
+    construct: Construct,
+    { groupName, portMappings }: OioiProps,
+): cdk.aws_ec2.UserData {
     const userData = cdk.aws_ec2.UserData.forLinux();
     const portMappingsString =
         portMappings
@@ -95,6 +95,9 @@ function getUserData({
         "systemctl start docker",
         "systemctl enable docker",
         `docker run -d ${dockerOptions} public.ecr.aws/namseent/oioi ./oioi-agent`,
+        `/opt/aws/bin/cfn-signal -e $? --stack ${
+            cdk.Stack.of(construct).stackName
+        } --resource ASG --region ${cdk.Stack.of(construct).region}`,
     );
 
     return userData;
