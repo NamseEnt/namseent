@@ -44,6 +44,20 @@ export class Oioi extends Construct {
                 healthCheck: cdk.aws_autoscaling.HealthCheck.elb({
                     grace: cdk.Duration.seconds(180),
                 }),
+                // [   38.007660] cloud-init[1698]: docker: Error response from daemon: failed to create task for container: failed to initialize logging driver: failed to create Cloudwatch log stream: operation error CloudWatch Logs: CreateLogStream, https response error StatusCode: 400, RequestID: 89ea3857-9ac9-4764-933d-219a215e98a9, api error AccessDeniedException: User: arn:aws:sts::962920162112:assumed-role/oioi-OioiASGInstanceRole091BF73B-9T5xCymIbRlF/i-0512f8c7390ef64f1 is not authorized to perform: logs:CreateLogStream on resource: arn:aws:logs:ap-northeast-2:962920162112:log-group:oioi-agent-test:log-stream:oioi-agent-test-i-0512f8c7390ef64f1 because no identity-based policy allows the logs:CreateLogStream action.
+                role: new cdk.aws_iam.Role(this, "Role", {
+                    assumedBy: new cdk.aws_iam.ServicePrincipal(
+                        "ec2.amazonaws.com",
+                    ),
+                    managedPolicies: [
+                        cdk.aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
+                            "AmazonSSMManagedInstanceCore",
+                        ),
+                        cdk.aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
+                            "CloudWatchAgentServerPolicy",
+                        ),
+                    ],
+                }),
             },
         );
 
