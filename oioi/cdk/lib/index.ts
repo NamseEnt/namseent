@@ -5,6 +5,7 @@ export interface OioiProps {
     groupName: string;
     image: string;
     vpc?: cdk.aws_ec2.Vpc;
+    portMappings?: PortMapping[];
 }
 
 export class Oioi extends Construct {
@@ -31,7 +32,7 @@ export class Oioi extends Construct {
                 ),
                 machineImage: cdk.aws_ec2.MachineImage.latestAmazonLinux2023({
                     cpuType: cdk.aws_ec2.AmazonLinuxCpuType.ARM_64,
-                    userData: getUserData(props.groupName),
+                    userData: getUserData(props),
                 }),
             },
         );
@@ -45,8 +46,24 @@ export class Oioi extends Construct {
     }
 }
 
-function getUserData(groupName: string): cdk.aws_ec2.UserData {
+type PortMapping = {
+    containerPort: number;
+    hostPort: number;
+    protocol: "tcp" | "udp";
+};
+
+function getUserData({
+    groupName,
+    portMappings,
+}: OioiProps): cdk.aws_ec2.UserData {
     const userData = cdk.aws_ec2.UserData.forLinux();
+    const portMappingsString =
+        portMappings
+            ?.map(
+                ({ containerPort, hostPort, protocol }) =>
+                    `${hostPort ?? containerPort}:${containerPort}/${protocol}`,
+            )
+            .join(",") ?? "";
 
     const dockerOptions = [
         "-d",
@@ -59,6 +76,7 @@ function getUserData(groupName: string): cdk.aws_ec2.UserData {
 
         `-e GROUP_NAME=${groupName}`,
         `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
+        `-e PORT_MAPPINGS=${portMappingsString}`,
         "-v /var/run/docker.sock:/var/run/docker.sock docker",
     ].join(" ");
 

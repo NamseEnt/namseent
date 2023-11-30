@@ -12,6 +12,13 @@ export class OioiTestCdkStack extends cdk.Stack {
         const { vpc, autoScalingGroup } = new oioi.Oioi(this, "Oioi", {
             groupName: "test",
             image,
+            portMappings: [
+                {
+                    containerPort: 80,
+                    hostPort: 80,
+                    protocol: "tcp",
+                },
+            ],
         });
 
         const albTargetGroup =

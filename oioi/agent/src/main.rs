@@ -12,6 +12,20 @@ const GRACEFUL_SHUTDOWN_TIMEOUT_SECS: i64 = 30;
 lazy_static::lazy_static! {
     static ref GROUP_NAME: String = std::env::var("GROUP_NAME").expect("GROUP_NAME env var not set");
     static ref EC2_INSTANCE_ID: String = std::env::var("EC2_INSTANCE_ID").expect("EC2_INSTANCE_ID env var not set");
+    static ref PORT_MAPPINGS: Vec<PortMapping> = std::env::var("PORT_MAPPINGS").map(|env_string| {
+        env_string.split(',').map(|mapping| {
+            let mut parts = mapping.split(&[',', '/']);
+            let container_port = parts.next().expect("container port not found").parse::<u16>().expect("container port is not a number");
+            let host_port = parts.next().expect("host port not found").parse::<u16>().expect("host port is not a number");
+            let protocol = parts.next().expect("protocol not found").to_string();
+
+            PortMapping {
+                container_port,
+                host_port,
+                protocol,
+            }
+        }).collect()
+    }).expect("PORT_MAPPINGS env var not set");
 }
 
 async fn real_main() -> Result<()> {
@@ -128,6 +142,20 @@ async fn run_new_container(docker: &Docker, image: &str) -> Result<()> {
                             ("awslogs-create-group".to_string(), "true".to_string()),
                         ])),
                     }),
+                    port_bindings: Some(std::collections::HashMap::from_iter(
+                        PORT_MAPPINGS
+                            .iter()
+                            .map(|mapping| {
+                                (
+                                    format!("{}/{}", mapping.container_port, mapping.protocol),
+                                    Some(vec![bollard::models::PortBinding {
+                                        host_ip: None,
+                                        host_port: Some(mapping.host_port.to_string()),
+                                    }]),
+                                )
+                            })
+                            .collect::<Vec<_>>(),
+                    )),
                     ..Default::default()
                 }),
                 ..Default::default()
@@ -163,4 +191,10 @@ async fn docker_prune(docker: &Docker) -> Result<()> {
         .await?;
 
     Ok(())
+}
+
+struct PortMapping {
+    container_port: u16,
+    host_port: u16,
+    protocol: String,
 }
