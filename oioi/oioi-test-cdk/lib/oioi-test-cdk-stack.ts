@@ -102,6 +102,10 @@ def handler(event, context):
             environment: {
                 STACK_NAME: this.stackName,
             },
+            logGroup: new cdk.aws_logs.LogGroup(this, "LogGroup", {
+                logGroupName: `/aws/lambda/${this.stackName}`,
+                removalPolicy: cdk.RemovalPolicy.DESTROY,
+            }),
         });
 
         const now = new Date();
