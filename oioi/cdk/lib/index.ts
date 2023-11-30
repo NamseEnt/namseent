@@ -113,10 +113,11 @@ export class Oioi extends Construct {
                         ]),
                         verifyInstanceHealth: new cdk.aws_ec2.InitConfig([
                             cdk.aws_ec2.InitCommand.shellCommand(
-                                `until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region} elb describe-target-health
-                                    --load-balancer-name ${alb.loadBalancerName}
-                                    --instances $EC2_INSTANCE_ID
-                                    --query InstanceStates[0].State); sleep 10; done`,
+                                `
+until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region} elb describe-target-health
+--load-balancer-name ${alb.loadBalancerName}
+--instances $EC2_INSTANCE_ID
+--query InstanceStates[0].State); sleep 10; done`.replaceAll("\n", " "),
                             ),
                         ]),
                     },
