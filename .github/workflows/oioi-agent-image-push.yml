@@ -138,6 +138,6 @@ jobs:
 
           echo $DNS_NAME
 
-          curl http://$DNS_NAME
+          curl --fail http://$DNS_NAME
 
           aws cloudformation delete-stack --stack-name $STACK_NAME
