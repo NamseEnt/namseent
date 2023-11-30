@@ -35,8 +35,6 @@ export class Oioi extends Construct {
                 },
             );
 
-        const userData = cdk.aws_ec2.UserData.forLinux();
-
         this.autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
             this,
             "ASG",
@@ -48,7 +46,6 @@ export class Oioi extends Construct {
                 ),
                 machineImage: cdk.aws_ec2.MachineImage.latestAmazonLinux2023({
                     cpuType: cdk.aws_ec2.AmazonLinuxCpuType.ARM_64,
-                    userData,
                 }),
                 associatePublicIpAddress: true,
                 init: cdk.aws_ec2.CloudFormationInit.fromConfigSets({
@@ -159,15 +156,6 @@ until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region}
             },
         );
 
-        const asgLogicalId = stack.getLogicalId(
-            this.autoScalingGroup.node.defaultChild as cdk.CfnElement,
-        );
-
-        userData.addCommands(
-            "yum install -y aws-cfn-bootstrap",
-            `/opt/aws/bin/cfn-init -v --stack ${stack.stackName} --resource ${asgLogicalId} --region ${stack.region}`,
-            `/opt/aws/bin/cfn-signal -e $? --stack ${stack.stackName} --resource ${asgLogicalId} --region ${stack.region}`,
-        );
         new cdk.aws_ssm.StringParameter(this, "ImageParameter", {
             parameterName: `/oioi/${props.groupName}/image`,
             stringValue: props.image,
