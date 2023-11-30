@@ -35,6 +35,7 @@ export class Oioi extends Construct {
                     userData: getUserData(props),
                 }),
                 associatePublicIpAddress: true,
+                signals: cdk.aws_autoscaling.Signals.waitForMinCapacity(),
             },
         );
 
