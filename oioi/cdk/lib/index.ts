@@ -51,52 +51,76 @@ export class Oioi extends Construct {
                     userData,
                 }),
                 associatePublicIpAddress: true,
-                init: cdk.aws_ec2.CloudFormationInit.fromElements(
-                    cdk.aws_ec2.InitCommand.shellCommand("echo Hello, oioi!"),
-                    cdk.aws_ec2.InitCommand.shellCommand(
-                        "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
-                    ),
-                    cdk.aws_ec2.InitPackage.yum("docker"),
-                    cdk.aws_ec2.InitService.enable("docker"),
-                    cdk.aws_ec2.InitCommand.shellCommand(
-                        `docker run ${[
-                            "-d",
-                            "--restart always",
-                            "--name oioi-agent",
+                init: cdk.aws_ec2.CloudFormationInit.fromConfigSets({
+                    configSets: {
+                        default: [
+                            "helloWorld",
+                            "setEnv",
+                            "docker",
+                            "runAgent",
+                            "verifyInstanceHealth",
+                        ],
+                    },
+                    configs: {
+                        helloWorld: new cdk.aws_ec2.InitConfig([
+                            cdk.aws_ec2.InitCommand.shellCommand(
+                                "echo Hello, oioi!",
+                            ),
+                        ]),
+                        setEnv: new cdk.aws_ec2.InitConfig([
+                            cdk.aws_ec2.InitCommand.shellCommand(
+                                "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
+                            ),
+                        ]),
+                        docker: new cdk.aws_ec2.InitConfig([
+                            cdk.aws_ec2.InitPackage.yum("docker"),
+                            cdk.aws_ec2.InitService.enable("docker"),
+                        ]),
+                        runAgent: new cdk.aws_ec2.InitConfig([
+                            cdk.aws_ec2.InitCommand.shellCommand(
+                                `docker run ${[
+                                    "-d",
+                                    "--restart always",
+                                    "--name oioi-agent",
 
-                            "--log-driver awslogs",
-                            `--log-opt awslogs-group=oioi-agent-${props.groupName}`,
-                            `--log-opt awslogs-stream=oioi-agent-${props.groupName}-$EC2_INSTANCE_ID`,
-                            "--log-opt awslogs-create-group=true",
+                                    "--log-driver awslogs",
+                                    `--log-opt awslogs-group=oioi-agent-${props.groupName}`,
+                                    `--log-opt awslogs-stream=oioi-agent-${props.groupName}-$EC2_INSTANCE_ID`,
+                                    "--log-opt awslogs-create-group=true",
 
-                            `-e GROUP_NAME=${props.groupName}`,
-                            `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
-                            `-e PORT_MAPPINGS=${
-                                props.portMappings
-                                    ?.map(
-                                        ({
-                                            containerPort,
-                                            hostPort,
-                                            protocol,
-                                        }) =>
-                                            `${
-                                                hostPort ?? containerPort
-                                            }:${containerPort}/${protocol}`,
-                                    )
-                                    .join(",") ?? ""
-                            }`,
-                            "-v /var/run/docker.sock:/var/run/docker.sock",
-                        ].join(
-                            " ",
-                        )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
-                    ),
-                    cdk.aws_ec2.InitCommand.shellCommand(
-                        `until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region} elb describe-target-health
-                            --load-balancer-name ${alb.loadBalancerName}
-                            --instances $EC2_INSTANCE_ID
-                            --query InstanceStates[0].State); sleep 10; done`,
-                    ),
-                ),
+                                    `-e GROUP_NAME=${props.groupName}`,
+                                    `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
+                                    `-e PORT_MAPPINGS=${
+                                        props.portMappings
+                                            ?.map(
+                                                ({
+                                                    containerPort,
+                                                    hostPort,
+                                                    protocol,
+                                                }) =>
+                                                    `${
+                                                        hostPort ??
+                                                        containerPort
+                                                    }:${containerPort}/${protocol}`,
+                                            )
+                                            .join(",") ?? ""
+                                    }`,
+                                    "-v /var/run/docker.sock:/var/run/docker.sock",
+                                ].join(
+                                    " ",
+                                )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
+                            ),
+                        ]),
+                        verifyInstanceHealth: new cdk.aws_ec2.InitConfig([
+                            cdk.aws_ec2.InitCommand.shellCommand(
+                                `until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region} elb describe-target-health
+                                    --load-balancer-name ${alb.loadBalancerName}
+                                    --instances $EC2_INSTANCE_ID
+                                    --query InstanceStates[0].State); sleep 10; done`,
+                            ),
+                        ]),
+                    },
+                }),
                 signals: cdk.aws_autoscaling.Signals.waitForMinCapacity(),
                 updatePolicy:
                     cdk.aws_autoscaling.UpdatePolicy.replacingUpdate(),
