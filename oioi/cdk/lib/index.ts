@@ -14,6 +14,7 @@ export class Oioi extends Construct {
 
     constructor(scope: Construct, id: string, props: OioiProps) {
         super(scope, id);
+        const stack = cdk.Stack.of(this);
 
         this.vpc =
             props.vpc ??
@@ -43,7 +44,7 @@ export class Oioi extends Construct {
                     subnetType: cdk.aws_ec2.SubnetType.PUBLIC,
                 },
                 healthCheck: cdk.aws_autoscaling.HealthCheck.elb({
-                    grace: cdk.Duration.seconds(180),
+                    grace: cdk.Duration.seconds(300),
                 }),
                 role: new cdk.aws_iam.Role(this, "Role", {
                     assumedBy: new cdk.aws_iam.ServicePrincipal(
@@ -57,6 +58,21 @@ export class Oioi extends Construct {
                             "CloudWatchAgentServerPolicy",
                         ),
                     ],
+                    inlinePolicies: {
+                        cloudFormationHelper: new cdk.aws_iam.PolicyDocument({
+                            statements: [
+                                new cdk.aws_iam.PolicyStatement({
+                                    actions: [
+                                        "cloudformation:SignalResource",
+                                        // "cloudformation:DescribeStackResource",
+                                    ],
+                                    resources: [
+                                        `arn:aws:cloudformation:${stack.region}:${stack.account}:stack/${stack.stackName}/*`,
+                                    ],
+                                }),
+                            ],
+                        }),
+                    },
                 }),
             },
         );
