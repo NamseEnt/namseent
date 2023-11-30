@@ -34,6 +34,7 @@ export class Oioi extends Construct {
                     cpuType: cdk.aws_ec2.AmazonLinuxCpuType.ARM_64,
                     userData: getUserData(props),
                 }),
+                associatePublicIpAddress: true,
             },
         );
 
@@ -81,6 +82,7 @@ function getUserData({
     ].join(" ");
 
     userData.addCommands(
+        "echo Hello, oioi!",
         "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
         "yum install -y docker",
         "systemctl start docker",
