@@ -36,6 +36,9 @@ export class Oioi extends Construct {
                 }),
                 associatePublicIpAddress: true,
                 signals: cdk.aws_autoscaling.Signals.waitForMinCapacity(),
+                vpcSubnets: {
+                    subnetType: cdk.aws_ec2.SubnetType.PUBLIC,
+                },
             },
         );
 
