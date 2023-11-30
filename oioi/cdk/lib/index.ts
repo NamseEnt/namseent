@@ -5,6 +5,7 @@ export interface OioiProps {
     groupName: string;
     image: string;
     vpc?: cdk.aws_ec2.Vpc;
+    alb?: cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer;
     portMappings?: PortMapping[];
 }
 
@@ -23,7 +24,19 @@ export class Oioi extends Construct {
                 restrictDefaultSecurityGroup: false,
             });
 
+        const alb =
+            props.alb ??
+            new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
+                this,
+                "Alb",
+                {
+                    vpc: this.vpc,
+                    internetFacing: true,
+                },
+            );
+
         const userData = cdk.aws_ec2.UserData.forLinux();
+
         this.autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
             this,
             "ASG",
@@ -38,6 +51,52 @@ export class Oioi extends Construct {
                     userData,
                 }),
                 associatePublicIpAddress: true,
+                init: cdk.aws_ec2.CloudFormationInit.fromElements(
+                    cdk.aws_ec2.InitCommand.shellCommand("echo Hello, oioi!"),
+                    cdk.aws_ec2.InitCommand.shellCommand(
+                        "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
+                    ),
+                    cdk.aws_ec2.InitPackage.yum("docker"),
+                    cdk.aws_ec2.InitService.enable("docker"),
+                    cdk.aws_ec2.InitCommand.shellCommand(
+                        `docker run ${[
+                            "-d",
+                            "--restart always",
+                            "--name oioi-agent",
+
+                            "--log-driver awslogs",
+                            `--log-opt awslogs-group=oioi-agent-${props.groupName}`,
+                            `--log-opt awslogs-stream=oioi-agent-${props.groupName}-$EC2_INSTANCE_ID`,
+                            "--log-opt awslogs-create-group=true",
+
+                            `-e GROUP_NAME=${props.groupName}`,
+                            `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
+                            `-e PORT_MAPPINGS=${
+                                props.portMappings
+                                    ?.map(
+                                        ({
+                                            containerPort,
+                                            hostPort,
+                                            protocol,
+                                        }) =>
+                                            `${
+                                                hostPort ?? containerPort
+                                            }:${containerPort}/${protocol}`,
+                                    )
+                                    .join(",") ?? ""
+                            }`,
+                            "-v /var/run/docker.sock:/var/run/docker.sock",
+                        ].join(
+                            " ",
+                        )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
+                    ),
+                    cdk.aws_ec2.InitCommand.shellCommand(
+                        `until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region} elb describe-target-health
+                            --load-balancer-name ${alb.loadBalancerName}
+                            --instances $EC2_INSTANCE_ID
+                            --query InstanceStates[0].State); sleep 10; done`,
+                    ),
+                ),
                 signals: cdk.aws_autoscaling.Signals.waitForMinCapacity(),
                 updatePolicy:
                     cdk.aws_autoscaling.UpdatePolicy.replacingUpdate(),
@@ -75,46 +134,15 @@ export class Oioi extends Construct {
             },
         );
 
-        const portMappingsString =
-            props.portMappings
-                ?.map(
-                    ({ containerPort, hostPort, protocol }) =>
-                        `${
-                            hostPort ?? containerPort
-                        }:${containerPort}/${protocol}`,
-                )
-                .join(",") ?? "";
-
-        const dockerOptions = [
-            "-d",
-            "--restart always",
-            "--name oioi-agent",
-
-            "--log-driver awslogs",
-            `--log-opt awslogs-group=oioi-agent-${props.groupName}`,
-            `--log-opt awslogs-stream=oioi-agent-${props.groupName}-$EC2_INSTANCE_ID`,
-            "--log-opt awslogs-create-group=true",
-
-            `-e GROUP_NAME=${props.groupName}`,
-            `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
-            `-e PORT_MAPPINGS=${portMappingsString}`,
-            "-v /var/run/docker.sock:/var/run/docker.sock",
-        ].join(" ");
-
-        userData.addCommands(
-            "echo Hello, oioi!",
-            "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
-            "yum install -y docker",
-            "systemctl start docker",
-            "systemctl enable docker",
-            `docker run ${dockerOptions} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
-            `/opt/aws/bin/cfn-signal -e $? --stack ${
-                stack.stackName
-            } --resource ${stack.getLogicalId(
-                this.autoScalingGroup.node.defaultChild as cdk.CfnElement,
-            )} --region ${stack.region}`,
+        const asgLogicalId = stack.getLogicalId(
+            this.autoScalingGroup.node.defaultChild as cdk.CfnElement,
         );
 
+        userData.addCommands(
+            "yum install -y aws-cfn-bootstrap",
+            `/opt/aws/bin/cfn-init -v --stack ${stack.stackName} --resource ${asgLogicalId} --region ${stack.region}`,
+            `/opt/aws/bin/cfn-signal -e $? --stack ${stack.stackName} --resource ${asgLogicalId} --region ${stack.region}`,
+        );
         new cdk.aws_ssm.StringParameter(this, "ImageParameter", {
             parameterName: `/oioi/${props.groupName}/image`,
             stringValue: props.image,
