@@ -131,11 +131,13 @@ jobs:
           npx cdk bootstrap
           npx cdk deploy --require-approval never
 
-          ENDPOINT=$(aws cloudformation describe-stacks \
+          DNS_NAME=$(aws cloudformation describe-stacks \
               --stack-name $STACK_NAME \
-              --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" \
+              --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerDnsName'].OutputValue" \
               --output text)
 
-          curl $ENDPOINT
+          echo $DNS_NAME
+
+          curl http://$DNS_NAME
 
           aws cloudformation delete-stack --stack-name $STACK_NAME
