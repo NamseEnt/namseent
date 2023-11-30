@@ -98,7 +98,7 @@ export class Oioi extends Construct {
             `-e GROUP_NAME=${props.groupName}`,
             `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
             `-e PORT_MAPPINGS=${portMappingsString}`,
-            "-v /var/run/docker.sock:/var/run/docker.sock docker",
+            "-v /var/run/docker.sock:/var/run/docker.sock",
         ].join(" ");
 
         userData.addCommands(
