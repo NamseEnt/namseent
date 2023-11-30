@@ -39,6 +39,9 @@ export class Oioi extends Construct {
                 vpcSubnets: {
                     subnetType: cdk.aws_ec2.SubnetType.PUBLIC,
                 },
+                healthCheck: cdk.aws_autoscaling.HealthCheck.elb({
+                    grace: cdk.Duration.seconds(30),
+                }),
             },
         );
 
@@ -47,7 +50,7 @@ export class Oioi extends Construct {
             stringValue: props.image,
         });
 
-        // TODO: Add cloudwatch
+        // TODO: Add cloudwatch dashboard
     }
 }
 
