@@ -63,10 +63,7 @@ export class Oioi extends Construct {
                         cloudFormationHelper: new cdk.aws_iam.PolicyDocument({
                             statements: [
                                 new cdk.aws_iam.PolicyStatement({
-                                    actions: [
-                                        "cloudformation:SignalResource",
-                                        // "cloudformation:DescribeStackResource",
-                                    ],
+                                    actions: ["cloudformation:SignalResource"],
                                     resources: [
                                         `arn:aws:cloudformation:${stack.region}:${stack.account}:stack/${stack.stackName}/*`,
                                     ],
@@ -109,7 +106,7 @@ export class Oioi extends Construct {
             "yum install -y docker",
             "systemctl start docker",
             "systemctl enable docker",
-            `docker run -d ${dockerOptions} public.ecr.aws/namseent/oioi ./oioi-agent`,
+            `docker run -d ${dockerOptions} public.ecr.aws/o4b6l4b3/oioi ./oioi-agent`,
             `/opt/aws/bin/cfn-signal -e $? --stack ${
                 stack.stackName
             } --resource ${stack.getLogicalId(
