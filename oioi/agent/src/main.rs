@@ -14,7 +14,7 @@ lazy_static::lazy_static! {
     static ref EC2_INSTANCE_ID: String = std::env::var("EC2_INSTANCE_ID").expect("EC2_INSTANCE_ID env var not set");
     static ref PORT_MAPPINGS: Vec<PortMapping> = std::env::var("PORT_MAPPINGS").map(|env_string| {
         env_string.split(',').map(|mapping| {
-            let mut parts = mapping.split(&[',', '/']);
+            let mut parts = mapping.split(&[':', '/']);
             let container_port = parts.next().expect("container port not found").parse::<u16>().expect("container port is not a number");
             let host_port = parts.next().expect("host port not found").parse::<u16>().expect("host port is not a number");
             let protocol = parts.next().expect("protocol not found").to_string();
@@ -29,6 +29,7 @@ lazy_static::lazy_static! {
 }
 
 async fn real_main() -> Result<()> {
+    println!("Environment variables: {:?}", std::env::vars());
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::v2023_11_09()).await;
     let aws_ssm_client = aws_sdk_ssm::Client::new(&config);
 
