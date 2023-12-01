@@ -75,26 +75,10 @@ export class Oioi extends Construct {
             },
         );
 
-        const init = cdk.aws_ec2.CloudFormationInit.fromConfigSets({
-            configSets: {
-                default: [
-                    "helloWorld",
-                    "setEnv",
-                    "docker",
-                    "runAgent",
-                    "verifyInstanceHealth",
-                ],
-            },
-            configs: {
-                setEnv: new cdk.aws_ec2.InitConfig([
-                    cdk.aws_ec2.InitCommand.shellCommand(
-                        "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
-                    ),
-                ]),
-                awslogs: new cdk.aws_ec2.InitConfig([
-                    cdk.aws_ec2.InitFile.fromString(
-                        "/etc/awslogs/awslogs.conf",
-                        `
+        const init = cdk.aws_ec2.CloudFormationInit.fromElements(
+            cdk.aws_ec2.InitFile.fromString(
+                "/etc/awslogs/awslogs.conf",
+                `
 [general]
 state_file = /var/lib/awslogs/agent-state
 use_gzip_http_content_encoding = true
@@ -114,69 +98,61 @@ file = /var/log/cfn-init.log
 log_group_name = ${systemMessagesLogGroup.logGroupName}
 log_stream_name = {instance_id}-/var/log/cfn-init.log
 `,
-                    ),
-                    cdk.aws_ec2.InitPackage.yum("awslogs"),
-                    cdk.aws_ec2.InitService.enable("awslogs"),
-                ]),
-                helloWorld: new cdk.aws_ec2.InitConfig([
-                    cdk.aws_ec2.InitCommand.shellCommand(
-                        `echo Hello, oioi! EC2_INSTANCE_ID = $EC2_INSTANCE_ID`,
-                    ),
-                ]),
-                docker: new cdk.aws_ec2.InitConfig([
-                    cdk.aws_ec2.InitPackage.yum("docker"),
-                    cdk.aws_ec2.InitService.enable("docker"),
-                    cdk.aws_ec2.InitCommand.shellCommand(
-                        `
+            ),
+            cdk.aws_ec2.InitPackage.yum("awslogs"),
+            cdk.aws_ec2.InitService.enable("awslogs"),
+
+            cdk.aws_ec2.InitCommand.shellCommand(
+                "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
+            ),
+
+            cdk.aws_ec2.InitCommand.shellCommand(
+                `echo Hello, oioi! EC2_INSTANCE_ID = $EC2_INSTANCE_ID`,
+            ),
+
+            cdk.aws_ec2.InitPackage.yum("docker"),
+            cdk.aws_ec2.InitService.enable("docker"),
+            cdk.aws_ec2.InitCommand.shellCommand(
+                `
 aws ecr-public get-login-password --region us-east-1 |
 docker login --username AWS --password-stdin public.ecr.aws
 `.replaceAll("\n", " "),
-                    ),
-                ]),
-                runAgent: new cdk.aws_ec2.InitConfig([
-                    cdk.aws_ec2.InitCommand.shellCommand(
-                        `docker run ${[
-                            "-d",
-                            "--restart always",
-                            "--name oioi-agent",
+            ),
 
-                            "--log-driver awslogs",
-                            `--log-opt awslogs-group=${agentLogGroup.logGroupName}`,
-                            `--log-opt awslogs-stream=$EC2_INSTANCE_ID`,
+            cdk.aws_ec2.InitCommand.shellCommand(
+                `docker run ${[
+                    "-d",
+                    "--restart always",
+                    "--name oioi-agent",
 
-                            `-e GROUP_NAME=${props.groupName}`,
-                            `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
-                            `-e PORT_MAPPINGS=${
-                                props.portMappings
-                                    ?.map(
-                                        ({
-                                            containerPort,
-                                            hostPort,
-                                            protocol,
-                                        }) =>
-                                            `${
-                                                hostPort ?? containerPort
-                                            }:${containerPort}/${protocol}`,
-                                    )
-                                    .join(",") ?? ""
-                            }`,
-                            "-v /var/run/docker.sock:/var/run/docker.sock",
-                        ].join(
-                            " ",
-                        )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
-                    ),
-                ]),
-                verifyInstanceHealth: new cdk.aws_ec2.InitConfig([
-                    cdk.aws_ec2.InitCommand.shellCommand(
-                        `
+                    "--log-driver awslogs",
+                    `--log-opt awslogs-group=${agentLogGroup.logGroupName}`,
+                    `--log-opt awslogs-stream=$EC2_INSTANCE_ID`,
+
+                    `-e GROUP_NAME=${props.groupName}`,
+                    `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
+                    `-e PORT_MAPPINGS=${
+                        props.portMappings
+                            ?.map(
+                                ({ containerPort, hostPort, protocol }) =>
+                                    `${
+                                        hostPort ?? containerPort
+                                    }:${containerPort}/${protocol}`,
+                            )
+                            .join(",") ?? ""
+                    }`,
+                    "-v /var/run/docker.sock:/var/run/docker.sock",
+                ].join(" ")} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
+            ),
+
+            cdk.aws_ec2.InitCommand.shellCommand(
+                `
 until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region} elb describe-target-health
 --load-balancer-name ${alb.loadBalancerName}
 --instances $EC2_INSTANCE_ID
 --query InstanceStates[0].State); sleep 10; done`.replaceAll("\n", " "),
-                    ),
-                ]),
-            },
-        });
+            ),
+        );
 
         this.autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
             this,
