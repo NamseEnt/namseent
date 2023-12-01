@@ -72,6 +72,12 @@ export class Oioi extends Construct {
                         docker: new cdk.aws_ec2.InitConfig([
                             cdk.aws_ec2.InitPackage.yum("docker"),
                             cdk.aws_ec2.InitService.enable("docker"),
+                            cdk.aws_ec2.InitCommand.shellCommand(
+                                `
+aws ecr-public get-login-password --region us-east-1 |
+docker login --username AWS --password-stdin public.ecr.aws
+`.replaceAll("\n", " "),
+                            ),
                         ]),
                         runAgent: new cdk.aws_ec2.InitConfig([
                             cdk.aws_ec2.InitCommand.shellCommand(
