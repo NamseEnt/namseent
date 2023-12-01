@@ -77,30 +77,39 @@ export class Oioi extends Construct {
 
         const init = cdk.aws_ec2.CloudFormationInit.fromElements(
             cdk.aws_ec2.InitFile.fromString(
-                "/etc/awslogs/awslogs.conf",
+                "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
                 `
-[general]
-state_file = /var/lib/awslogs/agent-state
-use_gzip_http_content_encoding = true
-
-[/var/log/messages]
-file = /var/log/messages
-log_group_name = ${systemMessagesLogGroup.logGroupName}
-log_stream_name = {instance_id}-/var/log/messages/
-
-[/var/log/cfn-init-cmd.log]
-file = /var/log/cfn-init-cmd.log
-log_group_name = ${systemMessagesLogGroup.logGroupName}
-log_stream_name = {instance_id}-/var/log/cfn-init-cmd.log
-
-[/var/log/cfn-init.log]
-file = /var/log/cfn-init.log
-log_group_name = ${systemMessagesLogGroup.logGroupName}
-log_stream_name = {instance_id}-/var/log/cfn-init.log
+{
+    "logs": {
+        "logs_collected": {
+            "files": {
+                "collect_list": [
+                    {
+                        "file_path": "/var/log/messages",
+                        "log_group_name": "${systemMessagesLogGroup.logGroupName}",
+                        "log_stream_name": "{instance_id}-/var/log/messages/"
+                    },
+                    {
+                        "file_path": "/var/log/cfn-init-cmd.log",
+                        "log_group_name": "${systemMessagesLogGroup.logGroupName}",
+                        "log_stream_name": "{instance_id}-/var/log/cfn-init-cmd.log"
+                    },
+                    {
+                        "file_path": "/var/log/cfn-init.log",
+                        "log_group_name": "${systemMessagesLogGroup.logGroupName}",
+                        "log_stream_name": "{instance_id}-/var/log/cfn-init.log"
+                    }
+                ]
+            }
+        }
+    }       
+}
 `,
             ),
-            cdk.aws_ec2.InitPackage.yum("awslogs"),
-            cdk.aws_ec2.InitService.enable("awslogs"),
+            cdk.aws_ec2.InitPackage.yum("amazon-cloudwatch-agent"),
+            cdk.aws_ec2.InitCommand.shellCommand(
+                `/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2`,
+            ),
 
             cdk.aws_ec2.InitCommand.shellCommand(
                 "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
