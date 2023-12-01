@@ -18,6 +18,9 @@ env:
   CDK_DEFAULT_ACCOUNT: 962920162112
   CDK_DEFAULT_REGION: ap-northeast-2
   CARGO_VERSION: 1.74.0
+  RUST_CACHE_PATHS: |
+    ~/.cargo/
+    oioi/agent/target/
 permissions:
   id-token: write
   contents: read
@@ -29,11 +32,10 @@ jobs:
 
       # -- Agent Rust Build
 
-      - uses: actions/cache@v3
+      - uses: actions/cache/restore@v3
+        id: restore-cache
         with:
-          path: |
-            ~/.cargo/
-            oioi/agent/target/
+          path: ${{ env.RUST_CACHE_PATHS }}
           key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-oioi-${{ hashFiles('oioi/agent/Cargo.lock') }}-musl
 
       - name: Set up rust
@@ -50,6 +52,11 @@ jobs:
         working-directory: oioi/agent
         run: |
           cargo build --release --target aarch64-unknown-linux-musl
+
+      - uses: actions/cache/save@v3
+        with:
+          path: ${{ env.RUST_CACHE_PATHS }}
+          key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
       # -- Docker
 
