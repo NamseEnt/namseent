@@ -24,6 +24,7 @@ export class Oioi extends Construct {
     constructor(scope: Construct, id: string, props: OioiProps) {
         super(scope, id);
         const stack = cdk.Stack.of(this);
+        const stackUuid = stack.stackId.split("/")[2];
 
         this.vpc =
             props.vpc ??
@@ -47,7 +48,7 @@ export class Oioi extends Construct {
             this,
             "SystemMessagesLogGroup",
             {
-                logGroupName: `/oioi/${props.groupName}/system_messages`,
+                logGroupName: `/oioi/${props.groupName}/system_messages-${stackUuid}`,
                 retention:
                     props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK,
                 removalPolicy:
@@ -56,7 +57,7 @@ export class Oioi extends Construct {
         );
 
         const agentLogGroup = new cdk.aws_logs.LogGroup(this, "AgentLogGroup", {
-            logGroupName: `/oioi/${props.groupName}/agent`,
+            logGroupName: `/oioi/${props.groupName}/agent-${stackUuid}`,
             retention:
                 props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK,
             removalPolicy: props.logRemovalPolicy ?? cdk.RemovalPolicy.RETAIN,
