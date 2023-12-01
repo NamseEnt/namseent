@@ -987,6 +987,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-ssm",
  "bollard",
+ "futures-util",
  "lazy_static",
  "tokio",
 ]

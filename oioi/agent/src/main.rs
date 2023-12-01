@@ -1,5 +1,6 @@
 use anyhow::Result;
 use bollard::{container::ListContainersOptions, Docker};
+use futures_util::{stream::stream::StreamExt, StreamExt, TryStreamExt};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -123,6 +124,21 @@ async fn stop_running_container(docker: &Docker) -> Result<()> {
 }
 
 async fn run_new_container(docker: &Docker, image: &str) -> Result<()> {
+    while let Some(create_image_info) = docker
+        .create_image(
+            Some(bollard::image::CreateImageOptions {
+                from_image: image,
+                ..Default::default()
+            }),
+            None,
+            None,
+        )
+        .try_next()
+        .await?
+    {
+        println!("Pull image: {:?}", create_image_info);
+    }
+
     docker
         .create_container(
             Some(bollard::container::CreateContainerOptions {
