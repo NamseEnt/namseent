@@ -102,8 +102,8 @@ export class Oioi extends Construct {
                         ]),
                         awslogs: new cdk.aws_ec2.InitConfig([
                             cdk.aws_ec2.InitFile.fromFileInline(
-                                "~/init_awslogs.sh",
-                                `cat <<EOF > /etc/awslogs/awslogs.conf
+                                "/etc/awslogs/awslogs.conf",
+                                `
 [general]
 state_file = /var/lib/awslogs/agent-state
 use_gzip_http_content_encoding = true
@@ -111,16 +111,8 @@ use_gzip_http_content_encoding = true
 [/var/log/messages]
 file = /var/log/messages
 log_group_name = ${systemMessagesLogGroup.logGroupName}
-log_stream_name = $EC2_INSTANCE_ID
-datetime_format = %b %d %H:%M:%S
-time_zone = LOCAL
-file_fingerprint_lines = 1
-initial_position = start_of_file
-
-EOF`,
-                            ),
-                            cdk.aws_ec2.InitCommand.shellCommand(
-                                "sh ~/init_awslogs.sh && rm ~/init_awslogs.sh",
+log_stream_name = {instance_id}
+`,
                             ),
                             cdk.aws_ec2.InitPackage.yum("awslogs"),
                             cdk.aws_ec2.InitService.enable("awslogs"),
