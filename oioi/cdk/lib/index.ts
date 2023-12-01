@@ -35,6 +35,9 @@ export class Oioi extends Construct {
                 },
             );
 
+        // it put system logs to cloudwatch
+        const awslogsFileContent = `
+`;
         this.autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
             this,
             "ASG",
@@ -59,14 +62,35 @@ export class Oioi extends Construct {
                         ],
                     },
                     configs: {
-                        helloWorld: new cdk.aws_ec2.InitConfig([
-                            cdk.aws_ec2.InitCommand.shellCommand(
-                                "echo Hello, oioi!",
-                            ),
-                        ]),
                         setEnv: new cdk.aws_ec2.InitConfig([
                             cdk.aws_ec2.InitCommand.shellCommand(
                                 "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
+                            ),
+                        ]),
+                        awslogs: new cdk.aws_ec2.InitConfig([
+                            cdk.aws_ec2.InitCommand.shellCommand(
+                                `cat <<EOF > /etc/awslogs/awslogs.conf
+[general]
+state_file = /var/lib/awslogs/agent-state
+use_gzip_http_content_encoding = true
+
+[/var/log/messages]
+file = /var/log/messages
+log_group_name = oioi-agent/${props.groupName}/system_messages
+log_stream_name = $EC2_INSTANCE_ID
+datetime_format = %b %d %H:%M:%S
+time_zone = LOCAL
+file_fingerprint_lines = 1
+initial_position = start_of_file
+
+EOF`,
+                            ),
+                            cdk.aws_ec2.InitPackage.yum("awslogs"),
+                            cdk.aws_ec2.InitService.enable("awslogs"),
+                        ]),
+                        helloWorld: new cdk.aws_ec2.InitConfig([
+                            cdk.aws_ec2.InitCommand.shellCommand(
+                                `echo Hello, oioi! EC2_INSTANCE_ID = $EC2_INSTANCE_ID`,
                             ),
                         ]),
                         docker: new cdk.aws_ec2.InitConfig([
@@ -87,8 +111,8 @@ docker login --username AWS --password-stdin public.ecr.aws
                                     "--name oioi-agent",
 
                                     "--log-driver awslogs",
-                                    `--log-opt awslogs-group=oioi-agent-${props.groupName}`,
-                                    `--log-opt awslogs-stream=oioi-agent-${props.groupName}-$EC2_INSTANCE_ID`,
+                                    `--log-opt awslogs-group=oioi-agent/${props.groupName}/agent`,
+                                    `--log-opt awslogs-stream=$EC2_INSTANCE_ID`,
                                     "--log-opt awslogs-create-group=true",
 
                                     `-e GROUP_NAME=${props.groupName}`,
@@ -154,6 +178,20 @@ until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region}
                                     resources: [
                                         `arn:aws:cloudformation:${stack.region}:${stack.account}:stack/${stack.stackName}/*`,
                                     ],
+                                }),
+                            ],
+                        }),
+                        publicEcr: new cdk.aws_iam.PolicyDocument({
+                            statements: [
+                                new cdk.aws_iam.PolicyStatement({
+                                    actions: [
+                                        "ecr-public:GetAuthorizationToken",
+                                    ],
+                                    resources: ["*"],
+                                }),
+                                new cdk.aws_iam.PolicyStatement({
+                                    actions: ["sts:GetServiceBearerToken"],
+                                    resources: ["*"],
                                 }),
                             ],
                         }),
