@@ -101,7 +101,7 @@ export class Oioi extends Construct {
                             ),
                         ]),
                         awslogs: new cdk.aws_ec2.InitConfig([
-                            cdk.aws_ec2.InitFile.fromFileInline(
+                            cdk.aws_ec2.InitFile.fromString(
                                 "/etc/awslogs/awslogs.conf",
                                 `
 [general]
