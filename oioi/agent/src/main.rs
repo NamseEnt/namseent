@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bollard::{container::ListContainersOptions, Docker};
-use futures_util::{stream::stream::StreamExt, StreamExt, TryStreamExt};
+use futures_util::TryStreamExt;
 
 #[tokio::main]
 async fn main() -> Result<()> {
