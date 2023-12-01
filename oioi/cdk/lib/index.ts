@@ -75,10 +75,17 @@ export class Oioi extends Construct {
             },
         );
 
-        const init = cdk.aws_ec2.CloudFormationInit.fromElements(
-            cdk.aws_ec2.InitFile.fromString(
-                "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
-                `
+        const configs: Record<string, cdk.aws_ec2.InitConfig> = {
+            setEnv: new cdk.aws_ec2.InitConfig([
+                cdk.aws_ec2.InitCommand.shellCommand(
+                    "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
+                ),
+                cdk.aws_ec2.InitCommand.shellCommand("echo $EC2_INSTANCE_ID"),
+            ]),
+            awslogs: new cdk.aws_ec2.InitConfig([
+                cdk.aws_ec2.InitFile.fromString(
+                    "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+                    `
 {
     "logs": {
         "logs_collected": {
@@ -105,63 +112,75 @@ export class Oioi extends Construct {
     }       
 }
 `,
-            ),
-            cdk.aws_ec2.InitPackage.yum("amazon-cloudwatch-agent"),
-            cdk.aws_ec2.InitCommand.shellCommand(
-                `/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2`,
-            ),
-
-            cdk.aws_ec2.InitCommand.shellCommand(
-                "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
-            ),
-
-            cdk.aws_ec2.InitCommand.shellCommand(
-                `echo Hello, oioi! EC2_INSTANCE_ID = $EC2_INSTANCE_ID`,
-            ),
-
-            cdk.aws_ec2.InitPackage.yum("docker"),
-            cdk.aws_ec2.InitService.enable("docker"),
-            cdk.aws_ec2.InitCommand.shellCommand(
-                `
+                ),
+                cdk.aws_ec2.InitPackage.yum("amazon-cloudwatch-agent"),
+                cdk.aws_ec2.InitCommand.shellCommand(
+                    `/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s`,
+                ),
+            ]),
+            helloWorld: new cdk.aws_ec2.InitConfig([
+                cdk.aws_ec2.InitCommand.shellCommand(
+                    `echo Hello, oioi! EC2_INSTANCE_ID = $EC2_INSTANCE_ID`,
+                ),
+            ]),
+            docker: new cdk.aws_ec2.InitConfig([
+                cdk.aws_ec2.InitPackage.yum("docker"),
+                cdk.aws_ec2.InitService.enable("docker"),
+            ]),
+            ecrLogin: new cdk.aws_ec2.InitConfig([
+                cdk.aws_ec2.InitCommand.shellCommand(
+                    `
 aws ecr-public get-login-password --region us-east-1 |
 docker login --username AWS --password-stdin public.ecr.aws
 `.replaceAll("\n", " "),
-            ),
+                ),
+            ]),
+            runAgent: new cdk.aws_ec2.InitConfig([
+                cdk.aws_ec2.InitCommand.shellCommand(
+                    `docker run ${[
+                        "-d",
+                        "--restart always",
+                        "--name oioi-agent",
 
-            cdk.aws_ec2.InitCommand.shellCommand(
-                `docker run ${[
-                    "-d",
-                    "--restart always",
-                    "--name oioi-agent",
+                        "--log-driver awslogs",
+                        `--log-opt awslogs-group=${agentLogGroup.logGroupName}`,
+                        `--log-opt awslogs-stream=$EC2_INSTANCE_ID`,
 
-                    "--log-driver awslogs",
-                    `--log-opt awslogs-group=${agentLogGroup.logGroupName}`,
-                    `--log-opt awslogs-stream=$EC2_INSTANCE_ID`,
-
-                    `-e GROUP_NAME=${props.groupName}`,
-                    `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
-                    `-e PORT_MAPPINGS=${
-                        props.portMappings
-                            ?.map(
-                                ({ containerPort, hostPort, protocol }) =>
-                                    `${
-                                        hostPort ?? containerPort
-                                    }:${containerPort}/${protocol}`,
-                            )
-                            .join(",") ?? ""
-                    }`,
-                    "-v /var/run/docker.sock:/var/run/docker.sock",
-                ].join(" ")} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
-            ),
-
-            cdk.aws_ec2.InitCommand.shellCommand(
-                `
+                        `-e GROUP_NAME=${props.groupName}`,
+                        `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
+                        `-e PORT_MAPPINGS=${
+                            props.portMappings
+                                ?.map(
+                                    ({ containerPort, hostPort, protocol }) =>
+                                        `${
+                                            hostPort ?? containerPort
+                                        }:${containerPort}/${protocol}`,
+                                )
+                                .join(",") ?? ""
+                        }`,
+                        "-v /var/run/docker.sock:/var/run/docker.sock",
+                    ].join(
+                        " ",
+                    )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
+                ),
+            ]),
+            verifyInstanceHealth: new cdk.aws_ec2.InitConfig([
+                cdk.aws_ec2.InitCommand.shellCommand(
+                    `
 until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region} elb describe-target-health
 --load-balancer-name ${alb.loadBalancerName}
 --instances $EC2_INSTANCE_ID
 --query InstanceStates[0].State); sleep 10; done`.replaceAll("\n", " "),
-            ),
-        );
+                ),
+            ]),
+        };
+
+        const init = cdk.aws_ec2.CloudFormationInit.fromConfigSets({
+            configSets: {
+                default: Object.keys(configs),
+            },
+            configs,
+        });
 
         this.autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
             this,
