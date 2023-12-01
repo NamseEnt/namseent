@@ -124,7 +124,8 @@ async fn stop_running_container(docker: &Docker) -> Result<()> {
 }
 
 async fn run_new_container(docker: &Docker, image: &str) -> Result<()> {
-    while let Some(create_image_info) = docker
+    println!("creating image {}", image);
+    docker
         .create_image(
             Some(bollard::image::CreateImageOptions {
                 from_image: image,
@@ -133,12 +134,10 @@ async fn run_new_container(docker: &Docker, image: &str) -> Result<()> {
             None,
             None,
         )
-        .try_next()
-        .await?
-    {
-        println!("Pull image: {:?}", create_image_info);
-    }
+        .try_collect::<Vec<_>>()
+        .await?;
 
+    println!("creating container {}", CONTAINER_NAME);
     docker
         .create_container(
             Some(bollard::container::CreateContainerOptions {
@@ -180,6 +179,7 @@ async fn run_new_container(docker: &Docker, image: &str) -> Result<()> {
         )
         .await?;
 
+    println!("starting container {}", CONTAINER_NAME);
     docker
         .start_container(
             CONTAINER_NAME,

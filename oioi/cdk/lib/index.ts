@@ -77,6 +77,7 @@ export class Oioi extends Construct {
 
         const configs: Record<string, cdk.aws_ec2.InitConfig> = {
             setEnv: new cdk.aws_ec2.InitConfig([
+                cdk.aws_ec2.InitCommand.shellCommand("ec2-metadata -i"),
                 cdk.aws_ec2.InitCommand.shellCommand(
                     "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
                 ),
