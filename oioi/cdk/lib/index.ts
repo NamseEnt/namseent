@@ -7,6 +7,14 @@ export interface OioiProps {
     vpc?: cdk.aws_ec2.Vpc;
     alb?: cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer;
     portMappings?: PortMapping[];
+    /**
+     * @default cdk.RemovalPolicy.DESTROY
+     * */
+    logRemovalPolicy?: cdk.RemovalPolicy;
+    /**
+     * @default cdk.aws_logs.RetentionDays.ONE_WEEK
+     * */
+    logRetention?: cdk.aws_logs.RetentionDays;
 }
 
 export class Oioi extends Construct {
@@ -35,9 +43,34 @@ export class Oioi extends Construct {
                 },
             );
 
-        // it put system logs to cloudwatch
-        const awslogsFileContent = `
-`;
+        const systemMessagesLogGroup = new cdk.aws_logs.LogGroup(
+            this,
+            "SystemMessagesLogGroup",
+            {
+                logGroupName: `/oioi/${props.groupName}/system_messages`,
+                retention:
+                    props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK,
+                removalPolicy:
+                    props.logRemovalPolicy ?? cdk.RemovalPolicy.DESTROY,
+            },
+        );
+
+        const agentLogGroup = new cdk.aws_logs.LogGroup(this, "AgentLogGroup", {
+            logGroupName: `/oioi/${props.groupName}/agent`,
+            retention:
+                props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK,
+            removalPolicy: props.logRemovalPolicy ?? cdk.RemovalPolicy.DESTROY,
+        });
+
+        const imageParameter = new cdk.aws_ssm.StringParameter(
+            this,
+            "ImageParameter",
+            {
+                parameterName: `/oioi/${props.groupName}/image`,
+                stringValue: props.image,
+            },
+        );
+
         this.autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
             this,
             "ASG",
@@ -76,7 +109,7 @@ use_gzip_http_content_encoding = true
 
 [/var/log/messages]
 file = /var/log/messages
-log_group_name = oioi-agent/${props.groupName}/system_messages
+log_group_name = ${systemMessagesLogGroup.logGroupName}
 log_stream_name = $EC2_INSTANCE_ID
 datetime_format = %b %d %H:%M:%S
 time_zone = LOCAL
@@ -111,9 +144,8 @@ docker login --username AWS --password-stdin public.ecr.aws
                                     "--name oioi-agent",
 
                                     "--log-driver awslogs",
-                                    `--log-opt awslogs-group=oioi-agent/${props.groupName}/agent`,
+                                    `--log-opt awslogs-group=${agentLogGroup.logGroupName}`,
                                     `--log-opt awslogs-stream=$EC2_INSTANCE_ID`,
-                                    "--log-opt awslogs-create-group=true",
 
                                     `-e GROUP_NAME=${props.groupName}`,
                                     `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
@@ -200,10 +232,11 @@ until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region}
             },
         );
 
-        new cdk.aws_ssm.StringParameter(this, "ImageParameter", {
-            parameterName: `/oioi/${props.groupName}/image`,
-            stringValue: props.image,
-        });
+        this.autoScalingGroup.node.addDependency(
+            systemMessagesLogGroup,
+            agentLogGroup,
+            imageParameter,
+        );
 
         // TODO: Add cloudwatch dashboard
     }
