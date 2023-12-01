@@ -188,7 +188,7 @@ until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region}
                     subnetType: cdk.aws_ec2.SubnetType.PUBLIC,
                 },
                 healthCheck: cdk.aws_autoscaling.HealthCheck.elb({
-                    grace: cdk.Duration.seconds(300),
+                    grace: cdk.Duration.minutes(10),
                 }),
                 role: new cdk.aws_iam.Role(this, "Role", {
                     assumedBy: new cdk.aws_iam.ServicePrincipal(
