@@ -101,7 +101,8 @@ export class Oioi extends Construct {
                             ),
                         ]),
                         awslogs: new cdk.aws_ec2.InitConfig([
-                            cdk.aws_ec2.InitCommand.shellCommand(
+                            cdk.aws_ec2.InitFile.fromFileInline(
+                                "~/init_awslogs.sh",
                                 `cat <<EOF > /etc/awslogs/awslogs.conf
 [general]
 state_file = /var/lib/awslogs/agent-state
@@ -117,6 +118,9 @@ file_fingerprint_lines = 1
 initial_position = start_of_file
 
 EOF`,
+                            ),
+                            cdk.aws_ec2.InitCommand.shellCommand(
+                                "sh ~/init_awslogs.sh && rm ~/init_awslogs.sh",
                             ),
                             cdk.aws_ec2.InitPackage.yum("awslogs"),
                             cdk.aws_ec2.InitService.enable("awslogs"),
