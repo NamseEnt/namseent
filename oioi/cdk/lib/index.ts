@@ -102,7 +102,17 @@ use_gzip_http_content_encoding = true
 [/var/log/messages]
 file = /var/log/messages
 log_group_name = ${systemMessagesLogGroup.logGroupName}
-log_stream_name = {instance_id}
+log_stream_name = {instance_id}-/var/log/messages/
+
+[/var/log/cfn-init-cmd.log]
+file = /var/log/cfn-init-cmd.log
+log_group_name = ${systemMessagesLogGroup.logGroupName}
+log_stream_name = {instance_id}-/var/log/cfn-init-cmd.log
+
+[/var/log/cfn-init.log]
+file = /var/log/cfn-init.log
+log_group_name = ${systemMessagesLogGroup.logGroupName}
+log_stream_name = {instance_id}-/var/log/cfn-init.log
 `,
                     ),
                     cdk.aws_ec2.InitPackage.yum("awslogs"),
