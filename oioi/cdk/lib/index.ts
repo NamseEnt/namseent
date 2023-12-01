@@ -51,7 +51,7 @@ export class Oioi extends Construct {
                 retention:
                     props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK,
                 removalPolicy:
-                    props.logRemovalPolicy ?? cdk.RemovalPolicy.DESTROY,
+                    props.logRemovalPolicy ?? cdk.RemovalPolicy.RETAIN,
             },
         );
 
@@ -59,7 +59,7 @@ export class Oioi extends Construct {
             logGroupName: `/oioi/${props.groupName}/agent`,
             retention:
                 props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK,
-            removalPolicy: props.logRemovalPolicy ?? cdk.RemovalPolicy.DESTROY,
+            removalPolicy: props.logRemovalPolicy ?? cdk.RemovalPolicy.RETAIN,
         });
 
         const imageParameter = new cdk.aws_ssm.StringParameter(
