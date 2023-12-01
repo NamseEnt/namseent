@@ -24,7 +24,10 @@ export class Oioi extends Construct {
     constructor(scope: Construct, id: string, props: OioiProps) {
         super(scope, id);
         const stack = cdk.Stack.of(this);
-        const stackUuid = stack.stackId.split("/")[2];
+        const stackUuid = cdk.Fn.select(
+            2,
+            cdk.Fn.split("/", `${cdk.Aws.STACK_ID}`),
+        );
 
         this.vpc =
             props.vpc ??
