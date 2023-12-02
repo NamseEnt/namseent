@@ -7,7 +7,7 @@ export class OioiTestCdkStack extends cdk.Stack {
         super(scope, id, props);
 
         const image =
-            "public.ecr.aws/ecs-sample-image/amazon-ecs-sample:latest";
+            "threecomma/helloworld";
 
         const { vpc, autoScalingGroup } = new oioi.Oioi(this, "Oioi", {
             groupName: "test",
