@@ -1,9 +1,11 @@
 mod find_same_existing_image;
 mod get_image_hash;
+mod get_slide_path_list_in_order;
 mod parse_shape_group;
 mod ppt_path;
 
 use find_same_existing_image::find_same_existing_image;
+use get_slide_path_list_in_order::get_slide_path_list_in_order;
 use import::{Input, Page};
 use msoffice_pptx::document::PPTXDocument;
 use namui_type::Wh;
@@ -32,10 +34,15 @@ fn main() {
         Wh::new(slide_size.width, slide_size.height)
     };
     let mut input = Input { pages: Vec::new() };
+    let slide_list = get_slide_path_list_in_order(&mut zipper, &ppt);
 
-    for slide_index in 1..ppt.slide_map.len() + 1 {
-        let slide_name = format!("slide{}", slide_index);
-        let slide_path = PathBuf::from_str(&format!("ppt/slides/{slide_name}.xml")).unwrap();
+    for slide_path in slide_list {
+        let slide_name = slide_path
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
         let slide = ppt.slide_map.get(&slide_path).unwrap();
 
         let mut context = Context {
