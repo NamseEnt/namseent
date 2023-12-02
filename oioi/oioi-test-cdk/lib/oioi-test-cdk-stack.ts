@@ -25,6 +25,11 @@ export class OioiTestCdkStack extends cdk.Stack {
                     protocol: "tcp",
                 },
             ],
+            dockerLoginScript: `aws ecr get-login-password --region ${
+                this.region
+            } | docker login --username AWS --password-stdin ${
+                image.repository.repositoryUri.split("/")[0]
+            }`,
         });
 
         const albTargetGroup =

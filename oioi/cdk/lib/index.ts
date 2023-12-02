@@ -15,6 +15,7 @@ export interface OioiProps {
      * @default cdk.aws_logs.RetentionDays.ONE_WEEK
      * */
     logRetention?: cdk.aws_logs.RetentionDays;
+    dockerLoginScript?: string;
 }
 
 export class Oioi extends Construct {
@@ -135,6 +136,13 @@ aws ecr-public get-login-password --region us-east-1 |
 docker login --username AWS --password-stdin public.ecr.aws
 `.replaceAll("\n", " "),
                 ),
+                ...(props.dockerLoginScript
+                    ? [
+                          cdk.aws_ec2.InitCommand.shellCommand(
+                              props.dockerLoginScript,
+                          ),
+                      ]
+                    : []),
             ]),
             runAgent: new cdk.aws_ec2.InitConfig([
                 cdk.aws_ec2.InitCommand.shellCommand(
