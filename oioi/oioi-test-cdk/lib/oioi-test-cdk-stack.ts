@@ -6,15 +6,14 @@ export class OioiTestCdkStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        const image =
-            "threecomma/helloworld";
+        const image = "threecomma/helloworld";
 
         const { vpc, autoScalingGroup } = new oioi.Oioi(this, "Oioi", {
             groupName: "test",
             image,
             portMappings: [
                 {
-                    containerPort: 80,
+                    containerPort: 8080,
                     hostPort: 80,
                     protocol: "tcp",
                 },
