@@ -6,14 +6,20 @@ export class OioiTestCdkStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        const image = "threecomma/helloworld";
+        const image = new cdk.aws_ecr_assets.DockerImageAsset(this, "Image", {
+            directory: __dirname,
+            file: "sample.Dockerfile",
+            platform: cdk.aws_ecr_assets.Platform.LINUX_ARM64,
+        });
+
+        console.log("image.imageUri", image.imageUri);
 
         const { vpc, autoScalingGroup } = new oioi.Oioi(this, "Oioi", {
             groupName: "test",
-            image,
+            image: image.imageUri,
             portMappings: [
                 {
-                    containerPort: 8080,
+                    containerPort: 80,
                     hostPort: 80,
                     protocol: "tcp",
                 },
