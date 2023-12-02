@@ -15,7 +15,7 @@ export class OioiTestCdkStack extends cdk.Stack {
 
         console.log("image.imageUri", image.imageUri);
 
-        const { vpc, autoScalingGroup } = new oioi.Oioi(this, "Oioi", {
+        const { vpc, autoScalingGroup, alb } = new oioi.Oioi(this, "Oioi", {
             groupName: "test",
             image: image.imageUri,
             portMappings: [
@@ -43,15 +43,6 @@ export class OioiTestCdkStack extends cdk.Stack {
                     vpc,
                 },
             );
-
-        const alb = new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
-            this,
-            "Alb",
-            {
-                vpc,
-                internetFacing: true,
-            },
-        );
 
         alb.addListener("Listener", {
             port: 80,

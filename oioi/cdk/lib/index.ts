@@ -19,6 +19,7 @@ export interface OioiProps {
 
 export class Oioi extends Construct {
     public readonly vpc: cdk.aws_ec2.Vpc;
+    public readonly alb: cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer;
     public readonly autoScalingGroup: cdk.aws_autoscaling.AutoScalingGroup;
 
     constructor(scope: Construct, id: string, props: OioiProps) {
@@ -29,23 +30,23 @@ export class Oioi extends Construct {
             cdk.Fn.split("/", `${cdk.Aws.STACK_ID}`),
         );
 
-        this.vpc =
+        const vpc = (this.vpc =
             props.vpc ??
             new cdk.aws_ec2.Vpc(this, "Vpc", {
                 natGateways: 0,
                 restrictDefaultSecurityGroup: false,
-            });
+            }));
 
-        const alb =
+        const alb = (this.alb =
             props.alb ??
             new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
                 this,
                 "Alb",
                 {
-                    vpc: this.vpc,
+                    vpc,
                     internetFacing: true,
                 },
-            );
+            ));
 
         const systemMessagesLogGroup = new cdk.aws_logs.LogGroup(
             this,
@@ -79,9 +80,8 @@ export class Oioi extends Construct {
             setEnv: new cdk.aws_ec2.InitConfig([
                 cdk.aws_ec2.InitCommand.shellCommand("ec2-metadata -i"),
                 cdk.aws_ec2.InitCommand.shellCommand(
-                    "export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)",
+                    "echo $(ec2-metadata -i | cut -d ' ' -f 2)",
                 ),
-                cdk.aws_ec2.InitCommand.shellCommand("echo $EC2_INSTANCE_ID"),
             ]),
             awslogs: new cdk.aws_ec2.InitConfig([
                 cdk.aws_ec2.InitFile.fromString(
@@ -148,7 +148,7 @@ docker login --username AWS --password-stdin public.ecr.aws
                         `--log-opt awslogs-stream=$EC2_INSTANCE_ID`,
 
                         `-e GROUP_NAME=${props.groupName}`,
-                        `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
+                        `-e EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)`,
                         `-e PORT_MAPPINGS=${
                             props.portMappings
                                 ?.map(
@@ -170,7 +170,7 @@ docker login --username AWS --password-stdin public.ecr.aws
                     `
 until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region} elb describe-target-health
 --load-balancer-name ${alb.loadBalancerName}
---instances $EC2_INSTANCE_ID
+--instances $(ec2-metadata -i | cut -d ' ' -f 2)
 --query InstanceStates[0].State); sleep 10; done`.replaceAll("\n", " "),
                 ),
             ]),
@@ -183,11 +183,9 @@ until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region}
             configs,
         });
 
-        this.autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
-            this,
-            "ASG",
-            {
-                vpc: this.vpc,
+        const autoScalingGroup = (this.autoScalingGroup =
+            new cdk.aws_autoscaling.AutoScalingGroup(this, "ASG", {
+                vpc,
                 instanceType: cdk.aws_ec2.InstanceType.of(
                     cdk.aws_ec2.InstanceClass.T4G,
                     cdk.aws_ec2.InstanceSize.MICRO,
@@ -244,13 +242,12 @@ until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region}
                         }),
                     },
                 }),
-            },
-        );
+            }));
 
         // `applyCloudFormationInit` for verbose logs
-        this.autoScalingGroup.applyCloudFormationInit(init);
+        autoScalingGroup.applyCloudFormationInit(init);
 
-        this.autoScalingGroup.node.addDependency(
+        autoScalingGroup.node.addDependency(
             systemMessagesLogGroup,
             agentLogGroup,
             imageParameter,
