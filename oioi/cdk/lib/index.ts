@@ -234,11 +234,12 @@ until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region}
                                 }),
                             ],
                         }),
-                        publicEcr: new cdk.aws_iam.PolicyDocument({
+                        ecr: new cdk.aws_iam.PolicyDocument({
                             statements: [
                                 new cdk.aws_iam.PolicyStatement({
                                     actions: [
                                         "ecr-public:GetAuthorizationToken",
+                                        "ecr:GetAuthorizationToken",
                                     ],
                                     resources: ["*"],
                                 }),
