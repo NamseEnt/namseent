@@ -10,6 +10,9 @@ export class OioiTestCdkStack extends cdk.Stack {
             directory: __dirname,
             file: "sample.Dockerfile",
             platform: cdk.aws_ecr_assets.Platform.LINUX_ARM64,
+            buildArgs: {
+                "--load": "",
+            },
         });
 
         console.log("image.imageUri", image.imageUri);
