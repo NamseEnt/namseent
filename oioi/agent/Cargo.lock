@@ -989,8 +989,6 @@ dependencies = [
  "bollard",
  "futures-util",
  "lazy_static",
- "serde",
- "serde_json",
  "tokio",
 ]
 
