@@ -2,11 +2,13 @@ use anyhow::Result;
 
 pub(crate) async fn run(command: impl AsRef<str>) -> Result<Vec<u8>> {
     let command = command.as_ref();
-    let args = command.split_whitespace();
 
     let output = tokio::process::Command::new("bash")
         .arg("-c")
-        .args(args)
+        .arg(format!(
+            "\"{command}\"",
+            command = command.replace('"', "\\\"")
+        ))
         .output()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to run {command}: {e}"))?;
