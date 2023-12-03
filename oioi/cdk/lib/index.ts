@@ -168,6 +168,7 @@ docker login --username AWS --password-stdin public.ecr.aws
                                 .join(",") ?? ""
                         }`,
                         "-v /var/run/docker.sock:/var/run/docker.sock",
+                        "-v /root/.docker/config.json:/root/.docker/config.json",
                     ].join(
                         " ",
                     )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
