@@ -200,7 +200,6 @@ docker login --username AWS --password-stdin public.ecr.aws
                     cpuType: cdk.aws_ec2.AmazonLinuxCpuType.ARM_64,
                 }),
                 associatePublicIpAddress: true,
-                signals: cdk.aws_autoscaling.Signals.waitForMinCapacity(),
                 updatePolicy:
                     cdk.aws_autoscaling.UpdatePolicy.replacingUpdate(),
                 vpcSubnets: {
