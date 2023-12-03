@@ -68,13 +68,10 @@ export class Oioi extends Construct {
 
         const imageUri = (() => {
             const image = props.image;
+
             // I Have no idea why instanceof cdk.aws_ecr_assets.DockerImageAsset is not working
             if ("imageUri" in image) {
-                const account = image.imageUri.split(".")[0].split("/")[0];
-                const region = image.imageUri.split(".")[3];
-                const repository = image.imageUri.split("/")[1];
-                const tag = image.imageUri.split(":")[1];
-                return `${account}.dkr.ecr.${region}.amazonaws.com/${repository}:${tag}`;
+                return image.imageUri;
             }
             if (image instanceof OioiDockerNormalImage) {
                 return image.uri;
@@ -93,10 +90,8 @@ export class Oioi extends Construct {
 
         const dockerLoginScript = (() => {
             const image = props.image;
-            if (image instanceof cdk.aws_ecr_assets.DockerImageAsset) {
-                const account = image.imageUri.split(".")[0].split("/")[0];
-                const region = image.imageUri.split(".")[3];
-                return `aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com`;
+            if ("imageUri" in image) {
+                return `aws ecr get-login-password | docker login --username AWS --password-stdin ${image.repository.repositoryUri}`;
             }
             return "";
         })();
