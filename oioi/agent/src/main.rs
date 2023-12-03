@@ -1,3 +1,4 @@
+mod command;
 mod docker_cli;
 mod docker_engine;
 mod envs;
@@ -15,6 +16,10 @@ async fn real_main() -> Result<()> {
 
     let docker_engine = docker_engine::DockerEngine::new()?;
     let mut running_image_digest_cache = None;
+
+    if !DOCKER_LOGIN_SCRIPT.is_empty() {
+        command::run(DOCKER_LOGIN_SCRIPT.as_str()).await?;
+    }
 
     loop {
         let Some(image) = get_target_image().await? else {

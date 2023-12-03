@@ -19,6 +19,7 @@ lazy_static::lazy_static! {
             }
         }).collect()
     }).expect("PORT_MAPPINGS env var not set");
+    pub(crate) static ref DOCKER_LOGIN_SCRIPT: String = std::env::var("DOCKER_LOGIN_SCRIPT").expect("DOCKER_LOGIN_SCRIPT env var not set");
 }
 
 #[derive(Debug)]

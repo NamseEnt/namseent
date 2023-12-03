@@ -3,7 +3,21 @@ import { Construct } from "constructs";
 
 export interface OioiProps {
     groupName: string;
-    image: string;
+    image:
+        | {
+              type: "ecr";
+              account: string;
+              region: string;
+              repository: string;
+              tag: string;
+          }
+        | {
+              type: "normal";
+              /**
+               * @example public.ecr.aws/o4b6l4b3/oioi:latest
+               */
+              uri: string;
+          };
     vpc?: cdk.aws_ec2.Vpc;
     alb?: cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer;
     portMappings?: PortMapping[];
@@ -15,7 +29,6 @@ export interface OioiProps {
      * @default cdk.aws_logs.RetentionDays.ONE_WEEK
      * */
     logRetention?: cdk.aws_logs.RetentionDays;
-    dockerLoginScript?: string;
 }
 
 export class Oioi extends Construct {
@@ -25,7 +38,6 @@ export class Oioi extends Construct {
 
     constructor(scope: Construct, id: string, props: OioiProps) {
         super(scope, id);
-        const stack = cdk.Stack.of(this);
         const stackUuid = cdk.Fn.select(
             2,
             cdk.Fn.split("/", `${cdk.Aws.STACK_ID}`),
@@ -68,14 +80,32 @@ export class Oioi extends Construct {
             removalPolicy: props.logRemovalPolicy ?? cdk.RemovalPolicy.RETAIN,
         });
 
+        const imageUri = (() => {
+            const image = props.image;
+            if (image.type === "ecr") {
+                return `${image.account}.dkr.ecr.${image.region}.amazonaws.com/${image.repository}:${image.tag}`;
+            } else {
+                return image.uri;
+            }
+        })();
+
         const imageParameter = new cdk.aws_ssm.StringParameter(
             this,
             "ImageParameter",
             {
                 parameterName: `/oioi/${props.groupName}/image`,
-                stringValue: props.image,
+                stringValue: imageUri,
             },
         );
+
+        const dockerLoginScript = (() => {
+            const image = props.image;
+            if (image.type === "ecr") {
+                return `aws ecr get-login-password --region ${image.region} | docker login --username AWS --password-stdin ${image.account}.dkr.ecr.${image.region}.amazonaws.com`;
+            } else {
+                return "";
+            }
+        })();
 
         const initConfigs: Record<string, cdk.aws_ec2.InitConfig> = {
             setEnv: new cdk.aws_ec2.InitConfig([
@@ -136,13 +166,6 @@ aws ecr-public get-login-password --region us-east-1 |
 docker login --username AWS --password-stdin public.ecr.aws
 `.replaceAll("\n", " "),
                 ),
-                ...(props.dockerLoginScript
-                    ? [
-                          cdk.aws_ec2.InitCommand.shellCommand(
-                              props.dockerLoginScript,
-                          ),
-                      ]
-                    : []),
             ]),
             runAgent: new cdk.aws_ec2.InitConfig([
                 cdk.aws_ec2.InitCommand.shellCommand(
@@ -167,8 +190,9 @@ docker login --username AWS --password-stdin public.ecr.aws
                                 )
                                 .join(",") ?? ""
                         }`,
+                        `-e DOCKER_LOGIN_SCRIPT=${dockerLoginScript}`,
+
                         "-v /var/run/docker.sock:/var/run/docker.sock",
-                        "-v /root/.docker/config.json:/root/.docker/config.json",
                     ].join(
                         " ",
                     )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
