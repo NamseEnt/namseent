@@ -68,7 +68,8 @@ export class Oioi extends Construct {
 
         const imageUri = (() => {
             const image = props.image;
-            if (image instanceof cdk.aws_ecr_assets.DockerImageAsset) {
+            // I Have no idea why instanceof cdk.aws_ecr_assets.DockerImageAsset is not working
+            if ("imageUri" in image) {
                 const account = image.imageUri.split(".")[0].split("/")[0];
                 const region = image.imageUri.split(".")[3];
                 const repository = image.imageUri.split("/")[1];
