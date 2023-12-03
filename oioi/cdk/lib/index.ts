@@ -77,7 +77,7 @@ export class Oioi extends Construct {
             },
         );
 
-        const configs: Record<string, cdk.aws_ec2.InitConfig> = {
+        const initConfigs: Record<string, cdk.aws_ec2.InitConfig> = {
             setEnv: new cdk.aws_ec2.InitConfig([
                 cdk.aws_ec2.InitCommand.shellCommand("ec2-metadata -i"),
                 cdk.aws_ec2.InitCommand.shellCommand(
@@ -174,23 +174,7 @@ docker login --username AWS --password-stdin public.ecr.aws
                     )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
                 ),
             ]),
-            verifyInstanceHealth: new cdk.aws_ec2.InitConfig([
-                cdk.aws_ec2.InitCommand.shellCommand(
-                    `
-until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region} elb describe-target-health
---load-balancer-name ${alb.loadBalancerName}
---instances $(ec2-metadata -i | cut -d ' ' -f 2)
---query InstanceStates[0].State); sleep 10; done`.replaceAll("\n", " "),
-                ),
-            ]),
         };
-
-        const init = cdk.aws_ec2.CloudFormationInit.fromConfigSets({
-            configSets: {
-                default: Object.keys(configs),
-            },
-            configs,
-        });
 
         const autoScalingGroup = (this.autoScalingGroup =
             new cdk.aws_autoscaling.AutoScalingGroup(this, "ASG", {
@@ -225,16 +209,6 @@ until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region}
                         ),
                     ],
                     inlinePolicies: {
-                        cloudFormationHelper: new cdk.aws_iam.PolicyDocument({
-                            statements: [
-                                new cdk.aws_iam.PolicyStatement({
-                                    actions: ["cloudformation:SignalResource"],
-                                    resources: [
-                                        `arn:aws:cloudformation:${stack.region}:${stack.account}:stack/${stack.stackName}/*`,
-                                    ],
-                                }),
-                            ],
-                        }),
                         ecr: new cdk.aws_iam.PolicyDocument({
                             statements: [
                                 new cdk.aws_iam.PolicyStatement({
@@ -252,10 +226,13 @@ until [ "$state" == "\\"InService\\"" ]; do state=$(aws --region ${stack.region}
                         }),
                     },
                 }),
+                init: cdk.aws_ec2.CloudFormationInit.fromConfigSets({
+                    configSets: {
+                        default: Object.keys(initConfigs),
+                    },
+                    configs: initConfigs,
+                }),
             }));
-
-        // `applyCloudFormationInit` for verbose logs
-        autoScalingGroup.applyCloudFormationInit(init);
 
         autoScalingGroup.node.addDependency(
             systemMessagesLogGroup,
