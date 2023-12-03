@@ -1,4 +1,4 @@
-mod command;
+mod bash;
 mod container_config;
 mod docker_cli;
 mod docker_engine;
@@ -41,7 +41,7 @@ async fn real_main() -> Result<()> {
         last_updated_at = Some(updated_at);
 
         if !docker_login_script.is_empty() {
-            command::run(docker_login_script.as_str()).await?;
+            bash::run(docker_login_script.as_str()).await?;
             println!("Docker Logged in.");
         }
 
