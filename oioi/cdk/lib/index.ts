@@ -215,11 +215,11 @@ docker login --username AWS --password-stdin public.ecr.aws
                                     actions: [
                                         "ecr-public:GetAuthorizationToken",
                                         "ecr:GetAuthorizationToken",
+                                        "ecr:BatchGetImage",
+                                        "ecr:BatchCheckLayerAvailability",
+                                        "ecr:GetDownloadUrlForLayer",
+                                        "sts:GetServiceBearerToken",
                                     ],
-                                    resources: ["*"],
-                                }),
-                                new cdk.aws_iam.PolicyStatement({
-                                    actions: ["sts:GetServiceBearerToken"],
                                     resources: ["*"],
                                 }),
                             ],
