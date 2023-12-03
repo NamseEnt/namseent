@@ -36,7 +36,7 @@ export class Oioi extends Construct {
                 restrictDefaultSecurityGroup: false,
             }));
 
-        const alb = (this.alb =
+        this.alb =
             props.alb ??
             new cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer(
                 this,
@@ -45,7 +45,7 @@ export class Oioi extends Construct {
                     vpc,
                     internetFacing: true,
                 },
-            ));
+            );
 
         const systemMessagesLogGroup = new cdk.aws_logs.LogGroup(
             this,
@@ -79,15 +79,6 @@ export class Oioi extends Construct {
             throw new Error("Invalid image");
         })();
 
-        const imageParameter = new cdk.aws_ssm.StringParameter(
-            this,
-            "ImageParameter",
-            {
-                parameterName: `/oioi/${props.groupName}/image`,
-                stringValue: imageUri,
-            },
-        );
-
         const dockerLoginScript = (() => {
             const image = props.image;
             if ("imageUri" in image) {
@@ -96,98 +87,19 @@ export class Oioi extends Construct {
             return "";
         })();
 
-        const initConfigs: Record<string, cdk.aws_ec2.InitConfig> = {
-            setEnv: new cdk.aws_ec2.InitConfig([
-                cdk.aws_ec2.InitCommand.shellCommand("ec2-metadata -i"),
-                cdk.aws_ec2.InitCommand.shellCommand(
-                    "echo $(ec2-metadata -i | cut -d ' ' -f 2)",
-                ),
-            ]),
-            awslogs: new cdk.aws_ec2.InitConfig([
-                cdk.aws_ec2.InitFile.fromString(
-                    "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
-                    `
-{
-    "logs": {
-        "logs_collected": {
-            "files": {
-                "collect_list": [
-                    {
-                        "file_path": "/var/log/messages",
-                        "log_group_name": "${systemMessagesLogGroup.logGroupName}",
-                        "log_stream_name": "{instance_id}-/var/log/messages/"
-                    },
-                    {
-                        "file_path": "/var/log/cfn-init-cmd.log",
-                        "log_group_name": "${systemMessagesLogGroup.logGroupName}",
-                        "log_stream_name": "{instance_id}-/var/log/cfn-init-cmd.log"
-                    },
-                    {
-                        "file_path": "/var/log/cfn-init.log",
-                        "log_group_name": "${systemMessagesLogGroup.logGroupName}",
-                        "log_stream_name": "{instance_id}-/var/log/cfn-init.log"
-                    }
-                ]
-            }
-        }
-    }       
-}
-`,
-                ),
-                cdk.aws_ec2.InitPackage.yum("amazon-cloudwatch-agent"),
-                cdk.aws_ec2.InitCommand.shellCommand(
-                    `/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s`,
-                ),
-            ]),
-            helloWorld: new cdk.aws_ec2.InitConfig([
-                cdk.aws_ec2.InitCommand.shellCommand(
-                    `echo Hello, oioi! EC2_INSTANCE_ID = $EC2_INSTANCE_ID`,
-                ),
-            ]),
-            docker: new cdk.aws_ec2.InitConfig([
-                cdk.aws_ec2.InitPackage.yum("docker"),
-                cdk.aws_ec2.InitService.enable("docker"),
-            ]),
-            ecrLogin: new cdk.aws_ec2.InitConfig([
-                cdk.aws_ec2.InitCommand.shellCommand(
-                    `
-aws ecr-public get-login-password --region us-east-1 |
-docker login --username AWS --password-stdin public.ecr.aws
-`.replaceAll("\n", " "),
-                ),
-            ]),
-            runAgent: new cdk.aws_ec2.InitConfig([
-                cdk.aws_ec2.InitCommand.shellCommand(
-                    `docker run ${[
-                        "-d",
-                        "--restart always",
-                        "--name oioi-agent",
-
-                        "--log-driver awslogs",
-                        `--log-opt awslogs-group=${agentLogGroup.logGroupName}`,
-                        `--log-opt awslogs-stream=$EC2_INSTANCE_ID`,
-
-                        `-e GROUP_NAME=${props.groupName}`,
-                        `-e EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)`,
-                        `-e PORT_MAPPINGS=${
-                            props.portMappings
-                                ?.map(
-                                    ({ containerPort, hostPort, protocol }) =>
-                                        `${
-                                            hostPort ?? containerPort
-                                        }:${containerPort}/${protocol}`,
-                                )
-                                .join(",") ?? ""
-                        }`,
-                        `-e DOCKER_LOGIN_SCRIPT=${dockerLoginScript}`,
-
-                        "-v /var/run/docker.sock:/var/run/docker.sock",
-                    ].join(
-                        " ",
-                    )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
-                ),
-            ]),
-        };
+        const imageParameter = new cdk.aws_ssm.StringParameter(
+            this,
+            "ImageParameter",
+            {
+                parameterName: `/oioi/${props.groupName}/container-config`,
+                stringValue: JSON.stringify({
+                    imageUri,
+                    portMappings: props.portMappings,
+                    dockerLoginScript,
+                    updatedAt: new Date().toISOString(),
+                }),
+            },
+        );
 
         const autoScalingGroup = (this.autoScalingGroup =
             new cdk.aws_autoscaling.AutoScalingGroup(this, "ASG", {
@@ -238,12 +150,69 @@ docker login --username AWS --password-stdin public.ecr.aws
                         }),
                     },
                 }),
-                init: cdk.aws_ec2.CloudFormationInit.fromConfigSets({
-                    configSets: {
-                        default: Object.keys(initConfigs),
-                    },
-                    configs: initConfigs,
-                }),
+                userData: (() => {
+                    const userData = cdk.aws_ec2.UserData.forLinux();
+                    userData.addCommands(
+                        `export EC2_INSTANCE_ID=$(ec2-metadata -i | cut -d ' ' -f 2)`,
+                        `export GROUP_NAME=${props.groupName}`,
+
+                        `cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+{
+    "logs": {
+        "logs_collected": {
+            "files": {
+                "collect_list": [
+                    {
+                        "file_path": "/var/log/messages",
+                        "log_group_name": "${systemMessagesLogGroup.logGroupName}",
+                        "log_stream_name": "{instance_id}-/var/log/messages/"
+                    }
+                ]
+            }
+        }
+    }
+}
+
+EOF
+`,
+                        `yum install -y amazon-cloudwatch-agent`,
+                        `\
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+-a fetch-config \
+-m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+-s`,
+
+                        `echo Hello, oioi! EC2_INSTANCE_ID = $EC2_INSTANCE_ID`,
+
+                        `yum install -y docker`,
+                        `systemctl enable docker`,
+                        `systemctl start docker`,
+
+                        `\
+aws ecr-public get-login-password --region us-east-1 | \
+docker login --username AWS --password-stdin public.ecr.aws
+`,
+
+                        `docker run ${[
+                            "-d",
+                            "--restart always",
+                            "--name oioi-agent",
+
+                            "--log-driver awslogs",
+                            `--log-opt awslogs-group=${agentLogGroup.logGroupName}`,
+                            `--log-opt awslogs-stream=$EC2_INSTANCE_ID`,
+
+                            `-e GROUP_NAME=${props.groupName}`,
+                            `-e EC2_INSTANCE_ID=$EC2_INSTANCE_ID`,
+
+                            "-v /var/run/docker.sock:/var/run/docker.sock",
+                        ].join(
+                            " ",
+                        )} public.ecr.aws/o4b6l4b3/oioi:latest ./oioi-agent`,
+                    );
+
+                    return userData;
+                })(),
             }));
 
         autoScalingGroup.node.addDependency(

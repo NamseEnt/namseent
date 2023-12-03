@@ -1,4 +1,4 @@
-use crate::envs::*;
+use crate::{container_config::PortMapping, docker_cli, envs::*};
 use anyhow::Result;
 use bollard::{container::ListContainersOptions, Docker};
 
@@ -13,16 +13,13 @@ impl DockerEngine {
         })
     }
 
-    pub(crate) async fn get_local_image_digest(&self, image: &str) -> Result<String> {
+    async fn get_local_image_digest(&self, image: &str) -> Result<String> {
         let output = self.docker.inspect_image(image).await?;
 
         Ok(output.id.unwrap())
     }
 
-    pub(crate) async fn get_running_container_image_digest(
-        &self,
-        container_name: &str,
-    ) -> Result<Option<String>> {
+    pub(crate) async fn get_running_container(&self) -> Result<Option<OioiContainerConfig>> {
         Ok(self
             .docker
             .list_containers(Some(ListContainersOptions::<String> {
@@ -31,12 +28,31 @@ impl DockerEngine {
             }))
             .await?
             .into_iter()
-            .find_map(|container| {
+            .find(|container| {
                 container
                     .names
+                    .as_ref()
+                    .map(|names| names.contains(&format!("/{}", CONTAINER_NAME)))
+                    .unwrap_or(false)
+            })
+            .map(|container| OioiContainerConfig {
+                image_uri: container.image.unwrap(),
+                image_digest: container.image_id.unwrap(),
+                port_mappings: container
+                    .ports
                     .unwrap_or_default()
-                    .contains(&format!("/{container_name}"))
-                    .then(|| container.image_id.unwrap())
+                    .into_iter()
+                    .map(|port| PortMapping {
+                        container_port: port.private_port,
+                        host_port: port.public_port.unwrap_or(port.private_port),
+                        protocol: match port.typ.unwrap() {
+                            bollard::service::PortTypeEnum::EMPTY => unreachable!(),
+                            bollard::service::PortTypeEnum::TCP => "tcp".to_string(),
+                            bollard::service::PortTypeEnum::UDP => "udp".to_string(),
+                            bollard::service::PortTypeEnum::SCTP => "sctp".to_string(),
+                        },
+                    })
+                    .collect(),
             }))
     }
 
@@ -52,7 +68,31 @@ impl DockerEngine {
         Ok(())
     }
 
-    pub(crate) async fn run_new_container(&self, image: &str) -> Result<()> {
+    pub(crate) async fn update_container(
+        &mut self,
+        OioiContainer {
+            image_uri,
+            port_mappings,
+        }: OioiContainer,
+    ) -> Result<()> {
+        // pull image to get most recent remote image digest
+        docker_cli::pull_image(&image_uri).await?;
+        let target_container_config = OioiContainerConfig {
+            image_digest: self.get_local_image_digest(&image_uri).await?,
+            image_uri,
+            port_mappings,
+        };
+
+        if let Some(running_container) = self.get_running_container().await? {
+            if running_container == target_container_config {
+                println!("No update.");
+                tokio::time::sleep(INTERVAL).await;
+                return Ok(());
+            }
+
+            self.stop_running_container().await?;
+        }
+
         println!("removing container {CONTAINER_NAME}");
         let remove_container_result = self
             .docker
@@ -83,7 +123,7 @@ impl DockerEngine {
                     platform: None,
                 }),
                 bollard::container::Config {
-                    image: Some(image.to_string()),
+                    image: Some(target_container_config.image_uri.to_string()),
                     host_config: Some(bollard::models::HostConfig {
                         log_config: Some(bollard::models::HostConfigLogConfig {
                             typ: Some("awslogs".to_string()),
@@ -97,7 +137,8 @@ impl DockerEngine {
                             ])),
                         }),
                         port_bindings: Some(std::collections::HashMap::from_iter(
-                            PORT_MAPPINGS
+                            target_container_config
+                                .port_mappings
                                 .iter()
                                 .map(|mapping| {
                                     println!("mapping: {:?}", mapping);
@@ -148,4 +189,17 @@ impl DockerEngine {
 
         Ok(())
     }
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct OioiContainer {
+    pub(crate) image_uri: String,
+    pub(crate) port_mappings: Vec<PortMapping>,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct OioiContainerConfig {
+    pub(crate) image_uri: String,
+    pub(crate) image_digest: String,
+    pub(crate) port_mappings: Vec<PortMapping>,
 }
