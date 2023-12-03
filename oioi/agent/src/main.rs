@@ -19,6 +19,7 @@ async fn real_main() -> Result<()> {
 
     if !DOCKER_LOGIN_SCRIPT.is_empty() {
         command::run(DOCKER_LOGIN_SCRIPT.as_str()).await?;
+        println!("Docker Logged in.");
     }
 
     loop {
