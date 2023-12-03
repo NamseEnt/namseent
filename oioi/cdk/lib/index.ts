@@ -3,21 +3,7 @@ import { Construct } from "constructs";
 
 export interface OioiProps {
     groupName: string;
-    image:
-        | {
-              type: "ecr";
-              account: string;
-              region: string;
-              repository: string;
-              tag: string;
-          }
-        | {
-              type: "normal";
-              /**
-               * @example public.ecr.aws/o4b6l4b3/oioi:latest
-               */
-              uri: string;
-          };
+    image: cdk.aws_ecr_assets.DockerImageAsset | OioiDockerNormalImage;
     vpc?: cdk.aws_ec2.Vpc;
     alb?: cdk.aws_elasticloadbalancingv2.ApplicationLoadBalancer;
     portMappings?: PortMapping[];
@@ -82,11 +68,17 @@ export class Oioi extends Construct {
 
         const imageUri = (() => {
             const image = props.image;
-            if (image.type === "ecr") {
-                return `${image.account}.dkr.ecr.${image.region}.amazonaws.com/${image.repository}:${image.tag}`;
-            } else {
+            if (image instanceof cdk.aws_ecr_assets.DockerImageAsset) {
+                const account = image.imageUri.split(".")[0].split("/")[0];
+                const region = image.imageUri.split(".")[3];
+                const repository = image.imageUri.split("/")[1];
+                const tag = image.imageUri.split(":")[1];
+                return `${account}.dkr.ecr.${region}.amazonaws.com/${repository}:${tag}`;
+            }
+            if (image instanceof OioiDockerNormalImage) {
                 return image.uri;
             }
+            throw new Error("Invalid image");
         })();
 
         const imageParameter = new cdk.aws_ssm.StringParameter(
@@ -100,11 +92,12 @@ export class Oioi extends Construct {
 
         const dockerLoginScript = (() => {
             const image = props.image;
-            if (image.type === "ecr") {
-                return `aws ecr get-login-password --region ${image.region} | docker login --username AWS --password-stdin ${image.account}.dkr.ecr.${image.region}.amazonaws.com`;
-            } else {
-                return "";
+            if (image instanceof cdk.aws_ecr_assets.DockerImageAsset) {
+                const account = image.imageUri.split(".")[0].split("/")[0];
+                const region = image.imageUri.split(".")[3];
+                return `aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com`;
             }
+            return "";
         })();
 
         const initConfigs: Record<string, cdk.aws_ec2.InitConfig> = {
@@ -273,3 +266,11 @@ type PortMapping = {
     hostPort: number;
     protocol: "tcp" | "udp";
 };
+
+export class OioiDockerNormalImage {
+    public readonly uri: string;
+
+    constructor(uri: string) {
+        this.uri = uri;
+    }
+}

@@ -13,11 +13,9 @@ export class OioiTestCdkStack extends cdk.Stack {
             outputs: ["type=docker"],
         });
 
-        console.log("image.imageUri", image.imageUri);
-
         const { vpc, autoScalingGroup, alb } = new oioi.Oioi(this, "Oioi", {
             groupName: "test",
-            image: image.imageUri,
+            image,
             portMappings: [
                 {
                     containerPort: 80,
@@ -25,11 +23,6 @@ export class OioiTestCdkStack extends cdk.Stack {
                     protocol: "tcp",
                 },
             ],
-            dockerLoginScript: `aws ecr get-login-password --region ${
-                this.region
-            } | docker login --username AWS --password-stdin ${
-                image.repository.repositoryUri.split("/")[0]
-            }`,
         });
 
         const albTargetGroup =
