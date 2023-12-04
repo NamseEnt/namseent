@@ -4,10 +4,10 @@ on:
     paths:
       - "oioi/**"
       - ".github/workflows/oioi-agent-image-push.yml"
-  # push:
-  #   branches:
-  #     - master
-  # pull_request:
+  pull_request:
+    paths:
+      - "oioi/**"
+      - ".github/workflows/oioi-agent-image-push.yml"
 
 concurrency:
   group: ${{ github.ref }}-oioi-agent-image-push
@@ -172,4 +172,4 @@ jobs:
             exit 1
           fi
 
-          # aws cloudformation delete-stack --stack-name $STACK_NAME
+          aws cloudformation delete-stack --stack-name $STACK_NAME
