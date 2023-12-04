@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=./cicd-schema.yml
+
+version: 1
+
+rust:
+  arch: arm64

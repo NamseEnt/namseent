@@ -1,0 +1,25 @@
+$schema: http://json-schema.org/draft-07/schema#
+
+type: object
+properties:
+  version:
+    type: number
+    minimum: 1
+    maximum: 1
+
+  rust:
+    type: object
+    properties:
+      timeout_minutes:
+        description: |
+          The maximum number of minutes to allow the build to run before
+          timing out. If not specified, the default is 15 minutes.
+        type: number
+        minimum: 1
+        optional: true
+
+      arch:
+        type: string
+        enum:
+          - x86_64
+          - aarch64
