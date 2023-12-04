@@ -47,23 +47,23 @@ export class Oioi extends Construct {
                 },
             );
 
+        const logRemovalPolicy = props.logRemovalPolicy ?? cdk.RemovalPolicy.DESTROY;
+        const logRetention = props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK;
+
         const systemMessagesLogGroup = new cdk.aws_logs.LogGroup(
             this,
             "SystemMessagesLogGroup",
             {
                 logGroupName: `/oioi/${props.groupName}/system_messages-${stackUuid}`,
-                retention:
-                    props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK,
-                removalPolicy:
-                    props.logRemovalPolicy ?? cdk.RemovalPolicy.RETAIN,
+                retention: logRetention,
+                removalPolicy: logRemovalPolicy,
             },
         );
 
         const agentLogGroup = new cdk.aws_logs.LogGroup(this, "AgentLogGroup", {
             logGroupName: `/oioi/${props.groupName}/agent-${stackUuid}`,
-            retention:
-                props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK,
-            removalPolicy: props.logRemovalPolicy ?? cdk.RemovalPolicy.RETAIN,
+            retention: logRetention,
+            removalPolicy: logRemovalPolicy,
         });
 
         const imageUri = (() => {

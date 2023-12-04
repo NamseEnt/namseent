@@ -11,6 +11,7 @@ export class OioiTestCdkStack extends cdk.Stack {
             file: "sample.Dockerfile",
             platform: cdk.aws_ecr_assets.Platform.LINUX_ARM64,
             outputs: ["type=docker"],
+            
         });
 
         const { vpc, autoScalingGroup, alb } = new oioi.Oioi(this, "Oioi", {
@@ -106,11 +107,11 @@ def handler(event, context):
         const now = new Date();
         const minutes = now.getMinutes();
 
-        const minus5Minutes = (60 + (minutes - 5)) % 60;
+        const plus30Minutes = (60 + (minutes + 30)) % 60;
 
         new cdk.aws_events.Rule(this, "Rule", {
             schedule: cdk.aws_events.Schedule.cron({
-                minute: minus5Minutes.toString(),
+                minute: plus30Minutes.toString(),
                 hour: "*",
             }),
             targets: [new cdk.aws_events_targets.LambdaFunction(lambda)],
