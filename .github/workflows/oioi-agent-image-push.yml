@@ -151,7 +151,10 @@ jobs:
           SUCCESS=false
 
           while [ $retries -lt $MAX_RETRIES ]; do
-            response=$(curl -s -o /dev/null -w "%{http_code}" http://$DNS_NAME)
+            response=$(curl -s -o /dev/null -w "%{http_code}" http://$DNS_NAME || exit_status=$?)
+
+            echo exit_status = $exit_status
+            echo response = $response
             
             if [ $response -eq 200 ]; then
               echo "HTTP Endpoint check successful."
