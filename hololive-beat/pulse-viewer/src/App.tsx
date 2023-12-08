@@ -1,8 +1,8 @@
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
-import kickOpus from "/kick.opus";
+import opus from "/cymbals.opus";
 import Peaks, { PeaksInstance } from "peaks.js";
-import kickTxt from "/kick.txt";
+import txt from "/cymbals.txt";
 
 function App() {
     const [audioBuffer, setAudioBuffer] = useState<AudioBuffer>();
@@ -15,7 +15,7 @@ function App() {
 
     useEffect(() => {
         (async () => {
-            const response = await fetch(kickOpus);
+            const response = await fetch(opus);
             const arrayBuffer = await response.arrayBuffer();
 
             const audioContext = new AudioContext();
@@ -27,7 +27,7 @@ function App() {
 
     useEffect(() => {
         const id = setTimeout(async () => {
-            const response = await fetch(kickTxt);
+            const response = await fetch(txt);
             const text = await response.text();
             setOnsetText(text);
         }, 1000);
@@ -158,7 +158,7 @@ function App() {
                 }}
                 onWheel={onWheel}
             />
-            <audio ref={mediaElementRef} src={kickOpus} controls />
+            <audio ref={mediaElementRef} src={opus} controls />
             <span>Time in seconds: {timeInSeconds}</span>
             <textarea
                 value={onsetText}
