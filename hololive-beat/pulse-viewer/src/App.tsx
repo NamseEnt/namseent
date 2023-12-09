@@ -1,8 +1,8 @@
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
-import opus from "/cymbals.opus";
+import opus from "/snare.opus";
 import Peaks, { PeaksInstance } from "peaks.js";
-import txt from "/cymbals.txt";
+import txt from "/snare.txt";
 
 function App() {
     const [audioBuffer, setAudioBuffer] = useState<AudioBuffer>();
@@ -10,7 +10,7 @@ function App() {
     const zoomviewRef = useRef<HTMLDivElement>(null);
     const overviewRef = useRef<HTMLDivElement>(null);
     const mediaElementRef = useRef<HTMLAudioElement>(null);
-    const [onsetText, setOnsetText] = useState<string>();
+    const [onsetText, setOnsetText] = useState<string>("");
     const [timeInSeconds, setTimeInSeconds] = useState<number>();
 
     useEffect(() => {
@@ -26,15 +26,11 @@ function App() {
     }, []);
 
     useEffect(() => {
-        const id = setTimeout(async () => {
+        (async () => {
             const response = await fetch(txt);
             const text = await response.text();
             setOnsetText(text);
-        }, 1000);
-
-        return () => {
-            clearTimeout(id);
-        };
+        })();
     }, []);
 
     useEffect(() => {
@@ -103,9 +99,6 @@ function App() {
                 case "Enter":
                     {
                         setOnsetText((prev) => {
-                            if (!prev) {
-                                return prev;
-                            }
                             return [
                                 ...prev.split("\n").map((x) => Number(x)),
                                 peaksInstance.player.getCurrentTime(),
