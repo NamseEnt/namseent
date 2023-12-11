@@ -1,13 +1,8 @@
 [package]
-name = "remote-develop-agent"
+name = "test-app"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.75"
-axum = "0.7.2"
-flate2 = "1.0.28"
-tar = "0.4.40"
-tokio = { version = "1.35.0", features = ["full"] }

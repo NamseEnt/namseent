@@ -8,12 +8,18 @@ pub async fn start_remote_run(
 ) -> Result<()> {
     let tar_gz = write_tar_gz(directory)?;
 
-    reqwest::Client::new()
+    let response = reqwest::Client::new()
         .post(format!("http://{}:8986/start_remote_run", remote_ip))
         .header("exetuable-name", executable_name)
         .body(tar_gz)
         .send()
         .await?;
+
+    if !response.status().is_success() {
+        let status_code = response.status();
+        let content = response.text().await?;
+        anyhow::bail!("Status code: {}, content: {}", status_code, content);
+    }
 
     Ok(())
 }
@@ -79,25 +85,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_start_remote_run() {
-        let temp_dir = std::env::temp_dir();
-        let root = temp_dir.join("remote-develop-agent-test_start_remote_run");
-        if root.exists() {
-            std::fs::remove_dir_all(&root).unwrap();
-        }
-        std::fs::create_dir_all(&root).unwrap();
-        let file_path = root.join("test.sh");
-        let mut file = std::fs::File::create(file_path).unwrap();
-        file.write_all(
-            "#!/bin/bash
-            echo Hello > target/output.txt"
-                .as_bytes(),
-        )
-        .unwrap();
+        std::process::Command::new("cargo")
+            .args(["build"])
+            .current_dir("../test-app")
+            .output()
+            .unwrap();
+
+        std::process::Command::new("cargo")
+            .args(["build"])
+            .current_dir("../agent")
+            .output()
+            .unwrap();
 
         let mut agent_command = std::process::Command::new("cargo")
             .args(["run"])
             .current_dir("../agent")
-            .stdout(std::process::Stdio::null())
             .spawn()
             .unwrap();
 
@@ -108,6 +110,9 @@ mod tests {
                 agent_command.kill().unwrap();
                 panic!("Agent not started");
             }
+            if agent_command.try_wait().unwrap().is_some() {
+                panic!("Agent exited");
+            }
             if reqwest::get("http://127.0.0.1:8986/health").await.is_ok() {
                 break;
             }
@@ -116,9 +121,19 @@ mod tests {
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         }
 
-        start_remote_run("127.0.0.1", &root, "test.sh")
-            .await
-            .unwrap();
+        let executable_name = if cfg!(windows) {
+            "test-app.exe"
+        } else {
+            "test-app"
+        };
+
+        start_remote_run(
+            "127.0.0.1",
+            Path::new("../test-app/target/debug"),
+            executable_name,
+        )
+        .await
+        .unwrap();
 
         let mut retry = 0;
         loop {
@@ -129,7 +144,7 @@ mod tests {
             }
 
             if let Ok(content) = std::fs::read_to_string(Path::new("../agent/target/output.txt")) {
-                assert_eq!(content, "Hello\n");
+                assert_eq!(content, "Hello");
                 agent_command.kill().unwrap();
                 return;
             }

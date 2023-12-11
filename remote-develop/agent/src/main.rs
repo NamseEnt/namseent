@@ -1,13 +1,12 @@
 use anyhow::Result;
 use axum::{
-    extract::Request,
-    http::StatusCode,
+    body::Bytes,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Router,
 };
-use futures_util::stream::TryStreamExt;
-use std::{env::temp_dir, os::unix::fs::PermissionsExt};
+use std::env::temp_dir;
 
 #[tokio::main]
 async fn main() {
@@ -25,31 +24,24 @@ async fn real_main() -> Result<()> {
     Ok(())
 }
 
-async fn start_remote_run(request: Request) -> Result<(), AppError> {
-    let executable_name = request
-        .headers()
+async fn start_remote_run(headers: HeaderMap, body: Bytes) -> Result<(), AppError> {
+    let executable_name = headers
         .get("exetuable-name")
         .ok_or_else(|| anyhow::anyhow!("Missing header: executable-name"))?
         .to_str()?
         .to_string();
 
-    let mut body_stream = request
-        .into_body()
-        .into_data_stream()
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
-        .into_async_read();
-    let mut gz = async_compression::futures::bufread::GzipDecoder::new(&mut body_stream);
-
-    let archive = async_tar::Archive::new(&mut gz);
+    let mut tar = tar::Archive::new(flate2::read::GzDecoder::new(&body[..]));
 
     let root = &temp_dir().join("remote-develop-agent");
-    tokio::fs::remove_dir_all(root).await?;
+    if root.exists() {
+        tokio::fs::remove_dir_all(root).await?;
+    }
     tokio::fs::create_dir_all(root).await?;
 
-    archive.unpack(root).await?;
+    tar.unpack(root)?;
 
     let executable = root.join(executable_name);
-    std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o755))?;
     tokio::process::Command::new(executable).spawn()?;
 
     Ok(())
