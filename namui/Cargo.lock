@@ -91,9 +91,9 @@ checksum = "fc7eb209b1518d6bb87b283c20095f5228ecda460da70b44f0802523dea6da04"
 
 [[package]]
 name = "anyhow"
-version = "1.0.72"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "approx"
@@ -1474,7 +1474,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
- "windows",
  "winit",
 ]
 
@@ -1491,6 +1490,7 @@ dependencies = [
 name = "namui-skia"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "canvas-kit-wasm-bindgen",
  "js-sys",
  "namui-type",
@@ -1499,6 +1499,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+ "windows",
 ]
 
 [[package]]
@@ -2523,8 +2524,6 @@ checksum = "7bd3e3206899af3f8b12af284fafc038cc1dc2b41d1b89dd17297221c5d225de"
 [[package]]
 name = "skia-bindings"
 version = "0.69.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b4b5af96ee7d895763fa606f4531fddfb11de034217edd0c7beb9ea181efe5b"
 dependencies = [
  "bindgen",
  "cc",
@@ -2541,12 +2540,11 @@ dependencies = [
 [[package]]
 name = "skia-safe"
 version = "0.69.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a3d25acaedea0a8ed1dac52f383fc90276f5679a68e3f84c5fb7f7bde8934ff"
 dependencies = [
  "bitflags 2.4.1",
  "lazy_static",
  "skia-bindings",
+ "windows",
 ]
 
 [[package]]

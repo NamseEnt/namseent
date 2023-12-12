@@ -109,7 +109,7 @@ impl From<reqwest::Error> for HttpError {
         let is_connect = {
             #[cfg(not(target_arch = "wasm32"))]
             fn is_connect(error: &reqwest::Error) -> bool {
-                return error.is_connect();
+                error.is_connect()
             }
             #[cfg(target_arch = "wasm32")]
             fn is_connect(_: &reqwest::Error) -> bool {

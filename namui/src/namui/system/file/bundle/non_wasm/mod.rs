@@ -31,6 +31,6 @@ pub async fn read_json<T: serde::de::DeserializeOwned>(path_like: impl PathLike)
     serde_json::from_slice(bytes.as_ref()).map_err(|error| Error::new(ErrorKind::Other, error))
 }
 
-pub fn read_dir(path: impl PathLike) -> Result<Vec<Dirent>> {
+pub fn read_dir(_path: impl PathLike) -> Result<Vec<Dirent>> {
     todo!()
 }

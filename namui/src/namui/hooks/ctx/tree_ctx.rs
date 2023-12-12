@@ -94,6 +94,7 @@ impl TreeContext {
             let rendering_tree = (self.call_root_render)(updated_sigs);
             crate::system::drawer::request_draw_rendering_tree(rendering_tree);
 
+            #[cfg(target_family = "wasm")]
             if !self
                 .is_cursor_determined
                 .load(std::sync::atomic::Ordering::Relaxed)

@@ -20,6 +20,7 @@ pub trait Component: StaticType + Debug {
     {
         native::attach_event(self, on_event)
     }
+    #[cfg(target_family = "wasm")]
     fn with_mouse_cursor<'a>(self, cursor: MouseCursor) -> WithMouseCursor<Self>
     where
         Self: 'a + Sized,

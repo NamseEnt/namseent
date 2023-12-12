@@ -22,3 +22,7 @@ pub fn size() -> crate::Wh<IntPx> {
         height: (window.inner_size().height as i32).int_px(),
     }
 }
+
+pub(crate) fn window_id() -> usize {
+    u64::from(WINDOW.get().unwrap().id()) as usize
+}

@@ -33,7 +33,6 @@ type InitResult = Result<()>;
 
 pub(crate) async fn init() -> InitResult {
     futures::try_join!(
-        skia::init(),
         audio::init(),
         cache::init(),
         file::init(),
@@ -46,13 +45,15 @@ pub(crate) async fn init() -> InitResult {
         panick::init(),
         screen::init(),
         time::init(),
+        drawer::init(),
     )?;
+
+    futures::try_join!(skia::init())?;
 
     #[cfg(target_family = "wasm")]
     futures::try_join!(
         deep_link::init(),
         drag_and_drop::init(),
-        drawer::init(),
         text_input::init(),
         web::init(),
     )?;

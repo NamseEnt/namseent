@@ -17,12 +17,12 @@ pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
         LAST_RENDERING_TREE = Some(rendering_tree.clone());
     }
 
-    let draw_input = DrawInput { rendering_tree };
+    let _draw_input = DrawInput { rendering_tree };
     todo!()
 }
 
-pub(crate) fn load_typeface(typeface_name: &str, bytes: &[u8]) {
+pub(crate) fn load_typeface(_typeface_name: &str, _bytes: &[u8]) {
     // nothing
 }
 
-pub(crate) fn load_image(image_source: &ImageSource, image_bitmap: ImageBitmap) {}
+pub(crate) fn load_image(_image_source: &ImageSource, _image_bitmap: ImageBitmap) {}

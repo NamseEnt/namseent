@@ -7,6 +7,7 @@ use std::sync::{Arc, RwLock};
 
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,
+    #[cfg(target_family = "wasm")]
     mouse_cursor: Arc<RwLock<String>>,
 }
 
@@ -26,15 +27,18 @@ impl MouseSystem {
             x: px(0.0),
             y: px(0.0),
         }));
+        #[cfg(target_family = "wasm")]
         let mouse_cursor = Arc::new(RwLock::new("default".to_string()));
 
         Self {
             mouse_position,
+            #[cfg(target_family = "wasm")]
             mouse_cursor,
         }
     }
 }
 
+#[cfg(target_family = "wasm")]
 pub fn set_mouse_cursor(cursor: &MouseCursor) {
     todo!()
 }

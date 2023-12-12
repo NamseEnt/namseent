@@ -1,14 +1,14 @@
+#[cfg(target_family = "wasm")]
+pub mod canvas_kit;
 mod log;
 mod traits;
 
-use std::sync::Arc;
-pub use traits::*;
-
-#[cfg(target_family = "wasm")]
-pub mod canvas_kit;
-
+use anyhow::Result;
 #[cfg(target_family = "wasm")]
 use canvas_kit::CkSkia;
+use namui_type::{IntPx, Wh};
+use std::sync::Arc;
+pub use traits::*;
 #[cfg(target_family = "wasm")]
 use web_sys::HtmlCanvasElement;
 
@@ -24,11 +24,8 @@ pub mod native;
 use native::NativeSkia;
 
 #[cfg(not(target_family = "wasm"))]
-pub fn init_skia(
-    context: skia_safe::gpu::DirectContext,
-    surfaces: Vec<skia_safe::Surface>,
-) -> Arc<dyn SkSkia + Send + Sync> {
-    Arc::new(NativeSkia::new(context, surfaces))
+pub fn init_skia(screen_id: usize, window_wh: Wh<IntPx>) -> Result<Arc<dyn SkSkia + Send + Sync>> {
+    Ok(Arc::new(NativeSkia::new(screen_id, window_wh)?))
 }
 
 #[macro_export]
