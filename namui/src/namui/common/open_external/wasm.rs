@@ -1,3 +1,4 @@
+use anyhow::Result;
 use namui_cfg::namui_cfg;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -8,13 +9,16 @@ extern "C" {
     fn open_external_(url: &str);
 }
 #[namui_cfg(target_env = "electron")]
-pub fn open_external(url: &str) {
+pub fn open_external(url: &str) -> Result<()> {
     open_external_(url);
+    Ok(())
 }
 
 #[namui_cfg(not(target_env = "electron"))]
-pub fn open_external(url: &str) {
-    let _ = web_sys::window()
+pub fn open_external(url: &str) -> Result<()> {
+    web_sys::window()
         .unwrap()
-        .open_with_url_and_target(url, "_blank");
+        .open_with_url_and_target(url, "_blank")
+        .map_err(|_| anyhow::anyhow!("Failed to open url: {}", url))?;
+    Ok(())
 }

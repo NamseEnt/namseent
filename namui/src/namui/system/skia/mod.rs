@@ -16,7 +16,7 @@ use wasm::*;
 static SKIA: OnceLock<Arc<dyn SkSkia + Send + Sync>> = OnceLock::new();
 
 pub(super) async fn init() -> InitResult {
-    let skia = init_skia();
+    let skia = init_skia().await?;
     SKIA.set(skia).map_err(|_| unreachable!()).unwrap();
 
     Ok(())

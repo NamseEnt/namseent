@@ -1,22 +1,9 @@
-use super::InitResult;
+use super::{KeyboardSystem, KEYBOARD_SYSTEM};
 use crate::*;
 use std::{
     collections::HashSet,
     sync::{Arc, RwLock},
 };
-
-struct KeyboardSystem {
-    pressing_code_set: Arc<RwLock<HashSet<Code>>>,
-}
-
-lazy_static::lazy_static! {
-    static ref KEYBOARD_SYSTEM: Arc<KeyboardSystem> = Arc::new(KeyboardSystem::new());
-}
-
-pub(super) async fn init() -> InitResult {
-    lazy_static::initialize(&KEYBOARD_SYSTEM);
-    Ok(())
-}
 
 impl KeyboardSystem {
     pub fn new() -> Self {

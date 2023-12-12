@@ -104,6 +104,7 @@ impl TreeContext {
             (self.clear_unrendered_components)();
         }
 
+        #[cfg(target_arch = "wasm32")]
         self.root_instance.inspect();
     }
 

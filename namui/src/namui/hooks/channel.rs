@@ -1,6 +1,5 @@
 use super::*;
 use std::sync::{atomic::AtomicBool, OnceLock};
-use wasm_bindgen_futures::spawn_local;
 
 static CHANNEL: OnceLock<Mutex<Vec<Item>>> = OnceLock::new();
 static RERENDER_REQUESTED: OnceLock<AtomicBool> = OnceLock::new();
@@ -30,7 +29,7 @@ pub(crate) fn send(item: Item) {
         .unwrap()
         .swap(true, std::sync::atomic::Ordering::Relaxed)
     {
-        spawn_local(async move {
+        crate::spawn_local(async move {
             RERENDER_REQUESTED
                 .get()
                 .unwrap()

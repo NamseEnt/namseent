@@ -1,3 +1,4 @@
+#[cfg(target_family = "wasm")]
 mod inspect;
 
 use super::*;

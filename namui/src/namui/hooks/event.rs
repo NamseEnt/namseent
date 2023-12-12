@@ -1,5 +1,4 @@
 use crate::*;
-use web_sys::DataTransfer;
 
 pub(crate) fn invoke_on_event(
     tree_ctx: &TreeContext,
@@ -131,6 +130,7 @@ pub(crate) fn invoke_on_event(
                 },
             });
         }
+        #[cfg(target_family = "wasm")]
         &RawEvent::FileDrop {
             ref data_transfer,
             xy,
@@ -169,6 +169,9 @@ fn get_mouse_event<'a>(
     }
 }
 
+#[cfg(target_family = "wasm")]
+use web_sys::DataTransfer;
+#[cfg(target_family = "wasm")]
 fn get_file_drop_event<'a>(
     inverse_matrix: Matrix3x3,
     rendering_tree: &'a RenderingTree,

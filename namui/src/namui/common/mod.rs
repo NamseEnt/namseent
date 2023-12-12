@@ -1,5 +1,6 @@
 mod codes;
 mod event;
+#[cfg(target_family = "wasm")]
 mod file;
 mod open_external;
 pub(crate) mod url;
@@ -7,6 +8,7 @@ pub(crate) mod url;
 use crate::*;
 pub use codes::*;
 pub use event::*;
+#[cfg(target_family = "wasm")]
 pub use file::*;
 pub use open_external::*;
 use serde::{Deserialize, Serialize};

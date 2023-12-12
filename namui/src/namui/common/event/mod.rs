@@ -20,6 +20,7 @@ pub enum Event<'a> {
     Wheel {
         event: WheelEvent<'a>,
     },
+    #[cfg(target_family = "wasm")]
     DragAndDrop {
         event: FileDropEvent<'a>,
     },
@@ -148,6 +149,7 @@ impl KeyboardEvent<'_> {
     }
 }
 
+#[cfg(target_family = "wasm")]
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct FileDropEvent<'a> {
@@ -158,7 +160,9 @@ pub struct FileDropEvent<'a> {
     pub global_xy: Xy<Px>,
     pub files: Vec<File>,
 }
+#[cfg(target_family = "wasm")]
 impl EventExt for FileDropEvent<'_> {}
+#[cfg(target_family = "wasm")]
 impl FileDropEvent<'_> {
     pub fn local_xy(&self) -> Xy<Px> {
         (self.local_xy)()

@@ -34,6 +34,7 @@ pub enum RawEvent {
     TextInputKeyDown {
         event: RawTextinputKeyDownEvent,
     },
+    #[cfg(target_family = "wasm")]
     FileDrop {
         data_transfer: Option<web_sys::DataTransfer>,
         xy: Xy<Px>,

@@ -14,6 +14,7 @@ pub use ::url::Url;
 pub use anyhow::{anyhow, bail, Result};
 pub use auto_ops;
 pub use bounding_box::*;
+#[cfg(target_family = "wasm")]
 pub use clipboard::ClipboardItem as _;
 pub use common::*;
 pub use hooks::*;
@@ -22,7 +23,9 @@ pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
 pub use namui_type as types;
 pub use namui_type::*;
-pub use render::{image::*, path::*, rect::*, text::*, text_input, TextInput, TextInputInstance};
+pub use render::{image::*, path::*, rect::*, text::*};
+#[cfg(target_family = "wasm")]
+pub use render::{text_input, TextInput, TextInputInstance};
 pub use serde;
 pub use shader_macro::shader;
 pub use system::*;

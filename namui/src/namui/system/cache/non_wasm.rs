@@ -23,33 +23,31 @@ pub async fn get(key: &str) -> Result<Option<Box<[u8]>>> {
     match tokio::fs::read(path).await {
         Ok(buffer) => Ok(Some(buffer.into_boxed_slice())),
         Err(err) => match err.kind() {
-            std::io::ErrorKind::NotFound => {
-                return Ok(None);
-            }
+            std::io::ErrorKind::NotFound => Ok(None),
             _ => {
-                return Err(err);
+                bail!(err);
             }
         },
     }
 }
 
 pub async fn get_serde<T: serde::de::DeserializeOwned>(key: &str) -> Result<Option<T>> {
-    get(key).await.map(|value| {
-        value.map(|value| {
-            serde_json::from_slice(&value).map_err(|err| {
-                anyhow!(
-                    "Failed to deserialize value of key `{}`: {:?}",
-                    key,
-                    err.to_string()
-                )
-            })
-        })
-    })?
+    let Some(value) = get(key).await? else {
+        return Ok(None);
+    };
+    serde_json::from_slice(&value).map_err(|err| {
+        anyhow!(
+            "Failed to deserialize value of key `{}`: {:?}",
+            key,
+            err.to_string()
+        )
+    })
 }
 
 pub async fn set(key: &str, value: &[u8]) -> Result<()> {
     let path = get_cache_path(key)?;
     tokio::fs::write(path, value).await?;
+    Ok(())
 }
 
 pub async fn set_serde<T: serde::Serialize>(key: &str, value: &T) -> Result<()> {
@@ -60,4 +58,5 @@ pub async fn set_serde<T: serde::Serialize>(key: &str, value: &T) -> Result<()> 
 pub async fn delete(key: &str) -> Result<()> {
     let path = get_cache_path(key)?;
     tokio::fs::remove_file(path).await?;
+    Ok(())
 }

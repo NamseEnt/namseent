@@ -2,6 +2,7 @@ pub mod audio;
 pub mod cache;
 #[cfg(target_family = "wasm")]
 pub mod clipboard;
+#[cfg(target_family = "wasm")]
 pub mod deep_link;
 #[cfg(target_family = "wasm")]
 pub mod drag_and_drop;
@@ -21,15 +22,17 @@ pub(crate) mod skia;
 pub(crate) mod text_input;
 pub mod time;
 pub(crate) mod typeface;
+#[cfg(target_family = "wasm")]
 pub mod web;
 
 use crate::*;
+#[cfg(target_family = "wasm")]
 use platform_utils::*;
 
 type InitResult = Result<()>;
 
 pub(crate) async fn init() -> InitResult {
-    tokio::try_join!(
+    futures::try_join!(
         skia::init(),
         audio::init(),
         cache::init(),
@@ -43,11 +46,13 @@ pub(crate) async fn init() -> InitResult {
         panick::init(),
         screen::init(),
         time::init(),
+    )?;
+
+    #[cfg(target_family = "wasm")]
+    futures::try_join!(
         deep_link::init(),
-        #[cfg(target_family = "wasm")]
         drag_and_drop::init(),
         drawer::init(),
-        #[cfg(target_family = "wasm")]
         text_input::init(),
         web::init(),
     )?;

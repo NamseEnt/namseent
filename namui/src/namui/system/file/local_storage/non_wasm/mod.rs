@@ -25,7 +25,7 @@ pub async fn make_dir(path_like: impl PathLike) -> Result<()> {
     fs::create_dir_all(path).await
 }
 
-pub async fn read_dir(path_like: impl PathLike) -> Result<Vec<Dirent>> {
+pub async fn read_dir(_path_like: impl PathLike) -> Result<Vec<Dirent>> {
     todo!()
 }
 

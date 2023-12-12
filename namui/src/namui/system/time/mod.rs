@@ -1,17 +1,21 @@
+#[cfg(target_family = "wasm")]
 #[cfg(not(test))]
 mod web;
+
+#[cfg(not(target_family = "wasm"))]
+#[cfg(not(test))]
+mod non_wasm;
 
 #[cfg(test)]
 mod mock;
 
+#[cfg(target_family = "wasm")]
 #[cfg(not(test))]
 pub use web::*;
 
+#[cfg(not(target_family = "wasm"))]
+#[cfg(not(test))]
+pub use non_wasm::*;
+
 #[cfg(test)]
 pub use mock::*;
-
-pub async fn delay(time: crate::Time) {
-    fluvio_wasm_timer::Delay::new(time.as_duration())
-        .await
-        .unwrap();
-}
