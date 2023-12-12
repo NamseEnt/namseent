@@ -5,6 +5,7 @@ use std::sync::Arc;
 use web_sys::ImageBitmap;
 
 pub trait SkSkia {
+    fn on_resize(&mut self, wh: Wh<IntPx>);
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph>;
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics>;
     fn load_typeface(&self, typeface_name: &str, bytes: &[u8]);
@@ -18,6 +19,11 @@ pub trait SkSkia {
 
     #[cfg(target_family = "wasm")]
     fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
+}
+
+pub trait SkSurface {
+    fn flush(&mut self);
+    fn canvas(&self) -> &dyn SkCanvas;
 }
 
 pub trait SkCanvas {

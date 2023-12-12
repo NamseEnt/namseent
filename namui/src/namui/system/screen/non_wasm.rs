@@ -25,7 +25,14 @@ pub(crate) async fn init() -> InitResult {
                 } = event
                 {
                     match event {
-                        winit::event::WindowEvent::Resized(_) => todo!(),
+                        winit::event::WindowEvent::Resized(size) => {
+                            let wh = Wh {
+                                width: (size.width as i32).int_px(),
+                                height: (size.height as i32).int_px(),
+                            };
+                            system::skia::on_window_resize(wh);
+                            crate::on_raw_event(RawEvent::ScreenResize { wh })
+                        }
                         winit::event::WindowEvent::CloseRequested
                         | winit::event::WindowEvent::Destroyed => {
                             std::process::exit(0);
@@ -67,7 +74,9 @@ pub(crate) async fn init() -> InitResult {
                             };
                             system::mouse::on_winit_mouse_input(state, namui_mouse_button);
                         }
-                        winit::event::WindowEvent::RedrawRequested => todo!(),
+                        winit::event::WindowEvent::RedrawRequested => {
+                            system::drawer::redraw();
+                        }
                         _ => {}
                     }
                 }

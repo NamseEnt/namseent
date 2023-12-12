@@ -9,7 +9,7 @@ mod native_skia;
 // TODO
 // mod runtime_effect;
 // mod shader;
-// mod surface;
+mod surface;
 // mod text_blob;
 // mod typeface;
 
@@ -24,6 +24,6 @@ pub(crate) use native_skia::*;
 // pub(crate) use path::*;
 // // pub(crate) use runtime_effect::*;
 // pub(crate) use shader::*;
-// pub(crate) use surface::*;
+pub(crate) use surface::*;
 // pub(crate) use text_blob::*;
 // pub(crate) use typeface::*;

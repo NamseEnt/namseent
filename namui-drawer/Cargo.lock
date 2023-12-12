@@ -36,9 +36,9 @@ checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
 
 [[package]]
 name = "anyhow"
-version = "1.0.72"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "approx"
@@ -536,6 +536,7 @@ dependencies = [
 name = "namui-skia"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "canvas-kit-wasm-bindgen",
  "js-sys",
  "namui-type",
@@ -544,6 +545,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+ "windows",
 ]
 
 [[package]]
@@ -979,8 +981,6 @@ checksum = "7bd3e3206899af3f8b12af284fafc038cc1dc2b41d1b89dd17297221c5d225de"
 [[package]]
 name = "skia-bindings"
 version = "0.69.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b4b5af96ee7d895763fa606f4531fddfb11de034217edd0c7beb9ea181efe5b"
 dependencies = [
  "bindgen",
  "cc",
@@ -997,12 +997,11 @@ dependencies = [
 [[package]]
 name = "skia-safe"
 version = "0.69.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a3d25acaedea0a8ed1dac52f383fc90276f5679a68e3f84c5fb7f7bde8934ff"
 dependencies = [
  "bitflags 2.4.1",
  "lazy_static",
  "skia-bindings",
+ "windows",
 ]
 
 [[package]]
@@ -1407,6 +1406,25 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "windows"
+version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e48a53791691ab099e5e2ad123536d0fff50652600abaf43bbf952894110d0be"
+dependencies = [
+ "windows-core",
+ "windows-targets 0.52.0",
+]
+
+[[package]]
+name = "windows-core"
+version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
+dependencies = [
+ "windows-targets 0.52.0",
+]
 
 [[package]]
 name = "windows-sys"

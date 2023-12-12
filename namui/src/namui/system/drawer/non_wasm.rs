@@ -1,3 +1,5 @@
+//! Non-wasm drawer run in same process unlike wasm drawer.
+
 use crate::{image::ImageBitmap, system::InitResult, *};
 
 pub(crate) async fn init() -> InitResult {
@@ -26,3 +28,7 @@ pub(crate) fn load_typeface(_typeface_name: &str, _bytes: &[u8]) {
 }
 
 pub(crate) fn load_image(_image_source: &ImageSource, _image_bitmap: ImageBitmap) {}
+
+pub(crate) fn redraw() {
+    todo!()
+}
