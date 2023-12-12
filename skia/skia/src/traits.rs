@@ -1,7 +1,7 @@
 use namui_type::*;
 use std::sync::Arc;
 
-#[cfg(target_family = "wasm")]
+#[cfg(feature = "wasm")]
 use web_sys::ImageBitmap;
 
 pub trait SkSkia {
@@ -18,7 +18,7 @@ pub trait SkSkia {
         image: &Image,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<u8>>>>;
 
-    #[cfg(target_family = "wasm")]
+    #[cfg(feature = "wasm")]
     fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
 }
 
@@ -55,7 +55,7 @@ pub trait SkImage {
 }
 
 pub trait ImageLoader<Image> {
-    #[cfg(target_family = "wasm")]
+    #[cfg(feature = "wasm")]
     fn get_or_start_load_image(
         &self,
         image_source: &ImageSource,

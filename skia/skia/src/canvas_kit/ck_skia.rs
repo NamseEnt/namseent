@@ -17,8 +17,12 @@ impl CkSkia {
 }
 
 impl SkSkia for CkSkia {
-    fn surface(&self) -> &dyn SkSurface {
-        self.surface.as_ref().unwrap()
+    fn surface(&mut self) -> &mut dyn SkSurface {
+        self.surface.as_mut().unwrap()
+    }
+
+    fn on_resize(&mut self, _wh: Wh<IntPx>) {
+        unreachable!()
     }
 
     fn group_glyph(&self, font: &Font, paint: &Paint) -> std::sync::Arc<dyn GroupGlyph> {
@@ -31,10 +35,6 @@ impl SkSkia for CkSkia {
 
     fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) {
         CkTypeface::load(typeface_name, bytes)
-    }
-
-    fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap) {
-        CkImage::load(image_source, image_bitmap)
     }
 
     fn image(&self, image_source: &ImageSource) -> Option<Image> {
@@ -55,5 +55,9 @@ impl SkSkia for CkSkia {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<u8>>>> {
         let ck_image = CkImage::get(&image.src).unwrap();
         Box::pin(async move { ck_image.encode_to_png().await })
+    }
+
+    fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap) {
+        CkImage::load(image_source, image_bitmap)
     }
 }

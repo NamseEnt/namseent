@@ -1,4 +1,6 @@
 use crate::*;
+use anyhow::Result;
+use namui_type::*;
 use skia_safe::gpu::d3d::{ID3D12CommandQueue, ID3D12Device, ID3D12Resource};
 use windows::{
     core::ComInterface,

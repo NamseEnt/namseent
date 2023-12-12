@@ -24,7 +24,18 @@ use namui_type::*;
 pub(crate) use paint::*;
 pub(crate) use path::*;
 // pub(crate) use runtime_effect::*;
+use crate::SkSkia;
+use anyhow::Result;
 pub(crate) use shader::*;
+use std::sync::{Arc, Mutex};
 pub(crate) use surface::*;
 pub(crate) use text_blob::*;
 pub(crate) use typeface::*;
+use web_sys::HtmlCanvasElement;
+
+#[cfg(feature = "wasm")]
+pub fn init_skia(
+    canvas_element: Option<&HtmlCanvasElement>,
+) -> Result<Arc<Mutex<dyn SkSkia + Send + Sync>>> {
+    Ok(Arc::new(Mutex::new(CkSkia::new(canvas_element))))
+}

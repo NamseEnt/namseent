@@ -8,7 +8,14 @@ namui = true
 
 [features]
 default = []
-window = ["skia-safe/d3d", "windows"]
+windows = ["skia-safe/d3d", "dep:windows"]
+wasm = [
+    "dep:canvas-kit-wasm-bindgen",
+    "dep:wasm-bindgen",
+    "dep:web-sys",
+    "dep:js-sys",
+    "dep:wasm-bindgen-futures",
+]
 
 
 [dependencies]
@@ -25,25 +32,18 @@ anyhow = "1.0.75"
 namui-type = { path = "../../namui-type" }
 serde = { version = "1.0.183", features = ["derive"] }
 skia-safe = { path = "../../../sambashare/rust-skia/skia-safe", optional = true }
-
-[dev-dependencies]
-
-[target.'cfg(target_family="wasm")'.dependencies]
-canvas-kit-wasm-bindgen = { path = "../canvas-kit-wasm-bindgen" }
-js-sys = "0.3.64"
-wasm-bindgen = "0.2.87"
+canvas-kit-wasm-bindgen = { path = "../canvas-kit-wasm-bindgen", optional = true }
+js-sys = { version = "0.3.64", optional = true }
+wasm-bindgen = { version = "0.2.87", optional = true }
 web-sys = { version = "0.3.64", features = [
     "ImageBitmap",
     "OffscreenCanvas",
     "OffscreenCanvasRenderingContext2d",
     "Blob",
-] }
-wasm-bindgen-futures = "0.4.37"
+], optional = true }
+wasm-bindgen-futures = { version = "0.4.37", optional = true }
+
+[dev-dependencies]
 
 [target.'cfg(target_family="wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.2"
-
-[target.'cfg(not(target_family="wasm"))'.dependencies]
-
-
-[target.'cfg(not(target_family="wasm"))'.dev-dependencies]

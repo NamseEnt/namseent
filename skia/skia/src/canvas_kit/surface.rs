@@ -22,7 +22,7 @@ impl CkSurface {
 }
 
 impl SkSurface for CkSurface {
-    fn flush(&self) {
+    fn flush(&mut self) {
         self.canvas_kit_surface.flush();
     }
     fn canvas(&self) -> &dyn SkCanvas {

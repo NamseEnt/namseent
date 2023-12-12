@@ -27,3 +27,14 @@ pub(crate) use native_skia::*;
 pub(crate) use surface::*;
 // pub(crate) use text_blob::*;
 // pub(crate) use typeface::*;
+use crate::SkSkia;
+use anyhow::Result;
+use std::sync::{Arc, Mutex};
+
+#[cfg(feature = "windows")]
+pub fn init_skia(
+    screen_id: usize,
+    window_wh: Wh<IntPx>,
+) -> Result<Arc<Mutex<dyn SkSkia + Send + Sync>>> {
+    Ok(Arc::new(Mutex::new(NativeSkia::new(screen_id, window_wh)?)))
+}
