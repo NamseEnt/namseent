@@ -1,12 +1,22 @@
+#[cfg(not(target_family = "wasm"))]
+mod non_wasm;
+#[cfg(target_family = "wasm")]
+mod wasm;
+
 use super::InitResult;
 use crate::*;
-use namui_skia::*;
+use namui_skia::SkSkia;
 use std::sync::{Arc, OnceLock};
+
+#[cfg(not(target_family = "wasm"))]
+use non_wasm::*;
+#[cfg(target_family = "wasm")]
+use wasm::*;
 
 static SKIA: OnceLock<Arc<dyn SkSkia + Send + Sync>> = OnceLock::new();
 
 pub(super) async fn init() -> InitResult {
-    let skia = namui_skia::init_skia(None);
+    let skia = init_skia();
     SKIA.set(skia).map_err(|_| unreachable!()).unwrap();
 
     Ok(())

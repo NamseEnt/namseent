@@ -1,5 +1,4 @@
 use super::Dirent;
-use percent_encoding::percent_decode_str;
 use std::path::PathBuf;
 use url::Url;
 
@@ -23,6 +22,7 @@ impl PathLike for &str {
 }
 impl PathLike for &Url {
     fn path(&self) -> PathBuf {
+        use percent_encoding::percent_decode_str;
         assert!(self.cannot_be_a_base());
         let path = (*self).path();
         PathBuf::from(

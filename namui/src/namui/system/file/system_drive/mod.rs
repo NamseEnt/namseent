@@ -1,9 +1,9 @@
-mod make_dir;
-mod read;
-mod read_dir;
-mod write;
-use super::*;
-pub use make_dir::*;
-pub use read::*;
-pub use read_dir::*;
-pub use write::*;
+#[cfg(not(target_family = "wasm"))]
+mod non_wasm;
+#[cfg(target_family = "wasm")]
+mod wasm;
+
+#[cfg(not(target_family = "wasm"))]
+pub use non_wasm::*;
+#[cfg(target_family = "wasm")]
+pub use wasm::*;

@@ -1,5 +1,6 @@
 use super::InitResult;
 use std::sync::atomic::AtomicBool;
+#[cfg(target_family = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
 pub(super) async fn init() -> InitResult {
@@ -8,6 +9,7 @@ pub(super) async fn init() -> InitResult {
 
 static PANICKED: AtomicBool = AtomicBool::new(false);
 
+#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 pub fn panicked() {
     PANICKED.store(true, std::sync::atomic::Ordering::Relaxed);

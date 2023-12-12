@@ -1,2 +1,2 @@
 [build]
-target = "wasm32-unknown-unknown"
+target = "x86_64-pc-windows-msvc"

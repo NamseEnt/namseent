@@ -1,9 +1,9 @@
-mod create_bundle_url;
-mod init;
-mod read;
-pub mod read_dir;
+#[cfg(not(target_family = "wasm"))]
+mod non_wasm;
+#[cfg(target_family = "wasm")]
+mod wasm;
 
-pub(super) use create_bundle_url::*;
-pub(super) use init::*;
-pub use read::*;
-pub use read_dir::read_dir;
+#[cfg(not(target_family = "wasm"))]
+pub use non_wasm::*;
+#[cfg(target_family = "wasm")]
+pub use wasm::*;

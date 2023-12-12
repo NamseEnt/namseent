@@ -2,7 +2,7 @@ use super::{platform_utils::web::window, InitResult};
 use crate::*;
 use wasm_bindgen::{prelude::Closure, JsCast};
 
-pub(super) async fn init() -> InitResult {
+pub(crate) async fn init() -> InitResult {
     let window = window();
 
     window

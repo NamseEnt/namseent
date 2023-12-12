@@ -26,6 +26,10 @@ pub use render::{image::*, path::*, rect::*, text::*, text_input, TextInput, Tex
 pub use serde;
 pub use shader_macro::shader;
 pub use system::*;
+
+#[cfg(not(target_family = "wasm"))]
+pub use tokio::task::spawn_local;
+#[cfg(target_family = "wasm")]
 pub use wasm_bindgen_futures::spawn_local;
 
 pub async fn init() -> NamuiContext {

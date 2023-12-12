@@ -1,13 +1,13 @@
 use namui_type::*;
 use std::sync::Arc;
+
+#[cfg(target_family = "wasm")]
 use web_sys::ImageBitmap;
 
 pub trait SkSkia {
-    fn surface(&self) -> &dyn SkSurface;
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph>;
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics>;
     fn load_typeface(&self, typeface_name: &str, bytes: &[u8]);
-    fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
     fn image(&self, image_source: &ImageSource) -> Option<Image>;
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool;
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>>;
@@ -15,11 +15,9 @@ pub trait SkSkia {
         &self,
         image: &Image,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<u8>>>>;
-}
 
-pub trait SkSurface {
-    fn flush(&self);
-    fn canvas(&self) -> &dyn SkCanvas;
+    #[cfg(target_family = "wasm")]
+    fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
 }
 
 pub trait SkCanvas {
@@ -50,6 +48,7 @@ pub trait SkImage {
 }
 
 pub trait ImageLoader<Image> {
+    #[cfg(target_family = "wasm")]
     fn get_or_start_load_image(
         &self,
         image_source: &ImageSource,
