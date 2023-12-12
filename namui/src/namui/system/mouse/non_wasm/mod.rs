@@ -1,48 +1,61 @@
-mod event;
-
-use self::event::set_up_event_handler;
-use crate::system::InitResult;
+use super::MOUSE_SYSTEM;
 use crate::*;
-use std::sync::{Arc, RwLock};
+use winit::{dpi::PhysicalPosition, event::ElementState};
 
-struct MouseSystem {
-    mouse_position: Arc<RwLock<Xy<Px>>>,
-    #[cfg(target_family = "wasm")]
-    mouse_cursor: Arc<RwLock<String>>,
+pub(crate) fn set_up_event_handler() {
+    // nothing
 }
 
-lazy_static::lazy_static! {
-    static ref MOUSE_SYSTEM: Arc<MouseSystem> = Arc::new(MouseSystem::new());
+pub(crate) fn on_winit_mouse_input(state: ElementState, button: crate::MouseButton) {
+    let mouse_xy = { *MOUSE_SYSTEM.mouse_position.read().unwrap() };
+
+    let event = RawMouseEvent {
+        xy: mouse_xy,
+        pressing_buttons: get_pressing_buttons(),
+        button: Some(button),
+        prevent_default: Box::new(move || {}),
+    };
+
+    crate::hooks::on_raw_event(match state {
+        ElementState::Pressed => RawEvent::MouseDown { event },
+        ElementState::Released => RawEvent::MouseUp { event },
+    });
 }
 
-pub(crate) async fn init() -> InitResult {
-    lazy_static::initialize(&MOUSE_SYSTEM);
-    set_up_event_handler();
-    Ok(())
+pub(crate) fn on_winit_mouse_wheel(delta: winit::event::MouseScrollDelta) {
+    let mouse_xy = { *MOUSE_SYSTEM.mouse_position.read().unwrap() };
+
+    crate::hooks::on_raw_event(RawEvent::Wheel {
+        event: RawWheelEvent {
+            delta_xy: match delta {
+                winit::event::MouseScrollDelta::LineDelta(x, y) => Xy::new(x, y),
+                winit::event::MouseScrollDelta::PixelDelta(delta) => {
+                    Xy::new(delta.x as f32, delta.y as f32)
+                }
+            },
+            mouse_xy,
+        },
+    });
 }
 
-impl MouseSystem {
-    fn new() -> Self {
-        let mouse_position = Arc::new(RwLock::new(Xy::<Px> {
-            x: px(0.0),
-            y: px(0.0),
-        }));
-        #[cfg(target_family = "wasm")]
-        let mouse_cursor = Arc::new(RwLock::new("default".to_string()));
+pub(crate) fn on_winit_cursor_moved(position: PhysicalPosition<f64>) {
+    let mouse_xy = Xy::new((position.x as f32).px(), (position.y as f32).px());
+    update_mouse_position(mouse_xy);
 
-        Self {
-            mouse_position,
-            #[cfg(target_family = "wasm")]
-            mouse_cursor,
-        }
-    }
+    crate::hooks::on_raw_event(RawEvent::MouseMove {
+        event: RawMouseEvent {
+            xy: mouse_xy,
+            pressing_buttons: get_pressing_buttons(),
+            button: None,
+            prevent_default: Box::new(move || {}),
+        },
+    });
 }
 
-#[cfg(target_family = "wasm")]
-pub fn set_mouse_cursor(cursor: &MouseCursor) {
-    todo!()
+fn get_pressing_buttons() -> std::collections::HashSet<MouseButton> {
+    MOUSE_SYSTEM.pressing_buttons.read().unwrap().clone()
 }
 
-pub fn position() -> Xy<Px> {
-    *MOUSE_SYSTEM.mouse_position.read().unwrap()
+fn update_mouse_position(mouse_xy: Xy<Px>) {
+    *MOUSE_SYSTEM.mouse_position.write().unwrap() = mouse_xy;
 }

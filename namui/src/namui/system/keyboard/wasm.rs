@@ -82,11 +82,7 @@ impl KeyboardSystem {
                     let pressing_code_set = pressing_code_set.clone();
                     move |event: web_sys::KeyboardEvent| {
                         let code = Code::from_str(&event.code()).unwrap();
-                        let pressing_code_set = {
-                            let mut pressing_code_set = pressing_code_set.write().unwrap();
-                            pressing_code_set.remove(&code);
-                            pressing_code_set.clone()
-                        };
+                        record_key_up(code);
 
                         crate::hooks::on_raw_event(RawEvent::KeyUp {
                             event: RawKeyboardEvent {
@@ -142,11 +138,6 @@ pub fn any_code_press(codes: impl IntoIterator<Item = Code>) -> bool {
         }
     }
     false
-}
-
-pub(crate) fn record_key_down(code: Code) {
-    let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
-    pressing_code_set.insert(code);
 }
 
 pub fn shift_press() -> bool {

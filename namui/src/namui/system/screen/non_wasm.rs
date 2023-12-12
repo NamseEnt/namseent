@@ -1,16 +1,81 @@
 use crate::{system::InitResult, *};
 use std::sync::OnceLock;
+use tokio::sync::oneshot;
 
 static WINDOW: OnceLock<winit::window::Window> = OnceLock::new();
 
 pub(crate) async fn init() -> InitResult {
-    let event_loop = winit::event_loop::EventLoop::new()?;
-    let winit_window_builder = winit::window::WindowBuilder::new()
-        .with_title("namui")
-        .with_inner_size(winit::dpi::LogicalSize::new(800, 800));
+    let (window_inited_tx, window_inited_rx) = oneshot::channel();
 
-    let window = winit_window_builder.build(&event_loop)?;
-    WINDOW.set(window).unwrap();
+    std::thread::spawn(move || {
+        let event_loop = winit::event_loop::EventLoop::new().unwrap();
+        let winit_window_builder = winit::window::WindowBuilder::new()
+            .with_title("namui")
+            .with_inner_size(winit::dpi::LogicalSize::new(800, 800));
+
+        let window = winit_window_builder.build(&event_loop).unwrap();
+        WINDOW.set(window).unwrap();
+        window_inited_tx.send(()).unwrap();
+
+        event_loop
+            .run(|event, _| {
+                if let winit::event::Event::WindowEvent {
+                    window_id: _,
+                    event,
+                } = event
+                {
+                    match event {
+                        winit::event::WindowEvent::Resized(_) => todo!(),
+                        winit::event::WindowEvent::CloseRequested
+                        | winit::event::WindowEvent::Destroyed => {
+                            std::process::exit(0);
+                        }
+                        winit::event::WindowEvent::KeyboardInput {
+                            device_id: _,
+                            event,
+                            is_synthetic: _,
+                        } => {
+                            system::keyboard::on_keyboard_input(event);
+                        }
+                        winit::event::WindowEvent::CursorMoved {
+                            device_id: _,
+                            position,
+                        } => {
+                            system::mouse::on_winit_cursor_moved(position);
+                        }
+                        winit::event::WindowEvent::MouseWheel {
+                            device_id: _,
+                            delta,
+                            phase: _,
+                        } => {
+                            system::mouse::on_winit_mouse_wheel(delta);
+                        }
+                        winit::event::WindowEvent::MouseInput {
+                            device_id: _,
+                            state,
+                            button,
+                        } => {
+                            let namui_mouse_button = match button {
+                                winit::event::MouseButton::Left => MouseButton::Left,
+                                winit::event::MouseButton::Right => MouseButton::Right,
+                                winit::event::MouseButton::Middle => MouseButton::Middle,
+                                winit::event::MouseButton::Back
+                                | winit::event::MouseButton::Forward
+                                | winit::event::MouseButton::Other(_) => {
+                                    return;
+                                }
+                            };
+                            system::mouse::on_winit_mouse_input(state, namui_mouse_button);
+                        }
+                        winit::event::WindowEvent::RedrawRequested => todo!(),
+                        _ => {}
+                    }
+                }
+            })
+            .unwrap();
+    });
+
+    window_inited_rx.await?;
 
     Ok(())
 }
