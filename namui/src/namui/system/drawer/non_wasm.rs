@@ -19,8 +19,8 @@ pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
         LAST_RENDERING_TREE = Some(rendering_tree.clone());
     }
 
-    let _draw_input = DrawInput { rendering_tree };
-    todo!()
+    let draw_input = DrawInput { rendering_tree };
+    system::skia::render(draw_input);
 }
 
 pub(crate) fn load_typeface(_typeface_name: &str, _bytes: &[u8]) {

@@ -71,6 +71,9 @@ impl NativeSkia {
 }
 
 impl SkSkia for NativeSkia {
+    fn surface(&mut self) -> &mut dyn SkSurface {
+        &mut self.surface
+    }
     fn on_resize(&mut self, wh: Wh<IntPx>) {
         self.surface = NativeSurface::new(
             self.context.clone(),
@@ -81,6 +84,7 @@ impl SkSkia for NativeSkia {
         )
         .unwrap();
     }
+
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph> {
         todo!()
     }

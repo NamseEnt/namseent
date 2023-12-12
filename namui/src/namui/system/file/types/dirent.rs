@@ -15,6 +15,7 @@ pub enum Dirent {
 }
 
 impl Dirent {
+    #[allow(dead_code)]
     pub(crate) fn new(url: Url, kind: DirentKind) -> Dirent {
         match kind {
             DirentKind::Directory => Dirent::Directory(url),

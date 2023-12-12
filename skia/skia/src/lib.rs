@@ -20,12 +20,15 @@ pub fn init_skia(
     Ok(Arc::new(Mutex::new(CkSkia::new(canvas_element))))
 }
 
+#[cfg(feature = "window")]
 #[cfg(not(target_family = "wasm"))]
 pub mod native;
 
+#[cfg(feature = "window")]
 #[cfg(not(target_family = "wasm"))]
 use native::NativeSkia;
 
+#[cfg(feature = "window")]
 #[cfg(not(target_family = "wasm"))]
 pub fn init_skia(
     screen_id: usize,

@@ -1,5 +1,5 @@
 [package]
-name = "namui-drawer"
+name = "namui-drawer-wasm-runner"
 version = "0.1.0"
 authors = ["namse <skatpgusskat@naver.com>"]
 edition = "2021"
@@ -11,14 +11,15 @@ namui = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-namui-panic-hook = { path = "../namui-panic-hook" }
-wasm-bindgen = { version = "0.2.63", features = ["serde-serialize"]  }
+namui-drawer-sys = { path = "../sys" }
+namui-panic-hook = { path = "../../namui-panic-hook" }
+wasm-bindgen = { version = "0.2.63", features = ["serde-serialize"] }
 js-sys = "0.3.55"
 wasm-bindgen-futures = "0.4.28"
 serde = { version = "1.0.183", features = ["derive"] }
 serde-wasm-bindgen = "0.5.0"
-namui-type = { path = "../namui-type" }
-namui-skia = { path = "../skia/skia" }
+namui-type = { path = "../../namui-type" }
+namui-skia = { path = "../../skia/skia" }
 num = "0.4.1"
 ordered-float = "3.7.0"
 lru = "0.11.0"
@@ -33,7 +34,4 @@ float-cmp = "0.9"
 
 [dependencies.web-sys]
 version = "0.3"
-features = [
-    "HtmlCanvasElement",
-    "ImageBitmap",
-]
+features = ["HtmlCanvasElement", "ImageBitmap"]

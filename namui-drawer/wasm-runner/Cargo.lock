@@ -502,7 +502,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "namui-drawer"
+name = "namui-drawer-sys"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "lazy_static",
+ "lru",
+ "namui-skia",
+ "namui-type",
+ "num",
+ "once_cell",
+ "ordered-float 3.7.0",
+]
+
+[[package]]
+name = "namui-drawer-wasm-runner"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -510,6 +524,7 @@ dependencies = [
  "js-sys",
  "lazy_static",
  "lru",
+ "namui-drawer-sys",
  "namui-panic-hook",
  "namui-skia",
  "namui-type",

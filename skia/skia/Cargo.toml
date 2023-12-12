@@ -6,13 +6,25 @@ edition = "2021"
 [package.metadata]
 namui = true
 
-[lib]
-crate-type = ["cdylib", "rlib"]
+[features]
+default = []
+window = ["skia-safe/d3d", "windows"]
+
 
 [dependencies]
+windows = { version = "0.52.0", features = [
+    "Win32",
+    "Win32_Graphics",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Direct3D",
+    "Win32_Foundation",
+    "Win32_Graphics_Dxgi_Common",
+], optional = true }
 anyhow = "1.0.75"
 namui-type = { path = "../../namui-type" }
 serde = { version = "1.0.183", features = ["derive"] }
+skia-safe = { path = "../../../sambashare/rust-skia/skia-safe", optional = true }
 
 [dev-dependencies]
 
@@ -31,19 +43,7 @@ wasm-bindgen-futures = "0.4.37"
 [target.'cfg(target_family="wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.2"
 
-
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-skia-safe = { path = "../../../sambashare/rust-skia/skia-safe", features = [
-    "d3d",
-] }
-windows = { version = "0.52.0", features = [
-    "Win32",
-    "Win32_Graphics",
-    "Win32_Graphics_Dxgi",
-    "Win32_Graphics_Direct3D12",
-    "Win32_Graphics_Direct3D",
-    "Win32_Foundation",
-    "Win32_Graphics_Dxgi_Common",
-] }
+
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
