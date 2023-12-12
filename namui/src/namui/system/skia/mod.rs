@@ -4,12 +4,11 @@ mod non_wasm;
 mod wasm;
 
 use super::InitResult;
-use crate::*;
 use namui_skia::SkSkia;
-use std::sync::{Arc, Mutex, OnceLock};
-
+use namui_type::*;
 #[cfg(not(target_family = "wasm"))]
 pub(crate) use non_wasm::*;
+use std::sync::{Arc, Mutex, OnceLock};
 #[cfg(target_family = "wasm")]
 use wasm::*;
 

@@ -1,7 +1,10 @@
 use anyhow::Result;
 use namui_skia::*;
 use namui_type::*;
-use std::sync::{Arc, Mutex};
+use std::{
+    ops::DerefMut,
+    sync::{Arc, Mutex},
+};
 
 pub(super) async fn init_skia() -> Result<Arc<Mutex<dyn SkSkia + Send + Sync>>> {
     namui_skia::init_skia(
@@ -17,5 +20,9 @@ pub(crate) fn on_window_resize(wh: Wh<IntPx>) {
 
 pub(crate) fn render(draw_input: DrawInput) {
     let mut skia = super::SKIA.get().unwrap().lock().unwrap();
-    // skia.(wh);
+
+    namui_drawer_sys::draw(skia.deref_mut(), draw_input, &|image_source| {
+        let image_source = image_source.clone();
+        tokio::spawn(async move { crate::system::image::load_image(&image_source).await });
+    });
 }
