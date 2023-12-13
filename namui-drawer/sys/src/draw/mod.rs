@@ -5,35 +5,37 @@ mod text;
 use namui_skia::*;
 use namui_type::*;
 
-pub(crate) struct DrawContext<'a, Skia: SkSkia> {
-    // canvas: &'a dyn SkCanvas,
-    skia: &'a mut Skia,
+pub(crate) struct DrawContext<'a> {
+    skia: &'a mut dyn SkSkia,
     start_load_image: &'a dyn Fn(&ImageSource),
 }
 
-impl<'a, Skia: SkSkia> DrawContext<'a, Skia> {
-    pub fn new(skia: &'a mut Skia, start_load_image: &'a dyn Fn(&ImageSource)) -> Self {
+impl<'a> DrawContext<'a> {
+    pub fn new(skia: &'a mut dyn SkSkia, start_load_image: &'a dyn Fn(&ImageSource)) -> Self {
         Self {
             skia,
             start_load_image,
         }
     }
-    pub fn canvas(&mut self) -> impl SkCanvas + '_ {
-        self.skia.surface().canvas()
+    pub fn surface(&mut self) -> &mut dyn SkSurface {
+        self.skia.surface()
+    }
+    pub fn canvas(&mut self) -> &dyn SkCanvas {
+        self.surface().canvas()
     }
 }
 
 pub(crate) trait Draw {
-    fn draw<Skia: SkSkia>(self, ctx: &mut DrawContext<'_, Skia>);
+    fn draw(self, ctx: &mut DrawContext);
 }
 
 impl Draw for RenderingTree {
-    fn draw<Skia: SkSkia>(self, ctx: &mut DrawContext<'_, Skia>) {
+    fn draw(self, ctx: &mut DrawContext) {
         struct RenderingTreeDrawContext {
             on_top_node_matrix_tuples: Vec<(OnTopNode, Matrix3x3)>,
         }
-        fn draw_internal<Skia: SkSkia>(
-            ctx: &mut DrawContext<'_, Skia>,
+        fn draw_internal(
+            ctx: &mut DrawContext,
             rendering_tree: RenderingTree,
             rendering_tree_draw_context: &mut RenderingTreeDrawContext,
         ) {
@@ -124,7 +126,7 @@ impl Draw for RenderingTree {
 }
 
 impl Draw for DrawCall {
-    fn draw<Skia: SkSkia>(self, ctx: &mut DrawContext<'_, Skia>) {
+    fn draw(self, ctx: &mut DrawContext) {
         self.commands
             .into_iter()
             .for_each(|command| command.draw(ctx));
@@ -132,7 +134,7 @@ impl Draw for DrawCall {
 }
 
 impl Draw for DrawCommand {
-    fn draw<Skia: SkSkia>(self, ctx: &mut DrawContext<'_, Skia>) {
+    fn draw(self, ctx: &mut DrawContext) {
         match self {
             DrawCommand::Path { command } => command.draw(ctx),
             DrawCommand::Text { command } => command.draw(ctx),

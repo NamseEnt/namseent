@@ -4,7 +4,7 @@ use draw::*;
 use namui_skia::*;
 use namui_type::*;
 
-pub fn draw(skia: &mut impl SkSkia, input: DrawInput, start_load_image: &dyn Fn(&ImageSource)) {
+pub fn draw(skia: &mut dyn SkSkia, input: DrawInput, start_load_image: &dyn Fn(&ImageSource)) {
     let start_load_image = &|src: &ImageSource| {
         static LOADING_IMAGES: StaticHashSet<ImageSource> = StaticHashSet::new();
         if LOADING_IMAGES.contains(src) {
@@ -21,5 +21,5 @@ pub fn draw(skia: &mut impl SkSkia, input: DrawInput, start_load_image: &dyn Fn(
 
     ctx.canvas().clear(Color::WHITE);
     rendering_tree.draw(&mut ctx);
-    skia.surface().flush();
+    ctx.surface().flush();
 }

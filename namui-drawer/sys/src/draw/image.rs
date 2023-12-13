@@ -1,7 +1,7 @@
 use crate::*;
 
 impl Draw for ImageDrawCommand {
-    fn draw<Skia: SkSkia>(self, ctx: &mut DrawContext<'_, Skia>) {
+    fn draw(self, ctx: &mut DrawContext) {
         let Some(image) = ctx.skia.image(&self.source) else {
             (ctx.start_load_image)(&self.source);
             return;

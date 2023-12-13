@@ -1,7 +1,7 @@
 use super::*;
 
 impl Draw for PathDrawCommand {
-    fn draw<Skia: SkSkia>(self, ctx: &mut DrawContext<'_, Skia>) {
+    fn draw(self, ctx: &mut DrawContext) {
         ctx.canvas().draw_path(&self.path, &self.paint);
     }
 }
