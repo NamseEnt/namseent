@@ -6,7 +6,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub(super) async fn init_skia() -> Result<Arc<Mutex<dyn SkSkia + Send + Sync>>> {
+pub(super) async fn init_skia() -> Result<Arc<Mutex<impl SkSkia + Send + Sync>>> {
     namui_skia::init_skia(
         crate::system::screen::window_id(),
         crate::system::screen::size(),

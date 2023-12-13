@@ -5,7 +5,7 @@ use std::sync::Arc;
 use web_sys::ImageBitmap;
 
 pub trait SkSkia {
-    fn surface(&mut self) -> &mut impl SkSurface;
+    fn surface(&mut self) -> &mut dyn SkSurface;
     fn on_resize(&mut self, wh: Wh<IntPx>);
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph>;
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics>;
@@ -24,7 +24,7 @@ pub trait SkSkia {
 
 pub trait SkSurface {
     fn flush(&mut self);
-    fn canvas(&mut self) -> impl SkCanvas;
+    fn canvas(&mut self) -> &dyn SkCanvas;
 }
 
 pub trait SkCanvas {

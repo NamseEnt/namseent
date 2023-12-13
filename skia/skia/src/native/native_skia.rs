@@ -72,7 +72,7 @@ impl NativeSkia {
 }
 
 impl SkSkia for NativeSkia {
-    fn surface(&mut self) -> &mut impl SkSurface {
+    fn surface(&mut self) -> &mut dyn SkSurface {
         &mut self.surface
     }
     fn on_resize(&mut self, wh: Wh<IntPx>) {

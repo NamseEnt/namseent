@@ -40,9 +40,7 @@ impl Component for MultilineTextExample {
                 },
                 max_width: None,
             });
-            let paint = Paint::new()
-                .set_color(Color::RED)
-                .set_style(PaintStyle::Stroke);
+            let paint = Paint::new(Color::RED).set_style(PaintStyle::Stroke);
             trees.push(namui::path(
                 Path::new()
                     .move_to(x - 100.px(), y)
@@ -95,9 +93,7 @@ impl Component for MultilineTextExample {
                     },
                     max_width: None,
                 });
-                let paint = Paint::new()
-                    .set_color(Color::RED)
-                    .set_style(PaintStyle::Stroke);
+                let paint = Paint::new(Color::RED).set_style(PaintStyle::Stroke);
                 trees.push(namui::path(
                     Path::new()
                         .move_to(x - 100.px(), y)
@@ -150,9 +146,7 @@ impl Component for MultilineTextExample {
                     },
                     max_width: Some(278.px()),
                 });
-                let paint = Paint::new()
-                    .set_color(Color::RED)
-                    .set_style(PaintStyle::Stroke);
+                let paint = Paint::new(Color::RED).set_style(PaintStyle::Stroke);
                 trees.push(namui::path(
                     Path::new()
                         .move_to(x - 100.px(), y)

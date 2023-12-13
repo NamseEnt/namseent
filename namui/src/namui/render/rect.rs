@@ -109,8 +109,7 @@ pub fn rect(param: RectParam) -> RenderingTree {
     let mut draw_commands: Vec<DrawCommand> = vec![];
 
     if let Some(RectFill { color }) = param.style.fill {
-        let fill_paint = namui::Paint::new()
-            .set_color(color)
+        let fill_paint = namui::Paint::new(color)
             .set_style(namui::PaintStyle::Fill)
             .set_anti_alias(true);
 
@@ -128,8 +127,7 @@ pub fn rect(param: RectParam) -> RenderingTree {
         ..
     }) = param.style.stroke
     {
-        let stroke_paint = namui::Paint::new()
-            .set_color(color)
+        let stroke_paint = namui::Paint::new(color)
             .set_stroke_width(stroke_width)
             .set_style(namui::PaintStyle::Stroke)
             .set_anti_alias(true);

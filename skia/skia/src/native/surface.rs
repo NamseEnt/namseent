@@ -156,7 +156,7 @@ impl SkSurface for NativeSurface {
         self.surface_index = (self.surface_index + 1) % self.surfaces.len();
     }
 
-    fn canvas(&mut self) -> impl SkCanvas {
-        NativeCanvas::new(self.surfaces[self.surface_index].canvas())
+    fn canvas(&mut self) -> &dyn SkCanvas {
+        self.surfaces[self.surface_index].canvas()
     }
 }
