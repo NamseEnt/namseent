@@ -1,7 +1,7 @@
 use crate::*;
 
 impl Draw for TextDrawCommand {
-    fn draw(self, ctx: &mut DrawContext) {
+    fn draw<Skia: SkSkia>(self, ctx: &mut DrawContext<'_, Skia>) {
         if self.text.is_empty() {
             return;
         }
