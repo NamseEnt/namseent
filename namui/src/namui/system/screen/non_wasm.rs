@@ -1,6 +1,7 @@
 use crate::{system::InitResult, *};
 use std::sync::OnceLock;
 use tokio::sync::oneshot;
+use winit::platform::windows::EventLoopBuilderExtWindows;
 
 static WINDOW: OnceLock<winit::window::Window> = OnceLock::new();
 
@@ -8,7 +9,10 @@ pub(crate) async fn init() -> InitResult {
     let (window_inited_tx, window_inited_rx) = oneshot::channel();
 
     std::thread::spawn(move || {
-        let event_loop = winit::event_loop::EventLoop::new().unwrap();
+        let event_loop = winit::event_loop::EventLoopBuilder::new()
+            .with_any_thread(true)
+            .build()
+            .unwrap();
         let winit_window_builder = winit::window::WindowBuilder::new()
             .with_title("namui")
             .with_inner_size(winit::dpi::LogicalSize::new(800, 800));

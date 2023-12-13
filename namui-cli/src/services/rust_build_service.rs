@@ -177,25 +177,35 @@ impl CancelableBuilder {
     }
 
     fn spawn_build_process(build_option: &BuildOption) -> Result<Child> {
-        Ok(Command::new("wasm-pack")
-            .args([
-                "build",
-                "--target",
-                "no-modules",
-                "--out-name",
-                "bundle",
-                "--dev",
-                "--out-dir",
-                build_option.dist_path.to_str().unwrap(),
-                build_option.project_root_path.to_str().unwrap(),
-                "--",
-                "--message-format",
-                "json",
-            ])
-            .envs(get_envs(build_option))
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?)
+        match build_option.target {
+            Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
+                Ok(Command::new("wasm-pack")
+                    .args([
+                        "build",
+                        "--target",
+                        "no-modules",
+                        "--out-name",
+                        "bundle",
+                        "--dev",
+                        "--out-dir",
+                        build_option.dist_path.to_str().unwrap(),
+                        build_option.project_root_path.to_str().unwrap(),
+                        "--",
+                        "--message-format",
+                        "json",
+                    ])
+                    .envs(get_envs(build_option))
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn()?)
+            }
+            Target::X86_64PcWindowsMsvc => Ok(Command::new("cargo")
+                .args(["xwin", "build", "--target", "x86_64-pc-windows-msvc"])
+                .envs(get_envs(build_option))
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?),
+        }
     }
 }
 
@@ -215,6 +225,11 @@ fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
             ("NAMUI_CFG_TARGET_OS", "linux"),
             ("NAMUI_CFG_TARGET_ENV", "electron"),
             ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+        ],
+        Target::X86_64PcWindowsMsvc => vec![
+            ("NAMUI_CFG_TARGET_OS", "windows"),
+            ("NAMUI_CFG_TARGET_ENV", "msvc"),
+            ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
         ],
     };
 
@@ -280,7 +295,7 @@ fn parse_cargo_build_result(stdout: &[u8]) -> Result<CargoBuildResult> {
 fn convert_compiler_message_to_namui_error_message(
     message: &CompilerMessage,
 ) -> Result<ErrorMessage, ()> {
-    let first_span = message.message.spans.get(0);
+    let first_span = message.message.spans.first();
     match first_span {
         Some(span) => {
             let relative_file = span.file_name.clone();

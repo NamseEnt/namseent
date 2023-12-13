@@ -46,14 +46,15 @@ fn collect_runtime(
     additional_runtime_path: Option<&PathBuf>,
     target: Target,
 ) -> Result<()> {
-    let namui_browser_runtime_path = get_cli_root_path().join("www");
     match target {
         Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
+            let namui_browser_runtime_path = get_cli_root_path().join("www");
             ops.push(CollectOperation::new(
                 &namui_browser_runtime_path,
                 &PathBuf::from(""),
             ));
         }
+        Target::X86_64PcWindowsMsvc => todo!(),
     }
     if let Some(additional_runtime_path) = additional_runtime_path {
         ops.push(CollectOperation::new(
@@ -91,6 +92,7 @@ fn collect_rust_build(
                 &PathBuf::from("drawer"),
             ));
         }
+        Target::X86_64PcWindowsMsvc => todo!(),
     }
     Ok(())
 }
@@ -118,6 +120,9 @@ fn collect_deep_link_manifest(
                     &PathBuf::from(""),
                 ));
             }
+        }
+        Target::X86_64PcWindowsMsvc => {
+            // TODO, but not priority
         }
     }
     Ok(())

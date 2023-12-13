@@ -19,6 +19,9 @@ pub async fn build(
             Target::WasmLinuxElectron => {
                 linux::wasm_linux_electron::build(&manifest_path, arch).await
             }
+            Target::X86_64PcWindowsMsvc => {
+                linux::x86_64_pc_windows_msvc::build(&manifest_path).await
+            }
         }
     } else {
         Result::Err(anyhow!("{} is unsupported os", std::env::consts::OS))

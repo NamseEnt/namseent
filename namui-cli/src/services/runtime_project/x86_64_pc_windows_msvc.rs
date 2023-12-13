@@ -4,22 +4,20 @@ use crate::*;
 pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
     let project_name = get_project_name(args.project_path.clone());
 
+    let project_path_in_relative =
+        pathdiff::diff_paths(&args.project_path, &args.target_dir).unwrap();
+
     std::fs::create_dir_all(args.target_dir.join("src"))?;
 
     let cargo_toml = format!(
         r#"[package]
-name = "namui-runtime-wasm"
+name = "namui-runtime-x86_64-pc-windows-msvc"
 version = "0.0.1"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 {project_name} = {{ path = "{project_path}" }}
-wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4"
-namui-panic-hook = "0.1"
+tokio = {{ version = "1.12.0", features = ["rt"] }}
 
 [profile.release]
 lto = true
@@ -29,23 +27,21 @@ opt-level = 3
 lto = true
 opt-level = 2
     "#,
-        project_path = args.project_path.display(),
+        project_path = project_path_in_relative.display(),
     );
     std::fs::write(args.target_dir.join("Cargo.toml"), cargo_toml)?;
 
     let lib_rs = format!(
-        r#"use wasm_bindgen::prelude::*;
+        r#"use tokio::*;
 
-#[wasm_bindgen]
-pub async fn start() {{
-    namui_panic_hook::set_once();
-
+#[tokio::main]
+async fn main() {{
     {project_name_underscored}::main().await;
 }}
 "#,
         project_name_underscored = project_name.replace('-', "_"),
     );
-    std::fs::write(args.target_dir.join("src/lib.rs"), lib_rs)?;
+    std::fs::write(args.target_dir.join("src/main.rs"), lib_rs)?;
 
     Ok(())
 }

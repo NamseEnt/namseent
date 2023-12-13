@@ -150,7 +150,7 @@ impl DrawerWatchBuildService {
 }
 
 pub fn project_root_path() -> PathBuf {
-    get_cli_root_path().join("../namui-drawer")
+    get_cli_root_path().join("../namui-drawer/wasm-runner")
 }
 pub fn build_dist_path() -> PathBuf {
     project_root_path().join("pkg/drawer")

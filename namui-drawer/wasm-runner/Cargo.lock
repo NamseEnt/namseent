@@ -130,18 +130,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
-name = "canvas-kit-wasm-bindgen"
-version = "0.1.0"
-dependencies = [
- "js-sys",
- "lazy_static",
- "namui-type",
- "once_cell",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -505,14 +493,8 @@ dependencies = [
 name = "namui-drawer-sys"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "lazy_static",
- "lru",
  "namui-skia",
  "namui-type",
- "num",
- "once_cell",
- "ordered-float 3.7.0",
 ]
 
 [[package]]
@@ -552,15 +534,8 @@ name = "namui-skia"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "canvas-kit-wasm-bindgen",
- "js-sys",
  "namui-type",
  "serde",
- "skia-safe",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "windows",
 ]
 
 [[package]]
@@ -577,6 +552,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "siphasher",
+ "skia-safe",
  "textwrap",
  "unicode-segmentation",
  "url",

@@ -24,6 +24,11 @@ pub fn set_user_config(target: &Target) -> Result<()> {
             ("target_env", "electron"),
             ("target_arch", "wasm"),
         ],
+        Target::X86_64PcWindowsMsvc => [
+            ("target_os", "windows"),
+            ("target_env", "msvc"),
+            ("target_arch", "x86_64"),
+        ],
     }
     .iter()
     .map(|(key, value)| (key.to_string(), value.to_string()))
