@@ -584,3 +584,43 @@ where
         }
     }
 }
+
+#[cfg(feature = "skia")]
+impl From<Rect<Px>> for skia_safe::Rect {
+    fn from(rect: Rect<Px>) -> Self {
+        match rect {
+            Rect::Xywh {
+                x,
+                y,
+                width,
+                height,
+            } => skia_safe::Rect::new(
+                x.as_f32(),
+                y.as_f32(),
+                x.as_f32() + width.as_f32(),
+                y.as_f32() + height.as_f32(),
+            ),
+            Rect::Ltrb {
+                left,
+                top,
+                right,
+                bottom,
+            } => skia_safe::Rect::new(left.into(), top.into(), right.into(), bottom.into()),
+        }
+    }
+}
+
+#[cfg(feature = "skia")]
+impl<T> Into<Rect<T>> for skia_safe::Rect
+where
+    T: From<f32>,
+{
+    fn into(self) -> Rect<T> {
+        Rect::Ltrb {
+            left: self.left.into(),
+            top: self.top.into(),
+            right: self.right.into(),
+            bottom: self.bottom.into(),
+        }
+    }
+}

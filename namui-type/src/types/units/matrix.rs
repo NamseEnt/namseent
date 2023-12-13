@@ -214,6 +214,34 @@ crate::impl_op_forward_ref_reversed!(*|a: Matrix3x3, b: f32| -> Matrix3x3 {
     }
 });
 
+#[cfg(feature = "skia")]
+impl From<skia_safe::Matrix> for Matrix3x3 {
+    fn from(matrix: skia_safe::Matrix) -> Self {
+        Self::from_slice([
+            [matrix[0], matrix[1], matrix[2]],
+            [matrix[3], matrix[4], matrix[5]],
+            [matrix[6], matrix[7], matrix[8]],
+        ])
+    }
+}
+
+#[cfg(feature = "skia")]
+impl Into<skia_safe::Matrix> for Matrix3x3 {
+    fn into(self) -> skia_safe::Matrix {
+        skia_safe::Matrix::new_all(
+            *self.values.index((0, 0)),
+            *self.values.index((0, 1)),
+            *self.values.index((0, 2)),
+            *self.values.index((1, 0)),
+            *self.values.index((1, 1)),
+            *self.values.index((1, 2)),
+            *self.values.index((2, 0)),
+            *self.values.index((2, 1)),
+            *self.values.index((2, 2)),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

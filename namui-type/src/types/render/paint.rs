@@ -2,7 +2,7 @@ use crate::*;
 
 #[type_derives(Default)]
 pub struct Paint {
-    pub color: Option<Color>,
+    pub color: Color,
     pub paint_style: Option<PaintStyle>,
     pub anti_alias: Option<bool>,
     pub stroke_width: Option<Px>,
@@ -15,9 +15,9 @@ pub struct Paint {
 }
 
 impl Paint {
-    pub fn new() -> Self {
+    pub fn new(color: Color) -> Self {
         Self {
-            color: None,
+            color,
             paint_style: None,
             anti_alias: None,
             stroke_width: None,
@@ -28,10 +28,6 @@ impl Paint {
             blend_mode: None,
             shader: None,
         }
-    }
-    pub fn set_color(mut self, color: Color) -> Self {
-        self.color = Some(color);
-        self
     }
     pub fn set_style(mut self, style: PaintStyle) -> Self {
         self.paint_style = Some(style);

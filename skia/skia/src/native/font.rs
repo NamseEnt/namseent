@@ -3,35 +3,35 @@ use std::sync::Arc;
 
 type GlyphIds = Vec<usize>;
 
-pub struct CkFont {
-    pub(crate) canvas_kit_font: CanvasKitFont,
+pub struct NativeFont {
+    skia_font: skia_safe::Font,
     pub(crate) metrics: FontMetrics,
     glyph_ids_caches: SerdeLruCache<String, GlyphIds>,
     glyph_widths_caches: SerdeLruCache<(GlyphIds, Paint), Vec<Px>>,
     glyph_bounds_caches: SerdeLruCache<(GlyphIds, Paint), Vec<Rect<Px>>>,
 }
-impl CkFont {
+impl NativeFont {
     pub(crate) fn get(font: &Font) -> Option<Arc<Self>> {
-        static FONT_MAP: StaticHashMap<Font, CkFont> = StaticHashMap::new();
+        static FONT_MAP: StaticHashMap<Font, NativeFont> = StaticHashMap::new();
 
         FONT_MAP.get_or_try_create(font.clone(), |font| {
-            let typeface = CkTypeface::get(&font.name)?;
+            let typeface = NativeTypeface::get(&font.name)?;
 
-            let canvas_kit_font =
-                CanvasKitFont::new(typeface.canvas_kit(), font.size.as_i32() as i16);
+            let skia_font =
+                skia_safe::Font::new(&typeface.skia_typeface, Some(font.size.as_i32() as f32));
 
             let metrics = {
-                let canvas_kit_font_metrics = &canvas_kit_font.getMetrics();
+                let (_line_spacing, skia_font_metrics) = &skia_font.metrics();
 
                 FontMetrics {
-                    ascent: canvas_kit_font_metrics.ascent().into(),
-                    descent: canvas_kit_font_metrics.descent().into(),
-                    leading: canvas_kit_font_metrics.leading().into(),
+                    ascent: skia_font_metrics.ascent.into(),
+                    descent: skia_font_metrics.descent.into(),
+                    leading: skia_font_metrics.leading.into(),
                 }
             };
 
-            Some(CkFont {
-                canvas_kit_font,
+            Some(NativeFont {
+                skia_font,
                 metrics,
                 glyph_ids_caches: Default::default(),
                 glyph_widths_caches: Default::default(),
@@ -39,12 +39,12 @@ impl CkFont {
             })
         })
     }
-    pub(crate) fn canvas_kit(&self) -> &CanvasKitFont {
-        &self.canvas_kit_font
+    pub(crate) fn skia(&self) -> &skia_safe::Font {
+        &self.skia_font
     }
 }
 
-impl CkFont {
+impl NativeFont {
     pub(crate) fn glyph_ids(&self, text: impl AsRef<str>) -> GlyphIds {
         let text = text.as_ref().to_string();
         if text.is_empty() {
@@ -53,7 +53,11 @@ impl CkFont {
 
         self.glyph_ids_caches
             .get_or_create(&text, |text| {
-                self.canvas_kit_font.getGlyphIDs(text.as_ref())
+                self.skia_font
+                    .str_to_glyphs_vec(text)
+                    .into_iter()
+                    .map(|n| n as usize)
+                    .collect()
             })
             .to_vec()
     }
@@ -63,17 +67,19 @@ impl CkFont {
         }
         self.glyph_widths_caches
             .get_or_create(&(glyph_ids, paint.clone()), |(glyph_ids, paint)| {
-                let ck_paint = CkPaint::get(paint);
+                let native_paint = NativePaint::get(paint);
 
-                let glyph_widths: Vec<Px> = self
-                    .canvas_kit_font
-                    .getGlyphWidths(glyph_ids.clone(), Some(ck_paint.canvas_kit()))
-                    .to_vec()
-                    .into_iter()
-                    .map(|n| n.into())
-                    .collect();
+                let mut widths = vec![0.0; glyph_ids.len()];
+                let glyph_ids = glyph_ids.iter().map(|n| *n as u16).collect::<Vec<u16>>();
 
-                glyph_widths
+                self.skia_font.get_widths_bounds(
+                    &glyph_ids,
+                    Some(&mut widths),
+                    None,
+                    Some(native_paint.skia()),
+                );
+
+                widths.into_iter().map(|n| n.into()).collect()
             })
             .to_vec()
     }
@@ -84,26 +90,23 @@ impl CkFont {
 
         self.glyph_bounds_caches
             .get_or_create(&(glyph_ids, paint.clone()), |(glyph_ids, paint)| {
-                let ck_paint = CkPaint::get(paint);
+                let native_paint = NativePaint::get(paint);
 
-                let bound_ltrbs = self
-                    .canvas_kit_font
-                    .getGlyphBounds(glyph_ids.clone(), Some(ck_paint.canvas_kit()))
-                    .to_vec();
+                let mut bounds = vec![skia_safe::Rect::default(); glyph_ids.len()];
+                let glyph_ids = glyph_ids.iter().map(|n| *n as u16).collect::<Vec<u16>>();
 
-                let mut iter = bound_ltrbs.into_iter().peekable();
+                self.skia_font
+                    .get_bounds(&glyph_ids, &mut bounds, Some(native_paint.skia()));
 
-                let mut bounds = Vec::new();
-
-                while iter.peek().is_some() {
-                    bounds.push(Rect::Ltrb {
-                        left: px(iter.next().unwrap()),
-                        top: px(iter.next().unwrap()),
-                        right: px(iter.next().unwrap()),
-                        bottom: px(iter.next().unwrap()),
-                    });
-                }
                 bounds
+                    .into_iter()
+                    .map(|rect| Rect::Ltrb {
+                        left: rect.left.into(),
+                        top: rect.top.into(),
+                        right: rect.right.into(),
+                        bottom: rect.bottom.into(),
+                    })
+                    .collect()
             })
             .to_vec()
     }

@@ -176,6 +176,15 @@ impl Color {
     }
 }
 
+#[cfg(feature = "skia")]
+impl From<Color> for skia_safe::Color4f {
+    fn from(color: Color) -> Self {
+        skia_safe::Color4f::from_bytes_rgba(u32::from_le_bytes([
+            color.r, color.g, color.b, color.a,
+        ]))
+    }
+}
+
 #[type_derives(Copy)]
 struct Hsl01 {
     hue: f32,
@@ -190,11 +199,32 @@ pub enum PaintStyle {
     Stroke,
 }
 
+#[cfg(feature = "skia")]
+impl From<PaintStyle> for skia_safe::PaintStyle {
+    fn from(paint_style: PaintStyle) -> Self {
+        match paint_style {
+            PaintStyle::Fill => skia_safe::PaintStyle::Fill,
+            PaintStyle::Stroke => skia_safe::PaintStyle::Stroke,
+        }
+    }
+}
+
 #[type_derives(Copy)]
 pub enum StrokeCap {
     Butt,
     Round,
     Square,
+}
+
+#[cfg(feature = "skia")]
+impl From<StrokeCap> for skia_safe::PaintCap {
+    fn from(stroke_cap: StrokeCap) -> Self {
+        match stroke_cap {
+            StrokeCap::Butt => skia_safe::PaintCap::Butt,
+            StrokeCap::Round => skia_safe::PaintCap::Round,
+            StrokeCap::Square => skia_safe::PaintCap::Square,
+        }
+    }
 }
 
 #[type_derives(Copy)]
@@ -203,6 +233,18 @@ pub enum StrokeJoin {
     Miter,
     Round,
 }
+
+#[cfg(feature = "skia")]
+impl From<StrokeJoin> for skia_safe::PaintJoin {
+    fn from(stroke_join: StrokeJoin) -> Self {
+        match stroke_join {
+            StrokeJoin::Bevel => skia_safe::PaintJoin::Bevel,
+            StrokeJoin::Miter => skia_safe::PaintJoin::Miter,
+            StrokeJoin::Round => skia_safe::PaintJoin::Round,
+        }
+    }
+}
+
 #[type_derives(Copy)]
 pub struct StrokeOptions {
     pub width: Option<Px>,
@@ -221,6 +263,17 @@ pub enum ClipOp {
     Intersect,
     Difference,
 }
+
+#[cfg(feature = "skia")]
+impl From<ClipOp> for skia_safe::ClipOp {
+    fn from(clip_op: ClipOp) -> Self {
+        match clip_op {
+            ClipOp::Intersect => skia_safe::ClipOp::Intersect,
+            ClipOp::Difference => skia_safe::ClipOp::Difference,
+        }
+    }
+}
+
 #[type_derives(Copy)]
 pub enum AlphaType {
     Opaque,
@@ -283,6 +336,43 @@ pub enum BlendMode {
     Saturation,
     Color,
     Luminosity,
+}
+
+#[cfg(feature = "skia")]
+impl From<BlendMode> for skia_safe::BlendMode {
+    fn from(blend_mode: BlendMode) -> Self {
+        match blend_mode {
+            BlendMode::Clear => skia_safe::BlendMode::Clear,
+            BlendMode::Src => skia_safe::BlendMode::Src,
+            BlendMode::Dst => skia_safe::BlendMode::Dst,
+            BlendMode::SrcOver => skia_safe::BlendMode::SrcOver,
+            BlendMode::DstOver => skia_safe::BlendMode::DstOver,
+            BlendMode::SrcIn => skia_safe::BlendMode::SrcIn,
+            BlendMode::DstIn => skia_safe::BlendMode::DstIn,
+            BlendMode::SrcOut => skia_safe::BlendMode::SrcOut,
+            BlendMode::DstOut => skia_safe::BlendMode::DstOut,
+            BlendMode::SrcATop => skia_safe::BlendMode::SrcATop,
+            BlendMode::DstATop => skia_safe::BlendMode::DstATop,
+            BlendMode::Xor => skia_safe::BlendMode::Xor,
+            BlendMode::Plus => skia_safe::BlendMode::Plus,
+            BlendMode::Modulate => skia_safe::BlendMode::Modulate,
+            BlendMode::Screen => skia_safe::BlendMode::Screen,
+            BlendMode::Overlay => skia_safe::BlendMode::Overlay,
+            BlendMode::Darken => skia_safe::BlendMode::Darken,
+            BlendMode::Lighten => skia_safe::BlendMode::Lighten,
+            BlendMode::ColorDodge => skia_safe::BlendMode::ColorDodge,
+            BlendMode::ColorBurn => skia_safe::BlendMode::ColorBurn,
+            BlendMode::HardLight => skia_safe::BlendMode::HardLight,
+            BlendMode::SoftLight => skia_safe::BlendMode::SoftLight,
+            BlendMode::Difference => skia_safe::BlendMode::Difference,
+            BlendMode::Exclusion => skia_safe::BlendMode::Exclusion,
+            BlendMode::Multiply => skia_safe::BlendMode::Multiply,
+            BlendMode::Hue => skia_safe::BlendMode::Hue,
+            BlendMode::Saturation => skia_safe::BlendMode::Saturation,
+            BlendMode::Color => skia_safe::BlendMode::Color,
+            BlendMode::Luminosity => skia_safe::BlendMode::Luminosity,
+        }
+    }
 }
 
 #[type_derives(Copy)]

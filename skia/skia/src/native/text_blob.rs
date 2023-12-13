@@ -1,17 +1,15 @@
 use super::*;
 use std::sync::Arc;
 
-pub struct CkTextBlob {
-    pub canvas_kit_text_blob: CanvasKitTextBlob,
+pub struct NativeTextBlob {
+    pub skia_text_blob: skia_safe::TextBlob,
 }
 
-impl CkTextBlob {
+impl NativeTextBlob {
     #[allow(dead_code)]
-    pub fn from_text(string: &str, font: &CkFont) -> Self {
-        CkTextBlob {
-            canvas_kit_text_blob: canvas_kit()
-                .TextBlob()
-                .MakeFromText(string, &font.canvas_kit_font),
+    pub fn from_text(string: &str, font: &NativeFont) -> Self {
+        NativeTextBlob {
+            skia_text_blob: skia_safe::TextBlob::new(string, font.skia()).unwrap(),
         }
     }
     pub fn from_glyph_ids(glyph_ids: Vec<usize>, font: &Font) -> Option<Arc<Self>> {
@@ -20,28 +18,26 @@ impl CkTextBlob {
             glyph_ids: Vec<usize>,
             font: Font,
         }
-        static CACHE: SerdeLruCache<CacheKey, CkTextBlob> = SerdeLruCache::new();
+        static CACHE: SerdeLruCache<CacheKey, NativeTextBlob> = SerdeLruCache::new();
         let cache_key = CacheKey {
             glyph_ids: glyph_ids.clone(),
             font: font.clone(),
         };
 
         CACHE.get_or_try_create(&cache_key, |key| {
-            let ck_font = CkFont::get(&key.font)?;
+            let native_font = NativeFont::get(&key.font)?;
+            let glyph_ids = glyph_ids.into_iter().map(|n| n as u8).collect::<Vec<_>>();
 
-            Some(CkTextBlob {
-                canvas_kit_text_blob: canvas_kit()
-                    .TextBlob()
-                    .MakeFromGlyphs(glyph_ids, ck_font.canvas_kit()),
-            })
+            let skia_text_blob = skia_safe::TextBlob::from_text(
+                glyph_ids.as_slice(),
+                skia_safe::TextEncoding::GlyphId,
+                native_font.skia(),
+            );
+
+            skia_text_blob.map(|skia_text_blob| NativeTextBlob { skia_text_blob })
         })
     }
-    pub fn canvas_kit(&self) -> &CanvasKitTextBlob {
-        &self.canvas_kit_text_blob
-    }
-}
-impl Drop for CkTextBlob {
-    fn drop(&mut self) {
-        self.canvas_kit_text_blob.delete();
+    pub fn skia(&self) -> &skia_safe::TextBlob {
+        &self.skia_text_blob
     }
 }

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use web_sys::ImageBitmap;
 
 pub trait SkSkia {
-    fn surface(&mut self) -> &mut dyn SkSurface;
+    fn surface(&mut self) -> &mut impl SkSurface;
     fn on_resize(&mut self, wh: Wh<IntPx>);
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph>;
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics>;
@@ -13,10 +13,9 @@ pub trait SkSkia {
     fn image(&self, image_source: &ImageSource) -> Option<Image>;
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool;
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>>;
-    fn encode_loaded_image_to_png(
-        &self,
-        image: &Image,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<u8>>>>;
+
+    #[cfg(feature = "wasm")]
+    async fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8>;
 
     #[cfg(feature = "wasm")]
     fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
@@ -24,7 +23,7 @@ pub trait SkSkia {
 
 pub trait SkSurface {
     fn flush(&mut self);
-    fn canvas(&self) -> &dyn SkCanvas;
+    fn canvas(&mut self) -> impl SkCanvas;
 }
 
 pub trait SkCanvas {

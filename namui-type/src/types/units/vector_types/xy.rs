@@ -18,6 +18,20 @@ where
     }
 }
 
+// TODO: Implement this on vector_types! macro.
+impl<T> Into<(T, T)> for Xy<T> {
+    fn into(self) -> (T, T) {
+        (self.x.into(), self.y.into())
+    }
+}
+
+#[cfg(feature = "skia")]
+impl Into<skia_safe::Point> for Xy<Px> {
+    fn into(self) -> skia_safe::Point {
+        skia_safe::Point::new(self.x.into(), self.y.into())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -532,6 +532,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "siphasher",
+ "skia-safe",
  "textwrap",
  "unicode-segmentation",
  "url",

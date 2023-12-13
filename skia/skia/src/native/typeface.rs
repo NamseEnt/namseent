@@ -2,39 +2,24 @@ use super::*;
 use std::sync::Arc;
 
 #[derive(Clone)]
-pub struct CkTypeface {
-    pub canvas_kit_typeface: Arc<CanvasKitTypeface>,
+pub struct NativeTypeface {
+    pub skia_typeface: skia_safe::Typeface,
 }
 
-static TYPEFACE_MAP: StaticHashMap<String, CkTypeface> = StaticHashMap::new();
+static TYPEFACE_MAP: StaticHashMap<String, NativeTypeface> = StaticHashMap::new();
 
-impl CkTypeface {
+impl NativeTypeface {
     pub(crate) fn get(name: impl AsRef<str>) -> Option<Arc<Self>> {
         TYPEFACE_MAP.get(&name.as_ref().to_string())
     }
     pub(crate) fn load(name: impl AsRef<str>, bytes: &[u8]) {
-        let array_buffer = js_sys::ArrayBuffer::new(bytes.len() as u32);
-
-        let array_buffer_view = js_sys::Uint8Array::new(&array_buffer);
-        array_buffer_view.copy_from(bytes);
-
-        let typeface = canvas_kit()
-            .Typeface()
-            .MakeFreeTypeFaceFromData(array_buffer);
-
         TYPEFACE_MAP.insert(
             name.as_ref().to_string(),
-            CkTypeface {
-                canvas_kit_typeface: Arc::new(typeface),
+            NativeTypeface {
+                skia_typeface: skia_safe::FontMgr::default()
+                    .new_from_data(bytes, None)
+                    .unwrap(),
             },
         );
-    }
-    pub fn canvas_kit(&self) -> &CanvasKitTypeface {
-        &self.canvas_kit_typeface
-    }
-}
-impl Drop for CkTypeface {
-    fn drop(&mut self) {
-        self.canvas_kit_typeface.delete();
     }
 }

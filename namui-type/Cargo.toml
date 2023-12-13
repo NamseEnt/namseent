@@ -5,12 +5,21 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+skia = ["dep:skia-safe"]
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 num = { version = "0.4.0", features = ["std"] }
 ordered-float = "2.10"
 auto_ops = "0.3"
-uuid = { version = "1.1", features = ["v4", "js", "macro-diagnostics", "serde"]}
+uuid = { version = "1.1", features = [
+    "v4",
+    "js",
+    "macro-diagnostics",
+    "serde",
+] }
 siphasher = "0.3"
 nalgebra = { version = "0.31", features = ["serde-serialize"] }
 url = { version = "2.4.0", features = ["serde"] }
@@ -20,6 +29,7 @@ textwrap = "0.16.0"
 unicode-segmentation = "1.10.1"
 serde_bytes = "0.11.12"
 lru = "0.11.0"
+skia-safe = { path = "../../sambashare/rust-skia/skia-safe", optional = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

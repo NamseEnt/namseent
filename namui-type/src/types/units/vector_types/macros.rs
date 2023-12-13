@@ -174,8 +174,6 @@ macro_rules! vector_types {
     };
 }
 
-pub use vector_types;
-
 #[macro_export]
 macro_rules! overload_tuple_types_binary_operator {
     ($ops_trait: tt, $fn_name: ident, $type_name: ident, { $($field_ident:ident),* $(,)? }) => {
@@ -228,11 +226,8 @@ macro_rules! overload_tuple_types_binary_operator {
     };
 }
 
-pub use overload_tuple_types_binary_operator;
-
 #[macro_export]
 macro_rules! count {
     () => (0usize);
     ( $x:tt $($xs:tt)* ) => (1usize + $crate::count!($($xs)*));
 }
-pub use count;

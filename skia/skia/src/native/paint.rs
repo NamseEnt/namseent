@@ -1,29 +1,29 @@
 use super::*;
 use std::sync::Arc;
 
-pub(crate) struct CkPaint {
-    canvas_kit_paint: CanvasKitPaint,
+pub(crate) struct NativePaint {
+    skia_paint: skia_safe::Paint,
 }
-impl CkPaint {
+impl NativePaint {
     pub(crate) fn get(paint: &Paint) -> Arc<Self> {
-        static CK_PAINT_CACHE: SerdeLruCache<Paint, CkPaint> = SerdeLruCache::new();
-        CK_PAINT_CACHE.get_or_create(paint, Self::new)
+        static NATIVE_PAINT_CACHE: SerdeLruCache<Paint, NativePaint> = SerdeLruCache::new();
+        NATIVE_PAINT_CACHE.get_or_create(paint, Self::new)
     }
     fn new(paint: &Paint) -> Self {
-        let canvas_kit_paint = CanvasKitPaint::new();
-        apply_paint_to_canvas_kit(&canvas_kit_paint, paint);
-
-        CkPaint { canvas_kit_paint }
+        NativePaint {
+            skia_paint: new_skia_paint(paint),
+        }
     }
 
-    pub(crate) fn canvas_kit(&self) -> &CanvasKitPaint {
-        &self.canvas_kit_paint
+    pub(crate) fn skia(&self) -> &skia_safe::Paint {
+        &self.skia_paint
     }
 }
 
-fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
+fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
+    let mut skia_paint = skia_safe::Paint::new(skia_safe::Color4f::from(paint.color), None);
     let &Paint {
-        color,
+        color: _,
         paint_style,
         anti_alias,
         stroke_width,
@@ -34,42 +34,37 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
         blend_mode,
         ref shader,
     } = paint;
-    if let Some(color) = color {
-        canvas_kit_paint.setColor(&color.to_float32_array());
-    }
     if let Some(style) = paint_style {
-        canvas_kit_paint.setStyle(style.into());
+        skia_paint.set_style(style.into());
     }
     if let Some(anti_alias) = anti_alias {
-        canvas_kit_paint.setAntiAlias(anti_alias);
+        skia_paint.set_anti_alias(anti_alias);
     }
     if let Some(stroke_width) = stroke_width {
-        canvas_kit_paint.setStrokeWidth(stroke_width.as_f32());
+        skia_paint.set_stroke_width(stroke_width.as_f32());
     }
     if let Some(stroke_cap) = stroke_cap {
-        canvas_kit_paint.setStrokeCap(stroke_cap.into());
+        skia_paint.set_stroke_cap(stroke_cap.into());
     }
     if let Some(stroke_join) = stroke_join {
-        canvas_kit_paint.setStrokeJoin(stroke_join.into());
+        skia_paint.set_stroke_join(stroke_join.into());
     }
     if let Some(stroke_miter) = stroke_miter {
-        canvas_kit_paint.setStrokeMiter(stroke_miter.as_f32());
+        skia_paint.set_stroke_miter(stroke_miter.as_f32());
     }
-    if let Some(color_filter) = color_filter {
-        let ck_color_filter = CkColorFilter::get(color_filter);
-        canvas_kit_paint.setColorFilter(ck_color_filter.canvas_kit());
+    if let Some(_color_filter) = color_filter {
+        todo!()
+        // let ck_color_filter = CkColorFilter::get(color_filter);
+        // skia_paint.set_color_filter(ck_color_filter.skia());
     }
     if let Some(blend_mode) = blend_mode {
-        canvas_kit_paint.setBlendMode(blend_mode.into());
+        skia_paint.set_blend_mode(blend_mode.into());
     }
-    if let Some(shader) = shader {
-        let ck_shader = CkShader::get(shader);
-        canvas_kit_paint.setShader(Some(ck_shader.canvas_kit()));
+    if let Some(_shader) = shader {
+        todo!()
+        // let ck_shader = CkShader::get(shader);
+        // skia_paint.set_shader(Some(ck_shader.skia()));
     }
-}
 
-impl Drop for CkPaint {
-    fn drop(&mut self) {
-        self.canvas_kit_paint.delete();
-    }
+    skia_paint
 }
