@@ -3,7 +3,7 @@ use crate::*;
 use std::sync::Arc;
 
 pub struct NativeImage {
-    pub(crate) skia_image: skia_safe::Image,
+    skia_image: skia_safe::Image,
     image_info: ImageInfo,
     src: ImageSource,
 }
@@ -14,22 +14,20 @@ unsafe impl Sync for NativeImage {}
 static IMAGE_MAP: StaticHashMap<ImageSource, NativeImage> = StaticHashMap::new();
 
 impl NativeImage {
-    // TODO
-    // pub(crate) fn load(image_source: ImageSource, image_bitmap: ImageBitmap) {
-    //     let skia_image =
-    //         canvas_kit().make_lazy_image_from_texture_source(&image_bitmap, None, None);
+    pub(crate) fn load(image_source: ImageSource, encoded_image: &[u8]) {
+        IMAGE_MAP.get_or_create(image_source, |image_source| {
+            let skia_image =
+                skia_safe::Image::from_encoded(skia_safe::Data::new_copy(encoded_image)).unwrap();
 
-    //     let image_info = get_image_info(&skia_image);
+            let image_info = get_image_info(&skia_image);
 
-    //     let ck_image = NativeImage {
-    //         skia_image,
-    //         image_info,
-    //         src: image_source.clone(),
-    //         image_bitmap,
-    //     };
-
-    //     IMAGE_MAP.insert(image_source, ck_image);
-    // }
+            NativeImage {
+                skia_image,
+                image_info,
+                src: image_source.clone(),
+            }
+        });
+    }
 
     pub(crate) fn get(image_source: &ImageSource) -> Option<Arc<NativeImage>> {
         IMAGE_MAP.get(image_source)
@@ -55,12 +53,8 @@ impl NativeImage {
         }
     }
 
-    pub(crate) fn canvas_kit(&self) -> &skia_safe::Image {
+    pub(crate) fn skia(&self) -> &skia_safe::Image {
         &self.skia_image
-    }
-
-    pub(crate) async fn encode_to_png(&self) -> Vec<u8> {
-        unimplemented!()
     }
 }
 
@@ -70,28 +64,12 @@ impl SkImage for NativeImage {
     }
 }
 
-// fn get_image_info(skia_image: &skia_safe::Image) -> ImageInfo {
-//     let skia_image_info = skia_image.getImageInfo();
-//     ImageInfo {
-//         width: skia_image_info.width().px(),
-//         height: skia_image_info.height().px(),
-//         alpha_type: match skia_image_info.alphaType().value() {
-//             value if ALPHA_TYPE_OPAQUE_VALUE.eq(&value) => AlphaType::Opaque,
-//             value if ALPHA_TYPE_PREMUL_VALUE.eq(&value) => AlphaType::Premul,
-//             value if ALPHA_TYPE_UNPREMUL_VALUE.eq(&value) => AlphaType::Unpremul,
-//             value => panic!("Unknown alpha type: {}", value),
-//         },
-//         color_type: match skia_image_info.colorType().value() {
-//             value if COLOR_TYPE_ALPHA_8_VALUE.eq(&value) => ColorType::Gray8,
-//             value if COLOR_TYPE_RGB_565_VALUE.eq(&value) => ColorType::Rgb565,
-//             value if COLOR_TYPE_RGBA_8888_VALUE.eq(&value) => ColorType::Rgba8888,
-//             value if COLOR_TYPE_BGRA_8888_VALUE.eq(&value) => ColorType::Bgra8888,
-//             value if COLOR_TYPE_RGBA_1010102_VALUE.eq(&value) => ColorType::Rgba1010102,
-//             value if COLOR_TYPE_RGB_101010X_VALUE.eq(&value) => ColorType::Rgb101010x,
-//             value if COLOR_TYPE_GRAY_8_VALUE.eq(&value) => ColorType::Gray8,
-//             value if COLOR_TYPE_RGBA_F16_VALUE.eq(&value) => ColorType::RgbaF16,
-//             value if COLOR_TYPE_RGBA_F32_VALUE.eq(&value) => ColorType::RgbaF32,
-//             value => panic!("Unknown color type: {}", value),
-//         },
-//     }
-// }
+fn get_image_info(skia_image: &skia_safe::Image) -> ImageInfo {
+    let skia_image_info = skia_image.image_info();
+    ImageInfo {
+        width: skia_image_info.width().px(),
+        height: skia_image_info.height().px(),
+        alpha_type: skia_image_info.alpha_type().into(),
+        color_type: skia_image_info.color_type().into(),
+    }
+}

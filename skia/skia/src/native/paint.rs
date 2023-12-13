@@ -52,18 +52,16 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
     if let Some(stroke_miter) = stroke_miter {
         skia_paint.set_stroke_miter(stroke_miter.as_f32());
     }
-    if let Some(_color_filter) = color_filter {
-        todo!()
-        // let ck_color_filter = CkColorFilter::get(color_filter);
-        // skia_paint.set_color_filter(ck_color_filter.skia());
+    if let Some(color_filter) = color_filter {
+        let native_color_filter = NativeColorFilter::get(color_filter);
+        skia_paint.set_color_filter(Some(native_color_filter.skia().clone()));
     }
     if let Some(blend_mode) = blend_mode {
         skia_paint.set_blend_mode(blend_mode.into());
     }
-    if let Some(_shader) = shader {
-        todo!()
-        // let ck_shader = CkShader::get(shader);
-        // skia_paint.set_shader(Some(ck_shader.skia()));
+    if let Some(shader) = shader {
+        let native_shader = NativeShader::get(shader);
+        skia_paint.set_shader(Some(native_shader.skia().clone()));
     }
 
     skia_paint

@@ -1,27 +1,31 @@
 use super::*;
 use std::sync::Arc;
 
-pub struct CkShader {
-    pub(crate) canvas_kit_shader: CanvasKitShader,
+pub struct NativeShader {
+    pub(crate) skia_shader: skia_safe::Shader,
 }
 
-unsafe impl Send for CkShader {}
-unsafe impl Sync for CkShader {}
-impl CkShader {
+unsafe impl Send for NativeShader {}
+unsafe impl Sync for NativeShader {}
+impl NativeShader {
     pub(crate) fn get(shader: &Shader) -> Arc<Self> {
-        static CK_SHADER_MAP: SerdeMap<Shader, CkShader> = SerdeMap::new();
+        static NATIVE_SHADER_MAP: SerdeMap<Shader, NativeShader> = SerdeMap::new();
 
-        CK_SHADER_MAP.get_or_create(shader, |shader| match shader {
+        NATIVE_SHADER_MAP.get_or_create(shader, |shader| match shader {
             Shader::Image { src } => {
-                let ck_image = CkImage::get(src).unwrap();
-                CkShader {
-                    canvas_kit_shader: ck_image.canvas_kit().makeShaderOptions(
-                        TileMode::Clamp.into(),
-                        TileMode::Clamp.into(),
-                        FilterMode::Linear.into(),
-                        MipmapMode::Linear.into(),
-                        None,
-                    ),
+                let native_image = NativeImage::get(src).unwrap();
+                NativeShader {
+                    skia_shader: native_image
+                        .skia()
+                        .to_shader(
+                            Some((TileMode::Clamp.into(), TileMode::Clamp.into())),
+                            skia_safe::SamplingOptions::new(
+                                FilterMode::Linear.into(),
+                                MipmapMode::Linear.into(),
+                            ),
+                            None,
+                        )
+                        .expect("Failed to create shader from image"),
                 }
             }
             Shader::Blend {
@@ -29,28 +33,22 @@ impl CkShader {
                 src,
                 dest,
             } => {
-                let ck_src = CkShader::get(src);
-                let ck_dest = CkShader::get(dest);
+                let native_src = NativeShader::get(src);
+                let native_dest = NativeShader::get(dest);
 
-                let blended = canvas_kit().Shader().MakeBlend(
-                    (*blend_mode).into(),
-                    &ck_src.canvas_kit_shader,
-                    &ck_dest.canvas_kit_shader,
+                let blended = skia_safe::shaders::blend(
+                    skia_safe::BlendMode::from(*blend_mode),
+                    &native_src.skia_shader,
+                    &native_dest.skia_shader,
                 );
-                CkShader {
-                    canvas_kit_shader: blended,
+                NativeShader {
+                    skia_shader: blended,
                 }
             }
         })
     }
 
-    pub(crate) fn canvas_kit(&self) -> &CanvasKitShader {
-        &self.canvas_kit_shader
-    }
-}
-
-impl Drop for CkShader {
-    fn drop(&mut self) {
-        self.canvas_kit_shader.delete();
+    pub(crate) fn skia(&self) -> &skia_safe::Shader {
+        &self.skia_shader
     }
 }

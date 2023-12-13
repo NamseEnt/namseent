@@ -16,9 +16,10 @@ pub trait SkSkia {
 
     #[cfg(feature = "wasm")]
     async fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8>;
-
     #[cfg(feature = "wasm")]
     fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
+    #[cfg(not(feature = "wasm"))]
+    fn load_image(&self, image_source: ImageSource, encoded_image: &[u8]);
 }
 
 pub trait SkSurface {

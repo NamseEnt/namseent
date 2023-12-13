@@ -185,6 +185,13 @@ impl From<Color> for skia_safe::Color4f {
     }
 }
 
+#[cfg(feature = "skia")]
+impl From<Color> for skia_safe::Color {
+    fn from(color: Color) -> Self {
+        skia_safe::Color::from_argb(color.a, color.r, color.g, color.b)
+    }
+}
+
 #[type_derives(Copy)]
 struct Hsl01 {
     hue: f32,
@@ -279,7 +286,21 @@ pub enum AlphaType {
     Opaque,
     Premul,
     Unpremul,
+    Unknown,
 }
+
+#[cfg(feature = "skia")]
+impl Into<AlphaType> for skia_safe::AlphaType {
+    fn into(self) -> AlphaType {
+        match self {
+            skia_safe::AlphaType::Opaque => AlphaType::Opaque,
+            skia_safe::AlphaType::Premul => AlphaType::Premul,
+            skia_safe::AlphaType::Unpremul => AlphaType::Unpremul,
+            skia_safe::AlphaType::Unknown => AlphaType::Unknown,
+        }
+    }
+}
+
 #[type_derives(Copy)]
 pub enum ColorType {
     Alpha8,
@@ -291,6 +312,55 @@ pub enum ColorType {
     Gray8,
     RgbaF16,
     RgbaF32,
+    ARGB4444,
+    RGB888x,
+    BGRA1010102,
+    BGR101010x,
+    BGR101010xXR,
+    RGBA10x6,
+    RGBAF16Norm,
+    R8G8UNorm,
+    A16Float,
+    R16G16Float,
+    A16UNorm,
+    R16G16UNorm,
+    R16G16B16A16UNorm,
+    SRGBA8888,
+    R8UNorm,
+    Unknown,
+}
+
+#[cfg(feature = "skia")]
+impl Into<ColorType> for skia_safe::ColorType {
+    fn into(self) -> ColorType {
+        match self {
+            skia_safe::ColorType::Alpha8 => ColorType::Alpha8,
+            skia_safe::ColorType::RGB565 => ColorType::Rgb565,
+            skia_safe::ColorType::RGBA8888 => ColorType::Rgba8888,
+            skia_safe::ColorType::BGRA8888 => ColorType::Bgra8888,
+            skia_safe::ColorType::RGBA1010102 => ColorType::Rgba1010102,
+            skia_safe::ColorType::RGB101010x => ColorType::Rgb101010x,
+            skia_safe::ColorType::Gray8 => ColorType::Gray8,
+            skia_safe::ColorType::RGBAF16 => ColorType::RgbaF16,
+            skia_safe::ColorType::RGBAF32 => ColorType::RgbaF32,
+            skia_safe::ColorType::ARGB4444 => ColorType::ARGB4444,
+            skia_safe::ColorType::RGB888x => ColorType::RGB888x,
+            skia_safe::ColorType::BGRA1010102 => ColorType::BGRA1010102,
+            skia_safe::ColorType::BGR101010x => ColorType::BGR101010x,
+            skia_safe::ColorType::BGR101010xXR => ColorType::BGR101010xXR,
+            skia_safe::ColorType::RGBA10x6 => ColorType::RGBA10x6,
+            skia_safe::ColorType::RGBAF16Norm => ColorType::RGBAF16Norm,
+            skia_safe::ColorType::R8G8UNorm => ColorType::R8G8UNorm,
+            skia_safe::ColorType::A16Float => ColorType::A16Float,
+            skia_safe::ColorType::R16G16Float => ColorType::R16G16Float,
+            skia_safe::ColorType::A16UNorm => ColorType::A16UNorm,
+            skia_safe::ColorType::R16G16UNorm => ColorType::R16G16UNorm,
+            skia_safe::ColorType::R16G16B16A16UNorm => ColorType::R16G16B16A16UNorm,
+            skia_safe::ColorType::SRGBA8888 => ColorType::SRGBA8888,
+            skia_safe::ColorType::R8UNorm => ColorType::R8UNorm,
+            skia_safe::ColorType::Unknown => ColorType::Unknown,
+        }
+    }
 }
 
 #[type_derives(Copy)]
@@ -298,11 +368,33 @@ pub enum FilterMode {
     Linear,
     Nearest,
 }
+
+#[cfg(feature = "skia")]
+impl From<FilterMode> for skia_safe::FilterMode {
+    fn from(filter_mode: FilterMode) -> Self {
+        match filter_mode {
+            FilterMode::Linear => skia_safe::FilterMode::Linear,
+            FilterMode::Nearest => skia_safe::FilterMode::Nearest,
+        }
+    }
+}
+
 #[type_derives(Copy)]
 pub enum MipmapMode {
     None,
     Nearest,
     Linear,
+}
+
+#[cfg(feature = "skia")]
+impl From<MipmapMode> for skia_safe::MipmapMode {
+    fn from(mipmap_mode: MipmapMode) -> Self {
+        match mipmap_mode {
+            MipmapMode::None => skia_safe::MipmapMode::None,
+            MipmapMode::Nearest => skia_safe::MipmapMode::Nearest,
+            MipmapMode::Linear => skia_safe::MipmapMode::Linear,
+        }
+    }
 }
 
 #[type_derives(Copy, Eq, Hash)]
@@ -381,6 +473,18 @@ pub enum TileMode {
     Decal,
     Mirror,
     Repeat,
+}
+
+#[cfg(feature = "skia")]
+impl From<TileMode> for skia_safe::TileMode {
+    fn from(tile_mode: TileMode) -> Self {
+        match tile_mode {
+            TileMode::Clamp => skia_safe::TileMode::Clamp,
+            TileMode::Decal => skia_safe::TileMode::Decal,
+            TileMode::Mirror => skia_safe::TileMode::Mirror,
+            TileMode::Repeat => skia_safe::TileMode::Repeat,
+        }
+    }
 }
 
 #[type_derives(Copy)]

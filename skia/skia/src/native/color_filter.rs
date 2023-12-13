@@ -1,32 +1,23 @@
-use super::*;
 use namui_type::*;
 use std::sync::Arc;
 
-pub(crate) struct CkColorFilter {
-    canvas_kit_color_filter: CanvasKitColorFilter,
+pub(crate) struct NativeColorFilter {
+    skia_color_filter: skia_safe::ColorFilter,
 }
 
-impl CkColorFilter {
-    pub(crate) fn get(color_filter: ColorFilter) -> Arc<CkColorFilter> {
-        static CACHE: SerdeLruCache<ColorFilter, CkColorFilter> = SerdeLruCache::new();
+impl NativeColorFilter {
+    pub(crate) fn get(color_filter: ColorFilter) -> Arc<NativeColorFilter> {
+        static CACHE: SerdeLruCache<ColorFilter, NativeColorFilter> = SerdeLruCache::new();
 
-        CACHE.get_or_create(&color_filter, |color_filter| CkColorFilter {
-            canvas_kit_color_filter: {
-                let color_array = color_filter.color.to_float32_array();
-                canvas_kit()
-                    .ColorFilter()
-                    .MakeBlend(&color_array, color_filter.blend_mode.into())
+        CACHE.get_or_create(&color_filter, |color_filter| NativeColorFilter {
+            skia_color_filter: {
+                skia_safe::color_filters::blend(color_filter.color, color_filter.blend_mode.into())
+                    .expect("Failed to create color filter")
             },
         })
     }
 
-    pub(crate) fn canvas_kit(&self) -> &CanvasKitColorFilter {
-        &self.canvas_kit_color_filter
-    }
-}
-
-impl Drop for CkColorFilter {
-    fn drop(&mut self) {
-        self.canvas_kit_color_filter.delete();
+    pub(crate) fn skia(&self) -> &skia_safe::ColorFilter {
+        &self.skia_color_filter
     }
 }
