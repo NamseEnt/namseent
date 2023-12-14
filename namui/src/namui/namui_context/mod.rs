@@ -7,7 +7,6 @@ impl NamuiContext {
         Self {}
     }
     pub async fn start<C: Component>(self, component: impl Send + Sync + Fn() -> C + 'static) {
-        crate::hooks::channel::init();
         crate::hooks::start(component).await;
     }
 }

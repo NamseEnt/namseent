@@ -1,18 +1,18 @@
-use crate::{system::InitResult, *};
+use crate::{
+    system::{wait_for_system_init, InitResult},
+    *,
+};
 use std::sync::OnceLock;
 use tokio::sync::oneshot;
-use winit::platform::windows::EventLoopBuilderExtWindows;
 
 static WINDOW: OnceLock<winit::window::Window> = OnceLock::new();
 
 pub(crate) async fn init() -> InitResult {
     let (window_inited_tx, window_inited_rx) = oneshot::channel();
 
-    std::thread::spawn(move || {
-        let event_loop = winit::event_loop::EventLoopBuilder::new()
-            .with_any_thread(true)
-            .build()
-            .unwrap();
+    // NOTE: Make sure it is spawned in the main thread. winit requires it.
+    tokio::task::spawn_local(async move {
+        let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
         let winit_window_builder = winit::window::WindowBuilder::new()
             .with_title("namui")
             .with_inner_size(winit::dpi::LogicalSize::new(800, 800));
@@ -20,6 +20,7 @@ pub(crate) async fn init() -> InitResult {
         let window = winit_window_builder.build(&event_loop).unwrap();
         WINDOW.set(window).unwrap();
         window_inited_tx.send(()).unwrap();
+        wait_for_system_init().await;
 
         event_loop
             .run(|event, _| {

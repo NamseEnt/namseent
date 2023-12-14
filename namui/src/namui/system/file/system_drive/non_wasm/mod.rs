@@ -19,6 +19,7 @@ pub async fn read(path_like: impl types::PathLike) -> Result<Vec<u8>> {
 
 pub async fn write(path_like: impl types::PathLike, content: Vec<u8>) -> Result<()> {
     let path = path_like.path();
+    tokio::fs::create_dir_all(path.parent().unwrap()).await?;
     tokio::fs::write(path, content).await?;
     Ok(())
 }

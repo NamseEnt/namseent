@@ -28,8 +28,11 @@ pub mod web;
 use crate::*;
 #[cfg(target_family = "wasm")]
 use platform_utils::*;
+use std::sync::atomic::AtomicBool;
 
 type InitResult = Result<()>;
+
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 pub(crate) async fn init() -> InitResult {
     futures::try_join!(
@@ -60,5 +63,13 @@ pub(crate) async fn init() -> InitResult {
 
     tokio::try_join!(typeface::init(),)?;
 
+    INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
+
     Ok(())
+}
+
+async fn wait_for_system_init() {
+    while !INITIALIZED.load(std::sync::atomic::Ordering::SeqCst) {
+        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+    }
 }

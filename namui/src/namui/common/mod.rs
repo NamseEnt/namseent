@@ -1,3 +1,4 @@
+pub(crate) mod change_path_to_platform;
 mod codes;
 mod event;
 #[cfg(target_family = "wasm")]

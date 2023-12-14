@@ -40,6 +40,8 @@ pub async fn init() -> NamuiContext {
 
     let namui_context = NamuiContext::new();
 
+    crate::hooks::channel::init();
+
     system::init()
         .await
         .expect("Failed to initialize namui system");

@@ -36,7 +36,9 @@ opt-level = 2
 
 #[tokio::main]
 async fn main() {{
-    {project_name_underscored}::main().await;
+    tokio::task::LocalSet::new().run_until(async {{
+        {project_name_underscored}::main().await;
+    }}).await;
 }}
 "#,
         project_name_underscored = project_name.replace('-', "_"),

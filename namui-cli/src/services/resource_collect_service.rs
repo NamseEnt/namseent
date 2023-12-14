@@ -54,7 +54,7 @@ fn collect_runtime(
                 &PathBuf::from(""),
             ));
         }
-        Target::X86_64PcWindowsMsvc => todo!(),
+        Target::X86_64PcWindowsMsvc => {}
     }
     if let Some(additional_runtime_path) = additional_runtime_path {
         ops.push(CollectOperation::new(
@@ -92,7 +92,14 @@ fn collect_rust_build(
                 &PathBuf::from("drawer"),
             ));
         }
-        Target::X86_64PcWindowsMsvc => todo!(),
+        Target::X86_64PcWindowsMsvc => {
+            let build_dist_path =
+                project_path.join("target/namui/target/x86_64-pc-windows-msvc/debug");
+            ops.push(CollectOperation::new(
+                &build_dist_path.join("namui-runtime-x86_64-pc-windows-msvc.exe"),
+                &PathBuf::from(""),
+            ));
+        }
     }
     Ok(())
 }
