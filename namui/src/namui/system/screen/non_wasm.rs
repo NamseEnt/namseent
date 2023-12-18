@@ -34,15 +34,18 @@ pub(crate) async fn init() -> InitResult {
                 {
                     match event {
                         winit::event::WindowEvent::Resized(size) => {
+                            println!("LOOP EVENT: Resized: {:?}", size);
                             let wh = Wh {
                                 width: (size.width as i32).int_px(),
                                 height: (size.height as i32).int_px(),
                             };
                             system::skia::on_window_resize(wh);
-                            crate::on_raw_event(RawEvent::ScreenResize { wh })
+                            crate::on_raw_event(RawEvent::ScreenResize { wh });
+                            println!("LOOP EVENT: Resized Done");
                         }
                         winit::event::WindowEvent::CloseRequested
                         | winit::event::WindowEvent::Destroyed => {
+                            println!("{:?}", event);
                             std::process::exit(0);
                         }
                         winit::event::WindowEvent::KeyboardInput {
@@ -83,6 +86,7 @@ pub(crate) async fn init() -> InitResult {
                             system::mouse::on_winit_mouse_input(state, namui_mouse_button);
                         }
                         winit::event::WindowEvent::RedrawRequested => {
+                            println!("LOOP EVENT: {:?}", event);
                             system::drawer::redraw();
                         }
                         _ => {}
