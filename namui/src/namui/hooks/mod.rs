@@ -34,6 +34,9 @@ pub(crate) async fn start<C: Component>(root_component: impl Send + Sync + 'stat
     TREE_CTX.set(TreeContext::new(root_component)).unwrap();
 
     TREE_CTX.get().unwrap().start().await;
+
+    #[cfg(not(target_family = "wasm"))]
+    crate::system::screen::await_event_loop_join().await;
 }
 
 pub(crate) fn on_raw_event(event: RawEvent) {

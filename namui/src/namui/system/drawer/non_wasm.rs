@@ -30,5 +30,12 @@ pub(crate) fn load_typeface(_typeface_name: &str, _bytes: &[u8]) {
 pub(crate) fn load_image(_image_source: &ImageSource, _image_bitmap: ImageBitmap) {}
 
 pub(crate) fn redraw() {
-    todo!()
+    let Some(last_rendering_tree) = (unsafe { &LAST_RENDERING_TREE }) else {
+        return;
+    };
+
+    let draw_input = DrawInput {
+        rendering_tree: last_rendering_tree.clone(), // TODO: remove clone, use reference
+    };
+    system::skia::render(draw_input);
 }

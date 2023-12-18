@@ -27,11 +27,14 @@ windows = { version = "0.52.0", features = [
     "Win32_Graphics_Direct3D",
     "Win32_Foundation",
     "Win32_Graphics_Dxgi_Common",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_System",
 ], optional = true }
-anyhow = "1.0.75"
+anyhow = { version = "1.0.75", features = ["backtrace"] }
 namui-type = { path = "../../namui-type", features = ["skia"] }
 serde = { version = "1.0.183", features = ["derive"] }
-skia-safe = { path = "../../../sambashare/rust-skia/skia-safe", optional = true }
+skia-safe = { path = "../../rust-skia/skia-safe", optional = true }
 canvas-kit-wasm-bindgen = { path = "../canvas-kit-wasm-bindgen", optional = true }
 js-sys = { version = "0.3.64", optional = true }
 wasm-bindgen = { version = "0.2.87", optional = true }
@@ -42,6 +45,7 @@ web-sys = { version = "0.3.64", features = [
     "Blob",
 ], optional = true }
 wasm-bindgen-futures = { version = "0.4.37", optional = true }
+woff2 = "0.3.0"
 
 [dev-dependencies]
 

@@ -7,30 +7,39 @@ use windows::Win32::{
     Graphics::{
         Direct3D::D3D_FEATURE_LEVEL_11_0,
         Direct3D12::{
-            D3D12CreateDevice, ID3D12CommandQueue, ID3D12Device, D3D12_COMMAND_LIST_TYPE_DIRECT,
-            D3D12_COMMAND_QUEUE_DESC, D3D12_COMMAND_QUEUE_FLAG_NONE,
+            D3D12CreateDevice, D3D12GetDebugInterface, ID3D12CommandQueue, ID3D12Debug,
+            ID3D12Device, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_QUEUE_DESC,
+            D3D12_COMMAND_QUEUE_FLAG_NONE,
         },
         Dxgi::{
-            CreateDXGIFactory1, IDXGIAdapter1, IDXGIFactory4, DXGI_ADAPTER_FLAG,
-            DXGI_ADAPTER_FLAG_NONE, DXGI_ADAPTER_FLAG_SOFTWARE,
+            CreateDXGIFactory1, CreateDXGIFactory2, IDXGIAdapter1, IDXGIFactory4,
+            DXGI_ADAPTER_FLAG, DXGI_ADAPTER_FLAG_NONE, DXGI_ADAPTER_FLAG_SOFTWARE,
+            DXGI_CREATE_FACTORY_DEBUG,
         },
     },
 };
 
 pub(crate) struct NativeSkia {
     backend_context: skia_safe::gpu::d3d::BackendContext,
-    context: skia_safe::gpu::DirectContext,
+    _context: skia_safe::gpu::DirectContext,
     surface: NativeSurface,
-    hwnd: HWND,
+    _hwnd: HWND,
 }
 unsafe impl Send for NativeSkia {}
 unsafe impl Sync for NativeSkia {}
 
 impl NativeSkia {
     pub(crate) fn new(window_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
+        // unsafe {
+        //     let mut debug: Option<ID3D12Debug> = None;
+        //     if let Some(debug) = D3D12GetDebugInterface(&mut debug).ok().and(debug) {
+        //         debug.EnableDebugLayer();
+        //     }
+        // }
+
         let hwnd = HWND(window_id as isize);
 
-        let factory = unsafe { CreateDXGIFactory1::<IDXGIFactory4>() }?;
+        let factory = unsafe { CreateDXGIFactory2::<IDXGIFactory4>(DXGI_CREATE_FACTORY_DEBUG) }?;
         let adapter = get_hardware_adapter(&factory)?;
 
         let mut device: Option<ID3D12Device> = None;
@@ -65,25 +74,21 @@ impl NativeSkia {
                 hwnd,
             )?,
             backend_context,
-            context,
-            hwnd,
+            _context: context,
+            _hwnd: hwnd,
         })
     }
 }
 
 impl SkSkia for NativeSkia {
+    fn move_to_next_frame(&mut self) {
+        self.surface.move_to_next_frame();
+    }
     fn surface(&mut self) -> &mut dyn SkSurface {
         &mut self.surface
     }
     fn on_resize(&mut self, wh: Wh<IntPx>) {
-        self.surface = NativeSurface::new(
-            self.context.clone(),
-            wh,
-            &self.backend_context.device,
-            &self.backend_context.queue,
-            self.hwnd,
-        )
-        .unwrap();
+        self.surface.resize(wh);
     }
 
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph> {

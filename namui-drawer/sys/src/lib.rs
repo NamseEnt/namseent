@@ -15,6 +15,8 @@ pub fn draw(skia: &mut dyn SkSkia, input: DrawInput, start_load_image: &dyn Fn(&
         start_load_image(src);
     };
 
+    skia.move_to_next_frame();
+
     let rendering_tree = input.rendering_tree;
 
     let mut ctx = { DrawContext::new(skia, start_load_image) };

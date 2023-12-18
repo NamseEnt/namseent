@@ -200,7 +200,13 @@ impl CancelableBuilder {
                     .spawn()?)
             }
             Target::X86_64PcWindowsMsvc => Ok(Command::new("cargo")
-                .args(["xwin", "build", "--target", "x86_64-pc-windows-msvc"])
+                .args([
+                    "build",
+                    "--target",
+                    "x86_64-pc-windows-msvc",
+                    "--message-format",
+                    "json",
+                ])
                 .current_dir(&build_option.project_root_path)
                 .envs(get_envs(build_option))
                 .stdout(Stdio::piped())

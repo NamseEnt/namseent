@@ -23,20 +23,27 @@ tokio = {{ version = "1.12.0", features = ["rt"] }}
 lto = true
 opt-level = 3
 
-[profile.dev]
-lto = true
-opt-level = 2
+# [profile.dev]
+# lto = true
+# opt-level = 2
     "#,
-        project_path = project_path_in_relative.display(),
+        project_path = project_path_in_relative
+            .to_str()
+            .unwrap()
+            .split('\\')
+            .collect::<Vec<&str>>()
+            .join("/"),
     );
     std::fs::write(args.target_dir.join("Cargo.toml"), cargo_toml)?;
 
     let lib_rs = format!(
         r#"#[tokio::main]
 async fn main() {{
-    tokio::task::LocalSet::new().run_until(async {{
+    let local_set = tokio::task::LocalSet::new();
+    local_set.run_until(async {{
         {project_name_underscored}::main().await;
     }}).await;
+    local_set.await;
 }}
 "#,
         project_name_underscored = project_name.replace('-', "_"),

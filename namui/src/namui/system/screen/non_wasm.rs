@@ -6,12 +6,13 @@ use std::sync::OnceLock;
 use tokio::sync::oneshot;
 
 static WINDOW: OnceLock<winit::window::Window> = OnceLock::new();
+static mut EVENT_LOOP_JOIN_HANDLE: OnceLock<tokio::task::JoinHandle<()>> = OnceLock::new();
 
 pub(crate) async fn init() -> InitResult {
     let (window_inited_tx, window_inited_rx) = oneshot::channel();
 
     // NOTE: Make sure it is spawned in the main thread. winit requires it.
-    tokio::task::spawn_local(async move {
+    let join_handle = tokio::task::spawn_local(async move {
         let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
         let winit_window_builder = winit::window::WindowBuilder::new()
             .with_title("namui")
@@ -21,9 +22,11 @@ pub(crate) async fn init() -> InitResult {
         WINDOW.set(window).unwrap();
         window_inited_tx.send(()).unwrap();
         wait_for_system_init().await;
+        crate::log!("Ready to run event loop");
 
         event_loop
             .run(|event, _| {
+                // crate::log!("{:?}", event);
                 if let winit::event::Event::WindowEvent {
                     window_id: _,
                     event,
@@ -87,7 +90,11 @@ pub(crate) async fn init() -> InitResult {
                 }
             })
             .unwrap();
+
+        crate::log!("Event loop finished");
     });
+
+    unsafe { EVENT_LOOP_JOIN_HANDLE.set(join_handle).unwrap() };
 
     window_inited_rx.await?;
 
@@ -104,4 +111,10 @@ pub fn size() -> crate::Wh<IntPx> {
 
 pub(crate) fn window_id() -> usize {
     u64::from(WINDOW.get().unwrap().id()) as usize
+}
+
+pub(crate) async fn await_event_loop_join() {
+    unsafe { EVENT_LOOP_JOIN_HANDLE.take().unwrap() }
+        .await
+        .unwrap();
 }

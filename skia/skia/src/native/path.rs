@@ -86,27 +86,29 @@ fn apply_command_to_skia_path(skia_path: &mut skia_safe::Path, path: &Path) {
             PathCommand::Stroke { stroke_options } => {
                 let mut paint = skia_safe::Paint::default();
                 paint.set_style(skia_safe::PaintStyle::Stroke);
-                if let Some(cap) = stroke_options.cap {
-                    paint.set_stroke_cap(cap.into());
-                }
-                if let Some(join) = stroke_options.join {
-                    paint.set_stroke_join(join.into());
-                }
-                if let Some(width) = stroke_options.width {
-                    paint.set_stroke_width(width.into());
-                }
-                if let Some(miter_limit) = stroke_options.miter_limit {
-                    paint.set_stroke_miter(miter_limit.into());
-                }
+                paint.set_stroke_cap(
+                    stroke_options
+                        .cap
+                        .map(|c| c.into())
+                        .unwrap_or(skia_safe::PaintCap::Butt),
+                );
+                paint.set_stroke_join(
+                    stroke_options
+                        .join
+                        .map(|j| j.into())
+                        .unwrap_or(skia_safe::PaintJoin::Miter),
+                );
+                paint.set_stroke_width(stroke_options.width.map(|w| w.into()).unwrap_or(1.0));
+                paint.set_stroke_miter(stroke_options.miter_limit.map(|m| m.into()).unwrap_or(4.0));
+
+                let precision = stroke_options.precision.unwrap_or(1.0);
 
                 if !skia_safe::path_utils::fill_path_with_paint(
                     &skia_path.clone(),
                     &paint,
                     skia_path,
                     None,
-                    stroke_options
-                        .precision
-                        .map(|p| skia_safe::Matrix::scale((p, p))),
+                    skia_safe::Matrix::scale((precision, precision)),
                 ) {
                     panic!("stroke failed");
                 }
