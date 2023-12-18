@@ -6,9 +6,6 @@ edition = "2021"
 [package.metadata]
 namui = true
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["sync", "rt"] }
 namui = { path = "../.." }

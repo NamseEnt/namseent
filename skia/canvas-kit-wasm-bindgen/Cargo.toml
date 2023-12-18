@@ -7,9 +7,6 @@ edition = "2021"
 [package.metadata]
 namui = true
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 wasm-bindgen = { version = "0.2" }
 js-sys = "0.3.55"
@@ -22,6 +19,4 @@ wasm-bindgen-test = "0.3.13"
 
 [dependencies.web-sys]
 version = "0.3"
-features = [
-    "HtmlCanvasElement",
-]
+features = ["HtmlCanvasElement"]
