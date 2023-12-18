@@ -15,7 +15,6 @@ mod typeface;
 
 use crate::SkSkia;
 use anyhow::Result;
-pub(crate) use canvas::*;
 pub(crate) use color_filter::*;
 pub(crate) use font::*;
 pub(crate) use group_glyph::*;

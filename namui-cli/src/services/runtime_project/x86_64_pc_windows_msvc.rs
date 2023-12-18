@@ -32,9 +32,7 @@ opt-level = 2
     std::fs::write(args.target_dir.join("Cargo.toml"), cargo_toml)?;
 
     let lib_rs = format!(
-        r#"use tokio::*;
-
-#[tokio::main]
+        r#"#[tokio::main]
 async fn main() {{
     tokio::task::LocalSet::new().run_until(async {{
         {project_name_underscored}::main().await;
