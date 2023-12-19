@@ -34,7 +34,7 @@ windows = { version = "0.52.0", features = [
 anyhow = { version = "1.0.75", features = ["backtrace"] }
 namui-type = { path = "../../namui-type", features = ["skia"] }
 serde = { version = "1.0.183", features = ["derive"] }
-skia-safe = { path = "../../rust-skia/skia-safe", optional = true }
+skia-safe = { path = "../rust-skia/skia-safe", optional = true }
 canvas-kit-wasm-bindgen = { path = "../canvas-kit-wasm-bindgen", optional = true }
 js-sys = { version = "0.3.64", optional = true }
 wasm-bindgen = { version = "0.2.87", optional = true }

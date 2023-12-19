@@ -1,5 +1,0 @@
-{
-  "cSpell.words": ["bindgen", "embind", "Ltrb", "Mipmap", "skia"],
-  "rust-analyzer.check.command": "clippy",
-  "rust-analyzer.showUnlinkedFileNotification": false
-}
