@@ -1,35 +1,30 @@
 use super::InitResult;
-// use crate::url::url_to_bytes;
-// use js_sys::ArrayBuffer;
-// use std::sync::{atomic::AtomicBool, Arc, Mutex};
-// use url::Url;
-// use wasm_bindgen_futures::spawn_local;
-// use web_sys::{AudioBuffer, AudioBufferSourceNode};
+use anyhow::*;
+use namui_audio::*;
+use std::sync::OnceLock;
 
-// struct AudioSystem {
-//     audio_context: web_sys::AudioContext,
-// }
-
-// unsafe impl Send for AudioSystem {}
-// unsafe impl Sync for AudioSystem {}
-
-// lazy_static::lazy_static! {
-//     static ref AUDIO_SYSTEM: Arc<AudioSystem> = Arc::new(AudioSystem::new());
-// }
+static AUDIO_SYSTEM: OnceLock<AudioContext> = OnceLock::new();
 
 // TODO: Restore Audio system
 pub(super) async fn init() -> InitResult {
-    //     lazy_static::initialize(&AUDIO_SYSTEM);
+    AUDIO_SYSTEM
+        .set(AudioContext::new()?)
+        .map_err(|_| anyhow!("Audio system already initialized"))?;
+
     Ok(())
 }
 
-// impl AudioSystem {
-//     pub fn new() -> Self {
-//         AudioSystem {
-//             audio_context: web_sys::AudioContext::new().unwrap(),
-//         }
-//     }
-// }
+pub fn new_audio_source(
+    hint_extension: Option<&str>,
+    hint_mime_type: Option<&str>,
+    stream: std::fs::File,
+) -> Result<AudioSource> {
+    AudioSource::new(hint_extension, hint_mime_type, stream)
+}
+
+pub fn play_audio_source(audio_source: &AudioSource) {
+    AUDIO_SYSTEM.get().unwrap().play(audio_source);
+}
 
 // pub struct Audio {
 //     buffer: Arc<Mutex<Option<AudioBuffer>>>,
