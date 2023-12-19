@@ -16,8 +16,6 @@ function main() {
     check_npm_installed
     check_cargo_bin_dir_exist $cargo_bin_dir_path
 
-    cargo install xwin
-
     build_cli $cli_root_path
 
     install_completion_script $cli_completion_root_path

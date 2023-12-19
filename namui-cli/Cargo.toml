@@ -35,3 +35,4 @@ clap = { version = "*", features = ["derive"] }
 clap_complete = "*"
 serde = { version = "*", features = ["derive"] }
 namui-user-config = { path = "../namui-user-config" }
+anyhow = { version = "1.0.71", features = ["backtrace"] }

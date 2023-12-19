@@ -23,6 +23,21 @@ pub async fn start(target: &Target, manifest_path: &PathBuf) -> Result<()> {
                 )),
             }
         }
+    } else if cfg!(target_os = "windows") {
+        #[cfg(target_os = "windows")]
+        {
+            use super::windows;
+            match target {
+                Target::WasmUnknownWeb
+                | Target::WasmWindowsElectron
+                | Target::WasmLinuxElectron => {
+                    bail!("{} is unsupported target", target)
+                }
+                Target::X86_64PcWindowsMsvc => {
+                    windows::x86_64_pc_windows_msvc::start(&manifest_path).await?;
+                }
+            }
+        }
     } else {
         bail!("{} is unsupported os", std::env::consts::OS)
     }
