@@ -27,7 +27,9 @@ pub(crate) fn load_typeface(_typeface_name: &str, _bytes: &[u8]) {
     // nothing
 }
 
-pub(crate) fn load_image(_image_source: &ImageSource, _image_bitmap: ImageBitmap) {}
+pub(crate) fn load_image(_image_source: &ImageSource, _image_bitmap: ImageBitmap) {
+    // nothing. already loaded
+}
 
 pub(crate) fn redraw() {
     let Some(last_rendering_tree) = (unsafe { &LAST_RENDERING_TREE }) else {

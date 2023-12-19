@@ -1,28 +1,21 @@
 use crate::*;
 use anyhow::Result;
 use namui_type::*;
-use skia_safe::gpu::{
-    d3d::{ID3D12CommandQueue, ID3D12Device, ID3D12Resource},
-    FlushInfo,
-};
+use skia_safe::gpu::d3d::{ID3D12CommandQueue, ID3D12Device, ID3D12Resource};
 use windows::{
     core::ComInterface,
     Win32::{
         Foundation::{HANDLE, HWND},
         Graphics::{
             Direct3D12::{
-                ID3D12DescriptorHeap, ID3D12Fence, ID3D12Fence1, D3D12_CPU_DESCRIPTOR_HANDLE,
+                ID3D12DescriptorHeap, ID3D12Fence, D3D12_CPU_DESCRIPTOR_HANDLE,
                 D3D12_DESCRIPTOR_HEAP_DESC, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_FENCE_FLAG_NONE,
-                D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_PRESENT,
+                D3D12_RESOURCE_STATE_PRESENT,
             },
             Dxgi::{
-                Common::{
-                    DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_UNKNOWN, DXGI_SAMPLE_DESC,
-                    DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN,
-                },
-                CreateDXGIFactory1, IDXGIFactory4, IDXGISwapChain3, DXGI_PRESENT_ALLOW_TEARING,
-                DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_EFFECT_FLIP_DISCARD,
-                DXGI_USAGE_RENDER_TARGET_OUTPUT,
+                Common::{DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SAMPLE_DESC},
+                CreateDXGIFactory1, IDXGIFactory4, IDXGISwapChain3, DXGI_SWAP_CHAIN_DESC1,
+                DXGI_SWAP_EFFECT_FLIP_DISCARD, DXGI_USAGE_RENDER_TARGET_OUTPUT,
             },
         },
         System::Threading::{CreateEventA, WaitForSingleObjectEx, INFINITE},
@@ -88,14 +81,8 @@ impl NativeSurface {
             })
         }?;
 
-        let (surfaces, render_targets) = setup_surfaces(
-            device,
-            &swap_chain,
-            &mut context,
-            window_wh,
-            buffer_index,
-            &rtv_heap,
-        )?;
+        let (surfaces, render_targets) =
+            setup_surfaces(device, &swap_chain, &mut context, window_wh, &rtv_heap)?;
 
         let fence_values = (0..FRAME_COUNT).map(|_| 1000).collect::<Vec<_>>();
         let fence: ID3D12Fence =
@@ -118,21 +105,17 @@ impl NativeSurface {
     }
 
     pub(crate) fn resize(&mut self, window_wh: Wh<IntPx>) {
-        println!("resize {:?}", window_wh);
         let mut desc = DXGI_SWAP_CHAIN_DESC1::default();
         unsafe { self.swap_chain.GetDesc1(&mut desc).unwrap() };
 
         if desc.Width == window_wh.width.as_i32() as u32
             && desc.Height == window_wh.height.as_i32() as u32
         {
-            println!("resize: same size. ignored");
             return;
         }
 
         self.context.flush(None);
-        println!("resize: flushed");
         self.context.submit(Some(skia_safe::gpu::SyncCpu::Yes));
-        println!("resize: submitted");
 
         for i in 0..(FRAME_COUNT as usize) {
             if unsafe { self.fence.GetCompletedValue() } < self.fence_values[i] {
@@ -141,7 +124,6 @@ impl NativeSurface {
                         .SetEventOnCompletion(self.fence_values[i], self.fence_event)
                         .unwrap()
                 };
-                println!("resize: wait for fence");
             }
             self.surfaces.remove(0);
             self.render_targets.remove(0);
@@ -158,29 +140,23 @@ impl NativeSurface {
                 )
                 .expect("swap_chain.resize_buffers failed");
         };
-        println!("resize: resized buffer");
 
         let (surfaces, render_targets) = setup_surfaces(
             &self.device,
             &self.swap_chain,
             &mut self.context,
             window_wh,
-            self.buffer_index,
             &self.rtv_heap,
         )
         .unwrap();
-        println!("resize: setup_surfaces");
         self.surfaces = surfaces;
         self.render_targets = render_targets;
     }
 
     /// Should be called before use surface
     pub(crate) fn move_to_next_frame(&mut self) {
-        println!("move_to_next_frame");
         let current_fence_value = self.fence_values[self.buffer_index];
-        println!("before self.buffer_index: {}", self.buffer_index);
         self.buffer_index = unsafe { self.swap_chain.GetCurrentBackBufferIndex() } as usize;
-        println!("after self.buffer_index: {}", self.buffer_index);
 
         if unsafe { self.fence.GetCompletedValue() } < self.fence_values[self.buffer_index] {
             unsafe {
@@ -199,7 +175,6 @@ impl NativeSurface {
 
 impl SkSurface for NativeSurface {
     fn flush(&mut self) {
-        println!("Flush");
         let surface = &mut self.surfaces[self.buffer_index];
 
         self.context.flush_surface_with_access(
@@ -207,9 +182,7 @@ impl SkSurface for NativeSurface {
             skia_safe::surface::BackendSurfaceAccess::Present,
             &Default::default(),
         );
-        println!("Flushed");
         self.context.submit(None);
-        println!("Submitted");
 
         unsafe {
             self.swap_chain
@@ -217,14 +190,12 @@ impl SkSurface for NativeSurface {
                 .ok()
                 .expect("swap_chain.present failed")
         };
-        println!("Presented");
 
         unsafe {
             self.command_queue
                 .Signal(&self.fence, self.fence_values[self.buffer_index])
                 .unwrap()
         };
-        println!("Signaled");
     }
 
     fn canvas(&mut self) -> &dyn SkCanvas {
@@ -237,27 +208,19 @@ fn setup_surfaces(
     swap_chain: &IDXGISwapChain3,
     context: &mut skia_safe::gpu::DirectContext,
     window_wh: Wh<IntPx>,
-    frame_index: usize,
     rtv_heap: &ID3D12DescriptorHeap,
 ) -> Result<(Vec<skia_safe::surface::Surface>, Vec<ID3D12Resource>)> {
     let rtv_descriptor_size =
         unsafe { device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) } as usize;
-    println!(
-        "setup_surfaces: rtv_descriptor_size: {}",
-        rtv_descriptor_size
-    );
 
     let rtv_handle = D3D12_CPU_DESCRIPTOR_HANDLE {
         ptr: unsafe { rtv_heap.GetCPUDescriptorHandleForHeapStart() }.ptr,
     };
-    println!("setup_surfaces: rtv_handle: {:?}", rtv_handle);
 
     let render_targets: Vec<ID3D12Resource> = {
         let mut render_targets = vec![];
         for i in 0..FRAME_COUNT {
             let render_target: ID3D12Resource = unsafe { swap_chain.GetBuffer(i)? };
-            println!("setup_surfaces: get buffer");
-
             unsafe {
                 device.CreateRenderTargetView(
                     &render_target,
@@ -267,7 +230,6 @@ fn setup_surfaces(
                     },
                 )
             };
-            println!("setup_surfaces: create render target view");
 
             render_targets.push(render_target);
         }
@@ -291,12 +253,10 @@ fn setup_surfaces(
                 },
             );
 
-            println!("setup_surfaces: wrap_backend_render_target");
-
             skia_safe::gpu::surfaces::wrap_backend_render_target(
                 context,
                 &backend_render_target,
-                skia_safe::gpu::SurfaceOrigin::BottomLeft,
+                skia_safe::gpu::SurfaceOrigin::TopLeft,
                 skia_safe::ColorType::RGBA8888,
                 None,
                 None,

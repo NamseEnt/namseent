@@ -14,8 +14,8 @@ unsafe impl Sync for NativeImage {}
 static IMAGE_MAP: StaticHashMap<ImageSource, NativeImage> = StaticHashMap::new();
 
 impl NativeImage {
-    pub(crate) fn load(image_source: ImageSource, encoded_image: &[u8]) {
-        IMAGE_MAP.get_or_create(image_source, |image_source| {
+    pub(crate) fn load(image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo {
+        let value = IMAGE_MAP.get_or_create(image_source.clone(), |image_source| {
             let skia_image =
                 skia_safe::Image::from_encoded(skia_safe::Data::new_copy(encoded_image)).unwrap();
 
@@ -27,6 +27,8 @@ impl NativeImage {
                 src: image_source.clone(),
             }
         });
+
+        value.image_info
     }
 
     pub(crate) fn get(image_source: &ImageSource) -> Option<Arc<NativeImage>> {

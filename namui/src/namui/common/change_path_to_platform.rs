@@ -30,11 +30,8 @@ pub(crate) fn change_path_to_platform(
             }
         }
     }
-    crate::log!("let path: {}", output_path.display());
 
     let path = platform_prefix.as_ref().join(output_path);
-
-    crate::log!("change_path_to_platform: {}", path.display());
     Ok(path)
 }
 

@@ -20,7 +20,6 @@ fn get_cache_path(path_like: impl PathLike) -> io::Result<PathBuf> {
     )
     .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
 
-    crate::log!("to_cache_path: {}", path.display());
     Ok(path)
 }
 

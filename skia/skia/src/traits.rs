@@ -20,7 +20,7 @@ pub trait SkSkia {
     #[cfg(feature = "wasm")]
     fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
     #[cfg(not(feature = "wasm"))]
-    fn load_image(&self, image_source: ImageSource, encoded_image: &[u8]);
+    fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo;
 }
 
 pub trait SkSurface {

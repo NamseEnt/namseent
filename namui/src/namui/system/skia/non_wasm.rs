@@ -18,11 +18,22 @@ pub(crate) fn on_window_resize(wh: Wh<IntPx>) {
     skia.on_resize(wh);
 }
 
+pub(crate) fn load_image(image_source: &ImageSource, bytes: &[u8]) -> ImageInfo {
+    let skia = super::SKIA.get().unwrap().lock().unwrap();
+    skia.load_image(image_source, bytes)
+}
+
 pub(crate) fn render(draw_input: DrawInput) {
     let mut skia = super::SKIA.get().unwrap().lock().unwrap();
 
     namui_drawer_sys::draw(skia.deref_mut(), draw_input, &|image_source| {
         let image_source = image_source.clone();
-        tokio::spawn(async move { crate::system::image::load_image(&image_source).await });
+        tokio::spawn(async move {
+            crate::system::image::load_image(&image_source)
+                .await
+                .unwrap();
+
+            crate::system::drawer::redraw();
+        });
     });
 }

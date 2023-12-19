@@ -1,21 +1,23 @@
 use anyhow::Result;
+use namui_type::*;
 
 pub struct ImageBitmap {
-    dyn_image: ::image::DynamicImage,
+    image_info: ImageInfo,
 }
 
 impl ImageBitmap {
-    pub async fn from_u8(data: &[u8]) -> Result<ImageBitmap> {
-        let dyn_image = tokio::task::block_in_place(|| ::image::load_from_memory(data))?;
+    pub async fn from_u8(image_source: &ImageSource, data: &[u8]) -> Result<ImageBitmap> {
+        let image_info =
+            tokio::task::block_in_place(|| crate::system::skia::load_image(image_source, data));
 
-        Ok(ImageBitmap { dyn_image })
+        Ok(ImageBitmap { image_info })
     }
 
-    pub fn width(&self) -> u32 {
-        self.dyn_image.width()
+    pub fn width(&self) -> Px {
+        self.image_info.width
     }
 
-    pub fn height(&self) -> u32 {
-        self.dyn_image.height()
+    pub fn height(&self) -> Px {
+        self.image_info.height
     }
 }

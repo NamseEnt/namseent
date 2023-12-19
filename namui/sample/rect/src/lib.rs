@@ -87,6 +87,24 @@ impl Component for RectExample {
             }
         }
 
+        ctx.component(rect(RectParam {
+            rect: Rect::Xywh {
+                x: 0.px(),
+                y: 0.px(),
+                width: 5.px(),
+                height: 5.px(),
+            },
+            style: RectStyle {
+                stroke: Some(RectStroke {
+                    color: Color::BLACK,
+                    width: 1.px(),
+                    border_position: BorderPosition::Inside,
+                }),
+                fill: None,
+                round: None,
+            },
+        }));
+
         ctx.component(
             rect(RectParam {
                 rect: Rect::Xywh {

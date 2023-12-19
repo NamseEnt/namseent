@@ -48,6 +48,10 @@ pub async fn start(manifest_path: &Path) -> Result<()> {
                     vec![],
                 )
                 .await;
+
+            if !cargo_build_result.is_successful {
+                return Err(anyhow!("Build failed"));
+            }
         }
         BuildResult::Canceled => unreachable!(),
         BuildResult::Failed(error) => return Err(anyhow!("{}", error)),

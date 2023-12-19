@@ -65,10 +65,11 @@ impl SkCanvas for skia_safe::Canvas {
         paint: &Option<Paint>,
     ) {
         let Some(image) = NativeImage::get(image_source) else {
+            println!("image not loaded");
             return;
         };
 
-        let mut paint = paint.clone().unwrap_or_default();
+        let mut paint = paint.clone().unwrap_or(Paint::new(Color::WHITE));
 
         let image_shader = image.get_default_shader();
 
@@ -96,22 +97,16 @@ impl SkCanvas for skia_safe::Canvas {
 }
 
 fn namui_matrix_to_skia_matrix(matrix: Matrix3x3) -> skia_safe::M44 {
-    skia_safe::M44::new(
+    skia_safe::Matrix::new_all(
         matrix.index_0_0(),
         matrix.index_0_1(),
         matrix.index_0_2(),
-        0.0,
         matrix.index_1_0(),
         matrix.index_1_1(),
         matrix.index_1_2(),
-        0.0,
         matrix.index_2_0(),
         matrix.index_2_1(),
         matrix.index_2_2(),
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
     )
+    .into()
 }

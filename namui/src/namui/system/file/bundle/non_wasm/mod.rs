@@ -17,8 +17,6 @@ fn to_bundle_path(path_like: impl PathLike) -> io::Result<PathBuf> {
         path_like,
     )
     .map_err(|error| Error::new(ErrorKind::Other, error))?;
-
-    crate::log!("to_bundle_path: {}", path.display());
     Ok(path)
 }
 

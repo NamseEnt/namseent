@@ -58,12 +58,10 @@ async fn get_file_from_bundle_with_cached(url: &crate::Url) -> Result<Vec<u8>> {
     let file = match crate::cache::get(url.as_str()).await? {
         Some(cached_file) => cached_file.to_vec(),
         None => {
-            crate::log!("fail to get cached file: {}", url);
             let file = crate::file::bundle::read(url.clone())
                 .await?
                 .as_ref()
                 .to_vec();
-            crate::log!("success to get file: {}", url);
             crate::cache::set(url.as_str(), &file).await?;
             file
         }

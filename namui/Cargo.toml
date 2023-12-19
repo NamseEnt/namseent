@@ -100,7 +100,6 @@ float-cmp = "0.9"
 tokio = { version = "1", features = ["rt", "fs", "rt-multi-thread"] }
 winit = "0.29.4"
 rfd = "0.12.1"
-image = { verison = "0.24.7", default-features = false, features = ["png"] }
 rand = "0.8.5"
 opener = "0.6.1"
 namui-skia = { path = "../skia/skia", features = ["windows"] }

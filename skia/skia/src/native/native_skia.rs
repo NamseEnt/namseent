@@ -7,20 +7,18 @@ use windows::Win32::{
     Graphics::{
         Direct3D::D3D_FEATURE_LEVEL_11_0,
         Direct3D12::{
-            D3D12CreateDevice, D3D12GetDebugInterface, ID3D12CommandQueue, ID3D12Debug,
-            ID3D12Device, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_QUEUE_DESC,
-            D3D12_COMMAND_QUEUE_FLAG_NONE,
+            D3D12CreateDevice, ID3D12CommandQueue, ID3D12Device, D3D12_COMMAND_LIST_TYPE_DIRECT,
+            D3D12_COMMAND_QUEUE_DESC, D3D12_COMMAND_QUEUE_FLAG_NONE,
         },
         Dxgi::{
-            CreateDXGIFactory1, CreateDXGIFactory2, IDXGIAdapter1, IDXGIFactory4,
-            DXGI_ADAPTER_FLAG, DXGI_ADAPTER_FLAG_NONE, DXGI_ADAPTER_FLAG_SOFTWARE,
-            DXGI_CREATE_FACTORY_DEBUG,
+            CreateDXGIFactory2, IDXGIAdapter1, IDXGIFactory4, DXGI_ADAPTER_FLAG,
+            DXGI_ADAPTER_FLAG_NONE, DXGI_ADAPTER_FLAG_SOFTWARE, DXGI_CREATE_FACTORY_DEBUG,
         },
     },
 };
 
 pub(crate) struct NativeSkia {
-    backend_context: skia_safe::gpu::d3d::BackendContext,
+    _backend_context: skia_safe::gpu::d3d::BackendContext,
     _context: skia_safe::gpu::DirectContext,
     surface: NativeSurface,
     _hwnd: HWND,
@@ -73,7 +71,7 @@ impl NativeSkia {
                 &backend_context.queue,
                 hwnd,
             )?,
-            backend_context,
+            _backend_context: backend_context,
             _context: context,
             _hwnd: hwnd,
         })
@@ -115,8 +113,8 @@ impl SkSkia for NativeSkia {
         NativePath::get(path).bounding_box(paint)
     }
 
-    fn load_image(&self, image_source: ImageSource, encoded_image: &[u8]) {
-        NativeImage::load(image_source, encoded_image);
+    fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo {
+        NativeImage::load(image_source, encoded_image)
     }
 }
 
