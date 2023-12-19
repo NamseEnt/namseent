@@ -9,7 +9,7 @@ pub(crate) async fn url_to_bytes(url: &Url) -> Result<Vec<u8>> {
         "bundle" => crate::file::bundle::read(url)
             .await
             .map_err(|error| error.into())
-            .map(|bytes| bytes.as_ref().to_vec()),
+            .map(|bytes| bytes),
         _ => bail!("unknown scheme: {}", url.scheme()),
     }
 }

@@ -23,7 +23,7 @@ impl RenderCtx {
         self.effect(format!("Load image from {url}"), || {
             let url = (*url).clone();
 
-            spawn_local(async move {
+            spawn(async move {
                 println!("start loading image from {url}", url = url);
                 let image = load_image(&ImageSource::Url { url: url.clone() }).await;
                 println!("end loading image from {url}", url = url);

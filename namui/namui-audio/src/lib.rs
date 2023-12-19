@@ -1,6 +1,7 @@
 use anyhow::Result;
-use cpal::traits::{DeviceTrait, HostTrait};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::{
+    fmt::{Debug, Formatter},
     rc::Rc,
     sync::{atomic::AtomicBool, Arc, Mutex},
 };
@@ -36,6 +37,8 @@ impl AudioContext {
                         playing_wave_streams.push(buffer);
                     }
 
+                    output.fill(0.0);
+
                     for wave_stream in playing_wave_streams.iter_mut() {
                         wave_stream.consume(output, channels as usize)
                     }
@@ -49,6 +52,8 @@ impl AudioContext {
             None,
         )?;
 
+        output_stream.play()?;
+
         Ok(AudioContext {
             _output_stream: output_stream,
             playing_wave_stream_tx: tx,
@@ -57,8 +62,8 @@ impl AudioContext {
 
     pub fn play(&self, audio_source: &AudioSource) -> AudioPlayHandle {
         let wave_stream = WaveStream {
-            read_vec_index: 0,
-            read_vec_item_index: 0,
+            read_buffer_index: 0,
+            read_frame_index: 0,
             audio_source: audio_source.clone(),
         };
 
@@ -75,8 +80,8 @@ impl AudioContext {
 }
 
 pub struct WaveStream {
-    read_vec_index: usize,
-    read_vec_item_index: usize,
+    read_buffer_index: usize,
+    read_frame_index: usize,
     audio_source: AudioSource,
 }
 
@@ -93,7 +98,7 @@ impl WaveStream {
         }
 
         let mut audio_buffers = self.audio_source.audio_buffers.lock().unwrap();
-        if self.read_vec_index < audio_buffers.len() {
+        if self.read_buffer_index < audio_buffers.len() {
             return false;
         }
 
@@ -115,7 +120,7 @@ impl WaveStream {
             audio_buffers.push(buffer);
         }
 
-        let Some(mut audio_buffer) = audio_buffers.get(self.read_vec_index) else {
+        let Some(mut audio_buffer) = audio_buffers.get(self.read_buffer_index) else {
             return;
         };
 
@@ -124,30 +129,29 @@ impl WaveStream {
             .collect::<Vec<_>>();
 
         for frame in output.chunks_mut(channels) {
-            for (channel, sample) in frame.iter_mut().enumerate() {
-                *sample = channel_buffers[channel][self.read_vec_item_index];
-            }
-
-            self.read_vec_item_index += 1;
-
-            if self.read_vec_item_index >= channel_buffers[0].len() {
-                self.read_vec_item_index = 0;
-                self.read_vec_index += 1;
+            while self.read_frame_index >= audio_buffer.frames() {
+                self.read_frame_index = 0;
+                self.read_buffer_index += 1;
 
                 if let Ok(buffer) = self.audio_source.rx.try_recv() {
                     audio_buffers.push(buffer);
                 }
 
-                let Some(next) = audio_buffers.get(self.read_vec_index) else {
+                let Some(next) = audio_buffers.get(self.read_buffer_index) else {
                     return;
                 };
                 audio_buffer = next;
                 channel_buffers = (0..channels)
                     .map(|channel| audio_buffer.chan(channel))
                     .collect::<Vec<_>>();
-
-                assert!(!channel_buffers[0].is_empty());
             }
+
+            for (channel, sample) in frame.iter_mut().enumerate() {
+                let channel_buffer = channel_buffers[channel];
+                *sample += channel_buffer[self.read_frame_index];
+            }
+
+            self.read_frame_index += 1;
         }
     }
 }
@@ -159,11 +163,23 @@ pub struct AudioSource {
     rx: Rc<std::sync::mpsc::Receiver<symphonia::core::audio::AudioBuffer<f32>>>,
 }
 
+impl Debug for AudioSource {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AudioSource")
+            .field("audio_buffers", &self.audio_buffers.lock().unwrap().len())
+            .field("decode_finished", &self.decode_finished)
+            .finish()
+    }
+}
+
+unsafe impl Send for AudioSource {}
+unsafe impl Sync for AudioSource {}
+
 impl AudioSource {
     pub fn new(
         hint_extension: Option<&str>,
         hint_mime_type: Option<&str>,
-        stream: std::fs::File,
+        stream: Vec<u8>,
     ) -> Result<AudioSource> {
         let mut hint = symphonia::core::probe::Hint::new();
         if let Some(ext) = hint_extension {
@@ -182,7 +198,9 @@ impl AudioSource {
             rx: Rc::new(rx),
         };
 
-        std::thread::spawn(move || decode_thread_inner(hint, stream, tx, decode_finished));
+        std::thread::spawn(move || {
+            decode_thread_inner(hint, stream, tx, decode_finished).unwrap();
+        });
 
         Ok(audio_source)
     }
@@ -190,12 +208,14 @@ impl AudioSource {
 
 fn decode_thread_inner(
     hint: symphonia::core::probe::Hint,
-    stream: std::fs::File,
+    stream: Vec<u8>,
     tx: std::sync::mpsc::Sender<symphonia::core::audio::AudioBuffer<f32>>,
     decode_finished: Arc<AtomicBool>,
 ) -> Result<()> {
-    let media_source_stream =
-        symphonia::core::io::MediaSourceStream::new(Box::new(stream), Default::default());
+    let media_source_stream = symphonia::core::io::MediaSourceStream::new(
+        Box::new(std::io::Cursor::new(stream)),
+        Default::default(),
+    );
 
     let mut probe_result = symphonia::default::get_probe().format(
         &hint,
@@ -235,16 +255,18 @@ fn decode_thread_inner(
                     .decode(&packet)
                     .unwrap();
 
-                let audio_buffer = audio_buffer_ref.make_equivalent::<f32>();
+                let mut audio_buffer = audio_buffer_ref.make_equivalent::<f32>();
+                audio_buffer_ref.convert(&mut audio_buffer);
                 tx.send(audio_buffer).unwrap();
             }
             Err(err) => {
-                if let symphonia::core::errors::Error::IoError(err) = err {
+                if let symphonia::core::errors::Error::IoError(err) = &err {
                     if err.kind() == std::io::ErrorKind::UnexpectedEof {
                         decode_finished.store(true, std::sync::atomic::Ordering::SeqCst);
                         break;
                     }
                 }
+                panic!("[namui-audio] an error occurred on decode: {}", err);
             }
         }
     }

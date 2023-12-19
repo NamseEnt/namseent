@@ -17,7 +17,7 @@ pub(super) async fn init() -> InitResult {
 pub fn new_audio_source(
     hint_extension: Option<&str>,
     hint_mime_type: Option<&str>,
-    stream: std::fs::File,
+    stream: Vec<u8>,
 ) -> Result<AudioSource> {
     AudioSource::new(hint_extension, hint_mime_type, stream)
 }

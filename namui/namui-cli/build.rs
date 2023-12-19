@@ -19,7 +19,13 @@ fn generate_symlink() -> Result<()> {
         return Ok(());
     };
 
-    let symlink_path = PathBuf::from(cargo_home).join("bin").join("namui");
+    let symlink_path = PathBuf::from(cargo_home)
+        .join("bin")
+        .join(if cfg!(target_os = "windows") {
+            "namui.exe"
+        } else {
+            "namui"
+        });
 
     if std::fs::symlink_metadata(&symlink_path).is_ok() {
         std::fs::remove_file(&symlink_path)?;

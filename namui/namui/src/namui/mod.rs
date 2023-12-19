@@ -31,9 +31,9 @@ pub use shader_macro::shader;
 pub use system::*;
 
 #[cfg(not(target_family = "wasm"))]
-pub use tokio::task::spawn_local;
+pub use tokio::task::spawn;
 #[cfg(target_family = "wasm")]
-pub use wasm_bindgen_futures::spawn_local;
+pub use wasm_bindgen_futures::spawn_local as spawn;
 
 pub async fn init() -> NamuiContext {
     namui_type::set_log(|x| log::log(x));

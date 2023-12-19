@@ -29,7 +29,7 @@ pub(crate) fn send(item: Item) {
         .unwrap()
         .swap(true, std::sync::atomic::Ordering::Relaxed)
     {
-        crate::spawn_local(async move {
+        crate::spawn(async move {
             RERENDER_REQUESTED
                 .get()
                 .unwrap()

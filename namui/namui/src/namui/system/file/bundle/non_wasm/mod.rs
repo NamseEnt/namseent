@@ -20,7 +20,7 @@ fn to_bundle_path(path_like: impl PathLike) -> io::Result<PathBuf> {
     Ok(path)
 }
 
-pub async fn read(path_like: impl PathLike) -> io::Result<impl AsRef<[u8]>> {
+pub async fn read(path_like: impl PathLike) -> io::Result<Vec<u8>> {
     fs::read(to_bundle_path(path_like)?).await
 }
 
