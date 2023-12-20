@@ -1,4 +1,5 @@
 mod media;
+mod synced_audio;
 
 use anyhow::Result;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -8,6 +9,7 @@ use std::{
     rc::Rc,
     sync::{atomic::AtomicBool, Arc, Mutex},
 };
+pub use synced_audio::*;
 
 // pub struct AudioContext {
 //     _output_stream: cpal::Stream,

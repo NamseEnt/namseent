@@ -2,8 +2,15 @@ use anyhow::Result;
 use std::path::Path;
 
 pub struct Media {
-    video_frame_rx: std::sync::mpsc::Receiver<ffmpeg_next::frame::Video>,
-    audio_frame_rx: std::sync::mpsc::Receiver<ffmpeg_next::frame::Audio>,
+    pub(crate) video_frame_rx: std::sync::mpsc::Receiver<ffmpeg_next::frame::Video>,
+    pub(crate) audio_media: Option<AudioMedia>,
+}
+
+pub struct AudioMedia {
+    pub(crate) frame_rx: std::sync::mpsc::Receiver<ffmpeg_next::frame::Audio>,
+    pub(crate) sample_rate: u32,
+    pub(crate) sample_format: ffmpeg_next::format::Sample,
+    pub(crate) channel_layout: ffmpeg_next::channel_layout::ChannelLayout,
 }
 
 impl Media {
@@ -13,9 +20,7 @@ impl Media {
             std::sync::mpsc::sync_channel::<ffmpeg_next::frame::Video>(60 * 1);
         let mut video_frame_tx = Some(video_frame_tx);
 
-        let (audio_frame_tx, audio_frame_rx) =
-            std::sync::mpsc::sync_channel::<ffmpeg_next::frame::Audio>(2048);
-        let mut audio_frame_tx = Some(audio_frame_tx);
+        let mut audio_media = None;
 
         let mut stream_decoding_stream: Vec<Option<DecodingStream>> = ictx
             .streams()
@@ -50,15 +55,24 @@ impl Media {
                         }
                     }
                     StreamMediaType::Audio => {
-                        let Some(tx) = audio_frame_tx.take() else {
+                        if audio_media.is_some() {
                             eprintln!("Warning: only one audio stream is supported.");
                             return Ok(None);
                         };
 
-                        DecodingStream::Audio {
-                            decoder: context_decoder.decoder().audio()?,
-                            tx,
-                        }
+                        let decoder = context_decoder.decoder().audio()?;
+
+                        let (tx, rx) =
+                            std::sync::mpsc::sync_channel::<ffmpeg_next::frame::Audio>(2048);
+
+                        audio_media = Some(AudioMedia {
+                            frame_rx: rx,
+                            sample_rate: decoder.rate(),
+                            sample_format: decoder.format(),
+                            channel_layout: decoder.channel_layout(),
+                        });
+
+                        DecodingStream::Audio { decoder, tx }
                     }
                 };
 
@@ -99,7 +113,7 @@ impl Media {
 
         Ok(Media {
             video_frame_rx,
-            audio_frame_rx,
+            audio_media,
         })
     }
 }
