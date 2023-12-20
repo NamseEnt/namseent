@@ -22,7 +22,9 @@ function main() {
 
     make_cli_symlink $cargo_bin_dir_path $cli_path
 
-    install_electron $electron_root_path
+    write_ffmpeg_env_var $cli_root_path
+
+    # install_electron $electron_root_path
     if [ $(is_os_wsl) -eq 1 ]; then
         export WSL_INTEROP=
         for socket in /run/WSL/*; do
@@ -208,6 +210,20 @@ function install_completion_script() {
     else
         echo "Not supported shell. Completion install failed"
     fi
+}
+
+#######################################
+# Arguments:
+#   cli_root_path: string
+# Write FFMPEG_DIR env var at ~/.bashrc
+#######################################
+function write_ffmpeg_env_var() {
+    cli_root_path=$1    
+    FFMPEG_DIR=$cli_root_path/ffmpeg/x86_64-pc-windows-msvc
+
+    # Write FFMPEG_DIR env var at ~/.bashrc
+    sed -i "/^export FFMPEG_DIR=/d" ~/.bashrc
+    echo "export FFMPEG_DIR=$FFMPEG_DIR" >> ~/.bashrc
 }
 
 main

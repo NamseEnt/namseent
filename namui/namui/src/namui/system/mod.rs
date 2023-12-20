@@ -1,4 +1,3 @@
-pub mod audio;
 pub mod cache;
 #[cfg(target_family = "wasm")]
 pub mod clipboard;
@@ -12,6 +11,7 @@ pub mod font;
 pub mod image;
 pub mod keyboard;
 pub mod log;
+pub mod media;
 pub mod mouse;
 pub mod network;
 pub(crate) mod panick;
@@ -36,7 +36,7 @@ static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 pub(crate) async fn init() -> InitResult {
     futures::try_join!(
-        audio::init(),
+        media::init(),
         cache::init(),
         file::init(),
         font::init(),

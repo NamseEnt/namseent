@@ -10,7 +10,7 @@ default = []
 skia = ["dep:skia-safe"]
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
 num = { version = "0.4.0", features = ["std"] }
 ordered-float = "2.10"
 auto_ops = "0.3"

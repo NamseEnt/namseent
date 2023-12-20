@@ -2,6 +2,7 @@ use crate::*;
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
+    sync::Arc,
 };
 
 #[type_derives(Copy, Default)]
@@ -301,7 +302,7 @@ impl Into<AlphaType> for skia_safe::AlphaType {
     }
 }
 
-#[type_derives(Copy)]
+#[type_derives(Copy, Eq, Hash)]
 pub enum ColorType {
     Alpha8,
     Rgb565,
@@ -531,7 +532,13 @@ pub enum ImageFit {
 
 #[type_derives(Eq, Hash)]
 pub enum ImageSource {
-    Url { url: url::Url },
+    Url {
+        url: url::Url,
+    },
+    Bytes {
+        bytes: Arc<Vec<u8>>,
+        color_type: ColorType,
+    },
     // Image(Arc<Image>),
     // File(File),
 }

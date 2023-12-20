@@ -56,5 +56,8 @@ pub async fn load_image(image_source: &ImageSource) -> Result<Image> {
                 wh,
             })
         }
+        ImageSource::Bytes { bytes, color_type } => {
+            todo!()
+        }
     }
 }

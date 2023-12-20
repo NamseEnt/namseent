@@ -1,26 +1,20 @@
+use crate::{AudioConfig, ImageOnlyVideo, MediaContext, SyncedAudio};
 use anyhow::Result;
+use namui_type::Wh;
 use std::path::Path;
 
+#[derive(Debug)]
 pub struct Media {
-    pub(crate) video_frame_rx: std::sync::mpsc::Receiver<ffmpeg_next::frame::Video>,
-    pub(crate) audio_media: Option<AudioMedia>,
-}
-
-pub struct AudioMedia {
-    pub(crate) frame_rx: std::sync::mpsc::Receiver<ffmpeg_next::frame::Audio>,
-    pub(crate) sample_rate: u32,
-    pub(crate) sample_format: ffmpeg_next::format::Sample,
-    pub(crate) channel_layout: ffmpeg_next::channel_layout::ChannelLayout,
+    pub(crate) image_only_video: Option<ImageOnlyVideo>,
+    pub(crate) audio: Option<SyncedAudio>,
 }
 
 impl Media {
-    pub fn new(path: &impl AsRef<Path>) -> Result<Media> {
+    pub(crate) fn new(media_context: &MediaContext, path: &impl AsRef<Path>) -> Result<Media> {
         let mut ictx = ffmpeg_next::format::input(path)?;
-        let (video_frame_tx, video_frame_rx) =
-            std::sync::mpsc::sync_channel::<ffmpeg_next::frame::Video>(60 * 1);
-        let mut video_frame_tx = Some(video_frame_tx);
 
-        let mut audio_media = None;
+        let mut audio = None;
+        let mut video = None;
 
         let mut stream_decoding_stream: Vec<Option<DecodingStream>> = ictx
             .streams()
@@ -44,18 +38,24 @@ impl Media {
 
                 let decoding_stream: DecodingStream = match stream_media_type {
                     StreamMediaType::Video => {
-                        let Some(tx) = video_frame_tx.take() else {
+                        if video.is_some() {
                             eprintln!("Warning: only one video stream is supported.");
                             return Ok(None);
                         };
 
-                        DecodingStream::Video {
-                            decoder: context_decoder.decoder().video()?,
-                            tx,
-                        }
+                        let decoder = context_decoder.decoder().video()?;
+                        let (tx, rx) = tokio::sync::mpsc::channel::<ffmpeg_next::frame::Video>(60);
+
+                        let fps = decoder.frame_rate().expect("frame_rate").into();
+                        let wh = Wh::new(decoder.width(), decoder.height());
+                        let pixel_type = decoder.format();
+
+                        video = Some(ImageOnlyVideo::new(rx, fps, wh, pixel_type)?);
+
+                        DecodingStream::Video { decoder, tx }
                     }
                     StreamMediaType::Audio => {
-                        if audio_media.is_some() {
+                        if audio.is_some() {
                             eprintln!("Warning: only one audio stream is supported.");
                             return Ok(None);
                         };
@@ -63,14 +63,48 @@ impl Media {
                         let decoder = context_decoder.decoder().audio()?;
 
                         let (tx, rx) =
-                            std::sync::mpsc::sync_channel::<ffmpeg_next::frame::Audio>(2048);
+                            tokio::sync::mpsc::channel::<ffmpeg_next::frame::Audio>(2048);
 
-                        audio_media = Some(AudioMedia {
-                            frame_rx: rx,
-                            sample_rate: decoder.rate(),
-                            sample_format: decoder.format(),
-                            channel_layout: decoder.channel_layout(),
-                        });
+                        let output_sample_format = {
+                            let packed = ffmpeg_next::format::sample::Type::Packed;
+                            match media_context.audio_output_sample_format {
+                                cpal::SampleFormat::I8 => unimplemented!(),
+                                cpal::SampleFormat::I16 => ffmpeg_next::format::Sample::I16(packed),
+                                cpal::SampleFormat::I32 => ffmpeg_next::format::Sample::I32(packed),
+                                cpal::SampleFormat::I64 => ffmpeg_next::format::Sample::I64(packed),
+                                cpal::SampleFormat::U8 => ffmpeg_next::format::Sample::U8(packed),
+                                cpal::SampleFormat::U16 => unimplemented!(),
+                                cpal::SampleFormat::U32 => unimplemented!(),
+                                cpal::SampleFormat::U64 => unimplemented!(),
+                                cpal::SampleFormat::F32 => ffmpeg_next::format::Sample::F32(packed),
+                                cpal::SampleFormat::F64 => ffmpeg_next::format::Sample::F64(packed),
+                                _ => todo!(),
+                            }
+                        };
+
+                        audio = Some(SyncedAudio::new(
+                            rx,
+                            AudioConfig {
+                                sample_rate: decoder.rate(),
+                                sample_format: decoder.format(),
+                                channel_layout: decoder.channel_layout(),
+                                sample_byte_size: decoder.format().bytes(),
+                                channel_count: decoder.channel_layout().channels() as usize,
+                            },
+                            AudioConfig {
+                                sample_rate: media_context.audio_output_sample_rate,
+                                sample_format: output_sample_format,
+                                channel_layout: if media_context.audio_output_channel_count == 1 {
+                                    ffmpeg_next::ChannelLayout::MONO
+                                } else {
+                                    ffmpeg_next::ChannelLayout::STEREO
+                                },
+                                sample_byte_size: media_context
+                                    .audio_output_sample_format
+                                    .sample_size(),
+                                channel_count: media_context.audio_output_channel_count,
+                            },
+                        )?);
 
                         DecodingStream::Audio { decoder, tx }
                     }
@@ -93,7 +127,7 @@ impl Media {
 
             stream_decoding_stream
                 .into_iter()
-                .filter_map(|decoder| decoder)
+                .flatten()
                 .map(|mut decoder| {
                     decoder
                         .send_eof()
@@ -112,8 +146,8 @@ impl Media {
         });
 
         Ok(Media {
-            video_frame_rx,
-            audio_media,
+            image_only_video: video,
+            audio,
         })
     }
 }
@@ -121,11 +155,11 @@ impl Media {
 enum DecodingStream {
     Video {
         decoder: ffmpeg_next::decoder::Video,
-        tx: std::sync::mpsc::SyncSender<ffmpeg_next::frame::Video>,
+        tx: tokio::sync::mpsc::Sender<ffmpeg_next::frame::Video>,
     },
     Audio {
         decoder: ffmpeg_next::decoder::Audio,
-        tx: std::sync::mpsc::SyncSender<ffmpeg_next::frame::Audio>,
+        tx: tokio::sync::mpsc::Sender<ffmpeg_next::frame::Audio>,
     },
 }
 
@@ -142,11 +176,15 @@ impl DecodingStream {
                 DecodingStream::Video { decoder: _, tx } => {
                     // TODO: scale or change pixel format if decoder.format() is not supported on skia.
                     let video = ffmpeg_next::frame::Video::from(decoded);
-                    tx.send(video).unwrap();
+                    tx.blocking_send(video).map_err(|_| {
+                        anyhow::anyhow!("failed to send video frame to image only video")
+                    })?;
                 }
                 DecodingStream::Audio { decoder: _, tx } => {
                     let audio = ffmpeg_next::frame::Audio::from(decoded);
-                    tx.send(audio).unwrap();
+                    tx.blocking_send(audio).map_err(|_| {
+                        anyhow::anyhow!("failed to send audio frame to synced audio")
+                    })?;
                 }
             }
         }

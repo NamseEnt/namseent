@@ -1,2 +1,0 @@
-[env]
-FFMPEG_PATH = { value = "ffmpeg/x86_64-pc-windows-msvc", relative = true }

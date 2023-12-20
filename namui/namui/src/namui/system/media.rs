@@ -1,41 +1,37 @@
 use super::InitResult;
 use anyhow::*;
-use namui_audio::*;
-use std::sync::OnceLock;
+use namui_media::*;
+use std::{path::Path, sync::OnceLock};
 
-static AUDIO_SYSTEM: OnceLock<AudioContext> = OnceLock::new();
+static MEDIA_SYSTEM: OnceLock<MediaContext> = OnceLock::new();
 
-// TODO: Restore Audio system
+// TODO: Restore Media system
 pub(super) async fn init() -> InitResult {
-    AUDIO_SYSTEM
-        .set(AudioContext::new()?)
-        .map_err(|_| anyhow!("Audio system already initialized"))?;
+    MEDIA_SYSTEM
+        .set(MediaContext::new()?)
+        .map_err(|_| anyhow!("Media system already initialized"))?;
 
     Ok(())
 }
 
-pub fn new_audio_source(
-    hint_extension: Option<&str>,
-    hint_mime_type: Option<&str>,
-    stream: Vec<u8>,
-) -> Result<AudioSource> {
-    AudioSource::new(hint_extension, hint_mime_type, stream)
+pub fn new_media(path: &impl AsRef<Path>) -> Result<MediaHandle> {
+    MEDIA_SYSTEM.get().unwrap().new_media(path)
 }
 
-pub fn play_audio_source(audio_source: &AudioSource) {
-    AUDIO_SYSTEM.get().unwrap().play(audio_source);
-}
+// pub fn play_media_source(media_source: &MediaSource) {
+//     MEDIA_SYSTEM.get().unwrap().play(media_source);
+// }
 
-// pub struct Audio {
-//     buffer: Arc<Mutex<Option<AudioBuffer>>>,
-//     source: Option<AudioBufferSourceNode>,
+// pub struct Media {
+//     buffer: Arc<Mutex<Option<MediaBuffer>>>,
+//     source: Option<MediaBufferSourceNode>,
 //     is_loaded: Arc<AtomicBool>,
 //     is_loop: bool,
 // }
 
-// impl Clone for Audio {
+// impl Clone for Media {
 //     fn clone(&self) -> Self {
-//         Audio {
+//         Media {
 //             buffer: self.buffer.clone(),
 //             source: None,
 //             is_loaded: self.is_loaded.clone(),
@@ -44,7 +40,7 @@ pub fn play_audio_source(audio_source: &AudioSource) {
 //     }
 // }
 
-// impl Audio {
+// impl Media {
 //     pub fn new(
 //         url: Url,
 //         on_loaded: impl Fn() + 'static,
@@ -56,11 +52,11 @@ pub fn play_audio_source(audio_source: &AudioSource) {
 //             let buffer = buffer.clone();
 //             let is_loaded = is_loaded.clone();
 //             async move {
-//                 match create_audio_buffer_from_url(url).await {
-//                     Ok(audio_buffer) => {
+//                 match create_media_buffer_from_url(url).await {
+//                     Ok(media_buffer) => {
 //                         {
 //                             let mut buffer = buffer.lock().unwrap();
-//                             *buffer = Some(audio_buffer);
+//                             *buffer = Some(media_buffer);
 //                         }
 //                         is_loaded.store(true, std::sync::atomic::Ordering::Relaxed);
 
@@ -72,7 +68,7 @@ pub fn play_audio_source(audio_source: &AudioSource) {
 //                 }
 //             }
 //         });
-//         Audio {
+//         Media {
 //             buffer,
 //             is_loaded,
 //             source: None,
@@ -94,10 +90,10 @@ pub fn play_audio_source(audio_source: &AudioSource) {
 //             source.stop().unwrap();
 //         }
 
-//         let source = AUDIO_SYSTEM.audio_context.create_buffer_source().unwrap();
+//         let source = MEDIA_SYSTEM.media_context.create_buffer_source().unwrap();
 
 //         source
-//             .connect_with_audio_node(&AUDIO_SYSTEM.audio_context.destination())
+//             .connect_with_media_node(&MEDIA_SYSTEM.media_context.destination())
 //             .unwrap();
 
 //         source.set_buffer(Some(buffer));
@@ -126,28 +122,28 @@ pub fn play_audio_source(audio_source: &AudioSource) {
 //     }
 
 //     pub fn play_and_forget(&self) {
-//         let mut audio = self.clone();
-//         audio.set_loop(false);
-//         audio.play();
+//         let mut media = self.clone();
+//         media.set_loop(false);
+//         media.play();
 //     }
 // }
 
-// // TODO: Save audio buffer source in system to reuse it
-// async fn create_audio_buffer_from_url(url: Url) -> Result<AudioBuffer>{
+// // TODO: Save media buffer source in system to reuse it
+// async fn create_media_buffer_from_url(url: Url) -> Result<MediaBuffer>{
 //     let bytes = url_to_bytes(&url).await?;
 //     let array_buffer = bytes_to_array_buffer(bytes.as_ref());
 
-//     let promise = AUDIO_SYSTEM
-//         .audio_context
-//         .decode_audio_data(&array_buffer)
-//         .map_err(|error| format!("Failed to decode audio data: {:?}", error))?;
+//     let promise = MEDIA_SYSTEM
+//         .media_context
+//         .decode_media_data(&array_buffer)
+//         .map_err(|error| format!("Failed to decode media data: {:?}", error))?;
 
-//     let audio_buffer: AudioBuffer = wasm_bindgen_futures::JsFuture::from(promise)
+//     let media_buffer: MediaBuffer = wasm_bindgen_futures::JsFuture::from(promise)
 //         .await
-//         .map_err(|error| format!("Failed to await audio buffer: {:?}", error))?
+//         .map_err(|error| format!("Failed to await media buffer: {:?}", error))?
 //         .into();
 
-//     Ok(audio_buffer)
+//     Ok(media_buffer)
 // }
 
 // fn bytes_to_array_buffer(bytes: &[u8]) -> ArrayBuffer {

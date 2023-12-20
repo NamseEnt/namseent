@@ -1,5 +1,5 @@
 [package]
-name = "namui-audio"
+name = "namui-media"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,6 +10,5 @@ namui-type = { path = "../namui-type" }
 anyhow = "1.0.72"
 tokio = { version = "1", default-features = false, features = ["full"] }
 cpal = "0.15.2"
-# opus = "0.3.0"
 ffmpeg-next = "6.1.0"
 rayon = "1.8.0"

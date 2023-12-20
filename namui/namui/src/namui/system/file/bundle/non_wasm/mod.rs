@@ -11,7 +11,7 @@ pub async fn init() -> InitResult {
     Ok(())
 }
 
-fn to_bundle_path(path_like: impl PathLike) -> io::Result<PathBuf> {
+pub fn to_real_path(path_like: impl PathLike) -> io::Result<PathBuf> {
     let path = change_path_to_platform(
         std::path::Path::new(std::env::current_exe()?.parent().unwrap()).join("bundle"),
         path_like,
@@ -21,7 +21,7 @@ fn to_bundle_path(path_like: impl PathLike) -> io::Result<PathBuf> {
 }
 
 pub async fn read(path_like: impl PathLike) -> io::Result<Vec<u8>> {
-    fs::read(to_bundle_path(path_like)?).await
+    fs::read(to_real_path(path_like)?).await
 }
 
 pub async fn read_json<T: serde::de::DeserializeOwned>(path_like: impl PathLike) -> io::Result<T> {

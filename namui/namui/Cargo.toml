@@ -28,7 +28,7 @@ futures = "0.3.17"
 num = { version = "0.4.0", features = ["std"] }
 derivative = "2.2.0"
 namui-drawer-sys = { path = "../namui-drawer/sys" }
-namui-audio = { path = "../namui-audio" }
+namui-media = { path = "../namui-media" }
 
 [target.'cfg(target_family="wasm")'.dependencies]
 web-sys = { version = "0.3", features = [

@@ -4,20 +4,20 @@ use namui_prebuilt::{button::TextButton, typography};
 pub async fn main() {
     let namui_context = namui::init().await;
 
-    namui::start(namui_context, || AudioExample).await
+    namui::start(namui_context, || MediaExample).await
 }
 
 #[namui::component]
-struct AudioExample;
+struct MediaExample;
 
-// impl AudioExample {
+// impl MediaExample {
 //     fn new() -> Self {
 //         Self {
-//             audio: Audio::new(
-//                 Url::parse("bundle:resources/audio.mp3").unwrap(),
-//                 || namui::event::send(Event::AudioLoaded),
+//             media: Media::new(
+//                 Url::parse("bundle:resources/media.mp3").unwrap(),
+//                 || namui::event::send(Event::MediaLoaded),
 //                 |error| {
-//                     namui::log!("audio error: {:?}", error);
+//                     namui::log!("media error: {:?}", error);
 //                 },
 //             ),
 //         }
@@ -25,31 +25,25 @@ struct AudioExample;
 // }
 
 // enum Event {
-//     AudioLoaded,
-//     PlayAudio,
+//     MediaLoaded,
+//     PlayMedia,
 //     PlayAndForget,
 //     ToggleLoop,
-//     StopAudio,
+//     StopMedia,
 // }
 
-impl Component for AudioExample {
+impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let (audio_source, set_audio_source) = ctx.state(|| None);
+        let (media, set_media) = ctx.state(|| None);
 
-        ctx.effect("load audio", || {
+        ctx.effect("load media", || {
             namui::spawn(async move {
-                let audio_vec = namui::system::file::bundle::read("bundle:resources/audio.mp3")
-                    .await
+                let path = namui::system::file::bundle::to_real_path("bundle:resources/audio.mp3")
                     .unwrap();
 
-                let audio_source = namui::system::audio::new_audio_source(
-                    Some("mp3"),
-                    Some("audio/mpeg"),
-                    audio_vec,
-                )
-                .unwrap();
+                let media = namui::system::media::new_media(&path).unwrap();
 
-                set_audio_source.set(Some(audio_source));
+                set_media.set(Some(media));
             });
         });
 
@@ -67,8 +61,8 @@ impl Component for AudioExample {
             fill_color: Color::WHITE,
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
-                if let Some(audio_source) = audio_source.as_ref() {
-                    namui::system::audio::play_audio_source(audio_source)
+                if let Some(media_source) = media.as_ref() {
+                    namui::system::media::play_media_source(media_source)
                 }
             },
         });
@@ -78,8 +72,8 @@ impl Component for AudioExample {
         //         20.px(),
         //         format!(
         //             "is loaded: {}, is loop: {}",
-        //             self.audio.is_loaded(),
-        //             self.audio.is_loop()
+        //             self.media.is_loaded(),
+        //             self.media.is_loop()
         //         ),
         //         Color::BLACK,
         //     ),
@@ -98,7 +92,7 @@ impl Component for AudioExample {
         //         [MouseButton::Left],
         //         {
         //             move |_| {
-        //                 namui::event::send(Event::PlayAudio);
+        //                 namui::event::send(Event::PlayMedia);
         //             }
         //         },
         //     ),
@@ -117,7 +111,7 @@ impl Component for AudioExample {
         //         [MouseButton::Left],
         //         {
         //             move |_| {
-        //                 namui::event::send(Event::StopAudio);
+        //                 namui::event::send(Event::StopMedia);
         //             }
         //         },
         //     ),
@@ -166,25 +160,25 @@ impl Component for AudioExample {
 
     // fn update(&mut self, event: &namui::Event) {
     //     event.is::<Event>(|event| match event {
-    //         Event::AudioLoaded => {
-    //             namui::log!("audio loaded");
+    //         Event::MediaLoaded => {
+    //             namui::log!("media loaded");
     //         }
-    //         Event::PlayAudio => {
-    //             self.audio.play();
+    //         Event::PlayMedia => {
+    //             self.media.play();
     //         }
     //         Event::PlayAndForget => {
-    //             // let mut audio = self.audio.clone();
-    //             // audio.set_loop(false);
-    //             // audio.play();
+    //             // let mut media = self.media.clone();
+    //             // media.set_loop(false);
+    //             // media.play();
 
     //             // or
-    //             self.audio.play_and_forget();
+    //             self.media.play_and_forget();
     //         }
     //         Event::ToggleLoop => {
-    //             self.audio.set_loop(!self.audio.is_loop());
+    //             self.media.set_loop(!self.media.is_loop());
     //         }
-    //         Event::StopAudio => {
-    //             self.audio.stop();
+    //         Event::StopMedia => {
+    //             self.media.stop();
     //         }
     //     });
     // }
