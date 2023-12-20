@@ -7,6 +7,7 @@ pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> 
     let project_path_in_relative =
         pathdiff::diff_paths(&args.project_path, &args.target_dir).unwrap();
 
+    let _ = std::fs::remove_dir_all(args.target_dir.join("src"));
     std::fs::create_dir_all(args.target_dir.join("src"))?;
 
     let cargo_toml = format!(

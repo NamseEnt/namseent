@@ -40,6 +40,11 @@ pub async fn build(manifest_path: &Path) -> Result<()> {
         .await
     {
         BuildResult::Successful(cargo_build_result) => {
+            if !cargo_build_result.is_successful {
+                println!("{:#?}", cargo_build_result);
+                return Err(anyhow!("Build failed"));
+            }
+
             build_status_service
                 .build_finished(
                     BuildStatusCategory::Namui,

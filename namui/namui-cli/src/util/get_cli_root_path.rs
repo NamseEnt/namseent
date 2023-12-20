@@ -19,11 +19,15 @@ pub fn get_cli_root_path() -> PathBuf {
 
 fn real_current_exe_path() -> Result<PathBuf> {
     let current_exe = current_exe()?;
-    if std::fs::symlink_metadata(&current_exe).is_err() {
+    let Ok(metadata) = std::fs::symlink_metadata(&current_exe) else {
         return Ok(current_exe);
     };
 
-    Ok(std::fs::read_link(current_exe)?)
+    if metadata.file_type().is_symlink() {
+        return Ok(std::fs::read_link(current_exe)?);
+    }
+
+    Ok(current_exe)
 }
 
 fn check_cargo_toml_exist(path: &Path) -> bool {

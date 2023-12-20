@@ -129,28 +129,24 @@ impl CancelableBuilder {
                                 .join()
                                 .expect("fail to get stdout from thread");
 
+                            let stderr = stderr_reading_thread.join().unwrap();
+
                             if cargo_outputs.is_empty() {
-                                return Err(anyhow!(
-                                    "cargo build failed {stderr}",
-                                    stderr = stderr_reading_thread.join().unwrap()
-                                ));
+                                return Err(anyhow!("cargo build failed {stderr}"));
                             }
                             match parse_cargo_build_result(cargo_outputs.as_bytes()) {
                                 Ok(result) => {
-                                    if result.is_successful && !exit_status.success() {
+                                    if !result.is_successful || !exit_status.success() {
                                         return Err(anyhow!(
-                                            "build process exited with code {exit_status}\nstderr: {stderr}",
-                                            stderr = stderr_reading_thread.join().unwrap()
+                                            "build process exited with code {exit_status} \
+                                            result: {result:#?} \
+                                            stderr: {stderr}"
                                         ));
                                     }
                                     return Ok(BuildResult::Successful(result));
                                 }
                                 Err(_) => {
-                                    let error = stderr_reading_thread
-                                        .join()
-                                        .expect("fail to get stderr from thread");
-
-                                    return Ok(BuildResult::Failed(error));
+                                    return Ok(BuildResult::Failed(stderr));
                                 }
                             }
                         }
@@ -199,19 +195,32 @@ impl CancelableBuilder {
                     .stderr(Stdio::piped())
                     .spawn()?)
             }
-            Target::X86_64PcWindowsMsvc => Ok(Command::new("cargo")
-                .args([
+            Target::X86_64PcWindowsMsvc => {
+                let mut args = vec![];
+                if cfg!(target_os = "linux") {
+                    args.push("xwin");
+                }
+
+                args.extend([
                     "build",
                     "--target",
                     "x86_64-pc-windows-msvc",
                     "--message-format",
                     "json",
-                ])
-                .current_dir(&build_option.project_root_path)
-                .envs(get_envs(build_option))
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()?),
+                ]);
+
+                if cfg!(target_os = "linux") {
+                    args.extend(["--xwin-arch", "x86_64", "--xwin-version", "17"]);
+                }
+
+                Ok(Command::new("cargo")
+                    .args(args)
+                    .current_dir(&build_option.project_root_path)
+                    .envs(get_envs(build_option))
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn()?)
+            }
         }
     }
 }

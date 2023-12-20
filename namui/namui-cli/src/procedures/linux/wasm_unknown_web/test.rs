@@ -100,7 +100,8 @@ pub fn test(manifest_path: &Path) -> Result<()> {
 }
 
 fn build_docker_image() -> Result<()> {
-    let dockerfile = include_str!("../../../../../docker-images/namui-test-host/linux.Dockerfile");
+    let dockerfile =
+        include_str!("../../../../../../docker-images/namui-test-host/linux.Dockerfile");
     let args = ["build", "--tag", "namui-test-host:latest", "--quiet", "-"];
     let mut podman = Command::new("podman")
         .args(args)

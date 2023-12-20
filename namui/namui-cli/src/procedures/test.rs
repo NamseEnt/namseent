@@ -12,7 +12,7 @@ pub fn test(target: &Target, manifest_path: &PathBuf) -> Result<()> {
             use super::linux;
 
             match target {
-                Target::WasmUnknownWeb => linux::wasm_unknown_web::test(&manifest_path),
+                Target::WasmUnknownWeb => linux::wasm_unknown_web::test(&manifest_path)?,
                 _ => unimplemented!(),
             }
         }
