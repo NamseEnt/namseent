@@ -31,15 +31,16 @@ pub fn new_media(path: &impl AsRef<Path>) -> Result<MediaHandle> {
     MEDIA_SYSTEM.get().unwrap().new_media(path)
 }
 
-pub fn play(media: &Media) {
-    MEDIA_SYSTEM.get().unwrap().play(media)
+pub fn play(media: &MediaHandle) {
+    let mut media = media.lock().unwrap();
+    MEDIA_SYSTEM.get().unwrap().play(&mut media);
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AudioConfig {
-    pub(crate) sample_rate: u32,
-    pub(crate) sample_format: ffmpeg_next::format::Sample,
-    pub(crate) channel_layout: ffmpeg_next::channel_layout::ChannelLayout,
-    pub(crate) sample_byte_size: usize,
-    pub(crate) channel_count: usize,
+    sample_rate: u32,
+    sample_format: ffmpeg_next::format::Sample,
+    channel_layout: ffmpeg_next::channel_layout::ChannelLayout,
+    sample_byte_size: usize,
+    channel_count: usize,
 }

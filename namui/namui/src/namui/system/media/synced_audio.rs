@@ -40,8 +40,6 @@ impl SyncedAudio {
             return Ok(vec![]);
         }
 
-        self.try_sync()?;
-
         let data = self
             .buffer_core
             .get_best_effort_data(self.buffer_byte_offset, expected_output_sample_byte_len);
@@ -49,11 +47,14 @@ impl SyncedAudio {
         // Keep increasing buffer_byte_offset to skip delayed frames for sync.
         self.buffer_byte_offset += expected_output_sample_byte_len;
 
+        // self.try_sync()?;
+
         Ok(data)
     }
 
-    /// Make sure last_sync_instant and start_instant are set.
     fn try_sync(&mut self) -> Result<()> {
+        // NOTE: HMM...? something is wrong?
+
         let now = std::time::Instant::now();
         if let Some(last_sync_instant) = self.last_sync_instant {
             if now - last_sync_instant < std::time::Duration::from_secs(1) {

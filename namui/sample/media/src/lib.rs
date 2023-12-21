@@ -14,17 +14,27 @@ struct MediaExample;
 
 impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let (media, set_media) = ctx.state(|| None);
+        let (audio_mp3, set_audio_mp3) = ctx.state(|| None);
+        let (video_mp4, set_video_mp4) = ctx.state(|| None);
 
         ctx.effect("load media", || {
             namui::spawn(async move {
                 let path = namui::system::file::bundle::to_real_path("bundle:resources/audio.mp3")
                     .unwrap();
 
-                let media = namui::system::media::new_media(&path).unwrap();
-                println!("media loaded");
+                let mp3 = namui::system::media::new_media(&path).unwrap();
+                println!("mp3 loaded");
 
-                set_media.set(Some(media));
+                set_audio_mp3.set(Some(mp3));
+
+                let path =
+                    namui::system::file::bundle::to_real_path("bundle:resources/you-re-mine.mp4")
+                        .unwrap();
+
+                let mp4 = namui::system::media::new_media(&path).unwrap();
+                println!("mp4 loaded");
+
+                set_video_mp4.set(Some(mp4));
             });
         });
 
@@ -35,14 +45,34 @@ impl Component for MediaExample {
                 width: 100.px(),
                 height: 20.px(),
             },
-            text: "play",
+            text: "play audio",
             text_color: Color::BLACK,
             stroke_color: Color::BLACK,
             stroke_width: 1.px(),
-            fill_color: Color::WHITE,
+            fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
-                if let Some(media) = media.as_ref() {
+                if let Some(media) = audio_mp3.as_ref() {
+                    namui::system::media::play(media)
+                }
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 200.px(),
+                y: 20.px(),
+                width: 100.px(),
+                height: 20.px(),
+            },
+            text: "play video",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                if let Some(media) = video_mp4.as_ref() {
                     namui::system::media::play(media)
                 }
             },

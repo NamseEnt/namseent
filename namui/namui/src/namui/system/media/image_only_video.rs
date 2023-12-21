@@ -1,6 +1,6 @@
 use super::VIDEO_CHANNEL_BOUND;
 use crate::skia::ImageHandle;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use namui_type::*;
 
 #[derive(Debug)]
@@ -14,9 +14,8 @@ pub struct ImageOnlyVideo {
     eof: bool,
 }
 
-const FFMPEG_DEST_FORMAT: ffmpeg_next::util::format::Pixel =
-    ffmpeg_next::util::format::Pixel::RGB32;
-const COLOR_TYPE: namui_type::ColorType = namui_type::ColorType::RGB888x;
+const FFMPEG_DEST_FORMAT: ffmpeg_next::util::format::Pixel = ffmpeg_next::util::format::Pixel::RGBA;
+const COLOR_TYPE: namui_type::ColorType = namui_type::ColorType::Rgba8888;
 
 impl ImageOnlyVideo {
     pub(crate) fn new(
@@ -36,11 +35,21 @@ impl ImageOnlyVideo {
                     wh.width,
                     wh.height,
                     ffmpeg_next::software::scaling::Flags::BILINEAR,
-                )?;
+                )
+                .map_err(|err| anyhow!("ffmpeg scaling context get error: {:?}", err))?;
 
+                println!("ImageOnlyVideo thread started");
+                println!("before: {wh:?} {pixel_type:?}");
+                println!("after: {wh:?} {FFMPEG_DEST_FORMAT:?}");
+
+                let mut index = 0;
                 while let Ok(frame) = frame_rx.recv() {
+                    println!("ImageOnlyVideo index: {}", index);
+                    index += 1;
                     let mut output = ffmpeg_next::frame::Video::empty();
-                    scaler.run(&frame, &mut output)?;
+                    scaler
+                        .run(&frame, &mut output)
+                        .map_err(|err| anyhow!("ffmpeg scaling run error: {:?}", err))?;
 
                     let image_handle = crate::system::skia::load_image2(
                         output.data(0),
@@ -57,6 +66,8 @@ impl ImageOnlyVideo {
             if let Err(err) = result {
                 eprintln!("Error: {:?}", err);
             }
+
+            println!("ImageOnlyVideo thread finished");
         });
 
         Ok(Self {
@@ -69,6 +80,7 @@ impl ImageOnlyVideo {
         })
     }
     pub fn start(&mut self) {
+        println!("Start Video");
         self.start_instant = Some(std::time::Instant::now());
     }
     pub fn get_image(&mut self) -> Result<Option<ImageHandle>> {

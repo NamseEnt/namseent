@@ -6,7 +6,7 @@ use std::path::Path;
 
 #[derive(Debug)]
 pub struct Media {
-    pub(crate) image_only_video: Option<ImageOnlyVideo>,
+    pub(crate) video: Option<ImageOnlyVideo>,
     pub(crate) audio: Option<SyncedAudio>,
 }
 
@@ -136,23 +136,26 @@ impl Media {
 
                 Ok(())
             })() {
-                Ok(_) => {}
+                Ok(_) => {
+                    println!("Media decoding finished.");
+                }
                 Err(e) => {
                     eprintln!("Fail on media decoding: {}", e);
                 }
             }
         });
 
-        Ok(Media {
-            image_only_video: video,
-            audio,
-        })
+        Ok(Media { video, audio })
     }
 
-    pub(crate) fn play(&self) -> Option<SyncedAudio> {
+    pub(crate) fn play(&mut self) -> Option<SyncedAudio> {
         let mut audio = self.audio.clone();
         if let Some(audio) = &mut audio {
             audio.start();
+        }
+
+        if let Some(video) = &mut self.video {
+            video.start();
         }
 
         // TODO: VIDEO play

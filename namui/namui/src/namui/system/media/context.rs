@@ -1,7 +1,11 @@
 use super::{media_struct::Media, synced_audio::SyncedAudio};
 use anyhow::Result;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::{mem::size_of, path::Path, sync::Arc};
+use std::{
+    mem::size_of,
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
 pub struct MediaContext {
     _audio_output_stream: cpal::Stream,
@@ -81,10 +85,10 @@ impl MediaContext {
     pub(crate) fn new_media(&self, path: &impl AsRef<Path>) -> Result<MediaHandle> {
         let media = Media::new(self, path)?;
 
-        Ok(Arc::new(media))
+        Ok(Arc::new(Mutex::new(media)))
     }
 
-    pub(crate) fn play(&self, media: &Media) {
+    pub(crate) fn play(&self, media: &mut Media) {
         let audio = media.play();
 
         if let Some(audio) = audio {
@@ -111,4 +115,4 @@ impl MediaContext {
     // }
 }
 
-pub type MediaHandle = Arc<Media>;
+pub type MediaHandle = Arc<Mutex<Media>>;
