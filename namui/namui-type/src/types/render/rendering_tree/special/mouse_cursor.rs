@@ -1,6 +1,6 @@
 use super::*;
 
-#[type_derives]
+#[type_derives(-serde::Deserialize)]
 pub enum MouseCursor {
     TopBottomResize,
     LeftRightResize,

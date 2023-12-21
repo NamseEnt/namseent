@@ -25,13 +25,14 @@ pub(crate) async fn init() -> InitResult {
         crate::log!("Ready to run event loop");
 
         event_loop
-            .run(|event, _| {
-                if let winit::event::Event::WindowEvent {
-                    window_id: _,
-                    event,
-                } = event
-                {
-                    match event {
+            .run(|event, target| {
+                target.set_control_flow(winit::event_loop::ControlFlow::Poll);
+
+                match event {
+                    winit::event::Event::WindowEvent {
+                        window_id: _,
+                        event,
+                    } => match event {
                         winit::event::WindowEvent::Resized(size) => {
                             let wh = Wh {
                                 width: (size.width as i32).int_px(),
@@ -85,7 +86,11 @@ pub(crate) async fn init() -> InitResult {
                             system::drawer::redraw();
                         }
                         _ => {}
+                    },
+                    winit::event::Event::NewEvents(winit::event::StartCause::Poll) => {
+                        crate::on_raw_event(RawEvent::ScreenRedraw);
                     }
+                    _ => (),
                 }
             })
             .unwrap();

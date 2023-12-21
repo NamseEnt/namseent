@@ -45,6 +45,7 @@ pub enum RawEvent {
         selection_end: usize,
         text: String,
     },
+    ScreenRedraw,
 }
 unsafe impl Send for RawEvent {}
 unsafe impl Sync for RawEvent {}

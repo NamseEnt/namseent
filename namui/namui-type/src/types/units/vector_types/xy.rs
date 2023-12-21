@@ -19,9 +19,9 @@ where
 }
 
 // TODO: Implement this on vector_types! macro.
-impl<T> Into<(T, T)> for Xy<T> {
-    fn into(self) -> (T, T) {
-        (self.x.into(), self.y.into())
+impl<T> From<Xy<T>> for (T, T) {
+    fn from(val: Xy<T>) -> Self {
+        (val.x, val.y)
     }
 }
 

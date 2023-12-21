@@ -19,7 +19,7 @@ use windows::Win32::{
 
 pub(crate) struct NativeSkia {
     _backend_context: skia_safe::gpu::d3d::BackendContext,
-    _context: skia_safe::gpu::DirectContext,
+    context: skia_safe::gpu::DirectContext,
     surface: NativeSurface,
     _hwnd: HWND,
 }
@@ -72,7 +72,7 @@ impl NativeSkia {
                 hwnd,
             )?,
             _backend_context: backend_context,
-            _context: context,
+            context,
             _hwnd: hwnd,
         })
     }
@@ -115,6 +115,20 @@ impl SkSkia for NativeSkia {
 
     fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo {
         NativeImage::load(image_source, encoded_image)
+    }
+
+    fn load_image_from_raw(&mut self, image_info: ImageInfo, bitmap: &mut [u8]) -> ImageHandle {
+        let row_bytes = image_info.width.as_f32() as usize * image_info.color_type.word();
+        let pixmap = skia_safe::Pixmap::new(&image_info.into(), bitmap, row_bytes).unwrap();
+        let texture = skia_safe::gpu::images::cross_context_texture_from_pixmap(
+            &mut self.context,
+            &pixmap,
+            true,
+            None,
+        )
+        .unwrap();
+
+        ImageHandle::new(image_info, uuid(), texture)
     }
 }
 

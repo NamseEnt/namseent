@@ -3,18 +3,17 @@ mod special;
 use crate::*;
 pub use special::*;
 
-#[type_derives(Default)]
+#[type_derives(Default, -serde::Deserialize)]
 pub struct DrawCall {
     pub commands: Vec<DrawCommand>,
 }
 
-#[type_derives(Default)]
+#[type_derives(Default, -serde::Deserialize)]
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
 }
 
-#[type_derives]
-#[derive(Default)]
+#[type_derives(Default, -serde::Deserialize)]
 pub enum RenderingTree {
     Node(RenderingData),
     Children(Vec<RenderingTree>),
@@ -45,13 +44,13 @@ impl RenderingTree {
         vec.into_iter()
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
-        postcard::to_allocvec(self).unwrap()
-    }
+    // pub fn to_bytes(&self) -> Vec<u8> {
+    //     postcard::to_allocvec(self).unwrap()
+    // }
 
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        postcard::from_bytes(bytes).unwrap()
-    }
+    // pub fn from_bytes(bytes: &[u8]) -> Self {
+    //     postcard::from_bytes(bytes).unwrap()
+    // }
 }
 
 impl std::iter::IntoIterator for RenderingTree {

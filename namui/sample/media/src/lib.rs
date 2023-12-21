@@ -78,6 +78,30 @@ impl Component for MediaExample {
             },
         });
 
+        ctx.compose(|ctx| {
+            let Some(mp4) = video_mp4.as_ref() else {
+                return;
+            };
+            let mut mp4 = mp4.lock().unwrap();
+            let Some(image_handle) = mp4.get_image().unwrap() else {
+                return;
+            };
+
+            ctx.add(namui::image(ImageParam {
+                rect: Rect::Xywh {
+                    x: 200.px(),
+                    y: 100.px(),
+                    width: 100.px(),
+                    height: 100.px(),
+                },
+                source: ImageSource::ImageHandle { image_handle },
+                style: ImageStyle {
+                    fit: ImageFit::Fill,
+                    paint: None,
+                },
+            }));
+        });
+
         // ctx.component([
         //     typography::body::left(
         //         20.px(),

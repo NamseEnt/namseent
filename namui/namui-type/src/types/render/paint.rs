@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives(Default)]
+#[type_derives(Default, -serde::Deserialize)]
 pub struct Paint {
     pub color: Color,
     pub paint_style: Option<PaintStyle>,

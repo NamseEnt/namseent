@@ -1,5 +1,4 @@
 use super::VIDEO_CHANNEL_BOUND;
-use crate::skia::ImageHandle;
 use anyhow::{anyhow, Result};
 use namui_type::*;
 
@@ -52,9 +51,13 @@ impl ImageOnlyVideo {
                         .map_err(|err| anyhow!("ffmpeg scaling run error: {:?}", err))?;
 
                     let image_handle = crate::system::skia::load_image2(
-                        output.data(0),
-                        Wh::new(wh.width as usize, wh.height as usize),
-                        COLOR_TYPE,
+                        ImageInfo {
+                            alpha_type: AlphaType::Opaque,
+                            color_type: COLOR_TYPE,
+                            height: (wh.height as f32).px(),
+                            width: (wh.width as f32).px(),
+                        },
+                        output.data_mut(0),
                     );
 
                     image_tx.send(image_handle)?;

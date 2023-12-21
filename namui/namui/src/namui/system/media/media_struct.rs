@@ -1,7 +1,7 @@
 use super::{context::MediaContext, image_only_video::ImageOnlyVideo, synced_audio::SyncedAudio};
 use crate::media::{AudioConfig, AUDIO_CHANNEL_BOUND, VIDEO_CHANNEL_BOUND};
 use anyhow::Result;
-use namui_type::Wh;
+use namui_type::{ImageHandle, Wh};
 use std::path::Path;
 
 #[derive(Debug)]
@@ -158,9 +158,13 @@ impl Media {
             video.start();
         }
 
-        // TODO: VIDEO play
-
         audio
+    }
+    pub fn get_image(&mut self) -> Result<Option<ImageHandle>> {
+        let Some(video) = &mut self.video else {
+            return Ok(None);
+        };
+        video.get_image()
     }
 }
 

@@ -2,7 +2,6 @@ use crate::*;
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
-    sync::Arc,
 };
 
 #[type_derives(Copy, Default)]
@@ -15,7 +14,7 @@ pub struct FontMetrics {
     pub leading: Px,
 }
 
-#[type_derives(Copy, Default)]
+#[type_derives(Copy, Default, Hash, Eq)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -201,7 +200,7 @@ struct Hsl01 {
     alpha: f32,
 }
 
-#[type_derives(Copy)]
+#[type_derives(Copy, Hash, Eq)]
 pub enum PaintStyle {
     Fill,
     Stroke,
@@ -302,6 +301,18 @@ impl Into<AlphaType> for skia_safe::AlphaType {
     }
 }
 
+#[cfg(feature = "skia")]
+impl Into<skia_safe::AlphaType> for AlphaType {
+    fn into(self) -> skia_safe::AlphaType {
+        match self {
+            AlphaType::Opaque => skia_safe::AlphaType::Opaque,
+            AlphaType::Premul => skia_safe::AlphaType::Premul,
+            AlphaType::Unpremul => skia_safe::AlphaType::Unpremul,
+            AlphaType::Unknown => skia_safe::AlphaType::Unknown,
+        }
+    }
+}
+
 #[type_derives(Copy, Eq, Hash)]
 pub enum ColorType {
     Alpha8,
@@ -329,6 +340,38 @@ pub enum ColorType {
     SRGBA8888,
     R8UNorm,
     Unknown,
+}
+
+impl ColorType {
+    pub fn word(&self) -> usize {
+        match self {
+            ColorType::Alpha8 => 1,
+            ColorType::Rgb565 => 2,
+            ColorType::Rgba8888 => 4,
+            ColorType::Bgra8888 => 4,
+            ColorType::Rgba1010102 => 4,
+            ColorType::Rgb101010x => 4,
+            ColorType::Gray8 => 1,
+            ColorType::RgbaF16 => 8,
+            ColorType::RgbaF32 => 16,
+            ColorType::ARGB4444 => 2,
+            ColorType::RGB888x => 4,
+            ColorType::BGRA1010102 => 4,
+            ColorType::BGR101010x => 4,
+            ColorType::BGR101010xXR => 4,
+            ColorType::RGBA10x6 => 8,
+            ColorType::RGBAF16Norm => 8,
+            ColorType::R8G8UNorm => 2,
+            ColorType::A16Float => 2,
+            ColorType::R16G16Float => 4,
+            ColorType::A16UNorm => 2,
+            ColorType::R16G16UNorm => 4,
+            ColorType::R16G16B16A16UNorm => 8,
+            ColorType::SRGBA8888 => 4,
+            ColorType::R8UNorm => 1,
+            ColorType::Unknown => unreachable!(),
+        }
+    }
 }
 
 #[cfg(feature = "skia")]
@@ -360,6 +403,39 @@ impl Into<ColorType> for skia_safe::ColorType {
             skia_safe::ColorType::SRGBA8888 => ColorType::SRGBA8888,
             skia_safe::ColorType::R8UNorm => ColorType::R8UNorm,
             skia_safe::ColorType::Unknown => ColorType::Unknown,
+        }
+    }
+}
+
+#[cfg(feature = "skia")]
+impl Into<skia_safe::ColorType> for ColorType {
+    fn into(self) -> skia_safe::ColorType {
+        match self {
+            ColorType::Alpha8 => skia_safe::ColorType::Alpha8,
+            ColorType::Rgb565 => skia_safe::ColorType::RGB565,
+            ColorType::Rgba8888 => skia_safe::ColorType::RGBA8888,
+            ColorType::Bgra8888 => skia_safe::ColorType::BGRA8888,
+            ColorType::Rgba1010102 => skia_safe::ColorType::RGBA1010102,
+            ColorType::Rgb101010x => skia_safe::ColorType::RGB101010x,
+            ColorType::Gray8 => skia_safe::ColorType::Gray8,
+            ColorType::RgbaF16 => skia_safe::ColorType::RGBAF16,
+            ColorType::RgbaF32 => skia_safe::ColorType::RGBAF32,
+            ColorType::ARGB4444 => skia_safe::ColorType::ARGB4444,
+            ColorType::RGB888x => skia_safe::ColorType::RGB888x,
+            ColorType::BGRA1010102 => skia_safe::ColorType::BGRA1010102,
+            ColorType::BGR101010x => skia_safe::ColorType::BGR101010x,
+            ColorType::BGR101010xXR => skia_safe::ColorType::BGR101010xXR,
+            ColorType::RGBA10x6 => skia_safe::ColorType::RGBA10x6,
+            ColorType::RGBAF16Norm => skia_safe::ColorType::RGBAF16Norm,
+            ColorType::R8G8UNorm => skia_safe::ColorType::R8G8UNorm,
+            ColorType::A16Float => skia_safe::ColorType::A16Float,
+            ColorType::R16G16Float => skia_safe::ColorType::R16G16Float,
+            ColorType::A16UNorm => skia_safe::ColorType::A16UNorm,
+            ColorType::R16G16UNorm => skia_safe::ColorType::R16G16UNorm,
+            ColorType::R16G16B16A16UNorm => skia_safe::ColorType::R16G16B16A16UNorm,
+            ColorType::SRGBA8888 => skia_safe::ColorType::SRGBA8888,
+            ColorType::R8UNorm => skia_safe::ColorType::R8UNorm,
+            ColorType::Unknown => skia_safe::ColorType::Unknown,
         }
     }
 }
@@ -530,15 +606,10 @@ pub enum ImageFit {
     None,
 }
 
-#[type_derives(Eq, Hash)]
+#[type_derives(-serde::Deserialize)]
 pub enum ImageSource {
-    Url {
-        url: url::Url,
-    },
-    Bytes {
-        bytes: Arc<Vec<u8>>,
-        color_type: ColorType,
-    },
+    Url { url: url::Url },
+    ImageHandle { image_handle: ImageHandle },
     // Image(Arc<Image>),
     // File(File),
 }

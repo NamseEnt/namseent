@@ -1,6 +1,6 @@
 use super::*;
 
-#[type_derives]
+#[type_derives(-serde::Deserialize)]
 pub struct TranslateNode {
     pub x: Px,
     pub y: Px,

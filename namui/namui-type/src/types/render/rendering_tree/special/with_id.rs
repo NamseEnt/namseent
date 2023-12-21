@@ -1,6 +1,6 @@
 use super::*;
 
-#[type_derives]
+#[type_derives(-serde::Deserialize)]
 pub struct WithIdNode {
     pub rendering_tree: Box<RenderingTree>,
     pub id: crate::Uuid,

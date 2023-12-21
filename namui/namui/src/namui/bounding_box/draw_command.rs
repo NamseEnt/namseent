@@ -122,6 +122,7 @@ impl BoundingBox for TextDrawCommand {
             })
     }
 }
+
 impl BoundingBox for ImageDrawCommand {
     fn xy_in(&self, xy: Xy<Px>) -> bool {
         let path = Path::new().add_rect(self.rect);

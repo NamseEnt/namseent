@@ -1,6 +1,6 @@
 use super::*;
 
-#[type_derives]
+#[type_derives(-serde::Deserialize)]
 pub struct TransformNode {
     pub matrix: Matrix3x3,
     pub rendering_tree: Box<RenderingTree>,

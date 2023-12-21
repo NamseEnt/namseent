@@ -1,6 +1,6 @@
 use super::*;
 
-#[type_derives]
+#[type_derives(-serde::Deserialize)]
 pub struct RotateNode {
     pub angle: Angle,
     pub rendering_tree: Box<RenderingTree>,

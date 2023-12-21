@@ -21,6 +21,9 @@ pub trait SkSkia {
     fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
     #[cfg(not(feature = "wasm"))]
     fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo;
+
+    #[cfg(not(feature = "wasm"))]
+    fn load_image_from_raw(&mut self, image_info: ImageInfo, bitmap: &mut [u8]) -> ImageHandle;
 }
 
 pub trait SkSurface {
@@ -39,6 +42,12 @@ pub trait SkCanvas {
         src_rect: Rect<Px>,
         dest_rect: Rect<Px>,
         paint: &Option<Paint>,
+    );
+    fn draw_image_handle(
+        &self,
+        image_handle: &ImageHandle,
+        src_rect: Rect<Px>,
+        dest_rect: Rect<Px>,
     );
     fn translate(&self, dx: Px, dy: Px);
     fn save(&self);

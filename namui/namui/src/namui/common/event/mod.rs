@@ -50,6 +50,7 @@ pub enum Event<'a> {
     TextInputKeyDown {
         event: TextInputKeyDownEvent<'a>,
     },
+    ScreenRedraw,
 }
 
 pub trait EventExt {

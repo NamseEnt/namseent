@@ -1,6 +1,6 @@
 use super::*;
 
-#[type_derives]
+#[type_derives(-serde::Deserialize)]
 pub struct ScaleNode {
     pub x: f32,
     pub y: f32,

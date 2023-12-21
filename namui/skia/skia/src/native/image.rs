@@ -3,7 +3,7 @@ use crate::*;
 use std::sync::Arc;
 
 pub struct NativeImage {
-    skia_image: skia_safe::Image,
+    skia_image: Arc<skia_safe::Image>,
     image_info: ImageInfo,
     src: ImageSource,
 }
@@ -11,18 +11,19 @@ pub struct NativeImage {
 unsafe impl Send for NativeImage {}
 unsafe impl Sync for NativeImage {}
 
-static IMAGE_MAP: StaticHashMap<ImageSource, NativeImage> = StaticHashMap::new();
+// NOTE: IMAGE_MAP only contains images loaded from URL.
+static IMAGE_MAP: SerdeMap<ImageSource, NativeImage> = SerdeMap::new();
 
 impl NativeImage {
     pub(crate) fn load(image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo {
-        let value = IMAGE_MAP.get_or_create(image_source.clone(), |image_source| {
+        let value = IMAGE_MAP.get_or_create(&image_source, |image_source| {
             let skia_image =
                 skia_safe::Image::from_encoded(skia_safe::Data::new_copy(encoded_image)).unwrap();
 
             let image_info = get_image_info(&skia_image);
 
             NativeImage {
-                skia_image,
+                skia_image: Arc::new(skia_image),
                 image_info,
                 src: image_source.clone(),
             }
@@ -32,7 +33,19 @@ impl NativeImage {
     }
 
     pub(crate) fn get(image_source: &ImageSource) -> Option<Arc<NativeImage>> {
-        IMAGE_MAP.get(image_source)
+        match image_source {
+            ImageSource::Url { url: _ } => IMAGE_MAP.get(image_source),
+            ImageSource::ImageHandle { image_handle } => Some(Arc::new(NativeImage {
+                skia_image: image_handle.inner.clone(),
+                image_info: ImageInfo {
+                    alpha_type: image_handle.alpha_type,
+                    color_type: image_handle.color_type,
+                    height: image_handle.height,
+                    width: image_handle.width,
+                },
+                src: image_source.clone(),
+            })),
+        }
     }
 
     pub(crate) fn image(&self) -> Image {

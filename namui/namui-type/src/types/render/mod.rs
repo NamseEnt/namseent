@@ -18,7 +18,7 @@ pub use rendering_tree::*;
 pub use shader::*;
 pub use types::*;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Debug)]
 pub struct DrawInput {
     pub rendering_tree: RenderingTree,
 }

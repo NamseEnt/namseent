@@ -31,7 +31,7 @@ impl Draw for ImageDrawCommand {
     }
 }
 
-fn get_src_dest_rects_in_fit(
+pub(crate) fn get_src_dest_rects_in_fit(
     image_fit: ImageFit,
     image_size: Wh<Px>,
     command_rect: Rect<Px>,

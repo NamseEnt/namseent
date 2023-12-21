@@ -282,7 +282,7 @@ pub enum NewLineBy {
     LineFeed,
 }
 
-#[type_derives()]
+#[type_derives(-serde::Serialize, -serde::Deserialize)]
 pub struct Line {
     /// Should not have `\n`
     pub chars: Vec<char>,
