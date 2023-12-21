@@ -23,6 +23,13 @@ pub(crate) fn load_image(image_source: &ImageSource, bytes: &[u8]) -> ImageInfo 
     skia.load_image(image_source, bytes)
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct ImageHandle {}
+
+pub(crate) fn load_image2(bytes: &[u8], wh: Wh<usize>, color_type: ColorType) -> ImageHandle {
+    todo!()
+}
+
 pub(crate) fn render(draw_input: DrawInput) {
     let mut skia = super::SKIA.get().unwrap().lock().unwrap();
 

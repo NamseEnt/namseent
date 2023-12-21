@@ -1,36 +1,16 @@
 use namui::prelude::*;
-use namui_prebuilt::{button::TextButton, typography};
+use namui_prebuilt::button::TextButton;
 
 pub async fn main() {
+    println!("Hi");
     let namui_context = namui::init().await;
+    println!("inited");
 
     namui::start(namui_context, || MediaExample).await
 }
 
 #[namui::component]
 struct MediaExample;
-
-// impl MediaExample {
-//     fn new() -> Self {
-//         Self {
-//             media: Media::new(
-//                 Url::parse("bundle:resources/media.mp3").unwrap(),
-//                 || namui::event::send(Event::MediaLoaded),
-//                 |error| {
-//                     namui::log!("media error: {:?}", error);
-//                 },
-//             ),
-//         }
-//     }
-// }
-
-// enum Event {
-//     MediaLoaded,
-//     PlayMedia,
-//     PlayAndForget,
-//     ToggleLoop,
-//     StopMedia,
-// }
 
 impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -42,6 +22,7 @@ impl Component for MediaExample {
                     .unwrap();
 
                 let media = namui::system::media::new_media(&path).unwrap();
+                println!("media loaded");
 
                 set_media.set(Some(media));
             });
@@ -61,8 +42,8 @@ impl Component for MediaExample {
             fill_color: Color::WHITE,
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
-                if let Some(media_source) = media.as_ref() {
-                    namui::system::media::play_media_source(media_source)
+                if let Some(media) = media.as_ref() {
+                    namui::system::media::play(media)
                 }
             },
         });

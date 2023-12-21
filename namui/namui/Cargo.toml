@@ -28,7 +28,7 @@ futures = "0.3.17"
 num = { version = "0.4.0", features = ["std"] }
 derivative = "2.2.0"
 namui-drawer-sys = { path = "../namui-drawer/sys" }
-namui-media = { path = "../namui-media" }
+dashmap = "4"
 
 [target.'cfg(target_family="wasm")'.dependencies]
 web-sys = { version = "0.3", features = [
@@ -104,6 +104,9 @@ rfd = "0.12.1"
 rand = "0.8.5"
 opener = "0.6.1"
 namui-skia = { path = "../skia/skia", features = ["windows"] }
+cpal = "0.15.2"
+ffmpeg-next = "6.1.0"
+crossbeam-channel = "0.5.9"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 wasm-bindgen-test = "0.3.13"
