@@ -14,7 +14,14 @@ impl namui::Component for App {
         let (notes, set_notes) = ctx.state(|| None);
         let wh = screen::size().into_type::<Px>();
 
+        ctx.on_raw_event(|raw_event| {
+            if let RawEvent::AnimationFrame = raw_event {
+                web::request_animation_frame();
+            }
+        });
+
         ctx.effect("Init", || {
+            web::request_animation_frame();
             spawn_local(async move {
                 let notes = load_notes().await;
                 set_notes.set(Some(notes));

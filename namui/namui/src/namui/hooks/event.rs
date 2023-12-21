@@ -159,6 +159,7 @@ pub(crate) fn invoke_on_event(
         RawEvent::ScreenRedraw => {
             on_event(Event::ScreenRedraw);
         }
+        RawEvent::AnimationFrame => (),
     }
 }
 
