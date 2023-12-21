@@ -1,5 +1,5 @@
 use futures::future::join_all;
-use namui::file::bundle;
+use namui::{file::bundle, Time};
 use std::io::{self, BufRead};
 
 #[derive(Debug, Clone, Copy)]
@@ -28,7 +28,7 @@ impl Instrument {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Direction {
     Up,
     Right,
@@ -38,9 +38,9 @@ pub enum Direction {
 
 #[derive(Debug)]
 pub struct Note {
-    time_sec: f32,
-    direction: Direction,
-    instrument: Instrument,
+    pub time: Time,
+    pub direction: Direction,
+    pub instrument: Instrument,
 }
 
 pub async fn load_notes() -> Vec<Note> {
@@ -51,7 +51,7 @@ pub async fn load_notes() -> Vec<Note> {
             .lines()
             .map(|line| line.unwrap().parse::<f32>().unwrap())
             .map(|time_sec| Note {
-                time_sec,
+                time: Time::Sec(time_sec),
                 direction: instrument.as_direction(),
                 instrument,
             })
