@@ -57,9 +57,11 @@ pub async fn load_notes() -> Vec<Note> {
             })
             .collect::<Vec<_>>()
     });
-    join_all(note_loading_futures)
+    let mut notes = join_all(note_loading_futures)
         .await
         .into_iter()
         .flatten()
-        .collect()
+        .collect::<Vec<_>>();
+    notes.sort_by(|a, b| a.time.cmp(&b.time));
+    notes
 }

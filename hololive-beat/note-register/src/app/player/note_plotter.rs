@@ -50,6 +50,12 @@ impl Component for NotePlotter<'_> {
         ctx.compose(|ctx| {
             for note in notes {
                 let note_x = timing_zero_x + (px_per_time * (note.time - played_time));
+                if note_x < -wh.width {
+                    continue;
+                }
+                if note_x > wh.width * 2 {
+                    break;
+                }
                 let note_y = match note.direction {
                     Direction::Up | Direction::Right => baseline_y_array[0],
                     Direction::Down | Direction::Left => baseline_y_array[1],
