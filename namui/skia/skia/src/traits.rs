@@ -43,12 +43,6 @@ pub trait SkCanvas {
         dest_rect: Rect<Px>,
         paint: &Option<Paint>,
     );
-    fn draw_image_handle(
-        &self,
-        image_handle: &ImageHandle,
-        src_rect: Rect<Px>,
-        dest_rect: Rect<Px>,
-    );
     fn translate(&self, dx: Px, dy: Px);
     fn save(&self);
     fn clip_path(&self, path: &Path, clip_op: ClipOp, do_anti_alias: bool);

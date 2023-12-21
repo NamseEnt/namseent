@@ -56,6 +56,6 @@ pub async fn load_image(image_source: &ImageSource) -> Result<Image> {
                 wh,
             })
         }
-        ImageSource::ImageHandle { image_handle } => unreachable!(),
+        ImageSource::ImageHandle { image_handle: _ } => unreachable!(),
     }
 }

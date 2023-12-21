@@ -6,7 +6,7 @@ pub(crate) struct NativePaint {
 }
 impl NativePaint {
     pub(crate) fn get(paint: &Paint) -> Arc<Self> {
-        static NATIVE_PAINT_CACHE: SerdeLruCache<Paint, NativePaint> = SerdeLruCache::new();
+        static NATIVE_PAINT_CACHE: SerdeLruCache<Paint, NativePaint, 128> = SerdeLruCache::new();
         NATIVE_PAINT_CACHE.get_or_create(paint, Self::new)
     }
     fn new(paint: &Paint) -> Self {

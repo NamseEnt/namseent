@@ -22,12 +22,8 @@ impl Draw for ImageDrawCommand {
         };
         let (src_rect, dest_rect) = get_src_dest_rects_in_fit(self.fit, image_size, self.rect);
 
-        ctx.canvas().save();
-
         ctx.canvas()
             .draw_image(&image.src, src_rect, dest_rect, &self.paint);
-
-        ctx.canvas().restore();
     }
 }
 

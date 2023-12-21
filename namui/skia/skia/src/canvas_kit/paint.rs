@@ -6,7 +6,7 @@ pub(crate) struct CkPaint {
 }
 impl CkPaint {
     pub(crate) fn get(paint: &Paint) -> Arc<Self> {
-        static CK_PAINT_CACHE: SerdeLruCache<Paint, CkPaint> = SerdeLruCache::new();
+        static CK_PAINT_CACHE: SerdeLruCache<Paint, CkPaint, 128> = SerdeLruCache::new();
         CK_PAINT_CACHE.get_or_create(paint, Self::new)
     }
     fn new(paint: &Paint) -> Self {

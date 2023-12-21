@@ -116,23 +116,21 @@ impl Media {
 
         std::thread::spawn(move || {
             match (move || -> Result<()> {
-                for (steram, packet) in ictx.packets() {
-                    let Some(decoding_stream) = &mut stream_decoding_stream[steram.index()] else {
+                for (stream, packet) in ictx.packets() {
+                    let Some(decoding_stream) = &mut stream_decoding_stream[stream.index()] else {
                         continue;
                     };
                     decoding_stream.send_packet(&packet)?;
                     decoding_stream.receive_and_process_decoded_frames()?;
                 }
 
-                stream_decoding_stream
-                    .into_iter()
-                    .flatten()
-                    .map(|mut decoder| {
-                        decoder
-                            .send_eof()
-                            .and_then(|_| decoder.receive_and_process_decoded_frames())
-                    })
-                    .collect::<Result<Vec<_>>>()?;
+                for mut decoding_stream in stream_decoding_stream {
+                    let Some(decoding_stream) = &mut decoding_stream else {
+                        continue;
+                    };
+                    decoding_stream.send_eof()?;
+                    decoding_stream.receive_and_process_decoded_frames()?;
+                }
 
                 Ok(())
             })() {

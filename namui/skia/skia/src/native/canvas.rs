@@ -32,7 +32,6 @@ impl SkCanvas for skia_safe::Canvas {
         };
 
         let mut paint = paint.clone().unwrap_or(Paint::new(Color::WHITE));
-
         let image_shader = image.get_default_shader();
 
         let next_shader = if let Some(super_shader) = &paint.shader {
@@ -53,24 +52,6 @@ impl SkCanvas for skia_safe::Canvas {
         );
 
         SkCanvas::draw_path(self, &Path::new().add_rect(src_rect), &paint);
-
-        self.restore();
-    }
-    fn draw_image_handle(
-        &self,
-        image_handle: &ImageHandle,
-        src_rect: Rect<Px>,
-        dest_rect: Rect<Px>,
-    ) {
-        self.save();
-        self.transform(
-            Matrix3x3::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
-                * Matrix3x3::from_scale(
-                    dest_rect.width() / src_rect.width(),
-                    dest_rect.height() / src_rect.height(),
-                ),
-        );
-        self.draw_image(&image_handle.inner, src_rect.xy(), None);
 
         self.restore();
     }

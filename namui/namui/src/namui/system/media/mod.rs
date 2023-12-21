@@ -7,7 +7,6 @@ mod image_only_video;
 mod media_struct;
 mod synced_audio;
 
-use self::media_struct::Media;
 use super::InitResult;
 use anyhow::*;
 use context::*;

@@ -9,7 +9,7 @@ unsafe impl Send for NativeShader {}
 unsafe impl Sync for NativeShader {}
 impl NativeShader {
     pub(crate) fn get(shader: &Shader) -> Arc<Self> {
-        static NATIVE_SHADER_MAP: SerdeMap<Shader, NativeShader> = SerdeMap::new();
+        static NATIVE_SHADER_MAP: SerdeLruCache<Shader, NativeShader, 64> = SerdeLruCache::new();
 
         NATIVE_SHADER_MAP.get_or_create(shader, |shader| match shader {
             Shader::Image { src } => {

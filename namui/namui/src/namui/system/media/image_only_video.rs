@@ -43,7 +43,6 @@ impl ImageOnlyVideo {
 
                 let mut index = 0;
                 while let Ok(frame) = frame_rx.recv() {
-                    println!("ImageOnlyVideo index: {}", index);
                     index += 1;
                     let mut output = ffmpeg_next::frame::Video::empty();
                     scaler
