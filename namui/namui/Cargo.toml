@@ -4,8 +4,9 @@ version = "0.1.0"
 authors = ["namse <skatpgusskat@naver.com>"]
 edition = "2021"
 
-[package.metadata]
-namui = true
+[package.metadata.namui.targets.x86_64-pc-windows-msvc]
+cargo-command = "cargo xwin"
+extra-args = "--xwin-arch x86_64 --xwin-version 17"
 
 [dependencies]
 namui-type = { path = "../namui-type" }
@@ -105,7 +106,7 @@ rand = "0.8.5"
 opener = "0.6.1"
 namui-skia = { path = "../skia/skia", features = ["windows"] }
 cpal = "0.15.2"
-ffmpeg-next = "6.1.0"
+ffmpeg-next = { path = "../rust-ffmpeg", features = ["static"] }
 crossbeam-channel = "0.5.9"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]

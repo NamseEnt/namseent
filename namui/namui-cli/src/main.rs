@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+// temporary allow dead code for cross platform development. it will be removed when the project is stable.
+
 mod cli;
 mod procedures;
 mod services;
@@ -16,7 +20,7 @@ use util::{get_current_target, print_namui_cfg, print_namui_target};
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    let manifest_path = current_dir()
+    let manifest_path: std::path::PathBuf = current_dir()
         .expect("No current dir found")
         .join("Cargo.toml");
     let current_target = get_current_target()?;

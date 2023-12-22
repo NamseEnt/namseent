@@ -27,7 +27,7 @@ jobs:
         run: echo "dirs=$(for-all-projects list | jq -c -s -R 'split("\n")[:-1]')" >> "$GITHUB_OUTPUT"
 
   run-commands:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs:
       - list-projects
     strategy:
@@ -40,7 +40,8 @@ jobs:
       - uses: ./.github/actions/init-test-job
       - uses: ./.github/actions/build-for-all-projects
 
-      - run: CARGO_VERSION=$(cargo --version | cut -d ' ' -f 2) && echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_ENV
+      - shell: bash
+        run: CARGO_VERSION=$(cargo --version | cut -d ' ' -f 2) && echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_ENV
 
       - uses: actions/cache@v3
         with:
@@ -49,7 +50,8 @@ jobs:
             ${{ matrix.dir }}/target/
           key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-command-${{ matrix.dir }}-${{ hashFiles(env.CARGO_LOCK_PATH) }}
 
-      - run: |
+      - shell: bash
+        run: |
           for-all-projects run --only ${{ matrix.dir }} --check --fmt --clippy --test
 
           if [[ $(git diff --name-only) ]]; then

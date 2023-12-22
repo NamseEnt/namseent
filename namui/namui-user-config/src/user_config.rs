@@ -12,7 +12,7 @@ impl Default for NamuiUserConfig {
             cfg_map: HashMap::new(),
             target: if cfg!(target_os = "linux") {
                 {
-                    Target::WasmUnknownWeb
+                    Target::X86_64PcWindowsMsvc
                 }
             } else if cfg!(target_os = "windows") {
                 {
