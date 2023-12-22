@@ -38,10 +38,7 @@ pub fn component(
     let generic_next_to_impl_except_lifetime = struct_generics
         .params
         .iter()
-        .filter(|param| match param {
-            syn::GenericParam::Lifetime(_) => false,
-            _ => true,
-        })
+        .filter(|param| !matches!(param, syn::GenericParam::Lifetime(_)))
         .map(|param| {
             quote! { #param }
         })
