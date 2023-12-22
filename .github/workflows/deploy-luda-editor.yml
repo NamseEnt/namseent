@@ -1,9 +1,9 @@
 name: deploy-luda-editor
-on:
-  push:
-    branches:
-      - "**__le**"
-      - "master"
+# on:
+#   push:
+#     branches:
+#       - "**__le**"
+#       - "master"
 concurrency:
   group: ${{ github.ref }}-deploy-luda-editor
   cancel-in-progress: true
