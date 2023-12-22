@@ -4,7 +4,7 @@ pub fn print_build_result(
     compile_error_messages: &Vec<ErrorMessage>,
     cli_error_messages: &Vec<String>,
 ) {
-    // clear_console();
+    clear_console();
     if compile_error_messages.is_empty() && cli_error_messages.is_empty() {
         println!("No errors");
         return;
