@@ -28,10 +28,10 @@ jobs:
         with:
           path: |
             ~/.cargo/
-            namui-panic-hook/target/
-          key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-namui-panic-hook-${{ hashFiles('namui-panic-hook/Cargo.lock') }}
+            namui/namui-panic-hook/target/
+          key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-namui-panic-hook-${{ hashFiles('namui/namui-panic-hook/Cargo.lock') }}
 
-      - working-directory: namui-panic-hook
+      - working-directory: namui/namui-panic-hook
         run: |
           cargo check
           cargo fmt
@@ -45,6 +45,6 @@ jobs:
 
       - uses: katyo/publish-crates@v2
         with:
-          path: "namui-panic-hook"
+          path: "namui/namui-panic-hook"
           registry-token: ${{ secrets.CARGO_API_TOKEN }}
           dry-run: ${{ github.ref != 'refs/heads/master' }}
