@@ -36,4 +36,4 @@ runs:
 
     - name: install namui-cli
       shell: bash
-      run: bash namui-cli/scripts/install.sh
+      run: bash namui/namui-cli/scripts/install.sh

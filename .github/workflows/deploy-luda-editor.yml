@@ -86,7 +86,7 @@ jobs:
         run: pip3 install cargo-lambda
 
       - name: install namui-cli
-        run: bash namui-cli/scripts/install.sh
+        run: bash namui/namui-cli/scripts/install.sh
 
       - name: build client
         working-directory: luda-editor/client
