@@ -52,6 +52,8 @@ impl SyncedAudio {
         Ok(data)
     }
 
+    // TODO
+    #[allow(dead_code)]
     fn try_sync(&mut self) -> Result<()> {
         // NOTE: HMM...? something is wrong?
 

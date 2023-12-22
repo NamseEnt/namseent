@@ -37,13 +37,7 @@ impl ImageOnlyVideo {
                 )
                 .map_err(|err| anyhow!("ffmpeg scaling context get error: {:?}", err))?;
 
-                println!("ImageOnlyVideo thread started");
-                println!("before: {wh:?} {pixel_type:?}");
-                println!("after: {wh:?} {FFMPEG_DEST_FORMAT:?}");
-
-                let mut index = 0;
                 while let Ok(frame) = frame_rx.recv() {
-                    index += 1;
                     let mut output = ffmpeg_next::frame::Video::empty();
                     scaler
                         .run(&frame, &mut output)
@@ -68,8 +62,6 @@ impl ImageOnlyVideo {
             if let Err(err) = result {
                 eprintln!("Error: {:?}", err);
             }
-
-            println!("ImageOnlyVideo thread finished");
         });
 
         Ok(Self {
@@ -82,7 +74,6 @@ impl ImageOnlyVideo {
         })
     }
     pub fn start(&mut self) {
-        println!("Start Video");
         self.start_instant = Some(std::time::Instant::now());
     }
     pub fn get_image(&mut self) -> Result<Option<ImageHandle>> {
