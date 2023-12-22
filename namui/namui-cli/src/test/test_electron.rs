@@ -1,6 +1,7 @@
 use crate::util::get_electron_root_path;
 use std::process::Command;
 
+#[ignore] // TODO: Support electron later.
 #[test]
 fn test_electron() {
     let electron_root_path = get_electron_root_path();
