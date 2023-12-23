@@ -41,22 +41,26 @@ mod tests {
 
     #[test]
     fn change_path_to_platform() {
-        let test_cases: Vec<(PathBuf, PathBuf)> = vec![
-            ("", "bundle"),
-            ("/", "bundle"),
-            ("path", "bundle/path"),
-            ("path/to/some/where", "bundle/path/to/some/where"),
-            ("path/to/some/where/", "bundle/path/to/some/where"),
-            ("/path/to/some/where", "bundle/path/to/some/where"),
-            ("path/to/./some/where", "bundle/path/to/some/where"),
-            ("path/to/../some/where", "bundle/path/some/where"),
-            ("path/to/../../../some/where", "bundle/some/where"),
+        let bundle_path = "bundle:abc";
+        let test_cases_platform_prefix_expected: Vec<(PathBuf, PathBuf)> = vec![
+            ("", "abc"),
+            ("/", "/abc"),
+            ("path", "path/abc"),
+            ("path/to/some/where", "path/to/some/where/abc"),
+            ("path/to/some/where/", "path/to/some/where//abc"),
+            ("/path/to/some/where", "/path/to/some/where/abc"),
+            ("path/to/./some/where", "path/to/./some/where/abc"),
+            ("path/to/../some/where", "path/to/../some/where/abc"),
+            (
+                "path/to/../../../some/where",
+                "path/to/../../../some/where/abc",
+            ),
         ]
         .into_iter()
         .map(|(from, to)| (PathBuf::from(from), PathBuf::from(to)))
         .collect();
-        for (input, expected) in test_cases {
-            let output = super::change_path_to_platform(input, "bundle").unwrap();
+        for (input, expected) in test_cases_platform_prefix_expected {
+            let output = super::change_path_to_platform(input, bundle_path).unwrap();
             assert_eq!(output, expected);
         }
     }
