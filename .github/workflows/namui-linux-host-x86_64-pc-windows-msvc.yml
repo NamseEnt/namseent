@@ -66,7 +66,7 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: |
           cargo xwin check --target x86_64-pc-windows-msvc
-          cargo xwin fmt --target x86_64-pc-windows-msvc
+          cargo fmt
           cargo xwin clippy --target x86_64-pc-windows-msvc
           cargo xwin test --target x86_64-pc-windows-msvc
 
