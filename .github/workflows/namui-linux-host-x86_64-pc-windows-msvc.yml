@@ -37,6 +37,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install wine
+        run: |
+          sudo apt update
+          sudo apt install -y wine64
+
       - name: Set up cargo
         run: |
           rustup target add x86_64-pc-windows-msvc
@@ -65,9 +70,18 @@ jobs:
       - name: Run commands
         working-directory: ${{ matrix.dir }}
         run: |
+          echo "Running commands in ${{ matrix.dir }}"
+
+          echo "cargo xwin check --target x86_64-pc-windows-msvc"
           cargo xwin check --target x86_64-pc-windows-msvc
+          
+          echo "cargo fmt"
           cargo fmt
+
+          echo "cargo xwin clippy --target x86_64-pc-windows-msvc"
           cargo xwin clippy --target x86_64-pc-windows-msvc
+
+          echo "cargo xwin test --target x86_64-pc-windows-msvc"
           cargo xwin test --target x86_64-pc-windows-msvc
 
   post-namui-linux-host-x86_64-pc-windows-msvc:
