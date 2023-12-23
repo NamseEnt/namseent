@@ -4,9 +4,8 @@ version = "0.1.0"
 authors = ["namse <skatpgusskat@naver.com>"]
 edition = "2021"
 
-[package.metadata.namui.targets.x86_64-pc-windows-msvc]
-cargo-command = "cargo xwin"
-extra-args = "--xwin-arch x86_64 --xwin-version 17"
+[package.metadata.namui]
+targets = ["x86_64-pc-windows-msvc"]
 
 [dependencies]
 namui-type = { path = "../namui-type" }
