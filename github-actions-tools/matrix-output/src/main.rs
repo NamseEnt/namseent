@@ -19,10 +19,25 @@ fn main() {
 
     for cargo_toml_dirent in cargo_toml_dirents {
         let cargo_toml_path = cargo_toml_dirent.path();
-        let cargo_toml = std::fs::read_to_string(cargo_toml_path)
-            .unwrap()
-            .parse::<toml::Table>()
-            .unwrap();
+        let content = std::fs::read_to_string(cargo_toml_path).unwrap();
+
+        let cargo_toml = content.parse::<toml::Value>().unwrap_or_else(|e| {
+            panic!(
+                "failed to parse Cargo.toml. path: {}, error: {}",
+                cargo_toml_path.to_str().unwrap(),
+                e
+            )
+        });
+        if cargo_toml.is_str() {
+            continue;
+        }
+
+        let cargo_toml = cargo_toml.as_table().unwrap_or_else(|| {
+            panic!(
+                "cargo_toml should be a table. path: {}",
+                cargo_toml_path.to_str().unwrap()
+            )
+        });
 
         if Some(true)
             == || -> Option<bool> {
