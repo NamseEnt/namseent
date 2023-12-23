@@ -6,6 +6,9 @@ fn main() {
     let dest = args
         .get(2)
         .expect("dest is required. pass it as the second argument");
+    let output_key = args
+        .get(3)
+        .expect("output_key is required. pass it as the third argument");
 
     println!("target: {target}");
     println!("dest: {dest}");
@@ -66,7 +69,9 @@ fn main() {
             .join(",")
     );
 
-    println!("result: {}", output_json_array);
+    println!(
+        "result: {output_key}={output_json_array}"
+    );
 
-    std::fs::write(dest, output_json_array).unwrap();
+    std::fs::write(dest, format!("{output_key}={output_json_array}")).unwrap();
 }

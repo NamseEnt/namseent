@@ -20,7 +20,7 @@ jobs:
 
       - name: Output list of project directories
         id: project-dirs
-        run: cargo run --manifest-path ./github-actions-tools/matrix-output/Cargo.toml x86_64-pc-windows-msvc $GITHUB_OUTPUT
+        run: cargo run --manifest-path ./github-actions-tools/matrix-output/Cargo.toml x86_64-pc-windows-msvc $GITHUB_OUTPUT dirs
 
   run-commands:
     runs-on: ubuntu-latest
