@@ -3,8 +3,8 @@ name = "namui-skia"
 version = "0.1.0"
 edition = "2021"
 
-[package.metadata]
-namui = true
+[package.metadata.namui]
+targets = ["x86_64-pc-windows-msvc"]
 
 [features]
 default = []
