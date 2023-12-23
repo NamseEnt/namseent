@@ -55,17 +55,20 @@ jobs:
           path: |
             ~/.cache/cargo-xwin
           key: ${{ runner.os }}-${{ env.XWIN_ARCH }}-${{ env.XWIN_VERSION }}
-
-      - name: Install cargo-xwin
-        run: |
-          cargo install cargo-xwin
-
+          
       - uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/
             ${{ matrix.dir }}/target/
           key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-x86_64-pc-windows-msvc-${{ matrix.dir }}-${{ hashFiles(env.CARGO_LOCK_PATH) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-x86_64-pc-windows-msvc-${{ matrix.dir }}-
+            ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-x86_64-pc-windows-msvc-
+
+      - name: Install cargo-xwin
+        run: |
+          cargo install cargo-xwin
 
       - name: Run commands
         working-directory: ${{ matrix.dir }}
