@@ -45,7 +45,7 @@ jobs:
             --toolchain=msvc \
             --arch=x86_64 \
             --disable-programs \
-            --enable-yasm \
+            --enable-asm \
             --enable-x86asm \
             --disable-mediafoundation \
             --disable-avdevice
@@ -53,9 +53,11 @@ jobs:
           make -j$(nproc)
           make install
 
-          ls -R /c/ffmpeg
+          pwd
+
+          ls -R .
       
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-x86_64-pc-windows-msvc
-          path: /c/ffmpeg
+          path: ffmpeg
