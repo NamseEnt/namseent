@@ -28,6 +28,8 @@ jobs:
           ref: release/6.1
 
       - run: |
+          mv /usr/bin/link.exe /usr/bin/link.exe.bak
+
           # Disable all media foundation things.
 
           ./configure \
