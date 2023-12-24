@@ -1,0 +1,47 @@
+name: build-ffmpeg-x86_64-pc-windows-msvc
+on:
+  push
+
+concurrency:
+  group: ${{ github.ref }}-build-ffmpeg-x86_64-pc-windows-msvc
+  cancel-in-progress: true
+
+jobs:
+  build-ffmpeg-x86_64-pc-windows-msvc:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      CC: cl
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            yasm
+            nasm
+
+      - uses: actions/checkout@v3
+        with:
+          repository: FFmpeg/FFmpeg
+          ref: release/6.1
+
+      - run: |
+          # Disable all media foundation things.
+
+          ./configure \
+            --toolchain=msvc \
+            --arch=x86_64 \
+            --disable-programs \
+            --enable-yasm \
+            --enable-asm \
+            --disable-outdev=dshow \
+            --disable-encoder=aac_mf_encoder \
+            --disable-encoder=ac3_mf_encoder \
+            --disable-encoder=h264_mf_encoder \
+            --disable-encoder=hevc_mf_encoder \
+            --disable-encoder=mp3_mf_encoder
+
+          make -j$(nproc)
+          make install
