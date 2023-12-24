@@ -50,17 +50,21 @@ jobs:
             --disable-programs \
             --enable-static \
             --disable-shared \
+            --prefix=output \
             --enable-asm \
             --enable-x86asm \
             --disable-mediafoundation \
             --disable-avdevice \
-            --prefix=$PWD/ouptut \
             --disable-logging
 
           make -j$(nproc)
           make install
+
+          ls -R output
+
+          tar -czf ffmpeg-x86_64-pc-windows-msvc.tar.gz output
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-x86_64-pc-windows-msvc
-          path: ./
+          path: ./ffmpeg-x86_64-pc-windows-msvc.tar.gz
