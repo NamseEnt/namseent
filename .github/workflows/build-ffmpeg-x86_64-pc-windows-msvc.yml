@@ -77,6 +77,7 @@ jobs:
             --disable-encoder=h264_mf_encoder \
             --disable-encoder=hevc_mf_encoder \
             --disable-encoder=mp3_mf_encoder \
+            --disable-mediafoundation \
             --disable-avdevice
 
           make -j$(nproc)
