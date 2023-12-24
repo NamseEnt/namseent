@@ -44,6 +44,8 @@ jobs:
 
           export CC=cl
 
+          mkdir output
+
           ./configure \
             --toolchain=msvc \
             --arch=x86_64 \
@@ -52,18 +54,15 @@ jobs:
             --enable-x86asm \
             --disable-mediafoundation \
             --disable-avdevice \
-            --prefix=$PWD/ouptut
+            --prefix=$PWD/ouptut \
+            --disable-logging
 
           make -j$(nproc)
           make install
 
           pwd
 
-          echo /d/a/namseent/namseent
-          ls -R /d/a/namseent/namseent
-
-          echo /d/a/namseent/namseent/output
-          ls -R /d/a/namseent/namseent/output
+          ls -R output
       
       - uses: actions/upload-artifact@v4
         with:
