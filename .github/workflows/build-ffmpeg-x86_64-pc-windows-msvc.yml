@@ -23,13 +23,18 @@ jobs:
       #       yasm
       #       nasm
 
-      # - uses: actions/checkout@v3
-      #   with:
-      #     repository: FFmpeg/FFmpeg
-      #     ref: release/6.1
+      - uses: actions/checkout@v3
+        with:
+          repository: FFmpeg/FFmpeg
+          ref: release/6.1
 
       - run: |
           mv /usr/bin/link.exe /usr/bin/link.exe.bak
+
+          pacman -S --noconfirm --needed \
+            yasm \
+            nasm
+
           which link.exe
           which cl.exe
 
