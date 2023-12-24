@@ -13,15 +13,15 @@ jobs:
     #   CC: cl
     defaults:
       run:
-        shell: bash
+        shell: msys2 {0}
     steps:
       - uses: ilammy/msvc-dev-cmd@v1
-      # - uses: msys2/setup-msys2@v2
-      #   with:
-      #     update: true
-      #     install: >-
-      #       yasm
-      #       nasm
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            yasm
+            nasm
 
       - uses: actions/checkout@v3
         with:
@@ -37,6 +37,8 @@ jobs:
 
           which link.exe
           which cl.exe
+
+          export CC=cl
 
           # Disable all media foundation things.
 
