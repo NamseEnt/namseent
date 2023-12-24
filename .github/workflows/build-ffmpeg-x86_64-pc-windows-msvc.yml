@@ -11,6 +11,9 @@ jobs:
     runs-on: windows-latest
     # env:
     #   CC: cl
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: ilammy/msvc-dev-cmd@v1
       # - uses: msys2/setup-msys2@v2
@@ -26,29 +29,29 @@ jobs:
       #     ref: release/6.1
 
       - run: |
-          # mv /usr/bin/link.exe /usr/bin/link.exe.bak
+          mv /usr/bin/link.exe /usr/bin/link.exe.bak
           which link.exe
           which cl.exe
 
-          # # Disable all media foundation things.
+          # Disable all media foundation things.
 
-          # ./configure \
-          #   --toolchain=msvc \
-          #   --arch=x86_64 \
-          #   --disable-programs \
-          #   --enable-yasm \
-          #   --enable-asm \
-          #   --disable-outdev=dshow \
-          #   --disable-encoder=aac_mf_encoder \
-          #   --disable-encoder=ac3_mf_encoder \
-          #   --disable-encoder=h264_mf_encoder \
-          #   --disable-encoder=hevc_mf_encoder \
-          #   --disable-encoder=mp3_mf_encoder
+          ./configure \
+            --toolchain=msvc \
+            --arch=x86_64 \
+            --disable-programs \
+            --enable-yasm \
+            --enable-asm \
+            --disable-outdev=dshow \
+            --disable-encoder=aac_mf_encoder \
+            --disable-encoder=ac3_mf_encoder \
+            --disable-encoder=h264_mf_encoder \
+            --disable-encoder=hevc_mf_encoder \
+            --disable-encoder=mp3_mf_encoder
 
-          # make -j$(nproc)
-          # make install
+          make -j$(nproc)
+          make install
 
-          # ls -R /c/ffmpeg
+          ls -R /c/ffmpeg
       
       - uses: actions/upload-artifact@v4
         with:
