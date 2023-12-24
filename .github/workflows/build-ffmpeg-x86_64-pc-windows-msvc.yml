@@ -67,4 +67,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-x86_64-pc-windows-msvc
-          path: /d/a/namseent/namseent/output
+          path: ./
