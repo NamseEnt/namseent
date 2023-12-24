@@ -12,9 +12,7 @@ jobs:
     # env:
     #   CC: cl
     steps:
-      - uses: TheMrMilchmann/setup-msvc-dev@v3
-        with:
-          arch: x64
+      - uses: ilammy/msvc-dev-cmd@v1
       # - uses: msys2/setup-msys2@v2
       #   with:
       #     update: true
