@@ -99,12 +99,6 @@ fn collect_rust_build(
                 &build_dist_path.join("namui-runtime-x86_64-pc-windows-msvc.exe"),
                 &PathBuf::from(""),
             ));
-
-            // let ffmpeg_bin_dir_path = get_cli_root_path().join("ffmpeg/x86_64-pc-windows-msvc/bin");
-            // ops.push(CollectOperation::new(
-            //     &ffmpeg_bin_dir_path,
-            //     &PathBuf::from(""),
-            // ));
         }
     }
     Ok(())

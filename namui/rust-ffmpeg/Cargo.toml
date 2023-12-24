@@ -2,15 +2,15 @@
 name = "ffmpeg-next"
 version = "6.1.0"
 build = "build.rs"
-
 [features]
 default = [
     "codec",
-    "device",
+    # "device",
     "filter",
     "format",
     "software-resampling",
     "software-scaling",
+    "static",
 ]
 
 # ffmpeg<xy> are obsolete features kept for backward compatibility purposes and

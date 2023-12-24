@@ -1,6 +1,8 @@
 name: build-ffmpeg-x86_64-pc-windows-msvc
 on:
-  push
+  push:
+    branches:
+      - ffmpeg-build-*
 
 concurrency:
   group: ${{ github.ref }}-build-ffmpeg-x86_64-pc-windows-msvc

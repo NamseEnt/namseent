@@ -20,11 +20,12 @@ bindgen = { version = "0.64", default-features = false, features = ["runtime"] }
 [features]
 default = [
     "avcodec",
-    "avdevice",
+    # "avdevice",
     "avfilter",
     "avformat",
     "swresample",
     "swscale",
+    "static",
 ]
 
 static = []
