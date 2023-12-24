@@ -50,6 +50,8 @@ jobs:
             --toolchain=msvc \
             --arch=x86_64 \
             --disable-programs \
+            --enable-static \
+            --disable-shared \
             --enable-asm \
             --enable-x86asm \
             --disable-mediafoundation \
