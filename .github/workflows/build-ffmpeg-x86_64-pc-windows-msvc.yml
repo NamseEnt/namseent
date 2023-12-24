@@ -9,8 +9,6 @@ concurrency:
 jobs:
   build-ffmpeg-x86_64-pc-windows-msvc:
     runs-on: windows-latest
-    # env:
-    #   CC: cl
     defaults:
       run:
         shell: msys2 {0}
@@ -48,16 +46,15 @@ jobs:
             --enable-asm \
             --enable-x86asm \
             --disable-mediafoundation \
-            --disable-avdevice
+            --disable-avdevice \
+            --prefix=/c/ffmpeg
 
           make -j$(nproc)
           make install
 
           pwd
-
-          ls -R .
       
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-x86_64-pc-windows-msvc
-          path: ffmpeg
+          path: /c/ffmpeg
