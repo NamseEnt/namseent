@@ -42,6 +42,29 @@ jobs:
 
           # Disable all media foundation things.
 
+          echo decoders
+          ./configure --arch=x86_64 --toolchain=msvc --list-decoders
+          echo encoders
+          ./configure --arch=x86_64 --toolchain=msvc --list-encoders
+          echo hwaccels
+          ./configure --arch=x86_64 --toolchain=msvc --list-hwaccels
+          echo demuxers
+          ./configure --arch=x86_64 --toolchain=msvc --list-demuxers
+          echo muxers
+          ./configure --arch=x86_64 --toolchain=msvc --list-muxers
+          echo parsers
+          ./configure --arch=x86_64 --toolchain=msvc --list-parsers
+          echo protocols
+          ./configure --arch=x86_64 --toolchain=msvc --list-protocols
+          echo bsfs
+          ./configure --arch=x86_64 --toolchain=msvc --list-bsfs
+          echo indevs
+          ./configure --arch=x86_64 --toolchain=msvc --list-indevs
+          echo outdevs
+          ./configure --arch=x86_64 --toolchain=msvc --list-outdevs
+          echo filters
+          ./configure --arch=x86_64 --toolchain=msvc --list-filters
+
           ./configure \
             --toolchain=msvc \
             --arch=x86_64 \
@@ -53,7 +76,8 @@ jobs:
             --disable-encoder=ac3_mf_encoder \
             --disable-encoder=h264_mf_encoder \
             --disable-encoder=hevc_mf_encoder \
-            --disable-encoder=mp3_mf_encoder
+            --disable-encoder=mp3_mf_encoder \
+            --disable-avdevice
 
           make -j$(nproc)
           make install
