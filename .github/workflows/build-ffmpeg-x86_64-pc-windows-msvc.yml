@@ -26,6 +26,11 @@ jobs:
           repository: FFmpeg/FFmpeg
           ref: release/6.1
 
+      - uses: actions/cache@v3
+        with:
+          path: ./
+          key: ffmpeg-6.1
+
       - run: |
           mv /usr/bin/link.exe /usr/bin/link.exe.bak
 
