@@ -29,6 +29,8 @@ jobs:
 
       - run: |
           mv /usr/bin/link.exe /usr/bin/link.exe.bak
+          which link.exe
+          which cl.exe
 
           # Disable all media foundation things.
 
