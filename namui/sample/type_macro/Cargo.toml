@@ -6,9 +6,6 @@ edition = "2021"
 [package.metadata]
 namui = true
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 namui = { path = "../.." }
 serde = { version = "1.0", features = ["derive"] }

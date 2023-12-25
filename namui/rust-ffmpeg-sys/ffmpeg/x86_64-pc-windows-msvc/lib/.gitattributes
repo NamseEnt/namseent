@@ -1,0 +1,6 @@
+libavcodec.a filter=lfs diff=lfs merge=lfs -text
+libavfilter.a filter=lfs diff=lfs merge=lfs -text
+libavformat.a filter=lfs diff=lfs merge=lfs -text
+libavutil.a filter=lfs diff=lfs merge=lfs -text
+libswresample.a filter=lfs diff=lfs merge=lfs -text
+libswscale.a filter=lfs diff=lfs merge=lfs -text

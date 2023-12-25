@@ -1,0 +1,15 @@
+[package]
+name = "namui-prebuilt"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.namui]
+targets = ["x86_64-pc-windows-msvc"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+namui = { path = "../namui" }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.13"

@@ -1,0 +1,4 @@
+{
+  "cSpell.words": ["bindgen", "canvaskit", "namui", "webbrowser"],
+  "rust-analyzer.showUnlinkedFileNotification": false
+}

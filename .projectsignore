@@ -6,3 +6,7 @@ namui/sample/**
 quick
 quick/**
 luda-editor/psd
+luda-editor/**
+namui/skia/rust-skia
+namui/skia/canvas-kit-wasm-bindgen
+namui/namui-drawer/wasm-runner

@@ -1,0 +1,21 @@
+// 1. Install xwin using `cargo install xwin`
+// 2. Add target to rustup using `rustup target add x86_64-pc-windows-msvc`
+// 3. Copy this file to outside of namseent directory
+// 4. Open vscode workspace with this file when you want to dev for windows on linux
+{
+    "settings": {
+        "rust-analyzer.cargo.target": "x86_64-pc-windows-msvc",
+        "rust-analyzer.check.overrideCommand": [
+            "cargo",
+            "xwin",
+            "clippy",
+            "--target",
+            "x86_64-pc-windows-msvc",
+            "--message-format=json",
+            "--xwin-arch",
+            "x86_64",
+            "--xwin-version",
+            "17"
+        ]
+    }
+}

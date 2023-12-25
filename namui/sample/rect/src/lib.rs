@@ -3,31 +3,18 @@ use namui::prelude::*;
 pub async fn main() {
     let namui_context = namui::init().await;
 
-    namui::start(namui_context, &mut RectExample::new(), &()).await
+    namui::start(namui_context, || RectExample).await
 }
 
-struct RectExample {
-    delta_xy: Xy<f32>,
-}
+#[namui::component]
+struct RectExample;
 
-enum Event {
-    DeltaXy(Xy<f32>),
-}
+impl Component for RectExample {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let (delta_xy, set_delta_xy) = ctx.state(Xy::<f32>::zero);
 
-impl RectExample {
-    fn new() -> Self {
-        Self {
-            delta_xy: Xy::zero(),
-        }
-    }
-}
-
-impl Entity for RectExample {
-    type Props = ();
-
-    fn render(&self, _props: &Self::Props) -> RenderingTree {
         let screen_wh = namui::screen::size();
-        let mut rendering_tree = vec![];
+
         for x in 0..3 {
             for y in 0..11 {
                 let border_position = [
@@ -67,11 +54,11 @@ impl Entity for RectExample {
                         Xy::new(x.px(), 0.0.px())
                     }
                     9 => {
-                        let y = self.delta_xy.y.floor() + 0.5;
+                        let y = delta_xy.y.floor() + 0.5;
                         Xy::new(0.5.px(), y.px())
                     }
                     10 => {
-                        let y = self.delta_xy.y.round() + 0.5;
+                        let y = delta_xy.y.round() + 0.5;
                         Xy::new(0.5.px(), y.px() + 100.px())
                     }
                     _ => unreachable!(),
@@ -96,18 +83,35 @@ impl Entity for RectExample {
                         round: None,
                     },
                 });
-
-                rendering_tree.push(rect);
+                ctx.component(rect);
             }
         }
 
-        rendering_tree.push(
+        ctx.component(rect(RectParam {
+            rect: Rect::Xywh {
+                x: 0.px(),
+                y: 0.px(),
+                width: 5.px(),
+                height: 5.px(),
+            },
+            style: RectStyle {
+                stroke: Some(RectStroke {
+                    color: Color::BLACK,
+                    width: 1.px(),
+                    border_position: BorderPosition::Inside,
+                }),
+                fill: None,
+                round: None,
+            },
+        }));
+
+        ctx.component(
             rect(RectParam {
                 rect: Rect::Xywh {
                     x: 0.px(),
                     y: 0.px(),
-                    width: screen_wh.width,
-                    height: screen_wh.height,
+                    width: screen_wh.width.into(),
+                    height: screen_wh.height.into(),
                 },
                 style: RectStyle {
                     stroke: Some(RectStroke {
@@ -119,20 +123,16 @@ impl Entity for RectExample {
                     round: None,
                 },
             })
-            .attach_event(|builder| {
-                builder.on_wheel(|event: WheelEvent| {
-                    namui::event::send(Event::DeltaXy(event.delta_xy))
-                });
+            .attach_event(|event| {
+                if let Event::Wheel { event } = event {
+                    set_delta_xy.mutate(move |delta_xy| {
+                        delta_xy.x += event.delta_xy.x;
+                        delta_xy.y += event.delta_xy.y;
+                    });
+                }
             }),
         );
 
-        render(rendering_tree)
-    }
-
-    fn update(&mut self, event: &namui::Event) {
-        if let Some(Event::DeltaXy(delta_xy)) = event.downcast_ref() {
-            self.delta_xy.x += delta_xy.x;
-            self.delta_xy.y += delta_xy.y;
-        }
+        ctx.done()
     }
 }

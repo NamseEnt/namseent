@@ -1,0 +1,14 @@
+prefix=output
+exec_prefix=${prefix}
+libdir=output/lib
+includedir=output/include
+
+Name: libavformat
+Description: FFmpeg container format library
+Version: 60.16.100
+Requires: libavcodec >= 60.31.102, libswresample >= 4.12.100, libavutil >= 58.29.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavformat secur32.lib ws2_32.lib
+Libs.private: 
+Cflags: -I${includedir}

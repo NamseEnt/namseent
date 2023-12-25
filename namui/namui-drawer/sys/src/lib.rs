@@ -1,0 +1,29 @@
+mod draw;
+
+use draw::*;
+use namui_skia::*;
+use namui_type::*;
+
+pub fn draw(skia: &mut dyn SkSkia, input: DrawInput, start_load_image: &dyn Fn(&ImageSource)) {
+    let start_load_image = &|src: &ImageSource| {
+        static LOADING_IMAGES: SerdeSet<ImageSource> = SerdeSet::new();
+        if LOADING_IMAGES.contains(src) {
+            return;
+        }
+        LOADING_IMAGES.insert(src);
+
+        start_load_image(src);
+
+        LOADING_IMAGES.remove(src);
+    };
+
+    skia.move_to_next_frame();
+
+    let rendering_tree = input.rendering_tree;
+
+    let mut ctx = { DrawContext::new(skia, start_load_image) };
+
+    ctx.canvas().clear(Color::WHITE);
+    rendering_tree.draw(&mut ctx);
+    ctx.surface().flush();
+}
