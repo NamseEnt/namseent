@@ -22,14 +22,7 @@ impl NativeTypeface {
         }
         .unwrap_or_else(|| panic!("Failed to load typeface: {}", name.as_ref()));
 
-        TYPEFACE_MAP.insert(
-            name.as_ref().to_string(),
-            NativeTypeface {
-                skia_typeface,
-                // skia_typeface: skia_safe::Typeface::from_data(data, None)
-                //     .unwrap_or_else(|| panic!("Failed to load typeface: {}", name.as_ref())),
-            },
-        );
+        TYPEFACE_MAP.insert(name.as_ref().to_string(), NativeTypeface { skia_typeface });
 
         log!("Loaded typeface: {}", name.as_ref());
     }

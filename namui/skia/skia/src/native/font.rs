@@ -1,8 +1,6 @@
 use super::*;
 use std::sync::Arc;
 
-type GlyphIds = Vec<usize>;
-
 pub struct NativeFont {
     skia_font: skia_safe::Font,
     pub(crate) metrics: FontMetrics,
@@ -52,13 +50,7 @@ impl NativeFont {
         }
 
         self.glyph_ids_caches
-            .get_or_create(&text, |text| {
-                self.skia_font
-                    .str_to_glyphs_vec(text)
-                    .into_iter()
-                    .map(|n| n as usize)
-                    .collect()
-            })
+            .get_or_create(&text, |text| self.skia_font.str_to_glyphs_vec(text))
             .to_vec()
     }
     pub(crate) fn glyph_widths(&self, glyph_ids: GlyphIds, paint: &Paint) -> Vec<Px> {
@@ -70,10 +62,9 @@ impl NativeFont {
                 let native_paint = NativePaint::get(paint);
 
                 let mut widths = vec![0.0; glyph_ids.len()];
-                let glyph_ids = glyph_ids.iter().map(|n| *n as u16).collect::<Vec<u16>>();
 
                 self.skia_font.get_widths_bounds(
-                    &glyph_ids,
+                    glyph_ids,
                     Some(&mut widths),
                     None,
                     Some(native_paint.skia()),
@@ -93,10 +84,9 @@ impl NativeFont {
                 let native_paint = NativePaint::get(paint);
 
                 let mut bounds = vec![skia_safe::Rect::default(); glyph_ids.len()];
-                let glyph_ids = glyph_ids.iter().map(|n| *n as u16).collect::<Vec<u16>>();
 
                 self.skia_font
-                    .get_bounds(&glyph_ids, &mut bounds, Some(native_paint.skia()));
+                    .get_bounds(glyph_ids, &mut bounds, Some(native_paint.skia()));
 
                 bounds
                     .into_iter()

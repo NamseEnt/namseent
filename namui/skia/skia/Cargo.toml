@@ -45,7 +45,7 @@ web-sys = { version = "0.3.64", features = [
     "Blob",
 ], optional = true }
 wasm-bindgen-futures = { version = "0.4.37", optional = true }
-woff2 = "0.3.0"
+woff2 = { path = "../woff2-rs" }
 
 [dev-dependencies]
 

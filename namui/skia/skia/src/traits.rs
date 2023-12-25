@@ -33,7 +33,7 @@ pub trait SkSurface {
 
 pub trait SkCanvas {
     fn clear(&self, color: Color);
-    fn draw_text_blob(&self, glyph_ids: Vec<usize>, xy: Xy<Px>, font: &Font, paint: &Paint);
+    fn draw_text_blob(&self, glyph_ids: GlyphIds, xy: Xy<Px>, font: &Font, paint: &Paint);
     fn draw_path(&self, path: &Path, paint: &Paint);
     fn draw_line(&self, from: Xy<Px>, to: Xy<Px>, paint: &Paint);
     fn draw_image(

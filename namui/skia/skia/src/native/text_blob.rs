@@ -1,4 +1,5 @@
 use super::*;
+use namui_type::*;
 use std::sync::Arc;
 
 pub struct NativeTextBlob {
@@ -12,10 +13,10 @@ impl NativeTextBlob {
             skia_text_blob: skia_safe::TextBlob::new(string, font.skia()).unwrap(),
         }
     }
-    pub fn from_glyph_ids(glyph_ids: Vec<usize>, font: &Font) -> Option<Arc<Self>> {
+    pub fn from_glyph_ids(glyph_ids: GlyphIds, font: &Font) -> Option<Arc<Self>> {
         #[derive(serde::Serialize)]
         struct CacheKey {
-            glyph_ids: Vec<usize>,
+            glyph_ids: GlyphIds,
             font: Font,
         }
         static CACHE: SerdeLruCache<CacheKey, NativeTextBlob> = SerdeLruCache::new();
@@ -26,10 +27,13 @@ impl NativeTextBlob {
 
         CACHE.get_or_try_create(&cache_key, |key| {
             let native_font = NativeFont::get(&key.font)?;
-            let glyph_ids = glyph_ids.into_iter().map(|n| n as u8).collect::<Vec<_>>();
-
             let skia_text_blob = skia_safe::TextBlob::from_text(
-                glyph_ids.as_slice(),
+                unsafe {
+                    std::slice::from_raw_parts(
+                        glyph_ids.as_ptr() as *const u8,
+                        glyph_ids.len() * std::mem::size_of::<GlyphId>(),
+                    )
+                },
                 skia_safe::TextEncoding::GlyphId,
                 native_font.skia(),
             );

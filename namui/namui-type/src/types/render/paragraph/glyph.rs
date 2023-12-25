@@ -38,6 +38,6 @@ pub struct GlyphGroup {
 }
 
 pub struct Glyph {
-    pub id: usize,
+    pub id: GlyphId,
     pub width: Px,
 }

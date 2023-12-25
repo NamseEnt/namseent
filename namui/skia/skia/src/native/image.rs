@@ -16,7 +16,7 @@ static IMAGE_MAP: SerdeMap<ImageSource, NativeImage> = SerdeMap::new();
 
 impl NativeImage {
     pub(crate) fn load(image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo {
-        let value = IMAGE_MAP.get_or_create(&image_source, |image_source| {
+        let value = IMAGE_MAP.get_or_create(image_source, |image_source| {
             let skia_image =
                 skia_safe::Image::from_encoded(skia_safe::Data::new_copy(encoded_image)).unwrap();
 

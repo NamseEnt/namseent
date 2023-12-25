@@ -2,9 +2,7 @@ use namui::prelude::*;
 use namui_prebuilt::button::TextButton;
 
 pub async fn main() {
-    println!("Hi");
     let namui_context = namui::init().await;
-    println!("inited");
 
     namui::start(namui_context, || MediaExample).await
 }
@@ -102,119 +100,6 @@ impl Component for MediaExample {
             }));
         });
 
-        // ctx.component([
-        //     typography::body::left(
-        //         20.px(),
-        //         format!(
-        //             "is loaded: {}, is loop: {}",
-        //             self.media.is_loaded(),
-        //             self.media.is_loop()
-        //         ),
-        //         Color::BLACK,
-        //     ),
-        //     text_button(
-        //         Rect::Xywh {
-        //             x: 10.px(),
-        //             y: 20.px(),
-        //             width: 100.px(),
-        //             height: 20.px(),
-        //         },
-        //         "play",
-        //         Color::BLACK,
-        //         Color::BLACK,
-        //         1.px(),
-        //         Color::WHITE,
-        //         [MouseButton::Left],
-        //         {
-        //             move |_| {
-        //                 namui::event::send(Event::PlayMedia);
-        //             }
-        //         },
-        //     ),
-        //     text_button(
-        //         Rect::Xywh {
-        //             x: 120.px(),
-        //             y: 20.px(),
-        //             width: 100.px(),
-        //             height: 20.px(),
-        //         },
-        //         "stop",
-        //         Color::BLACK,
-        //         Color::BLACK,
-        //         1.px(),
-        //         Color::WHITE,
-        //         [MouseButton::Left],
-        //         {
-        //             move |_| {
-        //                 namui::event::send(Event::StopMedia);
-        //             }
-        //         },
-        //     ),
-        //     text_button(
-        //         Rect::Xywh {
-        //             x: 10.px(),
-        //             y: 60.px(),
-        //             width: 100.px(),
-        //             height: 20.px(),
-        //         },
-        //         "fire and forget",
-        //         Color::BLACK,
-        //         Color::BLACK,
-        //         1.px(),
-        //         Color::WHITE,
-        //         [MouseButton::Left],
-        //         {
-        //             move |_| {
-        //                 namui::event::send(Event::PlayAndForget);
-        //             }
-        //         },
-        //     ),
-        //     text_button(
-        //         Rect::Xywh {
-        //             x: 10.px(),
-        //             y: 100.px(),
-        //             width: 100.px(),
-        //             height: 20.px(),
-        //         },
-        //         "toggle loop",
-        //         Color::BLACK,
-        //         Color::BLACK,
-        //         1.px(),
-        //         Color::WHITE,
-        //         [MouseButton::Left],
-        //         {
-        //             move |_| {
-        //                 namui::event::send(Event::ToggleLoop);
-        //             }
-        //         },
-        //     ),
-        // ]);
-
         ctx.done()
     }
-
-    // fn update(&mut self, event: &namui::Event) {
-    //     event.is::<Event>(|event| match event {
-    //         Event::MediaLoaded => {
-    //             namui::log!("media loaded");
-    //         }
-    //         Event::PlayMedia => {
-    //             self.media.play();
-    //         }
-    //         Event::PlayAndForget => {
-    //             // let mut media = self.media.clone();
-    //             // media.set_loop(false);
-    //             // media.play();
-
-    //             // or
-    //             self.media.play_and_forget();
-    //         }
-    //         Event::ToggleLoop => {
-    //             self.media.set_loop(!self.media.is_loop());
-    //         }
-    //         Event::StopMedia => {
-    //             self.media.stop();
-    //         }
-    //     });
-    // }
 }

@@ -6,11 +6,22 @@ impl SkCanvas for skia_safe::Canvas {
     fn clear(&self, color: Color) {
         self.clear(color);
     }
-    fn draw_text_blob(&self, glyph_ids: Vec<usize>, xy: Xy<Px>, font: &Font, paint: &Paint) {
+    fn draw_text_blob(&self, glyph_ids: GlyphIds, xy: Xy<Px>, font: &Font, paint: &Paint) {
+        println!(
+            "draw_text_blob: {:?} {:?} {:?} {:?}",
+            glyph_ids, xy, font, paint
+        );
+
         let Some(text_blob) = NativeTextBlob::from_glyph_ids(glyph_ids, font) else {
+            println!("text_blob not found");
             return;
         };
-
+        // self.draw_str(
+        //     "Test",
+        //     xy,
+        //     NativeFont::get(&font).unwrap().skia(),
+        //     NativePaint::get(paint).skia(),
+        // );
         self.draw_text_blob(text_blob.skia(), xy, NativePaint::get(paint).skia());
     }
     fn draw_path(&self, path: &Path, paint: &Paint) {

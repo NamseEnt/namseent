@@ -619,3 +619,9 @@ pub struct ColorFilter {
     pub color: Color,
     pub blend_mode: BlendMode,
 }
+
+#[cfg(feature = "skia")]
+pub type GlyphIds = Vec<skia_safe::GlyphId>;
+
+#[cfg(feature = "skia")]
+pub type GlyphId = skia_safe::GlyphId;
