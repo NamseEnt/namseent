@@ -621,7 +621,9 @@ pub struct ColorFilter {
 }
 
 #[cfg(feature = "skia")]
-pub type GlyphIds = Vec<skia_safe::GlyphId>;
-
-#[cfg(feature = "skia")]
 pub type GlyphId = skia_safe::GlyphId;
+
+#[cfg(not(feature = "skia"))]
+pub type GlyphId = u16;
+
+pub type GlyphIds = Vec<GlyphId>;
