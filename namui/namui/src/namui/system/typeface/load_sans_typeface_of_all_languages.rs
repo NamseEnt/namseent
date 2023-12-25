@@ -41,7 +41,11 @@ pub async fn load_all_typefaces() -> Result<()> {
                     .await
                     .map_err(|error| anyhow!("Could not fetch {}: {}", url, error))?;
 
-                crate::system::typeface::register_typeface(typeface_name, &bytes);
+                crate::spawn_blocking(move || {
+                    crate::system::typeface::register_typeface(typeface_name, &bytes);
+                })
+                .await?;
+
                 Ok::<(), anyhow::Error>(())
             }),
     )

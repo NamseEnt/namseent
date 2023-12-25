@@ -134,9 +134,7 @@ impl Media {
 
                 Ok(())
             })() {
-                Ok(_) => {
-                    println!("Media decoding finished.");
-                }
+                Ok(_) => {}
                 Err(e) => {
                     eprintln!("Fail on media decoding: {}", e);
                 }

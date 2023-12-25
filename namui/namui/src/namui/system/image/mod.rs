@@ -24,9 +24,7 @@ impl RenderCtx {
             let url = (*url).clone();
 
             spawn(async move {
-                println!("start loading image from {url}", url = url);
                 let image = load_image(&ImageSource::Url { url: url.clone() }).await;
-                println!("end loading image from {url}", url = url);
                 set_load.mutate(move |x| {
                     if x.0 != url {
                         return;

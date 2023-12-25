@@ -35,6 +35,9 @@ pub use tokio::task::spawn;
 #[cfg(target_family = "wasm")]
 pub use wasm_bindgen_futures::spawn_local as spawn;
 
+#[cfg(not(target_family = "wasm"))]
+pub use tokio::task::spawn_blocking;
+
 pub async fn init() -> NamuiContext {
     namui_type::set_log(|x| log::log(x));
 

@@ -24,7 +24,7 @@ pub(crate) use native_skia::*;
 pub(crate) use paint::*;
 pub(crate) use path::*;
 pub(crate) use shader::*;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 pub(crate) use surface::*;
 pub(crate) use text_blob::*;
 pub(crate) use typeface::*;
@@ -34,6 +34,8 @@ pub(crate) use typeface::*;
 pub fn init_skia(
     screen_id: usize,
     window_wh: Wh<IntPx>,
-) -> Result<Arc<Mutex<impl SkSkia + Send + Sync>>> {
-    Ok(Arc::new(Mutex::new(NativeSkia::new(screen_id, window_wh)?)))
+) -> Result<Arc<RwLock<impl SkSkia + Send + Sync>>> {
+    Ok(Arc::new(RwLock::new(NativeSkia::new(
+        screen_id, window_wh,
+    )?)))
 }

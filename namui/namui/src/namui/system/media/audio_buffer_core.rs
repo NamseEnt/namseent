@@ -18,8 +18,6 @@ impl AudioBufferCore {
         input_config: AudioConfig,
         output_config: AudioConfig,
     ) -> Result<Self> {
-        println!("input_config: {:?}", input_config);
-        println!("output_config: {:?}", output_config);
         let buffers = Arc::new(DashMap::new());
         let done = Arc::new(AtomicBool::new(false));
 
