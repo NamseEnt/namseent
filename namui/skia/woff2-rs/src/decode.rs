@@ -89,7 +89,6 @@ pub fn convert_woff2_to_ttf(input_buffer: &mut impl Buf) -> Result<Vec<u8>, Deco
     let mut decompressed_tables =
         Vec::with_capacity(table_directory.uncompressed_length.try_into().unwrap());
 
-    let now = std::time::Instant::now();
     brotli::BrotliDecompress(&mut input_buffer.reader(), &mut decompressed_tables)?;
 
     let mut out_buffer = Vec::with_capacity(header.total_sfnt_size as usize);
