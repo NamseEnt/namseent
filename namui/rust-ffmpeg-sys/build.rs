@@ -381,6 +381,9 @@ fn main() {
         .join("ffmpeg")
         .join(env::var("TARGET").unwrap());
     eprintln!("ffmpeg_dir: {:?}", ffmpeg_dir);
+
+    unzip_ffmpeg(&ffmpeg_dir);
+
     println!(
         "cargo:rustc-link-search=native={}",
         ffmpeg_dir.join("lib").to_string_lossy()
@@ -941,4 +944,15 @@ fn main() {
     bindings
         .write_to_file(output().join("bindings.rs"))
         .expect("Couldn't write bindings!");
+}
+
+fn unzip_ffmpeg(ffmpeg_dir: &PathBuf) {
+    if ffmpeg_dir.join("lib").exists() {
+        return;
+    }
+
+    let tar_gz = std::fs::File::open(ffmpeg_dir.join("ffmpeg.tar.gz")).unwrap();
+    let tar = flate2::read::GzDecoder::new(tar_gz);
+    let mut archive = tar::Archive::new(tar);
+    archive.unpack(ffmpeg_dir).unwrap();
 }

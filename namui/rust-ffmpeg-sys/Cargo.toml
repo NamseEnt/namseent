@@ -16,6 +16,8 @@ num_cpus = "1.15"
 cc = "1.0"
 pkg-config = "0.3"
 bindgen = { version = "0.64", default-features = false, features = ["runtime"] }
+flate2 = "1.0.28"
+tar = "0.4.40"
 
 [features]
 default = [
