@@ -46,7 +46,6 @@ pub enum RawEvent {
         text: String,
     },
     ScreenRedraw,
-    AnimationFrame,
 }
 unsafe impl Send for RawEvent {}
 unsafe impl Sync for RawEvent {}
