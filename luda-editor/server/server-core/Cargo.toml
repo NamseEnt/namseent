@@ -9,7 +9,7 @@ test = "../run_test.sh"
 
 [dependencies]
 rpc = { path = "../../rpc", features = ["server"] }
-namui-type = { path = "../../../namui-type" }
+namui-type = { path = "../../../namui/namui-type" }
 lambda-web = { path = "../../lambda-web", features = ["hyper"] }
 tokio = { version = "1.21", features = ["fs"] }
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }

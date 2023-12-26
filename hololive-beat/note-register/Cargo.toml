@@ -11,8 +11,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 futures = "0.3.29"
-namui = { path = "../../namui" }
-namui-prebuilt = { path = "../../namui-prebuilt" }
+namui = { path = "../../namui/namui" }
+namui-prebuilt = { path = "../../namui/namui-prebuilt" }
 tokio = { version = "1.35.1", features = ["sync"] }
 
 [dev-dependencies]

@@ -7,7 +7,7 @@ edition = "2021"
 namui = true
 
 [dependencies]
-namui = { path = "../.." }
+namui = { path = "../../namui" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
