@@ -1,3 +1,5 @@
+mod sync_loop;
+
 use anyhow::Result;
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -5,28 +7,56 @@ use crossterm::{
     ExecutableCommand,
 };
 use ratatui::{prelude::*, widgets::*};
-use std::{io::stdout, path::PathBuf};
+use std::{
+    io::stdout,
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
 fn main() -> Result<()> {
-    let ip = restore_ip()?;
-    let mut state = State {
-        ip: ip.unwrap_or_default(),
+    let uri = restore_uri()?;
+    let state = Arc::new(RwLock::new(State {
+        uri: uri.unwrap_or_default(),
         page: Page::Idle,
-    };
+        sync_loop_error: None,
+    }));
 
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
 
+    std::thread::spawn({
+        let state = state.clone();
+        move || match sync_loop::sync_loop(state.clone()) {
+            Ok(_) => {}
+            Err(e) => {
+                let mut state = state.write().unwrap();
+                state.sync_loop_error = Some(e.to_string());
+            }
+        }
+    });
+
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
 
-    while !matches!(state.page, Page::Exit) {
-        terminal.draw(|frame| {
-            ui(frame, &state);
-        })?;
-        handle_events(&mut state)?;
+    loop {
+        {
+            let state = state.read().unwrap();
+            terminal.draw(|frame| {
+                ui(frame, &state);
+            })?;
+        }
+        if event::poll(std::time::Duration::from_millis(50))? {
+            let event = event::read()?;
+            let mut state = state.write().unwrap();
+            handle_event(&mut state, event)?;
+
+            if matches!(state.page, Page::Exit) {
+                break;
+            }
+        }
     }
 
-    save_ip(&state)?;
+    let state = state.read().unwrap();
+    save_uri(&state)?;
     disable_raw_mode()?;
     stdout().execute(LeaveAlternateScreen)?;
 
@@ -34,22 +64,18 @@ fn main() -> Result<()> {
 }
 
 struct State {
-    ip: String,
+    uri: String,
     page: Page,
+    sync_loop_error: Option<String>,
 }
 
 enum Page {
     Idle,
-    RemoteIpInput { input: String },
+    RemoteuriInput { input: String },
     Exit,
 }
 
-fn handle_events(state: &mut State) -> Result<()> {
-    if !event::poll(std::time::Duration::from_millis(50))? {
-        return Ok(());
-    }
-    let event = event::read()?;
-
+fn handle_event(state: &mut State, event: Event) -> Result<()> {
     if let Event::Key(key) = event {
         if key.kind == event::KeyEventKind::Press
             && key.code == KeyCode::Char('c')
@@ -64,14 +90,14 @@ fn handle_events(state: &mut State) -> Result<()> {
         Page::Idle => {
             if let Event::Key(key) = event {
                 if key.kind == event::KeyEventKind::Release && key.code == KeyCode::Char('1') {
-                    state.page = Page::RemoteIpInput {
+                    state.page = Page::RemoteuriInput {
                         input: String::new(),
                     };
                     return Ok(());
                 }
             }
         }
-        Page::RemoteIpInput { input } => {
+        Page::RemoteuriInput { input } => {
             if let Event::Key(key) = event {
                 if key.kind != event::KeyEventKind::Release {
                     return Ok(());
@@ -84,7 +110,7 @@ fn handle_events(state: &mut State) -> Result<()> {
                         input.pop();
                     }
                     KeyCode::Enter => {
-                        state.ip = input.clone();
+                        state.uri = input.clone();
                         state.page = Page::Idle;
                     }
                     _ => {}
@@ -112,15 +138,15 @@ fn ui(frame: &mut Frame, state: &State) {
         Page::Idle => {
             let text = Text::from(vec![
                 Line::from(Span::from("Press 1 to connect to a remote ratatui server")),
-                Line::from(Span::from(format!("Remote IP: {}", state.ip))),
+                Line::from(Span::from(format!("Remote uri: {}", state.uri))),
             ]);
             let paragraph = Paragraph::new(text).block(Block::default());
             frame.render_widget(paragraph, chunks[0]);
         }
-        Page::RemoteIpInput { input } => {
+        Page::RemoteuriInput { input } => {
             let text = Text::from(vec![
-                Line::from(Span::from("Enter remote IP")),
-                Line::from(Span::from(format!("Remote IP: {}", input))),
+                Line::from(Span::from("Enter remote uri")),
+                Line::from(Span::from(format!("Remote uri: {}", input))),
             ]);
             let paragraph = Paragraph::new(text).block(Block::default());
             frame.render_widget(paragraph, chunks[0]);
@@ -131,21 +157,27 @@ fn ui(frame: &mut Frame, state: &State) {
             frame.render_widget(paragraph, chunks[0]);
         }
     }
+
+    if let Some(error) = &state.sync_loop_error {
+        let text = Text::from(vec![Line::from(Span::from(error.clone()))]);
+        let paragraph = Paragraph::new(text).block(Block::default());
+        frame.render_widget(paragraph, chunks[1]);
+    }
 }
 
-const IP_FILE: &str = "ip.txt";
+const URI_FILE: &str = "uri.txt";
 
-fn save_ip(state: &State) -> Result<()> {
-    let path = PathBuf::from(IP_FILE);
-    std::fs::write(path, state.ip.clone())?;
+fn save_uri(state: &State) -> Result<()> {
+    let path = PathBuf::from(URI_FILE);
+    std::fs::write(path, state.uri.clone())?;
     Ok(())
 }
 
-fn restore_ip() -> Result<Option<String>> {
-    let path = PathBuf::from(IP_FILE);
+fn restore_uri() -> Result<Option<String>> {
+    let path = PathBuf::from(URI_FILE);
     if !path.exists() {
         return Ok(None);
     }
-    let ip = std::fs::read_to_string(path)?;
-    Ok(Some(ip))
+    let uri = std::fs::read_to_string(path)?;
+    Ok(Some(uri))
 }
