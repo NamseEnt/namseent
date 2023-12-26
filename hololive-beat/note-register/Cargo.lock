@@ -788,9 +788,11 @@ version = "6.1.0"
 dependencies = [
  "bindgen 0.64.0",
  "cc",
+ "flate2",
  "libc",
  "num_cpus",
  "pkg-config",
+ "tar",
 ]
 
 [[package]]
