@@ -46,7 +46,15 @@ pub struct Note {
 pub async fn load_notes() -> Vec<Note> {
     let note_loading_futures = INSTRUMENTS.map(|instrument| async move {
         let instrument_path = format!("bundle:{}.txt", instrument.to_string());
-        let time_sequence_file = bundle::read(instrument_path.as_str()).await.unwrap();
+        println!("instrument_path: {}", instrument_path);
+        let time_sequence_file = bundle::read(instrument_path.as_str())
+            .await
+            .map_err(|error| {
+                println!("error: {:?}", error);
+                error
+            })
+            .unwrap();
+        println!("time_sequence_file: {:?}", time_sequence_file.len());
         io::BufReader::<&[u8]>::new(time_sequence_file.as_ref())
             .lines()
             .map(|line| line.unwrap().parse::<f32>().unwrap())
