@@ -7,13 +7,16 @@ const BUFFER_MAX_SIZE: usize = 4096;
 
 #[derive(Debug, Clone)]
 pub struct AudioBufferCore {
+    id: usize,
     /// Buffer size is limited to BUFFER_MAX_SIZE. Only last value can be smaller than BUFFER_MAX_SIZE.
     buffers: Arc<DashMap<usize, Arc<Vec<u8>>>>,
     done: Arc<AtomicBool>,
+    pub(crate) output_config: AudioConfig,
 }
 
 impl AudioBufferCore {
     pub(crate) fn new(
+        id: usize,
         frame_rx: crossbeam_channel::Receiver<ffmpeg_next::frame::Audio>,
         input_config: AudioConfig,
         output_config: AudioConfig,
@@ -73,7 +76,15 @@ impl AudioBufferCore {
             }
         });
 
-        Ok(Self { buffers, done })
+        Ok(Self {
+            id,
+            buffers,
+            done,
+            output_config,
+        })
+    }
+    pub(crate) fn id(&self) -> usize {
+        self.id
     }
     pub fn is_loading_finished(&self) -> bool {
         self.done.load(std::sync::atomic::Ordering::SeqCst)

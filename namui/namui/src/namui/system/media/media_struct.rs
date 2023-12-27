@@ -3,15 +3,18 @@ use crate::media::{AudioConfig, AUDIO_CHANNEL_BOUND, VIDEO_CHANNEL_BOUND};
 use anyhow::Result;
 use namui_type::{ImageHandle, Wh};
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[derive(Debug)]
 pub struct Media {
+    id: usize,
     pub(crate) video: Option<ImageOnlyVideo>,
     pub(crate) audio: Option<SyncedAudio>,
 }
 
 impl Media {
     pub(crate) fn new(media_context: &MediaContext, path: &impl AsRef<Path>) -> Result<Media> {
+        let id = generate_media_id();
         let mut ictx = ffmpeg_next::format::input(path)?;
 
         let mut audio = None;
@@ -83,6 +86,7 @@ impl Media {
                         };
 
                         audio = Some(SyncedAudio::new(
+                            id,
                             rx,
                             AudioConfig {
                                 sample_rate: decoder.rate(),
@@ -141,12 +145,11 @@ impl Media {
             }
         });
 
-        Ok(Media { video, audio })
+        Ok(Media { id, video, audio })
     }
 
-    pub(crate) fn play(&mut self) -> Option<SyncedAudio> {
-        let mut audio = self.audio.clone();
-        if let Some(audio) = &mut audio {
+    pub(crate) fn play(&mut self) -> Result<()> {
+        if let Some(audio) = &mut self.audio {
             audio.start();
         }
 
@@ -154,7 +157,7 @@ impl Media {
             video.start();
         }
 
-        audio
+        Ok(())
     }
     pub fn get_image(&mut self) -> Result<Option<ImageHandle>> {
         let Some(video) = &mut self.video else {
@@ -162,6 +165,11 @@ impl Media {
         };
         video.get_image()
     }
+}
+
+fn generate_media_id() -> usize {
+    static MEDIA_ID: AtomicUsize = AtomicUsize::new(0);
+    MEDIA_ID.fetch_add(1, Ordering::Relaxed)
 }
 
 enum DecodingStream {

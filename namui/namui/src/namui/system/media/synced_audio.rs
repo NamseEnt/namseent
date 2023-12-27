@@ -4,44 +4,45 @@ use anyhow::Result;
 #[derive(Debug)]
 /// Assumed device format not changed after create SyncedAudio.
 pub struct SyncedAudio {
-    buffer_core: AudioBufferCore,
+    id: usize,
+    audio_buffer_core: AudioBufferCore,
     /// buffer_offset could be greater than buffer.len() when it skips some frames.
     buffer_byte_offset: usize,
-    start_instant: Option<std::time::Instant>,
+    start_instant: std::time::Instant,
     last_sync_instant: Option<std::time::Instant>,
     output_config: AudioConfig,
 }
 
 impl SyncedAudio {
-    pub(crate) fn new(
-        frame_rx: crossbeam_channel::Receiver<ffmpeg_next::frame::Audio>,
-        input_config: AudioConfig,
-        output_config: AudioConfig,
-    ) -> Result<Self> {
-        Ok(Self {
-            buffer_core: AudioBufferCore::new(frame_rx, input_config, output_config)?,
+    pub(crate) fn new(id: usize, audio_buffer_core: AudioBufferCore) -> Self {
+        Self {
+            id,
+            output_config: audio_buffer_core.output_config,
+            audio_buffer_core,
             buffer_byte_offset: 0,
-            start_instant: None,
+            start_instant: std::time::Instant::now(),
             last_sync_instant: None,
-            output_config,
-        })
+        }
+    }
+    pub(crate) fn id(&self) -> usize {
+        self.id
+    }
+    pub(crate) fn audio_buffer_core_id(&self) -> usize {
+        self.audio_buffer_core.id()
     }
     pub fn is_finished(&self) -> bool {
-        self.buffer_core.is_loading_finished()
+        self.audio_buffer_core.is_loading_finished()
             && self
-                .buffer_core
+                .audio_buffer_core
                 .is_byte_offset_out_of_buffer(self.buffer_byte_offset)
     }
-    pub fn start(&mut self) {
-        self.start_instant = Some(std::time::Instant::now());
-    }
     pub(crate) fn consume(&mut self, expected_output_sample_byte_len: usize) -> Result<Vec<u8>> {
-        if self.start_instant.is_none() {
+        if self.is_finished() {
             return Ok(vec![]);
         }
 
         let data = self
-            .buffer_core
+            .audio_buffer_core
             .get_best_effort_data(self.buffer_byte_offset, expected_output_sample_byte_len);
 
         // Keep increasing buffer_byte_offset to skip delayed frames for sync.
@@ -66,7 +67,7 @@ impl SyncedAudio {
 
         self.last_sync_instant = Some(now);
 
-        let expected_byte_offset = (now - self.start_instant.unwrap()).as_secs()
+        let expected_byte_offset = (now - self.start_instant).as_secs()
             * self.output_config.sample_rate as u64
             * self.output_config.sample_byte_size as u64;
 
@@ -86,15 +87,14 @@ impl SyncedAudio {
 
         Ok(())
     }
-}
 
-impl Clone for SyncedAudio {
-    fn clone(&self) -> Self {
+    pub fn clone(&self, id: usize) -> Self {
         Self {
-            buffer_core: self.buffer_core.clone(),
-            buffer_byte_offset: 0,
-            start_instant: None,
-            last_sync_instant: None,
+            id,
+            audio_buffer_core: self.audio_buffer_core.clone(),
+            buffer_byte_offset: self.buffer_byte_offset,
+            start_instant: self.start_instant,
+            last_sync_instant: self.last_sync_instant,
             output_config: self.output_config,
         }
     }

@@ -8,7 +8,6 @@ mod render;
 pub mod system;
 pub mod utils;
 
-// pub use audio::Audio;
 pub use self::random::*;
 pub use ::url::Url;
 pub use anyhow::{anyhow, bail, Result};
@@ -28,6 +27,7 @@ pub use render::{image::*, path::*, rect::*, text::*};
 pub use render::{text_input, TextInput, TextInputInstance};
 pub use serde;
 pub use shader_macro::shader;
+pub use system::media::MediaHandle;
 pub use system::*;
 
 #[cfg(not(target_family = "wasm"))]

@@ -14,6 +14,7 @@ impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let (audio_mp3, set_audio_mp3) = ctx.state(|| None);
         let (video_mp4, set_video_mp4) = ctx.state(|| None);
+        let (media_play_handle, set_media_play_handle) = ctx.state(|| None);
 
         ctx.effect("load media", || {
             namui::spawn(async move {
@@ -40,10 +41,10 @@ impl Component for MediaExample {
             rect: Rect::Xywh {
                 x: 10.px(),
                 y: 20.px(),
-                width: 100.px(),
+                width: 200.px(),
                 height: 20.px(),
             },
-            text: "play audio",
+            text: "play audio (Fire & Forget)",
             text_color: Color::BLACK,
             stroke_color: Color::BLACK,
             stroke_width: 1.px(),
@@ -53,6 +54,45 @@ impl Component for MediaExample {
                 if let Some(media) = audio_mp3.as_ref() {
                     namui::system::media::play(media)
                 }
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 10.px(),
+                y: 20.px(),
+                width: 200.px(),
+                height: 20.px(),
+            },
+            text: &format!(
+                "[Toggle] {}",
+                if let Some(media_play_handle) = media_play_handle.as_ref() {
+                    if media_play_handle.is_playing() {
+                        "pause audio"
+                    } else {
+                        "play audio"
+                    }
+                } else {
+                    "play audio"
+                }
+            ),
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                let Some(media) = audio_mp3.as_ref() else {
+                    return;
+                };
+
+                if media_play_handle.is_none() {
+                    let media_play_handle = namui::system::media::play(media);
+                    set_media_play_handle.set(Some(media_play_handle));
+                    return;
+                }
+
+                media_play_handle.toggle_play_state();
             },
         });
 

@@ -4,9 +4,11 @@
 mod audio_buffer_core;
 mod context;
 mod image_only_video;
+mod media_handle;
 mod media_struct;
 mod synced_audio;
 
+pub use self::media_handle::MediaHandle;
 use super::InitResult;
 use anyhow::*;
 use context::*;
@@ -28,11 +30,6 @@ pub(super) async fn init() -> InitResult {
 
 pub fn new_media(path: &impl AsRef<Path>) -> Result<MediaHandle> {
     MEDIA_SYSTEM.get().unwrap().new_media(path)
-}
-
-pub fn play(media: &MediaHandle) {
-    let mut media = media.lock().unwrap();
-    MEDIA_SYSTEM.get().unwrap().play(&mut media);
 }
 
 #[derive(Debug, Clone, Copy)]
