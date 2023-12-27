@@ -1840,7 +1840,6 @@ dependencies = [
  "futures",
  "namui",
  "namui-prebuilt",
- "tokio",
  "wasm-bindgen-test",
 ]
 
