@@ -110,7 +110,7 @@ fn apply_command_to_skia_path(skia_path: &mut skia_safe::Path, path: &Path) {
                     None,
                     skia_safe::Matrix::scale((precision, precision)),
                 ) {
-                    panic!("stroke failed");
+                    // Nothing applied because of Paint.
                 }
             }
             PathCommand::MoveTo { xy } => {
