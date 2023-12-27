@@ -79,9 +79,8 @@ impl Component for NotePlotter<'_> {
             Path::new()
                 .move_to(0.px(), divider_y_array[1])
                 .line_to(wh.width, divider_y_array[1]),
-            Paint::new()
+            Paint::new(THEME.surface.contrast_text)
                 .set_style(PaintStyle::Stroke)
-                .set_color(THEME.surface.contrast_text)
                 .set_stroke_width(STROKE_WIDTH),
         ));
 
@@ -153,16 +152,13 @@ impl Component for NoteGraphic {
                 }))
                 .add(path(
                     note_path.clone(),
-                    Paint::new()
+                    Paint::new(THEME.primary.contrast_text)
                         .set_style(PaintStyle::Stroke)
-                        .set_color(THEME.primary.contrast_text)
                         .set_stroke_width(STROKE_WIDTH),
                 ))
                 .add(path(
                     note_path,
-                    Paint::new()
-                        .set_style(PaintStyle::Fill)
-                        .set_color(note_color),
+                    Paint::new(note_color).set_style(PaintStyle::Fill),
                 ));
         });
 
