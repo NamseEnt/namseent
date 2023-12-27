@@ -47,7 +47,7 @@ pub async fn load_notes() -> Vec<Note> {
     let note_loading_futures = INSTRUMENTS.map(|instrument| async move {
         let instrument_path = format!("/{}.txt", instrument.to_string());
         let time_sequence_file = bundle::read(instrument_path.as_str()).await.unwrap();
-        io::BufReader::new(time_sequence_file.as_ref())
+        io::BufReader::<&[u8]>::new(time_sequence_file.as_ref())
             .lines()
             .map(|line| line.unwrap().parse::<f32>().unwrap())
             .map(|time_sec| Note {
@@ -55,7 +55,7 @@ pub async fn load_notes() -> Vec<Note> {
                 direction: instrument.as_direction(),
                 instrument,
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<Note>>()
     });
     let mut notes = join_all(note_loading_futures)
         .await
