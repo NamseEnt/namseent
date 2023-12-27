@@ -6,6 +6,7 @@ use self::{color::THEME, player::Player};
 use crate::app::note::load_notes;
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
+use tokio::task::spawn_local;
 
 #[namui::component]
 pub struct App {}
@@ -18,7 +19,7 @@ impl namui::Component for App {
             spawn_local(async move {
                 let notes = load_notes().await;
                 set_notes.set(Some(notes));
-            })
+            });
         });
 
         ctx.compose(|ctx| {
