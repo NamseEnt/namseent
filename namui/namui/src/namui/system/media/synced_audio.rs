@@ -4,7 +4,6 @@ use anyhow::Result;
 #[derive(Debug)]
 /// Assumed device format not changed after create SyncedAudio.
 pub struct SyncedAudio {
-    id: usize,
     audio_buffer_core: AudioBufferCore,
     /// buffer_offset could be greater than buffer.len() when it skips some frames.
     buffer_byte_offset: usize,
@@ -14,18 +13,14 @@ pub struct SyncedAudio {
 }
 
 impl SyncedAudio {
-    pub(crate) fn new(id: usize, audio_buffer_core: AudioBufferCore) -> Self {
+    pub(crate) fn new(audio_buffer_core: AudioBufferCore) -> Self {
         Self {
-            id,
             output_config: audio_buffer_core.output_config,
             audio_buffer_core,
             buffer_byte_offset: 0,
             start_instant: std::time::Instant::now(),
             last_sync_instant: None,
         }
-    }
-    pub(crate) fn id(&self) -> usize {
-        self.id
     }
     pub(crate) fn audio_buffer_core_id(&self) -> usize {
         self.audio_buffer_core.id()
@@ -86,16 +81,5 @@ impl SyncedAudio {
         }
 
         Ok(())
-    }
-
-    pub fn clone(&self, id: usize) -> Self {
-        Self {
-            id,
-            audio_buffer_core: self.audio_buffer_core.clone(),
-            buffer_byte_offset: self.buffer_byte_offset,
-            start_instant: self.start_instant,
-            last_sync_instant: self.last_sync_instant,
-            output_config: self.output_config,
-        }
     }
 }

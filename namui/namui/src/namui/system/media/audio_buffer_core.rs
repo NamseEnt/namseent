@@ -16,11 +16,12 @@ pub struct AudioBufferCore {
 
 impl AudioBufferCore {
     pub(crate) fn new(
-        id: usize,
         frame_rx: crossbeam_channel::Receiver<ffmpeg_next::frame::Audio>,
         input_config: AudioConfig,
         output_config: AudioConfig,
     ) -> Result<Self> {
+        let id = generate_audio_buffer_core_id();
+
         let buffers = Arc::new(DashMap::new());
         let done = Arc::new(AtomicBool::new(false));
 
@@ -123,4 +124,10 @@ impl AudioBufferCore {
         let map_index = byte_offset / BUFFER_MAX_SIZE;
         self.buffers.len() <= map_index
     }
+}
+
+fn generate_audio_buffer_core_id() -> usize {
+    static AUDIO_BUFFER_CORE_ID: std::sync::atomic::AtomicUsize =
+        std::sync::atomic::AtomicUsize::new(0);
+    AUDIO_BUFFER_CORE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }

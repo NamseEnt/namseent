@@ -76,6 +76,9 @@ impl ImageOnlyVideo {
     pub fn start(&mut self) {
         self.start_instant = Some(std::time::Instant::now());
     }
+    pub(crate) fn stop(&mut self) {
+        self.start_instant = None;
+    }
     pub fn get_image(&mut self) -> Result<Option<ImageHandle>> {
         let Some(start_instant) = self.start_instant else {
             return Ok(self.last_frame.clone());
@@ -120,5 +123,9 @@ impl ImageOnlyVideo {
         }
 
         Ok(self.last_frame.clone())
+    }
+
+    pub(crate) fn is_playing(&self) -> bool {
+        self.start_instant.is_some() && !self.eof
     }
 }
