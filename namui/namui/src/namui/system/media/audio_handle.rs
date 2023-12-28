@@ -14,8 +14,19 @@ pub(crate) struct AudioHandle {
     id: usize,
     audio_buffer_core_id: usize,
     audio_command_tx: std::sync::mpsc::Sender<AudioCommand>,
-    is_playing: bool,
+    play_state: PlayState,
     last_playback_playing: Option<Arc<AtomicBool>>,
+}
+
+#[derive(Debug)]
+enum PlayState {
+    Playing {
+        start_instant: std::time::Instant,
+    },
+    Paused {
+        playback_duration: std::time::Duration,
+    },
+    Stopped,
 }
 
 impl AudioHandle {
@@ -27,25 +38,40 @@ impl AudioHandle {
             id: get_new_audio_handle_id(),
             audio_buffer_core_id,
             audio_command_tx,
-            is_playing: false,
+            play_state: PlayState::Stopped,
             last_playback_playing: None,
         }
     }
 
     pub fn is_playing(&self) -> bool {
-        self.is_playing
-            && self
-                .last_playback_playing
-                .as_ref()
-                .unwrap()
-                .load(std::sync::atomic::Ordering::SeqCst)
+        (match &self.play_state {
+            PlayState::Playing { start_instant: _ } => true,
+            PlayState::Paused {
+                playback_duration: _,
+            } => false,
+            PlayState::Stopped => false,
+        }) && self
+            .last_playback_playing
+            .as_ref()
+            .unwrap()
+            .load(std::sync::atomic::Ordering::SeqCst)
     }
 
     pub fn play(&mut self) {
-        if self.is_playing {
+        if self.is_playing() {
             return;
         }
-        self.is_playing = true;
+
+        let playback_duration = match self.play_state {
+            PlayState::Paused { playback_duration } => playback_duration,
+            PlayState::Playing { start_instant: _ } | PlayState::Stopped => {
+                std::time::Duration::from_secs(0)
+            }
+        };
+
+        self.play_state = PlayState::Playing {
+            start_instant: std::time::Instant::now(),
+        };
         let last_playback_playing = Arc::new(AtomicBool::new(true));
         self.last_playback_playing = Some(last_playback_playing.clone());
 
@@ -54,15 +80,41 @@ impl AudioHandle {
                 audio_handle_id: self.id,
                 audio_buffer_core_id: self.audio_buffer_core_id,
                 is_playing: last_playback_playing,
+                playback_duration,
             })
             .expect("failed to send AudioCommand::Play");
     }
 
     pub fn stop(&mut self) {
-        if !self.is_playing {
-            return;
+        match self.play_state {
+            PlayState::Playing { start_instant: _ } => {
+                self.play_state = PlayState::Stopped;
+                self.last_playback_playing = None;
+
+                self.audio_command_tx
+                    .send(AudioCommand::Stop {
+                        audio_handle_id: self.id,
+                    })
+                    .expect("failed to send AudioCommand::Stop");
+            }
+            PlayState::Paused {
+                playback_duration: _,
+            } => {
+                self.play_state = PlayState::Stopped;
+            }
+            PlayState::Stopped => {}
         }
-        self.is_playing = false;
+    }
+
+    /// Current version of `pause` doesn't guarantee that the audio will be paused immediately.
+    /// Also it doesn't guarantee that the audio will start from the same position when it is resumed.
+    pub(crate) fn pause(&mut self) {
+        let PlayState::Playing { start_instant } = self.play_state else {
+            return;
+        };
+        self.play_state = PlayState::Paused {
+            playback_duration: std::time::Instant::now() - start_instant,
+        };
         self.last_playback_playing = None;
 
         self.audio_command_tx
@@ -100,7 +152,7 @@ impl Clone for AudioHandle {
             id: get_new_audio_handle_id(),
             audio_buffer_core_id: self.audio_buffer_core_id,
             audio_command_tx: self.audio_command_tx.clone(),
-            is_playing: false,
+            play_state: PlayState::Stopped,
             last_playback_playing: None,
         }
     }

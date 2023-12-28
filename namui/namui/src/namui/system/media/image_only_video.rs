@@ -128,4 +128,8 @@ impl ImageOnlyVideo {
     pub(crate) fn is_playing(&self) -> bool {
         self.start_instant.is_some() && !self.eof
     }
+
+    pub(crate) fn pause(&self) {
+        todo!()
+    }
 }

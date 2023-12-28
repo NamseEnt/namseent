@@ -1,4 +1,4 @@
-use super::{audio_buffer_core::AudioBufferCore, AudioConfig};
+use super::audio_buffer_core::AudioBufferCore;
 use anyhow::Result;
 
 #[derive(Debug)]
@@ -7,19 +7,13 @@ pub struct SyncedAudio {
     audio_buffer_core: AudioBufferCore,
     /// buffer_offset could be greater than buffer.len() when it skips some frames.
     buffer_byte_offset: usize,
-    start_instant: std::time::Instant,
-    last_sync_instant: Option<std::time::Instant>,
-    output_config: AudioConfig,
 }
 
 impl SyncedAudio {
-    pub(crate) fn new(audio_buffer_core: AudioBufferCore) -> Self {
+    pub(crate) fn new(audio_buffer_core: AudioBufferCore, buffer_byte_offset: usize) -> Self {
         Self {
-            output_config: audio_buffer_core.output_config,
             audio_buffer_core,
-            buffer_byte_offset: 0,
-            start_instant: std::time::Instant::now(),
-            last_sync_instant: None,
+            buffer_byte_offset,
         }
     }
     pub(crate) fn audio_buffer_core_id(&self) -> usize {
@@ -48,38 +42,38 @@ impl SyncedAudio {
         Ok(data)
     }
 
-    // TODO
-    #[allow(dead_code)]
-    fn try_sync(&mut self) -> Result<()> {
-        // NOTE: HMM...? something is wrong?
+    // // TODO
+    // #[allow(dead_code)]
+    // fn try_sync(&mut self) -> Result<()> {
+    //     // NOTE: HMM...? something is wrong?
 
-        let now = std::time::Instant::now();
-        if let Some(last_sync_instant) = self.last_sync_instant {
-            if now - last_sync_instant < std::time::Duration::from_secs(1) {
-                return Ok(());
-            }
-        }
+    //     let now = std::time::Instant::now();
+    //     if let Some(last_sync_instant) = self.last_sync_instant {
+    //         if now - last_sync_instant < std::time::Duration::from_secs(1) {
+    //             return Ok(());
+    //         }
+    //     }
 
-        self.last_sync_instant = Some(now);
+    //     self.last_sync_instant = Some(now);
 
-        let expected_byte_offset = (now - self.start_instant).as_secs()
-            * self.output_config.sample_rate as u64
-            * self.output_config.sample_byte_size as u64;
+    //     let expected_byte_offset = (now - self.start_instant).as_secs()
+    //         * self.output_config.sample_rate as u64
+    //         * self.output_config.sample_byte_size as u64;
 
-        let byte_offset_diff = expected_byte_offset.abs_diff(self.buffer_byte_offset as u64);
+    //     let byte_offset_diff = expected_byte_offset.abs_diff(self.buffer_byte_offset as u64);
 
-        // 0.1 seconds
-        let max_byte_offset_diff =
-            self.output_config.sample_rate as u64 * self.output_config.sample_byte_size as u64 / 10;
+    //     // 0.1 seconds
+    //     let max_byte_offset_diff =
+    //         self.output_config.sample_rate as u64 * self.output_config.sample_byte_size as u64 / 10;
 
-        if byte_offset_diff > max_byte_offset_diff {
-            eprintln!(
-                "audio sync activated! {} -> {}",
-                self.buffer_byte_offset, expected_byte_offset
-            );
-            self.buffer_byte_offset = expected_byte_offset as usize;
-        }
+    //     if byte_offset_diff > max_byte_offset_diff {
+    //         eprintln!(
+    //             "audio sync activated! {} -> {}",
+    //             self.buffer_byte_offset, expected_byte_offset
+    //         );
+    //         self.buffer_byte_offset = expected_byte_offset as usize;
+    //     }
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }

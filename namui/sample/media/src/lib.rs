@@ -53,7 +53,7 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(media) = audio_mp3.as_ref() {
-                    media.clone_independent().unwrap().play().unwrap();
+                    media.clone_independent().unwrap().play();
                 }
             },
         });
@@ -88,10 +88,31 @@ impl Component for MediaExample {
                 };
 
                 if media_handle_for_toggle.is_playing() {
-                    media_handle_for_toggle.stop().unwrap();
+                    media_handle_for_toggle.stop();
                 } else {
-                    media_handle_for_toggle.play().unwrap();
+                    media_handle_for_toggle.play();
                 }
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 10.px(),
+                y: 120.px(),
+                width: 200.px(),
+                height: 20.px(),
+            },
+            text: "Pause",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() else {
+                    return;
+                };
+                media_handle_for_toggle.pause();
             },
         });
 
@@ -110,7 +131,7 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(video_mp4) = video_mp4.as_ref() {
-                    video_mp4.play().unwrap();
+                    video_mp4.play();
                 }
             },
         });

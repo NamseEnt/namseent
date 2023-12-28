@@ -105,13 +105,25 @@ impl AudioContext {
                                 audio_handle_id,
                                 audio_buffer_core_id,
                                 is_playing,
+                                playback_duration,
                             } => {
                                 let audio_buffer_core = audio_buffer_cores
                                     .get(&audio_buffer_core_id)
                                     .expect("failed to get audio_buffer_core")
                                     .inner_clone();
 
-                                let synced_audio = SyncedAudio::new(audio_buffer_core);
+                                let buffer_byte_offset = {
+                                    let buffer_byte_offset = (playback_duration.as_secs_f64()
+                                        * audio_buffer_core.output_config.sample_rate as f64
+                                        * audio_buffer_core.output_config.channel_count as f64
+                                        * audio_buffer_core.output_config.sample_byte_size as f64)
+                                        as usize;
+
+                                    buffer_byte_offset - buffer_byte_offset % size_of::<f32>()
+                                };
+
+                                let synced_audio =
+                                    SyncedAudio::new(audio_buffer_core, buffer_byte_offset);
 
                                 playing_audios.insert(
                                     audio_handle_id,
@@ -205,6 +217,7 @@ pub(crate) enum AudioCommand {
         audio_handle_id: usize,
         audio_buffer_core_id: usize,
         is_playing: Arc<AtomicBool>,
+        playback_duration: std::time::Duration,
     },
     Stop {
         audio_handle_id: usize,

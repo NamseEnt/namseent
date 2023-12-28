@@ -31,8 +31,7 @@ impl Media {
             path,
         })
     }
-
-    pub(crate) fn play(&mut self) -> Result<()> {
+    pub(crate) fn play(&mut self) {
         if let Some(audio) = &mut self.audio {
             audio.play();
         }
@@ -40,10 +39,8 @@ impl Media {
         if let Some(video) = &mut self.video {
             video.start();
         }
-
-        Ok(())
     }
-    pub(crate) fn stop(&mut self) -> Result<()> {
+    pub(crate) fn stop(&mut self) {
         if let Some(audio) = &mut self.audio {
             audio.stop();
         }
@@ -51,8 +48,15 @@ impl Media {
         if let Some(video) = &mut self.video {
             video.stop();
         }
+    }
+    pub(crate) fn pause(&mut self) {
+        if let Some(audio) = &mut self.audio {
+            audio.pause();
+        }
 
-        Ok(())
+        if let Some(video) = &mut self.video {
+            video.pause();
+        }
     }
     pub(crate) fn is_playing(&self) -> bool {
         Some(true) == self.audio.as_ref().map(|audio| audio.is_playing())

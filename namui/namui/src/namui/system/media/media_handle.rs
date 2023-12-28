@@ -25,11 +25,14 @@ impl MediaHandle {
             media: Arc::new(Mutex::new(Media::new(audio_context, path)?)),
         })
     }
-    pub fn play(&self) -> Result<()> {
+    pub fn play(&self) {
         self.media.lock().unwrap().play()
     }
-    pub fn stop(&self) -> Result<()> {
+    pub fn stop(&self) {
         self.media.lock().unwrap().stop()
+    }
+    pub fn pause(&self) {
+        self.media.lock().unwrap().pause()
     }
     pub fn is_playing(&self) -> bool {
         self.media.lock().unwrap().is_playing()
