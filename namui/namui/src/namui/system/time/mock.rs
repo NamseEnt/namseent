@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 pub(crate) async fn init() -> InitResult {
     super::TIME_SYSTEM
-        .set(Arc::new(NonWasmTimeSystem {}))
+        .set(Arc::new(MockTimeSystem {}))
         .map_err(|_| anyhow!("Failed to set time system"))?;
 
     Ok(())
@@ -29,7 +29,7 @@ struct MockTimeSystem {}
 
 impl TimeSystem for MockTimeSystem {
     fn since_start(&self) -> Duration {
-        *INSTANT_NOW.lock().unwrap().elapsed()
+        Duration::from_std(true, INSTANT_NOW.lock().unwrap().elapsed())
     }
 
     fn system_now(&self) -> SystemTime {
