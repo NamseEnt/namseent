@@ -19,20 +19,20 @@ use std::sync::{Arc, OnceLock};
 #[cfg(not(test))]
 pub(crate) use web::*;
 
-trait TimeSystem {
-    fn since_start(&self) -> Duration;
-    fn system_now(&self) -> SystemTime;
-    fn sleep(&self, duration: Duration) -> Result<tokio::time::Sleep>;
-}
-
 static TIME_SYSTEM: OnceLock<Arc<dyn TimeSystem + Send + Sync>> = OnceLock::new();
 
 /// It's time since the program started.
 pub fn since_start() -> Duration {
     TIME_SYSTEM.get().unwrap().since_start()
 }
-pub fn system_now() -> SystemTime {
-    TIME_SYSTEM.get().unwrap().system_now()
+
+pub fn system_time_now() -> SystemTime {
+    TIME_SYSTEM.get().unwrap().system_time_now()
+}
+
+/// It's just monotonic time. If you want to get the clock's date or time, use `system_time_now`.
+pub fn now() -> Instant {
+    TIME_SYSTEM.get().unwrap().now()
 }
 
 /// You can await on this.
@@ -42,4 +42,11 @@ pub fn system_now() -> SystemTime {
 /// `Err` if duration is less than 0.
 pub fn sleep(duration: Duration) -> Result<tokio::time::Sleep> {
     TIME_SYSTEM.get().unwrap().sleep(duration)
+}
+
+trait TimeSystem {
+    fn since_start(&self) -> Duration;
+    fn system_time_now(&self) -> SystemTime;
+    fn now(&self) -> Instant;
+    fn sleep(&self, duration: Duration) -> Result<tokio::time::Sleep>;
 }

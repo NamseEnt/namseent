@@ -23,8 +23,12 @@ impl TimeSystem for NonWasmTimeSystem {
         Duration::from_std(true, self.start_instant.elapsed())
     }
 
-    fn system_now(&self) -> SystemTime {
+    fn system_time_now(&self) -> SystemTime {
         SystemTime::new(std::time::SystemTime::now())
+    }
+
+    fn now(&self) -> Instant {
+        Instant::new(self.since_start())
     }
 
     fn sleep(&self, duration: Duration) -> Result<tokio::time::Sleep> {
