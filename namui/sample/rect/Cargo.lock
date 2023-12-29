@@ -138,9 +138,9 @@ checksum = "fc7eb209b1518d6bb87b283c20095f5228ecda460da70b44f0802523dea6da04"
 
 [[package]]
 name = "anyhow"
-version = "1.0.75"
+version = "1.0.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
+checksum = "c9d19de80eff169429ac1e9f48fffb163916b448a44e8e046186232046d9e1f9"
 dependencies = [
  "backtrace",
 ]
@@ -788,9 +788,11 @@ version = "6.1.0"
 dependencies = [
  "bindgen 0.64.0",
  "cc",
+ "flate2",
  "libc",
  "num_cpus",
  "pkg-config",
+ "tar",
 ]
 
 [[package]]
@@ -889,9 +891,9 @@ dependencies = [
 
 [[package]]
 name = "four-cc"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3958af68a31b1d1384d3f39b6aa33eb14b6009065b5ca305ddd9712a4237124f"
+checksum = "92d73a076bdabd78c2f9045dba1b90664a655fa8372581c238596e1eb3a5e1b7"
 
 [[package]]
 name = "funty"
@@ -1684,6 +1686,7 @@ dependencies = [
 name = "namui-type"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "auto_ops",
  "derive-macro",
  "lru 0.11.1",
@@ -4006,8 +4009,6 @@ dependencies = [
 [[package]]
 name = "woff2"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "229550ab757fe4d35fee250285f627e157babb7c7da8b53b28ab5ba20cdec57c"
 dependencies = [
  "bitvec",
  "brotli",

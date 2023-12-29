@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod mock;
 #[cfg(not(target_family = "wasm"))]
-// #[cfg(not(test))]
+#[cfg(not(test))]
 mod non_wasm;
 #[cfg(target_family = "wasm")]
 #[cfg(not(test))]
@@ -20,16 +20,16 @@ use std::sync::{Arc, OnceLock};
 pub(crate) use web::*;
 
 trait TimeSystem {
-    fn instant_now(&self) -> Instant;
+    fn since_start(&self) -> Duration;
     fn system_now(&self) -> SystemTime;
     fn sleep(&self, duration: Duration) -> Result<tokio::time::Sleep>;
 }
 
 static TIME_SYSTEM: OnceLock<Arc<dyn TimeSystem + Send + Sync>> = OnceLock::new();
 
-/// `instant_now()` is not ISO 8601. It's time since the program started.
-pub fn instant_now() -> Instant {
-    TIME_SYSTEM.get().unwrap().instant_now()
+/// It's time since the program started.
+pub fn since_start() -> Duration {
+    TIME_SYSTEM.get().unwrap().since_start()
 }
 pub fn system_now() -> SystemTime {
     TIME_SYSTEM.get().unwrap().system_now()

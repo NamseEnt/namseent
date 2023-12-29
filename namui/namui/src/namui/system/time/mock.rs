@@ -13,11 +13,11 @@ pub(crate) async fn init() -> InitResult {
 }
 
 lazy_static::lazy_static! {
-    static ref INSTANT_NOW: std::sync::Mutex<Instant> = std::sync::Mutex::new(Instant::new(std::time::Instant::now()));
+    static ref INSTANT_NOW: std::sync::Mutex<std::time::Instant> = std::sync::Mutex::new(std::time::Instant::now());
     static ref SYSTEM_NOW: std::sync::Mutex<SystemTime> = std::sync::Mutex::new(SystemTime::new(std::time::SystemTime::now()));
 }
 
-pub fn set_instant_now(now: Instant) {
+pub fn set_instant_now(now: std::time::Instant) {
     *INSTANT_NOW.lock().unwrap() = now;
 }
 
@@ -28,8 +28,8 @@ pub fn set_system_now(now: SystemTime) {
 struct MockTimeSystem {}
 
 impl TimeSystem for MockTimeSystem {
-    fn instant_now(&self) -> Instant {
-        *INSTANT_NOW.lock().unwrap()
+    fn since_start(&self) -> Duration {
+        *INSTANT_NOW.lock().unwrap().elapsed()
     }
 
     fn system_now(&self) -> SystemTime {

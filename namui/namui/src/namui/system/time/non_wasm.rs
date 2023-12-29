@@ -19,8 +19,8 @@ struct NonWasmTimeSystem {
 }
 
 impl TimeSystem for NonWasmTimeSystem {
-    fn instant_now(&self) -> Instant {
-        Instant::new(Duration::from_std(true, self.start_instant.elapsed()))
+    fn since_start(&self) -> Duration {
+        Duration::from_std(true, self.start_instant.elapsed())
     }
 
     fn system_now(&self) -> SystemTime {

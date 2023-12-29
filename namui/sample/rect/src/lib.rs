@@ -29,28 +29,28 @@ impl Component for RectExample {
                     2 => Xy::new(0.0.px(), 0.5.px()),
                     3 => Xy::new(0.5.px(), 0.5.px()),
                     4 => {
-                        let time = namui::time::now();
-                        let x = (time.as_seconds() * 20.0) % 40.0;
+                        let time = namui::time::since_start();
+                        let x = (time.as_secs_f32() * 20.0) % 40.0;
                         Xy::new(x.px(), 0.0.px())
                     }
                     5 => {
-                        let time = namui::time::now();
-                        let x = (time.as_seconds() * 10.0).round() % 40.0;
+                        let time = namui::time::since_start();
+                        let x = (time.as_secs_f32() * 10.0).round() % 40.0;
                         Xy::new(x.px(), 0.0.px())
                     }
                     6 => {
-                        let time = namui::time::now();
-                        let x = (time.as_seconds() * 160.0) % 160.0;
+                        let time = namui::time::since_start();
+                        let x = (time.as_secs_f32() * 160.0) % 160.0;
                         Xy::new(x.px(), 0.0.px())
                     }
                     7 => {
-                        let time = namui::time::now();
-                        let x = (time.as_seconds() * 80.0) % 160.0;
+                        let time = namui::time::since_start();
+                        let x = (time.as_secs_f32() * 80.0) % 160.0;
                         Xy::new(x.px(), 0.0.px())
                     }
                     8 => {
-                        let time = namui::time::now();
-                        let x = (time.as_seconds() * 80.0).round() % 160.0;
+                        let time = namui::time::since_start();
+                        let x = (time.as_secs_f32() * 80.0).round() % 160.0;
                         Xy::new(x.px(), 0.0.px())
                     }
                     9 => {

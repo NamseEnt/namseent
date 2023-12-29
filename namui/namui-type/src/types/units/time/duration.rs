@@ -62,9 +62,29 @@ impl Duration {
             Err(anyhow::anyhow!("negative duration"))
         }
     }
+
     /// CAUTION: You should take care about -0 case.
     pub fn is_positive(&self) -> bool {
         self.sign
+    }
+
+    pub fn as_secs(&self) -> i64 {
+        self.inner.as_secs() as i64 * if self.sign { 1 } else { -1 }
+    }
+    pub fn as_millis(&self) -> i128 {
+        self.inner.as_millis() as i128 * if self.sign { 1 } else { -1 }
+    }
+    pub fn as_micros(&self) -> i128 {
+        self.inner.as_micros() as i128 * if self.sign { 1 } else { -1 }
+    }
+    pub fn as_nanos(&self) -> i128 {
+        self.inner.as_nanos() as i128 * if self.sign { 1 } else { -1 }
+    }
+    pub fn as_secs_f64(&self) -> f64 {
+        self.inner.as_secs_f64() * if self.sign { 1.0 } else { -1.0 }
+    }
+    pub fn as_secs_f32(&self) -> f32 {
+        self.inner.as_secs_f32() * if self.sign { 1.0 } else { -1.0 }
     }
 }
 
