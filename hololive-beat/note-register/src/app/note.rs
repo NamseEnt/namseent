@@ -1,5 +1,5 @@
 use futures::future::join_all;
-use namui::{file::bundle, Time};
+use namui::{file::bundle, Code, Time};
 use std::io::{self, BufRead};
 
 #[derive(Debug, Clone, Copy)]
@@ -28,12 +28,33 @@ impl Instrument {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     Up,
     Right,
     Down,
     Left,
+}
+impl TryFrom<Code> for Direction {
+    type Error = ();
+
+    fn try_from(value: Code) -> Result<Self, Self::Error> {
+        match value {
+            Code::ArrowUp => Ok(Direction::Up),
+            Code::ArrowLeft => Ok(Direction::Left),
+            Code::ArrowRight => Ok(Direction::Right),
+            Code::ArrowDown => Ok(Direction::Down),
+            _ => Err(()),
+        }
+    }
+}
+impl Direction {
+    pub fn lane(&self) -> usize {
+        match self {
+            Direction::Up | Direction::Right => 0,
+            Direction::Down | Direction::Left => 1,
+        }
+    }
 }
 
 #[derive(Debug)]

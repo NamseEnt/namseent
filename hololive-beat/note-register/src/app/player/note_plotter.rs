@@ -56,10 +56,7 @@ impl Component for NotePlotter<'_> {
                 if note_x > wh.width * 2 {
                     break;
                 }
-                let note_y = match note.direction {
-                    Direction::Up | Direction::Right => baseline_y_array[0],
-                    Direction::Down | Direction::Left => baseline_y_array[1],
-                };
+                let note_y = baseline_y_array[note.direction.lane()];
                 let note_xy = Xy {
                     x: note_x,
                     y: note_y,
