@@ -37,7 +37,7 @@ impl TimeSystem for MockTimeSystem {
     }
 
     fn now(&self) -> Instant {
-        Instant::new(INSTANT_NOW.lock().unwrap().clone())
+        Instant::new(self.since_start())
     }
 
     fn sleep(&self, duration: Duration) -> Result<tokio::time::Sleep> {
