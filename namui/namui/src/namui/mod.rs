@@ -23,7 +23,7 @@ pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
 pub use namui_type as types;
 pub use namui_type::*;
-pub use render::{image::*, path::*, rect::*, text::*};
+pub use render::*;
 #[cfg(target_family = "wasm")]
 pub use render::{text_input, TextInput, TextInputInstance};
 pub use serde;
@@ -66,13 +66,4 @@ macro_rules! log {
     ($($arg:tt)*) => {{
         $crate::log::log(format!($($arg)*));
     }}
-}
-
-// /// `now()` is not ISO 8601. It's time since the program started.
-pub fn now() -> Time {
-    system::time::now()
-}
-
-pub fn boxed<'a, T: 'a>(value: T) -> Box<T> {
-    Box::new(value)
 }

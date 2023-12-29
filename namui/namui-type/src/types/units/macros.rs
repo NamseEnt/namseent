@@ -202,7 +202,6 @@ macro_rules! impl_op_forward_ref {
         $crate::auto_ops::impl_op!($op|$lhs_i : &$lhs, $rhs_i : &$rhs| -> $out { *$lhs_i $op *$rhs_i });
     };
 }
-pub use impl_op_forward_ref;
 
 #[macro_export]
 macro_rules! impl_op_forward_ref_reversed {
@@ -211,7 +210,6 @@ macro_rules! impl_op_forward_ref_reversed {
         $crate::impl_op_forward_ref!($op|$rhs_i : $rhs, $lhs_i : $lhs| -> $out { $lhs_i $op $rhs_i });
     };
 }
-pub use impl_op_forward_ref_reversed;
 
 #[macro_export]
 macro_rules! impl_single_trait {
@@ -223,7 +221,6 @@ macro_rules! impl_single_trait {
         }
     };
 }
-pub use impl_single_trait;
 
 #[macro_export]
 macro_rules! impl_op_forward_ref_reversed_for_f32_i32_usize {
@@ -233,7 +230,6 @@ macro_rules! impl_op_forward_ref_reversed_for_f32_i32_usize {
         $crate::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: usize| -> $lhs { $lhs_i $op $rhs_i as f32 });
     }
 }
-pub use impl_op_forward_ref_reversed_for_f32_i32_usize;
 
 #[macro_export]
 macro_rules! impl_op_forward_ref_for_f32_i32_usize {
@@ -243,4 +239,3 @@ macro_rules! impl_op_forward_ref_for_f32_i32_usize {
         $crate::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: usize| -> $lhs { $lhs_i $op $rhs_i as f32 });
     }
 }
-pub use impl_op_forward_ref_for_f32_i32_usize;

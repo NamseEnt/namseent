@@ -8,7 +8,7 @@ edition = "2021"
 targets = ["x86_64-pc-windows-msvc"]
 
 [dependencies]
-namui-type = { path = "../namui-type" }
+namui-type = { path = "../namui-type", features = ["namui_internal"] }
 lazy_static = "1.4.0"
 url = { version = "2", features = ["serde"] }
 anyhow = "1.0.72"

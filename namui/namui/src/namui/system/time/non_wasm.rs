@@ -1,18 +1,29 @@
-use crate::{system::InitResult, Time};
+use super::TimeSystem;
+use crate::system::InitResult;
+use anyhow::*;
+use namui_type::*;
+use std::sync::Arc;
 
 pub(crate) async fn init() -> InitResult {
+    super::TIME_SYSTEM
+        .set(Arc::new(NonWasmTimeSystem {}))
+        .map_err(|_| anyhow!("Failed to set time system"))?;
+
     Ok(())
 }
 
-pub fn now() -> Time {
-    Time::Ms(
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs_f32(),
-    )
-}
+struct NonWasmTimeSystem {}
 
-pub async fn delay(time: crate::Time) {
-    tokio::time::sleep(time.as_duration()).await;
+impl TimeSystem for NonWasmTimeSystem {
+    fn instant_now(&self) -> Instant {
+        Instant::new(std::time::Instant::now())
+    }
+
+    fn system_now(&self) -> SystemTime {
+        SystemTime::new(std::time::SystemTime::now())
+    }
+
+    fn sleep(&self, duration: Duration) -> Result<tokio::time::Sleep> {
+        Ok(tokio::time::sleep(duration.to_std()?))
+    }
 }

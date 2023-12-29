@@ -1,7 +1,7 @@
-pub mod image;
-pub mod path;
-pub mod rect;
-pub mod text;
+mod image;
+mod path;
+mod rect;
+mod text;
 #[cfg(target_family = "wasm")]
 pub mod text_input;
 

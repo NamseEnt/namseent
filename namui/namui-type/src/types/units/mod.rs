@@ -11,7 +11,6 @@ mod ratio;
 mod rect;
 mod simple_signed;
 mod time;
-mod time_per_px;
 mod uuid;
 mod vector_types;
 
@@ -29,5 +28,4 @@ pub use ratio::*;
 pub use rect::*;
 pub use simple_signed::*;
 pub use time::*;
-pub use time_per_px::*;
 pub use vector_types::*;
