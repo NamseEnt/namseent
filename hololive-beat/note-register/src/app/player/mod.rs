@@ -1,9 +1,13 @@
 mod note_judge;
 mod note_plotter;
+mod slider;
 
 use self::note_plotter::NotePlotter;
 use super::note::Note;
-use crate::app::{color::THEME, player::note_judge::NoteJudge};
+use crate::app::{
+    color::THEME,
+    player::{note_judge::NoteJudge, slider::Slider},
+};
 use namui::prelude::*;
 use namui_prebuilt::{button::TextButtonFit, table::hooks::*};
 
@@ -25,6 +29,7 @@ impl Component for Player<'_> {
         const BUTTON_SIDE_PADDING: Px = px(16.0);
 
         let (state, set_state) = ctx.atom_init(&STATE, || State::Stop);
+        let (start_offset_ms, set_start_offset) = ctx.state(|| 0.0);
         let px_per_time = Per::new(px(512.0), Time::Sec(1.0));
         let now = now();
 
@@ -62,12 +67,26 @@ impl Component for Player<'_> {
                                 return;
                             }
                             match *state {
-                                State::Stop => set_state.set(State::Play { started_time: now }),
+                                State::Stop => set_state.set(State::Play {
+                                    started_time: now - start_offset_ms.ms(),
+                                }),
                                 State::Play { .. } => set_state.set(State::Pause { played_time }),
                                 State::Pause { played_time } => set_state.set(State::Play {
                                     started_time: now - played_time,
                                 }),
                             }
+                        },
+                    });
+                }),
+                fixed(BUTTON_HEIGHT, |wh, ctx| {
+                    ctx.add(Slider {
+                        wh,
+                        value: *start_offset_ms,
+                        min: 0.sec().as_millis(),
+                        max: 227.sec().as_millis(),
+                        on_change: &|value| {
+                            set_start_offset.set(value);
+                            namui::log!("set: {value}");
                         },
                     });
                 }),
