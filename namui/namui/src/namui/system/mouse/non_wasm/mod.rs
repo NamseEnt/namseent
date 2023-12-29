@@ -7,6 +7,8 @@ pub(crate) fn set_up_event_handler() {
 }
 
 pub(crate) fn on_winit_mouse_input(state: ElementState, button: crate::MouseButton) {
+    update_pressing_button(state, button);
+
     let mouse_xy = { *MOUSE_SYSTEM.mouse_position.read().unwrap() };
 
     let event = RawMouseEvent {
@@ -58,4 +60,16 @@ fn get_pressing_buttons() -> std::collections::HashSet<MouseButton> {
 
 fn update_mouse_position(mouse_xy: Xy<Px>) {
     *MOUSE_SYSTEM.mouse_position.write().unwrap() = mouse_xy;
+}
+
+fn update_pressing_button(state: ElementState, button: crate::MouseButton) {
+    let mut pressing_buttons = MOUSE_SYSTEM.pressing_buttons.write().unwrap();
+    match state {
+        ElementState::Pressed => {
+            pressing_buttons.insert(button);
+        }
+        ElementState::Released => {
+            pressing_buttons.remove(&button);
+        }
+    }
 }
