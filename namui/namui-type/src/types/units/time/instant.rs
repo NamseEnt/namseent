@@ -56,15 +56,11 @@ mod tests {
 
     #[test]
     fn test_instant_sub() {
-        let std_instant_now = std::time::Instant::now();
-
         let a = Instant {
-            inner: std_instant_now,
+            inner: Duration::from_secs(0),
         };
         let b = Instant {
-            inner: std_instant_now
-                .checked_add(std::time::Duration::from_secs(1))
-                .unwrap(),
+            inner: Duration::from_secs(1),
         };
 
         assert_eq!(b - a, 1.sec());
@@ -73,10 +69,8 @@ mod tests {
 
     #[test]
     fn test_instant_add_duration() {
-        let std_instant_now = std::time::Instant::now();
-
         let a = Instant {
-            inner: std_instant_now,
+            inner: Duration::from_secs(0),
         };
         let b = a + 1.sec();
 
