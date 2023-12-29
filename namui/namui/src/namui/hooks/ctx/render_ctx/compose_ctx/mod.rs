@@ -8,7 +8,6 @@ use crate::{
     *,
 };
 pub(crate) use lazy_rendering_tree::*;
-pub use nesting::*;
 
 pub struct ComposeCtx {
     tree_ctx: TreeContext,
