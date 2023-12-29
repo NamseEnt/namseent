@@ -4,14 +4,14 @@ use std::fmt::Debug;
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Instant {
     #[cfg(not(target_family = "wasm"))]
-    inner: std::time::Instant,
+    inner: Duration,
     #[cfg(target_family = "wasm")]
     inner: todo,
 }
 
 impl Instant {
     #[cfg(feature = "namui_internal")]
-    pub fn new(inner: std::time::Instant) -> Self {
+    pub fn new(inner: Duration) -> Self {
         Self { inner }
     }
 }
@@ -39,23 +39,13 @@ auto_ops::impl_op!(-|lhs: &Instant, rhs: &Duration| -> Instant { add_duration(*l
 
 #[cfg(not(target_family = "wasm"))]
 fn sub_instant(lhs: Instant, rhs: Instant) -> Duration {
-    let sign = lhs.inner > rhs.inner;
-    let later = if sign { lhs.inner } else { rhs.inner };
-    let earlier = if sign { rhs.inner } else { lhs.inner };
-    let std_duration = later.duration_since(earlier);
-
-    Duration::from_std(sign, std_duration)
+    lhs.inner - rhs.inner
 }
 
 #[cfg(not(target_family = "wasm"))]
 fn add_duration(lhs: Instant, rhs: Duration) -> Instant {
-    match rhs.sign {
-        true => Instant {
-            inner: lhs.inner + rhs.inner,
-        },
-        false => Instant {
-            inner: lhs.inner - rhs.inner,
-        },
+    Instant {
+        inner: lhs.inner + rhs,
     }
 }
 
