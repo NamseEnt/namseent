@@ -2,14 +2,18 @@
 //! Video and Audio.
 
 mod audio_buffer_core;
-mod context;
+mod audio_context;
+mod audio_handle;
 mod image_only_video;
+mod media_context;
+mod media_handle;
 mod media_struct;
 mod synced_audio;
 
+use self::media_context::MediaContext;
+pub use self::media_handle::MediaHandle;
 use super::InitResult;
 use anyhow::*;
-use context::*;
 use std::{path::Path, sync::OnceLock};
 
 const AUDIO_CHANNEL_BOUND: usize = 128;
@@ -28,11 +32,6 @@ pub(super) async fn init() -> InitResult {
 
 pub fn new_media(path: &impl AsRef<Path>) -> Result<MediaHandle> {
     MEDIA_SYSTEM.get().unwrap().new_media(path)
-}
-
-pub fn play(media: &MediaHandle) {
-    let mut media = media.lock().unwrap();
-    MEDIA_SYSTEM.get().unwrap().play(&mut media);
 }
 
 #[derive(Debug, Clone, Copy)]

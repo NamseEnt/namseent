@@ -14,6 +14,7 @@ impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let (audio_mp3, set_audio_mp3) = ctx.state(|| None);
         let (video_mp4, set_video_mp4) = ctx.state(|| None);
+        let (media_handle_for_toggle, set_media_handle_for_toggle) = ctx.state(|| None);
 
         ctx.effect("load media", || {
             namui::spawn(async move {
@@ -23,7 +24,8 @@ impl Component for MediaExample {
                 let mp3 = namui::system::media::new_media(&path).unwrap();
                 println!("mp3 loaded");
 
-                set_audio_mp3.set(Some(mp3));
+                set_audio_mp3.set(Some(mp3.clone_independent().unwrap()));
+                set_media_handle_for_toggle.set(Some(mp3));
 
                 let path =
                     namui::system::file::bundle::to_real_path("bundle:resources/you-re-mine.mp4")
@@ -40,10 +42,10 @@ impl Component for MediaExample {
             rect: Rect::Xywh {
                 x: 10.px(),
                 y: 20.px(),
-                width: 100.px(),
+                width: 200.px(),
                 height: 20.px(),
             },
-            text: "play audio",
+            text: "play audio (Fire & Forget)",
             text_color: Color::BLACK,
             stroke_color: Color::BLACK,
             stroke_width: 1.px(),
@@ -51,14 +53,72 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(media) = audio_mp3.as_ref() {
-                    namui::system::media::play(media)
+                    media.clone_independent().unwrap().play();
                 }
             },
         });
 
         ctx.component(TextButton {
             rect: Rect::Xywh {
-                x: 200.px(),
+                x: 10.px(),
+                y: 60.px(),
+                width: 200.px(),
+                height: 20.px(),
+            },
+            text: &format!(
+                "[Toggle] {}",
+                if let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() {
+                    if media_handle_for_toggle.is_playing() {
+                        "stop audio"
+                    } else {
+                        "play audio"
+                    }
+                } else {
+                    "play audio"
+                }
+            ),
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() else {
+                    return;
+                };
+
+                if media_handle_for_toggle.is_playing() {
+                    media_handle_for_toggle.stop();
+                } else {
+                    media_handle_for_toggle.play();
+                }
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 10.px(),
+                y: 120.px(),
+                width: 200.px(),
+                height: 20.px(),
+            },
+            text: "Pause",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() else {
+                    return;
+                };
+                media_handle_for_toggle.pause();
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 300.px(),
                 y: 20.px(),
                 width: 100.px(),
                 height: 20.px(),
@@ -70,8 +130,8 @@ impl Component for MediaExample {
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
-                if let Some(media) = video_mp4.as_ref() {
-                    namui::system::media::play(media)
+                if let Some(video_mp4) = video_mp4.as_ref() {
+                    video_mp4.play();
                 }
             },
         });
@@ -80,7 +140,6 @@ impl Component for MediaExample {
             let Some(mp4) = video_mp4.as_ref() else {
                 return;
             };
-            let mut mp4 = mp4.lock().unwrap();
             let Some(image_handle) = mp4.get_image().unwrap() else {
                 return;
             };
