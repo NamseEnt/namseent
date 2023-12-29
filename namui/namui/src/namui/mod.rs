@@ -22,7 +22,7 @@ pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
 pub use namui_type as types;
 pub use namui_type::*;
-pub use render::{image::*, path::*, rect::*, text::*};
+pub use render::*;
 #[cfg(target_family = "wasm")]
 pub use render::{text_input, TextInput, TextInputInstance};
 pub use serde;
