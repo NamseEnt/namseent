@@ -1,10 +1,13 @@
+mod note_judge;
 mod note_plotter;
 
 use self::note_plotter::NotePlotter;
 use super::note::Note;
-use crate::app::color::THEME;
+use crate::app::{color::THEME, player::note_judge::NoteJudge};
 use namui::prelude::*;
 use namui_prebuilt::{button::TextButtonFit, table::hooks::*};
+
+static STATE: Atom<State> = Atom::uninitialized_new();
 
 #[namui::component]
 pub struct Player<'a> {
@@ -21,7 +24,7 @@ impl Component for Player<'_> {
         const STROKE_WIDTH: Px = px(2.0);
         const BUTTON_SIDE_PADDING: Px = px(16.0);
 
-        let (state, set_state) = ctx.state(|| State::Stop);
+        let (state, set_state) = ctx.atom_init(&STATE, || State::Stop);
         let px_per_time = Per::new(px(512.0), Time::Sec(1.0));
         let now = now();
 
@@ -70,6 +73,8 @@ impl Component for Player<'_> {
                 }),
             ])(wh, ctx);
         });
+
+        ctx.component(NoteJudge { notes, played_time });
 
         ctx.done()
     }
