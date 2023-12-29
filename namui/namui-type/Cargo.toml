@@ -34,7 +34,7 @@ unicode-segmentation = "1.10.1"
 serde_bytes = "0.11.12"
 lru = "0.11.0"
 skia-safe = { path = "../skia/rust-skia/skia-safe", optional = true }
-chrono = "0.4.31"
+anyhow = { version = "1.0.77", features = ["backtrace"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
