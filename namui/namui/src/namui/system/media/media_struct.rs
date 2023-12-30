@@ -4,7 +4,7 @@ use super::image_only_video::ImageOnlyVideo;
 use crate::media::audio_buffer_core::AudioBufferCore;
 use crate::media::{AudioConfig, AUDIO_CHANNEL_BOUND, VIDEO_CHANNEL_BOUND};
 use anyhow::Result;
-use namui_type::{ImageHandle, Wh};
+use namui_type::*;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -31,9 +31,9 @@ impl Media {
             path,
         })
     }
-    pub(crate) fn play(&mut self) {
+    pub(crate) fn play(&mut self, start_at: Instant) {
         if let Some(audio) = &mut self.audio {
-            audio.play();
+            audio.play(start_at);
         }
 
         if let Some(video) = &mut self.video {

@@ -1,6 +1,6 @@
 use super::{audio_context::AudioContext, media_struct::Media};
 use anyhow::Result;
-use namui_type::ImageHandle;
+use namui_type::*;
 use std::{
     path::Path,
     sync::{Arc, Mutex},
@@ -25,8 +25,8 @@ impl MediaHandle {
             media: Arc::new(Mutex::new(Media::new(audio_context, path)?)),
         })
     }
-    pub fn play(&self) {
-        self.media.lock().unwrap().play()
+    pub fn play(&self, start_at: Instant) {
+        self.media.lock().unwrap().play(start_at)
     }
     pub fn stop(&self) {
         self.media.lock().unwrap().stop()

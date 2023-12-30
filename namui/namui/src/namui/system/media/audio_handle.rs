@@ -1,4 +1,5 @@
 use super::audio_context::AudioCommand;
+use namui_type::*;
 use std::sync::{
     atomic::{AtomicBool, AtomicUsize},
     Arc,
@@ -20,12 +21,8 @@ pub(crate) struct AudioHandle {
 
 #[derive(Debug)]
 enum PlayState {
-    Playing {
-        start_instant: std::time::Instant,
-    },
-    Paused {
-        playback_duration: std::time::Duration,
-    },
+    Playing { start_instant: Instant },
+    Paused { playback_duration: Duration },
     Stopped,
 }
 
@@ -57,20 +54,18 @@ impl AudioHandle {
             .load(std::sync::atomic::Ordering::SeqCst)
     }
 
-    pub fn play(&mut self) {
+    pub fn play(&mut self, start_at: Instant) {
         if self.is_playing() {
             return;
         }
 
         let playback_duration = match self.play_state {
             PlayState::Paused { playback_duration } => playback_duration,
-            PlayState::Playing { start_instant: _ } | PlayState::Stopped => {
-                std::time::Duration::from_secs(0)
-            }
+            PlayState::Playing { start_instant: _ } | PlayState::Stopped => Duration::from_secs(0),
         };
 
         self.play_state = PlayState::Playing {
-            start_instant: std::time::Instant::now(),
+            start_instant: crate::system::time::now(),
         };
         let last_playback_playing = Arc::new(AtomicBool::new(true));
         self.last_playback_playing = Some(last_playback_playing.clone());
@@ -80,7 +75,8 @@ impl AudioHandle {
                 audio_handle_id: self.id,
                 audio_buffer_core_id: self.audio_buffer_core_id,
                 is_playing: last_playback_playing,
-                playback_duration,
+                start_at,
+                start_offset: playback_duration,
             })
             .expect("failed to send AudioCommand::Play");
     }
@@ -113,7 +109,7 @@ impl AudioHandle {
             return;
         };
         self.play_state = PlayState::Paused {
-            playback_duration: std::time::Instant::now() - start_instant,
+            playback_duration: crate::system::time::now() - start_instant,
         };
         self.last_playback_playing = None;
 

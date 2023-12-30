@@ -27,9 +27,8 @@ impl Component for MediaExample {
                 set_audio_mp3.set(Some(mp3.clone_independent().unwrap()));
                 set_media_handle_for_toggle.set(Some(mp3));
 
-                let path =
-                    namui::system::file::bundle::to_real_path("bundle:resources/you-re-mine.mp4")
-                        .unwrap();
+                let path = namui::system::file::bundle::to_real_path("bundle:resources/video.mp4")
+                    .unwrap();
 
                 let mp4 = namui::system::media::new_media(&path).unwrap();
                 println!("mp4 loaded");
@@ -53,7 +52,7 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(media) = audio_mp3.as_ref() {
-                    media.clone_independent().unwrap().play();
+                    media.clone_independent().unwrap().play(namui::time::now());
                 }
             },
         });
@@ -90,7 +89,7 @@ impl Component for MediaExample {
                 if media_handle_for_toggle.is_playing() {
                     media_handle_for_toggle.stop();
                 } else {
-                    media_handle_for_toggle.play();
+                    media_handle_for_toggle.play(namui::time::now());
                 }
             },
         });
@@ -131,7 +130,7 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(video_mp4) = video_mp4.as_ref() {
-                    video_mp4.play();
+                    video_mp4.play(namui::time::now());
                 }
             },
         });
@@ -146,10 +145,10 @@ impl Component for MediaExample {
 
             ctx.add(namui::image(ImageParam {
                 rect: Rect::Xywh {
-                    x: 200.px(),
+                    x: 300.px(),
                     y: 100.px(),
-                    width: 100.px(),
-                    height: 100.px(),
+                    width: 400.px(),
+                    height: 400.px(),
                 },
                 source: ImageSource::ImageHandle { image_handle },
                 style: ImageStyle {

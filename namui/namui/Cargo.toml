@@ -104,9 +104,9 @@ rfd = "0.12.1"
 rand = "0.8.5"
 opener = "0.6.1"
 namui-skia = { path = "../skia/skia", features = ["windows"] }
-cpal = "0.15.2"
 ffmpeg-next = { path = "../rust-ffmpeg", features = ["static"] }
 crossbeam-channel = "0.5.9"
+wasapi = "0.14.0"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 wasm-bindgen-test = "0.3.13"
