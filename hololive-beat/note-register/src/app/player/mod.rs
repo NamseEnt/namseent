@@ -1,4 +1,5 @@
 mod instrument_player;
+mod music_player;
 mod note_judge;
 mod note_plotter;
 mod slider;
@@ -7,7 +8,10 @@ use self::note_plotter::NotePlotter;
 use super::note::Note;
 use crate::app::{
     color::THEME,
-    player::{instrument_player::InstrumentPlayer, note_judge::NoteJudge, slider::Slider},
+    player::{
+        instrument_player::InstrumentPlayer, music_player::MusicPlayer, note_judge::NoteJudge,
+        slider::Slider,
+    },
 };
 use namui::{prelude::*, time::now};
 use namui_prebuilt::{button::TextButtonFit, table::hooks::*};
@@ -97,6 +101,8 @@ impl Component for Player<'_> {
         ctx.component(NoteJudge { notes, played_time });
 
         ctx.component(InstrumentPlayer {});
+
+        ctx.component(MusicPlayer {});
 
         ctx.done()
     }
