@@ -138,7 +138,7 @@ impl ImageOnlyVideo {
             self.image_rx =
                 spawn_video_decoding_thread(video_material.frame_rx, self.wh, self.pixel_type);
         }
-
+        self.frame_index = expected_frame_index;
         self.last_playback_duration = Some(playback_duration);
 
         Ok(())
