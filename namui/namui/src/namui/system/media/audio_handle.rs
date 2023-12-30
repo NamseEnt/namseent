@@ -21,8 +21,8 @@ pub(crate) struct AudioHandle {
 
 #[derive(Debug)]
 enum PlayState {
-    Playing { start_instant: Instant },
-    Paused { playback_duration: Duration },
+    Playing,
+    Paused,
     Stopped,
 }
 
@@ -42,11 +42,8 @@ impl AudioHandle {
 
     pub fn is_playing(&self) -> bool {
         (match &self.play_state {
-            PlayState::Playing { start_instant: _ } => true,
-            PlayState::Paused {
-                playback_duration: _,
-            } => false,
-            PlayState::Stopped => false,
+            PlayState::Playing => true,
+            PlayState::Paused | PlayState::Stopped => false,
         }) && self
             .last_playback_playing
             .as_ref()
@@ -54,19 +51,12 @@ impl AudioHandle {
             .load(std::sync::atomic::Ordering::SeqCst)
     }
 
-    pub fn play(&mut self, start_at: Instant) {
+    pub fn play(&mut self, start_at: Instant, start_offset: Duration) {
         if self.is_playing() {
             return;
         }
 
-        let playback_duration = match self.play_state {
-            PlayState::Paused { playback_duration } => playback_duration,
-            PlayState::Playing { start_instant: _ } | PlayState::Stopped => Duration::from_secs(0),
-        };
-
-        self.play_state = PlayState::Playing {
-            start_instant: crate::system::time::now(),
-        };
+        self.play_state = PlayState::Playing;
         let last_playback_playing = Arc::new(AtomicBool::new(true));
         self.last_playback_playing = Some(last_playback_playing.clone());
 
@@ -76,46 +66,48 @@ impl AudioHandle {
                 audio_buffer_core_id: self.audio_buffer_core_id,
                 is_playing: last_playback_playing,
                 start_at,
-                start_offset: playback_duration,
+                start_offset,
             })
             .expect("failed to send AudioCommand::Play");
     }
 
     pub fn stop(&mut self) {
-        match self.play_state {
-            PlayState::Playing { start_instant: _ } => {
-                self.play_state = PlayState::Stopped;
-                self.last_playback_playing = None;
+        if let PlayState::Playing = self.play_state {
+            self.last_playback_playing = None;
 
-                self.audio_command_tx
-                    .send(AudioCommand::Stop {
-                        audio_handle_id: self.id,
-                    })
-                    .expect("failed to send AudioCommand::Stop");
-            }
-            PlayState::Paused {
-                playback_duration: _,
-            } => {
-                self.play_state = PlayState::Stopped;
-            }
-            PlayState::Stopped => {}
+            self.audio_command_tx
+                .send(AudioCommand::Stop {
+                    audio_handle_id: self.id,
+                })
+                .expect("failed to send AudioCommand::Stop");
         }
+        self.play_state = PlayState::Stopped;
     }
 
     /// Current version of `pause` doesn't guarantee that the audio will be paused immediately.
     /// Also it doesn't guarantee that the audio will start from the same position when it is resumed.
     pub(crate) fn pause(&mut self) {
-        let PlayState::Playing { start_instant } = self.play_state else {
+        let PlayState::Playing = self.play_state else {
             return;
         };
-        self.play_state = PlayState::Paused {
-            playback_duration: crate::system::time::now() - start_instant,
-        };
+        self.play_state = PlayState::Paused;
         self.last_playback_playing = None;
 
         self.audio_command_tx
             .send(AudioCommand::Stop {
                 audio_handle_id: self.id,
+            })
+            .expect("failed to send AudioCommand::Stop");
+    }
+
+    pub(crate) fn seek_to(&mut self, playback_duration: Duration) {
+        let PlayState::Playing = self.play_state else {
+            return;
+        };
+        self.audio_command_tx
+            .send(AudioCommand::SeekTo {
+                audio_handle_id: self.id,
+                offset: playback_duration,
             })
             .expect("failed to send AudioCommand::Stop");
     }

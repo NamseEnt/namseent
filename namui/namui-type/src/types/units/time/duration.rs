@@ -7,6 +7,15 @@ pub struct Duration {
     pub(crate) inner: std::time::Duration,
 }
 
+impl Default for Duration {
+    fn default() -> Self {
+        Self {
+            sign: true,
+            inner: Default::default(),
+        }
+    }
+}
+
 impl Debug for Duration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(

@@ -145,6 +145,70 @@ impl Component for MediaExample {
             },
         });
 
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 300.px(),
+                y: 60.px(),
+                width: 30.px(),
+                height: 20.px(),
+            },
+            text: "-5sec",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                if let Some(video_mp4) = video_mp4.as_ref() {
+                    video_mp4
+                        .seek_to(video_mp4.playback_duration() - Duration::from_secs(5))
+                        .unwrap()
+                }
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 300.px(),
+                y: 40.px(),
+                width: 100.px(),
+                height: 20.px(),
+            },
+            text: &if let Some(video_mp4) = video_mp4.as_ref() {
+                format!("{:?}", video_mp4.playback_duration())
+            } else {
+                "Loading...".to_string()
+            },
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![],
+            on_mouse_up_in: &|_| {},
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 370.px(),
+                y: 60.px(),
+                width: 30.px(),
+                height: 20.px(),
+            },
+            text: "+5sec",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                if let Some(video_mp4) = video_mp4.as_ref() {
+                    video_mp4
+                        .seek_to(video_mp4.playback_duration() + Duration::from_secs(5))
+                        .unwrap()
+                }
+            },
+        });
+
         ctx.compose(|ctx| {
             let Some(mp4) = video_mp4.as_ref() else {
                 return;

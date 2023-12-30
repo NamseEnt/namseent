@@ -56,23 +56,40 @@ impl SyncedAudio {
         // Keep increasing buffer_byte_offset to skip delayed frames for sync.
         self.buffer_byte_offset += expected_output_sample_byte_len;
 
-        // For Debug Latency
-        // let expected_buffer_byte_offset = calculate_byte_offset(
-        //     playback_at - self.start_at,
-        //     self.audio_buffer_core.output_config,
-        // ) + self.start_buffer_byte_offset;
+        self.debug_latency(playback_at);
 
-        // if expected_buffer_byte_offset != self.buffer_byte_offset {
-        //     eprintln!(
-        //         "expected: {} but {} -> {}, now: {:?}",
-        //         expected_buffer_byte_offset,
-        //         self.buffer_byte_offset,
-        //         expected_buffer_byte_offset.abs_diff(self.buffer_byte_offset),
-        //         crate::time::now(),
-        //     );
-        // }
+        // For Debug Latency
 
         Ok(data)
+    }
+
+    pub(crate) fn seek_to(&mut self, offset: Duration) {
+        self.buffer_byte_offset =
+            calculate_byte_offset(offset, self.audio_buffer_core.output_config);
+
+        self.start_at = crate::time::now();
+        self.start_buffer_byte_offset = self.buffer_byte_offset;
+    }
+
+    fn debug_latency(&self, playback_at: Instant) {
+        if std::env::var("DEBUG_LATENCY").is_err() {
+            return;
+        }
+
+        let expected_buffer_byte_offset = calculate_byte_offset(
+            playback_at - self.start_at,
+            self.audio_buffer_core.output_config,
+        ) + self.start_buffer_byte_offset;
+
+        if expected_buffer_byte_offset != self.buffer_byte_offset {
+            eprintln!(
+                "expected: {} but {} -> {}, now: {:?}",
+                expected_buffer_byte_offset,
+                self.buffer_byte_offset,
+                expected_buffer_byte_offset.abs_diff(self.buffer_byte_offset),
+                crate::time::now(),
+            );
+        }
     }
 }
 

@@ -8,6 +8,7 @@ mod image_only_video;
 mod media_context;
 mod media_handle;
 mod media_struct;
+mod open_media;
 mod ref_counting;
 mod synced_audio;
 

@@ -34,6 +34,12 @@ impl MediaHandle {
     pub fn pause(&self) {
         self.media.lock().unwrap().pause()
     }
+    pub fn seek_to(&self, seek_to: Duration) -> Result<()> {
+        self.media.lock().unwrap().seek_to(seek_to)
+    }
+    pub fn playback_duration(&self) -> Duration {
+        self.media.lock().unwrap().playback_duration()
+    }
     pub fn is_playing(&self) -> bool {
         self.media.lock().unwrap().is_playing()
     }

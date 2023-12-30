@@ -98,6 +98,16 @@ impl AudioContext {
                     AudioCommand::Stop { audio_handle_id } => {
                         playing_audios.remove(&audio_handle_id);
                     }
+                    AudioCommand::SeekTo {
+                        audio_handle_id,
+                        offset,
+                    } => {
+                        let audio = playing_audios
+                            .get_mut(&audio_handle_id)
+                            .expect("failed to get audio");
+
+                        audio.synced_audio.seek_to(offset);
+                    }
                 }
             }
         };
@@ -270,6 +280,10 @@ pub(crate) enum AudioCommand {
     },
     Stop {
         audio_handle_id: usize,
+    },
+    SeekTo {
+        audio_handle_id: usize,
+        offset: Duration,
     },
 }
 
