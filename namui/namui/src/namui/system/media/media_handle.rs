@@ -35,6 +35,7 @@ impl MediaHandle {
         self.media.lock().unwrap().pause()
     }
     pub fn seek_to(&self, seek_to: Duration) -> Result<()> {
+        println!("seek_to: {:?}", seek_to);
         self.media.lock().unwrap().seek_to(seek_to)
     }
     pub fn playback_duration(&self) -> Duration {

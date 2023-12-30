@@ -1,4 +1,4 @@
-use super::{open_media::open_media, VIDEO_CHANNEL_BOUND};
+use super::{open_media::open_video, VIDEO_CHANNEL_BOUND};
 use anyhow::{anyhow, bail, Result};
 use crossbeam_channel::Receiver;
 use namui_type::*;
@@ -10,10 +10,10 @@ pub struct ImageOnlyVideo {
     video_source: PathBuf,
     image_rx: crossbeam_channel::Receiver<ImageHandle>,
     start_instant: Option<Instant>,
-    last_playback_duration: Option<Duration>,
+    start_offset: Option<Duration>,
     fps: f64,
-    last_frame: Option<ImageHandle>,
-    frame_index: usize,
+    last_frame: Option<(ImageHandle, usize)>,
+    skip_frame_count: usize,
     eof: bool,
     wh: Wh<u32>,
     pixel_type: ffmpeg_next::util::format::Pixel,
@@ -45,10 +45,10 @@ impl ImageOnlyVideo {
             video_source: video_source.as_ref().to_path_buf(),
             image_rx,
             start_instant: None,
-            last_playback_duration: None,
+            start_offset: None,
             fps,
             last_frame: None,
-            frame_index: 0,
+            skip_frame_count: 0,
             eof: false,
             wh,
             pixel_type,
@@ -59,49 +59,49 @@ impl ImageOnlyVideo {
     }
     pub(crate) fn start(&mut self, start_at: Instant, start_offset: Duration) {
         self.start_instant = Some(start_at);
-        self.last_playback_duration = Some(start_offset);
+        self.start_offset = Some(start_offset);
+        self.skip_frame_count = (start_offset.as_secs_f64() * self.fps) as usize;
     }
     pub(crate) fn stop(&mut self) {
         todo!()
     }
     pub(crate) fn pause(&mut self) {
-        let Some(start_instant) = self.start_instant.take() else {
-            return;
-        };
-        self.last_playback_duration = Some(
-            (crate::time::now() - start_instant) + self.last_playback_duration.unwrap_or_default(),
-        );
+        self.start_instant = None;
     }
     pub fn get_image(&mut self) -> Result<Option<ImageHandle>> {
         let Some(start_instant) = self.start_instant else {
-            return Ok(self.last_frame.clone());
+            return Ok(self.last_frame.clone().map(|x| x.0));
         };
 
         let now = crate::time::now();
-        let playback_duration =
-            (now - start_instant) + self.last_playback_duration.unwrap_or_default();
+        let playback_duration = (now - start_instant) + self.start_offset.unwrap_or_default();
 
         let expected_frame_index = ((playback_duration).as_secs_f64() * self.fps) as usize;
-        if expected_frame_index < self.frame_index {
-            return Ok(self.last_frame.clone());
-        }
 
-        if self.frame_index == expected_frame_index {
-            if let Some(last_frame) = &self.last_frame {
-                return Ok(Some(last_frame.clone()));
+        if let Some((ref last_frame_image, last_frame_index)) = self.last_frame {
+            if last_frame_index >= expected_frame_index {
+                return Ok(Some(last_frame_image.clone()));
             }
         }
 
-        let frame_count_to_gather =
-            expected_frame_index - self.frame_index + if self.last_frame.is_none() { 1 } else { 0 };
-
-        let mut new_frame = None;
-        for _ in 0..frame_count_to_gather {
+        loop {
             match self.image_rx.try_recv() {
                 Ok(frame) => {
-                    new_frame = Some(frame);
-                    if !(self.frame_index == 0 && self.last_frame.is_none()) {
-                        self.frame_index += 1;
+                    if self.skip_frame_count > 0 {
+                        self.skip_frame_count -= 1;
+                        continue;
+                    }
+
+                    let frame_index = self
+                        .last_frame
+                        .as_ref()
+                        .map(|x| x.1 + 1)
+                        .unwrap_or_default();
+
+                    self.last_frame = Some((frame, frame_index));
+
+                    if frame_index >= expected_frame_index {
+                        break;
                     }
                 }
                 Err(err) => match err {
@@ -116,30 +116,38 @@ impl ImageOnlyVideo {
             }
         }
 
-        if let Some(new_frame) = new_frame {
-            self.last_frame = Some(new_frame);
-        }
+        println!(
+            "expected_frame_index: {}, frame_index: {}",
+            expected_frame_index,
+            self.last_frame.as_ref().map(|x| x.1).unwrap_or_default()
+        );
 
-        Ok(self.last_frame.clone())
+        Ok(self.last_frame.clone().map(|x| x.0))
     }
 
     pub(crate) fn seek_to(&mut self, playback_duration: Duration) -> Result<()> {
         let expected_frame_index = (playback_duration.as_secs_f64() * self.fps) as usize;
-        if expected_frame_index < self.frame_index {
-            let (video_material, _) = open_media(
-                &self.video_source,
-                super::open_media::OpenMediaFilter::YesVideoNoAudio,
-            )?;
+        let frame_index = self.last_frame.as_ref().map(|x| x.1).unwrap_or_default();
 
-            let Some(video_material) = video_material else {
+        if expected_frame_index < frame_index {
+            self.last_frame = None;
+
+            let Some(video_material) = open_video(&self.video_source)? else {
                 bail!("failed to open video");
             };
-
             self.image_rx =
                 spawn_video_decoding_thread(video_material.frame_rx, self.wh, self.pixel_type);
+        } else {
+            // self.skip_frame_count = expected_frame_index - frame_index;
         }
-        self.frame_index = expected_frame_index;
-        self.last_playback_duration = Some(playback_duration);
+
+        self.start_offset = Some({
+            if let Some(start_instant) = self.start_instant {
+                playback_duration - (crate::time::now() - start_instant)
+            } else {
+                playback_duration
+            }
+        });
 
         Ok(())
     }

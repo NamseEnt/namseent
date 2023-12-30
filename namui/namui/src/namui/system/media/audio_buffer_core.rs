@@ -64,6 +64,8 @@ impl AudioBufferCore {
                         }
                     }
 
+                    println!("Audio Buffer Core Thread {} finished", id);
+
                     assert!(buffers.insert(next_frame_index, Arc::new(queue)).is_none());
 
                     Ok(())

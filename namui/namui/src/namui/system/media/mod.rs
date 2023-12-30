@@ -19,7 +19,7 @@ use anyhow::*;
 use std::{path::Path, sync::OnceLock};
 
 const AUDIO_CHANNEL_BOUND: usize = 128;
-const VIDEO_CHANNEL_BOUND: usize = 10;
+const VIDEO_CHANNEL_BOUND: usize = 20;
 
 static MEDIA_SYSTEM: OnceLock<MediaContext> = OnceLock::new();
 

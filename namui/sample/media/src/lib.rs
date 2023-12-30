@@ -160,6 +160,14 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(video_mp4) = video_mp4.as_ref() {
+                    println!(
+                        "video_mp4.playback_duration(): {:?}",
+                        video_mp4.playback_duration()
+                    );
+                    println!(
+                        "video_mp4.playback_duration() - Duration::from_secs(5): {:?}",
+                        video_mp4.playback_duration() - Duration::from_secs(5)
+                    );
                     video_mp4
                         .seek_to(video_mp4.playback_duration() - Duration::from_secs(5))
                         .unwrap()
@@ -175,7 +183,7 @@ impl Component for MediaExample {
                 height: 20.px(),
             },
             text: &if let Some(video_mp4) = video_mp4.as_ref() {
-                format!("{:?}", video_mp4.playback_duration())
+                format!("{:.1?}", video_mp4.playback_duration().as_secs_f32())
             } else {
                 "Loading...".to_string()
             },

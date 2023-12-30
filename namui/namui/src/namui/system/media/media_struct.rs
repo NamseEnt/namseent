@@ -1,7 +1,7 @@
 use super::audio_context::AudioContext;
 use super::audio_handle::AudioHandle;
 use super::image_only_video::ImageOnlyVideo;
-use super::open_media::{open_media, OpenMediaFilter};
+use super::open_media::{open_audio, open_video};
 use anyhow::Result;
 use namui_type::*;
 use std::path::{Path, PathBuf};
@@ -21,12 +21,12 @@ impl Media {
     pub(crate) fn new(audio_context: &AudioContext, path: &impl AsRef<Path>) -> Result<Media> {
         let id = generate_media_id();
 
-        let (video_material, audio) =
-            open_media(path, OpenMediaFilter::YesVideoYesAudio { audio_context })?;
+        let video = open_video(path)?.map(|video| ImageOnlyVideo::new(path, video));
+        let audio = open_audio(path, audio_context)?;
 
         Ok(Media {
             id,
-            video: video_material.map(|video| ImageOnlyVideo::new(path, video)),
+            video,
             audio,
             path: path.as_ref().to_path_buf(),
             start_instant: None,
@@ -80,7 +80,13 @@ impl Media {
             video.seek_to(playback_duration)?;
         }
 
-        self.anchor_playback_duration = Some(playback_duration);
+        self.anchor_playback_duration = Some({
+            if let Some(start_instant) = self.start_instant {
+                playback_duration - (crate::time::now() - start_instant)
+            } else {
+                playback_duration
+            }
+        });
         Ok(())
     }
     pub(crate) fn playback_duration(&self) -> Duration {
@@ -102,8 +108,7 @@ impl Media {
     pub(crate) fn clone_independent(&self) -> Result<Self> {
         let video = {
             if self.video.is_some() {
-                let (video_material, _) = open_media(&self.path, OpenMediaFilter::YesVideoNoAudio)?;
-                video_material.map(|video| ImageOnlyVideo::new(&self.path, video))
+                open_video(&self.path)?.map(|video| ImageOnlyVideo::new(&self.path, video))
             } else {
                 None
             }

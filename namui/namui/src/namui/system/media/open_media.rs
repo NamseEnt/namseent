@@ -7,132 +7,111 @@ use crate::media::{
 use anyhow::Result;
 use namui_type::*;
 
-pub(crate) enum OpenMediaFilter<'a> {
-    YesVideoNoAudio,
-    YesVideoYesAudio { audio_context: &'a AudioContext },
+pub(crate) fn open_video(path: &impl AsRef<std::path::Path>) -> Result<Option<VideoMaterials>> {
+    let path = path.as_ref();
+    let ictx = ffmpeg_next::format::input(&path)?;
+
+    for stream in ictx.streams() {
+        if stream.parameters().medium() != ffmpeg_next::media::Type::Video {
+            continue;
+        }
+
+        let context_decoder =
+            ffmpeg_next::codec::context::Context::from_parameters(stream.parameters())?;
+
+        let decoder = context_decoder.decoder().video()?;
+        let (tx, rx) = crossbeam_channel::bounded(VIDEO_CHANNEL_BOUND);
+
+        let fps = decoder.frame_rate().expect("frame_rate").into();
+        let wh = Wh::new(decoder.width(), decoder.height());
+        let pixel_type = decoder.format();
+
+        let stream_index = stream.index();
+
+        spawn_decoding_thread(ictx, DecodingStream::Video { decoder, tx }, stream_index);
+
+        return Ok(Some(VideoMaterials {
+            frame_rx: rx,
+            fps,
+            wh,
+            pixel_type,
+        }));
+    }
+
+    Ok(None)
 }
 
-pub(crate) fn open_media(
+pub(crate) fn open_audio(
     path: &impl AsRef<std::path::Path>,
-    filter: OpenMediaFilter,
-) -> Result<(Option<VideoMaterials>, Option<AudioHandle>)> {
+    audio_context: &AudioContext,
+) -> Result<Option<AudioHandle>> {
     let path = path.as_ref();
-    let mut ictx = ffmpeg_next::format::input(&path)?;
+    let ictx = ffmpeg_next::format::input(&path)?;
 
-    let mut audio = None;
-    let mut video = None;
+    for stream in ictx.streams() {
+        if stream.parameters().medium() != ffmpeg_next::media::Type::Audio {
+            continue;
+        }
 
-    let mut stream_decoding_stream: Vec<Option<DecodingStream>> = ictx
-        .streams()
-        .map(|stream| -> Result<Option<_>> {
-            let parameters = stream.parameters();
-            let medium = parameters.medium();
+        let context_decoder =
+            ffmpeg_next::codec::context::Context::from_parameters(stream.parameters())?;
 
-            enum StreamMediaType {
-                Video,
-                Audio,
-            }
-            let stream_media_type = match medium {
-                ffmpeg_next::media::Type::Video => StreamMediaType::Video,
-                ffmpeg_next::media::Type::Audio => StreamMediaType::Audio,
-                _ => {
-                    return Ok(None);
-                }
-            };
-            let context_decoder =
-                ffmpeg_next::codec::context::Context::from_parameters(parameters)?;
+        let decoder = context_decoder.decoder().audio()?;
 
-            let decoding_stream: DecodingStream = match stream_media_type {
-                StreamMediaType::Video => {
-                    if video.is_some() {
-                        eprintln!("Warning: only one video stream is supported.");
-                        return Ok(None);
-                    };
+        let (tx, rx) = crossbeam_channel::bounded(AUDIO_CHANNEL_BOUND);
 
-                    let decoder = context_decoder.decoder().video()?;
-                    let (tx, rx) = crossbeam_channel::bounded(VIDEO_CHANNEL_BOUND);
+        let audio_buffer_core = AudioBufferCore::new(
+            rx,
+            AudioConfig {
+                sample_rate: decoder.rate(),
+                sample_format: decoder.format(),
+                channel_layout: decoder.channel_layout(),
+                sample_byte_size: decoder.format().bytes(),
+                channel_count: decoder.channel_layout().channels() as usize,
+            },
+            audio_context.output_config,
+        )?;
 
-                    let fps = decoder.frame_rate().expect("frame_rate").into();
-                    let wh = Wh::new(decoder.width(), decoder.height());
-                    let pixel_type = decoder.format();
+        let stream_index = stream.index();
 
-                    video = Some(VideoMaterials {
-                        frame_rx: rx,
-                        fps,
-                        wh,
-                        pixel_type,
-                    });
+        spawn_decoding_thread(ictx, DecodingStream::Audio { decoder, tx }, stream_index);
 
-                    DecodingStream::Video { decoder, tx }
-                }
-                StreamMediaType::Audio => {
-                    if audio.is_some() {
-                        eprintln!("Warning: only one audio stream is supported.");
-                        return Ok(None);
-                    };
+        return Ok(Some(audio_context.load_audio(audio_buffer_core)?));
+    }
 
-                    let OpenMediaFilter::YesVideoYesAudio { audio_context } = filter else {
-                        return Ok(None);
-                    };
+    Ok(None)
+}
 
-                    let decoder = context_decoder.decoder().audio()?;
-
-                    let (tx, rx) = crossbeam_channel::bounded(AUDIO_CHANNEL_BOUND);
-
-                    let audio_buffer_core = AudioBufferCore::new(
-                        rx,
-                        AudioConfig {
-                            sample_rate: decoder.rate(),
-                            sample_format: decoder.format(),
-                            channel_layout: decoder.channel_layout(),
-                            sample_byte_size: decoder.format().bytes(),
-                            channel_count: decoder.channel_layout().channels() as usize,
-                        },
-                        audio_context.output_config,
-                    )?;
-
-                    audio = Some(audio_context.load_audio(audio_buffer_core)?);
-
-                    DecodingStream::Audio { decoder, tx }
-                }
-            };
-
-            Ok(Some(decoding_stream))
-        })
-        .collect::<Result<_>>()?;
-
+fn spawn_decoding_thread(
+    mut ictx: ffmpeg_next::format::context::Input,
+    mut decoding_stream: DecodingStream,
+    stream_index: usize,
+) {
     std::thread::spawn(move || {
         match (move || -> Result<()> {
             for (stream, packet) in ictx.packets() {
-                let Some(decoding_stream) = &mut stream_decoding_stream[stream.index()] else {
+                if stream.index() != stream_index {
                     continue;
-                };
+                }
                 decoding_stream.send_packet(&packet)?;
                 decoding_stream.receive_and_process_decoded_frames()?;
             }
 
-            for mut decoding_stream in stream_decoding_stream {
-                let Some(decoding_stream) = &mut decoding_stream else {
-                    continue;
-                };
-                decoding_stream.send_eof()?;
-                decoding_stream.receive_and_process_decoded_frames()?;
-            }
+            decoding_stream.send_eof()?;
+            decoding_stream.receive_and_process_decoded_frames()?;
 
             Ok(())
         })() {
             Ok(_) => {}
             Err(e) => {
-                eprintln!("Fail on media decoding: {}", e);
+                eprintln!(
+                    "Fail on media decoding: {}.
+It would not be error, because resource can be dropped during decoding.",
+                    e
+                );
             }
         }
     });
-
-    if matches!(filter, OpenMediaFilter::YesVideoNoAudio) {
-        assert!(audio.is_none());
-    }
-
-    Ok((video, audio))
 }
 
 enum DecodingStream {

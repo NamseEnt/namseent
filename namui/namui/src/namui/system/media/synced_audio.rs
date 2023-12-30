@@ -12,7 +12,7 @@ pub struct SyncedAudio {
     buffer_byte_offset: usize,
     start_at: Instant,
     #[allow(dead_code)]
-    start_buffer_byte_offset: usize,
+    start_buffer_byte_offset_for_debug: usize,
 }
 
 impl SyncedAudio {
@@ -28,7 +28,7 @@ impl SyncedAudio {
             audio_buffer_core,
             buffer_byte_offset,
             start_at,
-            start_buffer_byte_offset: buffer_byte_offset,
+            start_buffer_byte_offset_for_debug: buffer_byte_offset,
         }
     }
     pub(crate) fn audio_buffer_core_id(&self) -> usize {
@@ -68,7 +68,7 @@ impl SyncedAudio {
             calculate_byte_offset(offset, self.audio_buffer_core.output_config);
 
         self.start_at = crate::time::now();
-        self.start_buffer_byte_offset = self.buffer_byte_offset;
+        self.start_buffer_byte_offset_for_debug = self.buffer_byte_offset;
     }
 
     fn debug_latency(&self, playback_at: Instant) {
@@ -79,7 +79,7 @@ impl SyncedAudio {
         let expected_buffer_byte_offset = calculate_byte_offset(
             playback_at - self.start_at,
             self.audio_buffer_core.output_config,
-        ) + self.start_buffer_byte_offset;
+        ) + self.start_buffer_byte_offset_for_debug;
 
         if expected_buffer_byte_offset != self.buffer_byte_offset {
             eprintln!(
