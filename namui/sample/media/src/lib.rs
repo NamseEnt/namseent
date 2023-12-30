@@ -120,7 +120,15 @@ impl Component for MediaExample {
                 width: 100.px(),
                 height: 20.px(),
             },
-            text: "play video",
+            text: if let Some(video_mp4) = video_mp4.as_ref() {
+                if video_mp4.is_playing() {
+                    "Pause Video"
+                } else {
+                    "Play Video"
+                }
+            } else {
+                "Loading..."
+            },
             text_color: Color::BLACK,
             stroke_color: Color::BLACK,
             stroke_width: 1.px(),
@@ -128,7 +136,11 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(video_mp4) = video_mp4.as_ref() {
-                    video_mp4.play(namui::time::now());
+                    if video_mp4.is_playing() {
+                        video_mp4.pause();
+                    } else {
+                        video_mp4.play(namui::time::now());
+                    }
                 }
             },
         });
