@@ -9,9 +9,9 @@ use namui_prebuilt::{simple_rect, typography};
 pub struct NotePlotter<'a> {
     pub wh: Wh<Px>,
     pub notes: &'a Vec<Note>,
-    pub px_per_time: Per<Px, Time>,
+    pub px_per_time: Per<Px, Duration>,
     pub timing_zero_x: Px,
-    pub played_time: Time,
+    pub played_time: Duration,
 }
 
 impl Component for NotePlotter<'_> {
@@ -49,7 +49,8 @@ impl Component for NotePlotter<'_> {
 
         ctx.compose(|ctx| {
             for note in notes {
-                let note_x = timing_zero_x + (px_per_time * (note.time - played_time));
+                let note_x =
+                    timing_zero_x + (px_per_time * (note.time - Instant::new(played_time)));
                 if note_x < -wh.width {
                     continue;
                 }

@@ -4,15 +4,12 @@ use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 use std::collections::HashSet;
 
-const PERFECT_RANGE: Time = Time::Ms(64.0);
-const GOOD_RANGE: Time = Time::Ms(256.0);
-
 static JUDGE_CONTEXT: Atom<JudgeContext> = Atom::uninitialized_new();
 
 #[component]
 pub struct NoteJudge<'a> {
     pub notes: &'a Vec<Note>,
-    pub played_time: Time,
+    pub played_time: Duration,
 }
 
 impl Component for NoteJudge<'_> {
@@ -21,14 +18,16 @@ impl Component for NoteJudge<'_> {
 
         let (state, _) = ctx.atom(&STATE);
         let (judge_context, set_judge_context) = ctx.atom_init(&JUDGE_CONTEXT, JudgeContext::new);
+        let perfect_range: Duration = Duration::from_millis(64);
+        let good_range: Duration = 256.0.ms();
 
         let handle_passed_notes = || {
             let last_judged_note_index = judge_context.last_judged_note_index;
             let check_start_time = last_judged_note_index
                 .and_then(|index| notes.get(index))
-                .map(|last_judged_note| last_judged_note.time - GOOD_RANGE)
-                .unwrap_or(Time::Ms(0.0));
-            let check_end_time = played_time - GOOD_RANGE;
+                .map(|last_judged_note| last_judged_note.time - good_range)
+                .unwrap_or(Instant::new(0.ms()));
+            let check_end_time = Instant::new(played_time - good_range);
 
             let mut passed_note_indexes = Vec::new();
             for (index, note) in notes.iter().enumerate() {
@@ -63,8 +62,8 @@ impl Component for NoteJudge<'_> {
                 return;
             };
 
-            let check_start_time = played_time - GOOD_RANGE;
-            let check_end_time = played_time + GOOD_RANGE;
+            let check_start_time = Instant::new(played_time - good_range);
+            let check_end_time = Instant::new(played_time + good_range);
             for (index, note) in notes.iter().enumerate() {
                 if note.time < check_start_time {
                     continue;
@@ -90,9 +89,9 @@ impl Component for NoteJudge<'_> {
                     })
                 }
 
-                let time_diff_ms = (note.time - played_time).as_millis().abs();
+                let time_diff = (Instant::new(played_time) - note.time).abs();
 
-                if time_diff_ms <= PERFECT_RANGE.as_millis() {
+                if time_diff <= perfect_range {
                     set_judge_context.mutate(move |judge_context| {
                         judge_context.perfect_count += 1;
                         judge_context.combo += 1;
@@ -100,7 +99,7 @@ impl Component for NoteJudge<'_> {
                         judge_context.judged_note_index.insert(index);
                         judge_context.last_judged_note_index = Some(index);
                     })
-                } else if time_diff_ms <= GOOD_RANGE.as_millis() {
+                } else if time_diff <= good_range {
                     set_judge_context.mutate(move |judge_context| {
                         judge_context.good_count += 1;
                         judge_context.combo += 1;

@@ -8,7 +8,7 @@ use crate::app::{
     color::THEME,
     player::{note_judge::NoteJudge, slider::Slider},
 };
-use namui::prelude::*;
+use namui::{prelude::*, time::now};
 use namui_prebuilt::{button::TextButtonFit, table::hooks::*};
 
 static STATE: Atom<State> = Atom::uninitialized_new();
@@ -30,11 +30,11 @@ impl Component for Player<'_> {
 
         let (state, set_state) = ctx.atom_init(&STATE, || State::Stop);
         let (start_offset_ms, set_start_offset) = ctx.state(|| 0.0);
-        let px_per_time = Per::new(px(512.0), Time::Sec(1.0));
+        let px_per_time = Per::new(px(512.0), 1.sec());
         let now = now();
 
         let played_time = match *state {
-            State::Stop => Time::Sec(0.0),
+            State::Stop => 0.ms(),
             State::Play { started_time } => now - started_time,
             State::Pause {
                 played_time: paused_time,
@@ -68,7 +68,7 @@ impl Component for Player<'_> {
                             }
                             match *state {
                                 State::Stop => set_state.set(State::Play {
-                                    started_time: now - start_offset_ms.ms(),
+                                    started_time: now - (*start_offset_ms as f64).ms(),
                                 }),
                                 State::Play { .. } => set_state.set(State::Pause { played_time }),
                                 State::Pause { played_time } => set_state.set(State::Play {
@@ -82,8 +82,8 @@ impl Component for Player<'_> {
                     ctx.add(Slider {
                         wh,
                         value: *start_offset_ms,
-                        min: 0.sec().as_millis(),
-                        max: 227.sec().as_millis(),
+                        min: 0.sec().as_secs_f32(),
+                        max: 227.sec().as_secs_f32(),
                         on_change: &|value| {
                             set_start_offset.set(value);
                             namui::log!("set: {value}");
@@ -104,11 +104,11 @@ enum State {
     Stop,
     Play {
         /// It's App time.
-        started_time: Time,
+        started_time: Instant,
     },
     Pause {
         /// But It's Note map time.
-        played_time: Time,
+        played_time: Duration,
     },
 }
 impl State {
