@@ -55,6 +55,15 @@ impl Direction {
             Direction::Down | Direction::Left => 1,
         }
     }
+
+    pub fn as_instrument(&self) -> Instrument {
+        match self {
+            Direction::Up => Instrument::Cymbals,
+            Direction::Right => unimplemented!(),
+            Direction::Down => Instrument::Kick,
+            Direction::Left => Instrument::Snare,
+        }
+    }
 }
 
 #[derive(Debug)]
