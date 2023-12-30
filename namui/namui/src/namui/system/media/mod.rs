@@ -8,6 +8,7 @@ mod image_only_video;
 mod media_context;
 mod media_handle;
 mod media_struct;
+mod ref_counting;
 mod synced_audio;
 
 use self::media_context::MediaContext;

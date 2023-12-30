@@ -36,7 +36,6 @@ static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 pub(crate) async fn init() -> InitResult {
     futures::try_join!(
-        media::init(),
         cache::init(),
         file::init(),
         font::init(),
@@ -61,7 +60,7 @@ pub(crate) async fn init() -> InitResult {
         web::init(),
     )?;
 
-    tokio::try_join!(typeface::init(),)?;
+    tokio::try_join!(typeface::init(), media::init(),)?;
 
     INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
 
