@@ -1,5 +1,5 @@
 use crate::app::note::Direction;
-use namui::prelude::*;
+use namui::{prelude::*, time::now};
 use namui_prebuilt::simple_rect;
 
 #[component]
@@ -41,17 +41,17 @@ impl Component for InstrumentPlayer {
                         match direction.as_instrument() {
                             crate::app::note::Instrument::Kick => {
                                 if let Some(audio) = kick_audio.as_ref() {
-                                    audio.clone_independent().unwrap().play();
+                                    audio.clone_independent().unwrap().play(now());
                                 }
                             }
                             crate::app::note::Instrument::Snare => {
                                 if let Some(audio) = snare_audio.as_ref() {
-                                    audio.clone_independent().unwrap().play();
+                                    audio.clone_independent().unwrap().play(now());
                                 }
                             }
                             crate::app::note::Instrument::Cymbals => {
                                 if let Some(audio) = cymbals_audio.as_ref() {
-                                    audio.clone_independent().unwrap().play();
+                                    audio.clone_independent().unwrap().play(now());
                                 }
                             }
                         }
