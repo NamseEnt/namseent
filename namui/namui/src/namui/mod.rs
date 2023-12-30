@@ -67,12 +67,3 @@ macro_rules! log {
         $crate::log::log(format!($($arg)*));
     }}
 }
-
-// /// `now()` is not ISO 8601. It's time since the program started.
-pub fn now() -> Time {
-    system::time::now()
-}
-
-pub fn boxed<'a, T: 'a>(value: T) -> Box<T> {
-    Box::new(value)
-}

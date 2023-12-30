@@ -9,6 +9,9 @@ targets = ["x86_64-pc-windows-msvc"]
 [features]
 default = []
 skia = ["dep:skia-safe"]
+namui_internal = [
+    # for namui crate internal use. Don't use this feature if you don't know about it.
+]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive", "rc"] }
@@ -31,6 +34,7 @@ unicode-segmentation = "1.10.1"
 serde_bytes = "0.11.12"
 lru = "0.11.0"
 skia-safe = { path = "../skia/rust-skia/skia-safe", optional = true }
+anyhow = { version = "1.0.77", features = ["backtrace"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
