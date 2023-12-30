@@ -11,19 +11,24 @@ use namui_prebuilt::simple_rect;
 pub struct App {}
 impl namui::Component for App {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let (notes, set_notes) = ctx.state(|| None);
+        let (loaded, set_loaded) = ctx.state(|| None);
         let wh = screen::size().into_type::<Px>();
 
         ctx.effect("Init", || {
             spawn(async move {
-                let notes = load_notes().await;
-                set_notes.set(Some(notes));
+                set_loaded.set(Some(LoadedData {
+                    notes: load_notes().await,
+                    kick: load_media("bundle:kick.mp3"),
+                    cymbals: load_media("bundle:cymbals.mp3"),
+                    snare: load_media("bundle:snare.mp3"),
+                    music: load_media("bundle:you_re_mine.opus"),
+                }));
             });
         });
 
         ctx.compose(|ctx| {
-            if let Some(notes) = notes.as_ref() {
-                ctx.add(Player { wh, notes });
+            if let Some(loaded) = loaded.as_ref() {
+                ctx.add(Player { wh, loaded });
             }
         });
 
@@ -36,4 +41,18 @@ impl namui::Component for App {
 
         ctx.done()
     }
+}
+
+#[derive(Debug)]
+pub struct LoadedData {
+    notes: Vec<note::Note>,
+    kick: MediaHandle,
+    cymbals: MediaHandle,
+    snare: MediaHandle,
+    music: MediaHandle,
+}
+
+fn load_media(path: &str) -> MediaHandle {
+    let path = namui::system::file::bundle::to_real_path(path).unwrap();
+    namui::system::media::new_media(&path).unwrap()
 }

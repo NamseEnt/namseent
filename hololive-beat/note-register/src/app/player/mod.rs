@@ -5,13 +5,13 @@ mod note_plotter;
 mod slider;
 
 use self::note_plotter::NotePlotter;
-use super::note::Note;
 use crate::app::{
     color::THEME,
     player::{
         instrument_player::InstrumentPlayer, music_player::MusicPlayer, note_judge::NoteJudge,
         slider::Slider,
     },
+    LoadedData,
 };
 use namui::{prelude::*, time::now};
 use namui_prebuilt::{button::TextButtonFit, table::hooks::*};
@@ -21,11 +21,18 @@ static STATE: Atom<State> = Atom::uninitialized_new();
 #[namui::component]
 pub struct Player<'a> {
     pub wh: Wh<Px>,
-    pub notes: &'a Vec<Note>,
+    pub loaded: &'a LoadedData,
 }
 impl Component for Player<'_> {
     fn render(self, ctx: &namui::prelude::RenderCtx) -> namui::prelude::RenderDone {
-        let Self { wh, notes } = self;
+        let Self { wh, loaded } = self;
+        let LoadedData {
+            notes,
+            kick,
+            cymbals,
+            snare,
+            music,
+        } = loaded;
 
         const TIMING_ZERO_X: Px = px(256.0);
         const NOTE_PLOTTER_HEIGHT: Px = px(384.0);
@@ -100,9 +107,13 @@ impl Component for Player<'_> {
 
         ctx.component(NoteJudge { notes, played_time });
 
-        ctx.component(InstrumentPlayer {});
+        ctx.component(InstrumentPlayer {
+            kick,
+            cymbals,
+            snare,
+        });
 
-        ctx.component(MusicPlayer {});
+        ctx.component(MusicPlayer { music });
 
         ctx.done()
     }
