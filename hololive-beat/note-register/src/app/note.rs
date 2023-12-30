@@ -1,5 +1,5 @@
 use futures::future::join_all;
-use namui::{file::bundle, Code, Time};
+use namui::{file::bundle, prelude::*, Instant};
 use std::io::{self, BufRead};
 
 #[derive(Debug, Clone, Copy)]
@@ -59,7 +59,7 @@ impl Direction {
 
 #[derive(Debug)]
 pub struct Note {
-    pub time: Time,
+    pub time: Instant,
     pub direction: Direction,
     pub instrument: Instrument,
 }
@@ -75,12 +75,13 @@ pub async fn load_notes() -> Vec<Note> {
                 error
             })
             .unwrap();
+
         println!("time_sequence_file: {:?}", time_sequence_file.len());
         io::BufReader::<&[u8]>::new(time_sequence_file.as_ref())
             .lines()
-            .map(|line| line.unwrap().parse::<f32>().unwrap())
+            .map(|line| line.unwrap().parse::<f64>().unwrap())
             .map(|time_sec| Note {
-                time: Time::Sec(time_sec),
+                time: Instant::new(time_sec.sec()),
                 direction: instrument.as_direction(),
                 instrument,
             })
