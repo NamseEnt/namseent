@@ -115,7 +115,7 @@ impl std::ops::Div<Duration> for Duration {
         if rhs_secs == 0.0 {
             panic!("divide by zero")
         }
-        (lhs_secs / rhs_secs) as f32
+        (lhs_secs / rhs_secs) as f32 * if self.sign == rhs.sign { 1.0 } else { -1.0 }
     }
 }
 
@@ -221,6 +221,16 @@ mod tests {
     fn test_duration_sub() {
         assert_eq!((1.sec() - 1.sec()).abs(), (0.sec()).abs());
         assert_eq!(1.sec() - 2.sec(), -1.sec());
+    }
+
+    #[test]
+    fn test_duration_div() {
+        assert_eq!(1.sec() / 1.sec(), 1.0);
+        assert_eq!(1.sec() / 2.sec(), 0.5);
+        assert_eq!(1.sec() / -1.sec(), -1.0);
+        assert_eq!(1.sec() / -2.sec(), -0.5);
+
+        assert_eq!(Per::new(1.px(), 1.sec()) * (-1).sec(), -1.px());
     }
 
     #[test]
