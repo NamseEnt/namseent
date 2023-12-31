@@ -1,15 +1,17 @@
 use super::{
-    audio_buffer::AudioBuffer, flush_button::FlushButtonReceiver, AudioConfig, AUDIO_CHANNEL_BOUND,
+    audio_buffer::AudioBuffer, media_control::MediaControlReceiver, with_instant::WithInstant,
+    AudioConfig, AUDIO_CHANNEL_BOUND,
 };
+use crate::media::with_instant::WithInstantExt;
 use anyhow::Result;
 
 pub(crate) fn start_audio_resampling(
-    mut ffmpeg_audio_frame_rx: rtrb::Consumer<ffmpeg_next::frame::Audio>,
+    ffmpeg_audio_frame_rx: std::sync::mpsc::Receiver<WithInstant<ffmpeg_next::frame::Audio>>,
     input_config: AudioConfig,
     output_config: AudioConfig,
-    flush_requested: FlushButtonReceiver,
+    control_receiver: MediaControlReceiver,
 ) -> AudioBuffer {
-    let (mut producer, consumer) = rtrb::RingBuffer::new(AUDIO_CHANNEL_BOUND);
+    let (tx, rx) = std::sync::mpsc::sync_channel(AUDIO_CHANNEL_BOUND);
 
     std::thread::spawn({
         move || {
@@ -27,15 +29,7 @@ pub(crate) fn start_audio_resampling(
                     output_config.sample_rate,
                 )?;
 
-                loop {
-                    let Ok(frame) = ffmpeg_audio_frame_rx.pop() else {
-                        if ffmpeg_audio_frame_rx.is_abandoned() {
-                            break;
-                        }
-                        std::thread::yield_now();
-                        continue;
-                    };
-
+                while let Ok(frame) = ffmpeg_audio_frame_rx.recv() {
                     let mut resampled = ffmpeg_next::frame::Audio::empty();
                     if let Some(delay) = resampler.run(&frame, &mut resampled)? {
                         eprintln!("delay: {:?}", delay);
@@ -51,7 +45,7 @@ pub(crate) fn start_audio_resampling(
                             slice.len() / std::mem::size_of::<f32>(),
                         )
                     };
-                    producer.push(f32_slice.to_vec())?;
+                    tx.send(f32_slice.to_vec().with_instant(frame.instant))?;
                 }
 
                 Ok(())
@@ -63,5 +57,5 @@ pub(crate) fn start_audio_resampling(
         }
     });
 
-    AudioBuffer::new(consumer, flush_requested)
+    AudioBuffer::new(rx, control_receiver)
 }

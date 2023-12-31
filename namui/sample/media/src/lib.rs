@@ -89,7 +89,7 @@ impl Component for MediaExample {
                 };
 
                 if media_handle_for_toggle.is_playing() {
-                    media_handle_for_toggle.stop();
+                    media_handle_for_toggle.stop().unwrap();
                 } else {
                     media_handle_for_toggle.play(namui::time::now()).unwrap();
                 }
@@ -113,7 +113,7 @@ impl Component for MediaExample {
                 let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() else {
                     return;
                 };
-                media_handle_for_toggle.pause();
+                media_handle_for_toggle.pause().unwrap();
             },
         });
 
@@ -141,7 +141,7 @@ impl Component for MediaExample {
             on_mouse_up_in: &|_| {
                 if let Some(video_mp4) = video_mp4.as_ref() {
                     if video_mp4.is_playing() {
-                        video_mp4.pause();
+                        video_mp4.pause().unwrap();
                     } else {
                         video_mp4.play(namui::time::now()).unwrap();
                     }
@@ -225,7 +225,7 @@ impl Component for MediaExample {
             let Some(mp4) = video_mp4.as_ref() else {
                 return;
             };
-            let Some(image_handle) = mp4.get_image().unwrap() else {
+            let Some(image_handle) = mp4.get_image() else {
                 return;
             };
 

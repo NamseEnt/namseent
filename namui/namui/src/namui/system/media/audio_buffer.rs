@@ -1,35 +1,46 @@
-use super::flush_button::FlushButtonReceiver;
+use super::{media_control::MediaControlReceiver, with_instant::WithInstant};
+use std::{collections::VecDeque, sync::mpsc::TryRecvError};
 
 #[derive(Debug)]
 pub(crate) struct AudioBuffer {
-    consumer: rtrb::Consumer<Vec<f32>>,
+    rx: std::sync::mpsc::Receiver<WithInstant<Vec<f32>>>,
     index: usize,
-    flush_requested: FlushButtonReceiver,
+    control_receiver: MediaControlReceiver,
+    chunks: VecDeque<WithInstant<Vec<f32>>>,
 }
 
 impl AudioBuffer {
     pub(crate) fn new(
-        consumer: rtrb::Consumer<Vec<f32>>,
-        flush_requested: FlushButtonReceiver,
+        rx: std::sync::mpsc::Receiver<WithInstant<Vec<f32>>>,
+        control_receiver: MediaControlReceiver,
     ) -> Self {
         Self {
-            consumer,
+            rx,
             index: 0,
-            flush_requested,
+            control_receiver,
+            chunks: VecDeque::new(),
         }
     }
     pub(crate) fn consume(&mut self, output: &mut [f32]) {
+        self.chunks.extend(self.rx.try_iter());
         self.flush_if_requested();
+
+        if self.control_receiver.start_requested().is_none() {
+            // TODO: Maybe need to sync with start_requested Instant?
+            return;
+        }
 
         let mut output_index = 0;
 
         while output_index < output.len() {
-            let Ok(chunk) = self.consumer.peek() else {
+            let Some(chunk) = self.chunks.front() else {
                 break;
             };
 
+            let to_fill_count = output.len() - output_index;
+
             let left = self.index;
-            let right = chunk.len().min(output.len() - output_index);
+            let right = chunk.len().min(left + to_fill_count);
             let chunk_to_copy = &chunk[left..right];
 
             for (i, v) in chunk_to_copy.iter().enumerate() {
@@ -38,7 +49,7 @@ impl AudioBuffer {
 
             output_index += chunk_to_copy.len();
             if right == chunk.len() {
-                self.consumer.pop().unwrap();
+                self.chunks.pop_front();
                 self.index = 0;
             } else {
                 self.index = right;
@@ -49,18 +60,18 @@ impl AudioBuffer {
     }
 
     pub(crate) fn is_end(&self) -> bool {
-        self.consumer.is_abandoned() && self.consumer.is_empty()
+        self.chunks.is_empty()
+            && self
+                .rx
+                .try_recv()
+                .is_err_and(|e| matches!(e, TryRecvError::Disconnected))
     }
 
     fn flush_if_requested(&mut self) {
-        if !self.flush_requested.take() {
+        let Some(flush_requested) = self.control_receiver.flush_requested() else {
             return;
-        }
+        };
 
-        self.consumer
-            .read_chunk(self.consumer.slots())
-            .unwrap()
-            .commit_all();
-        self.index = 0;
+        self.chunks.retain(|chunk| flush_requested < chunk.instant);
     }
 }

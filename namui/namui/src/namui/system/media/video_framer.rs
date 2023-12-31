@@ -1,12 +1,60 @@
+use super::{media_control::MediaControlReceiver, WithInstant};
+use namui_type::*;
+use std::{collections::VecDeque, ops::Deref};
+
 #[derive(Debug)]
-pub(crate) struct VideoFramer {}
+pub(crate) struct VideoFramer {
+    control_receiver: MediaControlReceiver,
+    images: VecDeque<WithInstant<ImageHandle>>,
+    image_handle_rx: std::sync::mpsc::Receiver<WithInstant<ImageHandle>>,
+    frame_received_after_start: usize,
+    fps: f64,
+    last_start_requested: Option<Instant>,
+}
 
 impl VideoFramer {
-    pub(crate) fn new(rx: rtrb::Consumer<ffmpeg_next::frame::Video>) -> VideoFramer {
-        todo!()
+    pub(crate) fn new(
+        image_handle_rx: std::sync::mpsc::Receiver<WithInstant<ImageHandle>>,
+        control_receiver: MediaControlReceiver,
+        fps: f64,
+    ) -> VideoFramer {
+        Self {
+            control_receiver,
+            images: VecDeque::new(),
+            image_handle_rx,
+            frame_received_after_start: 0,
+            fps,
+            last_start_requested: None,
+        }
     }
 
-    pub(crate) fn get_image(&self) -> Result<Option<namui_type::ImageHandle>, anyhow::Error> {
-        todo!()
+    pub(crate) fn get_image(&mut self) -> Option<namui_type::ImageHandle> {
+        self.images.extend(self.image_handle_rx.try_iter());
+
+        if let Some(flush_requested) = self.control_receiver.flush_requested() {
+            self.images.retain(|frame| flush_requested < frame.instant);
+        }
+
+        let Some(start_requested) = self.control_receiver.start_requested() else {
+            return self.images.front().map(|frame| frame.deref().clone());
+        };
+        
+        if self.last_start_requested != Some(start_requested) {
+            self.frame_received_after_start = 0;
+            self.last_start_requested = Some(start_requested);
+        }
+
+        let expected_frame_index =
+            ((crate::time::now() - start_requested).as_secs_f64() * self.fps) as usize;
+
+        while self.frame_received_after_start < expected_frame_index {
+            if self.images.pop_front().is_some() {
+                self.frame_received_after_start += 1;
+            } else {
+                break;
+            }
+        }
+
+        self.images.front().map(|frame| frame.deref().clone())
     }
 }

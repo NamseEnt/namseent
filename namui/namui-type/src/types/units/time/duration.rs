@@ -45,6 +45,12 @@ impl Duration {
             inner: std::time::Duration::from_millis(millis.unsigned_abs()),
         }
     }
+    pub fn from_micros(micros: i64) -> Self {
+        Self {
+            sign: micros >= 0,
+            inner: std::time::Duration::from_micros(micros.unsigned_abs()),
+        }
+    }
     pub fn from_secs(secs: i64) -> Self {
         Self {
             sign: secs >= 0,

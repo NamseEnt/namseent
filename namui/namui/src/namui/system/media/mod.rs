@@ -2,26 +2,24 @@
 //! Video and Audio.
 
 mod audio_buffer;
-mod audio_buffer_core;
 mod audio_context;
 mod audio_handle;
 mod audio_resampling;
-mod flush_button;
-mod image_only_video;
 mod media_context;
+mod media_control;
+mod media_core;
 mod media_handle;
 mod media_struct;
-mod open_media;
-mod ref_counting;
-mod synced_audio;
 mod video_framer;
 mod video_scaling;
+mod with_instant;
 
 use self::media_context::MediaContext;
 pub use self::media_handle::MediaHandle;
 use super::InitResult;
 use anyhow::*;
 use std::{path::Path, sync::OnceLock};
+use with_instant::WithInstant;
 
 const AUDIO_CHANNEL_BOUND: usize = 128;
 const VIDEO_CHANNEL_BOUND: usize = 20;

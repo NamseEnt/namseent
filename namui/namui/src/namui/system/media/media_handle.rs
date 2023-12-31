@@ -20,7 +20,7 @@ pub struct MediaHandle {
 }
 
 impl MediaHandle {
-    pub(crate) fn new(audio_context: &AudioContext, path: &impl AsRef<Path>) -> Result<Self> {
+    pub(crate) fn new(audio_context: Arc<AudioContext>, path: &impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
             media: Arc::new(Mutex::new(Media::new(audio_context, path)?)),
         })
@@ -35,7 +35,6 @@ impl MediaHandle {
         self.media.lock().unwrap().pause()
     }
     pub fn seek_to(&self, seek_to: Duration) -> Result<()> {
-        println!("seek_to: {:?}", seek_to);
         self.media.lock().unwrap().seek_to(seek_to)
     }
     pub fn playback_duration(&self) -> Duration {
@@ -44,7 +43,7 @@ impl MediaHandle {
     pub fn is_playing(&self) -> bool {
         self.media.lock().unwrap().is_playing()
     }
-    pub fn get_image(&self) -> Result<Option<ImageHandle>> {
+    pub fn get_image(&self) -> Option<ImageHandle> {
         self.media.lock().unwrap().get_image()
     }
     pub fn clone_independent(&self) -> Result<Self> {

@@ -11,7 +11,7 @@ targets = ["x86_64-pc-windows-msvc"]
 namui-type = { path = "../namui-type", features = ["namui_internal"] }
 lazy_static = "1.4.0"
 url = { version = "2", features = ["serde"] }
-anyhow = "1.0.72"
+anyhow = { version = "1.0.77", features = ["backtrace"] }
 namui-cfg = { path = "../namui-cfg" }
 shader-macro = { path = "../shader-macro" }
 hooks-macro = { path = "../hooks-macro" }
@@ -29,7 +29,6 @@ num = { version = "0.4.0", features = ["std"] }
 derivative = "2.2.0"
 namui-drawer-sys = { path = "../namui-drawer/sys" }
 dashmap = "4"
-rtrb = "0.3.0"
 
 [target.'cfg(target_family="wasm")'.dependencies]
 web-sys = { version = "0.3", features = [
