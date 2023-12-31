@@ -25,13 +25,13 @@ impl MediaHandle {
             media: Arc::new(Mutex::new(Media::new(audio_context, path)?)),
         })
     }
-    pub fn play(&self, start_at: Instant) {
-        self.media.lock().unwrap().play(start_at)
+    pub fn play(&self, _start_at: Instant) -> Result<()> {
+        self.media.lock().unwrap().play()
     }
-    pub fn stop(&self) {
+    pub fn stop(&self) -> Result<()> {
         self.media.lock().unwrap().stop()
     }
-    pub fn pause(&self) {
+    pub fn pause(&self) -> Result<()> {
         self.media.lock().unwrap().pause()
     }
     pub fn seek_to(&self, seek_to: Duration) -> Result<()> {

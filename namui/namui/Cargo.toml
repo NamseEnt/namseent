@@ -29,6 +29,7 @@ num = { version = "0.4.0", features = ["std"] }
 derivative = "2.2.0"
 namui-drawer-sys = { path = "../namui-drawer/sys" }
 dashmap = "4"
+rtrb = "0.3.0"
 
 [target.'cfg(target_family="wasm")'.dependencies]
 web-sys = { version = "0.3", features = [

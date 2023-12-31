@@ -1,93 +1,48 @@
 use super::audio_context::AudioContext;
-use super::audio_handle::AudioHandle;
-use super::image_only_video::ImageOnlyVideo;
-use super::open_media::{open_audio, open_video};
+use super::open_media::MediaCore;
+use super::video_framer::VideoFramer;
 use anyhow::Result;
 use namui_type::*;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::path::Path;
 
 #[derive(Debug)]
 pub struct Media {
-    id: usize,
-    video: Option<ImageOnlyVideo>,
-    audio: Option<AudioHandle>,
-    path: PathBuf,
+    media_core: MediaCore,
     start_instant: Option<Instant>,
     anchor_playback_duration: Option<Duration>,
+    video: Option<VideoFramer>,
 }
 
 impl Media {
     pub(crate) fn new(audio_context: &AudioContext, path: &impl AsRef<Path>) -> Result<Media> {
-        let id = generate_media_id();
+        let (media_core, video, audio) = MediaCore::new(path, audio_context.output_config)?;
 
-        let video = open_video(path)?.map(|video| ImageOnlyVideo::new(path, video));
-        let audio = open_audio(path, audio_context)?;
+        if let Some(audio) = audio {
+            audio_context.load_audio(audio)?;
+        }
+
+        // let video = open_video(path)?.map(|video| ImageOnlyVideo::new(path, video));
+        // let audio = open_audio(path, audio_context)?;
 
         Ok(Media {
-            id,
-            video,
-            audio,
-            path: path.as_ref().to_path_buf(),
+            media_core,
             start_instant: None,
             anchor_playback_duration: None,
+            video,
         })
     }
-    pub(crate) fn play(&mut self, start_at: Instant) {
-        self.start_instant = Some(start_at);
-        if let Some(audio) = &mut self.audio {
-            audio.play(start_at, self.anchor_playback_duration.unwrap_or_default());
-        }
-
-        if let Some(video) = &mut self.video {
-            video.start(start_at, self.anchor_playback_duration.unwrap_or_default());
-        }
+    pub(crate) fn play(&mut self) -> Result<()> {
+        self.media_core.play()
     }
-    pub(crate) fn stop(&mut self) {
-        if let Some(audio) = &mut self.audio {
-            audio.stop();
-        }
-
-        if let Some(video) = &mut self.video {
-            video.stop();
-        }
+    pub(crate) fn stop(&mut self) -> Result<()> {
+        self.media_core.stop()
     }
-    pub(crate) fn pause(&mut self) {
-        if !self.is_playing() {
-            return;
-        }
-        self.anchor_playback_duration = Some(
-            (crate::time::now() - self.start_instant.unwrap())
-                + self.anchor_playback_duration.unwrap_or_default(),
-        );
-        self.start_instant = None;
-
-        if let Some(audio) = &mut self.audio {
-            audio.pause();
-        }
-
-        if let Some(video) = &mut self.video {
-            video.pause();
-        }
+    pub(crate) fn pause(&mut self) -> Result<()> {
+        self.media_core.pause()
     }
     /// It is not guaranteed to work well if `playback_duration` is negative.
     pub(crate) fn seek_to(&mut self, playback_duration: Duration) -> Result<()> {
-        if let Some(audio) = &mut self.audio {
-            audio.seek_to(playback_duration);
-        }
-
-        if let Some(video) = &mut self.video {
-            video.seek_to(playback_duration)?;
-        }
-
-        self.anchor_playback_duration = Some({
-            if let Some(start_instant) = self.start_instant {
-                playback_duration - (crate::time::now() - start_instant)
-            } else {
-                playback_duration
-            }
-        });
-        Ok(())
+        self.media_core.seek_to(playback_duration)
     }
     pub(crate) fn playback_duration(&self) -> Duration {
         let Some(start_instant) = self.start_instant else {
@@ -96,36 +51,16 @@ impl Media {
         (crate::time::now() - start_instant) + self.anchor_playback_duration.unwrap_or_default()
     }
     pub(crate) fn is_playing(&self) -> bool {
-        Some(true) == self.audio.as_ref().map(|audio| audio.is_playing())
-            || Some(true) == self.video.as_ref().map(|video| video.is_playing())
+        todo!()
     }
     pub(crate) fn get_image(&mut self) -> Result<Option<ImageHandle>> {
         let Some(video) = &mut self.video else {
             return Ok(None);
         };
+
         video.get_image()
     }
     pub(crate) fn clone_independent(&self) -> Result<Self> {
-        let video = {
-            if self.video.is_some() {
-                open_video(&self.path)?.map(|video| ImageOnlyVideo::new(&self.path, video))
-            } else {
-                None
-            }
-        };
-
-        Ok(Self {
-            id: self.id,
-            video,
-            audio: self.audio.clone(),
-            path: self.path.clone(),
-            anchor_playback_duration: None,
-            start_instant: None,
-        })
+        todo!()
     }
-}
-
-fn generate_media_id() -> usize {
-    static MEDIA_ID: AtomicUsize = AtomicUsize::new(0);
-    MEDIA_ID.fetch_add(1, Ordering::Relaxed)
 }
