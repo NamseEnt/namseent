@@ -51,9 +51,7 @@ pub fn start<C: Component>(component: impl Send + Sync + Fn() -> C + 'static) {
 
                 crate::log!("Namui system initialized");
 
-                tokio::task::block_in_place(|| crate::hooks::run_loop(component))
-                    .await
-                    .unwrap();
+                tokio::task::block_in_place(|| crate::hooks::run_loop(component));
             })
     });
 
