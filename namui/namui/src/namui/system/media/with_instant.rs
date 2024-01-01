@@ -10,6 +10,9 @@ impl<T> WithInstant<T> {
     pub(crate) fn new(value: T, instant: Instant) -> Self {
         Self { value, instant }
     }
+    pub(crate) fn inner(self) -> T {
+        self.value
+    }
 }
 
 impl<T> std::ops::Deref for WithInstant<T> {

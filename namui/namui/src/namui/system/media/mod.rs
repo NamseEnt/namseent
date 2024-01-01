@@ -8,8 +8,11 @@ mod audio_resampling;
 mod media_context;
 mod media_control;
 mod media_core;
+mod media_decoding_stream;
+mod media_decoding_thread;
 mod media_handle;
 mod media_struct;
+mod open_media;
 mod video_framer;
 mod video_scaling;
 mod with_instant;
@@ -22,7 +25,7 @@ use std::{path::Path, sync::OnceLock};
 use with_instant::WithInstant;
 
 const AUDIO_CHANNEL_BOUND: usize = 128;
-const VIDEO_CHANNEL_BOUND: usize = 20;
+const VIDEO_CHANNEL_BOUND: usize = 10;
 
 static MEDIA_SYSTEM: OnceLock<MediaContext> = OnceLock::new();
 

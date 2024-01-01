@@ -1,4 +1,4 @@
-use super::{media_control::MediaControlReceiver, WithInstant};
+use super::{media_control::MediaControlReceiver, WithInstant, VIDEO_CHANNEL_BOUND};
 use namui_type::*;
 use std::{collections::VecDeque, ops::Deref};
 
@@ -29,7 +29,13 @@ impl VideoFramer {
     }
 
     pub(crate) fn get_image(&mut self) -> Option<namui_type::ImageHandle> {
-        self.images.extend(self.image_handle_rx.try_iter());
+        while self.images.len() < VIDEO_CHANNEL_BOUND {
+            if let Ok(image_handle) = self.image_handle_rx.try_recv() {
+                self.images.push_back(image_handle);
+            } else {
+                break;
+            }
+        }
 
         if let Some(flush_requested) = self.control_receiver.flush_requested() {
             self.images.retain(|frame| flush_requested < frame.instant);
@@ -38,7 +44,7 @@ impl VideoFramer {
         let Some(start_requested) = self.control_receiver.start_requested() else {
             return self.images.front().map(|frame| frame.deref().clone());
         };
-        
+
         if self.last_start_requested != Some(start_requested) {
             self.frame_received_after_start = 0;
             self.last_start_requested = Some(start_requested);

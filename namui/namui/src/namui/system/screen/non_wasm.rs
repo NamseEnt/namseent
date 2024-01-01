@@ -42,14 +42,9 @@ pub(crate) fn take_main_thread() {
 
     event_loop
         .run(|event, target| {
-<<<<<<< HEAD
             target.set_control_flow(winit::event_loop::ControlFlow::WaitUntil(
                 std::time::Instant::now() + std::time::Duration::from_millis(10),
             ));
-=======
-            target.set_control_flow(winit::event_loop::ControlFlow::Poll);
->>>>>>> bb9542ab (Divide main thread and tokio runtime)
-
             match event {
                 winit::event::Event::WindowEvent {
                     window_id: _,
