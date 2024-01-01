@@ -14,6 +14,7 @@ impl Renderer {
         component: impl Component,
         matrix: Matrix3x3,
         clippings: Vec<Clipping>,
+        raw_event: RawEventContainer,
     ) -> RenderingTree {
         let child_instance = self
             .instance
@@ -24,6 +25,7 @@ impl Renderer {
             self.updated_sigs.clone(),
             matrix,
             clippings,
+            raw_event,
         )
     }
 }

@@ -2,10 +2,8 @@ use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 use quick::*;
 
-pub async fn main() {
-    let namui_context = namui::init().await;
-
-    namui::start(namui_context, &mut TuiExample::new(), &()).await
+pub fn main() {
+    namui::start(&mut TuiExample::new(), &()).await
 }
 
 struct TuiExample {}

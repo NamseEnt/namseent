@@ -1,10 +1,8 @@
 use namui::prelude::*;
 use namui_prebuilt::typography;
 
-pub async fn main() {
-    let namui_context = namui::init().await;
-
-    namui::start(namui_context, || BundleExample).await
+pub fn main() {
+    namui::start(|| BundleExample)
 }
 
 #[namui::component]

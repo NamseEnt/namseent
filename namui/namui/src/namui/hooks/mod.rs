@@ -29,30 +29,34 @@ use std::{
 };
 pub use value::*;
 
-static TREE_CTX: OnceLock<TreeContext> = OnceLock::new();
-pub(crate) async fn start<C: Component>(root_component: impl Send + Sync + 'static + Fn() -> C) {
-    TREE_CTX.set(TreeContext::new(root_component)).unwrap();
+static RAW_EVENT_TX: OnceLock<std::sync::mpsc::Sender<RawEvent>> = OnceLock::new();
+pub(crate) fn run_loop<C: Component>(root_component: impl Send + Sync + 'static + Fn() -> C) {
+    let (raw_event_tx, raw_event_rx) = std::sync::mpsc::channel();
+    RAW_EVENT_TX.set(raw_event_tx).unwrap();
+    let (channel_tx, channel_rx) = std::sync::mpsc::channel();
+    crate::hooks::channel::init(channel_tx);
 
-    TREE_CTX.get().unwrap().start().await;
+    let mut tree_ctx = TreeContext::new(root_component);
 
-    #[cfg(not(target_family = "wasm"))]
-    crate::system::screen::await_event_loop_join().await;
+    tree_ctx.start(&channel_rx);
+
+    while let Ok(event) = raw_event_rx.recv() {
+        let instant = std::time::Instant::now();
+
+        tree_ctx.on_raw_event(event, &channel_rx);
+
+        let elapsed = instant.elapsed();
+        if elapsed.as_millis() > 1 {
+            println!(
+                "Warning: Rendering took {}ms. Keep it short as possible.",
+                elapsed.as_millis()
+            );
+        }
+    }
 }
 
 pub(crate) fn on_raw_event(event: RawEvent) {
-    if let Some(ctx) = TREE_CTX.get() {
-        ctx.on_raw_event(event)
-    }
-}
-
-pub(crate) fn render_and_draw() {
-    if let Some(ctx) = TREE_CTX.get() {
-        ctx.render_and_draw()
-    }
-}
-
-pub(crate) fn stop_event_propagation() {
-    if let Some(ctx) = TREE_CTX.get() {
-        ctx.stop_event_propagation()
+    if let Some(tx) = RAW_EVENT_TX.get() {
+        tx.send(event).unwrap()
     }
 }

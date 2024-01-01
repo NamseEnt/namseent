@@ -17,7 +17,7 @@ use std::{
     sync::{atomic::AtomicUsize, Arc, Mutex},
 };
 
-type RawEventContainer = Arc<Mutex<Option<Arc<RawEvent>>>>;
+pub(crate) type RawEventContainer = Arc<Option<RawEvent>>;
 
 pub struct RenderCtx {
     pub(crate) instance: Arc<ComponentInstance>,
@@ -83,8 +83,13 @@ impl RenderCtx {
     }
 
     fn render_children(&self, key_vec: KeyVec, component: impl Component) -> RenderingTree {
-        self.renderer()
-            .render(key_vec, component, self.matrix(), self.clippings.clone())
+        self.renderer().render(
+            key_vec,
+            component,
+            self.matrix(),
+            self.clippings.clone(),
+            self.raw_event.clone(),
+        )
     }
 
     fn get_next_component_index(&self) -> usize {

@@ -1,10 +1,8 @@
 use namui::prelude::*;
 use namui_prebuilt::button::TextButton;
 
-pub async fn main() {
-    let namui_context = namui::init().await;
-
-    namui::start(namui_context, || MediaExample).await
+pub fn main() {
+    namui::start(|| MediaExample)
 }
 
 #[namui::component]

@@ -3,7 +3,10 @@ mod raw;
 use super::*;
 use derivative::Derivative;
 pub use raw::*;
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    sync::{atomic::AtomicBool, Arc},
+};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -54,9 +57,7 @@ pub enum Event<'a> {
 }
 
 pub trait EventExt {
-    fn stop_propagation(&self) {
-        crate::hooks::stop_event_propagation();
-    }
+    fn stop_propagation(&self);
 }
 
 #[derive(Derivative)]
@@ -70,8 +71,14 @@ pub struct TextInputKeyDownEvent<'a> {
     pub is_composing: bool,
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a dyn Fn(),
+    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
 }
-impl EventExt for TextInputKeyDownEvent<'_> {}
+impl EventExt for TextInputKeyDownEvent<'_> {
+    fn stop_propagation(&self) {
+        self.is_stop_event_propagation
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
 impl TextInputKeyDownEvent<'_> {
     pub fn prevent_default(&self) {
         (self.prevent_default)();
@@ -96,8 +103,14 @@ pub struct MouseEvent<'a> {
     pub event_type: MouseEventType,
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a dyn Fn(),
+    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
 }
-impl EventExt for MouseEvent<'_> {}
+impl EventExt for MouseEvent<'_> {
+    fn stop_propagation(&self) {
+        self.is_stop_event_propagation
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
 impl MouseEvent<'_> {
     pub fn local_xy(&self) -> Xy<Px> {
         (self.local_xy)()
@@ -124,8 +137,14 @@ pub struct WheelEvent<'a> {
     pub(crate) is_local_xy_in: Box<dyn 'a + Fn() -> bool>,
     #[derivative(Debug = "ignore")]
     pub(crate) local_xy: Box<dyn 'a + Fn() -> Xy<Px>>,
+    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
 }
-impl EventExt for WheelEvent<'_> {}
+impl EventExt for WheelEvent<'_> {
+    fn stop_propagation(&self) {
+        self.is_stop_event_propagation
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
 impl WheelEvent<'_> {
     pub fn local_xy(&self) -> Xy<Px> {
         (self.local_xy)()
@@ -142,8 +161,14 @@ pub struct KeyboardEvent<'a> {
     pub pressing_codes: &'a HashSet<Code>,
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a dyn Fn(),
+    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
 }
-impl EventExt for KeyboardEvent<'_> {}
+impl EventExt for KeyboardEvent<'_> {
+    fn stop_propagation(&self) {
+        self.is_stop_event_propagation
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
 impl KeyboardEvent<'_> {
     pub fn prevent_default(&self) {
         (self.prevent_default)();

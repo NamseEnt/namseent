@@ -46,9 +46,15 @@ impl<'a> RenderCtx {
     }
 
     pub fn on_raw_event(&'a self, on_raw_event: impl 'a + FnOnce(&crate::RawEvent)) {
-        if let Some(raw_event) = self.raw_event.lock().unwrap().clone() {
-            on_raw_event(raw_event.as_ref());
+        if let Some(raw_event) = self.raw_event.as_ref() {
+            on_raw_event(raw_event);
         }
+    }
+
+    pub fn stop_event_propagation(&'a self) {
+        self.tree_ctx
+            .is_stop_event_propagation
+            .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 
     pub fn done(&self) -> RenderDone {

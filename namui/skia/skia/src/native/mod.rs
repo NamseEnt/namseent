@@ -1,3 +1,4 @@
+mod calculate;
 mod canvas;
 mod color_filter;
 mod font;
@@ -13,7 +14,8 @@ mod typeface;
 // TODO
 // mod runtime_effect;
 
-use crate::SkSkia;
+use self::calculate::NativeCalculate;
+use crate::{SkCalculate, SkSkia};
 use anyhow::Result;
 pub(crate) use color_filter::*;
 pub(crate) use font::*;
@@ -30,7 +32,6 @@ pub(crate) use text_blob::*;
 pub(crate) use typeface::*;
 // // pub(crate) use runtime_effect::*;
 
-#[cfg(feature = "windows")]
 pub fn init_skia(
     screen_id: usize,
     window_wh: Wh<IntPx>,
@@ -38,4 +39,8 @@ pub fn init_skia(
     Ok(Arc::new(RwLock::new(NativeSkia::new(
         screen_id, window_wh,
     )?)))
+}
+
+pub fn init_calculate() -> Result<Arc<impl SkCalculate + Send + Sync>> {
+    Ok(Arc::new(NativeCalculate::new()))
 }

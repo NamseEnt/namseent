@@ -13,19 +13,13 @@ pub(super) async fn init_skia() -> Result<Arc<RwLock<impl SkSkia + Send + Sync>>
     )
 }
 
+pub(super) async fn init_calculate() -> Result<Arc<impl SkCalculate + Send + Sync>> {
+    namui_skia::init_calculate()
+}
+
 pub(crate) fn on_window_resize(wh: Wh<IntPx>) {
     let mut skia = super::SKIA.get().unwrap().write().unwrap();
     skia.on_resize(wh);
-}
-
-pub(crate) fn load_image(image_source: &ImageSource, bytes: &[u8]) -> ImageInfo {
-    let skia = super::SKIA.get().unwrap().read().unwrap();
-    skia.load_image(image_source, bytes)
-}
-
-pub(crate) fn load_image2(image_info: ImageInfo, bytes: &mut [u8]) -> ImageHandle {
-    let mut skia = super::SKIA.get().unwrap().write().unwrap();
-    skia.load_image_from_raw(image_info, bytes)
 }
 
 pub(crate) fn render(draw_input: DrawInput) {

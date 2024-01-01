@@ -32,9 +32,9 @@ use std::sync::atomic::AtomicBool;
 
 type InitResult = Result<()>;
 
-static INITIALIZED: AtomicBool = AtomicBool::new(false);
+static SYSTEM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
-pub(crate) async fn init() -> InitResult {
+pub(super) async fn init_system() -> InitResult {
     futures::try_join!(
         cache::init(),
         file::init(),
@@ -62,13 +62,11 @@ pub(crate) async fn init() -> InitResult {
 
     tokio::try_join!(typeface::init(), media::init(),)?;
 
-    INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
+    SYSTEM_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
 
     Ok(())
 }
 
-async fn wait_for_system_init() {
-    while !INITIALIZED.load(std::sync::atomic::Ordering::SeqCst) {
-        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-    }
+pub(crate) fn take_main_thread() {
+    screen::take_main_thread();
 }
