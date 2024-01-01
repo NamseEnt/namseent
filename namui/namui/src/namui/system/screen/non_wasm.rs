@@ -42,7 +42,9 @@ pub(crate) fn take_main_thread() {
 
     event_loop
         .run(|event, target| {
-            target.set_control_flow(winit::event_loop::ControlFlow::Poll);
+            target.set_control_flow(winit::event_loop::ControlFlow::WaitUntil(
+                std::time::Instant::now() + std::time::Duration::from_millis(10),
+            ));
 
             match event {
                 winit::event::Event::WindowEvent {
@@ -103,8 +105,10 @@ pub(crate) fn take_main_thread() {
                     }
                     _ => {}
                 },
-                winit::event::Event::NewEvents(winit::event::StartCause::Poll) => {
-                    // crate::on_raw_event(RawEvent::ScreenRedraw);
+                winit::event::Event::NewEvents(winit::event::StartCause::ResumeTimeReached {
+                    ..
+                }) => {
+                    crate::on_raw_event(RawEvent::ScreenRedraw);
                 }
                 _ => (),
             }
