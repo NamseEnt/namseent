@@ -228,6 +228,7 @@ fn spawn_decoding_thread(
                             }
                             DecodingThreadCommand::SeekTo { duration } => {
                                 media_controller.flush();
+                                seek 한 다음에 decoder 다시 만들어야하나봐.
                                 input_ctx.seek(duration.as_micros() as i64, ..)?;
                                 eof = false;
                             }
