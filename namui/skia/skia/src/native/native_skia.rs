@@ -18,10 +18,8 @@ use windows::Win32::{
 };
 
 pub(crate) struct NativeSkia {
-    _backend_context: skia_safe::gpu::d3d::BackendContext,
-    context: skia_safe::gpu::DirectContext,
     surface: NativeSurface,
-    _hwnd: HWND,
+    calculate: NativeCalculate,
 }
 unsafe impl Send for NativeSkia {}
 unsafe impl Sync for NativeSkia {}
@@ -71,9 +69,7 @@ impl NativeSkia {
                 &backend_context.queue,
                 hwnd,
             )?,
-            _backend_context: backend_context,
-            context,
-            _hwnd: hwnd,
+            calculate: NativeCalculate::new(),
         })
     }
 }
@@ -88,47 +84,39 @@ impl SkSkia for NativeSkia {
     fn on_resize(&mut self, wh: Wh<IntPx>) {
         self.surface.resize(wh);
     }
+}
 
+impl SkCalculate for NativeSkia {
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph> {
-        NativeGroupGlyph::get(font, paint)
+        self.calculate.group_glyph(font, paint)
     }
 
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics> {
-        NativeFont::get(font).map(|x| x.metrics)
+        self.calculate.font_metrics(font)
     }
 
     fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) {
-        NativeTypeface::load(typeface_name, bytes)
-    }
-
-    fn image(&self, image_source: &ImageSource) -> Option<Image> {
-        NativeImage::get(image_source).map(|x| x.image())
+        self.calculate.load_typeface(typeface_name, bytes)
     }
 
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool {
-        NativePath::get(path).contains(paint, xy)
+        self.calculate.path_contains_xy(path, paint, xy)
     }
 
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>> {
-        NativePath::get(path).bounding_box(paint)
+        self.calculate.path_bounding_box(path, paint)
+    }
+
+    fn image(&self, image_source: &ImageSource) -> Option<Image> {
+        self.calculate.image(image_source)
     }
 
     fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo {
-        NativeImage::load(image_source, encoded_image)
+        self.calculate.load_image(image_source, encoded_image)
     }
 
-    fn load_image_from_raw(&mut self, image_info: ImageInfo, bitmap: &mut [u8]) -> ImageHandle {
-        let row_bytes = image_info.width.as_f32() as usize * image_info.color_type.word();
-        let pixmap = skia_safe::Pixmap::new(&image_info.into(), bitmap, row_bytes).unwrap();
-        let texture = skia_safe::gpu::images::cross_context_texture_from_pixmap(
-            &mut self.context,
-            &pixmap,
-            true,
-            None,
-        )
-        .unwrap();
-
-        ImageHandle::new(image_info, uuid(), texture)
+    fn load_image_from_raw(&self, image_info: ImageInfo, bitmap: &[u8]) -> ImageHandle {
+        self.calculate.load_image_from_raw(image_info, bitmap)
     }
 }
 

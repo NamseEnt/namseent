@@ -4,26 +4,27 @@ use std::sync::Arc;
 #[cfg(feature = "wasm")]
 use web_sys::ImageBitmap;
 
-pub trait SkSkia {
+pub trait SkSkia: SkCalculate {
     fn move_to_next_frame(&mut self);
     fn surface(&mut self) -> &mut dyn SkSurface;
     fn on_resize(&mut self, wh: Wh<IntPx>);
+}
+
+pub trait SkCalculate {
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph>;
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics>;
     fn load_typeface(&self, typeface_name: &str, bytes: &[u8]);
-    fn image(&self, image_source: &ImageSource) -> Option<Image>;
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool;
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>>;
-
+    fn image(&self, image_source: &ImageSource) -> Option<Image>;
     #[cfg(feature = "wasm")]
     async fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8>;
     #[cfg(feature = "wasm")]
     fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
     #[cfg(not(feature = "wasm"))]
     fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo;
-
     #[cfg(not(feature = "wasm"))]
-    fn load_image_from_raw(&mut self, image_info: ImageInfo, bitmap: &mut [u8]) -> ImageHandle;
+    fn load_image_from_raw(&self, image_info: ImageInfo, bitmap: &[u8]) -> ImageHandle;
 }
 
 pub trait SkSurface {
