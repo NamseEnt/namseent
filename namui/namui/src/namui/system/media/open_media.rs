@@ -56,6 +56,9 @@ pub(crate) fn open_media(
                         decoder,
                         tx,
                         parameters,
+                        seek_to: None,
+                        sent_count: 0,
+                        time_base: f64::from(stream.time_base()), // NOTE: decoder.time_base() shows 0/1. I have no idea.
                     }))
                 }
                 ffmpeg_next::media::Type::Audio => {
@@ -89,6 +92,9 @@ pub(crate) fn open_media(
                         decoder,
                         tx,
                         parameters,
+                        seek_to: None,
+                        sent_count: 0,
+                        time_base: f64::from(stream.time_base()),
                     }))
                 }
                 _ => Ok(None),

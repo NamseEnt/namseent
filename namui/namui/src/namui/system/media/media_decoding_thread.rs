@@ -27,7 +27,6 @@ pub(crate) fn spawn_decoding_thread(
             media_controller,
             eof: false,
             is_playing: false,
-            preload_count: 0,
         }
         .run()
         .unwrap()
@@ -41,12 +40,10 @@ struct DecodingThreadRunner {
     media_controller: MediaController,
     eof: bool,
     is_playing: bool,
-    preload_count: usize,
 }
 
 impl DecodingThreadRunner {
     fn run(mut self) -> Result<()> {
-        let mut index = 0;
         loop {
             loop {
                 match self.command_rx.try_recv() {
@@ -65,7 +62,14 @@ impl DecodingThreadRunner {
                 }
             }
 
-            if !self.is_playing && (self.eof || self.preload_count >= VIDEO_CHANNEL_BOUND) {
+            let should_push_packet = !self.eof
+                && (self.is_playing
+                    || self
+                        .map_decoding_streams(|stream| stream.sent_count())?
+                        .into_iter()
+                        .any(|x| x < VIDEO_CHANNEL_BOUND));
+
+            if !should_push_packet {
                 std::thread::yield_now();
                 continue;
             }
@@ -76,14 +80,6 @@ impl DecodingThreadRunner {
                         continue;
                     };
 
-                    if !self.is_playing {
-                        println!("preload: {}", self.preload_count);
-                        self.preload_count += 1;
-                    }
-
-                    println!("index: {index}");
-                    index += 1;
-
                     decoding_stream.send_packet(&packet)?;
                     decoding_stream.receive_and_process_decoded_frames()?;
                 }
@@ -93,7 +89,6 @@ impl DecodingThreadRunner {
                     }
 
                     self.eof = true;
-                    println!("EOF");
 
                     self.send_eof()?;
                 }
@@ -108,54 +103,58 @@ impl DecodingThreadRunner {
             }
             DecodingThreadCommand::Stop => {
                 self.is_playing = false;
-                self.preload_count = 0;
+
                 self.media_controller.flush();
                 self.media_controller.stop();
+
                 self.input_ctx.seek(0, ..)?;
+
                 self.eof = false;
+
                 self.reset_decoders()?;
             }
             DecodingThreadCommand::Pause => {
                 self.is_playing = false;
-                self.preload_count = 0;
                 self.media_controller.stop();
             }
             DecodingThreadCommand::SeekTo { duration } => {
-                println!("Seek to: {:?}", duration);
                 self.media_controller.flush();
-                self.preload_count = 0;
 
                 let micros = duration.as_micros() as i64;
-                self.input_ctx.seek(micros, ..micros)?;
+                self.input_ctx.seek(micros, ..)?;
 
                 self.eof = false;
                 self.reset_decoders()?;
+
+                self.map_decoding_streams(|decoding_stream| decoding_stream.seek_to(duration))?;
             }
         }
 
         Ok(())
     }
 
-    fn reset_decoders(&mut self) -> Result<()> {
+    fn map_decoding_streams<T>(
+        &mut self,
+        callback: impl Fn(&mut DecodingStream) -> Result<T>,
+    ) -> Result<Vec<T>> {
         self.decoding_streams
             .iter_mut()
             .filter_map(|decoding_stream| decoding_stream.as_mut())
-            .map(|decoding_stream| decoding_stream.reset_decoder())
-            .collect::<Result<Vec<_>>>()?;
+            .map(callback)
+            .collect::<Result<Vec<_>>>()
+    }
+
+    fn reset_decoders(&mut self) -> Result<()> {
+        self.map_decoding_streams(|decoding_stream| decoding_stream.reset_decoder())?;
         Ok(())
     }
 
     fn send_eof(&mut self) -> Result<()> {
-        self.decoding_streams
-            .iter_mut()
-            .filter_map(|decoding_stream| decoding_stream.as_mut())
-            .map(|decoding_stream| -> Result<_> {
-                decoding_stream.send_eof()?;
-                decoding_stream.receive_and_process_decoded_frames()?;
-                Ok(())
-            })
-            .collect::<Result<Vec<_>>>()?;
-
+        self.map_decoding_streams(|decoding_stream| {
+            decoding_stream.send_eof()?;
+            decoding_stream.receive_and_process_decoded_frames()?;
+            Ok(())
+        })?;
         Ok(())
     }
 }

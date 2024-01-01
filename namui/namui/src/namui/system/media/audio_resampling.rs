@@ -32,7 +32,7 @@ pub(crate) fn start_audio_resampling(
                 while let Ok(frame) = ffmpeg_audio_frame_rx.recv() {
                     let mut resampled = ffmpeg_next::frame::Audio::empty();
                     if let Some(delay) = resampler.run(&frame, &mut resampled)? {
-                        eprintln!("delay: {:?}", delay);
+                        eprintln!("[namui-media] unexpected delay: {:?}", delay);
                     }
 
                     assert!(resampled.is_packed());
