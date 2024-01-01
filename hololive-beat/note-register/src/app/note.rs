@@ -51,8 +51,10 @@ impl TryFrom<Code> for Direction {
 impl Direction {
     pub fn lane(&self) -> usize {
         match self {
-            Direction::Up | Direction::Right => 0,
-            Direction::Down | Direction::Left => 1,
+            Direction::Up => 3,
+            Direction::Right => 2,
+            Direction::Down => 1,
+            Direction::Left => 0,
         }
     }
 

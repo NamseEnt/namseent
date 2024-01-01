@@ -10,7 +10,7 @@ pub struct NotePlotter<'a> {
     pub wh: Wh<Px>,
     pub notes: &'a Vec<Note>,
     pub px_per_time: Per<Px, Duration>,
-    pub timing_zero_x: Px,
+    pub timing_zero_y_from_bottom: Px,
     pub played_time: Duration,
 }
 
@@ -20,44 +20,52 @@ impl Component for NotePlotter<'_> {
             wh,
             notes,
             px_per_time,
-            timing_zero_x,
+            timing_zero_y_from_bottom,
             played_time,
         } = self;
         const STROKE_WIDTH: Px = px(2.0);
-        const TIMING_ZERO_BAR_WIDTH: Px = px(6.0);
+        const TIMING_ZERO_BAR_HEIGHT: Px = px(6.0);
 
-        let (divider_y_array, baseline_y_array) = {
-            let height = wh.height / 2;
-            let half = height / 2;
-            let divider_y_array = [0.px(), height, height * 2];
-            let baseline_y_array = [half, divider_y_array[1] + half];
-            (divider_y_array, baseline_y_array)
+        let (divider_x_array, baseline_x_array) = {
+            let width = wh.width / 4;
+            let half = width / 2;
+            let divider_x_array = [width, width * 2, width * 3];
+            let baseline_x_array = [
+                half,
+                divider_x_array[0] + half,
+                divider_x_array[1] + half,
+                divider_x_array[2] + half,
+            ];
+            (divider_x_array, baseline_x_array)
         };
 
         ctx.compose(|ctx| {
-            ctx.translate((timing_zero_x - (TIMING_ZERO_BAR_WIDTH / 2), 0.px()))
-                .add(simple_rect(
-                    Wh {
-                        width: TIMING_ZERO_BAR_WIDTH,
-                        height: wh.height,
-                    },
-                    THEME.surface.contrast_text,
-                    STROKE_WIDTH,
-                    THEME.primary.main,
-                ));
+            ctx.translate((
+                0.px(),
+                wh.height - timing_zero_y_from_bottom - (TIMING_ZERO_BAR_HEIGHT / 2),
+            ))
+            .add(simple_rect(
+                Wh {
+                    width: wh.width,
+                    height: TIMING_ZERO_BAR_HEIGHT,
+                },
+                THEME.surface.contrast_text,
+                STROKE_WIDTH,
+                THEME.primary.main,
+            ));
         });
 
         ctx.compose(|ctx| {
             for note in notes {
-                let note_x =
-                    timing_zero_x + (px_per_time * (note.time - Instant::new(played_time)));
-                if note_x < -wh.width {
+                let note_y = (px_per_time * (Instant::new(played_time) - note.time))
+                    - timing_zero_y_from_bottom;
+                if note_y > wh.height * 2 {
                     continue;
                 }
-                if note_x > wh.width * 2 {
+                if note_y < -wh.height {
                     break;
                 }
-                let note_y = baseline_y_array[note.direction.lane()];
+                let note_x = baseline_x_array[note.direction.lane()];
                 let note_xy = Xy {
                     x: note_x,
                     y: note_y,
@@ -75,8 +83,12 @@ impl Component for NotePlotter<'_> {
 
         ctx.component(path(
             Path::new()
-                .move_to(0.px(), divider_y_array[1])
-                .line_to(wh.width, divider_y_array[1]),
+                .move_to(divider_x_array[0], 0.px())
+                .line_to(divider_x_array[0], wh.height)
+                .move_to(divider_x_array[1], 0.px())
+                .line_to(divider_x_array[1], wh.height)
+                .move_to(divider_x_array[2], 0.px())
+                .line_to(divider_x_array[2], wh.height),
             Paint::new(THEME.surface.contrast_text)
                 .set_style(PaintStyle::Stroke)
                 .set_stroke_width(STROKE_WIDTH),
