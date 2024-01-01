@@ -99,6 +99,10 @@ fn collect_rust_build(
                 &build_dist_path.join("namui-runtime-x86_64-pc-windows-msvc.exe"),
                 &PathBuf::from(""),
             ));
+            ops.push(CollectOperation::new(
+                &build_dist_path.join("namui_runtime_x86_64_pc_windows_msvc.pdb"),
+                &PathBuf::from(""),
+            ));
         }
     }
     Ok(())
