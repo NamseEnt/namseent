@@ -98,24 +98,26 @@ impl ComposeCtx {
         )
     }
     pub fn attach_event(&mut self, on_event: impl FnOnce(Event<'_>)) -> &mut Self {
-        if let Some(raw_event) = self.raw_event.lock().unwrap().clone() {
-            let rendering_tree = {
-                let rendering_trees: Vec<_> = std::mem::take(&mut self.lazy_children)
-                    .into_iter()
-                    .map(|x| x.lock().unwrap().take().unwrap().into_rendering_tree())
-                    .collect();
-                self.unlazy_children.extend(rendering_trees);
-                RenderingTree::Children(self.unlazy_children.clone())
-            };
-            invoke_on_event(
-                &self.tree_ctx,
-                on_event,
-                &raw_event,
-                self.matrix.inverse().unwrap(),
-                &rendering_tree,
-                &self.clippings,
-            );
-        }
+        let Some(raw_event) = self.raw_event.as_ref() else {
+            return self;
+        };
+
+        let rendering_tree = {
+            let rendering_trees: Vec<_> = std::mem::take(&mut self.lazy_children)
+                .into_iter()
+                .map(|x| x.lock().unwrap().take().unwrap().into_rendering_tree())
+                .collect();
+            self.unlazy_children.extend(rendering_trees);
+            RenderingTree::Children(self.unlazy_children.clone())
+        };
+        invoke_on_event(
+            &self.tree_ctx,
+            on_event,
+            raw_event,
+            self.matrix.inverse().unwrap(),
+            &rendering_tree,
+            &self.clippings,
+        );
 
         self
     }

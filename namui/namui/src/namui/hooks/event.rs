@@ -1,4 +1,7 @@
 use crate::*;
+use std::sync::{atomic::AtomicBool, Arc};
+#[cfg(target_family = "wasm")]
+use web_sys::DataTransfer;
 
 pub(crate) fn invoke_on_event(
     tree_ctx: &TreeContext,
@@ -14,6 +17,7 @@ pub(crate) fn invoke_on_event(
     {
         return;
     }
+    let is_stop_event_propagation = tree_ctx.is_stop_event_propagation.clone();
 
     match raw_event {
         RawEvent::MouseDown { event } => {
@@ -23,6 +27,7 @@ pub(crate) fn invoke_on_event(
                 event,
                 MouseEventType::Down,
                 global_xy_clip_in,
+                is_stop_event_propagation,
             );
 
             on_event(Event::MouseDown { event });
@@ -35,6 +40,7 @@ pub(crate) fn invoke_on_event(
                     event,
                     MouseEventType::Move,
                     global_xy_clip_in,
+                    is_stop_event_propagation,
                 ),
             });
         }
@@ -46,6 +52,7 @@ pub(crate) fn invoke_on_event(
                     event,
                     MouseEventType::Up,
                     global_xy_clip_in,
+                    is_stop_event_propagation,
                 ),
             });
         }
@@ -61,6 +68,7 @@ pub(crate) fn invoke_on_event(
                                 inverse_matrix.transform_xy(event.mouse_xy),
                             )
                     }),
+                    is_stop_event_propagation,
                 },
             });
         }
@@ -83,6 +91,7 @@ pub(crate) fn invoke_on_event(
                     code: event.code,
                     pressing_codes: &event.pressing_codes,
                     prevent_default: &event.prevent_default,
+                    is_stop_event_propagation,
                 },
             });
         }
@@ -92,6 +101,7 @@ pub(crate) fn invoke_on_event(
                     code: event.code,
                     pressing_codes: &event.pressing_codes,
                     prevent_default: &event.prevent_default,
+                    is_stop_event_propagation,
                 },
             });
         }
@@ -127,6 +137,7 @@ pub(crate) fn invoke_on_event(
                     selection_end: event.selection_end,
                     is_composing: event.is_composing,
                     prevent_default: &event.prevent_default,
+                    is_stop_event_propagation,
                 },
             });
         }
@@ -157,6 +168,7 @@ fn get_mouse_event<'a>(
     raw_mouse_event: &'a RawMouseEvent,
     mouse_event_type: MouseEventType,
     global_xy_clip_in: impl ClipIn + 'a,
+    is_stop_event_propagation: Arc<AtomicBool>,
 ) -> MouseEvent<'a> {
     MouseEvent {
         local_xy: Box::new(move || inverse_matrix.transform_xy(raw_mouse_event.xy)),
@@ -169,11 +181,10 @@ fn get_mouse_event<'a>(
         button: raw_mouse_event.button,
         event_type: mouse_event_type,
         prevent_default: &raw_mouse_event.prevent_default,
+        is_stop_event_propagation,
     }
 }
 
-#[cfg(target_family = "wasm")]
-use web_sys::DataTransfer;
 #[cfg(target_family = "wasm")]
 fn get_file_drop_event<'a>(
     inverse_matrix: Matrix3x3,

@@ -2,10 +2,8 @@ use namui::prelude::*;
 use namui_prebuilt::{table::*, *};
 use std::f32::consts::PI;
 
-pub async fn main() {
-    let namui_context = namui::init().await;
-
-    namui::start(namui_context, &mut ShaderExample::new(), &()).await
+pub fn main() {
+    namui::start(&mut ShaderExample::new(), &()).await
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

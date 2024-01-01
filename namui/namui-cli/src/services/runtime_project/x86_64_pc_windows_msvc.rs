@@ -18,7 +18,6 @@ edition = "2021"
 
 [dependencies]
 {project_name} = {{ path = "{project_path}" }}
-tokio = {{ version = "1.12.0", features = ["rt"] }}
 
 [profile.release]
 lto = true
@@ -38,13 +37,8 @@ opt-level = 3
     std::fs::write(args.target_dir.join("Cargo.toml"), cargo_toml)?;
 
     let lib_rs = format!(
-        r#"#[tokio::main]
-async fn main() {{
-    let local_set = tokio::task::LocalSet::new();
-    local_set.run_until(async {{
-        {project_name_underscored}::main().await;
-    }}).await;
-    local_set.await;
+        r#"fn main() {{
+    {project_name_underscored}::main()
 }}
 "#,
         project_name_underscored = project_name.replace('-', "_"),

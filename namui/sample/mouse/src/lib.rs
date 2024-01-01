@@ -1,10 +1,8 @@
 use namui::prelude::*;
 use namui_prebuilt::{simple_rect, typography};
 
-pub async fn main() {
-    let namui_context = namui::init().await;
-
-    namui::start(namui_context, || MouseExample).await
+pub fn main() {
+    namui::start(|| MouseExample)
 }
 
 #[namui::component]
@@ -12,7 +10,10 @@ struct MouseExample;
 
 impl Component for MouseExample {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let (text, set_text) = ctx.state(|| "".to_string());
+        let (text, set_text) = ctx.state(|| {
+            println!("Init state");
+            "".to_string()
+        });
         ctx.component(typography::body::left_top(
             text.as_ref().clone(),
             Color::BLACK,
@@ -27,6 +28,7 @@ impl Component for MouseExample {
             )
             .attach_event(|event| match event {
                 Event::MouseDown { event } => {
+                    println!("Mouse Down Set");
                     set_text.set(format!("Mouse Down: {:?}", event));
                 }
                 Event::MouseMove { event } => {

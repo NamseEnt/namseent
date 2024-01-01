@@ -2,7 +2,6 @@ mod bounding_box;
 mod common;
 pub mod hooks;
 pub mod math;
-mod namui_context;
 mod random;
 mod render;
 pub mod system;
@@ -19,7 +18,6 @@ pub use common::*;
 pub use hooks::*;
 pub use lazy_static::lazy_static;
 pub use namui_cfg::*;
-pub use namui_context::NamuiContext;
 pub use namui_type as types;
 pub use namui_type::*;
 pub use render::*;
@@ -38,27 +36,26 @@ pub use wasm_bindgen_futures::spawn_local as spawn;
 #[cfg(not(target_family = "wasm"))]
 pub use tokio::task::spawn_blocking;
 
-pub async fn init() -> NamuiContext {
+pub fn start<C: Component>(component: impl Send + Sync + Fn() -> C + 'static) {
     namui_type::set_log(|x| log::log(x));
 
-    let namui_context = NamuiContext::new();
+    std::thread::spawn(move || {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async move {
+                system::init_system()
+                    .await
+                    .expect("Failed to initialize namui system");
 
-    crate::hooks::channel::init();
+                crate::log!("Namui system initialized");
 
-    system::init()
-        .await
-        .expect("Failed to initialize namui system");
+                tokio::task::spawn_blocking(|| crate::hooks::run_loop(component));
+            })
+    });
 
-    crate::log!("Namui system initialized");
-
-    namui_context
-}
-
-pub async fn start<C: Component>(
-    namui_context: NamuiContext,
-    component: impl Send + Sync + Fn() -> C + 'static,
-) {
-    namui_context.start(component).await;
+    system::take_main_thread();
 }
 
 #[macro_export]
