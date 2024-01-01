@@ -22,6 +22,7 @@ impl namui::Component for App {
                     cymbals: load_media("bundle:cymbals.mp3"),
                     snare: load_media("bundle:snare.mp3"),
                     music: load_media("bundle:you_re_mine.opus"),
+                    video: load_media("bundle:you_re_mine.mp4"),
                 }));
             });
         });
@@ -50,6 +51,7 @@ pub struct LoadedData {
     cymbals: MediaHandle,
     snare: MediaHandle,
     music: MediaHandle,
+    video: MediaHandle,
 }
 
 fn load_media(path: &str) -> MediaHandle {

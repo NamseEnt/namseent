@@ -3,13 +3,14 @@ mod music_player;
 mod note_judge;
 mod note_plotter;
 mod slider;
+mod video_player;
 
 use self::note_plotter::NotePlotter;
 use crate::app::{
     color::THEME,
     player::{
         instrument_player::InstrumentPlayer, music_player::MusicPlayer, note_judge::NoteJudge,
-        slider::Slider,
+        slider::Slider, video_player::VideoPlayer,
     },
     LoadedData,
 };
@@ -32,6 +33,7 @@ impl Component for Player<'_> {
             cymbals,
             snare,
             music,
+            video,
         } = loaded;
 
         const TIMING_ZERO_Y_FROM_BOTTOM: Px = px(192.0);
@@ -124,6 +126,8 @@ impl Component for Player<'_> {
         });
 
         ctx.component(MusicPlayer { music });
+
+        ctx.component(VideoPlayer { wh, video });
 
         ctx.done()
     }
