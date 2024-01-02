@@ -50,11 +50,7 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(media) = audio_mp3.as_ref() {
-                    media
-                        .clone_independent()
-                        .unwrap()
-                        .play(namui::time::now())
-                        .unwrap();
+                    media.clone_independent().unwrap().play().unwrap();
                 }
             },
         });
@@ -91,7 +87,7 @@ impl Component for MediaExample {
                 if media_handle_for_toggle.is_playing() {
                     media_handle_for_toggle.stop().unwrap();
                 } else {
-                    media_handle_for_toggle.play(namui::time::now()).unwrap();
+                    media_handle_for_toggle.play().unwrap();
                 }
             },
         });
@@ -143,7 +139,7 @@ impl Component for MediaExample {
                     if video_mp4.is_playing() {
                         video_mp4.pause().unwrap();
                     } else {
-                        video_mp4.play(namui::time::now()).unwrap();
+                        video_mp4.play().unwrap();
                     }
                 }
             },
