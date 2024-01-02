@@ -1,9 +1,9 @@
-use crate::media::{AudioConfig, AUDIO_CHANNEL_BOUND, VIDEO_CHANNEL_BOUND};
-use crate::system::media::{
-    audio::{start_audio_resampling, AudioBuffer},
+use crate::media::{
+    audio::{start_audio_resampling, AudioBuffer, AudioConfig},
     core::{spawn_decoding_thread, DecodingStream, DecodingThreadCommand, MediaController},
     video::{start_video_scaling, VideoFramer},
     with_instant::WithInstant,
+    AUDIO_CHANNEL_BOUND, VIDEO_CHANNEL_BOUND,
 };
 use anyhow::Result;
 use namui_type::*;

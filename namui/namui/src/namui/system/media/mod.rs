@@ -32,10 +32,12 @@ pub fn new_media(path: &impl AsRef<Path>) -> Result<MediaHandle> {
     MEDIA_SYSTEM.get().unwrap().new_media(path)
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct AudioConfig {
-    sample_rate: u32,
-    sample_format: ffmpeg_next::format::Sample,
-    channel_layout: ffmpeg_next::channel_layout::ChannelLayout,
-    channel_count: usize,
+/// Volume will be clamped to 0.0 ~ 1.0 if it is out of range.
+pub fn set_volume(zero_to_one: f32) {
+    MEDIA_SYSTEM.get().unwrap().set_volume(zero_to_one);
+}
+
+/// Volume value range is 0.0 ~ 1.0.
+pub fn volume() -> f32 {
+    MEDIA_SYSTEM.get().unwrap().volume()
 }

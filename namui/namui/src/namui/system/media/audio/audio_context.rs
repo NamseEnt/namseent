@@ -1,7 +1,7 @@
-use super::audio_buffer::AudioBuffer;
-use crate::media::AudioConfig;
+use super::atomic_floating::AtomicF32;
+use crate::media::audio::{AudioBuffer, AudioConfig};
 use anyhow::{anyhow, Result};
-use std::{fmt::Debug, mem::size_of};
+use std::{fmt::Debug, mem::size_of, sync::Arc};
 
 /// Currently it implemented WASAPI IAudioClient.
 /// TODO: Implement IAudioClient3 for low latency.
@@ -9,6 +9,8 @@ use std::{fmt::Debug, mem::size_of};
 pub(crate) struct AudioContext {
     pub output_config: AudioConfig,
     audio_command_tx: std::sync::mpsc::Sender<AudioCommand>,
+    /// 0 to 1
+    volume: Arc<AtomicF32>,
 }
 
 const CHANNELS: usize = 2;
@@ -16,6 +18,7 @@ const SAMPLE_RATE: usize = 44100;
 
 impl AudioContext {
     pub fn new() -> Result<Self> {
+        let volume = Arc::new(AtomicF32::new(1.0));
         let output_config = AudioConfig {
             sample_rate: SAMPLE_RATE as u32,
             sample_format: ffmpeg_next::format::Sample::F32(
@@ -41,53 +44,61 @@ impl AudioContext {
 
         let (init_tx, init_rx) = std::sync::mpsc::channel();
 
-        std::thread::spawn(move || {
-            let InitWasApiOutput {
-                audio_client,
-                render_client,
-                blockalign,
-                h_event,
-            } = match init_wasapi() {
-                Ok(ok) => {
-                    init_tx.send(Ok(())).unwrap();
-                    ok
-                }
-                Err(err) => {
-                    init_tx.send(Err(err)).unwrap();
-                    return;
-                }
-            };
+        std::thread::spawn({
+            let volume = volume.clone();
+            move || {
+                let InitWasApiOutput {
+                    audio_client,
+                    render_client,
+                    blockalign,
+                    h_event,
+                } = match init_wasapi() {
+                    Ok(ok) => {
+                        init_tx.send(Ok(())).unwrap();
+                        ok
+                    }
+                    Err(err) => {
+                        init_tx.send(Err(err)).unwrap();
+                        return;
+                    }
+                };
 
-            loop {
-                handle_audio_commands(&mut audio_buffers);
+                loop {
+                    handle_audio_commands(&mut audio_buffers);
+                    let volume = volume.load(std::sync::atomic::Ordering::Relaxed);
 
-                let buffer_frame_count = audio_client.get_available_space_in_frames().unwrap();
-                let mut output = vec![0.0f32; buffer_frame_count as usize * CHANNELS];
+                    let buffer_frame_count = audio_client.get_available_space_in_frames().unwrap();
+                    let mut output = vec![0.0f32; buffer_frame_count as usize * CHANNELS];
 
-                for audio_buffer in &mut audio_buffers {
-                    audio_buffer.consume(&mut output)
-                }
+                    for audio_buffer in &mut audio_buffers {
+                        audio_buffer.consume(&mut output)
+                    }
 
-                render_client
-                    .write_to_device(
-                        buffer_frame_count as usize,
-                        blockalign as usize,
-                        unsafe {
-                            std::slice::from_raw_parts_mut(
-                                output.as_mut_ptr() as *mut u8,
-                                output.len() * size_of::<f32>(),
-                            )
-                        },
-                        None,
-                    )
-                    .unwrap();
+                    for sample in &mut output {
+                        *sample *= volume;
+                    }
 
-                audio_buffers.retain(|audio_buffer| !audio_buffer.is_end());
+                    render_client
+                        .write_to_device(
+                            buffer_frame_count as usize,
+                            blockalign as usize,
+                            unsafe {
+                                std::slice::from_raw_parts_mut(
+                                    output.as_mut_ptr() as *mut u8,
+                                    output.len() * size_of::<f32>(),
+                                )
+                            },
+                            None,
+                        )
+                        .unwrap();
 
-                if h_event.wait_for_event(1000).is_err() {
-                    eprintln!("[namui-media] failed to wait for event");
-                    audio_client.stop_stream().unwrap();
-                    break;
+                    audio_buffers.retain(|audio_buffer| !audio_buffer.is_end());
+
+                    if h_event.wait_for_event(1000).is_err() {
+                        eprintln!("[namui-media] failed to wait for event");
+                        audio_client.stop_stream().unwrap();
+                        break;
+                    }
                 }
             }
         });
@@ -97,6 +108,7 @@ impl AudioContext {
         Ok(Self {
             output_config,
             audio_command_tx,
+            volume,
         })
     }
 
@@ -106,6 +118,16 @@ impl AudioContext {
             .map_err(|_| anyhow!("failed to send AudioCommand::LoadAudio"))?;
 
         Ok(())
+    }
+
+    pub(crate) fn set_volume(&self, volume: f32) {
+        let volume = volume.max(0.0).min(1.0);
+        self.volume
+            .store(volume, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub(crate) fn volume(&self) -> f32 {
+        self.volume.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
 

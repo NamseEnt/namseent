@@ -1,8 +1,8 @@
-use super::audio_buffer::AudioBuffer;
 use crate::media::{
+    audio::{AudioBuffer, AudioConfig},
     core::MediaControlReceiver,
     with_instant::{WithInstant, WithInstantExt},
-    AudioConfig, AUDIO_CHANNEL_BOUND,
+    AUDIO_CHANNEL_BOUND,
 };
 use anyhow::Result;
 

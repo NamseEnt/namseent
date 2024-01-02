@@ -17,4 +17,12 @@ impl MediaContext {
     pub(crate) fn new_media(&self, path: &impl AsRef<Path>) -> Result<MediaHandle> {
         MediaHandle::new(self.audio_context.clone(), path)
     }
+
+    pub(crate) fn set_volume(&self, zero_to_one: f32) {
+        self.audio_context.set_volume(zero_to_one);
+    }
+
+    pub(crate) fn volume(&self) -> f32 {
+        self.audio_context.volume()
+    }
 }
