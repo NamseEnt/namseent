@@ -3,7 +3,6 @@
 
 mod audio_buffer;
 mod audio_context;
-mod audio_handle;
 mod audio_resampling;
 mod media_context;
 mod media_control;
