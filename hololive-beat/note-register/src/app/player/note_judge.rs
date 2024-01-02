@@ -25,16 +25,16 @@ impl Component for NoteJudge<'_> {
             let last_judged_note_index = judge_context.last_judged_note_index;
             let check_start_time = last_judged_note_index
                 .and_then(|index| notes.get(index))
-                .map(|last_judged_note| last_judged_note.time - good_range)
+                .map(|last_judged_note| last_judged_note.start_time - good_range)
                 .unwrap_or(Instant::new(0.ms()));
             let check_end_time = Instant::new(played_time - good_range);
 
             let mut passed_note_indexes = Vec::new();
             for (index, note) in notes.iter().enumerate() {
-                if note.time < check_start_time {
+                if note.start_time < check_start_time {
                     continue;
                 }
-                if note.time > check_end_time {
+                if note.start_time > check_end_time {
                     break;
                 }
 
@@ -65,10 +65,10 @@ impl Component for NoteJudge<'_> {
             let check_start_time = Instant::new(played_time - good_range);
             let check_end_time = Instant::new(played_time + good_range);
             for (index, note) in notes.iter().enumerate() {
-                if note.time < check_start_time {
+                if note.start_time < check_start_time {
                     continue;
                 }
-                if note.time > check_end_time {
+                if note.start_time > check_end_time {
                     break;
                 }
 
@@ -89,7 +89,7 @@ impl Component for NoteJudge<'_> {
                     })
                 }
 
-                let time_diff = (Instant::new(played_time) - note.time).abs();
+                let time_diff = (Instant::new(played_time) - note.start_time).abs();
 
                 if time_diff <= perfect_range {
                     set_judge_context.mutate(move |judge_context| {

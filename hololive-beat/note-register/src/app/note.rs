@@ -70,7 +70,8 @@ impl Direction {
 
 #[derive(Debug)]
 pub struct Note {
-    pub time: Instant,
+    pub start_time: Instant,
+    pub duration: Duration,
     pub direction: Direction,
     pub instrument: Instrument,
 }
@@ -78,7 +79,6 @@ pub struct Note {
 pub async fn load_notes() -> Vec<Note> {
     let note_loading_futures = INSTRUMENTS.map(|instrument| async move {
         let instrument_path = format!("bundle:{}.txt", instrument.to_string());
-        println!("instrument_path: {}", instrument_path);
         let time_sequence_file = bundle::read(instrument_path.as_str())
             .await
             .map_err(|error| {
@@ -87,12 +87,27 @@ pub async fn load_notes() -> Vec<Note> {
             })
             .unwrap();
 
-        println!("time_sequence_file: {:?}", time_sequence_file.len());
-        io::BufReader::<&[u8]>::new(time_sequence_file.as_ref())
-            .lines()
-            .map(|line| line.unwrap().parse::<f64>().unwrap())
-            .map(|time_sec| Note {
-                time: Instant::new(time_sec.sec()),
+        let time_start_time_duration_pairs = {
+            let start_time_sec_list = io::BufReader::<&[u8]>::new(time_sequence_file.as_ref())
+                .lines()
+                .map(|line| line.unwrap().parse::<f64>().unwrap())
+                .collect::<Vec<_>>();
+            let end_time_sec_list = start_time_sec_list
+                .clone()
+                .into_iter()
+                .skip(1)
+                .chain(std::iter::once(start_time_sec_list.last().unwrap() + 5.0));
+            start_time_sec_list
+                .into_iter()
+                .zip(end_time_sec_list)
+                .map(|(start_sec, end_sec)| {
+                    (Instant::new(start_sec.sec()), (end_sec - start_sec).sec())
+                })
+        };
+        time_start_time_duration_pairs
+            .map(|(start_time, duration)| Note {
+                start_time,
+                duration,
                 direction: instrument.as_direction(),
                 instrument,
             })
@@ -103,6 +118,6 @@ pub async fn load_notes() -> Vec<Note> {
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
-    notes.sort_by(|a, b| a.time.cmp(&b.time));
+    notes.sort_by(|a, b| a.start_time.cmp(&b.start_time));
     notes
 }

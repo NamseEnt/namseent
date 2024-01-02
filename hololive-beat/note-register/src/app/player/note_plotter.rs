@@ -57,7 +57,7 @@ impl Component for NotePlotter<'_> {
 
         ctx.compose(|ctx| {
             for note in notes {
-                let note_y = (px_per_time * (Instant::new(played_time) - note.time))
+                let note_y = (px_per_time * (Instant::new(played_time) - note.start_time))
                     - timing_zero_y_from_bottom;
                 if note_y > wh.height * 2 {
                     continue;
@@ -70,7 +70,7 @@ impl Component for NotePlotter<'_> {
                     x: note_x,
                     y: note_y,
                 };
-                let key = format!("{:?}-{:?}", note.instrument, note.time);
+                let key = format!("{:?}-{:?}", note.instrument, note.start_time);
                 ctx.add_with_key(
                     key,
                     NoteGraphic {
