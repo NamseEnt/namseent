@@ -52,22 +52,27 @@ struct DecodingThreadRunner {
 
 impl DecodingThreadRunner {
     fn run(mut self) -> Result<()> {
+        let mut is_command_disconnected = false;
+
         loop {
-            loop {
+            while !is_command_disconnected {
                 match self.command_rx.try_recv() {
                     Ok(command) => {
                         self.handle_command(command.inner())?;
                     }
-                    Err(err) => match err {
-                        std::sync::mpsc::TryRecvError::Empty => {
-                            break;
+                    Err(err) => {
+                        if let std::sync::mpsc::TryRecvError::Disconnected = err {
+                            is_command_disconnected = true;
                         }
-                        std::sync::mpsc::TryRecvError::Disconnected => {
-                            println!("command disconnected");
-                            return Ok(());
-                        }
-                    },
+                        break;
+                    }
                 }
+            }
+
+            let is_abandoned = is_command_disconnected && (self.eof || !self.is_playing);
+
+            if is_abandoned {
+                return Ok(());
             }
 
             let should_push_packet = !self.eof && (self.is_playing || !self.is_preload_finished());
