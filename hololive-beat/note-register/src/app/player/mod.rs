@@ -49,7 +49,7 @@ impl Component for Player<'_> {
 
         let played_time = match *state {
             State::Stop => 0.ms(),
-            State::Play { started_time } => now - started_time,
+            State::Play { started_time } => now - Instant::new(started_time),
             State::Pause {
                 played_time: paused_time,
             } => paused_time,
@@ -76,14 +76,15 @@ impl Component for Player<'_> {
                                     }
                                     match *state {
                                         State::Stop => set_state.set(State::Play {
-                                            started_time: now - (*start_offset_ms as f64).ms(),
+                                            started_time: now
+                                                - Instant::new((*start_offset_ms as f64).ms()),
                                         }),
                                         State::Play { .. } => {
                                             set_state.set(State::Pause { played_time })
                                         }
                                         State::Pause { played_time } => {
                                             set_state.set(State::Play {
-                                                started_time: now - played_time,
+                                                started_time: now - Instant::new(played_time),
                                             })
                                         }
                                     }
@@ -138,10 +139,10 @@ enum State {
     Stop,
     Play {
         /// It's App time.
-        started_time: Instant,
+        started_time: Duration,
     },
     Pause {
-        /// But It's Note map time.
+        /// But It's Music time.
         played_time: Duration,
     },
 }

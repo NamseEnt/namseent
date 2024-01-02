@@ -1,5 +1,5 @@
 use super::STATE;
-use namui::{prelude::*, time::now};
+use namui::prelude::*;
 
 #[component]
 pub struct MusicPlayer<'a> {
@@ -14,13 +14,14 @@ impl Component for MusicPlayer<'_> {
 
         ctx.effect("load music", || match *state {
             super::State::Stop => {
-                music.stop();
+                music.stop().unwrap();
             }
-            super::State::Play { started_time } => {
-                music.play(started_time);
+            super::State::Play { .. } => {
+                music.play().unwrap();
             }
             super::State::Pause { played_time } => {
-                music.play(now() - played_time);
+                music.pause().unwrap();
+                music.seek_to(played_time).unwrap();
             }
         });
 
