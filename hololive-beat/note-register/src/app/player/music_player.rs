@@ -1,5 +1,5 @@
 use super::STATE;
-use namui::prelude::*;
+use namui::{prelude::*, time::since_start};
 
 #[component]
 pub struct MusicPlayer<'a> {
@@ -16,8 +16,17 @@ impl Component for MusicPlayer<'_> {
             super::State::Stop => {
                 music.stop().unwrap();
             }
-            super::State::Play { .. } => {
-                music.play().unwrap();
+            super::State::Play {
+                started_time,
+                played_time,
+            } => {
+                let music = music.clone();
+                namui::spawn(async move {
+                    let offset = since_start() - started_time + played_time;
+                    music.seek_to(offset).unwrap();
+                    music.wait_for_preload().await.unwrap();
+                    music.play().unwrap();
+                });
             }
             super::State::Pause { played_time } => {
                 music.pause().unwrap();

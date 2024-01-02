@@ -1,5 +1,5 @@
 use super::STATE;
-use namui::prelude::*;
+use namui::{prelude::*, time::since_start};
 
 #[component]
 pub struct VideoPlayer<'a> {
@@ -17,8 +17,17 @@ impl Component for VideoPlayer<'_> {
             super::State::Stop => {
                 video.stop().unwrap();
             }
-            super::State::Play { .. } => {
-                video.play().unwrap();
+            super::State::Play {
+                started_time,
+                played_time,
+            } => {
+                let video = video.clone();
+                namui::spawn(async move {
+                    let offset = since_start() - started_time + played_time;
+                    video.seek_to(offset).unwrap();
+                    video.wait_for_preload().await.unwrap();
+                    video.play().unwrap();
+                });
             }
             super::State::Pause { played_time } => {
                 video.pause().unwrap();

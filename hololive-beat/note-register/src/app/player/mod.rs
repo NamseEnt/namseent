@@ -12,7 +12,7 @@ use crate::app::{
     },
     LoadedData,
 };
-use namui::{prelude::*, time::now};
+use namui::{prelude::*, time::since_start};
 use namui_prebuilt::{button::TextButtonFit, table::hooks::*};
 
 static STATE: Atom<State> = Atom::uninitialized_new();
@@ -45,16 +45,17 @@ impl Component for Player<'_> {
         let _ = ctx.atom_init(&JUDGE_CONTEXT, JudgeContext::new);
         let (start_offset_ms, set_start_offset) = ctx.state(|| 0.0);
         let px_per_time = Per::new(px(1024.0), 1.sec());
-        let now = now();
+        let now = since_start();
         let perfect_range: Duration = Duration::from_millis(64);
         let good_range: Duration = 256.0.ms();
 
         let played_time = match *state {
             State::Stop => 0.ms(),
-            State::Play { started_time } => now - Instant::new(started_time),
-            State::Pause {
-                played_time: paused_time,
-            } => paused_time,
+            State::Play {
+                started_time,
+                played_time,
+            } => now - started_time + played_time,
+            State::Pause { played_time } => played_time,
         };
 
         ctx.compose(|ctx| {
@@ -78,15 +79,16 @@ impl Component for Player<'_> {
                                     }
                                     match *state {
                                         State::Stop => set_state.set(State::Play {
-                                            started_time: now
-                                                - Instant::new((*start_offset_ms as f64).ms()),
+                                            started_time: now,
+                                            played_time: (*start_offset_ms as f64).ms(),
                                         }),
                                         State::Play { .. } => {
                                             set_state.set(State::Pause { played_time })
                                         }
                                         State::Pause { played_time } => {
                                             set_state.set(State::Play {
-                                                started_time: now - Instant::new(played_time),
+                                                started_time: now,
+                                                played_time,
                                             })
                                         }
                                     }
@@ -97,8 +99,8 @@ impl Component for Player<'_> {
                             ctx.add(Slider {
                                 wh,
                                 value: *start_offset_ms,
-                                min: 0.sec().as_secs_f32(),
-                                max: 227.sec().as_secs_f32(),
+                                min: 0.sec().as_secs_f32() * 1000.0,
+                                max: 227.sec().as_secs_f32() * 1000.0,
                                 on_change: &|value| {
                                     set_start_offset.set(value);
                                     namui::log!("set: {value}");
@@ -144,6 +146,7 @@ enum State {
     Play {
         /// It's App time.
         started_time: Duration,
+        played_time: Duration,
     },
     Pause {
         /// But It's Music time.
