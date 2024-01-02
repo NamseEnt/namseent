@@ -7,6 +7,15 @@ pub struct Duration {
     pub(crate) inner: std::time::Duration,
 }
 
+impl Default for Duration {
+    fn default() -> Self {
+        Self {
+            sign: true,
+            inner: Default::default(),
+        }
+    }
+}
+
 impl Debug for Duration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
@@ -34,6 +43,12 @@ impl Duration {
         Self {
             sign: millis >= 0,
             inner: std::time::Duration::from_millis(millis.unsigned_abs()),
+        }
+    }
+    pub fn from_micros(micros: i64) -> Self {
+        Self {
+            sign: micros >= 0,
+            inner: std::time::Duration::from_micros(micros.unsigned_abs()),
         }
     }
     pub fn from_secs(secs: i64) -> Self {

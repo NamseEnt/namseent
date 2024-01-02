@@ -1,21 +1,27 @@
 //! Multi-media excluding image. Go away image!
 //! Video and Audio.
 
-mod audio_buffer_core;
+mod audio_buffer;
 mod audio_context;
-mod audio_handle;
-mod image_only_video;
+mod audio_resampling;
 mod media_context;
+mod media_control;
+mod media_core;
+mod media_decoding_stream;
+mod media_decoding_thread;
 mod media_handle;
 mod media_struct;
-mod ref_counting;
-mod synced_audio;
+mod open_media;
+mod video_framer;
+mod video_scaling;
+mod with_instant;
 
 use self::media_context::MediaContext;
 pub use self::media_handle::MediaHandle;
 use super::InitResult;
 use anyhow::*;
 use std::{path::Path, sync::OnceLock};
+use with_instant::WithInstant;
 
 const AUDIO_CHANNEL_BOUND: usize = 128;
 const VIDEO_CHANNEL_BOUND: usize = 10;
@@ -40,6 +46,5 @@ pub(crate) struct AudioConfig {
     sample_rate: u32,
     sample_format: ffmpeg_next::format::Sample,
     channel_layout: ffmpeg_next::channel_layout::ChannelLayout,
-    sample_byte_size: usize,
     channel_count: usize,
 }

@@ -50,7 +50,7 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(media) = audio_mp3.as_ref() {
-                    media.clone_independent().unwrap().play(namui::time::now());
+                    media.clone_independent().unwrap().play().unwrap();
                 }
             },
         });
@@ -85,9 +85,9 @@ impl Component for MediaExample {
                 };
 
                 if media_handle_for_toggle.is_playing() {
-                    media_handle_for_toggle.stop();
+                    media_handle_for_toggle.stop().unwrap();
                 } else {
-                    media_handle_for_toggle.play(namui::time::now());
+                    media_handle_for_toggle.play().unwrap();
                 }
             },
         });
@@ -109,7 +109,7 @@ impl Component for MediaExample {
                 let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() else {
                     return;
                 };
-                media_handle_for_toggle.pause();
+                media_handle_for_toggle.pause().unwrap();
             },
         });
 
@@ -120,7 +120,15 @@ impl Component for MediaExample {
                 width: 100.px(),
                 height: 20.px(),
             },
-            text: "play video",
+            text: if let Some(video_mp4) = video_mp4.as_ref() {
+                if video_mp4.is_playing() {
+                    "Pause Video"
+                } else {
+                    "Play Video"
+                }
+            } else {
+                "Loading..."
+            },
             text_color: Color::BLACK,
             stroke_color: Color::BLACK,
             stroke_width: 1.px(),
@@ -128,7 +136,91 @@ impl Component for MediaExample {
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: &|_| {
                 if let Some(video_mp4) = video_mp4.as_ref() {
-                    video_mp4.play(namui::time::now());
+                    if video_mp4.is_playing() {
+                        video_mp4.pause().unwrap();
+                    } else {
+                        video_mp4.play().unwrap();
+                    }
+                }
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 300.px(),
+                y: 60.px(),
+                width: 30.px(),
+                height: 20.px(),
+            },
+            text: "-5sec",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                if let Some(video_mp4) = video_mp4.as_ref() {
+                    println!(
+                        "video_mp4.playback_duration(): {:?}",
+                        video_mp4.playback_duration()
+                    );
+                    println!(
+                        "video_mp4.playback_duration() - Duration::from_secs(5): {:?}",
+                        video_mp4.playback_duration() - Duration::from_secs(5)
+                    );
+                    video_mp4
+                        .seek_to(video_mp4.playback_duration() - Duration::from_secs(5))
+                        .unwrap()
+                }
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 300.px(),
+                y: 40.px(),
+                width: 100.px(),
+                height: 20.px(),
+            },
+            text: &if let Some(video_mp4) = video_mp4.as_ref() {
+                format!("{:.1?}", video_mp4.playback_duration().as_secs_f32())
+            } else {
+                "Loading...".to_string()
+            },
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![],
+            on_mouse_up_in: &|_| {},
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 370.px(),
+                y: 60.px(),
+                width: 30.px(),
+                height: 20.px(),
+            },
+            text: "+5sec",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                if let Some(video_mp4) = video_mp4.as_ref() {
+                    println!(
+                        "video_mp4.playback_duration(): {:?}",
+                        video_mp4.playback_duration()
+                    );
+                    println!(
+                        "video_mp4.playback_duration() + Duration::from_secs(5): {:?}",
+                        video_mp4.playback_duration() + Duration::from_secs(5)
+                    );
+                    video_mp4
+                        .seek_to(video_mp4.playback_duration() + Duration::from_secs(5))
+                        .unwrap()
                 }
             },
         });
@@ -137,7 +229,7 @@ impl Component for MediaExample {
             let Some(mp4) = video_mp4.as_ref() else {
                 return;
             };
-            let Some(image_handle) = mp4.get_image().unwrap() else {
+            let Some(image_handle) = mp4.get_image() else {
                 return;
             };
 
