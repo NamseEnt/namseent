@@ -245,6 +245,58 @@ impl Component for MediaExample {
             },
         });
 
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 20.px(),
+                y: 200.px(),
+                width: 40.px(),
+                height: 20.px(),
+            },
+            text: "vol -",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                system::media::set_volume(system::media::volume() - 0.05);
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 60.px(),
+                y: 200.px(),
+                width: 40.px(),
+                height: 20.px(),
+            },
+            text: &(system::media::volume() * 100.0).floor().to_string(),
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![],
+            on_mouse_up_in: &|_| {},
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 100.px(),
+                y: 200.px(),
+                width: 40.px(),
+                height: 20.px(),
+            },
+            text: "vol +",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                system::media::set_volume(system::media::volume() + 0.05);
+            },
+        });
+
         ctx.compose(|ctx| {
             let Some(mp4) = video_mp4.as_ref() else {
                 return;

@@ -1,13 +1,12 @@
-use super::{
-    audio_buffer::AudioBuffer,
-    media_decoding_thread::DecodingThreadCommand,
-    open_media::open_media,
-    video_framer::VideoFramer,
+use crate::system::media::{
+    audio::AudioContext,
+    core::{open_media, DecodingThreadCommand},
+    video::VideoFramer,
     with_instant::{WithInstant, WithInstantExt, WithNow},
 };
-use crate::media::AudioConfig;
 use anyhow::Result;
 use namui_type::*;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub(crate) struct MediaCore {
@@ -15,6 +14,9 @@ pub(crate) struct MediaCore {
     playback_state: PlaybackState,
     media_duration: Duration,
     playback_duration_offset: Duration,
+    audio_context: Arc<AudioContext>,
+    video_framer: Option<VideoFramer>,
+    path: std::path::PathBuf,
 }
 
 #[derive(Debug)]
@@ -25,25 +27,28 @@ enum PlaybackState {
 
 impl MediaCore {
     pub(crate) fn new(
+        audio_context: Arc<AudioContext>,
         path: &impl AsRef<std::path::Path>,
-        audio_output_config: AudioConfig,
-    ) -> Result<(Self, Option<VideoFramer>, Option<AudioBuffer>)> {
+    ) -> Result<Self> {
         let input_ctx = ffmpeg_next::format::input(&path)?;
         let (command_tx, command_rx) = std::sync::mpsc::sync_channel(32);
 
         let (video_framer, audio_buffer, media_duration) =
-            open_media(input_ctx, command_rx, audio_output_config)?;
+            open_media(input_ctx, command_rx, audio_context.output_config)?;
 
-        Ok((
-            Self {
-                command_tx,
-                playback_state: PlaybackState::Paused,
-                media_duration,
-                playback_duration_offset: Duration::default(),
-            },
+        if let Some(audio_buffer) = audio_buffer {
+            audio_context.load_audio(audio_buffer)?;
+        }
+
+        Ok(Self {
+            command_tx,
+            playback_state: PlaybackState::Paused,
+            media_duration,
+            playback_duration_offset: Duration::default(),
+            audio_context,
             video_framer,
-            audio_buffer,
-        ))
+            path: path.as_ref().to_path_buf(),
+        })
     }
     pub fn play(&mut self) -> Result<()> {
         let now = crate::time::now();
@@ -107,5 +112,13 @@ impl MediaCore {
             .send(DecodingThreadCommand::WaitForPreload { finish_tx }.with_now())?;
 
         Ok(finish_rx)
+    }
+    pub(crate) fn get_image(&mut self) -> Option<ImageHandle> {
+        self.video_framer
+            .as_mut()
+            .and_then(|video_framer| video_framer.get_image())
+    }
+    pub(crate) fn clone_independent(&self) -> Result<Self> {
+        Self::new(self.audio_context.clone(), &self.path)
     }
 }

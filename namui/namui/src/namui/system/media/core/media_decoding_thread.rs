@@ -1,6 +1,7 @@
-use super::{
-    media_control::MediaController, media_decoding_stream::DecodingStream,
-    with_instant::WithInstant, VIDEO_CHANNEL_BOUND,
+use crate::system::media::{
+    core::{DecodingStream, MediaController},
+    with_instant::WithInstant,
+    VIDEO_CHANNEL_BOUND,
 };
 use anyhow::Result;
 use namui_type::*;

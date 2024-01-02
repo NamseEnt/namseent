@@ -1,14 +1,10 @@
-use super::{
-    audio_buffer::AudioBuffer,
-    audio_resampling::start_audio_resampling,
-    media_control::MediaController,
-    media_decoding_stream::DecodingStream,
-    media_decoding_thread::{spawn_decoding_thread, DecodingThreadCommand},
-    video_framer::VideoFramer,
-    video_scaling::start_video_scaling,
+use crate::media::{
+    audio::{start_audio_resampling, AudioBuffer, AudioConfig},
+    core::{spawn_decoding_thread, DecodingStream, DecodingThreadCommand, MediaController},
+    video::{start_video_scaling, VideoFramer},
     with_instant::WithInstant,
+    AUDIO_CHANNEL_BOUND, VIDEO_CHANNEL_BOUND,
 };
-use crate::media::{AudioConfig, AUDIO_CHANNEL_BOUND, VIDEO_CHANNEL_BOUND};
 use anyhow::Result;
 use namui_type::*;
 
