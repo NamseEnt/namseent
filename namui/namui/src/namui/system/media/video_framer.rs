@@ -29,17 +29,7 @@ impl VideoFramer {
     }
 
     pub(crate) fn get_image(&mut self) -> Option<namui_type::ImageHandle> {
-        while self.images.len() < VIDEO_CHANNEL_BOUND {
-            if let Ok(image_handle) = self.image_handle_rx.try_recv() {
-                self.images.push_back(image_handle);
-            } else {
-                break;
-            }
-        }
-
-        if let Some(flush_requested) = self.control_receiver.flush_requested() {
-            self.images.retain(|frame| flush_requested < frame.instant);
-        }
+        self.fill_images();
 
         let Some(start_requested) = self.control_receiver.start_requested() else {
             return self.images.front().map(|frame| frame.deref().clone());
@@ -62,5 +52,27 @@ impl VideoFramer {
         }
 
         self.images.front().map(|frame| frame.deref().clone())
+    }
+
+    fn fill_images(&mut self) {
+        let flush_requested = self.control_receiver.flush_requested();
+
+        if let Some(flush_requested) = flush_requested {
+            self.images.retain(|chunk| flush_requested < chunk.instant);
+        }
+
+        while self.images.len() < VIDEO_CHANNEL_BOUND {
+            let Ok(chunk) = self.image_handle_rx.try_recv() else {
+                break;
+            };
+
+            if let Some(flush_requested) = flush_requested {
+                if chunk.instant < flush_requested {
+                    continue;
+                }
+            }
+
+            self.images.push_back(chunk);
+        }
     }
 }

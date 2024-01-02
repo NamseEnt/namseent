@@ -14,7 +14,7 @@ use std::{
 ///
 /// Q. What happens if you play an already playing AudioHandle again?
 /// A. Nothing happens. (If you play an already playing AudioHandle again, it is ignored.)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MediaHandle {
     media: Arc<Mutex<Media>>,
 }
@@ -34,6 +34,7 @@ impl MediaHandle {
     pub fn pause(&self) -> Result<()> {
         self.media.lock().unwrap().pause()
     }
+    /// If seek_to < 0, it will be set to 0.
     pub fn seek_to(&self, seek_to: Duration) -> Result<()> {
         self.media.lock().unwrap().seek_to(seek_to)
     }
@@ -44,11 +45,20 @@ impl MediaHandle {
         self.media.lock().unwrap().is_playing()
     }
     pub fn get_image(&self) -> Option<ImageHandle> {
+        // NOTE: Maybe lock blocks user hook loop.
         self.media.lock().unwrap().get_image()
     }
     pub fn clone_independent(&self) -> Result<Self> {
         Ok(Self {
             media: Arc::new(Mutex::new(self.media.lock().unwrap().clone_independent()?)),
         })
+    }
+    /// # Errors
+    ///
+    /// If you call this function before previous call is finished, it will return Err on previous call.
+    pub async fn wait_for_preload(&self) -> Result<()> {
+        let wait = { self.media.lock().unwrap().wait_for_preload()? };
+        wait.await?;
+        Ok(())
     }
 }

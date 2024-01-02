@@ -71,7 +71,7 @@ impl MediaCore {
             .send(DecodingThreadCommand::Pause.with_now())?)
     }
     pub fn seek_to(&mut self, seek_to: Duration) -> Result<()> {
-        self.playback_duration_offset = seek_to;
+        self.playback_duration_offset = seek_to.max(Duration::default());
 
         Ok(self
             .command_tx
@@ -97,5 +97,15 @@ impl MediaCore {
             }
             PlaybackState::Paused => false,
         }
+    }
+    pub fn wait_for_preload(
+        &self,
+    ) -> Result<impl std::future::Future<Output = Result<(), tokio::sync::oneshot::error::RecvError>>>
+    {
+        let (finish_tx, finish_rx) = tokio::sync::oneshot::channel();
+        self.command_tx
+            .send(DecodingThreadCommand::WaitForPreload { finish_tx }.with_now())?;
+
+        Ok(finish_rx)
     }
 }

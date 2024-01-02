@@ -1,4 +1,4 @@
-use super::{media_control::MediaControlReceiver, with_instant::WithInstant};
+use super::{media_control::MediaControlReceiver, with_instant::WithInstant, AUDIO_CHANNEL_BOUND};
 use std::{collections::VecDeque, sync::mpsc::TryRecvError};
 
 #[derive(Debug)]
@@ -22,8 +22,7 @@ impl AudioBuffer {
         }
     }
     pub(crate) fn consume(&mut self, output: &mut [f32]) {
-        self.chunks.extend(self.rx.try_iter());
-        self.flush_if_requested();
+        self.fill_chunks();
 
         if self.control_receiver.start_requested().is_none() {
             // TODO: Maybe need to sync with start_requested Instant?
@@ -67,11 +66,25 @@ impl AudioBuffer {
                 .is_err_and(|e| matches!(e, TryRecvError::Disconnected))
     }
 
-    fn flush_if_requested(&mut self) {
-        let Some(flush_requested) = self.control_receiver.flush_requested() else {
-            return;
-        };
+    fn fill_chunks(&mut self) {
+        let flush_requested = self.control_receiver.flush_requested();
 
-        self.chunks.retain(|chunk| flush_requested < chunk.instant);
+        if let Some(flush_requested) = flush_requested {
+            self.chunks.retain(|chunk| flush_requested < chunk.instant);
+        }
+
+        while self.chunks.len() < AUDIO_CHANNEL_BOUND {
+            let Ok(chunk) = self.rx.try_recv() else {
+                break;
+            };
+
+            if let Some(flush_requested) = flush_requested {
+                if chunk.instant < flush_requested {
+                    continue;
+                }
+            }
+
+            self.chunks.push_back(chunk);
+        }
     }
 }
