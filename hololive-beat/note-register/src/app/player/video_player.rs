@@ -1,5 +1,5 @@
 use super::STATE;
-use namui::{prelude::*, time::now};
+use namui::prelude::*;
 
 #[component]
 pub struct VideoPlayer<'a> {
@@ -15,18 +15,19 @@ impl Component for VideoPlayer<'_> {
 
         ctx.effect("handle video", || match *state {
             super::State::Stop => {
-                video.stop();
+                video.stop().unwrap();
             }
-            super::State::Play { started_time } => {
-                video.play(started_time);
+            super::State::Play { .. } => {
+                video.play().unwrap();
             }
             super::State::Pause { played_time } => {
-                video.play(now() - played_time);
+                video.pause().unwrap();
+                video.seek_to(played_time).unwrap();
             }
         });
 
         ctx.compose(|ctx| {
-            let Some(image_handle) = video.get_image().unwrap() else {
+            let Some(image_handle) = video.get_image() else {
                 return;
             };
 
