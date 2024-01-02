@@ -10,7 +10,12 @@ pub(crate) enum DecodingThreadCommand {
     Play,
     Stop,
     Pause,
-    SeekTo { duration: Duration },
+    SeekTo {
+        duration: Duration,
+    },
+    WaitForPreload {
+        finish_tx: tokio::sync::oneshot::Sender<()>,
+    },
 }
 
 pub(crate) fn spawn_decoding_thread(
@@ -27,6 +32,7 @@ pub(crate) fn spawn_decoding_thread(
             media_controller,
             eof: false,
             is_playing: false,
+            wait_for_preload_finish_tx: None,
         }
         .run()
         .unwrap()
@@ -40,6 +46,7 @@ struct DecodingThreadRunner {
     media_controller: MediaController,
     eof: bool,
     is_playing: bool,
+    wait_for_preload_finish_tx: Option<tokio::sync::oneshot::Sender<()>>,
 }
 
 impl DecodingThreadRunner {
@@ -62,12 +69,7 @@ impl DecodingThreadRunner {
                 }
             }
 
-            let should_push_packet = !self.eof
-                && (self.is_playing
-                    || self
-                        .map_decoding_streams(|stream| stream.sent_count())?
-                        .into_iter()
-                        .any(|x| x < VIDEO_CHANNEL_BOUND));
+            let should_push_packet = !self.eof && (self.is_playing || !self.is_preload_finished());
 
             if !should_push_packet {
                 std::thread::yield_now();
@@ -93,6 +95,9 @@ impl DecodingThreadRunner {
                     self.send_eof()?;
                 }
             }
+            if self.wait_for_preload_finish_tx.is_some() && self.is_preload_finished() {
+                let _ = self.wait_for_preload_finish_tx.take().unwrap().send(());
+            }
         }
     }
     fn handle_command(&mut self, command: DecodingThreadCommand) -> Result<()> {
@@ -112,6 +117,8 @@ impl DecodingThreadRunner {
                 self.eof = false;
 
                 self.reset_decoders()?;
+
+                self.wait_for_preload_finish_tx = None;
             }
             DecodingThreadCommand::Pause => {
                 self.is_playing = false;
@@ -126,35 +133,50 @@ impl DecodingThreadRunner {
                 self.eof = false;
                 self.reset_decoders()?;
 
-                self.map_decoding_streams(|decoding_stream| decoding_stream.seek_to(duration))?;
+                self.iter_mut_decoding_streams()
+                    .for_each(|decoding_stream| decoding_stream.seek_to(duration));
+
+                self.wait_for_preload_finish_tx = None;
+            }
+            DecodingThreadCommand::WaitForPreload { finish_tx } => {
+                self.wait_for_preload_finish_tx = Some(finish_tx);
             }
         }
 
         Ok(())
     }
 
-    fn map_decoding_streams<T>(
-        &mut self,
-        callback: impl Fn(&mut DecodingStream) -> Result<T>,
-    ) -> Result<Vec<T>> {
+    fn iter_decoding_streams(&self) -> impl Iterator<Item = &DecodingStream> {
+        self.decoding_streams
+            .iter()
+            .filter_map(|decoding_stream| decoding_stream.as_ref())
+    }
+
+    fn iter_mut_decoding_streams(&mut self) -> impl Iterator<Item = &mut DecodingStream> {
         self.decoding_streams
             .iter_mut()
             .filter_map(|decoding_stream| decoding_stream.as_mut())
-            .map(callback)
-            .collect::<Result<Vec<_>>>()
     }
 
     fn reset_decoders(&mut self) -> Result<()> {
-        self.map_decoding_streams(|decoding_stream| decoding_stream.reset_decoder())?;
+        self.iter_mut_decoding_streams()
+            .try_for_each(|decoding_stream| decoding_stream.reset_decoder())?;
         Ok(())
     }
 
     fn send_eof(&mut self) -> Result<()> {
-        self.map_decoding_streams(|decoding_stream| {
-            decoding_stream.send_eof()?;
-            decoding_stream.receive_and_process_decoded_frames()?;
-            Ok(())
-        })?;
+        self.iter_mut_decoding_streams()
+            .try_for_each(|decoding_stream| -> Result<()> {
+                decoding_stream.send_eof()?;
+                decoding_stream.receive_and_process_decoded_frames()?;
+                Ok(())
+            })?;
         Ok(())
+    }
+
+    fn is_preload_finished(&self) -> bool {
+        self.iter_decoding_streams()
+            .map(|stream| stream.sent_count())
+            .all(|x| x >= VIDEO_CHANNEL_BOUND)
     }
 }

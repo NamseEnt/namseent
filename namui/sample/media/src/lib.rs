@@ -35,6 +35,24 @@ impl Component for MediaExample {
             });
         });
 
+        let seek_to = |media_handle: MediaHandle, to: Duration| {
+            namui::spawn(async move {
+                let was_playing = media_handle.is_playing();
+
+                if was_playing {
+                    media_handle.pause().unwrap();
+                }
+
+                media_handle.seek_to(to).unwrap();
+
+                media_handle.wait_for_preload().await.unwrap();
+
+                if was_playing {
+                    media_handle.play().unwrap();
+                }
+            })
+        };
+
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
@@ -168,9 +186,10 @@ impl Component for MediaExample {
                         "video_mp4.playback_duration() - Duration::from_secs(5): {:?}",
                         video_mp4.playback_duration() - Duration::from_secs(5)
                     );
-                    video_mp4
-                        .seek_to(video_mp4.playback_duration() - Duration::from_secs(5))
-                        .unwrap()
+                    seek_to(
+                        video_mp4.clone(),
+                        video_mp4.playback_duration() - Duration::from_secs(5),
+                    );
                 }
             },
         });
@@ -218,9 +237,10 @@ impl Component for MediaExample {
                         "video_mp4.playback_duration() + Duration::from_secs(5): {:?}",
                         video_mp4.playback_duration() + Duration::from_secs(5)
                     );
-                    video_mp4
-                        .seek_to(video_mp4.playback_duration() + Duration::from_secs(5))
-                        .unwrap()
+                    seek_to(
+                        video_mp4.clone(),
+                        video_mp4.playback_duration() + Duration::from_secs(5),
+                    );
                 }
             },
         });

@@ -98,18 +98,17 @@ impl DecodingStream {
         Ok(())
     }
 
-    pub(crate) fn seek_to(&mut self, duration: Duration) -> Result<()> {
+    pub(crate) fn seek_to(&mut self, duration: Duration) {
         match self {
             DecodingStream::Video { seek_to, .. } => *seek_to = Some(duration),
             DecodingStream::Audio { seek_to, .. } => *seek_to = Some(duration),
         }
-        Ok(())
     }
 
-    pub(crate) fn sent_count(&self) -> Result<usize> {
+    pub(crate) fn sent_count(&self) -> usize {
         match self {
-            DecodingStream::Video { sent_count, .. } => Ok(*sent_count),
-            DecodingStream::Audio { sent_count, .. } => Ok(*sent_count),
+            DecodingStream::Video { sent_count, .. } => *sent_count,
+            DecodingStream::Audio { sent_count, .. } => *sent_count,
         }
     }
 
