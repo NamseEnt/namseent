@@ -1,4 +1,4 @@
-use super::{media_control::MediaControlReceiver, WithInstant, VIDEO_CHANNEL_BOUND};
+use crate::media::{core::MediaControlReceiver, with_instant::WithInstant, VIDEO_CHANNEL_BOUND};
 use namui_type::*;
 use std::{collections::VecDeque, ops::Deref};
 

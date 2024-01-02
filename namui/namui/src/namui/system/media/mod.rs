@@ -1,19 +1,11 @@
 //! Multi-media excluding image. Go away image!
 //! Video and Audio.
 
-mod audio_buffer;
-mod audio_context;
-mod audio_resampling;
+mod audio;
+mod core;
 mod media_context;
-mod media_control;
-mod media_core;
-mod media_decoding_stream;
-mod media_decoding_thread;
 mod media_handle;
-mod media_struct;
-mod open_media;
-mod video_framer;
-mod video_scaling;
+mod video;
 mod with_instant;
 
 use self::media_context::MediaContext;
@@ -21,7 +13,6 @@ pub use self::media_handle::MediaHandle;
 use super::InitResult;
 use anyhow::*;
 use std::{path::Path, sync::OnceLock};
-use with_instant::WithInstant;
 
 const AUDIO_CHANNEL_BOUND: usize = 128;
 const VIDEO_CHANNEL_BOUND: usize = 10;

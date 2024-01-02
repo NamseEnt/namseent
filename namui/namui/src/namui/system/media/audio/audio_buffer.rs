@@ -1,4 +1,6 @@
-use super::{media_control::MediaControlReceiver, with_instant::WithInstant, AUDIO_CHANNEL_BOUND};
+use crate::system::media::{
+    core::MediaControlReceiver, with_instant::WithInstant, AUDIO_CHANNEL_BOUND,
+};
 use std::{collections::VecDeque, sync::mpsc::TryRecvError};
 
 #[derive(Debug)]

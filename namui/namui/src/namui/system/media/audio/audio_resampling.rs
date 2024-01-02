@@ -1,8 +1,9 @@
-use super::{
-    audio_buffer::AudioBuffer, media_control::MediaControlReceiver, with_instant::WithInstant,
+use super::audio_buffer::AudioBuffer;
+use crate::media::{
+    core::MediaControlReceiver,
+    with_instant::{WithInstant, WithInstantExt},
     AudioConfig, AUDIO_CHANNEL_BOUND,
 };
-use crate::media::with_instant::WithInstantExt;
 use anyhow::Result;
 
 pub(crate) fn start_audio_resampling(

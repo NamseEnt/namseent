@@ -1,4 +1,4 @@
-use super::with_instant::{WithInstant, WithNow};
+use crate::system::media::with_instant::{WithInstant, WithNow};
 use anyhow::Result;
 use namui_type::*;
 

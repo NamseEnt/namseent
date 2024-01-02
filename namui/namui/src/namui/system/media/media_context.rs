@@ -1,4 +1,4 @@
-use super::audio_context::AudioContext;
+use super::audio::AudioContext;
 use crate::MediaHandle;
 use anyhow::Result;
 use std::{path::Path, sync::Arc};

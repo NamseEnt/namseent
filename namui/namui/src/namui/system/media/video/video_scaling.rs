@@ -1,6 +1,6 @@
-use super::{
-    media_control::MediaControlReceiver, video_framer::VideoFramer, with_instant::WithInstant,
-    VIDEO_CHANNEL_BOUND,
+use super::video_framer::VideoFramer;
+use crate::system::media::{
+    core::MediaControlReceiver, with_instant::WithInstant, VIDEO_CHANNEL_BOUND,
 };
 use anyhow::{anyhow, Result};
 use namui_type::*;
