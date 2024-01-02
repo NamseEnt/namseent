@@ -1,33 +1,41 @@
-use super::{State, STATE};
+use super::{State, JUDGE_CONTEXT, STATE};
 use crate::app::note::{Direction, Note};
-use namui::prelude::*;
+use namui::{prelude::*, time::sleep};
 use namui_prebuilt::simple_rect;
 use std::collections::HashSet;
-
-static JUDGE_CONTEXT: Atom<JudgeContext> = Atom::uninitialized_new();
-
 #[component]
 pub struct NoteJudge<'a> {
     pub notes: &'a Vec<Note>,
     pub played_time: Duration,
+    pub perfect_range: Duration,
+    pub good_range: Duration,
+    pub kick: &'a MediaHandle,
+    pub cymbals: &'a MediaHandle,
+    pub snare: &'a MediaHandle,
 }
 
 impl Component for NoteJudge<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self { notes, played_time } = self;
+        let Self {
+            notes,
+            played_time,
+            perfect_range,
+            good_range,
+            kick,
+            cymbals,
+            snare,
+        } = self;
 
         let (state, _) = ctx.atom(&STATE);
-        let (judge_context, set_judge_context) = ctx.atom_init(&JUDGE_CONTEXT, JudgeContext::new);
-        let perfect_range: Duration = Duration::from_millis(64);
-        let good_range: Duration = 256.0.ms();
+        let (judge_context, set_judge_context) = ctx.atom(&JUDGE_CONTEXT);
 
         let handle_passed_notes = || {
             let last_judged_note_index = judge_context.last_judged_note_index;
             let check_start_time = last_judged_note_index
                 .and_then(|index| notes.get(index))
                 .map(|last_judged_note| last_judged_note.start_time - good_range)
-                .unwrap_or(Instant::new(0.ms()));
-            let check_end_time = Instant::new(played_time - good_range);
+                .unwrap_or(0.ms());
+            let check_end_time = played_time - good_range;
 
             let mut passed_note_indexes = Vec::new();
             for (index, note) in notes.iter().enumerate() {
@@ -62,8 +70,8 @@ impl Component for NoteJudge<'_> {
                 return;
             };
 
-            let check_start_time = Instant::new(played_time - good_range);
-            let check_end_time = Instant::new(played_time + good_range);
+            let check_start_time = played_time - good_range;
+            let check_end_time = played_time + good_range;
             for (index, note) in notes.iter().enumerate() {
                 if note.start_time < check_start_time {
                     continue;
@@ -80,16 +88,17 @@ impl Component for NoteJudge<'_> {
                     continue;
                 }
 
-                if note.direction != direction {
-                    set_judge_context.mutate(move |judge_context| {
-                        judge_context.miss_count += 1;
-                        judge_context.combo = 0;
-                        judge_context.judged_note_index.insert(index);
-                        judge_context.last_judged_note_index = Some(index);
-                    })
+                let time_diff = (played_time - note.start_time).abs();
+                if time_diff > good_range {
+                    continue;
                 }
 
-                let time_diff = (Instant::new(played_time) - note.start_time).abs();
+                let instrument = match direction.as_instrument() {
+                    crate::app::note::Instrument::Kick => kick.clone_independent().unwrap(),
+                    crate::app::note::Instrument::Snare => snare.clone_independent().unwrap(),
+                    crate::app::note::Instrument::Cymbals => cymbals.clone_independent().unwrap(),
+                };
+                play_instrument(instrument, note.start_time, note.duration);
 
                 if time_diff <= perfect_range {
                     set_judge_context.mutate(move |judge_context| {
@@ -98,17 +107,18 @@ impl Component for NoteJudge<'_> {
                         judge_context.max_combo = judge_context.max_combo.max(judge_context.combo);
                         judge_context.judged_note_index.insert(index);
                         judge_context.last_judged_note_index = Some(index);
-                    })
-                } else if time_diff <= good_range {
-                    set_judge_context.mutate(move |judge_context| {
-                        judge_context.good_count += 1;
-                        judge_context.combo += 1;
-                        judge_context.max_combo = judge_context.max_combo.max(judge_context.combo);
-                        judge_context.judged_note_index.insert(index);
-                        judge_context.last_judged_note_index = Some(index);
-                    })
+                    });
+                    break;
                 }
-                namui::log!("{judge_context:#?}");
+
+                set_judge_context.mutate(move |judge_context| {
+                    judge_context.good_count += 1;
+                    judge_context.combo += 1;
+                    judge_context.max_combo = judge_context.max_combo.max(judge_context.combo);
+                    judge_context.judged_note_index.insert(index);
+                    judge_context.last_judged_note_index = Some(index);
+                });
+                break;
             }
         };
 
@@ -133,17 +143,17 @@ impl Component for NoteJudge<'_> {
 }
 
 #[derive(Debug)]
-struct JudgeContext {
-    perfect_count: usize,
-    good_count: usize,
-    miss_count: usize,
-    max_combo: usize,
-    combo: usize,
-    last_judged_note_index: Option<usize>,
-    judged_note_index: HashSet<usize>,
+pub struct JudgeContext {
+    pub perfect_count: usize,
+    pub good_count: usize,
+    pub miss_count: usize,
+    pub max_combo: usize,
+    pub combo: usize,
+    pub last_judged_note_index: Option<usize>,
+    pub judged_note_index: HashSet<usize>,
 }
 impl JudgeContext {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             perfect_count: 0,
             good_count: 0,
@@ -154,4 +164,14 @@ impl JudgeContext {
             judged_note_index: HashSet::new(),
         }
     }
+}
+
+fn play_instrument(instrument: MediaHandle, offset: Duration, duration: Duration) {
+    namui::spawn(async move {
+        instrument.seek_to(offset).unwrap();
+        instrument.wait_for_preload().await.unwrap();
+        instrument.play().unwrap();
+        sleep(duration).unwrap().await;
+        instrument.pause().unwrap();
+    });
 }

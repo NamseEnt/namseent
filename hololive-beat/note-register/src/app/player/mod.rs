@@ -1,16 +1,14 @@
-mod instrument_player;
 mod music_player;
 mod note_judge;
 mod note_plotter;
 mod slider;
 mod video_player;
 
-use self::note_plotter::NotePlotter;
+use self::{note_judge::JudgeContext, note_plotter::NotePlotter};
 use crate::app::{
     color::THEME,
     player::{
-        instrument_player::InstrumentPlayer, music_player::MusicPlayer, note_judge::NoteJudge,
-        slider::Slider, video_player::VideoPlayer,
+        music_player::MusicPlayer, note_judge::NoteJudge, slider::Slider, video_player::VideoPlayer,
     },
     LoadedData,
 };
@@ -18,6 +16,7 @@ use namui::{prelude::*, time::now};
 use namui_prebuilt::{button::TextButtonFit, table::hooks::*};
 
 static STATE: Atom<State> = Atom::uninitialized_new();
+static JUDGE_CONTEXT: Atom<JudgeContext> = Atom::uninitialized_new();
 
 #[namui::component]
 pub struct Player<'a> {
@@ -43,9 +42,12 @@ impl Component for Player<'_> {
         const BUTTON_SIDE_PADDING: Px = px(16.0);
 
         let (state, set_state) = ctx.atom_init(&STATE, || State::Stop);
+        let _ = ctx.atom_init(&JUDGE_CONTEXT, JudgeContext::new);
         let (start_offset_ms, set_start_offset) = ctx.state(|| 0.0);
         let px_per_time = Per::new(px(1024.0), 1.sec());
         let now = now();
+        let perfect_range: Duration = Duration::from_millis(64);
+        let good_range: Duration = 256.0.ms();
 
         let played_time = match *state {
             State::Stop => 0.ms(),
@@ -118,9 +120,11 @@ impl Component for Player<'_> {
             ])(wh, ctx);
         });
 
-        ctx.component(NoteJudge { notes, played_time });
-
-        ctx.component(InstrumentPlayer {
+        ctx.component(NoteJudge {
+            notes,
+            played_time,
+            perfect_range,
+            good_range,
             kick,
             cymbals,
             snare,

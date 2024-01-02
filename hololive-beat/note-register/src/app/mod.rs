@@ -18,9 +18,9 @@ impl namui::Component for App {
             spawn(async move {
                 set_loaded.set(Some(LoadedData {
                     notes: load_notes().await,
-                    kick: load_media("bundle:kick.mp3"),
-                    cymbals: load_media("bundle:cymbals.mp3"),
-                    snare: load_media("bundle:snare.mp3"),
+                    kick: load_media("bundle:kick.opus"),
+                    cymbals: load_media("bundle:cymbals.opus"),
+                    snare: load_media("bundle:snare.opus"),
                     music: load_media("bundle:you_re_mine.opus"),
                     video: load_media("bundle:you_re_mine.mp4"),
                 }));
