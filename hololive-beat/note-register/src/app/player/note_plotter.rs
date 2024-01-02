@@ -57,8 +57,8 @@ impl Component for NotePlotter<'_> {
 
         ctx.compose(|ctx| {
             for note in notes {
-                let note_y = (px_per_time * (Instant::new(played_time) - note.start_time))
-                    - timing_zero_y_from_bottom;
+                let note_y =
+                    (px_per_time * (played_time - note.start_time)) - timing_zero_y_from_bottom;
                 if note_y > wh.height * 2 {
                     continue;
                 }

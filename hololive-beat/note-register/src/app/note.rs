@@ -1,5 +1,5 @@
 use futures::future::join_all;
-use namui::{file::bundle, prelude::*, Instant};
+use namui::{file::bundle, prelude::*};
 use std::io::{self, BufRead};
 
 #[derive(Debug, Clone, Copy)]
@@ -70,7 +70,7 @@ impl Direction {
 
 #[derive(Debug)]
 pub struct Note {
-    pub start_time: Instant,
+    pub start_time: Duration,
     pub duration: Duration,
     pub direction: Direction,
     pub instrument: Instrument,
@@ -100,9 +100,7 @@ pub async fn load_notes() -> Vec<Note> {
             start_time_sec_list
                 .into_iter()
                 .zip(end_time_sec_list)
-                .map(|(start_sec, end_sec)| {
-                    (Instant::new(start_sec.sec()), (end_sec - start_sec).sec())
-                })
+                .map(|(start_sec, end_sec)| (start_sec.sec(), (end_sec - start_sec).sec()))
         };
         time_start_time_duration_pairs
             .map(|(start_time, duration)| Note {
