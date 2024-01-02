@@ -11,24 +11,34 @@ struct MediaExample;
 impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let (audio_mp3, set_audio_mp3) = ctx.state(|| None);
+        let (audio_opus, set_audio_opus) = ctx.state(|| None);
         let (video_mp4, set_video_mp4) = ctx.state(|| None);
         let (media_handle_for_toggle, set_media_handle_for_toggle) = ctx.state(|| None);
 
         ctx.effect("load media", || {
             namui::spawn(async move {
-                let path = namui::system::file::bundle::to_real_path("bundle:resources/audio.mp3")
-                    .unwrap();
-
-                let mp3 = namui::system::media::new_media(&path).unwrap();
+                let mp3 = namui::system::media::new_media(
+                    &namui::system::file::bundle::to_real_path("bundle:resources/audio.mp3")
+                        .unwrap(),
+                )
+                .unwrap();
                 println!("mp3 loaded");
-
                 set_audio_mp3.set(Some(mp3.clone_independent().unwrap()));
                 set_media_handle_for_toggle.set(Some(mp3));
 
-                let path = namui::system::file::bundle::to_real_path("bundle:resources/video.mp4")
-                    .unwrap();
+                let opus = namui::system::media::new_media(
+                    &namui::system::file::bundle::to_real_path("bundle:resources/audio.opus")
+                        .unwrap(),
+                )
+                .unwrap();
+                println!("opus loaded");
+                set_audio_opus.set(Some(opus));
 
-                let mp4 = namui::system::media::new_media(&path).unwrap();
+                let mp4 = namui::system::media::new_media(
+                    &namui::system::file::bundle::to_real_path("bundle:resources/video.mp4")
+                        .unwrap(),
+                )
+                .unwrap();
                 println!("mp4 loaded");
 
                 set_video_mp4.set(Some(mp4));
@@ -128,6 +138,26 @@ impl Component for MediaExample {
                     return;
                 };
                 media_handle_for_toggle.pause().unwrap();
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 10.px(),
+                y: 200.px(),
+                width: 200.px(),
+                height: 20.px(),
+            },
+            text: "opus (Fire & Forget)",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                if let Some(media) = audio_opus.as_ref() {
+                    media.clone_independent().unwrap().play().unwrap();
+                }
             },
         });
 
