@@ -25,7 +25,7 @@ impl MediaHandle {
             media: Arc::new(Mutex::new(Media::new(audio_context, path)?)),
         })
     }
-    pub fn play(&self, _start_at: Instant) -> Result<()> {
+    pub fn play(&self) -> Result<()> {
         self.media.lock().unwrap().play()
     }
     pub fn stop(&self) -> Result<()> {
