@@ -39,7 +39,10 @@ pub(crate) fn start_audio_resampling(
                     assert!(resampled.is_packed());
 
                     const PACKED_DATA_INDEX: usize = 0;
-                    let slice = resampled.data(PACKED_DATA_INDEX);
+                    let slice_with_extra = resampled.data(PACKED_DATA_INDEX);
+                    let slice = &slice_with_extra
+                        [..slice_with_extra.len() - slice_with_extra.len() % resampled.samples()];
+
                     let f32_slice = unsafe {
                         std::slice::from_raw_parts(
                             slice.as_ptr() as *const f32,

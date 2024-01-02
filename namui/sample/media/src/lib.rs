@@ -10,10 +10,11 @@ struct MediaExample;
 
 impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let (audio_mp3, set_audio_mp3) = ctx.state(|| None);
-        let (audio_opus, set_audio_opus) = ctx.state(|| None);
-        let (video_mp4, set_video_mp4) = ctx.state(|| None);
-        let (media_handle_for_toggle, set_media_handle_for_toggle) = ctx.state(|| None);
+        let (audio_mp3, set_audio_mp3) = ctx.state::<Option<MediaHandle>>(|| None);
+        let (audio_opus, set_audio_opus) = ctx.state::<Option<MediaHandle>>(|| None);
+        let (video_mp4, set_video_mp4) = ctx.state::<Option<MediaHandle>>(|| None);
+        let (media_handle_for_toggle, set_media_handle_for_toggle) =
+            ctx.state::<Option<MediaHandle>>(|| None);
 
         ctx.effect("load media", || {
             namui::spawn(async move {
@@ -144,7 +145,7 @@ impl Component for MediaExample {
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
-                y: 200.px(),
+                y: 160.px(),
                 width: 200.px(),
                 height: 20.px(),
             },

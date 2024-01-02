@@ -150,7 +150,7 @@ impl Context {
             if output.is_empty() {
                 output.alloc(
                     self.output.format,
-                    input.samples(),
+                    0, // Let `swr_convert_frame` allocate the buffer size
                     self.output.channel_layout,
                 );
             }
