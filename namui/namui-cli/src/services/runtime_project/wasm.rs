@@ -4,6 +4,8 @@ use crate::{util::recreate_dir_all, *};
 pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
     let project_name = get_project_name(args.project_path.clone());
 
+    recreate_dir_all(&args.target_dir)?;
+
     std::fs::write(
         args.target_dir.join("Cargo.toml"),
         format!(
