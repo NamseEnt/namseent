@@ -4,7 +4,7 @@ use anyhow::Result;
 use std::{path::Path, sync::Arc};
 
 pub struct MediaContext {
-    audio_context: Arc<AudioContext>,
+    pub(crate) audio_context: Arc<AudioContext>,
 }
 
 impl MediaContext {

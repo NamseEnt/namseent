@@ -9,10 +9,12 @@ use anyhow::Result;
 use namui_type::*;
 
 pub(crate) fn open_media(
-    input_ctx: ffmpeg_next::format::context::Input,
+    path: &impl AsRef<std::path::Path>,
     command_rx: std::sync::mpsc::Receiver<WithInstant<DecodingThreadCommand>>,
     audio_output_config: AudioConfig,
 ) -> Result<(Option<VideoFramer>, Option<AudioBuffer>, Duration)> {
+    let input_ctx = ffmpeg_next::format::input(&path)?;
+
     let mut video_framer = None;
     let mut audio_buffer = None;
     let duration = Duration::from_secs_f64(

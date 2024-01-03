@@ -30,11 +30,10 @@ impl MediaCore {
         audio_context: Arc<AudioContext>,
         path: &impl AsRef<std::path::Path>,
     ) -> Result<Self> {
-        let input_ctx = ffmpeg_next::format::input(&path)?;
         let (command_tx, command_rx) = std::sync::mpsc::sync_channel(32);
 
         let (video_framer, audio_buffer, media_duration) =
-            open_media(input_ctx, command_rx, audio_context.output_config)?;
+            open_media(path, command_rx, audio_context.output_config)?;
 
         if let Some(audio_buffer) = audio_buffer {
             audio_context.load_audio(audio_buffer)?;
