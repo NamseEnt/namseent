@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 pub fn recreate_dir_all(path: impl AsRef<Path>, excludes: Option<Vec<PathBuf>>) -> Result<()> {
     let path = path.as_ref();
     if path.exists() {
-        match exclude {
+        match excludes {
             Some(exclude) => {
                 walkdir::WalkDir::new(path)
                     .into_iter()

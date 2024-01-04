@@ -55,7 +55,7 @@ opt-level = 3
 
     // .cargo
     {
-        recreate_dir_all(args.target_dir.join(".cargo"))?;
+        recreate_dir_all(args.target_dir.join(".cargo"), None)?;
 
         std::fs::write(
             args.target_dir.join(".cargo/config.toml"),
