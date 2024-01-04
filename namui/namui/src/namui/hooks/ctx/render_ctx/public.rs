@@ -107,13 +107,33 @@ impl<'a> RenderCtx {
             enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
+        let now = std::time::Instant::now();
+
         let key = KeyVec::new_child(self.get_next_component_index());
+
+        println!("key: {:?}", now.elapsed());
+        let now = std::time::Instant::now();
 
         let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
 
+        println!(
+            "enable_event_handling(enable_event_handling): {:?}",
+            now.elapsed()
+        );
+        let now = std::time::Instant::now();
+
         let rendering_tree = self.render_children(key, component);
 
+        println!("render_children: {:?}", now.elapsed());
+        let now = std::time::Instant::now();
+
         self.tree_ctx.enable_event_handling(prev_enable_event);
+
+        println!(
+            "enable_event_handling(prev_enable_event): {:?}",
+            now.elapsed()
+        );
+        let now = std::time::Instant::now();
 
         rendering_tree
     }
@@ -130,13 +150,17 @@ impl<'a> RenderCtx {
         self
     }
     pub fn component(&self, component: impl Component) -> &Self {
+        let now = std::time::Instant::now();
         let rendering_tree = self.ghost_component(
             component,
             GhostComposeOption {
                 enable_event_handling: true,
             },
         );
+        println!("ghost: {:?}", now.elapsed());
+        let now = std::time::Instant::now();
         self.children.lock().unwrap().push(rendering_tree);
+        println!("children lock push: {:?}", now.elapsed());
         self
     }
     pub fn global_xy(&self, local_xy: Xy<Px>) -> Xy<Px> {

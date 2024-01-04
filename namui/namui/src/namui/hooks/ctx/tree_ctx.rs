@@ -87,13 +87,18 @@ impl TreeContext {
                 .store(false, std::sync::atomic::Ordering::Relaxed);
 
             let mut channel_events = channel_rx.try_iter().collect::<Vec<_>>();
-
             let mut updated_sigs = Default::default();
+
             handle_atom_events(&mut channel_events, &mut updated_sigs);
 
             self.channel_events.lock().unwrap().extend(channel_events);
 
+            let now = std::time::Instant::now();
+
             let rendering_tree = (self.call_root_render)(updated_sigs, raw_event);
+
+            println!("1: {:?}", now.elapsed());
+
             crate::system::drawer::request_draw_rendering_tree(rendering_tree);
 
             #[cfg(target_family = "wasm")]
