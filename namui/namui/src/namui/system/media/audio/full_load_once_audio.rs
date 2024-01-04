@@ -119,8 +119,9 @@ impl FullLoadOnceAudio {
 
 impl AudioConsume for FullLoadOnceAudio {
     fn consume(&mut self, output: &mut [f32]) {
+        let right = self.buffer.len().min(output.len());
         self.buffer
-            .drain(..output.len())
+            .drain(..right)
             .zip(output)
             .for_each(|(src, dst)| {
                 *dst += src;
