@@ -1,14 +1,15 @@
 use super::{get_project_name, GenerateRuntimeProjectArgs};
-use crate::*;
+use crate::{util::recreate_dir_all, *};
 
 pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
     let project_name = get_project_name(args.project_path.clone());
 
-    let _ = std::fs::remove_dir_all(args.target_dir.join("src"));
-    std::fs::create_dir_all(args.target_dir.join("src"))?;
+    recreate_dir_all(&args.target_dir)?;
 
-    let cargo_toml = format!(
-        r#"[package]
+    std::fs::write(
+        args.target_dir.join("Cargo.toml"),
+        format!(
+            r#"[package]
 name = "namui-runtime-wasm"
 version = "0.0.1"
 edition = "2021"
@@ -30,12 +31,18 @@ opt-level = 3
 lto = true
 opt-level = 2
     "#,
-        project_path = args.project_path.display(),
-    );
-    std::fs::write(args.target_dir.join("Cargo.toml"), cargo_toml)?;
+            project_path = args.project_path.display(),
+        ),
+    )?;
 
-    let lib_rs = format!(
-        r#"use wasm_bindgen::prelude::*;
+    // src
+    {
+        recreate_dir_all(args.target_dir.join("src"))?;
+
+        std::fs::write(
+            args.target_dir.join("src/lib.rs"),
+            format!(
+                r#"use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub async fn start() {{
@@ -44,9 +51,23 @@ pub async fn start() {{
     {project_name_underscored}::main().await;
 }}
 "#,
-        project_name_underscored = project_name.replace('-', "_"),
-    );
-    std::fs::write(args.target_dir.join("src/lib.rs"), lib_rs)?;
+                project_name_underscored = project_name.replace('-', "_"),
+            ),
+        )?;
+    }
+
+    // .cargo
+    {
+        recreate_dir_all(args.target_dir.join(".cargo"))?;
+
+        std::fs::write(
+            args.target_dir.join(".cargo/config.toml"),
+            r#"[build]
+# NOTE: This may break build when user's platform doesn't support simd128.
+rustflags = ["-C", "target-feature=+simd128"]
+"#,
+        )?;
+    }
 
     Ok(())
 }
