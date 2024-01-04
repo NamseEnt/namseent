@@ -12,6 +12,7 @@ use namui_type::*;
 pub use public::*;
 use renderer::*;
 use std::{
+    cell::UnsafeCell,
     collections::HashSet,
     fmt::Debug,
     rc::Rc,
@@ -26,9 +27,9 @@ pub struct RenderCtx {
     pub(crate) effect_index: AtomicUsize,
     pub(crate) memo_index: AtomicUsize,
     pub(crate) track_eq_index: AtomicUsize,
-    pub(crate) updated_sigs: Mutex<HashSet<SigId>>,
-    children: Arc<Mutex<Vec<RenderingTree>>>,
-    pub(crate) matrix: Mutex<Matrix3x3>,
+    pub(crate) updated_sigs: UnsafeCell<HashSet<SigId>>,
+    children: UnsafeCell<Vec<RenderingTree>>,
+    pub(crate) matrix: Matrix3x3,
     component_index: AtomicUsize,
     raw_event: RawEventContainer,
     clippings: Vec<Clipping>,
@@ -55,27 +56,37 @@ impl RenderCtx {
             effect_index: Default::default(),
             memo_index: Default::default(),
             track_eq_index: Default::default(),
-            updated_sigs: Mutex::new(updated_sigs),
+            updated_sigs: updated_sigs.into(),
             children: Default::default(),
-            matrix: Mutex::new(matrix),
+            matrix,
             component_index: Default::default(),
             raw_event,
             clippings,
         }
     }
 
+    #[allow(clippy::mut_from_ref)]
+    fn updated_sigs(&self) -> &mut HashSet<SigId> {
+        unsafe { &mut *self.updated_sigs.get() }
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    fn children(&self) -> &mut Vec<RenderingTree> {
+        unsafe { &mut *self.children.get() }
+    }
+
     pub(crate) fn is_sig_updated(&self, sig_id: &SigId) -> bool {
-        self.updated_sigs.lock().unwrap().contains(sig_id)
+        self.updated_sigs().contains(sig_id)
     }
 
     pub(crate) fn add_sig_updated(&self, sig_id: SigId) {
-        self.updated_sigs.lock().unwrap().insert(sig_id);
+        self.updated_sigs().insert(sig_id);
     }
 
     fn renderer(&self) -> Renderer {
         Renderer {
             instance: self.instance.clone(),
-            updated_sigs: self.updated_sigs.lock().unwrap().clone(),
+            updated_sigs: self.updated_sigs().clone(),
         }
     }
 
@@ -95,11 +106,11 @@ impl RenderCtx {
     }
 
     pub(crate) fn matrix(&self) -> Matrix3x3 {
-        *self.matrix.lock().unwrap()
+        self.matrix
     }
 
     pub(crate) fn inverse_matrix(&self) -> Matrix3x3 {
-        self.matrix.lock().unwrap().inverse().unwrap()
+        self.matrix.inverse().unwrap()
     }
 
     pub(crate) fn get_channel_events_items_for(&self, sig_id: SigId) -> Vec<Item> {

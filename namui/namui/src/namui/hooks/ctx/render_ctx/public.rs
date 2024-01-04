@@ -56,12 +56,12 @@ impl<'a> RenderCtx {
     }
 
     pub fn done(&self) -> RenderDone {
-        let vec: Vec<RenderingTree> = std::mem::take(self.children.lock().unwrap().as_mut());
+        let vec: Vec<RenderingTree> = std::mem::take(self.children());
         let rendering_tree = crate::render(vec);
 
         let bounding_box = rendering_tree
             .bounding_box()
-            .map(|bounding_box| self.matrix.lock().unwrap().transform_rect(bounding_box));
+            .map(|bounding_box| self.matrix.transform_rect(bounding_box));
         self.instance.set_debug_bounding_box(bounding_box);
 
         RenderDone { rendering_tree }
@@ -79,7 +79,7 @@ impl<'a> RenderCtx {
         {
             let mut compose_ctx = ComposeCtx::new(
                 KeyVec::new_child(self.get_next_component_index()),
-                *self.matrix.lock().unwrap(),
+                self.matrix,
                 self.renderer(),
                 lazy.clone(),
                 self.raw_event.clone(),
@@ -123,7 +123,7 @@ impl<'a> RenderCtx {
                 enable_event_handling: true,
             },
         );
-        self.children.lock().unwrap().push(rendering_tree);
+        self.children().push(rendering_tree);
 
         self
     }
@@ -134,7 +134,7 @@ impl<'a> RenderCtx {
                 enable_event_handling: true,
             },
         );
-        self.children.lock().unwrap().push(rendering_tree);
+        self.children().push(rendering_tree);
 
         self
     }
