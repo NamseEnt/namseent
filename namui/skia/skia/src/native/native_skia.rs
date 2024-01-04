@@ -12,7 +12,7 @@ use windows::Win32::{
         },
         Dxgi::{
             CreateDXGIFactory2, IDXGIAdapter1, IDXGIFactory4, DXGI_ADAPTER_FLAG,
-            DXGI_ADAPTER_FLAG_NONE, DXGI_ADAPTER_FLAG_SOFTWARE, DXGI_CREATE_FACTORY_DEBUG,
+            DXGI_ADAPTER_FLAG_NONE, DXGI_ADAPTER_FLAG_SOFTWARE,
         },
     },
 };
@@ -35,7 +35,9 @@ impl NativeSkia {
 
         let hwnd = HWND(window_id as isize);
 
-        let factory = unsafe { CreateDXGIFactory2::<IDXGIFactory4>(DXGI_CREATE_FACTORY_DEBUG) }?;
+        // Use `DXGI_CREATE_FACTORY_DEBUG` flag if needed.
+        // https://github.com/NamseEnt/namseent/issues/738
+        let factory = unsafe { CreateDXGIFactory2::<IDXGIFactory4>(0) }?;
         let adapter = get_hardware_adapter(&factory)?;
 
         let mut device: Option<ID3D12Device> = None;
