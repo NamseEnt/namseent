@@ -1,5 +1,5 @@
-use super::atomic_floating::AtomicF32;
-use crate::media::audio::{AudioBuffer, AudioConfig};
+use super::{atomic_floating::AtomicF32, AudioConsume};
+use crate::media::audio::AudioConfig;
 use anyhow::{anyhow, Result};
 use std::{fmt::Debug, mem::size_of, sync::Arc};
 
@@ -28,15 +28,15 @@ impl AudioContext {
             channel_count: CHANNELS,
         };
 
-        let mut audio_buffers: Vec<AudioBuffer> = Default::default();
+        let mut audios: Vec<Box<dyn AudioConsume>> = Default::default();
 
         let (audio_command_tx, audio_command_rx) = std::sync::mpsc::channel();
 
-        let handle_audio_commands = move |audio_buffers: &mut Vec<AudioBuffer>| {
+        let handle_audio_commands = move |audios: &mut Vec<Box<dyn AudioConsume>>| {
             while let Ok(command) = audio_command_rx.try_recv() {
                 match command {
-                    AudioCommand::LoadAudio { audio_buffer } => {
-                        audio_buffers.push(audio_buffer);
+                    AudioCommand::LoadAudio { audio } => {
+                        audios.push(audio);
                     }
                 }
             }
@@ -64,13 +64,13 @@ impl AudioContext {
                 };
 
                 loop {
-                    handle_audio_commands(&mut audio_buffers);
+                    handle_audio_commands(&mut audios);
                     let volume = volume.load(std::sync::atomic::Ordering::Relaxed);
 
                     let buffer_frame_count = audio_client.get_available_space_in_frames().unwrap();
                     let mut output = vec![0.0f32; buffer_frame_count as usize * CHANNELS];
 
-                    for audio_buffer in &mut audio_buffers {
+                    for audio_buffer in &mut audios {
                         audio_buffer.consume(&mut output)
                     }
 
@@ -92,7 +92,7 @@ impl AudioContext {
                         )
                         .unwrap();
 
-                    audio_buffers.retain(|audio_buffer| !audio_buffer.is_end());
+                    audios.retain(|audio_buffer| !audio_buffer.is_end());
 
                     if h_event.wait_for_event(1000).is_err() {
                         eprintln!("[namui-media] failed to wait for event");
@@ -112,9 +112,11 @@ impl AudioContext {
         })
     }
 
-    pub(crate) fn load_audio(&self, audio_buffer: AudioBuffer) -> Result<()> {
+    pub(crate) fn load_audio(&self, audio: impl AudioConsume + 'static) -> Result<()> {
         self.audio_command_tx
-            .send(AudioCommand::LoadAudio { audio_buffer })
+            .send(AudioCommand::LoadAudio {
+                audio: Box::new(audio),
+            })
             .map_err(|_| anyhow!("failed to send AudioCommand::LoadAudio"))?;
 
         Ok(())
@@ -133,7 +135,7 @@ impl AudioContext {
 
 #[derive(Debug)]
 pub(crate) enum AudioCommand {
-    LoadAudio { audio_buffer: AudioBuffer },
+    LoadAudio { audio: Box<dyn AudioConsume> },
 }
 
 struct InitWasApiOutput {

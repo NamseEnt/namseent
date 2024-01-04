@@ -8,12 +8,6 @@ pub struct RenderDone {
 
 pub trait Component: StaticType + Debug {
     fn render(self, ctx: &RenderCtx) -> RenderDone;
-    fn arc<'a>(self) -> Arc<dyn 'a + Component>
-    where
-        Self: Sized + 'a,
-    {
-        Arc::new(self)
-    }
     fn attach_event<'a>(self, on_event: impl 'a + FnOnce(Event)) -> AttachEvent<'a, Self>
     where
         Self: 'a + Sized,

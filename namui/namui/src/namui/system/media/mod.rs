@@ -8,10 +8,11 @@ mod media_handle;
 mod video;
 mod with_instant;
 
-use self::media_context::MediaContext;
-pub use self::media_handle::MediaHandle;
 use super::InitResult;
 use anyhow::*;
+pub use audio::FullLoadOnceAudio;
+use media_context::MediaContext;
+pub use media_handle::MediaHandle;
 use std::{path::Path, sync::OnceLock};
 
 const AUDIO_CHANNEL_BOUND: usize = 128;
@@ -40,4 +41,8 @@ pub fn set_volume(zero_to_one: f32) {
 /// Volume value range is 0.0 ~ 1.0.
 pub fn volume() -> f32 {
     MEDIA_SYSTEM.get().unwrap().volume()
+}
+
+pub async fn new_full_load_once_audio(path: &impl AsRef<Path>) -> Result<FullLoadOnceAudio> {
+    Ok(FullLoadOnceAudio::new(MEDIA_SYSTEM.get().unwrap().audio_context.clone(), path).await?)
 }

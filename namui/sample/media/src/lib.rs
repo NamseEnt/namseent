@@ -15,35 +15,45 @@ impl Component for MediaExample {
         let (video_mp4, set_video_mp4) = ctx.state::<Option<MediaHandle>>(|| None);
         let (media_handle_for_toggle, set_media_handle_for_toggle) =
             ctx.state::<Option<MediaHandle>>(|| None);
+        let (sliced_audio, set_sliced_audio) = ctx.state::<Option<FullLoadOnceAudio>>(|| None);
 
         ctx.effect("load media", || {
-            namui::spawn(async move {
-                let mp3 = namui::system::media::new_media(
-                    &namui::system::file::bundle::to_real_path("bundle:resources/audio.mp3")
-                        .unwrap(),
-                )
-                .unwrap();
-                println!("mp3 loaded");
-                set_audio_mp3.set(Some(mp3.clone_independent().unwrap()));
-                set_media_handle_for_toggle.set(Some(mp3));
+            let mp3 = namui::system::media::new_media(
+                &namui::system::file::bundle::to_real_path("bundle:resources/audio.mp3").unwrap(),
+            )
+            .unwrap();
+            println!("mp3 loaded");
+            set_audio_mp3.set(Some(mp3.clone_independent().unwrap()));
+            set_media_handle_for_toggle.set(Some(mp3));
 
-                let opus = namui::system::media::new_media(
+            let opus = namui::system::media::new_media(
+                &namui::system::file::bundle::to_real_path("bundle:resources/audio.opus").unwrap(),
+            )
+            .unwrap();
+            println!("opus loaded");
+            set_audio_opus.set(Some(opus));
+
+            namui::spawn(async move {
+                let opus = namui::system::media::new_full_load_once_audio(
                     &namui::system::file::bundle::to_real_path("bundle:resources/audio.opus")
                         .unwrap(),
                 )
+                .await
                 .unwrap();
-                println!("opus loaded");
-                set_audio_opus.set(Some(opus));
-
-                let mp4 = namui::system::media::new_media(
-                    &namui::system::file::bundle::to_real_path("bundle:resources/video.mp4")
+                println!("full load once audio loaded");
+                set_sliced_audio.set(Some(
+                    opus.slice(Duration::from_secs(1)..Duration::from_secs(2))
                         .unwrap(),
-                )
-                .unwrap();
-                println!("mp4 loaded");
-
-                set_video_mp4.set(Some(mp4));
+                ));
             });
+
+            let mp4 = namui::system::media::new_media(
+                &namui::system::file::bundle::to_real_path("bundle:resources/video.mp4").unwrap(),
+            )
+            .unwrap();
+            println!("mp4 loaded");
+
+            set_video_mp4.set(Some(mp4));
         });
 
         let seek_to = |media_handle: MediaHandle, to: Duration| {
@@ -124,7 +134,7 @@ impl Component for MediaExample {
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
-                y: 120.px(),
+                y: 100.px(),
                 width: 200.px(),
                 height: 20.px(),
             },
@@ -145,7 +155,7 @@ impl Component for MediaExample {
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
-                y: 160.px(),
+                y: 140.px(),
                 width: 200.px(),
                 height: 20.px(),
             },
@@ -158,6 +168,30 @@ impl Component for MediaExample {
             on_mouse_up_in: &|_| {
                 if let Some(media) = audio_opus.as_ref() {
                     media.clone_independent().unwrap().play().unwrap();
+                }
+            },
+        });
+
+        ctx.component(TextButton {
+            rect: Rect::Xywh {
+                x: 10.px(),
+                y: 180.px(),
+                width: 200.px(),
+                height: 20.px(),
+            },
+            text: if sliced_audio.is_some() {
+                "slice (Fire & Forget)"
+            } else {
+                "Loading..."
+            },
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|_| {
+                if let Some(audio) = sliced_audio.as_ref() {
+                    audio.clone().play().unwrap();
                 }
             },
         });
@@ -279,7 +313,7 @@ impl Component for MediaExample {
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 20.px(),
-                y: 200.px(),
+                y: 220.px(),
                 width: 40.px(),
                 height: 20.px(),
             },
@@ -297,7 +331,7 @@ impl Component for MediaExample {
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 60.px(),
-                y: 200.px(),
+                y: 220.px(),
                 width: 40.px(),
                 height: 20.px(),
             },
@@ -313,7 +347,7 @@ impl Component for MediaExample {
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 100.px(),
-                y: 200.px(),
+                y: 220.px(),
                 width: 40.px(),
                 height: 20.px(),
             },

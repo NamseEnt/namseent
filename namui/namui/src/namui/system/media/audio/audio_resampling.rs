@@ -17,18 +17,7 @@ pub(crate) fn start_audio_resampling(
     std::thread::spawn({
         move || {
             let result = (move || -> Result<()> {
-                let mut resampler = ffmpeg_next::software::resampling::Context::get(
-                    input_config.sample_format,
-                    input_config.channel_layout,
-                    input_config.sample_rate,
-                    output_config.sample_format,
-                    if output_config.channel_count == 1 {
-                        ffmpeg_next::ChannelLayout::MONO
-                    } else {
-                        ffmpeg_next::ChannelLayout::STEREO
-                    },
-                    output_config.sample_rate,
-                )?;
+                let mut resampler = get_resampler(input_config, output_config)?;
 
                 while let Ok(frame) = ffmpeg_audio_frame_rx.recv() {
                     let mut resampled = ffmpeg_next::frame::Audio::empty();
@@ -62,4 +51,22 @@ pub(crate) fn start_audio_resampling(
     });
 
     AudioBuffer::new(rx, control_receiver)
+}
+
+pub(crate) fn get_resampler(
+    input_config: AudioConfig,
+    output_config: AudioConfig,
+) -> Result<ffmpeg_next::software::resampling::Context> {
+    Ok(ffmpeg_next::software::resampling::Context::get(
+        input_config.sample_format,
+        input_config.channel_layout,
+        input_config.sample_rate,
+        output_config.sample_format,
+        if output_config.channel_count == 1 {
+            ffmpeg_next::ChannelLayout::MONO
+        } else {
+            ffmpeg_next::ChannelLayout::STEREO
+        },
+        output_config.sample_rate,
+    )?)
 }

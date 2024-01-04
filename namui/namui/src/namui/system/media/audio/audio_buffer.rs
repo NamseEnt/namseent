@@ -1,5 +1,5 @@
 use crate::system::media::{
-    core::MediaControlReceiver, with_instant::WithInstant, AUDIO_CHANNEL_BOUND,
+    audio::AudioConsume, core::MediaControlReceiver, with_instant::WithInstant, AUDIO_CHANNEL_BOUND,
 };
 use std::{collections::VecDeque, sync::mpsc::TryRecvError};
 
@@ -23,7 +23,32 @@ impl AudioBuffer {
             chunks: VecDeque::new(),
         }
     }
-    pub(crate) fn consume(&mut self, output: &mut [f32]) {
+
+    fn fill_chunks(&mut self) {
+        let flush_requested = self.control_receiver.flush_requested();
+
+        if let Some(flush_requested) = flush_requested {
+            self.chunks.retain(|chunk| flush_requested < chunk.instant);
+        }
+
+        while self.chunks.len() < AUDIO_CHANNEL_BOUND {
+            let Ok(chunk) = self.rx.try_recv() else {
+                break;
+            };
+
+            if let Some(flush_requested) = flush_requested {
+                if chunk.instant < flush_requested {
+                    continue;
+                }
+            }
+
+            self.chunks.push_back(chunk);
+        }
+    }
+}
+
+impl AudioConsume for AudioBuffer {
+    fn consume(&mut self, output: &mut [f32]) {
         self.fill_chunks();
 
         if self.control_receiver.start_requested().is_none() {
@@ -60,33 +85,11 @@ impl AudioBuffer {
         }
     }
 
-    pub(crate) fn is_end(&self) -> bool {
+    fn is_end(&self) -> bool {
         self.chunks.is_empty()
             && self
                 .rx
                 .try_recv()
                 .is_err_and(|e| matches!(e, TryRecvError::Disconnected))
-    }
-
-    fn fill_chunks(&mut self) {
-        let flush_requested = self.control_receiver.flush_requested();
-
-        if let Some(flush_requested) = flush_requested {
-            self.chunks.retain(|chunk| flush_requested < chunk.instant);
-        }
-
-        while self.chunks.len() < AUDIO_CHANNEL_BOUND {
-            let Ok(chunk) = self.rx.try_recv() else {
-                break;
-            };
-
-            if let Some(flush_requested) = flush_requested {
-                if chunk.instant < flush_requested {
-                    continue;
-                }
-            }
-
-            self.chunks.push_back(chunk);
-        }
     }
 }
