@@ -52,9 +52,7 @@ impl<'a> RenderCtx {
     }
 
     pub fn stop_event_propagation(&'a self) {
-        self.tree_ctx
-            .is_stop_event_propagation
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        tree_ctx_mut().is_stop_event_propagation = true;
     }
 
     pub fn done(&self) -> RenderDone {
@@ -64,7 +62,7 @@ impl<'a> RenderCtx {
         let bounding_box = rendering_tree
             .bounding_box()
             .map(|bounding_box| self.matrix.lock().unwrap().transform_rect(bounding_box));
-        *self.instance.debug_bounding_box.lock().unwrap() = bounding_box;
+        self.instance.set_debug_bounding_box(bounding_box);
 
         RenderDone { rendering_tree }
     }
@@ -74,13 +72,12 @@ impl<'a> RenderCtx {
         &self,
         compose: impl FnOnce(&mut ComposeCtx),
         GhostComposeOption {
-            enable_event_handling,
+            swap_enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
         let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
         {
             let mut compose_ctx = ComposeCtx::new(
-                self.tree_ctx.clone(),
                 KeyVec::new_child(self.get_next_component_index()),
                 *self.matrix.lock().unwrap(),
                 self.renderer(),
@@ -89,11 +86,12 @@ impl<'a> RenderCtx {
                 self.clippings.clone(),
             );
 
-            let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
+            let prev_enable_event =
+                tree_ctx_mut().swap_enable_event_handling(swap_enable_event_handling);
 
             compose(&mut compose_ctx);
 
-            self.tree_ctx.enable_event_handling(prev_enable_event);
+            tree_ctx_mut().swap_enable_event_handling(prev_enable_event);
         }
         let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
         rendering_tree
@@ -104,7 +102,7 @@ impl<'a> RenderCtx {
         &self,
         component: impl Component,
         GhostComposeOption {
-            enable_event_handling,
+            swap_enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
         let now = std::time::Instant::now();
@@ -114,10 +112,11 @@ impl<'a> RenderCtx {
         println!("key: {:?}", now.elapsed());
         let now = std::time::Instant::now();
 
-        let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
+        let prev_enable_event =
+            tree_ctx_mut().swap_enable_event_handling(swap_enable_event_handling);
 
         println!(
-            "enable_event_handling(enable_event_handling): {:?}",
+            "swap_enable_event_handling(swap_enable_event_handling): {:?}",
             now.elapsed()
         );
         let now = std::time::Instant::now();
@@ -127,13 +126,12 @@ impl<'a> RenderCtx {
         println!("render_children: {:?}", now.elapsed());
         let now = std::time::Instant::now();
 
-        self.tree_ctx.enable_event_handling(prev_enable_event);
+        tree_ctx_mut().swap_enable_event_handling(prev_enable_event);
 
         println!(
-            "enable_event_handling(prev_enable_event): {:?}",
+            "swap_enable_event_handling(prev_enable_event): {:?}",
             now.elapsed()
         );
-        let now = std::time::Instant::now();
 
         rendering_tree
     }
@@ -142,7 +140,7 @@ impl<'a> RenderCtx {
         let rendering_tree = self.ghost_compose(
             compose,
             GhostComposeOption {
-                enable_event_handling: true,
+                swap_enable_event_handling: true,
             },
         );
         self.children.lock().unwrap().push(rendering_tree);
@@ -154,7 +152,7 @@ impl<'a> RenderCtx {
         let rendering_tree = self.ghost_component(
             component,
             GhostComposeOption {
-                enable_event_handling: true,
+                swap_enable_event_handling: true,
             },
         );
         println!("ghost: {:?}", now.elapsed());
@@ -171,5 +169,5 @@ impl<'a> RenderCtx {
 }
 
 pub struct GhostComposeOption {
-    pub enable_event_handling: bool,
+    pub swap_enable_event_handling: bool,
 }

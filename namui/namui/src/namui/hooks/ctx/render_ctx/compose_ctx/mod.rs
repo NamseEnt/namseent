@@ -10,7 +10,6 @@ use crate::{
 pub(crate) use lazy_rendering_tree::*;
 
 pub struct ComposeCtx {
-    tree_ctx: TreeContext,
     matrix: Matrix3x3,
     children_index: usize,
     pre_key_vec: KeyVec,
@@ -45,7 +44,6 @@ impl Drop for ComposeCtx {
 }
 impl ComposeCtx {
     pub(super) fn new(
-        tree_ctx: TreeContext,
         pre_key_vec: KeyVec,
         matrix: Matrix3x3,
         renderer: Renderer,
@@ -54,7 +52,6 @@ impl ComposeCtx {
         clippings: Vec<Clipping>,
     ) -> Self {
         ComposeCtx {
-            tree_ctx,
             matrix,
             children_index: Default::default(),
             pre_key_vec,
@@ -145,7 +142,6 @@ impl ComposeCtx {
             };
 
             let mut child_compose_ctx = ComposeCtx::new(
-                self.tree_ctx.clone(),
                 key_vec,
                 self.matrix,
                 self.renderer.clone(),
@@ -166,7 +162,7 @@ impl ComposeCtx {
         key: IntoOptionKey,
         component: impl Component,
         GhostComposeOption {
-            enable_event_handling,
+            swap_enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
         let key_vec = if let Some(key) = key.into() {
@@ -175,7 +171,8 @@ impl ComposeCtx {
             self.next_child_key_vec()
         };
 
-        let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
+        let prev_enable_event =
+            tree_ctx_mut().swap_enable_event_handling(swap_enable_event_handling);
 
         let rendering_tree = self.renderer.render(
             key_vec,
@@ -185,7 +182,7 @@ impl ComposeCtx {
             self.raw_event.clone(),
         );
 
-        self.tree_ctx.enable_event_handling(prev_enable_event);
+        tree_ctx_mut().swap_enable_event_handling(prev_enable_event);
 
         rendering_tree
     }

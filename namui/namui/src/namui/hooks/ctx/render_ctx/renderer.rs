@@ -2,9 +2,8 @@ use super::*;
 
 #[derive(Clone)]
 pub(super) struct Renderer {
-    pub(super) instance: Arc<ComponentInstance>,
+    pub(crate) instance: Rc<ComponentInstance>,
     pub(super) updated_sigs: HashSet<SigId>,
-    pub(super) tree_ctx: TreeContext,
 }
 
 impl Renderer {
@@ -19,7 +18,7 @@ impl Renderer {
         let child_instance = self
             .instance
             .get_or_create_child_instance(key_vec, component.static_type_name());
-        self.tree_ctx.render(
+        tree_ctx().render(
             component,
             child_instance,
             self.updated_sigs.clone(),

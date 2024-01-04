@@ -1,5 +1,4 @@
 use super::*;
-use std::sync::MutexGuard;
 
 pub(crate) type CleanUpFnOnce = Option<Box<dyn FnOnce()>>;
 
@@ -11,17 +10,14 @@ pub(crate) fn handle_effect<CleanUp: EffectCleanUp>(
     let _ = title;
 
     let instance = ctx.instance.as_ref();
-    let mut effect_used_sigs_list = instance.effect_used_sigs_list.lock().unwrap();
-    let mut effect_clean_up_list = instance.effect_clean_up_list.lock().unwrap();
+    let effect_used_sigs_list = &mut instance.self_mut().effect_used_sigs_list;
+    let effect_clean_up_list = &mut instance.self_mut().effect_clean_up_list;
 
     let effect_index = ctx
         .effect_index
         .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-    let is_first_run = ctx
-        .instance
-        .is_first_render
-        .load(std::sync::atomic::Ordering::SeqCst);
+    let is_first_run = instance.self_ref().is_first_render;
 
     let used_sig_updated = || {
         let used_sigs = effect_used_sigs_list.get(effect_index).unwrap();
@@ -32,19 +28,16 @@ pub(crate) fn handle_effect<CleanUp: EffectCleanUp>(
 
     if is_first_run || used_sig_updated() {
         clean_used_sigs();
-        call_prev_clean_up(&mut effect_clean_up_list, effect_index);
+        call_prev_clean_up(effect_clean_up_list, effect_index);
         let clean_up = effect();
-        save_clean_up(&mut effect_clean_up_list, effect_index, clean_up);
+        save_clean_up(effect_clean_up_list, effect_index, clean_up);
         let used_sig_ids = take_used_sigs();
 
-        update_or_push(&mut effect_used_sigs_list, effect_index, used_sig_ids);
+        update_or_push(effect_used_sigs_list, effect_index, used_sig_ids);
     }
 }
 
-fn call_prev_clean_up(
-    effect_clean_up_list: &mut MutexGuard<'_, Vec<CleanUpFnOnce>>,
-    effect_index: usize,
-) {
+fn call_prev_clean_up(effect_clean_up_list: &mut [CleanUpFnOnce], effect_index: usize) {
     let clean_up = effect_clean_up_list.get_mut(effect_index);
     if let Some(clean_up) = clean_up {
         let clean_up = std::mem::take(clean_up);
@@ -55,7 +48,7 @@ fn call_prev_clean_up(
 }
 
 fn save_clean_up(
-    effect_clean_up_list: &mut MutexGuard<'_, Vec<CleanUpFnOnce>>,
+    effect_clean_up_list: &mut Vec<CleanUpFnOnce>,
     effect_index: usize,
     clean_up: impl EffectCleanUp,
 ) {

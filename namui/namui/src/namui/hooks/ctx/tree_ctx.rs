@@ -1,101 +1,110 @@
 use super::*;
 use crate::*;
 use derivative::Derivative;
-use std::{
-    collections::HashSet,
-    sync::{atomic::AtomicBool, Arc, Mutex},
-};
+use std::{collections::HashSet, rc::Rc, sync::OnceLock};
 
-#[derive(Derivative, Clone)]
+#[derive(Derivative)]
 #[derivative(Debug)]
 pub(crate) struct TreeContext {
-    pub(crate) channel_events: Arc<Mutex<Vec<Item>>>,
-    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
-    pub(crate) is_cursor_determined: Arc<AtomicBool>,
-    pub(crate) enable_event_handling: Arc<AtomicBool>,
-    root_instance: Arc<ComponentInstance>,
-    #[derivative(Debug = "ignore")]
-    call_root_render: Arc<dyn Fn(HashSet<SigId>, RawEventContainer) -> RenderingTree>,
-    #[derivative(Debug = "ignore")]
-    clear_unrendered_components: Arc<dyn Fn()>,
+    pub(crate) channel_events: Vec<Item>,
+    pub(crate) is_stop_event_propagation: bool,
+    pub(crate) is_cursor_determined: bool,
+    pub(crate) enable_event_handling: bool,
+    // root_instance: ComponentInstance,
+    // #[derivative(Debug = "ignore")]
+    // call_root_render: Box<dyn Fn(HashSet<SigId>, RawEventContainer) -> RenderingTree>,
+    // #[derivative(Debug = "ignore")]
+    // clear_unrendered_components: Box<dyn Fn()>,
+}
+
+static mut TREE_CTX: OnceLock<TreeContext> = OnceLock::new();
+pub(crate) fn tree_ctx() -> &'static TreeContext {
+    unsafe { TREE_CTX.get().unwrap() }
+}
+
+pub(crate) fn tree_ctx_mut() -> &'static mut TreeContext {
+    unsafe { TREE_CTX.get_mut().unwrap() }
 }
 
 impl TreeContext {
-    pub(crate) fn new<C: Component>(
-        root_component: impl Send + Sync + 'static + Fn() -> C,
-    ) -> Self {
-        let root_instance = Arc::new(ComponentInstance::new(root_component().static_type_name()));
-        let mut ctx = Self {
-            channel_events: Default::default(),
-            is_stop_event_propagation: Default::default(),
-            is_cursor_determined: Default::default(),
-            enable_event_handling: Arc::new(AtomicBool::new(true)),
-            root_instance: root_instance.clone(),
-            call_root_render: Arc::new(|_, _| {
-                unreachable!();
-            }),
-            clear_unrendered_components: Arc::new(|| {
-                unreachable!();
-            }),
-        };
-
-        ctx.call_root_render = Arc::new({
-            let ctx = ctx.clone();
-            let root_instance = root_instance.clone();
-            move |updated_sigs, raw_event| {
-                ctx.render(
-                    root_component(),
-                    root_instance.clone(),
-                    updated_sigs,
-                    Matrix3x3::identity(),
-                    vec![],
-                    raw_event,
-                )
-            }
-        });
-        ctx.clear_unrendered_components = Arc::new({
-            let root_instance = root_instance.clone();
-            move || {
-                root_instance.clear_unrendered_chidlren();
-            }
-        });
-
-        ctx
+    pub(crate) fn init() {
+        unsafe {
+            TREE_CTX
+                .set(Self {
+                    channel_events: Default::default(),
+                    is_stop_event_propagation: Default::default(),
+                    is_cursor_determined: Default::default(),
+                    enable_event_handling: true,
+                    // call_root_render: Box::new(move |updated_sigs, raw_event| {
+                    //     tree_ctx().render(
+                    //         root_component(),
+                    //         root_instance.clone(),
+                    //         updated_sigs,
+                    //         Matrix3x3::identity(),
+                    //         vec![],
+                    //         raw_event,
+                    //     )
+                    // }),
+                    // clear_unrendered_components: Box::new(move || {
+                    //     root_instance.clear_unrendered_chidlren();
+                    // }),
+                })
+                .expect("TreeContext is already initialized");
+        }
     }
 
-    pub(crate) fn start(&self, channel_rx: &std::sync::mpsc::Receiver<Item>) {
-        self.render_and_draw(None.into(), channel_rx);
+    pub(crate) fn start<C: Component>(
+        &mut self,
+        channel_rx: &std::sync::mpsc::Receiver<Item>,
+        root_instance: Rc<ComponentInstance>,
+        root_component: impl Send + Sync + Fn() -> C,
+    ) {
+        self.render_and_draw(None.into(), channel_rx, root_instance, root_component);
     }
 
-    pub(crate) fn on_raw_event(
+    pub(crate) fn on_raw_event<C: Component>(
         &mut self,
         event: RawEvent,
         channel_rx: &std::sync::mpsc::Receiver<Item>,
+        root_instance: Rc<ComponentInstance>,
+        root_component: impl Send + Sync + Fn() -> C,
     ) {
-        self.render_and_draw(Some(event).into(), channel_rx);
+        self.render_and_draw(
+            Some(event).into(),
+            channel_rx,
+            root_instance,
+            root_component,
+        );
     }
 
-    pub(crate) fn render_and_draw(
-        &self,
+    pub(crate) fn render_and_draw<C: Component>(
+        &mut self,
         raw_event: RawEventContainer,
         channel_rx: &std::sync::mpsc::Receiver<Item>,
+        root_instance: Rc<ComponentInstance>,
+        root_component: impl Send + Sync + Fn() -> C,
     ) {
         if !system::panick::is_panicked() {
-            self.is_stop_event_propagation
-                .store(false, std::sync::atomic::Ordering::Relaxed);
-            self.is_cursor_determined
-                .store(false, std::sync::atomic::Ordering::Relaxed);
+            self.is_stop_event_propagation = false;
+            self.is_cursor_determined = false;
 
             let mut channel_events = channel_rx.try_iter().collect::<Vec<_>>();
             let mut updated_sigs = Default::default();
 
             handle_atom_events(&mut channel_events, &mut updated_sigs);
 
-            self.channel_events.lock().unwrap().extend(channel_events);
+            self.channel_events.extend(channel_events);
 
             let now = std::time::Instant::now();
 
-            let rendering_tree = (self.call_root_render)(updated_sigs, raw_event);
+            let rendering_tree = self.render(
+                root_component(),
+                root_instance.clone(),
+                updated_sigs,
+                Matrix3x3::identity(),
+                vec![],
+                raw_event,
+            );
 
             println!("1: {:?}", now.elapsed());
 
@@ -109,7 +118,7 @@ impl TreeContext {
                 system::mouse::set_mouse_cursor(&MouseCursor::Default);
             }
 
-            (self.clear_unrendered_components)();
+            root_instance.clear_unrendered_chidlren();
         }
 
         #[cfg(target_arch = "wasm32")]
@@ -119,45 +128,23 @@ impl TreeContext {
     pub(crate) fn render(
         &self,
         component: impl Component,
-        instance: Arc<ComponentInstance>,
+        instance: Rc<ComponentInstance>,
         updated_sigs: HashSet<SigId>,
         matrix: Matrix3x3,
         clippings: Vec<Clipping>,
         raw_event: RawEventContainer,
     ) -> RenderingTree {
-        let render_ctx =
-            self.spawn_render_ctx(instance, updated_sigs, matrix, clippings, raw_event);
+        let render_ctx = RenderCtx::new(instance, updated_sigs, matrix, raw_event, clippings);
 
-        let render_done = Box::new(component).render(&render_ctx);
-
-        render_done.rendering_tree
-    }
-    pub(crate) fn spawn_render_ctx(
-        &self,
-        instance: Arc<ComponentInstance>,
-        updated_sigs: HashSet<SigId>,
-        matrix: Matrix3x3,
-        clippings: Vec<Clipping>,
-        raw_event: RawEventContainer,
-    ) -> RenderCtx {
-        RenderCtx::new(
-            instance,
-            updated_sigs,
-            self.clone(),
-            matrix,
-            raw_event,
-            clippings,
-        )
+        component.render(&render_ctx).rendering_tree
     }
 
-    pub(crate) fn enable_event_handling(&self, enable: bool) -> bool {
-        self.enable_event_handling
-            .swap(enable, std::sync::atomic::Ordering::SeqCst)
+    pub(crate) fn swap_enable_event_handling(&mut self, enable: bool) -> bool {
+        std::mem::replace(&mut self.enable_event_handling, enable)
     }
 
     pub(crate) fn event_handling_enabled(&self) -> bool {
         self.enable_event_handling
-            .load(std::sync::atomic::Ordering::SeqCst)
     }
 }
 

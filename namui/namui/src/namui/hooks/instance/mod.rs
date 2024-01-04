@@ -3,72 +3,51 @@ mod inspect;
 
 use super::*;
 use crate::*;
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    sync::{atomic::AtomicBool, Mutex},
-};
+use std::{collections::HashMap, fmt::Debug, rc::Rc};
 
+#[derive(Debug)]
 pub struct ComponentInstance {
     pub(crate) component_id: usize,
+    #[allow(dead_code)]
     pub(crate) component_type_name: &'static str,
-    pub(crate) state_list: Mutex<Vec<Box<dyn Value>>>,
-    pub(crate) effect_used_sigs_list: Mutex<Vec<Vec<SigId>>>,
-    pub(crate) effect_clean_up_list: Mutex<Vec<CleanUpFnOnce>>,
-    pub(crate) memo_value_list: Mutex<Vec<Box<dyn Value>>>,
-    pub(crate) memo_used_sigs_list: Mutex<Vec<Vec<SigId>>>,
-    pub(crate) render_used_sigs: Mutex<Vec<SigId>>,
-    pub(crate) track_eq_value_list: Mutex<Vec<Box<dyn Value>>>,
-    pub(crate) is_first_render: AtomicBool,
-    is_rendered_on_this_tick: AtomicBool,
-    children_instances: Mutex<HashMap<(KeyVec, &'static str), Arc<ComponentInstance>>>,
-    pub(crate) debug_bounding_box: Mutex<Option<Rect<Px>>>,
 }
 
-unsafe impl Send for ComponentInstance {}
-unsafe impl Sync for ComponentInstance {}
+pub(crate) struct RealComponentInstance {
+    pub(crate) state_list: Vec<Box<dyn Value>>,
+    pub(crate) effect_used_sigs_list: Vec<Vec<SigId>>,
+    pub(crate) effect_clean_up_list: Vec<CleanUpFnOnce>,
+    pub(crate) memo_value_list: Vec<Box<dyn Value>>,
+    pub(crate) memo_used_sigs_list: Vec<Vec<SigId>>,
+    pub(crate) track_eq_value_list: Vec<Box<dyn Value>>,
+    pub(crate) is_first_render: bool,
+    is_rendered_on_this_tick: bool,
+    children_instances: HashMap<(KeyVec, &'static str), Rc<ComponentInstance>>,
+    pub(crate) debug_bounding_box: Option<Rect<Px>>,
+}
 
-impl Debug for ComponentInstance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ComponentInstance")
-            .field("component_id", &self.component_id)
-            .field("component_type_name", &self.component_type_name)
-            .field("state_list", &self.state_list.lock())
-            .field(
-                "effect_used_sigs_list",
-                &self.effect_used_sigs_list.lock().unwrap(),
-            )
-            .field(
-                "effect_clean_up_list",
-                &self
-                    .effect_clean_up_list
-                    .lock()
-                    .unwrap()
-                    .iter()
-                    .map(|clean_up| clean_up.is_some())
-                    .collect::<Vec<_>>(),
-            )
-            .field("memo_value_list", &self.memo_value_list.lock())
-            .field(
-                "memo_used_sigs_list",
-                &self.memo_used_sigs_list.lock().unwrap(),
-            )
-            .field("render_used_sigs", &self.render_used_sigs.lock().unwrap())
-            .field(
-                "track_eq_value_list",
-                &self.track_eq_value_list.lock().unwrap(),
-            )
-            .field("is_first_render", &self.is_first_render)
-            .field("is_rendered_on_this_tick", &self.is_rendered_on_this_tick)
-            .field("children_instances", &self.children_instances.lock())
-            .field("debug_bounding_box", &self.debug_bounding_box.lock())
-            .finish()
+static mut COMPONENT_INSTANCES: OnceLock<HashMap<usize, RealComponentInstance>> = OnceLock::new();
+pub(crate) fn component_instance(component_id: usize) -> &'static RealComponentInstance {
+    unsafe {
+        COMPONENT_INSTANCES
+            .get()
+            .unwrap()
+            .get(&component_id)
+            .unwrap()
+    }
+}
+pub(crate) fn component_instance_mut(component_id: usize) -> &'static mut RealComponentInstance {
+    unsafe {
+        COMPONENT_INSTANCES
+            .get_mut()
+            .unwrap()
+            .get_mut(&component_id)
+            .unwrap()
     }
 }
 
 impl Drop for ComponentInstance {
     fn drop(&mut self) {
-        let mut effect_clean_up_list = self.effect_clean_up_list.lock().unwrap();
+        let effect_clean_up_list = &mut self.self_mut().effect_clean_up_list;
         for clean_up in effect_clean_up_list.iter_mut() {
             if let Some(clean_up) = std::mem::take(clean_up) {
                 clean_up();
@@ -82,54 +61,57 @@ impl ComponentInstance {
         Self {
             component_id: new_component_id(),
             component_type_name,
-            state_list: Default::default(),
-            effect_used_sigs_list: Default::default(),
-            effect_clean_up_list: Default::default(),
-            memo_value_list: Default::default(),
-            memo_used_sigs_list: Default::default(),
-            render_used_sigs: Default::default(),
-            track_eq_value_list: Default::default(),
-            is_first_render: AtomicBool::new(true),
-            is_rendered_on_this_tick: Default::default(),
-            children_instances: Default::default(),
-            debug_bounding_box: Default::default(),
+            // state_list: Default::default(),
+            // effect_used_sigs_list: Default::default(),
+            // effect_clean_up_list: Default::default(),
+            // memo_value_list: Default::default(),
+            // memo_used_sigs_list: Default::default(),
+            // track_eq_value_list: Default::default(),
+            // is_first_render: AtomicBool::new(true),
+            // is_rendered_on_this_tick: Default::default(),
+            // children_instances: Default::default(),
+            // debug_bounding_box: Default::default(),
         }
+    }
+    pub(crate) fn self_ref(&self) -> &'static RealComponentInstance {
+        component_instance(self.component_id)
+    }
+    pub(crate) fn self_mut(&self) -> &'static mut RealComponentInstance {
+        component_instance_mut(self.component_id)
     }
     pub(crate) fn get_or_create_child_instance(
         &self,
         key_vec: KeyVec,
         component_type_name: &'static str,
-    ) -> Arc<ComponentInstance> {
+    ) -> Rc<ComponentInstance> {
         let key = (key_vec, component_type_name);
 
-        self.children_instances
-            .lock()
-            .unwrap()
+        self.self_mut()
+            .children_instances
             .entry(key)
-            .or_insert_with(|| Arc::new(ComponentInstance::new(component_type_name)))
+            .or_insert_with(|| Rc::new(ComponentInstance::new(component_type_name)))
             .clone()
     }
 
     pub(crate) fn before_render(&self) {
-        self.is_rendered_on_this_tick
-            .store(true, std::sync::atomic::Ordering::SeqCst);
+        self.self_mut().is_rendered_on_this_tick = true;
     }
 
     pub(crate) fn after_render(&self) {
-        self.is_first_render
-            .store(false, std::sync::atomic::Ordering::SeqCst);
+        self.self_mut().is_first_render = false;
     }
 
     pub(crate) fn clear_unrendered_chidlren(&self) {
-        let mut children = self.children_instances.lock().unwrap();
+        let children = &mut self.self_mut().children_instances;
         children.retain(|_, child| {
-            child
-                .is_rendered_on_this_tick
-                .swap(false, std::sync::atomic::Ordering::SeqCst)
+            std::mem::replace(&mut child.self_mut().is_rendered_on_this_tick, false)
         });
         children
             .values()
             .for_each(|child| child.clear_unrendered_chidlren());
+    }
+    pub(crate) fn set_debug_bounding_box(&self, debug_bounding_box: Option<Rect<Px>>) {
+        self.self_mut().debug_bounding_box = debug_bounding_box;
     }
 }
 

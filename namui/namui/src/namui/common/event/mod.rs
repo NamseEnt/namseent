@@ -3,10 +3,7 @@ mod raw;
 use super::*;
 use derivative::Derivative;
 pub use raw::*;
-use std::{
-    fmt::Debug,
-    sync::{atomic::AtomicBool, Arc},
-};
+use std::fmt::Debug;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -71,12 +68,12 @@ pub struct TextInputKeyDownEvent<'a> {
     pub is_composing: bool,
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a dyn Fn(),
-    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
+    #[derivative(Debug = "ignore")]
+    pub(crate) stop_propagation: &'a dyn Fn(),
 }
 impl EventExt for TextInputKeyDownEvent<'_> {
     fn stop_propagation(&self) {
-        self.is_stop_event_propagation
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        (self.stop_propagation)();
     }
 }
 impl TextInputKeyDownEvent<'_> {
@@ -103,12 +100,12 @@ pub struct MouseEvent<'a> {
     pub event_type: MouseEventType,
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a dyn Fn(),
-    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
+    #[derivative(Debug = "ignore")]
+    pub(crate) stop_propagation: &'a dyn Fn(),
 }
 impl EventExt for MouseEvent<'_> {
     fn stop_propagation(&self) {
-        self.is_stop_event_propagation
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        (self.stop_propagation)();
     }
 }
 impl MouseEvent<'_> {
@@ -137,12 +134,12 @@ pub struct WheelEvent<'a> {
     pub(crate) is_local_xy_in: Box<dyn 'a + Fn() -> bool>,
     #[derivative(Debug = "ignore")]
     pub(crate) local_xy: Box<dyn 'a + Fn() -> Xy<Px>>,
-    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
+    #[derivative(Debug = "ignore")]
+    pub(crate) stop_propagation: &'a dyn Fn(),
 }
 impl EventExt for WheelEvent<'_> {
     fn stop_propagation(&self) {
-        self.is_stop_event_propagation
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        (self.stop_propagation)();
     }
 }
 impl WheelEvent<'_> {
@@ -161,12 +158,12 @@ pub struct KeyboardEvent<'a> {
     pub pressing_codes: &'a HashSet<Code>,
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a dyn Fn(),
-    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
+    #[derivative(Debug = "ignore")]
+    pub(crate) stop_propagation: &'a dyn Fn(),
 }
 impl EventExt for KeyboardEvent<'_> {
     fn stop_propagation(&self) {
-        self.is_stop_event_propagation
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        (self.stop_propagation)();
     }
 }
 impl KeyboardEvent<'_> {

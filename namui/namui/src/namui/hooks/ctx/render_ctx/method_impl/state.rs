@@ -5,7 +5,7 @@ pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
     init: impl FnOnce() -> State,
 ) -> (Sig<'_, State>, SetState<State>) {
     let instance = ctx.instance.as_ref();
-    let mut state_list = instance.state_list.lock().unwrap();
+    let state_list = &mut instance.self_mut().state_list;
 
     let state_index = ctx
         .state_index
@@ -22,7 +22,7 @@ pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
     if no_state() {
         let state = init();
 
-        update_or_push(&mut state_list, state_index, Box::new(state));
+        update_or_push(state_list, state_index, Box::new(state));
     } else {
         for item in ctx.get_channel_events_items_for(sig_id) {
             match item {
@@ -30,7 +30,7 @@ pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
                     SetStateItem::Set { sig_id, value } => {
                         ctx.add_sig_updated(sig_id);
                         let value = value.lock().unwrap().take().unwrap();
-                        update_or_push(&mut state_list, state_index, value);
+                        update_or_push(state_list, state_index, value);
                     }
                     SetStateItem::Mutate { sig_id, mutate } => {
                         ctx.add_sig_updated(sig_id);

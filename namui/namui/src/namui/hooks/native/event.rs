@@ -37,7 +37,6 @@ impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
         ctx.on_raw_event(|raw_event| {
             let on_event = self.on_event.lock().unwrap().take().unwrap();
             invoke_on_event(
-                &ctx.tree_ctx,
                 on_event,
                 raw_event,
                 ctx.inverse_matrix(),

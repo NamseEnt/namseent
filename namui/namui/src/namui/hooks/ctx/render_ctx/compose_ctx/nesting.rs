@@ -11,7 +11,6 @@ impl ComposeCtx {
 
         let matrix = self.matrix * Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32());
         ComposeCtx::new(
-            self.tree_ctx.clone(),
             self.next_child_key_vec(),
             matrix,
             self.renderer.clone(),
@@ -30,7 +29,6 @@ impl ComposeCtx {
 
         let matrix = Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32());
         ComposeCtx::new(
-            self.tree_ctx.clone(),
             self.next_child_key_vec(),
             matrix,
             self.renderer.clone(),
@@ -55,7 +53,6 @@ impl ComposeCtx {
         };
 
         ComposeCtx::new(
-            self.tree_ctx.clone(),
             self.next_child_key_vec(),
             self.matrix,
             self.renderer.clone(),
@@ -70,7 +67,6 @@ impl ComposeCtx {
 
         let matrix = self.matrix;
         ComposeCtx::new(
-            self.tree_ctx.clone(),
             self.next_child_key_vec(),
             matrix,
             self.renderer.clone(),
@@ -88,7 +84,6 @@ impl ComposeCtx {
 
         let matrix = self.matrix * Matrix3x3::from_rotate(angle);
         ComposeCtx::new(
-            self.tree_ctx.clone(),
             self.next_child_key_vec(),
             matrix,
             self.renderer.clone(),
@@ -111,7 +106,6 @@ impl ComposeCtx {
             RenderingTree::Children(self.unlazy_children.clone())
         };
         invoke_on_event(
-            &self.tree_ctx,
             on_event,
             raw_event,
             self.matrix.inverse().unwrap(),

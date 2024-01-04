@@ -5,8 +5,8 @@ pub(crate) fn handle_memo<T: 'static + Debug + Send + Sync>(
     memo: impl FnOnce() -> T,
 ) -> Sig<'_, T> {
     let instance = ctx.instance.as_ref();
-    let mut memo_value_list = instance.memo_value_list.lock().unwrap();
-    let mut memo_used_sigs_list = instance.memo_used_sigs_list.lock().unwrap();
+    let memo_value_list = &mut instance.self_mut().memo_value_list;
+    let memo_used_sigs_list = &mut instance.self_mut().memo_used_sigs_list;
 
     let memo_index = ctx
         .memo_index
@@ -33,8 +33,8 @@ pub(crate) fn handle_memo<T: 'static + Debug + Send + Sync>(
         let value = Box::new(memo());
         let used_sig_ids = take_used_sigs();
 
-        update_or_push(&mut memo_value_list, memo_index, value);
-        update_or_push(&mut memo_used_sigs_list, memo_index, used_sig_ids);
+        update_or_push(memo_value_list, memo_index, value);
+        update_or_push(memo_used_sigs_list, memo_index, used_sig_ids);
 
         ctx.add_sig_updated(sig_id);
     }

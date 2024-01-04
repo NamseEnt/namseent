@@ -25,6 +25,7 @@ pub use sig::*;
 use std::{
     any::TypeId,
     fmt::Debug,
+    rc::Rc,
     sync::{atomic::AtomicUsize, Arc, Mutex, OnceLock},
 };
 pub use value::*;
@@ -36,14 +37,15 @@ pub(crate) fn run_loop<C: Component>(root_component: impl Send + Sync + 'static 
     let (channel_tx, channel_rx) = std::sync::mpsc::channel();
     crate::hooks::channel::init(channel_tx);
 
-    let mut tree_ctx = TreeContext::new(root_component);
+    let root_instance = Rc::new(ComponentInstance::new(root_component().static_type_name()));
+    TreeContext::init();
 
-    tree_ctx.start(&channel_rx);
+    tree_ctx_mut().start(&channel_rx, root_instance.clone(), &root_component);
 
     while let Ok(event) = raw_event_rx.recv() {
         let instant = std::time::Instant::now();
 
-        tree_ctx.on_raw_event(event, &channel_rx);
+        tree_ctx_mut().on_raw_event(event, &channel_rx, root_instance.clone(), &root_component);
 
         let elapsed = instant.elapsed();
         if elapsed.as_millis() > 1 {
