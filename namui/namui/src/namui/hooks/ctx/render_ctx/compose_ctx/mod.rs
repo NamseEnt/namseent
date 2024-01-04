@@ -8,6 +8,7 @@ use crate::{
     *,
 };
 pub(crate) use lazy_rendering_tree::*;
+use std::cell::OnceCell;
 
 pub struct ComposeCtx {
     matrix: Matrix3x3,
@@ -15,8 +16,8 @@ pub struct ComposeCtx {
     pre_key_vec: KeyVec,
     renderer: Renderer,
     unlazy_children: Vec<RenderingTree>,
-    lazy_children: Vec<Arc<Mutex<Option<LazyRenderingTree>>>>,
-    lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
+    lazy_children: Vec<Rc<OnceCell<LazyRenderingTree>>>,
+    lazy: Rc<OnceCell<LazyRenderingTree>>,
     raw_event: RawEventContainer,
     clippings: Vec<Clipping>,
 }
@@ -27,19 +28,18 @@ impl Drop for ComposeCtx {
 
         let children = unlazy_children
             .into_iter()
-            .map(|x| {
-                Arc::new(Mutex::new(Some(LazyRenderingTree::RenderingTree {
-                    rendering_tree: x,
-                })))
+            .map(|rendering_tree| {
+                Rc::new(OnceCell::from(LazyRenderingTree::RenderingTree {
+                    rendering_tree,
+                }))
             })
             .chain(lazy_children);
 
         self.lazy
-            .lock()
-            .unwrap()
-            .replace(LazyRenderingTree::Children {
+            .set(LazyRenderingTree::Children {
                 children: children.collect(),
-            });
+            })
+            .unwrap();
     }
 }
 impl ComposeCtx {
@@ -47,7 +47,7 @@ impl ComposeCtx {
         pre_key_vec: KeyVec,
         matrix: Matrix3x3,
         renderer: Renderer,
-        lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
+        lazy: Rc<OnceCell<LazyRenderingTree>>,
         raw_event: RawEventContainer,
         clippings: Vec<Clipping>,
     ) -> Self {
@@ -74,7 +74,7 @@ impl ComposeCtx {
     }
 
     fn add_lazy(&mut self, lazy: LazyRenderingTree) {
-        self.lazy_children.push(Arc::new(Mutex::new(Some(lazy))));
+        self.lazy_children.push(Rc::new(OnceCell::from(lazy)));
     }
 
     pub fn add(&mut self, component: impl Component) -> &mut Self {
@@ -97,9 +97,10 @@ impl ComposeCtx {
             self.clippings.clone(),
             self.raw_event.clone(),
         );
-        self.lazy_children.push(Arc::new(Mutex::new(Some(
-            LazyRenderingTree::RenderingTree { rendering_tree },
-        ))));
+        self.lazy_children
+            .push(Rc::new(OnceCell::from(LazyRenderingTree::RenderingTree {
+                rendering_tree,
+            })));
     }
 
     pub fn compose(&mut self, compose: impl FnOnce(&mut ComposeCtx)) -> &mut Self {
@@ -120,9 +121,10 @@ impl ComposeCtx {
         compose: impl FnOnce(&mut ComposeCtx),
     ) -> &mut Self {
         let rendering_tree = self.ghost_compose(key, compose);
-        self.lazy_children.push(Arc::new(Mutex::new(Some(
-            LazyRenderingTree::RenderingTree { rendering_tree },
-        ))));
+        self.lazy_children
+            .push(Rc::new(OnceCell::from(LazyRenderingTree::RenderingTree {
+                rendering_tree,
+            })));
 
         self
     }
@@ -133,7 +135,7 @@ impl ComposeCtx {
         key: IntoOptionKey,
         compose: impl FnOnce(&mut ComposeCtx),
     ) -> RenderingTree {
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        let lazy: Rc<OnceCell<LazyRenderingTree>> = Default::default();
         {
             let key_vec = if let Some(key) = key.into() {
                 self.pre_key_vec.custom_key(key)
@@ -152,8 +154,12 @@ impl ComposeCtx {
 
             compose(&mut child_compose_ctx);
         }
-        let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
-        rendering_tree
+
+        Rc::into_inner(lazy)
+            .unwrap()
+            .take()
+            .unwrap()
+            .into_rendering_tree()
     }
 
     /// Get RenderingTree but don't add it to the children.
@@ -198,11 +204,10 @@ impl ComposeCtx {
 
         let bounding_box = rendering_tree.bounding_box();
 
-        self.lazy_children.push(Arc::new(Mutex::new(Some(
-            LazyRenderingTree::RenderingTree {
-                rendering_tree: rendering_tree.clone(),
-            },
-        ))));
+        self.lazy_children
+            .push(Rc::new(OnceCell::from(LazyRenderingTree::RenderingTree {
+                rendering_tree,
+            })));
 
         bounding_box
     }

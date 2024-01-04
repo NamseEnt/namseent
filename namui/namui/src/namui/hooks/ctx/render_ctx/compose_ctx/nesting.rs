@@ -1,9 +1,10 @@
 use super::*;
+use std::cell::OnceCell;
 
 impl ComposeCtx {
     pub fn translate(&mut self, xy: impl IntoXyPx) -> Self {
         let xy = xy.into_xy_px();
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        let lazy: Rc<OnceCell<LazyRenderingTree>> = Default::default();
         self.add_lazy(LazyRenderingTree::Translate {
             xy,
             lazy: lazy.clone(),
@@ -21,7 +22,7 @@ impl ComposeCtx {
     }
     pub fn absolute(&mut self, xy: impl IntoXyPx) -> Self {
         let xy = xy.into_xy_px();
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        let lazy: Rc<OnceCell<LazyRenderingTree>> = Default::default();
         self.add_lazy(LazyRenderingTree::Absolute {
             xy,
             lazy: lazy.clone(),
@@ -38,7 +39,7 @@ impl ComposeCtx {
         )
     }
     pub fn clip(&mut self, path: crate::Path, clip_op: crate::ClipOp) -> Self {
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        let lazy: Rc<OnceCell<LazyRenderingTree>> = Default::default();
         self.add_lazy(LazyRenderingTree::Clip {
             path: path.clone(),
             clip_op,
@@ -62,7 +63,7 @@ impl ComposeCtx {
         )
     }
     pub fn on_top(&mut self) -> Self {
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        let lazy: Rc<OnceCell<LazyRenderingTree>> = Default::default();
         self.add_lazy(LazyRenderingTree::OnTop { lazy: lazy.clone() });
 
         let matrix = self.matrix;
@@ -76,7 +77,7 @@ impl ComposeCtx {
         )
     }
     pub fn rotate(&mut self, angle: Angle) -> Self {
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        let lazy: Rc<OnceCell<LazyRenderingTree>> = Default::default();
         self.add_lazy(LazyRenderingTree::Rotate {
             angle,
             lazy: lazy.clone(),
@@ -100,7 +101,13 @@ impl ComposeCtx {
         let rendering_tree = {
             let rendering_trees: Vec<_> = std::mem::take(&mut self.lazy_children)
                 .into_iter()
-                .map(|x| x.lock().unwrap().take().unwrap().into_rendering_tree())
+                .map(|x| {
+                    Rc::into_inner(x)
+                        .unwrap()
+                        .take()
+                        .unwrap()
+                        .into_rendering_tree()
+                })
                 .collect();
             self.unlazy_children.extend(rendering_trees);
             RenderingTree::Children(self.unlazy_children.clone())

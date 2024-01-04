@@ -1,4 +1,5 @@
 use super::*;
+use std::cell::OnceCell;
 
 impl<'a> RenderCtx {
     pub fn atom_init<T: Debug + Send + Sync + 'static>(
@@ -75,7 +76,7 @@ impl<'a> RenderCtx {
             enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        let lazy: Rc<OnceCell<LazyRenderingTree>> = Default::default();
         {
             let mut compose_ctx = ComposeCtx::new(
                 KeyVec::new_child(self.get_next_component_index()),
@@ -93,8 +94,12 @@ impl<'a> RenderCtx {
 
             tree_ctx_mut().swap_enable_event_handling(prev_enable_event);
         }
-        let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
-        rendering_tree
+
+        Rc::into_inner(lazy)
+            .unwrap()
+            .take()
+            .unwrap()
+            .into_rendering_tree()
     }
 
     /// Get RenderingTree but don't add it to the children.
