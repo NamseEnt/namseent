@@ -53,20 +53,20 @@ opt-level = 3
         )?;
     }
 
-    //     // .cargo
-    //     {
-    //         recreate_dir_all(args.target_dir.join(".cargo"))?;
+    // .cargo
+    {
+        recreate_dir_all(args.target_dir.join(".cargo"), None)?;
 
-    //         std::fs::write(
-    //             args.target_dir.join(".cargo/config.toml"),
-    //             r#"
-    // [build]
-    // # https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam
-    // # support 99%, 2024-01-04
-    // rustflags = ["-C", "target-feature=+sse,+sse2,+sse3,+cmpxchg16b,+ssse3,+sse4.1,+sse4.2"]
-    // "#,
-    //         )?;
-    //     }
+        std::fs::write(
+            args.target_dir.join(".cargo/config.toml"),
+            r#"
+    [build]
+    # https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam
+    # support 99%, 2024-01-04
+    rustflags = ["-C", "target-feature=+sse,+sse2,+sse3,+cmpxchg16b,+ssse3,+sse4.1,+sse4.2"]
+    "#,
+        )?;
+    }
 
     Ok(())
 }
