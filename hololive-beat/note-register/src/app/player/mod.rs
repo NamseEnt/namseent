@@ -28,9 +28,7 @@ impl Component for Player<'_> {
         let Self { wh, loaded } = self;
         let LoadedData {
             notes,
-            kick,
-            cymbals,
-            snare,
+            note_sounds,
             music,
             video,
         } = loaded;
@@ -127,9 +125,7 @@ impl Component for Player<'_> {
             played_time,
             perfect_range,
             good_range,
-            kick,
-            cymbals,
-            snare,
+            note_sounds,
         });
 
         ctx.component(MusicPlayer { music });
