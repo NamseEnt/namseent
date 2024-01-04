@@ -162,7 +162,7 @@ impl ComposeCtx {
         key: IntoOptionKey,
         component: impl Component,
         GhostComposeOption {
-            swap_enable_event_handling,
+            enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
         let key_vec = if let Some(key) = key.into() {
@@ -171,8 +171,7 @@ impl ComposeCtx {
             self.next_child_key_vec()
         };
 
-        let prev_enable_event =
-            tree_ctx_mut().swap_enable_event_handling(swap_enable_event_handling);
+        let prev_enable_event = tree_ctx_mut().swap_enable_event_handling(enable_event_handling);
 
         let rendering_tree = self.renderer.render(
             key_vec,

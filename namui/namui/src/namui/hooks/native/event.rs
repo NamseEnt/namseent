@@ -7,14 +7,14 @@ pub(crate) fn attach_event<'a, C: 'a + Component>(
 ) -> AttachEvent<'a, C> {
     AttachEvent {
         component,
-        on_event: Mutex::new(Some(Box::new(on_event))),
+        on_event: Some(Box::new(on_event)),
     }
 }
 
 type OnEvent<'a> = Box<dyn 'a + FnOnce(Event)>;
 pub struct AttachEvent<'a, C: Component> {
     component: C,
-    on_event: Mutex<Option<OnEvent<'a>>>,
+    on_event: Option<OnEvent<'a>>,
 }
 
 impl<'a, C: 'a + Component> StaticType for AttachEvent<'a, C> {}
@@ -26,7 +26,7 @@ impl<'a, C: 'a + Component> Debug for AttachEvent<'a, C> {
     }
 }
 impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(mut self, ctx: &RenderCtx) -> RenderDone {
         ctx.component(self.component);
         let done = ctx.done();
 
@@ -35,7 +35,7 @@ impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
         }
 
         ctx.on_raw_event(|raw_event| {
-            let on_event = self.on_event.lock().unwrap().take().unwrap();
+            let on_event = self.on_event.take().unwrap();
             invoke_on_event(
                 on_event,
                 raw_event,

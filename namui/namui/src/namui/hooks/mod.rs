@@ -26,12 +26,13 @@ use std::{
     any::TypeId,
     fmt::Debug,
     rc::Rc,
-    sync::{atomic::AtomicUsize, Arc, Mutex, OnceLock},
+    sync::{atomic::AtomicUsize, Arc, OnceLock},
 };
 pub use value::*;
 
 static RAW_EVENT_TX: OnceLock<std::sync::mpsc::Sender<RawEvent>> = OnceLock::new();
 pub(crate) fn run_loop<C: Component>(root_component: impl Send + Sync + 'static + Fn() -> C) {
+    init_component_instances();
     let (raw_event_tx, raw_event_rx) = std::sync::mpsc::channel();
     RAW_EVENT_TX.set(raw_event_tx).unwrap();
     let (channel_tx, channel_rx) = std::sync::mpsc::channel();

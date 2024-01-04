@@ -72,7 +72,7 @@ impl<'a> RenderCtx {
         &self,
         compose: impl FnOnce(&mut ComposeCtx),
         GhostComposeOption {
-            swap_enable_event_handling,
+            enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
         let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
@@ -87,7 +87,7 @@ impl<'a> RenderCtx {
             );
 
             let prev_enable_event =
-                tree_ctx_mut().swap_enable_event_handling(swap_enable_event_handling);
+                tree_ctx_mut().swap_enable_event_handling(enable_event_handling);
 
             compose(&mut compose_ctx);
 
@@ -102,36 +102,16 @@ impl<'a> RenderCtx {
         &self,
         component: impl Component,
         GhostComposeOption {
-            swap_enable_event_handling,
+            enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
-        let now = std::time::Instant::now();
-
         let key = KeyVec::new_child(self.get_next_component_index());
 
-        println!("key: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
-        let prev_enable_event =
-            tree_ctx_mut().swap_enable_event_handling(swap_enable_event_handling);
-
-        println!(
-            "swap_enable_event_handling(swap_enable_event_handling): {:?}",
-            now.elapsed()
-        );
-        let now = std::time::Instant::now();
+        let prev_enable_event = tree_ctx_mut().swap_enable_event_handling(enable_event_handling);
 
         let rendering_tree = self.render_children(key, component);
 
-        println!("render_children: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
         tree_ctx_mut().swap_enable_event_handling(prev_enable_event);
-
-        println!(
-            "swap_enable_event_handling(prev_enable_event): {:?}",
-            now.elapsed()
-        );
 
         rendering_tree
     }
@@ -140,7 +120,7 @@ impl<'a> RenderCtx {
         let rendering_tree = self.ghost_compose(
             compose,
             GhostComposeOption {
-                swap_enable_event_handling: true,
+                enable_event_handling: true,
             },
         );
         self.children.lock().unwrap().push(rendering_tree);
@@ -148,17 +128,14 @@ impl<'a> RenderCtx {
         self
     }
     pub fn component(&self, component: impl Component) -> &Self {
-        let now = std::time::Instant::now();
         let rendering_tree = self.ghost_component(
             component,
             GhostComposeOption {
-                swap_enable_event_handling: true,
+                enable_event_handling: true,
             },
         );
-        println!("ghost: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
         self.children.lock().unwrap().push(rendering_tree);
-        println!("children lock push: {:?}", now.elapsed());
+
         self
     }
     pub fn global_xy(&self, local_xy: Xy<Px>) -> Xy<Px> {
@@ -169,5 +146,5 @@ impl<'a> RenderCtx {
 }
 
 pub struct GhostComposeOption {
-    pub swap_enable_event_handling: bool,
+    pub enable_event_handling: bool,
 }

@@ -44,6 +44,11 @@ pub(crate) fn component_instance_mut(component_id: usize) -> &'static mut RealCo
             .unwrap()
     }
 }
+pub(crate) fn init_component_instances() {
+    unsafe {
+        COMPONENT_INSTANCES.get_or_init(HashMap::new);
+    }
+}
 
 impl Drop for ComponentInstance {
     fn drop(&mut self) {
@@ -53,24 +58,39 @@ impl Drop for ComponentInstance {
                 clean_up();
             }
         }
+
+        unsafe {
+            COMPONENT_INSTANCES
+                .get_mut()
+                .unwrap()
+                .remove(&self.component_id);
+        }
     }
 }
 
 impl ComponentInstance {
     pub(crate) fn new(component_type_name: &'static str) -> Self {
+        let component_id = new_component_id();
+        unsafe {
+            COMPONENT_INSTANCES.get_mut().unwrap().insert(
+                component_id,
+                RealComponentInstance {
+                    state_list: Default::default(),
+                    effect_used_sigs_list: Default::default(),
+                    effect_clean_up_list: Default::default(),
+                    memo_value_list: Default::default(),
+                    memo_used_sigs_list: Default::default(),
+                    track_eq_value_list: Default::default(),
+                    is_first_render: true,
+                    is_rendered_on_this_tick: false,
+                    children_instances: Default::default(),
+                    debug_bounding_box: Default::default(),
+                },
+            );
+        }
         Self {
-            component_id: new_component_id(),
+            component_id,
             component_type_name,
-            // state_list: Default::default(),
-            // effect_used_sigs_list: Default::default(),
-            // effect_clean_up_list: Default::default(),
-            // memo_value_list: Default::default(),
-            // memo_used_sigs_list: Default::default(),
-            // track_eq_value_list: Default::default(),
-            // is_first_render: AtomicBool::new(true),
-            // is_rendered_on_this_tick: Default::default(),
-            // children_instances: Default::default(),
-            // debug_bounding_box: Default::default(),
         }
     }
     pub(crate) fn self_ref(&self) -> &'static RealComponentInstance {

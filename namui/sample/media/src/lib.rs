@@ -10,16 +10,11 @@ struct MediaExample;
 
 impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let now = std::time::Instant::now();
-
         let (audio_mp3, set_audio_mp3) = ctx.state::<Option<MediaHandle>>(|| None);
         let (audio_opus, set_audio_opus) = ctx.state::<Option<MediaHandle>>(|| None);
         let (video_mp4, set_video_mp4) = ctx.state::<Option<MediaHandle>>(|| None);
         let (media_handle_for_toggle, set_media_handle_for_toggle) =
             ctx.state::<Option<MediaHandle>>(|| None);
-
-        println!("2: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
 
         ctx.effect("load media", || {
             namui::spawn(async move {
@@ -50,9 +45,6 @@ impl Component for MediaExample {
                 set_video_mp4.set(Some(mp4));
             });
         });
-
-        println!("3: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
 
         let seek_to = |media_handle: MediaHandle, to: Duration| {
             namui::spawn(async move {
@@ -92,9 +84,6 @@ impl Component for MediaExample {
             },
         });
 
-        println!("3.1: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
@@ -132,9 +121,6 @@ impl Component for MediaExample {
             },
         });
 
-        println!("3.2: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
@@ -156,9 +142,6 @@ impl Component for MediaExample {
             },
         });
 
-        println!("3.3: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
@@ -178,9 +161,6 @@ impl Component for MediaExample {
                 }
             },
         });
-
-        println!("3.4: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
 
         ctx.component(TextButton {
             rect: Rect::Xywh {
@@ -214,9 +194,6 @@ impl Component for MediaExample {
             },
         });
 
-        println!("3.5: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 300.px(),
@@ -248,9 +225,6 @@ impl Component for MediaExample {
             },
         });
 
-        println!("3.6: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 300.px(),
@@ -270,9 +244,6 @@ impl Component for MediaExample {
             mouse_buttons: vec![],
             on_mouse_up_in: &|_| {},
         });
-
-        println!("3.7: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
 
         ctx.component(TextButton {
             rect: Rect::Xywh {
@@ -305,9 +276,6 @@ impl Component for MediaExample {
             },
         });
 
-        println!("3.8: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 20.px(),
@@ -326,9 +294,6 @@ impl Component for MediaExample {
             },
         });
 
-        println!("3.9: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
         ctx.component(TextButton {
             rect: Rect::Xywh {
                 x: 60.px(),
@@ -344,9 +309,6 @@ impl Component for MediaExample {
             mouse_buttons: vec![],
             on_mouse_up_in: &|_| {},
         });
-
-        println!("3.10: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
 
         ctx.component(TextButton {
             rect: Rect::Xywh {
@@ -366,21 +328,13 @@ impl Component for MediaExample {
             },
         });
 
-        println!("4: {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-
         ctx.compose(|ctx| {
-            println!("5.1: {:?}", now.elapsed());
-            let now = std::time::Instant::now();
-
             let Some(mp4) = video_mp4.as_ref() else {
                 return;
             };
             let Some(image_handle) = mp4.get_image() else {
                 return;
             };
-            println!("5.2: {:?}", now.elapsed());
-            let now = std::time::Instant::now();
 
             ctx.add(namui::image(ImageParam {
                 rect: Rect::Xywh {
@@ -395,12 +349,8 @@ impl Component for MediaExample {
                     paint: None,
                 },
             }));
-
-            println!("5.3: {:?}", now.elapsed());
-            let now = std::time::Instant::now();
         });
 
-        println!("done: {:?}", now.elapsed());
         ctx.done()
     }
 }
