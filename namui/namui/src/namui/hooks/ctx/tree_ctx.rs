@@ -95,6 +95,8 @@ impl TreeContext {
 
             self.channel_events.extend(channel_events);
 
+            let now = std::time::Instant::now();
+
             let rendering_tree = self.render(
                 root_component(),
                 root_instance.clone(),
@@ -103,6 +105,8 @@ impl TreeContext {
                 vec![],
                 raw_event,
             );
+
+            println!("Rendering took {:?}", now.elapsed());
 
             crate::system::drawer::request_draw_rendering_tree(rendering_tree);
 

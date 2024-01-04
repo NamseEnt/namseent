@@ -57,6 +57,7 @@ impl<'a> RenderCtx {
     }
 
     pub fn done(&self) -> RenderDone {
+        let now = std::time::Instant::now();
         let vec: Vec<RenderingTree> = std::mem::take(self.children());
         let rendering_tree = crate::render(vec);
 
@@ -64,6 +65,8 @@ impl<'a> RenderCtx {
             .bounding_box()
             .map(|bounding_box| self.matrix.transform_rect(bounding_box));
         self.instance.set_debug_bounding_box(bounding_box);
+
+        println!("done took {:?}", now.elapsed());
 
         RenderDone { rendering_tree }
     }
@@ -122,13 +125,17 @@ impl<'a> RenderCtx {
     }
 
     pub fn compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> &Self {
+        let now = std::time::Instant::now();
         let rendering_tree = self.ghost_compose(
             compose,
             GhostComposeOption {
                 enable_event_handling: true,
             },
         );
+        println!("ghost_compose took {:?}", now.elapsed());
+        let now = std::time::Instant::now();
         self.children().push(rendering_tree);
+        println!("push took {:?}", now.elapsed());
 
         self
     }
