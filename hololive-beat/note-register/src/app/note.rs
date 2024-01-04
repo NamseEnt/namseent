@@ -1,6 +1,9 @@
 use futures::future::join_all;
 use namui::{file::bundle, prelude::*};
-use std::io::{self, BufRead};
+use std::{
+    io::{self, BufRead},
+    iter,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Instrument {
@@ -58,20 +61,20 @@ impl Direction {
         }
     }
 
-    pub fn as_instrument(&self) -> Instrument {
-        match self {
-            Direction::Up => Instrument::Cymbals,
-            Direction::Right => unimplemented!(),
-            Direction::Down => Instrument::Kick,
-            Direction::Left => Instrument::Snare,
-        }
-    }
+    // pub fn as_instrument(&self) -> Instrument {
+    //     match self {
+    //         Direction::Up => Instrument::Cymbals,
+    //         Direction::Right => unimplemented!(),
+    //         Direction::Down => Instrument::Kick,
+    //         Direction::Left => Instrument::Snare,
+    //     }
+    // }
 }
 
 #[derive(Debug)]
 pub struct Note {
     pub start_time: Duration,
-    pub duration: Duration,
+    pub end_time: Duration,
     pub direction: Direction,
     pub instrument: Instrument,
 }
@@ -86,26 +89,21 @@ pub async fn load_notes() -> Vec<Note> {
                 error
             })
             .unwrap();
-
-        let time_start_time_duration_pairs = {
-            let start_time_sec_list = io::BufReader::<&[u8]>::new(time_sequence_file.as_ref())
-                .lines()
-                .map(|line| line.unwrap().parse::<f64>().unwrap())
-                .collect::<Vec<_>>();
-            let end_time_sec_list = start_time_sec_list
-                .clone()
-                .into_iter()
-                .skip(1)
-                .chain(std::iter::once(start_time_sec_list.last().unwrap() + 5.0));
-            start_time_sec_list
-                .into_iter()
-                .zip(end_time_sec_list)
-                .map(|(start_sec, end_sec)| (start_sec.sec(), (end_sec - start_sec).sec()))
-        };
-        time_start_time_duration_pairs
-            .map(|(start_time, duration)| Note {
-                start_time,
-                duration,
+        let start_times = io::BufReader::<&[u8]>::new(time_sequence_file.as_ref())
+            .lines()
+            .map(|line| line.unwrap().parse::<f64>().unwrap().sec())
+            .collect::<Vec<_>>();
+        let end_times = start_times
+            .iter()
+            .cloned()
+            .skip(1)
+            .chain(iter::once(start_times.last().unwrap() + 5.sec()));
+        start_times
+            .iter()
+            .zip(end_times)
+            .map(|(start_time, end_time)| Note {
+                start_time: *start_time,
+                end_time,
                 direction: instrument.as_direction(),
                 instrument,
             })

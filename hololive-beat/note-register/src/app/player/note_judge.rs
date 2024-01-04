@@ -1,6 +1,6 @@
 use super::{State, JUDGE_CONTEXT, STATE};
 use crate::app::note::{Direction, Note};
-use namui::{prelude::*, time::sleep};
+use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 use std::collections::HashSet;
 #[component]
@@ -9,9 +9,7 @@ pub struct NoteJudge<'a> {
     pub played_time: Duration,
     pub perfect_range: Duration,
     pub good_range: Duration,
-    pub kick: &'a MediaHandle,
-    pub cymbals: &'a MediaHandle,
-    pub snare: &'a MediaHandle,
+    pub note_sounds: &'a Vec<FullLoadOnceAudio>,
 }
 
 impl Component for NoteJudge<'_> {
@@ -21,9 +19,7 @@ impl Component for NoteJudge<'_> {
             played_time,
             perfect_range,
             good_range,
-            kick,
-            cymbals,
-            snare,
+            note_sounds,
         } = self;
 
         let (state, _) = ctx.atom(&STATE);
@@ -93,12 +89,7 @@ impl Component for NoteJudge<'_> {
                     continue;
                 }
 
-                let instrument = match direction.as_instrument() {
-                    crate::app::note::Instrument::Kick => kick.clone_independent().unwrap(),
-                    crate::app::note::Instrument::Snare => snare.clone_independent().unwrap(),
-                    crate::app::note::Instrument::Cymbals => cymbals.clone_independent().unwrap(),
-                };
-                play_instrument(instrument, note.start_time, note.duration);
+                note_sounds.get(index).cloned().unwrap().play().unwrap();
 
                 if time_diff <= perfect_range {
                     set_judge_context.mutate(move |judge_context| {
@@ -164,14 +155,4 @@ impl JudgeContext {
             judged_note_index: HashSet::new(),
         }
     }
-}
-
-fn play_instrument(instrument: MediaHandle, offset: Duration, duration: Duration) {
-    namui::spawn(async move {
-        instrument.seek_to(offset).unwrap();
-        instrument.wait_for_preload().await.unwrap();
-        instrument.play().unwrap();
-        sleep(duration).unwrap().await;
-        instrument.pause().unwrap();
-    });
 }
