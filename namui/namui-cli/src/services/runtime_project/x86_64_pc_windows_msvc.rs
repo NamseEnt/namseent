@@ -7,7 +7,7 @@ pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> 
     let project_path_in_relative =
         pathdiff::diff_paths(&args.project_path, &args.target_dir).unwrap();
 
-    recreate_dir_all(&args.target_dir)?;
+    recreate_dir_all(&args.target_dir, Some(vec![args.target_dir.join("target")]))?;
 
     std::fs::write(
         args.target_dir.join("Cargo.toml"),
@@ -39,7 +39,7 @@ opt-level = 3
 
     // src
     {
-        recreate_dir_all(args.target_dir.join("src"))?;
+        recreate_dir_all(args.target_dir.join("src"), None)?;
 
         std::fs::write(
             args.target_dir.join("src/main.rs"),
@@ -55,7 +55,7 @@ opt-level = 3
 
     // .cargo
     {
-        recreate_dir_all(args.target_dir.join(".cargo"))?;
+        recreate_dir_all(args.target_dir.join(".cargo"), None)?;
 
         std::fs::write(
             args.target_dir.join(".cargo/config.toml"),
