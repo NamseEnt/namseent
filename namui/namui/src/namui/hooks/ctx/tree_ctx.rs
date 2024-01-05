@@ -10,11 +10,6 @@ pub(crate) struct TreeContext {
     pub(crate) is_stop_event_propagation: bool,
     pub(crate) is_cursor_determined: bool,
     pub(crate) enable_event_handling: bool,
-    // root_instance: ComponentInstance,
-    // #[derivative(Debug = "ignore")]
-    // call_root_render: Box<dyn Fn(HashSet<SigId>, RawEventContainer) -> RenderingTree>,
-    // #[derivative(Debug = "ignore")]
-    // clear_unrendered_components: Box<dyn Fn()>,
 }
 
 static mut TREE_CTX: OnceLock<TreeContext> = OnceLock::new();
@@ -37,19 +32,6 @@ impl TreeContext {
                     is_stop_event_propagation: Default::default(),
                     is_cursor_determined: Default::default(),
                     enable_event_handling: true,
-                    // call_root_render: Box::new(move |updated_sigs, raw_event| {
-                    //     tree_ctx().render(
-                    //         root_component(),
-                    //         root_instance.clone(),
-                    //         updated_sigs,
-                    //         Matrix3x3::identity(),
-                    //         vec![],
-                    //         raw_event,
-                    //     )
-                    // }),
-                    // clear_unrendered_components: Box::new(move || {
-                    //     root_instance.clear_unrendered_chidlren();
-                    // }),
                 })
                 .expect("TreeContext is already initialized");
         }
@@ -93,10 +75,10 @@ impl TreeContext {
             self.is_stop_event_propagation = false;
             self.is_cursor_determined = false;
 
-            let mut channel_events = channel_rx.try_iter().collect::<Vec<_>>();
+            let channel_events = channel_rx.try_iter().collect::<Vec<_>>();
             let mut updated_sigs = Default::default();
 
-            handle_atom_events(&mut channel_events, &mut updated_sigs);
+            let channel_events = filter_handle_atom_events(channel_events, &mut updated_sigs);
 
             self.channel_events.extend(channel_events);
 
@@ -155,25 +137,32 @@ impl TreeContext {
     }
 }
 
-fn handle_atom_events(channel_events: &mut Vec<Item>, updated_sigs: &mut Vec<SigId>) {
-    channel_events.retain(|x| match x {
-        Item::SetStateItem(x) => {
-            if x.sig_id().id_type == SigIdType::Atom {
+fn filter_handle_atom_events(
+    channel_events: Vec<Item>,
+    updated_sigs: &mut Vec<SigId>,
+) -> Vec<Item> {
+    let (atom_events, non_atom_events) =
+        channel_events
+            .into_iter()
+            .partition(|channel_event| match channel_event {
+                Item::SetStateItem(x) => x.sig_id().id_type == SigIdType::Atom,
+            });
+
+    for channel_event in atom_events {
+        match channel_event {
+            Item::SetStateItem(x) => {
                 updated_sigs.push(x.sig_id());
                 match x {
                     SetStateItem::Set { sig_id, value } => {
-                        set_atom_value(sig_id.index, value.lock().unwrap().take().unwrap());
+                        set_atom_value(sig_id.index, value);
                     }
                     SetStateItem::Mutate { sig_id, mutate } => {
-                        let mutate = mutate.lock().unwrap().take().unwrap();
                         mutate_atom_value(sig_id.index, mutate);
                     }
                 }
-
-                false
-            } else {
-                true
             }
         }
-    });
+    }
+
+    non_atom_events
 }

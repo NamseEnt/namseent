@@ -28,12 +28,10 @@ pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
                 Item::SetStateItem(set_state) => match set_state {
                     SetStateItem::Set { sig_id, value } => {
                         ctx.add_sig_updated(sig_id);
-                        let value = value.lock().unwrap().take().unwrap();
                         update_or_push(state_list, state_index, value);
                     }
                     SetStateItem::Mutate { sig_id, mutate } => {
                         ctx.add_sig_updated(sig_id);
-                        let mutate = mutate.lock().unwrap().take().unwrap();
                         let state = state_list.get_mut(sig_id.index).unwrap().as_mut();
                         mutate(state);
                     }
@@ -57,15 +55,14 @@ pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
     (sig, set_state)
 }
 
-#[derive(Clone)]
 pub(crate) enum SetStateItem {
     Set {
         sig_id: SigId,
-        value: Arc<Mutex<Option<Box<dyn Value>>>>,
+        value: Box<dyn Value>,
     },
     Mutate {
         sig_id: SigId,
-        mutate: Arc<Mutex<Option<MutateFnOnce>>>,
+        mutate: MutateFnOnce,
     },
 }
 
@@ -126,17 +123,17 @@ impl<State: 'static + Debug + Send + Sync> SetState<State> {
     pub fn set(self, state: State) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Set {
             sig_id: self.sig_id,
-            value: Arc::new(Mutex::new(Some(Box::new(state)))),
+            value: Box::new(state),
         }));
     }
     // TODO: Maybe not 'static?
     pub fn mutate(self, mutate: impl FnOnce(&mut State) + Send + Sync + 'static) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
             sig_id: self.sig_id,
-            mutate: Arc::new(Mutex::new(Some(Box::new(move |state| {
+            mutate: Box::new(move |state| {
                 let state = state.as_any_mut().downcast_mut::<State>().unwrap();
                 mutate(state);
-            })))),
+            }),
         }));
     }
 }

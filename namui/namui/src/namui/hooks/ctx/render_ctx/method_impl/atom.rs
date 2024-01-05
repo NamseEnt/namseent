@@ -52,17 +52,17 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
     pub fn set(&self, value: T) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Set {
             sig_id: self.sig_id(),
-            value: Arc::new(Mutex::new(Some(Box::new(value)))),
+            value: Box::new(value),
         }));
     }
     // TODO: NEED THINKING - Should be 'static or 'a for this mutation?
     pub fn mutate(&self, mutate: impl FnOnce(&mut T) + Send + Sync + 'static) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
             sig_id: self.sig_id(),
-            mutate: Arc::new(Mutex::new(Some(Box::new(move |value| {
+            mutate: Box::new(move |value| {
                 let value = value.as_any_mut().downcast_mut::<T>().unwrap();
                 mutate(value);
-            })))),
+            }),
         }));
     }
 
