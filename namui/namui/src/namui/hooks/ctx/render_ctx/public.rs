@@ -1,5 +1,4 @@
 use super::*;
-use std::cell::OnceCell;
 
 impl<'a> RenderCtx {
     pub fn atom_init<T: Debug + Send + Sync + 'static>(
@@ -21,21 +20,21 @@ impl<'a> RenderCtx {
         &'a self,
         init_state: impl FnOnce() -> T,
     ) -> (Sig<'a, T>, SetState<T>) {
-        handle_state(self, init_state)
+        handle_state(self.inner(), init_state)
     }
 
     pub fn memo<T: 'static + Debug + Send + Sync>(
         &'a self,
         memo: impl 'a + FnOnce() -> T,
     ) -> Sig<'a, T> {
-        handle_memo(self, memo)
+        handle_memo(self.inner(), memo)
     }
 
     pub fn track_eq<T: 'static + Debug + Send + Sync + PartialEq + Clone>(
         &'a self,
         track_eq: &T,
     ) -> Sig<'a, T> {
-        handle_track_eq(self, track_eq)
+        handle_track_eq(self.inner(), track_eq)
     }
 
     pub fn effect<CleanUp: EffectCleanUp>(
@@ -43,11 +42,11 @@ impl<'a> RenderCtx {
         title: impl AsRef<str>,
         effect: impl FnOnce() -> CleanUp,
     ) {
-        handle_effect(self, title, effect)
+        handle_effect(self.inner(), title, effect)
     }
 
     pub fn on_raw_event(&'a self, on_raw_event: impl 'a + FnOnce(&crate::RawEvent)) {
-        if let Some(raw_event) = self.raw_event.as_ref() {
+        if let Some(raw_event) = self.inner().raw_event.as_ref() {
             on_raw_event(raw_event);
         }
     }
@@ -57,102 +56,40 @@ impl<'a> RenderCtx {
     }
 
     pub fn done(&self) -> RenderDone {
-        let now = std::time::Instant::now();
-        let vec: Vec<RenderingTree> = std::mem::take(self.children());
-        let rendering_tree = crate::render(vec);
-
-        let bounding_box = rendering_tree
-            .bounding_box()
-            .map(|bounding_box| self.matrix.transform_rect(bounding_box));
-        self.instance.set_debug_bounding_box(bounding_box);
-
-        println!("done took {:?}", now.elapsed());
-
-        RenderDone { rendering_tree }
+        self.inner().done()
     }
 
     /// Get RenderingTree but don't add it to the children.
     pub fn ghost_compose(
         &self,
         compose: impl FnOnce(&mut ComposeCtx),
-        GhostComposeOption {
-            enable_event_handling,
-        }: GhostComposeOption,
+        option: GhostComposeOption,
     ) -> RenderingTree {
-        let lazy: Rc<OnceCell<LazyRenderingTree>> = Default::default();
-        {
-            let mut compose_ctx = ComposeCtx::new(
-                KeyVec::new_child(self.get_next_component_index()),
-                self.matrix,
-                self.renderer(),
-                lazy.clone(),
-                self.raw_event.clone(),
-                self.clippings.clone(),
-            );
-
-            let prev_enable_event =
-                tree_ctx_mut().swap_enable_event_handling(enable_event_handling);
-
-            compose(&mut compose_ctx);
-
-            tree_ctx_mut().swap_enable_event_handling(prev_enable_event);
-        }
-
-        Rc::into_inner(lazy)
-            .unwrap()
-            .take()
-            .unwrap()
-            .into_rendering_tree()
+        self.inner().ghost_compose(compose, option)
     }
 
     /// Get RenderingTree but don't add it to the children.
     pub fn ghost_component(
         &self,
         component: impl Component,
-        GhostComposeOption {
-            enable_event_handling,
-        }: GhostComposeOption,
+        option: GhostComposeOption,
     ) -> RenderingTree {
-        let key = KeyVec::new_child(self.get_next_component_index());
-
-        let prev_enable_event = tree_ctx_mut().swap_enable_event_handling(enable_event_handling);
-
-        let rendering_tree = self.render_children(key, component);
-
-        tree_ctx_mut().swap_enable_event_handling(prev_enable_event);
-
-        rendering_tree
+        self.inner().ghost_component(component, option)
     }
 
     pub fn compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> &Self {
-        let now = std::time::Instant::now();
-        let rendering_tree = self.ghost_compose(
-            compose,
-            GhostComposeOption {
-                enable_event_handling: true,
-            },
-        );
-        println!("ghost_compose took {:?}", now.elapsed());
-        let now = std::time::Instant::now();
-        self.children().push(rendering_tree);
-        println!("push took {:?}", now.elapsed());
+        self.inner().compose(compose);
 
         self
     }
     pub fn component(&self, component: impl Component) -> &Self {
-        let rendering_tree = self.ghost_component(
-            component,
-            GhostComposeOption {
-                enable_event_handling: true,
-            },
-        );
-        self.children().push(rendering_tree);
+        self.inner().component(component);
 
         self
     }
     pub fn global_xy(&self, local_xy: Xy<Px>) -> Xy<Px> {
         let local_xy = Matrix3x3::from_translate(local_xy.x.as_f32(), local_xy.y.as_f32());
-        let global_xy = self.matrix() * local_xy;
+        let global_xy = self.inner().matrix * local_xy;
         Xy::new(global_xy.x().px(), global_xy.y().px())
     }
 }

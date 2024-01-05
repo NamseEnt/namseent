@@ -16,7 +16,7 @@ impl ComposeCtx {
             matrix,
             self.renderer.clone(),
             lazy,
-            self.raw_event.clone(),
+            self.raw_event,
             self.clippings.clone(),
         )
     }
@@ -34,7 +34,7 @@ impl ComposeCtx {
             matrix,
             self.renderer.clone(),
             lazy,
-            self.raw_event.clone(),
+            self.raw_event,
             self.clippings.clone(),
         )
     }
@@ -58,7 +58,7 @@ impl ComposeCtx {
             self.matrix,
             self.renderer.clone(),
             lazy,
-            self.raw_event.clone(),
+            self.raw_event,
             clippings,
         )
     }
@@ -72,7 +72,7 @@ impl ComposeCtx {
             matrix,
             self.renderer.clone(),
             lazy,
-            self.raw_event.clone(),
+            self.raw_event,
             vec![],
         )
     }
@@ -89,7 +89,7 @@ impl ComposeCtx {
             matrix,
             self.renderer.clone(),
             lazy,
-            self.raw_event.clone(),
+            self.raw_event,
             self.clippings.clone(),
         )
     }

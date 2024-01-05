@@ -1,15 +1,14 @@
 use super::*;
 
 pub(crate) fn handle_track_eq<'a, T: 'static + Debug + Send + Sync + PartialEq + Clone>(
-    ctx: &'a RenderCtx,
+    ctx: &'a mut RenderCtxInner,
     target: &T,
 ) -> Sig<'a, T> {
     let instance = ctx.instance.as_ref();
     let track_eq_value_list = &mut instance.self_mut().track_eq_value_list;
 
-    let track_eq_index = ctx
-        .track_eq_index
-        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let track_eq_index = ctx.track_eq_index;
+    ctx.track_eq_index += 1;
 
     let sig_id = SigId {
         id_type: SigIdType::TrackEq,

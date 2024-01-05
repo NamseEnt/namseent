@@ -44,19 +44,17 @@ impl Component for TextButton<'_> {
             mouse_buttons,
             on_mouse_up_in,
         } = self;
-        let now = std::time::Instant::now();
         ctx.compose(|ctx| {
-            // ctx.translate((rect.x(), rect.y()))
-            //     .add(center_text_full_height(rect.wh(), text, text_color))
-            //     .add(simple_rect(
-            //         rect.wh(),
-            //         stroke_color,
-            //         stroke_width,
-            //         fill_color,
-            //     ));
-            // attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
+            ctx.translate((rect.x(), rect.y()))
+                .add(center_text_full_height(rect.wh(), text, text_color))
+                .add(simple_rect(
+                    rect.wh(),
+                    stroke_color,
+                    stroke_width,
+                    fill_color,
+                ));
+            attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
         });
-        println!("ctx.compose: {:?}", now.elapsed());
         ctx.done()
     }
 }

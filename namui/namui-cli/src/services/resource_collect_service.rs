@@ -94,7 +94,7 @@ fn collect_rust_build(
         }
         Target::X86_64PcWindowsMsvc => {
             let build_dist_path =
-                project_path.join("target/namui/target/x86_64-pc-windows-msvc/release");
+                project_path.join("target/namui/target/x86_64-pc-windows-msvc/debug");
             ops.push(CollectOperation::new(
                 &build_dist_path.join("namui-runtime-x86_64-pc-windows-msvc.exe"),
                 &PathBuf::from(""),

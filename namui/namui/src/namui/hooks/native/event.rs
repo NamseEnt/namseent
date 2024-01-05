@@ -40,7 +40,7 @@ impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
                 on_event,
                 raw_event,
                 ctx.inverse_matrix(),
-                &done.rendering_tree,
+                ctx.inner().rendered.as_ref().unwrap(),
                 ctx,
             );
         });

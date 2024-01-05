@@ -3,7 +3,7 @@ use super::*;
 pub(crate) type CleanUpFnOnce = Option<Box<dyn FnOnce()>>;
 
 pub(crate) fn handle_effect<CleanUp: EffectCleanUp>(
-    ctx: &RenderCtx,
+    ctx: &mut RenderCtxInner,
     title: impl AsRef<str>,
     effect: impl FnOnce() -> CleanUp,
 ) {
@@ -13,9 +13,8 @@ pub(crate) fn handle_effect<CleanUp: EffectCleanUp>(
     let effect_used_sigs_list = &mut instance.self_mut().effect_used_sigs_list;
     let effect_clean_up_list = &mut instance.self_mut().effect_clean_up_list;
 
-    let effect_index = ctx
-        .effect_index
-        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let effect_index = ctx.effect_index;
+    ctx.effect_index += 1;
 
     let is_first_run = instance.self_ref().is_first_render;
 

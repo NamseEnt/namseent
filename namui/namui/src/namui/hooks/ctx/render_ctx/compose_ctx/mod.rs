@@ -95,7 +95,7 @@ impl ComposeCtx {
             component,
             self.matrix,
             self.clippings.clone(),
-            self.raw_event.clone(),
+            self.raw_event,
         );
         self.lazy_children
             .push(Rc::new(OnceCell::from(LazyRenderingTree::RenderingTree {
@@ -148,7 +148,7 @@ impl ComposeCtx {
                 self.matrix,
                 self.renderer.clone(),
                 lazy.clone(),
-                self.raw_event.clone(),
+                self.raw_event,
                 self.clippings.clone(),
             );
 
@@ -184,7 +184,7 @@ impl ComposeCtx {
             component,
             self.matrix,
             self.clippings.clone(),
-            self.raw_event.clone(),
+            self.raw_event,
         );
 
         tree_ctx_mut().swap_enable_event_handling(prev_enable_event);
@@ -199,7 +199,7 @@ impl ComposeCtx {
             component,
             self.matrix,
             self.clippings.clone(),
-            self.raw_event.clone(),
+            self.raw_event,
         );
 
         let bounding_box = rendering_tree.bounding_box();

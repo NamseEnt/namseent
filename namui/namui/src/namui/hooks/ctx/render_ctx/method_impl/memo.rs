@@ -1,16 +1,15 @@
 use super::*;
 
 pub(crate) fn handle_memo<T: 'static + Debug + Send + Sync>(
-    ctx: &RenderCtx,
+    ctx: &mut RenderCtxInner,
     memo: impl FnOnce() -> T,
 ) -> Sig<'_, T> {
     let instance = ctx.instance.as_ref();
     let memo_value_list = &mut instance.self_mut().memo_value_list;
     let memo_used_sigs_list = &mut instance.self_mut().memo_used_sigs_list;
 
-    let memo_index = ctx
-        .memo_index
-        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let memo_index = ctx.memo_index;
+    ctx.memo_index += 1;
 
     let is_first_run = memo_value_list.len() <= memo_index;
 

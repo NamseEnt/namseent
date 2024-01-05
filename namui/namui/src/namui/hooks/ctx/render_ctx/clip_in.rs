@@ -1,7 +1,7 @@
 use super::*;
 
-impl<'a> ClipIn for &'a RenderCtx {
+impl ClipIn for &RenderCtx {
     fn clip_in(&self, xy: Xy<Px>) -> bool {
-        self.clippings.clip_in(xy)
+        self.inner().clippings.clip_in(xy)
     }
 }

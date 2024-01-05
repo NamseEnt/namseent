@@ -1,15 +1,14 @@
 use super::*;
 
 pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
-    ctx: &RenderCtx,
+    ctx: &mut RenderCtxInner,
     init: impl FnOnce() -> State,
 ) -> (Sig<'_, State>, SetState<State>) {
     let instance = ctx.instance.as_ref();
     let state_list = &mut instance.self_mut().state_list;
 
-    let state_index = ctx
-        .state_index
-        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let state_index = ctx.state_index;
+    ctx.state_index += 1;
 
     let sig_id = SigId {
         id_type: SigIdType::State,

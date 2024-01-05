@@ -3,7 +3,7 @@ use crate::*;
 
 #[derive(Debug)]
 pub struct RenderDone {
-    pub(crate) rendering_tree: RenderingTree,
+    pub(crate) _private: (),
 }
 
 pub trait Component: StaticType + Debug {
@@ -44,10 +44,9 @@ pub trait StaticType {
 impl StaticType for RenderingTree {}
 
 impl Component for RenderingTree {
-    fn render(self, _ctx: &RenderCtx) -> RenderDone {
-        RenderDone {
-            rendering_tree: self,
-        }
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        ctx.inner().set_rendered(self);
+        RenderDone { _private: () }
     }
 }
 

@@ -1,7 +1,7 @@
 use super::*;
 use crate::*;
 use derivative::Derivative;
-use std::{collections::HashSet, rc::Rc, sync::OnceLock};
+use std::{rc::Rc, sync::OnceLock};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -25,6 +25,8 @@ pub(crate) fn tree_ctx() -> &'static TreeContext {
 pub(crate) fn tree_ctx_mut() -> &'static mut TreeContext {
     unsafe { TREE_CTX.get_mut().unwrap() }
 }
+
+static mut RAW_EVENT: Option<RawEvent> = None;
 
 impl TreeContext {
     pub(crate) fn init() {
@@ -59,7 +61,7 @@ impl TreeContext {
         root_instance: Rc<ComponentInstance>,
         root_component: impl Send + Sync + Fn() -> C,
     ) {
-        self.render_and_draw(None.into(), channel_rx, root_instance, root_component);
+        self.render_and_draw(&None, channel_rx, root_instance, root_component);
     }
 
     pub(crate) fn on_raw_event<C: Component>(
@@ -69,12 +71,15 @@ impl TreeContext {
         root_instance: Rc<ComponentInstance>,
         root_component: impl Send + Sync + Fn() -> C,
     ) {
-        self.render_and_draw(
-            Some(event).into(),
-            channel_rx,
-            root_instance,
-            root_component,
-        );
+        let raw_event = unsafe {
+            RAW_EVENT = Some(event);
+            &RAW_EVENT
+        };
+        self.render_and_draw(raw_event, channel_rx, root_instance, root_component);
+
+        unsafe {
+            RAW_EVENT = None;
+        }
     }
 
     pub(crate) fn render_and_draw<C: Component>(
@@ -129,14 +134,16 @@ impl TreeContext {
         &self,
         component: impl Component,
         instance: Rc<ComponentInstance>,
-        updated_sigs: HashSet<SigId>,
+        updated_sigs: Vec<SigId>,
         matrix: Matrix3x3,
         clippings: Vec<Clipping>,
         raw_event: RawEventContainer,
     ) -> RenderingTree {
         let render_ctx = RenderCtx::new(instance, updated_sigs, matrix, raw_event, clippings);
 
-        component.render(&render_ctx).rendering_tree
+        component.render(&render_ctx);
+
+        render_ctx.finish()
     }
 
     pub(crate) fn swap_enable_event_handling(&mut self, enable: bool) -> bool {
@@ -148,11 +155,11 @@ impl TreeContext {
     }
 }
 
-fn handle_atom_events(channel_events: &mut Vec<Item>, updated_sigs: &mut HashSet<SigId>) {
+fn handle_atom_events(channel_events: &mut Vec<Item>, updated_sigs: &mut Vec<SigId>) {
     channel_events.retain(|x| match x {
         Item::SetStateItem(x) => {
             if x.sig_id().id_type == SigIdType::Atom {
-                updated_sigs.insert(x.sig_id());
+                updated_sigs.push(x.sig_id());
                 match x {
                     SetStateItem::Set { sig_id, value } => {
                         set_atom_value(sig_id.index, value.lock().unwrap().take().unwrap());

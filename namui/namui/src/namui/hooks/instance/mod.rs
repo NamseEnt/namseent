@@ -2,7 +2,6 @@
 mod inspect;
 
 use super::*;
-use crate::*;
 use std::{collections::HashMap, fmt::Debug, rc::Rc};
 
 #[derive(Debug)]
@@ -22,7 +21,7 @@ pub(crate) struct RealComponentInstance {
     pub(crate) is_first_render: bool,
     is_rendered_on_this_tick: bool,
     children_instances: HashMap<(KeyVec, &'static str), Rc<ComponentInstance>>,
-    pub(crate) debug_bounding_box: Option<Rect<Px>>,
+    // pub(crate) debug_bounding_box: Option<Rect<Px>>,
 }
 
 static mut COMPONENT_INSTANCES: OnceLock<HashMap<usize, RealComponentInstance>> = OnceLock::new();
@@ -84,7 +83,7 @@ impl ComponentInstance {
                     is_first_render: true,
                     is_rendered_on_this_tick: false,
                     children_instances: Default::default(),
-                    debug_bounding_box: Default::default(),
+                    // debug_bounding_box: Default::default(),
                 },
             );
         }
@@ -130,9 +129,9 @@ impl ComponentInstance {
             .values()
             .for_each(|child| child.clear_unrendered_chidlren());
     }
-    pub(crate) fn set_debug_bounding_box(&self, debug_bounding_box: Option<Rect<Px>>) {
-        self.self_mut().debug_bounding_box = debug_bounding_box;
-    }
+    // pub(crate) fn set_debug_bounding_box(&self, debug_bounding_box: Option<Rect<Px>>) {
+    //     self.self_mut().debug_bounding_box = debug_bounding_box;
+    // }
 }
 
 fn new_component_id() -> usize {

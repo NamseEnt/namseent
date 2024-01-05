@@ -207,7 +207,6 @@ impl CancelableBuilder {
                     "x86_64-pc-windows-msvc",
                     "--message-format",
                     "json",
-                    "--release",
                 ]);
 
                 if cfg!(target_os = "linux") {

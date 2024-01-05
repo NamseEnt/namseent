@@ -3,7 +3,7 @@ use super::*;
 #[derive(Clone)]
 pub(super) struct Renderer {
     pub(crate) instance: Rc<ComponentInstance>,
-    pub(super) updated_sigs: HashSet<SigId>,
+    pub(super) updated_sigs: Vec<SigId>,
 }
 
 impl Renderer {
