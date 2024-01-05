@@ -60,11 +60,11 @@ opt-level = 3
         std::fs::write(
             args.target_dir.join(".cargo/config.toml"),
             r#"
-    [build]
-    # https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam
-    # support 99%, 2024-01-04
-    rustflags = ["-C", "target-feature=+sse,+sse2,+sse3,+cmpxchg16b,+ssse3,+sse4.1,+sse4.2"]
-    "#,
+[build]
+# https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam
+# support 99%, 2024-01-04
+rustflags = ["-C", "target-feature=+sse,+sse2,+sse3,+cmpxchg16b,+ssse3,+sse4.1,+sse4.2"]
+"#,
         )?;
     }
 
