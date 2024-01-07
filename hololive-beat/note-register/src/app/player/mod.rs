@@ -33,16 +33,17 @@ impl Component for Player<'_> {
             video,
         } = loaded;
 
-        const TIMING_ZERO_Y_FROM_BOTTOM: Px = px(192.0);
-        const NOTE_PLOTTER_WIDTH: Px = px(768.0);
+        const NOTE_PLOTTER_HEIGHT: Px = px(256.0);
         const BUTTON_HEIGHT: Px = px(64.0);
         const STROKE_WIDTH: Px = px(2.0);
         const BUTTON_SIDE_PADDING: Px = px(16.0);
+        const NOTE_WIDTH: Px = px(64.0);
+        const TIMING_ZERO_X: Px = px(192.0);
 
         let (state, set_state) = ctx.atom_init(&STATE, || State::Stop);
         let _ = ctx.atom_init(&JUDGE_CONTEXT, JudgeContext::new);
         let (start_offset_ms, set_start_offset) = ctx.state(|| 0.0);
-        let px_per_time = Per::new(px(1024.0), 1.sec());
+        let px_per_time = Per::new(NOTE_WIDTH, 33.ms() * 2);
         let now = since_start();
         let perfect_range: Duration = Duration::from_millis(64);
         let good_range: Duration = 256.0.ms();
@@ -57,9 +58,8 @@ impl Component for Player<'_> {
         };
 
         ctx.compose(|ctx| {
-            horizontal([
-                ratio(
-                    1,
+            vertical([
+                ratio(1, |wh, ctx| {
                     vertical([
                         fixed(BUTTON_HEIGHT, |_, ctx| {
                             ctx.add(TextButtonFit {
@@ -105,18 +105,27 @@ impl Component for Player<'_> {
                                 },
                             });
                         }),
+                    ])(wh, ctx);
+                    ctx.add(VideoPlayer { wh, video });
+                }),
+                fixed(
+                    NOTE_PLOTTER_HEIGHT,
+                    horizontal([
+                        fixed(384.px(), |_, _| {
+                            // character
+                        }),
+                        ratio(1, |wh, ctx| {
+                            ctx.add(NotePlotter {
+                                wh,
+                                notes,
+                                px_per_time,
+                                timing_zero_x: TIMING_ZERO_X,
+                                played_time,
+                                note_width: NOTE_WIDTH,
+                            });
+                        }),
                     ]),
                 ),
-                fixed(NOTE_PLOTTER_WIDTH, |wh, ctx| {
-                    ctx.add(NotePlotter {
-                        wh,
-                        notes,
-                        px_per_time,
-                        timing_zero_y_from_bottom: TIMING_ZERO_Y_FROM_BOTTOM,
-                        played_time,
-                    });
-                }),
-                ratio(1, |_, _| {}),
             ])(wh, ctx);
         });
 
@@ -129,8 +138,6 @@ impl Component for Player<'_> {
         });
 
         ctx.component(MusicPlayer { music });
-
-        ctx.component(VideoPlayer { wh, video });
 
         ctx.done()
     }
