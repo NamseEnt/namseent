@@ -10,8 +10,9 @@ pub struct NotePlotter<'a> {
     pub wh: Wh<Px>,
     pub notes: &'a Vec<Note>,
     pub px_per_time: Per<Px, Duration>,
-    pub timing_zero_y_from_bottom: Px,
+    pub timing_zero_x: Px,
     pub played_time: Duration,
+    pub note_width: Px,
 }
 
 impl Component for NotePlotter<'_> {
@@ -20,61 +21,78 @@ impl Component for NotePlotter<'_> {
             wh,
             notes,
             px_per_time,
-            timing_zero_y_from_bottom,
+            timing_zero_x,
             played_time,
+            note_width,
         } = self;
-        const STROKE_WIDTH: Px = px(2.0);
-        const TIMING_ZERO_BAR_HEIGHT: Px = px(6.0);
+        const STROKE_WIDTH: Px = px(8.0);
+        const PAD_WIDTH: Px = px(128.0);
 
-        let (divider_x_array, baseline_x_array) = {
-            let width = wh.width / 4;
-            let half = width / 2;
-            let divider_x_array = [width, width * 2, width * 3];
-            let baseline_x_array = [
-                half,
-                divider_x_array[0] + half,
-                divider_x_array[1] + half,
-                divider_x_array[2] + half,
+        let note_wh = Wh {
+            width: note_width,
+            height: (wh.height - (STROKE_WIDTH * 5)) / 4,
+        };
+        let (divider_y_array, baseline_y_array) = {
+            let height = wh.height / 4;
+            let divider_y_array = [height, height * 2, height * 3];
+            let half_stroke = STROKE_WIDTH / 2;
+            let baseline_y_array = [
+                STROKE_WIDTH,
+                half_stroke + divider_y_array[0],
+                half_stroke + divider_y_array[1],
+                half_stroke + divider_y_array[2],
             ];
-            (divider_x_array, baseline_x_array)
+            (divider_y_array, baseline_y_array)
         };
 
-        ctx.compose(|ctx| {
-            ctx.translate((
-                0.px(),
-                wh.height - timing_zero_y_from_bottom - (TIMING_ZERO_BAR_HEIGHT / 2),
-            ))
-            .add(simple_rect(
-                Wh {
-                    width: wh.width,
-                    height: TIMING_ZERO_BAR_HEIGHT,
+        for direction in [
+            Direction::Up,
+            Direction::Right,
+            Direction::Left,
+            Direction::Down,
+        ] {
+            let rect = Rect::from_xy_wh(
+                Xy {
+                    x: STROKE_WIDTH,
+                    y: baseline_y_array[direction.lane()],
                 },
-                THEME.surface.contrast_text,
-                STROKE_WIDTH,
-                THEME.primary.main,
+                Wh::new(PAD_WIDTH, note_wh.height),
+            );
+            ctx.component(Pad { rect, direction });
+        }
+
+        ctx.compose(|ctx| {
+            ctx.translate((timing_zero_x, 0.px())).add(simple_rect(
+                Wh {
+                    width: note_width,
+                    height: wh.height,
+                },
+                Color::TRANSPARENT,
+                0.px(),
+                Color::from_u8(255, 255, 255, 128),
             ));
         });
 
         ctx.compose(|ctx| {
             for note in notes {
-                let note_y =
-                    (px_per_time * (played_time - note.start_time)) - timing_zero_y_from_bottom;
-                if note_y > wh.height * 2 {
+                let note_x = (px_per_time * (note.start_time - played_time)) + timing_zero_x;
+                if note_x < -wh.width {
                     continue;
                 }
-                if note_y < -wh.height {
+                if note_x > wh.width * 2 {
                     break;
                 }
-                let note_x = baseline_x_array[note.direction.lane()];
+                let note_y = baseline_y_array[note.direction.lane()];
                 let note_xy = Xy {
                     x: note_x,
                     y: note_y,
                 };
+                let note_rect = Rect::from_xy_wh(note_xy, note_wh);
                 let key = format!("{:?}-{:?}", note.instrument, note.start_time);
                 ctx.add_with_key(
                     key,
                     NoteGraphic {
-                        center_xy: note_xy,
+                        rect: note_rect,
                         direction: note.direction,
                     },
                 );
@@ -83,20 +101,20 @@ impl Component for NotePlotter<'_> {
 
         ctx.component(path(
             Path::new()
-                .move_to(divider_x_array[0], 0.px())
-                .line_to(divider_x_array[0], wh.height)
-                .move_to(divider_x_array[1], 0.px())
-                .line_to(divider_x_array[1], wh.height)
-                .move_to(divider_x_array[2], 0.px())
-                .line_to(divider_x_array[2], wh.height),
-            Paint::new(THEME.surface.contrast_text)
+                .move_to(0.px(), divider_y_array[0])
+                .line_to(wh.width, divider_y_array[0])
+                .move_to(0.px(), divider_y_array[1])
+                .line_to(wh.width, divider_y_array[1])
+                .move_to(0.px(), divider_y_array[2])
+                .line_to(wh.width, divider_y_array[2]),
+            Paint::new(Color::from_u8(255, 255, 255, 128))
                 .set_style(PaintStyle::Stroke)
                 .set_stroke_width(STROKE_WIDTH),
         ));
 
         ctx.component(simple_rect(
             wh,
-            THEME.surface.contrast_text,
+            Color::from_u8(255, 255, 255, 128),
             STROKE_WIDTH,
             THEME.surface.main,
         ));
@@ -107,68 +125,53 @@ impl Component for NotePlotter<'_> {
 
 #[component]
 struct NoteGraphic {
-    center_xy: Xy<Px>,
+    rect: Rect<Px>,
     direction: Direction,
 }
 impl Component for NoteGraphic {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self {
-            center_xy,
-            direction,
-        } = self;
-        const NOTE_RADIUS: Px = px(64.0);
-        const STROKE_WIDTH: Px = px(4.0);
+        let Self { rect, direction } = self;
 
-        let note_text = match direction {
-            Direction::Up => "↑",
-            Direction::Right => "→",
-            Direction::Down => "↓",
+        let note_path = Path::new().add_rect(rect);
+
+        ctx.component(path(
+            note_path,
+            Paint::new(direction.as_color()).set_style(PaintStyle::Fill),
+        ));
+
+        ctx.done()
+    }
+}
+
+#[component]
+struct Pad {
+    rect: Rect<Px>,
+    direction: Direction,
+}
+impl Component for Pad {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { rect, direction } = self;
+
+        let text = match direction {
             Direction::Left => "←",
+            Direction::Up => "↑",
+            Direction::Down => "↓",
+            Direction::Right => "→",
         }
         .to_string();
-        let note_color = match direction {
-            Direction::Up => Color::from_u8(0x8b, 0xc3, 0x4a, 255),
-            Direction::Right => Color::from_u8(0x67, 0x3a, 0xb7, 255),
-            Direction::Down => Color::from_u8(0xf4, 0x43, 0x36, 255),
-            Direction::Left => Color::from_u8(0x21, 0x96, 0xf3, 255),
-        };
-        let note_path = Path::new().add_oval(Rect::Ltrb {
-            left: -NOTE_RADIUS,
-            top: -NOTE_RADIUS,
-            right: NOTE_RADIUS,
-            bottom: NOTE_RADIUS,
-        });
+
         ctx.compose(|ctx| {
-            ctx.translate(center_xy)
-                .add(text(TextParam {
-                    text: note_text,
-                    x: 0.px(),
-                    y: 0.px(),
-                    align: TextAlign::Center,
-                    baseline: TextBaseline::Middle,
-                    font: Font {
-                        size: typography::adjust_font_size(NOTE_RADIUS * 2),
-                        name: "NotoSansKR-Bold".to_string(),
-                    },
-                    style: TextStyle {
-                        border: None,
-                        drop_shadow: None,
-                        color: THEME.primary.contrast_text,
-                        background: None,
-                        line_height_percent: 100.percent(),
-                        underline: None,
-                    },
-                    max_width: None,
-                }))
-                .add(path(
-                    note_path.clone(),
-                    Paint::new(THEME.primary.contrast_text)
-                        .set_style(PaintStyle::Stroke)
-                        .set_stroke_width(STROKE_WIDTH),
+            ctx.translate(rect.xy())
+                .add(typography::center_text_full_height(
+                    rect.wh(),
+                    text,
+                    Color::WHITE,
                 ))
-                .add(path(
-                    note_path,
-                    Paint::new(note_color).set_style(PaintStyle::Fill),
+                .add(simple_rect(
+                    rect.wh(),
+                    Color::TRANSPARENT,
+                    0.px(),
+                    direction.as_color(),
                 ));
         });
 

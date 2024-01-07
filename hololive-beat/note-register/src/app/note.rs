@@ -54,10 +54,10 @@ impl TryFrom<Code> for Direction {
 impl Direction {
     pub fn lane(&self) -> usize {
         match self {
-            Direction::Up => 3,
-            Direction::Right => 2,
-            Direction::Down => 1,
-            Direction::Left => 0,
+            Direction::Up => 0,
+            Direction::Right => 1,
+            Direction::Down => 3,
+            Direction::Left => 2,
         }
     }
 
@@ -69,6 +69,15 @@ impl Direction {
     //         Direction::Left => Instrument::Snare,
     //     }
     // }
+
+    pub fn as_color(&self) -> Color {
+        match self {
+            Direction::Up => Color::from_u8(77, 150, 252, 255),
+            Direction::Right => Color::from_u8(156, 249, 44, 255),
+            Direction::Left => Color::from_u8(255, 54, 173, 255),
+            Direction::Down => Color::from_u8(255, 218, 98, 255),
+        }
+    }
 }
 
 #[derive(Debug)]
