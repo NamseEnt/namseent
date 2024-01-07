@@ -1,8 +1,8 @@
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
-import opus from "/snare.opus";
+import opus from "/cymbals.opus";
 import Peaks, { PeaksInstance } from "peaks.js";
-import txt from "/snare.txt";
+import txt from "/cymbals.txt";
 
 function App() {
     const [audioBuffer, setAudioBuffer] = useState<AudioBuffer>();
