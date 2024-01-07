@@ -3,6 +3,9 @@ use crate::app::note::{Direction, Note};
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 use std::collections::HashSet;
+
+const AUTO_PLAY: bool = false;
+
 #[component]
 pub struct NoteJudge<'a> {
     pub notes: &'a Vec<Note>,
@@ -24,6 +27,33 @@ impl Component for NoteJudge<'_> {
 
         let (state, _) = ctx.atom(&STATE);
         let (judge_context, set_judge_context) = ctx.atom(&JUDGE_CONTEXT);
+
+        let auto_play = || {
+            let check_start_time = played_time - perfect_range;
+            let check_end_time = played_time + perfect_range;
+            for (index, note) in notes.iter().enumerate() {
+                if note.start_time < check_start_time {
+                    continue;
+                }
+                if note.start_time > check_end_time {
+                    break;
+                }
+
+                if judge_context.judged_note_index.contains(&index) {
+                    continue;
+                }
+
+                note_sounds.get(index).cloned().unwrap().play().unwrap();
+
+                set_judge_context.mutate(move |judge_context| {
+                    judge_context.perfect_count += 1;
+                    judge_context.combo += 1;
+                    judge_context.max_combo = judge_context.max_combo.max(judge_context.combo);
+                    judge_context.judged_note_index.insert(index);
+                    judge_context.last_judged_note_index = Some(index);
+                });
+            }
+        };
 
         let handle_passed_notes = || {
             let last_judged_note_index = judge_context.last_judged_note_index;
@@ -121,6 +151,9 @@ impl Component for NoteJudge<'_> {
                     }
 
                     if let Event::ScreenRedraw = event {
+                        if AUTO_PLAY {
+                            auto_play();
+                        }
                         handle_passed_notes();
                     } else if let Event::KeyDown { event } = event {
                         handle_key_down(event.code);
