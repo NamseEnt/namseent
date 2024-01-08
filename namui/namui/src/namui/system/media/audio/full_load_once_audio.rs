@@ -104,10 +104,17 @@ impl FullLoadOnceAudio {
     }
 
     pub fn slice(&self, range: std::ops::Range<Duration>) -> Result<Self> {
-        let start = range.start.as_secs_f64() * self.audio_config.sample_rate as f64;
-        let end = range.end.as_secs_f64() * self.audio_config.sample_rate as f64;
-        let start = start as usize;
-        let end = end as usize;
+        let calculate_index = |duration: Duration| {
+            // NOTE: Our audio is packed(interleaved) https://www.w3.org/TR/webcodecs/images/planar_interleaved.svg
+            let in_f64 = duration.as_secs_f64()
+                * self.audio_config.sample_rate as f64
+                * self.audio_config.channel_count as f64;
+            let in_usize = in_f64 as usize;
+            in_usize - in_usize % self.audio_config.channel_count
+        };
+
+        let start = calculate_index(range.start);
+        let end = calculate_index(range.end);
         let buffer = self
             .buffer
             .iter()
@@ -115,6 +122,7 @@ impl FullLoadOnceAudio {
             .take(end - start)
             .cloned()
             .collect();
+
         Ok(Self {
             audio_context: self.audio_context.clone(),
             audio_config: self.audio_config,
