@@ -112,6 +112,7 @@ impl FullLoadOnceAudio {
             let in_usize = in_f64 as usize;
             in_usize - in_usize % self.audio_config.channel_count
         };
+
         let start = calculate_index(range.start);
         let end = calculate_index(range.end);
         let buffer = self
@@ -120,19 +121,8 @@ impl FullLoadOnceAudio {
             .skip(start)
             .take(end - start)
             .cloned()
-            .collect::<VecDeque<_>>()
+            .collect::<VecDeque<_>>();
 
-        let start = range.start.as_secs_f64() * self.audio_config.sample_rate as f64;
-        let end = range.end.as_secs_f64() * self.audio_config.sample_rate as f64;
-        let start = start as usize;
-        let end = end as usize;
-        let buffer = self
-            .buffer
-            .iter()
-            .skip(start)
-            .take(end - start)
-            .cloned()
-            .collect();
         Ok(Self {
             audio_context: self.audio_context.clone(),
             audio_config: self.audio_config,
