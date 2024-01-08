@@ -1,13 +1,13 @@
 use crate::media::audio::{self, AudioConfig, AudioConsume, AudioContext};
 use anyhow::{bail, Result};
 use namui_type::*;
-use std::{path::Path, sync::Arc};
+use std::{collections::VecDeque, path::Path, sync::Arc};
 
 #[derive(Debug, Clone)]
 pub struct FullLoadOnceAudio {
     audio_context: Arc<AudioContext>,
     audio_config: AudioConfig,
-    buffer: Vec<f32>,
+    buffer: VecDeque<f32>,
 }
 
 impl FullLoadOnceAudio {
@@ -17,7 +17,7 @@ impl FullLoadOnceAudio {
     ) -> Result<Self> {
         let output_config = audio_context.output_config;
         let path = path.as_ref().to_path_buf();
-        let buffer = tokio::task::spawn_blocking(move || -> Result<Vec<f32>> {
+        let buffer = tokio::task::spawn_blocking(move || -> Result<VecDeque<f32>> {
             let mut input_ctx = ffmpeg_next::format::input(&path)?;
 
             let audio_stream = input_ctx
@@ -39,7 +39,7 @@ impl FullLoadOnceAudio {
 
             let mut resampler = audio::get_resampler(input_config, output_config)?;
 
-            let mut output: Vec<f32> = Vec::new();
+            let mut output: VecDeque<f32> = VecDeque::new();
 
             let mut receive_frame =
                 |decoder: &mut ffmpeg_next::codec::decoder::Audio, eof: bool| -> Result<()> {
@@ -70,7 +70,7 @@ impl FullLoadOnceAudio {
                         )
                     };
 
-                    output.extend_from_slice(f32_slice);
+                    output.extend(f32_slice);
 
                     Ok(())
                 };
@@ -108,7 +108,13 @@ impl FullLoadOnceAudio {
         let end = range.end.as_secs_f64() * self.audio_config.sample_rate as f64;
         let start = start as usize;
         let end = end as usize;
-        let buffer = self.buffer[start..end].to_vec();
+        let buffer = self
+            .buffer
+            .iter()
+            .skip(start)
+            .take(end - start)
+            .cloned()
+            .collect();
         Ok(Self {
             audio_context: self.audio_context.clone(),
             audio_config: self.audio_config,
