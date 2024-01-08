@@ -125,7 +125,7 @@ impl FullLoadOnceAudio {
 
 impl AudioConsume for FullLoadOnceAudio {
     fn consume(&mut self, output: &mut [f32]) {
-        let right: usize = self.buffer.len().min(output.len());
+        let right = self.buffer.len().min(output.len());
         self.buffer
             .drain(..right)
             .zip(output)
