@@ -121,7 +121,7 @@ impl FullLoadOnceAudio {
             .skip(start)
             .take(end - start)
             .cloned()
-            .collect::<VecDeque<_>>();
+            .collect();
 
         Ok(Self {
             audio_context: self.audio_context.clone(),
