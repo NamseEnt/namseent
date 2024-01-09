@@ -33,6 +33,7 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
         color_filter,
         blend_mode,
         ref shader,
+        mask_filter,
     } = paint;
     if let Some(style) = paint_style {
         skia_paint.set_style(style.into());
@@ -62,6 +63,19 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
     if let Some(shader) = shader {
         let native_shader = NativeShader::get(shader);
         skia_paint.set_shader(Some(native_shader.skia().clone()));
+    }
+    if let Some(mask_filter) = mask_filter {
+        skia_paint.set_mask_filter(match mask_filter {
+            MaskFilter::Blur { blur } => {
+                let (blur_style, sigma) = match blur {
+                    Blur::Normal { sigma } => (skia_safe::BlurStyle::Normal, sigma),
+                    Blur::Solid { sigma } => (skia_safe::BlurStyle::Solid, sigma),
+                    Blur::Outer { sigma } => (skia_safe::BlurStyle::Outer, sigma),
+                    Blur::Inner { sigma } => (skia_safe::BlurStyle::Inner, sigma),
+                };
+                skia_safe::MaskFilter::blur(blur_style, sigma, false)
+            }
+        });
     }
 
     skia_paint
