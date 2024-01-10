@@ -12,22 +12,19 @@ pub struct Paint {
     pub color_filter: Option<ColorFilter>,
     pub blend_mode: Option<BlendMode>,
     pub shader: Option<Shader>,
+    pub mask_filter: Option<MaskFilter>,
 }
 
 impl Paint {
     pub fn new(color: Color) -> Self {
         Self {
             color,
-            paint_style: None,
-            anti_alias: None,
-            stroke_width: None,
-            stroke_cap: None,
-            stroke_join: None,
-            stroke_miter: None,
-            color_filter: None,
-            blend_mode: None,
-            shader: None,
+            ..Default::default()
         }
+    }
+    pub fn set_color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
     }
     pub fn set_style(mut self, style: PaintStyle) -> Self {
         self.paint_style = Some(style);
@@ -59,6 +56,10 @@ impl Paint {
     }
     pub fn set_shader(mut self, shader: Shader) -> Self {
         self.shader = Some(shader);
+        self
+    }
+    pub fn set_mask_filter(mut self, mask_filter: MaskFilter) -> Self {
+        self.mask_filter = Some(mask_filter);
         self
     }
 }
