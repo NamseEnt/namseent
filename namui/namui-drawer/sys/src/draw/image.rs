@@ -16,10 +16,7 @@ impl Draw for ImageDrawCommand {
             return;
         }
 
-        let image_size = Wh {
-            width: image.wh.width,
-            height: image.wh.height,
-        };
+        let image_size = image.wh;
         let (src_rect, dest_rect) = get_src_dest_rects_in_fit(self.fit, image_size, self.rect);
 
         ctx.canvas()
@@ -148,32 +145,248 @@ fn calculate_contain_fit_dest_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -
 }
 
 fn calculate_cover_fit_src_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -> Rect<Px> {
-    if image_size.width / image_size.height == command_rect.width() / command_rect.height() {
+    // width fit case
+    let width = image_size.width;
+    let height = width * (command_rect.height() / command_rect.width());
+
+    if height <= image_size.height {
         return Rect::Xywh {
             x: 0.px(),
-            y: 0.px(),
-            width: image_size.width,
-            height: image_size.height,
+            y: (image_size.height - height) / 2.0,
+            width,
+            height,
         };
     }
 
-    if image_size.width / image_size.height > command_rect.width() / command_rect.height() {
-        let k = command_rect.height() / image_size.height;
-        let delta_x = (image_size.width * k - command_rect.width()) / (2.0 * k);
-        return Rect::Xywh {
-            x: delta_x,
-            y: 0.px(),
-            width: image_size.width - delta_x * 2.0,
-            height: image_size.height,
-        };
-    }
+    // else, height fit case
+    let height = image_size.height;
+    let width = height * (command_rect.width() / command_rect.height());
 
-    let k = command_rect.width() / image_size.width;
-    let delta_y = (image_size.height * k - command_rect.height()) / (2.0 * k);
     Rect::Xywh {
-        x: 0.px(),
-        y: delta_y,
-        width: image_size.width,
-        height: image_size.height - delta_y * 2.0,
+        x: (image_size.width - width) / 2.0,
+        y: 0.px(),
+        width,
+        height,
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_cover_fit_src_rect_1() {
+        assert_eq!(
+            calculate_cover_fit_src_rect(
+                Wh {
+                    width: 100.px(),
+                    height: 100.px(),
+                },
+                Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: 100.px(),
+                    height: 100.px(),
+                }
+            ),
+            Rect::Xywh {
+                x: 0.px(),
+                y: 0.px(),
+                width: 100.px(),
+                height: 100.px(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_cover_fit_src_rect_2() {
+        assert_eq!(
+            calculate_cover_fit_src_rect(
+                Wh {
+                    width: 100.px(),
+                    height: 100.px(),
+                },
+                Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: 200.px(),
+                    height: 200.px(),
+                }
+            ),
+            Rect::Xywh {
+                x: 0.px(),
+                y: 0.px(),
+                width: 100.px(),
+                height: 100.px(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_cover_fit_src_rect_3() {
+        assert_eq!(
+            calculate_cover_fit_src_rect(
+                Wh {
+                    width: 100.px(),
+                    height: 100.px(),
+                },
+                Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: 50.px(),
+                    height: 50.px(),
+                }
+            ),
+            Rect::Xywh {
+                x: 0.px(),
+                y: 0.px(),
+                width: 100.px(),
+                height: 100.px(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_cover_fit_src_rect_4() {
+        assert_eq!(
+            calculate_cover_fit_src_rect(
+                Wh {
+                    width: 100.px(),
+                    height: 100.px(),
+                },
+                Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: 50.px(),
+                    height: 100.px(),
+                }
+            ),
+            Rect::Xywh {
+                x: 25.px(),
+                y: 0.px(),
+                width: 50.px(),
+                height: 100.px(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_cover_fit_src_rect_5() {
+        assert_eq!(
+            calculate_cover_fit_src_rect(
+                Wh {
+                    width: 100.px(),
+                    height: 100.px(),
+                },
+                Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: 100.px(),
+                    height: 50.px(),
+                }
+            ),
+            Rect::Xywh {
+                x: 0.px(),
+                y: 25.px(),
+                width: 100.px(),
+                height: 50.px(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_cover_fit_src_rect_6() {
+        assert_eq!(
+            calculate_cover_fit_src_rect(
+                Wh {
+                    width: 100.px(),
+                    height: 100.px(),
+                },
+                Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: 100.px(),
+                    height: 200.px(),
+                }
+            ),
+            Rect::Xywh {
+                x: 25.px(),
+                y: 0.px(),
+                width: 50.px(),
+                height: 100.px(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_cover_fit_src_rect_7() {
+        assert_eq!(
+            calculate_cover_fit_src_rect(
+                Wh {
+                    width: 100.px(),
+                    height: 100.px(),
+                },
+                Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: 200.px(),
+                    height: 100.px(),
+                }
+            ),
+            Rect::Xywh {
+                x: 0.px(),
+                y: 25.px(),
+                width: 100.px(),
+                height: 50.px(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_cover_fit_src_rect_8() {
+        assert_eq!(
+            calculate_cover_fit_src_rect(
+                Wh {
+                    width: 100.px(),
+                    height: 200.px(),
+                },
+                Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: 200.px(),
+                    height: 100.px(),
+                }
+            ),
+            Rect::Xywh {
+                x: 0.px(),
+                y: 75.px(),
+                width: 100.px(),
+                height: 50.px(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_cover_fit_src_rect_9() {
+        assert_eq!(
+            calculate_cover_fit_src_rect(
+                Wh {
+                    width: 200.px(),
+                    height: 100.px(),
+                },
+                Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: 100.px(),
+                    height: 200.px(),
+                }
+            ),
+            Rect::Xywh {
+                x: 75.px(),
+                y: 0.px(),
+                width: 50.px(),
+                height: 100.px(),
+            }
+        );
     }
 }
