@@ -27,8 +27,12 @@
           "type": "string",
           "description": "Groups of artists"
         }
+      },
+      "length": {
+        "type": "number",
+        "description": "Length of music in seconds"
       }
     },
-    "required": ["id", "title", "artists", "groups"]
+    "required": ["id", "title", "artists", "groups", "length"]
   }
 }

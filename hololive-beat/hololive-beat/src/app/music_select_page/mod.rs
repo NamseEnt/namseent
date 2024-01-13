@@ -7,6 +7,7 @@ use super::{
     color::THEME,
     drummer::Drummer,
     music::{MusicMetadata, MusicSpeedMap},
+    play_state::start_game,
 };
 use namui::prelude::*;
 use namui_prebuilt::{simple_rect, table::hooks::*};
@@ -64,7 +65,6 @@ impl Component for MusicSelectPage<'_> {
                 },
                 style: ImageStyle {
                     fit: ImageFit::Cover,
-                    // TODO: Blur
                     paint: Some(
                         Paint::new(Color::grayscale_alpha_f01(1.0, 0.5)).set_image_filter(
                             ImageFilter::Blur {
@@ -79,12 +79,20 @@ impl Component for MusicSelectPage<'_> {
             }));
         });
 
-        ctx.component(simple_rect(
-            wh,
-            Color::TRANSPARENT,
-            0.px(),
-            THEME.background,
-        ));
+        ctx.component(
+            simple_rect(wh, Color::TRANSPARENT, 0.px(), THEME.background).attach_event(|event| {
+                let Event::KeyDown { event } = event else {
+                    return;
+                };
+                if !matches!(event.code, Code::Enter) {
+                    return;
+                }
+                let Some(music) = selected_music else {
+                    return;
+                };
+                start_game(music);
+            }),
+        );
 
         ctx.done()
     }

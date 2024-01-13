@@ -1,6 +1,7 @@
 use crate::app::{
     music::{MusicMetadata, MusicSpeedMap},
     music_select_page::speed_dropdown::SpeedDropdown,
+    setting_overlay::open_setting_overlay,
 };
 use namui::prelude::*;
 use namui_prebuilt::{simple_rect, table::hooks::*, typography};
@@ -100,16 +101,27 @@ impl Component for SettingButton {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh } = self;
 
-        ctx.component(image(ImageParam {
-            rect: Rect::zero_wh(wh),
-            source: ImageSource::Url {
-                url: Url::parse("bundle:ui/setting.png").unwrap(),
-            },
-            style: ImageStyle {
-                fit: ImageFit::Contain,
-                paint: None,
-            },
-        }));
+        ctx.component(
+            image(ImageParam {
+                rect: Rect::zero_wh(wh),
+                source: ImageSource::Url {
+                    url: Url::parse("bundle:ui/setting.png").unwrap(),
+                },
+                style: ImageStyle {
+                    fit: ImageFit::Contain,
+                    paint: None,
+                },
+            })
+            .attach_event(|event| {
+                let Event::MouseDown { event } = event else {
+                    return;
+                };
+                if !matches!(event.button, Some(MouseButton::Left)) {
+                    return;
+                }
+                open_setting_overlay();
+            }),
+        );
 
         ctx.done()
     }
