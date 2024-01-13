@@ -10,7 +10,7 @@ pub struct MiniMap {
 
 impl Component for MiniMap {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let MiniMap { wh, length, range } = self;
+        let Self { wh, length, range } = self;
 
         let left_px = wh.width * range.start.min(range.end) as f32 / length as f32;
         let right_px = wh.width * range.end.max(range.start) as f32 / length as f32;
