@@ -17,7 +17,7 @@ pub struct MusicMetadata {
 impl MusicMetadata {
     pub fn thumbnail_url(&self) -> Url {
         let Self { id, .. } = self;
-        Url::parse(&format!("bundle:musics/{id}/{id}.png")).unwrap()
+        Url::parse(&format!("bundle:musics/{id}/{id}.jpg")).unwrap()
     }
 }
 
