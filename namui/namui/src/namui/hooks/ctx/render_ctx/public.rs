@@ -61,10 +61,13 @@ impl<'a> RenderCtx {
         let vec: Vec<RenderingTree> = std::mem::take(self.children.lock().unwrap().as_mut());
         let rendering_tree = crate::render(vec);
 
-        let bounding_box = rendering_tree
-            .bounding_box()
-            .map(|bounding_box| self.matrix.lock().unwrap().transform_rect(bounding_box));
-        *self.instance.debug_bounding_box.lock().unwrap() = bounding_box;
+        #[cfg(target_family = "wasm")]
+        {
+            let bounding_box = rendering_tree
+                .bounding_box()
+                .map(|bounding_box| self.matrix.lock().unwrap().transform_rect(bounding_box));
+            *self.instance.debug_bounding_box.lock().unwrap() = bounding_box;
+        }
 
         RenderDone { rendering_tree }
     }
