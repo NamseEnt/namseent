@@ -1,6 +1,9 @@
 use crate::app::music::MusicMetadata;
 use namui::prelude::*;
-use namui_prebuilt::table::hooks::*;
+use namui_prebuilt::{
+    table::hooks::*,
+    typography::{self, adjust_font_size},
+};
 
 #[component]
 pub struct MusicCarousel<'a> {
@@ -42,6 +45,42 @@ impl Component for MusicCarousel<'_> {
                 Xy::new(wh.width - music_card_center.width, side_y),
             )
         };
+
+        ctx.compose(|ctx| {
+            let text = ctx.ghost_add(
+                None,
+                typography::text_fit(
+                    adjust_font_size(96.px()).into_px(),
+                    "start",
+                    Color::WHITE,
+                    8.px(),
+                ),
+                GhostComposeOption {
+                    enable_event_handling: false,
+                },
+            );
+            let text_rect = text.bounding_box().unwrap();
+            let text_center = text_rect.center();
+
+            ctx.translate((wh.width / 2, wh.height))
+                .translate(text_center * -1)
+                .add(text)
+                .add(image(ImageParam {
+                    rect: Rect::Xywh {
+                        x: text_rect.width(),
+                        y: 0.px(),
+                        width: text_rect.height(),
+                        height: text_rect.height(),
+                    },
+                    source: ImageSource::Url {
+                        url: Url::parse("bundle:ui/enter.png").unwrap(),
+                    },
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint: None,
+                    },
+                }));
+        });
 
         ctx.compose(|ctx| {
             horizontal([
