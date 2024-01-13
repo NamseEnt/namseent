@@ -13,6 +13,7 @@ pub struct Paint {
     pub blend_mode: Option<BlendMode>,
     pub shader: Option<Shader>,
     pub mask_filter: Option<MaskFilter>,
+    pub image_filter: Option<ImageFilter>,
 }
 
 impl Paint {
@@ -60,6 +61,10 @@ impl Paint {
     }
     pub fn set_mask_filter(mut self, mask_filter: MaskFilter) -> Self {
         self.mask_filter = Some(mask_filter);
+        self
+    }
+    pub fn set_image_filter(mut self, image_filter: ImageFilter) -> Self {
+        self.image_filter = Some(image_filter);
         self
     }
 }
