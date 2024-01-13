@@ -48,7 +48,8 @@ impl SkCanvas for skia_safe::Canvas {
                 * Matrix3x3::from_scale(
                     dest_rect.width() / src_rect.width(),
                     dest_rect.height() / src_rect.height(),
-                ),
+                )
+                * Matrix3x3::from_translate(-src_rect.x().as_f32(), -src_rect.y().as_f32()),
         );
 
         SkCanvas::draw_path(self, &Path::new().add_rect(src_rect), &paint);
