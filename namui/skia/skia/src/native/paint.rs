@@ -34,6 +34,7 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
         blend_mode,
         ref shader,
         mask_filter,
+        ref image_filter,
     } = paint;
     if let Some(style) = paint_style {
         skia_paint.set_style(style.into());
@@ -76,6 +77,9 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
                 skia_safe::MaskFilter::blur(blur_style, sigma, false)
             }
         });
+    }
+    if let Some(image_filter) = image_filter {
+        skia_paint.set_image_filter(Some(image_filter.into()));
     }
 
     skia_paint
