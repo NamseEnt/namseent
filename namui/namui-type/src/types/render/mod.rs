@@ -1,6 +1,7 @@
 mod command;
 mod font;
 mod image;
+mod image_filter;
 mod mask_filter;
 mod paint;
 mod paragraph;
@@ -12,6 +13,7 @@ mod types;
 pub use command::*;
 pub use font::*;
 pub use image::*;
+pub use image_filter::*;
 pub use mask_filter::*;
 pub use paint::*;
 pub use paragraph::*;
