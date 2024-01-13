@@ -19,8 +19,10 @@ impl Component for App {
         let screen_wh: Wh<Px> = namui::screen::size().into_type();
         const SAMPLE_RATE: u32 = 44100;
         let (audio, set_audio) = ctx.state(|| None);
-        let (window_size, set_window_size) = ctx.state(|| SAMPLE_RATE);
-        let (zoom_range, set_zoom_range) = ctx.state(|| 0..*window_size as usize);
+        let (window_size, set_window_size) = ctx.state(|| SAMPLE_RATE as usize);
+        let (start_sample_index, set_start_sample_index) = ctx.state(|| 0_usize);
+
+        let range = *start_sample_index..(*start_sample_index + *window_size);
 
         ctx.effect("load raw audio", || {
             namui::spawn(async move {
@@ -34,6 +36,7 @@ impl Component for App {
 
                 println!("audio loaded: {:?}", raw_audio);
 
+                set_window_size.set(raw_audio.channels[0].len());
                 set_audio.set(Some(Arc::new(raw_audio)));
             });
         });
@@ -50,7 +53,7 @@ impl Component for App {
                     ctx.add(MiniMap {
                         wh,
                         length: audio_length,
-                        range: (*zoom_range).clone(),
+                        range: range.clone(),
                     });
                 }),
                 table::hooks::ratio(
@@ -60,7 +63,7 @@ impl Component for App {
                             ctx.add(Track {
                                 wh,
                                 audio: audio.clone(),
-                                range: (*zoom_range).clone(),
+                                range: range.clone(),
                             });
                         })
                     })),
@@ -71,17 +74,36 @@ impl Component for App {
                 simple_rect(screen_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT)
                     .attach_event(|event| {
                         if let Event::Wheel { event } = event {
-                            set_zoom_range.mutate({
-                                let window_size = *window_size;
-                                move |range| {
-                                    let delta = event.delta_xy.y / 120.0 * window_size as f32;
-                                    range.start = (range.start as f32 - delta).max(0.0) as usize;
-                                    range.end = (range.end as f32 - delta).clamp(
-                                        range.start as f32 + window_size as f32,
-                                        audio_length as f32,
-                                    ) as usize;
-                                }
-                            });
+                            if namui::keyboard::ctrl_press() {
+                                // zoom
+
+                                let zoom_delta = 1.0 + event.delta_xy.y / 10.0;
+                                let next_window_size = (zoom_delta * *window_size as f32) as usize;
+
+                                set_window_size.set(next_window_size);
+
+                                let cursor_x_ratio = event.local_xy().x / screen_wh.width;
+
+                                let cursor_sample_index = *start_sample_index as f32
+                                    + (*window_size as f32 * cursor_x_ratio);
+
+                                let next_start_sample_index = cursor_sample_index
+                                    - zoom_delta * (*window_size as f32 * cursor_x_ratio);
+
+                                set_start_sample_index.set(
+                                    next_start_sample_index
+                                        .clamp(0.0, audio_length as f32 - next_window_size as f32)
+                                        as usize,
+                                );
+                            } else {
+                                // move
+
+                                let delta = (event.delta_xy.y / 10.0) * *window_size as f32;
+                                set_start_sample_index.set(
+                                    ((*start_sample_index as f32 - delta) as usize)
+                                        .clamp(0, audio_length - *window_size),
+                                );
+                            }
                         }
                     }),
             );
