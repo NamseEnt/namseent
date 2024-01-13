@@ -8,8 +8,15 @@ pub struct Drummer {
 impl Component for Drummer {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh } = self;
+        let image_wh = Wh::new(wh.width, wh.width * 0.5);
+
         ctx.component(image(ImageParam {
-            rect: Rect::zero_wh(wh),
+            rect: Rect::Xywh {
+                x: 0.px(),
+                y: wh.height - image_wh.height,
+                width: image_wh.width,
+                height: image_wh.height,
+            },
             source: ImageSource::Url {
                 url: Url::parse("bundle:ui/drummer/drummer.png").unwrap(),
             },
@@ -18,6 +25,7 @@ impl Component for Drummer {
                 paint: None,
             },
         }));
+
         ctx.done()
     }
 }

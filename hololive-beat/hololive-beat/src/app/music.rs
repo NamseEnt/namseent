@@ -7,12 +7,13 @@ use namui::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MusicMetadata {
     pub id: String,
     pub title: String,
     pub artists: Vec<String>,
     pub groups: Vec<String>,
+    pub length: f64,
 }
 impl MusicMetadata {
     pub fn thumbnail_url(&self) -> Url {
