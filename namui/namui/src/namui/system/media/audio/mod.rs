@@ -4,12 +4,14 @@ mod audio_config;
 mod audio_context;
 mod audio_resampling;
 mod full_load_once_audio;
+mod load_raw_audio;
 
 pub(crate) use audio_buffer::*;
-pub(crate) use audio_config::*;
+pub use audio_config::*;
 pub(crate) use audio_context::*;
 pub(crate) use audio_resampling::*;
 pub use full_load_once_audio::*;
+pub use load_raw_audio::*;
 use std::fmt::Debug;
 
 pub(crate) trait AudioConsume: Debug + Send {

@@ -1,7 +1,7 @@
 //! Multi-media excluding image. Go away image!
 //! Video and Audio.
 
-mod audio;
+pub mod audio;
 mod core;
 mod media_context;
 mod media_handle;

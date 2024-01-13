@@ -46,7 +46,7 @@ pub(crate) fn run_loop<C: Component>(root_component: impl Send + Sync + 'static 
         tree_ctx.on_raw_event(event, &channel_rx);
 
         let elapsed = instant.elapsed();
-        if elapsed.as_millis() > 1 {
+        if elapsed.as_millis() > 5 {
             println!(
                 "Warning: Rendering took {}ms. Keep it short as possible.",
                 elapsed.as_millis()

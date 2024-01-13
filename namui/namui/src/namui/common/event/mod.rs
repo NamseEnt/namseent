@@ -131,7 +131,7 @@ pub enum MouseEventType {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct WheelEvent<'a> {
-    /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
+    /// NOTE: 1 wheel = 120. https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
     #[derivative(Debug = "ignore")]
     pub(crate) is_local_xy_in: Box<dyn 'a + Fn() -> bool>,
