@@ -65,7 +65,16 @@ impl Component for MusicSelectPage<'_> {
                 style: ImageStyle {
                     fit: ImageFit::Cover,
                     // TODO: Blur
-                    paint: None,
+                    paint: Some(
+                        Paint::new(Color::grayscale_alpha_f01(1.0, 0.5)).set_image_filter(
+                            ImageFilter::Blur {
+                                sigma_xy: Xy::new(4.0, 4.0),
+                                tile_mode: None,
+                                input: None,
+                                crop_rect: None,
+                            },
+                        ),
+                    ),
                 },
             }));
         });
