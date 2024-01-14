@@ -204,6 +204,7 @@ struct Hsl01 {
 pub enum PaintStyle {
     Fill,
     Stroke,
+    StrokeAndFill,
 }
 
 #[cfg(feature = "skia")]
@@ -212,6 +213,7 @@ impl From<PaintStyle> for skia_safe::PaintStyle {
         match paint_style {
             PaintStyle::Fill => skia_safe::PaintStyle::Fill,
             PaintStyle::Stroke => skia_safe::PaintStyle::Stroke,
+            PaintStyle::StrokeAndFill => skia_safe::PaintStyle::StrokeAndFill,
         }
     }
 }

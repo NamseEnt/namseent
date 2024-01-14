@@ -18,7 +18,7 @@ pub fn glow(
             font: font.clone(),
             x: xy.x,
             y: xy.y,
-            paint: paint.clone(),
+            paint: paint.clone().set_blend_mode(BlendMode::HardLight),
             align,
             baseline,
             max_width: None,
@@ -32,13 +32,11 @@ pub fn glow(
             font,
             x: xy.x,
             y: xy.y,
-            paint: {
-                paint
-                    .set_style(PaintStyle::Stroke)
-                    .set_stroke_width(glow_thick)
-                    .set_color(glow_color)
-                    .set_mask_filter(MaskFilter::Blur { blur })
-            },
+            paint: paint
+                .set_style(PaintStyle::StrokeAndFill)
+                .set_stroke_width(glow_thick)
+                .set_color(glow_color)
+                .set_mask_filter(MaskFilter::Blur { blur }),
             align,
             baseline,
             max_width: None,
