@@ -15,7 +15,7 @@ pub use bounding_box::*;
 #[cfg(target_family = "wasm")]
 pub use clipboard::ClipboardItem as _;
 pub use common::*;
-pub use futures::{join, try_join};
+pub use futures::{future::join_all, future::try_join_all, join, try_join};
 pub use hooks::*;
 pub use lazy_static::lazy_static;
 pub use namui_cfg::*;
