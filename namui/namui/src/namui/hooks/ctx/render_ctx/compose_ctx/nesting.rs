@@ -97,6 +97,24 @@ impl ComposeCtx {
             self.clippings.clone(),
         )
     }
+    pub fn scale(&mut self, scale_xy: Xy<f32>) -> Self {
+        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        self.add_lazy(LazyRenderingTree::Scale {
+            scale_xy,
+            lazy: lazy.clone(),
+        });
+
+        let matrix = self.matrix * Matrix3x3::from_scale(scale_xy.x, scale_xy.y);
+        ComposeCtx::new(
+            self.tree_ctx.clone(),
+            self.next_child_key_vec(),
+            matrix,
+            self.renderer.clone(),
+            lazy,
+            self.raw_event.clone(),
+            self.clippings.clone(),
+        )
+    }
     pub fn attach_event(&mut self, on_event: impl FnOnce(Event<'_>)) -> &mut Self {
         let Some(raw_event) = self.raw_event.as_ref() else {
             return self;

@@ -22,6 +22,10 @@ pub(crate) enum LazyRenderingTree {
         angle: Angle,
         lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
     },
+    Scale {
+        scale_xy: Xy<f32>,
+        lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
+    },
     Children {
         children: Vec<Arc<Mutex<Option<LazyRenderingTree>>>>,
     },
@@ -59,6 +63,10 @@ impl LazyRenderingTree {
             LazyRenderingTree::Rotate { angle, lazy } => {
                 let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
                 crate::rotate(angle, rendering_tree)
+            }
+            LazyRenderingTree::Scale { scale_xy, lazy } => {
+                let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
+                crate::scale(scale_xy.x, scale_xy.y, rendering_tree)
             }
             LazyRenderingTree::Children { children } => crate::render(
                 children
