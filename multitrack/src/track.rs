@@ -1,11 +1,11 @@
+use crate::PtrEqArc;
 use namui::{media::audio::RawAudio, prelude::*};
 use namui_prebuilt::simple_rect;
-use std::sync::Arc;
 
 #[namui::component]
 pub struct Track {
     pub wh: Wh<Px>,
-    pub audio: Arc<RawAudio>,
+    pub audio: PtrEqArc<RawAudio>,
     pub visual_range: std::ops::Range<usize>,
     pub selection_range: Option<std::ops::Range<usize>>,
 }
@@ -22,6 +22,7 @@ impl Component for Track {
         let (waveform_path, set_waveform_path) = ctx.state(Path::new);
         let wh = ctx.track_eq(&wh);
         let visual_range = ctx.track_eq(&visual_range);
+        let audio = ctx.track_eq(&audio);
 
         ctx.effect("calculate waveform", || {
             let mut path = namui::Path::new();
