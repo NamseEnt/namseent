@@ -7,7 +7,9 @@ pub(super) async fn init() -> InitResult {
     Ok(())
 }
 
-pub(crate) fn register_typeface(typeface_name: &str, bytes: &[u8]) {
+/// Supported font formats: TTF, WOFF2
+/// Not tested with WOFF and OTF
+pub fn register_typeface(typeface_name: &str, bytes: &[u8]) {
     crate::system::drawer::load_typeface(typeface_name, bytes);
     crate::system::skia::load_typeface(typeface_name, bytes);
 }

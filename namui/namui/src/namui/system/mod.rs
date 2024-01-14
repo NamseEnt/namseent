@@ -21,7 +21,7 @@ pub(crate) mod skia;
 #[cfg(target_family = "wasm")]
 pub(crate) mod text_input;
 pub mod time;
-pub(crate) mod typeface;
+pub mod typeface;
 #[cfg(target_family = "wasm")]
 pub mod web;
 
