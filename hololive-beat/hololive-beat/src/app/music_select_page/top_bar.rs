@@ -77,10 +77,10 @@ impl Component for TopBar<'_> {
                             TextAlign::Left,
                             TextBaseline::Middle,
                             Blur::Normal {
-                                sigma: Blur::convert_radius_to_sigma(12.0),
+                                sigma: Blur::convert_radius_to_sigma(4.0),
                             },
                             8.px(),
-                            Color::from_u8(255, 0, 255, 255),
+                            Color::from_u8(0x72, 0xB2, 0xFF, 255),
                         ));
 
                         ctx.add(typography::effect::glow(
@@ -91,10 +91,10 @@ impl Component for TopBar<'_> {
                             TextAlign::Left,
                             TextBaseline::Middle,
                             Blur::Normal {
-                                sigma: Blur::convert_radius_to_sigma(12.0),
+                                sigma: Blur::convert_radius_to_sigma(4.0),
                             },
                             8.px(),
-                            Color::from_u8(255, 184, 76, 255),
+                            Color::from_u8(0xFF, 0xCB, 0x72, 255),
                         ));
 
                         ctx.add(typography::effect::glow(
@@ -105,10 +105,10 @@ impl Component for TopBar<'_> {
                             TextAlign::Left,
                             TextBaseline::Middle,
                             Blur::Normal {
-                                sigma: Blur::convert_radius_to_sigma(12.0),
+                                sigma: Blur::convert_radius_to_sigma(4.0),
                             },
                             8.px(),
-                            Color::from_u8(40, 40, 255, 255),
+                            Color::from_u8(0xDC, 0x57, 0xDA, 255),
                         ));
                     }),
                     fixed(192.px(), |wh, ctx| {
