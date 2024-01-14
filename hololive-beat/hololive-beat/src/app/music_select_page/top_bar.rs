@@ -23,6 +23,19 @@ impl Component for TopBar<'_> {
 
         const PADDING: Px = px(8.0);
 
+        ctx.effect("load font", || {
+            namui::spawn(async move {
+                namui::typeface::register_typeface(
+                    "Fontspring-Demo-hemi_head_rg",
+                    &namui::file::bundle::read(
+                        "bundle:font/Demo-Hemi Head/Demo_Fonts/Fontspring-Demo-hemi_head_rg.otf",
+                    )
+                    .await
+                    .unwrap(),
+                );
+            });
+        });
+
         let (group, artist, title) = match music {
             Some(music) => (
                 music
@@ -41,31 +54,61 @@ impl Component for TopBar<'_> {
             ),
             None => (String::new(), String::new(), String::new()),
         };
+
         ctx.compose(|ctx| {
             padding(PADDING, |wh, ctx| {
                 horizontal([
-                    fixed(160.px(), |wh, ctx| {
-                        ctx.add(typography::text_fit(
-                            wh.height,
-                            group,
-                            Color::WHITE,
-                            PADDING,
-                        ));
-                    }),
                     ratio(1, |wh, ctx| {
-                        ctx.add(typography::text_fit(
-                            wh.height,
-                            artist,
-                            Color::WHITE,
-                            PADDING,
-                        ));
-                    }),
-                    ratio(3, |wh, ctx| {
-                        ctx.add(typography::text_fit(
-                            wh.height,
+                        let font = Font {
+                            size: 80.int_px(),
+                            name: "Fontspring-Demo-hemi_head_rg".to_string(),
+                        };
+                        let paint = Paint::new(Color::WHITE);
+                        let group_glyph = namui::font::group_glyph(&font, &paint);
+
+                        let title_width = group_glyph.width(&title);
+                        let artist_width = group_glyph.width(&artist);
+
+                        ctx.add(typography::effect::glow(
                             title,
-                            Color::WHITE,
-                            PADDING,
+                            font.clone(),
+                            Xy::new(0.px(), wh.height / 2.0),
+                            paint.clone(),
+                            TextAlign::Left,
+                            TextBaseline::Middle,
+                            Blur::Normal {
+                                sigma: Blur::convert_radius_to_sigma(12.0),
+                            },
+                            8.px(),
+                            Color::from_u8(255, 0, 255, 255),
+                        ));
+
+                        ctx.add(typography::effect::glow(
+                            artist,
+                            font.clone(),
+                            Xy::new(title_width + PADDING * 4, wh.height / 2.0),
+                            paint.clone(),
+                            TextAlign::Left,
+                            TextBaseline::Middle,
+                            Blur::Normal {
+                                sigma: Blur::convert_radius_to_sigma(12.0),
+                            },
+                            8.px(),
+                            Color::from_u8(255, 184, 76, 255),
+                        ));
+
+                        ctx.add(typography::effect::glow(
+                            group,
+                            font.clone(),
+                            Xy::new(title_width + artist_width + PADDING * 8, wh.height / 2.0),
+                            paint.clone(),
+                            TextAlign::Left,
+                            TextBaseline::Middle,
+                            Blur::Normal {
+                                sigma: Blur::convert_radius_to_sigma(12.0),
+                            },
+                            8.px(),
+                            Color::from_u8(40, 40, 255, 255),
                         ));
                     }),
                     fixed(192.px(), |wh, ctx| {
