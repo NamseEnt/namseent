@@ -162,6 +162,9 @@ impl Component for SettingButton {
                 if !matches!(event.button, Some(MouseButton::Left)) {
                     return;
                 }
+                if !event.is_local_xy_in() {
+                    return;
+                }
                 open_setting_overlay();
             }),
         );
