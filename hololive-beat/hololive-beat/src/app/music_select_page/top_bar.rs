@@ -23,6 +23,8 @@ impl Component for TopBar<'_> {
 
         const PADDING: Px = px(8.0);
 
+        let (rotation_start_time, set_rotation_start_time) = ctx.state(namui::system::time::now);
+
         ctx.effect("load font", || {
             namui::spawn(async move {
                 namui::typeface::register_typeface(
@@ -34,6 +36,12 @@ impl Component for TopBar<'_> {
                     .unwrap(),
                 );
             });
+        });
+
+        let music_id_sig = ctx.track_eq(&music.as_ref().map(|music| music.id.clone()));
+        ctx.effect("Reset text rotation start time ", || {
+            music_id_sig.on_effect();
+            set_rotation_start_time.set(namui::system::time::now());
         });
 
         let (group, artist, title) = match music {
@@ -65,51 +73,74 @@ impl Component for TopBar<'_> {
                         };
                         let paint = Paint::new(Color::WHITE);
                         let group_glyph = namui::font::group_glyph(&font, &paint);
+                        let dt = namui::system::time::now() - *rotation_start_time;
+                        let speed = Per::new((-100).px(), 1.sec());
 
-                        let title_width = group_glyph.width(&title);
-                        let artist_width = group_glyph.width(&artist);
+                        #[derive(Clone, Copy)]
+                        struct Item<'a> {
+                            text: &'a str,
+                            glow_color: Color,
+                            width: Px,
+                        }
 
-                        ctx.add(typography::effect::glow(
-                            title,
-                            font.clone(),
-                            Xy::new(0.px(), wh.height / 2.0),
-                            paint.clone(),
-                            TextAlign::Left,
-                            TextBaseline::Middle,
-                            Blur::Normal {
-                                sigma: Blur::convert_radius_to_sigma(4.0),
+                        const TITLE_GLOW_COLOR: Color = Color::from_u8(0x72, 0xB2, 0xFF, 255);
+                        const ARTIST_GLOW_COLOR: Color = Color::from_u8(0xFF, 0xCB, 0x72, 255);
+                        const GROUP_GLOW_COLOR: Color = Color::from_u8(0xDC, 0x57, 0xDA, 255);
+                        const TITLE_PADDING: Px = px(32.0);
+
+                        let items = [
+                            Item {
+                                text: &title,
+                                glow_color: TITLE_GLOW_COLOR,
+                                width: group_glyph.width(&title),
                             },
-                            8.px(),
-                            Color::from_u8(0x72, 0xB2, 0xFF, 255),
-                        ));
-
-                        ctx.add(typography::effect::glow(
-                            artist,
-                            font.clone(),
-                            Xy::new(title_width + PADDING * 4, wh.height / 2.0),
-                            paint.clone(),
-                            TextAlign::Left,
-                            TextBaseline::Middle,
-                            Blur::Normal {
-                                sigma: Blur::convert_radius_to_sigma(4.0),
+                            Item {
+                                text: &artist,
+                                glow_color: ARTIST_GLOW_COLOR,
+                                width: group_glyph.width(&artist),
                             },
-                            8.px(),
-                            Color::from_u8(0xFF, 0xCB, 0x72, 255),
-                        ));
-
-                        ctx.add(typography::effect::glow(
-                            group,
-                            font.clone(),
-                            Xy::new(title_width + artist_width + PADDING * 8, wh.height / 2.0),
-                            paint.clone(),
-                            TextAlign::Left,
-                            TextBaseline::Middle,
-                            Blur::Normal {
-                                sigma: Blur::convert_radius_to_sigma(4.0),
+                            Item {
+                                text: &group,
+                                glow_color: GROUP_GLOW_COLOR,
+                                width: group_glyph.width(&group),
                             },
-                            8.px(),
-                            Color::from_u8(0xDC, 0x57, 0xDA, 255),
-                        ));
+                        ]
+                        .repeat(2);
+
+                        let total_width_including_padding =
+                            items.iter().map(|item| item.width).sum::<Px>()
+                                + TITLE_PADDING * items.len();
+
+                        let mut left = (speed * dt).floor();
+
+                        for Item {
+                            text,
+                            glow_color,
+                            width,
+                        } in items
+                        {
+                            let rem_euclid_right = (left + width + TITLE_PADDING)
+                                .as_f32()
+                                .rem_euclid(total_width_including_padding.as_f32())
+                                .px();
+                            let left_from_right = rem_euclid_right - (width + TITLE_PADDING);
+
+                            ctx.add(typography::effect::glow(
+                                text,
+                                font.clone(),
+                                Xy::new(left_from_right, wh.height / 2.0),
+                                paint.clone(),
+                                TextAlign::Left,
+                                TextBaseline::Middle,
+                                Blur::Normal {
+                                    sigma: Blur::convert_radius_to_sigma(4.0),
+                                },
+                                8.px(),
+                                glow_color,
+                            ));
+
+                            left += width + TITLE_PADDING;
+                        }
                     }),
                     fixed(192.px(), |wh, ctx| {
                         ctx.add(SpeedDropdown {
