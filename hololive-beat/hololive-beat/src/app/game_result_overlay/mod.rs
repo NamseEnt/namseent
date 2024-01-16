@@ -6,7 +6,7 @@ pub struct GameResultOverlay {
 }
 impl Component for GameResultOverlay {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self { wh } = self;
+        let Self { wh: _ } = self;
 
         // TODO
 
