@@ -4,6 +4,8 @@ use crate::app::{
 };
 use namui::prelude::*;
 
+use super::judge_indicator::indicate_judge;
+
 #[component]
 pub struct NoteJudge<'a> {
     pub notes: &'a Vec<Note>,
@@ -76,6 +78,7 @@ impl Component for NoteJudge<'_> {
                     for index in passed_note_indexes {
                         judge_context.judged_note_index.insert(index);
                     }
+                    indicate_judge(super::judge_indicator::Judge::Miss);
                 });
             };
 
@@ -125,6 +128,9 @@ impl Component for NoteJudge<'_> {
                                 judge_context.max_combo.max(judge_context.combo);
                             judge_context.judged_note_index.insert(index);
                             judge_context.last_judged_note_index = Some(index);
+                            indicate_judge(super::judge_indicator::Judge::Perfect {
+                                combo: judge_context.combo,
+                            });
                         });
                         break;
                     }
@@ -143,6 +149,9 @@ impl Component for NoteJudge<'_> {
                         judge_context.max_combo = judge_context.max_combo.max(judge_context.combo);
                         judge_context.judged_note_index.insert(index);
                         judge_context.last_judged_note_index = Some(index);
+                        indicate_judge(super::judge_indicator::Judge::Good {
+                            combo: judge_context.combo,
+                        });
                     });
                     break;
                 }
