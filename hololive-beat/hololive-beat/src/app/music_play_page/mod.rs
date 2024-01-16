@@ -1,4 +1,5 @@
 mod game_ender;
+mod judge_indicator;
 mod note_judge;
 mod note_plotter;
 mod video_player;
@@ -9,7 +10,8 @@ use super::play_state::{LoadedData, PlayState, PLAY_STATE_ATOM};
 use crate::app::{
     drummer::Drummer,
     music_play_page::{
-        note_judge::NoteJudge, note_plotter::NotePlotter, video_player::VideoPlayer,
+        judge_indicator::JudgeIndicator, note_judge::NoteJudge, note_plotter::NotePlotter,
+        video_player::VideoPlayer,
     },
     play_state::pause_game,
     setting_overlay::open_setting_overlay,
@@ -122,9 +124,21 @@ impl Component for Loaded<'_> {
                 width: wh.width - DRUMMER_WIDTH,
                 height: NOTE_PLOTTER_HEIGHT,
             };
+            let judge_indicator_wh = Wh {
+                width: NOTE_PLOTTER_HEIGHT * 2,
+                height: NOTE_PLOTTER_HEIGHT,
+            };
             ctx.translate((drummer_wh.width, note_plotter_y))
                 .scale(Xy::new(-1.0, 1.0))
                 .add(Drummer { wh: drummer_wh });
+
+            ctx.translate((
+                DRUMMER_WIDTH + note_plotter_wh.width - judge_indicator_wh.width,
+                note_plotter_y,
+            ))
+            .add(JudgeIndicator {
+                wh: judge_indicator_wh,
+            });
 
             ctx.translate((DRUMMER_WIDTH, note_plotter_y))
                 .add(NotePlotter {
