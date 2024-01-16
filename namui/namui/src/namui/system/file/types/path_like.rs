@@ -20,6 +20,16 @@ impl PathLike for &str {
         PathBuf::from(self)
     }
 }
+impl PathLike for &String {
+    fn path(&self) -> PathBuf {
+        PathBuf::from(self)
+    }
+}
+impl PathLike for String {
+    fn path(&self) -> PathBuf {
+        PathBuf::from(self)
+    }
+}
 impl PathLike for &Url {
     fn path(&self) -> PathBuf {
         use percent_encoding::percent_decode_str;
