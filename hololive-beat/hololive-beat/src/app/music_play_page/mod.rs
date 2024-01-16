@@ -58,8 +58,8 @@ impl Component for MusicPlayPage {
             }
         });
 
-        ctx.component(RenderingTree::Empty.attach_event(|event| {
-            let Event::KeyDown { event } = event else {
+        ctx.on_raw_event(|event| {
+            let RawEvent::KeyDown { event } = event else {
                 return;
             };
             if !matches!(event.code, Code::Escape) {
@@ -67,7 +67,7 @@ impl Component for MusicPlayPage {
             }
             pause_game(now);
             open_setting_overlay();
-        }));
+        });
 
         ctx.component(GameEnder { played_time });
 
