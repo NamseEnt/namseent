@@ -71,6 +71,11 @@ impl Component for NotePlotter<'_> {
         });
 
         ctx.compose(|ctx| {
+            let mut ctx = ctx.clip(
+                Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
+                ClipOp::Intersect,
+            );
+
             for note in notes {
                 let note_x = (px_per_time * (note.start_time - played_time)) + timing_zero_x;
                 if note_x < -wh.width {
