@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../music_metadata_schema.json
+
+- id: you_re_mine
+  title: You're Mine
+  artists:
+    - Vestia Zeta
+  groups:
+    - ID
+    - HoloH3RO
+  length: 228
