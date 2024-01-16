@@ -38,11 +38,12 @@ impl Component for MusicCarousel<'_> {
         };
         let (prev_xy, selected_xy, next_xy) = {
             let music_card_center = music_card_wh / 2.0;
+            let center_x = wh.width / 2;
             let side_y = wh.height - music_card_center.height;
             (
-                Xy::new(music_card_center.width, side_y),
-                Xy::new(wh.width / 2, music_card_center.height),
-                Xy::new(wh.width - music_card_center.width, side_y),
+                Xy::new(center_x - (music_card_center.width * 1.5), side_y),
+                Xy::new(center_x, music_card_center.height),
+                Xy::new(center_x + (music_card_center.width * 1.5), side_y),
             )
         };
 
@@ -159,16 +160,15 @@ impl Component for MusicCard<'_> {
                     }));
                 }
             });
-            ctx.add(rect(RectParam {
-                rect: Rect::zero_wh(wh),
-                style: RectStyle {
-                    stroke: None,
-                    fill: Some(RectFill {
-                        color: Color::BLACK,
-                    }),
-                    round: None,
-                },
-            }));
+            ctx.add(path(
+                Path::new().add_rect(Rect::zero_wh(wh)),
+                Paint::new(Color::BLACK)
+                    .set_style(PaintStyle::Fill)
+                    .set_mask_filter(MaskFilter::Blur {
+                        blur: Blur::Outer { sigma: 8.0 },
+                    })
+                    .set_blend_mode(BlendMode::Multiply),
+            ));
         });
 
         ctx.done()
