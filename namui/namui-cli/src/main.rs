@@ -56,6 +56,22 @@ async fn main() -> Result<()> {
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
             procedures::build(target, manifest_path, arch.into()).await?;
         }
+        Commands::Clippy {
+            target: option_target,
+            manifest_path: option_manifest_path,
+        } => {
+            let target = option_target.as_ref().unwrap_or(&current_target);
+            let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
+            procedures::clippy(target, manifest_path).await?;
+        }
+        Commands::Check {
+            target: option_target,
+            manifest_path: option_manifest_path,
+        } => {
+            let target = option_target.as_ref().unwrap_or(&current_target);
+            let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
+            procedures::check(target, manifest_path).await?;
+        }
     };
 
     Ok(())
