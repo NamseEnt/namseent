@@ -25,6 +25,7 @@ async fn real_main() -> Result<()> {
             port_mappings,
             docker_login_script,
             updated_at,
+            env,
         }) = container_config::get_container_config().await?
         else {
             println!("No container config found for group {}.", *GROUP_NAME);
@@ -49,6 +50,7 @@ async fn real_main() -> Result<()> {
             .update_container(OioiContainer {
                 image_uri,
                 port_mappings,
+                env,
             })
             .await?;
 
