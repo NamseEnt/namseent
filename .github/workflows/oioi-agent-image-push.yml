@@ -181,3 +181,4 @@ jobs:
         with:
           token: ${{ secrets.NPM_TOKEN }}
           package: oioi/cdk
+          dry-run: ${{ github.ref != 'refs/heads/master' }}
