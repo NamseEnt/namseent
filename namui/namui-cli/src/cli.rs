@@ -39,6 +39,18 @@ pub enum Commands {
         #[arg(value_enum)]
         printable_object: PrintableObject,
     },
+    Clippy {
+        #[arg(value_enum)]
+        target: Option<Target>,
+        #[arg(short, long, value_hint = ValueHint::FilePath)]
+        manifest_path: Option<PathBuf>,
+    },
+    Check {
+        #[arg(value_enum)]
+        target: Option<Target>,
+        #[arg(short, long, value_hint = ValueHint::FilePath)]
+        manifest_path: Option<PathBuf>,
+    },
 }
 
 #[allow(clippy::enum_variant_names)]
