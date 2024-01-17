@@ -1,9 +1,7 @@
 use namui::prelude::*;
 
-pub async fn main() {
-    let namui_context = namui::init().await;
-
-    namui::start(namui_context, || TextInputExample::new()).await;
+pub fn main() {
+    namui::start(|| TextInputExample::new())
 }
 
 #[namui::component]

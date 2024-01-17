@@ -1,0 +1,72 @@
+name: build-ffmpeg-x86_64-pc-windows-msvc
+on:
+  push:
+    branches:
+      - ffmpeg-build-*
+
+concurrency:
+  group: ${{ github.ref }}-build-ffmpeg-x86_64-pc-windows-msvc
+  cancel-in-progress: true
+
+jobs:
+  build-ffmpeg-x86_64-pc-windows-msvc:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            yasm
+            nasm
+          path-type: inherit
+      - uses: actions/checkout@v3
+        with:
+          repository: FFmpeg/FFmpeg
+          ref: release/6.1
+
+      - uses: actions/cache@v3
+        with:
+          path: ./
+          key: ffmpeg-6.1
+
+      - run: |
+          mv /usr/bin/link.exe /usr/bin/link.exe.bak
+
+          pacman -S --noconfirm --needed \
+            yasm \
+            nasm \
+            make
+
+          which link.exe
+          which cl.exe
+
+          export CC=cl
+
+          ./configure \
+            --toolchain=msvc \
+            --arch=x86_64 \
+            --disable-programs \
+            --enable-static \
+            --disable-shared \
+            --prefix=output \
+            --enable-asm \
+            --enable-x86asm \
+            --disable-mediafoundation \
+            --disable-avdevice \
+            --disable-logging
+
+          make -j$(nproc)
+          make install
+
+          ls -R output
+
+          tar -czf ffmpeg-x86_64-pc-windows-msvc.tar.gz output
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-x86_64-pc-windows-msvc
+          path: ./ffmpeg-x86_64-pc-windows-msvc.tar.gz

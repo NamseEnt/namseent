@@ -1,9 +1,7 @@
 use namui::prelude::*;
 
-pub async fn main() {
-    let namui_context = namui::init().await;
-
-    namui::start(namui_context, &mut TabToNextTextInputExample::new(), &()).await
+pub fn main() {
+    namui::start(&mut TabToNextTextInputExample::new(), &()).await
 }
 
 struct TabToNextTextInputExample {

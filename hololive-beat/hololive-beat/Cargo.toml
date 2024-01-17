@@ -1,0 +1,22 @@
+[package]
+name = "hololive-beat"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.namui]
+targets = ["x86_64-pc-windows-msvc"]
+
+[dependencies]
+futures = "0.3.29"
+namui = { path = "../../namui/namui" }
+namui-prebuilt = { path = "../../namui/namui-prebuilt" }
+serde = { version = "1.0.195", features = ["derive"] }
+serde_yaml = "0.9.30"
+
+[profile.release]
+lto = true
+opt-level = 3
+
+[profile.dev]
+lto = true
+opt-level = 3

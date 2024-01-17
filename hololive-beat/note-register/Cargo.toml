@@ -1,0 +1,26 @@
+[package]
+name = "note-register"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata]
+namui = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+futures = "0.3.29"
+namui = { path = "../../namui/namui" }
+namui-prebuilt = { path = "../../namui/namui-prebuilt" }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.13"
+
+[profile.release]
+lto = true
+opt-level = 3
+
+[profile.dev]
+lto = true
+opt-level = 3

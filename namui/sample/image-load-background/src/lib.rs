@@ -1,26 +1,19 @@
 use namui::prelude::*;
 
-pub async fn main() {
-    let namui_context = namui::init().await;
-
-    namui::start(namui_context, App::new).await
+pub fn main() {
+    namui::start(|| App)
 }
 
-#[component]
-struct App {}
-
-impl App {
-    fn new() -> Self {
-        Self {}
-    }
-}
+#[namui::component]
+struct App;
 
 impl Component for App {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let size = namui::screen::size();
 
-        let jpg_length = 14;
-        let png_length = 43;
+        // let jpg_length = 14;
+        let jpg_length = 1;
+        let png_length = 10;
         let jpgs = (0..jpg_length)
             .map(|index| Url::parse(&format!("bundle:resources/{index}.jpg")).unwrap());
         let pngs = (0..png_length)
