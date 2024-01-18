@@ -42,6 +42,8 @@ pub(crate) struct ContainerConfig {
     pub docker_login_script: String,
     #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<chrono::offset::Utc>,
+    #[serde(rename = "env")]
+    pub env: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, serde::Deserialize, PartialEq)]

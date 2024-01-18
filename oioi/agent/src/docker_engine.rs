@@ -73,6 +73,7 @@ impl DockerEngine {
         OioiContainer {
             image_uri,
             port_mappings,
+            env,
         }: OioiContainer,
     ) -> Result<()> {
         // pull image to get most recent remote image digest
@@ -154,6 +155,7 @@ impl DockerEngine {
                         )),
                         ..Default::default()
                     }),
+                    env: Some(env.into_iter().map(|(k, v)| format!("{k}={v}")).collect()),
                     ..Default::default()
                 },
             )
@@ -195,6 +197,7 @@ impl DockerEngine {
 pub(crate) struct OioiContainer {
     pub(crate) image_uri: String,
     pub(crate) port_mappings: Vec<PortMapping>,
+    pub(crate) env: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, PartialEq)]

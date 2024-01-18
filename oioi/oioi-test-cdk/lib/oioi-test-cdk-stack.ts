@@ -11,7 +11,6 @@ export class OioiTestCdkStack extends cdk.Stack {
             file: "sample.Dockerfile",
             platform: cdk.aws_ecr_assets.Platform.LINUX_ARM64,
             outputs: ["type=docker"],
-            
         });
 
         const { vpc, autoScalingGroup, alb } = new oioi.Oioi(this, "Oioi", {
@@ -24,6 +23,9 @@ export class OioiTestCdkStack extends cdk.Stack {
                     protocol: "tcp",
                 },
             ],
+            env: {
+                OUTPUT: "Hello, oioi!",
+            },
         });
 
         const albTargetGroup =

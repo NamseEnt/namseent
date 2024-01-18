@@ -15,6 +15,7 @@ export interface OioiProps {
      * @default cdk.aws_logs.RetentionDays.ONE_WEEK
      * */
     logRetention?: cdk.aws_logs.RetentionDays;
+    env?: Record<string, string>;
 }
 
 export class Oioi extends Construct {
@@ -47,8 +48,10 @@ export class Oioi extends Construct {
                 },
             );
 
-        const logRemovalPolicy = props.logRemovalPolicy ?? cdk.RemovalPolicy.DESTROY;
-        const logRetention = props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK;
+        const logRemovalPolicy =
+            props.logRemovalPolicy ?? cdk.RemovalPolicy.DESTROY;
+        const logRetention =
+            props.logRetention ?? cdk.aws_logs.RetentionDays.ONE_WEEK;
 
         const systemMessagesLogGroup = new cdk.aws_logs.LogGroup(
             this,
@@ -97,6 +100,7 @@ export class Oioi extends Construct {
                     portMappings: props.portMappings,
                     dockerLoginScript,
                     updatedAt: new Date().toISOString(),
+                    env: props.env,
                 }),
             },
         );
