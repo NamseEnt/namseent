@@ -183,3 +183,9 @@ jobs:
           fi
 
           aws cloudformation delete-stack --stack-name $STACK_NAME
+
+      - uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          package: oioi/cdk
+          dry-run: ${{ github.ref != 'refs/heads/master' }}
