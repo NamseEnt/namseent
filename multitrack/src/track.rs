@@ -27,6 +27,7 @@ impl Component for Track {
         ctx.effect("calculate waveform", || {
             let mut path = namui::Path::new();
             let step = (visual_range.len() as f32 / wh.width.as_f32()).floor() as usize;
+            // TODO: Handle when step < 0.
             for (channel_index, steps) in audio
                 .channels
                 .iter()
@@ -76,9 +77,11 @@ impl Component for Track {
             let right_sample_index = selection_range.end.min(visual_range.end);
 
             let left_x = wh.width
-                * ((left_sample_index - visual_range.start) as f32 / visual_range.len() as f32);
+                * ((left_sample_index.saturating_sub(visual_range.start)) as f32
+                    / visual_range.len() as f32);
             let width_px = (wh.width
-                * ((right_sample_index - left_sample_index) as f32 / visual_range.len() as f32))
+                * ((right_sample_index.saturating_sub(left_sample_index)) as f32
+                    / visual_range.len() as f32))
                 .min(wh.width);
 
             namui::translate(

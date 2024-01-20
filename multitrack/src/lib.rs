@@ -34,10 +34,11 @@ impl Component for App {
         const SAMPLE_RATE: u32 = 44100;
         let (tracks, set_tracks) = ctx.state::<Option<Vec<PtrEqArc<RawAudio>>>>(|| None);
         let (window_size, set_window_size) = ctx.state(|| SAMPLE_RATE as usize);
-        let (start_sample_index, set_start_sample_index) = ctx.state(|| 0_usize);
+        let (screen_left_sample_index, set_screen_left_sample_index) = ctx.state(|| 0_usize);
         let (action_state, set_action_state) = ctx.state(|| ActionState::None);
+        let (cursor, set_cursor) = ctx.state(|| 0_usize);
 
-        let range = *start_sample_index..(*start_sample_index + *window_size);
+        let range = *screen_left_sample_index..(*screen_left_sample_index + *window_size);
 
         ctx.effect("load raw audio", || {
             namui::spawn(async move {
@@ -62,6 +63,24 @@ impl Component for App {
                 set_window_size.set(tracks[0].channels[0].len());
                 set_tracks.set(Some(tracks));
             });
+        });
+
+        ctx.compose(|ctx| {
+            if *cursor < *screen_left_sample_index
+                || *screen_left_sample_index + *window_size < *cursor
+            {
+                return;
+            }
+            let cursor_screen_ratio =
+                (*cursor - *screen_left_sample_index) as f32 / *window_size as f32;
+            let cursor_px = screen_wh.width * cursor_screen_ratio;
+
+            ctx.translate(Xy::new(cursor_px, 0.px())).add(simple_rect(
+                Wh::new(1.px(), screen_wh.height),
+                Color::BLACK,
+                0.px(),
+                Color::BLACK,
+            ));
         });
 
         ctx.compose(|ctx| {
@@ -100,7 +119,7 @@ impl Component for App {
                 let cursor_x_ratio = x / screen_wh.width;
 
                 let cursor_sample_index =
-                    *start_sample_index as f32 + (*window_size as f32 * cursor_x_ratio);
+                    *screen_left_sample_index as f32 + (*window_size as f32 * cursor_x_ratio);
 
                 cursor_sample_index.clamp(0.0, audio_length as f32) as usize
             };
@@ -223,29 +242,30 @@ impl Component for App {
                                     let next_window_size =
                                         (zoom_delta * *window_size as f32) as usize;
 
-                                    set_window_size.set(next_window_size);
+                                    set_window_size.set(next_window_size.clamp(1, audio_length));
 
                                     let cursor_x_ratio = event.local_xy().x / screen_wh.width;
 
-                                    let cursor_sample_index = *start_sample_index as f32
+                                    let cursor_sample_index = *screen_left_sample_index as f32
                                         + (*window_size as f32 * cursor_x_ratio);
 
                                     let next_start_sample_index = cursor_sample_index
                                         - zoom_delta * (*window_size as f32 * cursor_x_ratio);
 
-                                    set_start_sample_index.set(
+                                    set_screen_left_sample_index.set(
                                         next_start_sample_index.clamp(
                                             0.0,
-                                            audio_length as f32 - next_window_size as f32,
+                                            (audio_length as f32 - next_window_size as f32)
+                                                .max(0.0),
                                         ) as usize,
                                     );
                                 } else {
                                     // move
 
                                     let delta = (event.delta_xy.y / 10.0) * *window_size as f32;
-                                    set_start_sample_index.set(
-                                        ((*start_sample_index as f32 - delta) as usize)
-                                            .clamp(0, audio_length - *window_size),
+                                    set_screen_left_sample_index.set(
+                                        ((*screen_left_sample_index as f32 - delta) as usize)
+                                            .clamp(0, audio_length.saturating_sub(*window_size)),
                                     );
                                 }
                             }
@@ -277,6 +297,9 @@ impl Component for App {
                                             ..cursor_sample_index.max(start_sample_index),
                                     });
                                 }
+                            }
+                            Event::MouseDown { event } => {
+                                set_cursor.set(sample_index_on_x(event.local_xy().x));
                             }
                             _ => (),
                         }
