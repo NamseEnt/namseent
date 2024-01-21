@@ -31,6 +31,18 @@ enum ActionState {
     },
 }
 
+#[derive(Debug)]
+enum PlaybackState {
+    None {
+        cursor: usize,
+    },
+    Playing {
+        start_at: namui::Instant,
+        cursor_on_start: usize,
+        stoppable_audio: StoppableAudio,
+    },
+}
+
 impl Component for App {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let screen_wh: Wh<Px> = namui::screen::size().into_type();
@@ -39,9 +51,7 @@ impl Component for App {
         let (window_size, set_window_size) = ctx.state(|| SAMPLE_RATE as usize);
         let (screen_left_sample_index, set_screen_left_sample_index) = ctx.state(|| 0_usize);
         let (action_state, set_action_state) = ctx.state(|| ActionState::None);
-        let (cursor, set_cursor) = ctx.state(|| 0_usize);
-        let (playing_stoppable_audio, set_playing_stoppable_audio) =
-            ctx.state::<Option<StoppableAudio>>(|| None);
+        let (playback_state, set_playback_state) = ctx.state(|| PlaybackState::None { cursor: 0 });
 
         let range = *screen_left_sample_index..(*screen_left_sample_index + *window_size);
 
@@ -71,13 +81,24 @@ impl Component for App {
         });
 
         ctx.compose(|ctx| {
-            if *cursor < *screen_left_sample_index
-                || *screen_left_sample_index + *window_size < *cursor
+            let cursor = match *playback_state.as_ref() {
+                PlaybackState::None { cursor } => cursor,
+                PlaybackState::Playing {
+                    start_at,
+                    cursor_on_start,
+                    ..
+                } => {
+                    let elapsed = namui::time::now() - start_at;
+                    cursor_on_start + (elapsed.as_secs_f32() * SAMPLE_RATE as f32) as usize
+                }
+            };
+            if cursor < *screen_left_sample_index
+                || *screen_left_sample_index + *window_size < cursor
             {
                 return;
             }
             let cursor_screen_ratio =
-                (*cursor - *screen_left_sample_index) as f32 / *window_size as f32;
+                (cursor - *screen_left_sample_index) as f32 / *window_size as f32;
             let cursor_px = screen_wh.width * cursor_screen_ratio;
 
             ctx.translate(Xy::new(cursor_px, 0.px())).add(simple_rect(
@@ -91,6 +112,24 @@ impl Component for App {
         ctx.compose(|ctx| {
             let Some(tracks) = tracks.as_ref() else {
                 return;
+            };
+
+            let play_tracks = |start_cursor: usize| {
+                let audio_context = namui::media::default_audio_context();
+
+                let audios = tracks
+                    .iter()
+                    .map(|track| {
+                        track.slice(
+                            Duration::from_secs_f32(start_cursor as f32 / SAMPLE_RATE as f32)
+                                ..Duration::from_secs_f32(
+                                    track.sample_count() as f32 / SAMPLE_RATE as f32,
+                                ),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                let mixed = MixedAudio::new(audios);
+                StoppableAudio::load(&audio_context, mixed).unwrap()
             };
 
             let move_and_mix =
@@ -256,7 +295,7 @@ impl Component for App {
                                 if namui::keyboard::ctrl_press() {
                                     // zoom
 
-                                    let zoom_delta = 1.0 + event.delta_xy.y / 10.0;
+                                    let zoom_delta = 1.0 - event.delta_xy.y / 10.0;
                                     let next_window_size =
                                         (zoom_delta * *window_size as f32) as usize;
 
@@ -317,36 +356,46 @@ impl Component for App {
                                 }
                             }
                             Event::MouseDown { event } => {
-                                set_cursor.set(sample_index_on_x(event.local_xy().x));
+                                let cursor_on_mouse = sample_index_on_x(event.local_xy().x);
+
+                                match playback_state.as_ref() {
+                                    PlaybackState::None { .. } => {
+                                        set_playback_state.set(PlaybackState::None {
+                                            cursor: cursor_on_mouse,
+                                        })
+                                    }
+                                    PlaybackState::Playing {
+                                        stoppable_audio, ..
+                                    } => {
+                                        stoppable_audio.stop();
+                                        set_playback_state.set(PlaybackState::Playing {
+                                            start_at: namui::time::now(),
+                                            cursor_on_start: cursor_on_mouse,
+                                            stoppable_audio: play_tracks(cursor_on_mouse),
+                                        })
+                                    }
+                                }
                             }
                             Event::KeyUp { event } => {
                                 if event.code == Code::Space {
-                                    if let Some(playing_stoppable_audio) =
-                                        playing_stoppable_audio.as_ref()
-                                    {
-                                        playing_stoppable_audio.stop();
-                                        set_playing_stoppable_audio.set(None);
-                                    } else {
-                                        let audio_context = namui::media::default_audio_context();
-
-                                        let audios = tracks
-                                            .iter()
-                                            .map(|track| {
-                                                track.slice(
-                                                    Duration::from_secs_f32(
-                                                        *cursor as f32 / SAMPLE_RATE as f32,
-                                                    )
-                                                        ..Duration::from_secs_f32(
-                                                            track.sample_count() as f32
-                                                                / SAMPLE_RATE as f32,
-                                                        ),
-                                                )
+                                    match playback_state.as_ref() {
+                                        &PlaybackState::None { cursor } => {
+                                            set_playback_state.set(PlaybackState::Playing {
+                                                start_at: namui::time::now(),
+                                                cursor_on_start: cursor,
+                                                stoppable_audio: play_tracks(cursor),
                                             })
-                                            .collect::<Vec<_>>();
-                                        let mixed = MixedAudio::new(audios);
-                                        let stoppable =
-                                            StoppableAudio::load(&audio_context, mixed).unwrap();
-                                        set_playing_stoppable_audio.set(Some(stoppable));
+                                        }
+                                        PlaybackState::Playing {
+                                            cursor_on_start,
+                                            stoppable_audio,
+                                            ..
+                                        } => {
+                                            stoppable_audio.stop();
+                                            set_playback_state.set(PlaybackState::None {
+                                                cursor: *cursor_on_start,
+                                            })
+                                        }
                                     }
                                 }
                             }
