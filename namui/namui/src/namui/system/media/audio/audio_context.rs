@@ -6,7 +6,7 @@ use std::{fmt::Debug, mem::size_of, sync::Arc};
 /// Currently it implemented WASAPI IAudioClient.
 /// TODO: Implement IAudioClient3 for low latency.
 #[derive(Debug)]
-pub(crate) struct AudioContext {
+pub struct AudioContext {
     pub output_config: AudioConfig,
     audio_command_tx: std::sync::mpsc::Sender<AudioCommand>,
     /// 0 to 1
@@ -17,7 +17,7 @@ const CHANNELS: usize = 2;
 const SAMPLE_RATE: usize = 44100;
 
 impl AudioContext {
-    pub fn new() -> Result<Self> {
+    pub(crate) fn new() -> Result<Self> {
         let volume = Arc::new(AtomicF32::new(1.0));
         let output_config = AudioConfig {
             sample_rate: SAMPLE_RATE as u32,
@@ -112,7 +112,7 @@ impl AudioContext {
         })
     }
 
-    pub(crate) fn load_audio(&self, audio: impl AudioConsume + 'static) -> Result<()> {
+    pub fn load_audio(&self, audio: impl AudioConsume + 'static) -> Result<()> {
         self.audio_command_tx
             .send(AudioCommand::LoadAudio {
                 audio: Box::new(audio),

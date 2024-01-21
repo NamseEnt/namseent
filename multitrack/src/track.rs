@@ -33,24 +33,23 @@ impl Component for Track {
                 .iter()
                 .map(|channel| {
                     channel
-                        .as_slice()
-                        .get((*visual_range).clone())
-                        .unwrap_or(&[])
-                        .chunks(step)
-                        .map(|chunk| chunk.first().copied().unwrap_or(0.0))
+                        .iter()
+                        .skip(visual_range.start)
+                        .take(visual_range.len())
+                        .step_by(step)
                 })
                 .enumerate()
             {
                 match channel_index {
                     0 => {
                         for (x, normalized_y) in steps.enumerate() {
-                            let y = wh.height / 2.0 - wh.height / 2.0 * normalized_y;
+                            let y = wh.height / 2.0 - wh.height / 2.0 * *normalized_y;
                             path = path.line_to(px(x as f32), y);
                         }
                     }
                     1 => {
                         for (x, normalized_y) in steps.enumerate().rev() {
-                            let y = wh.height / 2.0 + wh.height / 2.0 * normalized_y;
+                            let y = wh.height / 2.0 + wh.height / 2.0 * *normalized_y;
                             path = path.line_to(px(x as f32), y);
                         }
                     }

@@ -2,7 +2,10 @@ mod mini_map;
 mod track;
 
 use mini_map::MiniMap;
-use namui::prelude::{media::audio::RawAudio, *};
+use namui::{
+    media::audio::{MixedAudio, StoppableAudio},
+    prelude::{media::audio::RawAudio, *},
+};
 use namui_prebuilt::*;
 use std::sync::Arc;
 use track::Track;
@@ -37,6 +40,8 @@ impl Component for App {
         let (screen_left_sample_index, set_screen_left_sample_index) = ctx.state(|| 0_usize);
         let (action_state, set_action_state) = ctx.state(|| ActionState::None);
         let (cursor, set_cursor) = ctx.state(|| 0_usize);
+        let (playing_stoppable_audio, set_playing_stoppable_audio) =
+            ctx.state::<Option<StoppableAudio>>(|| None);
 
         let range = *screen_left_sample_index..(*screen_left_sample_index + *window_size);
 
@@ -98,13 +103,26 @@ impl Component for App {
                         .iter_mut()
                         .zip(to_track.channels.iter_mut())
                         .for_each(|(from_channel, to_channel)| {
-                            from_channel.as_mut_slice()[range.clone()]
+                            let mut from_channel_vec = from_channel.to_vec();
+                            let mut to_channel_vec = to_channel.to_vec();
+
+                            from_channel_vec
                                 .iter_mut()
-                                .zip(to_channel.as_mut_slice()[range.clone()].iter_mut())
+                                .skip(range.start)
+                                .take(range.len())
+                                .zip(
+                                    to_channel_vec
+                                        .iter_mut()
+                                        .skip(range.start)
+                                        .take(range.len()),
+                                )
                                 .for_each(|(from_sample, to_sample)| {
                                     *to_sample += *from_sample;
                                     *from_sample = 0.0;
                                 });
+
+                            *from_channel = from_channel_vec.into();
+                            *to_channel = to_channel_vec.into();
                         });
 
                     let mut tracks = tracks.clone();
@@ -300,6 +318,37 @@ impl Component for App {
                             }
                             Event::MouseDown { event } => {
                                 set_cursor.set(sample_index_on_x(event.local_xy().x));
+                            }
+                            Event::KeyUp { event } => {
+                                if event.code == Code::Space {
+                                    if let Some(playing_stoppable_audio) =
+                                        playing_stoppable_audio.as_ref()
+                                    {
+                                        playing_stoppable_audio.stop();
+                                        set_playing_stoppable_audio.set(None);
+                                    } else {
+                                        let audio_context = namui::media::default_audio_context();
+
+                                        let audios = tracks
+                                            .iter()
+                                            .map(|track| {
+                                                track.slice(
+                                                    Duration::from_secs_f32(
+                                                        *cursor as f32 / SAMPLE_RATE as f32,
+                                                    )
+                                                        ..Duration::from_secs_f32(
+                                                            track.sample_count() as f32
+                                                                / SAMPLE_RATE as f32,
+                                                        ),
+                                                )
+                                            })
+                                            .collect::<Vec<_>>();
+                                        let mixed = MixedAudio::new(audios);
+                                        let stoppable =
+                                            StoppableAudio::load(&audio_context, mixed).unwrap();
+                                        set_playing_stoppable_audio.set(Some(stoppable));
+                                    }
+                                }
                             }
                             _ => (),
                         }

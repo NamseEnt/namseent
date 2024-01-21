@@ -8,12 +8,16 @@ mod media_handle;
 mod video;
 mod with_instant;
 
+use self::audio::AudioContext;
 use super::InitResult;
 use anyhow::*;
 pub use audio::FullLoadOnceAudio;
 use media_context::MediaContext;
 pub use media_handle::MediaHandle;
-use std::{path::Path, sync::OnceLock};
+use std::{
+    path::Path,
+    sync::{Arc, OnceLock},
+};
 
 const AUDIO_CHANNEL_BOUND: usize = 128;
 const VIDEO_CHANNEL_BOUND: usize = 10;
@@ -45,4 +49,8 @@ pub fn volume() -> f32 {
 
 pub async fn new_full_load_once_audio(path: &impl AsRef<Path>) -> Result<FullLoadOnceAudio> {
     Ok(FullLoadOnceAudio::new(MEDIA_SYSTEM.get().unwrap().audio_context.clone(), path).await?)
+}
+
+pub fn default_audio_context() -> Arc<AudioContext> {
+    MEDIA_SYSTEM.get().unwrap().audio_context.clone()
 }

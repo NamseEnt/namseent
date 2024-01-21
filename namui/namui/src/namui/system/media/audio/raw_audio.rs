@@ -1,11 +1,13 @@
+use super::AudioConsume;
 use crate::media::audio::{self, AudioConfig};
 use anyhow::{bail, Result};
+use namui_type::{CheapSlice, Duration};
 use std::path::Path;
 
 #[derive(Clone)]
 pub struct RawAudio {
     pub audio_config: AudioConfig,
-    pub channels: Vec<Vec<f32>>,
+    pub channels: Vec<CheapSlice<f32>>,
 }
 
 impl std::fmt::Debug for RawAudio {
@@ -90,7 +92,10 @@ impl RawAudio {
             decoder.send_eof()?;
             receive_frame(&mut decoder, true)?;
 
-            Ok((channels, output_config))
+            Ok((
+                channels.into_iter().map(CheapSlice::from_vec).collect(),
+                output_config,
+            ))
         })
         .await??;
 
@@ -98,5 +103,65 @@ impl RawAudio {
             channels,
             audio_config: output_config,
         })
+    }
+
+    pub fn slice(&self, range: std::ops::Range<Duration>) -> Self {
+        let calculate_index = |duration: Duration| {
+            (duration.as_secs_f64() * self.audio_config.sample_rate as f64) as usize
+        };
+
+        let start = calculate_index(range.start);
+        let end = calculate_index(range.end);
+
+        Self {
+            audio_config: self.audio_config,
+            channels: self
+                .channels
+                .iter()
+                .map(|channel| channel.slice(start, end - start))
+                .collect(),
+        }
+    }
+
+    pub fn sample_count(&self) -> usize {
+        self.channels
+            .first()
+            .map(|channel| channel.len())
+            .unwrap_or(0)
+    }
+}
+
+impl AudioConsume for RawAudio {
+    fn consume(&mut self, output: &mut [f32]) {
+        let output_sample_length_per_track = output.len() / 2;
+
+        match self.channels.len() {
+            0 => {}
+            1 => {
+                let channel = self.channels.get_mut(0).unwrap();
+                let front = channel.slice_front(output_sample_length_per_track);
+                for (i, sample) in front.into_iter().enumerate() {
+                    output[i * 2] += sample;
+                    output[i * 2 + 1] += sample;
+                }
+            }
+            _ => {
+                let channel = self.channels.get_mut(0).unwrap();
+                let front = channel.slice_front(output_sample_length_per_track);
+                for (i, sample) in front.into_iter().enumerate() {
+                    output[i * 2] += sample;
+                }
+
+                let channel = self.channels.get_mut(1).unwrap();
+                let front = channel.slice_front(output_sample_length_per_track);
+                for (i, sample) in front.into_iter().enumerate() {
+                    output[i * 2 + 1] += sample;
+                }
+            }
+        }
+    }
+
+    fn is_end(&self) -> bool {
+        self.channels.iter().any(|channel| channel.is_empty())
     }
 }
