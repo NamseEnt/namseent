@@ -285,24 +285,28 @@ pub fn document(
 
     let impl_document = {
         let pk = {
-            let pk_double_quote_content: TokenStream = ("\"".to_string()
-                + &pk_fields.iter().fold(String::new(), |mut content, field| {
-                    let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
-                    content
-                })
-                + "\"")
-                .parse()
-                .unwrap();
+            if pk_fields.is_empty() {
+                quote! { String::from("_") }
+            } else {
+                let pk_double_quote_content: TokenStream = ("\"".to_string()
+                    + &pk_fields.iter().fold(String::new(), |mut content, field| {
+                        let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                        content
+                    })
+                    + "\"")
+                    .parse()
+                    .unwrap();
 
-            let parameters: TokenStream = pk_fields
-                .iter()
-                .fold(String::new(), |mut content, field| {
-                    let _ = write!(content, ", self.{}", field.ident.as_ref().unwrap());
-                    content
-                })
-                .parse()
-                .unwrap();
-            quote! {format!(#pk_double_quote_content #parameters)}
+                let parameters: TokenStream = pk_fields
+                    .iter()
+                    .fold(String::new(), |mut content, field| {
+                        let _ = write!(content, ", self.{}", field.ident.as_ref().unwrap());
+                        content
+                    })
+                    .parse()
+                    .unwrap();
+                quote! {format!(#pk_double_quote_content #parameters)}
+            }
         };
 
         let sk = {
