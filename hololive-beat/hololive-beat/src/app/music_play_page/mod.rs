@@ -1,4 +1,5 @@
 mod game_ender;
+mod game_result_overlay;
 mod judge_indicator;
 mod note_judge;
 mod note_plotter;
@@ -6,12 +7,12 @@ mod video_player;
 
 use self::game_ender::GameEnder;
 
-use super::play_state::{LoadedData, PlayState, PLAY_STATE_ATOM};
+use super::play_state::{JudgeContext, LoadedData, PlayState, PlayTimeState, PLAY_STATE_ATOM};
 use crate::app::{
     drummer::Drummer,
     music_play_page::{
-        judge_indicator::JudgeIndicator, note_judge::NoteJudge, note_plotter::NotePlotter,
-        video_player::VideoPlayer,
+        game_result_overlay::GameResultOverlay, judge_indicator::JudgeIndicator,
+        note_judge::NoteJudge, note_plotter::NotePlotter, video_player::VideoPlayer,
     },
     play_state::pause_game,
     setting_overlay::open_setting_overlay,
@@ -49,11 +50,18 @@ impl Component for MusicPlayPage {
             PlayState::Loading { .. } => {
                 ctx.add(Loading { wh });
             }
-            PlayState::Loaded { loaded, .. } => {
+            PlayState::Loaded {
+                loaded,
+                play_time_state,
+                judge_context,
+                ..
+            } => {
                 ctx.add(Loaded {
                     wh,
                     played_time,
                     loaded_data: loaded,
+                    play_time_state,
+                    judge_context,
                 });
             }
         });
@@ -91,6 +99,8 @@ struct Loaded<'a> {
     wh: Wh<Px>,
     played_time: Duration,
     loaded_data: &'a LoadedData,
+    play_time_state: &'a PlayTimeState,
+    judge_context: &'a JudgeContext,
 }
 impl Component for Loaded<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -98,6 +108,8 @@ impl Component for Loaded<'_> {
             wh,
             played_time,
             loaded_data,
+            play_time_state,
+            judge_context,
         } = self;
         let LoadedData {
             notes,
@@ -113,6 +125,13 @@ impl Component for Loaded<'_> {
         let px_per_time = Per::new(NOTE_WIDTH, 33.ms() * 2);
         let perfect_range: Duration = Duration::from_millis(64);
         let good_range: Duration = 256.0.ms();
+
+        ctx.compose(|ctx| {
+            if !matches!(play_time_state, PlayTimeState::Ended) {
+                return;
+            }
+            ctx.add(GameResultOverlay { wh, judge_context });
+        });
 
         ctx.compose(|ctx| {
             let note_plotter_y = wh.height - NOTE_PLOTTER_HEIGHT;

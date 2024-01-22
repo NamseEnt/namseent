@@ -1,4 +1,4 @@
-use crate::app::color::THEME;
+use crate::app::theme::THEME;
 use namui::{math::num::traits::Pow, prelude::*, time::since_start};
 use namui_prebuilt::typography;
 
@@ -26,7 +26,7 @@ impl Component for JudgeIndicator {
                     recent_judge.to_string(),
                     Font {
                         size: typography::adjust_font_size(wh.height / 2.0),
-                        name: "Fontspring-Demo-hemi_head_rg".to_string(),
+                        name: THEME.font_name.to_string(),
                     },
                     Xy::zero(),
                     Paint::new(Color::from_u8(255, 255, 255, alpha)),
