@@ -131,7 +131,6 @@ pub fn document(
                     let pk = #prefixed_pk;
                     let sk = #prefixed_sk;
                     crate::storage::dynamo_db::TransactDeleteCommand {
-                        partition_prefix: stringify!(#struct_ident).to_string(),
                         partition_key_without_prefix: pk,
                         sort_key: sk,
                     }
@@ -190,9 +189,9 @@ pub fn document(
                     TUpdateFuture,
                 > {
                     let pk = #prefixed_pk;
+                    println!("pk: {}", pk);
                     let sk = #prefixed_sk;
                     crate::storage::dynamo_db::TransactUpdateCommand {
-                        partition_prefix: stringify!(#struct_ident).to_string(),
                         partition_key_without_prefix: pk,
                         sort_key: sk,
                         update: self.update,
@@ -270,7 +269,6 @@ pub fn document(
                     let pk = #prefixed_pk;
                     let sk = #prefixed_sk;
                     crate::storage::dynamo_db::TransactUpdateOrCreateCommand {
-                        partition_prefix: stringify!(#struct_ident).to_string(),
                         partition_key_without_prefix: pk,
                         sort_key: sk,
                         update: self.update,
@@ -285,24 +283,28 @@ pub fn document(
 
     let impl_document = {
         let pk = {
-            let pk_double_quote_content: TokenStream = ("\"".to_string()
-                + &pk_fields.iter().fold(String::new(), |mut content, field| {
-                    let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
-                    content
-                })
-                + "\"")
-                .parse()
-                .unwrap();
+            if pk_fields.is_empty() {
+                quote! { String::from("_") }
+            } else {
+                let pk_double_quote_content: TokenStream = ("\"".to_string()
+                    + &pk_fields.iter().fold(String::new(), |mut content, field| {
+                        let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                        content
+                    })
+                    + "\"")
+                    .parse()
+                    .unwrap();
 
-            let parameters: TokenStream = pk_fields
-                .iter()
-                .fold(String::new(), |mut content, field| {
-                    let _ = write!(content, ", self.{}", field.ident.as_ref().unwrap());
-                    content
-                })
-                .parse()
-                .unwrap();
-            quote! {format!(#pk_double_quote_content #parameters)}
+                let parameters: TokenStream = pk_fields
+                    .iter()
+                    .fold(String::new(), |mut content, field| {
+                        let _ = write!(content, ", self.{}", field.ident.as_ref().unwrap());
+                        content
+                    })
+                    .parse()
+                    .unwrap();
+                quote! {format!(#pk_double_quote_content #parameters)}
+            }
         };
 
         let sk = {
@@ -366,24 +368,28 @@ fn prefixed_value(
     sk_fields: &[&mut Field],
 ) -> (TokenStream, TokenStream) {
     let prefixed_pk = {
-        let pk_double_quote_content: TokenStream = ("\"".to_string()
-            + &pk_fields.iter().fold(String::new(), |mut content, field| {
-                let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
-                content
-            })
-            + "\"")
-            .parse()
-            .unwrap();
+        if pk_fields.is_empty() {
+            quote! { String::from("_") }
+        } else {
+            let pk_double_quote_content: TokenStream = ("\"".to_string()
+                + &pk_fields.iter().fold(String::new(), |mut content, field| {
+                    let _ = write!(content, "#{}:{{}}", field.ident.as_ref().unwrap());
+                    content
+                })
+                + "\"")
+                .parse()
+                .unwrap();
 
-        let parameters: TokenStream = pk_fields
-            .iter()
-            .fold(String::new(), |mut content, field| {
-                let _ = write!(content, ", self.pk_{}", field.ident.as_ref().unwrap());
-                content
-            })
-            .parse()
-            .unwrap();
-        quote! {format!(#pk_double_quote_content #parameters)}
+            let parameters: TokenStream = pk_fields
+                .iter()
+                .fold(String::new(), |mut content, field| {
+                    let _ = write!(content, ", self.pk_{}", field.ident.as_ref().unwrap());
+                    content
+                })
+                .parse()
+                .unwrap();
+            quote! {format!(#pk_double_quote_content #parameters)}
+        }
     };
 
     let prefixed_sk = {
