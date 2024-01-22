@@ -4,7 +4,7 @@ mod top_bar;
 
 use self::{music_carousel::MusicCarousel, top_bar::TopBar};
 use super::{
-    color::THEME,
+    theme::THEME,
     drummer::Drummer,
     music::{MusicMetadata, MusicSpeedMap},
     play_state::start_game,

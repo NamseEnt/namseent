@@ -2,6 +2,7 @@ use crate::app::{
     music::{MusicMetadata, MusicSpeedMap},
     music_select_page::speed_dropdown::SpeedDropdown,
     setting_overlay::open_setting_overlay,
+    theme::THEME,
 };
 use namui::prelude::*;
 use namui_prebuilt::{simple_rect, table::hooks::*, typography};
@@ -69,7 +70,7 @@ impl Component for TopBar<'_> {
                     ratio(1, |wh, ctx| {
                         let font = Font {
                             size: 80.int_px(),
-                            name: "Fontspring-Demo-hemi_head_rg".to_string(),
+                            name: THEME.font_name.to_string(),
                         };
                         let paint = Paint::new(Color::WHITE);
                         let group_glyph = namui::font::group_glyph(&font, &paint);

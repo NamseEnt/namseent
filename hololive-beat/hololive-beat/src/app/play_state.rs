@@ -4,7 +4,7 @@ use super::{
 };
 use crate::app::note::load_notes;
 use futures::join;
-use namui::{Atom, Duration, FullLoadOnceAudio, MediaHandle};
+use namui::{Atom, Duration, DurationExt, FullLoadOnceAudio, MediaHandle};
 use std::collections::HashSet;
 
 pub static PLAY_STATE_ATOM: Atom<PlayState> = Atom::uninitialized_new();
@@ -148,6 +148,32 @@ pub fn stop_game() {
         loaded.video.stop().unwrap();
 
         *play_time_state = PlayTimeState::Ended;
+    });
+}
+
+pub fn restart_game() {
+    PLAY_STATE_ATOM.mutate(move |state| {
+        let PlayState::Loaded {
+            loaded,
+            judge_context,
+            play_time_state,
+            ..
+        } = state
+        else {
+            namui::log!("play state is not loaded");
+            return;
+        };
+
+        loaded.music.seek_to(0.sec()).unwrap();
+        loaded.video.seek_to(0.sec()).unwrap();
+        loaded.music.play().unwrap();
+        loaded.video.play().unwrap();
+
+        *judge_context = JudgeContext::new();
+        *play_time_state = PlayTimeState::Playing {
+            started_time: namui::time::since_start(),
+            played_time: Duration::from_secs(0),
+        };
     });
 }
 

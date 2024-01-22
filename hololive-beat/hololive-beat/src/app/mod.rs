@@ -1,12 +1,12 @@
-mod color;
+mod components;
 mod drummer;
-mod game_result_overlay;
 mod music;
 mod music_play_page;
 mod music_select_page;
 mod note;
 mod play_state;
 mod setting_overlay;
+mod theme;
 
 use self::{
     music::{load_music_metadata, load_music_speed_map, MusicSpeedMap},
