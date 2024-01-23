@@ -180,6 +180,11 @@ impl Color {
             alpha,
         )
     }
+
+    pub const fn with_alpha(mut self, alpha: u8) -> Self {
+        self.a = alpha;
+        self
+    }
 }
 
 #[cfg(feature = "skia")]
