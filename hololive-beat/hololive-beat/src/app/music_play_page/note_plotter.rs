@@ -10,6 +10,7 @@ const MARGIN: Px = px(8.0);
 const PAD_WIDTH: Px = px(16.0);
 const ARROW_OFFSET: Px = px(48.0);
 const HEAD_WIDTH: Px = px(4.0);
+const LAY_WIDTH: Px = px(512.0);
 
 #[namui::component]
 pub struct NotePlotter<'a> {
@@ -183,7 +184,7 @@ impl Component for Flash {
                 paint: Paint::new(color).set_blend_mode(BlendMode::Plus),
             });
 
-            // TODO lay
+            ctx.add(Lay { height, color });
 
             ctx.add(Pad {
                 height,
@@ -363,6 +364,36 @@ impl Component for Lane {
             Color::TRANSPARENT,
             0.px(),
             Color::BLACK.with_alpha(178),
+        ));
+
+        ctx.done()
+    }
+}
+
+#[component]
+struct Lay {
+    height: Px,
+    color: Color,
+}
+impl Component for Lay {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { height, color } = self;
+
+        ctx.component(path(
+            Path::new().add_rect(Rect::Xywh {
+                x: 0.px(),
+                y: 0.px(),
+                width: LAY_WIDTH,
+                height,
+            }),
+            Paint::new(color)
+                .set_blend_mode(BlendMode::Plus)
+                .set_shader(Shader::LinearGradient {
+                    start_xy: Xy::zero(),
+                    end_xy: Xy::new(LAY_WIDTH, 0.px()),
+                    colors: vec![color.with_alpha(255), Color::BLACK],
+                    tile_mode: TileMode::Mirror,
+                }),
         ));
 
         ctx.done()
