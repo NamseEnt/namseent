@@ -103,9 +103,9 @@ fn calculate_scale(duration: Duration) -> (Xy<f32>, Xy<f32>) {
     }
     let progress = duration / animation_duration;
 
-    let character_x = (1.0_f32 / ((3.0 * progress).pow(3) + 16.0_f32))
+    let character_x = (1.0_f32 / ((3.0 * progress).pow(4) + 16.0_f32))
         * f32::cos(3.0 * PI * (progress - PI / 128.0).pow(2) + (PI / 2.0));
-    let character_y = (1.0_f32 / ((3.0 * progress).pow(3) + 8.0_f32))
+    let character_y = (1.0_f32 / ((3.0 * progress).pow(4) + 8.0_f32))
         * f32::cos(3.0 * PI * progress.pow(2) - (PI / 2.0));
     let drum_damper = 1.0_f32 - 1.0_f32 / (4.0_f32 * (progress - 0.4).pow(2) + 1.0_f32);
     (
