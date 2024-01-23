@@ -6,7 +6,10 @@ mod note_plotter;
 mod video_player;
 
 use self::game_ender::GameEnder;
-use super::play_state::{JudgeContext, LoadedData, PlayState, PlayTimeState, PLAY_STATE_ATOM};
+use super::{
+    music::MusicSpeedMap,
+    play_state::{JudgeContext, LoadedData, PlayState, PlayTimeState, PLAY_STATE_ATOM},
+};
 use crate::app::{
     drummer::Drummer,
     music_play_page::{
@@ -19,12 +22,16 @@ use crate::app::{
 use namui::prelude::*;
 
 #[component]
-pub struct MusicPlayPage {
+pub struct MusicPlayPage<'a> {
     pub wh: Wh<Px>,
+    pub music_speed_map: Option<&'a MusicSpeedMap>,
 }
-impl Component for MusicPlayPage {
+impl Component for MusicPlayPage<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self { wh } = self;
+        let Self {
+            wh,
+            music_speed_map,
+        } = self;
 
         let (state, _set_state) = ctx.atom_init(&PLAY_STATE_ATOM, PlayState::default);
         let now = namui::time::since_start();
@@ -56,6 +63,13 @@ impl Component for MusicPlayPage {
                 music,
                 ..
             } => {
+                let px_per_time = {
+                    let speed = music_speed_map
+                        .map(|music_speed_map| music_speed_map.get(&music.id))
+                        .unwrap_or_default();
+                    Per::new(speed * 256.0.px(), 1.sec())
+                };
+                Per::new(256.px(), 1.sec());
                 ctx.add(Loaded {
                     wh,
                     played_time,
@@ -63,6 +77,7 @@ impl Component for MusicPlayPage {
                     play_time_state,
                     judge_context,
                     music_id: &music.id,
+                    px_per_time,
                 });
             }
         });
@@ -103,6 +118,7 @@ struct Loaded<'a> {
     play_time_state: &'a PlayTimeState,
     judge_context: &'a JudgeContext,
     music_id: &'a str,
+    px_per_time: Per<Px, Duration>,
 }
 impl Component for Loaded<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -113,6 +129,7 @@ impl Component for Loaded<'_> {
             play_time_state,
             judge_context,
             music_id,
+            px_per_time,
         } = self;
         let LoadedData {
             notes,
@@ -125,7 +142,6 @@ impl Component for Loaded<'_> {
         const NOTE_WIDTH: Px = px(64.0);
         const TIMING_ZERO_X: Px = px(192.0);
         const DRUMMER_WIDTH: Px = px(384.0);
-        let px_per_time = Per::new(NOTE_WIDTH, 33.ms() * 2);
         let perfect_range: Duration = Duration::from_millis(64);
         let good_range: Duration = 256.0.ms();
 

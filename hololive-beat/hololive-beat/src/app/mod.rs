@@ -74,7 +74,10 @@ impl namui::Component for App {
             if play_state_is_idle {
                 return;
             }
-            ctx.add(MusicPlayPage { wh });
+            ctx.add(MusicPlayPage {
+                wh,
+                music_speed_map: (*music_speed_map).as_ref(),
+            });
         });
 
         ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::WHITE));
