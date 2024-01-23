@@ -3,9 +3,10 @@ use crate::{cli::Target, services::electron_package_service};
 use std::path::PathBuf;
 
 pub async fn build(
-    target: &Target,
-    manifest_path: &PathBuf,
+    target: Target,
+    manifest_path: PathBuf,
     arch: Option<electron_package_service::Arch>,
+    release: bool,
 ) -> Result<()> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
@@ -14,15 +15,17 @@ pub async fn build(
         {
             use super::linux;
             match target {
-                Target::WasmUnknownWeb => linux::wasm_unknown_web::build(&manifest_path).await?,
+                Target::WasmUnknownWeb => {
+                    linux::wasm_unknown_web::build(&manifest_path, release).await?
+                }
                 Target::WasmWindowsElectron => {
-                    linux::wasm_windows_electron::build(&manifest_path, arch).await?
+                    linux::wasm_windows_electron::build(&manifest_path, arch, release).await?
                 }
                 Target::WasmLinuxElectron => {
-                    linux::wasm_linux_electron::build(&manifest_path, arch).await?
+                    linux::wasm_linux_electron::build(&manifest_path, arch, release).await?
                 }
                 Target::X86_64PcWindowsMsvc => {
-                    linux::x86_64_pc_windows_msvc::build(&manifest_path).await?
+                    linux::x86_64_pc_windows_msvc::build(&manifest_path, release).await?
                 }
             }
         }

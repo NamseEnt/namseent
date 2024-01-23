@@ -9,7 +9,7 @@ use crate::{
 use std::path::Path;
 use tokio::try_join;
 
-pub async fn build(manifest_path: &Path) -> Result<()> {
+pub async fn build(manifest_path: &Path, release: bool) -> Result<()> {
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let release_path = project_root_path
         .join("target")
@@ -25,8 +25,10 @@ pub async fn build(manifest_path: &Path) -> Result<()> {
         build_status_service.clone(),
         project_root_path.clone(),
         target,
+        release,
     );
-    let drawer_build = DrawerWatchBuildService::just_build(target, build_status_service.clone());
+    let drawer_build =
+        DrawerWatchBuildService::just_build(target, build_status_service.clone(), release);
 
     try_join!(web_runtime_build, wasm_build, drawer_build)?;
 
@@ -39,6 +41,7 @@ pub async fn build(manifest_path: &Path) -> Result<()> {
         target,
         bundle_manifest,
         None,
+        release,
     )?;
 
     Ok(())

@@ -9,7 +9,7 @@ use crate::{
 };
 use std::path::Path;
 
-pub async fn build(manifest_path: &Path) -> Result<()> {
+pub async fn build(manifest_path: &Path, release: bool) -> Result<()> {
     let target = cli::Target::X86_64PcWindowsMsvc;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let release_path = project_root_path
@@ -36,6 +36,7 @@ pub async fn build(manifest_path: &Path) -> Result<()> {
             dist_path: release_path.clone(),
             project_root_path: runtime_target_dir,
             watch: false,
+            release,
         })
         .await
     {
@@ -66,6 +67,7 @@ pub async fn build(manifest_path: &Path) -> Result<()> {
         target,
         bundle_manifest,
         None,
+        release,
     )?;
 
     Ok(())

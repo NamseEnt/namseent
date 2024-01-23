@@ -2,7 +2,7 @@ use crate::cli::Target;
 use crate::*;
 use std::path::PathBuf;
 
-pub async fn start(target: &Target, manifest_path: &PathBuf) -> Result<()> {
+pub async fn start(target: Target, manifest_path: PathBuf, release: bool) -> Result<()> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
     if cfg!(target_os = "linux") {
@@ -10,12 +10,14 @@ pub async fn start(target: &Target, manifest_path: &PathBuf) -> Result<()> {
         {
             use super::linux;
             match target {
-                Target::WasmUnknownWeb => linux::wasm_unknown_web::start(&manifest_path).await?,
+                Target::WasmUnknownWeb => {
+                    linux::wasm_unknown_web::start(&manifest_path, release).await?
+                }
                 Target::WasmWindowsElectron => {
-                    linux::wasm_windows_electron::start(&manifest_path).await?
+                    linux::wasm_windows_electron::start(&manifest_path, release).await?
                 }
                 Target::WasmLinuxElectron => {
-                    linux::wasm_linux_electron::start(&manifest_path).await?
+                    linux::wasm_linux_electron::start(&manifest_path, release).await?
                 }
                 Target::X86_64PcWindowsMsvc => bail!(
                     "{} doesn't support start directly. Try build and run manually.",

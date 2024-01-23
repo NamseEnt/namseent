@@ -14,10 +14,11 @@ pub fn collect_all(
     target: Target,
     bundle_manifest: NamuiBundleManifest,
     additional_runtime_path: Option<&PathBuf>,
+    release: bool,
 ) -> Result<()> {
     let mut ops: Vec<CollectOperation> = vec![];
     collect_runtime(&mut ops, additional_runtime_path, target)?;
-    collect_rust_build(&mut ops, project_path, target)?;
+    collect_rust_build(&mut ops, project_path, target, release)?;
     collect_bundle(&mut ops, &bundle_manifest)?;
     collect_deep_link_manifest(&mut ops, project_path, target)?;
 
@@ -69,6 +70,7 @@ fn collect_rust_build(
     ops: &mut Vec<CollectOperation>,
     project_path: &Path,
     target: Target,
+    release: bool,
 ) -> Result<()> {
     match target {
         Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
@@ -93,8 +95,10 @@ fn collect_rust_build(
             ));
         }
         Target::X86_64PcWindowsMsvc => {
-            let build_dist_path =
-                project_path.join("target/namui/target/x86_64-pc-windows-msvc/debug");
+            let build_dist_path = project_path.join(format!(
+                "target/namui/target/x86_64-pc-windows-msvc/{}",
+                if release { "release" } else { "debug" }
+            ));
             ops.push(CollectOperation::new(
                 &build_dist_path.join("namui-runtime-x86_64-pc-windows-msvc.exe"),
                 &PathBuf::from(""),

@@ -41,8 +41,8 @@ impl std::fmt::Display for Arch {
         )
     }
 }
-impl From<&ElectronPackageArch> for Option<Arch> {
-    fn from(val: &ElectronPackageArch) -> Self {
+impl From<ElectronPackageArch> for Option<Arch> {
+    fn from(val: ElectronPackageArch) -> Self {
         match val {
             ElectronPackageArch::Auto => None,
             ElectronPackageArch::X64 => Some(Arch::X64),

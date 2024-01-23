@@ -7,7 +7,7 @@ use crate::*;
 use std::path::Path;
 use wsl::is_wsl;
 
-pub async fn start(manifest_path: &Path) -> Result<()> {
+pub async fn start(manifest_path: &Path, release: bool) -> Result<()> {
     if !is_wsl() {
         return Err(anyhow!(
             "linux to windows build is only supported on wsl for now"
@@ -38,6 +38,7 @@ pub async fn start(manifest_path: &Path) -> Result<()> {
             .unwrap();
         }),
         build_status_service,
+        release,
     })
     .await?;
 

@@ -7,7 +7,12 @@ use crate::cli::Target;
 use crate::*;
 use std::path::Path;
 
-pub async fn build(manifest_path: &Path, arch: Option<Arch>, platform: Platform) -> Result<()> {
+pub async fn build(
+    manifest_path: &Path,
+    arch: Option<Arch>,
+    platform: Platform,
+    release: bool,
+) -> Result<()> {
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let build_status_service = BuildStatusService::new();
 
@@ -27,8 +32,13 @@ pub async fn build(manifest_path: &Path, arch: Option<Arch>, platform: Platform)
         arch = package_result.arch
     ));
 
-    WasmWatchBuildService::just_build(build_status_service, project_root_path.clone(), target)
-        .await?;
+    WasmWatchBuildService::just_build(
+        build_status_service,
+        project_root_path.clone(),
+        target,
+        release,
+    )
+    .await?;
 
     let namui_bundle_manifest =
         super::bundle::NamuiBundleManifest::parse(project_root_path.clone())?;
@@ -39,6 +49,7 @@ pub async fn build(manifest_path: &Path, arch: Option<Arch>, platform: Platform)
         target,
         namui_bundle_manifest,
         Some(&package_result.output_path.into()),
+        release,
     )?;
 
     Ok(())

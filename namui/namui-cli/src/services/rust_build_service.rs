@@ -30,6 +30,7 @@ pub struct BuildOption {
     pub project_root_path: PathBuf,
     pub target: Target,
     pub watch: bool,
+    pub release: bool,
 }
 
 impl RustBuildService {
@@ -208,6 +209,10 @@ impl CancelableBuilder {
                     "--message-format",
                     "json",
                 ]);
+
+                if build_option.release {
+                    args.push("--release");
+                }
 
                 if cfg!(target_os = "linux") {
                     args.extend(["--xwin-arch", "x86_64", "--xwin-version", "17"]);

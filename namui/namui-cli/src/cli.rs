@@ -16,6 +16,8 @@ pub enum Commands {
         target: Option<Target>,
         #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
+        #[arg(long)]
+        release: bool,
     },
     Build {
         #[arg(value_enum)]
@@ -24,6 +26,8 @@ pub enum Commands {
         manifest_path: Option<PathBuf>,
         #[arg(short, long, value_enum, default_value = "auto")]
         arch: ElectronPackageArch,
+        #[arg(long)]
+        release: bool,
     },
     Test {
         #[arg(value_enum)]
