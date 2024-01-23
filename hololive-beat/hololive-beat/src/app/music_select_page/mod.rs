@@ -132,7 +132,8 @@ impl Component for Decoration {
             },
         }));
         ctx.compose(|ctx| {
-            ctx.translate((wh.width - drummer_wh.width, wh.height - drummer_wh.height))
+            ctx.translate((wh.width, wh.height - drummer_wh.height))
+                .scale(Xy::new(-1.0, 1.0))
                 .add(Drummer { wh: drummer_wh });
         });
 
