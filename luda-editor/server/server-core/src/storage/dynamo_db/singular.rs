@@ -201,12 +201,12 @@ impl DynamoDb {
         TCreateFuture: Future<Output = Result<TDocument, TCancelError>>,
     >(
         &self,
-        partition_key: impl ToString,
+        partition_key_without_prefix: impl ToString,
         sort_key: Option<impl ToString>,
         update: impl FnOnce(TDocument) -> TUpdateFuture,
         create: impl FnOnce() -> TCreateFuture,
     ) -> Result<(), UpdateItemError<TCancelError>> {
-        let partition_key = partition_key.to_string();
+        let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let sort_key = sort_key
             .map(|sort_key| sort_key.to_string())
             .unwrap_or(DEFAULT_SORT_KEY.to_string());
