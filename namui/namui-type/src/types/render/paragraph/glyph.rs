@@ -7,6 +7,7 @@ pub trait GroupGlyph: Debug {
     fn widths(&self, text: &str) -> Vec<Px>;
     fn font_metrics(&self) -> FontMetrics;
     fn bounds(&self, text: &str) -> Vec<Rect<Px>>;
+    fn bound(&self, text: &str) -> Rect<Px>;
 }
 
 impl GroupGlyph for &dyn GroupGlyph {
@@ -28,6 +29,10 @@ impl GroupGlyph for &dyn GroupGlyph {
 
     fn bounds(&self, text: &str) -> Vec<Rect<Px>> {
         (*self).bounds(text)
+    }
+
+    fn bound(&self, text: &str) -> Rect<Px> {
+        (*self).bound(text)
     }
 }
 
