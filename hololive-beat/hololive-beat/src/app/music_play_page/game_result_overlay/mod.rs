@@ -245,22 +245,26 @@ impl Component for RankText {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh, rank } = self;
 
-        ctx.component(namui::text(TextParam {
+        ctx.component(TextDrawCommand {
             text: rank.to_string(),
-            x: wh.width / 2,
-            y: wh.height / 2,
-            align: TextAlign::Center,
-            baseline: TextBaseline::Middle,
             font: Font {
                 size: wh.height.into(),
                 name: THEME.font_name.to_string(),
             },
-            style: TextStyle {
-                color: THEME.primary.main,
-                ..Default::default()
-            },
+            x: wh.width / 2,
+            y: wh.height / 2,
+            paint: Paint::new(THEME.primary.main).set_shader(Shader::LinearGradient {
+                start_xy: Xy::new(0.px(), 0.px()),
+                end_xy: Xy::new(0.px(), wh.height / 2),
+                colors: vec![THEME.primary.main.brighter(0.25), THEME.primary.main],
+                tile_mode: TileMode::Clamp,
+            }),
+            align: TextAlign::Center,
+            baseline: TextBaseline::Middle,
             max_width: None,
-        }));
+            line_height_percent: 100.percent(),
+            underline: None,
+        });
 
         ctx.done()
     }
