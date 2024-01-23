@@ -14,6 +14,12 @@ pub struct FontMetrics {
     pub leading: Px,
 }
 
+impl FontMetrics {
+    pub fn height(&self) -> Px {
+        -self.ascent + self.descent
+    }
+}
+
 #[type_derives(Copy, Default, Hash, Eq)]
 pub struct Color {
     pub r: u8,
@@ -547,10 +553,15 @@ impl From<BlendMode> for skia_safe::BlendMode {
 }
 
 #[type_derives(Copy)]
+/// Explain: https://developer.android.com/reference/android/graphics/Shader.TileMode#summary
 pub enum TileMode {
+    /// Replicate the edge color if the shader draws outside of its original bounds
     Clamp,
+    /// Render the shader's image pixels only within its original bounds.
     Decal,
+    /// Repeat the shader's image horizontally and vertically, alternating mirror images so that adjacent images always seam
     Mirror,
+    /// Repeat the shader's image horizontally and vertically.
     Repeat,
 }
 

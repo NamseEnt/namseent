@@ -79,6 +79,12 @@ impl GroupGlyph for NativeGroupGlyph {
         let glyph_ids = native_font.glyph_ids(text);
         native_font.glyph_bounds(glyph_ids.clone(), &self.paint)
     }
+
+    fn bound(&self, text: &str) -> Rect<Px> {
+        self.bounds(text).into_iter().fold(Rect::default(), |a, b| {
+            a.get_minimum_rectangle_containing(b)
+        })
+    }
 }
 
 unsafe impl Send for NativeGroupGlyph {}

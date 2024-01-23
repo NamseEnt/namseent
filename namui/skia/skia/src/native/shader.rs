@@ -45,6 +45,33 @@ impl NativeShader {
                     skia_shader: blended,
                 }
             }
+            &Shader::LinearGradient {
+                start_xy,
+                end_xy,
+                ref colors,
+                tile_mode,
+            } => {
+                let colors: Vec<_> = colors
+                    .into_iter()
+                    .map(|color| skia_safe::Color::from(*color))
+                    .collect();
+
+                let shader = skia_safe::gradient_shader::linear(
+                    (
+                        skia_safe::Point::new(start_xy.x.into(), start_xy.y.into()),
+                        skia_safe::Point::new(end_xy.x.into(), end_xy.y.into()),
+                    ),
+                    skia_safe::gradient_shader::GradientShaderColors::Colors(colors.as_slice()),
+                    None,
+                    tile_mode.into(),
+                    None,
+                    None,
+                )
+                .unwrap();
+                NativeShader {
+                    skia_shader: shader,
+                }
+            }
         })
     }
 
