@@ -1,11 +1,12 @@
 use crate::app::{
+    components::{self, DarkFrame},
     music::{MusicMetadata, MusicSpeedMap},
     music_select_page::speed_dropdown::SpeedDropdown,
     setting_overlay::open_setting_overlay,
     theme::THEME,
 };
 use namui::prelude::*;
-use namui_prebuilt::{simple_rect, table::hooks::*, typography};
+use namui_prebuilt::{table::hooks::*, typography};
 
 #[component]
 pub struct TopBar<'a> {
@@ -25,19 +26,6 @@ impl Component for TopBar<'_> {
         const PADDING: Px = px(8.0);
 
         let (rotation_start_time, set_rotation_start_time) = ctx.state(namui::system::time::now);
-
-        ctx.effect("load font", || {
-            namui::spawn(async move {
-                namui::typeface::register_typeface(
-                    "Fontspring-Demo-hemi_head_rg",
-                    &namui::file::bundle::read(
-                        "bundle:font/Demo-Hemi Head/Demo_Fonts/Fontspring-Demo-hemi_head_rg.otf",
-                    )
-                    .await
-                    .unwrap(),
-                );
-            });
-        });
 
         let music_id_sig = ctx.track_eq(&music.as_ref().map(|music| music.id.clone()));
         ctx.effect("Reset text rotation start time ", || {
@@ -143,7 +131,7 @@ impl Component for TopBar<'_> {
                             left += width + TITLE_PADDING;
                         }
                     }),
-                    fixed(192.px(), |wh, ctx| {
+                    fixed(240.px(), |wh, ctx| {
                         ctx.add(SpeedDropdown {
                             wh,
                             music_id: music.map(|music| music.id.as_str()),
@@ -157,12 +145,7 @@ impl Component for TopBar<'_> {
             })(wh, ctx);
         });
 
-        ctx.component(simple_rect(
-            wh,
-            Color::TRANSPARENT,
-            0.px(),
-            Color::from_u8(0, 0, 0, 128),
-        ));
+        ctx.component(DarkFrame { wh });
 
         ctx.done()
     }
@@ -176,30 +159,14 @@ impl Component for SettingButton {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh } = self;
 
-        ctx.component(
-            image(ImageParam {
-                rect: Rect::zero_wh(wh),
-                source: ImageSource::Url {
-                    url: Url::parse("bundle:ui/setting.png").unwrap(),
-                },
-                style: ImageStyle {
-                    fit: ImageFit::Contain,
-                    paint: None,
-                },
-            })
-            .attach_event(|event| {
-                let Event::MouseDown { event } = event else {
-                    return;
-                };
-                if !matches!(event.button, Some(MouseButton::Left)) {
-                    return;
-                }
-                if !event.is_local_xy_in() {
-                    return;
-                }
+        ctx.component(components::IconButton {
+            wh,
+            // https://fontawesome.com/v5/icons/cog?f=classic&s=solid
+            text: "".to_string(),
+            on_click: &|| {
                 open_setting_overlay();
-            }),
-        );
+            },
+        });
 
         ctx.done()
     }

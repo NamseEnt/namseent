@@ -2,6 +2,8 @@ use crate::app::theme::THEME;
 use namui::prelude::*;
 use namui_prebuilt::typography;
 
+use super::LightFrame;
+
 #[component]
 pub struct FilledButton<'a> {
     pub wh: Wh<Px>,
@@ -31,21 +33,15 @@ impl Component for FilledButton<'_> {
             max_width: None,
         }));
 
-        ctx.component(
-            path(
-                Path::new().add_rect(Rect::zero_wh(wh)),
-                Paint::new(THEME.primary.dark.with_alpha(25)).set_blend_mode(BlendMode::Screen),
-            )
-            .attach_event(|event| {
-                let Event::MouseDown { event } = event else {
-                    return;
-                };
-                if !event.is_local_xy_in() {
-                    return;
-                }
-                on_click();
-            }),
-        );
+        ctx.component(LightFrame { wh }.attach_event(|event| {
+            let Event::MouseDown { event } = event else {
+                return;
+            };
+            if !event.is_local_xy_in() {
+                return;
+            }
+            on_click();
+        }));
 
         ctx.done()
     }
