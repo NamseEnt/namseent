@@ -1,10 +1,10 @@
 use core::panic;
 use namui::{
     file::{bundle, local_storage},
-    Url,
+    Px, Url,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, io::ErrorKind};
+use std::{collections::HashMap, io::ErrorKind, ops::Mul};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MusicMetadata {
@@ -43,22 +43,6 @@ pub enum Speed {
     X9,
     X10,
 }
-impl AsRef<f32> for Speed {
-    fn as_ref(&self) -> &f32 {
-        match self {
-            Self::X1 => &1.0,
-            Self::X2 => &2.0,
-            Self::X3 => &3.0,
-            Self::X4 => &4.0,
-            Self::X5 => &5.0,
-            Self::X6 => &6.0,
-            Self::X7 => &7.0,
-            Self::X8 => &8.0,
-            Self::X9 => &9.0,
-            Self::X10 => &10.0,
-        }
-    }
-}
 impl Default for Speed {
     fn default() -> Self {
         Self::X4
@@ -77,6 +61,24 @@ impl ToString for Speed {
             Speed::X8 => "X8".to_string(),
             Speed::X9 => "X9".to_string(),
             Speed::X10 => "X10".to_string(),
+        }
+    }
+}
+impl Mul<Px> for Speed {
+    type Output = Px;
+
+    fn mul(self, rhs: Px) -> Self::Output {
+        rhs * match self {
+            Speed::X1 => 1.0,
+            Speed::X2 => 2.0,
+            Speed::X3 => 3.0,
+            Speed::X4 => 4.0,
+            Speed::X5 => 5.0,
+            Speed::X6 => 6.0,
+            Speed::X7 => 7.0,
+            Speed::X8 => 8.0,
+            Speed::X9 => 9.0,
+            Speed::X10 => 10.0,
         }
     }
 }
