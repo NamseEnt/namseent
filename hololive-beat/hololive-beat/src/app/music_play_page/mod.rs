@@ -38,15 +38,16 @@ impl Component for MusicPlayPage<'_> {
 
         let played_time = match &*state {
             PlayState::Loaded {
-                play_time_state, ..
+                music,
+                play_time_state,
+                ..
             } => match play_time_state {
                 super::play_state::PlayTimeState::Playing {
                     started_time,
                     played_time,
                 } => now - started_time + played_time,
                 super::play_state::PlayTimeState::Paused { played_time } => *played_time,
-                // TODO: music length
-                super::play_state::PlayTimeState::Ended => 0.ms(),
+                super::play_state::PlayTimeState::Ended => music.length.sec(),
             },
             _ => 0.ms(),
         };
