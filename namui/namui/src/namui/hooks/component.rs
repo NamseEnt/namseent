@@ -58,6 +58,54 @@ impl<T: Component> Component for Option<T> {
     }
 }
 
+impl StaticType for DrawCommand {}
+impl Component for DrawCommand {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        ctx.component(RenderingTree::Node(RenderingData {
+            draw_calls: vec![DrawCall {
+                commands: vec![self],
+            }],
+        }));
+        ctx.done()
+    }
+}
+
+impl StaticType for PathDrawCommand {}
+impl Component for PathDrawCommand {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        ctx.component(RenderingTree::Node(RenderingData {
+            draw_calls: vec![DrawCall {
+                commands: vec![DrawCommand::Path { command: self }],
+            }],
+        }));
+        ctx.done()
+    }
+}
+
+impl StaticType for ImageDrawCommand {}
+impl Component for ImageDrawCommand {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        ctx.component(RenderingTree::Node(RenderingData {
+            draw_calls: vec![DrawCall {
+                commands: vec![DrawCommand::Image { command: self }],
+            }],
+        }));
+        ctx.done()
+    }
+}
+
+impl StaticType for TextDrawCommand {}
+impl Component for TextDrawCommand {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        ctx.component(RenderingTree::Node(RenderingData {
+            draw_calls: vec![DrawCall {
+                commands: vec![DrawCommand::Text { command: self }],
+            }],
+        }));
+        ctx.done()
+    }
+}
+
 macro_rules! component_impl {
     (
         $(
