@@ -2,6 +2,7 @@ use crate::app::{
     components::{Backdrop, FilledButton},
     play_state::{restart_game, JudgeContext, PlayState, Rank, PLAY_STATE_ATOM},
     theme::THEME,
+    MUSIC_BEST_SCORE_MAP_ATOM,
 };
 use namui::prelude::*;
 use namui_prebuilt::typography::{self, adjust_font_size, effect::glow};
@@ -12,10 +13,21 @@ const PADDING: Px = px(32.0);
 pub struct GameResultOverlay<'a> {
     pub wh: Wh<Px>,
     pub judge_context: &'a JudgeContext,
+    pub music_id: &'a str,
 }
 impl Component for GameResultOverlay<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self { wh, judge_context } = self;
+        let Self {
+            wh,
+            judge_context,
+            music_id,
+        } = self;
+
+        let (best_score_map, _) = ctx.atom(&MUSIC_BEST_SCORE_MAP_ATOM);
+        let best_score = (*best_score_map)
+            .as_ref()
+            .map(|best_score_map| best_score_map.get(music_id))
+            .unwrap_or(0);
 
         let frame_height = wh.height * 0.5;
         let frame_inner_wh = Wh {
@@ -93,13 +105,17 @@ impl Component for GameResultOverlay<'_> {
             ctx.add(LargeScore {
                 wh: large_score_wh,
                 label: "Best score".to_string(),
-                score: 0,
+                score: best_score,
             })
             .translate((0.px(), side_wh.height - large_score_wh.height))
             .add(LargeScore {
                 wh: large_score_wh,
                 label: "Score".to_string(),
                 score: judge_context.score,
+            })
+            .add(NewRecord {
+                wh: large_score_wh,
+                show: best_score == judge_context.score,
             });
         });
 
@@ -296,6 +312,54 @@ impl Component for LargeScore {
             },
             max_width: None,
         }));
+
+        ctx.done()
+    }
+}
+
+#[component]
+struct NewRecord {
+    wh: Wh<Px>,
+    show: bool,
+}
+impl Component for NewRecord {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { wh, show } = self;
+
+        let height = wh.height / 2;
+
+        ctx.compose(|ctx| {
+            if !show {
+                return;
+            }
+            let text = ctx.ghost_add(
+                None,
+                glow(
+                    "New\nRecord",
+                    Font {
+                        size: typography::adjust_font_size(height / 2),
+                        name: THEME.font_name.to_string(),
+                    },
+                    Xy::new(wh.width, height / 2),
+                    Paint::new(THEME.text),
+                    TextAlign::Center,
+                    TextBaseline::Middle,
+                    Blur::Outer {
+                        sigma: Blur::convert_radius_to_sigma(height.as_f32() * 0.2),
+                    },
+                    0.px(),
+                    THEME.primary.main,
+                ),
+                GhostComposeOption {
+                    enable_event_handling: false,
+                },
+            );
+            let width = text
+                .bounding_box()
+                .map(|bounding_box| bounding_box.width())
+                .unwrap();
+            ctx.translate((-(width / 2), 0.px())).add(text);
+        });
 
         ctx.done()
     }

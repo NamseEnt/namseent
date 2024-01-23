@@ -1,6 +1,7 @@
 use super::{
     music::MusicMetadata,
     note::{Instrument, Note},
+    MUSIC_BEST_SCORE_MAP_ATOM,
 };
 use crate::app::note::load_notes;
 use futures::join;
@@ -142,6 +143,7 @@ pub fn stop_game() {
             loaded,
             play_time_state,
             judge_context,
+            music,
             ..
         } = state
         else {
@@ -151,6 +153,19 @@ pub fn stop_game() {
         loaded.music.stop().unwrap();
         loaded.video.stop().unwrap();
         judge_context.calculate_rank();
+        let score = judge_context.score;
+        let id = music.id.clone();
+        MUSIC_BEST_SCORE_MAP_ATOM.mutate(move |music_best_score_map| {
+            let Some(music_best_score_map) = music_best_score_map else {
+                panic!("music best score map is not loaded");
+            };
+            let best_score = music_best_score_map.get(&id).max(score);
+            music_best_score_map.set(id, best_score);
+            let music_best_score_map = music_best_score_map.clone();
+            namui::spawn(async move {
+                music_best_score_map.save().await;
+            });
+        });
 
         *play_time_state = PlayTimeState::Ended;
     });
@@ -260,6 +275,7 @@ impl JudgeContext {
     }
 
     fn calculate_rank(&mut self) {
+        self.score = self.perfect_count * PERFECT_SCORE + self.good_count * GOOD_SCORE;
         let note_count = self.perfect_count + self.good_count + self.miss_count;
         let max_score = note_count * PERFECT_SCORE;
         let perfection_rate = self.score as f32 / max_score as f32;

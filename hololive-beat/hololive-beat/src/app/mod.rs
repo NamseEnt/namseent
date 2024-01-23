@@ -9,7 +9,10 @@ mod setting_overlay;
 mod theme;
 
 use self::{
-    music::{load_music_metadata, load_music_speed_map, MusicSpeedMap},
+    music::{
+        load_music_best_score_map, load_music_metadata, load_music_speed_map, MusicBestScoreMap,
+        MusicSpeedMap,
+    },
     music_play_page::MusicPlayPage,
     music_select_page::MusicSelectPage,
     play_state::{PlayState, PLAY_STATE_ATOM},
@@ -19,6 +22,7 @@ use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
 pub static MUSIC_SPEED_MAP_ATOM: Atom<Option<MusicSpeedMap>> = Atom::uninitialized_new();
+pub static MUSIC_BEST_SCORE_MAP_ATOM: Atom<Option<MusicBestScoreMap>> = Atom::uninitialized_new();
 
 #[namui::component]
 pub struct App {}
@@ -30,6 +34,8 @@ impl namui::Component for App {
         let _ = ctx.atom_init(&SETTING_OVERLAY_OPEN_ATOM, || false);
         let (play_state, _) = ctx.atom_init(&PLAY_STATE_ATOM, PlayState::default);
         let (music_speed_map, set_music_speed_map) = ctx.atom_init(&MUSIC_SPEED_MAP_ATOM, || None);
+        let (_music_best_score_map, set_music_best_score_map) =
+            ctx.atom_init(&MUSIC_BEST_SCORE_MAP_ATOM, || None);
 
         ctx.effect("load musics", || {
             namui::spawn(async move {
@@ -41,6 +47,12 @@ impl namui::Component for App {
             namui::spawn(async move {
                 let music_speed_map = load_music_speed_map().await;
                 set_music_speed_map.set(Some(music_speed_map));
+            });
+        });
+        ctx.effect("load music best score map", || {
+            namui::spawn(async move {
+                let music_best_score_map = load_music_best_score_map().await;
+                set_music_best_score_map.set(Some(music_best_score_map));
             });
         });
 

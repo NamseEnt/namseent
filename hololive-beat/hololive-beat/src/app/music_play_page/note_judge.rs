@@ -1,7 +1,7 @@
 use super::judge_indicator::indicate_judge;
 use crate::app::{
     note::{Direction, Note},
-    play_state::{PlayState, PlayTimeState, GOOD_SCORE, PERFECT_SCORE, PLAY_STATE_ATOM},
+    play_state::{PlayState, PlayTimeState, PLAY_STATE_ATOM},
 };
 use namui::prelude::*;
 
@@ -127,7 +127,6 @@ impl Component for NoteJudge<'_> {
                                 judge_context.max_combo.max(judge_context.combo);
                             judge_context.judged_note_index.insert(index);
                             judge_context.last_judged_note_index = Some(index);
-                            judge_context.score += PERFECT_SCORE;
                             indicate_judge(super::judge_indicator::Judge::Perfect {
                                 combo: judge_context.combo,
                             });
@@ -149,7 +148,6 @@ impl Component for NoteJudge<'_> {
                         judge_context.max_combo = judge_context.max_combo.max(judge_context.combo);
                         judge_context.judged_note_index.insert(index);
                         judge_context.last_judged_note_index = Some(index);
-                        judge_context.score += GOOD_SCORE;
                         indicate_judge(super::judge_indicator::Judge::Good {
                             combo: judge_context.combo,
                         });
