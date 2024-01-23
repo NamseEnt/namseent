@@ -169,8 +169,7 @@ impl Component for Loaded<'_> {
                 width: NOTE_PLOTTER_HEIGHT * 2,
                 height: NOTE_PLOTTER_HEIGHT,
             };
-            ctx.translate((drummer_wh.width * 1.2, note_plotter_y))
-                .scale(Xy::new(-1.0, 1.0))
+            ctx.translate((drummer_wh.width * 0.2, note_plotter_y))
                 .add(Drummer { wh: drummer_wh });
 
             ctx.translate((DRUMMER_WIDTH + (judge_indicator_wh.width), note_plotter_y))
