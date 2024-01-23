@@ -32,6 +32,7 @@ where
     pub target: Target,
     pub after_first_build: Option<AfterFirstBuild>,
     pub build_status_service: Arc<BuildStatusService>,
+    pub release: bool,
 }
 impl WasmWatchBuildService {
     pub async fn watch_and_build<AfterFirstBuild>(
@@ -60,87 +61,19 @@ impl WasmWatchBuildService {
         wasm_bundle_web_server.add_static_dir("", build_dist_path.clone());
         let rust_build_service = Arc::new(RustBuildService::new());
 
-        pub async fn cancel_and_start_build(
-            wasm_bundle_web_server: Arc<WasmBundleWebServer>,
-            rust_build_service: Arc<RustBuildService>,
-            build_status_service: Arc<BuildStatusService>,
-            build_dist_path: PathBuf,
-            project_root_path: PathBuf,
-            runtime_target_dir: PathBuf,
-            target: Target,
-        ) {
-            debug_println!("build fn run");
-            build_status_service
-                .build_started(BuildStatusCategory::Namui)
-                .await;
-            wasm_bundle_web_server.send_build_start_signal().await;
-            match rust_build_service
-                .cancel_and_start_build(&BuildOption {
-                    target,
-                    dist_path: build_dist_path,
-                    project_root_path: runtime_target_dir,
-                    watch: true,
-                })
-                .await
-            {
-                BuildResult::Canceled => {
-                    debug_println!("build canceled");
-                }
-                BuildResult::Successful(cargo_build_result) => {
-                    let mut cli_error_messages = Vec::new();
-                    let bundle_manifest = crate::services::bundle::NamuiBundleManifest::parse(
-                        project_root_path.clone(),
-                    )
-                    .map_err(|error| error.to_string());
-
-                    if let Err(error) = bundle_manifest.as_ref() {
-                        cli_error_messages.push(format!("fail to get bundle_manifest: {}", error));
-                    }
-
-                    wasm_bundle_web_server
-                        .update_namui_bundle_manifest(bundle_manifest.ok())
-                        .await;
-                    build_status_service
-                        .build_finished(
-                            BuildStatusCategory::Namui,
-                            cargo_build_result.error_messages,
-                            cli_error_messages,
-                        )
-                        .await;
-                    let error_messages = build_status_service.compile_error_messages().await;
-                    let no_error = error_messages.is_empty();
-                    wasm_bundle_web_server
-                        .send_error_messages(error_messages)
-                        .await;
-                    if no_error {
-                        wasm_bundle_web_server.send_reload_signal().await;
-                    };
-                }
-                BuildResult::Failed(err) => {
-                    eprintln!("failed to build: {}", err);
-                    std::process::exit(1);
-                }
-            }
-        }
-
         let first_run = {
-            let wasm_bundle_web_server = wasm_bundle_web_server.clone();
-            let rust_build_service = rust_build_service.clone();
-            let build_status_service = build_status_service.clone();
-            let build_dist_path = build_dist_path.clone();
-            let runtime_target_dir = runtime_target_dir.clone();
-            let project_root_path = project_root_path.clone();
+            let cancel_and_start_build = CancelAndStartBuild {
+                wasm_bundle_web_server: wasm_bundle_web_server.clone(),
+                rust_build_service: rust_build_service.clone(),
+                build_status_service: build_status_service.clone(),
+                build_dist_path: build_dist_path.clone(),
+                project_root_path: project_root_path.clone(),
+                runtime_target_dir: runtime_target_dir.clone(),
+                target: args.target,
+                release: args.release,
+            };
             async move {
-                cancel_and_start_build(
-                    wasm_bundle_web_server.clone(),
-                    rust_build_service.clone(),
-                    build_status_service.clone(),
-                    build_dist_path.clone(),
-                    project_root_path.clone(),
-                    runtime_target_dir.clone(),
-                    args.target,
-                )
-                .await;
+                cancel_and_start_build.run().await;
                 if let Some(after_first_build) = args.after_first_build {
                     (after_first_build)();
                 }
@@ -150,21 +83,19 @@ impl WasmWatchBuildService {
 
         let watch = rust_project_watch_service.watch(project_root_path.join("Cargo.toml"), {
             move || {
-                let wasm_bundle_web_server = wasm_bundle_web_server.clone();
-                let rust_build_service = rust_build_service.clone();
-                let build_status_service = build_status_service.clone();
-                let build_dist_path = build_dist_path.clone();
-                let runtime_target_dir = runtime_target_dir.clone();
-                let project_root_path = project_root_path.clone();
-                tokio::spawn(cancel_and_start_build(
-                    wasm_bundle_web_server,
-                    rust_build_service,
-                    build_status_service,
-                    build_dist_path,
-                    project_root_path,
-                    runtime_target_dir,
-                    args.target,
-                ));
+                tokio::spawn(
+                    CancelAndStartBuild {
+                        wasm_bundle_web_server: wasm_bundle_web_server.clone(),
+                        rust_build_service: rust_build_service.clone(),
+                        build_status_service: build_status_service.clone(),
+                        build_dist_path: build_dist_path.clone(),
+                        project_root_path: project_root_path.clone(),
+                        runtime_target_dir: runtime_target_dir.clone(),
+                        target: args.target,
+                        release: args.release,
+                    }
+                    .run(),
+                );
             }
         });
         try_join!(first_run, watch)?;
@@ -176,6 +107,7 @@ impl WasmWatchBuildService {
         build_status_service: Arc<BuildStatusService>,
         project_root_path: PathBuf,
         target: Target,
+        release: bool,
     ) -> Result<()> {
         let build_dist_path = project_root_path.join("pkg");
         let runtime_target_dir = project_root_path.join("target/namui");
@@ -192,6 +124,7 @@ impl WasmWatchBuildService {
                 dist_path: build_dist_path,
                 project_root_path: runtime_target_dir,
                 watch: false,
+                release,
             })
             .await
         {
@@ -207,6 +140,84 @@ impl WasmWatchBuildService {
             }
             BuildResult::Canceled => unreachable!(),
             BuildResult::Failed(error) => Err(anyhow!("{}", error)),
+        }
+    }
+}
+
+struct CancelAndStartBuild {
+    wasm_bundle_web_server: Arc<WasmBundleWebServer>,
+    rust_build_service: Arc<RustBuildService>,
+    build_status_service: Arc<BuildStatusService>,
+    build_dist_path: PathBuf,
+    project_root_path: PathBuf,
+    runtime_target_dir: PathBuf,
+    target: Target,
+    release: bool,
+}
+
+impl CancelAndStartBuild {
+    async fn run(self) {
+        let Self {
+            wasm_bundle_web_server,
+            rust_build_service,
+            build_status_service,
+            build_dist_path,
+            project_root_path,
+            runtime_target_dir,
+            target,
+            release,
+        } = self;
+        debug_println!("build fn run");
+        build_status_service
+            .build_started(BuildStatusCategory::Namui)
+            .await;
+        wasm_bundle_web_server.send_build_start_signal().await;
+        match rust_build_service
+            .cancel_and_start_build(&BuildOption {
+                target,
+                dist_path: build_dist_path,
+                project_root_path: runtime_target_dir,
+                watch: true,
+                release,
+            })
+            .await
+        {
+            BuildResult::Canceled => {
+                debug_println!("build canceled");
+            }
+            BuildResult::Successful(cargo_build_result) => {
+                let mut cli_error_messages = Vec::new();
+                let bundle_manifest =
+                    crate::services::bundle::NamuiBundleManifest::parse(project_root_path.clone())
+                        .map_err(|error| error.to_string());
+
+                if let Err(error) = bundle_manifest.as_ref() {
+                    cli_error_messages.push(format!("fail to get bundle_manifest: {}", error));
+                }
+
+                wasm_bundle_web_server
+                    .update_namui_bundle_manifest(bundle_manifest.ok())
+                    .await;
+                build_status_service
+                    .build_finished(
+                        BuildStatusCategory::Namui,
+                        cargo_build_result.error_messages,
+                        cli_error_messages,
+                    )
+                    .await;
+                let error_messages = build_status_service.compile_error_messages().await;
+                let no_error = error_messages.is_empty();
+                wasm_bundle_web_server
+                    .send_error_messages(error_messages)
+                    .await;
+                if no_error {
+                    wasm_bundle_web_server.send_reload_signal().await;
+                };
+            }
+            BuildResult::Failed(err) => {
+                eprintln!("failed to build: {}", err);
+                std::process::exit(1);
+            }
         }
     }
 }

@@ -5,7 +5,7 @@ use std::{
     path::Path,
 };
 
-pub fn set_user_config(target: &Target) -> Result<()> {
+pub fn set_user_config(target: Target) -> Result<()> {
     let user_config_path = get_user_config_path()?;
     ensure_user_config_dir(&user_config_path)?;
     let cfg_map: NamuiCfgMap = match target {

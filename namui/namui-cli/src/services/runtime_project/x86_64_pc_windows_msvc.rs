@@ -44,7 +44,9 @@ opt-level = 3
         std::fs::write(
             args.target_dir.join("src/main.rs"),
             format!(
-                r#"fn main() {{
+                r#"#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+fn main() {{
     {project_name_underscored}::main()
 }}
 "#,

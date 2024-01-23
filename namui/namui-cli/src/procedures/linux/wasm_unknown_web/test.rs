@@ -151,7 +151,8 @@ fn get_manifest_path_in_podman(
 }
 
 #[cfg(test)]
-mod tests {
+#[allow(clippy::module_inception, clippy::items_after_test_module)]
+mod test {
     use std::{path::PathBuf, str::FromStr};
 
     use super::get_manifest_path_in_podman;

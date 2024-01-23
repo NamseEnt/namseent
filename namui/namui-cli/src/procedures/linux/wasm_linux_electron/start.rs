@@ -6,7 +6,7 @@ use crate::services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndB
 use crate::*;
 use std::path::Path;
 
-pub async fn start(manifest_path: &Path) -> Result<()> {
+pub async fn start(manifest_path: &Path, release: bool) -> Result<()> {
     const PORT: u16 = 8080;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let build_status_service = BuildStatusService::new();
@@ -31,6 +31,7 @@ pub async fn start(manifest_path: &Path) -> Result<()> {
             )
             .unwrap();
         }),
+        release,
     })
     .await?;
 

@@ -3,7 +3,7 @@ use crate::*;
 use anyhow::Ok;
 use std::path::PathBuf;
 
-pub fn test(target: &Target, manifest_path: &PathBuf) -> Result<()> {
+pub fn test(target: Target, manifest_path: PathBuf) -> Result<()> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
     if cfg!(target_os = "linux") {

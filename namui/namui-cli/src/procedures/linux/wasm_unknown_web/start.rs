@@ -13,7 +13,7 @@ use crate::{
 use std::path::Path;
 use tokio::try_join;
 
-pub async fn start(manifest_path: &Path) -> Result<()> {
+pub async fn start(manifest_path: &Path, release: bool) -> Result<()> {
     const PORT: u16 = 8080;
     let target = Target::WasmUnknownWeb;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
@@ -36,6 +36,7 @@ pub async fn start(manifest_path: &Path) -> Result<()> {
         wasm_bundle_web_server: wasm_bundle_web_server.clone(),
         build_status_service: build_status_service.clone(),
         after_build: None,
+        release,
     });
 
     let main_watch = WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
@@ -48,6 +49,7 @@ pub async fn start(manifest_path: &Path) -> Result<()> {
         after_first_build: Some(move || {
             let _ = webbrowser::open(&wasm_bundle_web_server_url);
         }),
+        release,
     });
 
     try_join!(web_runtime_watch, drawer, main_watch)?;

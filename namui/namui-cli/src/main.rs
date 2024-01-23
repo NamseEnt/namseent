@@ -25,16 +25,16 @@ async fn main() -> Result<()> {
         .join("Cargo.toml");
     let current_target = get_current_target()?;
 
-    match &cli.command {
+    match cli.command {
         Commands::Test {
             target: option_target,
             manifest_path: option_manifest_path,
         } => {
-            let target = option_target.as_ref().unwrap_or(&current_target);
-            let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
+            let target = option_target.unwrap_or(current_target);
+            let manifest_path = option_manifest_path.unwrap_or(manifest_path);
             procedures::test(target, manifest_path)?;
         }
-        Commands::Target { target } => set_user_config(&(*target).into())?,
+        Commands::Target { target } => set_user_config(target.into())?,
         Commands::Print { printable_object } => match printable_object {
             cli::PrintableObject::Cfg => print_namui_cfg()?,
             cli::PrintableObject::Target => print_namui_target()?,
@@ -42,34 +42,36 @@ async fn main() -> Result<()> {
         Commands::Start {
             target: option_target,
             manifest_path: option_manifest_path,
+            release,
         } => {
-            let target = option_target.as_ref().unwrap_or(&current_target);
-            let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
-            procedures::start(target, manifest_path).await?;
+            let target = option_target.unwrap_or(current_target);
+            let manifest_path = option_manifest_path.unwrap_or(manifest_path);
+            procedures::start(target, manifest_path, release).await?;
         }
         Commands::Build {
             target: option_target,
             manifest_path: option_manifest_path,
             arch,
+            release,
         } => {
-            let target = option_target.as_ref().unwrap_or(&current_target);
-            let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
-            procedures::build(target, manifest_path, arch.into()).await?;
+            let target = option_target.unwrap_or(current_target);
+            let manifest_path = option_manifest_path.unwrap_or(manifest_path);
+            procedures::build(target, manifest_path, arch.into(), release).await?;
         }
         Commands::Clippy {
             target: option_target,
             manifest_path: option_manifest_path,
         } => {
-            let target = option_target.as_ref().unwrap_or(&current_target);
-            let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
+            let target = option_target.unwrap_or(current_target);
+            let manifest_path = option_manifest_path.unwrap_or(manifest_path);
             procedures::clippy(target, manifest_path).await?;
         }
         Commands::Check {
             target: option_target,
             manifest_path: option_manifest_path,
         } => {
-            let target = option_target.as_ref().unwrap_or(&current_target);
-            let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
+            let target = option_target.unwrap_or(current_target);
+            let manifest_path = option_manifest_path.unwrap_or(manifest_path);
             procedures::check(target, manifest_path).await?;
         }
     };

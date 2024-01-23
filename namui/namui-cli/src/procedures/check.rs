@@ -3,7 +3,7 @@ use crate::*;
 use std::path::PathBuf;
 use tokio::process::Command;
 
-pub async fn check(target: &Target, manifest_path: &PathBuf) -> Result<()> {
+pub async fn check(target: Target, manifest_path: PathBuf) -> Result<()> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
     match target {
