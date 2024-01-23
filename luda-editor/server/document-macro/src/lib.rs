@@ -189,7 +189,6 @@ pub fn document(
                     TUpdateFuture,
                 > {
                     let pk = #prefixed_pk;
-                    println!("pk: {}", pk);
                     let sk = #prefixed_sk;
                     crate::storage::dynamo_db::TransactUpdateCommand {
                         partition_key_without_prefix: pk,
