@@ -7,6 +7,9 @@ use futures::join;
 use namui::{Atom, Duration, DurationExt, FullLoadOnceAudio, MediaHandle};
 use std::collections::HashSet;
 
+pub const PERFECT_SCORE: usize = 97;
+pub const GOOD_SCORE: usize = 71;
+
 pub static PLAY_STATE_ATOM: Atom<PlayState> = Atom::uninitialized_new();
 
 #[derive(Debug)]
@@ -138,6 +141,7 @@ pub fn stop_game() {
         let PlayState::Loaded {
             loaded,
             play_time_state,
+            judge_context,
             ..
         } = state
         else {
@@ -146,6 +150,7 @@ pub fn stop_game() {
 
         loaded.music.stop().unwrap();
         loaded.video.stop().unwrap();
+        judge_context.calculate_rank();
 
         *play_time_state = PlayTimeState::Ended;
     });
@@ -236,6 +241,8 @@ pub struct JudgeContext {
     pub combo: usize,
     pub last_judged_note_index: Option<usize>,
     pub judged_note_index: HashSet<usize>,
+    pub score: usize,
+    pub rank: Rank,
 }
 impl JudgeContext {
     pub fn new() -> Self {
@@ -247,6 +254,51 @@ impl JudgeContext {
             combo: 0,
             last_judged_note_index: None,
             judged_note_index: HashSet::new(),
+            score: 0,
+            rank: Rank::D,
         }
+    }
+
+    fn calculate_rank(&mut self) {
+        let note_count = self.perfect_count + self.good_count + self.miss_count;
+        let max_score = note_count * PERFECT_SCORE;
+        let perfection_rate = self.score as f32 / max_score as f32;
+        let rank = if perfection_rate >= 0.97 {
+            Rank::S
+        } else if perfection_rate >= 0.9 {
+            Rank::A
+        } else if perfection_rate >= 0.8 {
+            Rank::B
+        } else if perfection_rate >= 0.7 {
+            Rank::C
+        } else if perfection_rate >= 0.6 {
+            Rank::D
+        } else {
+            Rank::F
+        };
+        self.rank = rank;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Rank {
+    S,
+    A,
+    B,
+    C,
+    D,
+    F,
+}
+impl ToString for Rank {
+    fn to_string(&self) -> String {
+        match self {
+            Rank::S => "S",
+            Rank::A => "A",
+            Rank::B => "B",
+            Rank::C => "C",
+            Rank::D => "D",
+            Rank::F => "F",
+        }
+        .to_string()
     }
 }
