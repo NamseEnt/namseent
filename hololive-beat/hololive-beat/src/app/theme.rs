@@ -8,10 +8,11 @@ pub const THEME: Theme = Theme {
     background: Color::grayscale_u8(128),
     primary: ColorVariant {
         main: Color::from_u8(0x5E, 0xDC, 0xEE, 255),
-        dark: Color::from_u8(0x50, 0xbd, 0xcc, 255),
+        dark: Color::from_u8(0x28, 0x5d, 0x66, 255),
         darker: Color::from_u8(0x0e, 0x22, 0x26, 255),
     },
     font_name: "Fontspring-Demo-hemi_head_rg",
+    icon_font_name: "Font Awesome 5 Free-Solid-900",
     text: Color::WHITE,
 };
 
@@ -23,6 +24,7 @@ pub struct Theme {
     pub background: Color,
     pub primary: ColorVariant,
     pub font_name: &'static str,
+    pub icon_font_name: &'static str,
     pub text: Color,
 }
 

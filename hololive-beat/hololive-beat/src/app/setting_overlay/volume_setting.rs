@@ -1,10 +1,6 @@
+use crate::app::{setting_overlay::slider::Slider, theme::THEME};
 use namui::prelude::*;
-use namui_prebuilt::{
-    table::{self, hooks::*},
-    typography::{self, text_fit},
-};
-
-use crate::app::setting_overlay::slider::Slider;
+use namui_prebuilt::{table::hooks::*, typography::adjust_font_size};
 
 #[component]
 pub struct VolumeSetting {
@@ -17,56 +13,48 @@ impl Component for VolumeSetting {
         const SLIDER_HEIGHT: Px = px(32.0);
 
         let volume = namui::media::volume();
-        let padding = wh.height / 16;
+        let padding = wh.height / 8;
 
         ctx.compose(|ctx| {
             vertical([
+                ratio(1, |wh, ctx| {
+                    ctx.add(text(TextParam {
+                        text: "Volume".to_string(),
+                        x: wh.width / 2,
+                        y: wh.height / 2,
+                        align: TextAlign::Center,
+                        baseline: TextBaseline::Middle,
+                        font: Font {
+                            size: adjust_font_size(wh.height),
+                            name: THEME.font_name.to_string(),
+                        },
+                        style: TextStyle {
+                            color: THEME.text,
+                            ..Default::default()
+                        },
+                        max_width: None,
+                    }));
+                }),
                 ratio(
                     1,
-                    table::hooks::padding(padding, |wh, ctx| {
-                        ctx.add(typography::center_text_full_height(
-                            wh,
-                            "Volume",
-                            Color::WHITE,
-                        ));
-                    }),
-                ),
-                ratio(
-                    1,
-                    table::hooks::padding(
-                        padding,
-                        vertical([
-                            ratio(2, |_, _| {}),
-                            fixed(
-                                SLIDER_HEIGHT,
-                                horizontal_padding(padding, |wh, ctx| {
-                                    ctx.add(Slider {
-                                        wh,
-                                        value: volume,
-                                        min: 0.0,
-                                        max: 1.0,
-                                        on_change: &|value| {
-                                            namui::media::set_volume(value);
-                                        },
-                                    });
-                                }),
-                            ),
-                            ratio(1, |_, _| {}),
-                            ratio(2, |wh, ctx| {
-                                horizontal([
-                                    fit(
-                                        FitAlign::LeftTop,
-                                        text_fit(wh.height, "min", Color::WHITE, 0.px()),
-                                    ),
-                                    ratio(1, |_, _| {}),
-                                    fit(
-                                        FitAlign::LeftTop,
-                                        text_fit(wh.height, "max", Color::WHITE, 0.px()),
-                                    ),
-                                ])(wh, ctx);
+                    vertical([
+                        ratio(1, |_, _| {}),
+                        fixed(
+                            SLIDER_HEIGHT,
+                            horizontal_padding(padding, |wh, ctx| {
+                                ctx.add(Slider {
+                                    wh,
+                                    value: volume,
+                                    min: 0.0,
+                                    max: 1.0,
+                                    on_change: &|value| {
+                                        namui::media::set_volume(value);
+                                    },
+                                });
                             }),
-                        ]),
-                    ),
+                        ),
+                        ratio(1, |_, _| {}),
+                    ]),
                 ),
             ])(wh, ctx);
         });

@@ -1,6 +1,15 @@
-use crate::app::note::{Direction, Note};
-use namui::prelude::*;
-use namui_prebuilt::{simple_rect, typography};
+use crate::app::{
+    note::{Direction, Note},
+    theme::THEME,
+};
+use namui::{math::num::traits::Pow, prelude::*, time::since_start};
+use namui_prebuilt::{simple_rect, typography::adjust_font_size};
+
+const NOTE_WIDTH: Px = px(32.0);
+const MARGIN: Px = px(8.0);
+const PAD_WIDTH: Px = px(16.0);
+const ARROW_OFFSET: Px = px(48.0);
+const HEAD_WIDTH: Px = px(4.0);
 
 #[namui::component]
 pub struct NotePlotter<'a> {
@@ -9,7 +18,6 @@ pub struct NotePlotter<'a> {
     pub px_per_time: Per<Px, Duration>,
     pub timing_zero_x: Px,
     pub played_time: Duration,
-    pub note_width: Px,
 }
 
 impl Component for NotePlotter<'_> {
@@ -20,54 +28,46 @@ impl Component for NotePlotter<'_> {
             px_per_time,
             timing_zero_x,
             played_time,
-            note_width,
         } = self;
-        const STROKE_WIDTH: Px = px(8.0);
-        const PAD_WIDTH: Px = px(128.0);
+
+        let (pressed_at, set_pressed_at) = ctx.state(|| [Duration::default(); 4]);
 
         let note_wh = Wh {
-            width: note_width,
-            height: (wh.height - (STROKE_WIDTH * 5)) / 4,
+            width: NOTE_WIDTH,
+            height: (wh.height - (MARGIN * 3)) / 4,
         };
-        let (divider_y_array, baseline_y_array) = {
-            let height = wh.height / 4;
-            let divider_y_array = [height, height * 2, height * 3];
-            let half_stroke = STROKE_WIDTH / 2;
-            let baseline_y_array = [
-                STROKE_WIDTH,
-                half_stroke + divider_y_array[0],
-                half_stroke + divider_y_array[1],
-                half_stroke + divider_y_array[2],
-            ];
-            (divider_y_array, baseline_y_array)
+        let lanes = {
+            let step = note_wh.height + MARGIN;
+            [
+                (0.px(), Direction::Up),
+                (step, Direction::Right),
+                (step * 2, Direction::Left),
+                (step * 3, Direction::Down),
+            ]
         };
-
-        for direction in [
-            Direction::Up,
-            Direction::Right,
-            Direction::Left,
-            Direction::Down,
-        ] {
-            let rect = Rect::from_xy_wh(
-                Xy {
-                    x: STROKE_WIDTH,
-                    y: baseline_y_array[direction.lane()],
-                },
-                Wh::new(PAD_WIDTH, note_wh.height),
-            );
-            ctx.component(Pad { rect, direction });
-        }
 
         ctx.compose(|ctx| {
-            ctx.translate((timing_zero_x, 0.px())).add(simple_rect(
-                Wh {
-                    width: note_width,
-                    height: wh.height,
-                },
-                Color::TRANSPARENT,
-                0.px(),
-                Color::from_u8(255, 255, 255, 128),
-            ));
+            for (y, direction) in lanes {
+                let mut ctx = ctx.translate((0.px(), y));
+
+                ctx.add(Flash {
+                    timing_zero_x,
+                    height: note_wh.height,
+                    color: direction.as_color(),
+                    flashed_at: pressed_at[direction.lane()],
+                });
+
+                ctx.add(NoteHead {
+                    x: timing_zero_x,
+                    height: note_wh.height,
+                    paint: Paint::new(THEME.text.with_alpha(178)),
+                });
+
+                ctx.add(Pad {
+                    height: note_wh.height,
+                    paint: Paint::new(direction.as_color()),
+                });
+            }
         });
 
         ctx.compose(|ctx| {
@@ -84,42 +84,132 @@ impl Component for NotePlotter<'_> {
                 if note_x > wh.width * 2 {
                     break;
                 }
-                let note_y = baseline_y_array[note.direction.lane()];
-                let note_xy = Xy {
-                    x: note_x,
-                    y: note_y,
-                };
-                let note_rect = Rect::from_xy_wh(note_xy, note_wh);
+                let (note_y, _) = lanes[note.direction.lane()];
                 let key = format!("{:?}-{:?}", note.instrument, note.start_time);
-                ctx.add_with_key(
+                ctx.translate((0.px(), note_y)).add_with_key(
                     key,
                     NoteGraphic {
-                        rect: note_rect,
+                        x: note_x,
+                        height: note_wh.height,
                         direction: note.direction,
                     },
                 );
             }
         });
 
-        ctx.component(path(
-            Path::new()
-                .move_to(0.px(), divider_y_array[0])
-                .line_to(wh.width, divider_y_array[0])
-                .move_to(0.px(), divider_y_array[1])
-                .line_to(wh.width, divider_y_array[1])
-                .move_to(0.px(), divider_y_array[2])
-                .line_to(wh.width, divider_y_array[2]),
-            Paint::new(Color::from_u8(255, 255, 255, 128))
-                .set_style(PaintStyle::Stroke)
-                .set_stroke_width(STROKE_WIDTH),
-        ));
+        ctx.compose(|ctx| {
+            for (y, direction) in lanes {
+                let mut ctx = ctx.translate((0.px(), y));
 
-        ctx.component(simple_rect(
-            wh,
-            Color::from_u8(255, 255, 255, 128),
-            STROKE_WIDTH,
-            Color::from_u8(0, 0, 0, 128),
-        ));
+                ctx.add(NoteBody {
+                    x: timing_zero_x,
+                    height: note_wh.height,
+                    paint: Paint::new(THEME.text.with_alpha(76)),
+                });
+
+                ctx.add(Lane {
+                    wh: Wh::new(wh.width, note_wh.height),
+                    arrow_offset: ARROW_OFFSET,
+                    direction,
+                });
+            }
+        });
+
+        ctx.on_raw_event(|event| {
+            let RawEvent::KeyDown { event } = event else {
+                return;
+            };
+            let Ok(direction) = Direction::try_from(event.code) else {
+                return;
+            };
+            set_pressed_at.mutate(move |pressed_at| pressed_at[direction.lane()] = since_start())
+        });
+
+        ctx.done()
+    }
+}
+
+#[component]
+struct Flash {
+    timing_zero_x: Px,
+    height: Px,
+    color: Color,
+    flashed_at: Duration,
+}
+impl Component for Flash {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            timing_zero_x,
+            height,
+            color,
+            flashed_at,
+        } = self;
+
+        ctx.compose(|ctx| {
+            let intensity = {
+                let elapsed = since_start() - flashed_at;
+                calculate_intensity(elapsed)
+            };
+            let Some(intensity) = intensity else {
+                return;
+            };
+            let color = color.brighter(0.2).with_alpha(intensity);
+
+            ctx.add(NoteHead {
+                x: timing_zero_x,
+                height,
+                paint: Paint::new(color)
+                    .set_blend_mode(BlendMode::Plus)
+                    .set_mask_filter(MaskFilter::Blur {
+                        blur: Blur::Outer {
+                            sigma: Blur::convert_sigma_to_radius(16.0),
+                        },
+                    }),
+            });
+            ctx.add(NoteHead {
+                x: timing_zero_x,
+                height,
+                paint: Paint::new(color)
+                    .set_blend_mode(BlendMode::Plus)
+                    .set_mask_filter(MaskFilter::Blur {
+                        blur: Blur::Outer {
+                            sigma: Blur::convert_sigma_to_radius(4.0),
+                        },
+                    }),
+            });
+            ctx.add(NoteHead {
+                x: timing_zero_x,
+                height,
+                paint: Paint::new(color).set_blend_mode(BlendMode::Plus),
+            });
+
+            // TODO lay
+
+            ctx.add(Pad {
+                height,
+                paint: Paint::new(color)
+                    .set_blend_mode(BlendMode::Plus)
+                    .set_mask_filter(MaskFilter::Blur {
+                        blur: Blur::Outer {
+                            sigma: Blur::convert_sigma_to_radius(16.0),
+                        },
+                    }),
+            });
+            ctx.add(Pad {
+                height,
+                paint: Paint::new(color)
+                    .set_blend_mode(BlendMode::Plus)
+                    .set_mask_filter(MaskFilter::Blur {
+                        blur: Blur::Outer {
+                            sigma: Blur::convert_sigma_to_radius(4.0),
+                        },
+                    }),
+            });
+            ctx.add(Pad {
+                height,
+                paint: Paint::new(color).set_blend_mode(BlendMode::Plus),
+            });
+        });
 
         ctx.done()
     }
@@ -127,18 +217,75 @@ impl Component for NotePlotter<'_> {
 
 #[component]
 struct NoteGraphic {
-    rect: Rect<Px>,
+    x: Px,
+    height: Px,
     direction: Direction,
 }
 impl Component for NoteGraphic {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self { rect, direction } = self;
+        let Self {
+            x,
+            height,
+            direction,
+        } = self;
 
-        let note_path = Path::new().add_rect(rect);
+        ctx.component(NoteHead {
+            x,
+            height,
+            paint: Paint::new(THEME.text),
+        });
+        ctx.component(NoteBody {
+            x,
+            height,
+            paint: Paint::new(direction.as_color()),
+        });
+
+        ctx.done()
+    }
+}
+
+#[component]
+struct NoteHead {
+    x: Px,
+    height: Px,
+    paint: Paint,
+}
+impl Component for NoteHead {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { x, height, paint } = self;
 
         ctx.component(path(
-            note_path,
-            Paint::new(direction.as_color()).set_style(PaintStyle::Fill),
+            Path::new().add_rect(Rect::Xywh {
+                x,
+                y: 0.px(),
+                width: HEAD_WIDTH,
+                height,
+            }),
+            paint,
+        ));
+
+        ctx.done()
+    }
+}
+
+#[component]
+struct NoteBody {
+    x: Px,
+    height: Px,
+    paint: Paint,
+}
+impl Component for NoteBody {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { x, height, paint } = self;
+
+        ctx.component(path(
+            Path::new().add_rect(Rect::Xywh {
+                x,
+                y: 0.px(),
+                width: NOTE_WIDTH,
+                height,
+            }),
+            paint,
         ));
 
         ctx.done()
@@ -147,36 +294,97 @@ impl Component for NoteGraphic {
 
 #[component]
 struct Pad {
-    rect: Rect<Px>,
-    direction: Direction,
+    height: Px,
+    paint: Paint,
 }
 impl Component for Pad {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self { rect, direction } = self;
+        let Self { height, paint } = self;
 
-        let text = match direction {
-            Direction::Left => "←",
-            Direction::Up => "↑",
-            Direction::Down => "↓",
-            Direction::Right => "→",
-        }
-        .to_string();
-
-        ctx.compose(|ctx| {
-            ctx.translate(rect.xy())
-                .add(typography::center_text_full_height(
-                    rect.wh(),
-                    text,
-                    Color::WHITE,
-                ))
-                .add(simple_rect(
-                    rect.wh(),
-                    Color::TRANSPARENT,
-                    0.px(),
-                    direction.as_color(),
-                ));
-        });
+        ctx.component(path(
+            Path::new().add_rect(Rect::Xywh {
+                x: 0.px(),
+                y: 0.px(),
+                width: PAD_WIDTH,
+                height,
+            }),
+            paint,
+        ));
 
         ctx.done()
     }
+}
+
+#[component]
+struct Lane {
+    wh: Wh<Px>,
+    arrow_offset: Px,
+    direction: Direction,
+}
+impl Component for Lane {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            wh,
+            arrow_offset,
+            direction,
+        } = self;
+
+        let text = match direction {
+            // https://fontawesome.com/v5/icons/arrow-left?f=classic&s=solid
+            Direction::Left => "",
+            // https://fontawesome.com/v5/icons/arrow-up?f=classic&s=solid
+            Direction::Up => "",
+            // https://fontawesome.com/v5/icons/arrow-down?f=classic&s=solid
+            Direction::Down => "",
+            // https://fontawesome.com/v5/icons/arrow-right?f=classic&s=solid
+            Direction::Right => "",
+        }
+        .to_string();
+
+        ctx.component(namui::text(TextParam {
+            text,
+            x: arrow_offset,
+            y: wh.height / 2,
+            align: TextAlign::Center,
+            baseline: TextBaseline::Middle,
+            font: Font {
+                size: adjust_font_size(wh.height),
+                name: THEME.icon_font_name.to_string(),
+            },
+            style: TextStyle {
+                color: THEME.text.with_alpha(216),
+                ..Default::default()
+            },
+            max_width: None,
+        }));
+
+        ctx.component(simple_rect(
+            wh,
+            Color::TRANSPARENT,
+            0.px(),
+            Color::BLACK.with_alpha(178),
+        ));
+
+        ctx.done()
+    }
+}
+
+fn calculate_intensity(duration: Duration) -> Option<u8> {
+    const T1: f32 = 0.9;
+    const T2: f32 = 0.95;
+
+    let animation_duration = 0.3.sec();
+    if duration > animation_duration {
+        return None;
+    }
+    let progress = (duration / animation_duration).clamp(0.0, 1.0);
+    if progress >= 1.0 {
+        return None;
+    }
+    let reverse_progress = 1.0 - progress;
+    let time_function = T1 * (3.0_f32 * reverse_progress.pow(2) * progress)
+        + T2 * (3.0 * reverse_progress * progress.pow(2))
+        + progress.pow(3);
+    let alpha = (255.0_f32 * (1.0_f32 - time_function)) as u8;
+    Some(alpha)
 }

@@ -139,7 +139,6 @@ impl Component for Loaded<'_> {
         } = &loaded_data;
 
         const NOTE_PLOTTER_HEIGHT: Px = px(256.0);
-        const NOTE_WIDTH: Px = px(64.0);
         const TIMING_ZERO_X: Px = px(192.0);
         const DRUMMER_WIDTH: Px = px(384.0);
         let perfect_range: Duration = Duration::from_millis(64);
@@ -170,17 +169,14 @@ impl Component for Loaded<'_> {
                 width: NOTE_PLOTTER_HEIGHT * 2,
                 height: NOTE_PLOTTER_HEIGHT,
             };
-            ctx.translate((drummer_wh.width, note_plotter_y))
+            ctx.translate((drummer_wh.width * 1.2, note_plotter_y))
                 .scale(Xy::new(-1.0, 1.0))
                 .add(Drummer { wh: drummer_wh });
 
-            ctx.translate((
-                DRUMMER_WIDTH + note_plotter_wh.width - judge_indicator_wh.width,
-                note_plotter_y,
-            ))
-            .add(JudgeIndicator {
-                wh: judge_indicator_wh,
-            });
+            ctx.translate((DRUMMER_WIDTH + (judge_indicator_wh.width), note_plotter_y))
+                .add(JudgeIndicator {
+                    wh: judge_indicator_wh,
+                });
 
             ctx.translate((DRUMMER_WIDTH, note_plotter_y))
                 .add(NotePlotter {
@@ -189,7 +185,6 @@ impl Component for Loaded<'_> {
                     px_per_time,
                     timing_zero_x: TIMING_ZERO_X,
                     played_time,
-                    note_width: NOTE_WIDTH,
                 });
 
             ctx.add(VideoPlayer {

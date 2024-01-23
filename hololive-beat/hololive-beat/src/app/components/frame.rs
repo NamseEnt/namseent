@@ -1,0 +1,36 @@
+use crate::app::theme::THEME;
+use namui::prelude::*;
+
+#[component]
+pub struct DarkFrame {
+    pub wh: Wh<Px>,
+}
+impl Component for DarkFrame {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { wh } = self;
+
+        ctx.component(path(
+            Path::new().add_rect(Rect::zero_wh(wh)),
+            Paint::new(THEME.primary.dark).set_blend_mode(BlendMode::Multiply),
+        ));
+
+        ctx.done()
+    }
+}
+
+#[component]
+pub struct LightFrame {
+    pub wh: Wh<Px>,
+}
+impl Component for LightFrame {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { wh } = self;
+
+        ctx.component(path(
+            Path::new().add_rect(Rect::zero_wh(wh)),
+            Paint::new(THEME.primary.main.with_alpha(25)).set_blend_mode(BlendMode::Screen),
+        ));
+
+        ctx.done()
+    }
+}

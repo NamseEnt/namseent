@@ -1,7 +1,9 @@
+use crate::app::theme::THEME;
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
-const THUMB_WIDTH: Px = px(32.0);
+const THUMB_WIDTH: Px = px(16.0);
+const MARGIN: Px = px(4.0);
 
 #[component]
 pub struct Slider<'a> {
@@ -26,6 +28,7 @@ impl Component for Slider<'_> {
             let value = f32::clamp(value, min, max);
             (value - min) / (max - min)
         };
+        let body_height = wh.height - (MARGIN * 2);
 
         let x = (wh.width - THUMB_WIDTH) * progress;
         ctx.component(rect(RectParam {
@@ -37,54 +40,46 @@ impl Component for Slider<'_> {
             },
             style: RectStyle {
                 stroke: None,
-                fill: Some(RectFill {
-                    color: Color::WHITE,
-                }),
-                round: Some(RectRound {
-                    radius: wh.height / 3,
-                }),
+                fill: Some(RectFill { color: THEME.text }),
+                round: None,
             },
         }));
 
         ctx.component(rect(RectParam {
             rect: Rect::Xywh {
                 x: 0.px(),
-                y: wh.height / 4,
+                y: MARGIN,
                 width: wh.width * progress,
-                height: wh.height / 2,
+                height: body_height,
             },
             style: RectStyle {
                 stroke: None,
                 fill: Some(RectFill {
-                    color: Color::WHITE,
+                    color: THEME.primary.main,
                 }),
-                round: Some(RectRound {
-                    radius: wh.height / 3,
-                }),
+                round: None,
             },
         }));
 
         ctx.component(rect(RectParam {
             rect: Rect::Xywh {
                 x: 0.px(),
-                y: wh.height / 4,
+                y: MARGIN,
                 width: wh.width,
-                height: wh.height / 2,
+                height: body_height,
             },
             style: RectStyle {
                 stroke: None,
                 fill: Some(RectFill {
-                    color: Color::WHITE,
+                    color: THEME.primary.dark,
                 }),
-                round: Some(RectRound {
-                    radius: wh.height / 3,
-                }),
+                round: None,
             },
         }));
 
         ctx.component(
-            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
-                match event {
+            simple_rect(wh, Color::TRANSPARENT, 0.px(), THEME.primary.darker).attach_event(
+                |event| match event {
                     Event::MouseDown { event }
                     | Event::MouseMove { event }
                     | Event::MouseUp { event } => {
@@ -104,8 +99,8 @@ impl Component for Slider<'_> {
                         on_change(max * progress);
                     }
                     _ => {}
-                }
-            }),
+                },
+            ),
         );
 
         ctx.done()

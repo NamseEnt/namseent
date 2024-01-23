@@ -1,11 +1,11 @@
 use crate::app::{
+    components::{Backdrop, DarkFrame, FilledButton, LightFrame},
     music::{MusicSpeedMap, Speed, SPEEDS},
+    theme::THEME,
     MUSIC_SPEED_MAP_ATOM,
 };
 use namui::prelude::*;
-use namui_prebuilt::{simple_rect, table::hooks::*, typography};
-
-const ROUND: Px = px(8.0);
+use namui_prebuilt::{table::hooks::*, typography::adjust_font_size};
 
 #[component]
 pub struct SpeedDropdown<'a> {
@@ -73,40 +73,52 @@ impl Component for SpeedDropdownButton {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh, speed } = self;
         ctx.compose(|ctx| {
-            let mut ctx = ctx.clip(
-                Path::new().add_rrect(Rect::zero_wh(wh), ROUND, ROUND),
-                ClipOp::Intersect,
-            );
-
             horizontal([
                 ratio(1, |wh, ctx| {
-                    ctx.add(typography::center_text(
-                        wh,
-                        speed
+                    ctx.add(text(TextParam {
+                        text: speed
                             .map(|speed| speed.to_string())
                             .unwrap_or("?".to_string()),
-                        Color::WHITE,
-                        typography::adjust_font_size(wh.height),
-                    ));
+                        x: wh.width / 2,
+                        y: wh.height / 2,
+                        align: TextAlign::Center,
+                        baseline: TextBaseline::Middle,
+                        font: Font {
+                            size: adjust_font_size(wh.height),
+                            name: THEME.font_name.to_string(),
+                        },
+                        style: TextStyle {
+                            color: THEME.text.with_alpha(216),
+                            ..Default::default()
+                        },
+                        max_width: None,
+                    }));
                 }),
-                fixed(36.px(), |wh, ctx| {
-                    ctx.add(typography::center_text(wh, "▼", Color::WHITE, 36.int_px()));
-                    ctx.add(simple_rect(
-                        wh,
-                        Color::TRANSPARENT,
-                        0.px(),
-                        Color::grayscale_u8(128),
-                    ));
+                fixed(56.px(), |wh, ctx| {
+                    ctx.add(text(TextParam {
+                        // https://fontawesome.com/v5/icons/angle-down?f=classic&s=solid
+                        text: "".to_string(),
+                        x: wh.width / 2,
+                        y: wh.height / 2,
+                        align: TextAlign::Center,
+                        baseline: TextBaseline::Middle,
+                        font: Font {
+                            size: adjust_font_size(wh.height),
+                            name: THEME.icon_font_name.to_string(),
+                        },
+                        style: TextStyle {
+                            color: THEME.text.with_alpha(216),
+                            ..Default::default()
+                        },
+                        max_width: None,
+                    }));
+                    ctx.add(LightFrame { wh });
                 }),
-            ])(wh, &mut ctx);
-
-            ctx.add(simple_rect(
-                wh,
-                Color::TRANSPARENT,
-                0.px(),
-                Color::from_u8(0, 0, 0, 128),
-            ));
+            ])(wh, ctx);
         });
+
+        ctx.component(LightFrame { wh });
+
         ctx.done()
     }
 }
@@ -123,58 +135,45 @@ impl Component for SpeedDropdownContent<'_> {
         ctx.compose(|ctx| {
             let content = ctx.ghost_compose(None, |ctx| {
                 vertical(SPEEDS.map(|speed| {
-                    fixed(item_wh.height, move |wh, ctx| {
-                        ctx.add(typography::center_text(
-                            wh,
-                            speed.to_string(),
-                            Color::WHITE,
-                            typography::adjust_font_size(wh.height),
-                        ));
-                        ctx.add(
-                            simple_rect(
+                    fixed(
+                        item_wh.height,
+                        padding(4.px(), move |wh, ctx| {
+                            ctx.add(FilledButton {
                                 wh,
-                                Color::TRANSPARENT,
-                                0.px(),
-                                Color::from_u8(0, 0, 0, 128),
-                            )
-                            .attach_event(|event| {
-                                let Event::MouseDown { event } = event else {
-                                    return;
-                                };
-                                if !event.is_local_xy_in() {
-                                    return;
-                                }
-                                let Some(music_id) = music_id else {
-                                    return;
-                                };
-
-                                let music_id = music_id.to_string();
-                                MUSIC_SPEED_MAP_ATOM.mutate(move |music_speed_map| {
-                                    let Some(music_speed_map) = music_speed_map else {
+                                text: speed.to_string(),
+                                on_click: &|| {
+                                    let Some(music_id) = music_id else {
                                         return;
                                     };
-                                    music_speed_map.set(music_id, speed);
-                                    let music_speed_map = music_speed_map.clone();
-                                    namui::spawn(async move {
-                                        music_speed_map.save().await;
+
+                                    let music_id = music_id.to_string();
+                                    MUSIC_SPEED_MAP_ATOM.mutate(move |music_speed_map| {
+                                        let Some(music_speed_map) = music_speed_map else {
+                                            return;
+                                        };
+                                        music_speed_map.set(music_id, speed);
+                                        let music_speed_map = music_speed_map.clone();
+                                        namui::spawn(async move {
+                                            music_speed_map.save().await;
+                                        });
                                     });
-                                });
-                            }),
-                        );
-                    })
+                                },
+                            });
+                        }),
+                    )
                 }))(item_wh, ctx);
             });
 
             let content_height = content.bounding_box().unwrap_or_default().height();
-            ctx.clip(
-                Path::new().add_rrect(
-                    Rect::zero_wh(Wh::new(item_wh.width, content_height)),
-                    ROUND,
-                    ROUND,
-                ),
-                ClipOp::Intersect,
-            )
-            .add(content);
+            ctx.add(content);
+
+            ctx.add(DarkFrame {
+                wh: Wh::new(item_wh.width, content_height),
+            });
+
+            ctx.add(Backdrop {
+                wh: Wh::new(item_wh.width, content_height),
+            });
         });
 
         ctx.done()

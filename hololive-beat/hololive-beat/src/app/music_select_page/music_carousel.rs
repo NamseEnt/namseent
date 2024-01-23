@@ -1,9 +1,9 @@
-use crate::app::music::MusicMetadata;
-use namui::prelude::*;
-use namui_prebuilt::{
-    table::hooks::*,
-    typography::{self, adjust_font_size},
+use crate::app::{
+    components::{IconButton, TextButton},
+    music::MusicMetadata,
 };
+use namui::prelude::*;
+use namui_prebuilt::table::hooks::*;
 
 #[component]
 pub struct MusicCarousel<'a> {
@@ -41,37 +41,26 @@ impl Component for MusicCarousel<'_> {
             let center_x = wh.width / 2;
             let side_y = wh.height - music_card_center.height;
             (
-                Xy::new(center_x - (music_card_center.width * 1.5), side_y),
+                Xy::new(center_x - (music_card_wh.width * 1.25), side_y),
                 Xy::new(center_x, music_card_center.height),
-                Xy::new(center_x + (music_card_center.width * 1.5), side_y),
+                Xy::new(center_x + (music_card_wh.width * 1.25), side_y),
             )
         };
 
         ctx.compose(|ctx| {
-            let text = ctx.ghost_add(
-                None,
-                typography::text_fit(
-                    adjust_font_size(96.px()).into_px(),
-                    "start",
-                    Color::WHITE,
-                    8.px(),
-                ),
-                GhostComposeOption {
-                    enable_event_handling: false,
-                },
-            );
-            let text_rect = text.bounding_box().unwrap();
-            let text_center = text_rect.center();
-
-            ctx.translate((wh.width / 2, wh.height))
-                .translate(text_center * -1)
-                .add(text)
+            ctx.translate((wh.width / 2, wh.height - 64.px()))
+                .translate(((-128).px(), 0.px()))
+                .add(TextButton {
+                    wh: Wh::new(256.px(), 128.px()),
+                    text: "start".to_string(),
+                    on_click: &|| {},
+                })
                 .add(image(ImageParam {
                     rect: Rect::Xywh {
-                        x: text_rect.width(),
-                        y: 0.px(),
-                        width: text_rect.height(),
-                        height: text_rect.height(),
+                        x: 256.px(),
+                        y: 32.px(),
+                        width: 64.px(),
+                        height: 64.px(),
                     },
                     source: ImageSource::Url {
                         url: Url::parse("bundle:ui/enter.png").unwrap(),
@@ -185,8 +174,8 @@ impl Component for ArrowButton {
         let Self { wh, left } = self;
 
         const ARROW_WH: Wh<Px> = Wh {
-            width: px(128.0),
-            height: px(96.0),
+            width: px(192.0),
+            height: px(192.0),
         };
 
         let rect = Rect::Xywh {
@@ -200,21 +189,15 @@ impl Component for ArrowButton {
             height: ARROW_WH.height,
         };
 
-        ctx.component(image(ImageParam {
-            rect,
-            source: ImageSource::Url {
-                url: Url::parse(if left {
-                    "bundle:ui/left_arrow.png"
-                } else {
-                    "bundle:ui/right_arrow.png"
-                })
-                .unwrap(),
-            },
-            style: ImageStyle {
-                fit: ImageFit::Contain,
-                paint: None,
-            },
-        }));
+        ctx.compose(|ctx| {
+            ctx.translate(rect.xy()).add(IconButton {
+                wh: rect.wh(),
+                // https://fontawesome.com/v5/icons/angle-double-left?f=classic&s=solid
+                // https://fontawesome.com/v5/icons/angle-double-right?f=classic&s=solid
+                text: if left { "" } else { "" }.to_string(),
+                on_click: &|| {},
+            });
+        });
 
         ctx.done()
     }
