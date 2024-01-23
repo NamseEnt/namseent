@@ -1,6 +1,6 @@
 use crate::app::{
     components::{Backdrop, FilledButton},
-    play_state::{restart_game, JudgeContext, PlayState, PLAY_STATE_ATOM},
+    play_state::{restart_game, JudgeContext, PlayState, Rank, PLAY_STATE_ATOM},
     theme::THEME,
 };
 use namui::prelude::*;
@@ -86,8 +86,7 @@ impl Component for GameResultOverlay<'_> {
             let mut ctx = ctx.translate((side_wh.width, 0.px()));
             ctx.add(RankText {
                 wh: center_wh,
-                // TODO
-                text: "S".to_string(),
+                rank: judge_context.rank,
             });
 
             let mut ctx = ctx.translate((center_wh.width, 0.px()));
@@ -100,7 +99,7 @@ impl Component for GameResultOverlay<'_> {
             .add(LargeScore {
                 wh: large_score_wh,
                 label: "Score".to_string(),
-                score: 0,
+                score: judge_context.score,
             });
         });
 
@@ -224,14 +223,14 @@ impl Component for SmallScore {
 #[component]
 struct RankText {
     wh: Wh<Px>,
-    text: String,
+    rank: Rank,
 }
 impl Component for RankText {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self { wh, text } = self;
+        let Self { wh, rank } = self;
 
         ctx.component(namui::text(TextParam {
-            text,
+            text: rank.to_string(),
             x: wh.width / 2,
             y: wh.height / 2,
             align: TextAlign::Center,
