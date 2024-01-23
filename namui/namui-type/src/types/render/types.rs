@@ -14,6 +14,12 @@ pub struct FontMetrics {
     pub leading: Px,
 }
 
+impl FontMetrics {
+    pub fn height(&self) -> Px {
+        -self.ascent + self.descent
+    }
+}
+
 #[type_derives(Copy, Default, Hash, Eq)]
 pub struct Color {
     pub r: u8,
