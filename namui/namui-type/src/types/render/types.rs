@@ -110,7 +110,7 @@ impl Color {
         Self::from_hsl01(Hsl01 {
             hue,
             saturation: num::clamp(saturation - value, 0.0, 1.0),
-            lightness: num::clamp(lightness - value, 0.0, 1.0),
+            lightness: num::clamp(lightness + value, 0.0, 1.0),
             alpha,
         })
     }
