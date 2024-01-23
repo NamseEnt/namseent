@@ -10,6 +10,12 @@ pub enum Shader {
         src: Box<Shader>,
         dest: Box<Shader>,
     },
+    LinearGradient {
+        start_xy: Xy<Px>,
+        end_xy: Xy<Px>,
+        colors: Vec<Color>,
+        tile_mode: TileMode,
+    },
 }
 
 impl Shader {
