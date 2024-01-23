@@ -6,7 +6,6 @@ mod note_plotter;
 mod video_player;
 
 use self::game_ender::GameEnder;
-
 use super::play_state::{JudgeContext, LoadedData, PlayState, PlayTimeState, PLAY_STATE_ATOM};
 use crate::app::{
     drummer::Drummer,
@@ -54,6 +53,7 @@ impl Component for MusicPlayPage {
                 loaded,
                 play_time_state,
                 judge_context,
+                music,
                 ..
             } => {
                 ctx.add(Loaded {
@@ -62,6 +62,7 @@ impl Component for MusicPlayPage {
                     loaded_data: loaded,
                     play_time_state,
                     judge_context,
+                    music_id: &music.id,
                 });
             }
         });
@@ -101,6 +102,7 @@ struct Loaded<'a> {
     loaded_data: &'a LoadedData,
     play_time_state: &'a PlayTimeState,
     judge_context: &'a JudgeContext,
+    music_id: &'a str,
 }
 impl Component for Loaded<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
@@ -110,6 +112,7 @@ impl Component for Loaded<'_> {
             loaded_data,
             play_time_state,
             judge_context,
+            music_id,
         } = self;
         let LoadedData {
             notes,
@@ -130,7 +133,11 @@ impl Component for Loaded<'_> {
             if !matches!(play_time_state, PlayTimeState::Ended) {
                 return;
             }
-            ctx.add(GameResultOverlay { wh, judge_context });
+            ctx.add(GameResultOverlay {
+                wh,
+                judge_context,
+                music_id,
+            });
         });
 
         ctx.compose(|ctx| {
