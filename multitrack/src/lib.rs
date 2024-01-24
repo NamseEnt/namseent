@@ -7,7 +7,7 @@ use namui::{
     prelude::{media::audio::RawAudio, *},
 };
 use namui_prebuilt::*;
-use std::sync::Arc;
+use std::{io::BufRead, sync::Arc};
 use track::Track;
 
 pub fn main() {
@@ -43,11 +43,17 @@ enum PlaybackState {
     },
 }
 
+#[derive(Debug, Clone)]
+struct TrackData {
+    audio: PtrEqArc<RawAudio>,
+    notes: PtrEqArc<Vec<Duration>>,
+}
+
 impl Component for App {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let screen_wh: Wh<Px> = namui::screen::size().into_type();
         const SAMPLE_RATE: u32 = 44100;
-        let (tracks, set_tracks) = ctx.state::<Option<Vec<PtrEqArc<RawAudio>>>>(|| None);
+        let (tracks, set_tracks) = ctx.state::<Option<Vec<TrackData>>>(|| None);
         let (window_size, set_window_size) = ctx.state(|| SAMPLE_RATE as usize);
         let (screen_left_sample_index, set_screen_left_sample_index) = ctx.state(|| 0_usize);
         let (action_state, set_action_state) = ctx.state(|| ActionState::None);
@@ -55,27 +61,65 @@ impl Component for App {
 
         let range = *screen_left_sample_index..(*screen_left_sample_index + *window_size);
 
-        ctx.effect("load raw audio", || {
+        ctx.effect("load audios and notes", || {
             namui::spawn(async move {
-                let futures =
-                    ["no_drums", "cymbals", "toms", "snare", "kick"].map(|file_name| async move {
+                let [no_drums, audio_futures @ ..] =
+                    ["no_drums", "cymbals", "toms", "snare", "kick"].map(|file_name| {
                         RawAudio::load(
-                            &namui::system::file::bundle::to_real_path(format!(
+                            namui::system::file::bundle::to_real_path(format!(
                                 "bundle:resources/{file_name}.opus"
                             ))
                             .unwrap(),
                             Some(SAMPLE_RATE),
                         )
-                        .await
-                        .unwrap()
                     });
-                let tracks = namui::join_all(futures)
+
+                let notes_futures = ["cymbals", "toms", "snare", "kick"].map(|file_name| {
+                    namui::file::bundle::read(format!("bundle:resources/{file_name}.txt"))
+                });
+
+                let no_drum_audio = no_drums.await.unwrap();
+
+                let audios = namui::join_all(audio_futures)
                     .await
                     .into_iter()
-                    .map(PtrEqArc::new)
+                    .collect::<Result<Vec<_>>>()
+                    .unwrap();
+
+                let notes = namui::join_all(notes_futures)
+                    .await
+                    .into_iter()
+                    .map(|notes| {
+                        notes
+                            .unwrap()
+                            .lines()
+                            .map_while(Result::ok)
+                            .filter(|line| !line.is_empty())
+                            .map(|line| {
+                                let time = line.parse::<f32>().unwrap();
+                                Duration::from_secs_f32(time)
+                            })
+                            .collect::<Vec<_>>()
+                    })
                     .collect::<Vec<_>>();
 
-                set_window_size.set(tracks[0].channels[0].len());
+                let tracks = [TrackData {
+                    audio: PtrEqArc::new(no_drum_audio),
+                    notes: PtrEqArc::new(vec![]),
+                }]
+                .into_iter()
+                .chain(
+                    audios
+                        .into_iter()
+                        .zip(notes)
+                        .map(|(audio, notes)| TrackData {
+                            audio: PtrEqArc::new(audio),
+                            notes: PtrEqArc::new(notes),
+                        }),
+                )
+                .collect::<Vec<_>>();
+
+                set_window_size.set(tracks[0].audio.channels[0].len());
                 set_tracks.set(Some(tracks));
             });
         });
@@ -120,10 +164,10 @@ impl Component for App {
                 let audios = tracks
                     .iter()
                     .map(|track| {
-                        track.slice(
+                        track.audio.slice(
                             Duration::from_secs_f32(start_cursor as f32 / SAMPLE_RATE as f32)
                                 ..Duration::from_secs_f32(
-                                    track.sample_count() as f32 / SAMPLE_RATE as f32,
+                                    track.audio.sample_count() as f32 / SAMPLE_RATE as f32,
                                 ),
                         )
                     })
@@ -134,13 +178,13 @@ impl Component for App {
 
             let move_and_mix =
                 |from_track_index: usize, to_track_index: usize, range: std::ops::Range<usize>| {
-                    let mut from_track = (*tracks[from_track_index]).clone();
-                    let mut to_track = (*tracks[to_track_index]).clone();
+                    let mut from_track_audio = (*tracks[from_track_index].audio).clone();
+                    let mut to_track_audio = (*tracks[to_track_index].audio).clone();
 
-                    from_track
+                    from_track_audio
                         .channels
                         .iter_mut()
-                        .zip(to_track.channels.iter_mut())
+                        .zip(to_track_audio.channels.iter_mut())
                         .for_each(|(from_channel, to_channel)| {
                             let mut from_channel_vec = from_channel.to_vec();
                             let mut to_channel_vec = to_channel.to_vec();
@@ -165,12 +209,12 @@ impl Component for App {
                         });
 
                     let mut tracks = tracks.clone();
-                    tracks[from_track_index] = PtrEqArc::new(from_track);
-                    tracks[to_track_index] = PtrEqArc::new(to_track);
+                    tracks[from_track_index].audio = PtrEqArc::new(from_track_audio);
+                    tracks[to_track_index].audio = PtrEqArc::new(to_track_audio);
                     set_tracks.set(Some(tracks));
                 };
 
-            let audio_length = tracks[0].channels[0].len();
+            let audio_length = tracks[0].audio.channels[0].len();
 
             let sample_index_on_x = |x: Px| {
                 let cursor_x_ratio = x / screen_wh.width;
@@ -198,8 +242,9 @@ impl Component for App {
                             ctx.add(
                                 Track {
                                     wh,
-                                    audio: tracks[track_index].clone(),
+                                    audio: tracks[track_index].audio.clone(),
                                     visual_range: range,
+                                    notes: tracks[track_index].notes.clone(),
                                     selection_range: match action_state.as_ref() {
                                         ActionState::None => None,
                                         &ActionState::Dragging {

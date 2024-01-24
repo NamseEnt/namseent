@@ -20,7 +20,7 @@ impl std::fmt::Debug for RawAudio {
 }
 
 impl RawAudio {
-    pub async fn load(path: &impl AsRef<Path>, sample_rate: Option<u32>) -> Result<Self> {
+    pub async fn load(path: impl AsRef<Path>, sample_rate: Option<u32>) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
         let (channels, output_config) = tokio::task::spawn_blocking(move || -> Result<_> {
             let mut input_ctx = ffmpeg_next::format::input(&path)?;

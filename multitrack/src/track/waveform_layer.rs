@@ -1,22 +1,19 @@
 use crate::PtrEqArc;
 use namui::{media::audio::RawAudio, prelude::*};
-use namui_prebuilt::simple_rect;
 
 #[namui::component]
-pub struct Track {
+pub struct WaveformLayer {
     pub wh: Wh<Px>,
     pub audio: PtrEqArc<RawAudio>,
     pub visual_range: std::ops::Range<usize>,
-    pub selection_range: Option<std::ops::Range<usize>>,
 }
 
-impl Component for Track {
+impl Component for WaveformLayer {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             audio,
             visual_range,
-            selection_range,
         } = self;
 
         let (waveform_path, set_waveform_path) = ctx.state(Path::new);
@@ -69,37 +66,6 @@ impl Component for Track {
             Paint::new(Color::RED)
                 .set_style(PaintStyle::Stroke)
                 .set_stroke_width(1.px()),
-        ));
-
-        ctx.component(selection_range.as_ref().map(|selection_range| {
-            let left_sample_index = selection_range.start.max(visual_range.start);
-            let right_sample_index = selection_range.end.min(visual_range.end);
-
-            let left_x = wh.width
-                * ((left_sample_index.saturating_sub(visual_range.start)) as f32
-                    / visual_range.len() as f32);
-            let width_px = (wh.width
-                * ((right_sample_index.saturating_sub(left_sample_index)) as f32
-                    / visual_range.len() as f32))
-                .min(wh.width);
-
-            namui::translate(
-                left_x,
-                0.px(),
-                simple_rect(
-                    Wh::new(width_px, wh.height),
-                    Color::from_u8(134, 74, 249, 255),
-                    1.px(),
-                    Color::from_u8(134, 74, 249, 255),
-                ),
-            )
-        }));
-
-        ctx.component(simple_rect(
-            *wh,
-            Color::grayscale_f01(0.6),
-            1.px(),
-            Color::grayscale_f01(0.5),
         ));
 
         ctx.done()
