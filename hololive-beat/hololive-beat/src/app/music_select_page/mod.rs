@@ -109,7 +109,7 @@ impl Component for Decoration {
             let width = wh.width * 0.4;
             let height = width * 2 / 3;
             Rect::Xywh {
-                x: 0.px(),
+                x: wh.width - width,
                 y: wh.height - height,
                 width,
                 height,
@@ -132,8 +132,7 @@ impl Component for Decoration {
             },
         }));
         ctx.compose(|ctx| {
-            ctx.translate((wh.width, wh.height - drummer_wh.height))
-                .scale(Xy::new(-1.0, 1.0))
+            ctx.translate((0.px(), wh.height - (drummer_wh.height * 0.75)))
                 .add(Drummer { wh: drummer_wh });
         });
 
