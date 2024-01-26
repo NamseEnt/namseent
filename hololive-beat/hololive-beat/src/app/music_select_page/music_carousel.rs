@@ -1,9 +1,10 @@
 use crate::app::{
     components::{IconButton, TextButton},
     music::MusicMetadata,
+    theme::THEME,
 };
 use namui::prelude::*;
-use namui_prebuilt::table::hooks::*;
+use namui_prebuilt::{table::hooks::*, typography::adjust_font_size};
 
 #[component]
 pub struct MusicCarousel<'a> {
@@ -55,21 +56,10 @@ impl Component for MusicCarousel<'_> {
                     text: "start".to_string(),
                     on_click: &|| {},
                 })
-                .add(image(ImageParam {
-                    rect: Rect::Xywh {
-                        x: 256.px(),
-                        y: 32.px(),
-                        width: 64.px(),
-                        height: 64.px(),
-                    },
-                    source: ImageSource::Url {
-                        url: Url::parse("bundle:ui/enter.png").unwrap(),
-                    },
-                    style: ImageStyle {
-                        fit: ImageFit::Contain,
-                        paint: None,
-                    },
-                }));
+                .translate((256.px(), 32.px()))
+                .add(EnterIcon {
+                    wh: Wh::new(64.px(), 64.px()),
+                });
         });
 
         ctx.compose(|ctx| {
@@ -198,6 +188,53 @@ impl Component for ArrowButton {
                 on_click: &|| {},
             });
         });
+
+        ctx.done()
+    }
+}
+
+#[component]
+struct EnterIcon {
+    pub wh: Wh<Px>,
+}
+impl Component for EnterIcon {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { wh } = self;
+
+        ctx.compose(|ctx| {
+            ctx.translate((wh.width / 2, wh.height * 0.75))
+                .rotate(Angle::Degree(90.0))
+                .add(TextDrawCommand {
+                    // https://fontawesome.com/v5/icons/level-down-alt?f=classic&s=solid
+                    text: "".to_string(),
+                    font: Font {
+                        size: adjust_font_size(wh.height),
+                        name: THEME.icon_font_name.to_string(),
+                    },
+                    x: 0.px(),
+                    y: 0.px(),
+                    paint: Paint::new(THEME.text),
+                    align: TextAlign::Center,
+                    baseline: TextBaseline::Middle,
+                    max_width: None,
+                    line_height_percent: 100.percent(),
+                    underline: None,
+                });
+        });
+
+        ctx.component(path(
+            Path::new()
+                .move_to(1.0.px(), 0.0.px())
+                .line_to(1.0.px(), 1.0.px())
+                .line_to(0.0.px(), 1.0.px())
+                .line_to(0.0.px(), 0.625.px())
+                .line_to(0.25.px(), 0.625.px())
+                .line_to(0.25.px(), 0.625.px())
+                .line_to(0.25.px(), 0.0.px())
+                .close()
+                .scale(wh.width.as_f32(), wh.height.as_f32()),
+            Paint::new(THEME.text.with_alpha(128)),
+        ));
 
         ctx.done()
     }
