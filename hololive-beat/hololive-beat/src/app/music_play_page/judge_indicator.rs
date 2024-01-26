@@ -20,7 +20,7 @@ impl Component for JudgeIndicator {
             else {
                 return;
             };
-            ctx.translate(wh.as_xy() / 2.0)
+            ctx.translate((wh.width / 3, wh.height / 2))
                 .scale(scale)
                 .add(typography::effect::glow(
                     recent_judge.to_string(),
