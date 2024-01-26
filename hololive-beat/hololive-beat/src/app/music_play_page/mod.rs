@@ -170,8 +170,13 @@ impl Component for Loaded<'_> {
                 width: NOTE_PLOTTER_HEIGHT * 2,
                 height: NOTE_PLOTTER_HEIGHT,
             };
-            ctx.translate((drummer_wh.width * 0.2, note_plotter_y))
-                .add(Drummer { wh: drummer_wh });
+            ctx.translate((
+                -(drummer_wh.height * 0.375),
+                note_plotter_y - (drummer_wh.height * 0.375),
+            ))
+            .add(Drummer {
+                wh: drummer_wh * 1.5,
+            });
 
             ctx.translate((DRUMMER_WIDTH + (judge_indicator_wh.width), note_plotter_y))
                 .add(JudgeIndicator {

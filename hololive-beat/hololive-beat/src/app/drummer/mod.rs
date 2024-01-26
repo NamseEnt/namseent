@@ -36,7 +36,7 @@ impl Component for Drummer {
         } else {
             Wh::new(wh.width, wh.height / RATIO)
         };
-        let image_offset = Xy::new(image_wh.width / -2, image_wh.height * -1);
+        let image_offset = Xy::new(image_wh.width / -2, 16.px() - image_wh.height);
 
         ctx.compose(|ctx| {
             let Some(Ok(drum)) = drum.as_ref() else {
