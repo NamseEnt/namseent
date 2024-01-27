@@ -190,6 +190,7 @@ impl Component for Loaded<'_> {
                     px_per_time,
                     timing_zero_x: TIMING_ZERO_X,
                     played_time,
+                    judge_context,
                 });
 
             ctx.add(VideoPlayer {

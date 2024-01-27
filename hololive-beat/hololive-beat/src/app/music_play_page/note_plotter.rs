@@ -1,9 +1,15 @@
 use crate::app::{
     note::{Direction, Note},
+    play_state::JudgeContext,
     theme::THEME,
 };
 use namui::{math::num::traits::Pow, prelude::*, time::since_start};
 use namui_prebuilt::{simple_rect, typography::adjust_font_size};
+use rand::Rng;
+use std::collections::VecDeque;
+
+static PARRY_EFFECT_REQUEST: Atom<VecDeque<ParryEffectRequest>> = Atom::uninitialized_new();
+static PARRY_EFFECT_PARTICLES: Atom<VecDeque<ParryEffectParticle>> = Atom::uninitialized_new();
 
 const NOTE_WIDTH: Px = px(32.0);
 const MARGIN: Px = px(8.0);
@@ -19,6 +25,7 @@ pub struct NotePlotter<'a> {
     pub px_per_time: Per<Px, Duration>,
     pub timing_zero_x: Px,
     pub played_time: Duration,
+    pub judge_context: &'a JudgeContext,
 }
 
 impl Component for NotePlotter<'_> {
@@ -29,8 +36,12 @@ impl Component for NotePlotter<'_> {
             px_per_time,
             timing_zero_x,
             played_time,
+            judge_context,
         } = self;
 
+        let (_particles, set_particles) = ctx.atom_init(&PARRY_EFFECT_PARTICLES, VecDeque::new);
+        let (parry_effect_requests, set_parry_effect_requests) =
+            ctx.atom_init(&PARRY_EFFECT_REQUEST, VecDeque::new);
         let (pressed_at, set_pressed_at) = ctx.state(|| [Duration::default(); 4]);
 
         let note_wh = Wh {
@@ -46,6 +57,27 @@ impl Component for NotePlotter<'_> {
                 (step * 3, Direction::Down),
             ]
         };
+
+        ctx.effect("Emit parry effects", move || {
+            let parry_effect_requests = parry_effect_requests.as_ref();
+            if parry_effect_requests.is_empty() {
+                return;
+            }
+            let new_particles = parry_effect_requests
+                .iter()
+                .flat_map(|request| {
+                    let (baseline_y, _) = lanes[request.note_direction.lane()];
+                    request.to_particles(px_per_time, note_wh, baseline_y)
+                })
+                .collect::<Vec<_>>();
+
+            set_parry_effect_requests.mutate(|parry_effect_requests| parry_effect_requests.clear());
+            set_particles.mutate(move |particles| {
+                particles.extend(new_particles);
+            });
+        });
+
+        ctx.component(ParryEffect { timing_zero_x });
 
         ctx.compose(|ctx| {
             for (y, direction) in lanes {
@@ -77,13 +109,16 @@ impl Component for NotePlotter<'_> {
                 ClipOp::Intersect,
             );
 
-            for note in notes {
+            for (index, note) in notes.iter().enumerate() {
                 let note_x = (px_per_time * (note.start_time - played_time)) + timing_zero_x;
                 if note_x < -wh.width {
                     continue;
                 }
                 if note_x > wh.width * 2 {
                     break;
+                }
+                if judge_context.judged_note_index.contains(&index) {
+                    continue;
                 }
                 let (note_y, _) = lanes[note.direction.lane()];
                 let key = format!("{:?}-{:?}", note.instrument, note.start_time);
@@ -418,4 +453,162 @@ fn calculate_intensity(duration: Duration) -> Option<u8> {
         + progress.pow(3);
     let alpha = (255.0_f32 * (1.0_f32 - time_function)) as u8;
     Some(alpha)
+}
+
+#[derive(Debug)]
+struct ParryEffectRequest {
+    time_from_zero_line: Duration,
+    note_direction: Direction,
+}
+impl ParryEffectRequest {
+    pub fn to_particles(
+        &self,
+        px_per_time: Per<Px, Duration>,
+        note_wh: Wh<Px>,
+        baseline_y: Px,
+    ) -> Vec<ParryEffectParticle> {
+        let duration_min: Duration = 333.ms();
+        let duration_range: Duration = 333.ms();
+        let dest_min: Xy<Px> = Xy {
+            x: 32.px(),
+            y: -(64.px()),
+        };
+        let dest_range: Xy<Px> = Xy {
+            x: 256.px(),
+            y: 128.px(),
+        };
+        let size_min: f32 = 0.5;
+        let size_range: f32 = 0.5;
+        let rotation_min: Angle = Angle::Degree(-1440.0);
+        let rotation_range: Angle = Angle::Degree(2880.0);
+
+        (0..5)
+            .map(|_| ParryEffectParticle {
+                start_at: since_start(),
+                duration: duration_min + duration_range * rand::thread_rng().gen_range(0.0..1.0),
+                start_xy: Xy {
+                    x: px_per_time * self.time_from_zero_line,
+                    y: baseline_y + note_wh.height / 2,
+                },
+                delta_xy: dest_min + dest_range * rand::thread_rng().gen_range(0.0..1.0),
+                start_rotation: rotation_min
+                    + rotation_range * rand::thread_rng().gen_range(0.0..1.0),
+                delta_rotation: rotation_range * rand::thread_rng().gen_range(0.0..1.0),
+                size: size_min + size_range * rand::thread_rng().gen_range(0.0..1.0),
+                color: self.note_direction.as_color(),
+            })
+            .collect()
+    }
+}
+
+pub fn request_emit_parry_effect(time_from_zero_line: Duration, note_direction: Direction) {
+    PARRY_EFFECT_REQUEST.mutate(move |requests| {
+        requests.push_back(ParryEffectRequest {
+            time_from_zero_line,
+            note_direction,
+        });
+    });
+}
+
+#[component]
+struct ParryEffect {
+    pub timing_zero_x: Px,
+}
+impl Component for ParryEffect {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { timing_zero_x } = self;
+
+        let (particles, set_particles) = ctx.atom(&PARRY_EFFECT_PARTICLES);
+
+        ctx.on_raw_event(|event| {
+            let RawEvent::ScreenRedraw { .. } = event else {
+                return;
+            };
+            set_particles.mutate(|particles| {
+                let now = since_start();
+                while let Some(particle) = particles.front() {
+                    if particle.duration < now - particle.start_at {
+                        particles.pop_front();
+                    } else {
+                        break;
+                    }
+                }
+            });
+        });
+
+        ctx.compose(|ctx| {
+            let mut ctx = ctx.translate((timing_zero_x, 0.px()));
+
+            for particle in particles.iter() {
+                let elapsed = since_start() - particle.start_at;
+                let progress = time_function(elapsed, particle.duration);
+                let xy = particle.start_xy + particle.delta_xy * progress;
+                let rotation = particle.start_rotation + particle.delta_rotation * progress;
+                let size = particle.size * (1.0 - progress);
+                let alpha = (((1.0 - progress).pow(2) * 255.0_f32) as f32).clamp(0.0, 255.0) as u8;
+                let color = particle.color.with_alpha(alpha);
+
+                let mut ctx = ctx.translate(xy).rotate(rotation).scale(Xy::single(size));
+                for paint in [
+                    Paint::new(color).set_blend_mode(BlendMode::Plus),
+                    Paint::new(color)
+                        .set_blend_mode(BlendMode::Plus)
+                        .set_mask_filter(MaskFilter::Blur {
+                            blur: Blur::Outer {
+                                sigma: Blur::convert_sigma_to_radius(4.0),
+                            },
+                        }),
+                    Paint::new(color)
+                        .set_blend_mode(BlendMode::Plus)
+                        .set_mask_filter(MaskFilter::Blur {
+                            blur: Blur::Outer {
+                                sigma: Blur::convert_sigma_to_radius(16.0),
+                            },
+                        }),
+                ] {
+                    ctx.add(TextDrawCommand {
+                        // https://fontawesome.com/v5/icons/star?f=classic&s=solid
+                        text: "".to_string(),
+                        font: Font {
+                            size: 32.int_px(),
+                            name: THEME.icon_font_name.to_string(),
+                        },
+                        x: 0.px(),
+                        y: 0.px(),
+                        paint,
+                        align: TextAlign::Center,
+                        baseline: TextBaseline::Middle,
+                        max_width: None,
+                        line_height_percent: 100.percent(),
+                        underline: None,
+                    });
+                }
+            }
+        });
+
+        ctx.done()
+    }
+}
+
+#[derive(Debug)]
+struct ParryEffectParticle {
+    start_at: Duration,
+    duration: Duration,
+    start_xy: Xy<Px>,
+    delta_xy: Xy<Px>,
+    start_rotation: Angle,
+    delta_rotation: Angle,
+    size: f32,
+    color: Color,
+}
+
+fn time_function(elapsed: Duration, duration: Duration) -> f32 {
+    const T1: f32 = 0.9995;
+    const T2: f32 = 0.99995;
+
+    let progress = elapsed / duration;
+    let reverse_progress = 1.0 - progress;
+    T1 * (3.0_f32 * reverse_progress.pow(2) * progress)
+        + T2 * (3.0 * reverse_progress * progress.pow(2))
+        + progress.pow(3)
 }

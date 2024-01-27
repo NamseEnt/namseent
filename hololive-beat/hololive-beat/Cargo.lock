@@ -1104,6 +1104,7 @@ dependencies = [
  "futures",
  "namui",
  "namui-prebuilt",
+ "rand",
  "serde",
  "serde_yaml",
 ]
