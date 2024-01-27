@@ -118,7 +118,7 @@ impl Component for Decoration {
 
         let drummer_wh = {
             let width = wh.width * 0.6;
-            Wh::new(width, width * 0.5)
+            Wh::new(width, width * 0.7)
         };
 
         ctx.component(image(ImageParam {
