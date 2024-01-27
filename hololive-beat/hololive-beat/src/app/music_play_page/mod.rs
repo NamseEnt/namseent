@@ -141,7 +141,7 @@ impl Component for Loaded<'_> {
 
         const NOTE_PLOTTER_HEIGHT: Px = px(256.0);
         const TIMING_ZERO_X: Px = px(192.0);
-        const DRUMMER_WIDTH: Px = px(384.0);
+        const DRUMMER_WIDTH: Px = px(448.0);
         let perfect_range: Duration = Duration::from_millis(64);
         let good_range: Duration = 256.0.ms();
 
