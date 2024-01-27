@@ -1,4 +1,4 @@
-use super::judge_indicator::indicate_judge;
+use super::{judge_indicator::indicate_judge, note_plotter::request_emit_parry_effect};
 use crate::app::{
     note::{Direction, Note},
     play_state::{PlayState, PlayTimeState, PLAY_STATE_ATOM},
@@ -104,12 +104,14 @@ impl Component for NoteJudge<'_> {
                         continue;
                     }
 
-                    let time_diff = (played_time - note.start_time).abs();
+                    let time_offset = note.start_time - played_time;
+                    let time_diff = time_offset.abs();
                     if time_diff > good_range {
                         continue;
                     }
 
                     note_sounds.get(index).cloned().unwrap().play().unwrap();
+                    request_emit_parry_effect(time_offset, note.direction);
 
                     if time_diff <= perfect_range {
                         set_state.mutate(move |state| {

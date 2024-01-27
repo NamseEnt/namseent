@@ -10,6 +10,7 @@ targets = ["x86_64-pc-windows-msvc"]
 futures = "0.3.29"
 namui = { path = "../../namui/namui" }
 namui-prebuilt = { path = "../../namui/namui-prebuilt" }
+rand = "0.8.5"
 serde = { version = "1.0.195", features = ["derive"] }
 serde_yaml = "0.9.30"
 
