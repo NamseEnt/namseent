@@ -13,7 +13,7 @@ pub struct FullLoadOnceAudio {
 impl FullLoadOnceAudio {
     pub(crate) async fn new(
         audio_context: Arc<AudioContext>,
-        path: &impl AsRef<Path>,
+        path: impl AsRef<Path>,
     ) -> Result<Self> {
         let output_config = audio_context.output_config;
         let path = path.as_ref().to_path_buf();
