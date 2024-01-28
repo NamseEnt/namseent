@@ -1,11 +1,15 @@
 use super::{
     music::MusicMetadata,
     note::{Instrument, Note},
+    MUSIC_BEST_SCORE_MAP_ATOM,
 };
 use crate::app::note::load_notes;
 use futures::join;
-use namui::{Atom, Duration, FullLoadOnceAudio, MediaHandle};
+use namui::{Atom, Duration, DurationExt, FullLoadOnceAudio, MediaHandle};
 use std::collections::HashSet;
+
+pub const PERFECT_SCORE: usize = 97;
+pub const GOOD_SCORE: usize = 71;
 
 pub static PLAY_STATE_ATOM: Atom<PlayState> = Atom::uninitialized_new();
 
@@ -138,6 +142,8 @@ pub fn stop_game() {
         let PlayState::Loaded {
             loaded,
             play_time_state,
+            judge_context,
+            music,
             ..
         } = state
         else {
@@ -146,8 +152,48 @@ pub fn stop_game() {
 
         loaded.music.stop().unwrap();
         loaded.video.stop().unwrap();
+        judge_context.calculate_rank();
+        let score = judge_context.score;
+        let id = music.id.clone();
+        MUSIC_BEST_SCORE_MAP_ATOM.mutate(move |music_best_score_map| {
+            let Some(music_best_score_map) = music_best_score_map else {
+                panic!("music best score map is not loaded");
+            };
+            let best_score = music_best_score_map.get(&id).max(score);
+            music_best_score_map.set(id, best_score);
+            let music_best_score_map = music_best_score_map.clone();
+            namui::spawn(async move {
+                music_best_score_map.save().await;
+            });
+        });
 
         *play_time_state = PlayTimeState::Ended;
+    });
+}
+
+pub fn restart_game() {
+    PLAY_STATE_ATOM.mutate(move |state| {
+        let PlayState::Loaded {
+            loaded,
+            judge_context,
+            play_time_state,
+            ..
+        } = state
+        else {
+            namui::log!("play state is not loaded");
+            return;
+        };
+
+        loaded.music.seek_to(0.sec()).unwrap();
+        loaded.video.seek_to(0.sec()).unwrap();
+        loaded.music.play().unwrap();
+        loaded.video.play().unwrap();
+
+        *judge_context = JudgeContext::new();
+        *play_time_state = PlayTimeState::Playing {
+            started_time: namui::time::since_start(),
+            played_time: Duration::from_secs(0),
+        };
     });
 }
 
@@ -210,6 +256,8 @@ pub struct JudgeContext {
     pub combo: usize,
     pub last_judged_note_index: Option<usize>,
     pub judged_note_index: HashSet<usize>,
+    pub score: usize,
+    pub rank: Rank,
 }
 impl JudgeContext {
     pub fn new() -> Self {
@@ -221,6 +269,52 @@ impl JudgeContext {
             combo: 0,
             last_judged_note_index: None,
             judged_note_index: HashSet::new(),
+            score: 0,
+            rank: Rank::D,
         }
+    }
+
+    fn calculate_rank(&mut self) {
+        self.score = self.perfect_count * PERFECT_SCORE + self.good_count * GOOD_SCORE;
+        let note_count = self.perfect_count + self.good_count + self.miss_count;
+        let max_score = note_count * PERFECT_SCORE;
+        let perfection_rate = self.score as f32 / max_score as f32;
+        let rank = if perfection_rate >= 0.97 {
+            Rank::S
+        } else if perfection_rate >= 0.9 {
+            Rank::A
+        } else if perfection_rate >= 0.8 {
+            Rank::B
+        } else if perfection_rate >= 0.7 {
+            Rank::C
+        } else if perfection_rate >= 0.6 {
+            Rank::D
+        } else {
+            Rank::F
+        };
+        self.rank = rank;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Rank {
+    S,
+    A,
+    B,
+    C,
+    D,
+    F,
+}
+impl ToString for Rank {
+    fn to_string(&self) -> String {
+        match self {
+            Rank::S => "S",
+            Rank::A => "A",
+            Rank::B => "B",
+            Rank::C => "C",
+            Rank::D => "D",
+            Rank::F => "F",
+        }
+        .to_string()
     }
 }

@@ -2,9 +2,10 @@ mod slider;
 mod volume_setting;
 
 use self::volume_setting::VolumeSetting;
-use super::play_state::resume_game;
+use super::{components::Backdrop, play_state::resume_game};
+use crate::app::components::FilledButton;
 use namui::{prelude::*, time::since_start};
-use namui_prebuilt::{button::TextButtonFit, simple_rect, table::hooks::*};
+use namui_prebuilt::table::hooks::*;
 
 pub static SETTING_OVERLAY_OPEN_ATOM: Atom<bool> = Atom::uninitialized_new();
 
@@ -41,27 +42,18 @@ impl Component for Opened {
 
         ctx.compose(|ctx| {
             vertical([
+                ratio(1, |_, _| {}),
                 ratio(3, |wh, ctx| {
                     ctx.add(VolumeSetting { wh });
                 }),
                 ratio(2, |wh, ctx| {
-                    ctx.add(Buttons {
-                        wh,
-                        on_click: &|_| {
-                            close_setting_overlay();
-                            resume_game(now);
-                        },
-                    });
+                    ctx.add(Buttons { wh, now });
                 }),
+                ratio(1, |_, _| {}),
             ])(wh, ctx);
         });
 
-        ctx.component(simple_rect(
-            wh,
-            Color::TRANSPARENT,
-            0.px(),
-            Color::from_u8(0, 0, 0, 128),
-        ));
+        ctx.component(Backdrop { wh });
 
         ctx.done()
     }
@@ -76,35 +68,34 @@ pub fn close_setting_overlay() {
 }
 
 #[component]
-struct Buttons<'a> {
+struct Buttons {
     wh: Wh<Px>,
-    on_click: &'a dyn Fn(MouseEvent),
+    now: Duration,
 }
-impl Component for Buttons<'_> {
+impl Component for Buttons {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self { wh, on_click } = self;
-        const BUTTON_HEIGHT: Px = px(160.0);
-        const PADDING: Px = px(16.0);
+        let Self { wh, now } = self;
+        const BUTTON_WH: Wh<Px> = Wh {
+            width: px(192.0),
+            height: px(96.0),
+        };
 
         ctx.compose(|ctx| {
             vertical([
                 ratio(1, |_, _| {}),
                 fixed(
-                    BUTTON_HEIGHT,
+                    BUTTON_WH.height,
                     horizontal([
                         ratio(1, |_, _| {}),
                         fit(
                             FitAlign::CenterMiddle,
-                            TextButtonFit {
-                                height: BUTTON_HEIGHT,
-                                text: "Ok",
-                                text_color: Color::BLACK,
-                                stroke_color: Color::TRANSPARENT,
-                                stroke_width: 0.px(),
-                                fill_color: Color::grayscale_u8(128),
-                                side_padding: PADDING,
-                                mouse_buttons: [MouseButton::Left].to_vec(),
-                                on_mouse_up_in: &on_click,
+                            FilledButton {
+                                wh: BUTTON_WH,
+                                text: "Ok".to_string(),
+                                on_click: &|| {
+                                    close_setting_overlay();
+                                    resume_game(now);
+                                },
                             },
                         ),
                         ratio(1, |_, _| {}),
