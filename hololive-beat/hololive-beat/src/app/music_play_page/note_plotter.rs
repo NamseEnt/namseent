@@ -3,6 +3,10 @@ use crate::app::{
     play_state::JudgeContext,
     theme::THEME,
 };
+use keyframe::{
+    ease,
+    functions::{EaseOutQuart, EaseOutQuint},
+};
 use namui::{math::num::traits::Pow, prelude::*, time::since_start};
 use namui_prebuilt::{simple_rect, typography::adjust_font_size};
 use rand::Rng;
@@ -436,9 +440,6 @@ impl Component for Lay {
 }
 
 fn calculate_intensity(duration: Duration) -> Option<u8> {
-    const T1: f32 = 0.9;
-    const T2: f32 = 0.95;
-
     let animation_duration = 0.3.sec();
     if duration > animation_duration {
         return None;
@@ -447,11 +448,8 @@ fn calculate_intensity(duration: Duration) -> Option<u8> {
     if progress >= 1.0 {
         return None;
     }
-    let reverse_progress = 1.0 - progress;
-    let time_function = T1 * (3.0_f32 * reverse_progress.pow(2) * progress)
-        + T2 * (3.0 * reverse_progress * progress.pow(2))
-        + progress.pow(3);
-    let alpha = (255.0_f32 * (1.0_f32 - time_function)) as u8;
+    let time_function = ease(EaseOutQuart, 1.0, 0.0, progress);
+    let alpha = (255.0_f32 * (time_function)) as u8;
     Some(alpha)
 }
 
@@ -603,12 +601,6 @@ struct ParryEffectParticle {
 }
 
 fn time_function(elapsed: Duration, duration: Duration) -> f32 {
-    const T1: f32 = 0.9995;
-    const T2: f32 = 0.99995;
-
     let progress = elapsed / duration;
-    let reverse_progress = 1.0 - progress;
-    T1 * (3.0_f32 * reverse_progress.pow(2) * progress)
-        + T2 * (3.0 * reverse_progress * progress.pow(2))
-        + progress.pow(3)
+    ease(EaseOutQuint, 0.0, 1.0, progress)
 }
