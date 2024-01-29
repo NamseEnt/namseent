@@ -75,29 +75,44 @@ struct Buttons {
 impl Component for Buttons {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh, now } = self;
+
         const BUTTON_WH: Wh<Px> = Wh {
             width: px(192.0),
             height: px(96.0),
         };
 
+        let (ok_button_focused, set_ok_button_focused) = ctx.state(|| false);
+
         ctx.compose(|ctx| {
             vertical([
-                ratio(1, |_, _| {}),
-                fixed(
+                ratio_no_clip(1, |_, _| {}),
+                fixed_no_clip(
                     BUTTON_WH.height,
                     horizontal([
-                        ratio(1, |_, _| {}),
-                        fit(
-                            FitAlign::CenterMiddle,
-                            FilledButton {
-                                wh: BUTTON_WH,
-                                text: "Ok".to_string(),
-                                on_click: &|| {
-                                    close_setting_overlay();
-                                    resume_game(now);
-                                },
-                            },
-                        ),
+                        ratio_no_clip(1, |_, _| {}),
+                        fixed_no_clip(BUTTON_WH.width, |_, ctx| {
+                            ctx.add(
+                                FilledButton {
+                                    wh: BUTTON_WH,
+                                    text: "Ok".to_string(),
+                                    on_click: &|| {
+                                        close_setting_overlay();
+                                        resume_game(now);
+                                    },
+                                    focused: *ok_button_focused,
+                                }
+                                .attach_event(|event| {
+                                    let Event::MouseMove { event } = event else {
+                                        return;
+                                    };
+                                    let should_focus = event.is_local_xy_in();
+                                    if *ok_button_focused == should_focus {
+                                        return;
+                                    }
+                                    set_ok_button_focused.set(should_focus);
+                                }),
+                            );
+                        }),
                         ratio(1, |_, _| {}),
                     ]),
                 ),

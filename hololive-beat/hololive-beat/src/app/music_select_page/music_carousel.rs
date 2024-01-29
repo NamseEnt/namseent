@@ -4,7 +4,7 @@ use crate::app::{
     theme::THEME,
 };
 use namui::prelude::*;
-use namui_prebuilt::{table::hooks::*, typography::adjust_font_size};
+use namui_prebuilt::{simple_rect, table::hooks::*, typography::adjust_font_size};
 
 #[component]
 pub struct MusicCarousel<'a> {
@@ -55,6 +55,7 @@ impl Component for MusicCarousel<'_> {
                     wh: Wh::new(256.px(), 128.px()),
                     text: "start".to_string(),
                     on_click: &|| {},
+                    focused: true,
                 })
                 .translate((256.px(), 32.px()))
                 .add(EnterIcon {
@@ -64,16 +65,16 @@ impl Component for MusicCarousel<'_> {
 
         ctx.compose(|ctx| {
             horizontal([
-                ratio(
+                ratio_no_clip(
                     1,
-                    padding(PADDING, |wh, ctx| {
+                    padding_no_clip(PADDING, |wh, ctx| {
                         ctx.add(ArrowButton { wh, left: true });
                     }),
                 ),
-                fixed(music_card_wh.width, |_, _| {}),
-                ratio(
+                fixed_no_clip(music_card_wh.width, |_, _| {}),
+                ratio_no_clip(
                     1,
-                    padding(PADDING, |wh, ctx| {
+                    padding_no_clip(PADDING, |wh, ctx| {
                         ctx.add(ArrowButton { wh, left: false });
                     }),
                 ),
@@ -168,6 +169,8 @@ impl Component for ArrowButton {
             height: px(192.0),
         };
 
+        let (mouse_hover, set_mouse_hover) = ctx.state(|| false);
+
         let rect = Rect::Xywh {
             x: if left {
                 wh.width - ARROW_WH.width
@@ -186,8 +189,22 @@ impl Component for ArrowButton {
                 // https://fontawesome.com/v5/icons/angle-double-right?f=classic&s=solid
                 text: if left { "" } else { "" }.to_string(),
                 on_click: &|| {},
+                focused: *mouse_hover,
             });
         });
+
+        ctx.component(
+            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
+                let Event::MouseMove { event } = event else {
+                    return;
+                };
+                let hovering = event.is_local_xy_in();
+                if *mouse_hover == hovering {
+                    return;
+                }
+                set_mouse_hover.set(hovering);
+            }),
+        );
 
         ctx.done()
     }

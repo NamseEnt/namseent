@@ -133,6 +133,7 @@ impl Component for GameResultOverlay<'_> {
                     on_click: &|| {
                         PLAY_STATE_ATOM.set(PlayState::Idle);
                     },
+                    focused: false,
                 });
 
             ctx.translate((256.px(), 0.px())).add(FilledButton {
@@ -141,6 +142,7 @@ impl Component for GameResultOverlay<'_> {
                 on_click: &|| {
                     restart_game();
                 },
+                focused: false,
             });
         });
 

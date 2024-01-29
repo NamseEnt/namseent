@@ -6,7 +6,7 @@ use crate::app::{
     theme::THEME,
 };
 use namui::prelude::*;
-use namui_prebuilt::{table::hooks::*, typography};
+use namui_prebuilt::{simple_rect, table::hooks::*, typography};
 
 #[component]
 pub struct TopBar<'a> {
@@ -53,7 +53,7 @@ impl Component for TopBar<'_> {
         };
 
         ctx.compose(|ctx| {
-            padding(PADDING, |wh, ctx| {
+            padding_no_clip(PADDING, |wh, ctx| {
                 horizontal([
                     ratio(1, |wh, ctx| {
                         let font = Font {
@@ -131,14 +131,14 @@ impl Component for TopBar<'_> {
                             left += width + TITLE_PADDING;
                         }
                     }),
-                    fixed(240.px(), |wh, ctx| {
+                    fixed_no_clip(240.px(), |wh, ctx| {
                         ctx.add(SpeedDropdown {
                             wh,
                             music_id: music.map(|music| music.id.as_str()),
                             music_speed_map,
                         });
                     }),
-                    fixed(160.px(), |wh, ctx| {
+                    fixed_no_clip(160.px(), |wh, ctx| {
                         ctx.add(SettingButton { wh });
                     }),
                 ])(wh, ctx);
@@ -159,6 +159,8 @@ impl Component for SettingButton {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh } = self;
 
+        let (mouse_hover, set_mouse_hover) = ctx.state(|| false);
+
         ctx.component(components::IconButton {
             wh,
             // https://fontawesome.com/v5/icons/cog?f=classic&s=solid
@@ -166,7 +168,21 @@ impl Component for SettingButton {
             on_click: &|| {
                 open_setting_overlay();
             },
+            focused: *mouse_hover,
         });
+
+        ctx.component(
+            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
+                let Event::MouseMove { event } = event else {
+                    return;
+                };
+                let hovering = event.is_local_xy_in();
+                if *mouse_hover == hovering {
+                    return;
+                }
+                set_mouse_hover.set(hovering);
+            }),
+        );
 
         ctx.done()
     }
