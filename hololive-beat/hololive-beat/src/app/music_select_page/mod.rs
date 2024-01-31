@@ -7,6 +7,7 @@ use super::{
     drummer::Drummer,
     music::{MusicMetadata, MusicSpeedMap},
     play_state::start_game,
+    setting_overlay::open_setting_overlay,
 };
 use namui::prelude::*;
 use namui_prebuilt::{simple_rect, table::hooks::*};
@@ -84,13 +85,18 @@ impl Component for MusicSelectPage<'_> {
             let RawEvent::KeyDown { event } = event else {
                 return;
             };
-            if !matches!(event.code, Code::Enter) {
-                return;
+            match event.code {
+                Code::Escape => {
+                    open_setting_overlay();
+                }
+                Code::Enter => {
+                    let Some(music) = selected_music else {
+                        return;
+                    };
+                    start_game(music);
+                }
+                _ => {}
             }
-            let Some(music) = selected_music else {
-                return;
-            };
-            start_game(music);
         });
 
         ctx.done()
