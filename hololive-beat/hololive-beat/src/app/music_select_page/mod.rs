@@ -28,8 +28,24 @@ impl Component for MusicSelectPage<'_> {
         } = self;
 
         let (selected, _) = ctx.state(|| 0);
+        let (snare, set_snare) = ctx.state(|| None);
+        let (cymbals, set_cymbals) = ctx.state(|| None);
 
         let selected_music = musics.get(*selected);
+
+        ctx.effect("load ui audio", || {
+            let snare = namui::system::media::new_media(
+                &namui::system::file::bundle::to_real_path("bundle:ui/audio/snare.mp3").unwrap(),
+            )
+            .unwrap();
+            set_snare.set(Some(snare));
+
+            let cymbals = namui::system::media::new_media(
+                &namui::system::file::bundle::to_real_path("bundle:ui/audio/cymbals.mp3").unwrap(),
+            )
+            .unwrap();
+            set_cymbals.set(Some(cymbals));
+        });
 
         ctx.component(TopBar {
             wh: Wh::new(wh.width, 128.px()),
@@ -88,14 +104,24 @@ impl Component for MusicSelectPage<'_> {
             match event.code {
                 Code::Escape => {
                     open_setting_overlay();
+                    if let Some(snare) = snare.as_ref() {
+                        snare.clone_independent().unwrap().play().unwrap();
+                    }
                 }
                 Code::Enter => {
+                    if let Some(cymbals) = cymbals.as_ref() {
+                        cymbals.clone_independent().unwrap().play().unwrap();
+                    }
                     let Some(music) = selected_music else {
                         return;
                     };
                     start_game(music);
                 }
-                _ => {}
+                _ => {
+                    if let Some(snare) = snare.as_ref() {
+                        snare.clone_independent().unwrap().play().unwrap();
+                    }
+                }
             }
         });
 
