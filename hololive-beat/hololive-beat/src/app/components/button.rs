@@ -308,13 +308,13 @@ impl DelayedFocus {
         let delta = self.speed
             * match self.focused {
                 true => elapsed,
-                false => -elapsed,
+                false => -(elapsed / 4.0),
             };
         ease(EaseOutCubic, 0.0, 1.0, last_intensity + delta)
     }
 }
 impl Default for DelayedFocus {
     fn default() -> Self {
-        Self::new(Duration::from_millis(333))
+        Self::new(Duration::from_millis(100))
     }
 }
