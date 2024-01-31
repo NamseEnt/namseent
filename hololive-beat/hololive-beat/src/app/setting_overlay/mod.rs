@@ -3,7 +3,10 @@ mod volume_setting;
 
 use self::volume_setting::VolumeSetting;
 use super::{components::Backdrop, play_state::resume_game};
-use crate::app::components::FilledButton;
+use crate::app::{
+    components::FilledButton,
+    play_state::{restart_game, PlayState, PLAY_STATE_ATOM},
+};
 use namui::{prelude::*, time::since_start};
 use namui_prebuilt::table::hooks::*;
 
@@ -80,8 +83,12 @@ impl Component for Buttons {
             width: px(192.0),
             height: px(96.0),
         };
+        const PADDING: Px = px(64.0);
 
+        let (state, _set_state) = ctx.atom(&PLAY_STATE_ATOM);
         let (ok_button_focused, set_ok_button_focused) = ctx.state(|| false);
+
+        let playing = matches!(*state, PlayState::Loaded { .. });
 
         ctx.compose(|ctx| {
             vertical([
@@ -90,10 +97,25 @@ impl Component for Buttons {
                     BUTTON_WH.height,
                     horizontal([
                         ratio_no_clip(1, |_, _| {}),
-                        fixed_no_clip(BUTTON_WH.width, |_, ctx| {
+                        fixed_no_clip(BUTTON_WH.width, |wh, ctx| {
+                            if !playing {
+                                return;
+                            }
+                            ctx.add(FilledButton {
+                                wh,
+                                text: "Music".to_string(),
+                                on_click: &|| {
+                                    close_setting_overlay();
+                                    PLAY_STATE_ATOM.set(PlayState::Idle);
+                                },
+                                focused: false,
+                            });
+                        }),
+                        fixed_no_clip(PADDING, |_, _| {}),
+                        fixed_no_clip(BUTTON_WH.width, |wh, ctx| {
                             ctx.add(
                                 FilledButton {
-                                    wh: BUTTON_WH,
+                                    wh,
                                     text: "Ok".to_string(),
                                     on_click: &|| {
                                         close_setting_overlay();
@@ -112,6 +134,21 @@ impl Component for Buttons {
                                     set_ok_button_focused.set(should_focus);
                                 }),
                             );
+                        }),
+                        fixed_no_clip(PADDING, |_, _| {}),
+                        fixed_no_clip(BUTTON_WH.width, |wh, ctx| {
+                            if !playing {
+                                return;
+                            }
+                            ctx.add(FilledButton {
+                                wh,
+                                text: "Retry".to_string(),
+                                on_click: &|| {
+                                    close_setting_overlay();
+                                    restart_game();
+                                },
+                                focused: false,
+                            });
                         }),
                         ratio(1, |_, _| {}),
                     ]),
