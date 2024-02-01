@@ -83,9 +83,9 @@ impl namui::Component for App {
 
         ctx.component(SettingOverlay { wh });
 
-        let play_state_is_idle = matches!(*play_state, PlayState::Idle);
+        let play_state_is_loaded = matches!(*play_state, PlayState::Loaded { .. });
         ctx.compose(|ctx| {
-            if !play_state_is_idle {
+            if play_state_is_loaded {
                 return;
             }
             ctx.add(MusicSelectPage {
@@ -96,7 +96,7 @@ impl namui::Component for App {
         });
 
         ctx.compose(|ctx| {
-            if play_state_is_idle {
+            if !play_state_is_loaded {
                 return;
             }
             ctx.add(MusicPlayPage {

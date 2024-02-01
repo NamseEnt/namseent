@@ -206,8 +206,8 @@ pub struct LoadedData {
 }
 async fn load_music(music: &MusicMetadata) -> LoadedData {
     let id = music.id.clone();
-    let music = load_media(&format!("bundle:musics/{id}/{id}.opus"));
-    let video = load_media(&format!("bundle:musics/{id}/{id}.mp4"));
+    let video = music.load_video();
+    let music = music.load_audio();
     let (notes, kick, cymbals, snare) = join!(
         load_notes(&id),
         load_full_load_once_audio(format!("bundle:musics/{id}/kick.opus")),
@@ -235,10 +235,6 @@ async fn load_music(music: &MusicMetadata) -> LoadedData {
         music,
         video,
     }
-}
-fn load_media(path: &str) -> MediaHandle {
-    let path = namui::system::file::bundle::to_real_path(path).unwrap();
-    namui::system::media::new_media(&path).unwrap()
 }
 async fn load_full_load_once_audio(path: String) -> FullLoadOnceAudio {
     let path = namui::system::file::bundle::to_real_path(path.as_str()).unwrap();

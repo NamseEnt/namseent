@@ -1,8 +1,9 @@
+mod muisc_preview;
 mod music_carousel;
 mod speed_dropdown;
 mod top_bar;
 
-use self::{music_carousel::MusicCarousel, top_bar::TopBar};
+use self::{muisc_preview::MusicPreview, music_carousel::MusicCarousel, top_bar::TopBar};
 use super::{
     drummer::Drummer,
     music::{MusicMetadata, MusicSpeedMap},
@@ -10,7 +11,7 @@ use super::{
     setting_overlay::open_setting_overlay,
 };
 use namui::prelude::*;
-use namui_prebuilt::{simple_rect, table::hooks::*};
+use namui_prebuilt::table::hooks::*;
 
 #[component]
 pub struct MusicSelectPage<'a> {
@@ -70,32 +71,10 @@ impl Component for MusicSelectPage<'_> {
             ])(wh, ctx);
         });
 
-        ctx.compose(|ctx| {
-            let Some(music) = selected_music else {
-                return;
-            };
-            ctx.add(image(ImageParam {
-                rect: Rect::zero_wh(wh),
-                source: ImageSource::Url {
-                    url: music.thumbnail_url(),
-                },
-                style: ImageStyle {
-                    fit: ImageFit::Cover,
-                    paint: Some(
-                        Paint::new(Color::grayscale_alpha_f01(1.0, 0.3)).set_image_filter(
-                            ImageFilter::Blur {
-                                sigma_xy: Xy::single(Blur::convert_radius_to_sigma(8.0)),
-                                tile_mode: None,
-                                input: None,
-                                crop_rect: None,
-                            },
-                        ),
-                    ),
-                },
-            }));
+        ctx.component(MusicPreview {
+            wh,
+            music: selected_music,
         });
-
-        ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
 
         ctx.on_raw_event(|event| {
             let RawEvent::KeyDown { event } = event else {
