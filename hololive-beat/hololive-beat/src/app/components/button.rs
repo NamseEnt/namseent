@@ -52,6 +52,7 @@ pub struct FilledButton<'a> {
     pub wh: Wh<Px>,
     pub text: String,
     pub on_click: &'a dyn Fn(),
+    pub on_mouse_enter: &'a dyn Fn(),
     pub focused: bool,
 }
 impl Component for FilledButton<'_> {
@@ -60,11 +61,13 @@ impl Component for FilledButton<'_> {
             wh,
             text,
             on_click,
+            on_mouse_enter,
             focused,
         } = self;
 
         let focused = ctx.track_eq(&focused);
-        let (focus, set_selection) = ctx.state(DelayedFocus::default);
+        let (focus, set_focus) = ctx.state(DelayedFocus::default);
+        let (on_mouse_enter_event_fired, set_on_mouse_enter_event_fired) = ctx.state(|| false);
         let center_xy = wh / 2;
 
         ctx.effect("handle selection changed", || {
@@ -72,7 +75,7 @@ impl Component for FilledButton<'_> {
             if focused == focus.focused {
                 return;
             }
-            set_selection.mutate(move |selection| match focused {
+            set_focus.mutate(move |selection| match focused {
                 true => selection.focus(),
                 false => selection.blur(),
             });
@@ -111,14 +114,26 @@ impl Component for FilledButton<'_> {
             max_width: None,
         }));
 
-        ctx.component(LightFrame { wh }.attach_event(|event| {
-            let Event::MouseDown { event } = event else {
-                return;
-            };
-            if !event.is_local_xy_in() {
-                return;
+        ctx.component(LightFrame { wh }.attach_event(|event| match event {
+            Event::MouseDown { event } => {
+                if !event.is_local_xy_in() {
+                    return;
+                }
+                on_click();
             }
-            on_click();
+            Event::MouseMove { event } => {
+                if !event.is_local_xy_in() {
+                    if *on_mouse_enter_event_fired {
+                        set_on_mouse_enter_event_fired.set(false);
+                    }
+                    return;
+                }
+                if !*on_mouse_enter_event_fired {
+                    on_mouse_enter();
+                    set_on_mouse_enter_event_fired.set(true);
+                }
+            }
+            _ => {}
         }));
 
         ctx.done()

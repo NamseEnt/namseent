@@ -28,6 +28,7 @@ impl Component for GameResultOverlay<'_> {
             .as_ref()
             .map(|best_score_map| best_score_map.get(music_id))
             .unwrap_or(0);
+        let (focusing_button, set_focusing_button) = ctx.state(|| FocusingButton::Music);
 
         let frame_height = wh.height * 0.5;
         let frame_inner_wh = Wh {
@@ -49,6 +50,12 @@ impl Component for GameResultOverlay<'_> {
         let large_score_wh = Wh {
             width: side_wh.width,
             height: frame_inner_wh.height * 0.35,
+        };
+        let on_music_button_clicked = || {
+            PLAY_STATE_ATOM.set(PlayState::Idle);
+        };
+        let on_retry_button_clicked = || {
+            restart_game();
         };
 
         ctx.component(text(TextParam {
@@ -130,19 +137,21 @@ impl Component for GameResultOverlay<'_> {
                 .add(FilledButton {
                     wh: button_wh,
                     text: "Music".to_string(),
-                    on_click: &|| {
-                        PLAY_STATE_ATOM.set(PlayState::Idle);
+                    on_click: &on_music_button_clicked,
+                    on_mouse_enter: &|| {
+                        set_focusing_button.set(FocusingButton::Music);
                     },
-                    focused: false,
+                    focused: *focusing_button == FocusingButton::Music,
                 });
 
             ctx.translate((256.px(), 0.px())).add(FilledButton {
                 wh: button_wh,
                 text: "Retry".to_string(),
-                on_click: &|| {
-                    restart_game();
+                on_click: &on_retry_button_clicked,
+                on_mouse_enter: &|| {
+                    set_focusing_button.set(FocusingButton::Retry);
                 },
-                focused: false,
+                focused: *focusing_button == FocusingButton::Retry,
             });
         });
 
@@ -154,6 +163,29 @@ impl Component for GameResultOverlay<'_> {
         });
 
         ctx.component(Backdrop { wh });
+
+        ctx.on_raw_event(|event| {
+            let RawEvent::KeyDown { event } = event else {
+                return;
+            };
+            match event.code {
+                Code::ArrowLeft => {
+                    set_focusing_button.set(FocusingButton::Music);
+                }
+                Code::ArrowRight => {
+                    set_focusing_button.set(FocusingButton::Retry);
+                }
+                Code::Enter => match *focusing_button {
+                    FocusingButton::Music => {
+                        on_music_button_clicked();
+                    }
+                    FocusingButton::Retry => {
+                        on_retry_button_clicked();
+                    }
+                },
+                _ => {}
+            }
+        });
 
         ctx.done()
     }
@@ -369,4 +401,10 @@ impl Component for NewRecord {
 
         ctx.done()
     }
+}
+
+#[derive(Debug, PartialEq)]
+enum FocusingButton {
+    Music,
+    Retry,
 }

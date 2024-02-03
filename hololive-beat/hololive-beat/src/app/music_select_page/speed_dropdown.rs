@@ -181,6 +181,7 @@ impl Component for SpeedDropdownContent<'_> {
                                         });
                                     });
                                 },
+                                on_mouse_enter: &|| {},
                                 focused: selected_speed == speed,
                             });
                         }),
