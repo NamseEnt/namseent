@@ -10,7 +10,8 @@ use super::{
     play_state::start_game,
     setting_overlay::open_setting_overlay,
 };
-use namui::prelude::*;
+use keyframe::{ease, functions::EaseOutCubic, num_traits::Signed};
+use namui::{prelude::*, time::since_start};
 use namui_prebuilt::table::hooks::*;
 
 #[component]
@@ -28,11 +29,22 @@ impl Component for MusicSelectPage<'_> {
             music_speed_map,
         } = self;
 
-        let (selected, _) = ctx.state(|| 0);
-        let (snare, set_snare) = ctx.state(|| None);
-        let (cymbals, set_cymbals) = ctx.state(|| None);
+        let (selected, set_selected) = ctx.state(DelayedSelection::default);
+        let (snare, set_snare) = ctx.state::<Option<MediaHandle>>(|| None);
+        let (cymbals, set_cymbals) = ctx.state::<Option<MediaHandle>>(|| None);
 
-        let selected_music = musics.get(*selected);
+        let selected_music = selected.get_selected_music(musics);
+
+        let play_snare = || {
+            if let Some(snare) = snare.as_ref() {
+                snare.clone_independent().unwrap().play().unwrap();
+            }
+        };
+        let play_cymbals = || {
+            if let Some(cymbals) = cymbals.as_ref() {
+                cymbals.clone_independent().unwrap().play().unwrap();
+            }
+        };
 
         ctx.effect("load ui audio", || {
             let snare = namui::system::media::new_media(
@@ -65,7 +77,7 @@ impl Component for MusicSelectPage<'_> {
                     ctx.add(MusicCarousel {
                         wh,
                         musics,
-                        selected: *selected,
+                        selected: selected.interpolated_selection(),
                     });
                 }),
             ])(wh, ctx);
@@ -83,18 +95,22 @@ impl Component for MusicSelectPage<'_> {
             match event.code {
                 Code::Escape => {
                     open_setting_overlay();
-                    if let Some(snare) = snare.as_ref() {
-                        snare.clone_independent().unwrap().play().unwrap();
-                    }
+                    play_snare();
                 }
                 Code::Enter => {
-                    if let Some(cymbals) = cymbals.as_ref() {
-                        cymbals.clone_independent().unwrap().play().unwrap();
-                    }
+                    play_cymbals();
                     let Some(music) = selected_music else {
                         return;
                     };
                     start_game(music);
+                }
+                Code::ArrowLeft => {
+                    set_selected.mutate(|selected| selected.select(selected.selected - 1.0));
+                    play_snare();
+                }
+                Code::ArrowRight => {
+                    set_selected.mutate(|selected| selected.select(selected.selected + 1.0));
+                    play_snare();
                 }
                 _ => {
                     if let Some(snare) = snare.as_ref() {
@@ -148,5 +164,54 @@ impl Component for Decoration {
         });
 
         ctx.done()
+    }
+}
+
+#[derive(Debug)]
+struct DelayedSelection {
+    selected: f32,
+    last_selected: (Duration, f32),
+    speed: Per<f32, Duration>,
+}
+impl DelayedSelection {
+    fn new(delay: Duration) -> Self {
+        Self {
+            selected: 0.0,
+            last_selected: (Duration::default(), 0.0),
+            speed: Per::new(1.0, delay),
+        }
+    }
+
+    fn select(&mut self, index: f32) {
+        let last_selected = self.interpolated_selection();
+        self.selected = index;
+        self.last_selected = (since_start(), last_selected);
+    }
+
+    fn interpolated_selection(&self) -> f32 {
+        let (last_changed_at, last_selected) = self.last_selected;
+        let elapsed = since_start() - last_changed_at;
+        ease(
+            EaseOutCubic,
+            last_selected,
+            self.selected,
+            self.speed * elapsed,
+        )
+    }
+
+    fn get_selected_music<'a>(&self, musics: &'a Vec<MusicMetadata>) -> Option<&'a MusicMetadata> {
+        let index = {
+            let modulo = self.selected % musics.len() as f32;
+            match self.selected.is_positive() {
+                true => modulo as usize,
+                false => (musics.len() as f32 + modulo) as usize,
+            }
+        };
+        musics.get(index)
+    }
+}
+impl Default for DelayedSelection {
+    fn default() -> Self {
+        Self::new(Duration::from_millis(300))
     }
 }
