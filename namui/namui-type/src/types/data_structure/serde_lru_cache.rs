@@ -39,14 +39,14 @@ impl<Key: serde::Serialize, Value, const CAPACITY: usize> SerdeLruCache<Key, Val
         let mut map = map.lock().unwrap();
         let hash_key = SerdeHash::new(key);
 
-        let cached = map.try_get_or_insert(hash_key, || {
+        let result = map.try_get_or_insert(hash_key, || {
             let value = try_create(key);
             match value {
                 Some(value) => Ok(Arc::new(value)),
                 None => Err(()),
             }
         });
-        match cached {
+        match result {
             Ok(value) => Some(value.clone()),
             Err(_) => None,
         }
