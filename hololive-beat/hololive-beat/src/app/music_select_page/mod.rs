@@ -199,7 +199,7 @@ impl DelayedSelection {
         )
     }
 
-    fn get_selected_music<'a>(&self, musics: &'a Vec<MusicMetadata>) -> Option<&'a MusicMetadata> {
+    fn get_selected_music<'a>(&self, musics: &'a [MusicMetadata]) -> Option<&'a MusicMetadata> {
         let index = {
             let modulo = self.selected % musics.len() as f32;
             match self.selected.is_positive() {
