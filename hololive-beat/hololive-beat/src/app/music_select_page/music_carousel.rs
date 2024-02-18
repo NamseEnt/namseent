@@ -107,7 +107,7 @@ impl Component for MusicCarousel<'_> {
 #[component]
 struct MusicCard<'a> {
     pub music_card_wh: Wh<Px>,
-    // offset -2.5 ~ 2.5
+    /// offset -2.5 ~ 2.5
     pub offset: f32,
     pub music: Option<&'a MusicMetadata>,
 }
