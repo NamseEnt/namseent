@@ -72,11 +72,9 @@ impl Component for MusicPreview<'_> {
             let audio = audio.deref();
             ctx.effect("stop music if game started", || {
                 let state = state.deref();
-                namui::log!("sex1 {state:?}");
                 if matches!(state, PlayState::Idle) {
                     return;
                 }
-                namui::log!("sex2");
                 // TODO: Fade out
                 if let Some(video) = video {
                     video.stop().unwrap();
