@@ -3,14 +3,16 @@ use crate::app::{
     music::MusicMetadata,
     theme::THEME,
 };
+use keyframe::num_traits::Signed;
 use namui::prelude::*;
-use namui_prebuilt::{table::hooks::*, typography::adjust_font_size};
+use namui_prebuilt::{simple_rect, table::hooks::*, typography::adjust_font_size};
+use std::f32::consts::PI;
 
 #[component]
 pub struct MusicCarousel<'a> {
     pub wh: Wh<Px>,
     pub musics: &'a Vec<MusicMetadata>,
-    pub selected: usize,
+    pub selected: f32,
 }
 
 impl Component for MusicCarousel<'_> {
@@ -23,30 +25,36 @@ impl Component for MusicCarousel<'_> {
 
         const PADDING: Px = px(8.0);
 
-        let (prev, selected, next) = {
-            if musics.is_empty() {
-                (None, None, None)
-            } else {
-                let prev_index = selected.checked_sub(1).unwrap_or(musics.len() - 1);
-                let mut iter = musics.iter().cycle().skip(prev_index);
-                (iter.next(), iter.next(), iter.next())
-            }
-        };
+        // offset should be -0.5 ~ 0.5
+        let offset = selected.round() - selected;
         let music_card_wh = {
             let height = wh.height * 0.8;
             let width = height * 16.0 / 9.0;
             Wh::new(width, height)
         };
-        let (prev_xy, selected_xy, next_xy) = {
-            let music_card_center = music_card_wh / 2.0;
-            let center_x = wh.width / 2;
-            let side_y = wh.height - music_card_center.height;
-            (
-                Xy::new(center_x - (music_card_wh.width * 1.25), side_y),
-                Xy::new(center_x, music_card_center.height),
-                Xy::new(center_x + (music_card_wh.width * 1.25), side_y),
-            )
+        let musics_near_selected: [Option<&MusicMetadata>; 5] = {
+            if musics.is_empty() {
+                [None; 5]
+            } else {
+                let round = selected.round() - 2.0;
+                let modulo = round % musics.len() as f32;
+                let start_index = match modulo.is_positive() {
+                    true => modulo as usize,
+                    false => (modulo + musics.len() as f32) as usize,
+                };
+                let mut iter = musics.iter().cycle().skip(start_index);
+                [
+                    iter.next(),
+                    iter.next(),
+                    iter.next(),
+                    iter.next(),
+                    iter.next(),
+                ]
+            }
         };
+        let offsets = [-2.0, -1.0, 0.0, 1.0, 2.0]
+            .into_iter()
+            .map(|main_offset| main_offset + offset);
 
         ctx.compose(|ctx| {
             ctx.translate((wh.width / 2, wh.height - 64.px()))
@@ -55,6 +63,7 @@ impl Component for MusicCarousel<'_> {
                     wh: Wh::new(256.px(), 128.px()),
                     text: "start".to_string(),
                     on_click: &|| {},
+                    focused: true,
                 })
                 .translate((256.px(), 32.px()))
                 .add(EnterIcon {
@@ -64,39 +73,31 @@ impl Component for MusicCarousel<'_> {
 
         ctx.compose(|ctx| {
             horizontal([
-                ratio(
+                ratio_no_clip(
                     1,
-                    padding(PADDING, |wh, ctx| {
+                    padding_no_clip(PADDING, |wh, ctx| {
                         ctx.add(ArrowButton { wh, left: true });
                     }),
                 ),
-                fixed(music_card_wh.width, |_, _| {}),
-                ratio(
+                fixed_no_clip(music_card_wh.width, |_, _| {}),
+                ratio_no_clip(
                     1,
-                    padding(PADDING, |wh, ctx| {
+                    padding_no_clip(PADDING, |wh, ctx| {
                         ctx.add(ArrowButton { wh, left: false });
                     }),
                 ),
             ])(wh, ctx);
         });
 
-        ctx.component(MusicCard {
-            wh: music_card_wh,
-            center_xy: selected_xy,
-            rotate: Angle::Degree(0.0),
-            music: selected,
-        });
-        ctx.component(MusicCard {
-            wh: music_card_wh,
-            center_xy: prev_xy,
-            rotate: Angle::Degree(-2.5),
-            music: prev,
-        });
-        ctx.component(MusicCard {
-            wh: music_card_wh,
-            center_xy: next_xy,
-            rotate: Angle::Degree(2.5),
-            music: next,
+        ctx.compose(|ctx| {
+            let mut ctx = ctx.translate((wh.width / 2, music_card_wh.height / 2));
+            for (music, offset) in musics_near_selected.into_iter().zip(offsets) {
+                ctx.add(MusicCard {
+                    music_card_wh,
+                    offset,
+                    music,
+                });
+            }
         });
 
         ctx.done()
@@ -105,43 +106,52 @@ impl Component for MusicCarousel<'_> {
 
 #[component]
 struct MusicCard<'a> {
-    pub wh: Wh<Px>,
-    pub center_xy: Xy<Px>,
-    pub rotate: Angle,
+    pub music_card_wh: Wh<Px>,
+    /// offset -2.5 ~ 2.5
+    pub offset: f32,
     pub music: Option<&'a MusicMetadata>,
 }
 impl Component for MusicCard<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
-            wh,
-            center_xy,
-            rotate,
+            music_card_wh,
+            offset,
             music,
         } = self;
+
+        let rotation = Angle::Degree(offset * 5.0);
+        let center_xy = {
+            let alpha = music_card_wh.width.as_f32() * 0.625 / f32::sin(2.5 / 180.0 * PI);
+            let y = alpha - alpha * rotation.cos();
+            let x = alpha * rotation.sin();
+            Xy::new(x, y).into_type()
+        };
+        let opacity = 1.0 - (offset.abs() - 1.0).clamp(0.0, 1.0);
+        let color = Color::BLACK.with_alpha((opacity * 255.0) as u8);
 
         ctx.compose(|ctx| {
             let mut ctx = ctx
                 .translate(center_xy)
-                .rotate(rotate)
-                .translate((wh / 2).as_xy() * -1);
+                .rotate(rotation)
+                .translate((music_card_wh / 2).as_xy() * -1);
 
             ctx.compose(|ctx| {
                 if let Some(music) = music {
                     ctx.add(image(ImageParam {
-                        rect: Rect::zero_wh(wh),
+                        rect: Rect::zero_wh(music_card_wh),
                         source: ImageSource::Url {
                             url: music.thumbnail_url(),
                         },
                         style: ImageStyle {
                             fit: ImageFit::Cover,
-                            paint: None,
+                            paint: Some(Paint::new(color)),
                         },
                     }));
                 }
             });
             ctx.add(path(
-                Path::new().add_rect(Rect::zero_wh(wh)),
-                Paint::new(Color::BLACK)
+                Path::new().add_rect(Rect::zero_wh(music_card_wh)),
+                Paint::new(color)
                     .set_style(PaintStyle::Fill)
                     .set_mask_filter(MaskFilter::Blur {
                         blur: Blur::Outer { sigma: 8.0 },
@@ -168,6 +178,8 @@ impl Component for ArrowButton {
             height: px(192.0),
         };
 
+        let (mouse_hover, set_mouse_hover) = ctx.state(|| false);
+
         let rect = Rect::Xywh {
             x: if left {
                 wh.width - ARROW_WH.width
@@ -186,8 +198,22 @@ impl Component for ArrowButton {
                 // https://fontawesome.com/v5/icons/angle-double-right?f=classic&s=solid
                 text: if left { "" } else { "" }.to_string(),
                 on_click: &|| {},
+                focused: *mouse_hover,
             });
         });
+
+        ctx.component(
+            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
+                let Event::MouseMove { event } = event else {
+                    return;
+                };
+                let hovering = event.is_local_xy_in();
+                if *mouse_hover == hovering {
+                    return;
+                }
+                set_mouse_hover.set(hovering);
+            }),
+        );
 
         ctx.done()
     }

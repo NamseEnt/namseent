@@ -1,5 +1,5 @@
 use crate::app::{
-    components::{Backdrop, DarkFrame, FilledButton, LightFrame},
+    components::{Backdrop, ButtonHoverEffect, DarkFrame, FilledButton, LightFrame},
     music::{MusicSpeedMap, Speed, SPEEDS},
     theme::THEME,
     MUSIC_SPEED_MAP_ATOM,
@@ -72,6 +72,14 @@ struct SpeedDropdownButton {
 impl Component for SpeedDropdownButton {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh, speed } = self;
+
+        let (mouse_hover, set_mouse_hover) = ctx.state(|| false);
+
+        ctx.component(ButtonHoverEffect {
+            wh,
+            focused: *mouse_hover,
+        });
+
         ctx.compose(|ctx| {
             horizontal([
                 ratio(1, |wh, ctx| {
@@ -117,7 +125,16 @@ impl Component for SpeedDropdownButton {
             ])(wh, ctx);
         });
 
-        ctx.component(LightFrame { wh });
+        ctx.component(LightFrame { wh }.attach_event(|event| {
+            let Event::MouseMove { event } = event else {
+                return;
+            };
+            let hovering = event.is_local_xy_in();
+            if *mouse_hover == hovering {
+                return;
+            }
+            set_mouse_hover.set(hovering);
+        }));
 
         ctx.done()
     }
@@ -132,12 +149,18 @@ impl Component for SpeedDropdownContent<'_> {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { item_wh, music_id } = self;
 
+        let (music_speed_map, set_music_speed_map) = ctx.atom(&MUSIC_SPEED_MAP_ATOM);
+        let selected_speed = (*music_speed_map)
+            .as_ref()
+            .map(|music_speed_map| music_speed_map.get(music_id.unwrap_or_default()))
+            .unwrap_or_default();
+
         ctx.compose(|ctx| {
             let content = ctx.ghost_compose(None, |ctx| {
                 vertical(SPEEDS.map(|speed| {
-                    fixed(
+                    fixed_no_clip(
                         item_wh.height,
-                        padding(4.px(), move |wh, ctx| {
+                        padding_no_clip(4.px(), move |wh, ctx| {
                             ctx.add(FilledButton {
                                 wh,
                                 text: speed.to_string(),
@@ -147,7 +170,7 @@ impl Component for SpeedDropdownContent<'_> {
                                     };
 
                                     let music_id = music_id.to_string();
-                                    MUSIC_SPEED_MAP_ATOM.mutate(move |music_speed_map| {
+                                    set_music_speed_map.mutate(move |music_speed_map| {
                                         let Some(music_speed_map) = music_speed_map else {
                                             return;
                                         };
@@ -158,6 +181,8 @@ impl Component for SpeedDropdownContent<'_> {
                                         });
                                     });
                                 },
+                                on_mouse_enter: &|| {},
+                                focused: selected_speed == speed,
                             });
                         }),
                     )

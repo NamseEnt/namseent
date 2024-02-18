@@ -1,7 +1,7 @@
 use core::panic;
 use namui::{
     file::{bundle, local_storage},
-    Px, Url,
+    MediaHandle, Px, Url,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, io::ErrorKind, ops::Mul};
@@ -13,11 +13,32 @@ pub struct MusicMetadata {
     pub artists: Vec<String>,
     pub groups: Vec<String>,
     pub length: f64,
+    pub preview_start_at: f64,
+    pub preview_end_at: f64,
 }
 impl MusicMetadata {
     pub fn thumbnail_url(&self) -> Url {
         let Self { id, .. } = self;
         Url::parse(&format!("bundle:musics/{id}/{id}.jpg")).unwrap()
+    }
+    pub fn load_video(&self) -> MediaHandle {
+        let Self { id, .. } = self;
+        let path =
+            namui::system::file::bundle::to_real_path(format!("bundle:musics/{id}/{id}.mp4"))
+                .unwrap();
+        namui::system::media::new_media(&path).unwrap()
+    }
+    pub fn load_audio(&self) -> MediaHandle {
+        let Self { id, .. } = self;
+        let path =
+            namui::system::file::bundle::to_real_path(format!("bundle:musics/{id}/{id}.opus"))
+                .unwrap();
+        namui::system::media::new_media(&path).unwrap()
+    }
+}
+impl PartialEq for MusicMetadata {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
     }
 }
 

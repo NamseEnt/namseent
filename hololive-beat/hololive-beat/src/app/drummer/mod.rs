@@ -1,3 +1,4 @@
+use keyframe::{ease, functions::EaseOutCubic};
 use namui::{math::num::traits::Pow, prelude::*, time::since_start};
 use std::f32::consts::PI;
 
@@ -78,9 +79,6 @@ impl Component for Drummer {
 }
 
 fn calculate_frame_index(duration: Duration) -> usize {
-    const T1: f32 = 0.8;
-    const T2: f32 = 0.95;
-
     let animation_duration = 0.2.sec();
     if duration > animation_duration {
         return 0;
@@ -89,11 +87,7 @@ fn calculate_frame_index(duration: Duration) -> usize {
     if progress >= 1.0 {
         return 0;
     }
-    let reverse_progress = 1.0 - progress;
-    let time_function = T1 * (3.0_f32 * reverse_progress.pow(2) * progress)
-        + T2 * (3.0 * reverse_progress * progress.pow(2))
-        + progress.pow(3);
-    ((time_function * 3.0_f32) as usize) % 3
+    (ease(EaseOutCubic, 0.0, 3.0, progress) as usize) % 3
 }
 
 fn calculate_scale(duration: Duration) -> (Xy<f32>, Xy<f32>) {

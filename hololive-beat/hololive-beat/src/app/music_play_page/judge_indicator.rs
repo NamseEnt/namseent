@@ -1,5 +1,6 @@
 use crate::app::theme::THEME;
-use namui::{math::num::traits::Pow, prelude::*, time::since_start};
+use keyframe::{ease, functions::EaseOutQuint};
+use namui::{prelude::*, time::since_start};
 use namui_prebuilt::typography;
 
 static RECENT_JUDGE: Atom<RecentJudge> = Atom::uninitialized_new();
@@ -84,9 +85,6 @@ pub enum Judge {
 }
 
 fn calculate_alpha_and_scale(duration: Duration) -> Option<(u8, Xy<f32>)> {
-    const T1: f32 = 0.9995;
-    const T2: f32 = 0.99995;
-
     let animation_duration = 2.sec();
     if duration > animation_duration {
         return None;
@@ -95,10 +93,7 @@ fn calculate_alpha_and_scale(duration: Duration) -> Option<(u8, Xy<f32>)> {
     if progress >= 1.0 {
         return None;
     }
-    let reverse_progress = 1.0 - progress;
-    let time_function = T1 * (3.0_f32 * reverse_progress.pow(2) * progress)
-        + T2 * (3.0 * reverse_progress * progress.pow(2))
-        + progress.pow(3);
+    let time_function = ease(EaseOutQuint, 0.0, 1.0, progress);
     let alpha = (255.0_f32 * (1.0_f32 - time_function)) as u8;
     let scale = Xy::single(0.75_f32 + (0.5_f32 * time_function));
     Some((alpha, scale))
