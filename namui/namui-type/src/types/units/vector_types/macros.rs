@@ -145,13 +145,13 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T>
         where
-            T: From<f32> + Into<f32> + Copy,
+            T: From<f32> + Into<f32> + Clone,
         {
             pub fn length(&self) -> T {
                 let length_in_f32 = {
                     let mut sum = 0.0;
                     $(
-                        sum += self.$field_ident.into().powi(2);
+                        sum += self.$field_ident.clone().into().powi(2);
                     )*
                     sum.sqrt()
                 };

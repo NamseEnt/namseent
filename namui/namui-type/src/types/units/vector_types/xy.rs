@@ -1,4 +1,5 @@
 use crate::Angle;
+use std::ops::Div;
 
 crate::vector_types!(Xy, { x, y });
 
@@ -15,6 +16,26 @@ where
     }
     pub fn atan2(&self) -> Angle {
         Angle::Radian(self.y.into().atan2(self.x.into()))
+    }
+}
+
+impl<T> Xy<T>
+where
+    T: From<f32> + Into<f32> + Div<f32, Output = T> + Clone,
+{
+    pub fn normalize(&self) -> Xy<T> {
+        let length: f32 = self.length().into();
+        Xy::new(self.x.clone() / length, self.y.clone() / length)
+    }
+}
+
+impl<T> Xy<T>
+where
+    T: From<f32> + Into<f32> + Div<f32, Output = T> + Clone,
+{
+    pub fn normalize_f32(&self) -> Xy<f32> {
+        let normalized = self.normalize();
+        Xy::new(normalized.x.into(), normalized.y.into())
     }
 }
 

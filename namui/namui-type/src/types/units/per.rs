@@ -22,15 +22,76 @@ impl<TNumerator, TDenominator> Per<TNumerator, TDenominator> {
     }
 }
 
-impl<TNumerator, TDenominator> std::ops::Mul<TDenominator> for Per<TNumerator, TDenominator>
+impl<TNumerator, TDenominator> Per<TNumerator, TDenominator>
 where
     TNumerator: std::ops::Mul<f32, Output = TNumerator>,
-    TDenominator: std::ops::Div<Output = f32>,
+{
+    pub fn mul_to_numerator(self, rhs: f32) -> Self {
+        Self {
+            numerator: self.numerator * rhs,
+            denominator: self.denominator,
+        }
+    }
+}
+
+impl<TNumerator, TDenominator, T> std::ops::Mul<TDenominator> for Per<TNumerator, TDenominator>
+where
+    TNumerator: std::ops::Mul<T, Output = TNumerator>,
+    TDenominator: std::ops::Div<TDenominator, Output = T>,
 {
     type Output = TNumerator;
 
     fn mul(self, rhs: TDenominator) -> Self::Output {
         self.numerator * (rhs / self.denominator)
+    }
+}
+
+impl<TNumerator, TDenominator> std::ops::Add<Self> for Per<TNumerator, TDenominator>
+where
+    TNumerator:
+        std::ops::Mul<f32, Output = TNumerator> + std::ops::Add<TNumerator, Output = TNumerator>,
+    TDenominator: std::ops::Div<Output = f32> + Clone,
+{
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            numerator: self.numerator
+                + (rhs.numerator * (self.denominator.clone() / rhs.denominator)),
+            denominator: self.denominator,
+        }
+    }
+}
+
+impl<TNumerator, TDenominator> std::ops::AddAssign for Per<TNumerator, TDenominator>
+where
+    TNumerator: std::ops::Mul<f32, Output = TNumerator>
+        + std::ops::Add<TNumerator, Output = TNumerator>
+        + Clone,
+    TDenominator: std::ops::Div<Output = f32> + Clone,
+{
+    fn add_assign(&mut self, rhs: Self) {
+        *self = Self {
+            numerator: self.numerator.clone()
+                + (rhs.numerator * (self.denominator.clone() / rhs.denominator)),
+            denominator: self.denominator.clone(),
+        };
+    }
+}
+
+impl<TNumerator, TDenominator> std::ops::SubAssign for Per<TNumerator, TDenominator>
+where
+    TNumerator: std::ops::Mul<f32, Output = TNumerator>
+        + std::ops::Sub<TNumerator, Output = TNumerator>
+        + Clone,
+    TDenominator: std::ops::Div<Output = f32> + Clone,
+{
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = Self {
+            numerator: self.numerator.clone()
+                - (rhs.numerator * (self.denominator.clone() / rhs.denominator)),
+            denominator: self.denominator.clone(),
+        };
     }
 }
 

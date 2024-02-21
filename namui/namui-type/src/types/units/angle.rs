@@ -22,6 +22,15 @@ impl AngleExt for f32 {
     }
 }
 
+impl AngleExt for i32 {
+    fn deg(self) -> Angle {
+        Angle::Degree(self as f32)
+    }
+    fn rad(self) -> Angle {
+        Angle::Radian(self as f32)
+    }
+}
+
 impl Angle {
     pub fn as_radians(&self) -> f32 {
         match self {
@@ -50,6 +59,10 @@ impl Angle {
 
     pub fn atan2(y: impl AsPrimitive<f32>, x: impl AsPrimitive<f32>) -> Self {
         Angle::Radian(y.as_().atan2(x.as_()))
+    }
+
+    pub fn as_xy(&self) -> Xy<f32> {
+        Xy::new(self.cos(), self.sin())
     }
 }
 
@@ -164,5 +177,12 @@ auto_ops::impl_op!(+=|lhs: &mut Angle, rhs: Angle| {
     match lhs {
         Angle::Radian(x) => *x += rhs.as_radians(),
         Angle::Degree(x) => *x += rhs.as_degrees(),
+    };
+});
+
+auto_ops::impl_op!(-=|lhs: &mut Angle, rhs: Angle| {
+    match lhs {
+        Angle::Radian(x) => *x -= rhs.as_radians(),
+        Angle::Degree(x) => *x -= rhs.as_degrees(),
     };
 });
