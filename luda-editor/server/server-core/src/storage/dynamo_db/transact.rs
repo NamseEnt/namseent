@@ -1,5 +1,5 @@
 use super::*;
-use aws_sdk_dynamodb::model;
+use aws_sdk_dynamodb::types::*;
 use std::{future::Future, pin::Pin};
 
 impl DynamoDb {
@@ -29,7 +29,7 @@ pub struct Transact<TCancelError: std::error::Error + Send> {
     dynamo_db: DynamoDb,
     client: aws_sdk_dynamodb::Client,
     table_name: String,
-    items: Vec<model::TransactWriteItem>,
+    items: Vec<TransactWriteItem>,
     update_items: Vec<UpdateItem<TCancelError>>,
 }
 unsafe impl<TCancelError: std::error::Error + Send> Send for Transact<TCancelError> {}
@@ -37,7 +37,7 @@ unsafe impl<TCancelError: std::error::Error + Send> Send for Transact<TCancelErr
 struct UpdateItem<TCancelError: std::error::Error + Send> {
     future: Pin<
         Box<
-            dyn Future<Output = Result<model::TransactWriteItem, TransactUpdateError<TCancelError>>>
+            dyn Future<Output = Result<TransactWriteItem, TransactUpdateError<TCancelError>>>
                 + Send,
         >,
     >,
@@ -83,14 +83,15 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
             AttributeValue::N("0".to_string()),
         );
 
-        let item = model::TransactWriteItem::builder()
+        let item = TransactWriteItem::builder()
             .put(
-                model::Put::builder()
+                Put::builder()
                     .table_name(&self.table_name)
                     .set_item(Some(raw_item))
                     .condition_expression("attribute_not_exists(#PARTITION)")
                     .expression_attribute_names("#PARTITION", PARTITION_KEY)
-                    .build(),
+                    .build()
+                    .unwrap(),
             )
             .build();
 
@@ -99,12 +100,13 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
         self
     }
     pub fn put_item<TDocument: Document>(mut self, item: TDocument) -> Self {
-        let item = model::TransactWriteItem::builder()
+        let item = TransactWriteItem::builder()
             .put(
-                model::Put::builder()
+                Put::builder()
                     .table_name(&self.table_name)
                     .set_item(Some(item.as_dynamodb_item().unwrap())) // TODO: Remove unwrap
-                    .build(),
+                    .build()
+                    .unwrap(),
             )
             .build();
 
@@ -112,13 +114,13 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
 
         self
     }
-    pub fn delete_item(self, command: impl Into<TransactDeleteCommand>) -> Self {
+    pub fn delete_item<TDocument: Document + std::marker::Send>(
+        self,
+        command: impl Into<TransactDeleteCommand>,
+    ) -> Self {
         let command: TransactDeleteCommand = command.into();
-        self.delete_item_internal(
-            concat_partition_key(
-                command.partition_prefix,
-                command.partition_key_without_prefix,
-            ),
+        self.delete_item_internal::<TDocument>(
+            command.partition_key_without_prefix,
             command.sort_key,
         )
     }
@@ -133,10 +135,7 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
         let command: TransactUpdateCommand<TDocument, Update, TCancelError, TUpdateFuture> =
             command.into();
         self.update_item_internal(
-            concat_partition_key(
-                command.partition_prefix,
-                command.partition_key_without_prefix,
-            ),
+            command.partition_key_without_prefix,
             command.sort_key,
             command.update,
         )
@@ -147,23 +146,24 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
     ) -> Self {
         self.manual_update_item_internal(document)
     }
-    fn delete_item_internal(
+    fn delete_item_internal<TDocument: Document + std::marker::Send>(
         mut self,
-        partition_key: impl ToString,
+        partition_key_without_prefix: impl ToString,
         sort_key: Option<impl ToString>,
     ) -> Self {
-        let partition_key = partition_key.to_string();
+        let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let sort_key = sort_key
             .map(|sort_key| sort_key.to_string())
             .unwrap_or(DEFAULT_SORT_KEY.to_string());
 
-        let item = model::TransactWriteItem::builder()
+        let item = TransactWriteItem::builder()
             .delete(
-                model::Delete::builder()
+                Delete::builder()
                     .table_name(&self.table_name)
                     .key(PARTITION_KEY.to_string(), AttributeValue::S(partition_key))
                     .key(SORT_KEY.to_string(), AttributeValue::S(sort_key))
-                    .build(),
+                    .build()
+                    .unwrap(),
             )
             .build();
 
@@ -199,10 +199,7 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
             TCreateFuture,
         > = command.into();
         self.update_or_create_item_internal(
-            concat_partition_key(
-                command.partition_prefix,
-                command.partition_key_without_prefix,
-            ),
+            command.partition_key_without_prefix,
             command.sort_key,
             command.update,
             command.create,
@@ -229,7 +226,12 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
             let raw_item = dynamo_db
                 .get_raw_item(partition_key.clone(), Some(sort_key.clone()))
                 .await
-                .map_err(|error| TransactUpdateError::Unknown(error.to_string()))?;
+                .map_err(|error| {
+                    TransactUpdateError::Unknown(match error {
+                        GetItemInternalError::NotFound => "NotFound".to_string(),
+                        GetItemInternalError::Unknown(error) => error,
+                    })
+                })?;
 
             let version = {
                 let version_value = raw_item.get(LOCK_VERSION_KEY).unwrap().clone();
@@ -258,9 +260,9 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
                 AttributeValue::N(next_version.to_string()),
             );
 
-            Ok(model::TransactWriteItem::builder()
+            Ok(TransactWriteItem::builder()
                 .put(
-                    model::Put::builder()
+                    Put::builder()
                         .table_name(table_name)
                         .set_item(Some(raw_item))
                         .condition_expression("#LOCK_VERSION = :lock_version")
@@ -269,7 +271,8 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
                             ":lock_version",
                             AttributeValue::N(version.to_string()),
                         )
-                        .build(),
+                        .build()
+                        .unwrap(),
                 )
                 .build())
         });
@@ -293,9 +296,9 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
         );
 
         self.items.push(
-            model::TransactWriteItem::builder()
+            TransactWriteItem::builder()
                 .put(
-                    model::Put::builder()
+                    Put::builder()
                         .table_name(&self.table_name)
                         .set_item(Some(raw_item))
                         .condition_expression("#LOCK_VERSION = :lock_version")
@@ -304,7 +307,8 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
                             ":lock_version",
                             AttributeValue::N(version.to_string()),
                         )
-                        .build(),
+                        .build()
+                        .unwrap(),
                 )
                 .build(),
         );
@@ -318,12 +322,12 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
         TCreateFuture: Future<Output = Result<TDocument, TCancelError>> + Send,
     >(
         mut self,
-        partition_key: impl ToString,
+        partition_key_without_prefix: impl ToString,
         sort_key: Option<impl ToString>,
         update: impl FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
         create: impl FnOnce() -> TCreateFuture + 'static + Send,
     ) -> Self {
-        let partition_key = partition_key.to_string();
+        let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let sort_key = sort_key
             .map(|sort_key| sort_key.to_string())
             .unwrap_or(DEFAULT_SORT_KEY.to_string())
@@ -363,9 +367,9 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
                         LOCK_VERSION_KEY.to_string(),
                         AttributeValue::N(next_version.to_string()),
                     );
-                    Ok(model::TransactWriteItem::builder()
+                    Ok(TransactWriteItem::builder()
                         .put(
-                            model::Put::builder()
+                            Put::builder()
                                 .table_name(table_name)
                                 .set_item(Some(raw_item))
                                 .condition_expression("#LOCK_VERSION = :lock_version")
@@ -374,7 +378,8 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
                                     ":lock_version",
                                     AttributeValue::N(version.to_string()),
                                 )
-                                .build(),
+                                .build()
+                                .unwrap(),
                         )
                         .build())
                 }
@@ -389,18 +394,22 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
                         AttributeValue::N("0".to_string()),
                     );
 
-                    Ok(model::TransactWriteItem::builder()
+                    Ok(TransactWriteItem::builder()
                         .put(
-                            model::Put::builder()
+                            Put::builder()
                                 .table_name(table_name)
                                 .set_item(Some(raw_item))
                                 .condition_expression("attribute_not_exists(#PARTITION)")
                                 .expression_attribute_names("#PARTITION", PARTITION_KEY)
-                                .build(),
+                                .build()
+                                .unwrap(),
                         )
                         .build())
                 }
-                Err(error) => Err(TransactUpdateError::Unknown(error.to_string())),
+                Err(error) => Err(TransactUpdateError::Unknown(match error {
+                    GetItemInternalError::NotFound => "NotFound".to_string(),
+                    GetItemInternalError::Unknown(error) => error,
+                })),
             }
         });
 
@@ -411,7 +420,6 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
 }
 
 pub struct TransactDeleteCommand {
-    pub partition_prefix: String,
     pub partition_key_without_prefix: String,
     pub sort_key: Option<String>,
 }
@@ -422,7 +430,6 @@ where
     TCancelError: std::error::Error + Send,
     TUpdateFuture: std::future::Future<Output = Result<TDocument, TCancelError>> + Send,
 {
-    pub partition_prefix: String,
     pub partition_key_without_prefix: String,
     pub sort_key: Option<String>,
     pub update: Update,
@@ -443,7 +450,6 @@ pub struct TransactUpdateOrCreateCommand<
     TUpdateFuture: std::future::Future<Output = Result<TDocument, TCancelError>> + Send,
     TCreateFuture: std::future::Future<Output = Result<TDocument, TCancelError>> + Send,
 {
-    pub partition_prefix: String,
     pub partition_key_without_prefix: String,
     pub sort_key: Option<String>,
     pub update: Update,
@@ -481,10 +487,19 @@ impl<TCancelError: std::error::Error + Send> std::error::Error
 }
 
 #[derive(Debug)]
-pub enum NoCancel {}
+pub struct NoCancel;
 impl std::fmt::Display for NoCancel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 impl std::error::Error for NoCancel {}
+
+#[derive(Debug)]
+pub struct Cancel;
+impl std::fmt::Display for Cancel {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl std::error::Error for Cancel {}

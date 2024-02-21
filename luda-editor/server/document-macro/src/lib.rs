@@ -131,7 +131,6 @@ pub fn document(
                     let pk = #prefixed_pk;
                     let sk = #prefixed_sk;
                     crate::storage::dynamo_db::TransactDeleteCommand {
-                        partition_prefix: stringify!(#struct_ident).to_string(),
                         partition_key_without_prefix: pk,
                         sort_key: sk,
                     }
@@ -192,7 +191,6 @@ pub fn document(
                     let pk = #prefixed_pk;
                     let sk = #prefixed_sk;
                     crate::storage::dynamo_db::TransactUpdateCommand {
-                        partition_prefix: stringify!(#struct_ident).to_string(),
                         partition_key_without_prefix: pk,
                         sort_key: sk,
                         update: self.update,
@@ -270,7 +268,6 @@ pub fn document(
                     let pk = #prefixed_pk;
                     let sk = #prefixed_sk;
                     crate::storage::dynamo_db::TransactUpdateOrCreateCommand {
-                        partition_prefix: stringify!(#struct_ident).to_string(),
                         partition_key_without_prefix: pk,
                         sort_key: sk,
                         update: self.update,
