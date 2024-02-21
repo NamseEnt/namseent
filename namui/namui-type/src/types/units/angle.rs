@@ -22,6 +22,15 @@ impl AngleExt for f32 {
     }
 }
 
+impl AngleExt for i32 {
+    fn deg(self) -> Angle {
+        Angle::Degree(self as f32)
+    }
+    fn rad(self) -> Angle {
+        Angle::Radian(self as f32)
+    }
+}
+
 impl Angle {
     pub fn as_radians(&self) -> f32 {
         match self {
