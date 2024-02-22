@@ -1,4 +1,8 @@
+mod ballistics;
+
 use namui::prelude::*;
+
+use self::ballistics::GRAVITY;
 
 #[namui::component]
 pub struct App {}
@@ -37,13 +41,11 @@ impl CannonBall {
         let xy_start_velocity = start_velocity.mul_to_numerator(xz_angle.cos());
         let z_velocity = start_velocity.mul_to_numerator(xz_angle.sin());
 
-        let gravity = 40.px();
-
         let t = time - *start_at;
 
         let xy_length = xy_start_velocity * t;
         let xy_at_t = start_xy + Xy::single(xy_length) * xy_vector;
-        let z_at_t = z_velocity * t - gravity * (t / 1.sec()) * (t / 1.sec()) / 2.0;
+        let z_at_t = z_velocity * t - GRAVITY * (t / 1.sec()) * (t / 1.sec()) / 2.0;
 
         Xyz {
             xy: xy_at_t,
@@ -112,12 +114,18 @@ impl namui::Component for Ship {
                 _ => {}
             },
             RawEvent::MouseDown { event } => {
-                let xz_angle = 30.deg();
-
                 let start_velocity = Per::new(100.px(), 1.sec());
 
                 let start_xy = *center_xy;
-                let xy_vector = (event.xy - start_xy).normalize_f32();
+                let xy_diff = event.xy - start_xy;
+                let xy_vector = xy_diff.normalize_f32();
+                let distance = xy_diff.length();
+
+                let max_range = ballistics::range(start_velocity, 45.deg());
+                let xz_angle = match max_range <= distance {
+                    true => 45.deg(),
+                    false => ballistics::calculate_launch_angle(start_velocity, distance),
+                };
 
                 let cannon_ball = CannonBall {
                     start_xy,
