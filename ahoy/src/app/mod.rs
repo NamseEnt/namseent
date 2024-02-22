@@ -64,7 +64,7 @@ impl namui::Component for Ship {
         let (yaw, set_yaw) = ctx.state(|| 0.rad());
         let (front_velocity, set_front_velocity) = ctx.state(|| Per::new(0.px(), 1.sec()));
         let (move_ship_last_time, set_move_ship_last_time) = ctx.state(|| now);
-        let (cannon_balls, set_cannon_balls) = ctx.state::<Vec<CannonBall>>(|| vec![]);
+        let (cannon_balls, set_cannon_balls) = ctx.state::<Vec<CannonBall>>(Vec::new);
 
         let ship_radius = 10.px();
 
