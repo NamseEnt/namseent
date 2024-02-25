@@ -9,6 +9,8 @@ targets = ["x86_64-pc-windows-msvc"]
 [dependencies]
 namui = { path = "../namui/namui" }
 namui-prebuilt = { path = "../namui/namui-prebuilt" }
+num-derive = "0.4.2"
+num-traits = "0.2.18"
 
 [profile.release]
 lto = true
