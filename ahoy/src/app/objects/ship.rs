@@ -53,10 +53,12 @@ impl namui::Component for Ship {
                 let xy_vector = xy_diff.normalize_f32();
                 let distance = xy_diff.length();
 
-                let max_range = ballistics::range(start_speed, 45.deg());
+                let max_range = ballistics::calculate_range_with_xz_angle(start_speed, 45.deg());
                 let xz_angle = match max_range <= distance {
                     true => 45.deg(),
-                    false => ballistics::calculate_launch_angle(start_speed, distance),
+                    false => {
+                        ballistics::calculate_launch_angle_with_distance(start_speed, distance)
+                    }
                 };
 
                 let cannon_ball = CannonBall {

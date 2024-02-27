@@ -6,6 +6,7 @@ use self::{
     mechanics::{Meter, MeterExt, Speed},
     objects::{
         cannon_ball::{CannonBalls, CANNON_BALLS_ATOM},
+        fortress::Fortress,
         ship::{MutateShipKinetics, Ship, ShipKinetics, SHIP_KINETICS_ATOM},
     },
 };
@@ -30,6 +31,10 @@ impl namui::Component for App {
 
         ctx.component(Tick { now });
         ctx.component(Ship { now });
+        ctx.component(Fortress {
+            now,
+            center_xy: Xy::single(200.meter()),
+        });
         ctx.component(CannonBalls { now });
 
         ctx.done()
