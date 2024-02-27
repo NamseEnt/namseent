@@ -2,11 +2,15 @@ mod ballistics;
 mod mechanics;
 mod objects;
 
+use std::vec;
+
 use self::{
     mechanics::{Meter, MeterExt, Speed},
     objects::{
         cannon_ball::{CannonBalls, CANNON_BALLS_ATOM},
-        fortress::Fortress,
+        fortress::{
+            Fortress, FortressState, MutateFortressState, FORTRESS_RADIUS, FORTRESS_STATE_ATOM,
+        },
         ship::{MutateShipKinetics, Ship, ShipKinetics, SHIP_KINETICS_ATOM},
     },
 };
@@ -28,13 +32,14 @@ impl namui::Component for App {
             yaw: 0.rad(),
             front_velocity: Speed::zero(),
         });
+        ctx.atom_init(&FORTRESS_STATE_ATOM, || FortressState {
+            center_xy: Xy::single(200.meter()),
+            impacted_at: now,
+        });
 
         ctx.component(Tick { now });
         ctx.component(Ship { now });
-        ctx.component(Fortress {
-            now,
-            center_xy: Xy::single(200.meter()),
-        });
+        ctx.component(Fortress { now });
         ctx.component(CannonBalls { now });
 
         ctx.done()
@@ -51,6 +56,7 @@ impl Component for Tick {
 
         let (cannon_balls, set_cannon_balls) = ctx.atom(&CANNON_BALLS_ATOM);
         let (ship_kinetics_atom, set_ship_kinetics_atom) = ctx.atom(&SHIP_KINETICS_ATOM);
+        let (fortress_state, set_fortress_state) = ctx.atom(&FORTRESS_STATE_ATOM);
 
         let (last_tick_time, set_last_tick_time) = ctx.state(|| now);
 
@@ -72,13 +78,27 @@ impl Component for Tick {
                 .iter()
                 .any(|cannon_ball| cannon_ball.xyz(now).z < 0.meter())
             {
+                let mut impact_xys = vec![];
                 set_cannon_balls.set(
                     cannon_balls
                         .iter()
-                        .filter(|cannon_ball| cannon_ball.xyz(now).z >= 0.meter())
+                        .filter(|cannon_ball| {
+                            let xyz = cannon_ball.xyz(now);
+                            let not_impacted = cannon_ball.xyz(now).z >= 0.meter();
+                            if !not_impacted {
+                                impact_xys.push(xyz.xy);
+                            }
+                            not_impacted
+                        })
                         .cloned()
                         .collect(),
                 );
+
+                for impact_xy in impact_xys {
+                    if (fortress_state.center_xy - impact_xy).length() < FORTRESS_RADIUS {
+                        set_fortress_state.impact(now);
+                    }
+                }
             }
         };
 

@@ -9,24 +9,41 @@ use crate::app::{
 };
 use namui::prelude::*;
 
-const FORTRESS_RADIUS: Meter = Meter(10.0);
+pub const FORTRESS_RADIUS: Meter = Meter(10.0);
+pub static FORTRESS_STATE_ATOM: Atom<FortressState> = Atom::uninitialized_new();
 
 #[component]
 pub struct Fortress {
     pub now: Instant,
-    pub center_xy: Xy<Meter>,
 }
 impl Component for Fortress {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let Self { now, center_xy } = self;
+        let Self { now } = self;
 
         let (px_per_meter, _) = ctx.atom(&PX_PER_METER_ATOM);
         let (_, set_cannon_balls) = ctx.atom(&CANNON_BALLS_ATOM);
         let (ship_kinetic, _) = ctx.atom(&SHIP_KINETICS_ATOM);
+        let (fortress_state, _) = ctx.atom(&FORTRESS_STATE_ATOM);
 
         let (last_fire_time, set_last_fire_time) = ctx.state(|| now);
 
+        let FortressState {
+            center_xy,
+            impacted_at,
+        } = *fortress_state;
         let fire_interval = Duration::from_secs(4);
+
+        let color = {
+            let elapsed = now - impacted_at;
+            if elapsed < 3.sec() {
+                match ((elapsed.as_secs_f32() * 4.0) as isize) & 2 {
+                    0 => Color::RED,
+                    _ => Color::GREEN,
+                }
+            } else {
+                Color::GREEN
+            }
+        };
         let dt = now - *last_fire_time;
         let fire_cannon = || {
             let projectile_speed = 100.mps();
@@ -67,9 +84,25 @@ impl Component for Fortress {
                 center_xy_px - Xy::single(fortress_radius),
                 Wh::single(fortress_radius * 2),
             )),
-            Paint::new(Color::GREEN),
+            Paint::new(color),
         ));
 
         ctx.done()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FortressState {
+    pub center_xy: Xy<Meter>,
+    pub impacted_at: Instant,
+}
+pub trait MutateFortressState {
+    fn impact(self, now: Instant);
+}
+impl MutateFortressState for SetState<FortressState> {
+    fn impact(self, now: Instant) {
+        self.mutate(move |fortress| {
+            fortress.impacted_at = now;
+        });
     }
 }
