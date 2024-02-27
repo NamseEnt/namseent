@@ -25,7 +25,7 @@ impl namui::Component for App {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let now = namui::time::now();
 
-        ctx.atom_init(&PX_PER_METER_ATOM, || Per::new(1.px(), Meter::one()));
+        ctx.atom_init(&PX_PER_METER_ATOM, || Per::new(4.px(), Meter::one()));
         ctx.atom_init(&CANNON_BALLS_ATOM, Vec::new);
         ctx.atom_init(&SHIP_KINETICS_ATOM, || ShipKinetics {
             center_xy: Xy::single(100.meter()),

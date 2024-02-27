@@ -4,8 +4,8 @@ use crate::app::{
     mechanics::{Meter, MeterExt, Speed, SpeedExt},
     PX_PER_METER_ATOM,
 };
-use namui::prelude::*;
-use num_traits::One;
+use namui::{network::http::IntoUrl, prelude::*};
+use num_traits::{One, Signed};
 
 const SHIP_RADIUS: Meter = Meter(10.0);
 
@@ -88,13 +88,27 @@ impl namui::Component for Ship {
                 .set_stroke_width(5.px()),
         ));
 
-        ctx.component(path(
-            Path::new().add_oval(Rect::from_xy_wh(
-                center_xy_px - Xy::single(ship_radius),
-                Wh::single(ship_radius * 2),
-            )),
-            Paint::new(Color::RED),
-        ));
+        ctx.compose(|ctx| {
+            let mut ctx = ctx.translate(center_xy_px);
+            let mut ctx = if yaw.cos().is_positive() {
+                ctx.scale(Xy::new(-1.0, 1.0))
+            } else {
+                ctx
+            };
+            ctx.add(ImageDrawCommand {
+                rect: Rect::Ltrb {
+                    left: -ship_radius,
+                    top: -ship_radius,
+                    right: ship_radius,
+                    bottom: ship_radius,
+                },
+                source: ImageSource::Url {
+                    url: "bundle:resources/ship.png".into_url().unwrap(),
+                },
+                fit: ImageFit::Cover,
+                paint: None,
+            });
+        });
 
         ctx.done()
     }
