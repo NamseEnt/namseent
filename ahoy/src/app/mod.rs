@@ -37,10 +37,10 @@ impl namui::Component for App {
             impacted_at: now,
         });
 
+        ctx.component(CannonBalls { now });
         ctx.component(Tick { now });
         ctx.component(Ship { now });
         ctx.component(Fortress { now });
-        ctx.component(CannonBalls { now });
 
         ctx.done()
     }

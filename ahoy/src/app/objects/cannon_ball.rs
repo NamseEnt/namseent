@@ -67,18 +67,18 @@ impl Component for CannonBalls {
 
                 ctx.add(path(
                     Path::new().add_oval(Rect::from_xy_wh(
-                        Xy::single(*px_per_meter) * (shadow - Xy::single(2.meter())),
-                        Wh::single(*px_per_meter * 4.meter()),
-                    )),
-                    Paint::new(Color::BLACK),
-                ));
-
-                ctx.add(path(
-                    Path::new().add_oval(Rect::from_xy_wh(
                         Xy::single(*px_per_meter) * (bullet - Xy::single(2.meter())),
                         Wh::single(*px_per_meter * 4.meter()),
                     )),
                     Paint::new(Color::RED),
+                ));
+
+                ctx.add(path(
+                    Path::new().add_oval(Rect::from_xy_wh(
+                        Xy::single(*px_per_meter) * (shadow - Xy::single(2.meter())),
+                        Wh::single(*px_per_meter * 4.meter()),
+                    )),
+                    Paint::new(Color::BLACK),
                 ));
             }
         });
