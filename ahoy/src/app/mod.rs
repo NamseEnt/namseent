@@ -1,10 +1,10 @@
 mod ballistics;
+mod camera;
 mod mechanics;
 mod objects;
 
-use std::vec;
-
 use self::{
+    camera::{Camera, CameraState, MutateCameraState, CAMERA_STATE_ATOM},
     mechanics::{Meter, MeterExt, Speed},
     objects::{
         cannon_ball::{CannonBalls, CANNON_BALLS_ATOM},
@@ -16,8 +16,7 @@ use self::{
 };
 use namui::prelude::*;
 use num_traits::{One, Zero};
-
-static PX_PER_METER_ATOM: Atom<Per<Px, Meter>> = Atom::uninitialized_new();
+use std::vec;
 
 #[namui::component]
 pub struct App {}
@@ -25,7 +24,9 @@ impl namui::Component for App {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let now = namui::time::now();
 
-        ctx.atom_init(&PX_PER_METER_ATOM, || Per::new(4.px(), Meter::one()));
+        ctx.atom_init(&CAMERA_STATE_ATOM, || {
+            CameraState::new(Per::new(3.px(), Meter::one()), Xy::single(100.meter()))
+        });
         ctx.atom_init(&CANNON_BALLS_ATOM, Vec::new);
         ctx.atom_init(&SHIP_KINETICS_ATOM, || ShipKinetics {
             center_xy: Xy::single(100.meter()),
@@ -37,10 +38,11 @@ impl namui::Component for App {
             impacted_at: now,
         });
 
-        ctx.component(CannonBalls { now });
         ctx.component(Tick { now });
+        ctx.component(CannonBalls { now });
         ctx.component(Ship { now });
         ctx.component(Fortress { now });
+        ctx.component(Camera { now });
 
         ctx.done()
     }
@@ -54,6 +56,7 @@ impl Component for Tick {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { now } = self;
 
+        let (_, set_camera_state) = ctx.atom(&CAMERA_STATE_ATOM);
         let (cannon_balls, set_cannon_balls) = ctx.atom(&CANNON_BALLS_ATOM);
         let (ship_kinetics_atom, set_ship_kinetics_atom) = ctx.atom(&SHIP_KINETICS_ATOM);
         let (fortress_state, set_fortress_state) = ctx.atom(&FORTRESS_STATE_ATOM);
@@ -63,7 +66,7 @@ impl Component for Tick {
         let ShipKinetics {
             yaw,
             front_velocity,
-            ..
+            center_xy: ship_center_xy,
         } = *ship_kinetics_atom;
 
         let dt = now - *last_tick_time;
@@ -102,10 +105,16 @@ impl Component for Tick {
             }
         };
 
+        let tick_camera = || {
+            set_camera_state.mutate_tick(now);
+            set_camera_state.mutate_center_xy(now, ship_center_xy);
+        };
+
         if dt > (1.0 / 60.0).sec() {
             set_last_tick_time.set(now);
             update_ship_xy();
             update_cannon_balls();
+            tick_camera();
         }
 
         ctx.done()

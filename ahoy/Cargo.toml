@@ -7,6 +7,7 @@ edition = "2021"
 targets = ["x86_64-pc-windows-msvc"]
 
 [dependencies]
+keyframe = "1.1.1"
 namui = { path = "../namui/namui" }
 namui-prebuilt = { path = "../namui/namui-prebuilt" }
 num-derive = "0.4.2"

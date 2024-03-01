@@ -1,8 +1,8 @@
 use super::cannon_ball::{CannonBall, CANNON_BALLS_ATOM};
 use crate::app::{
     ballistics,
+    camera::CAMERA_STATE_ATOM,
     mechanics::{Meter, MeterExt, Speed, SpeedExt},
-    PX_PER_METER_ATOM,
 };
 use namui::{network::http::IntoUrl, prelude::*};
 use num_traits::{One, Signed};
@@ -19,12 +19,14 @@ impl namui::Component for Ship {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { now } = self;
 
-        let (px_per_meter, _) = ctx.atom(&PX_PER_METER_ATOM);
+        let (camera_state, _) = ctx.atom(&CAMERA_STATE_ATOM);
         let (ship_kinetics, set_ship_kinetics) = ctx.atom(&SHIP_KINETICS_ATOM);
         let (_, set_cannon_balls) = ctx.atom(&CANNON_BALLS_ATOM);
 
+        let px_per_meter = camera_state.px_per_meter();
+        let screen_left_top_xy = camera_state.screen_left_top_xy();
         let ShipKinetics { center_xy, yaw, .. } = *ship_kinetics;
-        let ship_radius = *px_per_meter * SHIP_RADIUS;
+        let ship_radius = px_per_meter * SHIP_RADIUS;
 
         ctx.on_raw_event(|event| match event {
             RawEvent::KeyDown { event } => match event.code {
@@ -46,9 +48,9 @@ impl namui::Component for Ship {
                 let start_speed = 100.mps();
 
                 let start_xy = center_xy;
-                let target_xy = (event.xy.into_type::<f32>()
-                    / (*px_per_meter * Meter::one()).as_f32())
-                    * Xy::single(Meter::one());
+                let target_xy = screen_left_top_xy
+                    + ((event.xy).into_type::<f32>() / (px_per_meter * Meter::one()).as_f32())
+                        * Xy::single(Meter::one());
                 let xy_diff = target_xy - start_xy;
                 let xy_vector = xy_diff.normalize_f32();
                 let distance = xy_diff.length();
@@ -76,8 +78,8 @@ impl namui::Component for Ship {
             _ => (),
         });
 
-        let head_radius = *px_per_meter * 5.meter();
-        let center_xy_px = Xy::single(*px_per_meter) * center_xy;
+        let head_radius = px_per_meter * 5.meter();
+        let center_xy_px = Xy::single(px_per_meter) * (center_xy - screen_left_top_xy);
         ctx.component(path(
             Path::new().move_to(center_xy_px.x, center_xy_px.y).line_to(
                 center_xy_px.x + (ship_radius + head_radius) * yaw.cos(),

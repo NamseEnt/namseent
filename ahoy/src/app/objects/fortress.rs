@@ -4,8 +4,8 @@ use super::{
 };
 use crate::app::{
     ballistics::AimMovingTarget,
+    camera::CAMERA_STATE_ATOM,
     mechanics::{Meter, SpeedExt},
-    PX_PER_METER_ATOM,
 };
 use namui::prelude::*;
 
@@ -20,13 +20,15 @@ impl Component for Fortress {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { now } = self;
 
-        let (px_per_meter, _) = ctx.atom(&PX_PER_METER_ATOM);
+        let (camera_state, _) = ctx.atom(&CAMERA_STATE_ATOM);
         let (_, set_cannon_balls) = ctx.atom(&CANNON_BALLS_ATOM);
         let (ship_kinetic, _) = ctx.atom(&SHIP_KINETICS_ATOM);
         let (fortress_state, _) = ctx.atom(&FORTRESS_STATE_ATOM);
 
         let (last_fire_time, set_last_fire_time) = ctx.state(|| now);
 
+        let px_per_meter = camera_state.px_per_meter();
+        let screen_left_top_xy = camera_state.screen_left_top_xy();
         let FortressState {
             center_xy,
             impacted_at,
@@ -77,8 +79,8 @@ impl Component for Fortress {
             fire_cannon();
         }
 
-        let center_xy_px = Xy::single(*px_per_meter) * center_xy;
-        let fortress_radius = *px_per_meter * FORTRESS_RADIUS;
+        let center_xy_px = Xy::single(px_per_meter) * (center_xy - screen_left_top_xy);
+        let fortress_radius = px_per_meter * FORTRESS_RADIUS;
         ctx.component(path(
             Path::new().add_oval(Rect::from_xy_wh(
                 center_xy_px - Xy::single(fortress_radius),

@@ -1,7 +1,7 @@
 use crate::app::{
     ballistics::GRAVITY,
+    camera::CAMERA_STATE_ATOM,
     mechanics::{Meter, MeterExt, Speed},
-    PX_PER_METER_ATOM,
 };
 use namui::prelude::*;
 use num_traits::Zero;
@@ -56,27 +56,30 @@ impl Component for CannonBalls {
     fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { now } = self;
 
+        let (camera_state, _) = ctx.atom(&CAMERA_STATE_ATOM);
         let (cannon_balls, _) = ctx.atom(&CANNON_BALLS_ATOM);
-        let (px_per_meter, _) = ctx.atom(&PX_PER_METER_ATOM);
+
+        let px_per_meter = camera_state.px_per_meter();
+        let screen_left_top_xy = camera_state.screen_left_top_xy();
 
         ctx.compose(|ctx| {
             for cannon_ball in cannon_balls.as_ref() {
                 let xyz = cannon_ball.xyz(now);
-                let shadow = xyz.xy;
+                let shadow = xyz.xy - screen_left_top_xy;
                 let bullet = shadow + Xy::new(Meter::zero(), -xyz.z);
 
                 ctx.add(path(
                     Path::new().add_oval(Rect::from_xy_wh(
-                        Xy::single(*px_per_meter) * (bullet - Xy::single(2.meter())),
-                        Wh::single(*px_per_meter * 4.meter()),
+                        Xy::single(px_per_meter) * (bullet - Xy::single(2.meter())),
+                        Wh::single(px_per_meter * 4.meter()),
                     )),
                     Paint::new(Color::RED),
                 ));
 
                 ctx.add(path(
                     Path::new().add_oval(Rect::from_xy_wh(
-                        Xy::single(*px_per_meter) * (shadow - Xy::single(2.meter())),
-                        Wh::single(*px_per_meter * 4.meter()),
+                        Xy::single(px_per_meter) * (shadow - Xy::single(2.meter())),
+                        Wh::single(px_per_meter * 4.meter()),
                     )),
                     Paint::new(Color::BLACK),
                 ));
