@@ -2,10 +2,11 @@ use super::cannon_ball::{CannonBall, CANNON_BALLS_ATOM};
 use crate::app::{
     ballistics,
     camera::CAMERA_STATE_ATOM,
-    mechanics::{Meter, MeterExt, Speed, SpeedExt},
+    mechanics::{Acceleration, AccelerationExt, Meter, MeterExt, Speed, SpeedExt},
 };
 use namui::{network::http::IntoUrl, prelude::*};
-use num_traits::{One, Signed};
+use num_traits::{AsPrimitive, Float, One, Signed};
+use std::ops::Neg;
 
 const SHIP_RADIUS: Meter = Meter(10.0);
 
@@ -30,17 +31,11 @@ impl namui::Component for Ship {
 
         ctx.on_raw_event(|event| match event {
             RawEvent::KeyDown { event } => match event.code {
-                Code::ArrowLeft => {
-                    set_ship_kinetics.mutate_yaw(-(10.deg()));
-                }
-                Code::ArrowRight => {
-                    set_ship_kinetics.mutate_yaw(10.deg());
-                }
                 Code::ArrowUp => {
-                    set_ship_kinetics.mutate_velocity(10.mps());
+                    set_ship_kinetics.mutate_throttle_up();
                 }
                 Code::ArrowDown => {
-                    set_ship_kinetics.mutate_velocity(-(10.mps()));
+                    set_ship_kinetics.mutate_throttle_down();
                 }
                 _ => {}
             },
@@ -120,29 +115,124 @@ impl namui::Component for Ship {
 pub struct ShipKinetics {
     pub center_xy: Xy<Meter>,
     pub yaw: Angle,
-    pub front_velocity: Speed,
+    pub velocity: Xy<Speed>,
+    pub throttle: ShipThrottle,
+    pub rudder: Angle,
 }
 pub trait MutateShipKinetics {
-    fn mutate_center_xy(self, delta: Xy<Meter>);
-    fn mutate_yaw(self, delta: Angle);
-    fn mutate_velocity(self, delta: Speed);
+    fn mutate_throttle_up(self);
+    fn mutate_throttle_down(self);
+    fn mutate_tick(self, dt: Duration, left: bool, right: bool);
 }
 impl MutateShipKinetics for SetState<ShipKinetics> {
-    fn mutate_center_xy(self, delta: Xy<Meter>) {
+    fn mutate_throttle_up(self) {
         self.mutate(move |ship_kinetics| {
-            ship_kinetics.center_xy = ship_kinetics.center_xy + delta;
+            ship_kinetics.throttle = ship_kinetics.throttle.up();
         });
     }
 
-    fn mutate_yaw(self, delta: Angle) {
+    fn mutate_throttle_down(self) {
         self.mutate(move |ship_kinetics| {
-            ship_kinetics.yaw += delta;
+            ship_kinetics.throttle = ship_kinetics.throttle.down();
         });
     }
 
-    fn mutate_velocity(self, delta: Speed) {
+    fn mutate_tick(self, dt: Duration, left: bool, right: bool) {
         self.mutate(move |ship_kinetics| {
-            ship_kinetics.front_velocity = ship_kinetics.front_velocity + delta;
+            ship_kinetics.drag(dt);
+            ship_kinetics.handle_rudder(dt, left, right);
+            ship_kinetics.rotate(dt);
+            ship_kinetics.accelerate(dt);
+            ship_kinetics.move_xy(dt);
         });
+    }
+}
+impl ShipKinetics {
+    pub fn drag(&mut self, dt: Duration) {
+        const DRAG: f32 = 0.05;
+        let drag_acc = |speed: Speed| {
+            let sign = speed.signum().neg();
+            (sign * speed * speed * DRAG).as_f32().mpsps()
+        };
+        self.velocity.x = self.velocity.x + drag_acc(self.velocity.x) * dt;
+        self.velocity.y = self.velocity.y + drag_acc(self.velocity.y) * dt;
+    }
+    pub fn handle_rudder(&mut self, dt: Duration, left: bool, right: bool) {
+        let amount = 45.deg() * dt.as_secs_f32();
+        if left {
+            self.rudder = Angle::Degree((self.rudder - amount).as_degrees().clamp(-45.0, 45.0));
+        }
+        if right {
+            self.rudder = Angle::Degree((self.rudder + amount).as_degrees().clamp(-45.0, 45.0));
+        }
+        if !left && !right {
+            let rudder = self.rudder.as_degrees();
+            let sign = rudder.signum();
+            self.rudder =
+                Angle::Degree(sign * (rudder.abs() - amount.as_degrees()).clamp(0.0, 45.0));
+        }
+    }
+    pub fn rotate(&mut self, dt: Duration) {
+        let direction_weight = (self.velocity.atan2() - self.yaw).cos();
+        let speed_weight = (self.velocity.length() / 10.mps())
+            .as_f32()
+            .clamp(-1.0, 1.0);
+        self.yaw += self.rudder * direction_weight * speed_weight * dt.as_secs_f32();
+    }
+    pub fn accelerate(&mut self, dt: Duration) {
+        const ACCELERATION: Acceleration = Acceleration(20.0);
+        let amount = self.throttle.mps() * (ACCELERATION * dt);
+        self.velocity = self.velocity + self.yaw.as_xy() * Xy::single(amount);
+        namui::log!("speed {:?}", self.velocity.length());
+    }
+    pub fn move_xy(&mut self, dt: Duration) {
+        self.center_xy = self.center_xy + self.velocity * Xy::single(dt);
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ShipThrottle {
+    Full,
+    ThreeQuarter,
+    Half,
+    Quarter,
+    Idle,
+    Reverse,
+}
+impl ShipThrottle {
+    pub fn up(self) -> Self {
+        match self {
+            Self::Full => Self::Full,
+            Self::ThreeQuarter => Self::Full,
+            Self::Half => Self::ThreeQuarter,
+            Self::Quarter => Self::Half,
+            Self::Idle => Self::Quarter,
+            Self::Reverse => Self::Idle,
+        }
+    }
+    pub fn down(self) -> Self {
+        match self {
+            Self::Full => Self::ThreeQuarter,
+            Self::ThreeQuarter => Self::Half,
+            Self::Half => Self::Quarter,
+            Self::Quarter => Self::Idle,
+            Self::Idle => Self::Reverse,
+            Self::Reverse => Self::Reverse,
+        }
+    }
+}
+impl<F> AsPrimitive<F> for ShipThrottle
+where
+    F: Float + 'static,
+{
+    fn as_(self) -> F {
+        match self {
+            Self::Full => F::one(),
+            Self::ThreeQuarter => F::from(0.75).unwrap(),
+            Self::Half => F::from(0.5).unwrap(),
+            Self::Quarter => F::from(0.25).unwrap(),
+            Self::Idle => F::zero(),
+            Self::Reverse => F::one().neg(),
+        }
     }
 }

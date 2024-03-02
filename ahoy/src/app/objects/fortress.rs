@@ -56,8 +56,8 @@ impl Component for Fortress {
                 projectile_speed,
                 start_xy,
                 target_xy: ship_kinetic.center_xy,
-                target_speed: ship_kinetic.front_velocity,
-                target_yaw: ship_kinetic.yaw,
+                target_speed: ship_kinetic.velocity.length(),
+                target_yaw: ship_kinetic.velocity.atan2(),
             }
             .aim();
 

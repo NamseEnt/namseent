@@ -5,7 +5,7 @@ mod objects;
 
 use self::{
     camera::{Camera, CameraState, MutateCameraState, CAMERA_STATE_ATOM},
-    mechanics::{Meter, MeterExt, Speed},
+    mechanics::{Meter, MeterExt},
     objects::{
         cannon_ball::{CannonBalls, CANNON_BALLS_ATOM},
         fortress::{
@@ -15,7 +15,7 @@ use self::{
     },
 };
 use namui::prelude::*;
-use num_traits::{One, Zero};
+use num_traits::One;
 use std::vec;
 
 #[namui::component]
@@ -31,7 +31,9 @@ impl namui::Component for App {
         ctx.atom_init(&SHIP_KINETICS_ATOM, || ShipKinetics {
             center_xy: Xy::single(100.meter()),
             yaw: 0.rad(),
-            front_velocity: Speed::zero(),
+            velocity: Xy::zero(),
+            throttle: objects::ship::ShipThrottle::Idle,
+            rudder: 0.rad(),
         });
         ctx.atom_init(&FORTRESS_STATE_ATOM, || FortressState {
             center_xy: Xy::single(200.meter()),
@@ -64,16 +66,15 @@ impl Component for Tick {
         let (last_tick_time, set_last_tick_time) = ctx.state(|| now);
 
         let ShipKinetics {
-            yaw,
-            front_velocity,
             center_xy: ship_center_xy,
+            ..
         } = *ship_kinetics_atom;
 
         let dt = now - *last_tick_time;
         let update_ship_xy = || {
-            let dl = front_velocity * dt;
-            let dxy = Xy::single(dl) * yaw.as_xy();
-            set_ship_kinetics_atom.mutate_center_xy(dxy);
+            let left = keyboard::any_code_press([Code::ArrowLeft]);
+            let right = keyboard::any_code_press([Code::ArrowRight]);
+            set_ship_kinetics_atom.mutate_tick(dt, left, right);
         };
 
         let update_cannon_balls = || {
