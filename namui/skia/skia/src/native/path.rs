@@ -119,6 +119,9 @@ fn apply_command_to_skia_path(skia_path: &mut skia_safe::Path, path: &Path) {
             PathCommand::LineTo { xy } => {
                 skia_path.line_to(*xy);
             }
+            PathCommand::QuadTo { p1, p2 } => {
+                skia_path.quad_to(*p1, *p2);
+            }
             &PathCommand::ArcTo {
                 oval,
                 start_angle,

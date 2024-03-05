@@ -36,6 +36,13 @@ impl Path {
         self.commands.push(PathCommand::LineTo { xy: Xy { x, y } });
         self
     }
+    pub fn quad_to(mut self, p1x: Px, p1y: Px, p2x: Px, p2y: Px) -> Self {
+        self.commands.push(PathCommand::QuadTo {
+            p1: Xy { x: p1x, y: p1y },
+            p2: Xy { x: p2x, y: p2y },
+        });
+        self
+    }
     pub fn arc_to(mut self, oval: Rect<Px>, start_angle: Angle, delta_angle: Angle) -> Self {
         self.commands.push(PathCommand::ArcTo {
             oval,
@@ -102,6 +109,10 @@ pub enum PathCommand {
     },
     LineTo {
         xy: Xy<Px>,
+    },
+    QuadTo {
+        p1: Xy<Px>,
+        p2: Xy<Px>,
     },
     ArcTo {
         oval: Rect<Px>,
