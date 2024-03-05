@@ -28,6 +28,16 @@ impl namui::Component for Ship {
         let screen_left_top_xy = camera_state.screen_left_top_xy();
         let ShipKinetics { center_xy, yaw, .. } = *ship_kinetics;
         let ship_radius = px_per_meter * SHIP_RADIUS;
+        let start_speed = 100.mps();
+
+        let start_xy = center_xy;
+        let target_xy = screen_left_top_xy
+            + ((mouse::position()).into_type::<f32>() / (px_per_meter * Meter::one()).as_f32())
+                * Xy::single(Meter::one());
+        let xy_diff = target_xy - start_xy;
+        let xy_vector = xy_diff.normalize_f32();
+        let distance = xy_diff.length();
+        let max_range = ballistics::calculate_range_with_xz_angle(start_speed, 45.deg());
 
         ctx.on_raw_event(|event| match event {
             RawEvent::KeyDown { event } => match event.code {
@@ -39,18 +49,7 @@ impl namui::Component for Ship {
                 }
                 _ => {}
             },
-            RawEvent::MouseDown { event } => {
-                let start_speed = 100.mps();
-
-                let start_xy = center_xy;
-                let target_xy = screen_left_top_xy
-                    + ((event.xy).into_type::<f32>() / (px_per_meter * Meter::one()).as_f32())
-                        * Xy::single(Meter::one());
-                let xy_diff = target_xy - start_xy;
-                let xy_vector = xy_diff.normalize_f32();
-                let distance = xy_diff.length();
-
-                let max_range = ballistics::calculate_range_with_xz_angle(start_speed, 45.deg());
+            RawEvent::MouseDown { .. } => {
                 let xz_angle = match max_range <= distance {
                     true => 45.deg(),
                     false => {
@@ -71,6 +70,12 @@ impl namui::Component for Ship {
                 });
             }
             _ => (),
+        });
+
+        ctx.component(ExpectedTrajectory {
+            start_xy,
+            target_xy,
+            max_range,
         });
 
         let head_radius = px_per_meter * 5.meter();
@@ -234,5 +239,69 @@ where
             Self::Idle => F::zero(),
             Self::Reverse => F::one().neg(),
         }
+    }
+}
+
+#[component]
+struct ExpectedTrajectory {
+    start_xy: Xy<Meter>,
+    target_xy: Xy<Meter>,
+    max_range: Meter,
+}
+impl Component for ExpectedTrajectory {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self {
+            start_xy,
+            target_xy,
+            max_range,
+        } = self;
+
+        let (camera_state, _) = ctx.atom(&CAMERA_STATE_ATOM);
+        let screen_left_top_xy = camera_state.screen_left_top_xy();
+        let px_per_meter = camera_state.px_per_meter();
+
+        let diff = target_xy - start_xy;
+        let vector = diff.normalize_f32();
+        let length = diff.length();
+        let opacity = ((max_range - length / 1.meter()).as_f32().clamp(0.0, 1.0) * 255.0) as u8;
+
+        ctx.compose(|ctx| {
+            if opacity == 0 {
+                return;
+            }
+            let gradient_end_xy = {
+                let in_meter = start_xy + vector * Xy::single(Meter::min(length, 10.meter()))
+                    - screen_left_top_xy;
+                Xy::single(px_per_meter) * in_meter
+            };
+            let curve_control_xy = {
+                let mut middle = start_xy + diff / 2.0;
+                let z_offset = (length / max_range) * (max_range / 4.0);
+                middle.y = middle.y - z_offset;
+                Xy::single(px_per_meter) * (middle - screen_left_top_xy)
+            };
+            let start_xy = Xy::single(px_per_meter) * (start_xy - screen_left_top_xy);
+            let target_xy = Xy::single(px_per_meter) * (target_xy - screen_left_top_xy);
+
+            let paint = Paint::new(Color::BLACK)
+                .set_shader(Shader::LinearGradient {
+                    start_xy,
+                    end_xy: gradient_end_xy,
+                    colors: vec![Color::RED.with_alpha(0), Color::RED.with_alpha(opacity)],
+                    tile_mode: TileMode::Clamp,
+                })
+                .set_style(PaintStyle::Stroke)
+                .set_stroke_cap(StrokeCap::Round)
+                .set_stroke_width(4.px());
+            let path = Path::new().move_to(start_xy.x, start_xy.y).quad_to(
+                curve_control_xy.x,
+                curve_control_xy.y,
+                target_xy.x,
+                target_xy.y,
+            );
+            ctx.add(namui::path(path, paint));
+        });
+
+        ctx.done()
     }
 }
