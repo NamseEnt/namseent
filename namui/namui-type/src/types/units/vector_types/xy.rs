@@ -34,6 +34,18 @@ where
     }
 }
 
+impl<T> Xy<T> {
+    pub fn as_wh(&self) -> Wh<T>
+    where
+        T: Clone,
+    {
+        Wh {
+            width: self.x.clone(),
+            height: self.y.clone(),
+        }
+    }
+}
+
 // TODO: Implement this on vector_types! macro.
 impl<T, T2> From<Xy<T>> for (T2, T2)
 where
