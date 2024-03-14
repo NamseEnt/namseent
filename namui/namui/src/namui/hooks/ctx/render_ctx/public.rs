@@ -20,7 +20,15 @@ impl<'a> RenderCtx {
         &'a self,
         init_state: impl FnOnce() -> T,
     ) -> (Sig<'a, T>, SetState<T>) {
-        handle_state(self, init_state)
+        let out = handle_state(self, init_state);
+        out
+    }
+
+    pub fn state_mut<T: 'static + Debug + Send + Sync>(
+        &self,
+        init_state: impl FnOnce() -> T,
+    ) -> MutState<'_, T> {
+        handle_mut_state(self, init_state)
     }
 
     pub fn memo<T: 'static + Debug + Send + Sync>(
@@ -37,7 +45,7 @@ impl<'a> RenderCtx {
         handle_track_eq(self, track_eq)
     }
 
-    pub fn effect<CleanUp: EffectCleanUp>(
+    pub fn effect<CleanUp: Into<EffectCleanUpType>>(
         &'a self,
         title: impl AsRef<str>,
         effect: impl FnOnce() -> CleanUp,
@@ -45,21 +53,29 @@ impl<'a> RenderCtx {
         handle_effect(self, title, effect)
     }
 
-    pub fn on_raw_event(&'a self, on_raw_event: impl 'a + FnOnce(&crate::RawEvent)) {
-        if let Some(raw_event) = self.raw_event.as_ref() {
+    pub fn interval(
+        &'a self,
+        title: impl AsRef<str>,
+        duration: Duration,
+        job: impl FnOnce(Duration),
+    ) {
+        handle_interval(self, title, duration, job)
+    }
+
+    pub fn on_raw_event(&'a self, on_raw_event: impl FnOnce(&crate::RawEvent)) {
+        if let Some(raw_event) = global_state::raw_event() {
             on_raw_event(raw_event);
         }
     }
 
     pub fn stop_event_propagation(&'a self) {
-        self.tree_ctx
+        global_state::tree_ctx()
             .is_stop_event_propagation
             .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 
     pub fn done(&self) -> RenderDone {
-        let vec: Vec<RenderingTree> = std::mem::take(self.children.lock().unwrap().as_mut());
-        let rendering_tree = crate::render(vec);
+        let rendering_tree = global_state::done_render_component();
 
         #[cfg(target_family = "wasm")]
         {
@@ -80,26 +96,19 @@ impl<'a> RenderCtx {
             enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
-        {
-            let mut compose_ctx = ComposeCtx::new(
-                self.tree_ctx.clone(),
-                KeyVec::new_child(self.get_next_component_index()),
-                *self.matrix.lock().unwrap(),
-                self.renderer(),
-                lazy.clone(),
-                self.raw_event.clone(),
-                self.clippings.clone(),
-            );
+        // {
+        //     let mut compose_ctx =
+        //         ComposeCtx::new(self.instance_id, global_state::GlobalStatePop::compose());
 
-            let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
+        //     let prev_enable_event =
+        //         global_state::tree_ctx().enable_event_handling(enable_event_handling);
 
-            compose(&mut compose_ctx);
+        //     compose(&mut compose_ctx);
 
-            self.tree_ctx.enable_event_handling(prev_enable_event);
-        }
-        let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
-        rendering_tree
+        //     global_state::tree_ctx().enable_event_handling(prev_enable_event);
+        // }
+
+        global_state::take_last_rendering_tree()
     }
 
     /// Get RenderingTree but don't add it to the children.
@@ -110,41 +119,59 @@ impl<'a> RenderCtx {
             enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
-        let key = KeyVec::new_child(self.get_next_component_index());
+        // let prev_enable_event =
+        //     global_state::tree_ctx().enable_event_handling(enable_event_handling);
 
-        let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
+        // let rendering_tree = self.render_children(None, component);
 
-        let rendering_tree = self.render_children(key, component);
+        // global_state::tree_ctx().enable_event_handling(prev_enable_event);
 
-        self.tree_ctx.enable_event_handling(prev_enable_event);
-
-        rendering_tree
+        // rendering_tree
+        todo!()
     }
 
     pub fn compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> &Self {
-        let rendering_tree = self.ghost_compose(
-            compose,
-            GhostComposeOption {
-                enable_event_handling: true,
+        let child = self.hook_node.get_or_create_child_node(
+            Key::IncrementalCompose {
+                index: (self.get_next_child_index()),
             },
+            || hook_tree::HookInstance::new(hook_tree::HookType::Compose),
         );
-        self.children.lock().unwrap().push(rendering_tree);
+
+        {
+            let mut compose_ctx = ComposeCtx::new(child, global_state::GlobalStatePop::compose());
+
+            let prev_enable_event = global_state::tree_ctx().enable_event_handling(true);
+
+            compose(&mut compose_ctx);
+
+            global_state::tree_ctx().enable_event_handling(prev_enable_event);
+        }
 
         self
     }
     pub fn component(&self, component: impl Component) -> &Self {
-        let rendering_tree = self.ghost_component(
-            component,
-            GhostComposeOption {
-                enable_event_handling: true,
+        let child = self.hook_node.get_or_create_child_node(
+            Key::IncrementalComponent {
+                index: (self.get_next_child_index()),
+                name: component.static_type_name(),
+            },
+            || {
+                hook_tree::HookInstance::new(hook_tree::HookType::Component {
+                    instance: ComponentInstance::new().into(),
+                })
             },
         );
-        self.children.lock().unwrap().push(rendering_tree);
+
+        let render_ctx = RenderCtx::new(child);
+        let render_done = component.render(&render_ctx);
+
+        global_state::add_child(render_done.rendering_tree);
         self
     }
     pub fn global_xy(&self, local_xy: Xy<Px>) -> Xy<Px> {
-        let local_xy = Matrix3x3::from_translate(local_xy.x.as_f32(), local_xy.y.as_f32());
-        let global_xy = self.matrix() * local_xy;
+        let local_xy = TransformMatrix::from_translate(local_xy.x.as_f32(), local_xy.y.as_f32());
+        let global_xy = global_state::matrix() * local_xy;
         Xy::new(global_xy.x().px(), global_xy.y().px())
     }
 }

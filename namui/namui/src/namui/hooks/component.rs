@@ -14,6 +14,12 @@ pub trait Component: StaticType + Debug {
     {
         native::attach_event(self, on_event)
     }
+    fn direct_rendering_tree(self) -> Result<RenderingTree, Self>
+    where
+        Self: Sized,
+    {
+        Err(self)
+    }
     #[cfg(target_family = "wasm")]
     fn with_mouse_cursor<'a>(self, cursor: MouseCursor) -> WithMouseCursor<Self>
     where
@@ -39,9 +45,10 @@ impl StaticType for RenderingTree {}
 
 impl Component for RenderingTree {
     fn render(self, _ctx: &RenderCtx) -> RenderDone {
-        RenderDone {
-            rendering_tree: self,
-        }
+        unreachable!()
+    }
+    fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
+        Ok(self)
     }
 }
 
@@ -60,49 +67,47 @@ impl<T: Component> Component for Option<T> {
 
 impl StaticType for DrawCommand {}
 impl Component for DrawCommand {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        ctx.component(RenderingTree::Node(RenderingData {
-            draw_calls: vec![DrawCall {
-                commands: vec![self],
-            }],
-        }));
-        ctx.done()
+    fn render(self, _ctx: &RenderCtx) -> RenderDone {
+        unreachable!()
+    }
+    fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
+        Ok(RenderingTree::Node(self))
     }
 }
 
 impl StaticType for PathDrawCommand {}
 impl Component for PathDrawCommand {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        ctx.component(RenderingTree::Node(RenderingData {
-            draw_calls: vec![DrawCall {
-                commands: vec![DrawCommand::Path { command: self }],
-            }],
-        }));
-        ctx.done()
+    fn render(self, _ctx: &RenderCtx) -> RenderDone {
+        unreachable!()
+    }
+    fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
+        Ok(RenderingTree::Node(DrawCommand::Path {
+            command: self.into(),
+        }))
     }
 }
 
 impl StaticType for ImageDrawCommand {}
 impl Component for ImageDrawCommand {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        ctx.component(RenderingTree::Node(RenderingData {
-            draw_calls: vec![DrawCall {
-                commands: vec![DrawCommand::Image { command: self }],
-            }],
-        }));
-        ctx.done()
+    fn render(self, _ctx: &RenderCtx) -> RenderDone {
+        unreachable!()
+    }
+    fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
+        Ok(RenderingTree::Node(DrawCommand::Image {
+            command: self.into(),
+        }))
     }
 }
 
 impl StaticType for TextDrawCommand {}
 impl Component for TextDrawCommand {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        ctx.component(RenderingTree::Node(RenderingData {
-            draw_calls: vec![DrawCall {
-                commands: vec![DrawCommand::Text { command: self }],
-            }],
-        }));
-        ctx.done()
+    fn render(self, _ctx: &RenderCtx) -> RenderDone {
+        unreachable!()
+    }
+    fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
+        Ok(RenderingTree::Node(DrawCommand::Text {
+            command: self.into(),
+        }))
     }
 }
 

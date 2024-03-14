@@ -1,10 +1,7 @@
 use super::*;
 use crate::*;
 use derivative::Derivative;
-use std::{
-    collections::HashSet,
-    sync::{atomic::AtomicBool, Arc, Mutex},
-};
+use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
@@ -13,34 +10,28 @@ pub(crate) struct TreeContext {
     pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
     pub(crate) is_cursor_determined: Arc<AtomicBool>,
     pub(crate) enable_event_handling: Arc<AtomicBool>,
-    root_instance: Arc<ComponentInstance>,
     #[derivative(Debug = "ignore")]
-    call_root_render: Arc<dyn Fn(HashSet<SigId>, RawEventContainer) -> RenderingTree>,
-    #[derivative(Debug = "ignore")]
-    clear_unrendered_components: Arc<dyn Fn()>,
+    call_root_render: Arc<dyn Fn(&hook_tree::HookTree) -> RenderingTree>,
 }
 
 impl TreeContext {
     pub(crate) fn new<C: Component>(
         root_component: impl Send + Sync + 'static + Fn() -> C,
     ) -> Self {
-        let root_instance = Arc::new(ComponentInstance::new(root_component().static_type_name()));
+        let hook_tree = hook_tree::HookTree::new();
         let mut ctx = Self {
             channel_events: Default::default(),
             is_stop_event_propagation: Default::default(),
             is_cursor_determined: Default::default(),
             enable_event_handling: Arc::new(AtomicBool::new(true)),
-            root_instance: root_instance.clone(),
-            call_root_render: Arc::new(|_, _| {
-                unreachable!();
-            }),
-            clear_unrendered_components: Arc::new(|| {
+            call_root_render: Arc::new(|_| {
                 unreachable!();
             }),
         };
 
         ctx.call_root_render = Arc::new({
             let ctx = ctx.clone();
+<<<<<<< HEAD
             let root_instance = root_instance.clone();
             move |updated_sigs, raw_event| {
                 ctx.render(
@@ -58,28 +49,23 @@ impl TreeContext {
             move || {
                 root_instance.clear_unrendered_children();
             }
+=======
+            move |hook_tree| ctx.render_component(root_component(), hook_tree.get_root_node())
+>>>>>>> 091808c9 (Init)
         });
 
         ctx
     }
 
     pub(crate) fn start(&self, channel_rx: &std::sync::mpsc::Receiver<Item>) {
-        self.render_and_draw(None.into(), channel_rx);
+        self.render_and_draw(channel_rx);
     }
 
-    pub(crate) fn on_raw_event(
-        &mut self,
-        event: RawEvent,
-        channel_rx: &std::sync::mpsc::Receiver<Item>,
-    ) {
-        self.render_and_draw(Some(event).into(), channel_rx);
+    pub(crate) fn on_raw_event(&self, channel_rx: &std::sync::mpsc::Receiver<Item>) {
+        self.render_and_draw(channel_rx);
     }
 
-    pub(crate) fn render_and_draw(
-        &self,
-        raw_event: RawEventContainer,
-        channel_rx: &std::sync::mpsc::Receiver<Item>,
-    ) {
+    pub(crate) fn render_and_draw(&self, channel_rx: &std::sync::mpsc::Receiver<Item>) {
         if !system::panick::is_panicked() {
             self.is_stop_event_propagation
                 .store(false, std::sync::atomic::Ordering::Relaxed);
@@ -88,12 +74,12 @@ impl TreeContext {
 
             let mut channel_events = channel_rx.try_iter().collect::<Vec<_>>();
 
-            let mut updated_sigs = Default::default();
-            handle_atom_events(&mut channel_events, &mut updated_sigs);
+            handle_atom_and_mut_state_events(&mut channel_events);
 
             self.channel_events.lock().unwrap().extend(channel_events);
 
-            let rendering_tree = (self.call_root_render)(updated_sigs, raw_event);
+            let rendering_tree = (self.call_root_render)();
+
             crate::system::drawer::request_draw_rendering_tree(rendering_tree);
 
             #[cfg(target_family = "wasm")]
@@ -104,45 +90,25 @@ impl TreeContext {
                 system::mouse::set_mouse_cursor(&MouseCursor::Default);
             }
 
-            (self.clear_unrendered_components)();
+            hook_tree::clear_unrendered();
         }
 
         #[cfg(target_arch = "wasm32")]
         self.root_instance.inspect();
     }
 
-    pub(crate) fn render(
+    pub(crate) fn render_component(
         &self,
         component: impl Component,
-        instance: Arc<ComponentInstance>,
-        updated_sigs: HashSet<SigId>,
-        matrix: Matrix3x3,
-        clippings: Vec<Clipping>,
-        raw_event: RawEventContainer,
+        mut hook_node: hook_tree::HookNodeWrapper,
     ) -> RenderingTree {
-        let render_ctx =
-            self.spawn_render_ctx(instance, updated_sigs, matrix, clippings, raw_event);
+        hook_node.before_render();
 
-        let render_done = Box::new(component).render(&render_ctx);
+        let render_ctx = RenderCtx::new(hook_node);
+
+        let render_done = component.render(&render_ctx);
 
         render_done.rendering_tree
-    }
-    pub(crate) fn spawn_render_ctx(
-        &self,
-        instance: Arc<ComponentInstance>,
-        updated_sigs: HashSet<SigId>,
-        matrix: Matrix3x3,
-        clippings: Vec<Clipping>,
-        raw_event: RawEventContainer,
-    ) -> RenderCtx {
-        RenderCtx::new(
-            instance,
-            updated_sigs,
-            self.clone(),
-            matrix,
-            raw_event,
-            clippings,
-        )
     }
 
     pub(crate) fn enable_event_handling(&self, enable: bool) -> bool {
@@ -156,11 +122,11 @@ impl TreeContext {
     }
 }
 
-fn handle_atom_events(channel_events: &mut Vec<Item>, updated_sigs: &mut HashSet<SigId>) {
+fn handle_atom_and_mut_state_events(channel_events: &mut Vec<Item>) {
     channel_events.retain(|x| match x {
         Item::SetStateItem(x) => {
             if x.sig_id().id_type == SigIdType::Atom {
-                updated_sigs.insert(x.sig_id());
+                global_state::updated_sigs().insert(x.sig_id());
                 match x {
                     SetStateItem::Set { sig_id, value } => {
                         set_atom_value(sig_id.index, value.lock().unwrap().take().unwrap());
@@ -176,5 +142,6 @@ fn handle_atom_events(channel_events: &mut Vec<Item>, updated_sigs: &mut HashSet
                 true
             }
         }
+        Item::MutStateCalled { .. } => false,
     });
 }

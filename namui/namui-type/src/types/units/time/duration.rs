@@ -123,14 +123,23 @@ impl std::ops::Neg for &Duration {
 }
 
 impl std::ops::Div<Duration> for Duration {
-    type Output = f32;
+    type Output = f64;
     fn div(self, rhs: Self) -> Self::Output {
         let lhs_secs = self.inner.as_secs_f64();
         let rhs_secs = rhs.inner.as_secs_f64();
         if rhs_secs == 0.0 {
             panic!("divide by zero")
         }
-        (lhs_secs / rhs_secs) as f32 * if self.sign == rhs.sign { 1.0 } else { -1.0 }
+        (lhs_secs / rhs_secs) * if self.sign == rhs.sign { 1.0 } else { -1.0 }
+    }
+}
+
+impl From<std::time::Duration> for Duration {
+    fn from(duration: std::time::Duration) -> Self {
+        Self {
+            sign: true,
+            inner: duration,
+        }
     }
 }
 
@@ -163,6 +172,9 @@ auto_ops::impl_op!(/|lhs: Duration, rhs: i32| -> Duration { div_i32(lhs, rhs) })
 auto_ops::impl_op!(/|lhs: &Duration, rhs: i32| -> Duration { div_i32(*lhs, rhs) });
 auto_ops::impl_op!(/|lhs: Duration, rhs: &i32| -> Duration { div_i32(lhs, *rhs) });
 auto_ops::impl_op!(/|lhs: &Duration, rhs: &i32| -> Duration { div_i32(*lhs, *rhs) });
+
+auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: Duration| { *lhs = add(*lhs, rhs) });
+auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: &Duration| { *lhs = add(*lhs, * rhs) });
 
 fn add(lhs: Duration, rhs: Duration) -> Duration {
     if lhs.sign == rhs.sign {

@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives(Default)]
+#[type_derives(Default, Eq, Hash)]
 pub struct Path {
     commands: Vec<PathCommand>,
 }
@@ -8,7 +8,7 @@ pub struct Path {
 impl Path {
     pub fn new() -> Self {
         Self {
-            commands: Vec::new(),
+            commands: Vec::with_capacity(2),
         }
     }
     pub fn commands(&self) -> &Vec<PathCommand> {
@@ -46,7 +46,10 @@ impl Path {
     }
     pub fn scale(mut self, sx: f32, sy: f32) -> Self {
         self.commands.push(PathCommand::Scale {
-            xy: Xy { x: sx, y: sy },
+            xy: Xy {
+                x: sx.try_into().unwrap(),
+                y: sy.try_into().unwrap(),
+            },
         });
         self
     }
@@ -55,7 +58,7 @@ impl Path {
             .push(PathCommand::Translate { xy: Xy { x, y } });
         self
     }
-    pub fn transform(mut self, matrix: Matrix3x3) -> Self {
+    pub fn transform(mut self, matrix: TransformMatrix) -> Self {
         self.commands.push(PathCommand::Transform { matrix });
         self
     }
@@ -84,7 +87,7 @@ impl Path {
     }
 }
 
-#[type_derives()]
+#[type_derives(Eq, Hash)]
 pub enum PathCommand {
     AddRect {
         rect: Rect<Px>,
@@ -109,13 +112,13 @@ pub enum PathCommand {
         delta_angle: Angle,
     },
     Scale {
-        xy: Xy<f32>,
+        xy: Xy<OrderedFloat<f32>>,
     },
     Translate {
         xy: Xy<Px>,
     },
     Transform {
-        matrix: Matrix3x3,
+        matrix: TransformMatrix,
     },
     AddOval {
         rect: Rect<Px>,

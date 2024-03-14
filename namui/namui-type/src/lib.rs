@@ -4,6 +4,7 @@ mod types;
 pub use auto_ops;
 use derive_macro::type_derives;
 pub use log::*;
+use ordered_float::OrderedFloat;
 pub use postcard;
 pub use types::*;
 

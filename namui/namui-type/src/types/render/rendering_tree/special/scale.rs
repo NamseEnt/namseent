@@ -8,14 +8,17 @@ pub struct ScaleNode {
 }
 
 pub fn scale(x: f32, y: f32, rendering_tree: RenderingTree) -> RenderingTree {
+    if rendering_tree == RenderingTree::Empty {
+        return RenderingTree::Empty;
+    }
     RenderingTree::Special(SpecialRenderingNode::Scale(ScaleNode {
         x,
         y,
-        rendering_tree: Box::new(rendering_tree),
+        rendering_tree: rendering_tree.into(),
     }))
 }
 impl ScaleNode {
-    pub fn get_matrix(&self) -> Matrix3x3 {
-        Matrix3x3::from_scale(self.x, self.y)
+    pub fn get_matrix(&self) -> TransformMatrix {
+        TransformMatrix::from_scale(self.x, self.y)
     }
 }

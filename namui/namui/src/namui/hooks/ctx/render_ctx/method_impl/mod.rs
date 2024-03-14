@@ -2,14 +2,18 @@
 /// ex) ctx.atom() or ctx.state()
 mod atom;
 mod effect;
+mod interval;
 mod memo;
+mod mut_state;
 mod state;
 mod track_eq;
 
 use super::*;
 pub use atom::*;
-pub(crate) use effect::*;
+pub use effect::*;
+pub(crate) use interval::*;
 pub(crate) use memo::*;
+pub(crate) use mut_state::*;
 pub use state::*;
 pub(crate) use track_eq::*;
 

@@ -4,8 +4,8 @@ pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
     ctx: &RenderCtx,
     init: impl FnOnce() -> State,
 ) -> (Sig<'_, State>, SetState<State>) {
-    let instance = ctx.instance.as_ref();
-    let mut state_list = instance.state_list.lock().unwrap();
+    let instance = ctx.instance();
+    let state_list = &mut instance.state_list;
 
     let state_index = ctx
         .state_index
@@ -14,23 +14,23 @@ pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
     let sig_id = SigId {
         id_type: SigIdType::State,
         index: state_index,
-        component_id: instance.component_id,
+        component_id: instance.component_instance_id,
     };
 
-    let no_state = || state_list.len() <= state_index;
+    let no_state = state_list.len() <= state_index;
 
-    if no_state() {
+    if no_state {
         let state = init();
 
-        update_or_push(&mut state_list, state_index, Box::new(state));
+        update_or_push(state_list, state_index, Box::new(state));
     } else {
         for item in ctx.get_channel_events_items_for(sig_id) {
-            match item {
-                Item::SetStateItem(set_state) => match set_state {
+            if let Item::SetStateItem(set_state) = item {
+                match set_state {
                     SetStateItem::Set { sig_id, value } => {
                         ctx.add_sig_updated(sig_id);
                         let value = value.lock().unwrap().take().unwrap();
-                        update_or_push(&mut state_list, state_index, value);
+                        update_or_push(state_list, state_index, value);
                     }
                     SetStateItem::Mutate { sig_id, mutate } => {
                         ctx.add_sig_updated(sig_id);
@@ -38,11 +38,10 @@ pub(crate) fn handle_state<State: Send + Sync + Debug + 'static>(
                         let state = state_list.get_mut(sig_id.index).unwrap().as_mut();
                         mutate(state);
                     }
-                },
+                }
             }
         }
     }
-
     let state: &State = state_list[state_index]
         .as_ref()
         .as_any()

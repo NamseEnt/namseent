@@ -15,8 +15,8 @@ pub struct Paragraph {
     pub group_glyph: Arc<dyn GroupGlyph>,
 }
 impl Paragraph {
-    pub fn new(text: &str, group_glyph: Arc<dyn GroupGlyph>, max_width: Option<Px>) -> Paragraph {
-        let vec = if let Some(max_width) = max_width {
+    pub fn new(text: &str, group_glyph: Arc<dyn GroupGlyph>, max_width: Px) -> Paragraph {
+        let vec = if max_width > 0.px() {
             let word_separator = WordSeparator::UnicodeBreakProperties;
             let word_splitter = WordSplitter::NoHyphenation;
 

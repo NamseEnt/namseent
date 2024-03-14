@@ -9,7 +9,7 @@ pub use text::*;
 
 #[type_derives(-serde::Deserialize)]
 pub enum DrawCommand {
-    Path { command: PathDrawCommand },
-    Text { command: TextDrawCommand },
-    Image { command: ImageDrawCommand },
+    Path { command: Box<PathDrawCommand> },
+    Text { command: Box<TextDrawCommand> },
+    Image { command: Box<ImageDrawCommand> },
 }

@@ -16,15 +16,27 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
-    let vec: Vec<_> = rendering_trees.into_iter().collect();
+    let mut iter = rendering_trees.into_iter();
+    let first = 'outer: {
+        for x in iter.by_ref() {
+            if x != RenderingTree::Empty {
+                break 'outer x;
+            }
+        }
+        return RenderingTree::Empty;
+    };
+    let second = 'outer: {
+        for x in iter.by_ref() {
+            if x != RenderingTree::Empty {
+                break 'outer x;
+            }
+        }
+        return first;
+    };
 
-    if vec.is_empty() {
-        RenderingTree::Empty
-    } else if vec.len() == 1 {
-        vec.into_iter().next().unwrap()
-    } else {
-        RenderingTree::Children(vec)
-    }
+    let mut children = vec![first, second];
+    children.extend(iter.filter(|x| *x != RenderingTree::Empty));
+    RenderingTree::Children(children)
 }
 
 pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree {
@@ -43,20 +55,6 @@ pub enum MouseButton {
     Left,
     Middle,
     Right,
-}
-
-pub trait IntoXyPx {
-    fn into_xy_px(self) -> Xy<Px>;
-}
-impl IntoXyPx for (Px, Px) {
-    fn into_xy_px(self) -> Xy<Px> {
-        Xy::new(self.0, self.1)
-    }
-}
-impl IntoXyPx for Xy<Px> {
-    fn into_xy_px(self) -> Xy<Px> {
-        self
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

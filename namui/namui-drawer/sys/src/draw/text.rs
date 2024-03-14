@@ -1,6 +1,6 @@
 use crate::*;
 
-impl Draw for TextDrawCommand {
+impl Draw for &TextDrawCommand {
     fn draw(self, ctx: &mut DrawContext) {
         if self.text.is_empty() {
             return;

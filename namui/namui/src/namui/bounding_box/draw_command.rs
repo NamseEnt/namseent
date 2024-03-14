@@ -1,34 +1,5 @@
 use super::*;
 
-impl BoundingBox for RenderingData {
-    fn xy_in(&self, xy: Xy<Px>) -> bool {
-        self.draw_calls.iter().any(|draw_call| draw_call.xy_in(xy))
-    }
-
-    fn bounding_box(&self) -> Option<Rect<Px>> {
-        self.draw_calls
-            .iter()
-            .filter_map(|draw_call| draw_call.bounding_box())
-            .reduce(|acc, bounding_box| {
-                crate::Rect::get_minimum_rectangle_containing(&acc, bounding_box)
-            })
-    }
-}
-
-impl BoundingBox for DrawCall {
-    fn xy_in(&self, xy: Xy<Px>) -> bool {
-        self.commands.iter().any(|command| command.xy_in(xy))
-    }
-
-    fn bounding_box(&self) -> Option<Rect<Px>> {
-        self.commands
-            .iter()
-            .filter_map(|command| command.bounding_box())
-            .reduce(|acc, bounding_box| {
-                crate::Rect::get_minimum_rectangle_containing(&acc, bounding_box)
-            })
-    }
-}
 impl BoundingBox for DrawCommand {
     fn xy_in(&self, xy: Xy<Px>) -> bool {
         match self {

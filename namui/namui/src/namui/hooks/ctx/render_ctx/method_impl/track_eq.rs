@@ -4,8 +4,8 @@ pub(crate) fn handle_track_eq<'a, T: 'static + Debug + Send + Sync + PartialEq +
     ctx: &'a RenderCtx,
     target: &T,
 ) -> Sig<'a, T> {
-    let instance = ctx.instance.as_ref();
-    let mut track_eq_value_list = instance.track_eq_value_list.lock().unwrap();
+    let instance = ctx.instance();
+    let track_eq_value_list = &mut instance.track_eq_value_list;
 
     let track_eq_index = ctx
         .track_eq_index
@@ -14,7 +14,7 @@ pub(crate) fn handle_track_eq<'a, T: 'static + Debug + Send + Sync + PartialEq +
     let sig_id = SigId {
         id_type: SigIdType::TrackEq,
         index: track_eq_index,
-        component_id: instance.component_id,
+        component_id: instance.component_instance_id,
     };
 
     let first_track = || track_eq_value_list.len() <= track_eq_index;
@@ -30,7 +30,7 @@ pub(crate) fn handle_track_eq<'a, T: 'static + Debug + Send + Sync + PartialEq +
 
     if first_track() || not_eq() {
         update_or_push(
-            &mut track_eq_value_list,
+            track_eq_value_list,
             track_eq_index,
             Box::new(target.clone()),
         );

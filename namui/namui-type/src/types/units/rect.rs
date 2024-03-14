@@ -1,7 +1,7 @@
 use crate::*;
 use num::cast::AsPrimitive;
 
-#[type_derives(Copy)]
+#[type_derives(Copy, Eq, Hash)]
 pub enum Rect<T> {
     Xywh {
         x: T,
@@ -17,7 +17,7 @@ pub enum Rect<T> {
     },
 }
 
-#[type_derives(Copy)]
+#[type_derives(Copy, Eq)]
 pub struct Xywh<T> {
     pub x: T,
     pub y: T,
@@ -34,13 +34,14 @@ impl<T: Clone> Rect<T> {
             height: wh.height,
         }
     }
+    #[inline(always)]
     pub fn zero_wh(wh: Wh<T>) -> Self
     where
         T: From<f32>,
     {
         Rect::Xywh {
-            x: Xy::zero().x,
-            y: Xy::zero().y,
+            x: 0.0.into(),
+            y: 0.0.into(),
             width: wh.width,
             height: wh.height,
         }

@@ -21,10 +21,11 @@ pub fn glow(
             paint: paint.clone().set_blend_mode(BlendMode::HardLight),
             align,
             baseline,
-            max_width: None,
+            max_width: 0.px(),
             line_height_percent: 100.percent(),
             underline: None,
-        },
+        }
+        .into(),
     };
     let back = DrawCommand::Text {
         command: TextDrawCommand {
@@ -39,14 +40,11 @@ pub fn glow(
                 .set_mask_filter(MaskFilter::Blur { blur }),
             align,
             baseline,
-            max_width: None,
+            max_width: 0.px(),
             line_height_percent: 100.percent(),
             underline: None,
-        },
+        }
+        .into(),
     };
-    RenderingTree::Node(RenderingData {
-        draw_calls: vec![DrawCall {
-            commands: vec![back, front],
-        }],
-    })
+    namui::render([back, front].map(RenderingTree::Node))
 }

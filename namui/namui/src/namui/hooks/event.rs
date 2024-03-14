@@ -7,8 +7,8 @@ pub(crate) fn invoke_on_event(
     tree_ctx: &TreeContext,
     on_event: impl FnOnce(Event<'_>),
     raw_event: &RawEvent,
-    inverse_matrix: Matrix3x3,
-    rendering_tree: &RenderingTree,
+    inverse_matrix: TransformMatrix,
+    bounding_box: impl BoundingBox,
     global_xy_clip_in: impl ClipIn,
 ) {
     if tree_ctx
@@ -23,7 +23,7 @@ pub(crate) fn invoke_on_event(
         RawEvent::MouseDown { event } => {
             let event = get_mouse_event(
                 inverse_matrix,
-                rendering_tree,
+                bounding_box,
                 event,
                 MouseEventType::Down,
                 global_xy_clip_in,
@@ -36,7 +36,7 @@ pub(crate) fn invoke_on_event(
             on_event(Event::MouseMove {
                 event: get_mouse_event(
                     inverse_matrix,
-                    rendering_tree,
+                    bounding_box,
                     event,
                     MouseEventType::Move,
                     global_xy_clip_in,
@@ -48,7 +48,7 @@ pub(crate) fn invoke_on_event(
             on_event(Event::MouseUp {
                 event: get_mouse_event(
                     inverse_matrix,
-                    rendering_tree,
+                    bounding_box,
                     event,
                     MouseEventType::Up,
                     global_xy_clip_in,
@@ -63,10 +63,7 @@ pub(crate) fn invoke_on_event(
                     local_xy: Box::new(move || inverse_matrix.transform_xy(event.mouse_xy)),
                     is_local_xy_in: Box::new(move || {
                         global_xy_clip_in.clip_in(event.mouse_xy)
-                            && BoundingBox::xy_in(
-                                rendering_tree,
-                                inverse_matrix.transform_xy(event.mouse_xy),
-                            )
+                            && bounding_box.xy_in(inverse_matrix.transform_xy(event.mouse_xy))
                     }),
                     is_stop_event_propagation,
                 },
@@ -149,7 +146,7 @@ pub(crate) fn invoke_on_event(
             on_event(Event::DragAndDrop {
                 event: get_file_drop_event(
                     inverse_matrix,
-                    rendering_tree,
+                    bounding_box,
                     data_transfer,
                     xy,
                     global_xy_clip_in,
@@ -163,8 +160,8 @@ pub(crate) fn invoke_on_event(
 }
 
 fn get_mouse_event<'a>(
-    inverse_matrix: Matrix3x3,
-    rendering_tree: &'a RenderingTree,
+    inverse_matrix: TransformMatrix,
+    bounding_box: impl BoundingBox + 'a,
     raw_mouse_event: &'a RawMouseEvent,
     mouse_event_type: MouseEventType,
     global_xy_clip_in: impl ClipIn + 'a,
@@ -174,7 +171,7 @@ fn get_mouse_event<'a>(
         local_xy: Box::new(move || inverse_matrix.transform_xy(raw_mouse_event.xy)),
         is_local_xy_in: Box::new(move || {
             global_xy_clip_in.clip_in(raw_mouse_event.xy)
-                && rendering_tree.xy_in(inverse_matrix.transform_xy(raw_mouse_event.xy))
+                && bounding_box.xy_in(inverse_matrix.transform_xy(raw_mouse_event.xy))
         }),
         global_xy: raw_mouse_event.xy,
         pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
@@ -187,7 +184,7 @@ fn get_mouse_event<'a>(
 
 #[cfg(target_family = "wasm")]
 fn get_file_drop_event<'a>(
-    inverse_matrix: Matrix3x3,
+    inverse_matrix: TransformMatrix,
     rendering_tree: &'a RenderingTree,
     data_transfer: &Option<DataTransfer>,
     global_xy: Xy<Px>,

@@ -229,7 +229,7 @@ impl From<PaintStyle> for skia_safe::PaintStyle {
     }
 }
 
-#[type_derives(Copy)]
+#[type_derives(Copy, Eq, Hash)]
 pub enum StrokeCap {
     Butt,
     Round,
@@ -247,7 +247,7 @@ impl From<StrokeCap> for skia_safe::PaintCap {
     }
 }
 
-#[type_derives(Copy)]
+#[type_derives(Copy, Eq, Hash)]
 pub enum StrokeJoin {
     Bevel,
     Miter,
@@ -265,7 +265,7 @@ impl From<StrokeJoin> for skia_safe::PaintJoin {
     }
 }
 
-#[type_derives(Copy)]
+#[type_derives(Copy, Eq, Hash)]
 pub struct StrokeOptions {
     pub width: Option<Px>,
     pub miter_limit: Option<Px>,
@@ -273,7 +273,7 @@ pub struct StrokeOptions {
     /// if > 1, increase precision, else if (0 < resScale < 1) reduce precision to
     /// favor speed and size
     ///
-    pub precision: Option<f32>,
+    pub precision: Option<OrderedFloat<f32>>,
     pub join: Option<StrokeJoin>,
     pub cap: Option<StrokeCap>,
 }
@@ -626,7 +626,7 @@ pub enum ImageFit {
 
 #[type_derives(-serde::Deserialize)]
 pub enum ImageSource {
-    Url { url: url::Url },
+    Url { url: String },
     ImageHandle { image_handle: ImageHandle },
     // Image(Arc<Image>),
     // File(File),
@@ -645,3 +645,10 @@ pub type GlyphId = skia_safe::GlyphId;
 pub type GlyphId = u16;
 
 pub type GlyphIds = Vec<GlyphId>;
+
+#[type_derives(Copy, Hash, Eq)]
+pub enum MouseButton {
+    Left,
+    Middle,
+    Right,
+}

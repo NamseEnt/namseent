@@ -17,3 +17,16 @@ impl BoundingBox for Path {
         crate::system::skia::path_bounding_box(self, None)
     }
 }
+
+impl<'a, T> BoundingBox for &'a T
+where
+    T: BoundingBox,
+{
+    fn xy_in(&self, xy: Xy<Px>) -> bool {
+        T::xy_in(*self, xy)
+    }
+
+    fn bounding_box(&self) -> Option<Rect<Px>> {
+        T::bounding_box(*self)
+    }
+}

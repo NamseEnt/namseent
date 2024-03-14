@@ -1,9 +1,12 @@
-#![deny(warnings)]
+// #![deny(warnings)]
 
 pub mod namui;
 pub mod prelude;
 
 pub use namui::*;
+
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]

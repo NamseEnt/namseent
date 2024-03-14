@@ -5,15 +5,15 @@ pub struct Paint {
     pub color: Color,
     pub paint_style: Option<PaintStyle>,
     pub anti_alias: Option<bool>,
-    pub stroke_width: Option<Px>,
+    pub stroke_width: Px,
     pub stroke_cap: Option<StrokeCap>,
     pub stroke_join: Option<StrokeJoin>,
-    pub stroke_miter: Option<Px>,
+    pub stroke_miter: Px,
     pub color_filter: Option<ColorFilter>,
     pub blend_mode: Option<BlendMode>,
-    pub shader: Option<Shader>,
+    pub shader: Option<Box<Shader>>,
     pub mask_filter: Option<MaskFilter>,
-    pub image_filter: Option<ImageFilter>,
+    pub image_filter: Option<Box<ImageFilter>>,
 }
 
 impl Paint {
@@ -36,7 +36,7 @@ impl Paint {
         self
     }
     pub fn set_stroke_width(mut self, width: Px) -> Self {
-        self.stroke_width = Some(width);
+        self.stroke_width = width;
         self
     }
     pub fn set_stroke_cap(mut self, cap: StrokeCap) -> Self {
@@ -56,7 +56,7 @@ impl Paint {
         self
     }
     pub fn set_shader(mut self, shader: Shader) -> Self {
-        self.shader = Some(shader);
+        self.shader = Some(Box::new(shader));
         self
     }
     pub fn set_mask_filter(mut self, mask_filter: MaskFilter) -> Self {
@@ -64,7 +64,7 @@ impl Paint {
         self
     }
     pub fn set_image_filter(mut self, image_filter: ImageFilter) -> Self {
-        self.image_filter = Some(image_filter);
+        self.image_filter = Some(Box::new(image_filter));
         self
     }
 }

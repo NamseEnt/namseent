@@ -23,7 +23,7 @@ edition = "2021"
 [profile.release]
 opt-level = 3
 
-# [profile.dev]
+[profile.dev]
 opt-level = 2
     "#,
             project_path = project_path_in_relative

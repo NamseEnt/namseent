@@ -37,12 +37,12 @@ impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
         ctx.on_raw_event(|raw_event| {
             let on_event = self.on_event.lock().unwrap().take().unwrap();
             invoke_on_event(
-                &ctx.tree_ctx,
+                global_state::tree_ctx(),
                 on_event,
                 raw_event,
-                ctx.inverse_matrix(),
+                global_state::matrix().inverse().unwrap(),
                 &done.rendering_tree,
-                ctx,
+                global_state::clippings(),
             );
         });
 

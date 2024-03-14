@@ -36,7 +36,6 @@ pub struct ImageHandle {
     pub color_type: ColorType,
     pub height: Px,
     pub width: Px,
-    id: crate::Uuid,
     #[cfg(feature = "skia")]
     #[serde(skip)]
     pub inner: Arc<skia_safe::Image>,
@@ -53,13 +52,12 @@ impl PartialEq for ImageHandle {
 
 impl ImageHandle {
     #[cfg(feature = "skia")]
-    pub fn new(image_info: ImageInfo, id: crate::Uuid, inner: skia_safe::Image) -> Self {
+    pub fn new(image_info: ImageInfo, inner: skia_safe::Image) -> Self {
         Self {
             alpha_type: image_info.alpha_type,
             color_type: image_info.color_type,
             height: image_info.height,
             width: image_info.width,
-            id,
             inner: Arc::new(inner),
         }
     }

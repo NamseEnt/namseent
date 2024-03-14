@@ -9,11 +9,12 @@ macro_rules! vector_types {
     }) => {
         use $crate::*;
 
-        #[type_derives(Copy)]
+        #[type_derives(Copy, Eq, Hash)]
         pub struct $type_name<T> {
             $( pub $field_ident: T ),*
         }
         impl<T> $type_name<T> {
+            #[inline(always)]
             pub fn new($($field_ident: T),*) -> Self {
                 Self { $($field_ident),* }
             }
@@ -136,11 +137,48 @@ macro_rules! vector_types {
             }
         }
 
+        impl<T> std::ops::AddAssign<$type_name<T>> for $type_name<T>
+        where
+            T: std::ops::AddAssign + Clone,
+        {
+            fn add_assign(&mut self, rhs: $type_name<T>) {
+                $( self.$field_ident.add_assign(rhs.$field_ident.clone()); )*
+            }
+        }
+
+        impl<'a, T> std::ops::AddAssign<&'a $type_name<T>> for $type_name<T>
+        where
+            T: std::ops::AddAssign + Clone,
+        {
+            fn add_assign(&mut self, rhs: &$type_name<T>) {
+                $( self.$field_ident.add_assign(rhs.$field_ident.clone()); )*
+            }
+        }
+
+        impl<T> std::ops::SubAssign<$type_name<T>> for $type_name<T>
+        where
+            T: std::ops::SubAssign + Clone,
+        {
+            fn sub_assign(&mut self, rhs: $type_name<T>) {
+                $( self.$field_ident.sub_assign(rhs.$field_ident.clone()); )*
+            }
+        }
+
+        impl<'a, T> std::ops::SubAssign<&'a $type_name<T>> for $type_name<T>
+        where
+            T: std::ops::SubAssign + Clone,
+        {
+            fn sub_assign(&mut self, rhs: &$type_name<T>) {
+                $( self.$field_ident.sub_assign(rhs.$field_ident.clone()); )*
+            }
+        }
+
 
         impl<T> $type_name<T>
         where
             T: From<f32>,
         {
+            #[inline(always)]
             pub fn zero() -> $type_name<T> {
                 $type_name {
                     $( $field_ident: 0.0.into() ),*

@@ -24,7 +24,10 @@ impl RenderCtx {
             let url = (*url).clone();
 
             spawn(async move {
-                let image = load_image(&ImageSource::Url { url: url.clone() }).await;
+                let image = load_image(&ImageSource::Url {
+                    url: url.to_string(),
+                })
+                .await;
                 set_load.mutate(move |x| {
                     if x.0 != url {
                         return;
@@ -41,7 +44,7 @@ impl RenderCtx {
 pub async fn load_image(image_source: &ImageSource) -> Result<Image> {
     match image_source {
         ImageSource::Url { url } => {
-            let bytes = url_to_bytes(url).await?;
+            let bytes = url_to_bytes(&Url::parse(url)?).await?;
 
             let image_bitmap = ImageBitmap::from_u8(image_source, &bytes).await?;
 

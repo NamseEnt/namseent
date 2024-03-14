@@ -28,7 +28,17 @@ futures = "0.3.17"
 num = { version = "0.4.0", features = ["std"] }
 derivative = "2.2.0"
 namui-drawer-sys = { path = "../namui-drawer/sys" }
-dashmap = "4"
+dashmap = "5"
+mimalloc = "0.1.39"
+elsa = { version = "1.10.0", features = ["indexmap"] }
+stable_deref_trait = "1.2.0"
+bumpalo = { version = "3.15.4", features = ["collections"] }
+slab = "0.4.9"
+smallvec = "1.13.2"
+rustc-hash = "1.1.0"
+smol_str = "0.2.1"
+indexmap = "2.2.5"
+static-tree = { path = "../static-tree" }
 
 [target.'cfg(target_family="wasm")'.dependencies]
 web-sys = { version = "0.3", features = [
@@ -100,7 +110,6 @@ float-cmp = "0.9"
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 tokio = { version = "1", features = ["rt", "fs", "rt-multi-thread"] }
 winit = "0.29.4"
-rfd = "0.12.1"
 rand = "0.8.5"
 opener = "0.6.1"
 namui-skia = { path = "../skia/skia", features = ["windows"] }

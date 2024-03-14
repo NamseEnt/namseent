@@ -44,12 +44,12 @@ impl SkCanvas for skia_safe::Canvas {
 
         self.save();
         self.transform(
-            Matrix3x3::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
-                * Matrix3x3::from_scale(
+            TransformMatrix::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
+                * TransformMatrix::from_scale(
                     dest_rect.width() / src_rect.width(),
                     dest_rect.height() / src_rect.height(),
                 )
-                * Matrix3x3::from_translate(-src_rect.x().as_f32(), -src_rect.y().as_f32()),
+                * TransformMatrix::from_translate(-src_rect.x().as_f32(), -src_rect.y().as_f32()),
         );
 
         SkCanvas::draw_path(self, &Path::new().add_rect(src_rect), &paint);
@@ -73,18 +73,17 @@ impl SkCanvas for skia_safe::Canvas {
         self.restore();
     }
     #[allow(dead_code)]
-    fn get_matrix(&self) -> Matrix3x3 {
+    fn get_matrix(&self) -> TransformMatrix {
         let total_matrix = self.local_to_device_as_3x3();
-        Matrix3x3::from_slice([
+        TransformMatrix::from_slice([
             [total_matrix[0], total_matrix[1], total_matrix[2]],
             [total_matrix[3], total_matrix[4], total_matrix[5]],
-            [total_matrix[6], total_matrix[7], total_matrix[8]],
         ])
     }
-    fn set_matrix(&self, matrix: Matrix3x3) {
+    fn set_matrix(&self, matrix: TransformMatrix) {
         self.set_matrix(&namui_matrix_to_skia_matrix(matrix));
     }
-    fn transform(&self, matrix: Matrix3x3) {
+    fn transform(&self, matrix: TransformMatrix) {
         self.concat_44(&namui_matrix_to_skia_matrix(matrix));
     }
 
@@ -97,7 +96,7 @@ impl SkCanvas for skia_safe::Canvas {
     }
 }
 
-fn namui_matrix_to_skia_matrix(matrix: Matrix3x3) -> skia_safe::M44 {
+fn namui_matrix_to_skia_matrix(matrix: TransformMatrix) -> skia_safe::M44 {
     skia_safe::Matrix::new_all(
         matrix[0][0],
         matrix[0][1],

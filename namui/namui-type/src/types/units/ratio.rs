@@ -12,6 +12,11 @@ impl Ratio for f32 {
         *self
     }
 }
+impl Ratio for f64 {
+    fn as_f32(&self) -> f32 {
+        *self as f32
+    }
+}
 impl Ratio for usize {
     fn as_f32(&self) -> f32 {
         *self as f32

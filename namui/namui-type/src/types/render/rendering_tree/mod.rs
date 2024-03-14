@@ -4,26 +4,15 @@ use crate::*;
 pub use special::*;
 
 #[type_derives(Default, -serde::Deserialize)]
-pub struct DrawCall {
-    pub commands: Vec<DrawCommand>,
-}
-
-#[type_derives(Default, -serde::Deserialize)]
-pub struct RenderingData {
-    pub draw_calls: Vec<DrawCall>,
-}
-
-#[type_derives(Default, -serde::Deserialize)]
 pub enum RenderingTree {
-    Node(RenderingData),
-    Children(Vec<RenderingTree>),
-    Special(SpecialRenderingNode),
     #[default]
     Empty,
+    Node(DrawCommand),
+    Children(Vec<RenderingTree>),
+    Special(SpecialRenderingNode),
+    Boxed(Box<RenderingTree>),
+    BoxedChildren(Vec<Box<RenderingTree>>),
 }
-
-unsafe impl Send for RenderingTree {}
-unsafe impl Sync for RenderingTree {}
 
 /// NOTE
 /// Order of tree traversal is important.
@@ -39,9 +28,41 @@ impl RenderingTree {
             }
             RenderingTree::Node(_) | RenderingTree::Special(_) => vec.push(self),
             RenderingTree::Empty => {}
+            RenderingTree::Boxed(rendering_tree) => {
+                return rendering_tree.iter();
+            }
+            RenderingTree::BoxedChildren(children) => {
+                for child in children.iter() {
+                    vec.extend(child.iter());
+                }
+            }
         };
 
         vec.into_iter()
+    }
+
+    pub fn wrap(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
+        let mut iter = rendering_trees.into_iter();
+        let first = 'outer: {
+            for x in iter.by_ref() {
+                if x != RenderingTree::Empty {
+                    break 'outer x;
+                }
+            }
+            return RenderingTree::Empty;
+        };
+        let second = 'outer: {
+            for x in iter.by_ref() {
+                if x != RenderingTree::Empty {
+                    break 'outer x;
+                }
+            }
+            return first;
+        };
+
+        let mut children = vec![first, second];
+        children.extend(iter.filter(|x| *x != RenderingTree::Empty));
+        RenderingTree::Children(children)
     }
 
     // pub fn to_bytes(&self) -> Vec<u8> {
@@ -53,15 +74,16 @@ impl RenderingTree {
     // }
 }
 
-impl std::iter::IntoIterator for RenderingTree {
-    type Item = RenderingTree;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+// impl std::iter::IntoIterator for RenderingTree {
+//     type Item = RenderingTree;
+//     type IntoIter = std::vec::IntoIter<Self::Item>;
 
-    fn into_iter(self) -> Self::IntoIter {
-        match self {
-            RenderingTree::Children(children) => children.into_iter(),
-            RenderingTree::Node(_) | RenderingTree::Special(_) => vec![self].into_iter(),
-            RenderingTree::Empty => vec![].into_iter(),
-        }
-    }
-}
+//     fn into_iter(self) -> Self::IntoIter {
+//         match self {
+//             RenderingTree::Children(children) => children.into_iter(),
+//             RenderingTree::Node(_) | RenderingTree::Special(_) => vec![self].into_iter(),
+//             RenderingTree::Empty => vec![].into_iter(),
+//             RenderingTree::Static(rendering_tree) => rendering_tree.into_iter(),
+//         }
+//     }
+// }

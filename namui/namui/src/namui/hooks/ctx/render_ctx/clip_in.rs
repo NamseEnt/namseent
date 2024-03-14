@@ -2,6 +2,6 @@ use super::*;
 
 impl<'a> ClipIn for &'a RenderCtx {
     fn clip_in(&self, xy: Xy<Px>) -> bool {
-        self.clippings.clip_in(xy)
+        global_state::clippings().clip_in(xy)
     }
 }

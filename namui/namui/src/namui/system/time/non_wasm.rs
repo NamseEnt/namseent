@@ -31,7 +31,7 @@ impl TimeSystem for NonWasmTimeSystem {
         Instant::new(self.since_start())
     }
 
-    fn sleep(&self, duration: Duration) -> Result<tokio::time::Sleep> {
-        Ok(tokio::time::sleep(duration.to_std()?))
+    fn sleep(&self, duration: Duration) -> tokio::time::Sleep {
+        tokio::time::sleep(duration.to_std().unwrap_or_default())
     }
 }
