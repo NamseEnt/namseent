@@ -1,7 +1,7 @@
 {
-    "name": "namui",
+    "name": "namui-workspace",
     "private": true,
-    "displayName": "namui",
+    "displayName": "namui-workspace",
     "version": "0.0.3",
     "publisher": "namseent",
     "repository": {
@@ -18,10 +18,10 @@
         "Testing"
     ],
     "activationEvents": [
-        "*"
+        "onStartupFinished"
     ],
     "extensionKind": [
-        "ui"
+        "workspace"
     ],
     "main": "./out/extension.js",
     "scripts": {
