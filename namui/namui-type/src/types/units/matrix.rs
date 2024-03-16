@@ -49,16 +49,16 @@ impl Matrix3x3 {
         ]
     }
 
-    pub fn transform_xy(&self, xy: crate::Xy<Px>) -> crate::Xy<Px> {
-        let x = xy.x.as_f32();
-        let y = xy.y.as_f32();
+    pub fn transform_xy<T: Into<f32> + From<f32>>(&self, xy: crate::Xy<T>) -> crate::Xy<T> {
+        let x: f32 = xy.x.into();
+        let y: f32 = xy.y.into();
 
         let x = x * self.values[0][0] + y * self.values[0][1] + self.values[0][2];
-        let y = x * self.values[1][3] + y * self.values[1][4] + self.values[1][5];
+        let y = x * self.values[1][0] + y * self.values[1][1] + self.values[1][2];
 
         crate::Xy {
-            x: x.px(),
-            y: y.px(),
+            x: x.into(),
+            y: y.into(),
         }
     }
 
