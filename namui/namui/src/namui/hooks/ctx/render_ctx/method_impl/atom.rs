@@ -19,19 +19,19 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
     }
     pub fn init(&self, init: T) -> Result<()> {
         self.value_index
-            .set(self.initing(|| init)())
+            .set(self.initializing(|| init)())
             .map_err(|_| anyhow!("Atom is already initialized"))
     }
     pub fn get_or_init(&self, init: impl FnOnce() -> T) -> &T {
         let value_index = self
             .value_index
-            .get_or_init(self.initing(init))
+            .get_or_init(self.initializing(init))
             .lock()
             .unwrap();
 
         self.value_to_ref(value_index.0.as_ref())
     }
-    fn initing<'a>(
+    fn initializing<'a>(
         &'a self,
         init: impl FnOnce() -> T + 'a,
     ) -> impl FnOnce() -> Arc<Mutex<(Box<dyn Value>, usize)>> + 'a {
