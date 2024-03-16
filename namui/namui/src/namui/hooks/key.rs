@@ -1,31 +1,42 @@
 use namui_type::Uuid;
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct KeyVec {
-    chunks: Vec<KeyChunk>,
+    front: Option<Arc<KeyVec>>,
+    chunk: KeyChunk,
 }
 impl KeyVec {
     pub(crate) fn new_child(key: impl Into<Key>) -> Self {
         KeyVec {
-            chunks: vec![KeyChunk::Child(key.into())],
+            front: None,
+            chunk: KeyChunk::Child(key.into()),
         }
     }
     pub(crate) fn child(&self, key: impl Into<Key>) -> KeyVec {
-        let mut key_vec = self.clone();
-        key_vec.chunks.push(KeyChunk::Child(key.into()));
-        key_vec
+        KeyVec {
+            front: Some(Arc::new(self.clone())),
+            chunk: KeyChunk::Child(key.into()),
+        }
     }
     pub(crate) fn custom_key(&self, key: impl Into<Key>) -> KeyVec {
-        let mut key_vec = self.clone();
-        key_vec.chunks.push(KeyChunk::Custom(key.into()));
-        key_vec
+        KeyVec {
+            front: Some(Arc::new(self.clone())),
+            chunk: KeyChunk::Custom(key.into()),
+        }
     }
 }
 
 impl Debug for KeyVec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list().entries(self.chunks.iter()).finish()
+        let mut key_vec = self;
+        let mut keys = vec![];
+        while let Some(front) = &key_vec.front {
+            keys.push(&key_vec.chunk);
+            key_vec = front;
+        }
+        keys.push(&key_vec.chunk);
+        write!(f, "{:?}", keys)
     }
 }
 
