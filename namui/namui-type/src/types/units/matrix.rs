@@ -280,16 +280,16 @@ mod tests {
 
         let inverse = matrix.inverse().unwrap();
 
-        assert_approx_eq!(f32, *inverse.values.index((0, 0)), -2.0, ulps = 2);
-        assert_approx_eq!(f32, *inverse.values.index((0, 1)), 1.0, ulps = 2);
-        assert_approx_eq!(f32, *inverse.values.index((0, 2)), 0.571_428_6, ulps = 2);
+        assert_approx_eq!(f32, inverse.values[0][0], -2.0, ulps = 2);
+        assert_approx_eq!(f32, inverse.values[0][1], 1.0, ulps = 2);
+        assert_approx_eq!(f32, inverse.values[0][2], 0.571_428_6, ulps = 2);
 
-        assert_approx_eq!(f32, *inverse.values.index((1, 0)), 1.5, ulps = 2);
-        assert_approx_eq!(f32, *inverse.values.index((1, 1)), -0.5, ulps = 2);
-        assert_approx_eq!(f32, *inverse.values.index((1, 2)), -0.642_857_13, ulps = 2);
+        assert_approx_eq!(f32, inverse.values[1][0], 1.5, ulps = 2);
+        assert_approx_eq!(f32, inverse.values[1][1], -0.5, ulps = 2);
+        assert_approx_eq!(f32, inverse.values[1][2], -0.642_857_13, ulps = 2);
 
-        assert_approx_eq!(f32, *inverse.values.index((2, 0)), 0.0, ulps = 2);
-        assert_approx_eq!(f32, *inverse.values.index((2, 1)), 0.0, ulps = 2);
-        assert_approx_eq!(f32, *inverse.values.index((2, 2)), 0.142_857_15, ulps = 2);
+        assert_approx_eq!(f32, inverse.values[2][0], 0.0, ulps = 2);
+        assert_approx_eq!(f32, inverse.values[2][1], 0.0, ulps = 2);
+        assert_approx_eq!(f32, inverse.values[2][2], 0.142_857_15, ulps = 2);
     }
 }
