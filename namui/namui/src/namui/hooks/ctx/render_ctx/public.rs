@@ -25,7 +25,7 @@ impl<'a> RenderCtx {
 
     pub fn memo<T: 'static + Debug + Send + Sync>(
         &'a self,
-        memo: impl 'a + FnOnce() -> T,
+        memo: impl FnOnce() -> T,
     ) -> Sig<'a, T> {
         handle_memo(self, memo)
     }
