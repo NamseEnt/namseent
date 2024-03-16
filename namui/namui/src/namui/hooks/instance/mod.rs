@@ -120,7 +120,7 @@ impl ComponentInstance {
             .store(false, std::sync::atomic::Ordering::SeqCst);
     }
 
-    pub(crate) fn clear_unrendered_chidlren(&self) {
+    pub(crate) fn clear_unrendered_children(&self) {
         let mut children = self.children_instances.lock().unwrap();
         children.retain(|_, child| {
             child
@@ -129,7 +129,7 @@ impl ComponentInstance {
         });
         children
             .values()
-            .for_each(|child| child.clear_unrendered_chidlren());
+            .for_each(|child| child.clear_unrendered_children());
     }
 }
 
