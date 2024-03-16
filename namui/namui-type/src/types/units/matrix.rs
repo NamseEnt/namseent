@@ -2,32 +2,20 @@ use crate::*;
 
 #[type_derives(Copy)]
 pub struct Matrix3x3 {
-    values: nalgebra::Matrix3<f32>,
+    values: [[f32; 3]; 3],
 }
 
 impl Default for Matrix3x3 {
     fn default() -> Self {
         Matrix3x3 {
-            values: nalgebra::Matrix3::identity(),
+            values: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
         }
     }
 }
 
 impl Matrix3x3 {
     pub fn from_slice(values: [[f32; 3]; 3]) -> Self {
-        Matrix3x3 {
-            values: nalgebra::Matrix3::new(
-                values[0][0],
-                values[0][1],
-                values[0][2],
-                values[1][0],
-                values[1][1],
-                values[1][2],
-                values[2][0],
-                values[2][1],
-                values[2][2],
-            ),
-        }
+        Matrix3x3 { values }
     }
     pub fn from_translate(x: f32, y: f32) -> Self {
         Self::from_slice([[1.0, 0.0, x], [0.0, 1.0, y], [0.0, 0.0, 1.0]])
@@ -45,45 +33,32 @@ impl Matrix3x3 {
     }
 
     pub fn into_slice(self) -> [[f32; 3]; 3] {
-        [
-            [
-                *self.values.index((0, 0)),
-                *self.values.index((0, 1)),
-                *self.values.index((0, 2)),
-            ],
-            [
-                *self.values.index((1, 0)),
-                *self.values.index((1, 1)),
-                *self.values.index((1, 2)),
-            ],
-            [
-                *self.values.index((2, 0)),
-                *self.values.index((2, 1)),
-                *self.values.index((2, 2)),
-            ],
-        ]
+        self.values
     }
     pub fn into_linear_slice(self) -> [f32; 9] {
         [
-            *self.values.index((0, 0)),
-            *self.values.index((0, 1)),
-            *self.values.index((0, 2)),
-            *self.values.index((1, 0)),
-            *self.values.index((1, 1)),
-            *self.values.index((1, 2)),
-            *self.values.index((2, 0)),
-            *self.values.index((2, 1)),
-            *self.values.index((2, 2)),
+            self.values[0][0],
+            self.values[0][1],
+            self.values[0][2],
+            self.values[1][0],
+            self.values[1][1],
+            self.values[1][2],
+            self.values[2][0],
+            self.values[2][1],
+            self.values[2][2],
         ]
     }
 
     pub fn transform_xy(&self, xy: crate::Xy<Px>) -> crate::Xy<Px> {
-        let transformed = self
-            .values
-            .transform_point(&nalgebra::point![xy.x.as_f32(), xy.y.as_f32()]);
+        let x = xy.x.as_f32();
+        let y = xy.y.as_f32();
+
+        let x = x * self.values[0][0] + y * self.values[0][1] + self.values[0][2];
+        let y = x * self.values[1][3] + y * self.values[1][4] + self.values[1][5];
+
         crate::Xy {
-            x: transformed.x.px(),
-            y: transformed.y.px(),
+            x: x.px(),
+            y: y.px(),
         }
     }
 
@@ -98,119 +73,169 @@ impl Matrix3x3 {
             bottom,
         } = rect.as_ltrb();
         Rect::Ltrb {
-            left: left * *self.values.index((0, 0))
-                + top * *self.values.index((0, 1))
-                + (*self.values.index((0, 2))).into(),
-            top: left * *self.values.index((1, 0))
-                + top * *self.values.index((1, 1))
-                + (*self.values.index((1, 2))).into(),
-            right: right * *self.values.index((0, 0))
-                + bottom * *self.values.index((0, 1))
-                + (*self.values.index((0, 2))).into(),
-            bottom: right * *self.values.index((1, 0))
-                + bottom * *self.values.index((1, 1))
-                + (*self.values.index((1, 2))).into(),
+            left: left * self.values[0][0] + top * self.values[0][1] + self.values[0][2].into(),
+            top: left * self.values[1][0] + top * self.values[1][1] + self.values[1][2].into(),
+            right: right * self.values[0][0]
+                + bottom * self.values[0][1]
+                + self.values[0][2].into(),
+            bottom: right * self.values[1][0]
+                + bottom * self.values[1][1]
+                + self.values[1][2].into(),
         }
     }
     pub fn x(&self) -> f32 {
-        *self.values.index((0, 2))
+        self.values[0][2]
     }
     pub fn y(&self) -> f32 {
-        *self.values.index((1, 2))
+        self.values[1][2]
     }
     pub fn sx(&self) -> f32 {
-        *self.values.index((0, 0))
+        self.values[0][0]
     }
     pub fn sy(&self) -> f32 {
-        *self.values.index((1, 1))
+        self.values[1][1]
     }
     pub fn inverse(&self) -> Option<Self> {
-        Some(Matrix3x3 {
-            values: self.values.try_inverse()?,
-        })
-    }
-    pub fn index_0_0(&self) -> f32 {
-        *self.values.index((0, 0))
-    }
-    pub fn index_0_1(&self) -> f32 {
-        *self.values.index((0, 1))
-    }
-    pub fn index_0_2(&self) -> f32 {
-        *self.values.index((0, 2))
-    }
-    pub fn index_1_0(&self) -> f32 {
-        *self.values.index((1, 0))
-    }
-    pub fn index_1_1(&self) -> f32 {
-        *self.values.index((1, 1))
-    }
-    pub fn index_1_2(&self) -> f32 {
-        *self.values.index((1, 2))
-    }
-    pub fn index_2_0(&self) -> f32 {
-        *self.values.index((2, 0))
-    }
-    pub fn index_2_1(&self) -> f32 {
-        *self.values.index((2, 1))
-    }
-    pub fn index_2_2(&self) -> f32 {
-        *self.values.index((2, 2))
-    }
-    pub fn set_index_0_0(&mut self, value: f32) {
-        *self.values.index_mut((0, 0)) = value
-    }
-    pub fn set_index_0_1(&mut self, value: f32) {
-        *self.values.index_mut((0, 1)) = value
-    }
-    pub fn set_index_0_2(&mut self, value: f32) {
-        *self.values.index_mut((0, 2)) = value
-    }
-    pub fn set_index_1_0(&mut self, value: f32) {
-        *self.values.index_mut((1, 0)) = value
-    }
-    pub fn set_index_1_1(&mut self, value: f32) {
-        *self.values.index_mut((1, 1)) = value
-    }
-    pub fn set_index_1_2(&mut self, value: f32) {
-        *self.values.index_mut((1, 2)) = value
-    }
-    pub fn set_index_2_0(&mut self, value: f32) {
-        *self.values.index_mut((2, 0)) = value
-    }
-    pub fn set_index_2_1(&mut self, value: f32) {
-        *self.values.index_mut((2, 1)) = value
-    }
-    pub fn set_index_2_2(&mut self, value: f32) {
-        *self.values.index_mut((2, 2)) = value
+        let det = self.values[0][0]
+            * (self.values[1][1] * self.values[2][2] - self.values[1][2] * self.values[2][1])
+            - self.values[0][1]
+                * (self.values[1][0] * self.values[2][2] - self.values[1][2] * self.values[2][0])
+            + self.values[0][2]
+                * (self.values[1][0] * self.values[2][1] - self.values[1][1] * self.values[2][0]);
+
+        if det == 0.0 {
+            return None;
+        }
+
+        let inv_det = 1.0 / det;
+
+        Some(Self::from_slice([
+            [
+                (self.values[1][1] * self.values[2][2] - self.values[1][2] * self.values[2][1])
+                    * inv_det,
+                (self.values[0][2] * self.values[2][1] - self.values[0][1] * self.values[2][2])
+                    * inv_det,
+                (self.values[0][1] * self.values[1][2] - self.values[0][2] * self.values[1][1])
+                    * inv_det,
+            ],
+            [
+                (self.values[1][2] * self.values[2][0] - self.values[1][0] * self.values[2][2])
+                    * inv_det,
+                (self.values[0][0] * self.values[2][2] - self.values[0][2] * self.values[2][0])
+                    * inv_det,
+                (self.values[1][0] * self.values[0][2] - self.values[0][0] * self.values[1][2])
+                    * inv_det,
+            ],
+            [
+                (self.values[1][0] * self.values[2][1] - self.values[1][1] * self.values[2][0])
+                    * inv_det,
+                (self.values[0][1] * self.values[2][0] - self.values[0][0] * self.values[2][1])
+                    * inv_det,
+                (self.values[0][0] * self.values[1][1] - self.values[0][1] * self.values[1][0])
+                    * inv_det,
+            ],
+        ]))
     }
     pub fn translate(&mut self, x: f32, y: f32) {
-        let matrix = Self::from_translate(x, y);
-        self.values = matrix.values * self.values;
+        self.values[0][2] += x;
+        self.values[1][2] += y;
     }
     pub fn scale(&mut self, x: f32, y: f32) {
-        let matrix = Self::from_scale(x, y);
-        self.values = matrix.values * self.values;
+        self.values[0][0] *= x;
+        self.values[1][1] *= y;
     }
     pub fn rotate(&mut self, angle: Angle) {
-        let matrix = Self::from_rotate(angle);
-        self.values = matrix.values * self.values;
+        let sin = angle.sin();
+        let cos = angle.cos();
+
+        let value00 = self.values[0][0];
+        let value01 = self.values[0][1];
+        let value10 = self.values[1][0];
+        let value11 = self.values[1][1];
+
+        self.values[0][0] = value00 * cos - value01 * sin;
+        self.values[0][1] = value00 * sin + value01 * cos;
+        self.values[1][0] = value10 * cos - value11 * sin;
+        self.values[1][1] = value10 * sin + value11 * cos;
+    }
+}
+
+impl std::ops::Index<usize> for Matrix3x3 {
+    type Output = [f32; 3];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.values[index]
     }
 }
 
 crate::impl_op_forward_ref!(*|a: Matrix3x3, b: Matrix3x3| -> Matrix3x3 {
     Matrix3x3 {
-        values: a.values * b.values,
+        values: [
+            [
+                a.values[0][0] * b.values[0][0]
+                    + a.values[0][1] * b.values[1][0]
+                    + a.values[0][2] * b.values[2][0],
+                a.values[0][0] * b.values[0][1]
+                    + a.values[0][1] * b.values[1][1]
+                    + a.values[0][2] * b.values[2][1],
+                a.values[0][0] * b.values[0][2]
+                    + a.values[0][1] * b.values[1][2]
+                    + a.values[0][2] * b.values[2][2],
+            ],
+            [
+                a.values[1][0] * b.values[0][0]
+                    + a.values[1][1] * b.values[1][0]
+                    + a.values[1][2] * b.values[2][0],
+                a.values[1][0] * b.values[0][1]
+                    + a.values[1][1] * b.values[1][1]
+                    + a.values[1][2] * b.values[2][1],
+                a.values[1][0] * b.values[0][2]
+                    + a.values[1][1] * b.values[1][2]
+                    + a.values[1][2] * b.values[2][2],
+            ],
+            [
+                a.values[2][0] * b.values[0][0]
+                    + a.values[2][1] * b.values[1][0]
+                    + a.values[2][2] * b.values[2][0],
+                a.values[2][0] * b.values[0][1]
+                    + a.values[2][1] * b.values[1][1]
+                    + a.values[2][2] * b.values[2][1],
+                a.values[2][0] * b.values[0][2]
+                    + a.values[2][1] * b.values[1][2]
+                    + a.values[2][2] * b.values[2][2],
+            ],
+        ],
     }
 });
 crate::impl_op_forward_ref!(+|a: Matrix3x3, b: Matrix3x3| -> Matrix3x3 {
     Matrix3x3 {
-        values: a.values + b.values,
+        values: [
+            [
+                a.values[0][0] + b.values[0][0],
+                a.values[0][1] + b.values[0][1],
+                a.values[0][2] + b.values[0][2],
+            ],
+            [
+                a.values[1][0] + b.values[1][0],
+                a.values[1][1] + b.values[1][1],
+                a.values[1][2] + b.values[1][2],
+            ],
+            [
+                a.values[2][0] + b.values[2][0],
+                a.values[2][1] + b.values[2][1],
+                a.values[2][2] + b.values[2][2],
+            ],
+        ],
     }
 });
 
 crate::impl_op_forward_ref_reversed!(*|a: Matrix3x3, b: f32| -> Matrix3x3 {
     Matrix3x3 {
-        values: a.values * b,
+        values: [
+            [a.values[0][0] * b, a.values[0][1] * b, a.values[0][2] * b],
+            [a.values[1][0] * b, a.values[1][1] * b, a.values[1][2] * b],
+            [a.values[2][0] * b, a.values[2][1] * b, a.values[2][2] * b],
+        ],
     }
 });
 
@@ -229,15 +254,15 @@ impl From<skia_safe::Matrix> for Matrix3x3 {
 impl Into<skia_safe::Matrix> for Matrix3x3 {
     fn into(self) -> skia_safe::Matrix {
         skia_safe::Matrix::new_all(
-            *self.values.index((0, 0)),
-            *self.values.index((0, 1)),
-            *self.values.index((0, 2)),
-            *self.values.index((1, 0)),
-            *self.values.index((1, 1)),
-            *self.values.index((1, 2)),
-            *self.values.index((2, 0)),
-            *self.values.index((2, 1)),
-            *self.values.index((2, 2)),
+            self.values[0][0],
+            self.values[0][1],
+            self.values[0][2],
+            self.values[1][0],
+            self.values[1][1],
+            self.values[1][2],
+            self.values[2][0],
+            self.values[2][1],
+            self.values[2][2],
         )
     }
 }
