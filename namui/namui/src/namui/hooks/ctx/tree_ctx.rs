@@ -56,7 +56,7 @@ impl TreeContext {
         ctx.clear_unrendered_components = Arc::new({
             let root_instance = root_instance.clone();
             move || {
-                root_instance.clear_unrendered_chidlren();
+                root_instance.clear_unrendered_children();
             }
         });
 
