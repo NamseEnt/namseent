@@ -75,14 +75,14 @@ jobs:
         run: |
           echo "Running commands in ${{ matrix.dir }}"
 
-          echo "cargo xwin check --target x86_64-pc-windows-msvc"
-          cargo xwin check --target x86_64-pc-windows-msvc
+          echo "cargo xwin check --target x86_64-pc-windows-msvc --tests"
+          cargo xwin check --target x86_64-pc-windows-msvc --tests
           
           echo "cargo fmt"
           cargo fmt
 
-          echo "cargo xwin clippy --target x86_64-pc-windows-msvc"
-          cargo xwin clippy --target x86_64-pc-windows-msvc
+          echo "cargo xwin clippy --target x86_64-pc-windows-msvc --tests"
+          cargo xwin clippy --target x86_64-pc-windows-msvc --tests
 
           echo "cargo xwin test --target x86_64-pc-windows-msvc"
           cargo xwin test --target x86_64-pc-windows-msvc
