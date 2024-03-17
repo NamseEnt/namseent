@@ -17,6 +17,15 @@ macro_rules! vector_types {
             pub fn new($($field_ident: T),*) -> Self {
                 Self { $($field_ident),* }
             }
+
+            pub fn map<U, F>(self, f: F) -> $type_name<U>
+            where
+                F: Fn(T) -> U,
+            {
+                $type_name {
+                    $( $field_ident: f(self.$field_ident) ),*
+                }
+            }
         }
         impl<T: Clone> $type_name<T> {
             pub fn single(value: T) -> $type_name<T> {

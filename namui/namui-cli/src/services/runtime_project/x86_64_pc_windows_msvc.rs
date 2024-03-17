@@ -21,12 +21,10 @@ edition = "2021"
 {project_name} = {{ path = "{project_path}" }}
 
 [profile.release]
-lto = true
 opt-level = 3
 
 # [profile.dev]
-# lto = true
-# opt-level = 2
+opt-level = 2
     "#,
             project_path = project_path_in_relative
                 .to_str()
