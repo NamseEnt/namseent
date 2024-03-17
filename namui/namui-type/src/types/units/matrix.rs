@@ -53,12 +53,12 @@ impl Matrix3x3 {
         let x: f32 = xy.x.into();
         let y: f32 = xy.y.into();
 
-        let x = x * self.values[0][0] + y * self.values[0][1] + self.values[0][2];
-        let y = x * self.values[1][0] + y * self.values[1][1] + self.values[1][2];
+        let new_x = x * self.values[0][0] + y * self.values[0][1] + self.values[0][2];
+        let new_y = x * self.values[1][0] + y * self.values[1][1] + self.values[1][2];
 
         crate::Xy {
-            x: x.into(),
-            y: y.into(),
+            x: new_x.into(),
+            y: new_y.into(),
         }
     }
 
@@ -148,15 +148,15 @@ impl Matrix3x3 {
         let sin = angle.sin();
         let cos = angle.cos();
 
-        let value00 = self.values[0][0];
-        let value01 = self.values[0][1];
-        let value10 = self.values[1][0];
-        let value11 = self.values[1][1];
+        let m00 = self.values[0][0];
+        let m01 = self.values[0][1];
+        let m10 = self.values[1][0];
+        let m11 = self.values[1][1];
 
-        self.values[0][0] = value00 * cos - value01 * sin;
-        self.values[0][1] = value00 * sin + value01 * cos;
-        self.values[1][0] = value10 * cos - value11 * sin;
-        self.values[1][1] = value10 * sin + value11 * cos;
+        self.values[0][0] = m00 * cos + m01 * sin;
+        self.values[0][1] = m00 * -sin + m01 * cos;
+        self.values[1][0] = m10 * cos + m11 * sin;
+        self.values[1][1] = m10 * -sin + m11 * cos;
     }
 }
 
@@ -291,5 +291,80 @@ mod tests {
         assert_approx_eq!(f32, inverse.values[2][0], 0.0, ulps = 2);
         assert_approx_eq!(f32, inverse.values[2][1], 0.0, ulps = 2);
         assert_approx_eq!(f32, inverse.values[2][2], 0.142_857_15, ulps = 2);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn multiply_should_work() {
+        let a = Matrix3x3::from_slice([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]);
+        let b = Matrix3x3::from_slice([[9.0, 8.0, 7.0], [6.0, 5.0, 4.0], [3.0, 2.0, 1.0]]);
+
+        let result = a * b;
+
+        assert_approx_eq!(f32, result.values[0][0], 30.0, ulps = 2);
+        assert_approx_eq!(f32, result.values[0][1], 24.0, ulps = 2);
+        assert_approx_eq!(f32, result.values[0][2], 18.0, ulps = 2);
+
+        assert_approx_eq!(f32, result.values[1][0], 84.0, ulps = 2);
+        assert_approx_eq!(f32, result.values[1][1], 69.0, ulps = 2);
+        assert_approx_eq!(f32, result.values[1][2], 54.0, ulps = 2);
+
+        assert_approx_eq!(f32, result.values[2][0], 138.0, ulps = 2);
+        assert_approx_eq!(f32, result.values[2][1], 114.0, ulps = 2);
+        assert_approx_eq!(f32, result.values[2][2], 90.0, ulps = 2);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn translate_should_work() {
+        let mut matrix = Matrix3x3::from_translate(10.0, 20.0);
+        assert_eq!(matrix.x(), 10.0);
+        assert_eq!(matrix.y(), 20.0);
+
+        matrix.translate(10.0, 20.0);
+        assert_eq!(matrix.x(), 20.0);
+        assert_eq!(matrix.y(), 40.0);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn scale_should_work() {
+        let mut matrix = Matrix3x3::from_scale(2.0, 3.0);
+        assert_eq!(matrix.sx(), 2.0);
+        assert_eq!(matrix.sy(), 3.0);
+
+        matrix.scale(2.0, 3.0);
+        assert_eq!(matrix.sx(), 4.0);
+        assert_eq!(matrix.sy(), 9.0);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn rotate_should_work() {
+        let degree = 90.0_f32;
+        let mut matrix = Matrix3x3::from_rotate(degree.deg());
+        let cos = degree.to_radians().cos(); // 0.0
+        let sin = degree.to_radians().sin(); // 1.0
+
+        assert_approx_eq!(f32, matrix.values[0][0], cos, ulps = 2);
+        assert_approx_eq!(f32, matrix.values[0][1], -sin, ulps = 2);
+        assert_approx_eq!(f32, matrix.values[1][0], sin, ulps = 2);
+        assert_approx_eq!(f32, matrix.values[1][1], cos, ulps = 2);
+
+        matrix.rotate(90.0.deg());
+        let degree = 180.0_f32;
+        let cos = degree.to_radians().cos(); // -1.0
+        let sin = degree.to_radians().sin(); // 0.0
+
+        assert_approx_eq!(f32, matrix.values[0][0], cos, ulps = 2);
+        assert_approx_eq!(f32, matrix.values[0][1], -sin, ulps = 2);
+        assert_approx_eq!(f32, matrix.values[1][0], sin, ulps = 2);
+        assert_approx_eq!(f32, matrix.values[1][1], cos, ulps = 2);
+
+        let xy = Xy::new(1.0, 2.0);
+        let matrix = Matrix3x3::from_rotate(90.0.deg());
+        let rotated = matrix.transform_xy(xy);
+        assert_approx_eq!(f32, rotated.x, -2.0, ulps = 2);
+        assert_approx_eq!(f32, rotated.y, 1.0, ulps = 2);
     }
 }
