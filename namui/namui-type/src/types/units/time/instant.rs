@@ -64,7 +64,7 @@ mod tests {
         };
 
         assert_eq!(b - a, 1.sec());
-        assert_eq!(a - b, -1.sec());
+        assert_eq!(a - b, (-1).sec());
     }
 
     #[test]
@@ -75,6 +75,6 @@ mod tests {
         let b = a + 1.sec();
 
         assert_eq!(b - a, 1.sec());
-        assert_eq!(a - b, -1.sec());
+        assert_eq!(a - b, (-1).sec());
     }
 }

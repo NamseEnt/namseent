@@ -235,17 +235,17 @@ mod tests {
     #[test]
     fn test_duration_sub() {
         assert_eq!((1.sec() - 1.sec()).abs(), (0.sec()).abs());
-        assert_eq!(1.sec() - 2.sec(), -1.sec());
+        assert_eq!(1.sec() - 2.sec(), (-1).sec());
     }
 
     #[test]
     fn test_duration_div() {
         assert_eq!(1.sec() / 1.sec(), 1.0);
         assert_eq!(1.sec() / 2.sec(), 0.5);
-        assert_eq!(1.sec() / -1.sec(), -1.0);
-        assert_eq!(1.sec() / -2.sec(), -0.5);
+        assert_eq!(1.sec() / (-1).sec(), -1.0);
+        assert_eq!(1.sec() / (-2).sec(), -0.5);
 
-        assert_eq!(Per::new(1.px(), 1.sec()) * (-1).sec(), -1.px());
+        assert_eq!(Per::new(1.px(), 1.sec()) * (-1).sec(), (-1).px());
     }
 
     #[test]
@@ -253,38 +253,39 @@ mod tests {
         assert_eq!(1.sec() * 0.0, 0.sec());
         assert_eq!(1.sec() * 1.0, 1.sec());
         assert_eq!(1.sec() * 2.0, 2.sec());
-        assert_eq!(1.sec() * -1.0, -1.sec());
-        assert_eq!(1.sec() * -2.0, -2.sec());
+        assert_eq!(1.sec() * -1.0, (-1).sec());
+        assert_eq!(1.sec() * -2.0, (-2).sec());
     }
 
     #[test]
     fn test_duration_div_f32() {
         assert_eq!(1.sec() / 1.0, 1.sec());
         assert_eq!(1.sec() / 2.0, 0.5.sec());
-        assert_eq!(1.sec() / -1.0, -1.sec());
-        assert_eq!(1.sec() / -2.0, -0.5.sec());
+        assert_eq!(1.sec() / -1.0, (-1).sec());
+        assert_eq!(1.sec() / -2.0, (-0.5).sec());
     }
 
     #[test]
+    #[allow(clippy::erasing_op)]
     fn test_duration_mul_i32() {
         assert_eq!(1.sec() * 0, 0.sec());
         assert_eq!(1.sec() * 1, 1.sec());
         assert_eq!(1.sec() * 2, 2.sec());
-        assert_eq!(1.sec() * -1, -1.sec());
-        assert_eq!(1.sec() * -2, -2.sec());
+        assert_eq!(1.sec() * -1, (-1).sec());
+        assert_eq!(1.sec() * -2, (-2).sec());
     }
 
     #[test]
     fn test_duration_div_i32() {
         assert_eq!(1.sec() / 1, 1.sec());
         assert_eq!(1.sec() / 2, 0.5.sec());
-        assert_eq!(1.sec() / -1, -1.sec());
-        assert_eq!(1.sec() / -2, -0.5.sec());
+        assert_eq!(1.sec() / -1, (-1).sec());
+        assert_eq!(1.sec() / -2, (-0.5).sec());
     }
 
     #[test]
     fn test_duration_neg() {
-        assert_eq!(-1.sec(), -1.sec());
-        assert_eq!(-(-1.sec()), 1.sec());
+        assert_eq!(-(1.sec()), (-1).sec());
+        assert_eq!(-((-1).sec()), 1.sec());
     }
 }
