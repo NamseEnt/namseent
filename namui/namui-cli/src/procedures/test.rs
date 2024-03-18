@@ -13,6 +13,7 @@ pub fn test(target: Target, manifest_path: PathBuf) -> Result<()> {
 
             match target {
                 Target::WasmUnknownWeb => linux::wasm_unknown_web::test(&manifest_path)?,
+                Target::X86_64PcWindowsMsvc => linux::x86_64_pc_windows_msvc::test(&manifest_path)?,
                 _ => unimplemented!(),
             }
         }
