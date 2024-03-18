@@ -415,7 +415,7 @@ mod tests {
         );
         let node_6 = crate::absolute(px(100.0), px(100.0), render([node_8]).with_id(id_6));
         let node_5 = crate::transform(
-            Matrix3x3::from_rotate(Angle::Radian(std::f32::consts::PI / 2.0)),
+            Matrix3x3::from_rotate(90.deg()),
             render([node_7]).with_id(id_5),
         );
         let node_4 = crate::transform(
