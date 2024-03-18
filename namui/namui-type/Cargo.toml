@@ -25,7 +25,6 @@ uuid = { version = "1.1", features = [
     "serde",
 ] }
 siphasher = "0.3"
-nalgebra = { version = "0.31", features = ["serde-serialize"] }
 url = { version = "2.4.0", features = ["serde"] }
 derive-macro = { path = "./derive-macro" }
 postcard = { version = "1.0.6", features = ["use-std"] }

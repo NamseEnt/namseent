@@ -15,7 +15,8 @@
             "--xwin-arch",
             "x86_64",
             "--xwin-version",
-            "17"
+            "17",
+            "--tests"
         ],
         "rust-analyzer.cargo.buildScripts.overrideCommand": [
             "cargo",
@@ -27,7 +28,8 @@
             "--xwin-arch",
             "x86_64",
             "--xwin-version",
-            "17"
+            "17",
+            "--tests"
         ]
     }
 }
