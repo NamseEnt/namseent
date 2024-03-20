@@ -35,6 +35,10 @@ pub fn now() -> Instant {
     TIME_SYSTEM.get().unwrap().now()
 }
 
+pub fn stop_watch(key: impl AsRef<str>) -> StopWatch {
+    StopWatch::new(key.as_ref().to_string(), now(), now)
+}
+
 /// You can await on this.
 /// ```no_run
 /// sleep(Duration::from_secs(1)).await;

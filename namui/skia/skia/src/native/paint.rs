@@ -42,7 +42,7 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
     if let Some(anti_alias) = anti_alias {
         skia_paint.set_anti_alias(anti_alias);
     }
-    if let Some(stroke_width) = stroke_width {
+    if stroke_width > 0.px() {
         skia_paint.set_stroke_width(stroke_width.as_f32());
     }
     if let Some(stroke_cap) = stroke_cap {
@@ -51,7 +51,7 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
     if let Some(stroke_join) = stroke_join {
         skia_paint.set_stroke_join(stroke_join.into());
     }
-    if let Some(stroke_miter) = stroke_miter {
+    if stroke_miter > 0.px() {
         skia_paint.set_stroke_miter(stroke_miter.as_f32());
     }
     if let Some(color_filter) = color_filter {

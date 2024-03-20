@@ -16,12 +16,15 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
-    let vec: Vec<_> = rendering_trees.into_iter().collect();
+    let mut vec = rendering_trees
+        .into_iter()
+        .filter(|x| *x != RenderingTree::Empty)
+        .collect::<Vec<_>>();
 
     if vec.is_empty() {
         RenderingTree::Empty
     } else if vec.len() == 1 {
-        vec.into_iter().next().unwrap()
+        vec.remove(0)
     } else {
         RenderingTree::Children(vec)
     }

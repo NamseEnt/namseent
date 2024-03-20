@@ -15,11 +15,11 @@ pub struct RenderingData {
 
 #[type_derives(Default, -serde::Deserialize)]
 pub enum RenderingTree {
-    Node(RenderingData),
-    Children(Vec<RenderingTree>),
-    Special(SpecialRenderingNode),
     #[default]
     Empty,
+    Node(DrawCommand),
+    Children(Vec<RenderingTree>),
+    Special(SpecialRenderingNode),
 }
 
 unsafe impl Send for RenderingTree {}

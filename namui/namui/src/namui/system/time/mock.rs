@@ -25,7 +25,7 @@ pub fn set_system_time_now(now: SystemTime) {
     *SYSTEM_TIME_NOW.lock().unwrap() = now;
 }
 
-struct MockTimeSystem {}
+struct MockTimeSystem;
 
 impl TimeSystem for MockTimeSystem {
     fn since_start(&self) -> Duration {

@@ -7,7 +7,7 @@ pub(crate) fn invoke_on_event(
     tree_ctx: &TreeContext,
     on_event: impl FnOnce(Event<'_>),
     raw_event: &RawEvent,
-    inverse_matrix: Matrix3x3,
+    inverse_matrix: TransformMatrix,
     rendering_tree: &RenderingTree,
     global_xy_clip_in: impl ClipIn,
 ) {
@@ -163,7 +163,7 @@ pub(crate) fn invoke_on_event(
 }
 
 fn get_mouse_event<'a>(
-    inverse_matrix: Matrix3x3,
+    inverse_matrix: TransformMatrix,
     rendering_tree: &'a RenderingTree,
     raw_mouse_event: &'a RawMouseEvent,
     mouse_event_type: MouseEventType,
@@ -187,7 +187,7 @@ fn get_mouse_event<'a>(
 
 #[cfg(target_family = "wasm")]
 fn get_file_drop_event<'a>(
-    inverse_matrix: Matrix3x3,
+    inverse_matrix: TransformMatrix,
     rendering_tree: &'a RenderingTree,
     data_transfer: &Option<DataTransfer>,
     global_xy: Xy<Px>,

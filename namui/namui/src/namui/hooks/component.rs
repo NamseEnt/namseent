@@ -72,37 +72,37 @@ impl Component for DrawCommand {
 
 impl StaticType for PathDrawCommand {}
 impl Component for PathDrawCommand {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        ctx.component(RenderingTree::Node(RenderingData {
-            draw_calls: vec![DrawCall {
-                commands: vec![DrawCommand::Path { command: self }],
-            }],
-        }));
-        ctx.done()
+    fn render(self, _ctx: &RenderCtx) -> RenderDone {
+        unreachable!()
+    }
+    fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
+        Ok(RenderingTree::Node(DrawCommand::Path {
+            command: self.into(),
+        }))
     }
 }
 
 impl StaticType for ImageDrawCommand {}
 impl Component for ImageDrawCommand {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        ctx.component(RenderingTree::Node(RenderingData {
-            draw_calls: vec![DrawCall {
-                commands: vec![DrawCommand::Image { command: self }],
-            }],
-        }));
-        ctx.done()
+    fn render(self, _ctx: &RenderCtx) -> RenderDone {
+        unreachable!()
+    }
+    fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
+        Ok(RenderingTree::Node(DrawCommand::Image {
+            command: self.into(),
+        }))
     }
 }
 
 impl StaticType for TextDrawCommand {}
 impl Component for TextDrawCommand {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        ctx.component(RenderingTree::Node(RenderingData {
-            draw_calls: vec![DrawCall {
-                commands: vec![DrawCommand::Text { command: self }],
-            }],
-        }));
-        ctx.done()
+    fn render(self, _ctx: &RenderCtx) -> RenderDone {
+        unreachable!()
+    }
+    fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
+        Ok(RenderingTree::Node(DrawCommand::Text {
+            command: self.into(),
+        }))
     }
 }
 

@@ -398,37 +398,37 @@ mod tests {
         let id_0 = uuid();
 
         let node_10 = crate::transform(
-            Matrix3x3::from_translate(20.0, 20.0),
+            TransformMatrix::from_translate(20.0, 20.0),
             RenderingTree::Empty.with_id(id_10),
         );
         let node_9 = crate::transform(
-            Matrix3x3::from_scale(2.0, 2.0),
+            TransformMatrix::from_scale(2.0, 2.0),
             render([node_10]).with_id(id_9),
         );
         let node_8 = crate::transform(
-            Matrix3x3::from_translate(20.0, 20.0),
+            TransformMatrix::from_translate(20.0, 20.0),
             RenderingTree::Empty.with_id(id_8),
         );
         let node_7 = crate::transform(
-            Matrix3x3::from_translate(10.0, 20.0),
+            TransformMatrix::from_translate(10.0, 20.0),
             RenderingTree::Empty.with_id(id_7),
         );
         let node_6 = crate::absolute(px(100.0), px(100.0), render([node_8]).with_id(id_6));
         let node_5 = crate::transform(
-            Matrix3x3::from_rotate(90.deg()),
+            TransformMatrix::from_rotate(90.deg()),
             render([node_7]).with_id(id_5),
         );
         let node_4 = crate::transform(
-            Matrix3x3::from_translate(20.0, 30.0),
+            TransformMatrix::from_translate(20.0, 30.0),
             RenderingTree::Empty.with_id(id_4),
         );
         let node_3 = render([node_9]).with_id(id_3);
         let node_2 = crate::transform(
-            Matrix3x3::from_translate(50.0, 100.0),
+            TransformMatrix::from_translate(50.0, 100.0),
             render([node_5, node_6]).with_id(id_2),
         );
         let node_1 = crate::transform(
-            Matrix3x3::from_translate(100.0, 200.0),
+            TransformMatrix::from_translate(100.0, 200.0),
             render([node_3, node_4]).with_id(id_1),
         );
         let node_0 = render([node_1, node_2]).with_id(id_0);

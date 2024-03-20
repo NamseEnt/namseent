@@ -32,7 +32,7 @@ pub(crate) trait Draw {
 impl Draw for RenderingTree {
     fn draw(self, ctx: &mut DrawContext) {
         struct RenderingTreeDrawContext {
-            on_top_node_matrix_tuples: Vec<(OnTopNode, Matrix3x3)>,
+            on_top_node_matrix_tuples: Vec<(OnTopNode, TransformMatrix)>,
         }
         fn draw_internal(
             ctx: &mut DrawContext,
@@ -46,10 +46,8 @@ impl Draw for RenderingTree {
                         draw_internal(ctx, child, rendering_tree_draw_context);
                     }
                 }
-                RenderingTree::Node(rendering_data) => {
-                    rendering_data.draw_calls.into_iter().for_each(|draw_call| {
-                        draw_call.draw(ctx);
-                    });
+                RenderingTree::Node(draw_command) => {
+                    draw_command.draw(ctx);
                 }
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::Translate(translate) => {
@@ -67,10 +65,9 @@ impl Draw for RenderingTree {
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
                         ctx.canvas().save();
-                        ctx.canvas().set_matrix(Matrix3x3::from_slice([
+                        ctx.canvas().set_matrix(TransformMatrix::from_slice([
                             [1.0, 0.0, absolute.x.as_f32()],
                             [0.0, 1.0, absolute.y.as_f32()],
-                            [0.0, 0.0, 1.0],
                         ]));
                         draw_internal(ctx, *absolute.rendering_tree, rendering_tree_draw_context);
                         ctx.canvas().restore();

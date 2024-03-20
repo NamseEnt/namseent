@@ -117,10 +117,11 @@ fn draw_text(param: &TextParam, font: &Font) -> DrawCommand {
                 paint: text_paint,
                 align: param.align,
                 baseline: param.baseline,
-                max_width: param.max_width,
+                max_width: param.max_width.unwrap_or_default(),
                 line_height_percent: param.style.line_height_percent,
                 underline: param.style.underline.clone(),
             }
+            .into()
         },
     }
 }
@@ -142,10 +143,11 @@ fn draw_border(param: &TextParam, font: &Font) -> Option<DrawCommand> {
             paint: border_paint,
             align: param.align,
             baseline: param.baseline,
-            max_width: param.max_width,
+            max_width: param.max_width.unwrap_or_default(),
             line_height_percent: param.style.line_height_percent,
             underline: None,
-        },
+        }
+        .into(),
     })
 }
 

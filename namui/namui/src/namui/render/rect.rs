@@ -112,12 +112,12 @@ pub fn rect(param: RectParam) -> RenderingTree {
         let fill_paint = namui::Paint::new(color)
             .set_style(namui::PaintStyle::Fill)
             .set_anti_alias(true);
-
         draw_commands.push(DrawCommand::Path {
             command: PathDrawCommand {
                 path: rect_path.clone(),
                 paint: fill_paint,
-            },
+            }
+            .into(),
         });
     };
 
@@ -127,17 +127,20 @@ pub fn rect(param: RectParam) -> RenderingTree {
         ..
     }) = param.style.stroke
     {
-        let stroke_paint = namui::Paint::new(color)
-            .set_stroke_width(stroke_width)
-            .set_style(namui::PaintStyle::Stroke)
-            .set_anti_alias(true);
+        if stroke_width > 0.px() {
+            let stroke_paint = Paint::new(color)
+                .set_stroke_width(stroke_width)
+                .set_style(PaintStyle::Stroke)
+                .set_anti_alias(true);
 
-        draw_commands.push(DrawCommand::Path {
-            command: PathDrawCommand {
-                path: rect_path.clone(),
-                paint: stroke_paint,
-            },
-        });
+            draw_commands.push(DrawCommand::Path {
+                command: PathDrawCommand {
+                    path: rect_path,
+                    paint: stroke_paint,
+                }
+                .into(),
+            });
+        }
     };
 
     translate(

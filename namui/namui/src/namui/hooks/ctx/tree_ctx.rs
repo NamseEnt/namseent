@@ -1,10 +1,7 @@
 use super::*;
 use crate::*;
 use derivative::Derivative;
-use std::{
-    collections::HashSet,
-    sync::{atomic::AtomicBool, Arc, Mutex},
-};
+use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
@@ -15,7 +12,7 @@ pub(crate) struct TreeContext {
     pub(crate) enable_event_handling: Arc<AtomicBool>,
     root_instance: Arc<ComponentInstance>,
     #[derivative(Debug = "ignore")]
-    call_root_render: Arc<dyn Fn(HashSet<SigId>, RawEventContainer) -> RenderingTree>,
+    call_root_render: Arc<dyn Fn() -> RenderingTree>,
     #[derivative(Debug = "ignore")]
     clear_unrendered_components: Arc<dyn Fn()>,
 }
@@ -31,7 +28,7 @@ impl TreeContext {
             is_cursor_determined: Default::default(),
             enable_event_handling: Arc::new(AtomicBool::new(true)),
             root_instance: root_instance.clone(),
-            call_root_render: Arc::new(|_, _| {
+            call_root_render: Arc::new(|| {
                 unreachable!();
             }),
             clear_unrendered_components: Arc::new(|| {
@@ -42,16 +39,7 @@ impl TreeContext {
         ctx.call_root_render = Arc::new({
             let ctx = ctx.clone();
             let root_instance = root_instance.clone();
-            move |updated_sigs, raw_event| {
-                ctx.render(
-                    root_component(),
-                    root_instance.clone(),
-                    updated_sigs,
-                    Matrix3x3::identity(),
-                    vec![],
-                    raw_event,
-                )
-            }
+            move || ctx.render(root_component(), root_instance.clone())
         });
         ctx.clear_unrendered_components = Arc::new({
             let root_instance = root_instance.clone();
@@ -64,22 +52,14 @@ impl TreeContext {
     }
 
     pub(crate) fn start(&self, channel_rx: &std::sync::mpsc::Receiver<Item>) {
-        self.render_and_draw(None.into(), channel_rx);
+        self.render_and_draw(channel_rx);
     }
 
-    pub(crate) fn on_raw_event(
-        &mut self,
-        event: RawEvent,
-        channel_rx: &std::sync::mpsc::Receiver<Item>,
-    ) {
-        self.render_and_draw(Some(event).into(), channel_rx);
+    pub(crate) fn on_raw_event(&self, channel_rx: &std::sync::mpsc::Receiver<Item>) {
+        self.render_and_draw(channel_rx);
     }
 
-    pub(crate) fn render_and_draw(
-        &self,
-        raw_event: RawEventContainer,
-        channel_rx: &std::sync::mpsc::Receiver<Item>,
-    ) {
+    pub(crate) fn render_and_draw(&self, channel_rx: &std::sync::mpsc::Receiver<Item>) {
         if !system::panick::is_panicked() {
             self.is_stop_event_propagation
                 .store(false, std::sync::atomic::Ordering::Relaxed);
@@ -88,12 +68,12 @@ impl TreeContext {
 
             let mut channel_events = channel_rx.try_iter().collect::<Vec<_>>();
 
-            let mut updated_sigs = Default::default();
-            handle_atom_events(&mut channel_events, &mut updated_sigs);
+            handle_atom_and_mut_state_events(&mut channel_events);
 
             self.channel_events.lock().unwrap().extend(channel_events);
 
-            let rendering_tree = (self.call_root_render)(updated_sigs, raw_event);
+            let rendering_tree = (self.call_root_render)();
+
             crate::system::drawer::request_draw_rendering_tree(rendering_tree);
 
             #[cfg(target_family = "wasm")]
@@ -115,34 +95,15 @@ impl TreeContext {
         &self,
         component: impl Component,
         instance: Arc<ComponentInstance>,
-        updated_sigs: HashSet<SigId>,
-        matrix: Matrix3x3,
-        clippings: Vec<Clipping>,
-        raw_event: RawEventContainer,
     ) -> RenderingTree {
-        let render_ctx =
-            self.spawn_render_ctx(instance, updated_sigs, matrix, clippings, raw_event);
+        let render_ctx = self.spawn_render_ctx(instance);
 
         let render_done = Box::new(component).render(&render_ctx);
 
         render_done.rendering_tree
     }
-    pub(crate) fn spawn_render_ctx(
-        &self,
-        instance: Arc<ComponentInstance>,
-        updated_sigs: HashSet<SigId>,
-        matrix: Matrix3x3,
-        clippings: Vec<Clipping>,
-        raw_event: RawEventContainer,
-    ) -> RenderCtx {
-        RenderCtx::new(
-            instance,
-            updated_sigs,
-            self.clone(),
-            matrix,
-            raw_event,
-            clippings,
-        )
+    pub(crate) fn spawn_render_ctx(&self, instance: Arc<ComponentInstance>) -> RenderCtx {
+        RenderCtx::new(instance)
     }
 
     pub(crate) fn enable_event_handling(&self, enable: bool) -> bool {
@@ -156,11 +117,11 @@ impl TreeContext {
     }
 }
 
-fn handle_atom_events(channel_events: &mut Vec<Item>, updated_sigs: &mut HashSet<SigId>) {
+fn handle_atom_and_mut_state_events(channel_events: &mut Vec<Item>) {
     channel_events.retain(|x| match x {
         Item::SetStateItem(x) => {
             if x.sig_id().id_type == SigIdType::Atom {
-                updated_sigs.insert(x.sig_id());
+                global_state::updated_sigs().insert(x.sig_id());
                 match x {
                     SetStateItem::Set { sig_id, value } => {
                         set_atom_value(sig_id.index, value.lock().unwrap().take().unwrap());

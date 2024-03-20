@@ -15,7 +15,10 @@ pub struct OnTopNode {
 /// namui::on_top(render([]).attach_event(|_| {}));
 /// ```
 pub fn on_top(rendering_tree: RenderingTree) -> RenderingTree {
+    if rendering_tree == RenderingTree::Empty {
+        return RenderingTree::Empty;
+    }
     RenderingTree::Special(SpecialRenderingNode::OnTop(OnTopNode {
-        rendering_tree: Box::new(rendering_tree),
+        rendering_tree: rendering_tree.into(),
     }))
 }

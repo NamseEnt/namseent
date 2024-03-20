@@ -48,6 +48,6 @@ impl SkCalculate for NativeCalculate {
         )
         .unwrap();
 
-        ImageHandle::new(image_info, uuid(), image)
+        ImageHandle::new(image_info, image)
     }
 }

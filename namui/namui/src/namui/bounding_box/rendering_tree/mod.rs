@@ -20,12 +20,12 @@ impl BoundingBox for RenderingTree {
         }
         fn get_bounding_box_with_matrix(
             rendering_tree: &RenderingTree,
-            matrix: &Matrix3x3,
+            matrix: &TransformMatrix,
             bounding_box_context: &mut BoundingBoxContext,
         ) -> Option<Rect<Px>> {
             fn get_bounding_box_with_matrix_of_rendering_trees<'a>(
                 rendering_trees: impl IntoIterator<Item = &'a RenderingTree>,
-                matrix: &Matrix3x3,
+                matrix: &TransformMatrix,
                 bounding_box_context: &mut BoundingBoxContext,
             ) -> Option<Rect<Px>> {
                 rendering_trees
@@ -51,10 +51,9 @@ impl BoundingBox for RenderingTree {
                     .map(|bounding_box| matrix.transform_rect(bounding_box)),
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::Translate(translate) => {
-                        let translation_matrix = Matrix3x3::from_slice([
+                        let translation_matrix = TransformMatrix::from_slice([
                             [1.0, 0.0, translate.x.as_f32()],
                             [0.0, 1.0, translate.y.as_f32()],
-                            [0.0, 0.0, 1.0],
                         ]);
                         let matrix = translation_matrix * matrix;
                         get_bounding_box_with_matrix_of_rendering_trees(
@@ -132,10 +131,9 @@ impl BoundingBox for RenderingTree {
                         })
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
-                        let matrix = Matrix3x3::from_slice([
+                        let matrix = TransformMatrix::from_slice([
                             [1.0, 0.0, absolute.x.as_f32()],
                             [0.0, 1.0, absolute.y.as_f32()],
-                            [0.0, 0.0, 1.0],
                         ]);
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [absolute.rendering_tree.borrow()],
@@ -196,8 +194,11 @@ impl BoundingBox for RenderingTree {
         let mut bounding_box_context = BoundingBoxContext {
             bounding_boxes_on_top: vec![],
         };
-        let bounding_box =
-            get_bounding_box_with_matrix(self, &Matrix3x3::identity(), &mut bounding_box_context);
+        let bounding_box = get_bounding_box_with_matrix(
+            self,
+            &TransformMatrix::identity(),
+            &mut bounding_box_context,
+        );
 
         let bounding_box = bounding_box_context
             .bounding_boxes_on_top

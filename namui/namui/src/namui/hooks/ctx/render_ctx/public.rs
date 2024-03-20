@@ -45,14 +45,23 @@ impl<'a> RenderCtx {
         handle_effect(self, title, effect)
     }
 
-    pub fn on_raw_event(&'a self, on_raw_event: impl 'a + FnOnce(&crate::RawEvent)) {
-        if let Some(raw_event) = self.raw_event.as_ref() {
+    pub fn interval(
+        &'a self,
+        title: impl AsRef<str>,
+        duration: Duration,
+        job: impl FnOnce(Duration),
+    ) {
+        handle_interval(self, title, duration, job)
+    }
+
+    pub fn on_raw_event(&'a self, on_raw_event: impl FnOnce(&crate::RawEvent)) {
+        if let Some(raw_event) = global_state::raw_event() {
             on_raw_event(raw_event);
         }
     }
 
     pub fn stop_event_propagation(&'a self) {
-        self.tree_ctx
+        global_state::tree_ctx()
             .is_stop_event_propagation
             .store(true, std::sync::atomic::Ordering::Relaxed);
     }
@@ -80,26 +89,24 @@ impl<'a> RenderCtx {
             enable_event_handling,
         }: GhostComposeOption,
     ) -> RenderingTree {
-        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        let lazy: LazyShared = Default::default();
         {
             let mut compose_ctx = ComposeCtx::new(
-                self.tree_ctx.clone(),
                 KeyVec::new_child(self.get_next_component_index()),
-                *self.matrix.lock().unwrap(),
                 self.renderer(),
                 lazy.clone(),
-                self.raw_event.clone(),
-                self.clippings.clone(),
+                global_state::no_op(),
             );
 
-            let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
+            let prev_enable_event =
+                global_state::tree_ctx().enable_event_handling(enable_event_handling);
 
             compose(&mut compose_ctx);
 
-            self.tree_ctx.enable_event_handling(prev_enable_event);
+            global_state::tree_ctx().enable_event_handling(prev_enable_event);
         }
-        let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
-        rendering_tree
+
+        lazy.get_rendering_tree()
     }
 
     /// Get RenderingTree but don't add it to the children.
@@ -112,11 +119,12 @@ impl<'a> RenderCtx {
     ) -> RenderingTree {
         let key = KeyVec::new_child(self.get_next_component_index());
 
-        let prev_enable_event = self.tree_ctx.enable_event_handling(enable_event_handling);
+        let prev_enable_event =
+            global_state::tree_ctx().enable_event_handling(enable_event_handling);
 
         let rendering_tree = self.render_children(key, component);
 
-        self.tree_ctx.enable_event_handling(prev_enable_event);
+        global_state::tree_ctx().enable_event_handling(prev_enable_event);
 
         rendering_tree
     }
@@ -143,8 +151,8 @@ impl<'a> RenderCtx {
         self
     }
     pub fn global_xy(&self, local_xy: Xy<Px>) -> Xy<Px> {
-        let local_xy = Matrix3x3::from_translate(local_xy.x.as_f32(), local_xy.y.as_f32());
-        let global_xy = self.matrix() * local_xy;
+        let local_xy = TransformMatrix::from_translate(local_xy.x.as_f32(), local_xy.y.as_f32());
+        let global_xy = global_state::matrix() * local_xy;
         Xy::new(global_xy.x().px(), global_xy.y().px())
     }
 }

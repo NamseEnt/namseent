@@ -48,9 +48,9 @@ pub trait SkCanvas {
     fn save(&self);
     fn clip_path(&self, path: &Path, clip_op: ClipOp, do_anti_alias: bool);
     fn restore(&self);
-    fn get_matrix(&self) -> Matrix3x3;
-    fn set_matrix(&self, matrix: Matrix3x3);
-    fn transform(&self, matrix: Matrix3x3);
+    fn get_matrix(&self) -> TransformMatrix;
+    fn set_matrix(&self, matrix: TransformMatrix);
+    fn transform(&self, matrix: TransformMatrix);
     fn rotate(&self, angle: Angle);
     fn scale(&self, sx: f32, sy: f32);
 }

@@ -3,6 +3,7 @@ mod clipping;
 mod component;
 mod ctx;
 mod event;
+mod global_state;
 mod instance;
 mod key;
 mod macros;
@@ -36,14 +37,18 @@ pub(crate) fn run_loop<C: Component>(root_component: impl Send + Sync + 'static 
     let (channel_tx, channel_rx) = std::sync::mpsc::channel();
     crate::hooks::channel::init(channel_tx);
 
-    let mut tree_ctx = TreeContext::new(root_component);
+    let tree_ctx = TreeContext::new(root_component);
+    global_state::init(tree_ctx);
 
-    tree_ctx.start(&channel_rx);
+    global_state::tree_ctx().start(&channel_rx);
 
     while let Ok(event) = raw_event_rx.recv() {
         let instant = std::time::Instant::now();
 
-        tree_ctx.on_raw_event(event, &channel_rx);
+        global_state::reset();
+        global_state::set_raw_event(event);
+
+        global_state::tree_ctx().on_raw_event(&channel_rx);
 
         let elapsed = instant.elapsed();
         if elapsed.as_millis() > 1 {

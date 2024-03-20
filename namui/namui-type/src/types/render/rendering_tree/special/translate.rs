@@ -8,9 +8,13 @@ pub struct TranslateNode {
 }
 
 pub fn translate(x: Px, y: Px, rendering_tree: RenderingTree) -> RenderingTree {
+    if rendering_tree == RenderingTree::Empty {
+        return RenderingTree::Empty;
+    }
+
     RenderingTree::Special(SpecialRenderingNode::Translate(TranslateNode {
         x,
         y,
-        rendering_tree: Box::new(rendering_tree),
+        rendering_tree: rendering_tree.into(),
     }))
 }

@@ -18,16 +18,13 @@ pub fn image(
         style,
     }: ImageParam,
 ) -> RenderingTree {
-    RenderingTree::Node(RenderingData {
-        draw_calls: vec![DrawCall {
-            commands: vec![DrawCommand::Image {
-                command: ImageDrawCommand {
-                    source,
-                    rect,
-                    fit: style.fit,
-                    paint: style.paint,
-                },
-            }],
-        }],
+    RenderingTree::Node(DrawCommand::Image {
+        command: ImageDrawCommand {
+            source,
+            rect,
+            fit: style.fit,
+            paint: style.paint,
+        }
+        .into(),
     })
 }

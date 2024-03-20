@@ -55,7 +55,7 @@ impl Path {
             .push(PathCommand::Translate { xy: Xy { x, y } });
         self
     }
-    pub fn transform(mut self, matrix: Matrix3x3) -> Self {
+    pub fn transform(mut self, matrix: TransformMatrix) -> Self {
         self.commands.push(PathCommand::Transform { matrix });
         self
     }
@@ -115,7 +115,7 @@ pub enum PathCommand {
         xy: Xy<Px>,
     },
     Transform {
-        matrix: Matrix3x3,
+        matrix: TransformMatrix,
     },
     AddOval {
         rect: Rect<Px>,

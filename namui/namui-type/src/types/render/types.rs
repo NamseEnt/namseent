@@ -626,7 +626,7 @@ pub enum ImageFit {
 
 #[type_derives(-serde::Deserialize)]
 pub enum ImageSource {
-    Url { url: url::Url },
+    Url { url: String },
     ImageHandle { image_handle: ImageHandle },
     // Image(Arc<Image>),
     // File(File),

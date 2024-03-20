@@ -1,5 +1,5 @@
 use super::*;
-use std::{cell::RefCell, collections::HashSet, fmt::Display};
+use std::{cell::RefCell, collections::HashSet, fmt::Display, ops::Deref};
 
 thread_local! {
     pub(crate) static USED_SIG_IDS: RefCell<HashSet<SigId>> = RefCell::new(HashSet::new());
@@ -25,6 +25,16 @@ pub(crate) struct SigId {
     pub component_id: usize,
     pub index: usize,
 }
+
+impl Deref for SigId {
+    type Target = SigId;
+
+    fn deref(&self) -> &Self::Target {
+        self
+    }
+}
+
+unsafe impl stable_deref_trait::StableDeref for SigId {}
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub(crate) enum SigIdType {
