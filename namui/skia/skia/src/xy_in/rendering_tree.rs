@@ -207,10 +207,8 @@ impl ClipIn for ClipNode {
 mod tests {
     use super::*;
     use float_cmp::assert_approx_eq;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn rln_visiting_order_should_be_rln() {
         /*
             tree:
@@ -271,7 +269,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn to_local_xy_should_work() {
         /*
             tree:
@@ -402,7 +399,6 @@ mod tests {
         assert_eq!(call_count, 11);
     }
     #[test]
-    #[wasm_bindgen_test]
     fn to_local_xy_should_work_with_matrix_transform() {
         /*
             tree:
@@ -547,7 +543,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn to_local_xy_translate_scale_translate_test() {
         let id_2 = uuid();
         let id_1 = uuid();
@@ -611,7 +606,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn to_local_xy_translate_after_scale_test() {
         let id_1 = uuid();
         let id_0 = uuid();
@@ -661,7 +655,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn with_ancestors_should_give_right_ancestors() {
         /*
             tree:
@@ -748,7 +741,6 @@ mod tests {
         assert_eq!(with_ancestors_call_count, 6);
     }
     #[test]
-    #[wasm_bindgen_test]
     fn clip_should_block_checking_xy_in() {
         // TODO: Test this. We cannot test it right now because test runtime doesn't load canvaskit.
     }

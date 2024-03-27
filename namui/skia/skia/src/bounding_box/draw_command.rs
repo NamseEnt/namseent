@@ -1,4 +1,6 @@
 use crate::*;
+use namui_type::*;
+
 impl BoundingBox for &DrawCommand {
     fn bounding_box(self, calculator: &dyn SkCalculate) -> Option<Rect<Px>> {
         match self {

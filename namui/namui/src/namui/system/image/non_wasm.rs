@@ -1,5 +1,5 @@
+use crate::*;
 use anyhow::Result;
-use namui_type::*;
 
 pub struct ImageBitmap {
     image_info: ImageInfo,

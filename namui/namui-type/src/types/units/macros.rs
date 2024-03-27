@@ -161,9 +161,7 @@ macro_rules! common_for_f32_type {
         });
 
         pub const fn $short_term(value: f32) -> $your_type {
-            $your_type(unsafe {
-                ordered_float::OrderedFloat(value)
-            })
+            $your_type(ordered_float::OrderedFloat(value))
         }
 
         pub trait $short_term_ext {

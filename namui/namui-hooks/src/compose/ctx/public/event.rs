@@ -97,7 +97,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     pressing_buttons: &event.pressing_buttons,
                     button: event.button,
                     event_type: MouseEventType::Down,
-                    prevent_default: &event.prevent_default,
                     is_stop_event_propagation: &self.world.is_stop_event_propagation,
                 };
 
@@ -113,7 +112,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     pressing_buttons: &event.pressing_buttons,
                     button: event.button,
                     event_type: MouseEventType::Move,
-                    prevent_default: &event.prevent_default,
                     is_stop_event_propagation: &self.world.is_stop_event_propagation,
                 };
 
@@ -129,7 +127,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     pressing_buttons: &event.pressing_buttons,
                     button: event.button,
                     event_type: MouseEventType::Up,
-                    prevent_default: &event.prevent_default,
                     is_stop_event_propagation: &self.world.is_stop_event_propagation,
                 };
 
@@ -152,7 +149,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     event: KeyboardEvent {
                         code: event.code,
                         pressing_codes: &event.pressing_codes,
-                        prevent_default: &event.prevent_default,
                         is_stop_event_propagation: &self.world.is_stop_event_propagation,
                     },
                 });
@@ -162,7 +158,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     event: KeyboardEvent {
                         code: event.code,
                         pressing_codes: &event.pressing_codes,
-                        prevent_default: &event.prevent_default,
                         is_stop_event_propagation: &self.world.is_stop_event_propagation,
                     },
                 });

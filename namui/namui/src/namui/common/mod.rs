@@ -1,19 +1,14 @@
 pub(crate) mod change_path_to_platform;
-mod codes;
-mod event;
 #[cfg(target_family = "wasm")]
 mod file;
 mod open_external;
 pub(crate) mod url;
 
 use crate::*;
-pub use codes::*;
-pub use event::*;
 #[cfg(target_family = "wasm")]
 pub use file::*;
 pub use open_external::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
     let mut iter = rendering_trees.into_iter();
@@ -48,13 +43,6 @@ pub type Rendering = RenderingTree;
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum Language {
     Ko,
-}
-
-#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
-pub enum MouseButton {
-    Left,
-    Middle,
-    Right,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

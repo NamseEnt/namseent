@@ -1,5 +1,5 @@
 use super::{pressing_code_set, record_key_down, record_key_up, KeyboardSystem};
-use crate::{Code, RawEvent, RawKeyboardEvent};
+use crate::*;
 use std::{
     collections::HashSet,
     sync::{Arc, RwLock},
@@ -27,7 +27,6 @@ pub(crate) fn on_keyboard_input(event: winit::event::KeyEvent) {
                 event: RawKeyboardEvent {
                     code,
                     pressing_codes: pressing_code_set(),
-                    prevent_default: Box::new(|| {}),
                 },
             });
         }
@@ -38,7 +37,6 @@ pub(crate) fn on_keyboard_input(event: winit::event::KeyEvent) {
                 event: RawKeyboardEvent {
                     code,
                     pressing_codes: pressing_code_set(),
-                    prevent_default: Box::new(|| {}),
                 },
             });
         }

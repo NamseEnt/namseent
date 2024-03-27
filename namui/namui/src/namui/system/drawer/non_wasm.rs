@@ -56,7 +56,7 @@ fn spawn_drawing_task(mut rx: tokio::sync::mpsc::UnboundedReceiver<DrawingComman
     });
 }
 
-pub(crate) fn request_draw_rendering_tree(rendering_tree: namui_type::RenderingTree) {
+pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
     DRAW_COMMAND_TX
         .get()
         .unwrap()

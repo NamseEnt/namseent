@@ -34,6 +34,7 @@ pub struct MouseEvent<'a> {
     pub pressing_buttons: &'a HashSet<MouseButton>,
     pub button: Option<MouseButton>,
     pub event_type: MouseEventType,
+    #[cfg(feature = "wasm")]
     #[derivative(Debug = "ignore")]
     pub prevent_default: &'a dyn Fn(),
     pub is_stop_event_propagation: &'a AtomicBool,
@@ -51,6 +52,7 @@ impl MouseEvent<'_> {
     pub fn is_local_xy_in(&self) -> bool {
         (self.is_local_xy_in)()
     }
+    #[cfg(feature = "wasm")]
     pub fn prevent_default(&self) {
         (self.prevent_default)();
     }
@@ -92,6 +94,7 @@ impl WheelEvent<'_> {
 pub struct KeyboardEvent<'a> {
     pub code: Code,
     pub pressing_codes: &'a HashSet<Code>,
+    #[cfg(feature = "wasm")]
     #[derivative(Debug = "ignore")]
     pub prevent_default: &'a dyn Fn(),
     pub is_stop_event_propagation: &'a AtomicBool,
@@ -103,6 +106,7 @@ impl EventExt for KeyboardEvent<'_> {
     }
 }
 impl KeyboardEvent<'_> {
+    #[cfg(feature = "wasm")]
     pub fn prevent_default(&self) {
         (self.prevent_default)();
     }

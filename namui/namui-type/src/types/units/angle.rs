@@ -15,12 +15,12 @@ pub trait AngleExt {
 impl AngleExt for f32 {
     fn deg(self) -> Angle {
         Angle {
-            radians: self.to_radians().try_into().unwrap(),
+            radians: self.to_radians().into(),
         }
     }
     fn rad(self) -> Angle {
         Angle {
-            radians: self.try_into().unwrap(),
+            radians: self.into(),
         }
     }
 }

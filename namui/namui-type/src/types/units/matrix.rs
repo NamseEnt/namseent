@@ -144,8 +144,8 @@ impl TransformMatrix {
         self.values[1][2] += y;
     }
     pub fn set_translate(&mut self, x: f32, y: f32) {
-        self.values[0][2] = x.try_into().unwrap();
-        self.values[1][2] = y.try_into().unwrap();
+        self.values[0][2] = x.into();
+        self.values[1][2] = y.into();
     }
     pub fn scale(&mut self, x: f32, y: f32) {
         self.values[0][0] *= x;
@@ -236,13 +236,13 @@ impl From<skia_safe::Matrix> for TransformMatrix {
 #[cfg(feature = "skia")]
 impl Into<skia_safe::Matrix> for TransformMatrix {
     fn into(self) -> skia_safe::Matrix {
-        skia_safe::Matrix_all(
-            self.values[0][0],
-            self.values[0][1],
-            self.values[0][2],
-            self.values[1][0],
-            self.values[1][1],
-            self.values[1][2],
+        skia_safe::Matrix::new_all(
+            self.values[0][0].into(),
+            self.values[0][1].into(),
+            self.values[0][2].into(),
+            self.values[1][0].into(),
+            self.values[1][1].into(),
+            self.values[1][2].into(),
             0.0,
             0.0,
             1.0,

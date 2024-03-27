@@ -2,11 +2,11 @@ use super::video_framer::VideoFramer;
 use crate::system::media::{
     core::MediaControlReceiver, with_instant::WithInstant, VIDEO_CHANNEL_BOUND,
 };
+use crate::*;
 use anyhow::{anyhow, Result};
-use namui_type::*;
 
 const FFMPEG_DEST_FORMAT: ffmpeg_next::util::format::Pixel = ffmpeg_next::util::format::Pixel::RGBA;
-const COLOR_TYPE: namui_type::ColorType = namui_type::ColorType::Rgba8888;
+const COLOR_TYPE: ColorType = ColorType::Rgba8888;
 
 pub(crate) fn start_video_scaling(
     ffmpeg_video_frames_rx: std::sync::mpsc::Receiver<WithInstant<ffmpeg_next::frame::Video>>,

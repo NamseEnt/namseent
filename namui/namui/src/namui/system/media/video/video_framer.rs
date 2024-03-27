@@ -1,5 +1,5 @@
 use crate::media::{core::MediaControlReceiver, with_instant::WithInstant, VIDEO_CHANNEL_BOUND};
-use namui_type::*;
+use crate::*;
 use std::{collections::VecDeque, ops::Deref};
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ impl VideoFramer {
         }
     }
 
-    pub(crate) fn get_image(&mut self) -> Option<namui_type::ImageHandle> {
+    pub(crate) fn get_image(&mut self) -> Option<ImageHandle> {
         self.fill_images();
 
         let Some(start_requested) = self.control_receiver.start_requested() else {

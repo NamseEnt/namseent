@@ -9,7 +9,6 @@ targets = ["x86_64-pc-windows-msvc"]
 [features]
 default = []
 skia = ["dep:skia-safe"]
-winit = ["dep:winit"]
 namui_internal = [
     # for namui crate internal use. Don't use this feature if you don't know about it.
 ]
@@ -29,14 +28,10 @@ siphasher = "0.3"
 url = { version = "2.4.0", features = ["serde"] }
 derive-macro = { path = "./derive-macro" }
 postcard = { version = "1.0.6", features = ["use-std"] }
-textwrap = "0.16.0"
-unicode-segmentation = "1.10.1"
-serde_bytes = "0.11.12"
 lru = "0.11.0"
-skia-safe = { path = "../skia/rust-skia/skia-safe", optional = true }
-winit = { version = "0.29.4", optional = true }
 anyhow = { version = "1.0.77", features = ["backtrace"] }
 derivative = "2.2.0"
+skia-safe = { path = "../skia/rust-skia/skia-safe", optional = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

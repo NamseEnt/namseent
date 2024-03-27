@@ -109,7 +109,7 @@ fn apply_command_to_skia_path(skia_path: &mut skia_safe::Path, path: &Path) {
                 paint.set_stroke_width(stroke_options.width.map(|w| w.into()).unwrap_or(1.0));
                 paint.set_stroke_miter(stroke_options.miter_limit.map(|m| m.into()).unwrap_or(4.0));
 
-                let precision = stroke_options.precision.unwrap_or(1.0);
+                let precision = stroke_options.precision.unwrap_or(1.0.into()).into();
 
                 if !skia_safe::path_utils::fill_path_with_paint(
                     &skia_path.clone(),
@@ -140,7 +140,7 @@ fn apply_command_to_skia_path(skia_path: &mut skia_safe::Path, path: &Path) {
                 );
             }
             &PathCommand::Scale { xy } => {
-                skia_path.transform(&skia_safe::Matrix::scale(xy.into()));
+                skia_path.transform(&skia_safe::Matrix::scale(xy.map(|x| f32::from(x)).into()));
             }
             &PathCommand::Translate { xy } => {
                 skia_path.offset(xy);

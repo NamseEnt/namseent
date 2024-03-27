@@ -6,9 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+namui-skia = { path = "../skia/skia" }
 elsa = { version = "1.10.0", features = ["indexmap"] }
+namui-type = { path = "../namui-type", features = ["namui_internal"] }
 rustc-hash = "1.1.0"
-slab = "0.4.9"
-namui-type = { path = "../namui-type" }
 smol_str = "0.2.1"
-mimalloc = "0.1.39"

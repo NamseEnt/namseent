@@ -23,6 +23,22 @@ impl World {
     }
 
     pub fn run(&mut self, root_component: impl Component) -> RenderingTree {
+        self.run_impl(root_component, None)
+    }
+
+    pub fn run_with_event(
+        &mut self,
+        root_component: impl Component,
+        event: RawEvent,
+    ) -> RenderingTree {
+        self.run_impl(root_component, Some(event))
+    }
+
+    fn run_impl(
+        &mut self,
+        root_component: impl Component,
+        event: Option<RawEvent>,
+    ) -> RenderingTree {
         self.reset_updated_sig_ids();
         self.handle_set_states();
 
@@ -39,6 +55,8 @@ impl World {
                 .instances
                 .insert(InstanceId::root(), Instance::new(InstanceId::root()).into()),
         };
+
+        self.raw_event = event;
 
         let rendering_tree = render_ctx::run(
             self,

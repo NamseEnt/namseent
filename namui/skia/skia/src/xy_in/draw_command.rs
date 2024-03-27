@@ -1,4 +1,5 @@
 use crate::*;
+use namui_type::*;
 
 impl XyIn for DrawCommand {
     fn xy_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>) -> bool {

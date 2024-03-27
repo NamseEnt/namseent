@@ -47,8 +47,8 @@ impl Path {
     pub fn scale(mut self, sx: f32, sy: f32) -> Self {
         self.commands.push(PathCommand::Scale {
             xy: Xy {
-                x: sx.try_into().unwrap(),
-                y: sy.try_into().unwrap(),
+                x: sx.into(),
+                y: sy.into(),
             },
         });
         self

@@ -20,6 +20,7 @@ pub struct RawMouseEvent {
     pub xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
+    #[cfg(feature = "wasm")]
     #[derivative(Debug = "ignore")]
     pub prevent_default: Box<dyn Fn()>,
 }
@@ -36,6 +37,7 @@ pub struct RawWheelEvent {
 pub struct RawKeyboardEvent {
     pub code: Code,
     pub pressing_codes: HashSet<Code>,
+    #[cfg(feature = "wasm")]
     #[derivative(Debug = "ignore")]
     pub prevent_default: Box<dyn Fn()>,
 }

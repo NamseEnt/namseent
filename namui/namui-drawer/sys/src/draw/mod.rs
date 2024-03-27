@@ -105,8 +105,13 @@ impl Draw for RenderingTree {
                     }
                 },
                 RenderingTree::Empty => {}
-                RenderingTree::Static(rendering_tree) => {
-                    draw_internal(ctx, *rendering_tree, rendering_tree_draw_context);
+                RenderingTree::Boxed(boxed) => {
+                    draw_internal(ctx, boxed.as_ref(), rendering_tree_draw_context);
+                }
+                RenderingTree::BoxedChildren(children) => {
+                    for child in children {
+                        draw_internal(ctx, child, rendering_tree_draw_context);
+                    }
                 }
             }
         }
