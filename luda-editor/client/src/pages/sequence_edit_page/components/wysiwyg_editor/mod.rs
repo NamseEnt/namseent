@@ -52,7 +52,7 @@ enum ContextMenu {
 }
 
 impl Component for WysiwygEditor<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cut_id,
@@ -452,7 +452,7 @@ impl Component for WysiwygEditor<'_> {
         });
         ctx.component(background);
 
-        ctx.done()
+        
     }
 }
 

@@ -17,7 +17,7 @@ pub struct SettingOverlay {
     pub wh: Wh<Px>,
 }
 impl Component for SettingOverlay {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         let (open, _) = ctx.atom_init(&SETTING_OVERLAY_OPEN_ATOM, || false);
@@ -29,7 +29,7 @@ impl Component for SettingOverlay {
             ctx.add(Opened { wh });
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -38,7 +38,7 @@ struct Opened {
     wh: Wh<Px>,
 }
 impl Component for Opened {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         let now = since_start();
@@ -58,7 +58,7 @@ impl Component for Opened {
 
         ctx.component(Backdrop { wh });
 
-        ctx.done()
+        
     }
 }
 
@@ -76,7 +76,7 @@ struct Buttons {
     now: Duration,
 }
 impl Component for Buttons {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, now } = self;
 
         const BUTTON_WH: Wh<Px> = Wh {
@@ -184,7 +184,7 @@ impl Component for Buttons {
             }
         });
 
-        ctx.done()
+        
     }
 }
 

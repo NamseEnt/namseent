@@ -1,17 +1,20 @@
 use crate::*;
 use std::fmt::Debug;
 
-#[derive(Debug, Clone)]
-pub struct SetState<State: 'static + Debug + Send + Sync> {
+#[derive(Debug, Clone, Copy)]
+pub struct SetState<'a, State: 'static + Debug + Send + Sync> {
     sig_id: SigId,
-    set_state_tx: std::sync::mpsc::Sender<SetStateItem>,
+    set_state_tx: &'a std::sync::mpsc::Sender<SetStateItem>,
     _state: std::marker::PhantomData<State>,
 }
 
 // impl<State: 'static + Debug + Send + Sync> Copy for SetState<State> {}
 
-impl<State: 'static + Debug + Send + Sync> SetState<State> {
-    pub(crate) fn new(sig_id: SigId, set_state_tx: std::sync::mpsc::Sender<SetStateItem>) -> Self {
+impl<'a, State: 'static + Debug + Send + Sync> SetState<'a, State> {
+    pub(crate) fn new(
+        sig_id: SigId,
+        set_state_tx: &'a std::sync::mpsc::Sender<SetStateItem>,
+    ) -> Self {
         Self {
             sig_id,
             set_state_tx,

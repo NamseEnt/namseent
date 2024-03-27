@@ -7,7 +7,7 @@ pub struct VolumeSetting {
     pub wh: Wh<Px>,
 }
 impl Component for VolumeSetting {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         const SLIDER_HEIGHT: Px = px(32.0);
@@ -59,6 +59,6 @@ impl Component for VolumeSetting {
             ])(wh, ctx);
         });
 
-        ctx.done()
+        
     }
 }

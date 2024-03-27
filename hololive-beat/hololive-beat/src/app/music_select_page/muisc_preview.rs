@@ -12,7 +12,7 @@ pub struct MusicPreview<'a> {
     pub music: Option<&'a MusicMetadata>,
 }
 impl Component for MusicPreview<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, music } = self;
 
         // WARN: may have performance issue
@@ -114,6 +114,6 @@ impl Component for MusicPreview<'_> {
 
         ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
 
-        ctx.done()
+        
     }
 }

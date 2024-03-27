@@ -16,7 +16,7 @@ pub struct MusicCarousel<'a> {
 }
 
 impl Component for MusicCarousel<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             musics,
@@ -100,7 +100,7 @@ impl Component for MusicCarousel<'_> {
             }
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -112,7 +112,7 @@ struct MusicCard<'a> {
     pub music: Option<&'a MusicMetadata>,
 }
 impl Component for MusicCard<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             music_card_wh,
             offset,
@@ -160,7 +160,7 @@ impl Component for MusicCard<'_> {
             ));
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -170,7 +170,7 @@ struct ArrowButton {
     pub left: bool,
 }
 impl Component for ArrowButton {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, left } = self;
 
         const ARROW_WH: Wh<Px> = Wh {
@@ -215,7 +215,7 @@ impl Component for ArrowButton {
             }),
         );
 
-        ctx.done()
+        
     }
 }
 
@@ -224,7 +224,7 @@ struct EnterIcon {
     pub wh: Wh<Px>,
 }
 impl Component for EnterIcon {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         ctx.compose(|ctx| {
@@ -262,6 +262,6 @@ impl Component for EnterIcon {
             Paint::new(THEME.text.with_alpha(128)),
         ));
 
-        ctx.done()
+        
     }
 }

@@ -8,7 +8,7 @@ pub fn main() {
 struct TypographyEffectExample;
 
 impl Component for TypographyEffectExample {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let screen_wh = namui::screen::size();
         let (tile_mode, set_tile_mode) = ctx.state(|| TileMode::Clamp);
 
@@ -32,7 +32,7 @@ impl Component for TypographyEffectExample {
             }
         });
 
-        ctx.component(namui_prebuilt::typography::effect::glow(
+        ctx.add(namui_prebuilt::typography::effect::glow(
             "Hello world!",
             Font {
                 size: 64.int_px(),
@@ -47,7 +47,7 @@ impl Component for TypographyEffectExample {
             Color::from_u8(255, 128, 0, 255),
         ));
 
-        ctx.component({
+        ctx.add({
             let xy = screen_wh.as_xy().into_type::<Px>() * 3.0 / 4.0;
             let font = Font {
                 size: 64.int_px(),
@@ -78,7 +78,7 @@ impl Component for TypographyEffectExample {
             }
         });
 
-        ctx.component({
+        ctx.add({
             let x = screen_wh.width.into_px() / 8.0;
             let y = screen_wh.height.into_px() / 8.0;
             rect(RectParam {
@@ -101,7 +101,5 @@ impl Component for TypographyEffectExample {
                 },
             })
         });
-
-        ctx.done()
     }
 }

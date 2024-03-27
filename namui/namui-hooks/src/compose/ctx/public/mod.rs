@@ -3,43 +3,39 @@ mod stack;
 
 use super::*;
 use crate::*;
+use std::sync::atomic::Ordering;
 
 impl<'a, 'rt> ComposeCtx<'a, 'rt> {
     pub fn compose(&self, compose: impl FnOnce(&ComposeCtx)) -> &Self {
-        self.compose_with_key(
-            ChildKey::IncrementalCompose {
-                index: self.composer.get_next_compose_index(),
-            },
-            compose,
-        )
+        self.compose_with_key(None, compose)
     }
     pub fn compose_with_key(
         &self,
-        key: impl Into<ChildKey>,
+        key: impl Into<AddKey>,
         compose: impl FnOnce(&ComposeCtx),
     ) -> &Self {
-        let child_composer = self.world.get_or_create_composer(self.composer, key.into());
-
-        let rt_container = RtContainer::new();
-
-        let ctx = ComposeCtx::new(
-            self.world,
-            child_composer,
-            &rt_container,
-            Cow::Borrowed(self.full_stack.as_ref()),
-        );
-        compose(&ctx);
-
+        let rt_container = self.ghost_impl(key, compose);
         self.add_rt_container(rt_container);
 
         self
     }
     pub fn ghost_compose(
         &self,
-        key: impl Into<ChildKey>,
+        key: impl Into<AddKey>,
         compose: impl FnOnce(&ComposeCtx),
     ) -> RenderingTree {
-        let child_composer = self.world.get_or_create_composer(self.composer, key.into());
+        self.ghost_impl(key, compose).into()
+    }
+    fn ghost_impl(&self, key: impl Into<AddKey>, compose: impl FnOnce(&ComposeCtx)) -> RtContainer {
+        let child_key = match key.into() {
+            AddKey::Usize(index) => ChildKey::Usize(index),
+            AddKey::String(key) => ChildKey::String(key),
+            AddKey::Uuid(uuid) => ChildKey::Uuid(uuid),
+            AddKey::Incremental => ChildKey::IncrementalCompose {
+                index: self.composer.get_next_compose_index(),
+            },
+        };
+        let child_composer = self.world.get_or_create_composer(self.composer, child_key);
 
         let rt_container = RtContainer::new();
 
@@ -51,41 +47,18 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
         );
         compose(&ctx);
 
-        rt_container.into()
+        rt_container
     }
     pub fn add(&self, component: impl Component) -> &Self {
-        self.add_with_key(
-            ChildKey::IncrementalComponent {
-                index: self.composer.get_next_component_index(),
-                type_name: component.static_type_name(),
-            },
-            component,
-        )
+        self.add_with_key(None, component)
     }
-    pub fn add_with_key(&self, key: impl Into<ChildKey>, component: impl Component) -> &Self {
-        let component = match component.direct_rendering_tree() {
-            Ok(rendering_tree) => {
-                self.add_rendering_tree(rendering_tree);
-                return self;
-            }
-            Err(component) => component,
-        };
-
-        let (child_composer, child_instance) =
-            self.world.get_or_create_instance(self.composer, key.into());
-
-        let rendering_tree = render_ctx::run(
-            self.world,
-            component,
-            child_composer,
-            child_instance,
-            Cow::Borrowed(self.full_stack.as_ref()),
-        );
+    pub fn add_with_key(&self, key: impl Into<AddKey>, component: impl Component) -> &Self {
+        let rendering_tree = self.ghost_add(key, component);
         self.add_rendering_tree(rendering_tree);
 
         self
     }
-    pub fn ghost_add(&self, key: impl Into<ChildKey>, component: impl Component) -> RenderingTree {
+    pub fn ghost_add(&self, key: impl Into<AddKey>, component: impl Component) -> RenderingTree {
         let component = match component.direct_rendering_tree() {
             Ok(rendering_tree) => {
                 return rendering_tree;
@@ -93,8 +66,18 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             Err(component) => component,
         };
 
+        let child_key = match key.into() {
+            AddKey::Usize(index) => ChildKey::Usize(index),
+            AddKey::String(key) => ChildKey::String(key),
+            AddKey::Uuid(uuid) => ChildKey::Uuid(uuid),
+            AddKey::Incremental => ChildKey::IncrementalComponent {
+                index: self.composer.get_next_component_index(),
+                type_name: component.static_type_name(),
+            },
+        };
+
         let (child_composer, child_instance) =
-            self.world.get_or_create_instance(self.composer, key.into());
+            self.world.get_or_create_instance(self.composer, child_key);
 
         render_ctx::run(
             self.world,
@@ -103,5 +86,10 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             child_instance,
             Cow::Borrowed(self.full_stack.as_ref()),
         )
+    }
+    pub fn set_event_propagation(&self, propagate: bool) -> bool {
+        self.world
+            .is_stop_event_propagation
+            .swap(!propagate, Ordering::Relaxed)
     }
 }

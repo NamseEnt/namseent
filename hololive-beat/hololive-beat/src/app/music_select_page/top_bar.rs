@@ -16,7 +16,7 @@ pub struct TopBar<'a> {
 }
 
 impl Component for TopBar<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             music,
@@ -147,7 +147,7 @@ impl Component for TopBar<'_> {
 
         ctx.component(DarkFrame { wh });
 
-        ctx.done()
+        
     }
 }
 
@@ -156,7 +156,7 @@ struct SettingButton {
     wh: Wh<Px>,
 }
 impl Component for SettingButton {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         let (mouse_hover, set_mouse_hover) = ctx.state(|| false);
@@ -184,6 +184,6 @@ impl Component for SettingButton {
             }),
         );
 
-        ctx.done()
+        
     }
 }

@@ -9,7 +9,7 @@ pub fn main() {
 struct BundleExample;
 
 impl Component for BundleExample {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let (content, set_content) = ctx.state(|| None);
 
         ctx.effect("load media", || {
@@ -22,7 +22,7 @@ impl Component for BundleExample {
             });
         });
 
-        ctx.component(typography::body::left_top(
+        ctx.add(typography::body::left_top(
             match content.as_ref() {
                 Some(content) => content.to_string(),
                 None => "loading...".to_string(),
@@ -30,6 +30,6 @@ impl Component for BundleExample {
             Color::BLACK,
         ));
 
-        ctx.done()
+        
     }
 }

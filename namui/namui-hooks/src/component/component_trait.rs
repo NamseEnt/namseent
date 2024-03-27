@@ -16,6 +16,12 @@ pub trait Component: StaticType + Debug {
     {
         native::with_mouse_cursor(self, cursor)
     }
+    fn attach_event<'a>(self, on_event: impl 'a + FnOnce(Event)) -> AttachEvent<'a, Self>
+    where
+        Self: 'a + Sized,
+    {
+        attach_event(self, on_event)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

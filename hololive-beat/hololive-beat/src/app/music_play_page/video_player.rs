@@ -9,7 +9,7 @@ pub struct VideoPlayer<'a> {
 }
 
 impl Component for VideoPlayer<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             video,
@@ -51,6 +51,6 @@ impl Component for VideoPlayer<'_> {
             .add(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
         });
 
-        ctx.done()
+        
     }
 }

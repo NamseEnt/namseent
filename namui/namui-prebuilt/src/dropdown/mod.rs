@@ -12,7 +12,7 @@ pub struct Dropdown<'a> {
 }
 
 impl Component for Dropdown<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             rect,
             items,
@@ -28,7 +28,7 @@ impl Component for Dropdown<'_> {
             .map(|item| item.text.clone());
 
         ctx.compose(|ctx| {
-            let mut ctx = ctx.translate((rect.x(), rect.y()));
+            let ctx = ctx.translate((rect.x(), rect.y()));
 
             ctx.compose(|ctx| {
                 ctx.add(
@@ -122,8 +122,6 @@ impl Component for Dropdown<'_> {
                     ));
             });
         });
-
-        ctx.done()
     }
 }
 
@@ -150,7 +148,7 @@ struct InternalItem {
 }
 
 impl Component for InternalItem {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             text,
@@ -182,7 +180,5 @@ impl Component for InternalItem {
                 },
             ));
         });
-
-        ctx.done()
     }
 }

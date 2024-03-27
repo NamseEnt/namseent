@@ -6,7 +6,7 @@ pub struct GameEnder {
     pub played_time: Duration,
 }
 impl Component for GameEnder {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { played_time } = self;
 
         let (state, _) = ctx.atom(&PLAY_STATE_ATOM);
@@ -28,6 +28,6 @@ impl Component for GameEnder {
             }
         }));
 
-        ctx.done()
+        
     }
 }

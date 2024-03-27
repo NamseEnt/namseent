@@ -172,8 +172,8 @@ impl World {
         self.updated_sig_ids.as_mut().clear();
     }
 
-    pub(crate) fn get_set_state_tx(&self) -> mpsc::Sender<SetStateItem> {
-        self.set_state_tx.clone()
+    pub(crate) fn get_set_state_tx(&self) -> &mpsc::Sender<SetStateItem> {
+        &self.set_state_tx
     }
 
     pub(crate) fn now(&self) -> Instant {

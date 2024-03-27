@@ -43,7 +43,7 @@ enum ContextMenu {
 }
 
 impl Component for CutEditor<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cut,
@@ -335,7 +335,7 @@ impl Component for CutEditor<'_> {
             project_id,
         });
 
-        ctx.done()
+        
     }
 }
 

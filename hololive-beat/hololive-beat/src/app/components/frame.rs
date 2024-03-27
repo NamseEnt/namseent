@@ -6,7 +6,7 @@ pub struct DarkFrame {
     pub wh: Wh<Px>,
 }
 impl Component for DarkFrame {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         ctx.component(path(
@@ -14,7 +14,7 @@ impl Component for DarkFrame {
             Paint::new(THEME.primary.dark).set_blend_mode(BlendMode::Multiply),
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -23,7 +23,7 @@ pub struct LightFrame {
     pub wh: Wh<Px>,
 }
 impl Component for LightFrame {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         ctx.component(path(
@@ -31,6 +31,6 @@ impl Component for LightFrame {
             Paint::new(THEME.primary.main.with_alpha(25)).set_blend_mode(BlendMode::Screen),
         ));
 
-        ctx.done()
+        
     }
 }

@@ -32,7 +32,7 @@ pub enum Event {
     RightClick { global_xy: Xy<Px> },
 }
 impl Component for CutListView<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cuts,
@@ -235,7 +235,7 @@ impl Component for CutListView<'_> {
                 },
             ),
         );
-        ctx.done()
+        
     }
 }
 

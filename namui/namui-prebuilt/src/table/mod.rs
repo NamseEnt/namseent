@@ -276,7 +276,7 @@ pub enum FitAlign {
     RightBottom,
 }
 pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> {
-    match rendering_tree.bounding_box() {
+    match namui::bounding_box(&rendering_tree) {
         Some(bounding_box) => TableCell {
             unit: Unit::Responsive(Box::new(move |direction| match direction {
                 Direction::Vertical => bounding_box.y() + bounding_box.height(),
@@ -311,10 +311,8 @@ pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> 
 mod tests {
     use super::*;
     use std::sync::atomic::AtomicBool;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn closure_should_give_right_wh() {
         let button_render_called = AtomicBool::new(false);
         let label_render_called = AtomicBool::new(false);

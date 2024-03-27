@@ -4,8 +4,8 @@ use namui::prelude::*;
 pub struct EventTrap;
 
 impl Component for EventTrap {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        ctx.stop_event_propagation();
-        ctx.done()
+    fn render(self, ctx: &RenderCtx)  {
+        ctx.set_event_propagation(false);
+        
     }
 }

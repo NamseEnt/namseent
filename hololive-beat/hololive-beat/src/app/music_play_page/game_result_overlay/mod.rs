@@ -16,7 +16,7 @@ pub struct GameResultOverlay<'a> {
     pub music_id: &'a str,
 }
 impl Component for GameResultOverlay<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             judge_context,
@@ -187,7 +187,7 @@ impl Component for GameResultOverlay<'_> {
             }
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -196,7 +196,7 @@ struct Frame {
     wh: Wh<Px>,
 }
 impl Component for Frame {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
         let path = Path::new().add_rect(Rect::zero_wh(wh));
 
@@ -216,7 +216,7 @@ impl Component for Frame {
                 }),
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -227,7 +227,7 @@ struct SmallScore {
     score: usize,
 }
 impl Component for SmallScore {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, label, score } = self;
 
         let middle_y = wh.height / 2;
@@ -266,7 +266,7 @@ impl Component for SmallScore {
             max_width: None,
         }));
 
-        ctx.done()
+        
     }
 }
 
@@ -276,7 +276,7 @@ struct RankText {
     rank: Rank,
 }
 impl Component for RankText {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, rank } = self;
 
         ctx.component(TextDrawCommand {
@@ -300,7 +300,7 @@ impl Component for RankText {
             underline: None,
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -311,7 +311,7 @@ struct LargeScore {
     score: usize,
 }
 impl Component for LargeScore {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, label, score } = self;
 
         let label_height = wh.height / 2;
@@ -351,7 +351,7 @@ impl Component for LargeScore {
             max_width: None,
         }));
 
-        ctx.done()
+        
     }
 }
 
@@ -361,7 +361,7 @@ struct NewRecord {
     show: bool,
 }
 impl Component for NewRecord {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, show } = self;
 
         let height = wh.height / 2;
@@ -392,14 +392,13 @@ impl Component for NewRecord {
                     enable_event_handling: false,
                 },
             );
-            let width = text
-                .bounding_box()
+            let width = namui::bounding_box(&text)
                 .map(|bounding_box| bounding_box.width())
                 .unwrap();
             ctx.translate((-(width / 2), 0.px())).add(text);
         });
 
-        ctx.done()
+        
     }
 }
 

@@ -318,9 +318,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.12.0"
+version = "3.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d261e256854913907f67ed06efbc3338dfe6179796deefc1ff763fc1aee5535"
+checksum = "7ff69b9dd49fd426c69a0db9fc04dd934cdb6645ff000864d98f7e2af8830eaa"
 
 [[package]]
 name = "bytemuck"
@@ -1399,6 +1399,7 @@ dependencies = [
  "anyhow",
  "auto_ops",
  "bincode",
+ "bumpalo",
  "chumsky",
  "crossbeam-channel",
  "dashmap 4.0.2",
@@ -1409,27 +1410,35 @@ dependencies = [
  "fluvio-wasm-timer",
  "futures",
  "hooks-macro",
+ "indexmap 2.2.5",
  "js-sys",
  "lazy_static",
  "lru 0.7.8",
  "mimalloc",
  "namui-cfg",
  "namui-drawer-sys",
+ "namui-hooks",
  "namui-skia",
  "namui-type",
  "num",
  "once_cell",
  "opener",
- "ordered-float",
+ "ordered-float 2.10.0",
  "parking_lot 0.12.1",
  "percent-encoding",
  "rand",
  "reqwest",
+ "rustc-hash",
  "serde",
  "serde-wasm-bindgen",
  "serde_bytes",
  "serde_json",
  "shader-macro",
+ "slab",
+ "smallvec",
+ "smol_str",
+ "stable_deref_trait",
+ "static-tree",
  "strum",
  "strum_macros",
  "textwrap 0.15.2",
@@ -1461,14 +1470,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "namui-hooks"
+version = "0.1.0"
+dependencies = [
+ "elsa",
+ "namui-skia",
+ "namui-type",
+ "rustc-hash",
+ "smol_str",
+]
+
+[[package]]
 name = "namui-skia"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "derivative",
+ "derive-macro",
  "namui-type",
+ "num",
+ "ordered-float 4.2.0",
+ "postcard",
  "serde",
  "skia-safe",
+ "textwrap 0.16.0",
+ "unicode-segmentation",
+ "url",
+ "uuid",
  "windows 0.52.0",
+ "winit",
  "woff2",
 ]
 
@@ -1478,17 +1508,15 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "auto_ops",
+ "derivative",
  "derive-macro",
  "lru 0.11.0",
  "num",
- "ordered-float",
+ "ordered-float 4.2.0",
  "postcard",
  "serde",
- "serde_bytes",
  "siphasher",
  "skia-safe",
- "textwrap 0.16.0",
- "unicode-segmentation",
  "url",
  "uuid",
 ]
@@ -1801,6 +1829,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordered-float"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a76df7075c7d4d01fdcb46c912dd17fba5b60c78ea480b475f2b6ab6f666584e"
+dependencies = [
+ "num-traits",
+ "rand",
+ "serde",
+]
+
+[[package]]
 name = "owned_ttf_parser"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2003,6 +2042,7 @@ dependencies = [
  "libc",
  "rand_chacha",
  "rand_core",
+ "serde",
 ]
 
 [[package]]
@@ -2022,6 +2062,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
+ "serde",
 ]
 
 [[package]]
@@ -2378,6 +2419,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_spanned"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb3622f419d1296904700073ea6cc23ad690adbd66f13ea683df73298736f0c1"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_urlencoded"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2417,6 +2467,7 @@ dependencies = [
  "regex",
  "serde_json",
  "tar",
+ "toml",
  "ureq",
 ]
 
@@ -2432,18 +2483,18 @@ dependencies = [
 
 [[package]]
 name = "slab"
-version = "0.4.8"
+version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6528351c9bc8ab22353f9d776db39a20288e8d6c37ef8cfe3317cf875eecfc2d"
+checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
 dependencies = [
  "autocfg",
 ]
 
 [[package]]
 name = "smallvec"
-version = "1.10.0"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
+checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "smawk"
@@ -2478,9 +2529,9 @@ dependencies = [
 
 [[package]]
 name = "smol_str"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74212e6bbe9a4352329b2f68ba3130c15a3f26fe88ff22dbdc6cdd58fa85e99c"
+checksum = "e6845563ada680337a52d43bb0b29f396f2d911616f6573012645b9e3d048a49"
 dependencies = [
  "serde",
 ]
@@ -2521,6 +2572,15 @@ dependencies = [
  "libc",
  "psm",
  "winapi",
+]
+
+[[package]]
+name = "static-tree"
+version = "0.1.0"
+dependencies = [
+ "elsa",
+ "rustc-hash",
+ "slab",
 ]
 
 [[package]]
@@ -2736,10 +2796,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "185d8ab0dfbb35cf1399a6344d8484209c088f75f8f68230da55d48d95d43e3d"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_edit",
+]
+
+[[package]]
 name = "toml_datetime"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cda73e2f1397b1262d6dfdcef8aafae14d1de7748d66822d3bfeeb6d03e5e4b"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "toml_edit"
@@ -2748,6 +2823,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "396e4d48bbb2b7554c944bde63101b5ae446cff6ec4a24227428f15eb72ef338"
 dependencies = [
  "indexmap 2.2.5",
+ "serde",
+ "serde_spanned",
  "toml_datetime",
  "winnow",
 ]

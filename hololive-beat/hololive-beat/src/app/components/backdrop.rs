@@ -6,7 +6,7 @@ pub struct Backdrop {
     pub wh: Wh<Px>,
 }
 impl Component for Backdrop {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         ctx.component(path(
@@ -14,6 +14,6 @@ impl Component for Backdrop {
             Paint::new(THEME.primary.darker.with_alpha(242)),
         ));
 
-        ctx.done()
+        
     }
 }

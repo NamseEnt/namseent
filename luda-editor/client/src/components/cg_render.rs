@@ -11,7 +11,7 @@ pub struct CgRender<'a> {
 }
 
 impl Component for CgRender<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let render_cg_variant = |ctx: &mut ComposeCtx, variant: &rpc::data::CgPartVariant| {
             let rect = Rect::Xywh {
                 x: self.rect.x() + self.rect.width() * variant.rect.x(),

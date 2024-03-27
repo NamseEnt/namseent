@@ -115,7 +115,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     is_stop_event_propagation: &self.world.is_stop_event_propagation,
                 };
 
-                on_event(Event::MouseDown { event });
+                on_event(Event::MouseMove { event });
             }
             RawEvent::MouseUp { event } => {
                 let event = MouseEvent {
@@ -130,7 +130,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     is_stop_event_propagation: &self.world.is_stop_event_propagation,
                 };
 
-                on_event(Event::MouseDown { event });
+                on_event(Event::MouseUp { event });
             }
             RawEvent::Wheel { event } => {
                 on_event(Event::Wheel {

@@ -32,7 +32,7 @@ pub enum InternalEvent {
 }
 
 impl Component for PartPicker<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cg_file,
@@ -85,7 +85,7 @@ impl Component for PartPicker<'_> {
             }),
         );
 
-        ctx.done()
+        
     }
 }
 
@@ -99,7 +99,7 @@ struct CgPartList<'a> {
     on_internal_event: &'a dyn Fn(InternalEvent),
 }
 impl Component for CgPartList<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cg_file,
@@ -152,7 +152,7 @@ impl Component for CgPartList<'_> {
             },
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -171,7 +171,7 @@ struct CgPartGroup<'a> {
     thumbnail_container_side_padding: Px,
 }
 impl Component for CgPartGroup<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             width,
             cg_part,
@@ -266,7 +266,7 @@ impl Component for CgPartGroup<'_> {
 
         ctx.compose(|ctx| vertical(items)(Wh::new(width, 0.px()), ctx));
 
-        ctx.done()
+        
     }
 }
 
@@ -292,7 +292,7 @@ struct NoSelectionButton<'a> {
     on_event: &'a dyn Fn(Event),
 }
 impl Component for NoSelectionButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             no_selection,
@@ -359,7 +359,7 @@ struct Thumbnail<'a> {
     on_internal_event: &'a dyn Fn(InternalEvent),
 }
 impl Component for Thumbnail<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cg_part,
@@ -441,7 +441,7 @@ impl Component for Thumbnail<'_> {
             ),
         );
 
-        ctx.done()
+        
     }
 }
 

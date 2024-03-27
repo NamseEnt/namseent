@@ -7,7 +7,7 @@ pub struct MusicPlayer<'a> {
 }
 
 impl Component for MusicPlayer<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { music } = self;
 
         let (state, _) = ctx.atom(&STATE);
@@ -34,6 +34,6 @@ impl Component for MusicPlayer<'_> {
             }
         });
 
-        ctx.done()
+        
     }
 }

@@ -19,7 +19,7 @@ pub struct Drummer {
 }
 
 impl Component for Drummer {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         let (last_pressed, set_last_pressed) = ctx.state(Duration::default);
@@ -74,7 +74,7 @@ impl Component for Drummer {
             set_last_pressed.set(since_start());
         });
 
-        ctx.done()
+        
     }
 }
 

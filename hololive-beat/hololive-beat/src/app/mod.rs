@@ -29,7 +29,7 @@ pub static MUSIC_BEST_SCORE_MAP_ATOM: Atom<Option<MusicBestScoreMap>> = Atom::un
 #[namui::component]
 pub struct App {}
 impl namui::Component for App {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let (musics, set_musics) = ctx.state(Vec::new);
         let wh = screen::size().into_type::<Px>();
 
@@ -107,6 +107,6 @@ impl namui::Component for App {
 
         ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::WHITE));
 
-        ctx.done()
+        
     }
 }

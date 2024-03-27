@@ -14,7 +14,7 @@ pub struct SpeedDropdown<'a> {
     pub music_speed_map: Option<&'a MusicSpeedMap>,
 }
 impl Component for SpeedDropdown<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             music_id,
@@ -60,7 +60,7 @@ impl Component for SpeedDropdown<'_> {
             );
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -70,7 +70,7 @@ struct SpeedDropdownButton {
     speed: Option<Speed>,
 }
 impl Component for SpeedDropdownButton {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, speed } = self;
 
         let (mouse_hover, set_mouse_hover) = ctx.state(|| false);
@@ -136,7 +136,7 @@ impl Component for SpeedDropdownButton {
             set_mouse_hover.set(hovering);
         }));
 
-        ctx.done()
+        
     }
 }
 
@@ -146,7 +146,7 @@ struct SpeedDropdownContent<'a> {
     music_id: Option<&'a str>,
 }
 impl Component for SpeedDropdownContent<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { item_wh, music_id } = self;
 
         let (music_speed_map, set_music_speed_map) = ctx.atom(&MUSIC_SPEED_MAP_ATOM);
@@ -189,7 +189,7 @@ impl Component for SpeedDropdownContent<'_> {
                 }))(item_wh, ctx);
             });
 
-            let content_height = content.bounding_box().unwrap_or_default().height();
+            let content_height = namui::bounding_box(&content).unwrap_or_default().height();
             ctx.add(content);
 
             ctx.add(DarkFrame {
@@ -201,6 +201,6 @@ impl Component for SpeedDropdownContent<'_> {
             });
         });
 
-        ctx.done()
+        
     }
 }

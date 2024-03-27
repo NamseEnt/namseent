@@ -9,7 +9,7 @@ pub struct CopyButton<'a> {
     pub content: &'a str,
 }
 impl Component for CopyButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, color, content } = self;
         let (copied, set_copied) = ctx.state(|| false);
         let color = match *copied {
@@ -85,6 +85,6 @@ impl Component for CopyButton<'_> {
             })(wh, ctx);
         });
 
-        ctx.done()
+        
     }
 }

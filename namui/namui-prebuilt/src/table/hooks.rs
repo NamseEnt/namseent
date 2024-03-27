@@ -1,5 +1,5 @@
 use namui::prelude::*;
-use std::{rc::Rc, sync::OnceLock};
+use std::collections::HashMap;
 
 pub enum TableCell<'a> {
     Empty,
@@ -8,17 +8,18 @@ pub enum TableCell<'a> {
         render: TableCellRenderFn<'a>,
         need_clip: bool,
     },
-    NeedBoundingBox {
-        func: Box<dyn 'a + FnOnce(&mut ComposeCtx) -> TableCell<'a>>,
+    Fit {
+        align: FitAlign,
+        render: TableCellRenderFn<'a>,
     },
 }
-type TableCellRenderFn<'a> = Box<dyn 'a + FnOnce(Direction, Wh<Px>, &mut ComposeCtx)>;
+type TableCellRenderFn<'a> = Box<dyn 'a + FnOnce(Direction, Wh<Px>, &ComposeCtx)>;
 
 pub enum Unit<'a> {
     Ratio(f32),
     Fixed(Px),
+    Empty,
     Calculative(Box<dyn 'a + FnOnce(Wh<Px>) -> Px>),
-    Responsive(Box<dyn 'a + FnOnce(Direction) -> Px>),
 }
 
 pub trait F32OrI32 {
@@ -39,7 +40,7 @@ impl F32OrI32 for f32 {
 
 pub fn ratio<'a>(
     ratio: impl F32OrI32,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Ratio(ratio.into_f32()),
@@ -52,7 +53,7 @@ pub fn ratio<'a>(
 
 pub fn ratio_no_clip<'a>(
     ratio: impl F32OrI32,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Ratio(ratio.into_f32()),
@@ -65,7 +66,7 @@ pub fn ratio_no_clip<'a>(
 
 pub fn fixed<'a>(
     pixel: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Fixed(pixel),
@@ -78,7 +79,7 @@ pub fn fixed<'a>(
 
 pub fn fixed_no_clip<'a>(
     pixel: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Fixed(pixel),
@@ -91,7 +92,7 @@ pub fn fixed_no_clip<'a>(
 
 pub fn calculative<'a>(
     from_parent_wh: impl FnOnce(Wh<Px>) -> Px + 'a,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
@@ -104,7 +105,7 @@ pub fn calculative<'a>(
 
 pub fn calculative_no_clip<'a>(
     from_parent_wh: impl FnOnce(Wh<Px>) -> Px + 'a,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
@@ -121,13 +122,13 @@ pub fn empty<'a>() -> TableCell<'a> {
 
 pub fn vertical<'a, Item: ToKeyCell<'a>>(
     items: impl 'a + IntoIterator<Item = Item>,
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+) -> impl 'a + FnOnce(Wh<Px>, &ComposeCtx) {
     slice_internal(Direction::Vertical, items)
 }
 
 pub fn horizontal<'a, Item: ToKeyCell<'a>>(
     items: impl 'a + IntoIterator<Item = Item>,
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+) -> impl 'a + FnOnce(Wh<Px>, &ComposeCtx) {
     slice_internal(Direction::Horizontal, items)
 }
 
@@ -151,16 +152,45 @@ impl<'a> ToKeyCell<'a> for (&'a str, TableCell<'a>) {
     }
 }
 
-fn slice_internal<'a, Item: ToKeyCell<'a>>(
+#[component]
+struct InternalSlice<'a> {
+    wh: Wh<Px>,
+    #[skip_debug]
+    items: Vec<(String, TableCell<'a>)>,
     direction: Direction,
-    items: impl 'a + IntoIterator<Item = Item>,
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
-    move |wh: Wh<Px>, ctx: &mut ComposeCtx| {
-        let mut units = Vec::new();
-        let mut for_renders = std::collections::VecDeque::new();
+}
 
-        for (index, item) in items.into_iter().enumerate() {
-            let (key, cell) = item.to_key_cell(index.to_string());
+impl Component for InternalSlice<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            wh,
+            items,
+            direction,
+            ..
+        } = self;
+
+        let (fit_bounding_box_map, set_bounding_box_map) =
+            ctx.state(HashMap::<usize, Option<Rect<Px>>>::new);
+
+        let mut intermediates: Vec<Intermediate> = vec![];
+        let mut units: Vec<Unit> = vec![];
+
+        type RenderFn<'a> = Box<dyn 'a + FnOnce(Direction, Wh<Px>, &ComposeCtx)>;
+
+        struct Intermediate<'a> {
+            key: String,
+            render: RenderFn<'a>,
+            need_clip: bool,
+            table_cell_type: TableCellType,
+        }
+
+        #[derive(Clone, Copy)]
+        enum TableCellType {
+            Some,
+            Fit { align: FitAlign },
+        }
+
+        for (index, (key, cell)) in items.into_iter().enumerate() {
             match cell {
                 TableCell::Empty => {}
                 TableCell::Some {
@@ -168,26 +198,31 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                     render,
                     need_clip,
                 } => {
-                    units.push(unit);
-                    for_renders.push_back((key, render, need_clip));
-                }
-                TableCell::NeedBoundingBox { func } => {
-                    let mut output = None;
-                    ctx.ghost_compose(Some(key.clone().into()), |ctx| {
-                        output = Some(func(ctx));
+                    intermediates.push(Intermediate {
+                        key,
+                        render,
+                        need_clip,
+                        table_cell_type: TableCellType::Some,
                     });
-                    match output.unwrap() {
-                        TableCell::Empty => {}
-                        TableCell::Some {
-                            unit,
-                            render,
-                            need_clip,
-                        } => {
-                            units.push(unit);
-                            for_renders.push_back((key, render, need_clip));
-                        }
-                        TableCell::NeedBoundingBox { .. } => unreachable!(),
-                    }
+                    units.push(unit);
+                }
+                TableCell::Fit { align, render } => {
+                    let unit = if let Some(Some(bounding_box)) = fit_bounding_box_map.get(&index) {
+                        Unit::Fixed(match direction {
+                            Direction::Vertical => bounding_box.y() + bounding_box.height(),
+                            Direction::Horizontal => bounding_box.x() + bounding_box.width(),
+                        })
+                    } else {
+                        Unit::Empty
+                    };
+                    units.push(unit);
+
+                    intermediates.push(Intermediate {
+                        key,
+                        render,
+                        need_clip: true,
+                        table_cell_type: TableCellType::Fit { align },
+                    });
                 }
             }
         }
@@ -209,7 +244,7 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                     Unit::Ratio(ratio) => (None, Some(ratio)),
                     Unit::Fixed(pixel_size) => (Some(pixel_size), None),
                     Unit::Calculative(calculative_fn) => (Some(calculative_fn(wh)), None),
-                    Unit::Responsive(responsive_fn) => (Some(responsive_fn(direction)), None),
+                    Unit::Empty => (None, None),
                 };
                 (pixel_size, ratio)
             })
@@ -230,8 +265,22 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
 
         let mut advanced_pixel_size = px(0.0);
 
-        for pixel_size in pixel_sizes {
-            let (key, render_fn, need_clip) = for_renders.pop_front().unwrap();
+        for (
+            index,
+            (
+                pixel_size,
+                Intermediate {
+                    key,
+                    render,
+                    need_clip,
+                    table_cell_type,
+                },
+            ),
+        ) in pixel_sizes
+            .into_iter()
+            .zip(intermediates.into_iter())
+            .enumerate()
+        {
             let xywh = match direction {
                 Direction::Vertical => Rect::Xywh {
                     x: px(0.0),
@@ -247,8 +296,32 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                 },
             };
 
-            ctx.compose_with_key(key, |ctx| {
+            let rendering_tree = ctx.ghost_compose(key, |ctx| {
                 let mut ctx = ctx.translate((xywh.x(), xywh.y()));
+
+                if let TableCellType::Fit { align } = table_cell_type {
+                    let bounding_box = fit_bounding_box_map.get(&index);
+                    if let Some(Some(bounding_box)) = bounding_box {
+                        let x = match direction {
+                            Direction::Vertical => match align {
+                                FitAlign::LeftTop => 0.px(),
+                                FitAlign::CenterMiddle => (wh.width - bounding_box.width()) / 2.0,
+                                FitAlign::RightBottom => wh.width - bounding_box.width(),
+                            },
+                            Direction::Horizontal => 0.px(),
+                        };
+                        let y = match direction {
+                            Direction::Vertical => 0.px(),
+                            Direction::Horizontal => match align {
+                                FitAlign::LeftTop => 0.px(),
+                                FitAlign::CenterMiddle => (wh.height - bounding_box.height()) / 2.0,
+                                FitAlign::RightBottom => wh.height - bounding_box.height(),
+                            },
+                        };
+                        ctx = ctx.translate((x, y));
+                    }
+                }
+
                 if need_clip {
                     ctx = ctx.clip(
                         Path::new().add_rect(Rect::Xywh {
@@ -260,25 +333,53 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                         ClipOp::Intersect,
                     );
                 }
-                render_fn(direction, xywh.wh(), &mut ctx);
+                render(direction, xywh.wh(), &mut ctx);
             });
+
+            if let TableCellType::Fit { .. } = table_cell_type {
+                let bounding_box = namui::bounding_box(&rendering_tree);
+                set_bounding_box_map.mutate({
+                    move |bounding_box_map| {
+                        bounding_box_map.insert(index, bounding_box);
+                    }
+                });
+            }
+
+            ctx.add(rendering_tree);
 
             advanced_pixel_size += pixel_size;
         }
     }
 }
 
+fn slice_internal<'a, Item: ToKeyCell<'a>>(
+    direction: Direction,
+    items: impl 'a + IntoIterator<Item = Item>,
+) -> impl 'a + FnOnce(Wh<Px>, &ComposeCtx) {
+    move |wh: Wh<Px>, ctx: &ComposeCtx| {
+        ctx.add(InternalSlice {
+            wh,
+            items: items
+                .into_iter()
+                .enumerate()
+                .map(|(index, item)| item.to_key_cell(index.to_string()))
+                .collect(),
+            direction,
+        });
+    }
+}
+
 pub fn padding<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, &ComposeCtx) {
     horizontal_padding(padding, vertical_padding(padding, cell_render_closure))
 }
 
 pub fn padding_no_clip<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, &ComposeCtx) {
     horizontal_padding_no_clip(
         padding,
         vertical_padding_no_clip(padding, cell_render_closure),
@@ -287,8 +388,8 @@ pub fn padding_no_clip<'a>(
 
 pub fn horizontal_padding<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, &ComposeCtx) {
     horizontal([
         ("0", fixed(padding, |_, _| {})),
         ("1", ratio(1, cell_render_closure)),
@@ -298,8 +399,8 @@ pub fn horizontal_padding<'a>(
 
 pub fn vertical_padding<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, &ComposeCtx) {
     vertical([
         ("0", fixed(padding, |_, _| {})),
         ("1", ratio(1, cell_render_closure)),
@@ -309,8 +410,8 @@ pub fn vertical_padding<'a>(
 
 pub fn horizontal_padding_no_clip<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, &ComposeCtx) {
     horizontal([
         ("0", fixed(padding, |_, _| {})),
         ("1", ratio_no_clip(1, cell_render_closure)),
@@ -320,8 +421,8 @@ pub fn horizontal_padding_no_clip<'a>(
 
 pub fn vertical_padding_no_clip<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, &ComposeCtx) {
     vertical([
         ("0", fixed(padding, |_, _| {})),
         ("1", ratio_no_clip(1, cell_render_closure)),
@@ -329,92 +430,21 @@ pub fn vertical_padding_no_clip<'a>(
     ])
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum FitAlign {
     LeftTop,
     CenterMiddle,
     RightBottom,
 }
 
-#[component]
-struct Fit<'a, Comp: Component> {
+pub fn fit<'a>(
     align: FitAlign,
-    #[skip_debug]
-    component: Comp,
-    #[skip_debug]
-    table_cell: Rc<OnceLock<TableCell<'a>>>,
-}
-
-impl<'a, Comp: 'a + Component> Component for Fit<'a, Comp> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let (bounding_box, set_bounding_box) = ctx.state::<Option<Rect<Px>>>(|| None);
-
-        let Some(bounding_box) = *bounding_box else {
-            let rendering_tree = ctx.ghost_component(
-                self.component,
-                GhostComposeOption {
-                    enable_event_handling: false,
-                },
-            );
-            if let Some(bounding_box) = rendering_tree.bounding_box() {
-                set_bounding_box.set(Some(bounding_box));
-            }
-            return ctx.done();
-        };
-
-        self.table_cell
-            .set(TableCell::Some {
-                unit: Unit::Responsive(Box::new(move |direction| match direction {
-                    Direction::Vertical => bounding_box.y() + bounding_box.height(),
-                    Direction::Horizontal => bounding_box.x() + bounding_box.width(),
-                })),
-                render: Box::new(move |direction, wh, ctx| {
-                    let x = match direction {
-                        Direction::Vertical => match self.align {
-                            FitAlign::LeftTop => 0.px(),
-                            FitAlign::CenterMiddle => (wh.width - bounding_box.width()) / 2.0,
-                            FitAlign::RightBottom => wh.width - bounding_box.width(),
-                        },
-                        Direction::Horizontal => 0.px(),
-                    };
-                    let y = match direction {
-                        Direction::Vertical => 0.px(),
-                        Direction::Horizontal => match self.align {
-                            FitAlign::LeftTop => 0.px(),
-                            FitAlign::CenterMiddle => (wh.height - bounding_box.height()) / 2.0,
-                            FitAlign::RightBottom => wh.height - bounding_box.height(),
-                        },
-                    };
-                    let mut ctx = ctx.translate((x, y));
-
-                    let new_bounding_box = ctx.add_and_get_bounding_box(self.component);
-                    if new_bounding_box != Some(bounding_box) {
-                        set_bounding_box.set(new_bounding_box);
-                    }
-                }),
-                need_clip: true,
-            })
-            .map_err(|_| unreachable!())
-            .unwrap();
-
-        ctx.done()
-    }
-}
-
-pub fn fit<'a>(align: FitAlign, component: impl 'a + Component) -> TableCell<'a> {
-    TableCell::NeedBoundingBox {
-        func: Box::new(|ctx| {
-            let table_cell = Rc::new(OnceLock::new());
-            ctx.add(Fit {
-                align,
-                component,
-                table_cell: table_cell.clone(),
-            });
-
-            Rc::into_inner(table_cell)
-                .unwrap()
-                .take()
-                .unwrap_or(TableCell::Empty)
+    cell_render_closure: impl 'a + FnOnce(&ComposeCtx),
+) -> TableCell<'a> {
+    TableCell::Fit {
+        align,
+        render: Box::new(|_direction, _wh, ctx| {
+            cell_render_closure(ctx);
         }),
     }
 }

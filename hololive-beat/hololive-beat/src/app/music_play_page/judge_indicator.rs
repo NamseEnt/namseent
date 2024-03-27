@@ -41,7 +41,7 @@ impl Component for JudgeIndicator {
                 ));
         });
 
-        ctx.done()
+        
     }
 }
 

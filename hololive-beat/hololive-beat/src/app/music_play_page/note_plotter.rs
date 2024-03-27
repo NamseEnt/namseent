@@ -33,7 +33,7 @@ pub struct NotePlotter<'a> {
 }
 
 impl Component for NotePlotter<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let NotePlotter {
             wh,
             notes,
@@ -165,7 +165,7 @@ impl Component for NotePlotter<'_> {
             set_pressed_at.mutate(move |pressed_at| pressed_at[direction.lane()] = since_start())
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -177,7 +177,7 @@ struct Flash {
     flashed_at: Duration,
 }
 impl Component for Flash {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             timing_zero_x,
             height,
@@ -251,7 +251,7 @@ impl Component for Flash {
             });
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -262,7 +262,7 @@ struct NoteGraphic {
     direction: Direction,
 }
 impl Component for NoteGraphic {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             x,
             height,
@@ -280,7 +280,7 @@ impl Component for NoteGraphic {
             paint: Paint::new(direction.as_color()),
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -291,7 +291,7 @@ struct NoteHead {
     paint: Paint,
 }
 impl Component for NoteHead {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { x, height, paint } = self;
 
         ctx.component(path(
@@ -304,7 +304,7 @@ impl Component for NoteHead {
             paint,
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -315,7 +315,7 @@ struct NoteBody {
     paint: Paint,
 }
 impl Component for NoteBody {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { x, height, paint } = self;
 
         ctx.component(path(
@@ -328,7 +328,7 @@ impl Component for NoteBody {
             paint,
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -338,7 +338,7 @@ struct Pad {
     paint: Paint,
 }
 impl Component for Pad {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { height, paint } = self;
 
         ctx.component(path(
@@ -351,7 +351,7 @@ impl Component for Pad {
             paint,
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -362,7 +362,7 @@ struct Lane {
     direction: Direction,
 }
 impl Component for Lane {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             arrow_offset,
@@ -405,7 +405,7 @@ impl Component for Lane {
             Color::BLACK.with_alpha(178),
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -415,7 +415,7 @@ struct Lay {
     color: Color,
 }
 impl Component for Lay {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { height, color } = self;
 
         ctx.component(path(
@@ -435,7 +435,7 @@ impl Component for Lay {
                 }),
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -513,7 +513,7 @@ struct ParryEffect {
     pub timing_zero_x: Px,
 }
 impl Component for ParryEffect {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { timing_zero_x } = self;
 
         let (particles, set_particles) = ctx.atom(&PARRY_EFFECT_PARTICLES);
@@ -584,7 +584,7 @@ impl Component for ParryEffect {
             }
         });
 
-        ctx.done()
+        
     }
 }
 

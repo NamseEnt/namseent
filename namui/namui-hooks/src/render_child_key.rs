@@ -1,7 +1,7 @@
 use namui_type::Uuid;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum ChildKey {
+pub(crate) enum ChildKey {
     Usize(usize),
     String(smol_str::SmolStr),
     Uuid(Uuid),
@@ -47,5 +47,36 @@ impl From<Uuid> for ChildKey {
 impl From<&Uuid> for ChildKey {
     fn from(value: &Uuid) -> Self {
         ChildKey::Uuid(*value)
+    }
+}
+
+pub enum AddKey {
+    Usize(usize),
+    String(smol_str::SmolStr),
+    Uuid(Uuid),
+    Incremental,
+}
+
+impl From<Option<AddKey>> for AddKey {
+    fn from(key: Option<AddKey>) -> Self {
+        key.unwrap_or(AddKey::Incremental)
+    }
+}
+
+impl From<String> for AddKey {
+    fn from(key: String) -> Self {
+        AddKey::String(key.into())
+    }
+}
+
+impl From<&str> for AddKey {
+    fn from(key: &str) -> Self {
+        AddKey::String(key.into())
+    }
+}
+
+impl From<usize> for AddKey {
+    fn from(key: usize) -> Self {
+        AddKey::Usize(key)
     }
 }

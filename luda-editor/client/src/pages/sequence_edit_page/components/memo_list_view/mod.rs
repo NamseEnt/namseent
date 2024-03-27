@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for MemoListView<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             ref memos,
@@ -53,7 +53,7 @@ impl Component for MemoListView<'_> {
             1.px(),
             color::BACKGROUND,
         ));
-        ctx.done()
+        
     }
 }
 
@@ -65,7 +65,7 @@ struct MemoComponent<'a> {
     on_event: &'a dyn Fn(Event),
 }
 impl Component for MemoComponent<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const MARGIN: Px = px(8.0);
         const PADDING: Px = px(8.0);
 
@@ -115,7 +115,7 @@ struct MemoContent<'a> {
     on_event: &'a dyn Fn(Event),
 }
 impl Component for MemoContent<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const MARGIN: Px = px(8.0);
         const PADDING: Px = px(8.0);
         const BUTTON_HEIGHT: Px = px(24.0);

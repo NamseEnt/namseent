@@ -8,7 +8,7 @@ pub struct VideoPlayer<'a> {
 }
 
 impl Component for VideoPlayer<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, video } = self;
 
         let (state, _) = ctx.atom(&STATE);
@@ -68,6 +68,6 @@ impl Component for VideoPlayer<'_> {
             }));
         });
 
-        ctx.done()
+        
     }
 }

@@ -6,7 +6,7 @@ pub struct LoadingIndicator {
     pub color: Color,
 }
 impl Component for LoadingIndicator {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, color } = self;
         let stroke_width = wh.height / 8.0;
         let wh = Wh {
@@ -26,6 +26,6 @@ impl Component for LoadingIndicator {
             ctx.translate(xy).add(namui::path(path, paint));
         });
 
-        ctx.done()
+        
     }
 }

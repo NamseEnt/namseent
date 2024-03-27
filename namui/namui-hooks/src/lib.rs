@@ -11,7 +11,7 @@ mod world;
 
 pub use atom::*;
 pub use component::*;
-use compose::*;
+pub use compose::*;
 pub(crate) use ids::*;
 use namui_skia::*;
 use namui_type::*;

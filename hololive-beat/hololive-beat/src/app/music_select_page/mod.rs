@@ -22,7 +22,7 @@ pub struct MusicSelectPage<'a> {
 }
 
 impl Component for MusicSelectPage<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             musics,
@@ -120,7 +120,7 @@ impl Component for MusicSelectPage<'_> {
             }
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -129,7 +129,7 @@ struct Decoration {
     pub wh: Wh<Px>,
 }
 impl Component for Decoration {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         let title_rect = {
@@ -163,7 +163,7 @@ impl Component for Decoration {
                 .add(Drummer { wh: drummer_wh });
         });
 
-        ctx.done()
+        
     }
 }
 

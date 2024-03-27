@@ -15,7 +15,7 @@ pub struct Slider<'a> {
 }
 
 impl Component for Slider<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             value,
@@ -78,6 +78,6 @@ impl Component for Slider<'_> {
             }),
         );
 
-        ctx.done()
+        
     }
 }

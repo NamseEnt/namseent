@@ -27,7 +27,7 @@ pub struct MusicPlayPage<'a> {
     pub music_speed_map: Option<&'a MusicSpeedMap>,
 }
 impl Component for MusicPlayPage<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             music_speed_map,
@@ -96,7 +96,7 @@ impl Component for MusicPlayPage<'_> {
 
         ctx.component(GameEnder { played_time });
 
-        ctx.done()
+        
     }
 }
 
@@ -105,9 +105,9 @@ struct Loading {
     wh: Wh<Px>,
 }
 impl Component for Loading {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         // TODO
-        ctx.done()
+        
     }
 }
 
@@ -122,7 +122,7 @@ struct Loaded<'a> {
     px_per_time: Per<Px, Duration>,
 }
 impl Component for Loaded<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             played_time,
@@ -208,6 +208,6 @@ impl Component for Loaded<'_> {
             note_sounds,
         });
 
-        ctx.done()
+        
     }
 }

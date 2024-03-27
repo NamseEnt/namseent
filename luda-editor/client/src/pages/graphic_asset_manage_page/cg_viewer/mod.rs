@@ -40,7 +40,7 @@ pub struct CgViewer<'a> {
 }
 
 impl Component for CgViewer<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             project_id,
@@ -170,7 +170,7 @@ impl Component for CgViewer<'_> {
             ),
         );
 
-        ctx.done()
+        
     }
 }
 
@@ -182,7 +182,7 @@ struct RenderCgContainFit<'a> {
     cg_file: &'a rpc::data::CgFile,
 }
 impl Component for RenderCgContainFit<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             project_id,
@@ -210,7 +210,7 @@ impl Component for RenderCgContainFit<'_> {
             });
         });
 
-        ctx.done()
+        
     }
 }
 

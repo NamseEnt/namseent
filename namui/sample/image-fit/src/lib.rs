@@ -8,7 +8,7 @@ pub fn main() {
 struct App;
 
 impl Component for App {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let size = namui::screen::size();
         let (image_fit, set_image_fit) = ctx.state(|| ImageFit::Fill);
         let (image_url, set_image_url) =
@@ -17,7 +17,7 @@ impl Component for App {
         let image_xy = size.into_type::<Px>().as_xy() / 4.0;
         let image_wh = size.into_type::<Px>() / 2.0;
 
-        ctx.component(namui_prebuilt::typography::center_text(
+        ctx.add(namui_prebuilt::typography::center_text(
             size.into_type(),
             format!(
                 "current: {:?}\n1: Fill, 2: Contain, 3: Cover, 4: ScaleDown, 5: None\nr: rotate",
@@ -27,11 +27,11 @@ impl Component for App {
             16.int_px(),
         ));
 
-        ctx.component(
+        ctx.add(
             namui::image(ImageParam {
                 rect: Rect::from_xy_wh(image_xy, image_wh),
                 source: ImageSource::Url {
-                    url: (*image_url).clone(),
+                    url: image_url.to_string(),
                 },
                 style: ImageStyle {
                     fit: *image_fit,
@@ -60,7 +60,7 @@ impl Component for App {
             }),
         );
 
-        ctx.component(namui::rect(RectParam {
+        ctx.add(namui::rect(RectParam {
             rect: Rect::from_xy_wh(image_xy, image_wh),
             style: RectStyle {
                 stroke: Some(RectStroke {
@@ -72,7 +72,5 @@ impl Component for App {
                 round: None,
             },
         }));
-
-        ctx.done()
     }
 }

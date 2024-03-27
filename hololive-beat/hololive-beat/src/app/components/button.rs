@@ -10,7 +10,7 @@ pub struct ButtonHoverEffect {
     pub focused: bool,
 }
 impl Component for ButtonHoverEffect {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, focused } = self;
 
         let focused = ctx.track_eq(&focused);
@@ -43,7 +43,7 @@ impl Component for ButtonHoverEffect {
             }),
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -56,7 +56,7 @@ pub struct FilledButton<'a> {
     pub focused: bool,
 }
 impl Component for FilledButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             text,
@@ -136,7 +136,7 @@ impl Component for FilledButton<'_> {
             _ => {}
         }));
 
-        ctx.done()
+        
     }
 }
 
@@ -148,7 +148,7 @@ pub struct IconButton<'a> {
     pub focused: bool,
 }
 impl Component for IconButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             text,
@@ -167,7 +167,7 @@ impl Component for IconButton<'_> {
             focused,
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -179,7 +179,7 @@ pub struct TextButton<'a> {
     pub focused: bool,
 }
 impl Component for TextButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             text,
@@ -198,7 +198,7 @@ impl Component for TextButton<'_> {
             focused,
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -211,7 +211,7 @@ struct TextButtonInner<'a> {
     focused: bool,
 }
 impl Component for TextButtonInner<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             text,
@@ -286,7 +286,7 @@ impl Component for TextButtonInner<'_> {
             }),
         );
 
-        ctx.done()
+        
     }
 }
 
