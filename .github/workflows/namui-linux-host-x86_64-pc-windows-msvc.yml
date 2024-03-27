@@ -44,6 +44,7 @@ jobs:
 
       - name: Set up cargo
         run: |
+          rustup component add llvm-tools-preview
           rustup target add x86_64-pc-windows-msvc
           rustup update
 
