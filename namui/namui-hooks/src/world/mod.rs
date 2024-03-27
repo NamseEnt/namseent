@@ -91,6 +91,7 @@ impl World {
                         self.add_sig_updated(sig_id);
                     }
                     SigId::Memo { .. } => unreachable!(),
+                    SigId::TrackEq { .. } => todo!(),
                     SigId::Atom { index } => {
                         self.atom_list.as_mut()[index] = value;
                         self.add_sig_updated(sig_id);
@@ -104,6 +105,7 @@ impl World {
                         self.add_sig_updated(sig_id);
                     }
                     SigId::Memo { .. } => unreachable!(),
+                    SigId::TrackEq { .. } => todo!(),
                     SigId::Atom { index } => {
                         let value = self.atom_list.as_mut().get_mut(index).unwrap();
                         mutate(value.as_mut());

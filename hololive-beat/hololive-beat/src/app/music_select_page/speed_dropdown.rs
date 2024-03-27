@@ -14,7 +14,7 @@ pub struct SpeedDropdown<'a> {
     pub music_speed_map: Option<&'a MusicSpeedMap>,
 }
 impl Component for SpeedDropdown<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             music_id,
@@ -30,7 +30,7 @@ impl Component for SpeedDropdown<'_> {
             }
         };
 
-        ctx.component(SpeedDropdownButton { wh, speed }.attach_event(|event| {
+        ctx.add(SpeedDropdownButton { wh, speed }.attach_event(|event| {
             let Event::MouseDown { event } = event else {
                 return;
             };
@@ -59,8 +59,6 @@ impl Component for SpeedDropdown<'_> {
                 }),
             );
         });
-
-        
     }
 }
 
@@ -70,12 +68,12 @@ struct SpeedDropdownButton {
     speed: Option<Speed>,
 }
 impl Component for SpeedDropdownButton {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, speed } = self;
 
         let (mouse_hover, set_mouse_hover) = ctx.state(|| false);
 
-        ctx.component(ButtonHoverEffect {
+        ctx.add(ButtonHoverEffect {
             wh,
             focused: *mouse_hover,
         });
@@ -125,7 +123,7 @@ impl Component for SpeedDropdownButton {
             ])(wh, ctx);
         });
 
-        ctx.component(LightFrame { wh }.attach_event(|event| {
+        ctx.add(LightFrame { wh }.attach_event(|event| {
             let Event::MouseMove { event } = event else {
                 return;
             };
@@ -135,8 +133,6 @@ impl Component for SpeedDropdownButton {
             }
             set_mouse_hover.set(hovering);
         }));
-
-        
     }
 }
 
@@ -146,7 +142,7 @@ struct SpeedDropdownContent<'a> {
     music_id: Option<&'a str>,
 }
 impl Component for SpeedDropdownContent<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { item_wh, music_id } = self;
 
         let (music_speed_map, set_music_speed_map) = ctx.atom(&MUSIC_SPEED_MAP_ATOM);
@@ -200,7 +196,5 @@ impl Component for SpeedDropdownContent<'_> {
                 wh: Wh::new(item_wh.width, content_height),
             });
         });
-
-        
     }
 }

@@ -29,6 +29,9 @@ impl<'world, T: ?Sized, Ref: Borrow<T>> Sig<'world, T, Ref> {
     {
         self.value.borrow().clone()
     }
+    pub fn map<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> Sig<'world, U, &U> {
+        Sig::new(f(self.value.borrow()), self.id, self.world)
+    }
 }
 
 impl<T: ?Sized + Debug, Ref: Borrow<T>> Debug for Sig<'_, T, Ref> {
@@ -69,6 +72,10 @@ pub(crate) enum SigId {
         index: usize,
     },
     Memo {
+        instance_id: InstanceId,
+        index: usize,
+    },
+    TrackEq {
         instance_id: InstanceId,
         index: usize,
     },

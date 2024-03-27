@@ -12,7 +12,7 @@ impl Component for TypographyEffectExample {
         let screen_wh = namui::screen::size();
         let (tile_mode, set_tile_mode) = ctx.state(|| TileMode::Clamp);
 
-        ctx.on_raw_event(move |event| {
+        ctx.on_raw_event(|event| {
             if let RawEvent::KeyUp { event } = event {
                 if event.code == Code::ArrowRight {
                     set_tile_mode.set(match *tile_mode {

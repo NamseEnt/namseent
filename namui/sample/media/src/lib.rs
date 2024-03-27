@@ -9,7 +9,7 @@ pub fn main() {
 struct MediaExample;
 
 impl Component for MediaExample {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let (audio_mp3, set_audio_mp3) = ctx.state::<Option<MediaHandle>>(|| None);
         let (audio_opus, set_audio_opus) = ctx.state::<Option<MediaHandle>>(|| None);
         let (video_mp4, set_video_mp4) = ctx.state::<Option<MediaHandle>>(|| None);
@@ -33,18 +33,21 @@ impl Component for MediaExample {
             println!("opus loaded");
             set_audio_opus.set(Some(opus));
 
-            namui::spawn(async move {
-                let opus = namui::system::media::new_full_load_once_audio(
-                    &namui::system::file::bundle::to_real_path("bundle:resources/audio.opus")
-                        .unwrap(),
-                )
-                .await
-                .unwrap();
-                println!("full load once audio loaded");
-                set_sliced_audio.set(Some(
-                    opus.slice(Duration::from_secs(1)..Duration::from_secs(2))
-                        .unwrap(),
-                ));
+            namui::spawn({
+                let set_sliced_audio = set_sliced_audio.cloned();
+                async move {
+                    let opus = namui::system::media::new_full_load_once_audio(
+                        &namui::system::file::bundle::to_real_path("bundle:resources/audio.opus")
+                            .unwrap(),
+                    )
+                    .await
+                    .unwrap();
+                    println!("full load once audio loaded");
+                    set_sliced_audio.set(Some(
+                        opus.slice(Duration::from_secs(1)..Duration::from_secs(2))
+                            .unwrap(),
+                    ));
+                }
             });
 
             let mp4 = namui::system::media::new_media(
@@ -384,7 +387,5 @@ impl Component for MediaExample {
                 },
             }));
         });
-
-        
     }
 }

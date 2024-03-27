@@ -89,6 +89,56 @@ impl ComponentCtx<'_> {
         Sig::new(value, sig_id, self.world)
     }
 
+    pub fn track_eq<T: 'static + Debug + Send + Sync + PartialEq + Clone>(
+        &self,
+        target: &T,
+    ) -> Sig<T, Rc<T>> {
+        let mut track_eq_list = self.instance.track_eq_list.borrow_mut();
+
+        let track_eq_index = self
+            .track_eq_index
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+        let sig_id = SigId::TrackEq {
+            instance_id: self.instance.id,
+            index: track_eq_index,
+        };
+
+        let first_track = || track_eq_list.len() <= track_eq_index;
+        let not_eq = || {
+            let value: &T = track_eq_list[track_eq_index]
+                .as_ref()
+                .as_any()
+                .downcast_ref()
+                .unwrap();
+
+            value != target
+        };
+
+        if first_track() || not_eq() {
+            let rc_value = Rc::new(target.clone());
+            match track_eq_list.get_mut(track_eq_index) {
+                Some(value) => {
+                    *value = rc_value;
+                }
+                None => {
+                    assert_eq!(track_eq_list.len(), track_eq_index);
+                    track_eq_list.push(rc_value);
+                }
+            }
+
+            self.add_sig_updated(sig_id);
+        }
+
+        let value = track_eq_list.get(track_eq_index).unwrap();
+
+        let value: Rc<T> = Rc::downcast(value.clone().into_rc()).unwrap();
+
+        let sig = Sig::new(value, sig_id, self.world);
+
+        sig
+    }
+
     pub(crate) fn effect<CleanUp: Into<EffectCleanUp>>(
         &self,
         title: impl AsRef<str>,
@@ -255,7 +305,7 @@ impl ComponentCtx<'_> {
     ) -> (Sig<State, &State>, SetState<State>) {
         let atom_list = &self.world.atom_list;
 
-        let atom_index = atom.init_index();
+        let atom_index = atom.init(self.world.get_set_state_tx());
 
         let sig_id = SigId::Atom { index: atom_index };
 

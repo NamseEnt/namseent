@@ -21,7 +21,7 @@ pub fn glow(
             paint: paint.clone().set_blend_mode(BlendMode::HardLight),
             align,
             baseline,
-            max_width: 0.px(),
+            max_width: None,
             line_height_percent: 100.percent(),
             underline: None,
         }
@@ -40,7 +40,7 @@ pub fn glow(
                 .set_mask_filter(MaskFilter::Blur { blur }),
             align,
             baseline,
-            max_width: 0.px(),
+            max_width: None,
             line_height_percent: 100.percent(),
             underline: None,
         }

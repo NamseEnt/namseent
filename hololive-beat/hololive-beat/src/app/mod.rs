@@ -23,35 +23,38 @@ use self::{
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
-pub static MUSIC_SPEED_MAP_ATOM: Atom<Option<MusicSpeedMap>> = Atom::uninitialized_new();
-pub static MUSIC_BEST_SCORE_MAP_ATOM: Atom<Option<MusicBestScoreMap>> = Atom::uninitialized_new();
+pub static MUSIC_SPEED_MAP_ATOM: Atom<Option<MusicSpeedMap>> = Atom::uninitialized();
+pub static MUSIC_BEST_SCORE_MAP_ATOM: Atom<Option<MusicBestScoreMap>> = Atom::uninitialized();
 
 #[namui::component]
 pub struct App {}
 impl namui::Component for App {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let (musics, set_musics) = ctx.state(Vec::new);
         let wh = screen::size().into_type::<Px>();
 
-        let _ = ctx.atom_init(&SETTING_OVERLAY_OPEN_ATOM, || false);
-        let (play_state, _) = ctx.atom_init(&PLAY_STATE_ATOM, PlayState::default);
-        let (music_speed_map, set_music_speed_map) = ctx.atom_init(&MUSIC_SPEED_MAP_ATOM, || None);
+        let _ = ctx.init_atom(&SETTING_OVERLAY_OPEN_ATOM, || false);
+        let (play_state, _) = ctx.init_atom(&PLAY_STATE_ATOM, PlayState::default);
+        let (music_speed_map, set_music_speed_map) = ctx.init_atom(&MUSIC_SPEED_MAP_ATOM, || None);
         let (_music_best_score_map, set_music_best_score_map) =
-            ctx.atom_init(&MUSIC_BEST_SCORE_MAP_ATOM, || None);
+            ctx.init_atom(&MUSIC_BEST_SCORE_MAP_ATOM, || None);
 
         ctx.effect("load musics", || {
+            let set_musics = set_musics.cloned();
             namui::spawn(async move {
                 let musics = load_music_metadata().await;
                 set_musics.set(musics);
             });
         });
         ctx.effect("load music speed map", || {
+            let set_music_speed_map = set_music_speed_map.cloned();
             namui::spawn(async move {
                 let music_speed_map = load_music_speed_map().await;
                 set_music_speed_map.set(Some(music_speed_map));
             });
         });
         ctx.effect("load music best score map", || {
+            let set_music_best_score_map = set_music_best_score_map.cloned();
             namui::spawn(async move {
                 let music_best_score_map = load_music_best_score_map().await;
                 set_music_best_score_map.set(Some(music_best_score_map));
@@ -81,7 +84,7 @@ impl namui::Component for App {
             });
         });
 
-        ctx.component(SettingOverlay { wh });
+        ctx.add(SettingOverlay { wh });
 
         let play_state_is_loaded = matches!(*play_state, PlayState::Loaded { .. });
         ctx.compose(|ctx| {
@@ -105,8 +108,6 @@ impl namui::Component for App {
             });
         });
 
-        ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::WHITE));
-
-        
+        ctx.add(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::WHITE));
     }
 }

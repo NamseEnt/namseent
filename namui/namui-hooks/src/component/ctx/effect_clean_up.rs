@@ -4,6 +4,9 @@ pub enum EffectCleanUp {
 }
 
 impl EffectCleanUp {
+    pub fn once(f: impl FnOnce() + 'static) -> Self {
+        Self::Once(Box::new(f))
+    }
     pub(crate) fn call(self) {
         match self {
             Self::None => {}

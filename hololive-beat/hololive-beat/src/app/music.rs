@@ -1,7 +1,7 @@
 use core::panic;
 use namui::{
     file::{bundle, local_storage},
-    MediaHandle, Px, Url,
+    MediaHandle, Px,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, io::ErrorKind, ops::Mul};
@@ -17,9 +17,9 @@ pub struct MusicMetadata {
     pub preview_end_at: f64,
 }
 impl MusicMetadata {
-    pub fn thumbnail_url(&self) -> Url {
+    pub fn thumbnail_url(&self) -> String {
         let Self { id, .. } = self;
-        Url::parse(&format!("bundle:musics/{id}/{id}.jpg")).unwrap()
+        format!("bundle:musics/{id}/{id}.jpg")
     }
     pub fn load_video(&self) -> MediaHandle {
         let Self { id, .. } = self;

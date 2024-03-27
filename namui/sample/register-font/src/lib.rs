@@ -14,6 +14,7 @@ impl Component for FontExample {
         let (loading, set_loading) = ctx.state(|| false);
 
         ctx.effect("load font", || {
+            let set_loading = set_loading.cloned();
             namui::spawn(async move {
                 set_loading.set(true);
                 let font = namui::file::bundle::read("bundle:resources/MoiraiOne-Regular.ttf")

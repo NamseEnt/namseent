@@ -10,7 +10,7 @@ impl Draw for &TextDrawCommand {
 
         let paragraph = Paragraph::new(&self.text, group_glyph.clone(), self.max_width);
 
-        let line_height = line_height_px(&self);
+        let line_height = line_height_px(self);
 
         let multiline_y_baseline_offset =
             get_multiline_y_baseline_offset(self.baseline, line_height, paragraph.line_len());

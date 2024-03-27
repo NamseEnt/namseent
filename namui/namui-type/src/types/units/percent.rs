@@ -4,7 +4,7 @@ use std::fmt::Display;
 common_for_f32_type!(
     Percent,
     |lhs: Percent| -> f32 { *lhs.0 / 100.0 },
-    |lhs: f32| -> Percent { Percent(ordered_float::OrderedFloat(lhs / 100.0)) },
+    |lhs: f32| -> Percent { Percent(ordered_float::OrderedFloat(lhs * 100.0)) },
     percent,
     PercentExt,
     ratio
@@ -35,7 +35,7 @@ impl Percent {
 
 impl Display for Percent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:.*?}%", f.precision().unwrap_or(1), self.0)
+        write!(f, "{:.*?}%", f.precision().unwrap_or(1), self.0.0)
     }
 }
 

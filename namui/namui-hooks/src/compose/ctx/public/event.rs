@@ -2,6 +2,17 @@ use super::*;
 use crate::*;
 
 impl<'a, 'rt> ComposeCtx<'a, 'rt> {
+    pub fn on_raw_event(&self, on_event: impl FnOnce(&RawEvent)) -> &Self {
+        if self.world.is_stop_event_propagation() {
+            return self;
+        }
+
+        if let Some(raw_event) = self.world.raw_event.as_ref() {
+            on_event(raw_event);
+        }
+
+        self
+    }
     pub fn attach_event(&self, on_event: impl FnOnce(Event<'_>)) -> &Self {
         let Some(raw_event) = self.world.raw_event.as_ref() else {
             return self;

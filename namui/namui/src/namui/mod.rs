@@ -1,6 +1,6 @@
 mod bounding_box;
 mod common;
-pub(crate) mod hooks;
+pub mod hooks;
 pub mod math;
 mod random;
 mod render;

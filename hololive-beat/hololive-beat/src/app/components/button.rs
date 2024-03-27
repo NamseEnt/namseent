@@ -10,7 +10,7 @@ pub struct ButtonHoverEffect {
     pub focused: bool,
 }
 impl Component for ButtonHoverEffect {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, focused } = self;
 
         let focused = ctx.track_eq(&focused);
@@ -27,7 +27,7 @@ impl Component for ButtonHoverEffect {
             });
         });
 
-        ctx.component(namui::path(
+        ctx.add(namui::path(
             Path::new().add_rect(Rect::zero_wh(wh)),
             Paint::new(
                 THEME
@@ -42,8 +42,6 @@ impl Component for ButtonHoverEffect {
                 },
             }),
         ));
-
-        
     }
 }
 
@@ -56,7 +54,7 @@ pub struct FilledButton<'a> {
     pub focused: bool,
 }
 impl Component for FilledButton<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             text,
@@ -81,7 +79,7 @@ impl Component for FilledButton<'_> {
             });
         });
 
-        ctx.component(namui::path(
+        ctx.add(namui::path(
             Path::new().add_rect(Rect::zero_wh(wh)),
             Paint::new(
                 THEME
@@ -97,7 +95,7 @@ impl Component for FilledButton<'_> {
             }),
         ));
 
-        ctx.component(namui::text(TextParam {
+        ctx.add(namui::text(TextParam {
             text,
             x: center_xy.width,
             y: center_xy.height,
@@ -114,7 +112,7 @@ impl Component for FilledButton<'_> {
             max_width: None,
         }));
 
-        ctx.component(LightFrame { wh }.attach_event(|event| match event {
+        ctx.add(LightFrame { wh }.attach_event(|event| match event {
             Event::MouseDown { event } => {
                 if !event.is_local_xy_in() {
                     return;
@@ -135,8 +133,6 @@ impl Component for FilledButton<'_> {
             }
             _ => {}
         }));
-
-        
     }
 }
 
@@ -148,7 +144,7 @@ pub struct IconButton<'a> {
     pub focused: bool,
 }
 impl Component for IconButton<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             text,
@@ -156,7 +152,7 @@ impl Component for IconButton<'_> {
             focused,
         } = self;
 
-        ctx.component(TextButtonInner {
+        ctx.add(TextButtonInner {
             wh,
             text,
             font: Font {
@@ -166,8 +162,6 @@ impl Component for IconButton<'_> {
             on_click,
             focused,
         });
-
-        
     }
 }
 
@@ -179,7 +173,7 @@ pub struct TextButton<'a> {
     pub focused: bool,
 }
 impl Component for TextButton<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             text,
@@ -187,7 +181,7 @@ impl Component for TextButton<'_> {
             focused,
         } = self;
 
-        ctx.component(TextButtonInner {
+        ctx.add(TextButtonInner {
             wh,
             text,
             font: Font {
@@ -197,8 +191,6 @@ impl Component for TextButton<'_> {
             on_click,
             focused,
         });
-
-        
     }
 }
 
@@ -211,7 +203,7 @@ struct TextButtonInner<'a> {
     focused: bool,
 }
 impl Component for TextButtonInner<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             text,
@@ -234,7 +226,7 @@ impl Component for TextButtonInner<'_> {
             });
         });
 
-        ctx.component(TextDrawCommand {
+        ctx.add(TextDrawCommand {
             text: text.clone(),
             font: font.clone(),
             x: wh.width / 2,
@@ -258,7 +250,7 @@ impl Component for TextButtonInner<'_> {
             underline: None,
         });
 
-        ctx.component(
+        ctx.add(
             TextDrawCommand {
                 text,
                 font,
@@ -285,8 +277,6 @@ impl Component for TextButtonInner<'_> {
                 on_click();
             }),
         );
-
-        
     }
 }
 
@@ -294,7 +284,7 @@ impl Component for TextButtonInner<'_> {
 struct DelayedFocus {
     focused: bool,
     last_intensity: (Duration, f32),
-    speed: Per<f32, Duration>,
+    speed: Per<f64, Duration>,
 }
 impl DelayedFocus {
     fn new(delay: Duration) -> Self {
@@ -320,11 +310,11 @@ impl DelayedFocus {
     fn intensity(&self) -> f32 {
         let (last_changed_at, last_intensity) = self.last_intensity;
         let elapsed = since_start() - last_changed_at;
-        let delta = self.speed
+        let delta = (self.speed
             * match self.focused {
                 true => elapsed,
                 false => -(elapsed / 4.0),
-            };
+            }) as f32;
         ease(EaseOutCubic, 0.0, 1.0, last_intensity + delta)
     }
 }

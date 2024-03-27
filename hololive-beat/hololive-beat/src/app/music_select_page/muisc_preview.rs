@@ -12,7 +12,7 @@ pub struct MusicPreview<'a> {
     pub music: Option<&'a MusicMetadata>,
 }
 impl Component for MusicPreview<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, music } = self;
 
         // WARN: may have performance issue
@@ -54,7 +54,7 @@ impl Component for MusicPreview<'_> {
                     let new_video = new_video;
                     let new_audio = new_audio;
                     while new_video.is_playing() && new_audio.is_playing() {
-                        sleep(1.sec()).unwrap().await;
+                        sleep(1.sec()).await;
                         if new_audio.playback_duration() < preview_end_at {
                             continue;
                         }
@@ -112,8 +112,6 @@ impl Component for MusicPreview<'_> {
             });
         });
 
-        ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
-
-        
+        ctx.add(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
     }
 }

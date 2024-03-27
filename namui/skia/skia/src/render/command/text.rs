@@ -9,7 +9,7 @@ pub struct TextDrawCommand {
     pub paint: Paint,
     pub align: TextAlign,
     pub baseline: TextBaseline,
-    pub max_width: Px,
+    pub max_width: Option<Px>,
     pub line_height_percent: Percent,
     pub underline: Option<Box<Paint>>,
 }

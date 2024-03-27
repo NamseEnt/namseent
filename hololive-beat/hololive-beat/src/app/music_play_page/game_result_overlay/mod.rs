@@ -16,7 +16,7 @@ pub struct GameResultOverlay<'a> {
     pub music_id: &'a str,
 }
 impl Component for GameResultOverlay<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             judge_context,
@@ -58,7 +58,7 @@ impl Component for GameResultOverlay<'_> {
             restart_game();
         };
 
-        ctx.component(text(TextParam {
+        ctx.add(text(TextParam {
             text: "Result".to_string(),
             x: wh.width / 2,
             y: (wh.height / 2) - (frame_height / 2) - 64.px(),
@@ -76,7 +76,7 @@ impl Component for GameResultOverlay<'_> {
         }));
 
         ctx.compose(|ctx| {
-            let mut ctx = ctx.translate((PADDING, (wh.height / 2) - (frame_inner_wh.height / 2)));
+            let ctx = ctx.translate((PADDING, (wh.height / 2) - (frame_inner_wh.height / 2)));
 
             ctx.add(SmallScore {
                 wh: small_score_wh,
@@ -102,13 +102,13 @@ impl Component for GameResultOverlay<'_> {
                 score: judge_context.max_combo,
             });
 
-            let mut ctx = ctx.translate((side_wh.width, 0.px()));
+            let ctx = ctx.translate((side_wh.width, 0.px()));
             ctx.add(RankText {
                 wh: center_wh,
                 rank: judge_context.rank,
             });
 
-            let mut ctx = ctx.translate((center_wh.width, 0.px()));
+            let ctx = ctx.translate((center_wh.width, 0.px()));
             ctx.add(LargeScore {
                 wh: large_score_wh,
                 label: "Best score".to_string(),
@@ -128,7 +128,7 @@ impl Component for GameResultOverlay<'_> {
 
         ctx.compose(|ctx| {
             let button_wh = Wh::new(324.px(), 96.px());
-            let mut ctx = ctx.translate((
+            let ctx = ctx.translate((
                 (wh.width / 2),
                 (wh.height / 2) + (frame_height / 2) + 64.px(),
             ));
@@ -162,7 +162,7 @@ impl Component for GameResultOverlay<'_> {
                 });
         });
 
-        ctx.component(Backdrop { wh });
+        ctx.add(Backdrop { wh });
 
         ctx.on_raw_event(|event| {
             let RawEvent::KeyDown { event } = event else {
@@ -186,8 +186,6 @@ impl Component for GameResultOverlay<'_> {
                 _ => {}
             }
         });
-
-        
     }
 }
 
@@ -196,16 +194,16 @@ struct Frame {
     wh: Wh<Px>,
 }
 impl Component for Frame {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
         let path = Path::new().add_rect(Rect::zero_wh(wh));
 
-        ctx.component(namui::path(
+        ctx.add(namui::path(
             path.clone(),
             Paint::new(THEME.primary.dark).set_blend_mode(BlendMode::Multiply),
         ));
 
-        ctx.component(namui::path(
+        ctx.add(namui::path(
             path.clone(),
             Paint::new(THEME.primary.main.with_alpha(38))
                 .set_blend_mode(BlendMode::Screen)
@@ -215,8 +213,6 @@ impl Component for Frame {
                     },
                 }),
         ));
-
-        
     }
 }
 
@@ -227,12 +223,12 @@ struct SmallScore {
     score: usize,
 }
 impl Component for SmallScore {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, label, score } = self;
 
         let middle_y = wh.height / 2;
 
-        ctx.component(glow(
+        ctx.add(glow(
             label,
             Font {
                 size: typography::adjust_font_size(wh.height),
@@ -249,7 +245,7 @@ impl Component for SmallScore {
             THEME.primary.main,
         ));
 
-        ctx.component(text(TextParam {
+        ctx.add(text(TextParam {
             text: score.to_string(),
             x: wh.width,
             y: middle_y,
@@ -265,8 +261,6 @@ impl Component for SmallScore {
             },
             max_width: None,
         }));
-
-        
     }
 }
 
@@ -276,10 +270,10 @@ struct RankText {
     rank: Rank,
 }
 impl Component for RankText {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, rank } = self;
 
-        ctx.component(TextDrawCommand {
+        ctx.add(TextDrawCommand {
             text: rank.to_string(),
             font: Font {
                 size: wh.height.into(),
@@ -299,8 +293,6 @@ impl Component for RankText {
             line_height_percent: 100.percent(),
             underline: None,
         });
-
-        
     }
 }
 
@@ -311,13 +303,13 @@ struct LargeScore {
     score: usize,
 }
 impl Component for LargeScore {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, label, score } = self;
 
         let label_height = wh.height / 2;
         let score_height = label_height * 0.9;
 
-        ctx.component(glow(
+        ctx.add(glow(
             label,
             Font {
                 size: typography::adjust_font_size(label_height),
@@ -334,7 +326,7 @@ impl Component for LargeScore {
             THEME.primary.main,
         ));
 
-        ctx.component(namui::text(TextParam {
+        ctx.add(namui::text(TextParam {
             text: score.to_string(),
             x: wh.width,
             y: label_height,
@@ -350,8 +342,6 @@ impl Component for LargeScore {
             },
             max_width: None,
         }));
-
-        
     }
 }
 
@@ -361,7 +351,7 @@ struct NewRecord {
     show: bool,
 }
 impl Component for NewRecord {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, show } = self;
 
         let height = wh.height / 2;
@@ -388,17 +378,12 @@ impl Component for NewRecord {
                     0.px(),
                     THEME.primary.main,
                 ),
-                GhostComposeOption {
-                    enable_event_handling: false,
-                },
             );
             let width = namui::bounding_box(&text)
                 .map(|bounding_box| bounding_box.width())
                 .unwrap();
             ctx.translate((-(width / 2), 0.px())).add(text);
         });
-
-        
     }
 }
 

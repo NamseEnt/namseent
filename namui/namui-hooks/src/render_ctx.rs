@@ -38,12 +38,12 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     ) -> Sig<T, Rc<T>> {
         self.component_ctx.memo(func)
     }
-    // pub fn track_eq<T: 'static + Debug + Send + Sync + PartialEq + Clone>(
-    //     &self,
-    //     track_eq: &T,
-    // ) -> Sig<'a, T> {
-    //     self.component_ctx.track_eq(track_eq)
-    // }
+    pub fn track_eq<T: 'static + Debug + Send + Sync + PartialEq + Clone>(
+        &self,
+        target: &T,
+    ) -> Sig<T, Rc<T>> {
+        self.component_ctx.track_eq(target)
+    }
     pub fn effect<CleanUp: Into<EffectCleanUp>>(
         &self,
         title: impl AsRef<str>,

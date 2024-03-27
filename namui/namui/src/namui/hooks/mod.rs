@@ -1,3 +1,6 @@
+mod image;
+
+pub use image::*;
 pub use namui_hooks::*;
 use namui_skia::RawEvent;
 use namui_type::*;

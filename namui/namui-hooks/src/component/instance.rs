@@ -8,6 +8,7 @@ pub(crate) struct Instance {
     rendered_flag: AtomicBool,
     pub(crate) state_list: FrozenVec<Box<dyn Value>>,
     pub(crate) memo_list: RefCell<Vec<Memo>>,
+    pub(crate) track_eq_list: RefCell<Vec<Rc<dyn Value>>>,
     pub(crate) effect_list: RefCell<Vec<Effect>>,
     pub(crate) interval_called_list: RefCell<Vec<Instant>>,
 }
@@ -18,6 +19,7 @@ impl Instance {
             rendered_flag: Default::default(),
             state_list: Default::default(),
             memo_list: Default::default(),
+            track_eq_list: Default::default(),
             effect_list: Default::default(),
             interval_called_list: Default::default(),
         }
