@@ -1,6 +1,6 @@
 use super::{auto_column_list::AutoColumnList, CG_FILES_ATOM, SELECTED_ASSET_ATOM};
 use crate::{color, storage::get_project_cg_thumbnail_image_url};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 use rpc::data::{CgFile, ScreenCg};
 

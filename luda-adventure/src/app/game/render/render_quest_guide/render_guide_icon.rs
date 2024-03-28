@@ -1,7 +1,7 @@
 use crate::app::game::*;
 use crate::component::*;
 use crate::ecs::Entity;
-use namui::prelude::*;
+use namui::*;
 
 pub fn render_guide_icon(
     quest_entity_list: &Vec<&Entity>,

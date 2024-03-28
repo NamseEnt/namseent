@@ -3,7 +3,7 @@ use crate::{
     pages::sequence_edit_page::atom::CG_FILES_ATOM,
     storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
 };
-use namui::prelude::*;
+use namui::*;
 use rpc::data::ScreenGraphic;
 
 #[component]

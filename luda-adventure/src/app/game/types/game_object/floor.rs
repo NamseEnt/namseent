@@ -1,6 +1,6 @@
 use crate::app::game::*;
 use crate::component::*;
-use namui::prelude::*;
+use namui::*;
 
 const VISUAL_WIDTH: Tile = tile(1.0);
 const VISUAL_HEIGHT: Tile = tile(1.0);

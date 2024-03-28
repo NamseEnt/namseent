@@ -1,6 +1,6 @@
 use super::Sprite;
 use crate::app::game::Tile;
-use namui::prelude::*;
+use namui::*;
 
 pub fn minimum_visual_rect_containing_sprites(sprites: &Vec<Sprite>) -> Option<Rect<Tile>> {
     let first_visual_rect = sprites.first().map(|sprite| sprite.visual_rect);

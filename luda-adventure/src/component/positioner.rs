@@ -1,5 +1,5 @@
 use crate::app::game::Tile;
-use namui::prelude::*;
+use namui::*;
 
 #[ecs_macro::component]
 #[derive(Debug)]

@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 #[derive(Debug, Clone)]
 pub enum ClipboardItem {
