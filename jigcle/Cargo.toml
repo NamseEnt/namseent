@@ -1,0 +1,18 @@
+[package]
+name = "jigcle"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.namui]
+targets = ["x86_64-pc-windows-msvc"]
+
+[dependencies]
+namui = { path = "../namui/namui" }
+namui-prebuilt = { path = "../namui/namui-prebuilt" }
+rand = "0.8.5"
+
+[profile.release]
+opt-level = 3
+
+[profile.dev]
+opt-level = 2

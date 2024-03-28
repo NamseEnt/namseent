@@ -12,7 +12,7 @@ pub(crate) use audio_resampling::*;
 pub use full_load_once_audio::*;
 use std::fmt::Debug;
 
-pub(crate) trait AudioConsume: Debug + Send {
+pub trait AudioConsume: Debug + Send {
     fn consume(&mut self, output: &mut [f32]);
     fn is_end(&self) -> bool;
 }
