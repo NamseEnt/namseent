@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use namui::prelude::*;
+use namui::*;
 
 namui::common_for_f32_type!(Tile, tile, TileExt);
 

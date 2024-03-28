@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use namui::prelude::*;
+use namui::*;
 
 const DEV_CLIENT_ID: &str = "abd04a6aeba3e99f5b4b";
 const CLIENT_ID: Option<&str> = option_env!("GITHUB_CLIENT_ID");

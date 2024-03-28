@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 
 pub fn render_background() -> namui::RenderingTree {

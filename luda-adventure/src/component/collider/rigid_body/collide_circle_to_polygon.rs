@@ -1,7 +1,7 @@
 use super::Circle;
 use crate::{app::game::Tile, component::CollisionInfo};
 use geo::*;
-use namui::prelude::*;
+use namui::*;
 
 pub fn collide_circle_to_polygon(circle: &Circle, polygon: &Polygon) -> CollisionInfo {
     let lines = polygon.lines_iter().collect::<Vec<_>>();

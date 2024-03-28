@@ -1,6 +1,6 @@
 use crate::app::game::*;
 use crate::component::*;
-use namui::prelude::*;
+use namui::*;
 
 impl Game {
     pub fn move_character(&mut self, delta_time: Time) {

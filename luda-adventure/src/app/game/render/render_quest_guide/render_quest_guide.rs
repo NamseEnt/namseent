@@ -3,7 +3,7 @@ use crate::{
     app::game::*,
     component::{PlayerCharacter, Positioner, Renderer},
 };
-use namui::prelude::*;
+use namui::*;
 
 impl Game {
     pub fn render_quest_guide(&self, rendering_context: &RenderingContext) -> RenderingTree {

@@ -3,7 +3,7 @@ use crate::{
     component::*,
     ecs,
 };
-use namui::prelude::*;
+use namui::*;
 use wasm_bindgen_test::wasm_bindgen_test;
 
 #[test]
