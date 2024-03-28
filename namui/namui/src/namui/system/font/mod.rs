@@ -1,5 +1,5 @@
 use super::InitResult;
-use namui_type::*;
+use crate::*;
 use std::sync::Arc;
 
 // TODO: Remove this system if this system only bnid system::skia's api.

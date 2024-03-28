@@ -139,7 +139,7 @@ impl Component for Player<'_> {
 
         ctx.component(MusicPlayer { music });
 
-        ctx.done()
+        
     }
 }
 

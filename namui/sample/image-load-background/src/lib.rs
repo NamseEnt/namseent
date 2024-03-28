@@ -8,7 +8,7 @@ pub fn main() {
 struct App;
 
 impl Component for App {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let size = namui::screen::size();
 
         // let jpg_length = 14;
@@ -54,6 +54,6 @@ impl Component for App {
             }
         });
 
-        ctx.done()
+        
     }
 }

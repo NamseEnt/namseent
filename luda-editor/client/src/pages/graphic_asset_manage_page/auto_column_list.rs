@@ -27,7 +27,7 @@ impl<T> Component for AutoColumnList<'_, T>
 where
     T: Debug,
 {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             items,
@@ -83,7 +83,7 @@ where
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -93,7 +93,7 @@ struct Name {
     name: String,
 }
 impl Component for Name {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, name } = self;
 
         ctx.component(text(TextParam {
@@ -117,6 +117,6 @@ impl Component for Name {
             max_width: Some(wh.width),
         }));
 
-        ctx.done()
+        
     }
 }

@@ -11,7 +11,7 @@ use std::collections::HashSet;
 pub const PERFECT_SCORE: usize = 97;
 pub const GOOD_SCORE: usize = 71;
 
-pub static PLAY_STATE_ATOM: Atom<PlayState> = Atom::uninitialized_new();
+pub static PLAY_STATE_ATOM: Atom<PlayState> = Atom::uninitialized();
 
 #[derive(Debug)]
 pub enum PlayState {

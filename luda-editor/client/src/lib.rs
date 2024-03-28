@@ -31,7 +31,7 @@ pub async fn main() {
 struct Init {}
 
 impl namui::Component for Init {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let (loaded, set_loaded) = ctx.state(|| false);
 
         ctx.effect("Init", || {
@@ -81,6 +81,6 @@ impl namui::Component for Init {
         });
 
         ctx.component(loaded.then(|| app::App {}));
-        ctx.done()
+        
     }
 }

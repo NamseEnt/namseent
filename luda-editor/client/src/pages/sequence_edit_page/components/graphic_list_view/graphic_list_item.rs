@@ -14,7 +14,7 @@ pub struct GraphicListItem<'a> {
     pub is_selected: bool,
 }
 impl Component for GraphicListItem<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const PADDING: Px = px(4.0);
 
         let Self {
@@ -62,6 +62,6 @@ impl Component for GraphicListItem<'_> {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }

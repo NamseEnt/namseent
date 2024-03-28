@@ -25,7 +25,7 @@ pub fn set_system_time_now(now: SystemTime) {
     *SYSTEM_TIME_NOW.lock().unwrap() = now;
 }
 
-struct MockTimeSystem {}
+struct MockTimeSystem;
 
 impl TimeSystem for MockTimeSystem {
     fn since_start(&self) -> Duration {
@@ -40,7 +40,7 @@ impl TimeSystem for MockTimeSystem {
         Instant::new(self.since_start())
     }
 
-    fn sleep(&self, duration: Duration) -> Result<tokio::time::Sleep> {
-        Ok(tokio::time::sleep(duration.to_std()?))
+    fn sleep(&self, duration: Duration) -> tokio::time::Sleep {
+        tokio::time::sleep(duration.to_std().unwrap_or_default())
     }
 }

@@ -1,17 +1,17 @@
 use namui::prelude::*;
 
 #[component]
-pub struct ScrollView<C: Component> {
+pub struct ScrollView<'a, C: Component> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
     pub content: C,
     pub scroll_y: Px,
-    pub set_scroll_y: SetState<Px>,
+    pub set_scroll_y: SetState<'a, Px>,
 }
 
-impl<C: Component> Component for ScrollView<C> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        ctx.component(ScrollViewWithCtx {
+impl<C: Component> Component for ScrollView<'_, C> {
+    fn render(self, ctx: &RenderCtx) {
+        ctx.add(ScrollViewWithCtx {
             wh: self.wh,
             scroll_bar_width: self.scroll_bar_width,
             content: |ctx| {
@@ -19,8 +19,7 @@ impl<C: Component> Component for ScrollView<C> {
             },
             scroll_y: self.scroll_y,
             set_scroll_y: self.set_scroll_y,
-        })
-        .done()
+        });
     }
 }
 
@@ -32,57 +31,53 @@ pub struct AutoScrollView<C: Component> {
 }
 
 impl<C: Component> Component for AutoScrollView<C> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-        ctx.component(ScrollView {
+        ctx.add(ScrollView {
             wh: self.wh,
             scroll_bar_width: self.scroll_bar_width,
             content: self.content,
             scroll_y: *scroll_y,
             set_scroll_y,
         });
-
-        ctx.done()
     }
 }
 
 #[component]
-pub struct AutoScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
+pub struct AutoScrollViewWithCtx<Func: FnOnce(&ComposeCtx)> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
     #[skip_debug]
     pub content: Func,
 }
 
-impl<Func: FnOnce(&mut ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+impl<Func: FnOnce(&ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
+    fn render(self, ctx: &RenderCtx) {
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-        ctx.component(ScrollViewWithCtx {
+        ctx.add(ScrollViewWithCtx {
             wh: self.wh,
             scroll_bar_width: self.scroll_bar_width,
             content: self.content,
             scroll_y: *scroll_y,
             set_scroll_y,
         });
-
-        ctx.done()
     }
 }
 
 #[component]
-pub struct ScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
+pub struct ScrollViewWithCtx<'a, Func: FnOnce(&ComposeCtx)> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
     #[skip_debug]
     pub content: Func,
     pub scroll_y: Px,
-    pub set_scroll_y: SetState<Px>,
+    pub set_scroll_y: SetState<'a, Px>,
 }
 
-impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+impl<Func: FnOnce(&ComposeCtx)> Component for ScrollViewWithCtx<'_, Func> {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             scroll_bar_width,
@@ -100,8 +95,8 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                     namui::ClipOp::Intersect,
                 )
                 .translate((0.px(), -scroll_y.floor()))
-                .ghost_compose(None, content);
-            let Some(bounding_box) = rendering_tree.bounding_box() else {
+                .ghost_compose(0, content);
+            let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
                 return;
             };
 
@@ -115,7 +110,7 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                 set_scroll_y.set(clamped_scroll_y);
             }
 
-            let scroll_bar = |ctx: &mut ComposeCtx| {
+            let scroll_bar = |ctx: &ComposeCtx| {
                 if bounding_box.height() > height {
                     let scroll_bar_handle_height = height * (height / bounding_box.height());
 
@@ -147,20 +142,6 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                     }),
                     ..Default::default()
                 },
-            })
-            .attach_event(|event| {
-                if let Event::Wheel { event } = event {
-                    if event.is_local_xy_in() {
-                        let next_scroll_y = namui::math::num::clamp(
-                            scroll_y + px(event.delta_xy.y),
-                            px(0.0),
-                            (px(0.0)).max(bounding_box.height() - height),
-                        );
-
-                        set_scroll_y.set(next_scroll_y);
-                        event.stop_propagation();
-                    }
-                }
             });
 
             ctx.compose(scroll_bar)
@@ -172,8 +153,22 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                     .translate((0.px(), -scroll_y.floor()))
                     .add(rendering_tree);
                 })
-                .add(wheeler);
-        })
-        .done()
+                .compose(|ctx| {
+                    ctx.add(wheeler).attach_event(|event| {
+                        if let Event::Wheel { event } = event {
+                            if event.is_local_xy_in() {
+                                let next_scroll_y = namui::math::num::clamp(
+                                    scroll_y + px(event.delta_xy.y),
+                                    px(0.0),
+                                    (px(0.0)).max(bounding_box.height() - height),
+                                );
+
+                                set_scroll_y.set(next_scroll_y);
+                                event.stop_propagation();
+                            }
+                        }
+                    });
+                });
+        });
     }
 }

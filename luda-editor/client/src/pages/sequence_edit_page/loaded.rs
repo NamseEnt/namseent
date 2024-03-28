@@ -31,7 +31,7 @@ enum ContextMenu {
 }
 
 impl Component for LoadedSequenceEditorPage {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             project_shared_data,
             cut_id_memos_map,
@@ -333,7 +333,7 @@ impl Component for LoadedSequenceEditorPage {
             ])(wh, ctx)
         });
 
-        ctx.done()
+        
     }
 }
 

@@ -16,7 +16,7 @@ pub struct NotePlotter<'a> {
 }
 
 impl Component for NotePlotter<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let NotePlotter {
             wh,
             notes,
@@ -119,7 +119,7 @@ impl Component for NotePlotter<'_> {
             THEME.surface.main,
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -129,7 +129,7 @@ struct NoteGraphic {
     direction: Direction,
 }
 impl Component for NoteGraphic {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { rect, direction } = self;
 
         let note_path = Path::new().add_rect(rect);
@@ -139,7 +139,7 @@ impl Component for NoteGraphic {
             Paint::new(direction.as_color()).set_style(PaintStyle::Fill),
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -149,7 +149,7 @@ struct Pad {
     direction: Direction,
 }
 impl Component for Pad {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { rect, direction } = self;
 
         let text = match direction {
@@ -175,6 +175,6 @@ impl Component for Pad {
                 ));
         });
 
-        ctx.done()
+        
     }
 }

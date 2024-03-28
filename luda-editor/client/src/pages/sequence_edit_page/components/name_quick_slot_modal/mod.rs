@@ -27,7 +27,7 @@ pub struct NameQuickSlotModal<'a> {
     pub on_event: &'a dyn Fn(Event),
 }
 impl Component for NameQuickSlotModal<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, on_event } = self;
 
         let modal_wh = Wh {
@@ -200,6 +200,6 @@ impl Component for NameQuickSlotModal<'_> {
             ),
         );
 
-        ctx.done()
+        
     }
 }

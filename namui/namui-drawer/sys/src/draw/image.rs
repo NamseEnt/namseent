@@ -1,6 +1,6 @@
 use crate::*;
 
-impl Draw for ImageDrawCommand {
+impl Draw for &ImageDrawCommand {
     fn draw(self, ctx: &mut DrawContext) {
         let Some(image) = ctx.skia.image(&self.source) else {
             (ctx.start_load_image)(&self.source);

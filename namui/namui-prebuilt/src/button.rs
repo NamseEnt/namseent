@@ -2,7 +2,7 @@ use crate::{simple_rect, typography::center_text_full_height};
 use namui::prelude::*;
 
 fn attach_text_button_event(
-    ctx: &mut ComposeCtx,
+    ctx: &ComposeCtx,
     mouse_buttons: Vec<MouseButton>,
     on_mouse_up_in: impl FnOnce(MouseEvent<'_>),
 ) {
@@ -33,7 +33,7 @@ pub struct TextButton<'a> {
     pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for TextButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             rect,
             text,
@@ -55,7 +55,6 @@ impl Component for TextButton<'_> {
                 ));
             attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
         });
-        ctx.done()
     }
 }
 
@@ -72,7 +71,7 @@ pub struct TextButtonFit<'a> {
     pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for TextButtonFit<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
             text,
@@ -85,9 +84,7 @@ impl Component for TextButtonFit<'_> {
             on_mouse_up_in,
         } = self;
         let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
-        let width = center_text
-            .bounding_box()
-            .map(|bounding_box| bounding_box.width());
+        let width = namui::bounding_box(&center_text).map(|bounding_box| bounding_box.width());
 
         ctx.compose(|ctx| {
             if let Some(width) = width {
@@ -102,8 +99,6 @@ impl Component for TextButtonFit<'_> {
                 attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
             }
         });
-
-        ctx.done()
     }
 }
 
@@ -121,7 +116,7 @@ pub struct TextButtonFitAlign<'a> {
     pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for TextButtonFitAlign<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             align,
@@ -135,9 +130,8 @@ impl Component for TextButtonFitAlign<'_> {
             on_mouse_up_in,
         } = self;
         let center_text = center_text_full_height(Wh::new(0.px(), wh.height), text, text_color);
-        let center_text_width = center_text
-            .bounding_box()
-            .map(|bounding_box| bounding_box.width());
+        let center_text_width =
+            namui::bounding_box(&center_text).map(|bounding_box| bounding_box.width());
 
         ctx.compose(|ctx| {
             if let Some(center_text_width) = center_text_width {
@@ -160,8 +154,6 @@ impl Component for TextButtonFitAlign<'_> {
                 attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
             }
         });
-
-        ctx.done()
     }
 }
 
@@ -178,7 +170,7 @@ pub struct BodyTextButton<'a> {
     pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for BodyTextButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             rect,
             text,
@@ -211,7 +203,5 @@ impl Component for BodyTextButton<'_> {
 
             attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
         });
-
-        ctx.done()
     }
 }

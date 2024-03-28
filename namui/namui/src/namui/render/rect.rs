@@ -1,4 +1,4 @@
-use crate::namui::{self, *};
+use crate::namui::*;
 
 #[derive(Clone, Copy, Debug)]
 pub enum BorderPosition {
@@ -106,18 +106,18 @@ pub fn rect(param: RectParam) -> RenderingTree {
 
     let rect_path = get_rect_path(rect, param.style.round);
 
-    let mut draw_commands: Vec<DrawCommand> = vec![];
+    let mut draw_commands: Vec<DrawCommand> = Vec::with_capacity(2);
 
     if let Some(RectFill { color }) = param.style.fill {
-        let fill_paint = namui::Paint::new(color)
-            .set_style(namui::PaintStyle::Fill)
+        let fill_paint = Paint::new(color)
+            .set_style(PaintStyle::Fill)
             .set_anti_alias(true);
-
         draw_commands.push(DrawCommand::Path {
             command: PathDrawCommand {
                 path: rect_path.clone(),
                 paint: fill_paint,
-            },
+            }
+            .into(),
         });
     };
 
@@ -127,34 +127,33 @@ pub fn rect(param: RectParam) -> RenderingTree {
         ..
     }) = param.style.stroke
     {
-        let stroke_paint = namui::Paint::new(color)
-            .set_stroke_width(stroke_width)
-            .set_style(namui::PaintStyle::Stroke)
-            .set_anti_alias(true);
+        if stroke_width > 0.px() {
+            let stroke_paint = Paint::new(color)
+                .set_stroke_width(stroke_width)
+                .set_style(PaintStyle::Stroke)
+                .set_anti_alias(true);
 
-        draw_commands.push(DrawCommand::Path {
-            command: PathDrawCommand {
-                path: rect_path.clone(),
-                paint: stroke_paint,
-            },
-        });
+            draw_commands.push(DrawCommand::Path {
+                command: PathDrawCommand {
+                    path: rect_path,
+                    paint: stroke_paint,
+                }
+                .into(),
+            });
+        }
     };
 
     translate(
         translate_xy.x,
         translate_xy.y,
-        RenderingTree::Node(RenderingData {
-            draw_calls: vec![DrawCall {
-                commands: draw_commands,
-            }],
-        }),
+        render(draw_commands.into_iter().map(RenderingTree::Node)),
     )
 }
 
-fn get_rect_path(rect: Rect<Px>, round: Option<RectRound>) -> namui::Path {
+fn get_rect_path(rect: Rect<Px>, round: Option<RectRound>) -> Path {
     match round {
-        Some(round) => namui::Path::new().add_rrect(rect, round.radius, round.radius),
-        None => namui::Path::new().add_rect(rect),
+        Some(round) => Path::new().add_rrect(rect, round.radius, round.radius),
+        None => Path::new().add_rect(rect),
     }
 }
 

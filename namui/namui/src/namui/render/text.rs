@@ -53,18 +53,10 @@ pub struct TextParam {
 
 pub fn text(param: TextParam) -> RenderingTree {
     crate::render([
-        RenderingTree::Node(RenderingData {
-            draw_calls: vec![DrawCall {
-                commands: vec![
-                    // draw_shadow(),
-                    draw_border(&param, &param.font),
-                    Some(draw_text(&param, &param.font)),
-                ]
-                .into_iter()
-                .flatten()
-                .collect(),
-            }],
-        }),
+        draw_border(&param, &param.font)
+            .map(RenderingTree::Node)
+            .unwrap_or(RenderingTree::Empty),
+        RenderingTree::Node(draw_text(&param, &param.font)),
         draw_background(&param, &param.font),
     ])
 }
@@ -119,8 +111,9 @@ fn draw_text(param: &TextParam, font: &Font) -> DrawCommand {
                 baseline: param.baseline,
                 max_width: param.max_width,
                 line_height_percent: param.style.line_height_percent,
-                underline: param.style.underline.clone(),
+                underline: param.style.underline.clone().map(Box::new),
             }
+            .into()
         },
     }
 }
@@ -145,7 +138,8 @@ fn draw_border(param: &TextParam, font: &Font) -> Option<DrawCommand> {
             max_width: param.max_width,
             line_height_percent: param.style.line_height_percent,
             underline: None,
-        },
+        }
+        .into(),
     })
 }
 

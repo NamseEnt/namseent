@@ -3,17 +3,17 @@ use keyframe::{ease, functions::EaseOutQuint};
 use namui::{prelude::*, time::since_start};
 use namui_prebuilt::typography;
 
-static RECENT_JUDGE: Atom<RecentJudge> = Atom::uninitialized_new();
+static RECENT_JUDGE: Atom<RecentJudge> = Atom::uninitialized();
 
 #[component]
 pub struct JudgeIndicator {
     pub wh: Wh<Px>,
 }
 impl Component for JudgeIndicator {
-    fn render(self, ctx: &namui::prelude::RenderCtx) -> namui::prelude::RenderDone {
+    fn render(self, ctx: &namui::prelude::RenderCtx) {
         let Self { wh } = self;
 
-        let (recent_judge, _set_recent_judge) = ctx.atom_init(&RECENT_JUDGE, RecentJudge::new);
+        let (recent_judge, _set_recent_judge) = ctx.init_atom(&RECENT_JUDGE, RecentJudge::new);
 
         ctx.compose(|ctx| {
             let Some((alpha, scale)) =
@@ -40,8 +40,6 @@ impl Component for JudgeIndicator {
                     recent_judge.glow_color(alpha),
                 ));
         });
-
-        ctx.done()
     }
 }
 

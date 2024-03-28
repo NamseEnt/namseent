@@ -4,8 +4,8 @@ use crate::system::media::{
     video::VideoFramer,
     with_instant::{WithInstant, WithInstantExt, WithNow},
 };
+use crate::*;
 use anyhow::Result;
-use namui_type::*;
 use std::sync::Arc;
 
 #[derive(Debug)]

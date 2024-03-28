@@ -54,7 +54,7 @@ enum FocusBy {
     Mouse,
 }
 
-static TEXT_INPUT_ATOM: crate::Atom<TextInputCtx> = crate::Atom::uninitialized_new();
+static TEXT_INPUT_ATOM: crate::Atom<TextInputCtx> = crate::Atom::uninitialized();
 
 impl TextInputCtx {
     fn focused_id(&self) -> Option<Uuid> {
@@ -72,9 +72,9 @@ impl TextInputCtx {
 }
 
 impl Component for TextInput<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let id = self.instance.id;
-        let (atom, set_atom) = ctx.atom_init(&TEXT_INPUT_ATOM, Default::default);
+        let (atom, set_atom) = ctx.init_atom(&TEXT_INPUT_ATOM, Default::default);
         let is_focused = ctx.track_eq(&atom.is_focused(id));
 
         let paint = get_text_paint(self.style.text.color);
@@ -213,11 +213,11 @@ impl Component for TextInput<'_> {
 
         let selection = atom.get_selection_of_text_input(id);
 
-        ctx.component(self.draw_caret(&self, &paragraph, &selection));
+        ctx.add(self.draw_caret(&self, &paragraph, &selection));
 
-        ctx.component(self.draw_texts_divided_by_selection(&paragraph, &selection));
+        ctx.add(self.draw_texts_divided_by_selection(&paragraph, &selection));
 
-        ctx.component(
+        ctx.add(
             namui::rect(RectParam {
                 rect: self.rect,
                 style: RectStyle {
@@ -368,8 +368,6 @@ impl Component for TextInput<'_> {
             })
             .with_mouse_cursor(MouseCursor::Text),
         );
-
-        ctx.done()
     }
 }
 

@@ -4,8 +4,9 @@ mod non_wasm;
 mod wasm;
 
 use super::InitResult;
-use namui_skia::{SkCalculate, SkSkia};
-use namui_type::*;
+use namui_skia::{
+    Font, FontMetrics, GroupGlyph, ImageHandle, ImageInfo, ImageSource, Paint, SkCalculate, SkSkia,
+};
 #[cfg(not(target_family = "wasm"))]
 pub(crate) use non_wasm::*;
 use std::sync::{Arc, OnceLock, RwLock};
@@ -28,7 +29,7 @@ pub(super) async fn init() -> InitResult {
     Ok(())
 }
 
-fn sk_calculate() -> &'static dyn SkCalculate {
+pub(crate) fn sk_calculate() -> &'static dyn SkCalculate {
     SK_CALCULATE.get().unwrap().as_ref()
 }
 
@@ -38,14 +39,6 @@ pub(crate) fn load_typeface(typeface_name: &str, bytes: &[u8]) {
 
 pub(crate) fn group_glyph(font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph> {
     sk_calculate().group_glyph(font, paint)
-}
-
-pub(crate) fn path_contains_xy(path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool {
-    sk_calculate().path_contains_xy(path, paint, xy)
-}
-
-pub(crate) fn path_bounding_box(path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>> {
-    sk_calculate().path_bounding_box(path, paint)
 }
 
 pub(crate) fn font_metrics(font: &Font) -> Option<FontMetrics> {

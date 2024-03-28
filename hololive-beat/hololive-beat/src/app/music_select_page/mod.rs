@@ -22,7 +22,7 @@ pub struct MusicSelectPage<'a> {
 }
 
 impl Component for MusicSelectPage<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             musics,
@@ -60,7 +60,7 @@ impl Component for MusicSelectPage<'_> {
             set_cymbals.set(Some(cymbals));
         });
 
-        ctx.component(TopBar {
+        ctx.add(TopBar {
             wh: Wh::new(wh.width, 128.px()),
             music: selected_music,
             music_speed_map,
@@ -83,7 +83,7 @@ impl Component for MusicSelectPage<'_> {
             ])(wh, ctx);
         });
 
-        ctx.component(MusicPreview {
+        ctx.add(MusicPreview {
             wh,
             music: selected_music,
         });
@@ -119,8 +119,6 @@ impl Component for MusicSelectPage<'_> {
                 }
             }
         });
-
-        ctx.done()
     }
 }
 
@@ -129,7 +127,7 @@ struct Decoration {
     pub wh: Wh<Px>,
 }
 impl Component for Decoration {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
 
         let title_rect = {
@@ -148,10 +146,10 @@ impl Component for Decoration {
             Wh::new(width, width * 0.7)
         };
 
-        ctx.component(image(ImageParam {
+        ctx.add(image(ImageParam {
             rect: title_rect,
             source: ImageSource::Url {
-                url: Url::parse("bundle:ui/title.png").unwrap(),
+                url: "bundle:ui/title.png".to_string(),
             },
             style: ImageStyle {
                 fit: ImageFit::Contain,
@@ -162,8 +160,6 @@ impl Component for Decoration {
             ctx.translate((0.px(), wh.height - (drummer_wh.height * 0.75)))
                 .add(Drummer { wh: drummer_wh });
         });
-
-        ctx.done()
     }
 }
 
@@ -171,7 +167,7 @@ impl Component for Decoration {
 struct DelayedSelection {
     selected: f32,
     last_selected: (Duration, f32),
-    speed: Per<f32, Duration>,
+    speed: Per<f64, Duration>,
 }
 impl DelayedSelection {
     fn new(delay: Duration) -> Self {

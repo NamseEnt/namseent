@@ -14,7 +14,6 @@ pub mod log;
 pub mod media;
 pub mod mouse;
 pub mod network;
-pub(crate) mod panick;
 mod platform_utils;
 pub mod screen;
 pub(crate) mod skia;
@@ -44,7 +43,6 @@ pub(super) async fn init_system() -> InitResult {
         log::init(),
         mouse::init(),
         network::init(),
-        panick::init(),
         screen::init(),
         time::init(),
         drawer::init(),

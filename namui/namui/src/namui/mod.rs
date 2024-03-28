@@ -17,8 +17,10 @@ pub use clipboard::ClipboardItem as _;
 pub use common::*;
 pub use futures::{future::join_all, future::try_join_all, join, try_join};
 pub use hooks::*;
+pub use hooks_macro::*;
 pub use lazy_static::lazy_static;
 pub use namui_cfg::*;
+pub use namui_skia::*;
 pub use namui_type as types;
 pub use namui_type::*;
 pub use render::*;
@@ -52,7 +54,7 @@ pub fn start<C: Component>(component: impl Send + Sync + Fn() -> C + 'static) {
 
                 crate::log!("Namui system initialized");
 
-                tokio::task::block_in_place(|| crate::hooks::run_loop(component));
+                tokio::task::block_in_place(|| hooks::run_loop(component));
             })
     });
 

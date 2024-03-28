@@ -1,6 +1,6 @@
 use super::{audio::AudioContext, core::MediaCore};
+use crate::*;
 use anyhow::Result;
-use namui_type::*;
 use std::{
     path::Path,
     sync::{Arc, Mutex},

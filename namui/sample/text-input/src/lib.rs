@@ -14,7 +14,7 @@ impl TextInputExample {
 }
 
 impl Component for TextInputExample {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx)  {
         let (text_3x3, set_text_3x3) = ctx.state(|| {
             [
                 [
@@ -114,7 +114,7 @@ impl Component for TextInputExample {
             }
         });
 
-        ctx.done()
+        
     }
 
     // fn update(&mut self, event: &namui::Event) {

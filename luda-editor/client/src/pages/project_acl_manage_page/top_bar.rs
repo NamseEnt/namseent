@@ -12,7 +12,7 @@ pub(super) struct TopBar {
 }
 
 impl Component for TopBar {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         const PADDING: Px = px(8.0);
@@ -53,6 +53,6 @@ impl Component for TopBar {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }

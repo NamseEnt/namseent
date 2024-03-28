@@ -11,7 +11,7 @@ use namui_prebuilt::simple_rect;
 #[namui::component]
 pub struct App {}
 impl namui::Component for App {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let (loaded, set_loaded) = ctx.state(|| None);
         let wh = screen::size().into_type::<Px>();
 
@@ -62,7 +62,7 @@ impl namui::Component for App {
             THEME.background.main,
         ));
 
-        ctx.done()
+        
     }
 }
 

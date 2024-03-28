@@ -8,7 +8,7 @@ pub struct NotificationRoot {
     pub wh: Wh<Px>,
 }
 impl Component for NotificationRoot {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const NOTIFICATION_CARD_HEIGHT: Px = px(48.0);
         const PADDING: Px = px(8.0);
         const MAX_WIDTH: Px = px(720.0);
@@ -93,6 +93,6 @@ impl Component for NotificationRoot {
             })(wh, &mut ctx);
         });
 
-        ctx.done()
+        
     }
 }

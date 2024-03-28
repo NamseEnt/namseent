@@ -18,7 +18,7 @@ enum ContextMenu {
 }
 
 impl Component for SequenceListPage {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         const ITEM_HEIGHT: Px = px(40.0);
@@ -257,7 +257,7 @@ impl Component for SequenceListPage {
             }
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -271,7 +271,7 @@ pub struct SequenceCell<'a> {
 }
 
 impl Component for SequenceCell<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             project_id,

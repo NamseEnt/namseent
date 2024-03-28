@@ -15,7 +15,6 @@ pub(crate) fn on_winit_mouse_input(state: ElementState, button: crate::MouseButt
         xy: mouse_xy,
         pressing_buttons: get_pressing_buttons(),
         button: Some(button),
-        prevent_default: Box::new(move || {}),
     };
 
     crate::hooks::on_raw_event(match state {
@@ -49,7 +48,6 @@ pub(crate) fn on_winit_cursor_moved(position: PhysicalPosition<f64>) {
             xy: mouse_xy,
             pressing_buttons: get_pressing_buttons(),
             button: None,
-            prevent_default: Box::new(move || {}),
         },
     });
 }

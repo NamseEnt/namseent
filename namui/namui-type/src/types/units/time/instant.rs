@@ -10,9 +10,15 @@ pub struct Instant {
 }
 
 impl Instant {
-    #[cfg(feature = "namui_internal")]
     pub fn new(inner: Duration) -> Self {
         Self { inner }
+    }
+
+    /// Make sure that your system using std::time for every Instant creation.
+    pub fn from_std(std: std::time::Instant) -> Self {
+        Self {
+            inner: std.duration_since(std::time::Instant::now()).into(),
+        }
     }
 }
 

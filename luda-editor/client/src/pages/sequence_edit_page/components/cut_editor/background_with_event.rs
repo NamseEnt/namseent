@@ -24,7 +24,7 @@ pub(super) enum Event {
 }
 
 impl Component for BackgroundWithEvent<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             cut,
             wh,
@@ -177,7 +177,7 @@ impl Component for BackgroundWithEvent<'_> {
             ),
         );
 
-        ctx.done()
+        
     }
 }
 

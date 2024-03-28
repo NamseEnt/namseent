@@ -22,10 +22,10 @@ impl<TNumerator, TDenominator> Per<TNumerator, TDenominator> {
     }
 }
 
-impl<TNumerator, TDenominator> std::ops::Mul<TDenominator> for Per<TNumerator, TDenominator>
+impl<TNumerator, TDenominator, T> std::ops::Mul<TDenominator> for Per<TNumerator, TDenominator>
 where
-    TNumerator: std::ops::Mul<f32, Output = TNumerator>,
-    TDenominator: std::ops::Div<Output = f32>,
+    TNumerator: std::ops::Mul<T, Output = TNumerator>,
+    TDenominator: std::ops::Div<TDenominator, Output = T>,
 {
     type Output = TNumerator;
 

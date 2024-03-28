@@ -16,7 +16,7 @@ pub struct MusicCarousel<'a> {
 }
 
 impl Component for MusicCarousel<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             musics,
@@ -90,7 +90,7 @@ impl Component for MusicCarousel<'_> {
         });
 
         ctx.compose(|ctx| {
-            let mut ctx = ctx.translate((wh.width / 2, music_card_wh.height / 2));
+            let ctx = ctx.translate((wh.width / 2, music_card_wh.height / 2));
             for (music, offset) in musics_near_selected.into_iter().zip(offsets) {
                 ctx.add(MusicCard {
                     music_card_wh,
@@ -99,8 +99,6 @@ impl Component for MusicCarousel<'_> {
                 });
             }
         });
-
-        ctx.done()
     }
 }
 
@@ -112,14 +110,14 @@ struct MusicCard<'a> {
     pub music: Option<&'a MusicMetadata>,
 }
 impl Component for MusicCard<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             music_card_wh,
             offset,
             music,
         } = self;
 
-        let rotation = Angle::Degree(offset * 5.0);
+        let rotation = (offset * 5.0).deg();
         let center_xy = {
             let alpha = music_card_wh.width.as_f32() * 0.625 / f32::sin(2.5 / 180.0 * PI);
             let y = alpha - alpha * rotation.cos();
@@ -130,7 +128,7 @@ impl Component for MusicCard<'_> {
         let color = Color::BLACK.with_alpha((opacity * 255.0) as u8);
 
         ctx.compose(|ctx| {
-            let mut ctx = ctx
+            let ctx = ctx
                 .translate(center_xy)
                 .rotate(rotation)
                 .translate((music_card_wh / 2).as_xy() * -1);
@@ -159,8 +157,6 @@ impl Component for MusicCard<'_> {
                     .set_blend_mode(BlendMode::Multiply),
             ));
         });
-
-        ctx.done()
     }
 }
 
@@ -170,7 +166,7 @@ struct ArrowButton {
     pub left: bool,
 }
 impl Component for ArrowButton {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, left } = self;
 
         const ARROW_WH: Wh<Px> = Wh {
@@ -202,7 +198,7 @@ impl Component for ArrowButton {
             });
         });
 
-        ctx.component(
+        ctx.add(
             simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
                 let Event::MouseMove { event } = event else {
                     return;
@@ -214,8 +210,6 @@ impl Component for ArrowButton {
                 set_mouse_hover.set(hovering);
             }),
         );
-
-        ctx.done()
     }
 }
 
@@ -224,12 +218,12 @@ struct EnterIcon {
     pub wh: Wh<Px>,
 }
 impl Component for EnterIcon {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
 
         ctx.compose(|ctx| {
             ctx.translate((wh.width / 2, wh.height * 0.75))
-                .rotate(Angle::Degree(90.0))
+                .rotate((90.0).deg())
                 .add(TextDrawCommand {
                     // https://fontawesome.com/v5/icons/level-down-alt?f=classic&s=solid
                     text: "".to_string(),
@@ -248,7 +242,7 @@ impl Component for EnterIcon {
                 });
         });
 
-        ctx.component(path(
+        ctx.add(path(
             Path::new()
                 .move_to(1.0.px(), 0.0.px())
                 .line_to(1.0.px(), 1.0.px())
@@ -261,7 +255,5 @@ impl Component for EnterIcon {
                 .scale(wh.width.as_f32(), wh.height.as_f32()),
             Paint::new(THEME.text.with_alpha(128)),
         ));
-
-        ctx.done()
     }
 }

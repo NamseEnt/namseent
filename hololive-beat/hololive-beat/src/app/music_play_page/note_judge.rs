@@ -15,7 +15,7 @@ pub struct NoteJudge<'a> {
 }
 
 impl Component for NoteJudge<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             notes,
             played_time,
@@ -167,6 +167,6 @@ impl Component for NoteJudge<'_> {
             }));
         });
 
-        ctx.done()
+        
     }
 }

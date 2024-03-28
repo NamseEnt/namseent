@@ -13,7 +13,7 @@ pub(super) struct CgList {
 }
 
 impl Component for CgList {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         let (cg_files, _set_cg_files) = ctx.atom(&CG_FILES_ATOM);
@@ -38,7 +38,7 @@ impl Component for CgList {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -49,7 +49,7 @@ struct Thumbnail<'a> {
     cg_file: &'a CgFile,
 }
 impl Component for Thumbnail<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cg_file,
@@ -96,6 +96,6 @@ impl Component for Thumbnail<'_> {
             ),
         );
 
-        ctx.done()
+        
     }
 }

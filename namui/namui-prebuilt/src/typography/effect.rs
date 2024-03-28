@@ -24,7 +24,8 @@ pub fn glow(
             max_width: None,
             line_height_percent: 100.percent(),
             underline: None,
-        },
+        }
+        .into(),
     };
     let back = DrawCommand::Text {
         command: TextDrawCommand {
@@ -42,11 +43,8 @@ pub fn glow(
             max_width: None,
             line_height_percent: 100.percent(),
             underline: None,
-        },
+        }
+        .into(),
     };
-    RenderingTree::Node(RenderingData {
-        draw_calls: vec![DrawCall {
-            commands: vec![back, front],
-        }],
-    })
+    namui::render([back, front].map(RenderingTree::Node))
 }

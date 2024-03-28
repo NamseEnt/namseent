@@ -25,7 +25,7 @@ pub struct ProjectAclManagePage {
 }
 
 impl Component for ProjectAclManagePage {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         const TOP_BAR_HEIGHT: Px = px(48.0);
@@ -123,7 +123,7 @@ impl Component for ProjectAclManagePage {
             Color::TRANSPARENT,
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -134,7 +134,7 @@ struct ListItem<'a> {
     update_acl: &'a dyn Fn(Uuid, Option<ProjectAclUserPermission>),
 }
 impl Component for ListItem<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             acl,
@@ -175,7 +175,7 @@ impl Component for ListItem<'_> {
             1.px(),
             color::BACKGROUND,
         ));
-        ctx.done()
+        
     }
 }
 
@@ -185,7 +185,7 @@ struct EditorAdder<'a> {
     update_acl: &'a dyn Fn(Uuid, Option<ProjectAclUserPermission>),
 }
 impl Component for EditorAdder<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, update_acl } = self;
         const PADDING: Ltrb<Px> = Ltrb {
             left: px(8.0),
@@ -264,7 +264,7 @@ impl Component for EditorAdder<'_> {
                 }),
             ])(wh, ctx)
         });
-        ctx.done()
+        
     }
 }
 

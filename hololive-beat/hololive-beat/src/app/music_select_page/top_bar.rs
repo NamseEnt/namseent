@@ -16,7 +16,7 @@ pub struct TopBar<'a> {
 }
 
 impl Component for TopBar<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             music,
@@ -29,7 +29,7 @@ impl Component for TopBar<'_> {
 
         let music_id_sig = ctx.track_eq(&music.as_ref().map(|music| music.id.clone()));
         ctx.effect("Reset text rotation start time ", || {
-            music_id_sig.on_effect();
+            music_id_sig.record_as_used();
             set_rotation_start_time.set(namui::system::time::now());
         });
 
@@ -145,9 +145,7 @@ impl Component for TopBar<'_> {
             })(wh, ctx);
         });
 
-        ctx.component(DarkFrame { wh });
-
-        ctx.done()
+        ctx.add(DarkFrame { wh });
     }
 }
 
@@ -156,12 +154,12 @@ struct SettingButton {
     wh: Wh<Px>,
 }
 impl Component for SettingButton {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
 
         let (mouse_hover, set_mouse_hover) = ctx.state(|| false);
 
-        ctx.component(components::IconButton {
+        ctx.add(components::IconButton {
             wh,
             // https://fontawesome.com/v5/icons/cog?f=classic&s=solid
             text: "".to_string(),
@@ -171,7 +169,7 @@ impl Component for SettingButton {
             focused: *mouse_hover,
         });
 
-        ctx.component(
+        ctx.add(
             simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
                 let Event::MouseMove { event } = event else {
                     return;
@@ -183,7 +181,5 @@ impl Component for SettingButton {
                 set_mouse_hover.set(hovering);
             }),
         );
-
-        ctx.done()
     }
 }

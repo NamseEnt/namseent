@@ -12,8 +12,8 @@ use namui_prebuilt::{simple_rect, typography::adjust_font_size};
 use rand::Rng;
 use std::collections::VecDeque;
 
-static PARRY_EFFECT_REQUEST: Atom<VecDeque<ParryEffectRequest>> = Atom::uninitialized_new();
-static PARRY_EFFECT_PARTICLES: Atom<VecDeque<ParryEffectParticle>> = Atom::uninitialized_new();
+static PARRY_EFFECT_REQUEST: Atom<VecDeque<ParryEffectRequest>> = Atom::uninitialized();
+static PARRY_EFFECT_PARTICLES: Atom<VecDeque<ParryEffectParticle>> = Atom::uninitialized();
 
 const NOTE_WIDTH: Px = px(32.0);
 const MARGIN: Px = px(8.0);
@@ -33,7 +33,7 @@ pub struct NotePlotter<'a> {
 }
 
 impl Component for NotePlotter<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let NotePlotter {
             wh,
             notes,
@@ -43,9 +43,9 @@ impl Component for NotePlotter<'_> {
             judge_context,
         } = self;
 
-        let (_particles, set_particles) = ctx.atom_init(&PARRY_EFFECT_PARTICLES, VecDeque::new);
+        let (_particles, set_particles) = ctx.init_atom(&PARRY_EFFECT_PARTICLES, VecDeque::new);
         let (parry_effect_requests, set_parry_effect_requests) =
-            ctx.atom_init(&PARRY_EFFECT_REQUEST, VecDeque::new);
+            ctx.init_atom(&PARRY_EFFECT_REQUEST, VecDeque::new);
         let (pressed_at, set_pressed_at) = ctx.state(|| [Duration::default(); 4]);
 
         let note_wh = Wh {
@@ -81,11 +81,11 @@ impl Component for NotePlotter<'_> {
             });
         });
 
-        ctx.component(ParryEffect { timing_zero_x });
+        ctx.add(ParryEffect { timing_zero_x });
 
         ctx.compose(|ctx| {
             for (y, direction) in lanes {
-                let mut ctx = ctx.translate((0.px(), y));
+                let ctx = ctx.translate((0.px(), y));
 
                 ctx.add(Flash {
                     timing_zero_x,
@@ -108,7 +108,7 @@ impl Component for NotePlotter<'_> {
         });
 
         ctx.compose(|ctx| {
-            let mut ctx = ctx.clip(
+            let ctx = ctx.clip(
                 Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
                 ClipOp::Intersect,
             );
@@ -139,7 +139,7 @@ impl Component for NotePlotter<'_> {
 
         ctx.compose(|ctx| {
             for (y, direction) in lanes {
-                let mut ctx = ctx.translate((0.px(), y));
+                let ctx = ctx.translate((0.px(), y));
 
                 ctx.add(NoteBody {
                     x: timing_zero_x,
@@ -164,8 +164,6 @@ impl Component for NotePlotter<'_> {
             };
             set_pressed_at.mutate(move |pressed_at| pressed_at[direction.lane()] = since_start())
         });
-
-        ctx.done()
     }
 }
 
@@ -177,7 +175,7 @@ struct Flash {
     flashed_at: Duration,
 }
 impl Component for Flash {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             timing_zero_x,
             height,
@@ -250,8 +248,6 @@ impl Component for Flash {
                 paint: Paint::new(color).set_blend_mode(BlendMode::Plus),
             });
         });
-
-        ctx.done()
     }
 }
 
@@ -262,25 +258,23 @@ struct NoteGraphic {
     direction: Direction,
 }
 impl Component for NoteGraphic {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             x,
             height,
             direction,
         } = self;
 
-        ctx.component(NoteHead {
+        ctx.add(NoteHead {
             x,
             height,
             paint: Paint::new(THEME.text),
         });
-        ctx.component(NoteBody {
+        ctx.add(NoteBody {
             x,
             height,
             paint: Paint::new(direction.as_color()),
         });
-
-        ctx.done()
     }
 }
 
@@ -291,10 +285,10 @@ struct NoteHead {
     paint: Paint,
 }
 impl Component for NoteHead {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { x, height, paint } = self;
 
-        ctx.component(path(
+        ctx.add(path(
             Path::new().add_rect(Rect::Xywh {
                 x,
                 y: 0.px(),
@@ -303,8 +297,6 @@ impl Component for NoteHead {
             }),
             paint,
         ));
-
-        ctx.done()
     }
 }
 
@@ -315,10 +307,10 @@ struct NoteBody {
     paint: Paint,
 }
 impl Component for NoteBody {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { x, height, paint } = self;
 
-        ctx.component(path(
+        ctx.add(path(
             Path::new().add_rect(Rect::Xywh {
                 x,
                 y: 0.px(),
@@ -327,8 +319,6 @@ impl Component for NoteBody {
             }),
             paint,
         ));
-
-        ctx.done()
     }
 }
 
@@ -338,10 +328,10 @@ struct Pad {
     paint: Paint,
 }
 impl Component for Pad {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { height, paint } = self;
 
-        ctx.component(path(
+        ctx.add(path(
             Path::new().add_rect(Rect::Xywh {
                 x: 0.px(),
                 y: 0.px(),
@@ -350,8 +340,6 @@ impl Component for Pad {
             }),
             paint,
         ));
-
-        ctx.done()
     }
 }
 
@@ -362,7 +350,7 @@ struct Lane {
     direction: Direction,
 }
 impl Component for Lane {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             arrow_offset,
@@ -381,7 +369,7 @@ impl Component for Lane {
         }
         .to_string();
 
-        ctx.component(namui::text(TextParam {
+        ctx.add(namui::text(TextParam {
             text,
             x: arrow_offset,
             y: wh.height / 2,
@@ -398,14 +386,12 @@ impl Component for Lane {
             max_width: None,
         }));
 
-        ctx.component(simple_rect(
+        ctx.add(simple_rect(
             wh,
             Color::TRANSPARENT,
             0.px(),
             Color::BLACK.with_alpha(178),
         ));
-
-        ctx.done()
     }
 }
 
@@ -415,10 +401,10 @@ struct Lay {
     color: Color,
 }
 impl Component for Lay {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { height, color } = self;
 
-        ctx.component(path(
+        ctx.add(path(
             Path::new().add_rect(Rect::Xywh {
                 x: 0.px(),
                 y: 0.px(),
@@ -434,8 +420,6 @@ impl Component for Lay {
                     tile_mode: TileMode::Mirror,
                 }),
         ));
-
-        ctx.done()
     }
 }
 
@@ -477,8 +461,8 @@ impl ParryEffectRequest {
         };
         let size_min: f32 = 0.5;
         let size_range: f32 = 0.5;
-        let rotation_min: Angle = Angle::Degree(-1440.0);
-        let rotation_range: Angle = Angle::Degree(2880.0);
+        let rotation_min: Angle = (-1440.0).deg();
+        let rotation_range: Angle = (2880.0).deg();
 
         (0..5)
             .map(|_| ParryEffectParticle {
@@ -513,7 +497,7 @@ struct ParryEffect {
     pub timing_zero_x: Px,
 }
 impl Component for ParryEffect {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { timing_zero_x } = self;
 
         let (particles, set_particles) = ctx.atom(&PARRY_EFFECT_PARTICLES);
@@ -535,7 +519,7 @@ impl Component for ParryEffect {
         });
 
         ctx.compose(|ctx| {
-            let mut ctx = ctx.translate((timing_zero_x, 0.px()));
+            let ctx = ctx.translate((timing_zero_x, 0.px()));
 
             for particle in particles.iter() {
                 let elapsed = since_start() - particle.start_at;
@@ -546,7 +530,7 @@ impl Component for ParryEffect {
                 let alpha = (((1.0 - progress).pow(2) * 255.0_f32) as f32).clamp(0.0, 255.0) as u8;
                 let color = particle.color.with_alpha(alpha);
 
-                let mut ctx = ctx.translate(xy).rotate(rotation).scale(Xy::single(size));
+                let ctx = ctx.translate(xy).rotate(rotation).scale(Xy::single(size));
                 for paint in [
                     Paint::new(color).set_blend_mode(BlendMode::Plus),
                     Paint::new(color)
@@ -583,8 +567,6 @@ impl Component for ParryEffect {
                 }
             }
         });
-
-        ctx.done()
     }
 }
 

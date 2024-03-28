@@ -8,12 +8,13 @@ pub fn main() {
 struct FontExample;
 
 impl Component for FontExample {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const TYPEFACE_NAME: &str = "MoiraiOne-Regular";
 
         let (loading, set_loading) = ctx.state(|| false);
 
         ctx.effect("load font", || {
+            let set_loading = set_loading.cloned();
             namui::spawn(async move {
                 set_loading.set(true);
                 let font = namui::file::bundle::read("bundle:resources/MoiraiOne-Regular.ttf")
@@ -29,7 +30,7 @@ impl Component for FontExample {
             false => "Hello, world!",
         }
         .to_string();
-        ctx.component(namui::text(TextParam {
+        ctx.add(namui::text(TextParam {
             text,
             x: 0.px(),
             y: 0.px(),
@@ -53,6 +54,6 @@ impl Component for FontExample {
             max_width: None,
         }));
 
-        ctx.done()
+        
     }
 }

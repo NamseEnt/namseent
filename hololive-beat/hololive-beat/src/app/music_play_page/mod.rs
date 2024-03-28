@@ -27,13 +27,13 @@ pub struct MusicPlayPage<'a> {
     pub music_speed_map: Option<&'a MusicSpeedMap>,
 }
 impl Component for MusicPlayPage<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             music_speed_map,
         } = self;
 
-        let (state, _set_state) = ctx.atom_init(&PLAY_STATE_ATOM, PlayState::default);
+        let (state, _set_state) = ctx.init_atom(&PLAY_STATE_ATOM, PlayState::default);
         let now = namui::time::since_start();
 
         let played_time = match &*state {
@@ -94,9 +94,7 @@ impl Component for MusicPlayPage<'_> {
             open_setting_overlay();
         });
 
-        ctx.component(GameEnder { played_time });
-
-        ctx.done()
+        ctx.add(GameEnder { played_time });
     }
 }
 
@@ -105,9 +103,8 @@ struct Loading {
     wh: Wh<Px>,
 }
 impl Component for Loading {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, _ctx: &RenderCtx) {
         // TODO
-        ctx.done()
     }
 }
 
@@ -122,7 +119,7 @@ struct Loaded<'a> {
     px_per_time: Per<Px, Duration>,
 }
 impl Component for Loaded<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             played_time,
@@ -200,14 +197,12 @@ impl Component for Loaded<'_> {
             });
         });
 
-        ctx.component(NoteJudge {
+        ctx.add(NoteJudge {
             notes,
             played_time,
             perfect_range,
             good_range,
             note_sounds,
         });
-
-        ctx.done()
     }
 }

@@ -13,7 +13,7 @@ pub(super) struct ImageList {
 }
 
 impl Component for ImageList {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         let (images, _set_images) = ctx.atom(&IMAGES_ATOM);
@@ -38,7 +38,7 @@ impl Component for ImageList {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -49,7 +49,7 @@ struct Thumbnail<'a> {
     image: &'a ImageWithLabels,
 }
 impl Component for Thumbnail<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             image,
@@ -93,6 +93,6 @@ impl Component for Thumbnail<'_> {
                 })
             },
         ));
-        ctx.done()
+        
     }
 }

@@ -9,10 +9,11 @@ pub fn main() {
 struct BundleExample;
 
 impl Component for BundleExample {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let (content, set_content) = ctx.state(|| None);
 
         ctx.effect("load media", || {
+            let set_content = set_content.cloned();
             namui::spawn(async move {
                 let buffer = namui::system::file::bundle::read("bundle:resources/text.txt")
                     .await
@@ -22,7 +23,7 @@ impl Component for BundleExample {
             });
         });
 
-        ctx.component(typography::body::left_top(
+        ctx.add(typography::body::left_top(
             match content.as_ref() {
                 Some(content) => content.to_string(),
                 None => "loading...".to_string(),
@@ -30,6 +31,6 @@ impl Component for BundleExample {
             Color::BLACK,
         ));
 
-        ctx.done()
+        
     }
 }

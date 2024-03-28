@@ -15,7 +15,7 @@ pub struct Slider<'a> {
 }
 
 impl Component for Slider<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             value,
@@ -31,7 +31,7 @@ impl Component for Slider<'_> {
         let body_height = wh.height - (MARGIN * 2);
 
         let x = (wh.width - THUMB_WIDTH) * progress;
-        ctx.component(rect(RectParam {
+        ctx.add(rect(RectParam {
             rect: Rect::Xywh {
                 x,
                 y: 0.px(),
@@ -45,7 +45,7 @@ impl Component for Slider<'_> {
             },
         }));
 
-        ctx.component(rect(RectParam {
+        ctx.add(rect(RectParam {
             rect: Rect::Xywh {
                 x: 0.px(),
                 y: MARGIN,
@@ -61,7 +61,7 @@ impl Component for Slider<'_> {
             },
         }));
 
-        ctx.component(rect(RectParam {
+        ctx.add(rect(RectParam {
             rect: Rect::Xywh {
                 x: 0.px(),
                 y: MARGIN,
@@ -77,7 +77,7 @@ impl Component for Slider<'_> {
             },
         }));
 
-        ctx.component(
+        ctx.add(
             simple_rect(wh, Color::TRANSPARENT, 0.px(), THEME.primary.darker).attach_event(
                 |event| match event {
                     Event::MouseDown { event }
@@ -102,7 +102,5 @@ impl Component for Slider<'_> {
                 },
             ),
         );
-
-        ctx.done()
     }
 }

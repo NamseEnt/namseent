@@ -1,7 +1,7 @@
 //! Non-wasm drawer run in same process unlike wasm drawer.
 
 use crate::{image::ImageBitmap, system::InitResult, *};
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 
 static DRAW_COMMAND_TX: OnceLock<tokio::sync::mpsc::UnboundedSender<DrawingCommand>> =
     OnceLock::new();
@@ -56,16 +56,7 @@ fn spawn_drawing_task(mut rx: tokio::sync::mpsc::UnboundedReceiver<DrawingComman
     });
 }
 
-pub(crate) fn request_draw_rendering_tree(rendering_tree: namui_type::RenderingTree) {
-    {
-        static LAST_RENDERING_TREE_TX: Mutex<Option<RenderingTree>> = Mutex::new(None);
-        let mut last_rendering_tree = LAST_RENDERING_TREE_TX.lock().unwrap();
-        if last_rendering_tree.as_ref() == Some(&rendering_tree) {
-            return;
-        }
-        *last_rendering_tree = Some(rendering_tree.clone());
-    }
-
+pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
     DRAW_COMMAND_TX
         .get()
         .unwrap()

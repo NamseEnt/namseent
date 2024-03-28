@@ -7,7 +7,6 @@ mod non_wasm;
 #[cfg(not(test))]
 mod web;
 
-use anyhow::Result;
 #[cfg(test)]
 pub use mock::*;
 use namui_type::*;
@@ -35,12 +34,16 @@ pub fn now() -> Instant {
     TIME_SYSTEM.get().unwrap().now()
 }
 
+pub fn stop_watch(key: impl AsRef<str>) -> StopWatch {
+    StopWatch::new(key.as_ref().to_string(), now(), now)
+}
+
 /// You can await on this.
 /// ```no_run
 /// sleep(Duration::from_secs(1)).await;
 /// ```
-/// `Err` if duration is less than 0.
-pub fn sleep(duration: Duration) -> Result<tokio::time::Sleep> {
+/// Sleep 0 duration if passed duration is less than 0.
+pub fn sleep(duration: Duration) -> tokio::time::Sleep {
     TIME_SYSTEM.get().unwrap().sleep(duration)
 }
 
@@ -48,5 +51,6 @@ trait TimeSystem {
     fn since_start(&self) -> Duration;
     fn system_time_now(&self) -> SystemTime;
     fn now(&self) -> Instant;
-    fn sleep(&self, duration: Duration) -> Result<tokio::time::Sleep>;
+    /// Sleep 0 duration if passed duration is less than 0.
+    fn sleep(&self, duration: Duration) -> tokio::time::Sleep;
 }

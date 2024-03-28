@@ -2,14 +2,12 @@ use keyframe::{ease, functions::EaseOutCubic};
 use namui::{math::num::traits::Pow, prelude::*, time::since_start};
 use std::f32::consts::PI;
 
-lazy_static! {
-    static ref DRUM: Url = Url::parse("bundle:ui/drummer/drum.png").unwrap();
-    static ref CHARACTER: [Url; 3] = [
-        Url::parse("bundle:ui/drummer/1.png").unwrap(),
-        Url::parse("bundle:ui/drummer/2.png").unwrap(),
-        Url::parse("bundle:ui/drummer/3.png").unwrap(),
-    ];
-}
+const DRUM: &str = "bundle:ui/drummer/drum.png";
+const CHARACTER: [&str; 3] = [
+    "bundle:ui/drummer/1.png",
+    "bundle:ui/drummer/2.png",
+    "bundle:ui/drummer/3.png",
+];
 
 const RATIO: f32 = 1.386_409_8;
 
@@ -19,11 +17,11 @@ pub struct Drummer {
 }
 
 impl Component for Drummer {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
 
         let (last_pressed, set_last_pressed) = ctx.state(Duration::default);
-        let drum = ctx.image(&DRUM);
+        let drum = ctx.image(DRUM);
         let characters = CHARACTER
             .iter()
             .map(|url| ctx.image(url))
@@ -73,8 +71,6 @@ impl Component for Drummer {
             };
             set_last_pressed.set(since_start());
         });
-
-        ctx.done()
     }
 }
 
@@ -95,7 +91,7 @@ fn calculate_scale(duration: Duration) -> (Xy<f32>, Xy<f32>) {
     if duration > animation_duration * 3 {
         return (Xy::single(1.0), Xy::single(1.0));
     }
-    let progress = duration / animation_duration;
+    let progress = (duration / animation_duration) as f32;
 
     let character_x = (1.0_f32 / ((3.0 * progress).pow(4) + 16.0_f32))
         * f32::cos(3.0 * PI * (progress - PI / 128.0).pow(2) + (PI / 2.0));

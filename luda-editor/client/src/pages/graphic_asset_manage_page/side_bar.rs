@@ -9,7 +9,7 @@ pub(super) struct SideBar {
 }
 
 impl Component for SideBar {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         const PADDING: Px = px(8.0);
@@ -40,7 +40,7 @@ impl Component for SideBar {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }
 
@@ -50,7 +50,7 @@ struct TabButton {
     tab: Tab,
 }
 impl Component for TabButton {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, tab } = self;
 
         const PADDING: Px = px(4.0);
@@ -89,6 +89,6 @@ impl Component for TabButton {
                 .with_mouse_cursor(MouseCursor::Pointer),
         );
 
-        ctx.done()
+        
     }
 }

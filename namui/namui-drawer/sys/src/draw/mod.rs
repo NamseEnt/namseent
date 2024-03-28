@@ -32,65 +32,62 @@ pub(crate) trait Draw {
 impl Draw for RenderingTree {
     fn draw(self, ctx: &mut DrawContext) {
         struct RenderingTreeDrawContext {
-            on_top_node_matrix_tuples: Vec<(OnTopNode, Matrix3x3)>,
+            on_top_node_matrix_tuples: Vec<(OnTopNode, TransformMatrix)>,
         }
         fn draw_internal(
             ctx: &mut DrawContext,
-            rendering_tree: RenderingTree,
+            rendering_tree: &RenderingTree,
             rendering_tree_draw_context: &mut RenderingTreeDrawContext,
         ) {
             match rendering_tree {
                 RenderingTree::Children(children) => {
                     // NOTE: Children are drawn in reverse order. First(Left) child is drawn at the front.
-                    for child in children.into_iter().rev() {
+                    for child in children.iter().rev() {
                         draw_internal(ctx, child, rendering_tree_draw_context);
                     }
                 }
-                RenderingTree::Node(rendering_data) => {
-                    rendering_data.draw_calls.into_iter().for_each(|draw_call| {
-                        draw_call.draw(ctx);
-                    });
+                RenderingTree::Node(draw_command) => {
+                    draw_command.draw(ctx);
                 }
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::Translate(translate) => {
                         ctx.canvas().save();
                         ctx.canvas().translate(translate.x, translate.y);
 
-                        draw_internal(ctx, *translate.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(ctx, &translate.rendering_tree, rendering_tree_draw_context);
                         ctx.canvas().restore();
                     }
                     SpecialRenderingNode::Clip(clip) => {
                         ctx.canvas().save();
                         ctx.canvas().clip_path(&clip.path, clip.clip_op, true);
-                        draw_internal(ctx, *clip.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(ctx, &clip.rendering_tree, rendering_tree_draw_context);
                         ctx.canvas().restore();
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
                         ctx.canvas().save();
-                        ctx.canvas().set_matrix(Matrix3x3::from_slice([
+                        ctx.canvas().set_matrix(TransformMatrix::from_slice([
                             [1.0, 0.0, absolute.x.as_f32()],
                             [0.0, 1.0, absolute.y.as_f32()],
-                            [0.0, 0.0, 1.0],
                         ]));
-                        draw_internal(ctx, *absolute.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(ctx, &absolute.rendering_tree, rendering_tree_draw_context);
                         ctx.canvas().restore();
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
                         ctx.canvas().save();
                         ctx.canvas().rotate(rotate.angle);
-                        draw_internal(ctx, *rotate.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(ctx, &rotate.rendering_tree, rendering_tree_draw_context);
                         ctx.canvas().restore();
                     }
                     SpecialRenderingNode::Scale(scale) => {
                         ctx.canvas().save();
                         ctx.canvas().scale(scale.x, scale.y);
-                        draw_internal(ctx, *scale.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(ctx, &scale.rendering_tree, rendering_tree_draw_context);
                         ctx.canvas().restore();
                     }
                     SpecialRenderingNode::Transform(transform) => {
                         ctx.canvas().save();
                         ctx.canvas().transform(transform.matrix);
-                        draw_internal(ctx, *transform.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(ctx, &transform.rendering_tree, rendering_tree_draw_context);
                         ctx.canvas().restore();
                     }
                     SpecialRenderingNode::OnTop(on_top) => {
@@ -102,19 +99,27 @@ impl Draw for RenderingTree {
                     SpecialRenderingNode::WithId(_) => {
                         draw_internal(
                             ctx,
-                            special.inner_rendering_tree(),
+                            special.inner_rendering_tree_ref(),
                             rendering_tree_draw_context,
                         );
                     }
                 },
                 RenderingTree::Empty => {}
+                RenderingTree::Boxed(boxed) => {
+                    draw_internal(ctx, boxed.as_ref(), rendering_tree_draw_context);
+                }
+                RenderingTree::BoxedChildren(children) => {
+                    for child in children {
+                        draw_internal(ctx, child, rendering_tree_draw_context);
+                    }
+                }
             }
         }
 
         let mut draw_context = RenderingTreeDrawContext {
             on_top_node_matrix_tuples: Vec::new(),
         };
-        draw_internal(ctx, self, &mut draw_context);
+        draw_internal(ctx, &self, &mut draw_context);
 
         for (node, matrix) in draw_context.on_top_node_matrix_tuples {
             ctx.canvas().save();
@@ -125,15 +130,7 @@ impl Draw for RenderingTree {
     }
 }
 
-impl Draw for DrawCall {
-    fn draw(self, ctx: &mut DrawContext) {
-        self.commands
-            .into_iter()
-            .for_each(|command| command.draw(ctx));
-    }
-}
-
-impl Draw for DrawCommand {
+impl Draw for &DrawCommand {
     fn draw(self, ctx: &mut DrawContext) {
         match self {
             DrawCommand::Path { command } => command.draw(ctx),

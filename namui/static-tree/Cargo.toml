@@ -1,0 +1,11 @@
+[package]
+name = "static-tree"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+elsa = { version = "1.10.0", features = ["indexmap"] }
+rustc-hash = "1.1.0"
+slab = "0.4.9"
