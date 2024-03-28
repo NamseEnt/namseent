@@ -1,0 +1,20 @@
+[package]
+name = "tower-defence"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.namui]
+targets = ["x86_64-pc-windows-msvc"]
+
+[dependencies]
+namui = { path = "../namui/namui" }
+namui-prebuilt = { path = "../namui/namui-prebuilt" }
+
+[profile.release]
+opt-level = 3
+
+[profile.dev]
+opt-level = 2
+
+[profile.test]
+opt-level = 2
