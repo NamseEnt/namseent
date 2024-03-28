@@ -7,3 +7,13 @@ impl Display for Px {
         write!(f, "{:.*?}px", f.precision().unwrap_or(0), self.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_debug() {
+        assert_eq!(format!("{:?}", 1.0.px()), "Px(1.0)");
+    }
+}
