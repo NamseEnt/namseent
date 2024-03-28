@@ -16,12 +16,14 @@ impl ImageTrait for RenderCtx<'_, '_> {
         let url = self.track_eq(&url.as_ref().to_string());
         let (load, set_load) = self.state(|| Load::None);
 
+        // without sig
+        let loaded = load.is_some();
+
         self.effect(format!("Load image from {url}"), || {
             let url = (*url).clone();
 
-            if load.is_some() {
+            if loaded {
                 set_load.set(None);
-                return EffectCleanUp::None;
             }
 
             let set_load = set_load.cloned();
