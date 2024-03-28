@@ -109,7 +109,7 @@ impl Draw for RenderingTree {
                     draw_internal(ctx, boxed.as_ref(), rendering_tree_draw_context);
                 }
                 RenderingTree::BoxedChildren(children) => {
-                    for child in children {
+                for child in children.iter().rev() {
                         draw_internal(ctx, child, rendering_tree_draw_context);
                     }
                 }
