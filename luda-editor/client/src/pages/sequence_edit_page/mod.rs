@@ -6,7 +6,7 @@ mod sequence;
 use crate::components::name_quick_slot::NameQuickSlot;
 use ::futures::try_join;
 use loaded::LoadedSequenceEditorPage;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, ImageWithLabels, Memo, ProjectSharedData, Sequence};
 use std::collections::HashMap;

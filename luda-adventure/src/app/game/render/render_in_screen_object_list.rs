@@ -1,6 +1,6 @@
 use crate::component::*;
 use crate::{app::game::*, ecs::Entity};
-use namui::prelude::*;
+use namui::*;
 use std::cmp::Ordering;
 
 impl Game {

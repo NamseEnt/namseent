@@ -1,5 +1,5 @@
 use crate::storage::get_project_cg_part_variant_image_url;
-use namui::prelude::*;
+use namui::*;
 use rpc::data::*;
 
 #[component]

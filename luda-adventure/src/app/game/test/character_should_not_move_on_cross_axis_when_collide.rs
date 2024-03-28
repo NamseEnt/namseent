@@ -4,7 +4,7 @@ use crate::{
     ecs,
 };
 use float_cmp::assert_approx_eq;
-use namui::prelude::*;
+use namui::*;
 use wasm_bindgen_test::wasm_bindgen_test;
 
 #[test]

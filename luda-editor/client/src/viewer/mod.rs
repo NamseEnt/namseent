@@ -1,5 +1,5 @@
 use crate::components::*;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 use rpc::data::*;
 

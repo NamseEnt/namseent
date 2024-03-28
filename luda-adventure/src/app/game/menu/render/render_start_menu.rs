@@ -1,6 +1,6 @@
 use crate::app::game::{image_loader::ImageLoader, map::MapLoader, menu, save_load, TileExt};
 use menu::Menu;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{
     button::text_button_fit,
     simple_rect,

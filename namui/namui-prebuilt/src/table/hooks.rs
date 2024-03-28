@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 use std::collections::HashMap;
 
 pub enum TableCell<'a> {

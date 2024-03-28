@@ -2,7 +2,7 @@ mod decomposed_string;
 
 use crate::components::sequence_player;
 use decomposed_string::DecomposedString;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 
 #[namui::component]

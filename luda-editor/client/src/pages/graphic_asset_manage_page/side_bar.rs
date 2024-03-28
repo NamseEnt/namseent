@@ -1,6 +1,6 @@
 use super::Tab;
 use crate::{color, pages::graphic_asset_manage_page::TAB_ATOM};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{simple_rect, table::hooks::*, typography};
 
 #[component]

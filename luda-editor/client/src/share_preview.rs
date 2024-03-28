@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 pub struct SharePreview {
     pub sequence_id: Uuid,

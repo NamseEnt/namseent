@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 #[namui::component]
 pub struct Rotator<'a> {

@@ -7,7 +7,7 @@ use crate::{
     pages::sequence_edit_page::atom::SEQUENCE_ATOM,
 };
 use background_with_event::*;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, Cut, CutUpdateAction, SequenceUpdateAction};
 use std::collections::BTreeSet;

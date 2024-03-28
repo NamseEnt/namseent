@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 #[component]
 pub struct LoadingIndicator {

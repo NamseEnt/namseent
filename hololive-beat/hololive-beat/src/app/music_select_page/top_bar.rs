@@ -5,7 +5,7 @@ use crate::app::{
     setting_overlay::open_setting_overlay,
     theme::THEME,
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{simple_rect, table::hooks::*, typography};
 
 #[component]

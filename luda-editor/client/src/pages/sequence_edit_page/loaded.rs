@@ -8,7 +8,7 @@ use crate::{
         character_editor::EditTarget, name_quick_slot_modal::NameQuickSlotModal,
     },
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::*;
 use std::collections::HashMap;

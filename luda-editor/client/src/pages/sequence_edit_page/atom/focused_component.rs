@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 pub static FOCUSED_COMPONENT: Atom<Option<FocusableComponent>> = Atom::uninitialized_new();
 

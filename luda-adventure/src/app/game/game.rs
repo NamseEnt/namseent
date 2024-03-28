@@ -1,7 +1,7 @@
 use super::{
     known_id::object::PLAYER_CHARACTER, render::render_background, save_load::SaveLoad, *,
 };
-use namui::prelude::*;
+use namui::*;
 use std::collections::HashSet;
 
 pub struct Game {

@@ -2,7 +2,7 @@ use crate::{
     color,
     pages::router::{move_to, Route},
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{button::TextButtonFit, simple_rect, table::hooks::*, typography};
 
 #[component]

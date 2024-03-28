@@ -6,7 +6,7 @@ use crate::{
     pages::sequence_edit_page::atom::SEQUENCE_ATOM,
 };
 use cut_cell::*;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, Cut, Memo, MoveCutAction};
 use std::collections::HashMap;

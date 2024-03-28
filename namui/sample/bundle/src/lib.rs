@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::typography;
 
 pub fn main() {

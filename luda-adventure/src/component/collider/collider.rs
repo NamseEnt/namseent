@@ -1,7 +1,7 @@
 use super::RigidBody;
 use crate::app::game::Tile;
 use geo::Polygon;
-use namui::prelude::*;
+use namui::*;
 
 #[ecs_macro::component]
 pub struct Collider {

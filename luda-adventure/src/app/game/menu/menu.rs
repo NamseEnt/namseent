@@ -1,5 +1,5 @@
 use super::{render_in_game_menu, render_start_menu};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::event_trap;
 
 pub struct Menu {

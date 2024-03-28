@@ -1,5 +1,5 @@
 use crate::app::game::Heading;
-use namui::prelude::*;
+use namui::*;
 
 #[ecs_macro::component]
 pub struct PlayerCharacter {

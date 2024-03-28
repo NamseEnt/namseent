@@ -1,6 +1,6 @@
 use crate::app::game::{known_id::object::PLAYER_CHARACTER, *};
 use crate::component::*;
-use namui::prelude::*;
+use namui::*;
 
 const VISUAL_WIDTH: Tile = tile(3.0);
 const VISUAL_HEIGHT: Tile = tile(4.0);

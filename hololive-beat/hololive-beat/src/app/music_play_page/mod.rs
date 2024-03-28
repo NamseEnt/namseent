@@ -19,7 +19,7 @@ use crate::app::{
     play_state::pause_game,
     setting_overlay::open_setting_overlay,
 };
-use namui::prelude::*;
+use namui::*;
 
 #[component]
 pub struct MusicPlayPage<'a> {

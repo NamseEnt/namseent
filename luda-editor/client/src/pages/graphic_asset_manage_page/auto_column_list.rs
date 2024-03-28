@@ -1,5 +1,5 @@
 use crate::color;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{scroll_view, simple_rect, table::hooks::*, typography};
 use std::fmt::Debug;
 
