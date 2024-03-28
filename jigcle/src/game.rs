@@ -1,17 +1,15 @@
 use namui::prelude::*;
 use std::sync::{atomic::AtomicBool, Arc};
 
-lazy_static! {
-    static ref IMAGE: Url = Url::parse("bundle:image.jpg").unwrap();
-    static ref MUSIC: Url = Url::parse("bundle:music.opus").unwrap();
-}
+const IMAGE: &str = "bundle:image.jpg";
+const MUSIC: &str = "bundle:music.opus";
 
 #[component]
 pub struct Game {}
 
 impl Component for Game {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
-        let drum = ctx.image(&IMAGE);
+    fn render(self, ctx: &RenderCtx) {
+        let drum = ctx.image(IMAGE);
         const PUZZLE_WIDTH: usize = 8;
         const PUZZLE_HEIGHT: usize = 8;
 
@@ -30,9 +28,9 @@ impl Component for Game {
         let (media, set_media) = ctx.state::<Option<FullLoadOnceAudio>>(|| None);
 
         ctx.effect("load media", || {
+            let set_media = set_media.cloned();
             namui::spawn(async move {
-                let path = namui::system::file::bundle::to_real_path(MUSIC.as_ref()).unwrap();
-                println!("path: {:?}", path);
+                let path = namui::system::file::bundle::to_real_path(MUSIC).unwrap();
 
                 let media = namui::media::new_full_load_once_audio(&path).await.unwrap();
 
@@ -79,20 +77,6 @@ impl Component for Game {
         let (dragging_piece_state, set_dragging_piece_state) =
             ctx.state::<Option<DraggingPieceState>>(|| None);
 
-        ctx.effect("play audio", || {
-            let Some(media) = media.as_ref() else {
-                return;
-            };
-            let audio_duration_for_piece = media.duration() / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
-            if let Some(playing_audio_state) = playing_audio_state.as_ref() {
-                if namui::time::since_start() - playing_audio_state.start_time
-                    > audio_duration_for_piece
-                {
-                    set_playing_audio_state.set(None);
-                }
-            }
-        });
-
         ctx.on_raw_event(|event| match event {
             RawEvent::MouseUp { event: _ } => {
                 if dragging_piece_state.is_some() {
@@ -117,7 +101,7 @@ impl Component for Game {
         });
 
         let Some(media) = media.as_ref() else {
-            return ctx.done();
+            return;
         };
 
         ctx.compose(|ctx| {
@@ -325,84 +309,92 @@ impl Component for Game {
                     clip_path = clip_path.close();
                     let piece_index = Xy::new(x, y);
 
-                    ctx.translate((
-                        -piece_wh.width * x + piece_xys[y][x].x,
-                        -piece_wh.height * y + piece_xys[y][x].y,
-                    ))
-                    .clip(clip_path, ClipOp::Intersect)
-                    .add(
-                        ImageDrawCommand {
-                            rect: Rect::zero_wh(Wh::new(
-                                piece_wh.width * PUZZLE_WIDTH,
-                                piece_wh.height * PUZZLE_HEIGHT,
-                            )),
-                            source: image.src.clone(),
-                            fit: ImageFit::Contain,
-                            paint: None,
-                        }
-                        .attach_event(|event| match event {
-                            Event::MouseDown { event } => {
-                                if event.is_local_xy_in() {
-                                    event.stop_propagation();
-                                    set_dragging_piece_state.set(Some(DraggingPieceState {
-                                        piece_index,
-                                        anchor_xy: event.local_xy()
-                                            - Xy::new(piece_wh.width * x, piece_wh.height * y),
-                                        last_mouse_xy: event.global_xy,
-                                    }));
-                                }
+                    ctx.compose(|ctx| {
+                        ctx.translate((
+                            -piece_wh.width * x + piece_xys[y][x].x,
+                            -piece_wh.height * y + piece_xys[y][x].y,
+                        ))
+                        .clip(clip_path, ClipOp::Intersect)
+                        .add(
+                            ImageDrawCommand {
+                                rect: Rect::zero_wh(Wh::new(
+                                    piece_wh.width * PUZZLE_WIDTH,
+                                    piece_wh.height * PUZZLE_HEIGHT,
+                                )),
+                                source: image.src.clone(),
+                                fit: ImageFit::Contain,
+                                paint: None,
                             }
-                            Event::MouseMove { event } => {
-                                if event.is_local_xy_in() {
-                                    event.stop_propagation();
+                            .attach_event(|event| match event {
+                                Event::MouseDown { event } => {
+                                    if event.is_local_xy_in() {
+                                        event.stop_propagation();
+                                        set_dragging_piece_state.set(Some(DraggingPieceState {
+                                            piece_index,
+                                            anchor_xy: event.local_xy()
+                                                - Xy::new(piece_wh.width * x, piece_wh.height * y),
+                                            last_mouse_xy: event.global_xy,
+                                        }));
+                                    }
+                                }
+                                Event::MouseMove { event } => {
+                                    if event.is_local_xy_in() {
+                                        event.stop_propagation();
 
-                                    if let Some(state) = playing_audio_state.as_ref() {
-                                        if state.piece_index == piece_index {
-                                            return;
+                                        if let Some(state) = playing_audio_state.as_ref() {
+                                            if state.piece_index == piece_index {
+                                                let audio_duration_for_piece = media.duration()
+                                                    / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
+
+                                                if namui::time::since_start() - state.start_time
+                                                    <= audio_duration_for_piece
+                                                {
+                                                    return;
+                                                }
+                                            }
+
+                                            state
+                                                .stop
+                                                .store(true, std::sync::atomic::Ordering::Relaxed);
                                         }
 
-                                        state
-                                            .stop
-                                            .store(true, std::sync::atomic::Ordering::Relaxed);
+                                        let total_duration = media.duration();
+                                        let seek_to = total_duration
+                                            * (piece_index.y * PUZZLE_WIDTH + piece_index.x) as f32
+                                            / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
+
+                                        let sliced = media
+                                            .slice(
+                                                seek_to
+                                                    ..(seek_to
+                                                        + (total_duration
+                                                            / (PUZZLE_WIDTH * PUZZLE_HEIGHT)
+                                                                as f32)),
+                                            )
+                                            .unwrap();
+
+                                        let stop = Arc::new(AtomicBool::new(false));
+                                        let audio = StoppableAudio {
+                                            audio: sliced,
+                                            stop: stop.clone(),
+                                        };
+
+                                        namui::media::play_audio_consume(audio).unwrap();
+
+                                        set_playing_audio_state.set(Some(PlayingAudioState {
+                                            start_time: namui::time::since_start(),
+                                            piece_index,
+                                            stop,
+                                        }));
                                     }
-
-                                    let total_duration = media.duration();
-                                    let seek_to = total_duration
-                                        * (piece_index.y * PUZZLE_WIDTH + piece_index.x) as f32
-                                        / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
-
-                                    let sliced = media
-                                        .slice(
-                                            seek_to
-                                                ..(seek_to
-                                                    + (total_duration
-                                                        / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32)),
-                                        )
-                                        .unwrap();
-
-                                    let stop = Arc::new(AtomicBool::new(false));
-                                    let audio = StoppableAudio {
-                                        audio: sliced,
-                                        stop: stop.clone(),
-                                    };
-
-                                    namui::media::play_audio_consume(audio).unwrap();
-
-                                    set_playing_audio_state.set(Some(PlayingAudioState {
-                                        start_time: namui::time::since_start(),
-                                        piece_index,
-                                        stop,
-                                    }));
                                 }
-                            }
-                            _ => {}
-                        }),
-                    );
+                                _ => {}
+                            }),
+                        );
+                    });
                 }
             }
         });
-
-        ctx.done()
     }
 }
 
