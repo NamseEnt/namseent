@@ -58,7 +58,7 @@ mod test {
     use super::*;
     use crate::app::game::*;
     use crate::component::*;
-    use namui::prelude::*;
+    use namui::*;
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 

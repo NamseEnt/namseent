@@ -1,5 +1,5 @@
 use crate::app::game::{Game, RenderingContext};
-use namui::prelude::*;
+use namui::*;
 
 impl Game {
     pub fn translate_to_camera_screen(

@@ -2,7 +2,7 @@ use crate::app::{
     color::THEME,
     note::{Direction, Note},
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{simple_rect, typography};
 
 #[namui::component]

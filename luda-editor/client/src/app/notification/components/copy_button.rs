@@ -1,5 +1,5 @@
 use crate::app::notification::{self};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 
 #[component]

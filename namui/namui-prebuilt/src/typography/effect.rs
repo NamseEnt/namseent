@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 #[allow(clippy::too_many_arguments)]
 pub fn glow(

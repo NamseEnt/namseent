@@ -1,6 +1,6 @@
 use super::QuestAction;
 use crate::app::game::known_id;
-use namui::prelude::*;
+use namui::*;
 
 pub struct Quest {
     pub id: Uuid,

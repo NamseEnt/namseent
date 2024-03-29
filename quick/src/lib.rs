@@ -11,7 +11,7 @@ pub use consts::*;
 pub use group::*;
 pub use line::*;
 pub use link::*;
-use namui::prelude::*;
+use namui::*;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]

@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{table::*, *};
 use std::f32::consts::PI;
 

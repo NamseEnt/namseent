@@ -1,5 +1,5 @@
 use crate::app::theme::THEME;
-use namui::prelude::*;
+use namui::*;
 
 #[component]
 pub struct DarkFrame {

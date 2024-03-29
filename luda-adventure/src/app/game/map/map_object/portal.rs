@@ -2,7 +2,7 @@ use crate::{
     app::game::{Tile, TileExt},
     component::{Interactor, Positioner, RenderType, Renderer, Sprite},
 };
-use namui::prelude::*;
+use namui::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

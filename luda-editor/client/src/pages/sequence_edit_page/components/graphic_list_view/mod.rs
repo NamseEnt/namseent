@@ -9,7 +9,7 @@ use crate::{
         components::graphic_list_view::{graphic_list_item::GraphicListItem, header::Header},
     },
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{scroll_view, simple_rect, table};
 use rpc::data::ChangeGraphicOrderAction;
 

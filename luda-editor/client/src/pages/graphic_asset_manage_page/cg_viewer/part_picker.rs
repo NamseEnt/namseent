@@ -1,6 +1,6 @@
 use super::Event;
 use crate::{color, components::tool_tip::ToolTip, storage::get_project_cg_part_variant_image_url};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{
     scroll_view, simple_rect,
     table::hooks::*,

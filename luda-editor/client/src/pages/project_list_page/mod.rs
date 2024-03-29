@@ -3,7 +3,7 @@ use crate::{
     RPC,
 };
 use futures::FutureExt;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::list_editable_projects::EditableProject;
 

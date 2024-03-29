@@ -3,7 +3,7 @@ use crate::{
     app::game::{known_id::object::PLAYER_CHARACTER, Game, Tile},
     ecs,
 };
-use namui::prelude::*;
+use namui::*;
 
 const MAX_COLLISION_RESOLVE_COUNT: i32 = 6;
 

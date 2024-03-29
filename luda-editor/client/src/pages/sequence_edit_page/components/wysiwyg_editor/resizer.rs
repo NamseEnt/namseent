@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 use rpc::data::Circumscribed;
 
 #[namui::component]

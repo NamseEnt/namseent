@@ -1,5 +1,5 @@
 use crate::{simple_rect, typography::center_text_full_height};
-use namui::prelude::*;
+use namui::*;
 
 fn attach_text_button_event(
     ctx: &ComposeCtx,

@@ -3,7 +3,7 @@ use crate::{
     pages::sequence_edit_page::atom::{IMAGES_ATOM, SEQUENCE_ATOM},
     storage::get_project_image_url,
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{table::hooks::TableCell, *};
 use rpc::data::{Cut, ImageWithLabels};
 

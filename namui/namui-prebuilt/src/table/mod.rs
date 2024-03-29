@@ -1,6 +1,6 @@
 pub mod hooks;
 
-use namui::prelude::*;
+use namui::*;
 
 pub struct TableCell<'a> {
     unit: Unit,

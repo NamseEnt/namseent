@@ -11,7 +11,7 @@ mod storage;
 // mod share_preview;
 // mod viewer;
 
-use namui::prelude::*;
+use namui::*;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]
