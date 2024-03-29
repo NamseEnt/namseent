@@ -1,7 +1,6 @@
 // #![deny(warnings)]
 
 mod namui;
-pub mod prelude;
 
 pub use namui::*;
 
