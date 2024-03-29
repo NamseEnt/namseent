@@ -16,6 +16,10 @@ pub struct Atom<State: 'static + Debug + Send + Sync> {
     _phantom: std::marker::PhantomData<State>,
 }
 
+// NOTE: It is really Send and Sync.
+unsafe impl<State: 'static + Debug + Send + Sync> Send for Atom<State> {}
+unsafe impl<State: 'static + Debug + Send + Sync> Sync for Atom<State> {}
+
 impl<State: 'static + Debug + Send + Sync> Atom<State> {
     pub const fn uninitialized() -> Self {
         Self {
