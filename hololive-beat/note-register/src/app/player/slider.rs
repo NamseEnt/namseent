@@ -1,5 +1,5 @@
 use crate::app::color::THEME;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 
 const THUMB_WIDTH: Px = px(32.0);

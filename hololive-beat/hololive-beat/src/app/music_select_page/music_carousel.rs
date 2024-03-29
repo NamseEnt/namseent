@@ -4,7 +4,7 @@ use crate::app::{
     theme::THEME,
 };
 use keyframe::num_traits::Signed;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{simple_rect, table::hooks::*, typography::adjust_font_size};
 use std::f32::consts::PI;
 

@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 use serde::{Deserialize, Serialize};
 
 // 25 tick per second

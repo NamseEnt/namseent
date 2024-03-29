@@ -3,7 +3,7 @@ use crate::{
     app::notification::{self, remove_notification},
     components::{cg_upload::create_cg, image_upload::create_image},
 };
-use namui::prelude::*;
+use namui::*;
 use std::path::PathBuf;
 
 pub async fn upload_file(file: &File, project_id: Uuid) {

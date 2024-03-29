@@ -3,7 +3,7 @@ use crate::app::{
     note::{Direction, Note},
     play_state::{PlayState, PlayTimeState, PLAY_STATE_ATOM},
 };
-use namui::prelude::*;
+use namui::*;
 
 #[component]
 pub struct NoteJudge<'a> {

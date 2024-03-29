@@ -1,5 +1,5 @@
 use crate::app::notification;
-use namui::prelude::*;
+use namui::*;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]

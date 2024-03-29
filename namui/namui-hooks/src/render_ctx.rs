@@ -26,22 +26,16 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
 
 // Component
 impl<'a, 'rt> RenderCtx<'a, 'rt> {
-    pub fn state<T: 'static + Debug + Send + Sync>(
-        &self,
+    pub fn state<T: 'static + Debug>(
+        &'a self,
         init: impl FnOnce() -> T,
-    ) -> (Sig<T, &T>, SetState<T>) {
+    ) -> (Sig<'a, T, &'a T>, SetState<T>) {
         self.component_ctx.state(init)
     }
-    pub fn memo<T: 'static + Debug + Send + Sync>(
-        &self,
-        func: impl FnOnce() -> T,
-    ) -> Sig<T, Rc<T>> {
+    pub fn memo<T: 'static + Debug>(&'a self, func: impl 'a + FnOnce() -> T) -> Sig<T, Rc<T>> {
         self.component_ctx.memo(func)
     }
-    pub fn track_eq<T: 'static + Debug + Send + Sync + PartialEq + Clone>(
-        &self,
-        target: &T,
-    ) -> Sig<T, Rc<T>> {
+    pub fn track_eq<T: 'static + Debug + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
         self.component_ctx.track_eq(target)
     }
     pub fn effect<CleanUp: Into<EffectCleanUp>>(
@@ -54,7 +48,7 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     pub fn interval(&self, title: impl AsRef<str>, interval: Duration, job: impl FnOnce(Duration)) {
         self.component_ctx.interval(title, interval, job)
     }
-    pub fn controlled_memo<T: 'static + Debug + Send + Sync>(
+    pub fn controlled_memo<T: 'static + Debug>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
     ) -> Sig<T, Rc<T>> {
