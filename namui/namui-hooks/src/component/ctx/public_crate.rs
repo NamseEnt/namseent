@@ -1,11 +1,11 @@
 use super::*;
 use std::{fmt::Debug, rc::Rc};
 
-impl ComponentCtx<'_> {
-    pub fn state<State: 'static + Debug + Send + Sync>(
+impl<'a> ComponentCtx<'a> {
+    pub fn state<State: 'static + Debug>(
         &self,
         init: impl FnOnce() -> State,
-    ) -> (Sig<State, &State>, SetState<State>) {
+    ) -> (Sig<'a, State, &State>, SetState<State>) {
         let state_list = &self.instance.state_list;
 
         let state_index = self
@@ -33,10 +33,7 @@ impl ComponentCtx<'_> {
 
         (sig, set_state)
     }
-    pub fn memo<T: 'static + Debug + Send + Sync>(
-        &self,
-        func: impl FnOnce() -> T,
-    ) -> Sig<T, Rc<T>> {
+    pub fn memo<T: 'static + Debug>(&self, func: impl FnOnce() -> T) -> Sig<T, Rc<T>> {
         let mut memo_list = self.instance.memo_list.borrow_mut();
 
         let memo_index = self
@@ -89,10 +86,7 @@ impl ComponentCtx<'_> {
         Sig::new(value, sig_id, self.world)
     }
 
-    pub fn track_eq<T: 'static + Debug + Send + Sync + PartialEq + Clone>(
-        &self,
-        target: &T,
-    ) -> Sig<T, Rc<T>> {
+    pub fn track_eq<T: 'static + Debug + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
         let mut track_eq_list = self.instance.track_eq_list.borrow_mut();
 
         let track_eq_index = self
@@ -219,7 +213,7 @@ impl ComponentCtx<'_> {
         }
     }
 
-    pub fn controlled_memo<T: 'static + Debug + Send + Sync>(
+    pub fn controlled_memo<T: 'static + Debug>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
     ) -> Sig<T, Rc<T>> {
