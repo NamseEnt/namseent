@@ -1,6 +1,6 @@
 use super::Quest;
 use crate::app::game::known_id;
-use namui::prelude::*;
+use namui::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 

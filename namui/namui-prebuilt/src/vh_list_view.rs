@@ -1,5 +1,5 @@
 use crate::scroll_view::ScrollView;
-use namui::prelude::*;
+use namui::*;
 use std::fmt::Debug;
 
 type ItemRenderFn<'a, TItem> = Box<dyn 'a + Fn(Wh<Px>, TItem, ComposeCtx)>;

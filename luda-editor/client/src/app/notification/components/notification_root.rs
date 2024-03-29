@@ -1,5 +1,5 @@
 use super::*;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{simple_rect, typography::text_fit};
 use std::ops::Deref;
 

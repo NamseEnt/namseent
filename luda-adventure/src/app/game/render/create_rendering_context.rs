@@ -1,6 +1,6 @@
 use crate::app::game::*;
 use crate::component::*;
-use namui::prelude::*;
+use namui::*;
 
 impl Game {
     pub fn create_rendering_context(&self) -> RenderingContext {

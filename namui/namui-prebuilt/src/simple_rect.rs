@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 pub fn simple_rect(
     wh: Wh<Px>,

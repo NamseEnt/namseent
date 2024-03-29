@@ -5,7 +5,7 @@ mod player;
 use self::{color::THEME, player::Player};
 use crate::app::note::load_notes;
 use futures::join;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 
 #[namui::component]

@@ -1,5 +1,5 @@
 use crate::app::{setting_overlay::slider::Slider, theme::THEME};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{table::hooks::*, typography::adjust_font_size};
 
 #[component]

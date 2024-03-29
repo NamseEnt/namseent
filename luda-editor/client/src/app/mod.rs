@@ -4,7 +4,7 @@ pub mod notification;
 use self::notification::NotificationRoot;
 use crate::{components::context_menu::ContextMenu, pages::router::Router};
 use anyhow::Result;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 
 #[namui::component]
