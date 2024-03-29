@@ -1,5 +1,5 @@
 use crate::color;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::button::TextButtonFitAlign;
 use namui_prebuilt::scroll_view::{self};
 use namui_prebuilt::{simple_rect, table, transparent_rect};

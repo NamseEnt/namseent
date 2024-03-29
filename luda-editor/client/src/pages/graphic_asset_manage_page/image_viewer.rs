@@ -1,5 +1,5 @@
 use crate::{color, storage::get_project_image_url};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{button, simple_rect, table::hooks::*, typography};
 
 const MODAL_MAX_WH: Wh<Px> = Wh {

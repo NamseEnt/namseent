@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 pub fn main() {
     let namui_context = namui::init();

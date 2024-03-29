@@ -1,7 +1,7 @@
 use crate::app::game::*;
 use crate::component::*;
 use crate::ecs::Entity;
-use namui::prelude::*;
+use namui::*;
 
 const ARROW_SIZE: f32 = 16.0;
 

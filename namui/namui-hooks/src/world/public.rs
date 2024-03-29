@@ -39,6 +39,8 @@ impl World {
         root_component: impl Component,
         event: Option<RawEvent>,
     ) -> RenderingTree {
+        self.is_stop_event_propagation
+            .store(false, std::sync::atomic::Ordering::Relaxed);
         self.reset_updated_sig_ids();
         self.handle_set_states();
 

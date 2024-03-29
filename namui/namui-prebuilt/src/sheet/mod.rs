@@ -4,7 +4,7 @@
 
 // use crate::*;
 // use cell::*;
-// use namui::prelude::*;
+// use namui::*;
 // use std::collections::HashSet;
 
 // pub struct Sheet {

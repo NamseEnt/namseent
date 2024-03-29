@@ -1,5 +1,5 @@
 use super::*;
-use namui::prelude::*;
+use namui::*;
 
 #[namui::component]
 pub struct Router {

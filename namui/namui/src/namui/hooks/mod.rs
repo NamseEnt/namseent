@@ -8,7 +8,7 @@ use std::sync::{atomic::AtomicUsize, Mutex, OnceLock};
 
 static RAW_EVENT_TX: OnceLock<std::sync::mpsc::Sender<RawEventWithSentTime>> = OnceLock::new();
 
-pub(crate) fn run_loop<C: Component>(root_component: impl Send + Sync + 'static + Fn() -> C) {
+pub(crate) fn run_loop<C: Component>(root_component: impl 'static + Fn() -> C) {
     let (raw_event_tx, raw_event_rx) = std::sync::mpsc::channel();
     RAW_EVENT_TX.set(raw_event_tx).unwrap();
 
@@ -20,6 +20,7 @@ pub(crate) fn run_loop<C: Component>(root_component: impl Send + Sync + 'static 
     let mut one_sec_render_count = 0;
     let mut event_handle_delay_sum = 0.ms();
     let mut render_time_sum = 0.ms();
+    let mut render_time_worst = 0.ms();
     let mut event_type_count = vec![
         (EventType::MouseDown, 0),
         (EventType::MouseMove, 0),
@@ -50,19 +51,21 @@ pub(crate) fn run_loop<C: Component>(root_component: impl Send + Sync + 'static 
         let rendering_tree = world.run_with_event(root_component(), event);
         crate::system::drawer::request_draw_rendering_tree(rendering_tree);
 
-        render_time_sum += crate::time::now() - now;
-
         let elapsed = crate::time::now() - now;
         if elapsed > 33.ms() {
             println!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
         }
 
+        render_time_sum += elapsed;
+        render_time_worst = render_time_worst.max(elapsed);
+
         if one_sec_timer.elapsed() > std::time::Duration::from_secs(1) {
             println!(
-                "Render count: {}/sec | Event handle avg delay: {:?} | Render avg time: {:?}",
+                "Render count: {}/sec | Event handle avg delay: {:?} | Render avg time: {:?} | Worst render time: {:?}",
                 one_sec_render_count,
                 event_handle_delay_sum / one_sec_render_count,
-                render_time_sum / one_sec_render_count
+                render_time_sum / one_sec_render_count,
+                render_time_worst,
             );
             for (event_type, count) in &mut event_type_count {
                 if *count > 0 {

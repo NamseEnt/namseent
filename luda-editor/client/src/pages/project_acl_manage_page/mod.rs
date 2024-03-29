@@ -4,7 +4,7 @@ use crate::app::notification;
 use crate::app::notification::Notification;
 use crate::color;
 use crate::RPC;
-use namui::prelude::*;
+use namui::*;
 use namui::text_input::Style;
 use namui_prebuilt::button::TextButton;
 use namui_prebuilt::list_view::AutoListView;

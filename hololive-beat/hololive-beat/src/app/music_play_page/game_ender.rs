@@ -1,5 +1,5 @@
 use crate::app::play_state::{stop_game, PlayState, PlayTimeState, PLAY_STATE_ATOM};
-use namui::prelude::*;
+use namui::*;
 
 #[component]
 pub struct GameEnder {

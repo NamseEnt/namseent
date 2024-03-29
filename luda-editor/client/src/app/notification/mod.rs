@@ -1,7 +1,7 @@
 mod components;
 
 pub use components::NotificationRoot;
-use namui::prelude::*;
+use namui::*;
 
 static NOTIFICATIONS_ATOM: Atom<Vec<Notification>> = Atom::uninitialized_new();
 fn atom(ctx: &RenderCtx) -> (Sig<Vec<Notification>>, SetState<Vec<Notification>>) {

@@ -1,5 +1,5 @@
 use crate::{list_view::AutoListView, simple_rect, typography};
-use namui::prelude::*;
+use namui::*;
 use std::{fmt::Debug, ops::Deref};
 
 const LEFT_PADDING: Px = px(10.0);

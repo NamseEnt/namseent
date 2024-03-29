@@ -1,5 +1,5 @@
 use super::Portal;
-use namui::prelude::*;
+use namui::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

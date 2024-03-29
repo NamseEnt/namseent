@@ -4,7 +4,7 @@ use crate::{
     component::{Interactor, Positioner, Renderer},
     ecs::Entity,
 };
-use namui::prelude::*;
+use namui::*;
 
 pub fn nearest_entity(
     interactive_object_list: &Vec<((&Entity, (&Interactor, &Positioner, &Renderer)), Tile)>,
