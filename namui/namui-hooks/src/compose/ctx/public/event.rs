@@ -22,7 +22,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             return self;
         }
 
-        let is_xy_clip_in = |mut global_xy: Xy<Px>| -> bool {
+        let is_global_xy_clip_in = |mut global_xy: Xy<Px>| -> bool {
             if self
                 .full_stack
                 .iter()
@@ -94,6 +94,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             else {
                 return false;
             };
+            let xy = to_local_xy(xy);
             bounding_box.is_xy_inside(xy)
         };
 
@@ -102,7 +103,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                 let event = MouseEvent {
                     local_xy: &move || to_local_xy(event.xy),
                     is_local_xy_in: &move || {
-                        is_xy_clip_in(event.xy) && bounding_box_xy_in(event.xy)
+                        is_global_xy_clip_in(event.xy) && bounding_box_xy_in(event.xy)
                     },
                     global_xy: event.xy,
                     pressing_buttons: &event.pressing_buttons,
@@ -117,7 +118,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                 let event = MouseEvent {
                     local_xy: &move || to_local_xy(event.xy),
                     is_local_xy_in: &move || {
-                        is_xy_clip_in(event.xy) && bounding_box_xy_in(event.xy)
+                        is_global_xy_clip_in(event.xy) && bounding_box_xy_in(event.xy)
                     },
                     global_xy: event.xy,
                     pressing_buttons: &event.pressing_buttons,
@@ -132,7 +133,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                 let event = MouseEvent {
                     local_xy: &move || to_local_xy(event.xy),
                     is_local_xy_in: &move || {
-                        is_xy_clip_in(event.xy) && bounding_box_xy_in(event.xy)
+                        is_global_xy_clip_in(event.xy) && bounding_box_xy_in(event.xy)
                     },
                     global_xy: event.xy,
                     pressing_buttons: &event.pressing_buttons,
@@ -149,7 +150,8 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                         delta_xy: event.delta_xy,
                         local_xy: &move || to_local_xy(event.mouse_xy),
                         is_local_xy_in: &move || {
-                            is_xy_clip_in(event.mouse_xy) && bounding_box_xy_in(event.mouse_xy)
+                            is_global_xy_clip_in(event.mouse_xy)
+                                && bounding_box_xy_in(event.mouse_xy)
                         },
                         is_stop_event_propagation: &self.world.is_stop_event_propagation,
                     },
