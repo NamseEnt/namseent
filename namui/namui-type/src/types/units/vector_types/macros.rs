@@ -15,7 +15,7 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T> {
             #[inline(always)]
-            pub fn new($($field_ident: T),*) -> Self {
+            pub const fn new($($field_ident: T),*) -> Self {
                 Self { $($field_ident),* }
             }
 
@@ -170,6 +170,30 @@ macro_rules! vector_types {
         {
             fn sub_assign(&mut self, rhs: &$type_name<T>) {
                 $( self.$field_ident.sub_assign(rhs.$field_ident.clone()); )*
+            }
+        }
+
+        impl<T> std::ops::Neg for $type_name<T>
+        where
+            T: std::ops::Neg<Output = T>,
+        {
+            type Output = $type_name<T>;
+            fn neg(self) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.neg() ),*
+                }
+            }
+        }
+
+        impl<'a, T> std::ops::Neg for &'a $type_name<T>
+        where
+            T: std::ops::Neg<Output = T> + Clone,
+        {
+            type Output = $type_name<T>;
+            fn neg(self) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.clone().neg() ),*
+                }
             }
         }
 
