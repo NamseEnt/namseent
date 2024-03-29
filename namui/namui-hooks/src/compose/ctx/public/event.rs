@@ -65,9 +65,12 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             true
         };
 
-        let to_local_xy = |mut global_xy: Xy<Px>| -> Xy<Px> {
+        fn apply_commands_to_xy<'a>(
+            mut global_xy: Xy<Px>,
+            iter: impl Iterator<Item = &'a ComposeCommand>,
+        ) -> Xy<Px> {
             let original_xy = global_xy;
-            for command in self.full_stack.iter() {
+            for command in iter.into_iter() {
                 match command {
                     ComposeCommand::Translate { xy } => global_xy -= xy,
                     ComposeCommand::Absolute { xy } => global_xy = original_xy - xy,
@@ -84,6 +87,19 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             }
 
             global_xy
+        }
+
+        let to_local_xy = |global_xy: Xy<Px>| -> Xy<Px> {
+            apply_commands_to_xy(global_xy, self.full_stack.iter())
+        };
+
+        let to_parent_xy = |global_xy| {
+            apply_commands_to_xy(
+                global_xy,
+                self.full_stack
+                    .iter()
+                    .take(self.full_stack.len() - self.stack.len()),
+            )
         };
 
         let bounding_box_xy_in = |xy: Xy<Px>| -> bool {
@@ -94,7 +110,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             else {
                 return false;
             };
-            let xy = to_local_xy(xy);
+            let xy = to_parent_xy(xy);
             bounding_box.is_xy_inside(xy)
         };
 

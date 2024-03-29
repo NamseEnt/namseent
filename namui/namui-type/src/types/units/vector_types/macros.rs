@@ -173,6 +173,30 @@ macro_rules! vector_types {
             }
         }
 
+        impl<T> std::ops::Neg for $type_name<T>
+        where
+            T: std::ops::Neg<Output = T>,
+        {
+            type Output = $type_name<T>;
+            fn neg(self) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.neg() ),*
+                }
+            }
+        }
+
+        impl<'a, T> std::ops::Neg for &'a $type_name<T>
+        where
+            T: std::ops::Neg<Output = T> + Clone,
+        {
+            type Output = $type_name<T>;
+            fn neg(self) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.clone().neg() ),*
+                }
+            }
+        }
+
 
         impl<T> $type_name<T>
         where
