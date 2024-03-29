@@ -23,8 +23,16 @@ macro_rules! common_for_f32_type {
     ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident) => {
         use $crate::*;
 
-        #[type_derives(Default, PartialOrd, Copy, Eq, Hash)]
+        #[type_derives(Default, PartialOrd, Copy, Eq, Hash, -Debug)]
         pub struct $your_type(ordered_float::OrderedFloat<f32>);
+
+        impl std::fmt::Debug for $your_type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_tuple(stringify!($your_type))
+                    .field(self.0.as_ref())
+                    .finish()
+            }
+        }
 
         $crate::impl_single_trait!(from|lhs: $your_type| -> f32 {
             #[allow(clippy::redundant_closure_call)]
