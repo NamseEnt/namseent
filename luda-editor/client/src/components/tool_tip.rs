@@ -1,5 +1,5 @@
 use crate::color;
-use namui::prelude::*;
+use namui::*;
 
 #[derive(Clone)]
 #[component]

@@ -2,7 +2,7 @@ use crate::{
     app::game::{tile, Tile},
     component::{Sprite, SpriteAnimation},
 };
-use namui::prelude::*;
+use namui::*;
 
 const VISUAL_WIDTH: Tile = tile(3.0);
 const VISUAL_HEIGHT: Tile = tile(4.0);

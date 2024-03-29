@@ -4,7 +4,7 @@ use crate::app::{
     theme::THEME,
     MUSIC_BEST_SCORE_MAP_ATOM,
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::typography::{self, adjust_font_size, effect::glow};
 
 const PADDING: Px = px(32.0);

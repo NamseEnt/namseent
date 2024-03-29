@@ -7,7 +7,7 @@ use crate::{
     components::tool_tip::ToolTip,
     pages::sequence_edit_page::atom::{CG_FILES_ATOM, SEQUENCE_ATOM},
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::{Cut, CutUpdateAction, ScreenCg, ScreenGraphic};
 use std::{ops::Deref, sync::atomic::AtomicBool};

@@ -1,6 +1,6 @@
 use super::{State, JUDGE_CONTEXT, STATE};
 use crate::app::note::{Direction, Note};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 use std::collections::HashSet;
 

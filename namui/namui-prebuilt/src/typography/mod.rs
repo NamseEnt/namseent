@@ -3,7 +3,7 @@ pub mod effect;
 pub mod title;
 
 use crate::*;
-use namui::prelude::*;
+use namui::*;
 
 pub fn center_text(
     wh: Wh<Px>,

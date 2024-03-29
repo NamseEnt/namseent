@@ -1,6 +1,6 @@
 use super::*;
 use crate::color;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{
     button::{self},
     simple_rect,

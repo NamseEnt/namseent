@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 #[component]
 pub struct ScrollView<'a, C: Component> {

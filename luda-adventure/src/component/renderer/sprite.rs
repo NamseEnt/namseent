@@ -1,5 +1,5 @@
 use crate::app::game::{RenderingContext, Tile};
-use namui::prelude::*;
+use namui::*;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Sprite {

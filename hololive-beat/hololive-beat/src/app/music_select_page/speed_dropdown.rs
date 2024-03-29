@@ -4,7 +4,7 @@ use crate::app::{
     theme::THEME,
     MUSIC_SPEED_MAP_ATOM,
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{table::hooks::*, typography::adjust_font_size};
 
 #[component]

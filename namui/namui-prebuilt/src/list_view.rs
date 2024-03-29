@@ -1,5 +1,5 @@
 use crate::scroll_view::{self};
-use namui::prelude::*;
+use namui::*;
 
 #[namui::component]
 pub struct AutoListView<C: Component> {
