@@ -20,7 +20,7 @@ use self::{
     play_state::{PlayState, PLAY_STATE_ATOM},
     setting_overlay::{SettingOverlay, SETTING_OVERLAY_OPEN_ATOM},
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 
 pub static MUSIC_SPEED_MAP_ATOM: Atom<Option<MusicSpeedMap>> = Atom::uninitialized();

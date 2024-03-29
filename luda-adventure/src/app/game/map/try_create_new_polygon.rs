@@ -1,5 +1,5 @@
 use geo::{coord, Area, Coord, EuclideanDistance, Line, LineString, Polygon};
-use namui::prelude::*;
+use namui::*;
 use std::collections::HashMap;
 
 pub(super) fn try_create_new_polygon(

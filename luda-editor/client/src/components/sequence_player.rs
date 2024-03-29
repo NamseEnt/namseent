@@ -1,6 +1,6 @@
 use super::cg_render;
 use crate::storage::{get_project_cg_thumbnail_image_url, get_project_image_url};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::*;
 

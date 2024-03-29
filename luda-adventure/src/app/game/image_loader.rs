@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 use std::sync::{Arc, Mutex};
 
 pub struct ImageLoader {

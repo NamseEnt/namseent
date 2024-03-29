@@ -1,6 +1,6 @@
 use crate::app::game::*;
 use crate::component::*;
-use namui::prelude::*;
+use namui::*;
 use std::collections::{hash_map::RandomState, HashSet};
 
 impl Game {

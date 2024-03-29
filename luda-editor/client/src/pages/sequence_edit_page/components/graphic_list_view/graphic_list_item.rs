@@ -2,7 +2,7 @@ use crate::{
     color,
     pages::sequence_edit_page::components::graphic_list_view::graphic_thumbnail::GraphicThumbnail,
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{simple_rect, table};
 use rpc::data::ScreenGraphic;
 

@@ -1,6 +1,6 @@
 use super::{auto_column_list::AutoColumnList, SelectedAsset, IMAGES_ATOM, SELECTED_ASSET_ATOM};
 use crate::{color, storage::get_project_image_url};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 use rpc::data::ImageWithLabels;
 
