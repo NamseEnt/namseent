@@ -36,6 +36,7 @@ pub struct Game;
 solution board
 - 답을 맞추는 공간
 - 보드에 테두리가 있고, 각 칸의 중앙마다 표식이 있음. 위 그림 속 [·]가 그것. 마치 자석처럼, 근처에 피스를 두면 촥 하고 달라붙음.
+  - 그 표식이 있는 칸 하나를 '슬롯'이라고 부르자.
 - 만약 보드 안에 피스간에 교섭이 발생하면 그곳에 경고 표시를 함.
 
 playground
@@ -84,8 +85,22 @@ impl Component for Game {
 
         let ltrb_edges = ctx.memo(|| create_ltrb_edges(PUZZLE_WH));
 
-        let (piece_xys, set_piece_xys) = ctx.state(|| {
-            let mut piece_xys = [[Xy::<Px>::zero(); PUZZLE_WIDTH]; PUZZLE_HEIGHT];
+        #[derive(Debug, Clone, Copy)]
+        enum PiecePosition {
+            Playground { xy: Xy<Px> },
+            SolutionBoard { slot_index: Xy<usize> },
+        }
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        enum PositionType {
+            Playground,
+            SolutionBoard,
+        }
+
+        let (piece_positions, set_piece_positions) = ctx.state(|| {
+            let mut piece_xys = [[PiecePosition::Playground {
+                xy: Xy::<Px>::zero(),
+            }; PUZZLE_WIDTH]; PUZZLE_HEIGHT];
 
             let start_piece_range_rect = {
                 let screen_right_middle_center =
@@ -101,12 +116,16 @@ impl Component for Game {
 
             piece_xys.iter_mut().for_each(|row| {
                 row.iter_mut().for_each(|cell| {
-                    *cell = Xy::new(
-                        (start_piece_range_rect.width() - piece_wh.width) * rand::random::<f32>()
-                            + start_piece_range_rect.x(),
-                        (start_piece_range_rect.height() - piece_wh.height) * rand::random::<f32>()
-                            + start_piece_range_rect.y(),
-                    );
+                    *cell = PiecePosition::Playground {
+                        xy: Xy::new(
+                            (start_piece_range_rect.width() - piece_wh.width)
+                                * rand::random::<f32>()
+                                + start_piece_range_rect.x(),
+                            (start_piece_range_rect.height() - piece_wh.height)
+                                * rand::random::<f32>()
+                                + start_piece_range_rect.y(),
+                        ),
+                    };
                 });
             });
 
@@ -133,10 +152,60 @@ impl Component for Game {
         let (dragging_piece_state, set_dragging_piece_state) =
             ctx.state::<Option<DraggingPieceState>>(|| None);
 
+        let screen_left_middle_center = Xy::new(screen_wh.width / 4.0, screen_wh.height / 2.0);
+        let solution_board_xy = screen_left_middle_center - image_wh.as_xy() / 2.0;
+
+        let to_piece_xy = |piece_position: PiecePosition| -> Xy<Px> {
+            match piece_position {
+                PiecePosition::Playground { xy } => xy,
+                PiecePosition::SolutionBoard { slot_index } => {
+                    solution_board_xy + piece_wh.as_xy() * slot_index
+                }
+            }
+        };
+
+        let get_piece_position = |piece_xy: Xy<Px>| {
+            let piece_center_xy = piece_xy + piece_wh.as_xy() / 2.0;
+
+            let solution_board_rect = Rect::from_xy_wh(solution_board_xy, image_wh);
+
+            if solution_board_rect.is_xy_inside(piece_center_xy) {
+                let next_slot_index = Xy::new(
+                    ((piece_center_xy.x - solution_board_xy.x) / piece_wh.width).floor() as usize,
+                    ((piece_center_xy.y - solution_board_xy.y) / piece_wh.height).floor() as usize,
+                );
+
+                if piece_positions.iter().flatten().any(|position| {
+                    let PiecePosition::SolutionBoard { slot_index } = position else {
+                        return false;
+                    };
+                    next_slot_index == *slot_index
+                }) {
+                    PiecePosition::Playground { xy: piece_xy }
+                } else {
+                    PiecePosition::SolutionBoard {
+                        slot_index: next_slot_index,
+                    }
+                }
+            } else {
+                PiecePosition::Playground { xy: piece_xy }
+            }
+        };
+
         ctx.on_raw_event(|event| match event {
-            RawEvent::MouseUp { event: _ } => {
-                if dragging_piece_state.is_some() {
+            RawEvent::MouseUp { event } => {
+                if let Some(dragging_piece_state) = dragging_piece_state.as_ref() {
                     set_dragging_piece_state.set(None);
+
+                    let last_mouse_xy = event.xy;
+
+                    let piece_index = dragging_piece_state.piece_index;
+                    let next_piece_xy = last_mouse_xy - dragging_piece_state.anchor_xy;
+                    let next_piece_position = get_piece_position(next_piece_xy);
+
+                    set_piece_positions.mutate(move |piece_xys| {
+                        piece_xys[piece_index.y][piece_index.x] = next_piece_position;
+                    });
                 }
             }
             RawEvent::MouseMove { event } => {
@@ -148,99 +217,138 @@ impl Component for Game {
 
                     let piece_index = dragging_piece_state.piece_index;
                     let next_piece_xy = last_mouse_xy - dragging_piece_state.anchor_xy;
-                    set_piece_xys.mutate(move |piece_xys| {
-                        piece_xys[piece_index.y][piece_index.x] = next_piece_xy;
+
+                    set_piece_positions.mutate(move |piece_xys| {
+                        piece_xys[piece_index.y][piece_index.x] =
+                            PiecePosition::Playground { xy: next_piece_xy };
                     });
                 }
             }
             _ => (),
         });
 
-        for y in 0..PUZZLE_WH.height {
-            for x in 0..PUZZLE_WH.width {
-                let piece_index = Xy::new(x, y);
-                ctx.compose(|ctx| {
-                    ctx.translate(piece_xys[y][x])
-                        .add(Piece {
-                            wh: piece_wh,
-                            piece_index,
-                            ltrb_edge: ltrb_edges[y][x],
-                            image: image.src.clone(),
-                            image_wh,
-                        })
-                        .attach_event(|event| match event {
-                            Event::MouseDown { event } => {
-                                if event.is_local_xy_in() {
-                                    event.stop_propagation();
-                                    set_dragging_piece_state.set(Some(DraggingPieceState {
-                                        piece_index,
-                                        anchor_xy: event.local_xy(),
-                                        last_mouse_xy: event.global_xy,
-                                    }));
+        for position_type in [PositionType::Playground, PositionType::SolutionBoard] {
+            for y in 0..PUZZLE_WH.height {
+                for x in 0..PUZZLE_WH.width {
+                    let piece_position_type = match piece_positions[y][x] {
+                        PiecePosition::Playground { .. } => PositionType::Playground,
+                        PiecePosition::SolutionBoard { .. } => PositionType::SolutionBoard,
+                    };
+
+                    if piece_position_type != position_type {
+                        continue;
+                    }
+
+                    let piece_index = Xy::new(x, y);
+                    ctx.compose(|ctx| {
+                        let piece_xy = to_piece_xy(piece_positions[y][x]);
+                        ctx.translate(piece_xy)
+                            .add(Piece {
+                                wh: piece_wh,
+                                piece_index,
+                                ltrb_edge: ltrb_edges[y][x],
+                                image: image.src.clone(),
+                                image_wh,
+                                color_filter: None,
+                            })
+                            .attach_event(|event| match event {
+                                Event::MouseDown { event } => {
+                                    if event.is_local_xy_in() {
+                                        event.stop_propagation();
+                                        set_dragging_piece_state.set(Some(DraggingPieceState {
+                                            piece_index,
+                                            anchor_xy: event.local_xy(),
+                                            last_mouse_xy: event.global_xy,
+                                        }));
+                                    }
                                 }
-                            }
-                            Event::MouseMove { event } => {
-                                if event.is_local_xy_in() {
-                                    event.stop_propagation();
+                                Event::MouseMove { event } => {
+                                    if event.is_local_xy_in() {
+                                        event.stop_propagation();
 
-                                    if let Some(state) = playing_audio_state.as_ref() {
-                                        if state.piece_index == piece_index {
-                                            let audio_duration_for_piece = music.duration()
-                                                / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
+                                        if let Some(state) = playing_audio_state.as_ref() {
+                                            if state.piece_index == piece_index {
+                                                let audio_duration_for_piece = music.duration()
+                                                    / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
 
-                                            if namui::time::since_start() - state.start_time
-                                                <= audio_duration_for_piece
-                                            {
-                                                return;
+                                                if namui::time::since_start() - state.start_time
+                                                    <= audio_duration_for_piece
+                                                {
+                                                    return;
+                                                }
                                             }
+
+                                            state
+                                                .stop
+                                                .store(true, std::sync::atomic::Ordering::Relaxed);
                                         }
 
-                                        state
-                                            .stop
-                                            .store(true, std::sync::atomic::Ordering::Relaxed);
+                                        let total_duration = music.duration();
+                                        let seek_to = total_duration
+                                            * (piece_index.y * PUZZLE_WIDTH + piece_index.x) as f32
+                                            / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
+
+                                        let sliced = music
+                                            .slice(
+                                                seek_to
+                                                    ..(seek_to
+                                                        + (total_duration
+                                                            / (PUZZLE_WIDTH * PUZZLE_HEIGHT)
+                                                                as f32)),
+                                            )
+                                            .unwrap();
+
+                                        let stop = Arc::new(AtomicBool::new(false));
+                                        let audio = StoppableAudio {
+                                            audio: sliced,
+                                            stop: stop.clone(),
+                                        };
+
+                                        namui::media::play_audio_consume(audio).unwrap();
+
+                                        set_playing_audio_state.set(Some(PlayingAudioState {
+                                            start_time: namui::time::since_start(),
+                                            piece_index,
+                                            stop,
+                                        }));
                                     }
-
-                                    let total_duration = music.duration();
-                                    let seek_to = total_duration
-                                        * (piece_index.y * PUZZLE_WIDTH + piece_index.x) as f32
-                                        / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
-
-                                    let sliced = music
-                                        .slice(
-                                            seek_to
-                                                ..(seek_to
-                                                    + (total_duration
-                                                        / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32)),
-                                        )
-                                        .unwrap();
-
-                                    let stop = Arc::new(AtomicBool::new(false));
-                                    let audio = StoppableAudio {
-                                        audio: sliced,
-                                        stop: stop.clone(),
-                                    };
-
-                                    namui::media::play_audio_consume(audio).unwrap();
-
-                                    set_playing_audio_state.set(Some(PlayingAudioState {
-                                        start_time: namui::time::since_start(),
-                                        piece_index,
-                                        stop,
-                                    }));
                                 }
-                            }
-                            _ => {}
-                        });
-                });
+                                _ => {}
+                            });
+                    });
+                }
             }
         }
 
-        let screen_left_middle_center = Xy::new(screen_wh.width / 4.0, screen_wh.height / 2.0);
-        ctx.translate(screen_left_middle_center - image_wh.as_xy() / 2.0)
-            .add(SolutionBoard {
-                wh_counts: PUZZLE_WH,
+        ctx.compose(|ctx| {
+            let Some(dragging_piece_state) = dragging_piece_state.as_ref() else {
+                return;
+            };
+            let piece_index = dragging_piece_state.piece_index;
+            let piece_xy = dragging_piece_state.last_mouse_xy - dragging_piece_state.anchor_xy;
+            let PiecePosition::SolutionBoard { slot_index } = get_piece_position(piece_xy) else {
+                return;
+            };
+
+            let piece_xy_on_slot = to_piece_xy(PiecePosition::SolutionBoard { slot_index });
+
+            ctx.translate(piece_xy_on_slot).add(Piece {
+                wh: piece_wh,
+                piece_index,
+                ltrb_edge: ltrb_edges[piece_index.y][piece_index.x],
+                image: image.src.clone(),
                 image_wh,
+                color_filter: Some(ColorFilter {
+                    color: Color::grayscale_f01(0.5),
+                    blend_mode: BlendMode::Lighten,
+                }),
             });
+        });
+
+        ctx.translate(solution_board_xy).add(SolutionBoard {
+            wh_counts: PUZZLE_WH,
+            image_wh,
+        });
     }
 }
 
