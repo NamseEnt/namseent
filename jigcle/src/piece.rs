@@ -7,6 +7,7 @@ pub struct Piece {
     pub ltrb_edge: Ltrb<Edge>,
     pub image: ImageSource,
     pub image_wh: Wh<Px>,
+    pub color_filter: Option<ColorFilter>,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -24,6 +25,7 @@ impl Component for Piece {
             ltrb_edge,
             image,
             image_wh,
+            color_filter,
         } = self;
         let wh = ctx.track_eq(&wh);
         let ltrb_edge = ctx.track_eq(&ltrb_edge);
@@ -32,14 +34,6 @@ impl Component for Piece {
             create_piece_clip_path(*wh, *ltrb_edge)
                 .translate(wh.width * piece_index.x, wh.height * piece_index.y)
         });
-
-        //                 Path::new().move_to(piece_wh.width * x, piece_wh.height * y);
-        //             ctx.compose(|ctx| {
-        //                 ctx.translate((
-        //                     -piece_wh.width * x + piece_xys[y][x].x,
-        //                     -piece_wh.height * y + piece_xys[y][x].y,
-        //                 ))
-        //                 .clip(clip_path, ClipOp::Intersect)
 
         ctx.translate((-wh.as_xy()) * *piece_index)
             .add(namui::path(
@@ -53,78 +47,9 @@ impl Component for Piece {
                 rect: Rect::zero_wh(image_wh),
                 source: image.clone(),
                 fit: ImageFit::Contain,
-                paint: None,
+                paint: color_filter
+                    .map(|color_filter| Paint::new(Color::WHITE).set_color_filter(color_filter)),
             });
-        //                     .attach_event(|event| match event {
-        //                         Event::MouseDown { event } => {
-        //                             if event.is_local_xy_in() {
-        //                                 event.stop_propagation();
-        //                                 set_dragging_piece_state.set(Some(DraggingPieceState {
-        //                                     piece_index,
-        //                                     anchor_xy: event.local_xy()
-        //                                         - Xy::new(piece_wh.width, piece_wh.height),
-        //                                     last_mouse_xy: event.global_xy,
-        //                                 }));
-        //                             }
-        //                         }
-        //                         Event::MouseMove { event } => {
-        //                             if event.is_local_xy_in() {
-        //                                 event.stop_propagation();
-
-        //                                 if let Some(state) = playing_audio_state.as_ref() {
-        //                                     if state.piece_index == piece_index {
-        //                                         let audio_duration_for_piece = media.duration()
-        //                                             / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
-
-        //                                         if namui::time::since_start() - state.start_time
-        //                                             <= audio_duration_for_piece
-        //                                         {
-        //                                             return;
-        //                                         }
-        //                                     }
-
-        //                                     state
-        //                                         .stop
-        //                                         .store(true, std::sync::atomic::Ordering::Relaxed);
-        //                                 }
-
-        //                                 let total_duration = media.duration();
-        //                                 let seek_to = total_duration
-        //                                     * (piece_index.y * PUZZLE_WIDTH + piece_index.x) as f32
-        //                                     / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
-
-        //                                 let sliced = media
-        //                                     .slice(
-        //                                         seek_to
-        //                                             ..(seek_to
-        //                                                 + (total_duration
-        //                                                     / (PUZZLE_WIDTH * PUZZLE_HEIGHT)
-        //                                                         as f32)),
-        //                                     )
-        //                                     .unwrap();
-
-        //                                 let stop = Arc::new(AtomicBool::new(false));
-        //                                 let audio = StoppableAudio {
-        //                                     audio: sliced,
-        //                                     stop: stop.clone(),
-        //                                 };
-
-        //                                 namui::media::play_audio_consume(audio).unwrap();
-
-        //                                 set_playing_audio_state.set(Some(PlayingAudioState {
-        //                                     start_time: namui::time::since_start(),
-        //                                     piece_index,
-        //                                     stop,
-        //                                 }));
-        //                             }
-        //                         }
-        //                         _ => {}
-        //                     }),
-        //                 );
-        //             });
-        //         }
-        //     }
-        // });
     }
 }
 
