@@ -2,7 +2,7 @@ use crate::app::{
     music::MusicMetadata,
     play_state::{PlayState, PLAY_STATE_ATOM},
 };
-use namui::{prelude::*, time::sleep};
+use namui::{time::sleep, *};
 use namui_prebuilt::simple_rect;
 use std::ops::Deref;
 

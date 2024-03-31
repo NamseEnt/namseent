@@ -7,7 +7,7 @@ use keyframe::{
     ease,
     functions::{EaseOutQuart, EaseOutQuint},
 };
-use namui::{math::num::traits::Pow, prelude::*, time::since_start};
+use namui::{math::num::traits::Pow, time::since_start, *};
 use namui_prebuilt::{simple_rect, typography::adjust_font_size};
 use rand::Rng;
 use std::collections::VecDeque;

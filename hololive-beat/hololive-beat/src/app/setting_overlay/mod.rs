@@ -7,7 +7,7 @@ use crate::app::{
     components::FilledButton,
     play_state::{restart_game, PlayState, PLAY_STATE_ATOM},
 };
-use namui::{prelude::*, time::since_start};
+use namui::{time::since_start, *};
 use namui_prebuilt::table::hooks::*;
 
 pub static SETTING_OVERLAY_OPEN_ATOM: Atom<bool> = Atom::uninitialized();
