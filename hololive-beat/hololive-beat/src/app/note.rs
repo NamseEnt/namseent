@@ -1,5 +1,5 @@
 use futures::future::join_all;
-use namui::{file::bundle, prelude::*};
+use namui::{file::bundle, *};
 use std::{
     io::{self, BufRead},
     iter,

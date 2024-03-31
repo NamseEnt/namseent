@@ -11,7 +11,7 @@ use super::{
     setting_overlay::open_setting_overlay,
 };
 use keyframe::{ease, functions::EaseOutCubic, num_traits::Signed};
-use namui::{prelude::*, time::since_start};
+use namui::{time::since_start, *};
 use namui_prebuilt::table::hooks::*;
 
 #[component]

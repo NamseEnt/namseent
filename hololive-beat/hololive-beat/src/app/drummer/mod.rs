@@ -1,5 +1,5 @@
 use keyframe::{ease, functions::EaseOutCubic};
-use namui::{math::num::traits::Pow, prelude::*, time::since_start};
+use namui::{math::num::traits::Pow, time::since_start, *};
 use std::f32::consts::PI;
 
 const DRUM: &str = "bundle:ui/drummer/drum.png";

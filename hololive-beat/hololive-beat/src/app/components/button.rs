@@ -1,7 +1,7 @@
 use super::LightFrame;
 use crate::app::theme::THEME;
 use keyframe::{ease, functions::EaseOutCubic};
-use namui::{prelude::*, time::since_start};
+use namui::{time::since_start, *};
 use namui_prebuilt::typography::{self, adjust_font_size};
 
 #[component]

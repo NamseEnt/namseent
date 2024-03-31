@@ -1,6 +1,6 @@
 use crate::app::theme::THEME;
 use keyframe::{ease, functions::EaseOutQuint};
-use namui::{prelude::*, time::since_start};
+use namui::{time::since_start, *};
 use namui_prebuilt::typography;
 
 static RECENT_JUDGE: Atom<RecentJudge> = Atom::uninitialized();
@@ -10,7 +10,7 @@ pub struct JudgeIndicator {
     pub wh: Wh<Px>,
 }
 impl Component for JudgeIndicator {
-    fn render(self, ctx: &namui::prelude::RenderCtx) {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
 
         let (recent_judge, _set_recent_judge) = ctx.init_atom(&RECENT_JUDGE, RecentJudge::new);
