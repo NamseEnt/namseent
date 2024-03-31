@@ -15,7 +15,7 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T> {
             #[inline(always)]
-            pub fn new($($field_ident: T),*) -> Self {
+            pub const fn new($($field_ident: T),*) -> Self {
                 Self { $($field_ident),* }
             }
 
