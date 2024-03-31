@@ -4,7 +4,6 @@ mod solution_board;
 use namui::*;
 use piece::*;
 use solution_board::*;
-use std::sync::{atomic::AtomicBool, Arc};
 
 pub fn main() {
     namui::start(|| Game)
@@ -51,20 +50,25 @@ playground
 playground의 크기가 좀 더 커져야할 것 같음. 즉, 피스의 크기가 더 작아야할 것 같음.
 노래 소리가 너무 계속 들려서 정신사나움. 오른쪽 클릭하면 나오게 하든지, 노래 나오는 모드를 지정할 수 있게 해야할듯.
 
+플레이 소감: 2024-04-01
+playground를 줄이니까 꽤 괜찮음.
+노래는 그냥 브금으로 깔았음.
 */
 impl Component for Game {
     fn render(self, ctx: &RenderCtx) {
         let image = ctx.image(IMAGE);
-        let (music, set_music) = ctx.state::<Option<FullLoadOnceAudio>>(|| None);
+        let (bgm, set_bgm) = ctx.state::<Option<FullLoadRepeatAudio>>(|| None);
 
-        ctx.effect("load music", || {
-            let set_music = set_music.cloned();
+        ctx.effect("load bgm", || {
+            let set_bgm = set_bgm.cloned();
             namui::spawn(async move {
                 let path = namui::system::file::bundle::to_real_path(MUSIC).unwrap();
 
-                let music = namui::media::new_full_load_once_audio(&path).await.unwrap();
+                let bgm = namui::media::new_full_load_repeat_audio(&path)
+                    .await
+                    .unwrap();
 
-                set_music.set(Some(music));
+                set_bgm.set(Some(bgm));
             });
         });
 
@@ -72,15 +76,19 @@ impl Component for Game {
             return;
         };
 
-        let Some(music) = music.as_ref() else {
-            return;
-        };
+        ctx.effect("repeat bgm", || {
+            let Some(bgm) = bgm.as_ref() else {
+                return;
+            };
+
+            bgm.play().unwrap();
+        });
 
         const PUZZLE_WIDTH: usize = 8;
         const PUZZLE_HEIGHT: usize = 8;
 
         const PUZZLE_WH: Wh<usize> = Wh::new(PUZZLE_WIDTH, PUZZLE_HEIGHT);
-        let image_height = 900.px();
+        let image_height = 600.px();
         let image_width = image_height * (image.wh.height / image.wh.width).as_f32();
         let image_wh = Wh::new(image_width, image_height);
         let piece_wh = image_wh / PUZZLE_WH;
@@ -135,16 +143,6 @@ impl Component for Game {
 
             piece_xys
         });
-
-        #[derive(Debug)]
-        struct PlayingAudioState {
-            piece_index: Xy<usize>,
-            start_time: Duration,
-            stop: Arc<AtomicBool>,
-        }
-
-        let (playing_audio_state, set_playing_audio_state) =
-            ctx.state::<Option<PlayingAudioState>>(|| None);
 
         #[derive(Debug)]
         struct DraggingPieceState {
@@ -255,8 +253,8 @@ impl Component for Game {
                                 image_wh,
                                 color_filter: None,
                             })
-                            .attach_event(|event| match event {
-                                Event::MouseDown { event } => {
+                            .attach_event(|event| {
+                                if let Event::MouseDown { event } = event {
                                     if event.is_local_xy_in() {
                                         event.stop_propagation();
                                         set_dragging_piece_state.set(Some(DraggingPieceState {
@@ -266,58 +264,6 @@ impl Component for Game {
                                         }));
                                     }
                                 }
-                                Event::MouseMove { event } => {
-                                    if event.is_local_xy_in() {
-                                        event.stop_propagation();
-
-                                        if let Some(state) = playing_audio_state.as_ref() {
-                                            if state.piece_index == piece_index {
-                                                let audio_duration_for_piece = music.duration()
-                                                    / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
-
-                                                if namui::time::since_start() - state.start_time
-                                                    <= audio_duration_for_piece
-                                                {
-                                                    return;
-                                                }
-                                            }
-
-                                            state
-                                                .stop
-                                                .store(true, std::sync::atomic::Ordering::Relaxed);
-                                        }
-
-                                        let total_duration = music.duration();
-                                        let seek_to = total_duration
-                                            * (piece_index.y * PUZZLE_WIDTH + piece_index.x) as f32
-                                            / (PUZZLE_WIDTH * PUZZLE_HEIGHT) as f32;
-
-                                        let sliced = music
-                                            .slice(
-                                                seek_to
-                                                    ..(seek_to
-                                                        + (total_duration
-                                                            / (PUZZLE_WIDTH * PUZZLE_HEIGHT)
-                                                                as f32)),
-                                            )
-                                            .unwrap();
-
-                                        let stop = Arc::new(AtomicBool::new(false));
-                                        let audio = StoppableAudio {
-                                            audio: sliced,
-                                            stop: stop.clone(),
-                                        };
-
-                                        namui::media::play_audio_consume(audio).unwrap();
-
-                                        set_playing_audio_state.set(Some(PlayingAudioState {
-                                            start_time: namui::time::since_start(),
-                                            piece_index,
-                                            stop,
-                                        }));
-                                    }
-                                }
-                                _ => {}
                             });
                     });
                 }
@@ -420,20 +366,4 @@ fn create_ltrb_edges(puzzle_wh: Wh<usize>) -> Vec<Vec<Ltrb<Edge>>> {
     }
 
     ltrb_edges
-}
-
-#[derive(Debug)]
-struct StoppableAudio {
-    audio: FullLoadOnceAudio,
-    stop: Arc<AtomicBool>,
-}
-
-impl namui::media::AudioConsume for StoppableAudio {
-    fn consume(&mut self, output: &mut [f32]) {
-        self.audio.consume(output);
-    }
-
-    fn is_end(&self) -> bool {
-        self.stop.load(std::sync::atomic::Ordering::Relaxed)
-    }
 }
