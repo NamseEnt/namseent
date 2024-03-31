@@ -10,7 +10,7 @@ mod with_instant;
 
 use super::InitResult;
 use anyhow::*;
-pub use audio::{AudioConsume, FullLoadOnceAudio};
+pub use audio::{AudioConsume, FullLoadOnceAudio, FullLoadRepeatAudio};
 use media_context::MediaContext;
 pub use media_handle::MediaHandle;
 use std::{path::Path, sync::OnceLock};
@@ -45,6 +45,10 @@ pub fn volume() -> f32 {
 
 pub async fn new_full_load_once_audio(path: &impl AsRef<Path>) -> Result<FullLoadOnceAudio> {
     Ok(FullLoadOnceAudio::new(MEDIA_SYSTEM.get().unwrap().audio_context.clone(), path).await?)
+}
+
+pub async fn new_full_load_repeat_audio(path: &impl AsRef<Path>) -> Result<FullLoadRepeatAudio> {
+    Ok(FullLoadRepeatAudio::new(MEDIA_SYSTEM.get().unwrap().audio_context.clone(), path).await?)
 }
 
 pub fn play_audio_consume(audio_consume: impl AudioConsume + 'static) -> Result<()> {

@@ -28,7 +28,7 @@ pub use render::*;
 pub use render::{text_input, TextInput, TextInputInstance};
 pub use serde;
 pub use shader_macro::shader;
-pub use system::media::{FullLoadOnceAudio, MediaHandle};
+pub use system::media::*;
 pub use system::*;
 
 #[cfg(not(target_family = "wasm"))]
