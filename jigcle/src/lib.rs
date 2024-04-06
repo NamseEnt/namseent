@@ -144,6 +144,22 @@ impl Component for Game {
             piece_xys
         });
 
+        let solution_board_slot_piece_index_map = ctx.memo(|| {
+            let mut solution_board_slot_piece_index_map = [[None; PUZZLE_WIDTH]; PUZZLE_HEIGHT];
+
+            for y in 0..PUZZLE_HEIGHT {
+                for x in 0..PUZZLE_WIDTH {
+                    let PiecePosition::SolutionBoard { slot_index } = piece_positions[y][x] else {
+                        continue;
+                    };
+                    solution_board_slot_piece_index_map[slot_index.y][slot_index.x] =
+                        Some(Xy::new(x, y));
+                }
+            }
+
+            solution_board_slot_piece_index_map
+        });
+
         #[derive(Debug)]
         struct DraggingPieceState {
             piece_index: Xy<usize>,
@@ -229,9 +245,147 @@ impl Component for Game {
             _ => (),
         });
 
-        for position_type in [PositionType::Playground, PositionType::SolutionBoard] {
-            for y in 0..PUZZLE_WH.height {
-                for x in 0..PUZZLE_WH.width {
+        ctx.compose_2("warning for overlapping on solution board", |ctx| {
+            let ctx = ctx.translate(solution_board_xy);
+
+            let xy_iter =
+                (0..PUZZLE_WH.height).flat_map(|y| (0..PUZZLE_WH.width).map(move |x| (x, y)));
+
+            let dt = namui::time::since_start().as_secs_f32();
+            let pattern_hz = 0.5;
+            let pattern_length = 10.px();
+            let from = pattern_length * (dt * pattern_hz);
+            let to = pattern_length * (dt * pattern_hz) + pattern_length;
+            let paint = Paint::new(Color::WHITE).set_shader(Shader::LinearGradient {
+                start_xy: Xy::new(from, from),
+                end_xy: Xy::new(from, to),
+                colors: vec![
+                    Color::from_f01(1.0, 0.0, 0.0, 0.50),
+                    Color::from_f01(0.0, 0.0, 0.0, 0.50),
+                    Color::from_f01(1.0, 0.0, 0.0, 0.50),
+                    Color::from_f01(0.5, 0.5, 0.5, 0.50),
+                ],
+                tile_mode: TileMode::Repeat,
+            });
+            let paint2 = Paint::new(Color::WHITE).set_shader(Shader::LinearGradient {
+                start_xy: Xy::new(from, from),
+                end_xy: Xy::new(to, from),
+                colors: vec![
+                    Color::from_f01(1.0, 0.0, 0.0, 0.50),
+                    Color::from_f01(0.0, 0.0, 0.0, 0.50),
+                    Color::from_f01(1.0, 0.0, 0.0, 0.50),
+                    Color::from_f01(0.5, 0.5, 0.5, 0.50),
+                ],
+                tile_mode: TileMode::Repeat,
+            });
+
+            for (slot_x, slot_y) in xy_iter {
+                let Some(piece_index) = solution_board_slot_piece_index_map[slot_y][slot_x] else {
+                    continue;
+                };
+
+                let add_intersection_warning =
+                    |piece_part_1: Path, piece_part_2: Path, two_squares: Path| {
+                        ctx.clip(piece_part_1, ClipOp::Intersect)
+                            .clip(piece_part_2, ClipOp::Intersect)
+                            .add(namui::path(two_squares.clone(), paint.clone()))
+                            .add(namui::path(two_squares, paint2.clone()));
+                    };
+
+                if slot_x > 0 {
+                    if let Some(left_piece_index) =
+                        solution_board_slot_piece_index_map[slot_y][slot_x - 1]
+                    {
+                        let left_piece_xy = piece_wh.as_xy() * Xy::new(slot_x - 1, slot_y);
+                        let me_piece_xy = piece_wh.as_xy() * Xy::new(slot_x, slot_y);
+
+                        let square_plus_right_on_left_piece = piece::create_piece_clip_path(
+                            piece_wh,
+                            Ltrb {
+                                left: Edge::Straight,
+                                top: Edge::Straight,
+                                right: ltrb_edges[left_piece_index.y][left_piece_index.x].right,
+                                bottom: Edge::Straight,
+                            },
+                        )
+                        .translate(left_piece_xy.x, left_piece_xy.y);
+
+                        let square_plus_left_on_me = piece::create_piece_clip_path(
+                            piece_wh,
+                            Ltrb {
+                                left: ltrb_edges[piece_index.y][piece_index.x].left,
+                                top: Edge::Straight,
+                                right: Edge::Straight,
+                                bottom: Edge::Straight,
+                            },
+                        )
+                        .translate(me_piece_xy.x, me_piece_xy.y);
+
+                        let two_squares = Path::new()
+                            .add_rect(Rect::from_xy_wh(left_piece_xy, piece_wh * Wh::new(2, 1)));
+
+                        add_intersection_warning(
+                            square_plus_right_on_left_piece,
+                            square_plus_left_on_me,
+                            two_squares,
+                        );
+                    }
+                }
+
+                if slot_y > 0 {
+                    if let Some(top_piece_index) =
+                        solution_board_slot_piece_index_map[slot_y - 1][slot_x]
+                    {
+                        let top_piece_xy = piece_wh.as_xy() * Xy::new(slot_x, slot_y - 1);
+                        let me_piece_xy = piece_wh.as_xy() * Xy::new(slot_x, slot_y);
+
+                        let square_plus_bottom_on_top_piece = piece::create_piece_clip_path(
+                            piece_wh,
+                            Ltrb {
+                                left: Edge::Straight,
+                                top: Edge::Straight,
+                                right: Edge::Straight,
+                                bottom: ltrb_edges[top_piece_index.y][top_piece_index.x].bottom,
+                            },
+                        )
+                        .translate(top_piece_xy.x, top_piece_xy.y);
+
+                        let square_plus_top_on_me = piece::create_piece_clip_path(
+                            piece_wh,
+                            Ltrb {
+                                left: Edge::Straight,
+                                top: ltrb_edges[piece_index.y][piece_index.x].top,
+                                right: Edge::Straight,
+                                bottom: Edge::Straight,
+                            },
+                        )
+                        .translate(me_piece_xy.x, me_piece_xy.y);
+
+                        let two_squares = Path::new()
+                            .add_rect(Rect::from_xy_wh(top_piece_xy, piece_wh * Wh::new(1, 2)));
+
+                        add_intersection_warning(
+                            square_plus_bottom_on_top_piece,
+                            square_plus_top_on_me,
+                            two_squares,
+                        );
+                    }
+                }
+            }
+        });
+
+        ctx.compose_2(
+            "non-dragging pieces, order in playground and solution board",
+            |ctx| {
+                let iter = [PositionType::Playground, PositionType::SolutionBoard]
+                    .into_iter()
+                    .flat_map(|piece_type| {
+                        (0..PUZZLE_WH.height).flat_map(move |y| {
+                            (0..PUZZLE_WH.width).map(move |x| (piece_type, x, y))
+                        })
+                    });
+
+                for (position_type, x, y) in iter {
                     let piece_position_type = match piece_positions[y][x] {
                         PiecePosition::Playground { .. } => PositionType::Playground,
                         PiecePosition::SolutionBoard { .. } => PositionType::SolutionBoard,
@@ -244,6 +398,7 @@ impl Component for Game {
                     let piece_index = Xy::new(x, y);
                     ctx.compose(|ctx| {
                         let piece_xy = to_piece_xy(piece_positions[y][x]);
+
                         ctx.translate(piece_xy)
                             .add(Piece {
                                 wh: piece_wh,
@@ -251,7 +406,7 @@ impl Component for Game {
                                 ltrb_edge: ltrb_edges[y][x],
                                 image: image.src.clone(),
                                 image_wh,
-                                color_filter: None,
+                                piece_state: PieceState::None,
                             })
                             .attach_event(|event| {
                                 if let Event::MouseDown { event } = event {
@@ -267,10 +422,10 @@ impl Component for Game {
                             });
                     });
                 }
-            }
-        }
+            },
+        );
 
-        ctx.compose(|ctx| {
+        ctx.compose_2("dragging piece", |ctx| {
             let Some(dragging_piece_state) = dragging_piece_state.as_ref() else {
                 return;
             };
@@ -288,10 +443,7 @@ impl Component for Game {
                 ltrb_edge: ltrb_edges[piece_index.y][piece_index.x],
                 image: image.src.clone(),
                 image_wh,
-                color_filter: Some(ColorFilter {
-                    color: Color::grayscale_f01(0.5),
-                    blend_mode: BlendMode::Lighten,
-                }),
+                piece_state: PieceState::Dragging,
             });
         });
 
