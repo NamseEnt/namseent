@@ -9,6 +9,10 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
     pub fn compose(&self, compose: impl FnOnce(&ComposeCtx)) -> &Self {
         self.compose_with_key(None, compose)
     }
+    pub fn compose_2(&self, title: &str, compose: impl FnOnce(&ComposeCtx)) -> &Self {
+        let _ = title;
+        self.compose_with_key(None, compose)
+    }
     pub fn compose_with_key(
         &self,
         key: impl Into<AddKey>,
