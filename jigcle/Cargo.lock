@@ -1154,6 +1154,7 @@ dependencies = [
  "namui",
  "namui-prebuilt",
  "rand",
+ "seeded-random",
 ]
 
 [[package]]
@@ -2315,6 +2316,17 @@ checksum = "317936bbbd05227752583946b9e66d7ce3b489f84e11a94a510b4437fef407d7"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "seeded-random"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "237b344c25622ede58b1196b3c9d5387cad2743b2b86c450f886100d8751f256"
+dependencies = [
+ "parking_lot 0.12.2",
+ "rand",
+ "rand_chacha",
 ]
 
 [[package]]

@@ -10,6 +10,7 @@ targets = ["x86_64-pc-windows-msvc"]
 namui = { path = "../namui/namui" }
 namui-prebuilt = { path = "../namui/namui-prebuilt" }
 rand = "0.8.5"
+seeded-random = "0.6.0"
 
 [profile.release]
 opt-level = 3

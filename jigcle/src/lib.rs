@@ -96,6 +96,15 @@ impl Component for Game {
         let screen_wh = Wh::new(1920.px(), 1080.px());
 
         let ltrb_edges = ctx.memo(|| create_ltrb_edges(PUZZLE_WH));
+        let piece_seeds = ctx.memo(|| {
+            let mut piece_seeds = [[0; PUZZLE_WIDTH]; PUZZLE_HEIGHT];
+
+            for (x, y) in (0..PUZZLE_HEIGHT).flat_map(|y| (0..PUZZLE_WIDTH).map(move |x| (x, y))) {
+                piece_seeds[y][x] = rand::random();
+            }
+
+            piece_seeds
+        });
 
         #[derive(Debug, Clone, Copy)]
         enum PiecePosition {
@@ -307,6 +316,7 @@ impl Component for Game {
                                 right: ltrb_edges[left_piece_index.y][left_piece_index.x].right,
                                 bottom: Edge::Straight,
                             },
+                            piece_seeds[left_piece_index.y][left_piece_index.x],
                         )
                         .translate(left_piece_xy.x, left_piece_xy.y);
 
@@ -318,6 +328,7 @@ impl Component for Game {
                                 right: Edge::Straight,
                                 bottom: Edge::Straight,
                             },
+                            piece_seeds[piece_index.y][piece_index.x],
                         )
                         .translate(me_piece_xy.x, me_piece_xy.y);
 
@@ -347,6 +358,7 @@ impl Component for Game {
                                 right: Edge::Straight,
                                 bottom: ltrb_edges[top_piece_index.y][top_piece_index.x].bottom,
                             },
+                            piece_seeds[top_piece_index.y][top_piece_index.x],
                         )
                         .translate(top_piece_xy.x, top_piece_xy.y);
 
@@ -358,6 +370,7 @@ impl Component for Game {
                                 right: Edge::Straight,
                                 bottom: Edge::Straight,
                             },
+                            piece_seeds[piece_index.y][piece_index.x],
                         )
                         .translate(me_piece_xy.x, me_piece_xy.y);
 
@@ -407,6 +420,7 @@ impl Component for Game {
                                 image: image.src.clone(),
                                 image_wh,
                                 piece_state: PieceState::None,
+                                piece_shape_seed: piece_seeds[y][x],
                             })
                             .attach_event(|event| {
                                 if let Event::MouseDown { event } = event {
@@ -444,6 +458,7 @@ impl Component for Game {
                 image: image.src.clone(),
                 image_wh,
                 piece_state: PieceState::Dragging,
+                piece_shape_seed: piece_seeds[piece_index.y][piece_index.x],
             });
         });
 
