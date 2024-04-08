@@ -127,6 +127,13 @@ fn apply_command_to_skia_path(skia_path: &mut skia_safe::Path, path: &Path) {
             PathCommand::LineTo { xy } => {
                 skia_path.line_to(*xy);
             }
+            PathCommand::CubicTo {
+                first_xy,
+                second_xy,
+                end_xy,
+            } => {
+                skia_path.cubic_to(*first_xy, *second_xy, *end_xy);
+            }
             &PathCommand::ArcTo {
                 oval,
                 start_angle,
