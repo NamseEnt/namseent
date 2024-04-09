@@ -170,6 +170,13 @@ impl Component for Game {
         let (dragging_piece_state, set_dragging_piece_state) =
             ctx.state::<Option<DraggingPieceState>>(|| None);
 
+        #[derive(Debug)]
+        struct ShakingPiece {
+            piece_index: Xy<usize>,
+            started_at: Instant,
+        }
+        let (shake_piece, set_shake_piece) = ctx.state::<Option<ShakingPiece>>(|| None);
+
         let screen_left_middle_center = Xy::new(screen_wh.width / 4.0, screen_wh.height / 2.0);
         let solution_board_xy = screen_left_middle_center - image_wh.as_xy() / 2.0;
 
@@ -210,168 +217,204 @@ impl Component for Game {
             }
         };
 
+        ctx.interval("shaking control", Duration::from_millis(33), |_dt| {
+            let Some(shake_piece) = shake_piece.as_ref() else {
+                return;
+            };
+
+            const SHAKING_DURATION: Duration = Duration::from_millis(500);
+
+            let elapsed = namui::time::now() - shake_piece.started_at;
+
+            if SHAKING_DURATION < elapsed {
+                set_shake_piece.set(None);
+            }
+        });
+
         ctx.on_raw_event(|event| match event {
             RawEvent::MouseUp { event } => {
-                if let Some(dragging_piece_state) = dragging_piece_state.as_ref() {
-                    set_dragging_piece_state.set(None);
+                let Some(dragging_piece_state) = dragging_piece_state.as_ref() else {
+                    return;
+                };
+                set_dragging_piece_state.set(None);
 
-                    let last_mouse_xy = event.xy;
+                let last_mouse_xy = event.xy;
 
-                    let piece_index = dragging_piece_state.piece_index;
-                    let next_piece_xy = last_mouse_xy - dragging_piece_state.anchor_xy;
-                    let next_piece_position = get_piece_position(next_piece_xy);
+                let piece_index = dragging_piece_state.piece_index;
+                let next_piece_xy = last_mouse_xy - dragging_piece_state.anchor_xy;
+                let next_piece_position = get_piece_position(next_piece_xy);
 
-                    set_piece_positions.mutate(move |piece_xys| {
-                        piece_xys[piece_index.y][piece_index.x] = next_piece_position;
-                    });
+                if let PiecePosition::SolutionBoard { slot_index } = next_piece_position {
+                    let is_collides_with_neighbors = 'outer: {
+                        enum Location {
+                            Left,
+                            Top,
+                            Right,
+                            Bottom,
+                        }
+                        let neighbor_slot_indexes = {
+                            let mut neighbor_slot_indexes = vec![];
+                            if slot_index.x > 0 {
+                                neighbor_slot_indexes.push((
+                                    Location::Left,
+                                    Xy::new(slot_index.x - 1, slot_index.y),
+                                ));
+                            }
+                            if slot_index.y > 0 {
+                                neighbor_slot_indexes
+                                    .push((Location::Top, Xy::new(slot_index.x, slot_index.y - 1)))
+                            }
+                            if slot_index.x < PUZZLE_WH.width - 1 {
+                                neighbor_slot_indexes.push((
+                                    Location::Right,
+                                    Xy::new(slot_index.x + 1, slot_index.y),
+                                ));
+                            }
+                            if slot_index.y < PUZZLE_WH.height - 1 {
+                                neighbor_slot_indexes.push((
+                                    Location::Bottom,
+                                    Xy::new(slot_index.x, slot_index.y + 1),
+                                ));
+                            }
+                            neighbor_slot_indexes
+                        };
+
+                        let piece_ltrb_edge = ltrb_edges[piece_index.y][piece_index.x];
+
+                        for (neighbor_location, neighbor_slot_index) in neighbor_slot_indexes {
+                            let Some(neighbor_piece_index) = solution_board_slot_piece_index_map
+                                [neighbor_slot_index.y][neighbor_slot_index.x]
+                            else {
+                                continue;
+                            };
+
+                            let neighbor_ltrb_edge =
+                                ltrb_edges[neighbor_piece_index.y][neighbor_piece_index.x];
+
+                            let (my_edge, neighbor_edge) = match neighbor_location {
+                                Location::Left => (piece_ltrb_edge.left, neighbor_ltrb_edge.right),
+                                Location::Top => (piece_ltrb_edge.top, neighbor_ltrb_edge.bottom),
+                                Location::Right => (piece_ltrb_edge.right, neighbor_ltrb_edge.left),
+                                Location::Bottom => {
+                                    (piece_ltrb_edge.bottom, neighbor_ltrb_edge.top)
+                                }
+                            };
+
+                            let both_no_out = my_edge != Edge::Out && neighbor_edge != Edge::Out;
+
+                            if both_no_out {
+                                continue;
+                            }
+
+                            let matched = (piece_ltrb_edge.left == Edge::In
+                                && neighbor_ltrb_edge.right == Edge::Out)
+                                || (piece_ltrb_edge.left == Edge::Out
+                                    && neighbor_ltrb_edge.right == Edge::In);
+                            if !matched {
+                                break 'outer true;
+                            }
+
+                            let x_diff = neighbor_piece_index.x.abs_diff(piece_index.x);
+                            let y_diff = neighbor_piece_index.y.abs_diff(piece_index.y);
+                            let is_good_placed =
+                                x_diff == 1 && y_diff == 0 || x_diff == 0 && y_diff == 1;
+
+                            if !is_good_placed {
+                                break 'outer true;
+                            }
+                        }
+
+                        false
+                    };
+                    if is_collides_with_neighbors {
+                        set_shake_piece.set(Some(ShakingPiece {
+                            piece_index,
+                            started_at: namui::time::now(),
+                        }));
+                        return;
+                    }
                 }
+
+                set_piece_positions.mutate(move |piece_xys| {
+                    piece_xys[piece_index.y][piece_index.x] = next_piece_position;
+                });
             }
             RawEvent::MouseMove { event } => {
-                if let Some(dragging_piece_state) = dragging_piece_state.as_ref() {
-                    let last_mouse_xy = event.xy;
-                    set_dragging_piece_state.mutate(move |state| {
-                        state.as_mut().unwrap().last_mouse_xy = last_mouse_xy;
-                    });
+                let Some(dragging_piece_state) = dragging_piece_state.as_ref() else {
+                    return;
+                };
 
-                    let piece_index = dragging_piece_state.piece_index;
-                    let next_piece_xy = last_mouse_xy - dragging_piece_state.anchor_xy;
+                let last_mouse_xy = event.xy;
+                set_dragging_piece_state.mutate(move |state| {
+                    state.as_mut().unwrap().last_mouse_xy = last_mouse_xy;
+                });
 
-                    set_piece_positions.mutate(move |piece_xys| {
-                        piece_xys[piece_index.y][piece_index.x] =
-                            PiecePosition::Playground { xy: next_piece_xy };
-                    });
-                }
+                let piece_index = dragging_piece_state.piece_index;
+                let next_piece_xy = last_mouse_xy - dragging_piece_state.anchor_xy;
+
+                set_piece_positions.mutate(move |piece_xys| {
+                    piece_xys[piece_index.y][piece_index.x] =
+                        PiecePosition::Playground { xy: next_piece_xy };
+                });
             }
             _ => (),
         });
 
-        ctx.compose_2("warning for overlapping on solution board", |ctx| {
-            let ctx = ctx.translate(solution_board_xy);
+        ctx.compose_2("shaking piece", |ctx| {
+            let Some(ShakingPiece {
+                piece_index,
+                started_at,
+            }) = *shake_piece.as_ref()
+            else {
+                return;
+            };
 
-            let xy_iter =
-                (0..PUZZLE_WH.height).flat_map(|y| (0..PUZZLE_WH.width).map(move |x| (x, y)));
+            ctx.compose(|ctx| {
+                let piece_xy = to_piece_xy(piece_positions[piece_index.y][piece_index.x]);
 
-            let dt = namui::time::since_start().as_secs_f32();
-            let pattern_hz = 0.5;
-            let pattern_length = 10.px();
-            let from = pattern_length * (dt * pattern_hz);
-            let to = pattern_length * (dt * pattern_hz) + pattern_length;
-            let paint = Paint::new(Color::WHITE).set_shader(Shader::LinearGradient {
-                start_xy: Xy::new(from, from),
-                end_xy: Xy::new(from, to),
-                colors: vec![
-                    Color::from_f01(1.0, 0.0, 0.0, 0.50),
-                    Color::from_f01(0.0, 0.0, 0.0, 0.50),
-                    Color::from_f01(1.0, 0.0, 0.0, 0.50),
-                    Color::from_f01(0.5, 0.5, 0.5, 0.50),
-                ],
-                tile_mode: TileMode::Repeat,
+                ctx.translate(piece_xy).add(Piece {
+                    wh: piece_wh,
+                    piece_index,
+                    ltrb_edge: ltrb_edges[piece_index.y][piece_index.x],
+                    image: image.src.clone(),
+                    image_wh,
+                    piece_state: PieceState::Shaking { started_at },
+                });
             });
-            let paint2 = Paint::new(Color::WHITE).set_shader(Shader::LinearGradient {
-                start_xy: Xy::new(from, from),
-                end_xy: Xy::new(to, from),
-                colors: vec![
-                    Color::from_f01(1.0, 0.0, 0.0, 0.50),
-                    Color::from_f01(0.0, 0.0, 0.0, 0.50),
-                    Color::from_f01(1.0, 0.0, 0.0, 0.50),
-                    Color::from_f01(0.5, 0.5, 0.5, 0.50),
-                ],
-                tile_mode: TileMode::Repeat,
+        });
+
+        ctx.compose_2("dragging piece", |ctx| {
+            let Some(dragging_piece_state) = dragging_piece_state.as_ref() else {
+                return;
+            };
+            let piece_index = dragging_piece_state.piece_index;
+            let piece_xy = dragging_piece_state.last_mouse_xy - dragging_piece_state.anchor_xy;
+
+            let free_movement_piece_xy = to_piece_xy(PiecePosition::Playground { xy: piece_xy });
+
+            ctx.translate(free_movement_piece_xy).add(Piece {
+                wh: piece_wh,
+                piece_index,
+                ltrb_edge: ltrb_edges[piece_index.y][piece_index.x],
+                image: image.src.clone(),
+                image_wh,
+                piece_state: PieceState::None,
             });
 
-            for (slot_x, slot_y) in xy_iter {
-                let Some(piece_index) = solution_board_slot_piece_index_map[slot_y][slot_x] else {
-                    continue;
-                };
+            let PiecePosition::SolutionBoard { slot_index } = get_piece_position(piece_xy) else {
+                return;
+            };
 
-                let add_intersection_warning =
-                    |piece_part_1: Path, piece_part_2: Path, two_squares: Path| {
-                        ctx.clip(piece_part_1, ClipOp::Intersect)
-                            .clip(piece_part_2, ClipOp::Intersect)
-                            .add(namui::path(two_squares.clone(), paint.clone()))
-                            .add(namui::path(two_squares, paint2.clone()));
-                    };
+            let piece_xy_on_slot = to_piece_xy(PiecePosition::SolutionBoard { slot_index });
 
-                if slot_x > 0 {
-                    if let Some(left_piece_index) =
-                        solution_board_slot_piece_index_map[slot_y][slot_x - 1]
-                    {
-                        let left_piece_xy = piece_wh.as_xy() * Xy::new(slot_x - 1, slot_y);
-                        let me_piece_xy = piece_wh.as_xy() * Xy::new(slot_x, slot_y);
-
-                        let square_plus_right_on_left_piece = piece::create_piece_clip_path(
-                            piece_wh,
-                            Ltrb {
-                                left: Edge::Straight,
-                                top: Edge::Straight,
-                                right: ltrb_edges[left_piece_index.y][left_piece_index.x].right,
-                                bottom: Edge::Straight,
-                            },
-                        )
-                        .translate(left_piece_xy.x, left_piece_xy.y);
-
-                        let square_plus_left_on_me = piece::create_piece_clip_path(
-                            piece_wh,
-                            Ltrb {
-                                left: ltrb_edges[piece_index.y][piece_index.x].left,
-                                top: Edge::Straight,
-                                right: Edge::Straight,
-                                bottom: Edge::Straight,
-                            },
-                        )
-                        .translate(me_piece_xy.x, me_piece_xy.y);
-
-                        let two_squares = Path::new()
-                            .add_rect(Rect::from_xy_wh(left_piece_xy, piece_wh * Wh::new(2, 1)));
-
-                        add_intersection_warning(
-                            square_plus_right_on_left_piece,
-                            square_plus_left_on_me,
-                            two_squares,
-                        );
-                    }
-                }
-
-                if slot_y > 0 {
-                    if let Some(top_piece_index) =
-                        solution_board_slot_piece_index_map[slot_y - 1][slot_x]
-                    {
-                        let top_piece_xy = piece_wh.as_xy() * Xy::new(slot_x, slot_y - 1);
-                        let me_piece_xy = piece_wh.as_xy() * Xy::new(slot_x, slot_y);
-
-                        let square_plus_bottom_on_top_piece = piece::create_piece_clip_path(
-                            piece_wh,
-                            Ltrb {
-                                left: Edge::Straight,
-                                top: Edge::Straight,
-                                right: Edge::Straight,
-                                bottom: ltrb_edges[top_piece_index.y][top_piece_index.x].bottom,
-                            },
-                        )
-                        .translate(top_piece_xy.x, top_piece_xy.y);
-
-                        let square_plus_top_on_me = piece::create_piece_clip_path(
-                            piece_wh,
-                            Ltrb {
-                                left: Edge::Straight,
-                                top: ltrb_edges[piece_index.y][piece_index.x].top,
-                                right: Edge::Straight,
-                                bottom: Edge::Straight,
-                            },
-                        )
-                        .translate(me_piece_xy.x, me_piece_xy.y);
-
-                        let two_squares = Path::new()
-                            .add_rect(Rect::from_xy_wh(top_piece_xy, piece_wh * Wh::new(1, 2)));
-
-                        add_intersection_warning(
-                            square_plus_bottom_on_top_piece,
-                            square_plus_top_on_me,
-                            two_squares,
-                        );
-                    }
-                }
-            }
+            ctx.translate(piece_xy_on_slot).add(Piece {
+                wh: piece_wh,
+                piece_index,
+                ltrb_edge: ltrb_edges[piece_index.y][piece_index.x],
+                image: image.src.clone(),
+                image_wh,
+                piece_state: PieceState::DraggingShadow,
+            });
         });
 
         ctx.compose_2(
@@ -396,6 +439,19 @@ impl Component for Game {
                     }
 
                     let piece_index = Xy::new(x, y);
+
+                    if let Some(dragging_piece_state) = dragging_piece_state.as_ref() {
+                        if dragging_piece_state.piece_index == piece_index {
+                            continue;
+                        }
+                    };
+
+                    if let Some(shake_piece) = shake_piece.as_ref() {
+                        if shake_piece.piece_index == piece_index {
+                            continue;
+                        }
+                    }
+
                     ctx.compose(|ctx| {
                         let piece_xy = to_piece_xy(piece_positions[y][x]);
 
@@ -424,28 +480,6 @@ impl Component for Game {
                 }
             },
         );
-
-        ctx.compose_2("dragging piece", |ctx| {
-            let Some(dragging_piece_state) = dragging_piece_state.as_ref() else {
-                return;
-            };
-            let piece_index = dragging_piece_state.piece_index;
-            let piece_xy = dragging_piece_state.last_mouse_xy - dragging_piece_state.anchor_xy;
-            let PiecePosition::SolutionBoard { slot_index } = get_piece_position(piece_xy) else {
-                return;
-            };
-
-            let piece_xy_on_slot = to_piece_xy(PiecePosition::SolutionBoard { slot_index });
-
-            ctx.translate(piece_xy_on_slot).add(Piece {
-                wh: piece_wh,
-                piece_index,
-                ltrb_edge: ltrb_edges[piece_index.y][piece_index.x],
-                image: image.src.clone(),
-                image_wh,
-                piece_state: PieceState::Dragging,
-            });
-        });
 
         ctx.translate(solution_board_xy).add(SolutionBoard {
             wh_counts: PUZZLE_WH,

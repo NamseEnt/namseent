@@ -13,7 +13,8 @@ pub struct Piece {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PieceState {
     None,
-    Dragging,
+    DraggingShadow,
+    Shaking { started_at: Instant },
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -42,28 +43,142 @@ impl Component for Piece {
         });
 
         let paint = match piece_state {
-            PieceState::None => None,
-            PieceState::Dragging => Some(Paint::new(Color::WHITE).set_color_filter(ColorFilter {
-                color: Color::grayscale_f01(0.5),
-                blend_mode: BlendMode::Lighten,
-            })),
+            PieceState::None | PieceState::Shaking { .. } => None,
+            PieceState::DraggingShadow => {
+                Some(Paint::new(Color::WHITE).set_color_filter(ColorFilter {
+                    color: Color::grayscale_f01(0.5),
+                    blend_mode: BlendMode::Lighten,
+                }))
+            }
         };
 
-        ctx.translate((-wh.as_xy()) * *piece_index)
-            .add(namui::path(
-                clip_path.clone(),
-                Paint::new(Color::BLACK)
-                    .set_style(PaintStyle::Stroke)
-                    .set_stroke_width(2.px())
-                    .set_anti_alias(true),
-            ))
-            .clip(clip_path.clone(), ClipOp::Intersect)
-            .add(ImageDrawCommand {
-                rect: Rect::zero_wh(image_wh),
-                source: image.clone(),
-                fit: ImageFit::Contain,
-                paint,
-            });
+        ctx.compose(|mut ctx| {
+            if let PieceState::Shaking { started_at } = piece_state {
+                struct Keyframe {
+                    percent: Percent,
+                    translate: Xy<Px>,
+                    rotate_angle: Angle,
+                }
+
+                let keyframes: [Keyframe; 11] = [
+                    Keyframe {
+                        percent: percent(0.0),
+                        translate: Xy::new(px(1.0), px(1.0)),
+                        rotate_angle: 0.deg(),
+                    },
+                    Keyframe {
+                        percent: percent(10.0),
+                        translate: Xy::new(px(-1.0), px(-2.0)),
+                        rotate_angle: (-1.0).deg(),
+                    },
+                    Keyframe {
+                        percent: percent(20.0),
+                        translate: Xy::new(px(-3.0), px(0.0)),
+                        rotate_angle: (1.0).deg(),
+                    },
+                    Keyframe {
+                        percent: percent(30.0),
+                        translate: Xy::new(px(3.0), px(2.0)),
+                        rotate_angle: 0.0.deg(),
+                    },
+                    Keyframe {
+                        percent: percent(40.0),
+                        translate: Xy::new(px(1.0), px(-1.0)),
+                        rotate_angle: (1.0).deg(),
+                    },
+                    Keyframe {
+                        percent: percent(50.0),
+                        translate: Xy::new(px(-1.0), px(2.0)),
+                        rotate_angle: (-1.0).deg(),
+                    },
+                    Keyframe {
+                        percent: percent(60.0),
+                        translate: Xy::new(px(-3.0), px(1.0)),
+                        rotate_angle: 0.0.deg(),
+                    },
+                    Keyframe {
+                        percent: percent(70.0),
+                        translate: Xy::new(px(3.0), px(1.0)),
+                        rotate_angle: (-1.0).deg(),
+                    },
+                    Keyframe {
+                        percent: percent(80.0),
+                        translate: Xy::new(px(-1.0), px(-1.0)),
+                        rotate_angle: (1.0).deg(),
+                    },
+                    Keyframe {
+                        percent: percent(90.0),
+                        translate: Xy::new(px(1.0), px(2.0)),
+                        rotate_angle: 0.0.deg(),
+                    },
+                    Keyframe {
+                        percent: percent(100.0),
+                        translate: Xy::new(px(1.0), px(-2.0)),
+                        rotate_angle: (-1.0).deg(),
+                    },
+                ];
+
+                let elapsed = namui::time::now() - started_at;
+
+                let animation_duration = Duration::from_secs_f32(0.5);
+
+                let progress_percent =
+                    (((elapsed % animation_duration) / animation_duration) as f32 * 100.0)
+                        .percent();
+
+                let keyframe_index = 'outer: {
+                    for (index, keyframe) in keyframes.iter().enumerate() {
+                        let Some(next_keyframe) = keyframes.get(index + 1) else {
+                            break;
+                        };
+                        if keyframe.percent <= progress_percent
+                            && progress_percent <= next_keyframe.percent
+                        {
+                            break 'outer index;
+                        }
+                    }
+                    keyframes.len() - 1
+                };
+
+                let (translate_xy, rotate_angle) = if keyframe_index == keyframes.len() - 1 {
+                    let translate_xy = keyframes.last().unwrap().translate;
+                    let rotate_angle = keyframes.last().unwrap().rotate_angle;
+
+                    (translate_xy, rotate_angle)
+                } else {
+                    let next_keyframe = keyframes.get(keyframe_index + 1).unwrap();
+
+                    let ratio = (progress_percent - keyframes[keyframe_index].percent)
+                        / (next_keyframe.percent - keyframes[keyframe_index].percent);
+
+                    let translate_xy = next_keyframe.translate * (100.percent() - ratio)
+                        + next_keyframe.translate * ratio;
+
+                    let rotate_angle = next_keyframe.rotate_angle * (100.percent() - ratio)
+                        + next_keyframe.rotate_angle * ratio;
+
+                    (translate_xy, rotate_angle)
+                };
+
+                ctx = ctx.translate(translate_xy).rotate(rotate_angle);
+            }
+
+            ctx.translate((-wh.as_xy()) * *piece_index)
+                .add(namui::path(
+                    clip_path.clone(),
+                    Paint::new(Color::BLACK)
+                        .set_style(PaintStyle::Stroke)
+                        .set_stroke_width(2.px())
+                        .set_anti_alias(true),
+                ))
+                .clip(clip_path.clone(), ClipOp::Intersect)
+                .add(ImageDrawCommand {
+                    rect: Rect::zero_wh(image_wh),
+                    source: image.clone(),
+                    fit: ImageFit::Contain,
+                    paint,
+                });
+        });
     }
 }
 
@@ -86,46 +201,76 @@ enum Side {
 }
 
 fn line_piece_part_cw(mut path: Path, piece_wh: Wh<Px>, side: Side, edge: Edge) -> Path {
-    const SHOULDER_WIDTH: f32 = 0.37;
-    const NECK: Wh<f32> = Wh::new(0.03, 0.05);
-    const HEAD_RADIUS: Wh<f32> = Wh::new(0.12, 0.15);
+    const SHOULDER_WIDTH: f32 = 0.3;
+    const NECK: Wh<f32> = Wh::new(0.1, 0.1);
+    const HEAD_RADIUS: Wh<f32> = Wh::new(0.2, 0.075);
 
-    const TOP_CONTROL_POINTS: [[Xy<f32>; 3]; 6] = [
+    const TOP_CONTROL_POINTS_HALF: [[Xy<f32>; 3]; 3] = [
         [
             Xy::new(0.0, 0.0),
-            Xy::new(0.0, 0.0),
+            Xy::new(SHOULDER_WIDTH, 0.0),
             Xy::new(SHOULDER_WIDTH, 0.0),
         ],
         [
             Xy::new(SHOULDER_WIDTH, 0.0),
-            Xy::new(SHOULDER_WIDTH + NECK.width, 0.0),
-            Xy::new(SHOULDER_WIDTH + NECK.width / 2.0, -NECK.height),
+            Xy::new(SHOULDER_WIDTH + NECK.width, NECK.height / 2.0),
+            Xy::new(SHOULDER_WIDTH + NECK.width / 2.0, NECK.height),
         ],
         [
-            Xy::new(SHOULDER_WIDTH + NECK.width / 2.0, -NECK.height),
+            Xy::new(SHOULDER_WIDTH + NECK.width / 2.0, NECK.height),
             Xy::new(
                 0.5 - HEAD_RADIUS.width,
-                -NECK.height - HEAD_RADIUS.height * 2.0,
+                NECK.height + HEAD_RADIUS.height * 2.0,
             ),
-            Xy::new(0.5, -NECK.height - HEAD_RADIUS.height * 2.0),
+            Xy::new(0.5, NECK.height + HEAD_RADIUS.height * 2.0),
         ],
+    ];
+
+    const TOP_CONTROL_POINTS: [[Xy<f32>; 3]; 6] = [
+        TOP_CONTROL_POINTS_HALF[0],
+        TOP_CONTROL_POINTS_HALF[1],
+        TOP_CONTROL_POINTS_HALF[2],
         [
-            Xy::new(0.5, -NECK.height - HEAD_RADIUS.height * 2.0),
             Xy::new(
-                0.5 + HEAD_RADIUS.width,
-                -NECK.height - HEAD_RADIUS.height * 2.0,
+                1.0 - TOP_CONTROL_POINTS_HALF[2][2].x,
+                TOP_CONTROL_POINTS_HALF[2][2].y,
             ),
-            Xy::new(1.0 - (SHOULDER_WIDTH + NECK.width / 2.0), -NECK.height),
+            Xy::new(
+                1.0 - TOP_CONTROL_POINTS_HALF[2][1].x,
+                TOP_CONTROL_POINTS_HALF[2][1].y,
+            ),
+            Xy::new(
+                1.0 - TOP_CONTROL_POINTS_HALF[2][0].x,
+                TOP_CONTROL_POINTS_HALF[2][0].y,
+            ),
         ],
         [
-            Xy::new(1.0 - (SHOULDER_WIDTH + NECK.width / 2.0), -NECK.height),
-            Xy::new(1.0 - (SHOULDER_WIDTH + NECK.width), 0.0),
-            Xy::new(1.0 - SHOULDER_WIDTH, 0.0),
+            Xy::new(
+                1.0 - TOP_CONTROL_POINTS_HALF[1][2].x,
+                TOP_CONTROL_POINTS_HALF[1][2].y,
+            ),
+            Xy::new(
+                1.0 - TOP_CONTROL_POINTS_HALF[1][1].x,
+                TOP_CONTROL_POINTS_HALF[1][1].y,
+            ),
+            Xy::new(
+                1.0 - TOP_CONTROL_POINTS_HALF[1][0].x,
+                TOP_CONTROL_POINTS_HALF[1][0].y,
+            ),
         ],
         [
-            Xy::new(1.0 - SHOULDER_WIDTH, 0.0),
-            Xy::new(1.0, 0.0),
-            Xy::new(1.0, 0.0),
+            Xy::new(
+                1.0 - TOP_CONTROL_POINTS_HALF[0][2].x,
+                TOP_CONTROL_POINTS_HALF[0][2].y,
+            ),
+            Xy::new(
+                1.0 - TOP_CONTROL_POINTS_HALF[0][1].x,
+                TOP_CONTROL_POINTS_HALF[0][1].y,
+            ),
+            Xy::new(
+                1.0 - TOP_CONTROL_POINTS_HALF[0][0].x,
+                TOP_CONTROL_POINTS_HALF[0][0].y,
+            ),
         ],
     ];
 
@@ -166,9 +311,9 @@ fn line_piece_part_cw(mut path: Path, piece_wh: Wh<Px>, side: Side, edge: Edge) 
         Side::Bottom => {
             let mut control_points = [[Xy::new(0.0, 0.0); 3]; 6];
             for (i, xys) in TOP_CONTROL_POINTS.iter().enumerate() {
-                control_points[i][0] = Xy::new(-xys[0].x, -xys[0].y);
-                control_points[i][1] = Xy::new(-xys[1].x, -xys[1].y);
-                control_points[i][2] = Xy::new(-xys[2].x, -xys[2].y);
+                control_points[i][0] = Xy::new(-xys[0].x, xys[0].y);
+                control_points[i][1] = Xy::new(-xys[1].x, xys[1].y);
+                control_points[i][2] = Xy::new(-xys[2].x, xys[2].y);
             }
             control_points
         }
