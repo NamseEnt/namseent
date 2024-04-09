@@ -104,24 +104,17 @@ impl Display for Angle {
     }
 }
 
-crate::impl_op_forward_ref!(*|lhs: Angle, rhs: f32| -> Angle {
-    Self {
-        radians: lhs.radians * rhs,
-    }
-});
-
+// i32 and f32 versions are implemented with trait Ratio.
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i8| -> Angle { lhs * rhs as f32 });
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u8| -> Angle { lhs * rhs as f32 });
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i16| -> Angle { lhs * rhs as f32 });
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u16| -> Angle { lhs * rhs as f32 });
-crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i32| -> Angle { lhs * rhs as f32 });
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u32| -> Angle { lhs * rhs as f32 });
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i64| -> Angle { lhs * rhs as f32 });
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u64| -> Angle { lhs * rhs as f32 });
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i128| -> Angle { lhs * rhs as f32 });
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u128| -> Angle { lhs * rhs as f32 });
 crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: isize| -> Angle { lhs * rhs as f32 });
-crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: usize| -> Angle { lhs * rhs as f32 });
 
 crate::impl_op_forward_ref!(/|lhs: Angle, rhs: f32| -> Angle {
     Self {
@@ -145,3 +138,36 @@ crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: usize| -> Angle { lhs / 
 auto_ops::impl_op!(+=|lhs: &mut Angle, rhs: Angle| {
     lhs.radians += rhs.radians;
 });
+
+impl<Rhs> std::ops::Mul<Rhs> for Angle
+where
+    Rhs: Ratio + Clone,
+{
+    type Output = Angle;
+    fn mul(self, rhs: Rhs) -> Self::Output {
+        Angle {
+            radians: self.radians * rhs.as_f32(),
+        }
+    }
+}
+
+impl<'a, Rhs> std::ops::Mul<Rhs> for &'a Angle
+where
+    Rhs: Ratio + Clone,
+{
+    type Output = Angle;
+    fn mul(self, rhs: Rhs) -> Self::Output {
+        Angle {
+            radians: self.radians * rhs.as_f32(),
+        }
+    }
+}
+
+impl<Rhs> std::ops::MulAssign<Rhs> for Angle
+where
+    Rhs: Ratio + Clone,
+{
+    fn mul_assign(&mut self, rhs: Rhs) {
+        self.radians *= rhs.as_f32();
+    }
+}
