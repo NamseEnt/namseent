@@ -6,13 +6,17 @@ use crate::*;
 use std::sync::atomic::Ordering;
 
 impl<'a, 'rt> ComposeCtx<'a, 'rt> {
-    pub fn compose(&self, compose: impl FnOnce(&ComposeCtx)) -> &Self {
+    pub fn compose(&self, compose: impl FnOnce(ComposeCtx)) -> &Self {
+        self.compose_with_key(None, compose)
+    }
+    pub fn compose_2(&self, title: &str, compose: impl FnOnce(ComposeCtx)) -> &Self {
+        let _ = title;
         self.compose_with_key(None, compose)
     }
     pub fn compose_with_key(
         &self,
         key: impl Into<AddKey>,
-        compose: impl FnOnce(&ComposeCtx),
+        compose: impl FnOnce(ComposeCtx),
     ) -> &Self {
         let rt_container = self.ghost_impl(key, compose);
         self.add_rt_container(rt_container);
@@ -22,11 +26,11 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
     pub fn ghost_compose(
         &self,
         key: impl Into<AddKey>,
-        compose: impl FnOnce(&ComposeCtx),
+        compose: impl FnOnce(ComposeCtx),
     ) -> RenderingTree {
         self.ghost_impl(key, compose).into()
     }
-    fn ghost_impl(&self, key: impl Into<AddKey>, compose: impl FnOnce(&ComposeCtx)) -> RtContainer {
+    fn ghost_impl(&self, key: impl Into<AddKey>, compose: impl FnOnce(ComposeCtx)) -> RtContainer {
         let child_key = match key.into() {
             AddKey::Usize(index) => ChildKey::Usize(index),
             AddKey::String(key) => ChildKey::String(key),
@@ -45,7 +49,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             &rt_container,
             Cow::Borrowed(self.full_stack.as_ref()),
         );
-        compose(&ctx);
+        compose(ctx);
 
         rt_container
     }
