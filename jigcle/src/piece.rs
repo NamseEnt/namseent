@@ -8,7 +8,6 @@ pub struct Piece {
     pub image: ImageSource,
     pub image_wh: Wh<Px>,
     pub piece_state: PieceState,
-    pub piece_shape_seed: u64,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -33,13 +32,12 @@ impl Component for Piece {
             image,
             image_wh,
             piece_state,
-            piece_shape_seed,
         } = self;
         let wh = ctx.track_eq(&wh);
         let ltrb_edge = ctx.track_eq(&ltrb_edge);
         let piece_index = ctx.track_eq(&piece_index);
         let clip_path = ctx.memo(|| {
-            create_piece_clip_path(*wh, *ltrb_edge, piece_shape_seed)
+            create_piece_clip_path(*wh, *ltrb_edge)
                 .translate(wh.width * piece_index.x, wh.height * piece_index.y)
         });
 
@@ -69,41 +67,13 @@ impl Component for Piece {
     }
 }
 
-pub fn create_piece_clip_path(
-    piece_wh: Wh<Px>,
-    ltrb_edge: Ltrb<Edge>,
-    piece_shape_seed: u64,
-) -> Path {
+pub fn create_piece_clip_path(piece_wh: Wh<Px>, ltrb_edge: Ltrb<Edge>) -> Path {
     let mut clip_path = Path::new();
 
-    clip_path = line_piece_part_cw(
-        clip_path,
-        piece_wh,
-        Side::Top,
-        ltrb_edge.top,
-        piece_shape_seed,
-    );
-    clip_path = line_piece_part_cw(
-        clip_path,
-        piece_wh,
-        Side::Right,
-        ltrb_edge.right,
-        piece_shape_seed,
-    );
-    clip_path = line_piece_part_cw(
-        clip_path,
-        piece_wh,
-        Side::Bottom,
-        ltrb_edge.bottom,
-        piece_shape_seed,
-    );
-    clip_path = line_piece_part_cw(
-        clip_path,
-        piece_wh,
-        Side::Left,
-        ltrb_edge.left,
-        piece_shape_seed,
-    );
+    clip_path = line_piece_part_cw(clip_path, piece_wh, Side::Top, ltrb_edge.top);
+    clip_path = line_piece_part_cw(clip_path, piece_wh, Side::Right, ltrb_edge.right);
+    clip_path = line_piece_part_cw(clip_path, piece_wh, Side::Bottom, ltrb_edge.bottom);
+    clip_path = line_piece_part_cw(clip_path, piece_wh, Side::Left, ltrb_edge.left);
 
     clip_path.close()
 }
@@ -115,57 +85,45 @@ enum Side {
     Left,
 }
 
-fn line_piece_part_cw(
-    mut path: Path,
-    piece_wh: Wh<Px>,
-    side: Side,
-    edge: Edge,
-    piece_shape_seed: u64,
-) -> Path {
-    let shoulder_width = seeded_random_range_f32(piece_shape_seed, 0.3..0.4);
-    let neck = Wh::new(
-        seeded_random_range_f32(piece_shape_seed, 0.01..0.05),
-        seeded_random_range_f32(piece_shape_seed, 0.01..0.05),
-    );
-    let head_radius = Wh::new(
-        seeded_random_range_f32(piece_shape_seed, 0.2..0.4),
-        seeded_random_range_f32(piece_shape_seed, 0.1..0.2),
-    );
+fn line_piece_part_cw(mut path: Path, piece_wh: Wh<Px>, side: Side, edge: Edge) -> Path {
+    const SHOULDER_WIDTH: f32 = 0.37;
+    const NECK: Wh<f32> = Wh::new(0.03, 0.05);
+    const HEAD_RADIUS: Wh<f32> = Wh::new(0.12, 0.15);
 
-    let top_control_points: [[Xy<f32>; 3]; 6] = [
+    const TOP_CONTROL_POINTS: [[Xy<f32>; 3]; 6] = [
         [
             Xy::new(0.0, 0.0),
             Xy::new(0.0, 0.0),
-            Xy::new(shoulder_width, 0.0),
+            Xy::new(SHOULDER_WIDTH, 0.0),
         ],
         [
-            Xy::new(shoulder_width, 0.0),
-            Xy::new(shoulder_width + neck.width, 0.0),
-            Xy::new(shoulder_width + neck.width / 2.0, -neck.height),
+            Xy::new(SHOULDER_WIDTH, 0.0),
+            Xy::new(SHOULDER_WIDTH + NECK.width, 0.0),
+            Xy::new(SHOULDER_WIDTH + NECK.width / 2.0, -NECK.height),
         ],
         [
-            Xy::new(shoulder_width + neck.width / 2.0, -neck.height),
+            Xy::new(SHOULDER_WIDTH + NECK.width / 2.0, -NECK.height),
             Xy::new(
-                0.5 - head_radius.width,
-                -neck.height - head_radius.height * 2.0,
+                0.5 - HEAD_RADIUS.width,
+                -NECK.height - HEAD_RADIUS.height * 2.0,
             ),
-            Xy::new(0.5, -neck.height - head_radius.height * 2.0),
+            Xy::new(0.5, -NECK.height - HEAD_RADIUS.height * 2.0),
         ],
         [
-            Xy::new(0.5, -neck.height - head_radius.height * 2.0),
+            Xy::new(0.5, -NECK.height - HEAD_RADIUS.height * 2.0),
             Xy::new(
-                0.5 + head_radius.width,
-                -neck.height - head_radius.height * 2.0,
+                0.5 + HEAD_RADIUS.width,
+                -NECK.height - HEAD_RADIUS.height * 2.0,
             ),
-            Xy::new(1.0 - (shoulder_width + neck.width / 2.0), -neck.height),
+            Xy::new(1.0 - (SHOULDER_WIDTH + NECK.width / 2.0), -NECK.height),
         ],
         [
-            Xy::new(1.0 - (shoulder_width + neck.width / 2.0), -neck.height),
-            Xy::new(1.0 - (shoulder_width + neck.width), 0.0),
-            Xy::new(1.0 - shoulder_width, 0.0),
+            Xy::new(1.0 - (SHOULDER_WIDTH + NECK.width / 2.0), -NECK.height),
+            Xy::new(1.0 - (SHOULDER_WIDTH + NECK.width), 0.0),
+            Xy::new(1.0 - SHOULDER_WIDTH, 0.0),
         ],
         [
-            Xy::new(1.0 - shoulder_width, 0.0),
+            Xy::new(1.0 - SHOULDER_WIDTH, 0.0),
             Xy::new(1.0, 0.0),
             Xy::new(1.0, 0.0),
         ],
@@ -195,10 +153,10 @@ fn line_piece_part_cw(
     };
 
     let control_points = match side {
-        Side::Top => top_control_points,
+        Side::Top => TOP_CONTROL_POINTS,
         Side::Right => {
             let mut control_points = [[Xy::new(0.0, 0.0); 3]; 6];
-            for (i, xys) in top_control_points.iter().enumerate() {
+            for (i, xys) in TOP_CONTROL_POINTS.iter().enumerate() {
                 control_points[i][0] = Xy::new(xys[0].y, xys[0].x);
                 control_points[i][1] = Xy::new(xys[1].y, xys[1].x);
                 control_points[i][2] = Xy::new(xys[2].y, xys[2].x);
@@ -207,7 +165,7 @@ fn line_piece_part_cw(
         }
         Side::Bottom => {
             let mut control_points = [[Xy::new(0.0, 0.0); 3]; 6];
-            for (i, xys) in top_control_points.iter().enumerate() {
+            for (i, xys) in TOP_CONTROL_POINTS.iter().enumerate() {
                 control_points[i][0] = Xy::new(-xys[0].x, -xys[0].y);
                 control_points[i][1] = Xy::new(-xys[1].x, -xys[1].y);
                 control_points[i][2] = Xy::new(-xys[2].x, -xys[2].y);
@@ -216,7 +174,7 @@ fn line_piece_part_cw(
         }
         Side::Left => {
             let mut control_points = [[Xy::new(0.0, 0.0); 3]; 6];
-            for (i, xys) in top_control_points.iter().enumerate() {
+            for (i, xys) in TOP_CONTROL_POINTS.iter().enumerate() {
                 control_points[i][0] = Xy::new(xys[0].y, -xys[0].x);
                 control_points[i][1] = Xy::new(xys[1].y, -xys[1].x);
                 control_points[i][2] = Xy::new(xys[2].y, -xys[2].x);
@@ -241,10 +199,4 @@ fn line_piece_part_cw(
     }
 
     path
-}
-
-fn seeded_random_range_f32(seed: u64, range: std::ops::Range<f32>) -> f32 {
-    let rng = seeded_random::Random::from_seed(seeded_random::Seed::unsafe_new(seed));
-
-    rng.gen::<f32>() * (range.end - range.start) + range.start
 }
