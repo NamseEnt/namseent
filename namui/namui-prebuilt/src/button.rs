@@ -2,7 +2,7 @@ use crate::{simple_rect, typography::center_text_full_height};
 use namui::*;
 
 fn attach_text_button_event(
-    ctx: &ComposeCtx,
+    ctx: ComposeCtx,
     mouse_buttons: Vec<MouseButton>,
     on_mouse_up_in: impl FnOnce(MouseEvent<'_>),
 ) {

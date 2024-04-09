@@ -45,14 +45,14 @@ impl<C: Component> Component for AutoScrollView<C> {
 }
 
 #[component]
-pub struct AutoScrollViewWithCtx<Func: FnOnce(&ComposeCtx)> {
+pub struct AutoScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
     #[skip_debug]
     pub content: Func,
 }
 
-impl<Func: FnOnce(&ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
+impl<Func: FnOnce(ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
     fn render(self, ctx: &RenderCtx) {
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
@@ -67,7 +67,7 @@ impl<Func: FnOnce(&ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
 }
 
 #[component]
-pub struct ScrollViewWithCtx<'a, Func: FnOnce(&ComposeCtx)> {
+pub struct ScrollViewWithCtx<'a, Func: FnOnce(ComposeCtx)> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
     #[skip_debug]
@@ -76,7 +76,7 @@ pub struct ScrollViewWithCtx<'a, Func: FnOnce(&ComposeCtx)> {
     pub set_scroll_y: SetState<'a, Px>,
 }
 
-impl<Func: FnOnce(&ComposeCtx)> Component for ScrollViewWithCtx<'_, Func> {
+impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<'_, Func> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
@@ -110,7 +110,7 @@ impl<Func: FnOnce(&ComposeCtx)> Component for ScrollViewWithCtx<'_, Func> {
                 set_scroll_y.set(clamped_scroll_y);
             }
 
-            let scroll_bar = |ctx: &ComposeCtx| {
+            let scroll_bar = |ctx: ComposeCtx| {
                 if bounding_box.height() > height {
                     let scroll_bar_handle_height = height * (height / bounding_box.height());
 
