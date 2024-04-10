@@ -12,6 +12,14 @@ pub fn main() {
 const IMAGE: &str = "bundle:image.jpg";
 const MUSIC: &str = "bundle:music.opus";
 
+const SFX_1: &str = "bundle:sfx/49940__simonrue__felplacerad-atom-v1.opus";
+const SFX_2: &str = "bundle:sfx/63511__florian_reinke__paper2.opus";
+const SFX_3: &str = "bundle:sfx/84327__splashdust__sadwhisle.opus";
+const SFX_4: &str = "bundle:sfx/415488__aiwha__opening-a-small-cardboard-box.opus";
+const SFX_5: &str = "bundle:sfx/416179__inspectorj__book-flipping-through-pages-a.opus";
+const SFX_6: &str = "bundle:sfx/587253__beetlemuse__dats-wrong.opus";
+const SFX_7: &str = "bundle:sfx/469045__hawkeye_sprout__drop-book.opus";
+
 #[component]
 pub struct Game;
 
@@ -58,6 +66,13 @@ impl Component for Game {
     fn render(self, ctx: &RenderCtx) {
         let image = ctx.image(IMAGE);
         let (bgm, set_bgm) = ctx.state::<Option<FullLoadRepeatAudio>>(|| None);
+        let sfx1 = load_sfx(ctx, SFX_1);
+        let sfx2 = load_sfx(ctx, SFX_2);
+        let sfx3 = load_sfx(ctx, SFX_3);
+        let sfx4 = load_sfx(ctx, SFX_4);
+        let sfx5 = load_sfx(ctx, SFX_5);
+        let sfx6 = load_sfx(ctx, SFX_6);
+        let sfx7 = load_sfx(ctx, SFX_7);
 
         ctx.effect("load bgm", || {
             let set_bgm = set_bgm.cloned();
@@ -71,6 +86,19 @@ impl Component for Game {
                 set_bgm.set(Some(bgm));
             });
         });
+
+        let Some(sfx1) = sfx1.as_ref() else { return };
+        let Some(sfx2) = sfx2.as_ref() else { return };
+        let Some(sfx3) = sfx3.as_ref() else { return };
+        let Some(sfx4) = sfx4.as_ref() else { return };
+        let Some(sfx5) = sfx5.as_ref() else { return };
+        let Some(sfx6) = sfx6.as_ref() else { return };
+        let Some(sfx7) = sfx7.as_ref() else { return };
+
+        let failure_sfxs = [sfx1, sfx3, sfx6];
+        let match_sfxs = [sfx7];
+        let playground_drop_sfxs = [sfx7];
+        let opening_sfx = sfx5;
 
         let Some(Ok(image)) = image.as_ref() else {
             return;
@@ -306,10 +334,8 @@ impl Component for Game {
                                 continue;
                             }
 
-                            let matched = (piece_ltrb_edge.left == Edge::In
-                                && neighbor_ltrb_edge.right == Edge::Out)
-                                || (piece_ltrb_edge.left == Edge::Out
-                                    && neighbor_ltrb_edge.right == Edge::In);
+                            let matched = (my_edge == Edge::In && neighbor_edge == Edge::Out)
+                                || (my_edge == Edge::Out && neighbor_edge == Edge::In);
                             if !matched {
                                 break 'outer true;
                             }
@@ -317,7 +343,9 @@ impl Component for Game {
                             let x_diff = neighbor_piece_index.x.abs_diff(piece_index.x);
                             let y_diff = neighbor_piece_index.y.abs_diff(piece_index.y);
                             let is_good_placed =
-                                x_diff == 1 && y_diff == 0 || x_diff == 0 && y_diff == 1;
+                                (x_diff == 1 && y_diff == 0) || (x_diff == 0 && y_diff == 1);
+
+                            println!("x_diff: {}, y_diff: {}", x_diff, y_diff);
 
                             if !is_good_placed {
                                 break 'outer true;
@@ -327,12 +355,27 @@ impl Component for Game {
                         false
                     };
                     if is_collides_with_neighbors {
+                        failure_sfxs[rand::random::<usize>() % failure_sfxs.len()]
+                            .clone()
+                            .play()
+                            .unwrap();
+
                         set_shake_piece.set(Some(ShakingPiece {
                             piece_index,
                             started_at: namui::time::now(),
                         }));
                         return;
                     }
+
+                    match_sfxs[rand::random::<usize>() % match_sfxs.len()]
+                        .clone()
+                        .play()
+                        .unwrap();
+                } else {
+                    playground_drop_sfxs[rand::random::<usize>() % playground_drop_sfxs.len()]
+                        .clone()
+                        .play()
+                        .unwrap();
                 }
 
                 set_piece_positions.mutate(move |piece_xys| {
@@ -486,6 +529,25 @@ impl Component for Game {
             image_wh,
         });
     }
+}
+
+fn load_sfx<'a>(
+    ctx: &'a RenderCtx,
+    path: &str,
+) -> Sig<'a, Option<FullLoadOnceAudio>, &'a Option<FullLoadOnceAudio>> {
+    let (sfx, set_sfx) = ctx.state(|| None);
+
+    ctx.effect("load sfx", || {
+        let set_sfx = set_sfx.cloned();
+        let path = namui::system::file::bundle::to_real_path(path).unwrap();
+        namui::spawn(async move {
+            let bgm = namui::media::new_full_load_once_audio(&path).await.unwrap();
+
+            set_sfx.set(Some(bgm));
+        });
+    });
+
+    sfx
 }
 
 fn create_ltrb_edges(puzzle_wh: Wh<usize>) -> Vec<Vec<Ltrb<Edge>>> {
