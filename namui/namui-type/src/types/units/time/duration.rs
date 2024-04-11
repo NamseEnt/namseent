@@ -39,31 +39,31 @@ impl Duration {
             inner: std::time::Duration::from_secs_f32(secs.abs()),
         }
     }
-    pub fn from_millis(millis: i64) -> Self {
+    pub const fn from_millis(millis: i64) -> Self {
         Self {
             sign: millis >= 0,
             inner: std::time::Duration::from_millis(millis.unsigned_abs()),
         }
     }
-    pub fn from_micros(micros: i64) -> Self {
+    pub const fn from_micros(micros: i64) -> Self {
         Self {
             sign: micros >= 0,
             inner: std::time::Duration::from_micros(micros.unsigned_abs()),
         }
     }
-    pub fn from_secs(secs: i64) -> Self {
+    pub const fn from_secs(secs: i64) -> Self {
         Self {
             sign: secs >= 0,
             inner: std::time::Duration::from_secs(secs.unsigned_abs()),
         }
     }
-    pub fn from_std(sign: bool, duration: std::time::Duration) -> Self {
+    pub const fn from_std(sign: bool, duration: std::time::Duration) -> Self {
         Self {
             sign,
             inner: duration,
         }
     }
-    pub fn abs(self) -> Self {
+    pub const fn abs(self) -> Self {
         Self {
             sign: true,
             inner: self.inner,
@@ -79,20 +79,20 @@ impl Duration {
     }
 
     /// CAUTION: You should take care about -0 case.
-    pub fn is_positive(&self) -> bool {
+    pub const fn is_positive(&self) -> bool {
         self.sign
     }
 
-    pub fn as_secs(&self) -> i64 {
+    pub const fn as_secs(&self) -> i64 {
         self.inner.as_secs() as i64 * if self.sign { 1 } else { -1 }
     }
-    pub fn as_millis(&self) -> i128 {
+    pub const fn as_millis(&self) -> i128 {
         self.inner.as_millis() as i128 * if self.sign { 1 } else { -1 }
     }
-    pub fn as_micros(&self) -> i128 {
+    pub const fn as_micros(&self) -> i128 {
         self.inner.as_micros() as i128 * if self.sign { 1 } else { -1 }
     }
-    pub fn as_nanos(&self) -> i128 {
+    pub const fn as_nanos(&self) -> i128 {
         self.inner.as_nanos() as i128 * if self.sign { 1 } else { -1 }
     }
     pub fn as_secs_f64(&self) -> f64 {
