@@ -1,8 +1,8 @@
 use super::*;
-use std::{fmt::Debug, rc::Rc};
+use std::rc::Rc;
 
 impl ComponentCtx<'_> {
-    pub fn state<State: 'static + Debug + Send + Sync>(
+    pub fn state<State: 'static>(
         &self,
         init: impl FnOnce() -> State,
     ) -> (Sig<State, &State>, SetState<State>) {
@@ -33,10 +33,7 @@ impl ComponentCtx<'_> {
 
         (sig, set_state)
     }
-    pub fn memo<T: 'static + Debug + Send + Sync>(
-        &self,
-        func: impl FnOnce() -> T,
-    ) -> Sig<T, Rc<T>> {
+    pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T, Rc<T>> {
         let mut memo_list = self.instance.memo_list.borrow_mut();
 
         let memo_index = self
@@ -89,10 +86,7 @@ impl ComponentCtx<'_> {
         Sig::new(value, sig_id, self.world)
     }
 
-    pub fn track_eq<T: 'static + Debug + Send + Sync + PartialEq + Clone>(
-        &self,
-        target: &T,
-    ) -> Sig<T, Rc<T>> {
+    pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
         let mut track_eq_list = self.instance.track_eq_list.borrow_mut();
 
         let track_eq_index = self
@@ -219,7 +213,7 @@ impl ComponentCtx<'_> {
         }
     }
 
-    pub fn controlled_memo<T: 'static + Debug + Send + Sync>(
+    pub fn controlled_memo<T: 'static>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
     ) -> Sig<T, Rc<T>> {
@@ -298,14 +292,14 @@ impl ComponentCtx<'_> {
 
         Sig::new(value, sig_id, self.world)
     }
-    pub fn init_atom<State: 'static + Debug + Send + Sync>(
+    pub fn init_atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
         init: impl Fn() -> State,
     ) -> (Sig<State, &State>, SetState<State>) {
         let atom_list = &self.world.atom_list;
 
-        let atom_index = atom.init(self.world.get_set_state_tx());
+        let atom_index = atom.init(self.world.get_send_sync_set_state_tx());
 
         let sig_id = SigId::Atom { index: atom_index };
 
@@ -325,7 +319,7 @@ impl ComponentCtx<'_> {
 
         (sig, set_state)
     }
-    pub fn atom<State: 'static + Debug + Send + Sync>(
+    pub fn atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
     ) -> (Sig<State, &State>, SetState<State>) {

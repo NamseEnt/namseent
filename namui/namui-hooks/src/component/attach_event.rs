@@ -21,9 +21,7 @@ pub struct AttachEvent<'a, C: Component> {
 impl<'a, C: 'a + Component> StaticType for AttachEvent<'a, C> {}
 impl<'a, C: 'a + Component> Debug for AttachEvent<'a, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AttachEvent")
-            .field("component", &self.component)
-            .finish()
+        f.debug_struct("AttachEvent").finish()
     }
 }
 impl<'a, C: 'a + Component> Component for AttachEvent<'a, C> {
