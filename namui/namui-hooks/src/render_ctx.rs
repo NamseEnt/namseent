@@ -1,5 +1,4 @@
 use crate::*;
-use std::fmt::Debug;
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -26,16 +25,13 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
 
 // Component
 impl<'a, 'rt> RenderCtx<'a, 'rt> {
-    pub fn state<T: 'static + Debug>(
-        &'a self,
-        init: impl FnOnce() -> T,
-    ) -> (Sig<'a, T, &'a T>, SetState<T>) {
+    pub fn state<T: 'static>(&self, init: impl FnOnce() -> T) -> (Sig<T, &T>, SetState<T>) {
         self.component_ctx.state(init)
     }
-    pub fn memo<T: 'static + Debug>(&'a self, func: impl 'a + FnOnce() -> T) -> Sig<T, Rc<T>> {
+    pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T, Rc<T>> {
         self.component_ctx.memo(func)
     }
-    pub fn track_eq<T: 'static + Debug + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
+    pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
         self.component_ctx.track_eq(target)
     }
     pub fn effect<CleanUp: Into<EffectCleanUp>>(
@@ -48,23 +44,23 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     pub fn interval(&self, title: impl AsRef<str>, interval: Duration, job: impl FnOnce(Duration)) {
         self.component_ctx.interval(title, interval, job)
     }
-    pub fn controlled_memo<T: 'static + Debug>(
+    pub fn controlled_memo<T: 'static>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
     ) -> Sig<T, Rc<T>> {
         self.component_ctx.controlled_memo(func)
     }
-    pub fn init_atom<State: 'static + Debug + Send + Sync>(
+    pub fn init_atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
         init: impl Fn() -> State,
-    ) -> (Sig<State, &State>, SetState<State>) {
+    ) -> (Sig<State, &State>, StaticSetState<State>) {
         self.component_ctx.init_atom(atom, init)
     }
-    pub fn atom<State: 'static + Debug + Send + Sync>(
+    pub fn atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
-    ) -> (Sig<State, &State>, SetState<State>) {
+    ) -> (Sig<State, &State>, StaticSetState<State>) {
         self.component_ctx.atom(atom)
     }
 }

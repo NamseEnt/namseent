@@ -590,3 +590,35 @@ fn atom_should_work() {
 
     assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 6);
 }
+
+#[test]
+fn cloned_set_state_should_work() {
+    let mut world = World::init(
+        || Instant::from_std(std::time::Instant::now()),
+        &MockSkCalculate,
+    );
+
+    #[derive(Debug)]
+    struct A {}
+
+    fn spawn<F>(_future: F)
+    where
+        F: std::future::Future + Send + 'static,
+        F::Output: Send + 'static,
+    {
+    }
+
+    impl StaticType for A {}
+    impl Component for A {
+        fn render(self, ctx: &RenderCtx) {
+            let (_state, set_state) = ctx.state(|| 5);
+
+            let set_state = set_state.cloned();
+            spawn(async move {
+                set_state.set(6);
+            });
+        }
+    }
+
+    World::run(&mut world, A {});
+}

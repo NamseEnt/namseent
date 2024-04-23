@@ -10,10 +10,12 @@ pub struct World {
     instances: FrozenIndexMap<InstanceId, Box<Instance>>,
     set_state_tx: mpsc::Sender<SetStateItem>,
     set_state_rx: mpsc::Receiver<SetStateItem>,
+    send_sync_set_state_tx: mpsc::Sender<SendSyncSetStateItem>,
+    send_sync_set_state_rx: mpsc::Receiver<SendSyncSetStateItem>,
     updated_sig_ids: FrozenIndexSet<Box<SigId>>,
     get_now: Box<dyn Fn() -> Instant>,
     record_used_sig_ids: FrozenVec<Box<SigId>>,
-    pub(crate) atom_list: FrozenVec<Box<dyn Value>>,
+    pub(crate) atom_list: FrozenVec<Box<dyn Value + Send + Sync>>,
     pub(crate) raw_event: Option<RawEvent>,
     pub(crate) is_stop_event_propagation: AtomicBool,
     pub(crate) sk_calculate: &'static dyn SkCalculate,
@@ -90,12 +92,8 @@ impl World {
                         instance.state_list.as_mut()[index] = value;
                         self.add_sig_updated(sig_id);
                     }
-                    SigId::Memo { .. } => unreachable!(),
+                    SigId::Memo { .. } | SigId::Atom { .. } => unreachable!(),
                     SigId::TrackEq { .. } => todo!(),
-                    SigId::Atom { index } => {
-                        self.atom_list.as_mut()[index] = value;
-                        self.add_sig_updated(sig_id);
-                    }
                 },
                 SetStateItem::Mutate { sig_id, mutate } => match sig_id {
                     SigId::State { instance_id, index } => {
@@ -104,12 +102,42 @@ impl World {
                         mutate(value.as_mut());
                         self.add_sig_updated(sig_id);
                     }
-                    SigId::Memo { .. } => unreachable!(),
+                    SigId::Memo { .. } | SigId::Atom { .. } => unreachable!(),
                     SigId::TrackEq { .. } => todo!(),
+                },
+            }
+        }
+
+        for set_state_item in self.send_sync_set_state_rx.try_iter() {
+            match set_state_item {
+                SendSyncSetStateItem::Set { sig_id, value } => match sig_id {
+                    SigId::State { instance_id, index } => {
+                        let instance = self.instances.as_mut().get_mut(&instance_id).unwrap();
+                        instance.state_list.as_mut()[index] = value;
+                        self.add_sig_updated(sig_id);
+                    }
+                    SigId::Atom { index } => {
+                        self.atom_list.as_mut()[index] = value;
+                        self.add_sig_updated(sig_id);
+                    }
+                    SigId::Memo { .. } | SigId::TrackEq { .. } => {
+                        unreachable!()
+                    }
+                },
+                SendSyncSetStateItem::Mutate { sig_id, mutate } => match sig_id {
+                    SigId::State { instance_id, index } => {
+                        let instance = self.instances.as_mut().get_mut(&instance_id).unwrap();
+                        let value = instance.state_list.as_mut().get_mut(index).unwrap();
+                        mutate(value.as_mut());
+                        self.add_sig_updated(sig_id);
+                    }
                     SigId::Atom { index } => {
                         let value = self.atom_list.as_mut().get_mut(index).unwrap();
                         mutate(value.as_mut());
                         self.add_sig_updated(sig_id);
+                    }
+                    SigId::Memo { .. } | SigId::TrackEq { .. } => {
+                        unreachable!()
                     }
                 },
             }
@@ -176,6 +204,10 @@ impl World {
 
     pub(crate) fn get_set_state_tx(&self) -> &mpsc::Sender<SetStateItem> {
         &self.set_state_tx
+    }
+
+    pub(crate) fn get_send_sync_set_state_tx(&self) -> &mpsc::Sender<SendSyncSetStateItem> {
+        &self.send_sync_set_state_tx
     }
 
     pub(crate) fn now(&self) -> Instant {
