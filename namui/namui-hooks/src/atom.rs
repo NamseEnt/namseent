@@ -15,6 +15,12 @@ pub struct Atom<State: 'static + Send + Sync> {
     set_state_tx: OnceLock<std::sync::mpsc::Sender<SendSyncSetStateItem>>,
     _phantom: std::marker::PhantomData<State>,
 }
+static NEXT_INDEX: AtomicUsize = AtomicUsize::new(0);
+
+#[cfg(test)]
+pub(crate) fn reset_next_index() {
+    NEXT_INDEX.store(0, Ordering::Relaxed);
+}
 
 impl<State: 'static + Send + Sync> Atom<State> {
     pub const fn uninitialized() -> Self {
@@ -33,7 +39,6 @@ impl<State: 'static + Send + Sync> Atom<State> {
     }
 
     pub(crate) fn init(&self, set_state: &std::sync::mpsc::Sender<SendSyncSetStateItem>) -> usize {
-        static NEXT_INDEX: AtomicUsize = AtomicUsize::new(0);
         if self.initialized.load(Ordering::Relaxed) {
             return self.index.load(Ordering::Relaxed);
         }

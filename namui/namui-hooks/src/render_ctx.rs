@@ -50,17 +50,17 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     ) -> Sig<T, Rc<T>> {
         self.component_ctx.controlled_memo(func)
     }
-    pub fn init_atom<State: Send + Sync + 'static>(
+    pub fn init_atom<T: Send + Sync + 'static>(
         &self,
-        atom: &'static Atom<State>,
-        init: impl Fn() -> State,
-    ) -> (Sig<State, &State>, StaticSetState<State>) {
+        atom: &'static Atom<T>,
+        init: impl Fn() -> T,
+    ) -> (Sig<T, &T>, AtomSetState<T>) {
         self.component_ctx.init_atom(atom, init)
     }
-    pub fn atom<State: Send + Sync + 'static>(
+    pub fn atom<T: Send + Sync + 'static>(
         &self,
-        atom: &'static Atom<State>,
-    ) -> (Sig<State, &State>, StaticSetState<State>) {
+        atom: &'static Atom<T>,
+    ) -> (Sig<T, &T>, AtomSetState<T>) {
         self.component_ctx.atom(atom)
     }
 }

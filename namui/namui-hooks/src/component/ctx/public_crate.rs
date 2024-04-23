@@ -300,7 +300,7 @@ impl ComponentCtx<'_> {
         &self,
         atom: &'static Atom<State>,
         init: impl Fn() -> State,
-    ) -> (Sig<State, &State>, StaticSetState<State>) {
+    ) -> (Sig<State, &State>, AtomSetState<State>) {
         let atom_list = &self.world.atom_list;
 
         let atom_index = atom.init(self.world.get_send_sync_set_state_tx());
@@ -317,7 +317,7 @@ impl ComponentCtx<'_> {
         };
         let state: &State = state.as_any().downcast_ref().unwrap();
 
-        let set_state = StaticSetState::new(sig_id, self.world.get_send_sync_set_state_tx());
+        let set_state = AtomSetState::new(sig_id, self.world.get_send_sync_set_state_tx());
 
         let sig = Sig::new(state, sig_id, self.world);
 
@@ -326,7 +326,7 @@ impl ComponentCtx<'_> {
     pub fn atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
-    ) -> (Sig<State, &State>, StaticSetState<State>) {
+    ) -> (Sig<State, &State>, AtomSetState<State>) {
         let atom_list = &self.world.atom_list;
 
         let atom_index = atom.get_index();
@@ -336,7 +336,7 @@ impl ComponentCtx<'_> {
         let state = atom_list.get(atom_index).unwrap();
         let state: &State = state.as_any().downcast_ref().unwrap();
 
-        let set_state = StaticSetState::new(sig_id, self.world.get_send_sync_set_state_tx());
+        let set_state = AtomSetState::new(sig_id, self.world.get_send_sync_set_state_tx());
 
         let sig = Sig::new(state, sig_id, self.world);
 
