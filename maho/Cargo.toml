@@ -1,0 +1,12 @@
+[package]
+name = "maho"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.namui]
+targets = ["x86_64-pc-windows-msvc"]
+
+[dependencies]
+namui = { path = "../namui/namui" }
+namui-prebuilt = { path = "../namui/namui-prebuilt" }
+rapier2d = { version = "0.18.0", features = ["simd-stable", "parallel"] }
