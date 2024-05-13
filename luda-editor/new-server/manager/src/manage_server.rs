@@ -1,3 +1,4 @@
+use crate::update_server_port;
 use anyhow::Result;
 use std::{
     sync::{Arc, Mutex, OnceLock},
@@ -9,9 +10,16 @@ const SERVER_DIR: &str = "/namseent/luda-editor-new-server/server";
 
 pub fn keep_server_updated() {
     task::spawn(async move {
-        let mut server = None;
+        let mut server: Option<Server> = None;
 
         loop {
+            if let Some(inner) = server.as_mut() {
+                if inner.is_process_exited().await {
+                    server.take();
+                    update_server_port(0);
+                }
+            }
+
             if let Err(err) = keep_server_updated_tick(&mut server).await {
                 eprintln!("Failed to pull: {}", err);
             }
@@ -36,7 +44,7 @@ async fn keep_server_updated_tick(server: &mut Option<Server>) -> Result<()> {
         server.turn_off_memory_cache().await?;
     }
 
-    crate::update_server_port(new_server.port);
+    update_server_port(new_server.port);
 
     {
         server.replace(new_server);
@@ -149,6 +157,19 @@ impl Server {
         }
 
         panic!("Failed to kill server");
+    }
+
+    async fn is_process_exited(&mut self) -> bool {
+        for _ in 0..10 {
+            match self.process.try_wait() {
+                Ok(Some(_)) => return true,
+                Ok(None) => return false,
+                Err(_) => {
+                    time::sleep(Duration::from_secs(1)).await;
+                }
+            }
+        }
+        panic!("Failed to check if process exited");
     }
 
     async fn turn_off_memory_cache(&self) -> Result<()> {
