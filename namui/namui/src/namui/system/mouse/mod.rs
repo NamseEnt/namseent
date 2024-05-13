@@ -11,8 +11,6 @@ use std::{
     collections::HashSet,
     sync::{Arc, RwLock},
 };
-#[cfg(target_family = "wasm")]
-pub use wasm::*;
 
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,
@@ -28,7 +26,10 @@ lazy_static::lazy_static! {
 
 pub(crate) async fn init() -> InitResult {
     lazy_static::initialize(&MOUSE_SYSTEM);
-    set_up_event_handler();
+
+    #[cfg(target_family = "wasm")]
+    wasm::set_up_event_handler();
+
     Ok(())
 }
 

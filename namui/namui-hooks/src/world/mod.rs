@@ -21,6 +21,11 @@ pub struct World {
     pub(crate) sk_calculate: &'static dyn SkCalculate,
 }
 
+#[cfg(target_family = "wasm")]
+unsafe impl Send for World {}
+#[cfg(target_family = "wasm")]
+unsafe impl Sync for World {}
+
 impl Drop for World {
     fn drop(&mut self) {}
 }

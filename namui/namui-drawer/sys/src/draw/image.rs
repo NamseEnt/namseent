@@ -1,26 +1,22 @@
 use crate::*;
 
 impl Draw for &ImageDrawCommand {
-    fn draw(self, ctx: &mut DrawContext) {
-        let Some(image) = ctx.skia.image(&self.source) else {
-            (ctx.start_load_image)(&self.source);
-            return;
-        };
-
+    fn draw(self, skia: &mut impl SkSkia) {
         let rect_wh = self.rect.wh();
         if rect_wh.width == 0.px()
             || rect_wh.height == 0.px()
-            || image.wh.width == 0.px()
-            || image.wh.height == 0.px()
+            || self.image.info.width == 0.px()
+            || self.image.info.height == 0.px()
         {
             return;
         }
 
-        let image_size = image.wh;
-        let (src_rect, dest_rect) = get_src_dest_rects_in_fit(self.fit, image_size, self.rect);
+        let wh = self.image.info.wh();
+        let (src_rect, dest_rect) = get_src_dest_rects_in_fit(self.fit, wh, self.rect);
 
-        ctx.canvas()
-            .draw_image(&image.src, src_rect, dest_rect, &self.paint);
+        skia.surface()
+            .canvas()
+            .draw_image(&self.image, src_rect, dest_rect, &self.paint);
     }
 }
 

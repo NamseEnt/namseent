@@ -1,4 +1,6 @@
+use self::system::document;
 use super::*;
+use wasm_bindgen::{closure::Closure, JsCast};
 
 pub(crate) fn set_up_event_handler() {
     prevent_context_menu_open();

@@ -5,22 +5,24 @@ mod wasm;
 
 use super::InitResult;
 use namui_skia::{
-    Font, FontMetrics, GroupGlyph, ImageHandle, ImageInfo, ImageSource, Paint, SkCalculate, SkSkia,
+    Font, FontMetrics, GroupGlyph, Image, ImageInfo, Paint, RenderingTree, SkCalculate,
 };
-#[cfg(not(target_family = "wasm"))]
-pub(crate) use non_wasm::*;
-use std::sync::{Arc, OnceLock, RwLock};
-#[cfg(target_family = "wasm")]
-use wasm::*;
+use std::sync::{Arc, OnceLock};
 
-static SKIA: OnceLock<Arc<RwLock<dyn SkSkia + Send + Sync>>> = OnceLock::new();
+use crate::spawn_blocking;
+use anyhow::Result;
+#[cfg(not(target_family = "wasm"))]
+use non_wasm as inner;
+#[cfg(target_family = "wasm")]
+use wasm as inner;
+
 static SK_CALCULATE: OnceLock<Arc<dyn SkCalculate + Send + Sync>> = OnceLock::new();
 
 pub(super) async fn init() -> InitResult {
-    let skia = init_skia().await?;
-    SKIA.set(skia).map_err(|_| unreachable!()).unwrap();
+    #[cfg(not(target_family = "wasm"))]
+    inner::init_skia().await?;
 
-    let calculate = init_calculate().await?;
+    let calculate = namui_skia::init_calculate()?;
     SK_CALCULATE
         .set(calculate)
         .map_err(|_| unreachable!())
@@ -33,8 +35,13 @@ pub(crate) fn sk_calculate() -> &'static dyn SkCalculate {
     SK_CALCULATE.get().unwrap().as_ref()
 }
 
-pub(crate) fn load_typeface(typeface_name: &str, bytes: &[u8]) {
-    sk_calculate().load_typeface(typeface_name, bytes);
+pub(crate) async fn load_typeface(typeface_name: &str, bytes: &[u8]) -> Result<()> {
+    tokio::try_join!(
+        async move { spawn_blocking(|| sk_calculate().load_typeface(typeface_name, bytes)).await? },
+        inner::load_typeface(typeface_name, bytes)
+    )?;
+
+    Ok(())
 }
 
 pub(crate) fn group_glyph(font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph> {
@@ -45,12 +52,18 @@ pub(crate) fn font_metrics(font: &Font) -> Option<FontMetrics> {
     sk_calculate().font_metrics(font)
 }
 
-/// Encoded image
-pub(crate) fn load_image(image_source: &ImageSource, bytes: &[u8]) -> ImageInfo {
-    sk_calculate().load_image(image_source, bytes)
+pub(crate) async fn load_image_from_url(url: impl AsRef<str>) -> Result<Image> {
+    inner::load_image_from_url(url).await
 }
 
-/// Raw image
-pub(crate) fn load_image2(image_info: ImageInfo, bytes: &mut [u8]) -> ImageHandle {
-    sk_calculate().load_image_from_raw(image_info, bytes)
+pub(crate) async fn load_image_from_raw(
+    bytes: &[u8],
+    image_info: Option<ImageInfo>,
+    encoded: bool,
+) -> Result<Image> {
+    inner::load_image_from_raw(bytes, image_info, encoded).await
+}
+
+pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
+    inner::request_draw_rendering_tree(rendering_tree)
 }

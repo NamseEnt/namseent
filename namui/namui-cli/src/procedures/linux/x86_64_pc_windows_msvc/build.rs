@@ -3,7 +3,7 @@ use crate::{
         build_status_service::{BuildStatusCategory, BuildStatusService},
         resource_collect_service,
         runtime_project::x86_64_pc_windows_msvc::generate_runtime_project,
-        rust_build_service::{self, BuildOption, BuildResult},
+        rust_build_service::{self, BuildOption},
     },
     *,
 };
@@ -24,39 +24,26 @@ pub async fn build(manifest_path: &Path, release: bool) -> Result<()> {
     })?;
 
     let build_status_service = BuildStatusService::new();
-    let rust_build_service = rust_build_service::RustBuildService::new();
 
     build_status_service
         .build_started(services::build_status_service::BuildStatusCategory::Namui)
         .await;
 
-    match rust_build_service
-        .cancel_and_start_build(&BuildOption {
-            target: cli::Target::X86_64PcWindowsMsvc,
-            dist_path: release_path.clone(),
-            project_root_path: runtime_target_dir,
-            watch: false,
-            release,
-        })
-        .await
-    {
-        BuildResult::Successful(cargo_build_result) => {
-            if !cargo_build_result.is_successful {
-                println!("{:#?}", cargo_build_result);
-                return Err(anyhow!("Build failed"));
-            }
-
-            build_status_service
-                .build_finished(
-                    BuildStatusCategory::Namui,
-                    cargo_build_result.error_messages,
-                    vec![],
-                )
-                .await;
-        }
-        BuildResult::Canceled => unreachable!(),
-        BuildResult::Failed(error) => return Err(anyhow!("{}", error)),
-    }
+    let cargo_build_output = rust_build_service::build(BuildOption {
+        target: cli::Target::X86_64PcWindowsMsvc,
+        dist_path: release_path.clone(),
+        project_root_path: runtime_target_dir,
+        watch: false,
+        release,
+    })
+    .await??;
+    build_status_service
+        .build_finished(
+            BuildStatusCategory::Namui,
+            cargo_build_output.error_messages,
+            vec![],
+        )
+        .await;
 
     let bundle_manifest =
         crate::services::bundle::NamuiBundleManifest::parse(project_root_path.clone())?;

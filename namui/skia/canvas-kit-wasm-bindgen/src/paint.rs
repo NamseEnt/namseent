@@ -69,7 +69,7 @@ extern "C" {
     /// @param mode
     ///
     #[wasm_bindgen(method)]
-    pub fn setBlendMode(this: &CanvasKitPaint, mode: CanvasKitBlendMode);
+    pub fn setBlendMode(this: &CanvasKitPaint, mode: &CanvasKitBlendMode);
 
     ///
     /// Sets alpha and RGB used when stroking and filling. The color is four floating
@@ -110,19 +110,19 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn setColorInt(this: &CanvasKitPaint, color: ColorInt, colorSpace:Option<ColorSpace);
 
-    // ///
-    // /// Sets the current image filter, replacing the existing one if there was one.
-    // /// @param filter
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn setImageFilter(this: &CanvasKitPaint, filter: Option<ImageFilter>);
+    ///
+    /// Sets the current image filter, replacing the existing one if there was one.
+    /// @param filter
+    ///
+    #[wasm_bindgen(method)]
+    pub fn setImageFilter(this: &CanvasKitPaint, filter: Option<CanvasKitImageFilter>);
 
-    // ///
-    // /// Sets the current mask filter, replacing the existing one if there was one.
-    // /// @param filter
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn setMaskFilter(this: &CanvasKitPaint, filter: Option<MaskFilter>);
+    ///
+    /// Sets the current mask filter, replacing the existing one if there was one.
+    /// @param filter
+    ///
+    #[wasm_bindgen(method)]
+    pub fn setMaskFilter(this: &CanvasKitPaint, filter: Option<CanvasKitMaskFilter>);
 
     // ///
     // /// Sets the current path effect, replacing the existing one if there was one.
@@ -143,14 +143,14 @@ extern "C" {
     /// @param cap
     ///
     #[wasm_bindgen(method)]
-    pub fn setStrokeCap(this: &CanvasKitPaint, cap: CanvasKitStrokeCap);
+    pub fn setStrokeCap(this: &CanvasKitPaint, cap: &CanvasKitStrokeCap);
 
     ///
     /// Sets the geometry drawn at the corners of strokes.
     /// @param join
     ///
     #[wasm_bindgen(method)]
-    pub fn setStrokeJoin(this: &CanvasKitPaint, join: CanvasKitStrokeJoin);
+    pub fn setStrokeJoin(this: &CanvasKitPaint, join: &CanvasKitStrokeJoin);
 
     ///
     /// Sets the limit at which a sharp corner is drawn beveled.
@@ -171,5 +171,5 @@ extern "C" {
     // /// @param style
     // ///
     #[wasm_bindgen(method)]
-    pub fn setStyle(this: &CanvasKitPaint, style: CanvasKitPaintStyle);
+    pub fn setStyle(this: &CanvasKitPaint, style: &CanvasKitPaintStyle);
 }

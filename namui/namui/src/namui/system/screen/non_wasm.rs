@@ -68,7 +68,7 @@ pub(crate) async fn init() -> InitResult {
                         system::mouse::on_winit_mouse_input(state, namui_mouse_button);
                     }
                     winit::event::WindowEvent::RedrawRequested => {
-                        system::drawer::redraw();
+                        system::skia::redraw();
                     }
                     _ => {}
                 },

@@ -24,7 +24,7 @@ unsafe impl Send for NativeSkia {}
 unsafe impl Sync for NativeSkia {}
 
 impl NativeSkia {
-    pub(crate) fn new(window_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
+    pub(crate) async fn new(window_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
         // unsafe {
         //     let mut debug: Option<ID3D12Debug> = None;
         //     if let Some(debug) = D3D12GetDebugInterface(&mut debug).ok().and(debug) {
@@ -96,7 +96,7 @@ impl SkCalculate for NativeSkia {
         self.calculate.font_metrics(font)
     }
 
-    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) {
+    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) -> Result<()> {
         self.calculate.load_typeface(typeface_name, bytes)
     }
 
@@ -116,7 +116,7 @@ impl SkCalculate for NativeSkia {
         self.calculate.load_image(image_source, encoded_image)
     }
 
-    fn load_image_from_raw(&self, image_info: ImageInfo, bitmap: &[u8]) -> ImageHandle {
+    fn load_image_from_raw(&self, image_info: ImageInfo, bitmap: &[u8]) -> Image {
         self.calculate.load_image_from_raw(image_info, bitmap)
     }
 }

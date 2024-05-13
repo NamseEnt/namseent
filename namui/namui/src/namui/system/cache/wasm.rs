@@ -1,4 +1,4 @@
-use super::InitResult;
+use crate::system::InitResult;
 use crate::*;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 

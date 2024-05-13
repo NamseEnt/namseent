@@ -367,6 +367,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "canvas-kit-wasm-bindgen"
+version = "0.1.0"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1219,16 +1228,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libmimalloc-sys"
-version = "0.1.35"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3979b5c37ece694f1f5e51e7ecc871fdb0f517ed04ee45f88d15d6d553cb9664"
-dependencies = [
- "cc",
- "libc",
-]
-
-[[package]]
 name = "libredox"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1306,15 +1305,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mimalloc"
-version = "0.1.39"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa01922b5ea280a911e323e4d2fd24b7fe5cc4042e0d2cda3c40775cdc4bdc9c"
-dependencies = [
- "libmimalloc-sys",
-]
-
-[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1368,7 +1358,6 @@ dependencies = [
  "js-sys",
  "lazy_static",
  "lru 0.7.8",
- "mimalloc",
  "namui-cfg",
  "namui-drawer-sys",
  "namui-hooks",
@@ -1446,8 +1435,11 @@ name = "namui-skia"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "canvas-kit-wasm-bindgen",
+ "dashmap 5.5.3",
  "derivative",
  "derive-macro",
+ "js-sys",
  "namui-type",
  "num",
  "ordered-float 4.2.0",
@@ -1458,6 +1450,9 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
  "windows 0.52.0",
  "winit",
  "woff2",
@@ -1480,6 +1475,7 @@ dependencies = [
  "skia-safe",
  "url",
  "uuid",
+ "web-time 1.1.0",
 ]
 
 [[package]]
@@ -3231,6 +3227,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "web-time"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "webpki-roots"
 version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3589,7 +3595,7 @@ dependencies = [
  "wayland-protocols",
  "wayland-protocols-plasma",
  "web-sys",
- "web-time",
+ "web-time 0.2.4",
  "windows-sys 0.48.0",
  "x11-dl",
  "x11rb",

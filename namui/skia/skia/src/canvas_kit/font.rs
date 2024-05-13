@@ -1,7 +1,6 @@
 use super::*;
+use crate::*;
 use std::sync::Arc;
-
-type GlyphIds = Vec<usize>;
 
 pub struct CkFont {
     pub(crate) canvas_kit_font: CanvasKitFont,
@@ -39,6 +38,7 @@ impl CkFont {
             })
         })
     }
+    #[cfg(feature = "wasm-drawer")]
     pub(crate) fn canvas_kit(&self) -> &CanvasKitFont {
         &self.canvas_kit_font
     }

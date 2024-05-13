@@ -1,4 +1,4 @@
-use super::TimeSystem;
+use super::*;
 use crate::system::InitResult;
 use anyhow::*;
 use namui_type::*;
@@ -14,7 +14,7 @@ pub(crate) async fn init() -> InitResult {
 
 lazy_static::lazy_static! {
     static ref INSTANT_NOW: std::sync::Mutex<std::time::Instant> = std::sync::Mutex::new(std::time::Instant::now());
-    static ref SYSTEM_TIME_NOW: std::sync::Mutex<SystemTime> = std::sync::Mutex::new(SystemTime::new(std::time::SystemTime::now()));
+    static ref SYSTEM_TIME_NOW: std::sync::Mutex<SystemTime> = std::sync::Mutex::new(SystemTime::now());
 }
 
 pub fn set_instant_now(now: std::time::Instant) {
@@ -40,7 +40,7 @@ impl TimeSystem for MockTimeSystem {
         Instant::new(self.since_start())
     }
 
-    fn sleep(&self, duration: Duration) -> tokio::time::Sleep {
-        tokio::time::sleep(duration.to_std().unwrap_or_default())
+    fn sleep(&self, duration: Duration) -> time::Sleep {
+        time::sleep(duration.to_std().unwrap_or_default())
     }
 }

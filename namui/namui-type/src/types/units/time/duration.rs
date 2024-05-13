@@ -173,8 +173,45 @@ auto_ops::impl_op!(/|lhs: &Duration, rhs: i32| -> Duration { div_i32(*lhs, rhs) 
 auto_ops::impl_op!(/|lhs: Duration, rhs: &i32| -> Duration { div_i32(lhs, *rhs) });
 auto_ops::impl_op!(/|lhs: &Duration, rhs: &i32| -> Duration { div_i32(*lhs, *rhs) });
 
+auto_ops::impl_op!(/|lhs: Duration, rhs: usize| -> Duration { div_usize(lhs, rhs) });
+auto_ops::impl_op!(/|lhs: &Duration, rhs: usize| -> Duration { div_usize(*lhs, rhs) });
+auto_ops::impl_op!(/|lhs: Duration, rhs: &usize| -> Duration { div_usize(lhs, *rhs) });
+auto_ops::impl_op!(/|lhs: &Duration, rhs: &usize| -> Duration { div_usize(*lhs, *rhs) });
+
 auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: Duration| { *lhs = add(*lhs, rhs) });
 auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: &Duration| { *lhs = add(*lhs, * rhs) });
+
+//
+
+auto_ops::impl_op!(+|lhs: &mut Duration, rhs: Duration| -> Duration { add(*lhs, rhs) });
+auto_ops::impl_op!(+|lhs: Duration, rhs: &mut Duration| -> Duration { add(lhs, *rhs) });
+auto_ops::impl_op!(+|lhs: &mut Duration, rhs: &mut Duration| -> Duration { add(*lhs, *rhs) });
+
+auto_ops::impl_op!(-|lhs: &mut Duration, rhs: Duration| -> Duration { add(*lhs, -rhs) });
+auto_ops::impl_op!(-|lhs: Duration, rhs: &mut Duration| -> Duration { add(lhs, -*rhs) });
+auto_ops::impl_op!(-|lhs: &mut Duration, rhs: &mut Duration| -> Duration { add(*lhs, -*rhs) });
+
+auto_ops::impl_op!(*|lhs: &mut Duration, rhs: f32| -> Duration { mul_f32(*lhs, rhs) });
+auto_ops::impl_op!(*|lhs: Duration, rhs: &mut f32| -> Duration { mul_f32(lhs, *rhs) });
+auto_ops::impl_op!(*|lhs: &mut Duration, rhs: &mut f32| -> Duration { mul_f32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: f32| -> Duration { mul_f32(*lhs,1.0 /  rhs) });
+auto_ops::impl_op!(/|lhs: Duration, rhs: &mut f32| -> Duration { mul_f32(lhs, 1.0 / *rhs) });
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: &mut f32| -> Duration { mul_f32(*lhs,1.0 /  *rhs) });
+
+auto_ops::impl_op!(*|lhs: &mut Duration, rhs: i32| -> Duration { mul_i32(*lhs, rhs) });
+auto_ops::impl_op!(*|lhs: Duration, rhs: &mut i32| -> Duration { mul_i32(lhs, *rhs) });
+auto_ops::impl_op!(*|lhs: &mut Duration, rhs: &mut i32| -> Duration { mul_i32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: i32| -> Duration { div_i32(*lhs, rhs) });
+auto_ops::impl_op!(/|lhs: Duration, rhs: &mut i32| -> Duration { div_i32(lhs, *rhs) });
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: &mut i32| -> Duration { div_i32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: usize| -> Duration { div_usize(*lhs, rhs) });
+auto_ops::impl_op!(/|lhs: Duration, rhs: &mut usize| -> Duration { div_usize(lhs, *rhs) });
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: &mut usize| -> Duration { div_usize(*lhs, *rhs) });
+
+auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: &mut Duration| { *lhs = add(*lhs, * rhs) });
 
 fn add(lhs: Duration, rhs: Duration) -> Duration {
     if lhs.sign == rhs.sign {
@@ -230,6 +267,16 @@ fn div_i32(lhs: Duration, rhs: i32) -> Duration {
         Duration {
             sign: lhs.sign == (rhs >= 0),
             inner: std::time::Duration::from_secs_f64(lhs.inner.as_secs_f64() / rhs.abs() as f64),
+        }
+    }
+}
+fn div_usize(lhs: Duration, rhs: usize) -> Duration {
+    if rhs == 0 {
+        panic!("divide by zero")
+    } else {
+        Duration {
+            sign: lhs.sign,
+            inner: std::time::Duration::from_secs_f64(lhs.inner.as_secs_f64() / rhs as f64),
         }
     }
 }

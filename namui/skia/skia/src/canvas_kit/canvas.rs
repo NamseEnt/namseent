@@ -15,7 +15,7 @@ impl SkCanvas for CkCanvas {
     fn clear(&self, color: Color) {
         self.canvas_kit_canvas.clear(&color.to_float32_array());
     }
-    fn draw_text_blob(&self, glyph_ids: Vec<usize>, xy: Xy<Px>, font: &Font, paint: &Paint) {
+    fn draw_text_blob(&self, glyph_ids: GlyphIds, xy: Xy<Px>, font: &Font, paint: &Paint) {
         let Some(text_blob) = CkTextBlob::from_glyph_ids(glyph_ids, font) else {
             return;
         };
@@ -58,22 +58,20 @@ impl SkCanvas for CkCanvas {
     fn restore(&self) {
         self.canvas_kit_canvas.restore();
     }
-    #[allow(dead_code)]
-    fn get_matrix(&self) -> Matrix3x3 {
+    fn get_matrix(&self) -> TransformMatrix {
         let total_matrix = self.canvas_kit_canvas.getTotalMatrix();
-        Matrix3x3::from_slice([
+        TransformMatrix::from_slice([
             [total_matrix[0], total_matrix[1], total_matrix[2]],
             [total_matrix[3], total_matrix[4], total_matrix[5]],
-            [total_matrix[6], total_matrix[7], total_matrix[8]],
         ])
     }
-    fn set_matrix(&self, matrix: Matrix3x3) {
+    fn set_matrix(&self, matrix: TransformMatrix) {
         let current_matrix = self.canvas_kit_canvas.getTotalMatrix();
         let inverted = canvas_kit().Matrix().invert(&current_matrix);
         self.canvas_kit_canvas.concat(&inverted);
         self.canvas_kit_canvas.concat(&matrix.into_linear_slice());
     }
-    fn transform(&self, matrix: Matrix3x3) {
+    fn transform(&self, matrix: TransformMatrix) {
         self.canvas_kit_canvas.concat(&matrix.into_linear_slice());
     }
     fn rotate(&self, angle: Angle) {
@@ -85,18 +83,14 @@ impl SkCanvas for CkCanvas {
 
     fn draw_image(
         &self,
-        image_source: &ImageSource,
+        image: &Image,
         src_rect: Rect<Px>,
         dest_rect: Rect<Px>,
         paint: &Option<Paint>,
     ) {
-        let Some(image) = CkImage::get(image_source) else {
-            return;
-        };
-
         let mut paint = paint.clone().unwrap_or_default();
 
-        let image_shader = image.get_default_shader();
+        let image_shader = image.ck_image.clone().into_shader();
 
         let next_shader = if let Some(super_shader) = &paint.shader {
             super_shader.blend(BlendMode::Plus, &image_shader)
@@ -108,8 +102,8 @@ impl SkCanvas for CkCanvas {
 
         self.save();
         self.transform(
-            Matrix3x3::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
-                * Matrix3x3::from_scale(
+            TransformMatrix::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
+                * TransformMatrix::from_scale(
                     dest_rect.width() / src_rect.width(),
                     dest_rect.height() / src_rect.height(),
                 ),

@@ -7,8 +7,9 @@
     "build:dev": "rollup -c --environment NAMUI_ENV:development"
   },
   "dependencies": {
+    "@babel/core": "^7.24.5",
     "@msgpack/msgpack": "^3.0.0-beta2",
-    "canvaskit-wasm": "=0.38.0",
+    "canvaskit-wasm": "=0.39.1",
     "idb-keyval": "^6.2.1",
     "preact": "^10.17.1"
   },

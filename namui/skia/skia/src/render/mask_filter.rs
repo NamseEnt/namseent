@@ -2,19 +2,19 @@ use crate::*;
 
 #[type_derives(Copy)]
 pub enum MaskFilter {
-    Blur { blur: Blur },
+    Blur { blur_style: BlurStyle, sigma: f32 },
 }
 
 #[type_derives(Copy)]
-pub enum Blur {
+pub enum BlurStyle {
     /// Fuzzy inside and outside
-    Normal { sigma: f32 },
+    Normal,
     /// Solid inside, fuzzy outside
-    Solid { sigma: f32 },
+    Solid,
     /// Nothing inside, fuzzy outside
-    Outer { sigma: f32 },
+    Outer,
     /// Fuzzy inside, nothing outside
-    Inner { sigma: f32 },
+    Inner,
 }
 
 /// https://android.googlesource.com/platform/frameworks/base/+/41fceb4/libs/hwui/utils/Blur.cpp
@@ -22,7 +22,7 @@ pub enum Blur {
 /// "high quality" mode, in SkBlurMask::Blur() (1 / sqrt(3)).
 const BLUR_SIGMA_SCALE: f32 = 0.57735;
 
-impl Blur {
+impl BlurStyle {
     pub fn convert_radius_to_sigma(radius: f32) -> f32 {
         if radius <= 0.0 {
             return 0.0;

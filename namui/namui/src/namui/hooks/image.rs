@@ -1,9 +1,7 @@
-use crate::{image::ImageBitmap, url::url_to_bytes};
+use crate::skia::load_image_from_url;
 use anyhow::Result;
 use namui_hooks::*;
 use namui_skia::*;
-use namui_type::Wh;
-use url::Url;
 
 pub type Load<T> = Option<Result<T>>;
 
@@ -28,7 +26,7 @@ impl ImageTrait for RenderCtx<'_, '_> {
 
             let set_load = set_load.cloned();
             let join_handle = crate::spawn(async move {
-                let image = load_image(&ImageSource::Url { url: url.clone() }).await;
+                let image = load_image_from_url(&url).await;
                 set_load.set(Some(image));
             });
 
@@ -38,25 +36,5 @@ impl ImageTrait for RenderCtx<'_, '_> {
         });
 
         load
-    }
-}
-
-pub async fn load_image(image_source: &ImageSource) -> Result<Image> {
-    match image_source {
-        ImageSource::Url { url } => {
-            let bytes = url_to_bytes(&Url::parse(url)?).await?;
-
-            let image_bitmap = ImageBitmap::from_u8(image_source, &bytes).await?;
-
-            let wh = Wh::new(image_bitmap.width(), image_bitmap.height());
-
-            crate::system::drawer::load_image(image_source, image_bitmap);
-
-            Ok(Image {
-                src: image_source.clone(),
-                wh,
-            })
-        }
-        ImageSource::ImageHandle { image_handle: _ } => unreachable!(),
     }
 }

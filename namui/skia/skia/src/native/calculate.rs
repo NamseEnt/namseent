@@ -1,4 +1,5 @@
 use crate::*;
+use anyhow::Result;
 use namui_type::*;
 use std::sync::Arc;
 
@@ -19,7 +20,7 @@ impl SkCalculate for NativeCalculate {
         NativeFont::get(font).map(|x| x.metrics)
     }
 
-    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) {
+    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) -> Result<()> {
         NativeTypeface::load(typeface_name, bytes)
     }
 

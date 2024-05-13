@@ -1,7 +1,4 @@
 use super::*;
-use lazy_static::lazy_static;
-use namui_type::*;
-use once_cell::sync::Lazy;
 
 #[wasm_bindgen]
 extern "C" {
@@ -37,6 +34,10 @@ macro_rules! canvas_kit_enum {
             $($enum_item:ident: $canvas_kit_enum_item:ident: $static_enum_item:ident),* $(,)?
         }
     ) => {
+        unsafe impl Sync for $canvas_enum_name {}
+        unsafe impl Send for $canvas_enum_name {}
+        unsafe impl Sync for $canvas_enum_values_name {}
+        unsafe impl Send for $canvas_enum_values_name {}
         #[wasm_bindgen]
         extern "C" {
             pub type $canvas_enum_values_name;
@@ -53,24 +54,12 @@ macro_rules! canvas_kit_enum {
             )*
         }
 
-
-        lazy_static! {
-            $(
-                pub static ref $static_enum_item: Lazy<f32> =
-                    Lazy::new(|| canvas_kit().$enum_name().$canvas_kit_enum_item().value());
-            )*
-        }
-
-
-        impl From<$enum_name> for $canvas_enum_name {
-            fn from(value: $enum_name) -> Self {
-                match value {
-                    $(
-                        $enum_name::$enum_item => canvas_kit().$enum_name().$canvas_kit_enum_item(),
-                    )*
-                }
+        $(
+            pub fn $static_enum_item() -> &'static $canvas_enum_name {
+                static VALUE: std::sync::OnceLock<$canvas_enum_name> = std::sync::OnceLock::new();
+                VALUE.get_or_init(|| canvas_kit().$enum_name().$canvas_kit_enum_item())
             }
-        }
+        )*
     };
 }
 
@@ -83,8 +72,8 @@ canvas_kit_enum!(
     CanvasKitPaintStyleEnumValues,
     CanvasKitPaintStyle,
     {
-        Fill: PAINT_STYLE_FILL_VALUE,
-        Stroke: PAINT_STYLE_STROKE_VALUE,
+        Fill: paint_style_fill,
+        Stroke: paint_style_stroke,
     }
 );
 canvas_kit_enum!(
@@ -92,9 +81,9 @@ canvas_kit_enum!(
     CanvasKitStrokeCapEnumValues,
     CanvasKitStrokeCap,
     {
-        Butt: STROKE_CAP_BUTT_VALUE,
-        Round: STROKE_CAP_ROUND_VALUE,
-        Square: STROKE_CAP_SQUARE_VALUE,
+        Butt: stroke_cap_butt,
+        Round: stroke_cap_round,
+        Square: stroke_cap_square,
     }
 );
 canvas_kit_enum!(
@@ -102,9 +91,9 @@ canvas_kit_enum!(
     CanvasKitStrokeJoinEnumValues,
     CanvasKitStrokeJoin,
     {
-        Bevel: STROKE_JOIN_BEVEL_VALUE,
-        Miter: STROKE_JOIN_MITER_VALUE,
-        Round: STROKE_JOIN_ROUND_VALUE,
+        Bevel: stroke_join_bevel,
+        Miter: stroke_join_miter,
+        Round: stroke_join_round,
     }
 );
 canvas_kit_enum!(
@@ -112,8 +101,8 @@ canvas_kit_enum!(
     CanvasKitClipOpEnumValues,
     CanvasKitClipOp,
     {
-        Difference: CLIP_OP_DIFFERENCE_VALUE,
-        Intersect: CLIP_OP_INTERSECT_VALUE,
+        Difference: clip_op_difference,
+        Intersect: clip_op_intersect,
     }
 );
 canvas_kit_enum!(
@@ -121,9 +110,9 @@ canvas_kit_enum!(
     CanvasKitAlphaTypeEnumValues,
     CanvasKitAlphaType,
     {
-        Opaque: ALPHA_TYPE_OPAQUE_VALUE,
-        Premul: ALPHA_TYPE_PREMUL_VALUE,
-        Unpremul: ALPHA_TYPE_UNPREMUL_VALUE,
+        Opaque: alpha_type_opaque,
+        Premul: alpha_type_premul,
+        Unpremul: alpha_type_unpremul,
     }
 );
 canvas_kit_enum!(
@@ -131,15 +120,15 @@ canvas_kit_enum!(
     CanvasKitColorTypeEnumValues,
     CanvasKitColorType,
     {
-        Alpha8: Alpha_8: COLOR_TYPE_ALPHA_8_VALUE,
-        Rgb565: RGB_565: COLOR_TYPE_RGB_565_VALUE,
-        Rgba8888: RGBA_8888: COLOR_TYPE_RGBA_8888_VALUE,
-        Bgra8888: BGRA_8888: COLOR_TYPE_BGRA_8888_VALUE,
-        Rgba1010102: RGBA_1010102: COLOR_TYPE_RGBA_1010102_VALUE,
-        Rgb101010x: RGB_101010x: COLOR_TYPE_RGB_101010X_VALUE,
-        Gray8: Gray_8: COLOR_TYPE_GRAY_8_VALUE,
-        RgbaF16: RGBA_F16: COLOR_TYPE_RGBA_F16_VALUE,
-        RgbaF32: RGBA_F32: COLOR_TYPE_RGBA_F32_VALUE,
+        Alpha8: Alpha_8: color_type_alpha_8,
+        Rgb565: RGB_565: color_type_rgb_565,
+        Rgba8888: RGBA_8888: color_type_rgba_8888,
+        Bgra8888: BGRA_8888: color_type_bgra_8888,
+        Rgba1010102: RGBA_1010102: color_type_rgba_1010102,
+        Rgb101010x: RGB_101010x: color_type_rgb_101010x,
+        Gray8: Gray_8: color_type_gray_8,
+        RgbaF16: RGBA_F16: color_type_rgba_f16,
+        RgbaF32: RGBA_F32: color_type_rgba_f32,
     }
 );
 canvas_kit_enum!(
@@ -147,8 +136,8 @@ canvas_kit_enum!(
     CanvasKitFilterModeEnumValues,
     CanvasKitFilterMode,
     {
-        Linear: FILTER_MODE_LINEAR_VALUE,
-        Nearest: FILTER_MODE_NEAREST_VALUE,
+        Linear: filter_mode_linear,
+        Nearest: filter_mode_nearest,
     }
 );
 canvas_kit_enum!(
@@ -156,9 +145,9 @@ canvas_kit_enum!(
     CanvasKitMipmapModeEnumValues,
     CanvasKitMipmapMode,
     {
-        None: MIPMAP_MODE_NONE_VALUE,
-        Nearest: MIPMAP_MODE_NEAREST_VALUE,
-        Linear: MIPMAP_MODE_LINEAR_VALUE,
+        None: mipmap_mode_none,
+        Nearest: mipmap_mode_nearest,
+        Linear: mipmap_mode_linear,
     }
 );
 canvas_kit_enum!(
@@ -166,46 +155,53 @@ canvas_kit_enum!(
     CanvasKitBlendModeEnumValues,
     CanvasKitBlendMode,
     {
-        Clear: BLEND_MODE_CLEAR_VALUE,
-        Src: BLEND_MODE_SRC_VALUE,
-        Dst: BLEND_MODE_DST_VALUE,
-        SrcOver: BLEND_MODE_SRC_OVER_VALUE,
-        DstOver: BLEND_MODE_DST_OVER_VALUE,
-        SrcIn: BLEND_MODE_SRC_IN_VALUE,
-        DstIn: BLEND_MODE_DST_IN_VALUE,
-        SrcOut: BLEND_MODE_SRC_OUT_VALUE,
-        DstOut: BLEND_MODE_DST_OUT_VALUE,
-        SrcATop: BLEND_MODE_SRC_ATOP_VALUE,
-        DstATop: BLEND_MODE_DST_ATOP_VALUE,
-        Xor: BLEND_MODE_XOR_VALUE,
-        Plus: BLEND_MODE_PLUS_VALUE,
-        Modulate: BLEND_MODE_MODULATE_VALUE,
-        Screen: BLEND_MODE_SCREEN_VALUE,
-        Overlay: BLEND_MODE_OVERLAY_VALUE,
-        Darken: BLEND_MODE_DARKEN_VALUE,
-        Lighten: BLEND_MODE_LIGHTEN_VALUE,
-        ColorDodge: BLEND_MODE_COLOR_DODGE_VALUE,
-        ColorBurn: BLEND_MODE_COLOR_BURN_VALUE,
-        HardLight: BLEND_MODE_HARD_LIGHT_VALUE,
-        SoftLight: BLEND_MODE_SOFT_LIGHT_VALUE,
-        Difference: BLEND_MODE_DIFFERENCE_VALUE,
-        Exclusion: BLEND_MODE_EXCLUSION_VALUE,
-        Multiply: BLEND_MODE_MULTIPLY_VALUE,
-        Hue: BLEND_MODE_HUE_VALUE,
-        Saturation: BLEND_MODE_SATURATION_VALUE,
-        Color: BLEND_MODE_COLOR_VALUE,
-        Luminosity: BLEND_MODE_LUMINOSITY_VALUE,
+        Clear: blend_mode_clear,
+        Src: blend_mode_src,
+        Dst: blend_mode_dst,
+        SrcOver: blend_mode_src_over,
+        DstOver: blend_mode_dst_over,
+        SrcIn: blend_mode_src_in,
+        DstIn: blend_mode_dst_in,
+        SrcOut: blend_mode_src_out,
+        DstOut: blend_mode_dst_out,
+        SrcATop: blend_mode_src_atop,
+        DstATop: blend_mode_dst_atop,
+        Xor: blend_mode_xor,
+        Plus: blend_mode_plus,
+        Modulate: blend_mode_modulate,
+        Screen: blend_mode_screen,
+        Overlay: blend_mode_overlay,
+        Darken: blend_mode_darken,
+        Lighten: blend_mode_lighten,
+        ColorDodge: blend_mode_color_dodge,
+        ColorBurn: blend_mode_color_burn,
+        HardLight: blend_mode_hard_light,
+        SoftLight: blend_mode_soft_light,
+        Difference: blend_mode_difference,
+        Exclusion: blend_mode_exclusion,
+        Multiply: blend_mode_multiply,
+        Hue: blend_mode_hue,
+        Saturation: blend_mode_saturation,
+        Color: blend_mode_color,
+        Luminosity: blend_mode_luminosity,
     }
 );
 canvas_kit_enum!(TileMode, CanvasKitTileModeEnumValues, CanvasKitTileMode, {
-    Clamp: TILE_MODE_CLAMP_VALUE,
-    Decal: TILE_MODE_DECAL_VALUE,
-    Mirror: TILE_MODE_MIRROR_VALUE,
-    Repeat: TILE_MODE_REPEAT_VALUE,
+    Clamp: tile_mode_clamp,
+    Decal: tile_mode_decal,
+    Mirror: tile_mode_mirror,
+    Repeat: tile_mode_repeat,
 });
 
 canvas_kit_enum!(ColorSpace, CanvasKitColorSpaceEnumValues, CanvasKitColorSpace, {
-    Srgb: SRGB: COLOR_SPACE_SRGB_VALUE,
-    DisplayP3: DISPLAY_P3: COLOR_SPACE_DISPLAY_P3_VALUE,
-    AdobeRgb: ADOBE_RGB: COLOR_SPACE_ADOBE_RGB_VALUE,
+    Srgb: SRGB: color_space_srgb,
+    DisplayP3: DISPLAY_P3: color_space_display_p3,
+    AdobeRgb: ADOBE_RGB: color_space_adobe_rgb,
+});
+
+canvas_kit_enum!(BlurStyle, CanvasKitBlurStyleEnumValues, CanvasKitBlurStyle, {
+    Normal: blur_style_normal,
+    Solid: blur_style_solid,
+    Outer: blur_style_outer,
+    Inner: blur_style_inner,
 });

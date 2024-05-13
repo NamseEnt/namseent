@@ -4,6 +4,9 @@ use crate::{util::recreate_dir_all, *};
 pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
     let project_name = get_project_name(args.project_path.clone());
 
+    let project_path_in_relative =
+        pathdiff::diff_paths(&args.project_path, &args.target_dir).unwrap();
+
     recreate_dir_all(&args.target_dir, Some(vec![args.target_dir.join("target")]))?;
 
     std::fs::write(
@@ -20,8 +23,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 {project_name} = {{ path = "{project_path}" }}
 wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4"
 namui-panic-hook = "0.1"
+
+[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
+dwarf-debug-info = true
 
 [profile.release]
 lto = true
@@ -31,7 +36,12 @@ opt-level = 3
 lto = true
 opt-level = 2
     "#,
-            project_path = args.project_path.display(),
+            project_path = project_path_in_relative
+                .to_str()
+                .unwrap()
+                .split('\\')
+                .collect::<Vec<&str>>()
+                .join("/"),
         ),
     )?;
 
@@ -45,10 +55,10 @@ opt-level = 2
                 r#"use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub async fn start() {{
+pub fn start() {{
     namui_panic_hook::set_once();
 
-    {project_name_underscored}::main().await;
+    {project_name_underscored}::main();
 }}
 "#,
                 project_name_underscored = project_name.replace('-', "_"),

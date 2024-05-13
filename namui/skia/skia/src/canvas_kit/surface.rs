@@ -1,6 +1,5 @@
 use super::*;
 use crate::*;
-use web_sys::HtmlCanvasElement;
 
 pub(crate) struct CkSurface {
     canvas_kit_surface: CanvasKitSurface,
@@ -10,9 +9,7 @@ unsafe impl Send for CkSurface {}
 unsafe impl Sync for CkSurface {}
 
 impl CkSurface {
-    pub(crate) fn new(canvas_element: &HtmlCanvasElement) -> CkSurface {
-        let canvas_kit_surface = canvas_kit().make_web_glcanvas_surface(canvas_element, None, None);
-
+    pub(crate) fn new(canvas_kit_surface: CanvasKitSurface) -> CkSurface {
         let canvas = canvas_kit_surface.getCanvas();
         CkSurface {
             canvas_kit_surface,
@@ -25,7 +22,7 @@ impl SkSurface for CkSurface {
     fn flush(&mut self) {
         self.canvas_kit_surface.flush();
     }
-    fn canvas(&self) -> &dyn SkCanvas {
+    fn canvas(&mut self) -> &dyn SkCanvas {
         &self.canvas
     }
 }

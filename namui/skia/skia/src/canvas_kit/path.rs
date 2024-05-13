@@ -1,4 +1,5 @@
 use super::*;
+use crate::*;
 use std::sync::Arc;
 use wasm_bindgen::JsValue;
 
@@ -26,8 +27,8 @@ impl CkPath {
         let path = path.clone().stroke(StrokeOptions {
             cap: paint.stroke_cap,
             join: paint.stroke_join,
-            width: paint.stroke_width,
-            miter_limit: paint.stroke_miter,
+            width: Some(paint.stroke_width),
+            miter_limit: Some(paint.stroke_miter),
             precision: None,
         });
 
@@ -110,17 +111,21 @@ fn apply_command_to_canvas_kit_path(canvas_kit_path: &CanvasKitPath, path: &Path
                     .unwrap();
                 }
                 if let Some(precision) = stroke_options.precision {
-                    js_sys::Reflect::set(&js_options, &"precision".into(), &precision.into())
-                        .unwrap();
+                    js_sys::Reflect::set(
+                        &js_options,
+                        &"precision".into(),
+                        &precision.as_f32().into(),
+                    )
+                    .unwrap();
                 }
                 if let Some(join) = stroke_options.join {
-                    let canvas_kit_stroke_join: CanvasKitStrokeJoin = join.into();
-                    js_sys::Reflect::set(&js_options, &"join".into(), &canvas_kit_stroke_join)
+                    let canvas_kit_stroke_join: &CanvasKitStrokeJoin = join.into();
+                    js_sys::Reflect::set(&js_options, &"join".into(), canvas_kit_stroke_join)
                         .unwrap();
                 }
                 if let Some(cap) = stroke_options.cap {
-                    let canvas_kit_stroke_cap: CanvasKitStrokeCap = cap.into();
-                    js_sys::Reflect::set(&js_options, &"cap".into(), &canvas_kit_stroke_cap)
+                    let canvas_kit_stroke_cap: &CanvasKitStrokeCap = cap.into();
+                    js_sys::Reflect::set(&js_options, &"cap".into(), canvas_kit_stroke_cap)
                         .unwrap();
                 }
                 let result = canvas_kit_path.stroke(js_options.into());
@@ -153,7 +158,8 @@ fn apply_command_to_canvas_kit_path(canvas_kit_path: &CanvasKitPath, path: &Path
                 );
             }
             PathCommand::Scale { xy } => {
-                canvas_kit_path.transform(&Matrix3x3::from_scale(xy.x, xy.y).into_linear_slice());
+                canvas_kit_path
+                    .transform(&TransformMatrix::from_scale(*xy.x, *xy.y).into_linear_slice());
             }
             PathCommand::Translate { xy } => {
                 canvas_kit_path.offset(xy.x.as_f32(), xy.y.as_f32());
@@ -200,6 +206,20 @@ fn apply_command_to_canvas_kit_path(canvas_kit_path: &CanvasKitPath, path: &Path
             }
             PathCommand::Close => {
                 canvas_kit_path.close();
+            }
+            PathCommand::CubicTo {
+                first_xy,
+                second_xy,
+                end_xy,
+            } => {
+                canvas_kit_path.cubicTo(
+                    first_xy.x.as_f32(),
+                    first_xy.y.as_f32(),
+                    second_xy.x.as_f32(),
+                    second_xy.y.as_f32(),
+                    end_xy.x.as_f32(),
+                    end_xy.y.as_f32(),
+                );
             }
         }
     }

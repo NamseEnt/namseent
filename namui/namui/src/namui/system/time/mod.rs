@@ -4,21 +4,36 @@ mod mock;
 #[cfg(not(test))]
 mod non_wasm;
 #[cfg(target_family = "wasm")]
-#[cfg(not(test))]
+// #[cfg(not(test))]
 mod web;
 
+#[cfg(not(target_family = "wasm"))]
+use tokio::time;
+#[cfg(target_family = "wasm")]
+use wasmtimer::tokio as time;
+
 #[cfg(test)]
-pub use mock::*;
-use namui_type::*;
+use mock as inner;
 #[cfg(not(target_family = "wasm"))]
 #[cfg(not(test))]
-pub(crate) use non_wasm::*;
-use std::sync::{Arc, OnceLock};
+use non_wasm as inner;
 #[cfg(target_family = "wasm")]
 #[cfg(not(test))]
-pub(crate) use web::*;
+use web as inner;
+
+use super::InitResult;
+#[cfg(test)]
+pub use inner::*;
+use namui_type::*;
+use std::sync::{Arc, OnceLock};
 
 static TIME_SYSTEM: OnceLock<Arc<dyn TimeSystem + Send + Sync>> = OnceLock::new();
+
+pub(crate) async fn init() -> InitResult {
+    inner::init().await?;
+
+    Ok(())
+}
 
 /// It's time since the program started.
 pub fn since_start() -> Duration {
@@ -43,7 +58,7 @@ pub fn stop_watch(key: impl AsRef<str>) -> StopWatch {
 /// sleep(Duration::from_secs(1)).await;
 /// ```
 /// Sleep 0 duration if passed duration is less than 0.
-pub fn sleep(duration: Duration) -> tokio::time::Sleep {
+pub fn sleep(duration: Duration) -> time::Sleep {
     TIME_SYSTEM.get().unwrap().sleep(duration)
 }
 
@@ -52,5 +67,5 @@ trait TimeSystem {
     fn system_time_now(&self) -> SystemTime;
     fn now(&self) -> Instant;
     /// Sleep 0 duration if passed duration is less than 0.
-    fn sleep(&self, duration: Duration) -> tokio::time::Sleep;
+    fn sleep(&self, duration: Duration) -> time::Sleep;
 }

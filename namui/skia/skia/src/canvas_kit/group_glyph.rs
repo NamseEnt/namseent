@@ -1,4 +1,5 @@
 use super::*;
+use crate::*;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -78,6 +79,12 @@ impl GroupGlyph for CkGroupGlyph {
 
         let glyph_ids = ck_font.glyph_ids(text);
         ck_font.glyph_bounds(glyph_ids.clone(), &self.paint)
+    }
+
+    fn bound(&self, text: &str) -> Rect<Px> {
+        self.bounds(text).into_iter().fold(Rect::default(), |a, b| {
+            a.get_minimum_rectangle_containing(b)
+        })
     }
 }
 

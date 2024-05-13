@@ -81,10 +81,10 @@ extern "C" {
     #[wasm_bindgen(method)]
     pub fn makeShaderOptions(
         this: &CanvasKitImage,
-        tx: CanvasKitTileMode,
-        ty: CanvasKitTileMode,
-        fm: CanvasKitFilterMode,
-        mm: CanvasKitMipmapMode,
+        tx: &CanvasKitTileMode,
+        ty: &CanvasKitTileMode,
+        fm: &CanvasKitFilterMode,
+        mm: &CanvasKitMipmapMode,
         localMatrix: Option<&[f32]>,
     ) -> CanvasKitShader;
 

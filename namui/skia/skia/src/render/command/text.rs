@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives(-serde::Deserialize)]
+#[type_derives()]
 pub struct TextDrawCommand {
     pub text: String,
     pub font: Font,

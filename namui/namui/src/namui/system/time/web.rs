@@ -1,18 +1,37 @@
-use crate::{
-    system::{platform_utils::web::window, InitResult},
-    Time,
-};
+use super::*;
+use crate::system::InitResult;
+use anyhow::*;
+use namui_type::*;
+use std::sync::Arc;
 
 pub(crate) async fn init() -> InitResult {
+    super::TIME_SYSTEM
+        .set(Arc::new(WasmTimeSystem {
+            start_instant: Instant::now(),
+        }))
+        .map_err(|_| anyhow!("Failed to set time system"))?;
+
     Ok(())
 }
 
-pub fn now() -> Time {
-    Time::Ms(window().performance().unwrap().now() as f32)
+struct WasmTimeSystem {
+    start_instant: Instant,
 }
 
-pub async fn delay(time: crate::Time) {
-    fluvio_wasm_timer::Delay::new(time.as_duration())
-        .await
-        .unwrap();
+impl TimeSystem for WasmTimeSystem {
+    fn since_start(&self) -> Duration {
+        Instant::now() - self.start_instant
+    }
+
+    fn system_time_now(&self) -> SystemTime {
+        SystemTime::now()
+    }
+
+    fn now(&self) -> Instant {
+        Instant::new(self.since_start())
+    }
+
+    fn sleep(&self, duration: Duration) -> time::Sleep {
+        time::sleep(duration.to_std().unwrap_or_default())
+    }
 }

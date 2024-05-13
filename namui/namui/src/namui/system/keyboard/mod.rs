@@ -5,8 +5,6 @@ mod wasm;
 
 #[cfg(not(target_family = "wasm"))]
 pub(crate) use non_wasm::*;
-#[cfg(target_family = "wasm")]
-pub use wasm::*;
 
 use super::InitResult;
 use crate::*;
@@ -50,6 +48,10 @@ fn record_key_up(code: Code) {
 
 fn pressing_code_set() -> HashSet<Code> {
     KEYBOARD_SYSTEM.pressing_code_set.read().unwrap().clone()
+}
+
+fn clear_pressing_code_set() {
+    KEYBOARD_SYSTEM.pressing_code_set.write().unwrap().clear()
 }
 
 pub fn shift_press() -> bool {

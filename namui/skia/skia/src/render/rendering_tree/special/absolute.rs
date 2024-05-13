@@ -1,6 +1,6 @@
 use super::*;
 
-#[type_derives(-serde::Deserialize)]
+#[type_derives()]
 pub struct AbsoluteNode {
     pub x: Px,
     pub y: Px,

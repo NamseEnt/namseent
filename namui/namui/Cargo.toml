@@ -9,7 +9,6 @@ targets = ["x86_64-pc-windows-msvc"]
 
 [dependencies]
 namui-type = { path = "../namui-type", features = ["namui_internal"] }
-namui-skia = { path = "../skia/skia", features = ["skia", "winit"] }
 namui-hooks = { path = "../namui-hooks" }
 lazy_static = "1.4.0"
 url = { version = "2", features = ["serde"] }
@@ -30,7 +29,6 @@ num = { version = "0.4.0", features = ["std"] }
 derivative = "2.2.0"
 namui-drawer-sys = { path = "../namui-drawer/sys" }
 dashmap = "5"
-mimalloc = "0.1.39"
 elsa = { version = "1.10.0", features = ["indexmap"] }
 stable_deref_trait = "1.2.0"
 bumpalo = { version = "3.15.4", features = ["collections"] }
@@ -40,6 +38,22 @@ rustc-hash = "1.1.0"
 smol_str = "0.2.1"
 indexmap = "2.2.5"
 static-tree = { path = "../static-tree" }
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+tokio = { version = "1", features = ["rt", "fs", "rt-multi-thread"] }
+winit = "0.29.4"
+rand = "0.8.5"
+opener = "0.7.1"
+namui-skia = { path = "../skia/skia", features = ["windows", "skia", "winit"] }
+ffmpeg-next = { path = "../rust-ffmpeg", features = ["static"] }
+crossbeam-channel = "0.5.9"
+wasapi = "0.14.0"
+
+[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
+wasm-bindgen-test = "0.3.13"
+tokio = { version = "1", default-features = false, features = ["rt", "macros"] }
+float-cmp = "0.9"
+
 
 [target.'cfg(target_family="wasm")'.dependencies]
 web-sys = { version = "0.3", features = [
@@ -80,6 +94,7 @@ web-sys = { version = "0.3", features = [
     # "AudioBuffer",
     # "AudioDestinationNode",
     "HashChangeEvent",
+    "ImageBitmap",
 ] }
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 js-sys = "0.3.55"
@@ -94,31 +109,19 @@ parking_lot = "0.12"
 auto_ops = "0.3"
 strum = "0.24"
 strum_macros = "0.24"
-fluvio-wasm-timer = "0.2"
 textwrap = "0.15"
 unicode-segmentation = "1.9"
-namui-type = { path = "../namui-type" }
 serde-wasm-bindgen = "0.5.0"
 serde_bytes = "0.11.12"
 chumsky = "0.9.2"
+namui-skia = { path = "../skia/skia", features = ["wasm-runtime"] }
+wasmtimer = "0.2.0"
 
 [target.'cfg(target_family="wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.3.13"
-tokio = { version = "1", default-features = false, features = ["rt", "macros"] }
-float-cmp = "0.9"
-
-
-[target.'cfg(not(target_family="wasm"))'.dependencies]
-tokio = { version = "1", features = ["rt", "fs", "rt-multi-thread"] }
-winit = "0.29.4"
-rand = "0.8.5"
-opener = "0.6.1"
-namui-skia = { path = "../skia/skia", features = ["windows"] }
-ffmpeg-next = { path = "../rust-ffmpeg", features = ["static"] }
-crossbeam-channel = "0.5.9"
-wasapi = "0.14.0"
-
-[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-wasm-bindgen-test = "0.3.13"
-tokio = { version = "1", default-features = false, features = ["rt", "macros"] }
+tokio = { version = "1", default-features = false, features = [
+    "rt",
+    "macros",
+    "time",
+] }
 float-cmp = "0.9"

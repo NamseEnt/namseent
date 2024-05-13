@@ -15,8 +15,7 @@ pub fn to_real_path(path_like: impl PathLike) -> io::Result<PathBuf> {
     let path = change_path_to_platform(
         std::path::Path::new(std::env::current_exe()?.parent().unwrap()).join("bundle"),
         path_like,
-    )
-    .map_err(|error| Error::new(ErrorKind::Other, error))?;
+    );
     Ok(path)
 }
 

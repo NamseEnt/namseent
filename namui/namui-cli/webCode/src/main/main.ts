@@ -34,14 +34,6 @@ const drawWorker = new Worker("worker.js", {
     type: "classic",
 });
 
-drawWorker.postMessage(
-    {
-        type: "init",
-        offscreen,
-    },
-    [offscreen],
-);
-
 document.oncontextmenu = (event) => {
     event.preventDefault();
 };
@@ -59,16 +51,28 @@ globalThisAny.requestDraw = (array: Uint8Array) => {
     );
 };
 
-globalThisAny.loadTypeface = (typefaceName: string, array: Uint8Array) => {
+globalThisAny.loadTypeface = async (
+    typefaceName: string,
+    array: Uint8Array,
+) => {
     const buffer = array.buffer;
+    const id = getNextMessageId();
     drawWorker.postMessage(
         {
             type: "loadTypeface",
+            id,
             typefaceName,
             buffer: buffer,
         },
         [buffer],
     );
+    const { error } = (await waitForMessage(id)) as {
+        error: Error | undefined;
+    };
+
+    if (error) {
+        throw error;
+    }
 };
 
 globalThisAny.loadImage = (
@@ -108,14 +112,35 @@ globalThisAny.onInspect = async (inspectTree: InspectTree) => {
 };
 
 (async () => {
+    drawWorker.postMessage(
+        {
+            type: "init",
+            offscreen,
+        },
+        [offscreen],
+    );
+
+    const error = await new Promise((resolve) => {
+        drawWorker.onmessage = (message) => {
+            if (message.data.type === "init") {
+                const { error } = message.data as { error: string | undefined };
+                resolve(error);
+            }
+        };
+    });
+    if (error) {
+        throw error;
+    }
+
     const [{ start, on_load_image, set_inspect_toggle_on, panicked }, _] =
         await Promise.all([wasm_bindgen("./bundle_bg.wasm"), initCanvasKit()]);
 
-    globalThisAny.inspect = () => {
-        toggleInspectOn();
-        set_inspect_toggle_on(isInspectOn());
-    };
-    set_inspect_toggle_on(isInspectOn());
+    // TODO
+    // globalThisAny.inspect = () => {
+    //     toggleInspectOn();
+    //     set_inspect_toggle_on(isInspectOn());
+    // };
+    // set_inspect_toggle_on(isInspectOn());
 
     globalThisAny.panic = async (msg: string) => {
         console.error(msg);
@@ -140,6 +165,11 @@ globalThisAny.onInspect = async (inspectTree: InspectTree) => {
             case "panic":
                 {
                     panicked();
+                }
+                break;
+            case "loadTypeface":
+                {
+                    onMessage(message.data);
                 }
                 break;
         }

@@ -3,16 +3,15 @@ use std::fmt::Debug;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct SystemTime {
-    #[cfg(not(target_family = "wasm"))]
-    inner: std::time::SystemTime,
-    #[cfg(target_family = "wasm")]
-    inner: todo,
+    inner: web_time::SystemTime,
 }
 
 impl SystemTime {
     #[cfg(feature = "namui_internal")]
-    pub fn new(inner: std::time::SystemTime) -> Self {
-        Self { inner }
+    pub fn now() -> Self {
+        Self {
+            inner: web_time::SystemTime::now(),
+        }
     }
 }
 
@@ -39,7 +38,6 @@ auto_ops::impl_op!(-|lhs: &SystemTime, rhs: Duration| -> SystemTime { add_durati
 auto_ops::impl_op!(-|lhs: SystemTime, rhs: &Duration| -> SystemTime { add_duration(lhs, -*rhs) });
 auto_ops::impl_op!(-|lhs: &SystemTime, rhs: &Duration| -> SystemTime { add_duration(*lhs, -*rhs) });
 
-#[cfg(not(target_family = "wasm"))]
 fn sub_system_time(lhs: SystemTime, rhs: SystemTime) -> Duration {
     let duration = match lhs.inner.duration_since(rhs.inner) {
         Ok(duration) => duration,
@@ -50,7 +48,6 @@ fn sub_system_time(lhs: SystemTime, rhs: SystemTime) -> Duration {
     Duration::from_std(sign, duration)
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn add_duration(lhs: SystemTime, rhs: Duration) -> SystemTime {
     match rhs.sign {
         true => SystemTime {
@@ -69,7 +66,7 @@ mod tests {
 
     #[test]
     fn test_system_time_sub() {
-        let std_system_time_now = std::time::SystemTime::now();
+        let std_system_time_now = web_time::SystemTime::now();
         let std_system_time_1s_ago = std_system_time_now - std::time::Duration::from_secs(1);
         let std_system_time_2s_ago = std_system_time_now - std::time::Duration::from_secs(2);
         let std_system_time_3s_ago = std_system_time_now - std::time::Duration::from_secs(3);
@@ -107,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_system_time_add_duration() {
-        let std_system_time_now = std::time::SystemTime::now();
+        let std_system_time_now = web_time::SystemTime::now();
         let std_system_time_1s_ago = std_system_time_now + std::time::Duration::from_secs(1);
         let std_system_time_2s_ago = std_system_time_now + std::time::Duration::from_secs(2);
         let std_system_time_3s_ago = std_system_time_now + std::time::Duration::from_secs(3);

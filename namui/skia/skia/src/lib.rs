@@ -1,5 +1,5 @@
 mod bounding_box;
-#[cfg(feature = "wasm")]
+#[cfg(target_family = "wasm")]
 pub mod canvas_kit;
 #[cfg(feature = "windows")]
 pub mod native;
@@ -8,7 +8,7 @@ mod traits;
 mod xy_in;
 
 pub use bounding_box::*;
-#[cfg(feature = "wasm")]
+#[cfg(target_family = "wasm")]
 pub use canvas_kit::*;
 use derive_macro::type_derives;
 use namui_type::*;

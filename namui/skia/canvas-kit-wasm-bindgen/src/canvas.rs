@@ -25,7 +25,7 @@ extern "C" {
     pub fn clipPath(
         this: &CanvasKitCanvas,
         path: &CanvasKitPath,
-        op: CanvasKitClipOp,
+        op: &CanvasKitClipOp,
         doAntiAlias: bool,
     );
 

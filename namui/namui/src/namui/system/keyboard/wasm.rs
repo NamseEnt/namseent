@@ -1,4 +1,7 @@
-use super::InitResult;
+use super::{
+    any_code_press, clear_pressing_code_set, pressing_code_set, record_key_down, record_key_up,
+    KeyboardSystem,
+};
 use crate::*;
 use std::{
     collections::HashSet,
@@ -8,29 +11,14 @@ use std::{
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::window;
 
-struct KeyboardSystem {
-    pressing_code_set: Arc<RwLock<HashSet<Code>>>,
-}
-
-lazy_static::lazy_static! {
-    static ref KEYBOARD_SYSTEM: Arc<KeyboardSystem> = Arc::new(KeyboardSystem::new());
-}
-
-pub(super) async fn init() -> InitResult {
-    lazy_static::initialize(&KEYBOARD_SYSTEM);
-    Ok(())
-}
-
 impl KeyboardSystem {
     pub fn new() -> Self {
-        let pressing_code_set = Arc::new(RwLock::new(HashSet::new()));
         let document = window().unwrap().document().unwrap();
 
         document
             .add_event_listener_with_callback(
                 "keydown",
                 Closure::wrap(Box::new({
-                    let pressing_code_set = pressing_code_set.clone();
                     move |event: web_sys::KeyboardEvent| {
                         let code = Code::from_str(&event.code()).unwrap();
                         record_key_down(code);
@@ -62,7 +50,7 @@ impl KeyboardSystem {
                         crate::hooks::on_raw_event(RawEvent::KeyDown {
                             event: RawKeyboardEvent {
                                 code,
-                                pressing_codes: pressing_code_set.read().unwrap().clone(),
+                                pressing_codes: pressing_code_set(),
                                 prevent_default: Box::new(move || {
                                     event.prevent_default();
                                 }),
@@ -79,7 +67,6 @@ impl KeyboardSystem {
             .add_event_listener_with_callback(
                 "keyup",
                 Closure::wrap(Box::new({
-                    let pressing_code_set = pressing_code_set.clone();
                     move |event: web_sys::KeyboardEvent| {
                         let code = Code::from_str(&event.code()).unwrap();
                         record_key_up(code);
@@ -87,7 +74,7 @@ impl KeyboardSystem {
                         crate::hooks::on_raw_event(RawEvent::KeyUp {
                             event: RawKeyboardEvent {
                                 code,
-                                pressing_codes: pressing_code_set,
+                                pressing_codes: pressing_code_set(),
                                 prevent_default: Box::new(move || {
                                     event.prevent_default();
                                 }),
@@ -100,13 +87,8 @@ impl KeyboardSystem {
             )
             .unwrap();
 
-        let reset_pressing_code_set_closure = Closure::wrap(Box::new({
-            let pressing_code_set = pressing_code_set.clone();
-            move || {
-                pressing_code_set.write().unwrap().clear();
-            }
-        }) as Box<dyn FnMut()>)
-        .into_js_value();
+        let reset_pressing_code_set_closure =
+            Closure::wrap(Box::new(clear_pressing_code_set) as Box<dyn FnMut()>).into_js_value();
 
         ["blur", "visibilitychange"].iter().for_each(|event_name| {
             document
@@ -125,27 +107,7 @@ impl KeyboardSystem {
             .unwrap();
 
         KeyboardSystem {
-            pressing_code_set: pressing_code_set.clone(),
+            pressing_code_set: Arc::new(RwLock::new(HashSet::new())),
         }
     }
-}
-
-pub fn any_code_press(codes: impl IntoIterator<Item = Code>) -> bool {
-    let pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.read().unwrap();
-    for code in codes {
-        if pressing_code_set.contains(&code) {
-            return true;
-        }
-    }
-    false
-}
-
-pub fn shift_press() -> bool {
-    any_code_press([Code::ShiftLeft, Code::ShiftRight])
-}
-pub fn ctrl_press() -> bool {
-    any_code_press([Code::ControlLeft, Code::ControlRight])
-}
-pub fn alt_press() -> bool {
-    any_code_press([Code::AltLeft, Code::AltRight])
 }

@@ -1,15 +1,23 @@
-mod delete;
-mod file_system_directory_handle;
-mod file_system_file_handle;
-mod file_system_handle;
-mod get_root_directory;
-mod make_dir;
-mod read;
-mod read_dir;
-mod write;
+use crate::file::types::Dirent;
+use crate::file::types::PathLike;
+use tokio::io::Result;
 
-pub use delete::*;
-pub use make_dir::*;
-pub use read::*;
-pub use read_dir::*;
-pub use write::*;
+pub async fn delete(path_like: impl PathLike) -> Result<()> {
+    todo!()
+}
+
+pub async fn make_dir(path_like: impl PathLike) -> Result<()> {
+    todo!()
+}
+
+pub async fn read_dir(_path_like: impl PathLike) -> Result<Vec<Dirent>> {
+    todo!()
+}
+
+pub async fn read(path_like: impl PathLike) -> Result<Vec<u8>> {
+    todo!()
+}
+
+pub async fn write(path_like: impl PathLike, content: impl AsRef<[u8]>) -> Result<()> {
+    todo!()
+}

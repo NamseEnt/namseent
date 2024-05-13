@@ -1,6 +1,5 @@
 use super::*;
 use js_sys::Float32Array;
-use namui_type::ImageInfo;
 use web_sys::HtmlCanvasElement;
 
 unsafe impl Sync for CanvasKit {}
@@ -13,6 +12,9 @@ extern "C" {
     #[wasm_bindgen(js_namespace = globalThis, js_name = getCanvasKit)]
     pub fn canvas_kit() -> CanvasKit;
 
+    pub type WebGPUDeviceContext;
+    pub type WebGPUCanvasContext;
+
     ///  
     /// A helper for creating a WebGL backed (aka GPU) surface and falling back to a CPU surface if
     /// the GPU one cannot be created. This works for both WebGL 1 and WebGL 2.
@@ -21,11 +23,54 @@ extern "C" {
     /// @param opts - Options that will get passed to the creation of the WebGL context.
     ///
     #[wasm_bindgen(structural, method)]
-    fn MakeWebGLCanvasSurface(
+    pub fn MakeWebGLCanvasSurface(
         this: &CanvasKit,
         canvas: &HtmlCanvasElement,
         colorSpace: Option<CanvasKitColorSpace>,
         opts: Option<js_sys::Object>,
+    ) -> Option<CanvasKitSurface>;
+
+    ///
+    /// Creates a context that operates over the given WebGPU Device.
+    /// @param device
+    ///
+    #[wasm_bindgen(structural, method)]
+    pub fn MakeGPUDeviceContext(
+        this: &CanvasKit,
+        device: &js_sys::Object, // GPUDevice
+    ) -> Option<WebGPUDeviceContext>;
+
+    ///
+    /// Creates and configures a WebGPU context for the given canvas.
+    /// @param ctx
+    /// @param canvas
+    /// @param opts
+    ///
+    #[wasm_bindgen(structural, method)]
+    pub fn MakeGPUCanvasContext(
+        this: &CanvasKit,
+        ctx: &WebGPUDeviceContext,
+        canvas: &HtmlCanvasElement,
+        // opts: Option<WebGPUCanvasOptions>,
+    ) -> Option<WebGPUCanvasContext>;
+
+    ///
+    /// Creates a Surface backed by the next available texture in the swapchain associated with the
+    /// given WebGPU canvas context. The context must have been already successfully configured using
+    /// the same GPUDevice associated with `ctx`.
+    /// @param canvasContext - WebGPU context associated with the canvas. The canvas can either be an
+    ///                        on-screen HTMLCanvasElement or an OffscreenCanvas.
+    /// @param colorSpace
+    /// @param width - width of the visible region. If not present, the canvas width from `canvasContext`
+    ///                is used.
+    /// @param height - height of the visible region. If not present, the canvas width from `canvasContext`
+    ///                is used.
+    ///
+    #[wasm_bindgen(structural, method)]
+    pub fn MakeGPUCanvasSurface(
+        this: &CanvasKit,
+        canvasContext: &WebGPUCanvasContext,
+        colorSpace: Option<CanvasKitColorSpace>,
     ) -> Option<CanvasKitSurface>;
 
     // ///
@@ -76,9 +121,9 @@ extern "C" {
     ///         Unpremul, Skia will not convert the src pixels first.
     ///
     #[wasm_bindgen(method)]
-    fn MakeLazyImageFromTextureSource(
+    pub fn MakeLazyImageFromTextureSource(
         this: &CanvasKit,
-        src: &JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+        src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
         info: Option<js_sys::Object>, // ImageInfo | PartialImageInfo
         srcIsPremul: Option<bool>,
     ) -> CanvasKitImage;
@@ -128,98 +173,10 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn Shader(this: &CanvasKit) -> ShaderFactory;
-}
 
-impl CanvasKit {
-    pub fn make_lazy_image_from_texture_source(
-        &self,
-        src: &JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
-        info: Option<ImageInfo>,
-        src_is_premul: Option<bool>,
-    ) -> CanvasKitImage {
-        let info = info.map(|info| info.to_js_object());
-        // let image = self.MakeLazyImageFromTextureSource(src, info, src_is_premul);
-        // image.makeCopyWithDefaultMipmaps() // Do we need this?
-        self.MakeLazyImageFromTextureSource(src, info, src_is_premul)
-    }
+    #[wasm_bindgen(method, getter)]
+    pub fn MaskFilter(this: &CanvasKit) -> MaskFilterFactory;
 
-    pub fn make_web_glcanvas_surface(
-        &self,
-        canvas: &HtmlCanvasElement,
-        color_space: Option<ColorSpace>,
-        opts: Option<WebGLOptions>,
-    ) -> CanvasKitSurface {
-        self.MakeWebGLCanvasSurface(
-            canvas,
-            color_space.map(|x| x.into()),
-            opts.map(|opts| opts.to_js_object()),
-        )
-        .expect("Failed to create WebGLCanvasSurface")
-    }
-}
-
-pub(crate) trait ToJsObject {
-    fn to_js_object(&self) -> js_sys::Object;
-}
-
-impl ToJsObject for ImageInfo {
-    fn to_js_object(&self) -> js_sys::Object {
-        let obj = js_sys::Object::new();
-
-        js_sys::Reflect::set(
-            &obj,
-            &wasm_bindgen::JsValue::from("width"),
-            &wasm_bindgen::JsValue::from(self.width.as_f32()),
-        )
-        .expect("Failed to set width");
-
-        js_sys::Reflect::set(
-            &obj,
-            &wasm_bindgen::JsValue::from("height"),
-            &wasm_bindgen::JsValue::from(self.height.as_f32()),
-        )
-        .expect("Failed to set height");
-
-        let canvas_kit_color_type: CanvasKitColorType = self.color_type.into();
-        js_sys::Reflect::set(
-            &obj,
-            &wasm_bindgen::JsValue::from("colorType"),
-            &wasm_bindgen::JsValue::from(canvas_kit_color_type),
-        )
-        .expect("Failed to set colorType");
-
-        let canvas_kit_alpha_type: CanvasKitAlphaType = self.alpha_type.into();
-        js_sys::Reflect::set(
-            &obj,
-            &wasm_bindgen::JsValue::from("alphaType"),
-            &wasm_bindgen::JsValue::from(canvas_kit_alpha_type),
-        )
-        .expect("Failed to set alphaType");
-
-        obj
-    }
-}
-
-/// https://github.com/google/skia/blob/c9d527e6b5356ec097610f4b97b1988bc31d9c7e/modules/canvaskit/npm_build/types/index.d.ts#L3158
-pub struct WebGLOptions {
-    pub preserve_drawing_buffer: Option<bool>,
-}
-impl ToJsObject for WebGLOptions {
-    fn to_js_object(&self) -> js_sys::Object {
-        let obj = js_sys::Object::new();
-
-        if let Some(preserve_drawing_buffer) = self.preserve_drawing_buffer {
-            js_sys::Reflect::set(
-                &obj,
-                &wasm_bindgen::JsValue::from("preserveDrawingBuffer"),
-                &wasm_bindgen::JsValue::from(match preserve_drawing_buffer {
-                    true => 1,
-                    false => 0,
-                }),
-            )
-            .expect("Failed to set preserveDrawingBuffer");
-        }
-
-        obj
-    }
+    #[wasm_bindgen(method, getter)]
+    pub fn ImageFilter(this: &CanvasKit) -> ImageFilterFactory;
 }

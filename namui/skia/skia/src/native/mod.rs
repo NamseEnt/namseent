@@ -32,13 +32,13 @@ pub(crate) use text_blob::*;
 pub(crate) use typeface::*;
 // // pub(crate) use runtime_effect::*;
 
-pub fn init_skia(
+pub async fn init_skia(
     screen_id: usize,
     window_wh: Wh<IntPx>,
 ) -> Result<Arc<RwLock<impl SkSkia + Send + Sync>>> {
-    Ok(Arc::new(RwLock::new(NativeSkia::new(
-        screen_id, window_wh,
-    )?)))
+    Ok(Arc::new(RwLock::new(
+        NativeSkia::new(screen_id, window_wh).await?,
+    )))
 }
 
 pub fn init_calculate() -> Result<Arc<impl SkCalculate + Send + Sync>> {

@@ -215,7 +215,6 @@ struct Hsl01 {
 pub enum PaintStyle {
     Fill,
     Stroke,
-    StrokeAndFill,
 }
 
 #[cfg(feature = "skia")]
@@ -224,7 +223,6 @@ impl From<PaintStyle> for skia_safe::PaintStyle {
         match paint_style {
             PaintStyle::Fill => skia_safe::PaintStyle::Fill,
             PaintStyle::Stroke => skia_safe::PaintStyle::Stroke,
-            PaintStyle::StrokeAndFill => skia_safe::PaintStyle::StrokeAndFill,
         }
     }
 }
@@ -299,7 +297,7 @@ pub enum AlphaType {
     Opaque,
     Premul,
     Unpremul,
-    Unknown,
+    // Unknown, // not support by canvaskit
 }
 
 #[cfg(feature = "skia")]
@@ -309,7 +307,9 @@ impl Into<AlphaType> for skia_safe::AlphaType {
             skia_safe::AlphaType::Opaque => AlphaType::Opaque,
             skia_safe::AlphaType::Premul => AlphaType::Premul,
             skia_safe::AlphaType::Unpremul => AlphaType::Unpremul,
-            skia_safe::AlphaType::Unknown => AlphaType::Unknown,
+            skia_safe::AlphaType::Unknown => {
+                unimplemented!("canvaskit doesn't support AlphaType::Unknown")
+            }
         }
     }
 }
@@ -321,7 +321,7 @@ impl Into<skia_safe::AlphaType> for AlphaType {
             AlphaType::Opaque => skia_safe::AlphaType::Opaque,
             AlphaType::Premul => skia_safe::AlphaType::Premul,
             AlphaType::Unpremul => skia_safe::AlphaType::Unpremul,
-            AlphaType::Unknown => skia_safe::AlphaType::Unknown,
+            // AlphaType::Unknown => skia_safe::AlphaType::Unknown,
         }
     }
 }
@@ -337,22 +337,23 @@ pub enum ColorType {
     Gray8,
     RgbaF16,
     RgbaF32,
-    ARGB4444,
-    RGB888x,
-    BGRA1010102,
-    BGR101010x,
-    BGR101010xXR,
-    RGBA10x6,
-    RGBAF16Norm,
-    R8G8UNorm,
-    A16Float,
-    R16G16Float,
-    A16UNorm,
-    R16G16UNorm,
-    R16G16B16A16UNorm,
-    SRGBA8888,
-    R8UNorm,
-    Unknown,
+    // not support by canvaskit
+    // ARGB4444,
+    // RGB888x,
+    // BGRA1010102,
+    // BGR101010x,
+    // BGR101010xXR,
+    // RGBA10x6,
+    // RGBAF16Norm,
+    // R8G8UNorm,
+    // A16Float,
+    // R16G16Float,
+    // A16UNorm,
+    // R16G16UNorm,
+    // R16G16B16A16UNorm,
+    // SRGBA8888,
+    // R8UNorm,
+    // Unknown,
 }
 
 impl ColorType {
@@ -367,22 +368,22 @@ impl ColorType {
             ColorType::Gray8 => 1,
             ColorType::RgbaF16 => 8,
             ColorType::RgbaF32 => 16,
-            ColorType::ARGB4444 => 2,
-            ColorType::RGB888x => 4,
-            ColorType::BGRA1010102 => 4,
-            ColorType::BGR101010x => 4,
-            ColorType::BGR101010xXR => 4,
-            ColorType::RGBA10x6 => 8,
-            ColorType::RGBAF16Norm => 8,
-            ColorType::R8G8UNorm => 2,
-            ColorType::A16Float => 2,
-            ColorType::R16G16Float => 4,
-            ColorType::A16UNorm => 2,
-            ColorType::R16G16UNorm => 4,
-            ColorType::R16G16B16A16UNorm => 8,
-            ColorType::SRGBA8888 => 4,
-            ColorType::R8UNorm => 1,
-            ColorType::Unknown => unreachable!(),
+            // ColorType::ARGB4444 => 2,
+            // ColorType::RGB888x => 4,
+            // ColorType::BGRA1010102 => 4,
+            // ColorType::BGR101010x => 4,
+            // ColorType::BGR101010xXR => 4,
+            // ColorType::RGBA10x6 => 8,
+            // ColorType::RGBAF16Norm => 8,
+            // ColorType::R8G8UNorm => 2,
+            // ColorType::A16Float => 2,
+            // ColorType::R16G16Float => 4,
+            // ColorType::A16UNorm => 2,
+            // ColorType::R16G16UNorm => 4,
+            // ColorType::R16G16B16A16UNorm => 8,
+            // ColorType::SRGBA8888 => 4,
+            // ColorType::R8UNorm => 1,
+            // ColorType::Unknown => unreachable!(),
         }
     }
 }
@@ -400,22 +401,23 @@ impl Into<ColorType> for skia_safe::ColorType {
             skia_safe::ColorType::Gray8 => ColorType::Gray8,
             skia_safe::ColorType::RGBAF16 => ColorType::RgbaF16,
             skia_safe::ColorType::RGBAF32 => ColorType::RgbaF32,
-            skia_safe::ColorType::ARGB4444 => ColorType::ARGB4444,
-            skia_safe::ColorType::RGB888x => ColorType::RGB888x,
-            skia_safe::ColorType::BGRA1010102 => ColorType::BGRA1010102,
-            skia_safe::ColorType::BGR101010x => ColorType::BGR101010x,
-            skia_safe::ColorType::BGR101010xXR => ColorType::BGR101010xXR,
-            skia_safe::ColorType::RGBA10x6 => ColorType::RGBA10x6,
-            skia_safe::ColorType::RGBAF16Norm => ColorType::RGBAF16Norm,
-            skia_safe::ColorType::R8G8UNorm => ColorType::R8G8UNorm,
-            skia_safe::ColorType::A16Float => ColorType::A16Float,
-            skia_safe::ColorType::R16G16Float => ColorType::R16G16Float,
-            skia_safe::ColorType::A16UNorm => ColorType::A16UNorm,
-            skia_safe::ColorType::R16G16UNorm => ColorType::R16G16UNorm,
-            skia_safe::ColorType::R16G16B16A16UNorm => ColorType::R16G16B16A16UNorm,
-            skia_safe::ColorType::SRGBA8888 => ColorType::SRGBA8888,
-            skia_safe::ColorType::R8UNorm => ColorType::R8UNorm,
-            skia_safe::ColorType::Unknown => ColorType::Unknown,
+            _ => unimplemented!(),
+            // skia_safe::ColorType::ARGB4444 => ColorType::ARGB4444,
+            // skia_safe::ColorType::RGB888x => ColorType::RGB888x,
+            // skia_safe::ColorType::BGRA1010102 => ColorType::BGRA1010102,
+            // skia_safe::ColorType::BGR101010x => ColorType::BGR101010x,
+            // skia_safe::ColorType::BGR101010xXR => ColorType::BGR101010xXR,
+            // skia_safe::ColorType::RGBA10x6 => ColorType::RGBA10x6,
+            // skia_safe::ColorType::RGBAF16Norm => ColorType::RGBAF16Norm,
+            // skia_safe::ColorType::R8G8UNorm => ColorType::R8G8UNorm,
+            // skia_safe::ColorType::A16Float => ColorType::A16Float,
+            // skia_safe::ColorType::R16G16Float => ColorType::R16G16Float,
+            // skia_safe::ColorType::A16UNorm => ColorType::A16UNorm,
+            // skia_safe::ColorType::R16G16UNorm => ColorType::R16G16UNorm,
+            // skia_safe::ColorType::R16G16B16A16UNorm => ColorType::R16G16B16A16UNorm,
+            // skia_safe::ColorType::SRGBA8888 => ColorType::SRGBA8888,
+            // skia_safe::ColorType::R8UNorm => ColorType::R8UNorm,
+            // skia_safe::ColorType::Unknown => ColorType::Unknown,
         }
     }
 }
@@ -433,22 +435,22 @@ impl Into<skia_safe::ColorType> for ColorType {
             ColorType::Gray8 => skia_safe::ColorType::Gray8,
             ColorType::RgbaF16 => skia_safe::ColorType::RGBAF16,
             ColorType::RgbaF32 => skia_safe::ColorType::RGBAF32,
-            ColorType::ARGB4444 => skia_safe::ColorType::ARGB4444,
-            ColorType::RGB888x => skia_safe::ColorType::RGB888x,
-            ColorType::BGRA1010102 => skia_safe::ColorType::BGRA1010102,
-            ColorType::BGR101010x => skia_safe::ColorType::BGR101010x,
-            ColorType::BGR101010xXR => skia_safe::ColorType::BGR101010xXR,
-            ColorType::RGBA10x6 => skia_safe::ColorType::RGBA10x6,
-            ColorType::RGBAF16Norm => skia_safe::ColorType::RGBAF16Norm,
-            ColorType::R8G8UNorm => skia_safe::ColorType::R8G8UNorm,
-            ColorType::A16Float => skia_safe::ColorType::A16Float,
-            ColorType::R16G16Float => skia_safe::ColorType::R16G16Float,
-            ColorType::A16UNorm => skia_safe::ColorType::A16UNorm,
-            ColorType::R16G16UNorm => skia_safe::ColorType::R16G16UNorm,
-            ColorType::R16G16B16A16UNorm => skia_safe::ColorType::R16G16B16A16UNorm,
-            ColorType::SRGBA8888 => skia_safe::ColorType::SRGBA8888,
-            ColorType::R8UNorm => skia_safe::ColorType::R8UNorm,
-            ColorType::Unknown => skia_safe::ColorType::Unknown,
+            // ColorType::ARGB4444 => skia_safe::ColorType::ARGB4444,
+            // ColorType::RGB888x => skia_safe::ColorType::RGB888x,
+            // ColorType::BGRA1010102 => skia_safe::ColorType::BGRA1010102,
+            // ColorType::BGR101010x => skia_safe::ColorType::BGR101010x,
+            // ColorType::BGR101010xXR => skia_safe::ColorType::BGR101010xXR,
+            // ColorType::RGBA10x6 => skia_safe::ColorType::RGBA10x6,
+            // ColorType::RGBAF16Norm => skia_safe::ColorType::RGBAF16Norm,
+            // ColorType::R8G8UNorm => skia_safe::ColorType::R8G8UNorm,
+            // ColorType::A16Float => skia_safe::ColorType::A16Float,
+            // ColorType::R16G16Float => skia_safe::ColorType::R16G16Float,
+            // ColorType::A16UNorm => skia_safe::ColorType::A16UNorm,
+            // ColorType::R16G16UNorm => skia_safe::ColorType::R16G16UNorm,
+            // ColorType::R16G16B16A16UNorm => skia_safe::ColorType::R16G16B16A16UNorm,
+            // ColorType::SRGBA8888 => skia_safe::ColorType::SRGBA8888,
+            // ColorType::R8UNorm => skia_safe::ColorType::R8UNorm,
+            // ColorType::Unknown => skia_safe::ColorType::Unknown,
         }
     }
 }
@@ -624,14 +626,6 @@ pub enum ImageFit {
     None,
 }
 
-#[type_derives(-serde::Deserialize)]
-pub enum ImageSource {
-    Url { url: String },
-    ImageHandle { image_handle: ImageHandle },
-    // Image(Arc<Image>),
-    // File(File),
-}
-
 #[type_derives(Copy)]
 pub struct ColorFilter {
     pub color: Color,
@@ -642,7 +636,7 @@ pub struct ColorFilter {
 pub type GlyphId = skia_safe::GlyphId;
 
 #[cfg(not(feature = "skia"))]
-pub type GlyphId = u16;
+pub type GlyphId = usize;
 
 pub type GlyphIds = Vec<GlyphId>;
 

@@ -1,12 +1,12 @@
 use crate::*;
 
 impl Draw for &TextDrawCommand {
-    fn draw(self, ctx: &mut DrawContext) {
+    fn draw(self, skia: &mut impl SkSkia) {
         if self.text.is_empty() {
             return;
         }
 
-        let group_glyph = ctx.skia.group_glyph(&self.font, &self.paint);
+        let group_glyph = skia.group_glyph(&self.font, &self.paint);
 
         let paragraph = Paragraph::new(&self.text, group_glyph.clone(), self.max_width);
 
@@ -39,21 +39,25 @@ impl Draw for &TextDrawCommand {
                     width,
                 } in glyph_groups
                 {
-                    let font_metrics = ctx.skia.font_metrics(&font).unwrap();
+                    let font_metrics = skia.font_metrics(&font).unwrap();
                     let bottom = y + get_bottom_of_baseline(self.baseline, font_metrics);
 
                     let glyph_ids = glyphs.into_iter().map(|x| x.id).collect();
 
                     if let Some(underline_paint) = &self.underline {
-                        ctx.canvas().draw_line(
+                        skia.surface().canvas().draw_line(
                             Xy::new(x, bottom + 2.px()),
                             Xy::new(x + width, bottom + 2.px()),
                             underline_paint,
                         );
                     }
 
-                    ctx.canvas()
-                        .draw_text_blob(glyph_ids, Xy::new(x, bottom), &font, &self.paint);
+                    skia.surface().canvas().draw_text_blob(
+                        glyph_ids,
+                        Xy::new(x, bottom),
+                        &font,
+                        &self.paint,
+                    );
 
                     x += width;
                 }

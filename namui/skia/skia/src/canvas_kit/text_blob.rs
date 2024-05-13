@@ -1,4 +1,5 @@
 use super::*;
+use crate::*;
 use std::sync::Arc;
 
 pub struct CkTextBlob {
@@ -14,10 +15,10 @@ impl CkTextBlob {
                 .MakeFromText(string, &font.canvas_kit_font),
         }
     }
-    pub fn from_glyph_ids(glyph_ids: Vec<usize>, font: &Font) -> Option<Arc<Self>> {
+    pub fn from_glyph_ids(glyph_ids: GlyphIds, font: &Font) -> Option<Arc<Self>> {
         #[derive(serde::Serialize)]
         struct CacheKey {
-            glyph_ids: Vec<usize>,
+            glyph_ids: GlyphIds,
             font: Font,
         }
         static CACHE: SerdeLruCache<CacheKey, CkTextBlob> = SerdeLruCache::new();

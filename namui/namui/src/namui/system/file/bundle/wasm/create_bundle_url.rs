@@ -1,26 +1,9 @@
-use crate::file::types::PathLike;
+use crate::{change_path_to_platform::change_path_to_platform, file::types::PathLike};
 
 pub fn create_bundle_url(path_like: impl PathLike) -> String {
-    let mut components: Vec<String> = Vec::new();
-    for component in path_like.path().components() {
-        match component {
-            std::path::Component::CurDir
-            | std::path::Component::RootDir
-            | std::path::Component::Prefix(_) => (),
-            std::path::Component::ParentDir => {
-                components.pop();
-            }
-            std::path::Component::Normal(os_str) => {
-                components.push(String::from(os_str.to_str().unwrap_or("")));
-            }
-        }
-    }
-    components.insert(0, bundle_url_prefix());
-    components.join("/")
-}
-
-pub fn bundle_url_prefix() -> String {
-    "bundle".to_string()
+    change_path_to_platform("bundle", path_like)
+        .to_string_lossy()
+        .to_string()
 }
 
 #[cfg(test)]
