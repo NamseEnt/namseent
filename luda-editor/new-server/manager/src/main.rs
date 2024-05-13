@@ -1,11 +1,18 @@
+mod manage_server;
+
 use anyhow::Result;
 use axum::{routing::get, Router};
 use axum_server::tls_rustls::RustlsConfig;
+use manage_server::keep_server_updated;
 use std::{path::PathBuf, sync::atomic::AtomicU16};
 
 static SERVER_PORT: AtomicU16 = AtomicU16::new(0);
+fn update_server_port(port: u16) {
+    SERVER_PORT.store(port, std::sync::atomic::Ordering::Relaxed);
+}
+
 const CERT_DIR: &str = "/etc/letsencrypt/live/visual-novel.namseent.com";
-pub fn cert_dir() -> PathBuf {
+fn cert_dir() -> PathBuf {
     PathBuf::from(CERT_DIR)
 }
 
@@ -16,6 +23,7 @@ async fn main() {
 
 async fn real_main() {
     tokio::task::spawn(start_port_server());
+    keep_server_updated();
 }
 
 async fn start_port_server() -> Result<()> {
@@ -47,7 +55,7 @@ async fn start_port_server() -> Result<()> {
         }),
     );
 
-    let addr = "[::]:444".parse()?;
+    let addr = "[::]:443".parse()?;
     axum_server::bind_rustls(addr, config)
         .serve(app.into_make_service())
         .await?;

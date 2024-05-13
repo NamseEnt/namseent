@@ -173,12 +173,20 @@ export class VisualNovelStack extends cdk.Stack {
             "Allow SSH access for ec2 connect",
         );
 
-        [443, 444].forEach((port) => {
+        securityGroup.addIngressRule(
+            cdk.aws_ec2.Peer.anyIpv4(),
+            cdk.aws_ec2.Port.tcpRange(8000, 8999),
+        );
+        securityGroup.addIngressRule(
+            cdk.aws_ec2.Peer.anyIpv6(),
+            cdk.aws_ec2.Port.tcpRange(8000, 8999),
+        );
+
+        [443].forEach((port) => {
             securityGroup.addIngressRule(
                 cdk.aws_ec2.Peer.anyIpv4(),
                 cdk.aws_ec2.Port.tcp(port),
             );
-
             securityGroup.addIngressRule(
                 cdk.aws_ec2.Peer.anyIpv6(),
                 cdk.aws_ec2.Port.tcp(port),
@@ -252,12 +260,12 @@ git clone --filter=blob:none --no-checkout https://github.com/namseent/namseent.
 git sparse-checkout set /luda-editor/new-server/
 git checkout master
 
-(crontab -l 2>/dev/null; echo "* * * * * ( cd /namseent ; git pull )") | crontab -
-(crontab -l 2>/dev/null; echo "* * * * * ( sleep 10 ; cd /namseent ; git pull )") | crontab -
-(crontab -l 2>/dev/null; echo "* * * * * ( sleep 20 ; cd /namseent ; git pull )") | crontab -
-(crontab -l 2>/dev/null; echo "* * * * * ( sleep 30 ; cd /namseent ; git pull )") | crontab -
-(crontab -l 2>/dev/null; echo "* * * * * ( sleep 40 ; cd /namseent ; git pull )") | crontab -
-(crontab -l 2>/dev/null; echo "* * * * * ( sleep 50 ; cd /namseent ; git pull )") | crontab -
+cd /namseent/luda-editor/new-server/manager
+nohup cargo run --release > /dev/null 2>&1 &
+export MANAGER_PID=$!
+
+# shutdown instance when the manager process is not running
+(crontab -l 2>/dev/null; echo "1 0 * * * if ! ps -p $MANAGER_PID > /dev/null; then shutdown -h now; fi") | crontab -
 `,
                     },
                 ],
