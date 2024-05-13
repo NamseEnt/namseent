@@ -235,19 +235,20 @@ export class VisualNovelStack extends cdk.Stack {
 dnf install -y \\
     cronie \\
     cronie-anacron \\
-    git
+    git \\
+    curl
 
 systemctl enable crond
 systemctl start crond
 
 # create 4G swap memory
-dd if=/dev/zero of=/swapfile bs=128M count=32
+fallocate -l 4G /swapfile
 chmod 600 /swapfile
 mkswap /swapfile
 swapon /swapfile
 
 # set environment variables
-export BUCKET_NAME=${s3Bucket.bucketName}
+echo export BUCKET_NAME=${s3Bucket.bucketName} >> /etc/profile
 
 # sync certs from s3
 aws s3 sync s3://$BUCKET_NAME/certs /etc/letsencrypt/live/visual-novel.namseent.com
@@ -260,9 +261,17 @@ git clone --filter=blob:none --no-checkout https://github.com/namseent/namseent.
 git sparse-checkout set /luda-editor/new-server/
 git checkout master
 
+# install rust
+curl https://sh.rustup.rs -sSf | sh -s -- -y
+. "$HOME/.cargo/env"
+
+# run manager
+echo export RUST_BACKTRACE=1 >> /etc/profile
+echo export IS_ON_AWS=true >> /etc/profile
+
 cd /namseent/luda-editor/new-server/manager
 nohup cargo run --release > /dev/null 2>&1 &
-export MANAGER_PID=$!
+echo export MANAGER_PID=$! >> /etc/profile
 
 # shutdown instance when the manager process is not running
 (crontab -l 2>/dev/null; echo "1 0 * * * if ! ps -p $MANAGER_PID > /dev/null; then shutdown -h now; fi") | crontab -
