@@ -1,9 +1,6 @@
-mod cert;
-
 use anyhow::Result;
 use axum::{routing::get, Router};
 use axum_server::tls_rustls::RustlsConfig;
-use cert::cron_cert_update;
 use std::{path::PathBuf, sync::atomic::AtomicU16};
 
 static SERVER_PORT: AtomicU16 = AtomicU16::new(0);
@@ -19,8 +16,6 @@ async fn main() {
 
 async fn real_main() {
     tokio::task::spawn(start_port_server());
-
-    cron_cert_update();
 }
 
 async fn start_port_server() -> Result<()> {
