@@ -17,13 +17,13 @@ fn cert_dir() -> PathBuf {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     real_main().await
 }
 
-async fn real_main() {
-    tokio::task::spawn(start_port_server());
+async fn real_main() -> Result<()> {
     keep_server_updated();
+    start_port_server().await
 }
 
 async fn start_port_server() -> Result<()> {
