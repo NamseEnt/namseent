@@ -1,4 +1,5 @@
 mod kv_store;
+mod s3;
 
 use anyhow::Result;
 use axum::{
@@ -9,6 +10,7 @@ use axum::{
 };
 use axum_server::tls_rustls::RustlsConfig;
 use kv_store::{InMemoryCachedKsStore, SqliteKvStore};
+use s3::*;
 use std::{net::SocketAddr, path::PathBuf};
 
 const CERT_DIR: &str = "/etc/letsencrypt/live/visual-novel.namseent.com";
@@ -22,12 +24,15 @@ async fn main() -> Result<()> {
 }
 
 async fn real_main() -> Result<()> {
+    tracing_subscriber::fmt::init();
+    println!("is_on_aws: {}", is_on_aws());
+    init_s3().await?;
     start_server().await
 }
 
 async fn start_server() -> Result<()> {
-    let sqlite_kv_store = SqliteKvStore::new();
-    let in_memory_cached_kv_store = InMemoryCachedKsStore::new_as_disabled(sqlite_kv_store);
+    let sqlite_kv_store = SqliteKvStore::new().await?;
+    let in_memory_cached_kv_store = InMemoryCachedKsStore::new(sqlite_kv_store, !is_on_aws());
 
     let app = Router::new()
         .route("/turn_on_memory_cache", get(turn_on_memory_cache))
@@ -43,7 +48,7 @@ async fn start_server() -> Result<()> {
 
     let addr = format!("[::]:{port}").parse()?;
 
-    if is_on_aws() {
+    if !is_on_aws() {
         axum_server::bind(addr)
             .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await?;

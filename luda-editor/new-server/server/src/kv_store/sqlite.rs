@@ -1,10 +1,11 @@
 use super::{HeapArchived, KvStore};
 use anyhow::Result;
+use aws_sdk_s3::primitives::ByteStream;
 use rkyv::ser::serializers::AllocSerializer;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::{
     future::Future,
-    sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard},
+    sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard, OnceLock},
 };
 
 #[derive(Clone)]
@@ -14,18 +15,29 @@ pub struct SqliteKvStore {
 
 const DB_PATH: &str = "db.sqlite";
 const BACKUP_PATH: &str = "db.sqlite.backup";
+fn bucket_name() -> &'static str {
+    static BUCKET_NAME: OnceLock<String> = OnceLock::new();
+    BUCKET_NAME.get_or_init(|| std::env::var("BUCKET_NAME").unwrap())
+}
+
 impl SqliteKvStore {
-    pub fn new() -> Self {
-        try_fetch_db_file_from_s3(DB_PATH);
+    pub async fn new() -> Result<Self> {
+        try_fetch_db_file_from_s3(DB_PATH).await?;
 
         let conn = Connection::open(DB_PATH).unwrap();
 
-        conn.execute("PRAGMA journal_mode = WAL;", []).unwrap();
-        conn.execute("PRAGMA synchronous = NORMAL;", []).unwrap();
+        conn.pragma_update(None, "journal_mode", "WAL").unwrap();
+        conn.pragma_update(None, "synchronous", "NORMAL").unwrap();
         conn.execute(
-                        "CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, value BLOB, version INTEGER)",
-                [],
-        ).unwrap();
+            "CREATE TABLE IF NOT EXISTS
+                    kv_store (
+                        key TEXT PRIMARY KEY,
+                        value BLOB,
+                        version INTEGER\
+                    )",
+            [],
+        )
+        .unwrap();
 
         let sqlite3 = AtomicPtr::new(conn.db.borrow_mut().db);
         let write = Arc::new(Mutex::new(conn));
@@ -40,7 +52,7 @@ impl SqliteKvStore {
             }
         });
 
-        Self { write }
+        Ok(Self { write })
     }
     fn read_conn<T>(&self, f: impl FnOnce(&Connection) -> T) -> T {
         thread_local! {
@@ -149,32 +161,28 @@ impl KvStore for SqliteKvStore {
     }
 }
 
-fn try_fetch_db_file_from_s3(db_path: &str) {
+async fn try_fetch_db_file_from_s3(db_path: &str) -> Result<()> {
     if std::fs::metadata(db_path).is_ok() {
-        return;
+        return Ok(());
     }
 
-    let output = std::process::Command::new("aws")
-        .args([
-            "s3",
-            "cp",
-            &format!("s3://{}/db.sqlite", std::env::var("BUCKET_NAME").unwrap()),
-            db_path,
-        ])
-        .output()
-        .unwrap();
+    let object = crate::s3()
+        .get_object()
+        .bucket(bucket_name())
+        .key("db.sqlite")
+        .send()
+        .await?;
 
-    let std_err = String::from_utf8_lossy(&output.stderr);
-    if !output.status.success()
-        && !std_err.starts_with(
-            "fatal error: An error occurred (404) when calling the HeadObject operation:",
-        )
-    {
-        panic!("Failed to download db.sqlite: {}", std_err);
-    }
+    let mut file = tokio::fs::File::create(db_path).await?;
+    tokio::io::copy(&mut object.body.into_async_read(), &mut file).await?;
+
+    Ok(())
 }
 
 async fn backup(sqlite3: &AtomicPtr<rusqlite::ffi::sqlite3>) -> Result<()> {
+    println!("Start Backup db.sqlite");
+    let now = std::time::SystemTime::now();
+
     let _ = std::fs::remove_file(BACKUP_PATH);
 
     rusqlite::backup::Backup::custom_backup(sqlite3, BACKUP_PATH, 256, || async move {
@@ -184,26 +192,23 @@ async fn backup(sqlite3: &AtomicPtr<rusqlite::ffi::sqlite3>) -> Result<()> {
 
     save_db_backup_to_s3(BACKUP_PATH).await?;
 
+    println!(
+        "Successfully backed up db.sqlite in {:?}",
+        now.elapsed().unwrap()
+    );
+
     Ok(())
 }
 
 async fn save_db_backup_to_s3(backup_path: &str) -> Result<()> {
-    let output = tokio::process::Command::new("aws")
-        .args([
-            "s3",
-            "cp",
-            backup_path,
-            &format!("s3://{}/db.sqlite", std::env::var("BUCKET_NAME").unwrap()),
-        ])
-        .output()
+    // TODO: multipart
+    crate::s3()
+        .put_object()
+        .bucket(bucket_name())
+        .key("db.sqlite")
+        .body(ByteStream::from_path(backup_path).await?)
+        .send()
         .await?;
-
-    if !output.status.success() {
-        return Err(anyhow::anyhow!(
-            "Failed to upload db.sqlite to s3: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
 
     Ok(())
 }

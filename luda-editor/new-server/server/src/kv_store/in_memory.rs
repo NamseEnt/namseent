@@ -14,11 +14,11 @@ pub struct InMemoryCachedKsStore<Store: KvStore + Clone> {
     enabled: Arc<AtomicBool>,
 }
 impl<Store: KvStore + Clone> InMemoryCachedKsStore<Store> {
-    pub fn new_as_disabled(store: Store) -> Self {
+    pub fn new(store: Store, enabled: bool) -> Self {
         Self {
             store,
             cache: Cache::new(8196),
-            enabled: Arc::new(AtomicBool::new(false)),
+            enabled: Arc::new(AtomicBool::new(enabled)),
         }
     }
     pub fn set_enabled(&self, enabled: bool) {
