@@ -10,9 +10,10 @@ use std::{
 #[derive(Clone)]
 pub struct SqliteKvStore {
     write: Arc<Mutex<Connection>>,
-    sqlite3: Arc<AtomicPtr<rusqlite::ffi::sqlite3>>,
 }
+
 const DB_PATH: &str = "db.sqlite";
+const BACKUP_PATH: &str = "db.sqlite.backup";
 impl SqliteKvStore {
     pub fn new() -> Self {
         try_fetch_db_file_from_s3(DB_PATH);
@@ -26,26 +27,20 @@ impl SqliteKvStore {
                 [],
         ).unwrap();
 
-        let sqlite3 = Arc::new(AtomicPtr::new(conn.db.borrow_mut().db));
+        let sqlite3 = AtomicPtr::new(conn.db.borrow_mut().db);
         let write = Arc::new(Mutex::new(conn));
 
-        Self { write, sqlite3 }
-    }
-    async fn backup(&self) -> Result<()> {
-        const BACKUP_PATH: &str = "db.sqlite.backup";
-        let _ = std::fs::remove_file(BACKUP_PATH);
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
 
-        rusqlite::backup::Backup::custom_backup(
-            self.sqlite3.load(std::sync::atomic::Ordering::Relaxed),
-            BACKUP_PATH,
-            256,
-            || async move {
-                tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
-            },
-        )
-        .await?;
+                if let Err(err) = backup(&sqlite3).await {
+                    eprintln!("Failed to backup db: {}", err);
+                }
+            }
+        });
 
-        Ok(())
+        Self { write }
     }
     fn read_conn<T>(&self, f: impl FnOnce(&Connection) -> T) -> T {
         thread_local! {
@@ -177,4 +172,38 @@ fn try_fetch_db_file_from_s3(db_path: &str) {
     {
         panic!("Failed to download db.sqlite: {}", std_err);
     }
+}
+
+async fn backup(sqlite3: &AtomicPtr<rusqlite::ffi::sqlite3>) -> Result<()> {
+    let _ = std::fs::remove_file(BACKUP_PATH);
+
+    rusqlite::backup::Backup::custom_backup(sqlite3, BACKUP_PATH, 256, || async move {
+        tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+    })
+    .await?;
+
+    save_db_backup_to_s3(BACKUP_PATH).await?;
+
+    Ok(())
+}
+
+async fn save_db_backup_to_s3(backup_path: &str) -> Result<()> {
+    let output = tokio::process::Command::new("aws")
+        .args([
+            "s3",
+            "cp",
+            backup_path,
+            &format!("s3://{}/db.sqlite", std::env::var("BUCKET_NAME").unwrap()),
+        ])
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "Failed to upload db.sqlite to s3: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    Ok(())
 }

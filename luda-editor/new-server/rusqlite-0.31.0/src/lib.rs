@@ -375,6 +375,7 @@ impl DatabaseName<'_> {
 
 /// A connection to a SQLite database.
 pub struct Connection {
+    /// custom by namse
     pub db: RefCell<InnerConnection>,
     cache: StatementCache,
 }

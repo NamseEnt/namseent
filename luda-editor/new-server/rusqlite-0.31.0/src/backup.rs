@@ -42,6 +42,7 @@ use crate::ffi;
 
 use crate::error::error_from_handle;
 use crate::{Connection, DatabaseName, Result};
+use std::sync::atomic::AtomicPtr;
 
 impl Connection {
     /// Back up the `name` database to the given
@@ -177,8 +178,8 @@ impl Backup<'_, '_> {
     /// Custom by namse
     #[inline]
     #[must_use]
-    pub async fn custom_backup<SleepFuture: std::future::Future>(
-        from_db: *mut ffi::sqlite3,
+    pub async fn custom_backup<SleepFuture: std::future::Future + Send>(
+        from_db: &AtomicPtr<crate::ffi::sqlite3>,
         backup_path: impl AsRef<Path>,
         num_pages: c_int,
         sleep: impl Fn() -> SleepFuture,
@@ -191,18 +192,27 @@ impl Backup<'_, '_> {
         let to_db = to.db.borrow_mut().db;
 
         let sqlite_backup = unsafe {
-            let sqlite_backup =
-                ffi::sqlite3_backup_init(to_db, to_name.as_ptr(), from_db, from_name.as_ptr());
+            let sqlite_backup = ffi::sqlite3_backup_init(
+                to_db,
+                to_name.as_ptr(),
+                from_db.load(std::sync::atomic::Ordering::Relaxed),
+                from_name.as_ptr(),
+            );
             if sqlite_backup.is_null() {
                 return Err(error_from_handle(to_db, ffi::sqlite3_errcode(to_db)));
             }
-            sqlite_backup
+            AtomicPtr::new(sqlite_backup)
         };
 
         use self::StepResult::{Busy, Done, Locked, More};
 
         loop {
-            let rc = unsafe { ffi::sqlite3_backup_step(sqlite_backup, num_pages) };
+            let rc = unsafe {
+                ffi::sqlite3_backup_step(
+                    sqlite_backup.load(std::sync::atomic::Ordering::Relaxed),
+                    num_pages,
+                )
+            };
             let step_result = match rc {
                 ffi::SQLITE_DONE => Ok(Done),
                 ffi::SQLITE_OK => Ok(More),
@@ -210,7 +220,10 @@ impl Backup<'_, '_> {
                 ffi::SQLITE_LOCKED => Ok(Locked),
                 _ => {
                     unsafe {
-                        crate::inner_connection::InnerConnection::decode_result_raw(from_db, rc)
+                        crate::inner_connection::InnerConnection::decode_result_raw(
+                            from_db.load(std::sync::atomic::Ordering::Relaxed),
+                            rc,
+                        )
                     }
                 }
                 .map(|_| More),
