@@ -4,13 +4,13 @@ use rkyv::ser::serializers::AllocSerializer;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::{
     future::Future,
-    sync::{Arc, Mutex, MutexGuard},
+    sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard},
 };
 
 #[derive(Clone)]
 pub struct SqliteKvStore {
     write: Arc<Mutex<Connection>>,
-    sqlite3: *mut rusqlite::ffi::sqlite3,
+    sqlite3: Arc<AtomicPtr<rusqlite::ffi::sqlite3>>,
 }
 const DB_PATH: &str = "db.sqlite";
 impl SqliteKvStore {
@@ -26,7 +26,7 @@ impl SqliteKvStore {
                 [],
         ).unwrap();
 
-        let sqlite3 = conn.db.borrow_mut().db;
+        let sqlite3 = Arc::new(AtomicPtr::new(conn.db.borrow_mut().db));
         let write = Arc::new(Mutex::new(conn));
 
         Self { write, sqlite3 }
@@ -35,9 +35,14 @@ impl SqliteKvStore {
         const BACKUP_PATH: &str = "db.sqlite.backup";
         let _ = std::fs::remove_file(BACKUP_PATH);
 
-        rusqlite::backup::Backup::custom_backup(self.sqlite3, BACKUP_PATH, 256, || async move {
-            tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
-        })
+        rusqlite::backup::Backup::custom_backup(
+            self.sqlite3.load(std::sync::atomic::Ordering::Relaxed),
+            BACKUP_PATH,
+            256,
+            || async move {
+                tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+            },
+        )
         .await?;
 
         Ok(())
