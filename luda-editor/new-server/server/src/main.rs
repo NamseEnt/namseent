@@ -1,3 +1,5 @@
+mod kv_store;
+
 use anyhow::Result;
 use axum::{routing::get, Router};
 use axum_server::tls_rustls::RustlsConfig;
