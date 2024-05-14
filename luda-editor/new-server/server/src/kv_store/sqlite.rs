@@ -1,14 +1,15 @@
-use super::{HeapArchived, KsStore};
+use super::{HeapArchived, KvStore};
 use anyhow::Result;
 use r2d2::Pool;
 use r2d2_sqlite::{rusqlite::OptionalExtension, SqliteConnectionManager};
 use rkyv::ser::serializers::AllocSerializer;
 use std::future::Future;
 
-pub struct SqliteKsStore {
+#[derive(Clone)]
+pub struct SqliteKvStore {
     pool: Pool<SqliteConnectionManager>,
 }
-impl SqliteKsStore {
+impl SqliteKvStore {
     pub fn new() -> Self {
         const DB_PATH: &str = "db.sqlite";
         let manager = SqliteConnectionManager::file(DB_PATH).with_init(|c| {
@@ -25,18 +26,7 @@ impl SqliteKsStore {
     }
 }
 
-fn test() {
-    let store = SqliteKsStore::new();
-    #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-    struct MyType {
-        a: u32,
-        b: String,
-    }
-    let my_type = store.get::<MyType>("Hello").unwrap().unwrap();
-
-    let my_type = my_type.deserialize();
-}
-impl KsStore for SqliteKsStore {
+impl KvStore for SqliteKvStore {
     fn get<T: rkyv::Archive>(&self, key: impl AsRef<str>) -> Result<Option<HeapArchived<T>>> {
         let conn = self.pool.get().unwrap();
         let mut stmt = conn.prepare("SELECT value FROM kv_store WHERE key = ?")?;

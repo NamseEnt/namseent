@@ -1,9 +1,15 @@
 mod kv_store;
 
 use anyhow::Result;
-use axum::{routing::get, Router};
+use axum::{
+    extract::{ConnectInfo, State},
+    response::IntoResponse,
+    routing::get,
+    Router,
+};
 use axum_server::tls_rustls::RustlsConfig;
-use std::path::PathBuf;
+use kv_store::{InMemoryCachedKsStore, SqliteKvStore};
+use std::{net::SocketAddr, path::PathBuf};
 
 const CERT_DIR: &str = "/etc/letsencrypt/live/visual-novel.namseent.com";
 fn cert_dir() -> PathBuf {
@@ -20,10 +26,14 @@ async fn real_main() -> Result<()> {
 }
 
 async fn start_server() -> Result<()> {
+    let sqlite_kv_store = SqliteKvStore::new();
+    let in_memory_cached_kv_store = InMemoryCachedKsStore::new_as_disabled(sqlite_kv_store);
+
     let app = Router::new()
-        .route("/turn_on_memory_cache", get(|| async { "todo" }))
-        .route("/turn_off_memory_cache", get(|| async { "todo" }))
-        .route("/health", get(|| async { "Good" }));
+        .route("/turn_on_memory_cache", get(turn_on_memory_cache))
+        .route("/turn_off_memory_cache", get(turn_off_memory_cache))
+        .route("/health", get(|| async { "Good" }))
+        .with_state(in_memory_cached_kv_store);
 
     let port = if is_on_aws() {
         std::env::var("PORT").unwrap()
@@ -35,7 +45,7 @@ async fn start_server() -> Result<()> {
 
     if is_on_aws() {
         axum_server::bind(addr)
-            .serve(app.into_make_service())
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await?;
     } else {
         let config =
@@ -45,7 +55,7 @@ async fn start_server() -> Result<()> {
         keep_cert_updated(config.clone());
 
         axum_server::bind_rustls(addr, config)
-            .serve(app.into_make_service())
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await?;
     };
 
@@ -68,4 +78,28 @@ fn keep_cert_updated(config: RustlsConfig) {
 
 fn is_on_aws() -> bool {
     std::env::var("IS_ON_AWS").is_ok()
+}
+
+async fn turn_on_memory_cache(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    State(in_memory_cached_kv_store): State<InMemoryCachedKsStore<SqliteKvStore>>,
+) -> impl IntoResponse {
+    if !addr.ip().is_loopback() {
+        return "Not allowed";
+    }
+
+    in_memory_cached_kv_store.set_enabled(true);
+    "ok"
+}
+
+async fn turn_off_memory_cache(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    State(in_memory_cached_kv_store): State<InMemoryCachedKsStore<SqliteKvStore>>,
+) -> impl IntoResponse {
+    if !addr.ip().is_loopback() {
+        return "Not allowed";
+    }
+
+    in_memory_cached_kv_store.set_enabled(false);
+    "ok"
 }

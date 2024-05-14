@@ -1,13 +1,15 @@
 mod heap_archived;
+mod in_memory;
 mod sqlite;
 
 use anyhow::Result;
 pub use heap_archived::*;
+pub use in_memory::*;
 use rkyv::ser::serializers::AllocSerializer;
 pub use sqlite::*;
 use std::future::Future;
 
-pub trait KsStore {
+pub trait KvStore {
     fn get<T: rkyv::Archive>(&self, key: impl AsRef<str>) -> Result<Option<HeapArchived<T>>>;
     fn put<T: rkyv::Serialize<AllocSerializer<0>>>(
         &self,

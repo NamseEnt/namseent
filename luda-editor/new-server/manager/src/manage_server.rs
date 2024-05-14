@@ -8,6 +8,8 @@ use tokio::{process::Command, runtime::Handle, *};
 
 const SERVER_DIR: &str = "/namseent/luda-editor-new-server/server";
 
+// assume that server in-memory cache is disabled by default
+
 pub fn keep_server_updated() {
     task::spawn(async move {
         let mut server: Option<Server> = None;
