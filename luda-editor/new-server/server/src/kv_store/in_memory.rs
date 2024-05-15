@@ -1,14 +1,10 @@
-use super::{HeapArchived, KvStore};
+use super::KvStore;
 use anyhow::Result;
 use moka::sync::Cache;
-use rkyv::ser::serializers::AllocSerializer;
-use std::{
-    future::Future,
-    sync::{atomic::AtomicBool, Arc},
-};
+use std::sync::{atomic::AtomicBool, Arc};
 
 #[derive(Clone)]
-pub struct InMemoryCachedKsStore<Store: KvStore + Clone> {
+pub(crate) struct InMemoryCachedKsStore<Store: KvStore + Clone> {
     store: Store,
     cache: Cache<String, Option<Arc<Vec<u8>>>>,
     enabled: Arc<AtomicBool>,
@@ -33,18 +29,18 @@ impl<Store: KvStore + Clone> InMemoryCachedKsStore<Store> {
 // All of below methods are **not strongly consistent**.
 // If you want strong consistency, create new one and put lock on that method.
 impl<Store: KvStore + Clone> KvStore for InMemoryCachedKsStore<Store> {
-    fn get<T: rkyv::Archive>(&self, key: impl AsRef<str>) -> Result<Option<HeapArchived<T>>> {
+    async fn get(&self, key: impl AsRef<str>) -> Result<Option<super::ValueBuffer>> {
         if !self.enabled() {
-            return self.store.get(key);
+            return self.store.get(key).await;
         }
 
         if let Some(buffer) = self.cache.get(key.as_ref()) {
             return Ok(buffer
                 .as_ref()
-                .map(|buffer| HeapArchived::new(buffer.clone())));
+                .map(|buffer| super::ValueBuffer::Arc(buffer.clone())));
         }
 
-        let stored = self.store.get::<T>(key.as_ref())?;
+        let stored = self.store.get(key.as_ref()).await?;
         self.cache.insert(
             key.as_ref().to_string(),
             stored.as_ref().map(|stored| stored.get_arc_vec()),
@@ -53,58 +49,55 @@ impl<Store: KvStore + Clone> KvStore for InMemoryCachedKsStore<Store> {
         Ok(stored)
     }
 
-    fn put<T: rkyv::Serialize<AllocSerializer<0>>>(
-        &self,
-        key: impl AsRef<str>,
-        value: &T,
-    ) -> Result<()> {
+    async fn put(&self, key: impl AsRef<str>, value: &impl AsRef<[u8]>) -> Result<()> {
+        self.store.put(key.as_ref(), value).await?;
         if !self.enabled() {
-            return self.store.put(key, value);
+            return Ok(());
         }
-        self.store.put(key.as_ref(), value)?;
-        let buffer = rkyv::to_bytes(value).unwrap();
-        self.cache
-            .insert(key.as_ref().to_string(), Some(Arc::new(buffer.to_vec())));
+        self.cache.insert(
+            key.as_ref().to_string(),
+            Some(Arc::new(value.as_ref().to_vec())),
+        );
         Ok(())
     }
 
-    fn delete(&self, key: impl AsRef<str>) -> Result<()> {
+    async fn delete(&self, key: impl AsRef<str>) -> Result<()> {
+        self.store.delete(key.as_ref()).await?;
         if !self.enabled() {
-            return self.store.delete(key);
+            return Ok(());
         }
-        self.store.delete(key.as_ref())?;
         self.cache.invalidate(key.as_ref());
 
         Ok(())
     }
 
-    async fn update<T, Fut>(
-        &self,
-        key: impl AsRef<str>,
-        update: impl FnOnce(Option<HeapArchived<T>>) -> Fut,
-    ) -> Result<bool>
-    where
-        T: rkyv::Archive + rkyv::Serialize<AllocSerializer<0>>,
-        Fut: Future<Output = Option<Option<T>>>,
-    {
-        if !self.enabled() {
-            return self.store.update(key, update).await;
-        }
+    // async fn update<T, Fut>(
+    //     &self,
+    //     key: impl AsRef<str>,
+    //     update: impl FnOnce(Option<HeapArchived<T>>) -> Fut,
+    // ) -> Result<bool>
+    // where
+    //     T: rkyv::Archive + rkyv::Serialize<AllocSerializer<64>>,
+    //     Fut: Future<Output = Option<Option<T>>>,
+    // {
+    //     if !self.enabled() {
+    //         return self.store.update(key, update).await;
+    //     }
 
-        let value = self.get(key.as_ref())?;
-        let Some(update_result) = update(value).await else {
-            return Ok(true);
-        };
+    //     let value = self.get(key.as_ref())?;
+    //     let Some(update_result) = update(value).await else {
+    //         return Ok(true);
+    //     };
 
-        if !self
-            .store
-            .update(key.as_ref(), |_| async move { Some(update_result) })
-            .await?
-        {
-            return Ok(false);
-        }
-        self.cache.invalidate(key.as_ref());
+    //     if !self
+    //         .store
+    //         .update(key.as_ref(), |_| async move { Some(update_result) })
+    //         .await?
+    //     {
+    //         return Ok(false);
+    //     }
+    //     self.cache.invalidate(key.as_ref());
 
-        Ok(true)
-    }
+    //     Ok(true)
+    // }
 }

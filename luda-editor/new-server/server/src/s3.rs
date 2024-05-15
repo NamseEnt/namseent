@@ -22,3 +22,8 @@ pub async fn init_s3() -> Result<()> {
         .map_err(|_| anyhow::anyhow!("s3 client already initialized"))?;
     Ok(())
 }
+
+pub fn bucket_name() -> &'static str {
+    static BUCKET_NAME: OnceLock<String> = OnceLock::new();
+    BUCKET_NAME.get_or_init(|| std::env::var("BUCKET_NAME").unwrap())
+}

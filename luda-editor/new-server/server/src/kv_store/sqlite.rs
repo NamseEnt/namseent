@@ -1,12 +1,9 @@
-use super::{HeapArchived, KvStore};
+use super::KvStore;
+use crate::*;
 use anyhow::Result;
 use aws_sdk_s3::primitives::ByteStream;
-use rkyv::ser::serializers::AllocSerializer;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
-use std::{
-    future::Future,
-    sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard, OnceLock},
-};
+use std::sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard};
 
 #[derive(Clone)]
 pub struct SqliteKvStore {
@@ -15,10 +12,6 @@ pub struct SqliteKvStore {
 
 const DB_PATH: &str = "db.sqlite";
 const BACKUP_PATH: &str = "db.sqlite.backup";
-fn bucket_name() -> &'static str {
-    static BUCKET_NAME: OnceLock<String> = OnceLock::new();
-    BUCKET_NAME.get_or_init(|| std::env::var("BUCKET_NAME").unwrap())
-}
 
 impl SqliteKvStore {
     pub async fn new() -> Result<Self> {
@@ -66,32 +59,27 @@ impl SqliteKvStore {
 }
 
 impl KvStore for SqliteKvStore {
-    fn get<T: rkyv::Archive>(&self, key: impl AsRef<str>) -> Result<Option<HeapArchived<T>>> {
+    async fn get(&self, key: impl AsRef<str>) -> Result<Option<super::ValueBuffer>> {
         self.read_conn(|read_conn| {
             let mut stmt = read_conn.prepare("SELECT value FROM kv_store WHERE key = ?")?;
             let vec: Option<Vec<_>> = stmt
                 .query_row([key.as_ref()], |row| row.get(0))
                 .optional()?;
 
-            Ok(vec.map(|vec| HeapArchived::new(vec)))
+            Ok(vec.map(super::ValueBuffer::Vec))
         })
     }
 
-    fn put<T: rkyv::Serialize<AllocSerializer<0>>>(
-        &self,
-        key: impl AsRef<str>,
-        value: &T,
-    ) -> Result<()> {
+    async fn put(&self, key: impl AsRef<str>, value: &impl AsRef<[u8]>) -> Result<()> {
         let write_conn = self.write_conn();
         let mut stmt = write_conn
             .prepare("INSERT OR REPLACE INTO kv_store (key, value, version) VALUES (?, ?, 0)")?;
-        let buffer = rkyv::to_bytes(value)?;
-        assert_eq!(stmt.execute((key.as_ref(), buffer.as_slice()))?, 1);
+        assert_eq!(stmt.execute((key.as_ref(), value.as_ref()))?, 1);
 
         Ok(())
     }
 
-    fn delete(&self, key: impl AsRef<str>) -> Result<()> {
+    async fn delete(&self, key: impl AsRef<str>) -> Result<()> {
         let write_conn = self.write_conn();
         let mut stmt = write_conn.prepare("DELETE FROM kv_store WHERE key = ?")?;
         stmt.execute([key.as_ref()])?;
@@ -99,66 +87,66 @@ impl KvStore for SqliteKvStore {
         Ok(())
     }
 
-    async fn update<T, Fut>(
-        &self,
-        key: impl AsRef<str>,
-        update: impl FnOnce(Option<HeapArchived<T>>) -> Fut,
-    ) -> Result<bool>
-    where
-        T: rkyv::Archive + rkyv::Serialize<AllocSerializer<0>>,
-        Fut: Future<Output = Option<Option<T>>>,
-    {
-        let output: Option<(Vec<_>, usize)> = self.read_conn(|read_conn| {
-            let mut stmt =
-                read_conn.prepare("SELECT (value, version) FROM kv_store WHERE key = ?")?;
-            stmt.query_row([key.as_ref()], |row| Ok((row.get(0)?, row.get(1)?)))
-                .optional()
-        })?;
+    // async fn update<T, Fut>(
+    //     &self,
+    //     key: impl AsRef<str>,
+    //     update: impl FnOnce(Option<HeapArchived<T>>) -> Fut,
+    // ) -> Result<bool>
+    // where
+    //     T: rkyv::Archive + rkyv::Serialize<AllocSerializer<64>>,
+    //     Fut: Future<Output = Option<Option<T>>>,
+    // {
+    //     let output: Option<(Vec<_>, usize)> = self.read_conn(|read_conn| {
+    //         let mut stmt =
+    //             read_conn.prepare("SELECT (value, version) FROM kv_store WHERE key = ?")?;
+    //         stmt.query_row([key.as_ref()], |row| Ok((row.get(0)?, row.get(1)?)))
+    //             .optional()
+    //     })?;
 
-        let (old_value, version) = match output {
-            Some((vec, version)) => (Some(HeapArchived::new(vec)), Some(version)),
-            None => (None, None),
-        };
+    //     let (old_value, version) = match output {
+    //         Some((vec, version)) => (Some(HeapArchived::new(vec)), Some(version)),
+    //         None => (None, None),
+    //     };
 
-        let Some(new_value) = update(old_value).await else {
-            return Ok(true);
-        };
+    //     let Some(new_value) = update(old_value).await else {
+    //         return Ok(true);
+    //     };
 
-        let write_conn = self.write_conn();
-        let Some(new_value) = new_value else {
-            let mut stmt = write_conn.prepare("DELETE FROM kv_store WHERE key = ?")?;
-            stmt.execute([key.as_ref()])?;
-            return Ok(true);
-        };
+    //     let write_conn = self.write_conn();
+    //     let Some(new_value) = new_value else {
+    //         let mut stmt = write_conn.prepare("DELETE FROM kv_store WHERE key = ?")?;
+    //         stmt.execute([key.as_ref()])?;
+    //         return Ok(true);
+    //     };
 
-        let buffer = rkyv::to_bytes(&new_value)?;
+    //     let buffer = rkyv::to_bytes(&new_value)?;
 
-        if let Some(version) = version {
-            let mut stmt = write_conn.prepare(
-                "UPDATE kv_store SET value = ?, version = version + 1 WHERE key = ? AND version = ?",
-            )?;
-            let changed = stmt.execute((buffer.as_slice(), key.as_ref(), version))?;
-            return Ok(changed == 0);
-        }
+    //     if let Some(version) = version {
+    //         let mut stmt = write_conn.prepare(
+    //             "UPDATE kv_store SET value = ?, version = version + 1 WHERE key = ? AND version = ?",
+    //         )?;
+    //         let changed = stmt.execute((buffer.as_slice(), key.as_ref(), version))?;
+    //         return Ok(changed == 0);
+    //     }
 
-        let mut stmt =
-            write_conn.prepare("INSERT INTO kv_store (key, value, version) VALUES (?, ?, 0)")?;
+    //     let mut stmt =
+    //         write_conn.prepare("INSERT INTO kv_store (key, value, version) VALUES (?, ?, 0)")?;
 
-        match stmt.execute((key.as_ref(), buffer.as_slice())) {
-            Ok(count) => {
-                assert_eq!(count, 1);
-                Ok(true)
-            }
-            Err(err) => {
-                if let rusqlite::Error::SqliteFailure(err, _) = err {
-                    if let rusqlite::ErrorCode::ConstraintViolation = err.code {
-                        return Ok(false);
-                    }
-                }
-                Err(err.into())
-            }
-        }
-    }
+    //     match stmt.execute((key.as_ref(), buffer.as_slice())) {
+    //         Ok(count) => {
+    //             assert_eq!(count, 1);
+    //             Ok(true)
+    //         }
+    //         Err(err) => {
+    //             if let rusqlite::Error::SqliteFailure(err, _) = err {
+    //                 if let rusqlite::ErrorCode::ConstraintViolation = err.code {
+    //                     return Ok(false);
+    //                 }
+    //             }
+    //             Err(err.into())
+    //         }
+    //     }
+    // }
 }
 
 async fn try_fetch_db_file_from_s3(db_path: &str) -> Result<()> {
