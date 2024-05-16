@@ -8,19 +8,21 @@ use std::{
 };
 
 #[derive(Debug)]
-pub struct Atom<State: 'static + Debug + Send + Sync> {
+pub struct Atom<State: 'static + Send + Sync> {
     initialized: AtomicBool,
     index: AtomicUsize,
     sig_id: OnceLock<SigId>,
-    set_state_tx: OnceLock<std::sync::mpsc::Sender<SetStateItem>>,
+    set_state_tx: OnceLock<std::sync::mpsc::Sender<SendSyncSetStateItem>>,
     _phantom: std::marker::PhantomData<State>,
 }
+static NEXT_INDEX: AtomicUsize = AtomicUsize::new(0);
 
-// NOTE: It is really Send and Sync.
-unsafe impl<State: 'static + Debug + Send + Sync> Send for Atom<State> {}
-unsafe impl<State: 'static + Debug + Send + Sync> Sync for Atom<State> {}
+#[cfg(test)]
+pub(crate) fn reset_next_index() {
+    NEXT_INDEX.store(0, Ordering::Relaxed);
+}
 
-impl<State: 'static + Debug + Send + Sync> Atom<State> {
+impl<State: 'static + Send + Sync> Atom<State> {
     pub const fn uninitialized() -> Self {
         Self {
             initialized: AtomicBool::new(false),
@@ -36,8 +38,7 @@ impl<State: 'static + Debug + Send + Sync> Atom<State> {
         self.index.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn init(&self, set_state: &std::sync::mpsc::Sender<SetStateItem>) -> usize {
-        static NEXT_INDEX: AtomicUsize = AtomicUsize::new(0);
+    pub(crate) fn init(&self, set_state: &std::sync::mpsc::Sender<SendSyncSetStateItem>) -> usize {
         if self.initialized.load(Ordering::Relaxed) {
             return self.index.load(Ordering::Relaxed);
         }
@@ -57,7 +58,7 @@ impl<State: 'static + Debug + Send + Sync> Atom<State> {
         self.set_state_tx
             .get()
             .unwrap()
-            .send(SetStateItem::Set {
+            .send(SendSyncSetStateItem::Set {
                 sig_id: *self.sig_id.get().unwrap(),
                 value: Box::new(state),
             })
@@ -68,7 +69,7 @@ impl<State: 'static + Debug + Send + Sync> Atom<State> {
         self.set_state_tx
             .get()
             .unwrap()
-            .send(SetStateItem::Mutate {
+            .send(SendSyncSetStateItem::Mutate {
                 sig_id: *self.sig_id.get().unwrap(),
                 mutate: Box::new(move |value| {
                     let value = value.as_any_mut().downcast_mut::<State>().unwrap();

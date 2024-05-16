@@ -1,11 +1,11 @@
 use super::*;
-use std::{fmt::Debug, rc::Rc};
+use std::rc::Rc;
 
-impl<'a> ComponentCtx<'a> {
-    pub fn state<State: 'static + Debug>(
+impl ComponentCtx<'_> {
+    pub fn state<State: 'static>(
         &self,
         init: impl FnOnce() -> State,
-    ) -> (Sig<'a, State, &State>, SetState<State>) {
+    ) -> (Sig<State, &State>, SetState<State>) {
         let state_list = &self.instance.state_list;
 
         let state_index = self
@@ -27,13 +27,17 @@ impl<'a> ComponentCtx<'a> {
         };
         let state: &State = state.as_any().downcast_ref().unwrap();
 
-        let set_state = SetState::new(sig_id, self.world.get_set_state_tx());
+        let set_state = SetState::new(
+            sig_id,
+            self.world.get_set_state_tx(),
+            self.world.get_send_sync_set_state_tx(),
+        );
 
         let sig = Sig::new(state, sig_id, self.world);
 
         (sig, set_state)
     }
-    pub fn memo<T: 'static + Debug>(&self, func: impl FnOnce() -> T) -> Sig<T, Rc<T>> {
+    pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T, Rc<T>> {
         let mut memo_list = self.instance.memo_list.borrow_mut();
 
         let memo_index = self
@@ -86,7 +90,7 @@ impl<'a> ComponentCtx<'a> {
         Sig::new(value, sig_id, self.world)
     }
 
-    pub fn track_eq<T: 'static + Debug + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
+    pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
         let mut track_eq_list = self.instance.track_eq_list.borrow_mut();
 
         let track_eq_index = self
@@ -213,7 +217,7 @@ impl<'a> ComponentCtx<'a> {
         }
     }
 
-    pub fn controlled_memo<T: 'static + Debug>(
+    pub fn controlled_memo<T: 'static>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
     ) -> Sig<T, Rc<T>> {
@@ -292,14 +296,14 @@ impl<'a> ComponentCtx<'a> {
 
         Sig::new(value, sig_id, self.world)
     }
-    pub fn init_atom<State: 'static + Debug + Send + Sync>(
+    pub fn init_atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
         init: impl Fn() -> State,
-    ) -> (Sig<State, &State>, SetState<State>) {
+    ) -> (Sig<State, &State>, AtomSetState<State>) {
         let atom_list = &self.world.atom_list;
 
-        let atom_index = atom.init(self.world.get_set_state_tx());
+        let atom_index = atom.init(self.world.get_send_sync_set_state_tx());
 
         let sig_id = SigId::Atom { index: atom_index };
 
@@ -313,16 +317,16 @@ impl<'a> ComponentCtx<'a> {
         };
         let state: &State = state.as_any().downcast_ref().unwrap();
 
-        let set_state = SetState::new(sig_id, self.world.get_set_state_tx());
+        let set_state = AtomSetState::new(sig_id, self.world.get_send_sync_set_state_tx());
 
         let sig = Sig::new(state, sig_id, self.world);
 
         (sig, set_state)
     }
-    pub fn atom<State: 'static + Debug + Send + Sync>(
+    pub fn atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
-    ) -> (Sig<State, &State>, SetState<State>) {
+    ) -> (Sig<State, &State>, AtomSetState<State>) {
         let atom_list = &self.world.atom_list;
 
         let atom_index = atom.get_index();
@@ -332,7 +336,7 @@ impl<'a> ComponentCtx<'a> {
         let state = atom_list.get(atom_index).unwrap();
         let state: &State = state.as_any().downcast_ref().unwrap();
 
-        let set_state = SetState::new(sig_id, self.world.get_set_state_tx());
+        let set_state = AtomSetState::new(sig_id, self.world.get_send_sync_set_state_tx());
 
         let sig = Sig::new(state, sig_id, self.world);
 
