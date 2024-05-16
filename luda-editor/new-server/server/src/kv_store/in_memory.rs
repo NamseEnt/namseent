@@ -71,6 +71,20 @@ impl<Store: KvStore + Clone> KvStore for InMemoryCachedKsStore<Store> {
         Ok(())
     }
 
+    async fn create<Bytes: AsRef<[u8]>>(
+        &self,
+        key: impl AsRef<str>,
+        value_fn: impl FnOnce() -> Result<Bytes>,
+    ) -> Result<()> {
+        self.store.create(key.as_ref(), value_fn).await?;
+        if !self.enabled() {
+            return Ok(());
+        }
+        self.cache.invalidate(key.as_ref());
+
+        Ok(())
+    }
+
     // async fn update<T, Fut>(
     //     &self,
     //     key: impl AsRef<str>,

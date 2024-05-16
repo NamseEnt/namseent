@@ -6,7 +6,6 @@ mod sqlite;
 use anyhow::Result;
 pub(crate) use heap_archived::*;
 pub(crate) use in_memory::*;
-pub(crate) use s3::*;
 pub(crate) use sqlite::*;
 use std::sync::Arc;
 
@@ -24,6 +23,11 @@ pub(crate) trait KvStore {
     // where
     //     T: rkyv::Archive + rkyv::Serialize<AllocSerializer<64>>,
     //     Fut: Future<Output = Option<Option<T>>>;
+    async fn create<Bytes: AsRef<[u8]>>(
+        &self,
+        key: impl AsRef<str>,
+        value_fn: impl FnOnce() -> Result<Bytes>,
+    ) -> Result<()>;
 }
 pub enum ValueBuffer {
     Vec(Vec<u8>),

@@ -10,7 +10,7 @@ use axum::{
     routing::get,
     Router,
 };
-use kv_store::{InMemoryCachedKsStore, KvStore, S3KsStore, SqliteKvStore};
+use kv_store::{InMemoryCachedKsStore, KvStore, SqliteKvStore};
 use s3::*;
 use session::*;
 use std::net::SocketAddr;
@@ -29,7 +29,7 @@ async fn real_main() -> Result<()> {
 
 #[derive(Clone)]
 pub(crate) struct Db {
-    pub(crate) s3: InMemoryCachedKsStore<S3KsStore>,
+    // pub(crate) s3: InMemoryCachedKsStore<S3KsStore>,
     pub(crate) sqlite: InMemoryCachedKsStore<SqliteKvStore>,
 }
 
@@ -37,11 +37,11 @@ async fn start_server() -> Result<()> {
     let sqlite_kv_store = SqliteKvStore::new().await?;
     let in_memory_cached_sqlite = InMemoryCachedKsStore::new(sqlite_kv_store, !is_on_aws());
 
-    let s3_kv_store = S3KsStore::new(s3().clone(), bucket_name());
-    let in_memory_cached_s3 = InMemoryCachedKsStore::new(s3_kv_store, !is_on_aws());
+    // let s3_kv_store = S3KsStore::new(s3().clone(), bucket_name());
+    // let in_memory_cached_s3 = InMemoryCachedKsStore::new(s3_kv_store, !is_on_aws());
 
     let db = Db {
-        s3: in_memory_cached_s3,
+        // s3: in_memory_cached_s3,
         sqlite: in_memory_cached_sqlite,
     };
 
@@ -155,7 +155,7 @@ async fn turn_on_memory_cache(
         return "Not allowed";
     }
 
-    db.s3.set_enabled(true);
+    // db.s3.set_enabled(true);
     db.sqlite.set_enabled(true);
     "ok"
 }
@@ -168,7 +168,7 @@ async fn turn_off_memory_cache(
         return "Not allowed";
     }
 
-    db.s3.set_enabled(false);
+    // db.s3.set_enabled(false);
     db.sqlite.set_enabled(false);
     "ok"
 }

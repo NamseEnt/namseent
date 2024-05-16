@@ -87,6 +87,29 @@ impl KvStore for SqliteKvStore {
         Ok(())
     }
 
+    async fn create<Bytes: AsRef<[u8]>>(
+        &self,
+        key: impl AsRef<str>,
+        value_fn: impl FnOnce() -> Result<Bytes>,
+    ) -> Result<()> {
+        let mut write_conn = self.write_conn();
+        let tx = write_conn.transaction()?;
+
+        let mut stmt = tx.prepare("SELECT value FROM kv_store WHERE key = ?")?;
+        let vec: Option<Vec<_>> = stmt
+            .query_row([key.as_ref()], |row| row.get(0))
+            .optional()?;
+        if vec.is_some() {
+            return Ok(());
+        }
+
+        let value = value_fn()?;
+        let mut stmt = tx.prepare("INSERT INTO kv_store (key, value, version) VALUES (?, ?, 0)")?;
+        assert_eq!(stmt.execute((key.as_ref(), value.as_ref()))?, 1);
+
+        Ok(())
+    }
+
     // async fn update<T, Fut>(
     //     &self,
     //     key: impl AsRef<str>,

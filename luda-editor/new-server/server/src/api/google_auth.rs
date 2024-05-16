@@ -26,7 +26,7 @@ impl GoogleIdentity {
         );
 
         let bytes = rkyv::to_bytes::<_, 64>(self)?;
-        db.s3.put(key, &bytes).await?;
+        db.sqlite.put(key, &bytes).await?;
         Ok(())
     }
 }
@@ -41,7 +41,7 @@ impl GoogleIdentityGet {
             "GoogleIdentity/google_sub:{google_sub}",
             google_sub = self.google_sub
         );
-        Ok(db.s3.get(key).await?.map(HeapArchived::new))
+        Ok(db.sqlite.get(key).await?.map(HeapArchived::new))
     }
 }
 
@@ -56,7 +56,16 @@ impl User {
         let key = format!("User/id:{id}", id = self.id);
 
         let bytes = rkyv::to_bytes::<_, 64>(self)?;
-        db.s3.put(key, &bytes).await?;
+        db.sqlite.put(key, &bytes).await?;
+        Ok(())
+    }
+
+    async fn create(&self, db: &Db) -> Result<()> {
+        let key = format!("User/id:{id}", id = self.id);
+
+        db.sqlite
+            .create(key, || Ok(rkyv::to_bytes::<_, 64>(self)?))
+            .await?;
         Ok(())
     }
 }
@@ -109,7 +118,8 @@ pub async fn google_auth(
         user_id,
     };
 
-    tokio::try_join!(user.put(&db), google_identity.put(&db),)?;
+    user.create(&db).await?;
+    google_identity.put(&db).await?;
 
     session.login(&google_identity.user_id);
 
