@@ -40,6 +40,7 @@ impl SkCalculate for MockSkCalculate {
 fn memo_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
 
+    reset_next_index();
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -123,6 +124,7 @@ fn memo_should_work() {
 #[test]
 fn effect_by_set_state_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
+    reset_next_index();
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -206,6 +208,7 @@ fn effect_by_set_state_should_work() {
 #[test]
 fn effect_by_memo_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
+    reset_next_index();
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -297,6 +300,7 @@ fn interval_should_work() {
         *now_container.lock().unwrap() = Instant::new(duration);
     };
 
+    reset_next_index();
     let mut world = World::init(
         {
             let now_container = now_container.clone();
@@ -405,6 +409,7 @@ fn interval_should_work() {
 #[test]
 fn controlled_memo_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
+    reset_next_index();
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -503,6 +508,7 @@ fn controlled_memo_should_work() {
 #[test]
 fn atom_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
+    reset_next_index();
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -589,4 +595,42 @@ fn atom_should_work() {
     );
 
     assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 6);
+}
+
+#[test]
+fn cloned_set_state_should_work() {
+    reset_next_index();
+    let mut world = World::init(
+        || Instant::from_std(std::time::Instant::now()),
+        &MockSkCalculate,
+    );
+
+    #[derive(Debug)]
+    struct A {}
+
+    fn spawn<F>(_future: F)
+    where
+        F: std::future::Future + Send + 'static,
+        F::Output: Send + 'static,
+    {
+    }
+
+    static MY_ATOM: Atom<usize> = Atom::uninitialized();
+
+    impl StaticType for A {}
+    impl Component for A {
+        fn render(self, ctx: &RenderCtx) {
+            let (_state, set_state) = ctx.state(|| 5);
+            let (_my_atom, set_my_atom) = ctx.init_atom(&MY_ATOM, || 5);
+
+            let set_state = set_state.cloned();
+            let set_my_atom = set_my_atom.cloned();
+            spawn(async move {
+                set_state.set(6);
+                set_my_atom.set(6);
+            });
+        }
+    }
+
+    World::run(&mut world, A {});
 }
