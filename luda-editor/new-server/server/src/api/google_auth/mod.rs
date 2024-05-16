@@ -1,12 +1,16 @@
+mod verify_jwt;
+
 use crate::kv_store::HeapArchived;
 use crate::*;
 use anyhow::Result;
 use md5::{Digest, Md5};
+use std::sync::OnceLock;
+use verify_jwt::*;
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct Request {
-    access_token: String,
+    pub jwt: String,
 }
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
@@ -19,6 +23,7 @@ pub struct GoogleIdentity {
 }
 
 impl GoogleIdentity {
+    #[allow(dead_code)]
     pub async fn put(&self, db: &Db) -> Result<()> {
         let key = format!(
             "GoogleIdentity/google_sub:{google_sub}",
@@ -36,6 +41,7 @@ pub struct GoogleIdentityGet {
 }
 
 impl GoogleIdentityGet {
+    #[allow(dead_code)]
     pub async fn get(&self, db: &Db) -> Result<Option<HeapArchived<GoogleIdentity>>> {
         let key = format!(
             "GoogleIdentity/google_sub:{google_sub}",
@@ -52,6 +58,7 @@ pub struct User {
 }
 
 impl User {
+    #[allow(dead_code)]
     pub async fn put(&self, db: &Db) -> Result<()> {
         let key = format!("User/id:{id}", id = self.id);
 
@@ -59,7 +66,7 @@ impl User {
         db.sqlite.put(key, &bytes).await?;
         Ok(())
     }
-
+    #[allow(dead_code)]
     async fn create(&self, db: &Db) -> Result<()> {
         let key = format!("User/id:{id}", id = self.id);
 
@@ -71,31 +78,19 @@ impl User {
 }
 
 pub async fn google_auth(
-    ArchivedRequest { access_token }: &ArchivedRequest,
+    ArchivedRequest { jwt }: &ArchivedRequest,
     db: Db,
     session: Session,
 ) -> Result<Response> {
-    #[derive(serde::Deserialize)]
-    struct GoogleUserInfoResponse {
-        sub: String,
-        name: String,
-        // "given_name": "John",
-        // "family_name": "Doe",
-        // "picture": "<Profile picture URL>",
-        // "email": "john.doe@gmail.com",
-        // "email_verified": true,
-        // "locale": "en"
-    }
+    static GOOGLE_JWKS_CLIENT: OnceLock<GoogleJwksClient> = OnceLock::new();
 
-    let client = reqwest::Client::new();
-    let GoogleUserInfoResponse { name, sub } = client
-        .get(format!(
-            "https://www.googleapis.com/oauth2/v3/userinfo?access_token={access_token}",
-        ))
-        .send()
-        .await?
-        .json()
-        .await?;
+    let jwks_client = GOOGLE_JWKS_CLIENT.get_or_init(|| {
+        GoogleJwksClient::new(
+            "595497537052-2ah859bei8e1ugcdglrkim5b279euhpt.apps.googleusercontent.com".to_string(),
+        )
+    });
+
+    let Claims { sub, name } = jwks_client.verify(jwt).await?;
 
     let google_identity = GoogleIdentityGet {
         google_sub: sub.clone(),
