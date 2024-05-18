@@ -1,4 +1,4 @@
-use super::{platform_utils::web::window, InitResult};
+use crate::system::{platform_utils::web::window, InitResult};
 use crate::*;
 use wasm_bindgen::{prelude::Closure, JsCast};
 
@@ -24,4 +24,8 @@ pub fn size() -> crate::Wh<IntPx> {
         width: (window.inner_width().unwrap().as_f64().unwrap() as i32).int_px(),
         height: (window.inner_height().unwrap().as_f64().unwrap() as i32).int_px(),
     }
+}
+
+pub(crate) fn take_main_thread() {
+    // Do nothing
 }

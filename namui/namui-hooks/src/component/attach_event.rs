@@ -1,6 +1,5 @@
 use super::*;
 use crate::*;
-use std::fmt::Debug;
 
 pub(crate) fn attach_event<'a, C: 'a + Component>(
     component: C,
@@ -19,13 +18,6 @@ pub struct AttachEvent<'a, C: Component> {
 }
 
 impl<'a, C: 'a + Component> StaticType for AttachEvent<'a, C> {}
-impl<'a, C: 'a + Component> Debug for AttachEvent<'a, C> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AttachEvent")
-            .field("component", &self.component)
-            .finish()
-    }
-}
 impl<'a, C: 'a + Component> Component for AttachEvent<'a, C> {
     fn render(self, ctx: &RenderCtx) {
         ctx.add(self.component).attach_event(self.on_event);

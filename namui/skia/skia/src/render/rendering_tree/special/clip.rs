@@ -1,6 +1,6 @@
 use super::*;
 
-#[type_derives(-serde::Deserialize)]
+#[type_derives()]
 pub struct ClipNode {
     pub path: Path,
     pub clip_op: ClipOp,

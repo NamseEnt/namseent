@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives(-serde::Deserialize)]
+#[type_derives()]
 pub enum Shader {
     Image {
         src: ImageSource,

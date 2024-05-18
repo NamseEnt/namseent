@@ -1,4 +1,5 @@
 use super::*;
+use crate::*;
 use std::sync::Arc;
 
 pub struct CkShader {
@@ -24,21 +25,47 @@ impl CkShader {
                     ),
                 }
             }
-            Shader::Blend {
+            &Shader::Blend {
                 blend_mode,
-                src,
-                dest,
+                ref src,
+                ref dest,
             } => {
                 let ck_src = CkShader::get(src);
                 let ck_dest = CkShader::get(dest);
 
                 let blended = canvas_kit().Shader().MakeBlend(
-                    (*blend_mode).into(),
+                    blend_mode.into(),
                     &ck_src.canvas_kit_shader,
                     &ck_dest.canvas_kit_shader,
                 );
                 CkShader {
                     canvas_kit_shader: blended,
+                }
+            }
+            &Shader::LinearGradient {
+                start_xy,
+                end_xy,
+                ref colors,
+                tile_mode,
+            } => {
+                let colors: Vec<js_sys::Float32Array> = colors
+                    .into_iter()
+                    .map(|color| color.to_float32_array())
+                    .collect();
+
+                let shader = canvas_kit().Shader().MakeLinearGradient(
+                    &[start_xy.x.as_f32(), start_xy.y.as_f32()],
+                    &[end_xy.x.as_f32(), end_xy.y.as_f32()],
+                    colors, // colors: Vec<Float32Array>,
+                    None,
+                    tile_mode.into(),
+                    None,
+                    None,
+                    None,
+                );
+
+                CkShader {
+                    canvas_kit_shader: shader,
                 }
             }
         })

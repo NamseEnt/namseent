@@ -7,7 +7,7 @@ pub use image::*;
 pub use path::*;
 pub use text::*;
 
-#[type_derives(-serde::Deserialize)]
+#[type_derives()]
 pub enum DrawCommand {
     Path { command: Box<PathDrawCommand> },
     Text { command: Box<TextDrawCommand> },

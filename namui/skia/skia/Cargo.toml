@@ -18,20 +18,7 @@ wasm = [
     "dep:wasm-bindgen-futures",
 ]
 
-
 [dependencies]
-windows = { version = "0.52.0", features = [
-    "Win32",
-    "Win32_Graphics",
-    "Win32_Graphics_Dxgi",
-    "Win32_Graphics_Direct3D12",
-    "Win32_Graphics_Direct3D",
-    "Win32_Foundation",
-    "Win32_Graphics_Dxgi_Common",
-    "Win32_Security",
-    "Win32_System_Threading",
-    "Win32_System",
-], optional = true }
 anyhow = { version = "1.0.75", features = ["backtrace"] }
 namui-type = { path = "../../namui-type", features = ["skia"] }
 derive-macro = { path = "../../namui-type/derive-macro" }
@@ -62,6 +49,23 @@ textwrap = "0.16.0"
 unicode-segmentation = "1.10.1"
 winit = { version = "0.29.4", optional = true }
 derivative = "2.2.0"
+dashmap = "5.5.3"
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+
+[target.'cfg(target_family="wasm")'.dependencies]
+windows = { version = "0.52.0", features = [
+    "Win32",
+    "Win32_Graphics",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Direct3D",
+    "Win32_Foundation",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_System",
+], optional = true }
 
 
 [dev-dependencies]

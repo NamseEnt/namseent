@@ -19,6 +19,7 @@ edition = "2021"
 
 [dependencies]
 {project_name} = {{ path = "{project_path}" }}
+mimalloc = "0.1.39"
 
 [profile.release]
 opt-level = 3
@@ -44,6 +45,9 @@ opt-level = 2
             format!(
                 r#"#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+                
 fn main() {{
     {project_name_underscored}::main()
 }}

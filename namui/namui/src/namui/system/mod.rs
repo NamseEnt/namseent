@@ -1,24 +1,24 @@
 pub mod cache;
-#[cfg(target_family = "wasm")]
-pub mod clipboard;
-#[cfg(target_family = "wasm")]
-pub mod deep_link;
-#[cfg(target_family = "wasm")]
-pub mod drag_and_drop;
-pub(crate) mod drawer;
+// #[cfg(target_family = "wasm")]
+// pub mod clipboard;
+// #[cfg(target_family = "wasm")]
+// pub mod deep_link;
+// #[cfg(target_family = "wasm")]
+// pub mod drag_and_drop;
 pub mod file;
 pub mod font;
 pub mod image;
 pub mod keyboard;
 pub mod log;
+#[cfg(not(target_family = "wasm"))]
 pub mod media;
 pub mod mouse;
 pub mod network;
 mod platform_utils;
 pub mod screen;
 pub(crate) mod skia;
-#[cfg(target_family = "wasm")]
-pub(crate) mod text_input;
+// #[cfg(target_family = "wasm")]
+// pub(crate) mod text_input;
 pub mod time;
 pub mod typeface;
 #[cfg(target_family = "wasm")]
@@ -45,20 +45,21 @@ pub(super) async fn init_system() -> InitResult {
         network::init(),
         screen::init(),
         time::init(),
-        drawer::init(),
     )?;
 
     futures::try_join!(skia::init())?;
 
-    #[cfg(target_family = "wasm")]
-    futures::try_join!(
-        deep_link::init(),
-        drag_and_drop::init(),
-        text_input::init(),
-        web::init(),
-    )?;
+    // #[cfg(target_family = "wasm")]
+    // futures::try_join!(
+    //     deep_link::init(),
+    //     drag_and_drop::init(),
+    //     text_input::init(),
+    //     web::init(),
+    // )?;
 
-    tokio::try_join!(typeface::init(), media::init(),)?;
+    tokio::try_join!(typeface::init())?;
+    #[cfg(not(target_family = "wasm"))]
+    tokio::try_join!(media::init())?; // todo: join this with typeface
 
     SYSTEM_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
 

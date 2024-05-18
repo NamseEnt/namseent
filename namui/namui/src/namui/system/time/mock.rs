@@ -14,7 +14,7 @@ pub(crate) async fn init() -> InitResult {
 
 lazy_static::lazy_static! {
     static ref INSTANT_NOW: std::sync::Mutex<std::time::Instant> = std::sync::Mutex::new(std::time::Instant::now());
-    static ref SYSTEM_TIME_NOW: std::sync::Mutex<SystemTime> = std::sync::Mutex::new(SystemTime::new(std::time::SystemTime::now()));
+    static ref SYSTEM_TIME_NOW: std::sync::Mutex<SystemTime> = std::sync::Mutex::new(SystemTime::now());
 }
 
 pub fn set_instant_now(now: std::time::Instant) {

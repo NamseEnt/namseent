@@ -121,7 +121,7 @@ extern "C" {
     // /// @param isCCW
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn arc(this: &CanvasKitPath, x: number, y: number, radius: number, startAngle: AngleInRadians, endAngle: AngleInRadians,
+    // pub fn arc(this: &CanvasKitPath, x: f32, y: f32, radius: f32, startAngle: AngleInRadians, endAngle: AngleInRadians,
     //     isCCW: Option<bool) -> CanvasKitPath;
 
     ///
@@ -159,8 +159,8 @@ extern "C" {
     // /// @param y
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn arcToRotated(this: &CanvasKitPath, rx: number, ry: number, xAxisRotate: AngleInDegrees, useSmallArc: bool,
-    //              isCCW: bool, x: number, y: number) -> CanvasKitPath;
+    // pub fn arcToRotated(this: &CanvasKitPath, rx: f32, ry: f32, xAxisRotate: AngleInDegrees, useSmallArc: bool,
+    //              isCCW: bool, x: f32, y: f32) -> CanvasKitPath;
 
     // ///
     // /// Appends arc to Path, after appending line if needed. Arc is implemented by conic
@@ -175,7 +175,7 @@ extern "C" {
     // /// @param radius
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn arcToTangent(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number, radius: number) -> CanvasKitPath;
+    // pub fn arcToTangent(this: &CanvasKitPath, x1: f32, y1: f32, x2: f32, y2: f32, radius: f32) -> CanvasKitPath;
 
     ///
     /// Appends CLOSE_VERB to Path. A closed contour connects the first and last point
@@ -213,7 +213,7 @@ extern "C" {
     // /// @param w
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn conicTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number, w: number) -> CanvasKitPath;
+    // pub fn conicTo(this: &CanvasKitPath, x1: f32, y1: f32, x2: f32, y2: f32, w: f32) -> CanvasKitPath;
 
     ///
     /// Returns true if the point (x, y) is contained by Path, taking into
@@ -236,19 +236,27 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn countPoints(this: &CanvasKitPath) -> number;
 
-    // ///
-    // ///  Adds cubic from last point towards (x1, y1), then towards (x2, y2), ending at
-    // /// (x3, y3). If Path is empty, or path is closed, the last point is set to
-    // /// (0, 0) before adding cubic.
-    // /// @param cpx1
-    // /// @param cpy1
-    // /// @param cpx2
-    // /// @param cpy2
-    // /// @param x
-    // /// @param y
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn cubicTo(this: &CanvasKitPath, cpx1: number, cpy1: number, cpx2: number, cpy2: number, x: number, y: number) -> CanvasKitPath;
+    ///
+    ///  Adds cubic from last point towards (x1, y1), then towards (x2, y2), ending at
+    /// (x3, y3). If Path is empty, or path is closed, the last point is set to
+    /// (0, 0) before adding cubic.
+    /// @param cpx1
+    /// @param cpy1
+    /// @param cpx2
+    /// @param cpy2
+    /// @param x
+    /// @param y
+    ///
+    #[wasm_bindgen(method)]
+    pub fn cubicTo(
+        this: &CanvasKitPath,
+        cpx1: f32,
+        cpy1: f32,
+        cpx2: f32,
+        cpy2: f32,
+        x: f32,
+        y: f32,
+    ) -> CanvasKitPath;
 
     // ///
     // /// Changes this path to be the dashed version of itself. This is the same effect as creating
@@ -258,7 +266,7 @@ extern "C" {
     // /// @param phase
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn dash(this: &CanvasKitPath, on: number, off: number, phase: number) -> bool;
+    // pub fn dash(this: &CanvasKitPath, on: f32, off: f32, phase: f32) -> bool;
 
     // ///
     // /// Returns true if other path is equal to this path.
@@ -291,7 +299,7 @@ extern "C" {
     // ///                      allocating a new one.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn getPoint(this: &CanvasKitPath, index: number, outputArray: Option<Point) -> Point;
+    // pub fn getPoint(this: &CanvasKitPath, index: f32, outputArray: Option<Point) -> Point;
 
     // ///
     // /// Returns true if there are no verbs in the path.
@@ -364,7 +372,7 @@ extern "C" {
     // /// @param y2
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn quadTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number) -> CanvasKitPath;
+    // pub fn quadTo(this: &CanvasKitPath, x1: f32, y1: f32, x2: f32, y2: f32) -> CanvasKitPath;
 
     // ///
     // /// Relative version of arcToRotated.
@@ -377,8 +385,8 @@ extern "C" {
     // /// @param dy
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rArcTo(this: &CanvasKitPath, rx: number, ry: number, xAxisRotate: AngleInDegrees, useSmallArc: bool,
-    //        isCCW: bool, dx: number, dy: number) -> CanvasKitPath;
+    // pub fn rArcTo(this: &CanvasKitPath, rx: f32, ry: f32, xAxisRotate: AngleInDegrees, useSmallArc: bool,
+    //        isCCW: bool, dx: f32, dy: f32) -> CanvasKitPath;
 
     // ///
     // /// Relative version of conicTo.
@@ -389,7 +397,7 @@ extern "C" {
     // /// @param w
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rConicTo(this: &CanvasKitPath, dx1: number, dy1: number, dx2: number, dy2: number, w: number) -> CanvasKitPath;
+    // pub fn rConicTo(this: &CanvasKitPath, dx1: f32, dy1: f32, dx2: f32, dy2: f32, w: f32) -> CanvasKitPath;
 
     // ///
     // /// Relative version of cubicTo.
@@ -401,7 +409,7 @@ extern "C" {
     // /// @param y
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rCubicTo(this: &CanvasKitPath, cpx1: number, cpy1: number, cpx2: number, cpy2: number, x: number, y: number) -> CanvasKitPath;
+    // pub fn rCubicTo(this: &CanvasKitPath, cpx1: f32, cpy1: f32, cpx2: f32, cpy2: f32, x: f32, y: f32) -> CanvasKitPath;
 
     // ///
     // /// Sets Path to its initial state.
@@ -427,7 +435,7 @@ extern "C" {
     // /// @param y
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rLineTo(this: &CanvasKitPath, x: number, y: number) -> CanvasKitPath;
+    // pub fn rLineTo(this: &CanvasKitPath, x: f32, y: f32) -> CanvasKitPath;
 
     // ///
     // /// Relative version of moveTo.
@@ -435,7 +443,7 @@ extern "C" {
     // /// @param y
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rMoveTo(this: &CanvasKitPath, x: number, y: number) -> CanvasKitPath;
+    // pub fn rMoveTo(this: &CanvasKitPath, x: f32, y: f32) -> CanvasKitPath;
 
     // ///
     // /// Relative version of quadTo.
@@ -445,7 +453,7 @@ extern "C" {
     // /// @param y2
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rQuadTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number) -> CanvasKitPath;
+    // pub fn rQuadTo(this: &CanvasKitPath, x1: f32, y1: f32, x2: f32, y2: f32) -> CanvasKitPath;
 
     // ///
     // /// Sets FillType, the rule used to fill Path.
@@ -516,5 +524,5 @@ extern "C" {
     // /// @param isComplement
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn trim(this: &CanvasKitPath, startT: number, stopT: number, isComplement: bool) -> CanvasKitPath | null;
+    // pub fn trim(this: &CanvasKitPath, startT: f32, stopT: f32, isComplement: bool) -> CanvasKitPath | null;
 }

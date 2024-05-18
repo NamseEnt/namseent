@@ -20,7 +20,7 @@ extern "C" {
     pub fn MakeBlend(
         this: &ColorFilterFactory,
         color: &js_sys::Float32Array,
-        mode: CanvasKitBlendMode,
+        mode: &CanvasKitBlendMode,
     ) -> CanvasKitColorFilter;
 
     // ///

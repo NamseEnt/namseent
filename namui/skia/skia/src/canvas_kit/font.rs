@@ -1,7 +1,6 @@
 use super::*;
+use crate::*;
 use std::sync::Arc;
-
-type GlyphIds = Vec<usize>;
 
 pub struct CkFont {
     pub(crate) canvas_kit_font: CanvasKitFont,

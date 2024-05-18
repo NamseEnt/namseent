@@ -15,10 +15,10 @@ pub trait SkCalculate {
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool;
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>>;
     fn image(&self, image_source: &ImageSource) -> Option<Image>;
+    // #[cfg(feature = "wasm")]
+    // async fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8>;
     #[cfg(feature = "wasm")]
-    async fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8>;
-    #[cfg(feature = "wasm")]
-    fn load_image(&self, image_source: ImageSource, image_bitmap: web_sys::ImageBitmap);
+    fn load_image(&self, image_source: &ImageSource, image_bitmap: web_sys::ImageBitmap);
     #[cfg(not(feature = "wasm"))]
     fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo;
     #[cfg(not(feature = "wasm"))]
@@ -57,11 +57,11 @@ pub trait SkImage {
     fn info(&self) -> ImageInfo;
 }
 
-pub trait ImageLoader<Image> {
-    #[cfg(feature = "wasm")]
-    fn get_or_start_load_image(
-        &self,
-        image_source: &ImageSource,
-        on_loaded: Box<dyn FnOnce(ImageBitmap) -> Image>,
-    ) -> Option<Image>;
-}
+// pub trait ImageLoader<Image> {
+//     #[cfg(feature = "wasm")]
+//     fn get_or_start_load_image(
+//         &self,
+//         image_source: &ImageSource,
+//         on_loaded: Box<dyn FnOnce(ImageBitmap) -> Image>,
+//     ) -> Option<Image>;
+// }

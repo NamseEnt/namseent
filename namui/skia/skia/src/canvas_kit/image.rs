@@ -1,7 +1,7 @@
 use super::*;
 use crate::*;
 use std::sync::Arc;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 use web_sys::ImageBitmap;
 
 pub struct CkImage {
@@ -14,12 +14,11 @@ pub struct CkImage {
 unsafe impl Send for CkImage {}
 unsafe impl Sync for CkImage {}
 
-static IMAGE_MAP: StaticHashMap<ImageSource, CkImage> = StaticHashMap::new();
+static IMAGE_MAP: SerdeMap<ImageSource, CkImage> = SerdeMap::new();
 
 impl CkImage {
-    pub(crate) fn load(image_source: ImageSource, image_bitmap: ImageBitmap) {
-        let canvas_kit_image =
-            canvas_kit().make_lazy_image_from_texture_source(&image_bitmap, None, None);
+    pub(crate) fn load(image_source: &ImageSource, image_bitmap: ImageBitmap) {
+        let canvas_kit_image = make_lazy_image_from_texture_source(&image_bitmap, None, None);
 
         let image_info = get_image_info(&canvas_kit_image);
 
@@ -115,22 +114,32 @@ fn get_image_info(canvas_kit_image: &CanvasKitImage) -> ImageInfo {
         width: canvas_kit_image_info.width().px(),
         height: canvas_kit_image_info.height().px(),
         alpha_type: match canvas_kit_image_info.alphaType().value() {
-            value if ALPHA_TYPE_OPAQUE_VALUE.eq(&value) => AlphaType::Opaque,
-            value if ALPHA_TYPE_PREMUL_VALUE.eq(&value) => AlphaType::Premul,
-            value if ALPHA_TYPE_UNPREMUL_VALUE.eq(&value) => AlphaType::Unpremul,
+            value if alpha_type_opaque().eq(&value) => AlphaType::Opaque,
+            value if alpha_type_premul().eq(&value) => AlphaType::Premul,
+            value if alpha_type_unpremul().eq(&value) => AlphaType::Unpremul,
             value => panic!("Unknown alpha type: {}", value),
         },
         color_type: match canvas_kit_image_info.colorType().value() {
-            value if COLOR_TYPE_ALPHA_8_VALUE.eq(&value) => ColorType::Gray8,
-            value if COLOR_TYPE_RGB_565_VALUE.eq(&value) => ColorType::Rgb565,
-            value if COLOR_TYPE_RGBA_8888_VALUE.eq(&value) => ColorType::Rgba8888,
-            value if COLOR_TYPE_BGRA_8888_VALUE.eq(&value) => ColorType::Bgra8888,
-            value if COLOR_TYPE_RGBA_1010102_VALUE.eq(&value) => ColorType::Rgba1010102,
-            value if COLOR_TYPE_RGB_101010X_VALUE.eq(&value) => ColorType::Rgb101010x,
-            value if COLOR_TYPE_GRAY_8_VALUE.eq(&value) => ColorType::Gray8,
-            value if COLOR_TYPE_RGBA_F16_VALUE.eq(&value) => ColorType::RgbaF16,
-            value if COLOR_TYPE_RGBA_F32_VALUE.eq(&value) => ColorType::RgbaF32,
+            value if color_type_alpha_8().eq(&value) => ColorType::Gray8,
+            value if color_type_rgb_565().eq(&value) => ColorType::Rgb565,
+            value if color_type_rgba_8888().eq(&value) => ColorType::Rgba8888,
+            value if color_type_bgra_8888().eq(&value) => ColorType::Bgra8888,
+            value if color_type_rgba_1010102().eq(&value) => ColorType::Rgba1010102,
+            value if color_type_rgb_101010x().eq(&value) => ColorType::Rgb101010x,
+            value if color_type_gray_8().eq(&value) => ColorType::Gray8,
+            value if color_type_rgba_f16().eq(&value) => ColorType::RgbaF16,
+            value if color_type_rgba_f32().eq(&value) => ColorType::RgbaF32,
             value => panic!("Unknown color type: {}", value),
         },
     }
+}
+
+fn make_lazy_image_from_texture_source(
+    src: &JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+    info: Option<ImageInfo>,
+    src_is_premul: Option<bool>,
+) -> CanvasKitImage {
+    let info = info.map(|info| info.to_js_object());
+    // image.makeCopyWithDefaultMipmaps() // Do we need this?
+    canvas_kit().MakeLazyImageFromTextureSource(src, info, src_is_premul)
 }

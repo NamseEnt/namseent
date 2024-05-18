@@ -24,7 +24,7 @@ unsafe impl Send for NativeSkia {}
 unsafe impl Sync for NativeSkia {}
 
 impl NativeSkia {
-    pub(crate) fn new(window_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
+    pub(crate) async fn new(window_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
         // unsafe {
         //     let mut debug: Option<ID3D12Debug> = None;
         //     if let Some(debug) = D3D12GetDebugInterface(&mut debug).ok().and(debug) {

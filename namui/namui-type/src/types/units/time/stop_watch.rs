@@ -3,10 +3,7 @@ use std::fmt::Debug;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct StopWatch {
-    #[cfg(not(target_family = "wasm"))]
     inner: Instant,
-    #[cfg(target_family = "wasm")]
-    inner: todo,
     now_fn: fn() -> Instant,
     key: String,
     index: usize,

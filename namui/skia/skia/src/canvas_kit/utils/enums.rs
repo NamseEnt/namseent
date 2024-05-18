@@ -1,12 +1,5 @@
-use super::*;
-
-#[wasm_bindgen]
-extern "C" {
-    pub type EmbindEnumEntity;
-
-    #[wasm_bindgen(method, getter)]
-    pub fn value(this: &EmbindEnumEntity) -> f32;
-}
+use crate::*;
+use canvas_kit_wasm_bindgen::*;
 
 macro_rules! canvas_kit_enum {
     (
@@ -34,32 +27,15 @@ macro_rules! canvas_kit_enum {
             $($enum_item:ident: $canvas_kit_enum_item:ident: $static_enum_item:ident),* $(,)?
         }
     ) => {
-        unsafe impl Sync for $canvas_enum_name {}
-        unsafe impl Send for $canvas_enum_name {}
-        unsafe impl Sync for $canvas_enum_values_name {}
-        unsafe impl Send for $canvas_enum_values_name {}
-        #[wasm_bindgen]
-        extern "C" {
-            pub type $canvas_enum_values_name;
-            #[wasm_bindgen(extends = EmbindEnumEntity)]
-            pub type $canvas_enum_name;
-
-            #[wasm_bindgen(method, getter)]
-            pub fn $enum_name(this: &CanvasKit) -> $canvas_enum_values_name;
-
-
-            $(
-                #[wasm_bindgen(method, getter)]
-                pub fn $canvas_kit_enum_item(this: &$canvas_enum_values_name) -> $canvas_enum_name;
-            )*
-        }
-
-        $(
-            pub fn $static_enum_item() -> &'static $canvas_enum_name {
-                static VALUE: std::sync::OnceLock<$canvas_enum_name> = std::sync::OnceLock::new();
-                VALUE.get_or_init(|| canvas_kit().$enum_name().$canvas_kit_enum_item())
+        impl Into<&'static $canvas_enum_name> for $enum_name {
+            fn into(self) -> &'static $canvas_enum_name {
+                match self {
+                    $(
+                        $enum_name::$enum_item => $static_enum_item(),
+                    )*
+                }
             }
-        )*
+        }
     };
 }
 
