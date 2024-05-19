@@ -62,13 +62,12 @@ pub use tokio::task::spawn_blocking;
 /// WARNING: spawn_blocking in wasm will block the main thread
 pub async fn spawn_blocking<F, R>(f: F) -> Result<R>
 where
-    F: FnOnce() -> R + Send + 'static,
-    R: Send + 'static,
+    F: FnOnce() -> R,
 {
     Ok(f())
 }
 
-pub fn start(component: impl 'static + Send + Sync + Fn(&RenderCtx)) {
+pub fn start(component: impl 'static + Fn(&RenderCtx)) {
     namui_type::set_log(|x| log::log(x));
 
     spawn_runtime(async move {
@@ -94,7 +93,7 @@ fn spawn_runtime(fut: impl std::future::Future<Output = ()> + Send + 'static) {
 }
 
 #[cfg(target_family = "wasm")]
-fn spawn_runtime(fut: impl std::future::Future<Output = ()> + Send + 'static) {
+fn spawn_runtime(fut: impl std::future::Future<Output = ()> + 'static) {
     wasm_bindgen_futures::spawn_local(fut)
 }
 

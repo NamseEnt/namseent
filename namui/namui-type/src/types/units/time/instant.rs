@@ -42,6 +42,20 @@ auto_ops::impl_op!(-|lhs: &Instant, rhs: Duration| -> Instant { add_duration(*lh
 auto_ops::impl_op!(-|lhs: Instant, rhs: &Duration| -> Instant { add_duration(lhs, -*rhs) });
 auto_ops::impl_op!(-|lhs: &Instant, rhs: &Duration| -> Instant { add_duration(*lhs, -*rhs) });
 
+auto_ops::impl_op!(-|lhs: &mut Instant, rhs: Instant| -> Duration { sub_instant(*lhs, rhs) });
+auto_ops::impl_op!(-|lhs: Instant, rhs: &mut Instant| -> Duration { sub_instant(lhs, *rhs) });
+auto_ops::impl_op!(-|lhs: &mut Instant, rhs: &mut Instant| -> Duration { sub_instant(*lhs, *rhs) });
+
+auto_ops::impl_op!(+|lhs: &mut Instant, rhs: Duration| -> Instant { add_duration(*lhs, rhs) });
+auto_ops::impl_op!(+|lhs: Instant, rhs: &mut Duration| -> Instant { add_duration(lhs, *rhs) });
+auto_ops::impl_op!(+|lhs: &mut Instant, rhs: &mut Duration| -> Instant { add_duration(*lhs, *rhs) });
+
+auto_ops::impl_op!(-|lhs: &mut Instant, rhs: Duration| -> Instant { add_duration(*lhs, -rhs) });
+auto_ops::impl_op!(-|lhs: Instant, rhs: &mut Duration| -> Instant { add_duration(lhs, -*rhs) });
+auto_ops::impl_op!(-|lhs: &mut Instant, rhs: &mut Duration| -> Instant {
+    add_duration(*lhs, -*rhs)
+});
+
 fn sub_instant(lhs: Instant, rhs: Instant) -> Duration {
     lhs.inner - rhs.inner
 }

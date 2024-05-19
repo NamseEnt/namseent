@@ -1,4 +1,4 @@
-use super::TimeSystem;
+use super::*;
 use crate::system::InitResult;
 use anyhow::*;
 use namui_type::*;
@@ -40,7 +40,7 @@ impl TimeSystem for MockTimeSystem {
         Instant::new(self.since_start())
     }
 
-    fn sleep(&self, duration: Duration) -> tokio::time::Sleep {
-        tokio::time::sleep(duration.to_std().unwrap_or_default())
+    fn sleep(&self, duration: Duration) -> time::Sleep {
+        time::sleep(duration.to_std().unwrap_or_default())
     }
 }

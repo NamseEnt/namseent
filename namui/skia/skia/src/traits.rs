@@ -1,4 +1,5 @@
 use crate::*;
+use anyhow::Result;
 use namui_type::*;
 use std::sync::Arc;
 
@@ -11,7 +12,7 @@ pub trait SkSkia: SkCalculate {
 pub trait SkCalculate {
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph>;
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics>;
-    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]);
+    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) -> Result<()>;
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool;
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>>;
     fn image(&self, image_source: &ImageSource) -> Option<Image>;

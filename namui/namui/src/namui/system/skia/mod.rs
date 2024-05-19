@@ -10,6 +10,7 @@ use namui_skia::{
 };
 use std::sync::{Arc, OnceLock};
 
+use crate::spawn_blocking;
 use anyhow::Result;
 #[cfg(not(target_family = "wasm"))]
 use non_wasm as inner;
@@ -35,10 +36,13 @@ pub(crate) fn sk_calculate() -> &'static dyn SkCalculate {
     SK_CALCULATE.get().unwrap().as_ref()
 }
 
-pub(crate) async fn load_typeface(typeface_name: &str, bytes: &[u8]) {
-    let future = inner::load_typeface(typeface_name, bytes);
-    sk_calculate().load_typeface(typeface_name, bytes);
-    future.await;
+pub(crate) async fn load_typeface(typeface_name: &str, bytes: &[u8]) -> Result<()> {
+    tokio::try_join!(
+        async move { spawn_blocking(|| sk_calculate().load_typeface(typeface_name, bytes)).await? },
+        inner::load_typeface(typeface_name, bytes)
+    )?;
+
+    Ok(())
 }
 
 pub(crate) fn group_glyph(font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph> {
@@ -49,16 +53,22 @@ pub(crate) fn font_metrics(font: &Font) -> Option<FontMetrics> {
     sk_calculate().font_metrics(font)
 }
 
-pub(crate) async fn load_image_from_encoded(image_source: &ImageSource, bytes: &[u8]) -> ImageInfo {
-    inner::load_image_from_encoded(image_source, bytes)
+pub(crate) async fn load_image_from_encoded(
+    image_source: &ImageSource,
+    bytes: &[u8],
+) -> Result<ImageHandle> {
+    inner::load_image_from_encoded(image_source, bytes).await
 }
 
-pub(crate) async fn load_image_from_raw(image_info: ImageInfo, bytes: &mut [u8]) -> ImageHandle {
-    inner::load_image_from_raw(image_info, bytes)
+pub(crate) async fn load_image_from_raw(
+    image_info: ImageInfo,
+    bytes: &mut [u8],
+) -> Result<ImageHandle> {
+    inner::load_image_from_raw(image_info, bytes).await
 }
 
 pub(crate) async fn load_image_from_url(url: impl AsRef<str>) -> Result<ImageHandle> {
-    inner::load_image_from_url(image_info, url)
+    inner::load_image_from_url(url).await
 }
 
 pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {

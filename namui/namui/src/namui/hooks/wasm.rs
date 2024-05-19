@@ -1,21 +1,28 @@
 use namui_hooks::*;
 use namui_skia::RawEvent;
 use namui_type::*;
-use std::sync::{atomic::AtomicUsize, Mutex, OnceLock};
+use std::{
+    cell::RefCell,
+    sync::{atomic::AtomicUsize, Mutex, OnceLock},
+};
 
-static WORLD: OnceLock<World> = OnceLock::new();
-static ROOT_COMPONENT: OnceLock<Box<dyn 'static + Send + Sync + Fn(&RenderCtx)>> = OnceLock::new();
+type RootComponentBox = Box<dyn 'static + Fn(&RenderCtx)>;
 
-pub(crate) fn run_loop(root_component: impl 'static + Send + Sync + Fn(&RenderCtx)) {
-    let mut world = World::init(crate::time::now, crate::system::skia::sk_calculate());
-    let rendering_tree = world.run(root_component);
-    crate::system::skia::request_draw_rendering_tree(rendering_tree);
+thread_local! {
+    static WORLD: RefCell<World> = RefCell::new(World::init(crate::time::now, crate::system::skia::sk_calculate()));
+    static ROOT_COMPONENT: OnceLock<RootComponentBox> = OnceLock::new();
+}
 
-    WORLD.set(world).map_err(|_| ()).unwrap();
-    ROOT_COMPONENT
-        .set(Box::new(root_component))
-        .map_err(|_| ())
-        .unwrap();
+pub(crate) fn run_loop(root_component: impl 'static + Fn(&RenderCtx)) {
+    WORLD.with_borrow_mut(|world| {
+        let rendering_tree = world.run(&root_component);
+        crate::system::skia::request_draw_rendering_tree(rendering_tree);
+
+        ROOT_COMPONENT
+            .with(|lock| lock.set(Box::new(root_component)))
+            .map_err(|_| ())
+            .unwrap();
+    })
 }
 
 pub(crate) fn on_raw_event(event: RawEvent) {
@@ -38,72 +45,89 @@ pub(crate) fn on_raw_event(event: RawEvent) {
         }
     }
 
-    static mut ONE_SEC_TIMER: Instant = Instant::now();
-    static mut ONE_SEC_RENDER_COUNT: usize = 0;
-    static mut RENDER_TIME_SUM: Duration = 0.ms();
-    static mut RENDER_TIME_WORST: Duration = 0.ms();
-    static mut EVENT_TYPE_COUNT: [(EventType, usize); 13] = [
-        (EventType::MouseDown, 0),
-        (EventType::MouseMove, 0),
-        (EventType::MouseUp, 0),
-        (EventType::Wheel, 0),
-        (EventType::KeyDown, 0),
-        (EventType::KeyUp, 0),
-        (EventType::Blur, 0),
-        (EventType::VisibilityChange, 0),
-        (EventType::ScreenResize, 0),
-        (EventType::TextInputTextUpdated, 0),
-        (EventType::TextInputKeyDown, 0),
-        (EventType::SelectionChange, 0),
-        (EventType::ScreenRedraw, 0),
-    ];
-
-    unsafe {
-        let world = WORLD.get().unwrap();
-        ONE_SEC_RENDER_COUNT += 1;
-        EVENT_TYPE_COUNT
-            .iter_mut()
-            .find(|(event_type, _)| *event_type == EventType::from_raw_event(&event))
-            .unwrap()
-            .1 += 1;
-
-        let now = crate::time::now();
-
-        let root_component = ROOT_COMPONENT.get().unwrap();
-        let rendering_tree = world.run_with_event(root_component, event);
-        crate::system::skia::request_draw_rendering_tree(rendering_tree);
-
-        let elapsed = crate::time::now() - now;
-        if elapsed > 33.ms() {
-            println!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
-        }
-
-        RENDER_TIME_SUM += elapsed;
-        RENDER_TIME_WORST = RENDER_TIME_WORST.max(elapsed);
-
-        if ONE_SEC_TIMER - Instant::now() > Duration::from_secs(1) {
-            println!(
-                "Render count: {}/sec | Render avg time: {:?} | Worst render time: {:?}",
-                ONE_SEC_RENDER_COUNT,
-                RENDER_TIME_SUM / ONE_SEC_RENDER_COUNT,
-                RENDER_TIME_WORST,
-            );
-            for (event_type, count) in EVENT_TYPE_COUNT.iter_mut() {
-                if *count > 0 {
-                    println!("- {:?}: {}", event_type, count);
-                    *count = 0;
-                }
-            }
-            ONE_SEC_RENDER_COUNT = 0;
-            ONE_SEC_TIMER = Instant::now();
-            RENDER_TIME_SUM = 0.ms();
-        }
+    thread_local! {
+        static STAT: RefCell<Stat> = RefCell::new(Stat {
+            one_sec_timer: Instant::now(),
+            one_sec_render_count: 0,
+            render_time_sum: Duration::from_secs(0),
+            render_time_worst: Duration::from_secs(0),
+            event_type_count: [
+                (EventType::MouseDown, 0),
+                (EventType::MouseMove, 0),
+                (EventType::MouseUp, 0),
+                (EventType::Wheel, 0),
+                (EventType::KeyDown, 0),
+                (EventType::KeyUp, 0),
+                (EventType::Blur, 0),
+                (EventType::VisibilityChange, 0),
+                (EventType::ScreenResize, 0),
+                (EventType::TextInputTextUpdated, 0),
+                (EventType::TextInputKeyDown, 0),
+                (EventType::SelectionChange, 0),
+                (EventType::ScreenRedraw, 0),
+            ],
+        });
     }
+
+    STAT.with_borrow_mut(|stat| {
+        WORLD.with_borrow_mut(|world| {
+            ROOT_COMPONENT
+                .with(|root_component| tick(stat, world, root_component.get().unwrap(), event))
+        })
+    })
 }
 
-struct RawEventWithSentTime {
+struct Stat {
+    one_sec_timer: Instant,
+    one_sec_render_count: usize,
+    render_time_sum: Duration,
+    render_time_worst: Duration,
+    event_type_count: [(EventType, usize); 13],
+}
+
+fn tick(
+    stat: &mut Stat,
+    world: &mut World,
+    root_component: &(impl 'static + Fn(&RenderCtx)),
     event: RawEvent,
-    sent: std::time::Instant,
+) {
+    stat.one_sec_render_count += 1;
+    stat.event_type_count
+        .iter_mut()
+        .find(|(event_type, _)| *event_type == EventType::from_raw_event(&event))
+        .unwrap()
+        .1 += 1;
+
+    let now = crate::time::now();
+
+    let rendering_tree = world.run_with_event(root_component, event);
+    crate::system::skia::request_draw_rendering_tree(rendering_tree);
+
+    let elapsed = crate::time::now() - now;
+    if elapsed > 33.ms() {
+        println!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
+    }
+
+    stat.render_time_sum += elapsed;
+    stat.render_time_worst = stat.render_time_worst.max(elapsed);
+
+    if stat.one_sec_timer - Instant::now() > Duration::from_secs(1) {
+        println!(
+            "Render count: {}/sec | Render avg time: {:?} | Worst render time: {:?}",
+            stat.one_sec_render_count,
+            stat.render_time_sum / stat.one_sec_render_count,
+            stat.render_time_worst,
+        );
+        for (event_type, count) in stat.event_type_count.iter_mut() {
+            if *count > 0 {
+                println!("- {:?}: {}", event_type, count);
+                *count = 0;
+            }
+        }
+        stat.one_sec_render_count = 0;
+        stat.one_sec_timer = Instant::now();
+        stat.render_time_sum = 0.ms();
+    }
 }
 
 #[derive(Debug, PartialEq)]

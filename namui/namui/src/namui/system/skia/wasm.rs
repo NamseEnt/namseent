@@ -1,6 +1,7 @@
 use crate::system::InitResult;
 use crate::*;
 use js_sys::Uint8Array;
+use std::cell::RefCell;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 pub(crate) async fn init() -> InitResult {
@@ -10,10 +11,10 @@ pub(crate) async fn init() -> InitResult {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen()]
-    fn requestDraw(draw_input: Uint8Array);
+    fn requestDraw(rendering_tree: Uint8Array);
 
-    #[wasm_bindgen()]
-    async fn loadTypeface(typeface_name: &str, buffer: Uint8Array);
+    #[wasm_bindgen(catch)]
+    async fn loadTypeface(typeface_name: &str, buffer: Uint8Array) -> Result<(), JsValue>;
 
     #[wasm_bindgen()]
     async fn loadImage(http_url: &str) -> JsValue; // Uint8Array --> ImageInfo
@@ -27,40 +28,32 @@ extern "C" {
     // >;
 }
 
-static mut LAST_RENDERING_TREE: Option<RenderingTree> = None;
+pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
+    thread_local! {
+        static LAST_RENDERING_TREE: RefCell<Option<RenderingTree>> = RefCell::new(None);
+    }
 
-#[wasm_bindgen]
-pub fn on_load_image() {
-    if let Some(last_rendering_tree) = unsafe { &mut LAST_RENDERING_TREE } {
-        let draw_input = DrawInput {
-            rendering_tree: last_rendering_tree.clone(),
-        };
-        let buffer = Uint8Array::from(draw_input.to_postcard_vec().as_ref());
+    LAST_RENDERING_TREE.with_borrow_mut(|last_rendering_tree| {
+        if let Some(last_rendering_tree) = last_rendering_tree {
+            if last_rendering_tree == &rendering_tree {
+                return;
+            }
+        }
+
+        let buffer = Uint8Array::from(rendering_tree.to_postcard_vec().as_ref());
+
+        *last_rendering_tree = Some(rendering_tree);
 
         requestDraw(buffer);
-    }
+    })
 }
 
-pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
-    if let Some(last_rendering_tree) = unsafe { &mut LAST_RENDERING_TREE } {
-        if last_rendering_tree == &rendering_tree {
-            return;
-        }
-    }
-
-    unsafe {
-        LAST_RENDERING_TREE = Some(rendering_tree.clone());
-    }
-
-    let draw_input = DrawInput { rendering_tree };
-    let buffer = Uint8Array::from(draw_input.to_postcard_vec().as_ref());
-
-    requestDraw(buffer);
-}
-
-pub(crate) async fn load_typeface(typeface_name: &str, bytes: &[u8]) {
+pub(crate) async fn load_typeface(typeface_name: &str, bytes: &[u8]) -> Result<()> {
     let buffer = Uint8Array::from(bytes);
-    loadTypeface(typeface_name, buffer).await;
+    loadTypeface(typeface_name, buffer)
+        .await
+        .map_err(|_| anyhow!("Failed to load typeface."))?;
+    Ok(())
 }
 
 pub(crate) async fn load_image(image_source: &ImageSource) -> ImageInfo {
@@ -79,15 +72,21 @@ pub(crate) async fn load_image(image_source: &ImageSource) -> ImageInfo {
     }
 }
 
-pub(crate) fn load_image_from_encoded(image_source: &ImageSource, bytes: &[u8]) -> ImageInfo {
+pub(crate) async fn load_image_from_encoded(
+    image_source: &ImageSource,
+    bytes: &[u8],
+) -> Result<ImageHandle> {
     todo!()
 }
 
-pub(crate) fn load_image_from_raw(image_info: ImageInfo, bytes: &mut [u8]) -> ImageHandle {
+pub(crate) async fn load_image_from_raw(
+    image_info: ImageInfo,
+    bytes: &mut [u8],
+) -> Result<ImageHandle> {
     todo!()
 }
 
-pub(crate) fn load_image_from_url(image_info: ImageInfo, url: impl AsRef<str>) -> ImageHandle {
+pub(crate) async fn load_image_from_url(url: impl AsRef<str>) -> Result<ImageHandle> {
     todo!()
 }
 

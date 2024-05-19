@@ -94,7 +94,6 @@ parking_lot = "0.12"
 auto_ops = "0.3"
 strum = "0.24"
 strum_macros = "0.24"
-fluvio-wasm-timer = "0.2"
 textwrap = "0.15"
 unicode-segmentation = "1.9"
 namui-type = { path = "../namui-type" }
@@ -103,6 +102,7 @@ serde_bytes = "0.11.12"
 chumsky = "0.9.2"
 namui-skia = { path = "../skia/skia", features = ["wasm"] }
 namui-hooks = { path = "../namui-hooks", features = ["wasm"] }
+wasmtimer = "0.2.0"
 
 [target.'cfg(target_family="wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.3.13"

@@ -85,7 +85,7 @@ impl SkCalculate for CkSkia {
         self.calculate.font_metrics(font)
     }
 
-    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) {
+    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) -> Result<()> {
         self.calculate.load_typeface(typeface_name, bytes)
     }
 

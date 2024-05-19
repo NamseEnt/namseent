@@ -12,7 +12,7 @@ impl CkTypeface {
     pub(crate) fn get(name: impl AsRef<str>) -> Option<Arc<Self>> {
         TYPEFACE_MAP.get(&name.as_ref().to_string())
     }
-    pub(crate) fn load(name: impl AsRef<str>, bytes: &[u8]) {
+    pub(crate) fn load(name: impl AsRef<str>, bytes: &[u8]) -> Result<()> {
         let array_buffer = js_sys::ArrayBuffer::new(bytes.len() as u32);
 
         let array_buffer_view = js_sys::Uint8Array::new(&array_buffer);
@@ -28,6 +28,8 @@ impl CkTypeface {
                 canvas_kit_typeface: Arc::new(typeface),
             },
         );
+
+        Ok(())
     }
     pub fn canvas_kit(&self) -> &CanvasKitTypeface {
         &self.canvas_kit_typeface

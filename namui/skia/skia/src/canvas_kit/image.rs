@@ -1,14 +1,13 @@
 use super::*;
 use crate::*;
 use std::sync::Arc;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsValue;
 use web_sys::ImageBitmap;
 
 pub struct CkImage {
     pub(crate) canvas_kit_image: CanvasKitImage,
     image_info: ImageInfo,
     src: ImageSource,
-    image_bitmap: ImageBitmap,
 }
 
 unsafe impl Send for CkImage {}
@@ -26,7 +25,6 @@ impl CkImage {
             canvas_kit_image,
             image_info,
             src: image_source.clone(),
-            image_bitmap,
         };
 
         IMAGE_MAP.insert(image_source, ck_image);
@@ -58,41 +56,6 @@ impl CkImage {
 
     pub(crate) fn canvas_kit(&self) -> &CanvasKitImage {
         &self.canvas_kit_image
-    }
-
-    pub(crate) async fn encode_to_png(&self) -> Vec<u8> {
-        let offscreen_canvas = web_sys::OffscreenCanvas::new(
-            self.image_info.width.as_f32() as u32,
-            self.image_info.height.as_f32() as u32,
-        )
-        .expect("Failed to create offscreen canvas");
-
-        let ctx = offscreen_canvas
-            .get_context("2d")
-            .expect("Failed to call get_context('2d')")
-            .expect("Offscreen canvas return null for 2d context")
-            .dyn_into::<web_sys::OffscreenCanvasRenderingContext2d>()
-            .expect("Failed to cast 2d context");
-
-        ctx.draw_image_with_image_bitmap(&self.image_bitmap, 0.0, 0.0)
-            .expect("Failed to call draw_image_with_image_bitmap()");
-
-        let image_data: web_sys::Blob =
-            wasm_bindgen_futures::JsFuture::from(offscreen_canvas.convert_to_blob().unwrap())
-                .await
-                .expect("Failed to call convert_to_blob()")
-                .dyn_into()
-                .expect("Failed to cast canvas to blob");
-
-        let array_buffer: js_sys::ArrayBuffer =
-            wasm_bindgen_futures::JsFuture::from(image_data.array_buffer())
-                .await
-                .expect("Failed to call array_buffer()")
-                .dyn_into()
-                .expect("Failed to cast blob to array buffer");
-
-        let array = js_sys::Uint8Array::new(&array_buffer);
-        array.to_vec()
     }
 }
 
