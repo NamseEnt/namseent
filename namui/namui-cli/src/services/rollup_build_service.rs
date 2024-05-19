@@ -1,29 +1,8 @@
 use crate::types::ErrorMessage;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use std::{
-    io::Read,
-    path::PathBuf,
-    process::{Child, Command, Stdio},
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
-    },
-    thread,
-    time::Duration,
-};
-
-pub struct RollupBuildService {
-    builder: Mutex<Option<Arc<CancelableBuilder>>>,
-    is_build_just_started: AtomicBool,
-}
-
-#[derive(Debug)]
-pub enum BuildResult {
-    Canceled,
-    Successful(RollupBuildResult),
-    Failed(String),
-}
+use std::{path::PathBuf, process::Stdio};
+use tokio::process::Command;
 
 #[derive(Clone, Debug)]
 pub struct BuildOption {
@@ -31,144 +10,9 @@ pub struct BuildOption {
     pub development: bool,
 }
 
-impl RollupBuildService {
-    pub(crate) fn new() -> Self {
-        Self {
-            builder: Mutex::new(None),
-            is_build_just_started: AtomicBool::new(false),
-        }
-    }
-
-    pub(crate) async fn cancel_and_start_build(&self, build_option: &BuildOption) -> BuildResult {
-        if self.is_build_just_started.swap(true, Ordering::Relaxed) {
-            return BuildResult::Canceled;
-        }
-
-        let mut result_receiver = {
-            let mut builder_lock = self.builder.lock().unwrap();
-            if let Some(builder) = builder_lock.take() {
-                builder.cancel();
-            }
-
-            self.is_build_just_started.store(false, Ordering::Relaxed);
-            let (builder, result_receiver) = CancelableBuilder::start(build_option);
-            *builder_lock = Some(builder);
-            result_receiver
-        };
-
-        result_receiver.recv().await.unwrap()
-    }
-}
-
-struct CancelableBuilder {
-    is_cancel_requested: AtomicBool,
-    is_canceled: AtomicBool,
-}
-
-impl CancelableBuilder {
-    pub fn cancel(&self) {
-        if self.is_canceled.load(Ordering::Relaxed) {
-            return;
-        }
-
-        self.is_cancel_requested.store(true, Ordering::Relaxed);
-
-        loop {
-            thread::sleep(Duration::from_millis(100));
-
-            if self.is_canceled.load(Ordering::Relaxed) {
-                break;
-            }
-        }
-    }
-
-    pub fn start(
-        build_option: &BuildOption,
-    ) -> (
-        Arc<CancelableBuilder>,
-        tokio::sync::mpsc::Receiver<BuildResult>,
-    ) {
-        let builder = Arc::new(Self {
-            is_cancel_requested: AtomicBool::new(false),
-            is_canceled: AtomicBool::new(false),
-        });
-        let build_option = build_option.clone();
-
-        let builder_thread_fn = {
-            move |builder: Arc<Self>| -> Result<BuildResult> {
-                let mut spawned_process = Self::spawn_build_process(&build_option)?;
-
-                let mut stdout = spawned_process.stdout.take().unwrap();
-                let mut stderr = spawned_process.stderr.take().unwrap();
-                let stdout_reading_thread = thread::spawn(move || {
-                    let mut string = String::new();
-                    stdout.read_to_string(&mut string).unwrap();
-                    string
-                });
-                let stderr_reading_thread = thread::spawn(move || {
-                    let mut string = String::new();
-                    stderr.read_to_string(&mut string).unwrap();
-                    string
-                });
-
-                loop {
-                    thread::sleep(Duration::from_millis(100));
-
-                    if builder.is_cancel_requested.load(Ordering::Relaxed) {
-                        spawned_process.kill()?;
-                        return Ok(BuildResult::Canceled);
-                    }
-
-                    match spawned_process.try_wait()? {
-                        None => {}
-                        Some(exit_status) => {
-                            let rollup_outputs = stdout_reading_thread
-                                .join()
-                                .expect("fail to get stdout from thread");
-
-                            if !exit_status.success() {
-                                return Err(anyhow!(
-                                    "rollup build failed {stderr}",
-                                    stderr = stderr_reading_thread.join().unwrap()
-                                ));
-                            }
-                            match parse_rollup_build_result(rollup_outputs) {
-                                Ok(result) => {
-                                    return Ok(BuildResult::Successful(result));
-                                }
-                                Err(_) => {
-                                    let error = stderr_reading_thread
-                                        .join()
-                                        .expect("fail to get stderr from thread");
-
-                                    return Ok(BuildResult::Failed(error));
-                                }
-                            }
-                        }
-                    };
-                }
-            }
-        };
-
-        let (result_sender, result_receiver) = tokio::sync::mpsc::channel(1048576);
-
-        tokio::spawn({
-            let builder = builder.clone();
-            async move {
-                let build_result = match builder_thread_fn(builder.clone()) {
-                    Ok(result) => result,
-                    Err(error) => BuildResult::Failed(error.to_string()),
-                };
-                result_sender.send(build_result).await.unwrap();
-                builder.is_canceled.store(true, Ordering::Relaxed);
-            }
-        });
-
-        (builder, result_receiver)
-    }
-
-    fn spawn_build_process(build_option: &BuildOption) -> Result<Child> {
-        Ok(Command::new("npm")
+pub fn start(build_option: BuildOption) -> tokio::task::JoinHandle<Result<RollupBuildOutput>> {
+    tokio::spawn(async move {
+        let output = Command::new("npm")
             .args([
                 "run",
                 match build_option.development {
@@ -176,19 +20,30 @@ impl CancelableBuilder {
                     false => "build:prod",
                 },
             ])
-            .current_dir(build_option.rollup_project_root_path.clone())
+            .current_dir(build_option.rollup_project_root_path)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .spawn()?)
-    }
+            .output()
+            .await?;
+
+        let stderr = String::from_utf8(output.stderr)?;
+        let stdout = String::from_utf8(output.stdout)?;
+
+        if !output.status.success() {
+            return Err(anyhow!("rollup build failed {stderr}",));
+        }
+
+        parse_rollup_build_output(stdout)
+            .map_err(|err| anyhow!("Failed to parse rollup build result: {err} / {stderr}"))
+    })
 }
 
 #[derive(Debug)]
-pub struct RollupBuildResult {
+pub struct RollupBuildOutput {
     pub error_messages: Vec<ErrorMessage>,
 }
 
-fn parse_rollup_build_result(stdout: String) -> Result<RollupBuildResult> {
+fn parse_rollup_build_output(stdout: String) -> Result<RollupBuildOutput> {
     const ROLLUP_BUILD_MESSAGE_PREFIX: &str = "//ROLLUP_BUILD_MESSAGE//:";
     let mut error_messages = Vec::new();
 
@@ -220,7 +75,7 @@ fn parse_rollup_build_result(stdout: String) -> Result<RollupBuildResult> {
         error_messages.push(error_message);
     }
 
-    Ok(RollupBuildResult { error_messages })
+    Ok(RollupBuildOutput { error_messages })
 }
 
 #[allow(dead_code)]
