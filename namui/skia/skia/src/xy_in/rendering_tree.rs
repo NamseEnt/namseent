@@ -33,6 +33,7 @@ pub(super) trait Visit {
         F: FnMut(&Self, VisitUtils) -> ControlFlow<()>;
     fn to_local_xy(&self, xy: Xy<Px>, ancestors: &[&Self]) -> Xy<Px>;
     fn xy_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>, ancestors: &[&Self]) -> bool;
+    #[allow(dead_code)]
     fn get_xy(&self, ancestors: &[&RenderingTree]) -> Xy<Px>;
 }
 
@@ -124,6 +125,7 @@ impl Visit for RenderingTree {
 
         result
     }
+    #[allow(dead_code)]
     fn get_xy(&self, ancestors: &[&RenderingTree]) -> Xy<Px> {
         let mut xy = Xy {
             x: px(0.0),

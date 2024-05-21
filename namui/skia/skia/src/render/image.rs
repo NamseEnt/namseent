@@ -1,17 +1,16 @@
 use super::*;
 use crate::*;
 use std::fmt::Debug;
-use std::sync::Arc;
 
 #[type_derives(-Debug, -PartialEq, -serde::Serialize, -serde::Deserialize)]
 pub struct Image {
     pub info: ImageInfo,
     #[cfg(feature = "skia")]
-    pub skia_image: Arc<skia_safe::image>,
+    pub skia_image: std::sync::Arc<skia_safe::image>,
     #[cfg(feature = "wasm-runtime")]
-    pub drop_box: Arc<DropBox>,
+    pub drop_box: std::sync::Arc<DropBox>,
     #[cfg(feature = "wasm-drawer")]
-    pub(crate) ck_image: Arc<CkImage>,
+    pub(crate) ck_image: std::sync::Arc<CkImage>,
 }
 
 impl Image {
@@ -19,7 +18,7 @@ impl Image {
     pub fn new(image_info: ImageInfo, image: skia_safe::Image) -> Self {
         Self {
             info: image_info,
-            skia_image: Arc::new(image),
+            skia_image: std::sync::Arc::new(image),
         }
     }
 }
@@ -33,15 +32,15 @@ impl Debug for Image {
 impl PartialEq for Image {
     #[cfg(feature = "skia")]
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.skia_image, &other.skia_image)
+        std::sync::Arc::ptr_eq(&self.skia_image, &other.skia_image)
     }
     #[cfg(feature = "wasm-runtime")]
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.drop_box, &other.drop_box)
+        std::sync::Arc::ptr_eq(&self.drop_box, &other.drop_box)
     }
     #[cfg(feature = "wasm-drawer")]
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.ck_image, &other.ck_image)
+        std::sync::Arc::ptr_eq(&self.ck_image, &other.ck_image)
     }
     #[cfg(not(any(feature = "skia", feature = "wasm-runtime", feature = "wasm-drawer")))]
     fn eq(&self, _other: &Self) -> bool {
