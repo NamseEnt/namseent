@@ -1,37 +1,35 @@
-use crate::debug_println;
 use crate::*;
 use notify::{Config, RecommendedWatcher, Watcher};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub struct NodeProjectWatchService {
-    node_project_root_path: PathBuf,
     watcher: RecommendedWatcher,
-    watcher_receiver: tokio::sync::mpsc::UnboundedReceiver<notify::Result<notify::Event>>,
+    watcher_receiver: tokio::sync::mpsc::UnboundedReceiver<notify::Event>,
 }
-
-const WATCHING_ITEMS_IN_PROJECT: [&str; 1] = ["src"];
 
 impl NodeProjectWatchService {
     pub(crate) fn new(node_project_root_path: impl AsRef<Path>) -> Result<Self> {
         let (watcher_sender, watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
-        let watcher = RecommendedWatcher::new(
-            move |res| {
-                let _ = watcher_sender.send(res);
+        let mut watcher = RecommendedWatcher::new(
+            move |res: notify::Result<notify::Event>| {
+                let _ = watcher_sender.send(res.unwrap());
             },
             Config::default(),
         )?;
 
+        watcher.watch(
+            node_project_root_path.as_ref().join("src").as_ref(),
+            notify::RecursiveMode::Recursive,
+        )?;
+
         Ok(Self {
-            node_project_root_path: node_project_root_path.as_ref().to_path_buf(),
             watcher,
             watcher_receiver,
         })
     }
 
     pub(crate) async fn next(&mut self) -> Option<()> {
-        loop {
-            let event = self.watcher_receiver.recv().await.unwrap().unwrap();
-            debug_println!("watch event");
+        while let Some(event) = self.watcher_receiver.recv().await {
             match event.kind {
                 notify::EventKind::Create(_)
                 | notify::EventKind::Modify(_)
@@ -52,5 +50,7 @@ impl NodeProjectWatchService {
                 _ => {}
             };
         }
+
+        None
     }
 }
