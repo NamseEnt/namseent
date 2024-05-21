@@ -1,7 +1,7 @@
 use crate::types::ErrorMessage;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use std::{path::PathBuf, process::Stdio};
+use std::path::PathBuf;
 use tokio::process::Command;
 
 #[derive(Clone, Debug)]
@@ -10,7 +10,7 @@ pub struct BuildOption {
     pub development: bool,
 }
 
-pub fn start(build_option: BuildOption) -> tokio::task::JoinHandle<Result<RollupBuildOutput>> {
+pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<RollupBuildOutput>> {
     tokio::spawn(async move {
         let output = Command::new("npm")
             .args([
@@ -21,8 +21,6 @@ pub fn start(build_option: BuildOption) -> tokio::task::JoinHandle<Result<Rollup
                 },
             ])
             .current_dir(build_option.rollup_project_root_path)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
             .output()
             .await?;
 
@@ -30,7 +28,12 @@ pub fn start(build_option: BuildOption) -> tokio::task::JoinHandle<Result<Rollup
         let stdout = String::from_utf8(output.stdout)?;
 
         if !output.status.success() {
-            return Err(anyhow!("rollup build failed {stderr}",));
+            tokio::fs::write(
+                "rollup_err.json",
+                format!("stdout: {stdout}\n\nstderr: {stderr}"),
+            )
+            .await?;
+            return Err(anyhow!("rollup build failed. check rollup_err.json",));
         }
 
         parse_rollup_build_output(stdout)
