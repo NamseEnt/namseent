@@ -15,7 +15,22 @@ pub(crate) async fn init() -> InitResult {
             .unchecked_ref(),
         )
         .unwrap();
+
+    animation_frame_tick();
+
     Ok(())
+}
+
+fn animation_frame_tick() {
+    crate::hooks::on_raw_event(RawEvent::ScreenRedraw {});
+
+    window()
+        .request_animation_frame(
+            Closure::wrap(Box::new(animation_frame_tick) as Box<dyn FnMut()>)
+                .into_js_value()
+                .unchecked_ref(),
+        )
+        .unwrap();
 }
 
 pub fn size() -> crate::Wh<IntPx> {

@@ -6,11 +6,11 @@ use namui_skia::*;
 pub type Load<T> = Option<Result<T>>;
 
 pub trait ImageTrait {
-    fn image(&self, url: impl AsRef<str>) -> Sig<Load<ImageHandle>, &Load<ImageHandle>>;
+    fn image(&self, url: impl AsRef<str>) -> Sig<Load<Image>, &Load<Image>>;
 }
 
 impl ImageTrait for RenderCtx<'_, '_> {
-    fn image(&self, url: impl AsRef<str>) -> Sig<Load<ImageHandle>, &Load<ImageHandle>> {
+    fn image(&self, url: impl AsRef<str>) -> Sig<Load<Image>, &Load<Image>> {
         let url = self.track_eq(&url.as_ref().to_string());
         let (load, set_load) = self.state(|| Load::None);
 

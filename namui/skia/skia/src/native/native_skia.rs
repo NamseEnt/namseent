@@ -116,7 +116,7 @@ impl SkCalculate for NativeSkia {
         self.calculate.load_image(image_source, encoded_image)
     }
 
-    fn load_image_from_raw(&self, image_info: ImageInfo, bitmap: &[u8]) -> ImageHandle {
+    fn load_image_from_raw(&self, image_info: ImageInfo, bitmap: &[u8]) -> Image {
         self.calculate.load_image_from_raw(image_info, bitmap)
     }
 }

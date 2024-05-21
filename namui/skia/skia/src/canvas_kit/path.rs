@@ -120,12 +120,12 @@ fn apply_command_to_canvas_kit_path(canvas_kit_path: &CanvasKitPath, path: &Path
                 }
                 if let Some(join) = stroke_options.join {
                     let canvas_kit_stroke_join: &CanvasKitStrokeJoin = join.into();
-                    js_sys::Reflect::set(&js_options, &"join".into(), &canvas_kit_stroke_join)
+                    js_sys::Reflect::set(&js_options, &"join".into(), canvas_kit_stroke_join)
                         .unwrap();
                 }
                 if let Some(cap) = stroke_options.cap {
                     let canvas_kit_stroke_cap: &CanvasKitStrokeCap = cap.into();
-                    js_sys::Reflect::set(&js_options, &"cap".into(), &canvas_kit_stroke_cap)
+                    js_sys::Reflect::set(&js_options, &"cap".into(), canvas_kit_stroke_cap)
                         .unwrap();
                 }
                 let result = canvas_kit_path.stroke(js_options.into());

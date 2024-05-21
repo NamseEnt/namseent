@@ -52,7 +52,17 @@ self.onmessage = async (event) => {
             {
                 offscreenCanvas = event.data.offscreen;
 
-                init(offscreenCanvas);
+                const error = await init(offscreenCanvas).catch(
+                    (err: string) => err,
+                );
+
+                self.postMessage(
+                    {
+                        type: "init",
+                        error,
+                    },
+                    [],
+                );
             }
             break;
         case "requestDraw":
@@ -63,11 +73,27 @@ self.onmessage = async (event) => {
             break;
         case "loadTypeface":
             {
-                const { typefaceName, buffer } = event.data as {
+                const { id, typefaceName, buffer } = event.data as {
+                    id: number;
                     typefaceName: string;
                     buffer: ArrayBuffer;
                 };
-                load_typeface(typefaceName, new Uint8Array(buffer));
+                const error = (() => {
+                    try {
+                        load_typeface(typefaceName, new Uint8Array(buffer));
+                    } catch (err) {
+                        return err;
+                    }
+                })();
+
+                self.postMessage(
+                    {
+                        type: "loadTypeface",
+                        id,
+                        error,
+                    },
+                    [],
+                );
             }
             break;
         case "loadImage":
@@ -179,12 +205,6 @@ let animationFrameRequest = requestAnimationFrame(function onAnimationFrame() {
     }
 });
 
-const fpsInternal = setInterval(() => {
-    console.log("fps", frameCount);
-    frameCount = 0;
-}, 1000);
-
 function onPanic() {
-    clearInterval(fpsInternal);
     cancelAnimationFrame(animationFrameRequest);
 }

@@ -215,7 +215,6 @@ struct Hsl01 {
 pub enum PaintStyle {
     Fill,
     Stroke,
-    // StrokeAndFill, // Not support by canvaskit. I asked why canvaskit doesn't support this, waiting response.
 }
 
 #[cfg(feature = "skia")]
@@ -224,7 +223,6 @@ impl From<PaintStyle> for skia_safe::PaintStyle {
         match paint_style {
             PaintStyle::Fill => skia_safe::PaintStyle::Fill,
             PaintStyle::Stroke => skia_safe::PaintStyle::Stroke,
-            // PaintStyle::StrokeAndFill => skia_safe::PaintStyle::StrokeAndFill,
         }
     }
 }
@@ -626,14 +624,6 @@ pub enum ImageFit {
     ScaleDown,
     /// The replaced content is not resized.
     None,
-}
-
-#[type_derives()]
-pub enum ImageSource {
-    Url { url: String },
-    ImageHandle { image_handle: ImageHandle },
-    // Image(Arc<Image>),
-    // File(File),
 }
 
 #[type_derives(Copy)]

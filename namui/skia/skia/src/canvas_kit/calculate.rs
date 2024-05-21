@@ -31,11 +31,4 @@ impl SkCalculate for CkCalculate {
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>> {
         CkPath::get(path).bounding_box(paint)
     }
-    fn image(&self, image_source: &ImageSource) -> Option<Image> {
-        CkImage::get(image_source).map(|x| x.image())
-    }
-
-    fn load_image(&self, image_source: &ImageSource, image_bitmap: web_sys::ImageBitmap) {
-        CkImage::load(image_source, image_bitmap)
-    }
 }

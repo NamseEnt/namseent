@@ -31,11 +31,14 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
         stroke_cap,
         stroke_join,
         stroke_miter,
+        #[cfg(feature = "wasm-drawer")]
         color_filter,
         blend_mode,
+        #[cfg(feature = "wasm-drawer")]
         ref shader,
         mask_filter,
         ref image_filter,
+        ..
     } = paint;
     canvas_kit_paint.setColor(&color.to_float32_array());
 
@@ -53,6 +56,8 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
         canvas_kit_paint.setStrokeJoin(stroke_join.into());
     }
     canvas_kit_paint.setStrokeMiter(stroke_miter.as_f32());
+
+    #[cfg(feature = "wasm-drawer")]
     if let Some(color_filter) = color_filter {
         let ck_color_filter = CkColorFilter::get(color_filter);
         canvas_kit_paint.setColorFilter(ck_color_filter.canvas_kit());
@@ -60,6 +65,8 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
     if let Some(blend_mode) = blend_mode {
         canvas_kit_paint.setBlendMode(blend_mode.into());
     }
+
+    #[cfg(feature = "wasm-drawer")]
     if let Some(shader) = shader {
         let ck_shader = CkShader::get(shader);
         canvas_kit_paint.setShader(Some(ck_shader.canvas_kit()));

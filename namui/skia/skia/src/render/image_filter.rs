@@ -31,7 +31,7 @@ impl From<&ImageFilter> for skia_safe::ImageFilter {
     }
 }
 
-#[cfg(feature = "wasm")]
+#[cfg(target_family = "wasm")]
 impl From<&ImageFilter> for canvas_kit_wasm_bindgen::CanvasKitImageFilter {
     fn from(image_filter: &ImageFilter) -> Self {
         match image_filter {

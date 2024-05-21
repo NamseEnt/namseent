@@ -1,11 +1,10 @@
 use crate::file::types::PathLike;
-use anyhow::Result;
 use std::path::PathBuf;
 
 pub(crate) fn change_path_to_platform(
     platform_prefix: impl AsRef<std::path::Path>,
     path_like: impl PathLike,
-) -> Result<PathBuf> {
+) -> PathBuf {
     let path = path_like.path();
     let mut components = path.components();
     let mut output_path = std::path::PathBuf::new();
@@ -31,8 +30,7 @@ pub(crate) fn change_path_to_platform(
         }
     }
 
-    let path = platform_prefix.as_ref().join(output_path);
-    Ok(path)
+    platform_prefix.as_ref().join(output_path)
 }
 
 #[cfg(test)]
@@ -60,7 +58,7 @@ mod tests {
         .map(|(from, to)| (PathBuf::from(from), PathBuf::from(to)))
         .collect();
         for (input, expected) in test_cases_platform_prefix_expected {
-            let output = super::change_path_to_platform(input, bundle_path).unwrap();
+            let output = super::change_path_to_platform(input, bundle_path);
             assert_eq!(output, expected);
         }
     }

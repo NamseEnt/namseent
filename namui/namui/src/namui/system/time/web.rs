@@ -6,21 +6,21 @@ use std::sync::Arc;
 
 pub(crate) async fn init() -> InitResult {
     super::TIME_SYSTEM
-        .set(Arc::new(NonWasmTimeSystem {
-            start_instant: std::time::Instant::now(),
+        .set(Arc::new(WasmTimeSystem {
+            start_instant: Instant::now(),
         }))
         .map_err(|_| anyhow!("Failed to set time system"))?;
 
     Ok(())
 }
 
-struct NonWasmTimeSystem {
-    start_instant: std::time::Instant,
+struct WasmTimeSystem {
+    start_instant: Instant,
 }
 
-impl TimeSystem for NonWasmTimeSystem {
+impl TimeSystem for WasmTimeSystem {
     fn since_start(&self) -> Duration {
-        Duration::from_std(true, self.start_instant.elapsed())
+        Instant::now() - self.start_instant
     }
 
     fn system_time_now(&self) -> SystemTime {

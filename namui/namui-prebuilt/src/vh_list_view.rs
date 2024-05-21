@@ -14,7 +14,6 @@ where
     pub scroll_bar_width: Px,
     pub items: TItems,
     pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
-    #[skip_debug]
     pub item_render: ItemRenderFn<'a, TItem>,
 }
 impl<TItem, TIterator, TItems> Component for AutoVHListView<'_, TItem, TIterator, TItems>
@@ -56,7 +55,6 @@ where
     pub scroll_bar_width: Px,
     pub items: TItems,
     pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
-    #[skip_debug]
     pub item_render: ItemRenderFn<'a, TItem>,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<'a, Px>,
@@ -114,7 +112,6 @@ where
     pub wh: Wh<Px>,
     pub items: TItems,
     pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
-    #[skip_debug]
     pub item_render: ItemRenderFn<'a, TItem>,
     pub scroll_y: Px,
 }

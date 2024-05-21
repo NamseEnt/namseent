@@ -1,15 +1,140 @@
+use super::*;
 use crate::*;
-use std::{
-    any::Any,
-    fmt::Debug,
-    sync::{Arc, OnceLock},
-};
+use std::fmt::Debug;
+use std::sync::Arc;
 
-#[type_derives()]
+#[type_derives(-Debug, -PartialEq, -serde::Serialize, -serde::Deserialize)]
 pub struct Image {
-    pub wh: Wh<Px>,
-    pub src: ImageSource,
+    pub info: ImageInfo,
+    #[cfg(feature = "skia")]
+    pub skia_image: Arc<skia_safe::image>,
+    #[cfg(feature = "wasm-runtime")]
+    pub drop_box: Arc<DropBox>,
+    #[cfg(feature = "wasm-drawer")]
+    pub(crate) ck_image: Arc<CkImage>,
 }
+
+impl Image {
+    #[cfg(feature = "skia")]
+    pub fn new(image_info: ImageInfo, image: skia_safe::Image) -> Self {
+        Self {
+            info: image_info,
+            skia_image: Arc::new(image),
+        }
+    }
+}
+
+impl Debug for Image {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Image").field("info", &self.info).finish()
+    }
+}
+
+impl PartialEq for Image {
+    #[cfg(feature = "skia")]
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.skia_image, &other.skia_image)
+    }
+    #[cfg(feature = "wasm-runtime")]
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.drop_box, &other.drop_box)
+    }
+    #[cfg(feature = "wasm-drawer")]
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.ck_image, &other.ck_image)
+    }
+    #[cfg(not(any(feature = "skia", feature = "wasm-runtime", feature = "wasm-drawer")))]
+    fn eq(&self, _other: &Self) -> bool {
+        unreachable!()
+    }
+}
+
+impl serde::Serialize for Image {
+    #[cfg(feature = "skia")]
+    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        unreachable!("Do not serialize Image in skia feature")
+    }
+    #[cfg(feature = "wasm-runtime")]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_u32(self.drop_box.id)
+    }
+    #[cfg(feature = "wasm-drawer")]
+    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        unreachable!("Do not serialize Image in wasm-drawer feature")
+    }
+    #[cfg(not(any(feature = "skia", feature = "wasm-runtime", feature = "wasm-drawer")))]
+    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        unreachable!()
+    }
+}
+impl<'de> serde::Deserialize<'de> for Image {
+    #[cfg(feature = "skia")]
+    fn deserialize<D>(_deserializer: D) -> Result<Image, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        unreachable!("Do not deserialize Image in skia feature")
+    }
+    #[cfg(feature = "wasm-runtime")]
+    fn deserialize<D>(_deserializer: D) -> Result<Image, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        unreachable!("Do not deserialize Image in wasm-runtime feature")
+    }
+    #[cfg(feature = "wasm-drawer")]
+    fn deserialize<D>(deserializer: D) -> Result<Image, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let id = u32::deserialize(deserializer)?;
+        Ok(crate::canvas_kit::CkImage::get(id))
+    }
+    #[cfg(not(any(feature = "skia", feature = "wasm-runtime", feature = "wasm-drawer")))]
+    fn deserialize<D>(_deserializer: D) -> Result<Image, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        unreachable!()
+    }
+}
+
+#[cfg(feature = "wasm-runtime")]
+mod drop_box {
+    pub struct DropBox {
+        pub id: u32,
+        drop_fn: Option<Box<dyn FnOnce() + Send + Sync>>,
+    }
+
+    impl Drop for DropBox {
+        fn drop(&mut self) {
+            (self.drop_fn.take().unwrap())();
+        }
+    }
+
+    impl DropBox {
+        pub fn new(id: u32, drop_fn: impl FnOnce() + Send + Sync + 'static) -> Self {
+            Self {
+                id,
+                drop_fn: Some(Box::new(drop_fn)),
+            }
+        }
+    }
+}
+#[cfg(feature = "wasm-runtime")]
+pub use drop_box::*;
 
 #[type_derives(Copy)]
 pub struct ImageInfo {
@@ -17,6 +142,15 @@ pub struct ImageInfo {
     pub color_type: ColorType,
     pub height: Px,
     pub width: Px,
+}
+
+impl ImageInfo {
+    pub fn wh(&self) -> Wh<Px> {
+        Wh {
+            width: self.width,
+            height: self.height,
+        }
+    }
 }
 
 #[cfg(feature = "skia")]
@@ -34,56 +168,9 @@ impl Into<skia_safe::ImageInfo> for ImageInfo {
     }
 }
 
+#[cfg(target_family = "wasm")]
 #[type_derives()]
-pub struct ImageHandle {
-    pub alpha_type: AlphaType,
-    pub color_type: ColorType,
-    pub height: Px,
-    pub width: Px,
-    pub locker_key: Arc<Locker>,
-}
-
-impl ImageHandle {
-    #[cfg(feature = "skia")]
-    pub fn new(image_info: ImageInfo, image: skia_safe::Image) -> Self {
-        Self {
-            alpha_type: image_info.alpha_type,
-            color_type: image_info.color_type,
-            height: image_info.height,
-            width: image_info.width,
-            locker_key: Arc::new(Locker::new(image)),
-        }
-    }
-}
-use super::*;
-use std::sync::atomic::AtomicUsize;
-
-#[type_derives(Eq, Hash)]
-pub struct Locker {
-    key: usize,
-}
-
-impl Drop for Locker {
-    fn drop(&mut self) {
-        LOCKERS.get().unwrap().remove(self);
-    }
-}
-
-static LOCKERS: OnceLock<dashmap::DashMap<Locker, Box<dyn Any + Send + Sync>>> = OnceLock::new();
-
-impl Locker {
-    pub fn new(value: impl Any + Send + Sync) -> Locker {
-        static NEXT_LOCKER_KEY: AtomicUsize = AtomicUsize::new(0);
-        let key = NEXT_LOCKER_KEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        LOCKERS
-            .get_or_init(dashmap::DashMap::new)
-            .insert(Locker { key }, Box::new(value));
-
-        Locker { key }
-    }
-    pub fn with<T: Any + Send + Sync>(&self, f: impl FnOnce(Option<&T>)) {
-        if let Some(v) = LOCKERS.get().unwrap().get(self) {
-            f(v.downcast_ref::<T>())
-        }
-    }
+pub struct ImageLoaded {
+    pub id: u32,
+    pub image_info: ImageInfo,
 }

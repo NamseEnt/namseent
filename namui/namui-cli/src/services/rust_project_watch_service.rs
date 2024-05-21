@@ -74,8 +74,6 @@ impl RustProjectWatchService {
         })
         .await??;
 
-        tokio::fs::write("metadata", format!("{:#?}", metadata)).await?;
-
         if let Some(resolve) = metadata.resolve {
             for node in resolve.nodes {
                 for dependency in node.deps {

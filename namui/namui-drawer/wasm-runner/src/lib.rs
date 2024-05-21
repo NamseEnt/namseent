@@ -1,71 +1,63 @@
-mod draw;
-mod load_image;
 mod log;
 
-use anyhow::*;
-use draw::*;
-use load_image::*;
 use namui_skia::*;
 use namui_type::*;
-use std::sync::{Arc, OnceLock, RwLock};
+use std::cell::RefCell;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
-static SKIA: OnceLock<RwLock<Arc<dyn SkSkia + Send + Sync>>> = OnceLock::new();
-
-fn skia() -> Arc<dyn SkSkia + Send + Sync> {
-    SKIA.get().unwrap().read().unwrap().clone()
+thread_local! {
+    static SKIA: RefCell<Option<CkSkia>> = const { RefCell::new(None) };
 }
 
 #[wasm_bindgen]
-pub fn init(canvas: web_sys::HtmlCanvasElement) {
-    namui_panic_hook::set_once();
-
+pub async fn init(canvas: web_sys::HtmlCanvasElement) -> Result<(), String> {
     namui_type::set_log(|x| log::log(x));
+    namui_panic_hook::set_once();
+    
+    let skia = init_skia(&canvas).await.map_err(|e| e.to_string())?;
+    SKIA.set(Some(skia));
 
-    SKIA.set(RwLock::new(init_skia(Some(&canvas))))
-        .map_err(|_| anyhow!("Failed to init skia"))
-        .unwrap();
+    Ok(())
 }
 
 #[wasm_bindgen]
 pub fn draw(bytes: &[u8]) {
-    let input = DrawInput::from_postcard_bytes(bytes);
-    let rendering_tree = input.rendering_tree;
+    let rendering_tree = RenderingTree::from_postcard_bytes(bytes);
 
-    let ctx = { DrawContext::new(skia()) };
-
-    ctx.canvas().clear(Color::WHITE);
-    rendering_tree.draw(&ctx);
-    ctx.surface().flush();
+    SKIA.with_borrow_mut(|skia| namui_drawer_sys::draw(skia.as_mut().unwrap(), rendering_tree))
 }
 
 #[wasm_bindgen]
-pub fn load_typeface(typeface_name: &str, bytes: &[u8]) {
-    skia().load_typeface(typeface_name, bytes);
+pub fn load_typeface(typeface_name: &str, bytes: &[u8]) -> Result<(), String> {
+    SKIA.with_borrow(|skia| skia.as_ref().unwrap().load_typeface(typeface_name, bytes))
+        .map_err(|e| e.to_string())
 }
 
 #[wasm_bindgen]
-pub fn load_image(image_source: Vec<u8>, image_bitmap: web_sys::ImageBitmap) {
-    let image_source: ImageSource = postcard::from_bytes(&image_source).unwrap();
-    skia().load_image(image_source, image_bitmap);
+/// output: ImageLoaded
+pub fn load_image(image_bitmap: web_sys::ImageBitmap) -> Vec<u8> {
+    SKIA.with_borrow(|skia| {
+        let image_loaded = skia
+            .as_ref()
+            .unwrap()
+            .load_image_from_web_image_bitmap(image_bitmap);
+        postcard::to_stdvec(&image_loaded).unwrap()
+    })
 }
 
 #[wasm_bindgen]
-pub async fn encode_loaded_image_to_png(image: Vec<u8>) -> wasm_bindgen::JsValue {
-    let image = Image::from_postcard_bytes(&image);
-
-    let vec = skia().encode_loaded_image_to_png(&image).await;
-
-    js_sys::Uint8Array::from(vec.as_ref()).into()
+pub fn unload_image(image_id: u32) {
+    SKIA.with_borrow_mut(|skia| skia.as_mut().unwrap().unload_image(image_id))
 }
 
 #[wasm_bindgen]
-pub fn refresh_surface(canvas: web_sys::HtmlCanvasElement) {
-    *SKIA.get().unwrap().write().unwrap() = init_skia(Some(&canvas));
+pub async fn refresh_surface(canvas: web_sys::HtmlCanvasElement) {
+    let new_skia = init_skia(&canvas).await.unwrap();
+    SKIA.with_borrow_mut(|skia| skia.replace(new_skia)).unwrap();
 }
 
 #[macro_export]

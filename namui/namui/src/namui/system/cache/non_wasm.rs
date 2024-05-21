@@ -17,8 +17,7 @@ fn get_cache_path(path_like: impl PathLike) -> io::Result<PathBuf> {
             ))?)
             .join("cache"),
         path_like,
-    )
-    .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
+    );
 
     Ok(path)
 }

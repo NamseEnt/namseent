@@ -1,73 +1,64 @@
 use super::*;
 use crate::*;
-use std::sync::Arc;
-use wasm_bindgen::JsValue;
-use web_sys::ImageBitmap;
+use std::sync::atomic::AtomicU32;
 
-pub struct CkImage {
-    pub(crate) canvas_kit_image: CanvasKitImage,
+pub(crate) struct CkImage {
+    canvas_kit_image: CanvasKitImage,
     image_info: ImageInfo,
-    src: ImageSource,
 }
 
-unsafe impl Send for CkImage {}
-unsafe impl Sync for CkImage {}
-
-static IMAGE_MAP: SerdeMap<ImageSource, CkImage> = SerdeMap::new();
+static IMAGE_MAP: StaticHashMap<u32, CkImage> = StaticHashMap::new();
 
 impl CkImage {
-    pub(crate) fn load(image_source: &ImageSource, image_bitmap: ImageBitmap) {
-        let canvas_kit_image = make_lazy_image_from_texture_source(&image_bitmap, None, None);
+    pub(crate) fn load_image_from_web_image_bitmap(
+        image_bitmap: web_sys::ImageBitmap,
+    ) -> ImageLoaded {
+        static IMAGE_ID: AtomicU32 = AtomicU32::new(0);
 
+        let image_id = IMAGE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let canvas_kit_image =
+            canvas_kit().MakeLazyImageFromTextureSource(image_bitmap.into(), None, None);
         let image_info = get_image_info(&canvas_kit_image);
 
-        let ck_image = CkImage {
-            canvas_kit_image,
+        IMAGE_MAP.insert(
+            image_id,
+            CkImage {
+                canvas_kit_image,
+                image_info,
+            },
+        );
+
+        ImageLoaded {
+            id: image_id,
             image_info,
-            src: image_source.clone(),
-        };
-
-        IMAGE_MAP.insert(image_source, ck_image);
-    }
-
-    pub(crate) fn get(image_source: &ImageSource) -> Option<Arc<CkImage>> {
-        IMAGE_MAP.get(image_source)
-    }
-
-    pub(crate) fn image(&self) -> Image {
-        Image {
-            wh: self.size(),
-            src: self.src.clone(),
         }
     }
-
-    pub fn size(&self) -> Wh<Px> {
-        let canvas_kit_image_info = self.info();
-        Wh {
-            width: canvas_kit_image_info.width,
-            height: canvas_kit_image_info.height,
-        }
+    pub(crate) fn unload_image(id: u32) {
+        IMAGE_MAP.remove(&id);
     }
-    pub(crate) fn get_default_shader(&self) -> Shader {
-        Shader::Image {
-            src: self.src.clone(),
-        }
-    }
-
     pub(crate) fn canvas_kit(&self) -> &CanvasKitImage {
         &self.canvas_kit_image
     }
-}
-
-impl SkImage for CkImage {
-    fn info(&self) -> ImageInfo {
-        self.image_info
+    pub(crate) fn into_shader(self: Arc<Self>) -> Shader {
+        Shader::Image {
+            src: Image {
+                info: self.image_info,
+                ck_image: self,
+            },
+        }
+    }
+    pub(crate) fn get(id: u32) -> Image {
+        let image = IMAGE_MAP.get(&id).unwrap();
+        Image {
+            info: image.image_info,
+            ck_image: image.clone(),
+        }
     }
 }
 
 impl Drop for CkImage {
     fn drop(&mut self) {
-        self.canvas_kit_image.delete();
+        self.canvas_kit_image.delete()
     }
 }
 
@@ -95,14 +86,4 @@ fn get_image_info(canvas_kit_image: &CanvasKitImage) -> ImageInfo {
             value => panic!("Unknown color type: {}", value),
         },
     }
-}
-
-fn make_lazy_image_from_texture_source(
-    src: &JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
-    info: Option<ImageInfo>,
-    src_is_premul: Option<bool>,
-) -> CanvasKitImage {
-    let info = info.map(|info| info.to_js_object());
-    // image.makeCopyWithDefaultMipmaps() // Do we need this?
-    canvas_kit().MakeLazyImageFromTextureSource(src, info, src_is_premul)
 }

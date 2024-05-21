@@ -5,8 +5,7 @@ mod wasm;
 
 use super::InitResult;
 use namui_skia::{
-    Font, FontMetrics, GroupGlyph, ImageHandle, ImageInfo, ImageSource, Paint, RenderingTree,
-    SkCalculate,
+    Font, FontMetrics, GroupGlyph, Image, ImageInfo, Paint, RenderingTree, SkCalculate,
 };
 use std::sync::{Arc, OnceLock};
 
@@ -53,22 +52,16 @@ pub(crate) fn font_metrics(font: &Font) -> Option<FontMetrics> {
     sk_calculate().font_metrics(font)
 }
 
-pub(crate) async fn load_image_from_encoded(
-    image_source: &ImageSource,
-    bytes: &[u8],
-) -> Result<ImageHandle> {
-    inner::load_image_from_encoded(image_source, bytes).await
+pub(crate) async fn load_image_from_url(url: impl AsRef<str>) -> Result<Image> {
+    inner::load_image_from_url(url).await
 }
 
 pub(crate) async fn load_image_from_raw(
-    image_info: ImageInfo,
-    bytes: &mut [u8],
-) -> Result<ImageHandle> {
-    inner::load_image_from_raw(image_info, bytes).await
-}
-
-pub(crate) async fn load_image_from_url(url: impl AsRef<str>) -> Result<ImageHandle> {
-    inner::load_image_from_url(url).await
+    bytes: &[u8],
+    image_info: Option<ImageInfo>,
+    encoded: bool,
+) -> Result<Image> {
+    inner::load_image_from_raw(bytes, image_info, encoded).await
 }
 
 pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {

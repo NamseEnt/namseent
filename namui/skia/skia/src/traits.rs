@@ -7,6 +7,19 @@ pub trait SkSkia: SkCalculate {
     fn move_to_next_frame(&mut self);
     fn surface(&mut self) -> &mut dyn SkSurface;
     fn on_resize(&mut self, wh: Wh<IntPx>);
+    // #[cfg(target_family = "wasm")]
+    // async fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8>;
+    #[cfg(target_family = "wasm")]
+    fn load_image_from_web_image_bitmap(&self, image_bitmap: web_sys::ImageBitmap) -> ImageLoaded;
+    #[cfg(target_family = "wasm")]
+    fn unload_image(&self, image_id: u32);
+    #[cfg(not(target_family = "wasm"))]
+    fn load_image_from_bytes(
+        &self,
+        bytes: &[u8],
+        image_info: ImageInfo,
+        encoded: bool,
+    ) -> ImageInfo;
 }
 
 pub trait SkCalculate {
@@ -15,15 +28,6 @@ pub trait SkCalculate {
     fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) -> Result<()>;
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool;
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>>;
-    fn image(&self, image_source: &ImageSource) -> Option<Image>;
-    // #[cfg(feature = "wasm")]
-    // async fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8>;
-    #[cfg(feature = "wasm")]
-    fn load_image(&self, image_source: &ImageSource, image_bitmap: web_sys::ImageBitmap);
-    #[cfg(not(feature = "wasm"))]
-    fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo;
-    #[cfg(not(feature = "wasm"))]
-    fn load_image_from_raw(&self, image_info: ImageInfo, bitmap: &[u8]) -> ImageHandle;
 }
 
 pub trait SkSurface {
@@ -38,7 +42,7 @@ pub trait SkCanvas {
     fn draw_line(&self, from: Xy<Px>, to: Xy<Px>, paint: &Paint);
     fn draw_image(
         &self,
-        image_source: &ImageSource,
+        image: &Image,
         src_rect: Rect<Px>,
         dest_rect: Rect<Px>,
         paint: &Option<Paint>,
@@ -57,12 +61,3 @@ pub trait SkCanvas {
 pub trait SkImage {
     fn info(&self) -> ImageInfo;
 }
-
-// pub trait ImageLoader<Image> {
-//     #[cfg(feature = "wasm")]
-//     fn get_or_start_load_image(
-//         &self,
-//         image_source: &ImageSource,
-//         on_loaded: Box<dyn FnOnce(ImageBitmap) -> Image>,
-//     ) -> Option<Image>;
-// }

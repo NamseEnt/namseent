@@ -53,14 +53,14 @@ pub(crate) fn run_loop(root_component: impl 'static + Fn(&RenderCtx)) {
 
         let elapsed = crate::time::now() - now;
         if elapsed > 33.ms() {
-            println!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
+            crate::log!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
         }
 
         render_time_sum += elapsed;
         render_time_worst = render_time_worst.max(elapsed);
 
         if one_sec_timer.elapsed() > std::time::Duration::from_secs(1) {
-            println!(
+            crate::log!(
                 "Render count: {}/sec | Event handle avg delay: {:?} | Render avg time: {:?} | Worst render time: {:?}",
                 one_sec_render_count,
                 event_handle_delay_sum / one_sec_render_count,
@@ -69,7 +69,7 @@ pub(crate) fn run_loop(root_component: impl 'static + Fn(&RenderCtx)) {
             );
             for (event_type, count) in &mut event_type_count {
                 if *count > 0 {
-                    println!("- {:?}: {}", event_type, count);
+                    crate::log!("- {:?}: {}", event_type, count);
                     *count = 0;
                 }
             }
@@ -93,7 +93,7 @@ pub(crate) fn on_raw_event(event: RawEvent) {
             .unwrap();
 
         if one_sec_timer.elapsed() > std::time::Duration::from_secs(1) {
-            println!(
+            crate::log!(
                 "Event recv count {}/sec",
                 EVENT_COUNT.swap(0, std::sync::atomic::Ordering::Relaxed)
             );

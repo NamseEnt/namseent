@@ -7,20 +7,14 @@ pub struct ImageStyle {
 
 pub struct ImageParam {
     pub rect: Rect<Px>,
-    pub source: ImageSource,
+    pub image: Image,
     pub style: ImageStyle,
 }
 
-pub fn image(
-    ImageParam {
-        source,
-        rect,
-        style,
-    }: ImageParam,
-) -> RenderingTree {
+pub fn image(ImageParam { image, rect, style }: ImageParam) -> RenderingTree {
     RenderingTree::Node(DrawCommand::Image {
         command: ImageDrawCommand {
-            source,
+            image,
             rect,
             fit: style.fit,
             paint: style.paint,

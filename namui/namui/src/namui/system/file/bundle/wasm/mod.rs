@@ -12,7 +12,8 @@ pub async fn init() -> InitResult {
 }
 
 pub async fn read(path_like: impl PathLike) -> io::Result<Vec<u8>> {
-    crate::system::network::http::get_bytes(create_bundle_url(path_like))
+    let url = create_bundle_url(path_like);
+    crate::system::network::http::get_bytes(url)
         .await
         .map_err(|fetch_error| {
             if let crate::system::network::http::HttpError::Status { status, message } =

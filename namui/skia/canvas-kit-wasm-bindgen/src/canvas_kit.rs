@@ -123,7 +123,7 @@ extern "C" {
     #[wasm_bindgen(method)]
     pub fn MakeLazyImageFromTextureSource(
         this: &CanvasKit,
-        src: &JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+        src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
         info: Option<js_sys::Object>, // ImageInfo | PartialImageInfo
         srcIsPremul: Option<bool>,
     ) -> CanvasKitImage;

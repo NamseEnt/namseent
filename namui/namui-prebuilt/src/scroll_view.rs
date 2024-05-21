@@ -48,7 +48,6 @@ impl<C: Component> Component for AutoScrollView<C> {
 pub struct AutoScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
-    #[skip_debug]
     pub content: Func,
 }
 
@@ -70,7 +69,6 @@ impl<Func: FnOnce(ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
 pub struct ScrollViewWithCtx<'a, Func: FnOnce(ComposeCtx)> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
-    #[skip_debug]
     pub content: Func,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<'a, Px>,

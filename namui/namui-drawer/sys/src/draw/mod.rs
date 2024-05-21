@@ -5,37 +5,17 @@ mod text;
 use namui_skia::*;
 use namui_type::*;
 
-pub(crate) struct DrawContext<'a> {
-    skia: &'a mut dyn SkSkia,
-    start_load_image: &'a dyn Fn(&ImageSource),
-}
-
-impl<'a> DrawContext<'a> {
-    pub fn new(skia: &'a mut dyn SkSkia, start_load_image: &'a dyn Fn(&ImageSource)) -> Self {
-        Self {
-            skia,
-            start_load_image,
-        }
-    }
-    pub fn surface(&mut self) -> &mut dyn SkSurface {
-        self.skia.surface()
-    }
-    pub fn canvas(&mut self) -> &dyn SkCanvas {
-        self.surface().canvas()
-    }
-}
-
 pub(crate) trait Draw {
-    fn draw(self, ctx: &mut DrawContext);
+    fn draw(self, skia: &mut impl SkSkia);
 }
 
 impl Draw for RenderingTree {
-    fn draw(self, ctx: &mut DrawContext) {
+    fn draw(self, skia: &mut impl SkSkia) {
         struct RenderingTreeDrawContext {
             on_top_node_matrix_tuples: Vec<(OnTopNode, TransformMatrix)>,
         }
         fn draw_internal(
-            ctx: &mut DrawContext,
+            skia: &mut impl SkSkia,
             rendering_tree: &RenderingTree,
             rendering_tree_draw_context: &mut RenderingTreeDrawContext,
         ) {
@@ -43,62 +23,66 @@ impl Draw for RenderingTree {
                 RenderingTree::Children(children) => {
                     // NOTE: Children are drawn in reverse order. First(Left) child is drawn at the front.
                     for child in children.iter().rev() {
-                        draw_internal(ctx, child, rendering_tree_draw_context);
+                        draw_internal(skia, child, rendering_tree_draw_context);
                     }
                 }
                 RenderingTree::Node(draw_command) => {
-                    draw_command.draw(ctx);
+                    draw_command.draw(skia);
                 }
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::Translate(translate) => {
-                        ctx.canvas().save();
-                        ctx.canvas().translate(translate.x, translate.y);
+                        skia.surface().canvas().save();
+                        skia.surface().canvas().translate(translate.x, translate.y);
 
-                        draw_internal(ctx, &translate.rendering_tree, rendering_tree_draw_context);
-                        ctx.canvas().restore();
+                        draw_internal(skia, &translate.rendering_tree, rendering_tree_draw_context);
+                        skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Clip(clip) => {
-                        ctx.canvas().save();
-                        ctx.canvas().clip_path(&clip.path, clip.clip_op, true);
-                        draw_internal(ctx, &clip.rendering_tree, rendering_tree_draw_context);
-                        ctx.canvas().restore();
+                        skia.surface().canvas().save();
+                        skia.surface()
+                            .canvas()
+                            .clip_path(&clip.path, clip.clip_op, true);
+                        draw_internal(skia, &clip.rendering_tree, rendering_tree_draw_context);
+                        skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
-                        ctx.canvas().save();
-                        ctx.canvas().set_matrix(TransformMatrix::from_slice([
-                            [1.0, 0.0, absolute.x.as_f32()],
-                            [0.0, 1.0, absolute.y.as_f32()],
-                        ]));
-                        draw_internal(ctx, &absolute.rendering_tree, rendering_tree_draw_context);
-                        ctx.canvas().restore();
+                        skia.surface().canvas().save();
+                        skia.surface()
+                            .canvas()
+                            .set_matrix(TransformMatrix::from_slice([
+                                [1.0, 0.0, absolute.x.as_f32()],
+                                [0.0, 1.0, absolute.y.as_f32()],
+                            ]));
+                        draw_internal(skia, &absolute.rendering_tree, rendering_tree_draw_context);
+                        skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
-                        ctx.canvas().save();
-                        ctx.canvas().rotate(rotate.angle);
-                        draw_internal(ctx, &rotate.rendering_tree, rendering_tree_draw_context);
-                        ctx.canvas().restore();
+                        skia.surface().canvas().save();
+                        skia.surface().canvas().rotate(rotate.angle);
+                        draw_internal(skia, &rotate.rendering_tree, rendering_tree_draw_context);
+                        skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Scale(scale) => {
-                        ctx.canvas().save();
-                        ctx.canvas().scale(scale.x, scale.y);
-                        draw_internal(ctx, &scale.rendering_tree, rendering_tree_draw_context);
-                        ctx.canvas().restore();
+                        skia.surface().canvas().save();
+                        skia.surface().canvas().scale(scale.x, scale.y);
+                        draw_internal(skia, &scale.rendering_tree, rendering_tree_draw_context);
+                        skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Transform(transform) => {
-                        ctx.canvas().save();
-                        ctx.canvas().transform(transform.matrix);
-                        draw_internal(ctx, &transform.rendering_tree, rendering_tree_draw_context);
-                        ctx.canvas().restore();
+                        skia.surface().canvas().save();
+                        skia.surface().canvas().transform(transform.matrix);
+                        draw_internal(skia, &transform.rendering_tree, rendering_tree_draw_context);
+                        skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::OnTop(on_top) => {
-                        let matrix = ctx.canvas().get_matrix();
+                        let matrix = skia.surface().canvas().get_matrix();
                         rendering_tree_draw_context
                             .on_top_node_matrix_tuples
                             .push((on_top.clone(), matrix));
                     }
                     SpecialRenderingNode::WithId(_) => {
                         draw_internal(
-                            ctx,
+                            skia,
                             special.inner_rendering_tree_ref(),
                             rendering_tree_draw_context,
                         );
@@ -106,11 +90,11 @@ impl Draw for RenderingTree {
                 },
                 RenderingTree::Empty => {}
                 RenderingTree::Boxed(boxed) => {
-                    draw_internal(ctx, boxed.as_ref(), rendering_tree_draw_context);
+                    draw_internal(skia, boxed.as_ref(), rendering_tree_draw_context);
                 }
                 RenderingTree::BoxedChildren(children) => {
-                for child in children.iter().rev() {
-                        draw_internal(ctx, child, rendering_tree_draw_context);
+                    for child in children.iter().rev() {
+                        draw_internal(skia, child, rendering_tree_draw_context);
                     }
                 }
             }
@@ -119,23 +103,23 @@ impl Draw for RenderingTree {
         let mut draw_context = RenderingTreeDrawContext {
             on_top_node_matrix_tuples: Vec::new(),
         };
-        draw_internal(ctx, &self, &mut draw_context);
+        draw_internal(skia, &self, &mut draw_context);
 
         for (node, matrix) in draw_context.on_top_node_matrix_tuples {
-            ctx.canvas().save();
-            ctx.canvas().set_matrix(matrix);
-            node.rendering_tree.draw(ctx);
-            ctx.canvas().restore();
+            skia.surface().canvas().save();
+            skia.surface().canvas().set_matrix(matrix);
+            node.rendering_tree.draw(skia);
+            skia.surface().canvas().restore();
         }
     }
 }
 
 impl Draw for &DrawCommand {
-    fn draw(self, ctx: &mut DrawContext) {
+    fn draw(self, skia: &mut impl SkSkia) {
         match self {
-            DrawCommand::Path { command } => command.draw(ctx),
-            DrawCommand::Text { command } => command.draw(ctx),
-            DrawCommand::Image { command } => command.draw(ctx),
+            DrawCommand::Path { command } => command.draw(skia),
+            DrawCommand::Text { command } => command.draw(skia),
+            DrawCommand::Image { command } => command.draw(skia),
         }
     }
 }

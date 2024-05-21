@@ -7,6 +7,11 @@ mod non_wasm;
 // #[cfg(not(test))]
 mod web;
 
+#[cfg(not(target_family = "wasm"))]
+use tokio::time;
+#[cfg(target_family = "wasm")]
+use wasmtimer::tokio as time;
+
 #[cfg(test)]
 use mock as inner;
 #[cfg(not(target_family = "wasm"))]
@@ -16,12 +21,9 @@ use non_wasm as inner;
 #[cfg(not(test))]
 use web as inner;
 
-#[cfg(not(target_family = "wasm"))]
-use tokio::time;
-#[cfg(target_family = "wasm")]
-use wasmtimer::tokio as time;
-
 use super::InitResult;
+#[cfg(test)]
+pub use inner::*;
 use namui_type::*;
 use std::sync::{Arc, OnceLock};
 

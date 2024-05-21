@@ -26,22 +26,26 @@ pub(crate) fn run_loop(root_component: impl 'static + Fn(&RenderCtx)) {
 }
 
 pub(crate) fn on_raw_event(event: RawEvent) {
+    if !crate::system::system_initialized() {
+        return;
+    }
+
     {
         static EVENT_COUNT: AtomicUsize = AtomicUsize::new(0);
         EVENT_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        static TIME: OnceLock<Mutex<std::time::Instant>> = OnceLock::new();
+        static TIME: OnceLock<Mutex<Instant>> = OnceLock::new();
 
         let mut one_sec_timer = TIME
-            .get_or_init(|| Mutex::new(std::time::Instant::now()))
+            .get_or_init(|| Mutex::new(Instant::now()))
             .lock()
             .unwrap();
 
-        if one_sec_timer.elapsed() > std::time::Duration::from_secs(1) {
-            println!(
+        if Instant::now() - *one_sec_timer > Duration::from_secs(1) {
+            crate::log!(
                 "Event recv count {}/sec",
                 EVENT_COUNT.swap(0, std::sync::atomic::Ordering::Relaxed)
             );
-            *one_sec_timer = std::time::Instant::now();
+            *one_sec_timer = Instant::now();
         }
     }
 
@@ -105,14 +109,14 @@ fn tick(
 
     let elapsed = crate::time::now() - now;
     if elapsed > 33.ms() {
-        println!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
+        crate::log!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
     }
 
     stat.render_time_sum += elapsed;
     stat.render_time_worst = stat.render_time_worst.max(elapsed);
 
-    if stat.one_sec_timer - Instant::now() > Duration::from_secs(1) {
-        println!(
+    if Instant::now() - stat.one_sec_timer > Duration::from_secs(1) {
+        crate::log!(
             "Render count: {}/sec | Render avg time: {:?} | Worst render time: {:?}",
             stat.one_sec_render_count,
             stat.render_time_sum / stat.one_sec_render_count,
@@ -120,7 +124,7 @@ fn tick(
         );
         for (event_type, count) in stat.event_type_count.iter_mut() {
             if *count > 0 {
-                println!("- {:?}: {}", event_type, count);
+                crate::log!("- {:?}: {}", event_type, count);
                 *count = 0;
             }
         }

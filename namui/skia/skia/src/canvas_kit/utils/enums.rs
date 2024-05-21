@@ -27,9 +27,9 @@ macro_rules! canvas_kit_enum {
             $($enum_item:ident: $canvas_kit_enum_item:ident: $static_enum_item:ident),* $(,)?
         }
     ) => {
-        impl Into<&'static $canvas_enum_name> for $enum_name {
-            fn into(self) -> &'static $canvas_enum_name {
-                match self {
+        impl From<$enum_name> for &'static $canvas_enum_name {
+            fn from(value: $enum_name) -> Self {
+                match value {
                     $(
                         $enum_name::$enum_item => $static_enum_item(),
                     )*

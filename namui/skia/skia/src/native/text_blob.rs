@@ -29,12 +29,11 @@ impl NativeTextBlob {
             let native_font = NativeFont::get(&key.font)?;
             let skia_text_blob = skia_safe::TextBlob::from_text(
                 unsafe {
-                    std::slice::from_raw_parts(
-                        glyph_ids.as_ptr() as *const u8,
+                    std::slice::from_raw_parts::<GlyphId>(
+                        glyph_ids.as_ptr() as *const GlyphId,
                         glyph_ids.len() * std::mem::size_of::<GlyphId>(),
                     )
                 },
-                skia_safe::TextEncoding::GlyphId,
                 native_font.skia(),
             );
 

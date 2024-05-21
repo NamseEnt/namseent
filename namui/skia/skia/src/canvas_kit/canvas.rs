@@ -83,18 +83,14 @@ impl SkCanvas for CkCanvas {
 
     fn draw_image(
         &self,
-        image_source: &ImageSource,
+        image: &Image,
         src_rect: Rect<Px>,
         dest_rect: Rect<Px>,
         paint: &Option<Paint>,
     ) {
-        let Some(image) = CkImage::get(image_source) else {
-            return;
-        };
-
         let mut paint = paint.clone().unwrap_or_default();
 
-        let image_shader = image.get_default_shader();
+        let image_shader = image.ck_image.clone().into_shader();
 
         let next_shader = if let Some(super_shader) = &paint.shader {
             super_shader.blend(BlendMode::Plus, &image_shader)

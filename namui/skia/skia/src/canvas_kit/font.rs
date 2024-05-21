@@ -38,6 +38,7 @@ impl CkFont {
             })
         })
     }
+    #[cfg(feature = "wasm-drawer")]
     pub(crate) fn canvas_kit(&self) -> &CanvasKitFont {
         &self.canvas_kit_font
     }
