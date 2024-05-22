@@ -12,12 +12,12 @@ pub enum Instrument {
     Cymbals,
 }
 const INSTRUMENTS: [Instrument; 3] = [Instrument::Kick, Instrument::Snare, Instrument::Cymbals];
-impl ToString for Instrument {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Instrument {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Instrument::Kick => "kick".to_string(),
-            Instrument::Snare => "snare".to_string(),
-            Instrument::Cymbals => "cymbals".to_string(),
+            Instrument::Kick => write!(f, "kick"),
+            Instrument::Snare => write!(f, "snare"),
+            Instrument::Cymbals => write!(f, "cymbals"),
         }
     }
 }
@@ -81,7 +81,7 @@ pub struct Note {
 
 pub async fn load_notes(music_id: &str) -> Vec<Note> {
     let note_loading_futures = INSTRUMENTS.map(|instrument| async move {
-        let instrument_path = format!("bundle:musics/{music_id}/{}.txt", instrument.to_string());
+        let instrument_path = format!("bundle:musics/{music_id}/{}.txt", instrument);
         let time_sequence_file = bundle::read(instrument_path.as_str())
             .await
             .map_err(|error| {
