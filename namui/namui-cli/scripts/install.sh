@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function main() {
-    if ! which podman &> /dev/null; then
+    if ! which podman &>/dev/null; then
         sudo apt install -y podman
     fi
 
@@ -15,6 +15,7 @@ function main() {
     check_wasm_pack_installed
     check_npm_installed
     check_cargo_bin_dir_exist $cargo_bin_dir_path
+    check_wine_installed
 
     build_cli $cli_root_path
 
@@ -29,12 +30,12 @@ function main() {
             if ss -elx | grep -q "$socket"; then
                 export WSL_INTEROP=$socket
             else
-                rm $socket 
+                rm $socket
             fi
         done
 
         if [[ -z $WSL_INTEROP ]]; then
-            echo -e "\033[31mNo working WSL_INTEROP socket found !\033[0m" 
+            echo -e "\033[31mNo working WSL_INTEROP socket found !\033[0m"
         fi
 
         window_electron_root_path="$(wslpath $(wslvar APPDATA))/namui/electron"
@@ -93,6 +94,22 @@ function check_cargo_bin_dir_exist() {
     if [ ! -d $cargo_bin_dir_path ]; then
         echo "Could not find dir \"$cargo_bin_dir_path\". Is there a cargo installed?"
         exit $EXIT_CARGO_BIN_DIR_NOT_FOUND
+    fi
+}
+
+function check_wine_installed() {
+    wine --version
+
+    if [ $? -ne 0 ]; then
+        echo "Wine command execution failed. Is there a wine installed?"
+        exit $EXIT_WINE_NOT_FOUND
+    fi
+
+    wine_version=$(wine --version | cut -d '-' -f 2)
+
+    if [ $(echo $wine_version | cut -d '.' -f 1) -lt 8 ]; then
+        echo "Wine version is lower than 8. Please install wine version 8 or higher."
+        exit $EXIT_WINE_VERSION_TOO_LOW
     fi
 }
 
@@ -185,7 +202,7 @@ function install_completion_script() {
     cli_completion_root_path=$1
     completion_script_start_marker="# namui completion script start"
     completion_script_end_marker="# namui completion script end"
-    
+
     if [ "$BASH" ]; then
         cli_completion_path="$cli_completion_root_path/namui.bash"
 
@@ -200,9 +217,9 @@ function install_completion_script() {
         sed -i '$a\' ~/.bashrc
 
         # Add completion script
-        echo "$completion_script_start_marker" >> ~/.bashrc
-        cat $cli_completion_path >> ~/.bashrc
-        echo -e "\n$completion_script_end_marker" >> ~/.bashrc
+        echo "$completion_script_start_marker" >>~/.bashrc
+        cat $cli_completion_path >>~/.bashrc
+        echo -e "\n$completion_script_end_marker" >>~/.bashrc
 
         echo "Completion script installed for bash. Please restart your shell"
     else
