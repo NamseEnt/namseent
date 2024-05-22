@@ -1458,6 +1458,7 @@ dependencies = [
  "serde",
  "skia-safe",
  "textwrap 0.16.1",
+ "tokio",
  "unicode-segmentation",
  "url",
  "uuid",
