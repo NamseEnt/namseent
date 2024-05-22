@@ -303,13 +303,22 @@ impl ComponentCtx<'_> {
     ) -> (Sig<State, &State>, AtomSetState<State>) {
         let atom_list = &self.world.atom_list;
 
-        let atom_index = atom.init(self.world.get_send_sync_set_state_tx());
+        if !atom.is_initialized() {
+            atom.init(
+                self.world.get_send_sync_set_state_tx(),
+                self.world
+                    .atom_index
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            )
+        }
 
-        let sig_id = SigId::Atom { index: atom_index };
+        let sig_id = atom.sig_id();
+        let atom_index = atom.get_index();
 
         let state = match atom_list.get(atom_index) {
             Some(atom_value) => atom_value,
             None => {
+                // NOTE: This code could be problematic on multi-threaded environment.
                 let value = init();
                 atom_list.push(Box::new(value));
                 atom_list.get(atom_index).unwrap()

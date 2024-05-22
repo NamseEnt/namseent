@@ -69,19 +69,19 @@ impl Default for Speed {
         Self::X4
     }
 }
-impl ToString for Speed {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Speed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Speed::X1 => "X1".to_string(),
-            Speed::X2 => "X2".to_string(),
-            Speed::X3 => "X3".to_string(),
-            Speed::X4 => "X4".to_string(),
-            Speed::X5 => "X5".to_string(),
-            Speed::X6 => "X6".to_string(),
-            Speed::X7 => "X7".to_string(),
-            Speed::X8 => "X8".to_string(),
-            Speed::X9 => "X9".to_string(),
-            Speed::X10 => "X10".to_string(),
+            Speed::X1 => write!(f, "X1"),
+            Speed::X2 => write!(f, "X2"),
+            Speed::X3 => write!(f, "X3"),
+            Speed::X4 => write!(f, "X4"),
+            Speed::X5 => write!(f, "X5"),
+            Speed::X6 => write!(f, "X6"),
+            Speed::X7 => write!(f, "X7"),
+            Speed::X8 => write!(f, "X8"),
+            Speed::X9 => write!(f, "X9"),
+            Speed::X10 => write!(f, "X10"),
         }
     }
 }

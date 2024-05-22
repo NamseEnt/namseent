@@ -65,12 +65,12 @@ impl RecentJudge {
         }
     }
 }
-impl ToString for RecentJudge {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for RecentJudge {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.judge {
-            Judge::Perfect { combo } => format!("Perfect\n{combo}"),
-            Judge::Good { combo } => format!("Good\n{combo}"),
-            Judge::Miss => "Miss".to_string(),
+            Judge::Perfect { combo } => write!(f, "Perfect\n{}", combo),
+            Judge::Good { combo } => write!(f, "Good\n{}", combo),
+            Judge::Miss => write!(f, "Miss"),
         }
     }
 }
