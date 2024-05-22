@@ -19,6 +19,7 @@ impl World {
             get_now: Box::new(get_now),
             record_used_sig_ids: Default::default(),
             atom_list: Default::default(),
+            atom_index: Default::default(),
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
             sk_calculate,

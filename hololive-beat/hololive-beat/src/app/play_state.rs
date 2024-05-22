@@ -301,16 +301,16 @@ pub enum Rank {
     D,
     F,
 }
-impl ToString for Rank {
-    fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for Rank {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rank_str = match self {
             Rank::S => "S",
             Rank::A => "A",
             Rank::B => "B",
             Rank::C => "C",
             Rank::D => "D",
             Rank::F => "F",
-        }
-        .to_string()
+        };
+        write!(f, "{}", rank_str)
     }
 }
