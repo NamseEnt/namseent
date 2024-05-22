@@ -40,7 +40,6 @@ impl SkCalculate for MockSkCalculate {
 fn memo_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
 
-    reset_next_index();
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -124,7 +123,7 @@ fn memo_should_work() {
 #[test]
 fn effect_by_set_state_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
-    reset_next_index();
+
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -208,7 +207,7 @@ fn effect_by_set_state_should_work() {
 #[test]
 fn effect_by_memo_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
-    reset_next_index();
+
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -300,7 +299,6 @@ fn interval_should_work() {
         *now_container.lock().unwrap() = Instant::new(duration);
     };
 
-    reset_next_index();
     let mut world = World::init(
         {
             let now_container = now_container.clone();
@@ -409,7 +407,7 @@ fn interval_should_work() {
 #[test]
 fn controlled_memo_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
-    reset_next_index();
+
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -508,7 +506,7 @@ fn controlled_memo_should_work() {
 #[test]
 fn atom_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
-    reset_next_index();
+
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
@@ -599,7 +597,6 @@ fn atom_should_work() {
 
 #[test]
 fn cloned_set_state_should_work() {
-    reset_next_index();
     let mut world = World::init(
         || Instant::from_std(std::time::Instant::now()),
         &MockSkCalculate,
