@@ -40,7 +40,8 @@ jobs:
       - name: Install wine
         run: |
           sudo apt update
-          sudo apt install -y wine64
+          sudo apt install -y clang wine-stable winetricks
+          winetricks nocrashdialog
 
       - name: Set up cargo
         run: |
@@ -56,7 +57,7 @@ jobs:
           path: |
             ~/.cache/cargo-xwin
           key: ${{ runner.os }}-${{ env.XWIN_ARCH }}-${{ env.XWIN_VERSION }}
-          
+
       - uses: actions/cache@v3
         with:
           path: |
@@ -78,7 +79,7 @@ jobs:
 
           echo "cargo xwin check --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests"
           cargo xwin check --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests
-          
+
           echo "cargo fmt"
           cargo fmt
 
