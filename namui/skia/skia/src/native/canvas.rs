@@ -21,16 +21,11 @@ impl SkCanvas for skia_safe::Canvas {
     }
     fn draw_image(
         &self,
-        image_source: &ImageSource,
+        image: &Image,
         src_rect: Rect<Px>,
         dest_rect: Rect<Px>,
         paint: &Option<Paint>,
     ) {
-        let Some(image) = NativeImage::get(image_source) else {
-            println!("image not loaded");
-            return;
-        };
-
         let mut paint = paint.clone().unwrap_or(Paint::new(Color::WHITE));
         let image_shader = image.get_default_shader();
 

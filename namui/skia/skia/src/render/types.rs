@@ -301,9 +301,9 @@ pub enum AlphaType {
 }
 
 #[cfg(feature = "skia")]
-impl Into<AlphaType> for skia_safe::AlphaType {
-    fn into(self) -> AlphaType {
-        match self {
+impl From<skia_safe::AlphaType> for AlphaType {
+    fn from(val: skia_safe::AlphaType) -> Self {
+        match val {
             skia_safe::AlphaType::Opaque => AlphaType::Opaque,
             skia_safe::AlphaType::Premul => AlphaType::Premul,
             skia_safe::AlphaType::Unpremul => AlphaType::Unpremul,
@@ -315,9 +315,9 @@ impl Into<AlphaType> for skia_safe::AlphaType {
 }
 
 #[cfg(feature = "skia")]
-impl Into<skia_safe::AlphaType> for AlphaType {
-    fn into(self) -> skia_safe::AlphaType {
-        match self {
+impl From<AlphaType> for skia_safe::AlphaType {
+    fn from(val: AlphaType) -> Self {
+        match val {
             AlphaType::Opaque => skia_safe::AlphaType::Opaque,
             AlphaType::Premul => skia_safe::AlphaType::Premul,
             AlphaType::Unpremul => skia_safe::AlphaType::Unpremul,
@@ -389,9 +389,9 @@ impl ColorType {
 }
 
 #[cfg(feature = "skia")]
-impl Into<ColorType> for skia_safe::ColorType {
-    fn into(self) -> ColorType {
-        match self {
+impl From<skia_safe::ColorType> for ColorType {
+    fn from(val: skia_safe::ColorType) -> Self {
+        match val {
             skia_safe::ColorType::Alpha8 => ColorType::Alpha8,
             skia_safe::ColorType::RGB565 => ColorType::Rgb565,
             skia_safe::ColorType::RGBA8888 => ColorType::Rgba8888,
@@ -423,9 +423,9 @@ impl Into<ColorType> for skia_safe::ColorType {
 }
 
 #[cfg(feature = "skia")]
-impl Into<skia_safe::ColorType> for ColorType {
-    fn into(self) -> skia_safe::ColorType {
-        match self {
+impl From<ColorType> for skia_safe::ColorType {
+    fn from(val: ColorType) -> Self {
+        match val {
             ColorType::Alpha8 => skia_safe::ColorType::Alpha8,
             ColorType::Rgb565 => skia_safe::ColorType::RGB565,
             ColorType::Rgba8888 => skia_safe::ColorType::RGBA8888,

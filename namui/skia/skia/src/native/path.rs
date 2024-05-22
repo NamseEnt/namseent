@@ -147,7 +147,7 @@ fn apply_command_to_skia_path(skia_path: &mut skia_safe::Path, path: &Path) {
                 );
             }
             &PathCommand::Scale { xy } => {
-                skia_path.transform(&skia_safe::Matrix::scale(xy.map(|x| f32::from(x)).into()));
+                skia_path.transform(&skia_safe::Matrix::scale(xy.map(f32::from).into()));
             }
             &PathCommand::Translate { xy } => {
                 skia_path.offset(xy);

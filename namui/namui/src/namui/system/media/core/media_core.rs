@@ -112,7 +112,7 @@ impl MediaCore {
 
         Ok(finish_rx)
     }
-    pub(crate) fn get_image(&mut self) -> Option<ImageHandle> {
+    pub(crate) fn get_image(&mut self) -> Option<Image> {
         self.video_framer
             .as_mut()
             .and_then(|video_framer| video_framer.get_image())

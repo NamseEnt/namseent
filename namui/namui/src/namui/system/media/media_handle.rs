@@ -44,7 +44,7 @@ impl MediaHandle {
     pub fn is_playing(&self) -> bool {
         self.core.lock().unwrap().is_playing()
     }
-    pub fn get_image(&self) -> Option<ImageHandle> {
+    pub fn get_image(&self) -> Option<Image> {
         // NOTE: Maybe lock blocks user hook loop.
         self.core.lock().unwrap().get_image()
     }

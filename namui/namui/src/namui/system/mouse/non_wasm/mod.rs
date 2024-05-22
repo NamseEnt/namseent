@@ -2,10 +2,6 @@ use super::MOUSE_SYSTEM;
 use crate::*;
 use winit::{dpi::PhysicalPosition, event::ElementState};
 
-pub(crate) fn set_up_event_handler() {
-    // nothing
-}
-
 pub(crate) fn on_winit_mouse_input(state: ElementState, button: crate::MouseButton) {
     update_pressing_button(state, button);
 

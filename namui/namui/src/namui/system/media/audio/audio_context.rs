@@ -95,7 +95,7 @@ impl AudioContext {
                     audios.retain(|audio_buffer| !audio_buffer.is_end());
 
                     if h_event.wait_for_event(1000).is_err() {
-                        ecrate::log!("[namui-media] failed to wait for event");
+                        crate::log!("[namui-media] failed to wait for event");
                         audio_client.stop_stream().unwrap();
                         break;
                     }

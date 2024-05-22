@@ -12,22 +12,19 @@ impl NativeShader {
         static NATIVE_SHADER_MAP: SerdeLruCache<Shader, NativeShader, 64> = SerdeLruCache::new();
 
         NATIVE_SHADER_MAP.get_or_create(shader, |shader| match shader {
-            Shader::Image { src } => {
-                let native_image = NativeImage::get(src).unwrap();
-                NativeShader {
-                    skia_shader: native_image
-                        .skia()
-                        .to_shader(
-                            Some((TileMode::Clamp.into(), TileMode::Clamp.into())),
-                            skia_safe::SamplingOptions::new(
-                                FilterMode::Linear.into(),
-                                MipmapMode::Linear.into(),
-                            ),
-                            None,
-                        )
-                        .expect("Failed to create shader from image"),
-                }
-            }
+            Shader::Image { src } => NativeShader {
+                skia_shader: src
+                    .skia_image
+                    .to_shader(
+                        Some((TileMode::Clamp.into(), TileMode::Clamp.into())),
+                        skia_safe::SamplingOptions::new(
+                            FilterMode::Linear.into(),
+                            MipmapMode::Linear.into(),
+                        ),
+                        None,
+                    )
+                    .expect("Failed to create shader from image"),
+            },
             Shader::Blend {
                 blend_mode,
                 src,
@@ -52,7 +49,7 @@ impl NativeShader {
                 tile_mode,
             } => {
                 let colors: Vec<_> = colors
-                    .into_iter()
+                    .iter()
                     .map(|color| skia_safe::Color::from(*color))
                     .collect();
 

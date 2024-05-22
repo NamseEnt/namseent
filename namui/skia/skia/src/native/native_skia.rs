@@ -16,7 +16,7 @@ use windows::Win32::{
     },
 };
 
-pub(crate) struct NativeSkia {
+pub struct NativeSkia {
     surface: NativeSurface,
     calculate: NativeCalculate,
 }
@@ -24,7 +24,7 @@ unsafe impl Send for NativeSkia {}
 unsafe impl Sync for NativeSkia {}
 
 impl NativeSkia {
-    pub(crate) async fn new(window_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
+    pub(crate) fn new(window_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
         // unsafe {
         //     let mut debug: Option<ID3D12Debug> = None;
         //     if let Some(debug) = D3D12GetDebugInterface(&mut debug).ok().and(debug) {
@@ -85,6 +85,21 @@ impl SkSkia for NativeSkia {
     fn on_resize(&mut self, wh: Wh<IntPx>) {
         self.surface.resize(wh);
     }
+    // fn load_image_from_bytes(&self, bytes: &[u8], image_info: ImageInfo, encoded: bool) -> Image {
+    //     let image = if encoded {
+    //         skia_safe::Image::from_encoded(skia_safe::Data::new_copy(bytes))
+    //     } else {
+    //         let row_bytes = image_info.width.as_f32() as usize * image_info.color_type.word();
+    //         skia_safe::images::raster_from_data(
+    //             &image_info.into(),
+    //             skia_safe::Data::new_copy(bytes),
+    //             row_bytes,
+    //         )
+    //     }
+    //     .unwrap();
+
+    //     Image::new(image_info, image)
+    // }
 }
 
 impl SkCalculate for NativeSkia {
@@ -96,7 +111,11 @@ impl SkCalculate for NativeSkia {
         self.calculate.font_metrics(font)
     }
 
-    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) -> Result<()> {
+    fn load_typeface(
+        &self,
+        typeface_name: String,
+        bytes: Vec<u8>,
+    ) -> tokio::task::JoinHandle<Result<()>> {
         self.calculate.load_typeface(typeface_name, bytes)
     }
 
@@ -108,16 +127,16 @@ impl SkCalculate for NativeSkia {
         self.calculate.path_bounding_box(path, paint)
     }
 
-    fn image(&self, image_source: &ImageSource) -> Option<Image> {
-        self.calculate.image(image_source)
+    fn load_image_from_encoded(&self, bytes: &[u8]) -> tokio::task::JoinHandle<Image> {
+        self.calculate.load_image_from_encoded(bytes)
     }
 
-    fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo {
-        self.calculate.load_image(image_source, encoded_image)
-    }
-
-    fn load_image_from_raw(&self, image_info: ImageInfo, bitmap: &[u8]) -> Image {
-        self.calculate.load_image_from_raw(image_info, bitmap)
+    fn load_image_from_raw(
+        &self,
+        image_info: ImageInfo,
+        bytes: &[u8],
+    ) -> tokio::task::JoinHandle<Image> {
+        self.calculate.load_image_from_raw(image_info, bytes)
     }
 }
 

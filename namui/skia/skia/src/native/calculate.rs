@@ -20,8 +20,15 @@ impl SkCalculate for NativeCalculate {
         NativeFont::get(font).map(|x| x.metrics)
     }
 
-    fn load_typeface(&self, typeface_name: &str, bytes: &[u8]) -> Result<()> {
-        NativeTypeface::load(typeface_name, bytes)
+    fn load_typeface(
+        &self,
+        typeface_name: String,
+        bytes: Vec<u8>,
+    ) -> tokio::task::JoinHandle<Result<()>> {
+        tokio::task::spawn_blocking(move || {
+            NativeTypeface::load(&typeface_name, &bytes)?;
+            Ok(())
+        })
     }
 
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool {
@@ -31,24 +38,27 @@ impl SkCalculate for NativeCalculate {
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>> {
         NativePath::get(path).bounding_box(paint)
     }
-    fn image(&self, image_source: &ImageSource) -> Option<Image> {
-        NativeImage::get(image_source).map(|x| x.image())
+
+    fn load_image_from_encoded(&self, bytes: &[u8]) -> tokio::task::JoinHandle<Image> {
+        let data = skia_safe::Data::new_copy(bytes);
+
+        tokio::task::spawn_blocking(move || {
+            let image = skia_safe::Image::from_encoded(data).unwrap();
+            Image::new(image.image_info().into(), image)
+        })
     }
+    fn load_image_from_raw(
+        &self,
+        image_info: ImageInfo,
+        bytes: &[u8],
+    ) -> tokio::task::JoinHandle<Image> {
+        let data = skia_safe::Data::new_copy(bytes);
 
-    fn load_image(&self, image_source: &ImageSource, encoded_image: &[u8]) -> ImageInfo {
-        NativeImage::load(image_source, encoded_image)
-    }
-
-    /// TODO: Make this from mut_ref to ref, using second context.
-    fn load_image_from_raw(&self, image_info: ImageInfo, bitmap: &[u8]) -> ImageHandle {
-        let row_bytes = image_info.width.as_f32() as usize * image_info.color_type.word();
-        let image = skia_safe::images::raster_from_data(
-            &image_info.into(),
-            skia_safe::Data::new_copy(bitmap),
-            row_bytes,
-        )
-        .unwrap();
-
-        ImageHandle::new(image_info, image)
+        tokio::task::spawn_blocking(move || {
+            let row_bytes = image_info.width.as_f32() as usize * image_info.color_type.word();
+            let image =
+                skia_safe::images::raster_from_data(&image_info.into(), data, row_bytes).unwrap();
+            Image::new(image_info, image)
+        })
     }
 }

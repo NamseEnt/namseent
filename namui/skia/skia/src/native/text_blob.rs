@@ -27,15 +27,8 @@ impl NativeTextBlob {
 
         CACHE.get_or_try_create(&cache_key, |key| {
             let native_font = NativeFont::get(&key.font)?;
-            let skia_text_blob = skia_safe::TextBlob::from_text(
-                unsafe {
-                    std::slice::from_raw_parts::<GlyphId>(
-                        glyph_ids.as_ptr() as *const GlyphId,
-                        glyph_ids.len() * std::mem::size_of::<GlyphId>(),
-                    )
-                },
-                native_font.skia(),
-            );
+            let skia_text_blob =
+                skia_safe::TextBlob::from_text(glyph_ids.as_slice(), native_font.skia());
 
             skia_text_blob.map(|skia_text_blob| NativeTextBlob { skia_text_blob })
         })

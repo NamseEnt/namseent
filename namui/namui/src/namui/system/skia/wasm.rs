@@ -43,11 +43,19 @@ pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
     })
 }
 
-pub(crate) async fn load_typeface(typeface_name: &str, bytes: &[u8]) -> Result<()> {
-    let buffer = Uint8Array::from(bytes);
-    loadTypeface(typeface_name, buffer)
-        .await
-        .map_err(|_| anyhow!("Failed to load typeface."))?;
+pub(crate) async fn load_typeface(typeface_name: String, bytes: Vec<u8>) -> Result<()> {
+    tokio::try_join!(
+        async move {
+            let buffer = Uint8Array::from(bytes);
+            loadTypeface(&typeface_name, buffer)
+                .await
+                .map_err(|_| anyhow!("Failed to load typeface."))?;
+        },
+        async move {
+            spawn_blocking(move || sk_calculate().load_typeface(&typeface_name, &bytes)).await?
+        },
+    )?;
+
     Ok(())
 }
 

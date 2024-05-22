@@ -90,7 +90,7 @@ impl SkCanvas for CkCanvas {
     ) {
         let mut paint = paint.clone().unwrap_or_default();
 
-        let image_shader = image.ck_image.clone().into_shader();
+        let image_shader = image.get_default_shader();
 
         let next_shader = if let Some(super_shader) = &paint.shader {
             super_shader.blend(BlendMode::Plus, &image_shader)

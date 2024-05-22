@@ -84,7 +84,7 @@ pub fn start(component: impl 'static + Fn(&RenderCtx)) {
 }
 
 #[cfg(not(target_family = "wasm"))]
-fn spawn_runtime(fut: impl std::future::Future<Output = ()> + Send + 'static) {
+fn spawn_runtime(fut: impl std::future::Future<Output = ()> + 'static) {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()

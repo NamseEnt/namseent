@@ -70,6 +70,7 @@ pub(crate) fn take_main_thread() {
     screen::take_main_thread();
 }
 
+#[allow(dead_code)]
 pub(crate) fn system_initialized() -> bool {
     SYSTEM_INITIALIZED.load(std::sync::atomic::Ordering::SeqCst)
 }

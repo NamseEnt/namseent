@@ -6,7 +6,7 @@ use std::fmt::Debug;
 pub struct Image {
     pub info: ImageInfo,
     #[cfg(feature = "skia")]
-    pub skia_image: std::sync::Arc<skia_safe::image>,
+    pub skia_image: std::sync::Arc<skia_safe::Image>,
     #[cfg(feature = "wasm-runtime")]
     pub drop_box: std::sync::Arc<DropBox>,
     #[cfg(feature = "wasm-drawer")]
@@ -20,6 +20,10 @@ impl Image {
             info: image_info,
             skia_image: std::sync::Arc::new(image),
         }
+    }
+
+    pub(crate) fn get_default_shader(&self) -> Shader {
+        Shader::Image { src: self.clone() }
     }
 }
 
@@ -153,17 +157,29 @@ impl ImageInfo {
 }
 
 #[cfg(feature = "skia")]
-impl Into<skia_safe::ImageInfo> for ImageInfo {
-    fn into(self) -> skia_safe::ImageInfo {
+impl From<ImageInfo> for skia_safe::ImageInfo {
+    fn from(val: ImageInfo) -> Self {
         skia_safe::ImageInfo::new(
             skia_safe::ISize {
-                width: self.width.as_f32() as i32,
-                height: self.height.as_f32() as i32,
+                width: val.width.as_f32() as i32,
+                height: val.height.as_f32() as i32,
             },
-            self.color_type.into(),
-            self.alpha_type.into(),
+            val.color_type.into(),
+            val.alpha_type.into(),
             None,
         )
+    }
+}
+
+#[cfg(feature = "skia")]
+impl From<&skia_safe::ImageInfo> for ImageInfo {
+    fn from(val: &skia_safe::ImageInfo) -> Self {
+        Self {
+            alpha_type: val.alpha_type().into(),
+            color_type: val.color_type().into(),
+            height: val.height().into(),
+            width: val.width().into(),
+        }
     }
 }
 

@@ -3,7 +3,6 @@ mod canvas;
 mod color_filter;
 mod font;
 mod group_glyph;
-mod image;
 mod native_skia;
 mod paint;
 mod path;
@@ -20,25 +19,19 @@ use anyhow::Result;
 pub(crate) use color_filter::*;
 pub(crate) use font::*;
 pub(crate) use group_glyph::*;
-pub(crate) use image::*;
 use namui_type::*;
-pub(crate) use native_skia::*;
+pub use native_skia::*;
 pub(crate) use paint::*;
 pub(crate) use path::*;
 pub(crate) use shader::*;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 pub(crate) use surface::*;
 pub(crate) use text_blob::*;
 pub(crate) use typeface::*;
 // // pub(crate) use runtime_effect::*;
 
-pub async fn init_skia(
-    screen_id: usize,
-    window_wh: Wh<IntPx>,
-) -> Result<Arc<RwLock<impl SkSkia + Send + Sync>>> {
-    Ok(Arc::new(RwLock::new(
-        NativeSkia::new(screen_id, window_wh).await?,
-    )))
+pub fn init_skia(screen_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
+    NativeSkia::new(screen_id, window_wh)
 }
 
 pub fn init_calculate() -> Result<Arc<impl SkCalculate + Send + Sync>> {

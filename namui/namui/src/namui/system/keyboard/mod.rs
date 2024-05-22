@@ -50,6 +50,7 @@ fn pressing_code_set() -> HashSet<Code> {
     KEYBOARD_SYSTEM.pressing_code_set.read().unwrap().clone()
 }
 
+#[allow(dead_code)]
 fn clear_pressing_code_set() {
     KEYBOARD_SYSTEM.pressing_code_set.write().unwrap().clear()
 }

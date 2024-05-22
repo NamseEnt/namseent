@@ -1,6 +1,3 @@
-mod image;
-
-pub use image::*;
 pub use namui_hooks::*;
 use namui_skia::RawEvent;
 use namui_type::*;
@@ -13,7 +10,7 @@ pub(crate) fn run_loop(root_component: impl 'static + Fn(&RenderCtx)) {
     RAW_EVENT_TX.set(raw_event_tx).unwrap();
 
     let mut world = World::init(crate::time::now, crate::system::skia::sk_calculate());
-    let rendering_tree = world.run(root_component);
+    let rendering_tree = world.run(&root_component);
     crate::system::skia::request_draw_rendering_tree(rendering_tree);
 
     let mut one_sec_timer = std::time::Instant::now();
@@ -48,7 +45,7 @@ pub(crate) fn run_loop(root_component: impl 'static + Fn(&RenderCtx)) {
 
         let now = crate::time::now();
 
-        let rendering_tree = world.run_with_event(root_component(), event);
+        let rendering_tree = world.run_with_event(&root_component, event);
         crate::system::skia::request_draw_rendering_tree(rendering_tree);
 
         let elapsed = crate::time::now() - now;

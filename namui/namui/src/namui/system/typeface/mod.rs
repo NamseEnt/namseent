@@ -10,6 +10,6 @@ pub(super) async fn init() -> InitResult {
 
 /// Supported font formats: TTF, WOFF2
 /// Not tested with WOFF and OTF
-pub async fn register_typeface(typeface_name: &str, bytes: &[u8]) -> Result<()> {
+pub async fn register_typeface(typeface_name: String, bytes: Vec<u8>) -> Result<()> {
     crate::system::skia::load_typeface(typeface_name, bytes).await
 }

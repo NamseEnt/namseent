@@ -24,7 +24,7 @@ impl TimeSystem for NonWasmTimeSystem {
     }
 
     fn system_time_now(&self) -> SystemTime {
-        SystemTime::new(std::time::SystemTime::now())
+        SystemTime::now()
     }
 
     fn now(&self) -> Instant {

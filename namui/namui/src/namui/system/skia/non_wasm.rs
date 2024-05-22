@@ -1,18 +1,32 @@
-use anyhow::Result;
+//! Non-wasm drawer run in same process unlike wasm drawer.
+
+use super::sk_calculate;
+use crate::system::InitResult;
+use anyhow::{anyhow, Result};
 use namui_skia::*;
 use namui_type::*;
+use std::sync::OnceLock;
 use std::{
     ops::DerefMut,
     sync::{Arc, RwLock},
 };
 
-static SKIA: OnceLock<Arc<RwLock<dyn SkSkia + Send + Sync>>> = OnceLock::new();
+static SKIA: OnceLock<Arc<RwLock<NativeSkia>>> = OnceLock::new();
 
-pub(super) async fn init_skia() -> Result<Arc<RwLock<impl SkSkia + Send + Sync>>> {
-    namui_skia::init_skia(
+pub(crate) async fn init() -> InitResult {
+    let skia = namui_skia::init_skia(
         crate::system::screen::window_id(),
         crate::system::screen::size(),
-    )
+    )?;
+    SKIA.set(Arc::new(RwLock::new(skia)))
+        .map_err(|_| anyhow!("Skia is already initialized"))?;
+
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+    DRAW_COMMAND_TX.set(tx).unwrap();
+
+    spawn_drawing_task(rx);
+
+    Ok(())
 }
 
 pub(crate) fn on_window_resize(wh: Wh<IntPx>) {
@@ -20,24 +34,11 @@ pub(crate) fn on_window_resize(wh: Wh<IntPx>) {
     skia.on_resize(wh);
 }
 
-pub(crate) fn render(draw_input: DrawInput) {
+pub(crate) fn render(rendering_tree: RenderingTree) {
     let mut skia = SKIA.get().unwrap().write().unwrap();
 
-    namui_drawer_sys::draw(skia.deref_mut(), draw_input, &|image_source| {
-        let image_source = image_source.clone();
-        tokio::spawn(async move {
-            crate::system::image::load_image(&image_source)
-                .await
-                .unwrap();
-
-            crate::system::skia::redraw();
-        });
-    });
+    namui_drawer_sys::draw(skia.deref_mut(), rendering_tree);
 }
-//! Non-wasm drawer run in same process unlike wasm drawer.
-
-use crate::{image::ImageBitmap, system::InitResult, *};
-use std::sync::OnceLock;
 
 static DRAW_COMMAND_TX: OnceLock<tokio::sync::mpsc::UnboundedSender<DrawingCommand>> =
     OnceLock::new();
@@ -46,15 +47,6 @@ static DRAW_COMMAND_TX: OnceLock<tokio::sync::mpsc::UnboundedSender<DrawingComma
 enum DrawingCommand {
     Draw { rendering_tree: RenderingTree },
     Redraw,
-}
-
-pub(crate) async fn init() -> InitResult {
-    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-    DRAW_COMMAND_TX.set(tx).unwrap();
-
-    spawn_drawing_task(rx);
-
-    Ok(())
 }
 
 fn spawn_drawing_task(mut rx: tokio::sync::mpsc::UnboundedReceiver<DrawingCommand>) {
@@ -83,7 +75,7 @@ fn spawn_drawing_task(mut rx: tokio::sync::mpsc::UnboundedReceiver<DrawingComman
 
             if redraw_requested || rendering_tree_changed {
                 if let Some(rendering_tree) = last_rendering_tree.clone() {
-                    system::skia::render(DrawInput { rendering_tree });
+                    render(rendering_tree);
                     rendering_tree_changed = false;
                     redraw_requested = false;
                 }
@@ -100,15 +92,29 @@ pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
         .unwrap();
 }
 
-pub(crate) fn load_typeface(_typeface_name: &str, _bytes: &[u8]) {
-    // nothing
+pub(crate) async fn load_typeface(typeface_name: String, bytes: Vec<u8>) -> Result<()> {
+    sk_calculate()
+        .load_typeface(typeface_name.to_string(), bytes.to_vec())
+        .await??;
+
+    Ok(())
 }
 
-pub(crate) async fn load_image(
-    _image_source: &ImageSource,
-    _image_bitmap: ImageBitmap,
-) -> ImageInfo {
-    // todo!()
+pub(crate) async fn load_image_from_url(url: impl AsRef<str>) -> Result<Image> {
+    let bytes = crate::system::network::http::get_bytes(url.as_ref()).await?;
+    let image = sk_calculate()
+        .load_image_from_encoded(bytes.as_ref())
+        .await?;
+
+    Ok(image)
+}
+
+pub(crate) async fn load_image_from_raw(image_info: ImageInfo, bytes: &[u8]) -> Result<Image> {
+    let image = sk_calculate()
+        .load_image_from_raw(image_info, bytes)
+        .await?;
+
+    Ok(image)
 }
 
 /// This function redraw forcibly.
