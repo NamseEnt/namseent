@@ -318,11 +318,10 @@ impl ComponentCtx<'_> {
         let state = match atom_list.get(atom_index) {
             Some(atom_value) => atom_value,
             None => {
+                // NOTE: This code could be problematic on multi-threaded environment.
                 let value = init();
                 atom_list.push(Box::new(value));
-                atom_list
-                    .get(atom_index)
-                    .expect(format!("atom_index: {}", atom_index).as_str())
+                atom_list.get(atom_index).unwrap()
             }
         };
         let state: &State = state.as_any().downcast_ref().unwrap();
