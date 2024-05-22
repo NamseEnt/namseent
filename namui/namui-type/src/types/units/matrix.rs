@@ -254,10 +254,8 @@ impl Into<skia_safe::Matrix> for TransformMatrix {
 mod tests {
     use super::*;
     use float_cmp::assert_approx_eq;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn inverse_should_work() {
         let matrix = TransformMatrix::from_slice([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]]);
 
@@ -273,7 +271,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn multiply_should_work() {
         let a = TransformMatrix::from_slice([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
         let b = TransformMatrix::from_slice([[9.0, 8.0, 7.0], [6.0, 5.0, 4.0]]);
@@ -290,7 +287,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn translate_should_work() {
         let mut matrix = TransformMatrix::from_translate(10.0, 20.0);
         assert_eq!(matrix.x(), 10.0);
@@ -302,7 +298,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn scale_should_work() {
         let mut matrix = TransformMatrix::from_scale(2.0, 3.0);
         assert_eq!(matrix.sx(), 2.0);
@@ -314,7 +309,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn rotate_should_work() {
         let degree = 90.0_f32;
         let mut matrix = TransformMatrix::from_rotate(degree.deg());

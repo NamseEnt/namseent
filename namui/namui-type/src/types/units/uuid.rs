@@ -13,12 +13,7 @@ pub fn uuid_from_hash(hash: impl std::hash::Hash) -> Uuid {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(target_family = "wasm")]
-    use wasm_bindgen_test::wasm_bindgen_test;
-
     #[test]
-    #[cfg(target_family = "wasm")]
-    #[wasm_bindgen_test]
     fn serde_should_work_with_uuid() {
         use super::uuid;
 

@@ -123,6 +123,6 @@ mod tests {
         let source = CheapSlice::from_vec(vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
         let sliced = source.slice(100, 5);
         assert_eq!(source.to_vec(), vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        assert_eq!(sliced.to_vec(), vec![]);
+        assert_eq!(sliced.to_vec(), Vec::<i32>::new());
     }
 }
