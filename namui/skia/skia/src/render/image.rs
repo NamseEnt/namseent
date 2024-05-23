@@ -21,7 +21,7 @@ impl Image {
             skia_image: std::sync::Arc::new(image),
         }
     }
-
+    #[allow(dead_code)]
     pub(crate) fn get_default_shader(&self) -> Shader {
         Shader::Image { src: self.clone() }
     }
