@@ -36,7 +36,7 @@ impl SkCalculate for MockSkCalculate {
 fn memo_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
 
-    let mut world = World::init(|| Instant::now(), &MockSkCalculate);
+    let mut world = World::init(Instant::now, &MockSkCalculate);
 
     let record = Arc::new(AtomicUsize::new(0));
 
@@ -117,7 +117,7 @@ fn memo_should_work() {
 fn effect_by_set_state_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
 
-    let mut world = World::init(|| Instant::now(), &MockSkCalculate);
+    let mut world = World::init(Instant::now, &MockSkCalculate);
 
     let record = Arc::new(AtomicUsize::new(0));
 
@@ -198,7 +198,7 @@ fn effect_by_set_state_should_work() {
 fn effect_by_memo_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
 
-    let mut world = World::init(|| Instant::now(), &MockSkCalculate);
+    let mut world = World::init(Instant::now, &MockSkCalculate);
 
     let call_count = Arc::new(AtomicUsize::new(0));
 
@@ -395,7 +395,7 @@ fn interval_should_work() {
 fn controlled_memo_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
 
-    let mut world = World::init(|| Instant::now(), &MockSkCalculate);
+    let mut world = World::init(Instant::now, &MockSkCalculate);
 
     let record = Arc::new(AtomicUsize::new(0));
 
@@ -491,7 +491,7 @@ fn controlled_memo_should_work() {
 fn atom_should_work() {
     use std::sync::{atomic::AtomicUsize, Arc};
 
-    let mut world = World::init(|| Instant::now(), &MockSkCalculate);
+    let mut world = World::init(Instant::now, &MockSkCalculate);
 
     let record = Arc::new(AtomicUsize::new(0));
 
@@ -578,7 +578,7 @@ fn atom_should_work() {
 
 #[test]
 fn cloned_set_state_should_work() {
-    let mut world = World::init(|| Instant::now(), &MockSkCalculate);
+    let mut world = World::init(Instant::now, &MockSkCalculate);
 
     #[derive(Debug)]
     struct A {}
