@@ -22,6 +22,7 @@ pub async fn check(target: Target, manifest_path: PathBuf) -> Result<()> {
                 "x86_64-pc-windows-msvc",
                 "--manifest-path",
                 manifest_path.to_str().unwrap(),
+                "--tests",
             ]);
 
             if cfg!(target_os = "linux") {
