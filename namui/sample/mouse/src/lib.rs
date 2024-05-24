@@ -2,7 +2,9 @@ use namui::*;
 use namui_prebuilt::{simple_rect, typography};
 
 pub fn main() {
-    namui::start(|| MouseExample)
+    namui::start(|ctx| {
+        ctx.add(MouseExample);
+    })
 }
 
 #[namui::component]

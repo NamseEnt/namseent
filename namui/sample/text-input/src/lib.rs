@@ -1,7 +1,9 @@
 use namui::*;
 
 pub fn main() {
-    namui::start(|| TextInputExample::new())
+    namui::start(|ctx| {
+        ctx.add(TextInputExample {});
+    })
 }
 
 #[namui::component]

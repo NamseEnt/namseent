@@ -7,5 +7,7 @@ use app::App;
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 pub fn main() {
-    namui::start(|| App {})
+    namui::start(|ctx| {
+        ctx.add(App {});
+    })
 }

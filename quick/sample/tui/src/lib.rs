@@ -3,16 +3,12 @@ use namui_prebuilt::simple_rect;
 use quick::*;
 
 pub fn main() {
-    namui::start(&mut TuiExample::new(), &()).await
+    namui::start(|ctx| {
+        ctx.add(TuiExample {});
+    })
 }
 
 struct TuiExample {}
-
-impl TuiExample {
-    fn new() -> Self {
-        Self {}
-    }
-}
 
 impl Entity for TuiExample {
     type Props = ();

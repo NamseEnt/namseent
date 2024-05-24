@@ -1,7 +1,9 @@
 use namui::*;
 
 pub fn main() {
-    namui::start(|| RectExample)
+    namui::start(|ctx| {
+        ctx.add(RectExample);
+    })
 }
 
 #[namui::component]

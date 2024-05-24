@@ -146,16 +146,14 @@ impl Component for Decoration {
             Wh::new(width, width * 0.7)
         };
 
-        ctx.add(image(ImageParam {
+        ctx.add(ImageRender {
             rect: title_rect,
             source: ImageSource::Url {
                 url: "bundle:ui/title.png".to_string(),
             },
-            style: ImageStyle {
-                fit: ImageFit::Contain,
-                paint: None,
-            },
-        }));
+            fit: ImageFit::Contain,
+            paint: None,
+        });
         ctx.compose(|ctx| {
             ctx.translate((0.px(), wh.height - (drummer_wh.height * 0.75)))
                 .add(Drummer { wh: drummer_wh });

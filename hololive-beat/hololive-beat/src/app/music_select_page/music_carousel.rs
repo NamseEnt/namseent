@@ -135,16 +135,14 @@ impl Component for MusicCard<'_> {
 
             ctx.compose(|ctx| {
                 if let Some(music) = music {
-                    ctx.add(image(ImageParam {
+                    ctx.add(ImageRender {
                         rect: Rect::zero_wh(music_card_wh),
                         source: ImageSource::Url {
                             url: music.thumbnail_url(),
                         },
-                        style: ImageStyle {
-                            fit: ImageFit::Cover,
-                            paint: Some(Paint::new(color)),
-                        },
-                    }));
+                        fit: ImageFit::Cover,
+                        paint: Some(Paint::new(color)),
+                    });
                 }
             });
             ctx.add(path(
@@ -152,7 +150,8 @@ impl Component for MusicCard<'_> {
                 Paint::new(color)
                     .set_style(PaintStyle::Fill)
                     .set_mask_filter(MaskFilter::Blur {
-                        blur: Blur::Outer { sigma: 8.0 },
+                        blur_style: BlurStyle::Outer,
+                        sigma: 8.0,
                     })
                     .set_blend_mode(BlendMode::Multiply),
             ));

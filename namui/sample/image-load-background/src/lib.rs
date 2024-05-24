@@ -1,7 +1,9 @@
 use namui::*;
 
 pub fn main() {
-    namui::start(|| App)
+    namui::start(|ctx| {
+        ctx.add(App);
+    })
 }
 
 #[namui::component]

@@ -121,9 +121,8 @@ impl Component for TopBar<'_> {
                                 paint.clone(),
                                 TextAlign::Left,
                                 TextBaseline::Middle,
-                                Blur::Normal {
-                                    sigma: Blur::convert_radius_to_sigma(4.0),
-                                },
+                                BlurStyle::Normal,
+                                blur_sigma::from_radius(4.0),
                                 8.px(),
                                 glow_color,
                             ));

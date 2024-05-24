@@ -1,7 +1,9 @@
 use namui::*;
 
 pub fn main() {
-    namui::start(|| FontExample)
+    namui::start(|ctx| {
+        ctx.add(FontExample);
+    })
 }
 
 #[namui::component]

@@ -199,9 +199,8 @@ impl Component for Flash {
                 paint: Paint::new(color)
                     .set_blend_mode(BlendMode::Plus)
                     .set_mask_filter(MaskFilter::Blur {
-                        blur: Blur::Outer {
-                            sigma: Blur::convert_sigma_to_radius(16.0),
-                        },
+                        blur_style: BlurStyle::Outer,
+                        sigma: blur_sigma::to_radius(16.0),
                     }),
             });
             ctx.add(NoteHead {
@@ -210,9 +209,8 @@ impl Component for Flash {
                 paint: Paint::new(color)
                     .set_blend_mode(BlendMode::Plus)
                     .set_mask_filter(MaskFilter::Blur {
-                        blur: Blur::Outer {
-                            sigma: Blur::convert_sigma_to_radius(4.0),
-                        },
+                        blur_style: BlurStyle::Outer,
+                        sigma: blur_sigma::to_radius(4.0),
                     }),
             });
             ctx.add(NoteHead {
@@ -228,9 +226,8 @@ impl Component for Flash {
                 paint: Paint::new(color)
                     .set_blend_mode(BlendMode::Plus)
                     .set_mask_filter(MaskFilter::Blur {
-                        blur: Blur::Outer {
-                            sigma: Blur::convert_sigma_to_radius(16.0),
-                        },
+                        blur_style: BlurStyle::Outer,
+                        sigma: blur_sigma::to_radius(16.0),
                     }),
             });
             ctx.add(Pad {
@@ -238,9 +235,8 @@ impl Component for Flash {
                 paint: Paint::new(color)
                     .set_blend_mode(BlendMode::Plus)
                     .set_mask_filter(MaskFilter::Blur {
-                        blur: Blur::Outer {
-                            sigma: Blur::convert_sigma_to_radius(4.0),
-                        },
+                        blur_style: BlurStyle::Outer,
+                        sigma: blur_sigma::to_radius(4.0),
                     }),
             });
             ctx.add(Pad {
@@ -536,16 +532,14 @@ impl Component for ParryEffect {
                     Paint::new(color)
                         .set_blend_mode(BlendMode::Plus)
                         .set_mask_filter(MaskFilter::Blur {
-                            blur: Blur::Outer {
-                                sigma: Blur::convert_sigma_to_radius(4.0),
-                            },
+                            blur_style: BlurStyle::Outer,
+                            sigma: blur_sigma::to_radius(4.0),
                         }),
                     Paint::new(color)
                         .set_blend_mode(BlendMode::Plus)
                         .set_mask_filter(MaskFilter::Blur {
-                            blur: Blur::Outer {
-                                sigma: Blur::convert_sigma_to_radius(16.0),
-                            },
+                            blur_style: BlurStyle::Outer,
+                            sigma: blur_sigma::to_radius(16.0),
                         }),
                 ] {
                     ctx.add(TextDrawCommand {

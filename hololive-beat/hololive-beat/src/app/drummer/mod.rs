@@ -43,9 +43,11 @@ impl Component for Drummer {
             };
             ctx.translate((wh.width / 2, wh.height))
                 .scale(drum_scale)
-                .add(ImageDrawCommand {
+                .add(ImageRender {
                     rect: Rect::from_xy_wh(image_offset, image_wh),
-                    source: drum.src.clone(),
+                    source: ImageSource::Image {
+                        image: drum.clone(),
+                    },
                     fit: ImageFit::Contain,
                     paint: None,
                 });
@@ -57,9 +59,11 @@ impl Component for Drummer {
             };
             ctx.translate((wh.width / 2, wh.height))
                 .scale(character_scale)
-                .add(ImageDrawCommand {
+                .add(ImageRender {
                     rect: Rect::from_xy_wh(image_offset, image_wh),
-                    source: character.src.clone(),
+                    source: ImageSource::Image {
+                        image: character.clone(),
+                    },
                     fit: ImageFit::Contain,
                     paint: None,
                 });

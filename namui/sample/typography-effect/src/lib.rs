@@ -1,7 +1,9 @@
 use namui::*;
 
 pub fn main() {
-    namui::start(|| TypographyEffectExample)
+    namui::start(|ctx| {
+        ctx.add(TypographyEffectExample);
+    })
 }
 
 #[namui::component]
