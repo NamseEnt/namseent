@@ -19,7 +19,6 @@ pub use hooks_macro::*;
 pub use lazy_static::lazy_static;
 pub use namui_cfg::*;
 pub use namui_skia::*;
-pub use namui_tokio as tokio;
 pub use namui_type as types;
 pub use namui_type::*;
 pub use render::*;
@@ -28,22 +27,11 @@ pub use shader_macro::shader;
 #[cfg(not(target_family = "wasm"))]
 pub use system::media::*;
 pub use system::*;
-#[cfg(not(target_family = "wasm"))]
-pub use tokio::task::spawn;
-// pub use tokio::task::spawn_blocking;
-#[cfg(target_family = "wasm")]
-pub use tokio::task::spawn_local as spawn;
-// #[cfg(target_family = "wasm")]
-// pub use clipboard::ClipboardItem as _;
-// #[cfg(target_family = "wasm")]
-// pub use render::{text_input, TextInput, TextInputInstance};
+pub use tokio;
+pub use tokio::task::{spawn, spawn_local};
 
 pub fn start(component: impl 'static + Fn(&RenderCtx)) {
     namui_type::set_log(|x| log::log(x));
-
-    std::thread::spawn(|| {
-        println!("hi")
-    });
 
     spawn_runtime(async move {
         system::init_system()
@@ -58,18 +46,8 @@ pub fn start(component: impl 'static + Fn(&RenderCtx)) {
     system::take_main_thread();
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn spawn_runtime(fut: impl std::future::Future<Output = ()> + 'static) {
     tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(fut)
-}
-
-#[cfg(target_family = "wasm")]
-fn spawn_runtime(fut: impl std::future::Future<Output = ()> + 'static) {
-    tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap()

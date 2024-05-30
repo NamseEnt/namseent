@@ -10,10 +10,9 @@ targets = ["x86_64-pc-windows-msvc"]
 [dependencies]
 namui-type = { path = "../namui-type", features = ["namui_internal"] }
 namui-hooks = { path = "../namui-hooks" }
-namui-tokio = { path = "../tokio" }
 namui-skia = { path = "../skia" }
 namui-cfg = { path = "../namui-cfg" }
-namui-drawer-sys = { path = "../namui-drawer/sys" }
+namui-drawer = { path = "../namui-drawer" }
 lazy_static = "1.4.0"
 url = { version = "2", features = ["serde"] }
 anyhow = { version = "1.0.77", features = ["backtrace"] }
@@ -37,6 +36,14 @@ smol_str = "0.2.1"
 indexmap = "2.2.5"
 static-tree = { path = "../static-tree" }
 rand = "0.8.5"
+tokio = { path = "../third-party-forks/tokio/tokio", features = [
+    "sync",
+    "macros",
+    "io-util",
+    "rt",
+    "time",
+    "rt-multi-thread",
+] }
 
 [target.'cfg(not(target_os="wasi"))'.dependencies]
 winit = "0.29.4"

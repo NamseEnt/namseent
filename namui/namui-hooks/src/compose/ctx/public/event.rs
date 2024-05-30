@@ -110,8 +110,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     button: event.button,
                     event_type: MouseEventType::Down,
                     is_stop_event_propagation: &self.world.is_stop_event_propagation,
-                    #[cfg(target_family = "wasm")]
-                    prevent_default: &event.prevent_default,
                 };
 
                 on_event(Event::MouseDown { event });
@@ -127,8 +125,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     button: event.button,
                     event_type: MouseEventType::Move,
                     is_stop_event_propagation: &self.world.is_stop_event_propagation,
-                    #[cfg(target_family = "wasm")]
-                    prevent_default: &event.prevent_default,
                 };
 
                 on_event(Event::MouseMove { event });
@@ -144,8 +140,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     button: event.button,
                     event_type: MouseEventType::Up,
                     is_stop_event_propagation: &self.world.is_stop_event_propagation,
-                    #[cfg(target_family = "wasm")]
-                    prevent_default: &event.prevent_default,
                 };
 
                 on_event(Event::MouseUp { event });
@@ -169,8 +163,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                         code: event.code,
                         pressing_codes: &event.pressing_codes,
                         is_stop_event_propagation: &self.world.is_stop_event_propagation,
-                        #[cfg(target_family = "wasm")]
-                        prevent_default: &event.prevent_default,
                     },
                 });
             }
@@ -180,8 +172,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                         code: event.code,
                         pressing_codes: &event.pressing_codes,
                         is_stop_event_propagation: &self.world.is_stop_event_propagation,
-                        #[cfg(target_family = "wasm")]
-                        prevent_default: &event.prevent_default,
                     },
                 });
             }

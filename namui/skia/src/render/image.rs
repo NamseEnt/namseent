@@ -76,10 +76,3 @@ impl From<&skia_safe::ImageInfo> for ImageInfo {
         }
     }
 }
-
-#[cfg(target_family = "wasm")]
-#[type_derives()]
-pub struct ImageLoaded {
-    pub id: u32,
-    pub image_info: ImageInfo,
-}

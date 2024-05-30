@@ -64,7 +64,9 @@ impl Draw for RenderingTree {
                     }
                     SpecialRenderingNode::Scale(scale) => {
                         skia.surface().canvas().save();
-                        skia.surface().canvas().scale(scale.x, scale.y);
+                        skia.surface()
+                            .canvas()
+                            .scale(scale.x.into(), scale.y.into());
                         draw_internal(skia, &scale.rendering_tree, rendering_tree_draw_context);
                         skia.surface().canvas().restore();
                     }
