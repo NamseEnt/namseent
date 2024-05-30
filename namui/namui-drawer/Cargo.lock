@@ -795,7 +795,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "namui-drawer-sys"
+name = "namui-drawer"
 version = "0.1.0"
 dependencies = [
  "namui-skia",
