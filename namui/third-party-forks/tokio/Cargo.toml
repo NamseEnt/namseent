@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = [
+  "tokio",
+  "tokio-macros",
+  "tokio-test",
+  "tokio-stream",
+  "tokio-util",
+
+  # Internal
+  "benches",
+  "examples",
+  "stress-test",
+  "tests-build",
+  "tests-integration",
+]
+
+[workspace.metadata.spellcheck]
+config = "spellcheck.toml"

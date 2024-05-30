@@ -1,0 +1,5 @@
+/docker/
+/target/
+/skia-bindings/skia/
+/skia-bindings/depot_tools/
+/Dockerfile
