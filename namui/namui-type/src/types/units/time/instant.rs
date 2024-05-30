@@ -12,10 +12,10 @@ impl Instant {
     }
 
     pub fn now() -> Self {
-        static START: OnceLock<web_time::Instant> = OnceLock::new();
+        static START: OnceLock<std::time::Instant> = OnceLock::new();
         Self {
-            inner: web_time::Instant::now()
-                .duration_since(*START.get_or_init(web_time::Instant::now))
+            inner: std::time::Instant::now()
+                .duration_since(*START.get_or_init(std::time::Instant::now))
                 .into(),
         }
     }

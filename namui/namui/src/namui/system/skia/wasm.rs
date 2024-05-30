@@ -44,19 +44,20 @@ pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
 }
 
 pub(crate) async fn load_typeface(typeface_name: String, bytes: Vec<u8>) -> Result<()> {
-    tokio::try_join!(
-        async move {
-            let buffer = Uint8Array::from(bytes);
-            loadTypeface(&typeface_name, buffer)
-                .await
-                .map_err(|_| anyhow!("Failed to load typeface."))?;
-        },
-        async move {
-            spawn_blocking(move || sk_calculate().load_typeface(&typeface_name, &bytes)).await?
-        },
-    )?;
+    todo!()
+    // tokio::try_join!(
+    //     async move {
+    //         let buffer = Uint8Array::from(bytes);
+    //         loadTypeface(&typeface_name, buffer)
+    //             .await
+    //             .map_err(|_| anyhow!("Failed to load typeface."))?;
+    //     },
+    //     async move {
+    //         spawn_blocking(move || sk_calculate().load_typeface(&typeface_name, &bytes)).await?
+    //     },
+    // )?;
 
-    Ok(())
+    // Ok(())
 }
 
 pub(crate) async fn load_image_from_raw(
@@ -68,18 +69,19 @@ pub(crate) async fn load_image_from_raw(
 }
 
 pub(crate) async fn load_image_from_url(url: impl AsRef<str>) -> Result<Image> {
-    let buffer: Uint8Array = loadImage(url.as_ref()).await.dyn_into().map_err(|_| {
-        anyhow!(
-            "Failed to dyn_into from JsValue to Uint8Array: {}",
-            url.as_ref()
-        )
-    })?;
+    todo!()
+    // let buffer: Uint8Array = loadImage(url.as_ref()).await.dyn_into().map_err(|_| {
+    //     anyhow!(
+    //         "Failed to dyn_into from JsValue to Uint8Array: {}",
+    //         url.as_ref()
+    //     )
+    // })?;
 
-    let ImageLoaded { id, image_info } = postcard::from_bytes(buffer.to_vec().as_ref())?;
-    Ok(Image {
-        drop_box: Arc::new(DropBox::new(id, move || {
-            unloadImage(id);
-        })),
-        info: image_info,
-    })
+    // let ImageLoaded { id, image_info } = postcard::from_bytes(buffer.to_vec().as_ref())?;
+    // Ok(Image {
+    //     drop_box: Arc::new(DropBox::new(id, move || {
+    //         unloadImage(id);
+    //     })),
+    //     info: image_info,
+    // })
 }

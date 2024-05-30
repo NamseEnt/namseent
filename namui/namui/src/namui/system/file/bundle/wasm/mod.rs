@@ -4,8 +4,8 @@ use self::create_bundle_url::create_bundle_url;
 use crate::file::types::Dirent;
 use crate::file::types::PathLike;
 use crate::system::InitResult;
+use crate::tokio::io::{self, Error};
 use std::io::ErrorKind;
-use tokio::io::{self, Error};
 
 pub async fn init() -> InitResult {
     Ok(())

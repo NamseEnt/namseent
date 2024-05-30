@@ -31,9 +31,12 @@ impl<T> Xy<T> {
 }
 
 // TODO: Implement this on vector_types! macro.
-impl<T> From<Xy<T>> for (T, T) {
+impl<T, T2> From<Xy<T>> for (T2, T2)
+where
+    T: Into<T2>,
+{
     fn from(val: Xy<T>) -> Self {
-        (val.x, val.y)
+        (val.x.into(), val.y.into())
     }
 }
 // TODO: Implement this on vector_types! macro.

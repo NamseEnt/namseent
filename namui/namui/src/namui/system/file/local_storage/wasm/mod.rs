@@ -1,6 +1,6 @@
 use crate::file::types::Dirent;
 use crate::file::types::PathLike;
-use tokio::io::Result;
+use crate::tokio::io::Result;
 
 pub async fn delete(path_like: impl PathLike) -> Result<()> {
     todo!()

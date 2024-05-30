@@ -3,14 +3,14 @@ use std::fmt::Debug;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct SystemTime {
-    inner: web_time::SystemTime,
+    inner: std::time::SystemTime,
 }
 
 impl SystemTime {
     #[cfg(feature = "namui_internal")]
     pub fn now() -> Self {
         Self {
-            inner: web_time::SystemTime::now(),
+            inner: std::time::SystemTime::now(),
         }
     }
 }
@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn test_system_time_sub() {
-        let std_system_time_now = web_time::SystemTime::now();
+        let std_system_time_now = std::time::SystemTime::now();
         let std_system_time_1s_ago = std_system_time_now - std::time::Duration::from_secs(1);
         let std_system_time_2s_ago = std_system_time_now - std::time::Duration::from_secs(2);
         let std_system_time_3s_ago = std_system_time_now - std::time::Duration::from_secs(3);
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_system_time_add_duration() {
-        let std_system_time_now = web_time::SystemTime::now();
+        let std_system_time_now = std::time::SystemTime::now();
         let std_system_time_1s_ago = std_system_time_now + std::time::Duration::from_secs(1);
         let std_system_time_2s_ago = std_system_time_now + std::time::Duration::from_secs(2);
         let std_system_time_3s_ago = std_system_time_now + std::time::Duration::from_secs(3);

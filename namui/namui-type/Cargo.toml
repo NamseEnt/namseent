@@ -31,10 +31,7 @@ postcard = { version = "1.0.6", features = ["use-std"] }
 lru = "0.11.0"
 anyhow = { version = "1.0.77", features = ["backtrace"] }
 derivative = "2.2.0"
-web-time = "1.1.0"
-
-[target.'cfg(not(target_family="wasm"))'.dependencies]
-skia-safe = { version = "0.73.0", optional = true }
+skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", optional = true }
 
 [dev-dependencies]
 float-cmp = "0.9"
