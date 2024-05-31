@@ -1,14 +1,12 @@
 use crate::services::build_status_service::BuildStatusService;
 use crate::services::wasm_bundle_web_server::WasmBundleWebServer;
-use crate::services::wasm_web_runtime_watch_build_service::WasmWebRuntimeWatchBuildService;
-use crate::services::{drawer_watch_build_service, wasm_web_runtime_watch_build_service};
+use crate::services::wasm_web_runtime_watch_build_service::{
+    self, WasmWebRuntimeWatchBuildService,
+};
 use crate::*;
 use crate::{
     cli::Target,
-    services::{
-        drawer_watch_build_service::DrawerWatchBuildService,
-        wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs},
-    },
+    services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs},
 };
 use std::path::Path;
 use tokio::try_join;
@@ -31,14 +29,6 @@ pub async fn start(manifest_path: &Path, release: bool) -> Result<()> {
         },
     );
 
-    let drawer = DrawerWatchBuildService::spawn_watch(drawer_watch_build_service::WatchArgs {
-        target,
-        wasm_bundle_web_server: wasm_bundle_web_server.clone(),
-        build_status_service: build_status_service.clone(),
-        after_build: None,
-        release,
-    });
-
     let main_watch = WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
         project_root_path,
         bundle_web_server: services::wasm_watch_build_service::BundleWebServerArgs::WebServer {
@@ -52,6 +42,6 @@ pub async fn start(manifest_path: &Path, release: bool) -> Result<()> {
         release,
     });
 
-    try_join!(web_runtime_watch, drawer, main_watch)?;
+    try_join!(web_runtime_watch, main_watch)?;
     Ok(())
 }

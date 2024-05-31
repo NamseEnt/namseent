@@ -1,7 +1,6 @@
 pub mod build_status_service;
 pub mod bundle;
 pub mod deep_link_manifest_service;
-pub mod drawer_watch_build_service;
 pub mod node_project_watch_service;
 pub mod resource_collect_service;
 pub mod rollup_build_service;

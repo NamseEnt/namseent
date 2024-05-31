@@ -1,12 +1,37 @@
 use crate::*;
+use std::hash::Hash;
 
-#[type_derives(Copy, Hash, Eq)]
+#[type_derives(Copy, -PartialEq)]
 pub enum MaskFilter {
-    Blur {
-        blur_style: BlurStyle,
-        sigma: OrderedFloat<f32>,
-    },
+    Blur { blur_style: BlurStyle, sigma: f32 },
 }
+impl Hash for MaskFilter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            MaskFilter::Blur { blur_style, sigma } => {
+                blur_style.hash(state);
+                sigma.to_bits().hash(state);
+            }
+        }
+    }
+}
+impl PartialEq for MaskFilter {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                MaskFilter::Blur {
+                    blur_style: blur_style1,
+                    sigma: sigma1,
+                },
+                MaskFilter::Blur {
+                    blur_style: blur_style2,
+                    sigma: sigma2,
+                },
+            ) => blur_style1 == blur_style2 && sigma1.to_bits() == sigma2.to_bits(),
+        }
+    }
+}
+impl Eq for MaskFilter {}
 
 #[type_derives(Copy, Hash, Eq)]
 pub enum BlurStyle {

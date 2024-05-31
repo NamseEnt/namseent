@@ -1,5 +1,4 @@
 use super::bundle::NamuiBundleManifest;
-use super::drawer_watch_build_service;
 use crate::*;
 use crate::{cli::Target, debug_println, util::get_cli_root_path};
 use std::path::Path;
@@ -82,16 +81,6 @@ fn collect_rust_build(
             ops.push(CollectOperation::new(
                 &build_dist_path.join("bundle_bg.wasm"),
                 &PathBuf::from(""),
-            ));
-
-            let drawer_dist_path = drawer_watch_build_service::project_root_path().join("pkg");
-            ops.push(CollectOperation::new(
-                &drawer_dist_path.join("drawer/bundle.js"),
-                &PathBuf::from("drawer"),
-            ));
-            ops.push(CollectOperation::new(
-                &drawer_dist_path.join("drawer/bundle_bg.wasm"),
-                &PathBuf::from("drawer"),
             ));
         }
         Target::X86_64PcWindowsMsvc => {

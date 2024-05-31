@@ -68,7 +68,7 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
     if let Some(mask_filter) = mask_filter {
         skia_paint.set_mask_filter(match mask_filter {
             MaskFilter::Blur { blur_style, sigma } => {
-                skia_safe::MaskFilter::blur(blur_style.into(), *sigma, false)
+                skia_safe::MaskFilter::blur(blur_style.into(), sigma, false)
             }
         });
     }

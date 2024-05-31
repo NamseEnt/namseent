@@ -1,5 +1,4 @@
 use crate::services::build_status_service::BuildStatusService;
-use crate::services::drawer_watch_build_service::DrawerWatchBuildService;
 use crate::services::wasm_web_runtime_watch_build_service::WasmWebRuntimeWatchBuildService;
 use crate::*;
 use crate::{
@@ -27,10 +26,7 @@ pub async fn build(manifest_path: &Path, release: bool) -> Result<()> {
         target,
         release,
     );
-    let drawer_build =
-        DrawerWatchBuildService::just_build(target, build_status_service.clone(), release);
-
-    try_join!(web_runtime_build, wasm_build, drawer_build)?;
+    try_join!(web_runtime_build, wasm_build)?;
 
     let bundle_manifest =
         crate::services::bundle::NamuiBundleManifest::parse(project_root_path.clone())?;
