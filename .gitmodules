@@ -4,3 +4,6 @@
 [submodule "namui/third-party-forks/rust-skia/skia-bindings/depot_tools"]
 	path = namui/third-party-forks/rust-skia/skia-bindings/depot_tools
 	url = https://github.com/rust-skia/depot_tools.git
+[submodule "namui/third-party-forks/reqwest"]
+	path = namui/third-party-forks/reqwest
+	url = https://github.com/NamseEnt/reqwest.git
