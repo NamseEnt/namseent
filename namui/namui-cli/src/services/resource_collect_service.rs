@@ -1,5 +1,5 @@
+use super::bundle::NamuiBundleManifest;
 use super::drawer_watch_build_service;
-use super::{bundle::NamuiBundleManifest, deep_link_manifest_service::DeepLinkManifest};
 use crate::*;
 use crate::{cli::Target, debug_println, util::get_cli_root_path};
 use std::path::Path;
@@ -48,7 +48,7 @@ fn collect_runtime(
     target: Target,
 ) -> Result<()> {
     match target {
-        Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
+        Target::Wasm32WasiWeb => {
             let namui_browser_runtime_path = get_cli_root_path().join("www");
             ops.push(CollectOperation::new(
                 &namui_browser_runtime_path,
@@ -73,7 +73,7 @@ fn collect_rust_build(
     release: bool,
 ) -> Result<()> {
     match target {
-        Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
+        Target::Wasm32WasiWeb => {
             let build_dist_path = project_path.join("pkg");
             ops.push(CollectOperation::new(
                 &build_dist_path.join("bundle.js"),
@@ -126,16 +126,9 @@ fn collect_deep_link_manifest(
     project_path: &Path,
     target: Target,
 ) -> Result<()> {
+    let _ = ops;
     match target {
-        Target::WasmUnknownWeb => {}
-        Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
-            if let Some(namui_deep_link_manifest) = DeepLinkManifest::try_load(project_path)? {
-                ops.push(CollectOperation::new(
-                    namui_deep_link_manifest.path(),
-                    &PathBuf::from(""),
-                ));
-            }
-        }
+        Target::Wasm32WasiWeb => {}
         Target::X86_64PcWindowsMsvc => {
             // TODO, but not priority
         }

@@ -143,7 +143,7 @@ impl WasmBundleWebServer {
             debug_println!("send_error_messages: locking web_server.cached_error_messages...");
             let mut cached_error_messages = self.cached_error_messages.write().await;
             debug_println!("send_error_messages: web_server.cached_error_messages locked");
-            *cached_error_messages = error_messages.clone();
+            cached_error_messages.clone_from(&error_messages);
         }
 
         let message = Message::text(

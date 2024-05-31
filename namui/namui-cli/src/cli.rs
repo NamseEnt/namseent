@@ -24,8 +24,6 @@ pub enum Commands {
         target: Option<Target>,
         #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
-        #[arg(short, long, value_enum, default_value = "auto")]
-        arch: ElectronPackageArch,
         #[arg(long)]
         release: bool,
     },
@@ -60,9 +58,7 @@ pub enum Commands {
 #[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, ValueEnum)]
 pub enum Target {
-    WasmUnknownWeb,
-    WasmWindowsElectron,
-    WasmLinuxElectron,
+    Wasm32WasiWeb,
     #[value(name = "x86_64-pc-windows-msvc")]
     X86_64PcWindowsMsvc,
 }
@@ -72,9 +68,7 @@ impl Display for Target {
             f,
             "{}",
             match self {
-                Target::WasmUnknownWeb => "wasm-unknown-web",
-                Target::WasmWindowsElectron => "wasm-windows-electron",
-                Target::WasmLinuxElectron => "wasm-linux-electron",
+                Target::Wasm32WasiWeb => "wasm32-wasi-web",
                 Target::X86_64PcWindowsMsvc => "x86_64-pc-windows-msvc",
             }
         )
@@ -83,9 +77,7 @@ impl Display for Target {
 impl From<namui_user_config::Target> for Target {
     fn from(target: namui_user_config::Target) -> Self {
         match target {
-            namui_user_config::Target::WasmUnknownWeb => Target::WasmUnknownWeb,
-            namui_user_config::Target::WasmWindowsElectron => Target::WasmWindowsElectron,
-            namui_user_config::Target::WasmLinuxElectron => Target::WasmLinuxElectron,
+            namui_user_config::Target::Wasm32WasiWeb => Target::Wasm32WasiWeb,
             namui_user_config::Target::X86_64PcWindowsMsvc => Target::X86_64PcWindowsMsvc,
         }
     }
@@ -93,9 +85,7 @@ impl From<namui_user_config::Target> for Target {
 impl From<Target> for namui_user_config::Target {
     fn from(val: Target) -> Self {
         match val {
-            Target::WasmUnknownWeb => namui_user_config::Target::WasmUnknownWeb,
-            Target::WasmWindowsElectron => namui_user_config::Target::WasmWindowsElectron,
-            Target::WasmLinuxElectron => namui_user_config::Target::WasmLinuxElectron,
+            Target::Wasm32WasiWeb => namui_user_config::Target::Wasm32WasiWeb,
             Target::X86_64PcWindowsMsvc => namui_user_config::Target::X86_64PcWindowsMsvc,
         }
     }
@@ -106,11 +96,4 @@ pub enum PrintableObject {
     #[value(rename_all = "camelCase")]
     Cfg,
     Target,
-}
-
-#[derive(Clone, ValueEnum)]
-pub enum ElectronPackageArch {
-    #[value(rename_all = "camelCase")]
-    Auto,
-    X64,
 }

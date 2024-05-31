@@ -1,5 +1,6 @@
 use crate::cli::Target;
 use crate::*;
+use services::wasi_cargo_envs::wasi_cargo_envs;
 use std::path::PathBuf;
 use tokio::process::Command;
 
@@ -7,8 +8,27 @@ pub async fn clippy(target: Target, manifest_path: PathBuf) -> Result<()> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
     match target {
-        Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
-            bail!("{} is unsupported target. TODO", target)
+        Target::Wasm32WasiWeb => {
+            let mut args = vec![];
+
+            args.extend([
+                "clippy",
+                "--target",
+                "wasm32-wasip1-threads",
+                "--manifest-path",
+                manifest_path.to_str().unwrap(),
+                "--all-targets",
+            ]);
+
+            Command::new("cargo")
+                .args(args)
+                // .envs(get_envs(build_option)) << TODO
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .envs(wasi_cargo_envs())
+                .spawn()?
+                .wait()
+                .await?;
         }
         Target::X86_64PcWindowsMsvc => {
             let mut args = vec![];

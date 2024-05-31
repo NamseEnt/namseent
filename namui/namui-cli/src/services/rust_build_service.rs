@@ -1,6 +1,7 @@
 use crate::*;
 use crate::{cli::Target, types::ErrorMessage};
 use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
+use services::wasi_cargo_envs::wasi_cargo_envs;
 use std::path::PathBuf;
 use std::process::Output;
 use tokio::process::Command;
@@ -27,23 +28,26 @@ pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoB
 
 async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
     match build_option.target {
-        Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
-            Ok(Command::new("wasm-pack")
-                .args([
-                    "build",
-                    "--target",
-                    "no-modules",
-                    "--out-name",
-                    "bundle",
-                    "--dev",
-                    "--out-dir",
-                    build_option.dist_path.to_str().unwrap(),
-                    build_option.project_root_path.to_str().unwrap(),
-                    "--",
-                    "--message-format",
-                    "json",
-                ])
+        Target::Wasm32WasiWeb => {
+            let mut args = vec![];
+
+            args.extend([
+                "build",
+                "--target",
+                "wasm32-wasip1-threads",
+                "--message-format",
+                "json",
+            ]);
+
+            if build_option.release {
+                args.push("--release");
+            }
+
+            Ok(Command::new("cargo")
+                .args(args)
+                .current_dir(&build_option.project_root_path)
                 .envs(get_envs(build_option))
+                .envs(wasi_cargo_envs())
                 .output()
                 .await?)
         }
@@ -81,25 +85,15 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
 
 fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
     let mut envs = match build_option.target {
-        Target::WasmUnknownWeb => vec![
-            ("NAMUI_CFG_TARGET_OS", "unknown"),
-            ("NAMUI_CFG_TARGET_ENV", "web"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-        ],
-        Target::WasmWindowsElectron => vec![
-            ("NAMUI_CFG_TARGET_OS", "windows"),
-            ("NAMUI_CFG_TARGET_ENV", "electron"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-        ],
-        Target::WasmLinuxElectron => vec![
-            ("NAMUI_CFG_TARGET_OS", "linux"),
-            ("NAMUI_CFG_TARGET_ENV", "electron"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+        Target::Wasm32WasiWeb => vec![
+            ("NAMUI_CFG_TARGET_ARCH", "wasm32"),
+            ("NAMUI_CFG_TARGET_OS", "wasip1"),
+            ("NAMUI_CFG_TARGET_ENV", ""),
         ],
         Target::X86_64PcWindowsMsvc => vec![
+            ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
             ("NAMUI_CFG_TARGET_OS", "windows"),
             ("NAMUI_CFG_TARGET_ENV", "msvc"),
-            ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
         ],
     };
 
