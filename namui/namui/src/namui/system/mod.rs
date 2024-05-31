@@ -14,19 +14,14 @@ pub mod log;
 pub mod media;
 pub mod mouse;
 pub mod network;
-mod platform_utils;
 pub mod screen;
 pub(crate) mod skia;
 // #[cfg(target_family = "wasm")]
 // pub(crate) mod text_input;
 pub mod time;
 pub mod typeface;
-#[cfg(target_family = "wasm")]
-pub mod web;
 
 use crate::*;
-#[cfg(target_family = "wasm")]
-use platform_utils::*;
 use std::sync::atomic::AtomicBool;
 
 type InitResult = Result<()>;

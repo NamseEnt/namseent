@@ -14,10 +14,7 @@ use std::{
 
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,
-    #[cfg(target_family = "wasm")]
     mouse_cursor: Arc<RwLock<String>>,
-    #[cfg(not(target_family = "wasm"))]
-    pressing_buttons: Arc<RwLock<HashSet<MouseButton>>>,
 }
 
 lazy_static::lazy_static! {
@@ -26,9 +23,6 @@ lazy_static::lazy_static! {
 
 pub(crate) async fn init() -> InitResult {
     lazy_static::initialize(&MOUSE_SYSTEM);
-
-    #[cfg(target_family = "wasm")]
-    wasm::set_up_event_handler();
 
     Ok(())
 }
@@ -48,7 +42,6 @@ impl MouseSystem {
     }
 }
 
-#[cfg(target_family = "wasm")]
 pub fn set_mouse_cursor(cursor: &MouseCursor) {
     todo!()
 }
