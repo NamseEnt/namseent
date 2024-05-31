@@ -5,16 +5,18 @@ mod wasm;
 
 use crate::system::InitResult;
 use crate::*;
-#[cfg(not(target_family = "wasm"))]
+#[cfg(not(target_os = "wasi"))]
 pub(crate) use non_wasm::*;
 use std::{
     collections::HashSet,
     sync::{Arc, RwLock},
 };
+#[cfg(target_os = "wasi")]
+pub use wasm::*;
 
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,
-    mouse_cursor: Arc<RwLock<String>>,
+    _mouse_cursor: Arc<RwLock<String>>,
 }
 
 lazy_static::lazy_static! {
@@ -34,15 +36,14 @@ impl MouseSystem {
                 x: px(0.0),
                 y: px(0.0),
             })),
-            #[cfg(target_family = "wasm")]
-            mouse_cursor: Arc::new(RwLock::new("default".to_string())),
+            _mouse_cursor: Arc::new(RwLock::new("default".to_string())),
             #[cfg(not(target_family = "wasm"))]
             pressing_buttons: Arc::new(RwLock::new(HashSet::new())),
         }
     }
 }
 
-pub fn set_mouse_cursor(cursor: &MouseCursor) {
+pub fn set_mouse_cursor(_cursor: &MouseCursor) {
     todo!()
 }
 

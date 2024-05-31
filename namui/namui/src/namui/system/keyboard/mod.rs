@@ -5,6 +5,8 @@ mod wasm;
 
 #[cfg(not(target_family = "wasm"))]
 pub(crate) use non_wasm::*;
+#[cfg(target_family = "wasm")]
+pub use wasm::*;
 
 use super::InitResult;
 use crate::*;
@@ -15,6 +17,14 @@ use std::{
 
 struct KeyboardSystem {
     pressing_code_set: Arc<RwLock<HashSet<Code>>>,
+}
+
+impl KeyboardSystem {
+    pub(crate) fn new() -> Self {
+        let pressing_code_set = Arc::new(RwLock::new(HashSet::new()));
+
+        KeyboardSystem { pressing_code_set }
+    }
 }
 
 lazy_static::lazy_static! {

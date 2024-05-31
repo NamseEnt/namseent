@@ -15,7 +15,7 @@ pub mod media;
 pub mod mouse;
 pub mod network;
 pub mod screen;
-pub(crate) mod skia;
+pub mod skia;
 // #[cfg(target_family = "wasm")]
 // pub(crate) mod text_input;
 pub mod time;

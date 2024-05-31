@@ -1,20 +1,6 @@
-use super::*;
+use crate::{native::calculate::NativeCalculate, *};
 use anyhow::Result;
 use std::sync::Arc;
-use windows::Win32::{
-    Foundation::HWND,
-    Graphics::{
-        Direct3D::D3D_FEATURE_LEVEL_11_0,
-        Direct3D12::{
-            D3D12CreateDevice, ID3D12CommandQueue, ID3D12Device, D3D12_COMMAND_LIST_TYPE_DIRECT,
-            D3D12_COMMAND_QUEUE_DESC, D3D12_COMMAND_QUEUE_FLAG_NONE,
-        },
-        Dxgi::{
-            CreateDXGIFactory2, IDXGIAdapter1, IDXGIFactory4, DXGI_ADAPTER_FLAG,
-            DXGI_ADAPTER_FLAG_NONE, DXGI_ADAPTER_FLAG_SOFTWARE,
-        },
-    },
-};
 
 pub struct NativeSkia {
     surface: NativeSurface,
@@ -23,53 +9,49 @@ pub struct NativeSkia {
 unsafe impl Send for NativeSkia {}
 unsafe impl Sync for NativeSkia {}
 
+extern "C" {
+    // GL_API const GLubyte *GL_APIENTRY glGetString (GLenum name);
+    pub fn glGetString(name: u32) -> *const u8;
+    // WEBGL_APICALL const GLubyte *GL_APIENTRY emscripten_glGetStringi (GLenum name, GLuint index);
+    pub fn glGetStringi(name: u32, index: u32) -> *const u8;
+    //GL_API void GL_APIENTRY glGetIntegerv (GLenum pname, GLint *data);
+    pub fn glGetIntegerv(pname: u32, data: *mut i32);
+}
+
 impl NativeSkia {
-    pub(crate) fn new(window_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
-        // unsafe {
-        //     let mut debug: Option<ID3D12Debug> = None;
-        //     if let Some(debug) = D3D12GetDebugInterface(&mut debug).ok().and(debug) {
-        //         debug.EnableDebugLayer();
-        //     }
-        // }
+    pub(crate) fn new(window_wh: Wh<IntPx>) -> Result<NativeSkia> {
+        let interface = skia_safe::gpu::gl::Interface::new_load_with(|addr| match addr {
+            "glGetString" => glGetString as _,
+            "glGetStringi" => glGetStringi as _,
+            "glGetIntegerv" => glGetIntegerv as _,
+            _ => todo!("unknown function on gl interface: {}", addr),
+        })
+        .expect("failed to load gl interface");
 
-        let hwnd = HWND(window_id as isize);
+        println!("make interface");
 
-        // Use `DXGI_CREATE_FACTORY_DEBUG` flag if needed.
-        // https://github.com/NamseEnt/namseent/issues/738
-        let factory = unsafe { CreateDXGIFactory2::<IDXGIFactory4>(0) }?;
-        let adapter = get_hardware_adapter(&factory)?;
+        let context = skia_safe::gpu::direct_contexts::make_gl(interface, None)
+            .expect("failed to create gl direct context");
+        println!("make context");
 
-        let mut device: Option<ID3D12Device> = None;
-        unsafe { D3D12CreateDevice(&adapter, D3D_FEATURE_LEVEL_11_0, &mut device) }?;
-        let device = device.unwrap();
+        let framebuffer_info = {
+            let mut fboid: i32 = 0;
+            unsafe {
+                glGetIntegerv(
+                    0x8ca6, // gl::FRAMEBUFFER_BINDING
+                    &mut fboid,
+                )
+            };
 
-        let command_queue = unsafe {
-            device.CreateCommandQueue::<ID3D12CommandQueue>(&D3D12_COMMAND_QUEUE_DESC {
-                Flags: D3D12_COMMAND_QUEUE_FLAG_NONE,
-                Type: D3D12_COMMAND_LIST_TYPE_DIRECT,
-                ..Default::default()
-            })
-        }?;
-
-        let backend_context = skia_safe::gpu::d3d::BackendContext {
-            adapter,
-            device,
-            queue: command_queue,
-            memory_allocator: None,
-            protected_context: skia_safe::gpu::Protected::No,
+            skia_safe::gpu::gl::FramebufferInfo {
+                fboid: fboid.try_into().unwrap(),
+                format: skia_safe::gpu::gl::Format::RGBA8.into(),
+                protected: skia_safe::gpu::Protected::No,
+            }
         };
 
-        let context =
-            unsafe { skia_safe::gpu::DirectContext::new_d3d(&backend_context, None).unwrap() };
-
         Ok(Self {
-            surface: NativeSurface::new(
-                context.clone(),
-                window_wh,
-                &backend_context.device,
-                &backend_context.queue,
-                hwnd,
-            )?,
+            surface: NativeSurface::new(context, window_wh, framebuffer_info)?,
             calculate: NativeCalculate::new(),
         })
     }
@@ -77,7 +59,7 @@ impl NativeSkia {
 
 impl SkSkia for NativeSkia {
     fn move_to_next_frame(&mut self) {
-        self.surface.move_to_next_frame();
+        // Nothing?
     }
     fn surface(&mut self) -> &mut dyn SkSurface {
         &mut self.surface
@@ -138,37 +120,4 @@ impl SkCalculate for NativeSkia {
     ) -> tokio::task::JoinHandle<Image> {
         self.calculate.load_image_from_raw(image_info, bytes)
     }
-}
-
-fn get_hardware_adapter(factory: &IDXGIFactory4) -> Result<IDXGIAdapter1> {
-    for i in 0.. {
-        let adapter = unsafe { factory.EnumAdapters1(i)? };
-
-        let mut desc = Default::default();
-        unsafe { adapter.GetDesc1(&mut desc)? };
-
-        if (DXGI_ADAPTER_FLAG(desc.Flags as i32) & DXGI_ADAPTER_FLAG_SOFTWARE)
-            != DXGI_ADAPTER_FLAG_NONE
-        {
-            // Don't select the Basic Render Driver adapter. If you want a
-            // software adapter, pass in "/warp" on the command line.
-            continue;
-        }
-
-        // Check to see whether the adapter supports Direct3D 12, but don't
-        // create the actual device yet.
-        if unsafe {
-            D3D12CreateDevice(
-                &adapter,
-                D3D_FEATURE_LEVEL_11_0,
-                std::ptr::null_mut::<Option<ID3D12Device>>(),
-            )
-        }
-        .is_ok()
-        {
-            return Ok(adapter);
-        }
-    }
-
-    unreachable!()
 }

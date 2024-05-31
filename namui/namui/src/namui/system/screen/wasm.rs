@@ -1,43 +1,40 @@
-use crate::system::{platform_utils::web::window, InitResult};
+use crate::system::InitResult;
 use crate::*;
-use wasm_bindgen::{prelude::Closure, JsCast};
+use std::sync::atomic::AtomicU32;
 
 pub(crate) async fn init() -> InitResult {
-    let window = window();
-
-    window
-        .add_event_listener_with_callback(
-            "resize",
-            Closure::wrap(Box::new(move || {
-                crate::hooks::on_raw_event(RawEvent::ScreenResize { wh: size() });
-            }) as Box<dyn FnMut()>)
-            .into_js_value()
-            .unchecked_ref(),
-        )
-        .unwrap();
-
-    animation_frame_tick();
-
     Ok(())
 }
 
-fn animation_frame_tick() {
-    crate::hooks::on_raw_event(RawEvent::ScreenRedraw {});
+// width 16bits, height 16bits
+static SIZE: AtomicU32 = AtomicU32::new(0);
 
-    window()
-        .request_animation_frame(
-            Closure::wrap(Box::new(animation_frame_tick) as Box<dyn FnMut()>)
-                .into_js_value()
-                .unchecked_ref(),
-        )
-        .unwrap();
+pub extern "C" fn on_resize(width: u16, height: u16) {
+    SIZE.store(
+        (width as u32) << 16 | height as u32,
+        std::sync::atomic::Ordering::Relaxed,
+    );
+
+    let wh = crate::Wh {
+        width: (width as i32).int_px(),
+        height: (height as i32).int_px(),
+    };
+
+    skia::on_window_resize(wh);
+
+    crate::hooks::on_raw_event(RawEvent::ScreenResize { wh });
+}
+
+pub extern "C" fn on_animation_frame() {
+    skia::redraw();
+    crate::hooks::on_raw_event(RawEvent::ScreenRedraw {});
 }
 
 pub fn size() -> crate::Wh<IntPx> {
-    let window = window();
+    let size = SIZE.load(std::sync::atomic::Ordering::Relaxed);
     crate::Wh {
-        width: (window.inner_width().unwrap().as_f64().unwrap() as i32).int_px(),
-        height: (window.inner_height().unwrap().as_f64().unwrap() as i32).int_px(),
+        width: ((size >> 16) as i32).int_px(),
+        height: ((size & 0xffff) as i32).int_px(),
     }
 }
 
