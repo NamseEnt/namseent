@@ -1,10 +1,4 @@
 pub mod cache;
-// #[cfg(target_family = "wasm")]
-// pub mod clipboard;
-// #[cfg(target_family = "wasm")]
-// pub mod deep_link;
-// #[cfg(target_family = "wasm")]
-// pub mod drag_and_drop;
 pub mod file;
 pub mod font;
 pub mod image;
@@ -16,10 +10,17 @@ pub mod mouse;
 pub mod network;
 pub mod screen;
 pub mod skia;
-// #[cfg(target_family = "wasm")]
-// pub(crate) mod text_input;
 pub mod time;
 pub mod typeface;
+pub mod platform;
+// #[cfg(target_family = "wasm")]
+// pub mod clipboard;
+// #[cfg(target_family = "wasm")]
+// pub mod deep_link;
+// #[cfg(target_family = "wasm")]
+// pub mod drag_and_drop;
+// #[cfg(target_family = "wasm")]
+// pub(crate) mod text_input;
 
 use crate::*;
 use std::sync::atomic::AtomicBool;
