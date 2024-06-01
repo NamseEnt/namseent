@@ -1,47 +1,134 @@
+use crate::cli::Target;
 use crate::services::build_status_service::BuildStatusService;
-use crate::services::wasm_bundle_web_server::WasmBundleWebServer;
-use crate::services::wasm_web_runtime_watch_build_service::{
-    self, WasmWebRuntimeWatchBuildService,
-};
 use crate::*;
-use crate::{
-    cli::Target,
-    services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs},
-};
+use services::runtime_project::{wasm::generate_runtime_project, GenerateRuntimeProjectArgs};
+use services::rust_build_service::{self, BuildOption};
+use services::rust_project_watch_service::RustProjectWatchService;
 use std::path::Path;
-use tokio::try_join;
+use tokio::process::Child;
+use util::get_cli_root_path;
 
 pub async fn start(manifest_path: &Path, release: bool) -> Result<()> {
-    const PORT: u16 = 8080;
     let target = Target::Wasm32WasiWeb;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let build_status_service = BuildStatusService::new();
+    let runtime_target_dir = project_root_path.join("target/namui");
 
-    let wasm_bundle_web_server_url = format!("http://localhost:{}", PORT);
-    println!("server is running on {}", wasm_bundle_web_server_url);
+    generate_runtime_project(GenerateRuntimeProjectArgs {
+        target_dir: runtime_target_dir.clone(),
+        project_path: project_root_path.clone(),
+    })?;
 
-    let wasm_bundle_web_server = WasmBundleWebServer::start(PORT);
-    let web_runtime_watch = WasmWebRuntimeWatchBuildService::watch_and_build(
-        wasm_web_runtime_watch_build_service::WatchAndBuildArgs {
-            wasm_bundle_web_server: wasm_bundle_web_server.clone(),
-            after_first_build: None,
-            build_status_service: build_status_service.clone(),
-        },
-    );
-
-    let main_watch = WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
-        project_root_path,
-        bundle_web_server: services::wasm_watch_build_service::BundleWebServerArgs::WebServer {
-            web_server: wasm_bundle_web_server.clone(),
-        },
-        build_status_service: build_status_service.clone(),
+    build_status_service
+        .build_started(services::build_status_service::BuildStatusCategory::Namui)
+        .await;
+    let result = rust_build_service::build(BuildOption {
         target,
-        after_first_build: Some(move || {
-            let _ = webbrowser::open(&wasm_bundle_web_server_url);
-        }),
+        project_root_path: runtime_target_dir.clone(),
         release,
-    });
+        watch: true,
+    })
+    .await??;
 
-    try_join!(web_runtime_watch, main_watch)?;
+    build_status_service
+        .build_finished(
+            services::build_status_service::BuildStatusCategory::Namui,
+            result.error_messages,
+            vec![],
+        )
+        .await;
+
+    build_status_service
+        .build_started(services::build_status_service::BuildStatusCategory::WebRuntime)
+        .await;
+
+    let vite_config = ViteConfig {
+        project_root_path: &project_root_path,
+        release,
+    };
+
+    update_vite_config(&vite_config).await?;
+    let _web_code = start_web_code().await?;
+
+    build_status_service
+        .build_finished(
+            services::build_status_service::BuildStatusCategory::WebRuntime,
+            vec![],
+            vec![],
+        )
+        .await;
+
+    let mut rust_project_watch = RustProjectWatchService::new(manifest_path)?;
+
+    while let Some(()) = rust_project_watch.next().await? {
+        build_status_service
+            .build_started(services::build_status_service::BuildStatusCategory::Namui)
+            .await;
+        let result = rust_build_service::build(BuildOption {
+            target,
+            project_root_path: runtime_target_dir.clone(),
+            release,
+            watch: true,
+        })
+        .await??;
+        build_status_service
+            .build_finished(
+                services::build_status_service::BuildStatusCategory::Namui,
+                result.error_messages,
+                vec![],
+            )
+            .await;
+        update_vite_config(&vite_config).await?;
+    }
+
+    Ok(())
+}
+
+async fn start_web_code() -> Result<Child> {
+    let process = tokio::process::Command::new("npm")
+        .current_dir(get_cli_root_path().join("webCode"))
+        .args(["run", "dev"])
+        .spawn()?;
+
+    Ok(process)
+}
+
+struct ViteConfig<'a> {
+    project_root_path: &'a Path,
+    release: bool,
+}
+async fn update_vite_config(config: &ViteConfig<'_>) -> Result<()> {
+    let namui_runtime_wasm_path = config.project_root_path.join(format!(
+        "target/namui/target/wasm32-wasip1-threads/{}/namui-runtime-wasm.wasm",
+        if config.release { "release" } else { "debug" }
+    ));
+
+    tokio::fs::write(
+        get_cli_root_path().join("webCode/vite.config.js"),
+        format!(
+            r#"
+import {{ defineConfig }} from "vite";
+
+export default defineConfig({{
+    clearScreen: false,
+    server: {{
+        headers: {{
+            "Cross-Origin-Resource-Policy": "same-origin",
+            "Cross-Origin-Embedder-Policy": "require-corp",
+            "Cross-Origin-Opener-Policy": "same-origin",
+        }},
+    }},
+    resolve: {{
+        alias: {{
+            "namui-runtime-wasm.wasm?url": "{namui_runtime_wasm}?url",
+        }}
+    }},
+}});
+"#,
+            namui_runtime_wasm = namui_runtime_wasm_path.to_string_lossy()
+        ),
+    )
+    .await?;
+
     Ok(())
 }

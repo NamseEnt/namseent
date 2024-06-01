@@ -1,5 +1,6 @@
 use super::{get_project_name, GenerateRuntimeProjectArgs};
 use crate::{util::recreate_dir_all, *};
+use util::get_cli_root_path;
 
 pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
     let project_name = get_project_name(args.project_path.clone());
@@ -17,16 +18,8 @@ name = "namui-runtime-wasm"
 version = "0.0.1"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 {project_name} = {{ path = "{project_path}" }}
-wasm-bindgen = "0.2"
-namui-panic-hook = "0.1"
-
-[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
-dwarf-debug-info = true
 
 [profile.release]
 lto = true
@@ -50,14 +43,10 @@ opt-level = 2
         recreate_dir_all(args.target_dir.join("src"), None)?;
 
         std::fs::write(
-            args.target_dir.join("src/lib.rs"),
+            args.target_dir.join("src/main.rs"),
             format!(
-                r#"use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-pub fn start() {{
-    namui_panic_hook::set_once();
-
+                r#"
+fn main() {{
     {project_name_underscored}::main();
 }}
 "#,
@@ -70,12 +59,27 @@ pub fn start() {{
     {
         recreate_dir_all(args.target_dir.join(".cargo"), None)?;
 
+        let wasi_sdk_path = get_cli_root_path().join("wasi-sdk");
+
         std::fs::write(
             args.target_dir.join(".cargo/config.toml"),
-            r#"[build]
-# NOTE: This may break build when user's platform doesn't support simd128.
-rustflags = ["-C", "target-feature=+simd128"]
+            format!(
+                r#"
+[build]
+rustflags = [
+    "--cfg",
+    "tokio_unstable",
+    "-Ctarget-feature=-crt-static",
+    "-L{wasi_sdk_path}/share/wasi-sysroot/lib/wasm32-wasip1-threads",
+    "-L{wasi_sdk_path}/lib/clang/18/lib/wasip1",
+    # wasm-ld --initial-memory 20MB
+    "-Clink-arg=--initial-memory=20971520",
+    # wasm-ld --max-memory 1G
+    "-Clink-arg=--max-memory=1073741824",
+]
 "#,
+                wasi_sdk_path = wasi_sdk_path.to_string_lossy(),
+            ),
         )?;
     }
 

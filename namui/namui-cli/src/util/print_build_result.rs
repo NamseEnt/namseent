@@ -28,6 +28,6 @@ pub fn print_build_result(
 }
 
 fn clear_console() {
-    #[cfg(not(feature = "cli_debug"))]
-    print!("{}[2J", 27 as char);
+    // #[cfg(not(feature = "cli_debug"))]
+    // print!("{}[2J", 27 as char);
 }

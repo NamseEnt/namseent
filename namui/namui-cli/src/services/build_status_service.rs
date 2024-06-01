@@ -103,6 +103,5 @@ impl BuildStatusService {
 #[derive(PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum BuildStatusCategory {
     Namui,
-    Drawer,
     WebRuntime,
 }

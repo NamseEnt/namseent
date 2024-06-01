@@ -17,7 +17,6 @@ cargo_metadata = "0.11.0"
 notify = "6"
 tokio = { version = "1", features = ["full"] }
 warp = "0.3"
-webbrowser = "0.5.5"
 regex = "1.5.4"
 wsl = "0.1.0"
 fs_extra = "1.3"
