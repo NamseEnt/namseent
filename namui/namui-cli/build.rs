@@ -3,6 +3,7 @@ use clap::CommandFactory;
 use clap_complete::{generate_to, shells::Bash};
 use std::env;
 use std::fs::create_dir_all;
+use std::process::Command;
 
 include!("src/cli.rs");
 
@@ -10,6 +11,7 @@ fn main() -> Result<()> {
     generate_completions()?;
     generate_symlink()?;
     download_wasi_sdk()?;
+    download_emsdk()?;
 
     Ok(())
 }
@@ -90,6 +92,51 @@ fn download_wasi_sdk() -> Result<()> {
     let mut d = flate2::read::GzDecoder::new(response);
     let mut archive = tar::Archive::new(&mut d);
     archive.unpack(&dist)?;
+
+    Ok(())
+}
+
+fn download_emsdk() -> Result<()> {
+    let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    let dist = root.join("emscripten");
+    if dist.exists() {
+        return Ok(());
+    }
+
+    println!("DOWNLOADING EMSCRIPTEN");
+
+    assert!(Command::new("git")
+        .current_dir(&root)
+        .args([
+            "clone",
+            "--filter=blob:none",
+            "--no-checkout",
+            "https://github.com/emscripten-core/emscripten",
+        ])
+        .output()?
+        .status
+        .success());
+
+    assert!(Command::new("git")
+        .current_dir(&dist)
+        .args(["sparse-checkout", "set", "--cone"])
+        .output()?
+        .status
+        .success());
+
+    assert!(Command::new("git")
+        .current_dir(&dist)
+        .args(["checkout", "3.1.61"])
+        .output()?
+        .status
+        .success());
+
+    assert!(Command::new("git")
+        .current_dir(&dist)
+        .args(["sparse-checkout", "set", "system/include"])
+        .output()?
+        .status
+        .success());
 
     Ok(())
 }
