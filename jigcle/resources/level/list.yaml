@@ -1,0 +1,259 @@
+- name: Corelli-Christmas_Concerto_Allegro
+  puzzle_size:
+    width: 7
+    height: 9
+  aspect_ratio: 0.7652778
+  image_filename: Peter_Paul_Rubens-Adoration_of_the_Magi.jpg
+  audio_filename: Corelli-Christmas_Concerto_Allegro.opus
+- name: Verdi-Messa_da_Requiem_Dies_iraeTuba_mirum
+  puzzle_size:
+    width: 10
+    height: 14
+  aspect_ratio: 0.7023148
+  image_filename: Hans_Memling-Memling_Judgment_Centre.jpg
+  audio_filename: Verdi-Messa_da_Requiem_Dies_iraeTuba_mirum.opus
+- name: Beethoven-Symphony_No_5_in_C_minor_Op_67_Fate_I_Allegro_con_brio
+  puzzle_size:
+    width: 15
+    height: 16
+  aspect_ratio: 0.9203704
+  image_filename: Walter_Crane-The_Roll_of_Fate.jpg
+  audio_filename: Beethoven-Symphony_No_5_in_C_minor_Op_67_Fate_I_Allegro_con_brio.opus
+- name: Vivaldi-Spring_Allegro
+  puzzle_size:
+    width: 13
+    height: 24
+  aspect_ratio: 0.5337963
+  image_filename: Hans_Zatzka-An_Allegory_of_Spring_with_Cupid.jpg
+  audio_filename: Vivaldi-Spring_Allegro.opus
+- name: Debussy-Clair_de_lune
+  puzzle_size:
+    width: 22
+    height: 17
+  aspect_ratio: 1.2629629
+  image_filename: Vincent_van_Gogh-Starry_Night.jpg
+  audio_filename: Debussy-Clair_de_lune.opus
+- name: Mozart-Symphony_No_40_in_G_minor_K_550_I_Allegro_Molto
+  puzzle_size:
+    width: 24
+    height: 19
+  aspect_ratio: 1.2449074
+  image_filename: Antoine_Watteau-Les_Plaisirs_du_Bal.jpg
+  audio_filename: Mozart-Symphony_No_40_in_G_minor_K_550_I_Allegro_Molto.opus
+- name: Beethoven-Bagatelle_in_A_minor_Wo_Op_59_Für_Elise
+  puzzle_size:
+    width: 17
+    height: 33
+  aspect_ratio: 0.5162037
+  image_filename: François_Boucher-Cupid_a_Captive_(c.1754).jpg
+  audio_filename: Beethoven-Bagatelle_in_A_minor_Wo_Op_59_Für_Elise.opus
+- name: Sibelius-Finlandia_Op_26
+  puzzle_size:
+    width: 25
+    height: 25
+  aspect_ratio: 1.0171297
+  image_filename: Akseli_Gallen-Kallela-The_Defense_of_the_Sampo.jpg
+  audio_filename: Sibelius-Finlandia_Op_26.opus
+- name: Pachelbel-Canon_in_D_Major
+  puzzle_size:
+    width: 30
+    height: 24
+  aspect_ratio: 1.237963
+  image_filename: Johann_Ludwig_Ernst_Morgenstern-Interior_of_a_Baroque_Church_(1792).jpg
+  audio_filename: Pachelbel-Canon_in_D_Major.opus
+- name: Dvořák-Symphony_No_9_in_E_minor_Op_95_From_the_New_World_II_Largo
+  puzzle_size:
+    width: 33
+    height: 24
+  aspect_ratio: 1.3944445
+  image_filename: Caspar_David_Friedrich-Klosterruine_Eldena_bei_Greifswald_(1824).jpg
+  audio_filename: Dvořák-Symphony_No_9_in_E_minor_Op_95_From_the_New_World_II_Largo.opus
+- name: Rossini-Overture
+  puzzle_size:
+    width: 26
+    height: 33
+  aspect_ratio: 0.77962965
+  image_filename: Caspar_David_Friedrich-Wanderer_above_the_Sea_of_Fog.jpg
+  audio_filename: Rossini-Overture.opus
+- name: Strauss_II-On_the_Beautiful_Blue_Danube_Op_314
+  puzzle_size:
+    width: 36
+    height: 27
+  aspect_ratio: 1.3333334
+  image_filename: Claude_Monet-Pont_Argenteuil.jpg
+  audio_filename: Strauss_II-On_the_Beautiful_Blue_Danube_Op_314.opus
+- name: Orff-Carmina_Burana_O_fortuna
+  puzzle_size:
+    width: 23
+    height: 47
+  aspect_ratio: 0.48981482
+  image_filename: Sir_Edward_Coley_Burne-Jones-The_Wheel_of_Fortune_(1883).jpg
+  audio_filename: Orff-Carmina_Burana_O_fortuna.opus
+- name: Mozart-Eine_kleine_Nachtmusik_I_Allegro
+  puzzle_size:
+    width: 25
+    height: 46
+  aspect_ratio: 0.5412037
+  image_filename: James_Tissot-The_Ball.jpg
+  audio_filename: Mozart-Eine_kleine_Nachtmusik_I_Allegro.opus
+- name: Mozart-Piano_Concerto_No_21_in_C_major_K_467_II_Andante
+  puzzle_size:
+    width: 30
+    height: 40
+  aspect_ratio: 0.7569444
+  image_filename: Auguste_Renoir-Young_Girls_at_the_Piano.jpg
+  audio_filename: Mozart-Piano_Concerto_No_21_in_C_major_K_467_II_Andante.opus
+- name: Bizet-Prelude
+  puzzle_size:
+    width: 32
+    height: 39
+  aspect_ratio: 0.8148148
+  image_filename: Jean-Baptiste-Camille_Corot-Gypsy_Woman_with_Mandolin.jpg
+  audio_filename: Bizet-Prelude.opus
+- name: Bach-Air
+  puzzle_size:
+    width: 32
+    height: 43
+  aspect_ratio: 0.74444443
+  image_filename: Caspar_Netscher-A_Violin_Player_(1654–1684).jpg
+  audio_filename: Bach-Air.opus
+- name: Grieg-Morning_Mood
+  puzzle_size:
+    width: 51
+    height: 29
+  aspect_ratio: 1.7768519
+  image_filename: Bruno_Liljefors-Morning_Mood_by_the_Sea_(1896).jpg
+  audio_filename: Grieg-Morning_Mood.mp3
+- name: Smetana-Má_Vlast_My_Fatherland_Vltava_The_Moldau_River
+  puzzle_size:
+    width: 47
+    height: 32
+  aspect_ratio: 1.45
+  image_filename: John_Constable-The_Hay_Wain_(1821).jpg
+  audio_filename: Smetana-Má_Vlast_My_Fatherland_Vltava_The_Moldau_River.opus
+- name: Bach-Double_Concerto_in_D_minor_for_Two_Violins_BWV_1043_Vivace
+  puzzle_size:
+    width: 36
+    height: 44
+  aspect_ratio: 0.81064814
+  image_filename: Peter_Paul_Rubens-The_Four_Philosophers.jpg
+  audio_filename: Bach-Double_Concerto_in_D_minor_for_Two_Violins_BWV_1043_Vivace.opus
+- name: Mahler-Symphony_No_5_in_C_sharp_minor_Adagietto
+  puzzle_size:
+    width: 37
+    height: 47
+  aspect_ratio: 0.7939815
+  image_filename: John_Singer_Sargent-Rehearsal_of_the_Pasdeloup_Orchestra_at_the_Cirque_d'Hiver_(c._1879).jpg
+  audio_filename: Mahler-Symphony_No_5_in_C_sharp_minor_Adagietto.opus
+- name: Rachmaninoff-Vocalise_Op_34
+  puzzle_size:
+    width: 60
+    height: 30
+  aspect_ratio: 2.011111
+  image_filename: Štefan_Straka-Hear_Our_Voice_O_Lord_Our_God_(1930).jpg
+  audio_filename: Rachmaninoff-Vocalise_Op_34.opus
+- name: Beethoven-Moonlight_Sonata_Adagio_sostenuto
+  puzzle_size:
+    width: 37
+    height: 49
+  aspect_ratio: 0.75185186
+  image_filename: James_Abbott_McNeill_Whistler-Nocturne_in_Black_and_Gold.jpg
+  audio_filename: Beethoven-Moonlight_Sonata_Adagio_sostenuto.opus
+- name: Fauré-Pavane
+  puzzle_size:
+    width: 37
+    height: 52
+  aspect_ratio: 0.70787036
+  image_filename: William-Adolphe_Bouguereau-The_Birth_of_Venus_(1879).jpg
+  audio_filename: Fauré-Pavane.opus
+- name: Offenbach-Can_Can_From_Orpheus_In_The_Underworld
+  puzzle_size:
+    width: 51
+    height: 39
+  aspect_ratio: 1.3157407
+  image_filename: Henri_de_Toulouse-Lautrec-At_the_Moulin_Rouge-The_Dance.jpg
+  audio_filename: Offenbach-Can_Can_From_Orpheus_In_The_Underworld.opus
+- name: Mozart-Lacrimosa_Dies_illa
+  puzzle_size:
+    width: 51
+    height: 41
+  aspect_ratio: 1.2564815
+  image_filename: Annibale_Carracci-Salma_di_Cristo.jpg
+  audio_filename: Mozart-Lacrimosa_Dies_illa.opus
+- name: Strauss_I-Radetzky_March_Op_228
+  puzzle_size:
+    width: 42
+    height: 51
+  aspect_ratio: 0.8263889
+  image_filename: Théodore_Géricault-Mounted_Trumpeters_of_Napoleon's_Imperial_Guard.jpg
+  audio_filename: Strauss_I-Radetzky_March_Op_228.opus
+- name: Holst-Jupiter_the_Bringer_of_Jollity
+  puzzle_size:
+    width: 56
+    height: 41
+  aspect_ratio: 1.3620371
+  image_filename: Édouard_Manet-Un_Bar_aux_Folies-Bergère_(1882).jpg
+  audio_filename: Holst-Jupiter_the_Bringer_of_Jollity.opus
+- name: Handel-Hallelujah_Chorus
+  puzzle_size:
+    width: 53
+    height: 45
+  aspect_ratio: 1.1861111
+  image_filename: Gerard_van_Honthorst-Adoration_of_the_Shepherds.jpg
+  audio_filename: Handel-Hallelujah_Chorus.opus
+- name: Beethoven-Egmont_Op_84_Overture
+  puzzle_size:
+    width: 56
+    height: 43
+  aspect_ratio: 1.2902777
+  image_filename: Adèle_Kindt-Lamoral_Count_of_Egmont_Taking_Leave_of_His_Wife_(ca_1826).jpg
+  audio_filename: Beethoven-Egmont_Op_84_Overture.opus
+- name: Chopin-Nocturne_No_2_in_E_Flat_major_Op_9
+  puzzle_size:
+    width: 55
+    height: 46
+  aspect_ratio: 1.2023149
+  image_filename: Félix-Joseph_Barrias-Death_of_Chopin_(1885).jpg
+  audio_filename: Chopin-Nocturne_No_2_in_E_Flat_major_Op_9.opus
+- name: Massenet-Meditation
+  puzzle_size:
+    width: 60
+    height: 44
+  aspect_ratio: 1.3680556
+  image_filename: Caspar_David_Friedrich-Abend_am_Ostseestrand.jpg
+  audio_filename: Massenet-Meditation.opus
+- name: Mozart-Overture
+  puzzle_size:
+    width: 67
+    height: 40
+  aspect_ratio: 1.6699075
+  image_filename: Albert_Bierstadt-The_Rocky_Mountains_Landers_Peak.jpg
+  audio_filename: Mozart-Overture.opus
+- name: Bach-Brandenburg_Concerto_No_3_in_G_major_BWV_1048_Allegro
+  puzzle_size:
+    width: 50
+    height: 56
+  aspect_ratio: 0.8925926
+  image_filename: Johannes_Vermeer-The_Concert.jpg
+  audio_filename: Bach-Brandenburg_Concerto_No_3_in_G_major_BWV_1048_Allegro.opus
+- name: Elgar-Pomp_and_Circumstance_Op_39_Land_of_Hope_and_Glory
+  puzzle_size:
+    width: 62
+    height: 46
+  aspect_ratio: 1.3458333
+  image_filename: Joseph_Mallord_William_Turner-The_Fighting_Temeraire.jpg
+  audio_filename: Elgar-Pomp_and_Circumstance_Op_39_Land_of_Hope_and_Glory.opus
+- name: Gounod-Ave_Maria_after_J_S_Bach
+  puzzle_size:
+    width: 45
+    height: 66
+  aspect_ratio: 0.68425924
+  image_filename: William-Adolphe_Bouguereau-Song_of_the_Angels_(1881).jpg
+  audio_filename: Gounod-Ave_Maria_after_J_S_Bach.opus
+- name: Mozart-Rondo_alla_turca
+  puzzle_size:
+    width: 50
+    height: 61
+  aspect_ratio: 0.8208333
+  image_filename: Jacques-Louis_David-Napoleon_Crossing_the_Alps.jpg
+  audio_filename: Mozart-Rondo_alla_turca.opus

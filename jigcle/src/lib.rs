@@ -1,3 +1,4 @@
+mod level;
 mod piece;
 mod solution_board;
 
