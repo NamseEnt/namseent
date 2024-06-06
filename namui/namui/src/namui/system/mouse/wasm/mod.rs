@@ -2,6 +2,7 @@ use super::*;
 
 macro_rules! on_mouse {
     ($extern_name: ident, $event: ident) => {
+        #[no_mangle]
         pub extern "C" fn $extern_name(
             x: u32,
             y: u32,
@@ -28,6 +29,7 @@ on_mouse!(on_mouse_down, MouseDown);
 on_mouse!(on_mouse_move, MouseMove);
 on_mouse!(on_mouse_up, MouseUp);
 
+#[no_mangle]
 pub extern "C" fn on_mouse_wheel(delta_x: f32, delta_y: f32, x: u32, y: u32) {
     let xy = Xy::new(px(x as f32), px(y as f32));
     update_mouse_position(xy);

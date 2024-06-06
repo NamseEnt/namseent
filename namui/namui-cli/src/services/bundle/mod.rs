@@ -26,11 +26,11 @@ struct Bundle {
 impl NamuiBundleManifest {
     pub fn parse(project_root_path: PathBuf) -> Result<Self> {
         let project_bundle = parse_bundle(&project_root_path)?;
-        let system_bundle = parse_bundle(&get_cli_root_path())?;
+        let system_bundle = parse_bundle(get_cli_root_path())?;
 
         let url_src_path_map = {
-            let project_bundle_query = project_bundle.query(&project_root_path, &PathBuf::new())?;
-            let system_bundle_query = system_bundle.query(&get_cli_root_path(), &PathBuf::new())?;
+            let project_bundle_query = project_bundle.query(&project_root_path, PathBuf::new())?;
+            let system_bundle_query = system_bundle.query(get_cli_root_path(), PathBuf::new())?;
             let merged_query = {
                 let mut merged_query = HashMap::new();
                 merged_query.extend(project_bundle_query);
@@ -56,13 +56,16 @@ impl NamuiBundleManifest {
         })
     }
 
-    fn query(&self, dest_root_path: &std::path::Path) -> Result<HashMap<PathBuf, PathBuf>> {
+    fn query(
+        &self,
+        dest_root_path: impl AsRef<std::path::Path>,
+    ) -> Result<HashMap<PathBuf, PathBuf>> {
         let project_bundle_query = self
             .project_bundle
-            .query(&self.project_root_path, dest_root_path)?;
+            .query(&self.project_root_path, &dest_root_path)?;
         let system_bundle_query = self
             .system_bundle
-            .query(&get_cli_root_path(), dest_root_path)?;
+            .query(get_cli_root_path(), &dest_root_path)?;
 
         let mut merged_query = HashMap::new();
         merged_query.extend(project_bundle_query);
@@ -72,10 +75,10 @@ impl NamuiBundleManifest {
 
     pub fn get_collect_operations(
         &self,
-        dest_root_path: &std::path::Path,
+        dest_root_path: impl AsRef<std::path::Path>,
     ) -> Result<Vec<CollectOperation>> {
         let ops: Vec<CollectOperation> = self
-            .query(dest_root_path)?
+            .query(&dest_root_path)?
             .iter()
             .map(|(src_path, dest_path)| CollectOperation::new(src_path, dest_path))
             .collect();
@@ -85,19 +88,22 @@ impl NamuiBundleManifest {
     pub fn metadata_json(&self) -> &str {
         &self.metadata_json
     }
-    pub fn get_src_path(&self, url: &PathBuf) -> Result<Option<PathBuf>> {
-        Ok(self.url_src_path_map.get(url).cloned())
+    pub fn get_src_path(&self, url: impl AsRef<std::path::Path>) -> Result<Option<PathBuf>> {
+        Ok(self.url_src_path_map.get(url.as_ref()).cloned())
     }
 
-    pub fn create_bundle_metadata_file(&self, dest: &PathBuf) -> Result<()> {
-        std::fs::create_dir_all(dest)?;
-        std::fs::write(dest.join("bundle_metadata.json"), self.metadata_json())
-            .map_err(|error| anyhow!("could not create bundle_metadata.json: {}", error))
+    pub fn create_bundle_metadata_file(&self, dest: impl AsRef<std::path::Path>) -> Result<()> {
+        std::fs::create_dir_all(&dest)?;
+        std::fs::write(
+            dest.as_ref().join("bundle_metadata.json"),
+            self.metadata_json(),
+        )
+        .map_err(|error| anyhow!("could not create bundle_metadata.json: {}", error))
     }
 }
 
-fn parse_bundle(root_path: &std::path::Path) -> Result<Bundle> {
-    let bundle_manifest_path = root_path.join(".namuibundle");
+fn parse_bundle(root_path: impl AsRef<std::path::Path>) -> Result<Bundle> {
+    let bundle_manifest_path = root_path.as_ref().join(".namuibundle");
     let bundle_manifest_string = match bundle_manifest_path.exists() {
         true => std::fs::read(bundle_manifest_path)
             .map_err(|error| anyhow!("namui_bundle read error: {}", error))
@@ -137,16 +143,16 @@ fn convert_src_dest_path_map_to_url_src_path_map(
 impl Bundle {
     fn query(
         &self,
-        src_root_path: &PathBuf,
-        dest_root_path: &std::path::Path,
+        src_root_path: impl AsRef<std::path::Path>,
+        dest_root_path: impl AsRef<std::path::Path>,
     ) -> Result<HashMap<PathBuf, PathBuf>> {
         let mut src_dest_path_map = HashMap::new();
 
         for include_operation in self.include.iter() {
             let target_dest_path =
-                include_operation.join_dest_path_under_dest_root_path(dest_root_path)?;
+                include_operation.join_dest_path_under_dest_root_path(&dest_root_path)?;
             include_operation.visit(
-                src_root_path,
+                &src_root_path,
                 &target_dest_path,
                 0,
                 false,
@@ -157,7 +163,7 @@ impl Bundle {
         }
 
         for exclude_operation in self.exclude.iter() {
-            exclude_operation.visit(src_root_path, 0, &mut |src_path| {
+            exclude_operation.visit(&src_root_path, 0, &mut |src_path| {
                 src_dest_path_map.remove(&src_path);
             })?;
         }

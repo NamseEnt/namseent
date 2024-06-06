@@ -1,10 +1,6 @@
-use crate::services::build_status_service::BuildStatusService;
 use crate::*;
-use crate::{cli::Target, services::resource_collect_service};
-use std::path::Path;
-use tokio::try_join;
 
-pub async fn build(manifest_path: &Path, release: bool) -> Result<()> {
+pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) -> Result<()> {
     todo!()
     // let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     // let release_path = project_root_path

@@ -1,15 +1,14 @@
 use super::bundle::NamuiBundleManifest;
 use crate::*;
 use crate::{cli::Target, debug_println, util::get_cli_root_path};
-use std::path::Path;
 use std::{
     fs::{create_dir_all, remove_dir_all},
     path::PathBuf,
 };
 
 pub fn collect_all(
-    project_path: &Path,
-    dest_path: &PathBuf,
+    project_path: impl AsRef<std::path::Path>,
+    dest_path: impl AsRef<std::path::Path>,
     target: Target,
     bundle_manifest: NamuiBundleManifest,
     additional_runtime_path: Option<&PathBuf>,
@@ -17,21 +16,23 @@ pub fn collect_all(
 ) -> Result<()> {
     let mut ops: Vec<CollectOperation> = vec![];
     collect_runtime(&mut ops, additional_runtime_path, target)?;
-    collect_rust_build(&mut ops, project_path, target, release)?;
+    collect_rust_build(&mut ops, &project_path, target, release)?;
     collect_bundle(&mut ops, &bundle_manifest)?;
-    collect_deep_link_manifest(&mut ops, project_path, target)?;
+    collect_deep_link_manifest(&mut ops, &project_path, target)?;
 
-    collect_resources(project_path, dest_path, ops)?;
+    collect_resources(&project_path, &dest_path, ops)?;
 
-    bundle_manifest.create_bundle_metadata_file(dest_path)?;
+    bundle_manifest.create_bundle_metadata_file(&dest_path)?;
     Ok(())
 }
 
 fn collect_resources(
-    project_root_path: &Path,
-    dest_path: &PathBuf,
+    project_root_path: impl AsRef<std::path::Path>,
+    dest_path: impl AsRef<std::path::Path>,
     ops: Vec<CollectOperation>,
 ) -> Result<()> {
+    let project_root_path = project_root_path.as_ref();
+    let dest_path = dest_path.as_ref();
     println!("start collecting resources");
     remove_dir(dest_path)?;
     ensure_dir(dest_path)?;
@@ -50,8 +51,8 @@ fn collect_runtime(
         Target::Wasm32WasiWeb => {
             let namui_browser_runtime_path = get_cli_root_path().join("www");
             ops.push(CollectOperation::new(
-                &namui_browser_runtime_path,
-                &PathBuf::from(""),
+                namui_browser_runtime_path,
+                PathBuf::from(""),
             ));
         }
         Target::X86_64PcWindowsMsvc => {}
@@ -59,7 +60,7 @@ fn collect_runtime(
     if let Some(additional_runtime_path) = additional_runtime_path {
         ops.push(CollectOperation::new(
             additional_runtime_path,
-            &PathBuf::from(""),
+            PathBuf::from(""),
         ));
     }
     Ok(())
@@ -67,20 +68,21 @@ fn collect_runtime(
 
 fn collect_rust_build(
     ops: &mut Vec<CollectOperation>,
-    project_path: &Path,
+    project_path: impl AsRef<std::path::Path>,
     target: Target,
     release: bool,
 ) -> Result<()> {
+    let project_path = project_path.as_ref();
     match target {
         Target::Wasm32WasiWeb => {
             let build_dist_path = project_path.join("pkg");
             ops.push(CollectOperation::new(
-                &build_dist_path.join("bundle.js"),
-                &PathBuf::from(""),
+                build_dist_path.join("bundle.js"),
+                PathBuf::from(""),
             ));
             ops.push(CollectOperation::new(
-                &build_dist_path.join("bundle_bg.wasm"),
-                &PathBuf::from(""),
+                build_dist_path.join("bundle_bg.wasm"),
+                PathBuf::from(""),
             ));
         }
         Target::X86_64PcWindowsMsvc => {
@@ -89,12 +91,12 @@ fn collect_rust_build(
                 if release { "release" } else { "debug" }
             ));
             ops.push(CollectOperation::new(
-                &build_dist_path.join("namui-runtime-x86_64-pc-windows-msvc.exe"),
-                &PathBuf::from(""),
+                build_dist_path.join("namui-runtime-x86_64-pc-windows-msvc.exe"),
+                PathBuf::from(""),
             ));
             ops.push(CollectOperation::new(
-                &build_dist_path.join("namui_runtime_x86_64_pc_windows_msvc.pdb"),
-                &PathBuf::from(""),
+                build_dist_path.join("namui_runtime_x86_64_pc_windows_msvc.pdb"),
+                PathBuf::from(""),
             ));
         }
     }
@@ -105,14 +107,14 @@ fn collect_bundle(
     ops: &mut Vec<CollectOperation>,
     bundle_manifest: &NamuiBundleManifest,
 ) -> Result<()> {
-    let mut bundle_ops = bundle_manifest.get_collect_operations(&PathBuf::from("bundle"))?;
+    let mut bundle_ops = bundle_manifest.get_collect_operations(PathBuf::from("bundle"))?;
     ops.append(&mut bundle_ops);
     Ok(())
 }
 
 fn collect_deep_link_manifest(
     ops: &mut Vec<CollectOperation>,
-    project_path: &Path,
+    project_path: impl AsRef<std::path::Path>,
     target: Target,
 ) -> Result<()> {
     let _ = ops;
@@ -126,26 +128,35 @@ fn collect_deep_link_manifest(
 }
 
 pub struct CollectOperation {
-    src_path: PathBuf,
-    dest_path: PathBuf,
+    pub src_path: PathBuf,
+    pub dest_path: PathBuf,
 }
 
 impl CollectOperation {
-    pub fn new(src_path: &Path, dest_path: &Path) -> Self {
+    pub fn new(
+        src_path: impl AsRef<std::path::Path>,
+        dest_path: impl AsRef<std::path::Path>,
+    ) -> Self {
         Self {
-            src_path: src_path.to_path_buf(),
-            dest_path: dest_path.to_path_buf(),
+            src_path: src_path.as_ref().to_path_buf(),
+            dest_path: dest_path.as_ref().to_path_buf(),
         }
     }
 
-    fn execute(&self, project_root_path: &Path, release_path: &Path) -> Result<()> {
-        let src_path = project_root_path.join(&self.src_path);
-        let dest_path = release_path.join(&self.dest_path);
-        copy_resource(&src_path, &dest_path)
+    pub fn execute(
+        &self,
+        project_root_path: impl AsRef<std::path::Path>,
+        release_path: impl AsRef<std::path::Path>,
+    ) -> Result<()> {
+        let src_path = project_root_path.as_ref().join(&self.src_path);
+        let dest_path = release_path.as_ref().join(&self.dest_path);
+        copy_resource(src_path, dest_path)
     }
 }
 
-fn copy_resource(from: &PathBuf, to: &PathBuf) -> Result<()> {
+fn copy_resource(from: impl AsRef<std::path::Path>, to: impl AsRef<std::path::Path>) -> Result<()> {
+    let from = from.as_ref();
+    let to = to.as_ref();
     debug_println!("resource_collect_service: copy {:?} -> {:?}", &from, &to);
     ensure_dir(to)?;
     match from.is_dir() {
@@ -154,7 +165,10 @@ fn copy_resource(from: &PathBuf, to: &PathBuf) -> Result<()> {
     }
 }
 
-fn copy_file(from: &PathBuf, to: &Path) -> Result<()> {
+fn copy_file(from: impl AsRef<std::path::Path>, to: impl AsRef<std::path::Path>) -> Result<()> {
+    let from = from.as_ref();
+    let to = to.as_ref();
+
     const COPY_OPTION: fs_extra::file::CopyOptions = fs_extra::file::CopyOptions {
         overwrite: true,
         skip_exist: false,
@@ -173,7 +187,10 @@ fn copy_file(from: &PathBuf, to: &Path) -> Result<()> {
     Ok(())
 }
 
-fn copy_dir(from: &PathBuf, to: &PathBuf) -> Result<()> {
+fn copy_dir(from: impl AsRef<std::path::Path>, to: impl AsRef<std::path::Path>) -> Result<()> {
+    let from = from.as_ref();
+    let to = to.as_ref();
+
     const COPY_OPTION: fs_extra::dir::CopyOptions = fs_extra::dir::CopyOptions {
         overwrite: true,
         skip_exist: false,
@@ -193,7 +210,8 @@ fn copy_dir(from: &PathBuf, to: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn remove_dir(path: &PathBuf) -> Result<()> {
+fn remove_dir(path: impl AsRef<std::path::Path>) -> Result<()> {
+    let path = path.as_ref();
     if !path.exists() {
         return Ok(());
     }
@@ -201,7 +219,7 @@ fn remove_dir(path: &PathBuf) -> Result<()> {
         .map_err(|error| anyhow!("resource_collect_service: remove dir failed\n\t{}", error))
 }
 
-fn ensure_dir(path: &PathBuf) -> Result<()> {
+fn ensure_dir(path: impl AsRef<std::path::Path>) -> Result<()> {
     create_dir_all(path)
         .map_err(|error| anyhow!("resource_collect_service: ensure dir failed\n\t{}", error))
 }

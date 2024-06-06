@@ -1,17 +1,29 @@
 use crate::file::types::Dirent;
 use crate::file::types::PathLike;
+use anyhow::anyhow;
 use std::path::PathBuf;
 use tokio::fs;
 use tokio::io::Result;
 
 fn to_local_storage_path(path_like: impl PathLike) -> Result<PathBuf> {
-    if cfg!(not(target_family = "wasm")) {
-        Ok(std::env::temp_dir()
-            .join(std::env::current_exe()?.file_name().unwrap())
-            .join("local_storage")
-            .join(path_like.path()))
+    local_storage_root().map(|root| root.join(path_like.path()))
+}
+
+fn local_storage_root() -> std::io::Result<PathBuf> {
+    if cfg!(target_os = "wasi") {
+        // wasi doesn't support temp_dir https://github.com/WebAssembly/WASI/issues/306
+        Ok(PathBuf::from("/local_storage"))
     } else {
-        todo!()
+        Ok(std::env::temp_dir()
+            .join(
+                std::env::current_exe()?
+                    .file_name()
+                    .ok_or(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        anyhow!("Failed to get current executable file name"),
+                    ))?,
+            )
+            .join("local_storage"))
     }
 }
 

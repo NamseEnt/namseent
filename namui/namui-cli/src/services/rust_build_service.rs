@@ -28,8 +28,8 @@ pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoB
                     column: 0,
                     text: format!(
                         "Failed to build: {}\n{}\n",
+                        String::from_utf8(output.stderr)?,
                         String::from_utf8(output.stdout)?,
-                        String::from_utf8(output.stderr)?
                     ),
                 }],
                 other_messages: vec![],
@@ -37,10 +37,19 @@ pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoB
             });
         }
 
-        let stderr = String::from_utf8(output.stderr)?;
+        let stderr = String::from_utf8(output.stderr)?
+            // last 256 lines
+            .lines()
+            .rev()
+            .take(256)
+            .collect::<Vec<&str>>()
+            .iter()
+            .rev()
+            .fold(String::new(), |acc, line| acc + line + "\n");
 
-        parse_cargo_build_result(&output.stdout)
-            .map_err(|err| anyhow!("Failed to parse rollup build result: {err} / {stderr}"))
+        parse_cargo_build_result(&output.stdout).map_err(|err| {
+            anyhow!("Failed to parse build result: stderr: {stderr} \n cargo err:  {err}")
+        })
     })
 }
 

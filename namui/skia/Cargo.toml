@@ -22,11 +22,15 @@ skia-safe = { path = "../third-party-forks/rust-skia/skia-safe" }
 [target.'cfg(target_os="wasi")'.dependencies]
 skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", features = [
     "gl",
+    "freetype-woff2",
+    "embed-freetype",
 ] }
 
 [target.'cfg(target_os="windows")'.dependencies]
 skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", features = [
     "d3d",
+    "freetype-woff2",
+    "embed-freetype",
 ] }
 winit = { version = "0.29.4" }
 windows = { version = "0.56.0", features = [

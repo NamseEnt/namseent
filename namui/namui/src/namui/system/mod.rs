@@ -4,22 +4,22 @@ pub mod font;
 pub mod image;
 pub mod keyboard;
 pub mod log;
-#[cfg(not(target_family = "wasm"))]
+#[cfg(not(target_os = "wasi"))]
 pub mod media;
 pub mod mouse;
 pub mod network;
+pub mod platform;
 pub mod screen;
 pub mod skia;
 pub mod time;
 pub mod typeface;
-pub mod platform;
-// #[cfg(target_family = "wasm")]
+// #[cfg(target_os = "wasi")]
 // pub mod clipboard;
-// #[cfg(target_family = "wasm")]
+// #[cfg(target_os = "wasi")]
 // pub mod deep_link;
-// #[cfg(target_family = "wasm")]
+// #[cfg(target_os = "wasi")]
 // pub mod drag_and_drop;
-// #[cfg(target_family = "wasm")]
+// #[cfg(target_os = "wasi")]
 // pub(crate) mod text_input;
 
 use crate::*;
@@ -43,9 +43,9 @@ pub(super) async fn init_system() -> InitResult {
         time::init(),
     )?;
 
-    futures::try_join!(skia::init())?;
+    skia::init()?;
 
-    // #[cfg(target_family = "wasm")]
+    // #[cfg(target_os = "wasi")]
     // futures::try_join!(
     //     deep_link::init(),
     //     drag_and_drop::init(),
@@ -53,15 +53,26 @@ pub(super) async fn init_system() -> InitResult {
     //     web::init(),
     // )?;
 
+    eprintln!("before init typeface");
+
     tokio::try_join!(typeface::init())?;
-    #[cfg(not(target_family = "wasm"))]
+    #[cfg(not(target_os = "wasi"))]
     tokio::try_join!(media::init())?; // todo: join this with typeface
+
+    eprintln!("after init typeface");
 
     SYSTEM_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
 
     Ok(())
 }
 
+#[cfg(target_os = "wasi")]
+pub(crate) fn take_main_thread() -> Result<()> {
+    skia::take_main_thread()?;
+
+    Ok(())
+}
+#[cfg(not(target_os = "wasi"))]
 pub(crate) fn take_main_thread() {
     screen::take_main_thread();
 }

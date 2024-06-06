@@ -9,17 +9,23 @@ pub(crate) async fn init() -> InitResult {
 }
 
 fn get_cache_path(path_like: impl PathLike) -> io::Result<PathBuf> {
-    let path = change_path_to_platform(
-        std::env::temp_dir()
+    let path = change_path_to_platform(cache_root()?, path_like);
+
+    Ok(path)
+}
+
+fn cache_root() -> io::Result<PathBuf> {
+    if cfg!(target_os = "wasi") {
+        // wasi doesn't support temp_dir https://github.com/WebAssembly/WASI/issues/306
+        Ok(PathBuf::from("/cache"))
+    } else {
+        Ok(std::env::temp_dir()
             .join(std::env::current_exe()?.file_name().ok_or(io::Error::new(
                 io::ErrorKind::Other,
                 anyhow!("Failed to get current executable file name"),
             ))?)
-            .join("cache"),
-        path_like,
-    );
-
-    Ok(path)
+            .join("cache"))
+    }
 }
 
 pub async fn get(key: &str) -> io::Result<Option<Box<[u8]>>> {
@@ -27,10 +33,15 @@ pub async fn get(key: &str) -> io::Result<Option<Box<[u8]>>> {
 
     match tokio::fs::read(path).await {
         Ok(buffer) => Ok(Some(buffer.into_boxed_slice())),
-        Err(err) => match err.kind() {
-            std::io::ErrorKind::NotFound => Ok(None),
-            _ => Err(err),
-        },
+        Err(err) => {
+            match err.kind() {
+                std::io::ErrorKind::NotFound => Ok(None),
+                // #[cfg(target_os = "wasi")]
+                _ => Ok(None),
+                // #[cfg(not(target_os = "wasi"))]
+                // _ => Err(err),
+            }
+        }
     }
 }
 

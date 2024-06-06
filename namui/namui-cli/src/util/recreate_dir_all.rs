@@ -1,7 +1,10 @@
 use anyhow::Result;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-pub fn recreate_dir_all(path: impl AsRef<Path>, excludes: Option<Vec<PathBuf>>) -> Result<()> {
+pub fn recreate_dir_all(
+    path: impl AsRef<std::path::Path>,
+    excludes: Option<Vec<PathBuf>>,
+) -> Result<()> {
     let path = path.as_ref();
     if path.exists() {
         match excludes {

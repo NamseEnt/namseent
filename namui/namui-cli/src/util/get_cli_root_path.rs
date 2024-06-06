@@ -1,9 +1,5 @@
 use anyhow::Result;
-use std::{
-    env::current_exe,
-    fs::read_dir,
-    path::{Path, PathBuf},
-};
+use std::{env::current_exe, fs::read_dir, path::PathBuf};
 
 pub fn get_cli_root_path() -> PathBuf {
     let mut exe_path = real_current_exe_path().unwrap();
@@ -30,7 +26,7 @@ fn real_current_exe_path() -> Result<PathBuf> {
     Ok(current_exe)
 }
 
-fn check_cargo_toml_exist(path: &Path) -> bool {
+fn check_cargo_toml_exist(path: impl AsRef<std::path::Path>) -> bool {
     read_dir(path)
         .unwrap()
         .any(|dirent| dirent.unwrap().file_name() == "Cargo.toml")

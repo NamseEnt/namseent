@@ -30,28 +30,45 @@ pub use system::*;
 pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
 
-pub fn start(component: impl 'static + Fn(&RenderCtx)) {
+pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
     namui_type::set_log(|x| log::log(x));
 
-    spawn_runtime(async move {
+    eprintln!(
+        "i don't know why but it solve the bug, {:?}",
+        std::path::Path::new("").exists()
+    );
+
+    let tokio_runtime: tokio::runtime::Runtime =
+        tokio_runtime().expect("Failed to create tokio runtime");
+    tokio_runtime.spawn(async move {
         system::init_system()
             .await
             .expect("Failed to initialize namui system");
 
         crate::log!("Namui system initialized");
 
-        hooks::run_loop(component);
+        run_loop(component);
     });
 
-    system::take_main_thread();
+    system::take_main_thread().unwrap();
 }
 
-fn spawn_runtime(fut: impl std::future::Future<Output = ()> + 'static) {
+#[cfg(target_os = "wasi")]
+fn run_loop(component: impl 'static + Fn(&RenderCtx) + Send) {
+    crate::screen::run_event_hook_loop(component)
+}
+
+#[cfg(not(target_os = "wasi"))]
+fn run_loop(component: impl 'static + Fn(&RenderCtx) + Send) {
+    hooks::run_loop(component);
+}
+
+fn tokio_runtime() -> Result<tokio::runtime::Runtime> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
+        .thread_stack_size(2 * 1024 * 1024)
         .build()
-        .unwrap()
-        .block_on(fut)
+        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e))
 }
 
 #[macro_export]

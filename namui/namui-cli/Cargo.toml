@@ -29,6 +29,7 @@ mime_guess = "2.0.4"
 itertools = "0.11.0"
 pathdiff = "0.2.1"
 walkdir = "2.4.0"
+rayon = "1.10.0"
 
 [build-dependencies]
 clap = { version = "*", features = ["derive"] }

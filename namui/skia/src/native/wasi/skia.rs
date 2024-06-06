@@ -11,11 +11,11 @@ unsafe impl Sync for NativeSkia {}
 
 extern "C" {
     // GL_API const GLubyte *GL_APIENTRY glGetString (GLenum name);
-    pub fn glGetString(name: u32) -> *const u8;
+    fn glGetString(name: u32) -> *const u8;
     // WEBGL_APICALL const GLubyte *GL_APIENTRY emscripten_glGetStringi (GLenum name, GLuint index);
-    pub fn glGetStringi(name: u32, index: u32) -> *const u8;
+    fn glGetStringi(name: u32, index: u32) -> *const u8;
     //GL_API void GL_APIENTRY glGetIntegerv (GLenum pname, GLint *data);
-    pub fn glGetIntegerv(pname: u32, data: *mut i32);
+    fn glGetIntegerv(pname: u32, data: *mut i32);
 }
 
 impl NativeSkia {
@@ -28,11 +28,8 @@ impl NativeSkia {
         })
         .expect("failed to load gl interface");
 
-        println!("make interface");
-
         let context = skia_safe::gpu::direct_contexts::make_gl(interface, None)
             .expect("failed to create gl direct context");
-        println!("make context");
 
         let framebuffer_info = {
             let mut fboid: i32 = 0;

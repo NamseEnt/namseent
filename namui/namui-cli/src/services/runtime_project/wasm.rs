@@ -22,12 +22,10 @@ edition = "2021"
 {project_name} = {{ path = "{project_path}" }}
 
 [profile.release]
-lto = true
 opt-level = 3
 
 [profile.dev]
-lto = true
-opt-level = 2
+opt-level = 1
     "#,
             project_path = project_path_in_relative
                 .to_str()
@@ -67,15 +65,23 @@ fn main() {{
                 r#"
 [build]
 rustflags = [
-    "--cfg",
-    "tokio_unstable",
     "-Ctarget-feature=-crt-static",
     "-L{wasi_sdk_path}/share/wasi-sysroot/lib/wasm32-wasip1-threads",
     "-L{wasi_sdk_path}/lib/clang/18/lib/wasip1",
-    # wasm-ld --initial-memory 20MB
-    "-Clink-arg=--initial-memory=20971520",
-    # wasm-ld --max-memory 1G
-    "-Clink-arg=--max-memory=1073741824",
+    # 2MB: 2097152
+    # 8MB: 8388608
+    # 256MB: 268435456
+    # 4GB: 4294967296
+    # stack size 8MB
+
+    "-Clink-arg=--initial-memory=8388608",
+    "-Clink-arg=--max-memory=4294967296",
+    "-Clink-arg=--stack-first",
+
+    "-Clink-arg=--export=__heap_base",
+    "-Clink-arg=--export=__data_end",
+    "-Clink-arg=--export=malloc",
+    "-Clink-arg=--export=free",
 ]
 "#,
                 wasi_sdk_path = wasi_sdk_path.to_string_lossy(),

@@ -15,8 +15,10 @@ impl NativeFont {
         FONT_MAP.get_or_try_create(font.clone(), |font| {
             let typeface = NativeTypeface::get(&font.name)?;
 
-            let skia_font =
-                skia_safe::Font::new(&typeface.skia_typeface, Some(font.size.as_i32() as f32));
+            let skia_font = skia_safe::Font::from_typeface(
+                &typeface.skia_typeface,
+                Some(font.size.as_i32() as f32),
+            );
 
             let metrics = {
                 let (_line_spacing, skia_font_metrics) = &skia_font.metrics();
