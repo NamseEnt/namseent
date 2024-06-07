@@ -22,7 +22,7 @@ impl Component for FontExample {
                 let font = namui::file::bundle::read("bundle:resources/MoiraiOne-Regular.ttf")
                     .await
                     .unwrap();
-                typeface::register_typeface(TYPEFACE_NAME, &font);
+                typeface::register_typeface(TYPEFACE_NAME, font);
                 set_loading.set(false);
             });
         });

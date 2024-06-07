@@ -100,7 +100,7 @@ impl Component for MusicPreview<'_> {
                 paint: Some(
                     Paint::new(Color::grayscale_alpha_f01(1.0, 0.3)).set_image_filter(
                         ImageFilter::Blur {
-                            sigma_xy: Xy::single(blur_sigma::from_radius(8.0)),
+                            sigma_xy: Xy::single(blur_sigma::from_radius(8.0).into()),
                             tile_mode: None,
                             input: None,
                             crop_rect: None,

@@ -64,7 +64,7 @@ impl namui::Component for App {
             namui::spawn(async move {
                 try_join!(async {
                     namui::typeface::register_typeface(
-                        THEME.font_name.to_string(),
+                        THEME.font_name,
                         namui::file::bundle::read(
                             "bundle:font/Demo-Hemi Head/Demo_Fonts/Fontspring-Demo-hemi_head_rg.otf",
                         )
@@ -73,7 +73,7 @@ impl namui::Component for App {
                     ).await
                 }, async {
                     namui::typeface::register_typeface(
-                        THEME.icon_font_name.to_string(),
+                        THEME.icon_font_name,
                         namui::file::bundle::read(
                             "bundle:font/fontawesome-free-5.15.4-desktop/otfs/Font Awesome 5 Free-Solid-900.otf",
                         )

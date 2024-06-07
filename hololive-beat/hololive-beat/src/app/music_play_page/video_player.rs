@@ -37,7 +37,7 @@ impl Component for VideoPlayer<'_> {
                 fit: ImageFit::Cover,
                 paint: Some(Paint::new(Color::from_u8(0, 0, 0, 128)).set_image_filter(
                     ImageFilter::Blur {
-                        sigma_xy: Xy::new(4.0, 4.0),
+                        sigma_xy: Xy::new(4.0.into(), 4.0.into()),
                         tile_mode: None,
                         input: None,
                         crop_rect: None,
