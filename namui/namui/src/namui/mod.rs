@@ -33,34 +33,42 @@ pub use tokio::task::{spawn, spawn_local};
 pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
     namui_type::set_log(|x| log::log(x));
 
-    eprintln!(
-        "i don't know why but it solve the bug, {:?}",
-        std::path::Path::new("").exists()
-    );
+    #[cfg(target_os = "wasi")]
+    {
+        eprintln!(
+            "i don't know why but it solve the bug, {:?}",
+            std::path::Path::new("").exists()
+        );
+    }
 
+    println!("main thread id {:?}", std::thread::current().id());
     let tokio_runtime: tokio::runtime::Runtime =
         tokio_runtime().expect("Failed to create tokio runtime");
     tokio_runtime.spawn(async move {
+        println!("thread id: {:?}", std::thread::current().id());
         system::init_system()
             .await
             .expect("Failed to initialize namui system");
 
         crate::log!("Namui system initialized");
 
-        run_loop(component);
+        #[cfg(target_os = "wasi")]
+        {
+            crate::screen::run_event_hook_loop(component)
+        }
     });
 
-    system::take_main_thread().unwrap();
-}
-
-#[cfg(target_os = "wasi")]
-fn run_loop(component: impl 'static + Fn(&RenderCtx) + Send) {
-    crate::screen::run_event_hook_loop(component)
-}
-
-#[cfg(not(target_os = "wasi"))]
-fn run_loop(component: impl 'static + Fn(&RenderCtx) + Send) {
-    hooks::run_loop(component);
+    #[cfg(target_os = "wasi")]
+    {
+        skia::on_skia_drawing_thread().unwrap();
+    }
+    #[cfg(not(target_os = "wasi"))]
+    {
+        tokio_runtime.block_on(async move {
+            println!("thread id: {:?}", std::thread::current().id());
+            screen::take_main_thread(component);
+        });
+    }
 }
 
 fn tokio_runtime() -> Result<tokio::runtime::Runtime> {

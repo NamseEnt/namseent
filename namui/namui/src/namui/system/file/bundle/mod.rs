@@ -19,23 +19,17 @@ pub fn to_real_path(path_like: impl PathLike) -> io::Result<PathBuf> {
 
 fn bundle_root() -> io::Result<PathBuf> {
     if cfg!(target_os = "wasi") {
-        // wasi doesn't support temp_dir https://github.com/WebAssembly/WASI/issues/306
         Ok(PathBuf::from("/bundle"))
     } else {
-        Ok(std::env::temp_dir()
-            .join(std::env::current_exe()?.file_name().ok_or(io::Error::new(
-                io::ErrorKind::Other,
-                anyhow!("Failed to get current executable file name"),
-            ))?)
+        Ok(std::env::current_exe()?
+            .parent()
+            .ok_or_else(|| io::Error::new(ErrorKind::Other, anyhow!("No parent")))?
             .join("bundle"))
     }
 }
 
 pub async fn read(path_like: impl PathLike) -> io::Result<Vec<u8>> {
     let path = to_real_path(path_like)?;
-    eprintln!("got path");
-    let result = std::fs::read(&path);
-    eprintln!("std test: {:?}", result.map(|x| x.len()));
     fs::read(&path).await
 }
 

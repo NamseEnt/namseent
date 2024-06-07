@@ -203,7 +203,7 @@ pub enum Code {
     F35,
 }
 
-#[cfg(feature = "winit")]
+#[cfg(not(target_os = "wasi"))]
 impl Code {
     pub fn from_winit_key(key: &winit::keyboard::PhysicalKey) -> Option<Self> {
         match key {

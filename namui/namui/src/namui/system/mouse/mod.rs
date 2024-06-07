@@ -1,6 +1,6 @@
-#[cfg(not(target_family = "wasm"))]
+#[cfg(not(target_os = "wasi"))]
 mod non_wasm;
-#[cfg(target_family = "wasm")]
+#[cfg(target_os = "wasi")]
 mod wasm;
 
 use crate::system::InitResult;
@@ -17,6 +17,8 @@ pub use wasm::*;
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,
     _mouse_cursor: Arc<RwLock<String>>,
+    #[cfg(not(target_os = "wasi"))]
+    pressing_buttons: Arc<RwLock<HashSet<MouseButton>>>,
 }
 
 lazy_static::lazy_static! {
@@ -37,7 +39,7 @@ impl MouseSystem {
                 y: px(0.0),
             })),
             _mouse_cursor: Arc::new(RwLock::new("default".to_string())),
-            #[cfg(not(target_family = "wasm"))]
+            #[cfg(not(target_os = "wasi"))]
             pressing_buttons: Arc::new(RwLock::new(HashSet::new())),
         }
     }

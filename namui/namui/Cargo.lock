@@ -1302,6 +1302,7 @@ dependencies = [
  "textwrap",
  "tokio 1.38.0",
  "unicode-segmentation",
+ "windows 0.56.0",
  "winit",
 ]
 

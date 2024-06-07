@@ -1,8 +1,11 @@
+use super::*;
 use namui_skia::*;
+use namui_type::*;
 
-static SKIA: OnceLock<Arc<RwLock<NativeSkia>>> = OnceLock::new();
-static DRAW_COMMAND_TX: OnceLock<tokio::sync::mpsc::UnboundedSender<DrawingCommand>> =
-    OnceLock::new();
+pub(crate) fn init() -> Result<()> {
+    tokio::task::spawn_blocking(on_skia_drawing_thread);
+    Ok(())
+}
 
 pub(super) fn init_skia() -> Result<NativeSkia> {
     let skia = namui_skia::init_skia(
@@ -11,4 +14,8 @@ pub(super) fn init_skia() -> Result<NativeSkia> {
     )?;
 
     Ok(skia)
+}
+
+pub(super) fn after_draw(_screen_size: Wh<IntPx>) {
+    // Nothing
 }

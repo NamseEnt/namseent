@@ -66,17 +66,6 @@ pub(super) async fn init_system() -> InitResult {
     Ok(())
 }
 
-#[cfg(target_os = "wasi")]
-pub(crate) fn take_main_thread() -> Result<()> {
-    skia::take_main_thread()?;
-
-    Ok(())
-}
-#[cfg(not(target_os = "wasi"))]
-pub(crate) fn take_main_thread() {
-    screen::take_main_thread();
-}
-
 #[allow(dead_code)]
 pub(crate) fn system_initialized() -> bool {
     SYSTEM_INITIALIZED.load(std::sync::atomic::Ordering::SeqCst)

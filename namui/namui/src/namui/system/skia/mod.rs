@@ -3,19 +3,19 @@ mod wasi;
 #[cfg(target_os = "windows")]
 mod windows;
 
-#[cfg(target_os = "windows")]
-use non_wasm as inner;
 #[cfg(target_os = "wasi")]
 use wasi as inner;
+#[cfg(target_os = "windows")]
+use windows as inner;
 
 use super::InitResult;
 use anyhow::Result;
-pub(crate) use inner::*;
 use namui_skia::*;
 use namui_type::*;
 use std::sync::*;
 
 static SK_CALCULATE: OnceLock<Arc<dyn SkCalculate + Send + Sync>> = OnceLock::new();
+static DRAW_COMMAND_TX: OnceLock<std::sync::mpsc::Sender<DrawingCommand>> = OnceLock::new();
 
 #[derive(Debug)]
 enum DrawingCommand {
@@ -31,10 +31,6 @@ pub(super) fn init() -> InitResult {
         .set(calculate)
         .map_err(|_| unreachable!())
         .unwrap();
-
-    // let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-    // DRAW_COMMAND_TX.set(tx).map_err(|_| unreachable!()).unwrap();
-    // spawn_drawing_task(rx);
 
     Ok(())
 }
@@ -85,5 +81,53 @@ pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
 }
 
 fn send_command(command: DrawingCommand) {
-    inner::send_command(command);
+    let Some(tx) = DRAW_COMMAND_TX.get() else {
+        return;
+    };
+    let _ = tx.send(command);
+}
+
+pub(crate) fn on_skia_drawing_thread() -> Result<()> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    DRAW_COMMAND_TX.set(tx).map_err(|_| unreachable!()).unwrap();
+
+    let mut skia = inner::init_skia()?;
+    println!("skia init done!");
+
+    let mut last_rendering_tree = None;
+    let mut rendering_tree_changed = false;
+    let mut should_redraw = false;
+    let mut screen_size = crate::screen::size();
+
+    while let Ok(command) = rx.recv() {
+        let mut on_command = |command| match command {
+            DrawingCommand::Draw { rendering_tree } => {
+                if last_rendering_tree.as_ref() != Some(&rendering_tree) {
+                    last_rendering_tree = Some(rendering_tree.clone());
+                    rendering_tree_changed = true;
+                }
+            }
+            DrawingCommand::Resize { wh } => {
+                should_redraw = true;
+                screen_size = wh;
+                skia.on_resize(wh);
+            }
+        };
+
+        on_command(command);
+        while let Ok(next_command) = rx.try_recv() {
+            on_command(next_command);
+        }
+
+        if should_redraw || rendering_tree_changed {
+            if let Some(rendering_tree) = last_rendering_tree.clone() {
+                namui_drawer::draw(&mut skia, rendering_tree);
+                inner::after_draw(screen_size);
+                rendering_tree_changed = false;
+                should_redraw = false;
+            }
+        }
+    }
+
+    Ok(())
 }
