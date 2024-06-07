@@ -10,14 +10,8 @@ pub async fn start(target: Target, manifest_path: PathBuf, release: bool) -> Res
         {
             use super::linux;
             match target {
-                Target::WasmUnknownWeb => {
-                    linux::wasm_unknown_web::start(&manifest_path, release).await?
-                }
-                Target::WasmWindowsElectron => {
-                    linux::wasm_windows_electron::start(&manifest_path, release).await?
-                }
-                Target::WasmLinuxElectron => {
-                    linux::wasm_linux_electron::start(&manifest_path, release).await?
+                Target::Wasm32WasiWeb => {
+                    linux::wasm32_wasi_web::start(&manifest_path, release).await?
                 }
                 Target::X86_64PcWindowsMsvc => bail!(
                     "{} doesn't support start directly. Try build and run manually.",
@@ -30,9 +24,7 @@ pub async fn start(target: Target, manifest_path: PathBuf, release: bool) -> Res
         {
             use super::windows;
             match target {
-                Target::WasmUnknownWeb
-                | Target::WasmWindowsElectron
-                | Target::WasmLinuxElectron => {
+                Target::Wasm32WasiWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
                     bail!("{} is unsupported target", target)
                 }
                 Target::X86_64PcWindowsMsvc => {

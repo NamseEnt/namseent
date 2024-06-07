@@ -1,0 +1,12 @@
+[package]
+name = "namui-drawer"
+version = "0.1.0"
+authors = ["namse <skatpgusskat@naver.com>"]
+edition = "2021"
+
+[package.metadata.namui]
+targets = ["x86_64-pc-windows-msvc"]
+
+[dependencies]
+namui-type = { path = "../namui-type" }
+namui-skia = { path = "../skia" }

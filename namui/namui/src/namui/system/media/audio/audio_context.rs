@@ -95,7 +95,7 @@ impl AudioContext {
                     audios.retain(|audio_buffer| !audio_buffer.is_end());
 
                     if h_event.wait_for_event(1000).is_err() {
-                        eprintln!("[namui-media] failed to wait for event");
+                        crate::log!("[namui-media] failed to wait for event");
                         audio_client.stop_stream().unwrap();
                         break;
                     }
@@ -208,42 +208,45 @@ fn calculate_needs_convert(
 ) -> bool {
     match audio_client.is_supported(desired_format, share_mode) {
         Ok(None) => {
-            println!("[namui-media] Device supports format {:?}", desired_format);
+            crate::log!("[namui-media] Device supports format {:?}", desired_format);
             false
         }
         Ok(Some(modified)) => {
-            println!(
+            crate::log!(
                 "[namui-media] Device doesn't support format:\n{:#?}\nClosest match is:\n{:#?}",
-                desired_format, modified
+                desired_format,
+                modified
             );
             true
         }
         Err(err) => {
-            println!(
+            crate::log!(
                 "[namui-media] Device doesn't support format:\n{:#?}\nError: {}",
-                desired_format, err
+                desired_format,
+                err
             );
-            println!("[namui-media] Repeating query with format as WAVEFORMATEX");
+            crate::log!("[namui-media] Repeating query with format as WAVEFORMATEX");
             let desired_formatex = desired_format.to_waveformatex().unwrap();
             match audio_client.is_supported(&desired_formatex, share_mode) {
                 Ok(None) => {
-                    println!(
+                    crate::log!(
                         "[namui-media] Device supports format {:?}",
                         desired_formatex
                     );
                     false
                 }
                 Ok(Some(modified)) => {
-                    println!(
+                    crate::log!(
                         "[namui-media] Device doesn't support format:\n{:#?}\nClosest match is:\n{:#?}",
                         desired_formatex, modified
                     );
                     true
                 }
                 Err(err) => {
-                    println!(
+                    crate::log!(
                         "[namui-media] Device doesn't support format:\n{:#?}\nError: {}",
-                        desired_formatex, err
+                        desired_formatex,
+                        err
                     );
                     true
                 }

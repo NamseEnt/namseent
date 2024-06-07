@@ -208,9 +208,8 @@ impl Component for Frame {
             Paint::new(THEME.primary.main.with_alpha(38))
                 .set_blend_mode(BlendMode::Screen)
                 .set_mask_filter(MaskFilter::Blur {
-                    blur: Blur::Outer {
-                        sigma: Blur::convert_radius_to_sigma(64.0),
-                    },
+                    blur_style: BlurStyle::Outer,
+                    sigma: blur_sigma::from_radius(64.0),
                 }),
         ));
     }
@@ -238,9 +237,8 @@ impl Component for SmallScore {
             Paint::new(THEME.text),
             TextAlign::Left,
             TextBaseline::Middle,
-            Blur::Outer {
-                sigma: Blur::convert_radius_to_sigma(wh.height.as_f32() * 0.2),
-            },
+            BlurStyle::Outer,
+            blur_sigma::from_radius(wh.height.as_f32() * 0.2),
             0.px(),
             THEME.primary.main,
         ));
@@ -319,9 +317,8 @@ impl Component for LargeScore {
             Paint::new(THEME.text),
             TextAlign::Left,
             TextBaseline::Middle,
-            Blur::Outer {
-                sigma: Blur::convert_radius_to_sigma(label_height.as_f32() * 0.2),
-            },
+            BlurStyle::Outer,
+            blur_sigma::from_radius(label_height.as_f32() * 0.2),
             0.px(),
             THEME.primary.main,
         ));
@@ -372,9 +369,8 @@ impl Component for NewRecord {
                     Paint::new(THEME.text),
                     TextAlign::Center,
                     TextBaseline::Middle,
-                    Blur::Outer {
-                        sigma: Blur::convert_radius_to_sigma(height.as_f32() * 0.2),
-                    },
+                    BlurStyle::Outer,
+                    blur_sigma::from_radius(height.as_f32() * 0.2),
                     0.px(),
                     THEME.primary.main,
                 ),

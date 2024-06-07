@@ -70,8 +70,8 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                 }
                 ComposeCommand::Scale { scale_xy } => {
                     RenderingTree::Special(SpecialRenderingNode::Scale(ScaleNode {
-                        x: scale_xy.x,
-                        y: scale_xy.y,
+                        x: scale_xy.x.into(),
+                        y: scale_xy.y.into(),
                         rendering_tree: rendering_tree.into(),
                     }))
                 }

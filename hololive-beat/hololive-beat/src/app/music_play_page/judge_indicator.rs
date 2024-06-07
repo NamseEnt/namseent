@@ -33,9 +33,8 @@ impl Component for JudgeIndicator {
                     Paint::new(Color::from_u8(255, 255, 255, alpha)),
                     TextAlign::Center,
                     TextBaseline::Middle,
-                    Blur::Normal {
-                        sigma: Blur::convert_radius_to_sigma(4.0),
-                    },
+                    BlurStyle::Normal,
+                    blur_sigma::from_radius(4.0),
                     8.px(),
                     recent_judge.glow_color(alpha),
                 ));

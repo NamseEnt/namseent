@@ -2,11 +2,7 @@ use crate::*;
 use cargo_metadata::MetadataCommand;
 use notify::{Config, RecommendedWatcher, Watcher};
 use regex::Regex;
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::{collections::HashSet, path::PathBuf, str::FromStr};
 
 pub struct RustProjectWatchService {
     manifest_path: PathBuf,
@@ -18,7 +14,7 @@ pub struct RustProjectWatchService {
 const WATCHING_ITEMS_IN_PROJECT: [&str; 3] = ["src", "Cargo.toml", ".namuibundle"];
 
 impl RustProjectWatchService {
-    pub(crate) fn new(manifest_path: impl AsRef<Path>) -> Result<Self> {
+    pub(crate) fn new(manifest_path: impl AsRef<std::path::Path>) -> Result<Self> {
         let (watcher_sender, watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
         let watcher = RecommendedWatcher::new(
             move |res| {
@@ -40,7 +36,6 @@ impl RustProjectWatchService {
             self.update_watching_paths().await?;
 
             let event = self.watcher_receiver.recv().await.unwrap().unwrap();
-            println!("watch event");
             match event.kind {
                 notify::EventKind::Create(_)
                 | notify::EventKind::Modify(_)
@@ -73,8 +68,6 @@ impl RustProjectWatchService {
             move || MetadataCommand::new().manifest_path(manifest_path).exec()
         })
         .await??;
-
-        tokio::fs::write("metadata", format!("{:#?}", metadata)).await?;
 
         if let Some(resolve) = metadata.resolve {
             for node in resolve.nodes {

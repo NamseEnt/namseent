@@ -62,25 +62,25 @@ impl namui::Component for App {
         });
         ctx.effect("load fonts", || {
             namui::spawn(async move {
-                join!( async {
+                try_join!(async {
                     namui::typeface::register_typeface(
                         THEME.font_name,
-                        &namui::file::bundle::read(
+                        namui::file::bundle::read(
                             "bundle:font/Demo-Hemi Head/Demo_Fonts/Fontspring-Demo-hemi_head_rg.otf",
                         )
                         .await
                         .unwrap(),
-                    )
+                    ).await
                 }, async {
                     namui::typeface::register_typeface(
                         THEME.icon_font_name,
-                        &namui::file::bundle::read(
+                        namui::file::bundle::read(
                             "bundle:font/fontawesome-free-5.15.4-desktop/otfs/Font Awesome 5 Free-Solid-900.otf",
                         )
                         .await
                         .unwrap(),
-                    )
-                });
+                    ).await
+                }).unwrap();
             });
         });
 

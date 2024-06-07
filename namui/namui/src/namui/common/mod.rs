@@ -1,12 +1,7 @@
 pub(crate) mod change_path_to_platform;
-#[cfg(target_family = "wasm")]
-mod file;
 mod open_external;
-pub(crate) mod url;
 
 use crate::*;
-#[cfg(target_family = "wasm")]
-pub use file::*;
 pub use open_external::*;
 use serde::{Deserialize, Serialize};
 

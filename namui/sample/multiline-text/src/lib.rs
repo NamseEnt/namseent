@@ -2,8 +2,9 @@ use namui::*;
 
 pub fn main() {
     let namui_context = namui::init();
-
-    namui::start(namui_context, &mut MultilineTextExample {})
+    namui::start(|ctx| {
+        ctx.add(MultilineTextExample {});
+    })
 }
 
 #[namui::component]

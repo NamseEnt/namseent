@@ -5,8 +5,6 @@
 mod cli;
 mod procedures;
 mod services;
-#[cfg(test)]
-mod test;
 mod types;
 mod util;
 
@@ -51,12 +49,11 @@ async fn main() -> Result<()> {
         Commands::Build {
             target: option_target,
             manifest_path: option_manifest_path,
-            arch,
             release,
         } => {
             let target = option_target.unwrap_or(current_target);
             let manifest_path = option_manifest_path.unwrap_or(manifest_path);
-            procedures::build(target, manifest_path, arch.into(), release).await?;
+            procedures::build(target, manifest_path, release).await?;
         }
         Commands::Clippy {
             target: option_target,

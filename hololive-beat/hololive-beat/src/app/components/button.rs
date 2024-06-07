@@ -37,9 +37,8 @@ impl Component for ButtonHoverEffect {
             )
             .set_blend_mode(BlendMode::Plus)
             .set_mask_filter(MaskFilter::Blur {
-                blur: Blur::Normal {
-                    sigma: Blur::convert_radius_to_sigma(16.0),
-                },
+                blur_style: BlurStyle::Normal,
+                sigma: blur_sigma::from_radius(16.0),
             }),
         ));
     }
@@ -89,9 +88,8 @@ impl Component for FilledButton<'_> {
             )
             .set_blend_mode(BlendMode::Plus)
             .set_mask_filter(MaskFilter::Blur {
-                blur: Blur::Normal {
-                    sigma: Blur::convert_radius_to_sigma(16.0),
-                },
+                blur_style: BlurStyle::Normal,
+                sigma: blur_sigma::from_radius(16.0),
             }),
         ));
 
@@ -239,9 +237,8 @@ impl Component for TextButtonInner<'_> {
             )
             .set_blend_mode(BlendMode::Screen)
             .set_mask_filter(MaskFilter::Blur {
-                blur: Blur::Normal {
-                    sigma: Blur::convert_radius_to_sigma(16.0),
-                },
+                blur_style: BlurStyle::Normal,
+                sigma: blur_sigma::from_radius(16.0),
             }),
             align: TextAlign::Center,
             baseline: TextBaseline::Middle,

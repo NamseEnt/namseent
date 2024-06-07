@@ -1,3 +1,5 @@
+emscripten/
+wasi-sdk/
 www/
 
 # Created by https://www.toptal.com/developers/gitignore/api/rust

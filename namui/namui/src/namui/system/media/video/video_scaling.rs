@@ -21,6 +21,8 @@ pub(crate) fn start_video_scaling(
         let control_receiver = control_receiver.clone();
         move || {
             let result = move || -> Result<()> {
+                let runtime = tokio::runtime::Builder::new_current_thread().build()?;
+
                 let mut scaler = ffmpeg_next::software::scaling::Context::get(
                     pixel_type,
                     wh.width,
@@ -42,7 +44,7 @@ pub(crate) fn start_video_scaling(
                         .run(&frame, &mut output)
                         .map_err(|err| anyhow!("ffmpeg scaling run error: {:?}", err))?;
 
-                    let image_handle = crate::system::skia::load_image2(
+                    let image_handle_future = crate::system::skia::load_image_from_raw(
                         ImageInfo {
                             alpha_type: AlphaType::Opaque,
                             color_type: COLOR_TYPE,
@@ -51,6 +53,8 @@ pub(crate) fn start_video_scaling(
                         },
                         output.data_mut(0),
                     );
+
+                    let image_handle = runtime.block_on(image_handle_future)?;
 
                     image_handle_tx.send(WithInstant::new(image_handle, frame.instant))?;
                 }

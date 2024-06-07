@@ -56,6 +56,12 @@ impl<Key: Hash + Eq + PartialEq, Value> StaticHashMap<Key, Value> {
         let map = map.lock().unwrap();
         map.get(key).cloned()
     }
+
+    pub fn remove(&self, key: &Key) -> Option<Arc<Value>> {
+        let map = self.map.get_or_init(Default::default);
+        let mut map = map.lock().unwrap();
+        map.remove(key)
+    }
 }
 
 impl<Key: Hash + Eq + PartialEq, Value> Default for StaticHashMap<Key, Value> {

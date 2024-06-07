@@ -7,7 +7,6 @@ use tokio::process::Command;
 
 #[derive(Clone, Debug)]
 pub struct BuildOption {
-    pub dist_path: PathBuf,
     pub project_root_path: PathBuf,
     pub target: Target,
     pub watch: bool,
@@ -18,31 +17,62 @@ pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoB
     tokio::spawn(async move {
         let output = run_build_process(&build_option).await?;
 
-        let stderr = String::from_utf8(output.stderr)?;
+        if !output.status.success() {
+            return Ok(CargoBuildOutput {
+                is_successful: false,
+                error_messages: vec![ErrorMessage {
+                    relative_file: "".to_string(),
+                    absolute_file: "".to_string(),
+                    line: 0,
+                    column: 0,
+                    text: format!(
+                        "Failed to build: {}\n{}\n",
+                        String::from_utf8(output.stderr)?,
+                        String::from_utf8(output.stdout)?,
+                    ),
+                }],
+                other_messages: vec![],
+                warning_messages: vec![],
+            });
+        }
 
-        parse_cargo_build_result(&output.stdout)
-            .map_err(|err| anyhow!("Failed to parse rollup build result: {err} / {stderr}"))
+        let stderr = String::from_utf8(output.stderr)?
+            // last 256 lines
+            .lines()
+            .rev()
+            .take(256)
+            .collect::<Vec<&str>>()
+            .iter()
+            .rev()
+            .fold(String::new(), |acc, line| acc + line + "\n");
+
+        parse_cargo_build_result(&output.stdout).map_err(|err| {
+            anyhow!("Failed to parse build result: stderr: {stderr} \n cargo err:  {err}")
+        })
     })
 }
 
 async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
     match build_option.target {
-        Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
-            Ok(Command::new("wasm-pack")
-                .args([
-                    "build",
-                    "--target",
-                    "no-modules",
-                    "--out-name",
-                    "bundle",
-                    "--dev",
-                    "--out-dir",
-                    build_option.dist_path.to_str().unwrap(),
-                    build_option.project_root_path.to_str().unwrap(),
-                    "--",
-                    "--message-format",
-                    "json",
-                ])
+        Target::Wasm32WasiWeb => {
+            let mut args = vec![];
+
+            args.extend([
+                "build",
+                "--target",
+                "wasm32-wasip1-threads",
+                "--message-format",
+                "json",
+                "-vv",
+            ]);
+
+            if build_option.release {
+                args.push("--release");
+            }
+
+            Ok(Command::new("cargo")
+                .args(args)
+                .current_dir(&build_option.project_root_path)
                 .envs(get_envs(build_option))
                 .output()
                 .await?)
@@ -81,25 +111,15 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
 
 fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
     let mut envs = match build_option.target {
-        Target::WasmUnknownWeb => vec![
-            ("NAMUI_CFG_TARGET_OS", "unknown"),
-            ("NAMUI_CFG_TARGET_ENV", "web"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-        ],
-        Target::WasmWindowsElectron => vec![
-            ("NAMUI_CFG_TARGET_OS", "windows"),
-            ("NAMUI_CFG_TARGET_ENV", "electron"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-        ],
-        Target::WasmLinuxElectron => vec![
-            ("NAMUI_CFG_TARGET_OS", "linux"),
-            ("NAMUI_CFG_TARGET_ENV", "electron"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+        Target::Wasm32WasiWeb => vec![
+            ("NAMUI_CFG_TARGET_ARCH", "wasm32"),
+            ("NAMUI_CFG_TARGET_OS", "wasip1"),
+            ("NAMUI_CFG_TARGET_ENV", ""),
         ],
         Target::X86_64PcWindowsMsvc => vec![
+            ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
             ("NAMUI_CFG_TARGET_OS", "windows"),
             ("NAMUI_CFG_TARGET_ENV", "msvc"),
-            ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
         ],
     };
 

@@ -29,9 +29,7 @@ pub type NamuiCfgMap = HashMap<String, String>;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Target {
-    WasmUnknownWeb,
-    WasmWindowsElectron,
-    WasmLinuxElectron,
+    Wasm32WasiWeb,
     X86_64PcWindowsMsvc,
 }
 impl std::fmt::Display for Target {

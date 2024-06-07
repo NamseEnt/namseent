@@ -100,6 +100,7 @@ impl Component for MusicPlayPage<'_> {
 
 #[component]
 struct Loading {
+    #[allow(dead_code)]
     wh: Wh<Px>,
 }
 impl Component for Loading {

@@ -7,9 +7,9 @@ use crate::{
     },
     *,
 };
-use std::path::Path;
 
-pub async fn build(manifest_path: &Path, release: bool) -> Result<()> {
+pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) -> Result<()> {
+    let manifest_path = manifest_path.as_ref();
     let target = cli::Target::X86_64PcWindowsMsvc;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let release_path = project_root_path
@@ -31,7 +31,6 @@ pub async fn build(manifest_path: &Path, release: bool) -> Result<()> {
 
     let cargo_build_output = rust_build_service::build(BuildOption {
         target: cli::Target::X86_64PcWindowsMsvc,
-        dist_path: release_path.clone(),
         project_root_path: runtime_target_dir,
         watch: false,
         release,

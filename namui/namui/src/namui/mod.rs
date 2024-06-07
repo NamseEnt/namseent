@@ -12,8 +12,6 @@ pub use ::url::Url;
 pub use anyhow::{anyhow, bail, Result};
 pub use auto_ops;
 pub use bounding_box::*;
-#[cfg(target_family = "wasm")]
-pub use clipboard::ClipboardItem as _;
 pub use common::*;
 pub use futures::{future::join_all, future::try_join_all, join, try_join};
 pub use hooks::*;
@@ -24,41 +22,61 @@ pub use namui_skia::*;
 pub use namui_type as types;
 pub use namui_type::*;
 pub use render::*;
-#[cfg(target_family = "wasm")]
-pub use render::{text_input, TextInput, TextInputInstance};
 pub use serde;
 pub use shader_macro::shader;
+#[cfg(not(target_os = "wasi"))]
 pub use system::media::*;
 pub use system::*;
+pub use tokio;
+pub use tokio::task::{spawn, spawn_local};
 
-#[cfg(not(target_family = "wasm"))]
-pub use tokio::task::spawn;
-#[cfg(target_family = "wasm")]
-pub use wasm_bindgen_futures::spawn_local as spawn;
-
-#[cfg(not(target_family = "wasm"))]
-pub use tokio::task::spawn_blocking;
-
-pub fn start<C: Component>(component: impl Send + Sync + Fn() -> C + 'static) {
+pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
     namui_type::set_log(|x| log::log(x));
 
-    std::thread::spawn(move || {
-        tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(async move {
-                system::init_system()
-                    .await
-                    .expect("Failed to initialize namui system");
+    #[cfg(target_os = "wasi")]
+    {
+        eprintln!(
+            "i don't know why but it solve the bug, {:?}",
+            std::path::Path::new("").exists()
+        );
+    }
 
-                crate::log!("Namui system initialized");
+    println!("main thread id {:?}", std::thread::current().id());
+    let tokio_runtime: tokio::runtime::Runtime =
+        tokio_runtime().expect("Failed to create tokio runtime");
+    tokio_runtime.spawn(async move {
+        println!("thread id: {:?}", std::thread::current().id());
+        system::init_system()
+            .await
+            .expect("Failed to initialize namui system");
 
-                tokio::task::block_in_place(|| hooks::run_loop(component));
-            })
+        crate::log!("Namui system initialized");
+
+        #[cfg(target_os = "wasi")]
+        {
+            crate::screen::run_event_hook_loop(component)
+        }
     });
 
-    system::take_main_thread();
+    #[cfg(target_os = "wasi")]
+    {
+        skia::on_skia_drawing_thread().unwrap();
+    }
+    #[cfg(not(target_os = "wasi"))]
+    {
+        tokio_runtime.block_on(async move {
+            println!("thread id: {:?}", std::thread::current().id());
+            screen::take_main_thread(component);
+        });
+    }
+}
+
+fn tokio_runtime() -> Result<tokio::runtime::Runtime> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(2 * 1024 * 1024)
+        .build()
+        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e))
 }
 
 #[macro_export]

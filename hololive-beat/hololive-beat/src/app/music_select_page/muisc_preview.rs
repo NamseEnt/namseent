@@ -93,16 +93,14 @@ impl Component for MusicPreview<'_> {
                 return;
             };
 
-            ctx.add(ImageDrawCommand {
+            ctx.add(ImageRender {
                 rect: Rect::zero_wh(wh),
-                source: ImageSource::ImageHandle {
-                    image_handle: image,
-                },
+                source: ImageSource::Image { image },
                 fit: ImageFit::Cover,
                 paint: Some(
                     Paint::new(Color::grayscale_alpha_f01(1.0, 0.3)).set_image_filter(
                         ImageFilter::Blur {
-                            sigma_xy: Xy::single(Blur::convert_radius_to_sigma(8.0)),
+                            sigma_xy: Xy::single(blur_sigma::from_radius(8.0).into()),
                             tile_mode: None,
                             input: None,
                             crop_rect: None,

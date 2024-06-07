@@ -5,8 +5,8 @@ use std::{collections::VecDeque, ops::Deref};
 #[derive(Debug)]
 pub(crate) struct VideoFramer {
     control_receiver: MediaControlReceiver,
-    images: VecDeque<WithInstant<ImageHandle>>,
-    image_handle_rx: std::sync::mpsc::Receiver<WithInstant<ImageHandle>>,
+    images: VecDeque<WithInstant<Image>>,
+    image_handle_rx: std::sync::mpsc::Receiver<WithInstant<Image>>,
     frame_received_after_start: usize,
     fps: f64,
     last_start_requested: Option<Instant>,
@@ -14,7 +14,7 @@ pub(crate) struct VideoFramer {
 
 impl VideoFramer {
     pub(crate) fn new(
-        image_handle_rx: std::sync::mpsc::Receiver<WithInstant<ImageHandle>>,
+        image_handle_rx: std::sync::mpsc::Receiver<WithInstant<Image>>,
         control_receiver: MediaControlReceiver,
         fps: f64,
     ) -> VideoFramer {
@@ -28,7 +28,7 @@ impl VideoFramer {
         }
     }
 
-    pub(crate) fn get_image(&mut self) -> Option<ImageHandle> {
+    pub(crate) fn get_image(&mut self) -> Option<Image> {
         self.fill_images();
 
         let Some(start_requested) = self.control_receiver.start_requested() else {

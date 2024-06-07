@@ -2,11 +2,7 @@ use super::MOUSE_SYSTEM;
 use crate::*;
 use winit::{dpi::PhysicalPosition, event::ElementState};
 
-pub(crate) fn set_up_event_handler() {
-    // nothing
-}
-
-pub(crate) fn on_winit_mouse_input(state: ElementState, button: crate::MouseButton) {
+pub(crate) fn on_winit_mouse_input(state: ElementState, button: crate::MouseButton) -> RawEvent {
     update_pressing_button(state, button);
 
     let mouse_xy = { *MOUSE_SYSTEM.mouse_position.read().unwrap() };
@@ -17,16 +13,16 @@ pub(crate) fn on_winit_mouse_input(state: ElementState, button: crate::MouseButt
         button: Some(button),
     };
 
-    crate::hooks::on_raw_event(match state {
+    match state {
         ElementState::Pressed => RawEvent::MouseDown { event },
         ElementState::Released => RawEvent::MouseUp { event },
-    });
+    }
 }
 
-pub(crate) fn on_winit_mouse_wheel(delta: winit::event::MouseScrollDelta) {
+pub(crate) fn on_winit_mouse_wheel(delta: winit::event::MouseScrollDelta) -> RawEvent {
     let mouse_xy = { *MOUSE_SYSTEM.mouse_position.read().unwrap() };
 
-    crate::hooks::on_raw_event(RawEvent::Wheel {
+    RawEvent::Wheel {
         event: RawWheelEvent {
             delta_xy: match delta {
                 winit::event::MouseScrollDelta::LineDelta(x, y) => Xy::new(x, y),
@@ -36,20 +32,20 @@ pub(crate) fn on_winit_mouse_wheel(delta: winit::event::MouseScrollDelta) {
             },
             mouse_xy,
         },
-    });
+    }
 }
 
-pub(crate) fn on_winit_cursor_moved(position: PhysicalPosition<f64>) {
+pub(crate) fn on_winit_cursor_moved(position: PhysicalPosition<f64>) -> RawEvent {
     let mouse_xy = Xy::new((position.x as f32).px(), (position.y as f32).px());
     update_mouse_position(mouse_xy);
 
-    crate::hooks::on_raw_event(RawEvent::MouseMove {
+    RawEvent::MouseMove {
         event: RawMouseEvent {
             xy: mouse_xy,
             pressing_buttons: get_pressing_buttons(),
             button: None,
         },
-    });
+    }
 }
 
 fn get_pressing_buttons() -> std::collections::HashSet<MouseButton> {

@@ -1,6 +1,4 @@
 pub mod bundle;
-#[cfg(target_family = "wasm")]
-mod electron;
 mod init;
 pub mod local_storage;
 pub mod picker;

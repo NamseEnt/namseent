@@ -1,0 +1,267 @@
+import { envGl } from "./envGl";
+import { EventSystemOnWorker } from "./eventSystem";
+import { BundleSharedTree } from "./fds";
+import { sendMessageToMainThread } from "./interWorkerProtocol";
+
+export function createImportObject({
+    memory,
+    module,
+    nextTid,
+    wasiImport,
+    malloc,
+    free,
+    canvas,
+    bundleSharedTree,
+    eventBuffer,
+    initialWindowWh,
+}: {
+    memory: WebAssembly.Memory;
+    module: WebAssembly.Module;
+    nextTid: SharedArrayBuffer;
+    wasiImport: Record<string, any>;
+    malloc: (size: number) => number;
+    free: (ptr: number) => void;
+    canvas?: OffscreenCanvas;
+    bundleSharedTree: BundleSharedTree;
+    eventBuffer: SharedArrayBuffer;
+    initialWindowWh: number;
+}) {
+    const glFunctions = envGl({
+        malloc,
+        canvas,
+        memory,
+    }) as any;
+
+    const glDebug = false;
+
+    if (glDebug) {
+        for (const key in glFunctions) {
+            const original = glFunctions[key];
+            glFunctions[key] = (...args: (number | bigint)[]) => {
+                console.debug(
+                    key,
+                    args.map((x) => `0x${x.toString(16)}`).join(","),
+                );
+                return original(...args);
+            };
+        }
+    }
+
+    const wasiDebug = false;
+
+    const wasiSnapshotPreview1 = wasiDebug
+        ? Object.entries(wasiImport).reduce((acc, [key, value]) => {
+              if (value instanceof Function) {
+                  acc[key] = (...args: any[]) => {
+                      console.debug(
+                          key,
+                          args.map((x) => x.toString(16)).join(","),
+                      );
+                      return value(...args);
+                  };
+              } else {
+                  acc[key] = value;
+              }
+              return acc;
+          }, {} as Record<string, any>)
+        : wasiImport;
+
+    let eventSystem: EventSystemOnWorker;
+
+    return {
+        env: {
+            memory,
+            ...glFunctions,
+            ...implSetJmp({
+                memory,
+                malloc,
+                free,
+            }),
+            poll_event: (wasmBufferPtr: number): number => {
+                if (!eventSystem) {
+                    eventSystem = new EventSystemOnWorker(eventBuffer, memory);
+                }
+                return eventSystem.pollEvent(wasmBufferPtr);
+            },
+            initial_window_wh: (): number => {
+                return initialWindowWh;
+            },
+            update_canvas_wh: (width: number, height: number) => {
+                if (!canvas) {
+                    throw new Error("Canvas is not available");
+                }
+                if (canvas.width !== width) {
+                    canvas.width = width;
+                }
+                if (canvas.height !== height) {
+                    canvas.height = height;
+                }
+                sendMessageToMainThread({
+                    type: "update-canvas-wh",
+                    width,
+                    height,
+                });
+            },
+            take_bitmap: () => {
+                if (!canvas) {
+                    throw new Error("Canvas is not available");
+                }
+                const bitmap = canvas.transferToImageBitmap();
+                sendMessageToMainThread({
+                    type: "bitmap",
+                    bitmap,
+                });
+            },
+        },
+        wasi_snapshot_preview1: wasiSnapshotPreview1,
+        wasi: {
+            "thread-spawn": (startArgPtr: number) => {
+                const tid = Atomics.add(new Uint32Array(nextTid), 0, 1);
+                sendMessageToMainThread({
+                    type: "thread-spawn",
+                    tid,
+                    nextTid,
+                    importMemory: memory,
+                    module,
+                    startArgPtr,
+                    bundleSharedTree,
+                    eventBuffer,
+                    initialWindowWh,
+                });
+
+                return tid;
+            },
+        },
+        imports: {},
+    };
+}
+
+// https://github.com/aheejin/emscripten/blob/878a2f1306e25cce0c1627ef5c06e9f60d85df80/system/lib/compiler-rt/emscripten_setjmp.c
+function implSetJmp({
+    memory,
+    malloc,
+    free,
+}: {
+    memory: WebAssembly.Memory;
+    malloc: (size: number) => number;
+    free: (ptr: number) => void;
+}): {
+    saveSetjmp: Function;
+    testSetjmp: Function;
+    getTempRet0: Function;
+    setTempRet0: Function;
+} {
+    // // 0 - Nothing thrown
+    // // 1 - Exception thrown
+    // // Other values - jmpbuf pointer in the case that longjmp was thrown
+    // static uintptr_t setjmpId = 0;
+    let setjmpId = 0;
+    let tempRet0 = 0;
+
+    function getTempRet0() {
+        return tempRet0;
+    }
+
+    function setTempRet0() {
+        return tempRet0;
+    }
+
+    // typedef struct TableEntry {
+    //     uintptr_t id;
+    //     uint32_t label;
+    //   } TableEntry;
+
+    // TableEntry* saveSetjmp(uintptr_t* env, uint32_t label, TableEntry* table, uint32_t size) {
+    //     // Not particularly fast: slow table lookup of setjmpId to label. But setjmp
+    //     // prevents relooping anyhow, so slowness is to be expected. And typical case
+    //     // is 1 setjmp per invocation, or less.
+    //     uint32_t i = 0;
+    //     setjmpId++;
+    //     *env = setjmpId;
+    //     while (i < size) {
+    //       if (table[i].id == 0) {
+    //         table[i].id = setjmpId;
+    //         table[i].label = label;
+    //         // prepare next slot
+    //         table[i + 1].id = 0;
+    //         setTempRet0(size);
+    //         return table;
+    //       }
+    //       i++;
+    //     }
+    //     // grow the table
+    //     size *= 2;
+    //     table = (TableEntry*)realloc(table, sizeof(TableEntry) * (size +1));
+    //     table = saveSetjmp(env, label, table, size);
+    //     setTempRet0(size); // FIXME: unneeded?
+    //     return table;
+    //   }
+
+    function saveSetjmp(
+        env: number,
+        label: number,
+        table: number,
+        size: number,
+    ) {
+        console.debug("saveSetjmp", env, label, table, size);
+        setjmpId++;
+
+        const envBuffer = new Uint32Array(memory.buffer, env, 1);
+        envBuffer[0] = setjmpId;
+
+        const tableBuffer = new Uint32Array(memory.buffer, table, size * 2);
+
+        let i = 0;
+        while (i < size) {
+            const id = tableBuffer[i * 2];
+            if (id === 0) {
+                tableBuffer[i * 2] = setjmpId;
+                tableBuffer[i * 2 + 1] = label;
+                // prepare next slot
+                tableBuffer[(i + 1) * 2] = 0;
+                tempRet0 = size;
+                return table;
+            }
+            i++;
+        }
+
+        size *= 2;
+        free(table);
+        table = malloc((size + 1) * 8);
+        console.log("again saveSetjmp", table, size);
+        table = saveSetjmp(env, label, table, size);
+        tempRet0 = size; // FIXME: unneeded?
+        return table;
+    }
+
+    // uint32_t testSetjmp(uintptr_t id, TableEntry* table, uint32_t size) {
+    //     uint32_t i = 0;
+    //     while (i < size) {
+    //       uintptr_t curr = table[i].id;
+    //       if (curr == 0) break;
+    //       if (curr == id) {
+    //         return table[i].label;
+    //       }
+    //       i++;
+    //     }
+    //     return 0;
+    //   }
+
+    function testSetjmp(id: number, table: number, size: number) {
+        console.debug("testSetjmp", id, table, size);
+        const tableBuffer = new Uint32Array(memory.buffer, table, size * 2);
+
+        let i = 0;
+        while (i < size) {
+            const curr = tableBuffer[i * 2];
+            if (curr === 0) break;
+            if (curr === id) {
+                return tableBuffer[i * 2 + 1];
+            }
+            i++;
+        }
+        return 0;
+    }
+
+    return { saveSetjmp, testSetjmp, getTempRet0, setTempRet0 };
+}

@@ -1,24 +1,23 @@
-#[cfg(not(target_family = "wasm"))]
+#[cfg(not(target_os = "wasi"))]
 mod non_wasm;
-#[cfg(target_family = "wasm")]
+#[cfg(target_os = "wasi")]
 mod wasm;
+
+#[cfg(not(target_os = "wasi"))]
+pub(crate) use non_wasm::*;
+#[cfg(target_os = "wasi")]
+pub(crate) use wasm::*;
 
 use crate::system::InitResult;
 use crate::*;
-#[cfg(not(target_family = "wasm"))]
-pub(crate) use non_wasm::*;
-use std::{
-    collections::HashSet,
-    sync::{Arc, RwLock},
-};
-#[cfg(target_family = "wasm")]
-pub use wasm::*;
+#[cfg(not(target_os = "wasi"))]
+use std::collections::HashSet;
+use std::sync::{Arc, RwLock};
 
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,
-    #[cfg(target_family = "wasm")]
-    mouse_cursor: Arc<RwLock<String>>,
-    #[cfg(not(target_family = "wasm"))]
+    _mouse_cursor: Arc<RwLock<String>>,
+    #[cfg(not(target_os = "wasi"))]
     pressing_buttons: Arc<RwLock<HashSet<MouseButton>>>,
 }
 
@@ -28,7 +27,7 @@ lazy_static::lazy_static! {
 
 pub(crate) async fn init() -> InitResult {
     lazy_static::initialize(&MOUSE_SYSTEM);
-    set_up_event_handler();
+
     Ok(())
 }
 
@@ -39,16 +38,14 @@ impl MouseSystem {
                 x: px(0.0),
                 y: px(0.0),
             })),
-            #[cfg(target_family = "wasm")]
-            mouse_cursor: Arc::new(RwLock::new("default".to_string())),
-            #[cfg(not(target_family = "wasm"))]
+            _mouse_cursor: Arc::new(RwLock::new("default".to_string())),
+            #[cfg(not(target_os = "wasi"))]
             pressing_buttons: Arc::new(RwLock::new(HashSet::new())),
         }
     }
 }
 
-#[cfg(target_family = "wasm")]
-pub fn set_mouse_cursor(cursor: &MouseCursor) {
+pub fn set_mouse_cursor(_cursor: &MouseCursor) {
     todo!()
 }
 

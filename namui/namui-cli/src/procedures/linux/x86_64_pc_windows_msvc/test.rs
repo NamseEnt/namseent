@@ -1,8 +1,7 @@
 use crate::*;
-use std::path::Path;
 use std::process::Command;
 
-pub fn test(manifest_path: &Path) -> Result<()> {
+pub fn test(manifest_path: impl AsRef<std::path::Path>) -> Result<()> {
     Command::new("cargo")
         .args([
             "xwin",

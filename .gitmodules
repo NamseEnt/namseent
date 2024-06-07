@@ -1,0 +1,9 @@
+[submodule "namui/third-party-forks/reqwest"]
+	path = namui/third-party-forks/reqwest
+	url = https://github.com/NamseEnt/reqwest.git
+[submodule "namui/third-party-forks/rust-skia"]
+	path = namui/third-party-forks/rust-skia
+	url = https://github.com/namseent/rust-skia
+[submodule "namui/third-party-forks/tokio"]
+	path = namui/third-party-forks/tokio
+	url = https://github.com/namseent/tokio

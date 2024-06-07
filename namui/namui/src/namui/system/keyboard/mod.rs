@@ -1,12 +1,12 @@
-#[cfg(not(target_family = "wasm"))]
+#[cfg(not(target_os = "wasi"))]
 mod non_wasm;
-#[cfg(target_family = "wasm")]
+#[cfg(target_os = "wasi")]
 mod wasm;
 
-#[cfg(not(target_family = "wasm"))]
+#[cfg(not(target_os = "wasi"))]
 pub(crate) use non_wasm::*;
-#[cfg(target_family = "wasm")]
-pub use wasm::*;
+#[cfg(target_os = "wasi")]
+pub(crate) use wasm::*;
 
 use super::InitResult;
 use crate::*;
@@ -17,6 +17,14 @@ use std::{
 
 struct KeyboardSystem {
     pressing_code_set: Arc<RwLock<HashSet<Code>>>,
+}
+
+impl KeyboardSystem {
+    pub(crate) fn new() -> Self {
+        let pressing_code_set = Arc::new(RwLock::new(HashSet::new()));
+
+        KeyboardSystem { pressing_code_set }
+    }
 }
 
 lazy_static::lazy_static! {
@@ -50,6 +58,11 @@ fn record_key_up(code: Code) {
 
 fn pressing_code_set() -> HashSet<Code> {
     KEYBOARD_SYSTEM.pressing_code_set.read().unwrap().clone()
+}
+
+#[cfg(target_os = "wasi")]
+fn clear_pressing_code_set() {
+    KEYBOARD_SYSTEM.pressing_code_set.write().unwrap().clear()
 }
 
 pub fn shift_press() -> bool {

@@ -3,10 +3,7 @@ use std::fmt::Debug;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct StopWatch {
-    #[cfg(not(target_family = "wasm"))]
     inner: Instant,
-    #[cfg(target_family = "wasm")]
-    inner: todo,
     now_fn: fn() -> Instant,
     key: String,
     index: usize,
@@ -37,7 +34,7 @@ impl StopWatch {
     pub fn lap_and_print(&mut self) {
         let now = (self.now_fn)();
         let elapsed = now - self.inner;
-        println!("StopWatch - {:?}({}): {elapsed:?}", self.key, self.index);
+        crate::log!("StopWatch - {:?}({}): {elapsed:?}", self.key, self.index);
 
         self.index += 1;
         self.inner = (self.now_fn)();

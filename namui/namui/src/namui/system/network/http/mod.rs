@@ -1,9 +1,8 @@
-mod into_url;
 mod response;
 mod simple;
 
 use crate::simple_error_impl;
-pub use into_url::*;
+use reqwest::IntoUrl;
 pub use reqwest::Method;
 pub use response::*;
 pub use simple::*;
@@ -14,8 +13,6 @@ pub async fn fetch(
     method: Method,
     build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
 ) -> Result<Response, HttpError> {
-    let url = resolve_relative_url(url)?;
-
     let builder = reqwest::Client::new().request(method, url);
     Ok(Response::new(build(builder).send().await?))
 }
@@ -53,38 +50,6 @@ pub async fn fetch_json<T: serde::de::DeserializeOwned>(
     build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
 ) -> Result<T, HttpError> {
     fetch_serde(url, method, build, |slice| serde_json::from_slice(slice)).await
-}
-
-fn resolve_relative_url(url: impl IntoUrl) -> Result<Url, HttpError> {
-    let url_string = url.as_str().to_string();
-    let result = url.into_url();
-    match result {
-        Ok(url) => Ok(url),
-        Err(ParseError::RelativeUrlWithoutBase) => {
-            #[cfg(target_arch = "wasm32")]
-            fn get_base_url() -> Option<String> {
-                Some(
-                    web_sys::window()
-                        .unwrap()
-                        .document()
-                        .unwrap()
-                        .url()
-                        .unwrap(),
-                )
-            }
-            #[cfg(not(target_arch = "wasm32"))]
-            fn get_base_url() -> Option<String> {
-                None
-            }
-            let base_url = get_base_url();
-            if let Some(base_url) = base_url {
-                Ok(Url::parse(&base_url)?.join(&url_string)?)
-            } else {
-                Err(HttpError::UrlParseError(result.unwrap_err()))
-            }
-        }
-        Err(error) => Err(HttpError::UrlParseError(error)),
-    }
 }
 
 #[derive(Debug)]

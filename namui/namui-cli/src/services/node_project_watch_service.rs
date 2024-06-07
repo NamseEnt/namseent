@@ -1,6 +1,5 @@
 use crate::*;
 use notify::{Config, RecommendedWatcher, Watcher};
-use std::path::Path;
 
 pub struct NodeProjectWatchService {
     watcher: RecommendedWatcher,
@@ -8,7 +7,7 @@ pub struct NodeProjectWatchService {
 }
 
 impl NodeProjectWatchService {
-    pub(crate) fn new(node_project_root_path: impl AsRef<Path>) -> Result<Self> {
+    pub(crate) fn new(node_project_root_path: impl AsRef<std::path::Path>) -> Result<Self> {
         let (watcher_sender, watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
         let mut watcher = RecommendedWatcher::new(
             move |res: notify::Result<notify::Event>| {

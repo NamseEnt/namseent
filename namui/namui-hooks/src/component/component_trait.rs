@@ -1,7 +1,7 @@
 use crate::*;
 use std::{any::TypeId, fmt::Debug};
 
-pub trait Component: StaticType + Debug {
+pub trait Component: StaticType {
     fn render(self, ctx: &RenderCtx);
     fn direct_rendering_tree(self) -> Result<RenderingTree, Self>
     where
@@ -9,13 +9,14 @@ pub trait Component: StaticType + Debug {
     {
         Err(self)
     }
-    #[cfg(target_family = "wasm")]
-    fn with_mouse_cursor<'a>(self, cursor: MouseCursor) -> WithMouseCursor<Self>
-    where
-        Self: 'a + Sized,
-    {
-        native::with_mouse_cursor(self, cursor)
-    }
+    // TODO
+    // #[cfg(target_family = "wasm")]
+    // fn with_mouse_cursor<'a>(self, cursor: MouseCursor) -> WithMouseCursor<Self>
+    // where
+    //     Self: 'a + Sized,
+    // {
+    //     native::with_mouse_cursor(self, cursor)
+    // }
     fn attach_event<'a>(self, on_event: impl 'a + FnOnce(Event)) -> AttachEvent<'a, Self>
     where
         Self: 'a + Sized,
@@ -102,6 +103,13 @@ impl Component for TextDrawCommand {
         Ok(RenderingTree::Node(DrawCommand::Text {
             command: self.into(),
         }))
+    }
+}
+
+impl<T: Fn(&RenderCtx)> StaticType for T {}
+impl<T: Fn(&RenderCtx)> Component for T {
+    fn render(self, ctx: &RenderCtx) {
+        self(ctx)
     }
 }
 
