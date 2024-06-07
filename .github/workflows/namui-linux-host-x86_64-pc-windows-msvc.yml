@@ -37,7 +37,9 @@ jobs:
       XWIN_VERSION: 17
       CARGO_VERSION: "" # Should be set in the job
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install wine
         run: |
