@@ -86,7 +86,23 @@ export function createImportObject({
             initial_window_wh: (): number => {
                 return initialWindowWh;
             },
-            take_bitmap: (width: number, height: number) => {
+            update_canvas_wh: (width: number, height: number) => {
+                if (!canvas) {
+                    throw new Error("Canvas is not available");
+                }
+                if (canvas.width !== width) {
+                    canvas.width = width;
+                }
+                if (canvas.height !== height) {
+                    canvas.height = height;
+                }
+                sendMessageToMainThread({
+                    type: "update-canvas-wh",
+                    width,
+                    height,
+                });
+            },
+            take_bitmap: () => {
                 if (!canvas) {
                     throw new Error("Canvas is not available");
                 }
@@ -94,8 +110,6 @@ export function createImportObject({
                 sendMessageToMainThread({
                     type: "bitmap",
                     bitmap,
-                    width,
-                    height,
                 });
             },
         },

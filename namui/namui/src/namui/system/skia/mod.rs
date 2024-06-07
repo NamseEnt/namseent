@@ -97,7 +97,6 @@ pub(crate) fn on_skia_drawing_thread() -> Result<()> {
     let mut last_rendering_tree = None;
     let mut rendering_tree_changed = false;
     let mut should_redraw = false;
-    let mut screen_size = crate::screen::size();
 
     while let Ok(command) = rx.recv() {
         let mut on_command = |command| match command {
@@ -109,7 +108,6 @@ pub(crate) fn on_skia_drawing_thread() -> Result<()> {
             }
             DrawingCommand::Resize { wh } => {
                 should_redraw = true;
-                screen_size = wh;
                 skia.on_resize(wh);
             }
         };
@@ -122,7 +120,7 @@ pub(crate) fn on_skia_drawing_thread() -> Result<()> {
         if should_redraw || rendering_tree_changed {
             if let Some(rendering_tree) = last_rendering_tree.clone() {
                 namui_drawer::draw(&mut skia, rendering_tree);
-                inner::after_draw(screen_size);
+                inner::after_draw();
                 rendering_tree_changed = false;
                 should_redraw = false;
             }

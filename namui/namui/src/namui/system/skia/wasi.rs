@@ -15,9 +15,9 @@ pub(super) fn init_skia() -> Result<NativeSkia> {
 }
 
 extern "C" {
-    fn take_bitmap(width: i32, height: i32);
+    fn take_bitmap();
 }
 
-pub(super) fn after_draw(screen_size: Wh<IntPx>) {
-    unsafe { take_bitmap(screen_size.width.as_i32(), screen_size.height.as_i32()) };
+pub(super) fn after_draw() {
+    unsafe { take_bitmap() };
 }

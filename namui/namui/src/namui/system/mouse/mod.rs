@@ -3,16 +3,14 @@ mod non_wasm;
 #[cfg(target_os = "wasi")]
 mod wasm;
 
-use crate::system::InitResult;
-use crate::*;
 #[cfg(not(target_os = "wasi"))]
 pub(crate) use non_wasm::*;
-use std::{
-    collections::HashSet,
-    sync::{Arc, RwLock},
-};
 #[cfg(target_os = "wasi")]
 pub use wasm::*;
+
+use crate::system::InitResult;
+use crate::*;
+use std::sync::{Arc, RwLock};
 
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,

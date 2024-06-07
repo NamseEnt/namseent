@@ -20,6 +20,9 @@ export type WorkerMessagePayload =
     | {
           type: "bitmap";
           bitmap: ImageBitmap;
+      }
+    | {
+          type: "update-canvas-wh";
           width: number;
           height: number;
       };

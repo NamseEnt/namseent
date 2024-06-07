@@ -34,13 +34,16 @@ function onMessage(message: MessageEvent) {
             break;
         }
         case "bitmap": {
+            bitmapCtx.transferFromImageBitmap(payload.bitmap);
+            break;
+        }
+        case "update-canvas-wh": {
             if (canvas.width != payload.width) {
                 canvas.width = payload.width;
             }
             if (canvas.height != payload.height) {
                 canvas.height = payload.height;
             }
-            bitmapCtx.transferFromImageBitmap(payload.bitmap);
             break;
         }
         default:

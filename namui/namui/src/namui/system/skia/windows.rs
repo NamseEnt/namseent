@@ -16,6 +16,6 @@ pub(super) fn init_skia() -> Result<NativeSkia> {
     Ok(skia)
 }
 
-pub(super) fn after_draw(_screen_size: Wh<IntPx>) {
+pub(super) fn after_draw() {
     // Nothing
 }
