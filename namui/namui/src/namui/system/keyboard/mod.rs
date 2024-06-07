@@ -5,8 +5,6 @@ mod wasm;
 
 #[cfg(not(target_family = "wasm"))]
 pub(crate) use non_wasm::*;
-#[cfg(target_family = "wasm")]
-pub use wasm::*;
 
 use super::InitResult;
 use crate::*;
@@ -46,16 +44,19 @@ pub fn any_code_press(codes: impl IntoIterator<Item = Code>) -> bool {
     false
 }
 
+#[cfg(not(target_family = "wasm"))]
 fn record_key_down(code: Code) {
     let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
     pressing_code_set.insert(code);
 }
 
+#[cfg(not(target_family = "wasm"))]
 fn record_key_up(code: Code) {
     let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
     pressing_code_set.remove(&code);
 }
 
+#[cfg(not(target_family = "wasm"))]
 fn pressing_code_set() -> HashSet<Code> {
     KEYBOARD_SYSTEM.pressing_code_set.read().unwrap().clone()
 }

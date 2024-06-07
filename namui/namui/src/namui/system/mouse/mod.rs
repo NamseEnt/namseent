@@ -5,11 +5,10 @@ mod wasm;
 
 #[cfg(not(target_os = "wasi"))]
 pub(crate) use non_wasm::*;
-#[cfg(target_os = "wasi")]
-pub use wasm::*;
 
 use crate::system::InitResult;
 use crate::*;
+#[cfg(not(target_os = "wasi"))]
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
