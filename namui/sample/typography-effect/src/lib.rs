@@ -44,7 +44,8 @@ impl Component for TypographyEffectExample {
             Paint::new(Color::WHITE),
             TextAlign::Center,
             TextBaseline::Middle,
-            Blur::Normal { sigma: 24.0 },
+            BlurStyle::Normal,
+            blur_sigma::from_radius(24.0),
             24.px(),
             Color::from_u8(255, 128, 0, 255),
         ));
