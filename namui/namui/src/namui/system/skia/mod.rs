@@ -20,7 +20,6 @@ static SK_CALCULATE: OnceLock<Arc<dyn SkCalculate + Send + Sync>> = OnceLock::ne
 #[derive(Debug)]
 enum DrawingCommand {
     Draw { rendering_tree: RenderingTree },
-    Redraw,
     Resize { wh: Wh<IntPx> },
 }
 
@@ -83,11 +82,6 @@ pub(crate) fn on_window_resize(wh: Wh<IntPx>) {
 
 pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
     send_command(DrawingCommand::Draw { rendering_tree });
-}
-
-/// This function redraw forcibly.
-pub(crate) fn redraw() {
-    send_command(DrawingCommand::Redraw)
 }
 
 fn send_command(command: DrawingCommand) {

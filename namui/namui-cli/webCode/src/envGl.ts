@@ -5,13 +5,14 @@ import {
 
 export function envGl({
     malloc,
-    webgl,
+    canvas,
     memory,
 }: {
     malloc: (size: number) => number;
-    webgl: WebGL2RenderingContext | undefined;
+    canvas: OffscreenCanvas | undefined;
     memory: WebAssembly.Memory;
 }) {
+    const webgl = canvas?.getContext("webgl2");
     const stringCache = new Map<number, number>();
 
     const webglBufferMap = new Map<number, WebGLBuffer>();
@@ -57,10 +58,47 @@ export function envGl({
         return ptr;
     }
 
+    const extensionStringCache = new Map<number, number>();
+
     return {
-        glGetStringi: () => {
-            throw new Error("not implemented");
-            // return webgl!.getStringi();
+        /**
+         * const GLubyte *glGetStringi(
+         *     GLenum name,
+         *     GLuint index
+         * );
+         *
+         * name: Specifies a symbolic constant, one of GL_VENDOR, GL_RENDERER, GL_VERSION,
+         * or GL_SHADING_LANGUAGE_VERSION. Additionally, glGetStringi accepts the GL_EXTENSIONS token.
+         *
+         * index: For glGetStringi, specifies the index of the string to return.
+         */
+        glGetStringi: (pname: number, index: number) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            switch (pname) {
+                case 0x1f03 /* GL_EXTENSIONS */: {
+                    const extensions = webgl.getSupportedExtensions();
+                    if (!extensions) {
+                        throw new Error("No extensions found");
+                    }
+                    if (extensionStringCache.has(index)) {
+                        return extensionStringCache.get(index)!;
+                    }
+                    if (index >= extensions.length) {
+                        return 0;
+                    }
+                    const ret = stringToNewUTF8(extensions[index]);
+                    extensionStringCache.set(index, ret);
+                    return ret;
+                }
+                default:
+                    throw new Error(
+                        `GL_INVALID_ENUM in glGetStringi: Unknown parameter ${pname.toString(
+                            16,
+                        )}!`,
+                    );
+            }
         },
         /**
          * @param pname
@@ -73,11 +111,11 @@ export function envGl({
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
-            console.debug("pname", pname.toString(16));
             switch (pname) {
-                case 33309: // GL_NUM_EXTENSIONS
+                case 0x821d: // GL_NUM_EXTENSIONS
                     {
-                        const value = webgl.getSupportedExtensions.length;
+                        const value =
+                            webgl.getSupportedExtensions()?.length || 0;
                         memoryView().setInt32(paramsPtr, value, true);
                     }
                     break;
@@ -106,8 +144,6 @@ export function envGl({
                     break;
                 case 7936 /* GL_VENDOR */:
                 case 7937 /* GL_RENDERER */:
-                case 37445 /* UNMASKED_VENDOR_WEBGL */:
-                case 37446 /* UNMASKED_RENDERER_WEBGL */:
                     const paramter = webgl.getParameter(name);
                     console.debug("paramter", paramter);
 
@@ -119,6 +155,48 @@ export function envGl({
                     }
 
                     ret = stringToNewUTF8(paramter);
+                    break;
+                case 37445 /* UNMASKED_VENDOR_WEBGL */:
+                    {
+                        const debugInfo = webgl.getExtension(
+                            "WEBGL_debug_renderer_info",
+                        );
+                        if (!debugInfo) {
+                            throw new Error(
+                                "GL_INVALID_ENUM in glGetString: WEBGL_debug_renderer_info not supported!",
+                            );
+                        }
+                        const vendor = webgl.getParameter(
+                            debugInfo.UNMASKED_VENDOR_WEBGL,
+                        );
+                        if (!vendor) {
+                            throw new Error(
+                                "GL_INVALID_ENUM in glGetString: Received empty parameter for query name UNMASKED_VENDOR_WEBGL!",
+                            );
+                        }
+                        ret = stringToNewUTF8(vendor);
+                    }
+                    break;
+                case 37446 /* UNMASKED_RENDERER_WEBGL */:
+                    {
+                        const debugInfo = webgl.getExtension(
+                            "WEBGL_debug_renderer_info",
+                        );
+                        if (!debugInfo) {
+                            throw new Error(
+                                "GL_INVALID_ENUM in glGetString: WEBGL_debug_renderer_info not supported!",
+                            );
+                        }
+                        const renderer = webgl.getParameter(
+                            debugInfo.UNMASKED_RENDERER_WEBGL,
+                        );
+                        if (!renderer) {
+                            throw new Error(
+                                "GL_INVALID_ENUM in glGetString: Received empty parameter for query name UNMASKED_RENDERER_WEBGL!",
+                            );
+                        }
+                        ret = stringToNewUTF8(renderer);
+                    }
                     break;
                 case 7938 /* GL_VERSION */:
                     let glVersion = webgl.getParameter(7938 /*GL_VERSION*/);
@@ -488,9 +566,44 @@ export function envGl({
             throw new Error("not implemented");
             // return webgl!.getProgramInfoLog();
         },
-        glGetFloatv: () => {
-            throw new Error("not implemented");
-            // return webgl!.getFloatv();
+        /**
+         * void glGetFloatv(
+         *     GLenum pname,
+         *     GLfloat *params
+         * );
+         *
+         * pname: Specifies the parameter value to be returned. The accepted symbolic constants are listed below.
+         * params: Returns the value or values of the specified parameter.
+         */
+        glGetFloatv: (pname: number, paramsPtr: number) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            switch (pname) {
+                case 0x84ff /* GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT */:
+                    {
+                        const ext = webgl.getExtension(
+                            "EXT_texture_filter_anisotropic",
+                        );
+                        if (!ext) {
+                            throw new Error(
+                                "EXT_texture_filter_anisotropic not supported",
+                            );
+                        }
+
+                        const value = webgl.getParameter(
+                            ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT,
+                        );
+                        memoryView().setFloat32(paramsPtr, value, true);
+                    }
+                    break;
+                default:
+                    {
+                        const value = webgl.getParameter(pname);
+                        memoryView().setFloat32(paramsPtr, value, true);
+                    }
+                    break;
+            }
         },
         glGetError: () => {
             return webgl!.getError();

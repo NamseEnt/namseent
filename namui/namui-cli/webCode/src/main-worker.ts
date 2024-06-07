@@ -3,6 +3,7 @@ import { createImportObject } from "./importObject";
 import wasmUrl from "namui-runtime-wasm.wasm?url";
 import { init } from "./__generated__/bundle";
 import { getFds } from "./fds";
+import { WorkerMessagePayload } from "./interWorkerProtocol";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -18,16 +19,23 @@ const nextTid = new SharedArrayBuffer(4);
 new Uint32Array(nextTid)[0] = 1;
 
 self.onmessage = async (message) => {
+    const payload: WorkerMessagePayload = message.data;
+
+    if (payload.type !== "start-main-thread") {
+        throw new Error(`Unexpected message type: ${payload.type}`);
+    }
+
     const bundleSharedTree = await init();
 
     const fds = getFds(bundleSharedTree);
     const wasi = new WASI([], env, fds);
 
-    const { canvas, eventBuffer } = message.data as {
-        canvas: OffscreenCanvas;
-        eventBuffer: SharedArrayBuffer;
-    };
-    const webgl = canvas.getContext("webgl2")!;
+    const { eventBuffer, initialWindowWh } = payload;
+
+    const canvas = new OffscreenCanvas(
+        (initialWindowWh >> 16) & 0xffff,
+        initialWindowWh & 0xffff,
+    );
 
     const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
 
@@ -48,9 +56,10 @@ self.onmessage = async (message) => {
         free: (ptr: number) => {
             return exports.free(ptr);
         },
-        webgl,
+        canvas,
         bundleSharedTree,
         eventBuffer,
+        initialWindowWh,
     });
 
     const instance = await WebAssembly.instantiate(module, importObject);

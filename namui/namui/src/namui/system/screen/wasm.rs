@@ -1,8 +1,17 @@
 use crate::system::InitResult;
 use crate::*;
 use std::sync::atomic::AtomicU32;
+use std::sync::OnceLock;
+
+pub(crate) async fn init() -> InitResult {
+    let window_wh = unsafe { initial_window_wh() };
+    on_resize((window_wh >> 16) as u16, (window_wh & 0xffff) as u16);
+
+    Ok(())
+}
 
 #[repr(u8)]
+#[allow(dead_code)]
 enum EventType {
     OnAnimationFrame = 0,
     ScreenResize,
@@ -10,6 +19,7 @@ enum EventType {
 
 extern "C" {
     fn poll_event(ptr: *const u8) -> u8;
+    fn initial_window_wh() -> u32;
 }
 
 pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Send) {
@@ -23,10 +33,7 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
             let event_type: EventType = std::mem::transmute(packet[0]);
 
             let raw_event: RawEvent = match event_type {
-                EventType::OnAnimationFrame => {
-                    on_animation_frame();
-                    RawEvent::ScreenRedraw {}
-                }
+                EventType::OnAnimationFrame => RawEvent::ScreenRedraw,
                 EventType::ScreenResize => {
                     /*
                         body
@@ -60,18 +67,15 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
     - body: depends on event type
 */
 
-pub(crate) async fn init() -> InitResult {
-    Ok(())
-}
-
 // width 16bits, height 16bits
-static SIZE: AtomicU32 = AtomicU32::new(0);
+static SIZE: OnceLock<AtomicU32> = OnceLock::new();
 
 fn on_resize(width: u16, height: u16) {
-    SIZE.store(
-        (width as u32) << 16 | height as u32,
-        std::sync::atomic::Ordering::Relaxed,
-    );
+    SIZE.get_or_init(|| AtomicU32::new(unsafe { initial_window_wh() }))
+        .store(
+            (width as u32) << 16 | height as u32,
+            std::sync::atomic::Ordering::Relaxed,
+        );
 
     let wh = crate::Wh {
         width: (width as i32).int_px(),
@@ -83,13 +87,10 @@ fn on_resize(width: u16, height: u16) {
     // crate::hooks::on_raw_event(RawEvent::ScreenResize { wh });
 }
 
-fn on_animation_frame() {
-    skia::redraw();
-    // crate::hooks::on_raw_event(RawEvent::ScreenRedraw {});
-}
-
 pub fn size() -> crate::Wh<IntPx> {
-    let size = SIZE.load(std::sync::atomic::Ordering::Relaxed);
+    let size = SIZE
+        .get_or_init(|| AtomicU32::new(unsafe { initial_window_wh() }))
+        .load(std::sync::atomic::Ordering::Relaxed);
     crate::Wh {
         width: ((size >> 16) as i32).int_px(),
         height: ((size & 0xffff) as i32).int_px(),

@@ -1,8 +1,14 @@
 import { WASI } from "./wasi_shim";
 import { createImportObject } from "./importObject";
-import { BundleSharedTree, getFds } from "./fds";
+import { getFds } from "./fds";
+import { WorkerMessagePayload } from "./interWorkerProtocol";
 
 self.onmessage = async (message) => {
+    const payload: WorkerMessagePayload = message.data;
+
+    if (payload.type !== "thread-spawn") {
+        throw new Error(`Unexpected message type: ${payload.type}`);
+    }
     const {
         tid,
         nextTid,
@@ -11,15 +17,8 @@ self.onmessage = async (message) => {
         startArgPtr,
         bundleSharedTree,
         eventBuffer,
-    } = message.data as {
-        tid: number;
-        nextTid: SharedArrayBuffer;
-        importMemory: WebAssembly.Memory;
-        module: WebAssembly.Module;
-        startArgPtr: number;
-        bundleSharedTree: BundleSharedTree;
-        eventBuffer: SharedArrayBuffer;
-    };
+        initialWindowWh,
+    } = payload;
 
     const env = ["RUST_BACKTRACE=full"];
     const fds = getFds(bundleSharedTree);
@@ -40,6 +39,7 @@ self.onmessage = async (message) => {
         },
         bundleSharedTree,
         eventBuffer,
+        initialWindowWh,
     });
 
     const instance = await WebAssembly.instantiate(module, importObject);

@@ -56,12 +56,8 @@ impl NativeSurface {
 
 impl SkSurface for NativeSurface {
     fn flush(&mut self) {
-        self.context.flush_surface_with_access(
-            &mut self.surface,
-            skia_safe::surface::BackendSurfaceAccess::Present,
-            &Default::default(),
-        );
-        self.context.submit(None);
+        self.context
+            .flush_and_submit_surface(&mut self.surface, Some(skia_safe::gpu::SyncCpu::Yes));
     }
 
     fn canvas(&mut self) -> &dyn SkCanvas {

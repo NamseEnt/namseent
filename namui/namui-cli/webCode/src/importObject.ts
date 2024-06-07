@@ -1,6 +1,7 @@
 import { envGl } from "./envGl";
 import { EventSystemOnWorker } from "./eventSystem";
 import { BundleSharedTree } from "./fds";
+import { sendMessageToMainThread } from "./interWorkerProtocol";
 
 export function createImportObject({
     memory,
@@ -9,9 +10,10 @@ export function createImportObject({
     wasiImport,
     malloc,
     free,
-    webgl,
+    canvas,
     bundleSharedTree,
     eventBuffer,
+    initialWindowWh,
 }: {
     memory: WebAssembly.Memory;
     module: WebAssembly.Module;
@@ -19,13 +21,14 @@ export function createImportObject({
     wasiImport: Record<string, any>;
     malloc: (size: number) => number;
     free: (ptr: number) => void;
-    webgl?: WebGL2RenderingContext;
+    canvas?: OffscreenCanvas;
     bundleSharedTree: BundleSharedTree;
     eventBuffer: SharedArrayBuffer;
+    initialWindowWh: number;
 }) {
     const glFunctions = envGl({
         malloc,
-        webgl,
+        canvas,
         memory,
     }) as any;
 
@@ -35,7 +38,10 @@ export function createImportObject({
         for (const key in glFunctions) {
             const original = glFunctions[key];
             glFunctions[key] = (...args: (number | bigint)[]) => {
-                console.debug(key, args.map((x) => x.toString(16)).join(","));
+                console.debug(
+                    key,
+                    args.map((x) => `0x${x.toString(16)}`).join(","),
+                );
                 return original(...args);
             };
         }
@@ -77,12 +83,28 @@ export function createImportObject({
                 }
                 return eventSystem.pollEvent(wasmBufferPtr);
             },
+            initial_window_wh: (): number => {
+                return initialWindowWh;
+            },
+            take_bitmap: (width: number, height: number) => {
+                if (!canvas) {
+                    throw new Error("Canvas is not available");
+                }
+                const bitmap = canvas.transferToImageBitmap();
+                sendMessageToMainThread({
+                    type: "bitmap",
+                    bitmap,
+                    width,
+                    height,
+                });
+            },
         },
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {
             "thread-spawn": (startArgPtr: number) => {
                 const tid = Atomics.add(new Uint32Array(nextTid), 0, 1);
-                self.postMessage({
+                sendMessageToMainThread({
+                    type: "thread-spawn",
                     tid,
                     nextTid,
                     importMemory: memory,
@@ -90,6 +112,7 @@ export function createImportObject({
                     startArgPtr,
                     bundleSharedTree,
                     eventBuffer,
+                    initialWindowWh,
                 });
 
                 return tid;
