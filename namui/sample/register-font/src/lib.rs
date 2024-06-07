@@ -10,7 +10,7 @@ pub fn main() {
 struct FontExample;
 
 impl Component for FontExample {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         const TYPEFACE_NAME: &str = "MoiraiOne-Regular";
 
         let (loading, set_loading) = ctx.state(|| false);
@@ -22,7 +22,9 @@ impl Component for FontExample {
                 let font = namui::file::bundle::read("bundle:resources/MoiraiOne-Regular.ttf")
                     .await
                     .unwrap();
-                typeface::register_typeface(TYPEFACE_NAME, font);
+                typeface::register_typeface(TYPEFACE_NAME, font)
+                    .await
+                    .unwrap();
                 set_loading.set(false);
             });
         });
@@ -55,7 +57,5 @@ impl Component for FontExample {
             },
             max_width: None,
         }));
-
-        
     }
 }
