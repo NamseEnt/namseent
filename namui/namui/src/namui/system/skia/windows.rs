@@ -1,6 +1,5 @@
 use super::*;
 use namui_skia::*;
-use namui_type::*;
 
 pub(crate) fn init() -> Result<()> {
     tokio::task::spawn_blocking(on_skia_drawing_thread);

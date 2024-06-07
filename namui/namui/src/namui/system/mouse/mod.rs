@@ -10,6 +10,7 @@ pub use wasm::*;
 
 use crate::system::InitResult;
 use crate::*;
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
 struct MouseSystem {
