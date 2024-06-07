@@ -1,7 +1,6 @@
 use crate::*;
 use crate::{cli::Target, types::ErrorMessage};
 use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
-use services::wasi_cargo_envs::wasi_cargo_envs;
 use std::path::PathBuf;
 use std::process::Output;
 use tokio::process::Command;
@@ -75,7 +74,6 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 .args(args)
                 .current_dir(&build_option.project_root_path)
                 .envs(get_envs(build_option))
-                .envs(wasi_cargo_envs())
                 .output()
                 .await?)
         }

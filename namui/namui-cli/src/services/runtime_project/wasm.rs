@@ -1,5 +1,6 @@
 use super::{get_project_name, GenerateRuntimeProjectArgs};
 use crate::{util::recreate_dir_all, *};
+use services::wasi_cargo_envs::wasi_cargo_envs;
 use util::get_cli_root_path;
 
 pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
@@ -83,8 +84,14 @@ rustflags = [
     "-Clink-arg=--export=malloc",
     "-Clink-arg=--export=free",
 ]
+
+[env]
+{env}
 "#,
                 wasi_sdk_path = wasi_sdk_path.to_string_lossy(),
+                env = wasi_cargo_envs()
+                    .map(|(key, value)| format!("{key:?}={value:?}"))
+                    .join("\n"),
             ),
         )?;
     }
