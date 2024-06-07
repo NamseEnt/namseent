@@ -222,7 +222,6 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
     document.addEventListener("mouseup", (e) => onMouseEvent("up", e));
 
     document.addEventListener("wheel", (event) => {
-        event.preventDefault();
         checkIndexOverflow();
 
         eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.WHEEL);
