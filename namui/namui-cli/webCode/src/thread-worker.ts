@@ -1,4 +1,4 @@
-import { WASI } from "./wasi_shim";
+import { WASI } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./importObject";
 import { getFds } from "./fds";
 import { WorkerMessagePayload } from "./interWorkerProtocol";

@@ -6,8 +6,7 @@ import {
     OpenFile,
     PreopenDirectory,
     Directory,
-    OpenDirectory,
-} from "./wasi_shim";
+} from "@bjorn3/browser_wasi_shim";
 
 export function getFds(bundleSharedTree: BundleSharedTree): Fd[] {
     return [
@@ -18,14 +17,7 @@ export function getFds(bundleSharedTree: BundleSharedTree): Fd[] {
         ConsoleStdout.lineBuffered((msg) =>
             console.warn(`[WASI stderr] ${msg}`),
         ),
-        // new PreopenDirectory(
-        //     ".",
-        //     new Map([
-        //         ["bundle", new Directory(makeDictionaryTree(bundleSharedTree))],
-        //     ]),
-        // ),
         new PreopenDirectory("bundle", makeDictionaryTree(bundleSharedTree)),
-        // new OpenDirectory(new Directory(makeDictionaryTree(bundleSharedTree))),
     ];
 }
 
