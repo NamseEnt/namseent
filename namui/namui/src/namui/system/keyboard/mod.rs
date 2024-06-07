@@ -1,10 +1,12 @@
-#[cfg(not(target_family = "wasm"))]
+#[cfg(not(target_os = "wasi"))]
 mod non_wasm;
-#[cfg(target_family = "wasm")]
+#[cfg(target_os = "wasi")]
 mod wasm;
 
-#[cfg(not(target_family = "wasm"))]
+#[cfg(not(target_os = "wasi"))]
 pub(crate) use non_wasm::*;
+#[cfg(target_os = "wasi")]
+pub(crate) use wasm::*;
 
 use super::InitResult;
 use crate::*;
@@ -44,24 +46,21 @@ pub fn any_code_press(codes: impl IntoIterator<Item = Code>) -> bool {
     false
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn record_key_down(code: Code) {
     let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
     pressing_code_set.insert(code);
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn record_key_up(code: Code) {
     let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
     pressing_code_set.remove(&code);
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn pressing_code_set() -> HashSet<Code> {
     KEYBOARD_SYSTEM.pressing_code_set.read().unwrap().clone()
 }
 
-#[allow(dead_code)]
+#[cfg(target_os = "wasi")]
 fn clear_pressing_code_set() {
     KEYBOARD_SYSTEM.pressing_code_set.write().unwrap().clear()
 }

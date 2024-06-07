@@ -1,40 +1,35 @@
-// TODO
+use super::{clear_pressing_code_set, pressing_code_set, record_key_down, record_key_up};
+use crate::*;
+use std::str::FromStr;
 
-// use super::{clear_pressing_code_set, pressing_code_set, record_key_down, record_key_up};
-// use crate::*;
+pub(crate) fn on_key_down(code_str: &str) -> RawEvent {
+    let code = Code::from_str(code_str).unwrap();
+    record_key_down(code);
 
-// #[no_mangle]
-// pub extern "C" fn on_key_down(code_u8: u8) {
-//     let code = Code::try_from(code_u8).unwrap();
-//     record_key_down(code);
+    RawEvent::KeyDown {
+        event: RawKeyboardEvent {
+            code,
+            pressing_codes: pressing_code_set(),
+        },
+    }
+}
 
-//     crate::hooks::on_raw_event(RawEvent::KeyDown {
-//         event: RawKeyboardEvent {
-//             code,
-//             pressing_codes: pressing_code_set(),
-//         },
-//     });
-// }
+pub(crate) fn on_key_up(code_str: &str) -> RawEvent {
+    let code = Code::from_str(code_str).unwrap();
+    record_key_up(code);
 
-// #[no_mangle]
-// pub extern "C" fn on_key_up(code_u8: u8) {
-//     let code = Code::try_from(code_u8).unwrap();
-//     record_key_up(code);
+    RawEvent::KeyUp {
+        event: RawKeyboardEvent {
+            code,
+            pressing_codes: pressing_code_set(),
+        },
+    }
+}
 
-//     crate::hooks::on_raw_event(RawEvent::KeyUp {
-//         event: RawKeyboardEvent {
-//             code,
-//             pressing_codes: pressing_code_set(),
-//         },
-//     });
-// }
+pub(crate) fn on_blur() {
+    clear_pressing_code_set();
+}
 
-// #[no_mangle]
-// pub extern "C" fn on_blur() {
-//     clear_pressing_code_set();
-// }
-
-// #[no_mangle]
-// pub extern "C" fn on_visibility_change() {
-//     clear_pressing_code_set();
-// }
+pub(crate) fn on_visibility_change() {
+    clear_pressing_code_set();
+}

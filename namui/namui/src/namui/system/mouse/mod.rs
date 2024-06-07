@@ -5,6 +5,8 @@ mod wasm;
 
 #[cfg(not(target_os = "wasi"))]
 pub(crate) use non_wasm::*;
+#[cfg(target_os = "wasi")]
+pub(crate) use wasm::*;
 
 use crate::system::InitResult;
 use crate::*;
