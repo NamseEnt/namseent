@@ -54,3 +54,7 @@ function onMessage(message: MessageEvent) {
 mainWorker.onmessage = onMessage;
 
 startEventSystemOnMainThread(eventBuffer);
+
+document.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+});

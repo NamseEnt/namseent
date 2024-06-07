@@ -177,14 +177,15 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
         Atomics.notify(i32Array, 0);
     });
 
-    function onKeyEvent(type: "down" | "up", code: string) {
+    function onKeyEvent(type: "down" | "up", event: KeyboardEvent) {
+        event.preventDefault();
         checkIndexOverflow();
 
         eventBufferView.setUint8(
             eventBufferIndex,
             type === "down" ? EVENT_TYPE.KEY_DOWN : EVENT_TYPE.KEY_UP,
         );
-        const codeBuffer = new TextEncoder().encode(code);
+        const codeBuffer = new TextEncoder().encode(event.code);
         eventBufferView.setUint8(eventBufferIndex + 1, codeBuffer.length);
         new Uint8Array(eventBuffer, eventBufferIndex + 2).set(codeBuffer);
         eventBufferIndex += 2 + codeBuffer.length;
@@ -192,10 +193,11 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
         Atomics.add(i32Array, 0, 1);
         Atomics.notify(i32Array, 0);
     }
-    document.addEventListener("keydown", (e) => onKeyEvent("down", e.code));
-    document.addEventListener("keyup", (e) => onKeyEvent("up", e.code));
+    document.addEventListener("keydown", (e) => onKeyEvent("down", e));
+    document.addEventListener("keyup", (e) => onKeyEvent("up", e));
 
-    function onMouseEvent(type: "down" | "move" | "up", e: MouseEvent) {
+    function onMouseEvent(type: "down" | "move" | "up", event: MouseEvent) {
+        event.preventDefault();
         checkIndexOverflow();
 
         eventBufferView.setUint8(
@@ -206,10 +208,10 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
                 ? EVENT_TYPE.MOUSE_MOVE
                 : EVENT_TYPE.MOUSE_UP,
         );
-        eventBufferView.setUint8(eventBufferIndex + 1, e.button);
-        eventBufferView.setUint8(eventBufferIndex + 2, e.buttons);
-        eventBufferView.setUint16(eventBufferIndex + 3, e.clientX);
-        eventBufferView.setUint16(eventBufferIndex + 5, e.clientY);
+        eventBufferView.setUint8(eventBufferIndex + 1, event.button);
+        eventBufferView.setUint8(eventBufferIndex + 2, event.buttons);
+        eventBufferView.setUint16(eventBufferIndex + 3, event.clientX);
+        eventBufferView.setUint16(eventBufferIndex + 5, event.clientY);
         eventBufferIndex += 7;
 
         Atomics.add(i32Array, 0, 1);
@@ -219,14 +221,15 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
     document.addEventListener("mousemove", (e) => onMouseEvent("move", e));
     document.addEventListener("mouseup", (e) => onMouseEvent("up", e));
 
-    document.addEventListener("wheel", (e) => {
+    document.addEventListener("wheel", (event) => {
+        event.preventDefault();
         checkIndexOverflow();
 
         eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.WHEEL);
-        eventBufferView.setFloat32(eventBufferIndex + 1, e.deltaX);
-        eventBufferView.setFloat32(eventBufferIndex + 5, e.deltaY);
-        eventBufferView.setUint16(eventBufferIndex + 10, e.clientX);
-        eventBufferView.setUint16(eventBufferIndex + 12, e.clientY);
+        eventBufferView.setFloat32(eventBufferIndex + 1, event.deltaX);
+        eventBufferView.setFloat32(eventBufferIndex + 5, event.deltaY);
+        eventBufferView.setUint16(eventBufferIndex + 10, event.clientX);
+        eventBufferView.setUint16(eventBufferIndex + 12, event.clientY);
         eventBufferIndex += 14;
 
         Atomics.add(i32Array, 0, 1);
