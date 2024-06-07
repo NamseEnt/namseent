@@ -36,7 +36,7 @@ impl Component for VideoPlayer<'_> {
         });
 
         ctx.compose(|ctx| {
-            let Some(image_handle) = video.get_image() else {
+            let Some(image) = video.get_image() else {
                 return;
             };
 
@@ -60,7 +60,7 @@ impl Component for VideoPlayer<'_> {
 
             ctx.add(namui::image(ImageParam {
                 rect,
-                source: ImageSource::ImageHandle { image_handle },
+                image,
                 style: ImageStyle {
                     fit: ImageFit::Fill,
                     paint: None,

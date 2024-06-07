@@ -371,7 +371,7 @@ impl Component for MediaExample {
             let Some(mp4) = video_mp4.as_ref() else {
                 return;
             };
-            let Some(image_handle) = mp4.get_image() else {
+            let Some(image) = mp4.get_image() else {
                 return;
             };
 
@@ -382,7 +382,7 @@ impl Component for MediaExample {
                     width: 400.px(),
                     height: 400.px(),
                 },
-                source: ImageSource::ImageHandle { image_handle },
+                image,
                 style: ImageStyle {
                     fit: ImageFit::Fill,
                     paint: None,
