@@ -229,7 +229,7 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
         eventBufferView.setFloat32(eventBufferIndex + 5, event.deltaY);
         eventBufferView.setUint16(eventBufferIndex + 10, event.clientX);
         eventBufferView.setUint16(eventBufferIndex + 12, event.clientY);
-        eventBufferIndex += 14;
+        eventBufferIndex += 13;
 
         Atomics.add(i32Array, 0, 1);
         Atomics.notify(i32Array, 0);
