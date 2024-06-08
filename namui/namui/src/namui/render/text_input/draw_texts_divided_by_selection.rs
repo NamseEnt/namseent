@@ -6,12 +6,13 @@ impl TextInput<'_> {
         &self,
         paragraph: &Paragraph,
         selection: &Selection,
+        text: &str,
     ) -> RenderingTree {
         let is_not_divided_by_selection =
             selection.map_or(true, |selection| selection.start == selection.end);
 
         if is_not_divided_by_selection {
-            return namui::text(self.text_param());
+            return namui::text(self.text_param(text));
         };
 
         let Selection::Range(selection) = selection else {
@@ -52,7 +53,7 @@ impl TextInput<'_> {
                         crate::text(TextParam {
                             y,
                             text: line.to_string(),
-                            ..self.text_param()
+                            ..self.text_param(text)
                         })
                     }))
                 };
@@ -70,6 +71,7 @@ impl TextInput<'_> {
                         render_only_selection_background,
                         false,
                         paragraph,
+                        text,
                     )
                 } else {
                     let line_indexes_in_the_middle =
@@ -91,6 +93,7 @@ impl TextInput<'_> {
                             render_only_selection_background,
                             true,
                             paragraph,
+                            text,
                         )
                     };
 
@@ -105,6 +108,7 @@ impl TextInput<'_> {
                             render_only_selection_background,
                             true,
                             paragraph,
+                            text,
                         )
                     });
 
@@ -113,17 +117,18 @@ impl TextInput<'_> {
 
                         let default = vec![];
 
-                        let text = paragraph
+                        let chars = paragraph
                             .iter_chars()
                             .nth(right_caret.line_index)
                             .unwrap_or(&default);
 
                         self.render_single_line(
                             y,
-                            CaretDevidedStrings::new(text, 0, right_caret.caret_index_in_line),
+                            CaretDevidedStrings::new(chars, 0, right_caret.caret_index_in_line),
                             render_only_selection_background,
                             false,
                             paragraph,
+                            text,
                         )
                     };
 
@@ -140,7 +145,7 @@ impl TextInput<'_> {
                             crate::text(TextParam {
                                 y,
                                 text: line.clone(),
-                                ..self.text_param()
+                                ..self.text_param(text)
                             })
                         }),
                     )
@@ -166,6 +171,7 @@ impl TextInput<'_> {
         render_only_selection_background: bool,
         with_newline_background: bool,
         paragraph: &Paragraph,
+        text: &str,
     ) -> RenderingTree {
         let (left_text_left, selected_text_left, right_text_left) = self.get_text_lefts(
             &caret_devided_strings.left,
@@ -209,7 +215,7 @@ impl TextInput<'_> {
                 y,
                 text: caret_devided_strings.left,
                 align: crate::TextAlign::Left,
-                ..self.text_param()
+                ..self.text_param(text)
             };
 
             let selected_text_text_param = namui::TextParam {
@@ -225,14 +231,14 @@ impl TextInput<'_> {
                     ..left_text_text_param.style.clone()
                 },
                 align: crate::TextAlign::Left,
-                ..self.text_param()
+                ..self.text_param(text)
             };
             let right_text_text_param = namui::TextParam {
                 x: right_text_left,
                 y,
                 text: caret_devided_strings.right,
                 align: crate::TextAlign::Left,
-                ..self.text_param()
+                ..self.text_param(text)
             };
 
             let left_text = namui::text(left_text_text_param);

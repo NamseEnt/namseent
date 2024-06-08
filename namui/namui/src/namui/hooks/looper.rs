@@ -33,10 +33,10 @@ impl Looper {
                 (EventType::Blur, 0),
                 (EventType::VisibilityChange, 0),
                 (EventType::ScreenResize, 0),
-                (EventType::TextInputTextUpdated, 0),
-                (EventType::TextInputKeyDown, 0),
-                (EventType::SelectionChange, 0),
                 (EventType::ScreenRedraw, 0),
+                (EventType::TextInput, 0),
+                (EventType::TextInputKeyDown, 0),
+                (EventType::TextInputSelectionChange, 0),
             ],
             root_component: Box::new(root_component),
         }
@@ -97,10 +97,10 @@ enum EventType {
     Blur,
     VisibilityChange,
     ScreenResize,
-    TextInputTextUpdated,
-    TextInputKeyDown,
-    SelectionChange,
     ScreenRedraw,
+    TextInput,
+    TextInputKeyDown,
+    TextInputSelectionChange,
 }
 
 impl EventType {
@@ -116,6 +116,9 @@ impl EventType {
             RawEvent::VisibilityChange => EventType::VisibilityChange,
             RawEvent::ScreenResize { .. } => EventType::ScreenResize,
             RawEvent::ScreenRedraw => EventType::ScreenRedraw,
+            RawEvent::TextInput { .. } => EventType::TextInput,
+            RawEvent::TextInputKeyDown { .. } => EventType::TextInputKeyDown,
+            RawEvent::TextInputSelectionChange { .. } => EventType::TextInputSelectionChange,
         }
     }
 }

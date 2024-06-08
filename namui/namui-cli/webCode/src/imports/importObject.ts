@@ -1,7 +1,8 @@
 import { envGl } from "./envGl";
-import { EventSystemOnWorker } from "./eventSystem";
-import { BundleSharedTree } from "./fds";
-import { sendMessageToMainThread } from "./interWorkerProtocol";
+import { EventSystemOnWorker } from "../eventSystem";
+import { BundleSharedTree } from "../fds";
+import { sendMessageToMainThread } from "../interWorkerProtocol";
+import { textInputImports } from "./textInput";
 
 export function createImportObject({
     memory,
@@ -76,6 +77,9 @@ export function createImportObject({
                 memory,
                 malloc,
                 free,
+            }),
+            ...textInputImports({
+                memory,
             }),
             poll_event: (wasmBufferPtr: number): number => {
                 if (!eventSystem) {

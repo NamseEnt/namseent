@@ -19,8 +19,6 @@ pub mod typeface;
 // pub mod deep_link;
 // #[cfg(target_os = "wasi")]
 // pub mod drag_and_drop;
-// #[cfg(target_os = "wasi")]
-// pub(crate) mod text_input;
 
 use crate::*;
 use std::sync::atomic::AtomicBool;
@@ -49,7 +47,6 @@ pub(super) async fn init_system() -> InitResult {
     // futures::try_join!(
     //     deep_link::init(),
     //     drag_and_drop::init(),
-    //     text_input::init(),
     //     web::init(),
     // )?;
 

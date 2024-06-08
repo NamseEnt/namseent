@@ -1,6 +1,7 @@
 import { startEventSystemOnMainThread } from "./eventSystem";
 import { WorkerMessagePayload, sendToWorker } from "./interWorkerProtocol";
 import MainWorker from "./main-worker?worker";
+import { TextInput } from "./textInput";
 import ThreadWorker from "./thread-worker?worker";
 
 const canvas = document.createElement("canvas");
@@ -14,6 +15,9 @@ if (!bitmapCtx) {
 }
 
 const eventBuffer = new SharedArrayBuffer(512 * 1024);
+
+const { onTextInputEvent } = startEventSystemOnMainThread(eventBuffer);
+const textInput = new TextInput(onTextInputEvent);
 
 const mainWorker = new MainWorker();
 
@@ -46,14 +50,18 @@ function onMessage(message: MessageEvent) {
             }
             break;
         }
+        case "text-input-set-selection-range":
+        case "text-input-focus":
+        case "text-input-blur": {
+            textInput.onMessage(payload);
+            break;
+        }
         default:
             throw new Error(`Unexpected message type: ${payload.type}`);
     }
 }
 
 mainWorker.onmessage = onMessage;
-
-startEventSystemOnMainThread(eventBuffer);
 
 document.addEventListener("contextmenu", (e) => {
     e.preventDefault();

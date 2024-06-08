@@ -10,6 +10,39 @@ pub(crate) async fn init() -> InitResult {
     Ok(())
 }
 
+// event type and body
+// - 0x00: on animation frame
+// - 0x01: on resize
+//     - u16: width
+//     - u16: height
+// - 0x02 ~ 0x03: on key down, up
+//     - u8: code
+// - 0x04 ~ 0x06: on mouse down, move, up
+//     - u8: button
+//     - u8: buttons
+//     - u16: x
+//     - u16: y
+// - 0x07: on wheel
+//     - f32: delta x
+//     - f32: delta y
+//     - u16: mouse x
+//     - u16: mouse y
+// - 0x08: on blur
+// - 0x09: on visibility change
+// - 0x0A ~ 0x0B: on text input, selection change
+//     - u16: text byte length
+//     - bytes: text
+//     - u8: selection direction. 0: none, 1: forward, 2: backward
+//     - u16: selection start
+//     - u16: selection end
+// - 0x0C: on text input key down
+//     - u16: text byte length
+//     - bytes: text
+//     - u8: selection direction. 0: none, 1: forward, 2: backward
+//     - u16: selection start
+//     - u16: selection end
+//     - u8: code
+
 #[repr(u8)]
 #[allow(dead_code)]
 enum EventType {
@@ -23,28 +56,10 @@ enum EventType {
     Wheel,
     Blur,
     VisibilityChange,
+    TextInput,
+    TextInputSelectionChange,
+    TextInputKeyDown,
 }
-
-// event type and body
-// - 0x00: on animation frame
-// - 0x01: on resize
-//     - u16: width
-//     - u16: height
-// - 0x02 ~ 0x03: on key down, up
-//     - u8: code byte length
-//     - bytes: code
-// - 0x04 ~ 0x06: on mouse down, move, up
-//     - u8: button
-//     - u8: buttons
-//     - u16: x
-//     - u16: y
-// - 0x07: on wheel
-//     - f32: delta x
-//     - f32: delta y
-//     - u16: mouse x
-//     - u16: mouse y
-// - 0x08: on blur
-// - 0x09: on visibility change
 
 extern "C" {
     fn poll_event(ptr: *const u8) -> u8;
@@ -54,8 +69,8 @@ extern "C" {
 pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Send) {
     tokio::task::spawn_blocking(|| unsafe {
         let mut looper = Looper::new(component);
+        let buffer = [0u8; 8096];
         loop {
-            let buffer = [0u8; 32];
             let length = poll_event(buffer.as_ptr());
             let packet = &buffer[0..(length as usize)];
 
@@ -78,15 +93,14 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
                     RawEvent::ScreenResize { wh }
                 }
                 EventType::KeyDown | EventType::KeyUp => {
-                    let code_length = packet[1] as usize;
-                    let code_str = std::str::from_utf8(&packet[2..(2 + code_length)])
-                        .expect("invalid code bytes");
+                    let code_number = packet[1];
+                    let code = Code::try_from(code_number).unwrap();
                     let func = match event_type {
                         EventType::KeyDown => crate::keyboard::on_key_down,
                         EventType::KeyUp => crate::keyboard::on_key_up,
                         _ => unreachable!(),
                     };
-                    func(code_str)
+                    func(code)
                 }
                 EventType::MouseDown | EventType::MouseMove | EventType::MouseUp => {
                     let button: u8 = packet[1];
@@ -120,6 +134,65 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
                 EventType::VisibilityChange => {
                     crate::keyboard::on_visibility_change();
                     RawEvent::VisibilityChange
+                }
+                EventType::TextInput
+                | EventType::TextInputKeyDown
+                | EventType::TextInputSelectionChange => {
+                    let text_length = u16::from_be_bytes(
+                        packet[1..3].try_into().expect("invalid text length bytes"),
+                    ) as usize;
+                    let text = std::str::from_utf8(&packet[3..(3 + text_length)])
+                        .expect("invalid text bytes")
+                        .to_string();
+                    let selection_direction = match packet[3 + text_length] {
+                        0 => SelectionDirection::None,
+                        1 => SelectionDirection::Forward,
+                        2 => SelectionDirection::Backward,
+                        _ => unreachable!(),
+                    };
+                    let selection_start = u16::from_be_bytes(
+                        packet[(4 + text_length)..(6 + text_length)]
+                            .try_into()
+                            .expect("invalid selection start bytes"),
+                    ) as usize;
+                    let selection_end = u16::from_be_bytes(
+                        packet[(6 + text_length)..(8 + text_length)]
+                            .try_into()
+                            .expect("invalid selection end bytes"),
+                    ) as usize;
+                    match event_type {
+                        EventType::TextInput => RawEvent::TextInput {
+                            event: RawTextInputEvent {
+                                text,
+                                selection_direction,
+                                selection_start,
+                                selection_end,
+                            },
+                        },
+                        EventType::TextInputSelectionChange => RawEvent::TextInputSelectionChange {
+                            event: RawTextInputEvent {
+                                text,
+                                selection_direction,
+                                selection_start,
+                                selection_end,
+                            },
+                        },
+                        EventType::TextInputKeyDown => {
+                            let code_number = packet[8 + text_length];
+                            let code = Code::try_from(code_number).unwrap();
+
+                            RawEvent::TextInputKeyDown {
+                                event: RawTextInputKeyDownEvent {
+                                    text,
+                                    selection_direction,
+                                    selection_start,
+                                    selection_end,
+                                    code,
+                                },
+                            }
+                        }
+                        _ => unreachable!(),
+                    }
                 }
             };
 

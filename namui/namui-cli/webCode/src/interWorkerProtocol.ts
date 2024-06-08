@@ -25,6 +25,24 @@ export type WorkerMessagePayload =
           type: "update-canvas-wh";
           width: number;
           height: number;
+      }
+    | {
+          type: "text-input-set-selection-range";
+          start: number;
+          end: number;
+          direction: "forward" | "backward" | "none";
+      }
+    | {
+          type: "text-input-focus";
+          width: number;
+          text: string;
+          selection_start: number;
+          selection_end: number;
+          direction: "forward" | "backward" | "none";
+          prevent_default_codes: number[];
+      }
+    | {
+          type: "text-input-blur";
       };
 
 export function sendMessageToMainThread(

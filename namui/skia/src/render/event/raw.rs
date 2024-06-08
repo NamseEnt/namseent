@@ -12,10 +12,12 @@ pub enum RawEvent {
     VisibilityChange,
     ScreenResize { wh: Wh<IntPx> },
     ScreenRedraw,
+    TextInput { event: RawTextInputEvent },
+    TextInputKeyDown { event: RawTextInputKeyDownEvent },
+    TextInputSelectionChange { event: RawTextInputEvent },
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct RawMouseEvent {
     pub xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
@@ -29,9 +31,32 @@ pub struct RawWheelEvent {
     pub mouse_xy: Xy<Px>,
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct RawKeyboardEvent {
     pub code: Code,
     pub pressing_codes: HashSet<Code>,
+}
+
+#[derive(Debug)]
+pub struct RawTextInputEvent {
+    pub text: String,
+    pub selection_direction: SelectionDirection,
+    pub selection_start: usize,
+    pub selection_end: usize,
+}
+
+#[derive(Debug)]
+pub struct RawTextInputKeyDownEvent {
+    pub text: String,
+    pub selection_direction: SelectionDirection,
+    pub selection_start: usize,
+    pub selection_end: usize,
+    pub code: Code,
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum SelectionDirection {
+    None = 0,
+    Forward,
+    Backward,
 }

@@ -1,9 +1,7 @@
 use super::{clear_pressing_code_set, pressing_code_set, record_key_down, record_key_up};
 use crate::*;
-use std::str::FromStr;
 
-pub(crate) fn on_key_down(code_str: &str) -> RawEvent {
-    let code = Code::from_str(code_str).unwrap();
+pub(crate) fn on_key_down(code: Code) -> RawEvent {
     record_key_down(code);
 
     RawEvent::KeyDown {
@@ -14,8 +12,7 @@ pub(crate) fn on_key_down(code_str: &str) -> RawEvent {
     }
 }
 
-pub(crate) fn on_key_up(code_str: &str) -> RawEvent {
-    let code = Code::from_str(code_str).unwrap();
+pub(crate) fn on_key_up(code: Code) -> RawEvent {
     record_key_up(code);
 
     RawEvent::KeyUp {
