@@ -17,6 +17,9 @@ pub enum Event<'a> {
     VisibilityChange,
     ScreenResize { wh: Wh<IntPx> },
     ScreenRedraw,
+    TextInput { event: &'a RawTextInputEvent },
+    TextInputKeyDown { event: &'a RawTextInputKeyDownEvent },
+    TextInputSelectionChange { event: &'a RawTextInputEvent },
 }
 
 pub trait EventExt {

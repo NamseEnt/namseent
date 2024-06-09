@@ -14,8 +14,7 @@ event type and body
     - u16: width
     - u16: height
 - 0x02 ~ 0x03: on key down, up
-    - u8: code byte length
-    - bytes: code
+    - u8: code
 - 0x04 ~ 0x06: on mouse down, move, up
     - u8: button
     - u8: buttons
@@ -28,9 +27,24 @@ event type and body
     - u16: mouse y
 - 0x08: on blur
 - 0x09: on visibility change
+- 0x0A ~ 0x0B: on text input, selection change
+    - u16: text byte length
+    - bytes: text
+    - u8: selection direction. 0: none, 1: forward, 2: backward
+    - u16: selection start
+    - u16: selection end
+- 0x0C: on text input key down
+    - u16: text byte length
+    - bytes: text
+    - u8: selection direction. 0: none, 1: forward, 2: backward
+    - u16: selection start
+    - u16: selection end
+    - u8: code
 */
 
-const EVENT_TYPE = {
+import { CODES } from "./imports/codes";
+
+export const EVENT_TYPE = {
     END_OF_BUFFER: 0xff,
     ANIMATION_FRAME: 0x00,
     RESIZE: 0x01,
@@ -42,6 +56,9 @@ const EVENT_TYPE = {
     WHEEL: 0x07,
     BLUR: 0x08,
     VISIBILITY_CHANGE: 0x09,
+    TEXT_INPUT: 0x0a,
+    SELECTION_CHANGE: 0x0b,
+    TEXT_INPUT_KEY_DOWN: 0x0c,
 };
 
 export class EventSystemOnWorker {
@@ -88,10 +105,7 @@ export class EventSystemOnWorker {
                 break;
             case EVENT_TYPE.KEY_DOWN:
             case EVENT_TYPE.KEY_UP: {
-                const codeLength = eventBufferView.getUint8(
-                    this.eventBufferIndex + 1,
-                );
-                packetSize = 2 + codeLength;
+                packetSize = 2;
                 break;
             }
             case EVENT_TYPE.MOUSE_DOWN:
@@ -107,6 +121,19 @@ export class EventSystemOnWorker {
             case EVENT_TYPE.BLUR:
             case EVENT_TYPE.VISIBILITY_CHANGE: {
                 packetSize = 1;
+                break;
+            }
+            case EVENT_TYPE.TEXT_INPUT:
+            case EVENT_TYPE.SELECTION_CHANGE: {
+                packetSize =
+                    8 + eventBufferView.getUint16(this.eventBufferIndex + 1);
+                break;
+            }
+            case EVENT_TYPE.TEXT_INPUT_KEY_DOWN: {
+                packetSize =
+                    8 +
+                    eventBufferView.getUint16(this.eventBufferIndex + 1) +
+                    1;
                 break;
             }
             default: {
@@ -132,14 +159,25 @@ export class EventSystemOnWorker {
     }
 }
 
-export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
+export type OnTextInputEvent = (
+    textarea: HTMLTextAreaElement,
+    eventType:
+        | typeof EVENT_TYPE.TEXT_INPUT
+        | typeof EVENT_TYPE.TEXT_INPUT_KEY_DOWN
+        | typeof EVENT_TYPE.SELECTION_CHANGE,
+    code?: number,
+) => void;
+
+export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer): {
+    onTextInputEvent: OnTextInputEvent;
+} {
     let eventBufferIndex = 4;
 
     const eventBufferView = new DataView(eventBuffer);
     const i32Array = new Int32Array(eventBuffer);
 
-    function checkIndexOverflow() {
-        const margin = 32;
+    function checkIndexOverflow(packetSize: number) {
+        const margin = packetSize + 8;
         if (eventBufferIndex + margin >= eventBuffer.byteLength) {
             eventBufferView.setUint8(
                 eventBufferIndex,
@@ -153,10 +191,11 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
     }
 
     function onAnimationFrame() {
-        checkIndexOverflow();
+        const packetSize = 1;
+        checkIndexOverflow(packetSize);
 
         eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.ANIMATION_FRAME);
-        eventBufferIndex += 1;
+        eventBufferIndex += packetSize;
 
         Atomics.add(i32Array, 0, 1);
         Atomics.notify(i32Array, 0);
@@ -166,7 +205,8 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
     requestAnimationFrame(onAnimationFrame);
 
     window.addEventListener("resize", () => {
-        checkIndexOverflow();
+        const packetSize = 5;
+        checkIndexOverflow(packetSize);
 
         eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.RESIZE);
         eventBufferView.setUint16(eventBufferIndex + 1, window.innerWidth);
@@ -178,27 +218,40 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
     });
 
     function onKeyEvent(type: "down" | "up", event: KeyboardEvent) {
-        event.preventDefault();
-        checkIndexOverflow();
+        const packetSize = 2;
+
+        const code = CODES[event.code as keyof typeof CODES];
+        if (!code) {
+            console.warn(`Unknown key code: ${event.code}`);
+            return;
+        }
+        if (!isKeyPreventDefaultException(event)) {
+            event.preventDefault();
+        }
+
+        checkIndexOverflow(packetSize);
 
         eventBufferView.setUint8(
             eventBufferIndex,
             type === "down" ? EVENT_TYPE.KEY_DOWN : EVENT_TYPE.KEY_UP,
         );
-        const codeBuffer = new TextEncoder().encode(event.code);
-        eventBufferView.setUint8(eventBufferIndex + 1, codeBuffer.length);
-        new Uint8Array(eventBuffer, eventBufferIndex + 2).set(codeBuffer);
-        eventBufferIndex += 2 + codeBuffer.length;
+        eventBufferView.setUint8(eventBufferIndex + 1, code);
+        eventBufferIndex += 2;
 
         Atomics.add(i32Array, 0, 1);
         Atomics.notify(i32Array, 0);
     }
-    document.addEventListener("keydown", (e) => onKeyEvent("down", e));
-    document.addEventListener("keyup", (e) => onKeyEvent("up", e));
+    document.addEventListener("keydown", (e) => {
+        onKeyEvent("down", e);
+    });
+    document.addEventListener("keyup", (e) => {
+        onKeyEvent("up", e);
+    });
 
     function onMouseEvent(type: "down" | "move" | "up", event: MouseEvent) {
         event.preventDefault();
-        checkIndexOverflow();
+        const packetSize = 7;
+        checkIndexOverflow(packetSize);
 
         eventBufferView.setUint8(
             eventBufferIndex,
@@ -217,12 +270,19 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
         Atomics.add(i32Array, 0, 1);
         Atomics.notify(i32Array, 0);
     }
-    document.addEventListener("mousedown", (e) => onMouseEvent("down", e));
-    document.addEventListener("mousemove", (e) => onMouseEvent("move", e));
-    document.addEventListener("mouseup", (e) => onMouseEvent("up", e));
+    document.addEventListener("mousedown", (e) => {
+        onMouseEvent("down", e);
+    });
+    document.addEventListener("mousemove", (e) => {
+        onMouseEvent("move", e);
+    });
+    document.addEventListener("mouseup", (e) => {
+        onMouseEvent("up", e);
+    });
 
     document.addEventListener("wheel", (event) => {
-        checkIndexOverflow();
+        const packetSize = 13;
+        checkIndexOverflow(packetSize);
 
         eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.WHEEL);
         eventBufferView.setFloat32(eventBufferIndex + 1, event.deltaX);
@@ -236,7 +296,8 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
     });
 
     window.addEventListener("blur", () => {
-        checkIndexOverflow();
+        const packetSize = 1;
+        checkIndexOverflow(packetSize);
 
         eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.BLUR);
         eventBufferIndex += 1;
@@ -246,7 +307,8 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
     });
 
     document.addEventListener("visibilitychange", () => {
-        checkIndexOverflow();
+        const packetSize = 1;
+        checkIndexOverflow(packetSize);
 
         eventBufferView.setUint8(
             eventBufferIndex,
@@ -257,4 +319,55 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer) {
         Atomics.add(i32Array, 0, 1);
         Atomics.notify(i32Array, 0);
     });
+
+    const onTextInputEvent: OnTextInputEvent = (textarea, eventType, code) => {
+        const textBuffer = new TextEncoder().encode(textarea.value);
+
+        const packetSize = 8 + textBuffer.byteLength + (code ? 1 : 0);
+
+        checkIndexOverflow(packetSize);
+
+        eventBufferView.setUint8(eventBufferIndex, eventType);
+        eventBufferView.setUint16(eventBufferIndex + 1, textBuffer.byteLength);
+        new Uint8Array(eventBuffer, eventBufferIndex + 3).set(textBuffer);
+        eventBufferView.setUint8(
+            eventBufferIndex + 3 + textBuffer.byteLength,
+            textarea.selectionDirection === "forward"
+                ? 1
+                : textarea.selectionDirection === "backward"
+                ? 2
+                : 0,
+        );
+        eventBufferView.setUint16(
+            eventBufferIndex + 4 + textBuffer.byteLength,
+            textarea.selectionStart || 0,
+        );
+        eventBufferView.setUint16(
+            eventBufferIndex + 6 + textBuffer.byteLength,
+            textarea.selectionEnd || 0,
+        );
+        if (code) {
+            eventBufferView.setUint8(
+                eventBufferIndex + 8 + textBuffer.byteLength,
+                code,
+            );
+        }
+        eventBufferIndex += packetSize;
+
+        Atomics.add(i32Array, 0, 1);
+        Atomics.notify(i32Array, 0);
+    };
+
+    return { onTextInputEvent };
+}
+
+export function isKeyPreventDefaultException(event: KeyboardEvent): boolean {
+    // TODO: Maybe we have to disable this on production.
+    const isDevTools =
+        event.code === "F12" ||
+        (event.ctrlKey && event.shiftKey && event.code === "KeyI");
+    const isReload =
+        event.code === "F5" || (event.ctrlKey && event.code === "KeyR");
+
+    return isDevTools || isReload;
 }

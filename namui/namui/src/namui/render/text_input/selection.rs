@@ -35,13 +35,6 @@ impl Selection {
         Self::Range(start..end)
     }
 
-    pub(crate) fn map(&self, f: impl FnOnce(Range<usize>) -> Range<usize>) -> Self {
-        match self {
-            Self::None => Self::None,
-            Self::Range(range) => Self::Range(f(range.clone())),
-        }
-    }
-
     pub(crate) fn map_or(&self, default: bool, f: impl FnOnce(Range<usize>) -> bool) -> bool {
         match self {
             Self::None => default,
@@ -63,10 +56,8 @@ fn to_u16_code_unit_indexes(text: impl AsRef<str>) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn to_utf8_selection_test() {
         assert_eq!(
             Selection::Range(0..0),
@@ -103,7 +94,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn to_utf16_code_unit_selection_test() {
         assert_eq!(Some(0..0), Selection::Range(0..0).as_utf16(""));
         assert_eq!(Some(0..0), Selection::Range(0..0).as_utf16("abc"));

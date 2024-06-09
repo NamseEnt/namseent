@@ -175,17 +175,14 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                     },
                 });
             }
-            RawEvent::Blur => {
-                on_event(Event::Blur);
-            }
-            RawEvent::VisibilityChange => {
-                on_event(Event::VisibilityChange);
-            }
-            &RawEvent::ScreenResize { wh } => {
-                on_event(Event::ScreenResize { wh });
-            }
-            RawEvent::ScreenRedraw => {
-                on_event(Event::ScreenRedraw);
+            RawEvent::Blur => on_event(Event::Blur),
+            RawEvent::VisibilityChange => on_event(Event::VisibilityChange),
+            &RawEvent::ScreenResize { wh } => on_event(Event::ScreenResize { wh }),
+            RawEvent::ScreenRedraw => on_event(Event::ScreenRedraw),
+            RawEvent::TextInput { event } => on_event(Event::TextInput { event }),
+            RawEvent::TextInputKeyDown { event } => on_event(Event::TextInputKeyDown { event }),
+            RawEvent::TextInputSelectionChange { event } => {
+                on_event(Event::TextInputSelectionChange { event })
             }
         }
 

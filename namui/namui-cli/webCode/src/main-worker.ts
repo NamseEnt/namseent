@@ -1,5 +1,5 @@
 import { WASI } from "@bjorn3/browser_wasi_shim";
-import { createImportObject } from "./importObject";
+import { createImportObject } from "./imports/importObject";
 import wasmUrl from "namui-runtime-wasm.wasm?url";
 import { init } from "./__generated__/bundle";
 import { getFds } from "./fds";

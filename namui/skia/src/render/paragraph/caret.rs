@@ -70,7 +70,12 @@ pub enum CaretKey {
 }
 
 impl Caret<'_> {
-    pub fn get_caret_on_key(&self, key: CaretKey) -> Caret {
+    pub fn get_caret_on_key(
+        &self,
+        key: CaretKey,
+        text_align: TextAlign,
+        container_width: Px,
+    ) -> Caret {
         let (line_index, x) = match key {
             CaretKey::ArrowUp => {
                 if self.line_index == 0 {
@@ -80,7 +85,7 @@ impl Caret<'_> {
                         paragraph: self.paragraph,
                     };
                 }
-                (self.line_index - 1, self.get_x())
+                (self.line_index - 1, self.get_x(text_align, container_width))
             }
             CaretKey::ArrowDown => {
                 if self.is_at_bottom() {
@@ -95,7 +100,7 @@ impl Caret<'_> {
                         paragraph: self.paragraph,
                     };
                 }
-                (self.line_index + 1, self.get_x())
+                (self.line_index + 1, self.get_x(text_align, container_width))
             }
             CaretKey::Home => (self.line_index, 0.px()),
             CaretKey::End => (
@@ -106,7 +111,8 @@ impl Caret<'_> {
             ),
         };
 
-        let caret_index_on_direction = self.get_caret_index_on_x(x, line_index);
+        let caret_index_on_direction =
+            self.get_caret_index_on_x(x, line_index, text_align, container_width);
 
         Caret {
             line_index,
@@ -124,32 +130,34 @@ impl Caret<'_> {
         self.paragraph.iter_str().nth(index)
     }
 
-    fn get_x(&self) -> Px {
+    fn get_x(&self, text_align: TextAlign, container_width: Px) -> Px {
         let line_text = self.line_text(self.line_index).unwrap();
+        let widths = self.paragraph.group_glyph.widths(line_text.as_str());
 
-        self.paragraph
-            .group_glyph
-            .widths(line_text.as_str())
-            .into_iter()
-            .take(self.caret_index_in_line)
-            .sum()
+        impl_get_x(
+            text_align,
+            &widths,
+            self.caret_index_in_line,
+            container_width,
+        )
     }
 
-    fn get_caret_index_on_x(&self, x: Px, line_index: usize) -> usize {
+    fn get_caret_index_on_x(
+        &self,
+        x: Px,
+        line_index: usize,
+        text_align: TextAlign,
+        container_width: Px,
+    ) -> usize {
         let line_text = self.line_text(line_index).unwrap();
 
         let widths = self.paragraph.group_glyph.widths(line_text.as_str());
 
-        let mut from_left = 0.px();
-        let mut caret_index = 0;
         let mut cloest_distance = x;
         let mut closest_caret_index = 0;
-
-        for width in widths.into_iter() {
-            from_left += width;
-            caret_index += 1;
-
-            let distance = (x - from_left).abs();
+        for caret_index in 0..widths.len() {
+            let x_in_line = impl_get_x(text_align, &widths, caret_index, container_width);
+            let distance = (x - x_in_line).abs();
             if distance < cloest_distance {
                 cloest_distance = distance;
                 closest_caret_index = caret_index;
@@ -165,5 +173,21 @@ impl Caret<'_> {
             return true;
         }
         self.line_index == line_count - 1
+    }
+}
+
+fn impl_get_x(
+    text_align: TextAlign,
+    widths: &[Px],
+    caret_index_in_line: usize,
+    container_width: Px,
+) -> Px {
+    match text_align {
+        TextAlign::Left => widths.iter().take(caret_index_in_line).sum::<Px>(),
+        TextAlign::Center => {
+            (container_width - widths.iter().sum::<Px>()) / 2.0
+                + widths.iter().take(caret_index_in_line).sum::<Px>()
+        }
+        TextAlign::Right => container_width - widths.iter().skip(caret_index_in_line).sum::<Px>(),
     }
 }

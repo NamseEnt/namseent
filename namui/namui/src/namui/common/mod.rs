@@ -39,10 +39,3 @@ pub type Rendering = RenderingTree;
 pub enum Language {
     Ko,
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SelectionDirection {
-    Forward,
-    Backward,
-    None,
-}
