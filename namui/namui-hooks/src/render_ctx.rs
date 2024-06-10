@@ -63,6 +63,9 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     ) -> (Sig<T, &T>, AtomSetState<T>) {
         self.component_ctx.atom(atom)
     }
+    pub fn abort_on_unmount(&self, handle: impl Abort) {
+        todo!()
+    }
 }
 
 pub(crate) fn run<'a>(

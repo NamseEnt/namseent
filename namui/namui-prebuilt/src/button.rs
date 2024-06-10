@@ -21,17 +21,19 @@ fn attach_text_button_event(
     });
 }
 
-pub struct TextButton<'a> {
+pub struct TextButton<Text: AsRef<str>, OnMouseUpIn: FnOnce(MouseEvent)> {
     pub rect: Rect<Px>,
-    pub text: &'a str,
+    pub text: Text,
     pub text_color: Color,
     pub stroke_color: Color,
     pub stroke_width: Px,
     pub fill_color: Color,
     pub mouse_buttons: Vec<MouseButton>,
-    pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
+    pub on_mouse_up_in: OnMouseUpIn,
 }
-impl Component for TextButton<'_> {
+impl<Text: AsRef<str>, OnMouseUpIn: FnOnce(MouseEvent)> Component
+    for TextButton<Text, OnMouseUpIn>
+{
     fn render(self, ctx: &RenderCtx) {
         let Self {
             rect,
