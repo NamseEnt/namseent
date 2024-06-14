@@ -91,17 +91,7 @@ fn download_wasi_sdk() -> Result<()> {
 
     let mut d = flate2::read::GzDecoder::new(response);
     let mut archive = tar::Archive::new(&mut d);
-    for entry in archive.entries()? {
-        let mut entry = entry?;
-        let Some(stripped_path) = entry.path().map_or(None, |path| {
-            path.strip_prefix("wasi-sdk-22.0")
-                .map(|path| path.to_path_buf())
-                .ok()
-        }) else {
-            continue;
-        };
-        entry.unpack(&dist.join(stripped_path)).unwrap();
-    }
+    archive.unpack(&dist)?;
 
     Ok(())
 }
