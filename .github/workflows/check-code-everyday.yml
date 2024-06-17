@@ -1,0 +1,87 @@
+name: check-code-everyday
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+concurrency:
+  group: ${{ github.ref }}-check-code-everyday
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: -D warnings
+
+jobs:
+  list-projects:
+    runs-on: ubuntu-latest
+    env:
+      XWIN_ARCH: x86_64
+      XWIN_VERSION: 17
+      CARGO_VERSION: "" # Should be set in the job
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Output list of project directories
+        id: project-dirs
+        run: cargo run --manifest-path ./github-actions-tools/matrix-output/Cargo.toml x86_64-pc-windows-msvc $GITHUB_OUTPUT dirs
+
+      - name: Create Cargo workspace
+        run: |
+          cat > Cargo.toml <<EOF
+          [workspace]
+          resolver = "2"
+          members = ${{ steps.project-dirs.outputs.dirs }}
+
+      - name: Install wine
+        run: |
+          sudo dpkg --add-architecture i386 
+
+          sudo mkdir -pm755 /etc/apt/keyrings
+          sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
+
+          sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources
+
+          sudo apt update
+
+          sudo apt install -y --install-recommends winehq-stable
+
+      - name: Set up cargo
+        run: |
+          rustup component add llvm-tools-preview
+          rustup target add x86_64-pc-windows-msvc
+          rustup update
+
+      - run: CARGO_VERSION=$(cargo --version | cut -d ' ' -f 2) && echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_ENV
+
+      - name: Xwin cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/cargo-xwin
+          key: ${{ runner.os }}-${{ env.XWIN_ARCH }}-${{ env.XWIN_VERSION }}
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/
+            ./target/
+          key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-x86_64-pc-windows-msvc-${{ hashFiles('./Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-x86_64-pc-windows-msvc-
+
+      - name: Install cargo-xwin
+        run: |
+          cargo install cargo-xwin
+
+      - name: Run commands
+        run: |
+          echo "cargo xwin check --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests"
+          cargo xwin check --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests
+
+          echo "cargo fmt"
+          cargo fmt
+
+          echo "cargo xwin clippy --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests"
+          cargo xwin clippy --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests
