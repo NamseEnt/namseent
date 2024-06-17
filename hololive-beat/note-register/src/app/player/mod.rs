@@ -13,7 +13,7 @@ use crate::app::{
     LoadedData,
 };
 use namui::{prelude::*, time::since_start};
-use namui_prebuilt::{button::TextButtonFit, table::hooks::*};
+use namui_prebuilt::{button::TextButtonFit, table::*};
 
 static STATE: Atom<State> = Atom::uninitialized_new();
 static JUDGE_CONTEXT: Atom<JudgeContext> = Atom::uninitialized_new();

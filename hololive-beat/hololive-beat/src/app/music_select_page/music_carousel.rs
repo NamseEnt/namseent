@@ -5,7 +5,7 @@ use crate::app::{
 };
 use keyframe::num_traits::Signed;
 use namui::*;
-use namui_prebuilt::{simple_rect, table::hooks::*, typography::adjust_font_size};
+use namui_prebuilt::{simple_rect, table::*, typography::adjust_font_size};
 use std::f32::consts::PI;
 
 #[component]

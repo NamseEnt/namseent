@@ -9,7 +9,7 @@ use crate::{
     storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
     *,
 };
-use namui_prebuilt::table::hooks::*;
+use namui_prebuilt::table::*;
 use rpc::data::{CgFile, ScreenGraphic, SequenceUpdateAction};
 
 #[namui::component]
@@ -84,27 +84,27 @@ impl Component for CutCell<'_> {
         }));
 
         ctx.compose(|ctx| {
-            table::hooks::padding(
+            table::padding(
                 12.px(),
-                table::hooks::horizontal([
-                    table::hooks::fixed(24.px(), |wh, ctx| {
-                        table::hooks::vertical([
-                            table::hooks::fit(
-                                table::hooks::FitAlign::LeftTop,
+                table::horizontal([
+                    table::fixed(24.px(), |wh, ctx| {
+                        table::vertical([
+                            table::fit(
+                                table::FitAlign::LeftTop,
                                 typography::body::center_top(
                                     wh.width,
                                     format!("{}", index),
                                     stroke_color,
                                 ),
                             ),
-                            table::hooks::fixed(4.px(), |_, _| {}),
-                            table::hooks::fit(
-                                table::hooks::FitAlign::LeftTop,
+                            table::fixed(4.px(), |_, _| {}),
+                            table::fit(
+                                table::FitAlign::LeftTop,
                                 render_comment_badge(wh.width, memo_count, stroke_color),
                             ),
                         ])(wh, ctx)
                     }),
-                    table::hooks::ratio(1, |wh, ctx| {
+                    table::ratio(1, |wh, ctx| {
                         let thumbnail = Thumbnail {
                             wh,
                             cut: &cut,
@@ -145,7 +145,7 @@ impl Component for CutCell<'_> {
                             }
                         };
                     }),
-                    table::hooks::fixed(8.px(), |_wh, _ctx| {}),
+                    table::fixed(8.px(), |_wh, _ctx| {}),
                 ]),
             )(wh, ctx)
         });

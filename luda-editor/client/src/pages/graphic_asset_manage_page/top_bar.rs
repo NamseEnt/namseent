@@ -7,7 +7,7 @@ use crate::{
 };
 use futures::future::join_all;
 use namui::{file::picker::open, prelude::*};
-use namui_prebuilt::{button::TextButtonFit, simple_rect, table::hooks::*, typography};
+use namui_prebuilt::{button::TextButtonFit, simple_rect, table::*, typography};
 
 #[component]
 pub(super) struct TopBar {

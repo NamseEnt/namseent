@@ -1,7 +1,7 @@
 use super::Tab;
 use crate::{color, pages::graphic_asset_manage_page::TAB_ATOM};
 use namui::*;
-use namui_prebuilt::{simple_rect, table::hooks::*, typography};
+use namui_prebuilt::{simple_rect, table::*, typography};
 
 #[component]
 pub(super) struct SideBar {
