@@ -152,7 +152,6 @@ impl<'a> ToKeyCell<'a> for (&'a str, TableCell<'a>) {
     }
 }
 
-#[component]
 struct InternalSlice<'a> {
     wh: Wh<Px>,
     items: Vec<(String, TableCell<'a>)>,

@@ -3,7 +3,6 @@ use namui::*;
 use namui_prebuilt::{simple_rect, typography::text_fit};
 use std::ops::Deref;
 
-#[component]
 pub struct NotificationRoot {
     pub wh: Wh<Px>,
 }

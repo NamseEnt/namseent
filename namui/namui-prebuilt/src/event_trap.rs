@@ -1,6 +1,5 @@
 use namui::*;
 
-#[component]
 pub struct EventTrap;
 
 impl Component for EventTrap {

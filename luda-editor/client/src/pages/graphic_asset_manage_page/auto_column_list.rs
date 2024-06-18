@@ -12,7 +12,6 @@ const MINIMUM_SIDE_MARGIN: Px = px(8.0);
 const NAME_MIN_WIDTH: Px = px(128.0);
 const NAME_HEIGHT: Px = px(48.0);
 
-#[component]
 pub(super) struct AutoColumnList<'a, T>
 where
     T: Debug,
@@ -87,7 +86,6 @@ where
     }
 }
 
-#[component]
 struct Name {
     wh: Wh<Px>,
     name: String,

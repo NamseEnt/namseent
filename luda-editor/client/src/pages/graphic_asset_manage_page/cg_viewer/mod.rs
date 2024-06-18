@@ -30,7 +30,6 @@ pub enum Event {
     },
 }
 
-#[component]
 pub struct CgViewer<'a> {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
@@ -174,7 +173,6 @@ impl Component for CgViewer<'_> {
     }
 }
 
-#[component]
 struct RenderCgContainFit<'a> {
     wh: Wh<Px>,
     project_id: Uuid,

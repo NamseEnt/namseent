@@ -1,6 +1,5 @@
 use namui::*;
 
-#[component]
 pub struct LoadingIndicator {
     pub wh: Wh<Px>,
     pub color: Color,

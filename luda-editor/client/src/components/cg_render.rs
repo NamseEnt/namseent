@@ -2,7 +2,6 @@ use crate::storage::get_project_cg_part_variant_image_url;
 use namui::*;
 use rpc::data::*;
 
-#[component]
 pub struct CgRender<'a> {
     pub rect: Rect<Px>,
     pub project_id: Uuid,

@@ -6,7 +6,6 @@ use namui::*;
 use namui_prebuilt::{simple_rect, table};
 use rpc::data::ScreenGraphic;
 
-#[component]
 pub struct GraphicListItem<'a> {
     pub project_id: Uuid,
     pub wh: Wh<Px>,

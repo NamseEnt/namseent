@@ -1,6 +1,5 @@
 use namui::*;
 
-#[component]
 pub struct ScrollView<'a, C: Component> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
@@ -23,7 +22,6 @@ impl<C: Component> Component for ScrollView<'_, C> {
     }
 }
 
-#[component]
 pub struct AutoScrollView<C: Component> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
@@ -44,7 +42,6 @@ impl<C: Component> Component for AutoScrollView<C> {
     }
 }
 
-#[component]
 pub struct AutoScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,
@@ -65,7 +62,6 @@ impl<Func: FnOnce(ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
     }
 }
 
-#[component]
 pub struct ScrollViewWithCtx<'a, Func: FnOnce(ComposeCtx)> {
     pub wh: Wh<Px>,
     pub scroll_bar_width: Px,

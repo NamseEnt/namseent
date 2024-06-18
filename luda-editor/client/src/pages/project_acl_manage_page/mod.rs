@@ -127,7 +127,6 @@ impl Component for ProjectAclManagePage {
     }
 }
 
-#[component]
 struct ListItem<'a> {
     wh: Wh<Px>,
     acl: &'a UserAcl,
@@ -179,7 +178,6 @@ impl Component for ListItem<'_> {
     }
 }
 
-#[component]
 struct EditorAdder<'a> {
     wh: Wh<Px>,
     update_acl: &'a dyn Fn(Uuid, Option<ProjectAclUserPermission>),

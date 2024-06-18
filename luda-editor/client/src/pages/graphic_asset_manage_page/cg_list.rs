@@ -6,7 +6,6 @@ use rpc::data::{CgFile, ScreenCg};
 
 const DOUBLE_CLICK_TIME: Time = Time::Sec(0.3);
 
-#[component]
 pub(super) struct CgList {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
@@ -42,7 +41,6 @@ impl Component for CgList {
     }
 }
 
-#[component]
 struct Thumbnail<'a> {
     wh: Wh<Px>,
     project_id: Uuid,

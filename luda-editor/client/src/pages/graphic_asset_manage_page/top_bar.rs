@@ -9,7 +9,6 @@ use futures::future::join_all;
 use namui::{file::picker::open, prelude::*};
 use namui_prebuilt::{button::TextButtonFit, simple_rect, table::*, typography};
 
-#[component]
 pub(super) struct TopBar {
     pub wh: Wh<Px>,
     pub project_id: Uuid,

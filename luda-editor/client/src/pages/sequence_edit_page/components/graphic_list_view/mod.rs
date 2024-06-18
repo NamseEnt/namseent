@@ -13,7 +13,6 @@ use namui::*;
 use namui_prebuilt::{scroll_view, simple_rect, table};
 use rpc::data::ChangeGraphicOrderAction;
 
-#[component]
 pub struct GraphicListView<'a> {
     pub project_id: Uuid,
     pub wh: Wh<Px>,
