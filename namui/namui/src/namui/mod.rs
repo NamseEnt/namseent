@@ -41,11 +41,9 @@ pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
         );
     }
 
-    println!("main thread id {:?}", std::thread::current().id());
     let tokio_runtime: tokio::runtime::Runtime =
         tokio_runtime().expect("Failed to create tokio runtime");
     tokio_runtime.spawn(async move {
-        println!("thread id: {:?}", std::thread::current().id());
         system::init_system()
             .await
             .expect("Failed to initialize namui system");
@@ -65,7 +63,6 @@ pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
     #[cfg(not(target_os = "wasi"))]
     {
         tokio_runtime.block_on(async move {
-            println!("thread id: {:?}", std::thread::current().id());
             screen::take_main_thread(component);
         });
     }
