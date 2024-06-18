@@ -1,7 +1,7 @@
 use crate::*;
 use std::{any::TypeId, fmt::Debug};
 
-pub trait Component: StaticType {
+pub trait Component {
     fn render(self, ctx: &RenderCtx);
     fn direct_rendering_tree(self) -> Result<RenderingTree, Self>
     where
@@ -25,20 +25,6 @@ pub trait Component: StaticType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum StaticTypeId {
-    Option(Option<Box<StaticTypeId>>),
-    Single(TypeId),
-    Tuple(Vec<StaticTypeId>),
-}
-pub trait StaticType {
-    fn static_type_name(&self) -> &'static str {
-        std::any::type_name::<Self>()
-    }
-}
-
-impl StaticType for RenderingTree {}
-
 impl Component for RenderingTree {
     fn render(self, _ctx: &RenderCtx) {
         unreachable!()
@@ -47,8 +33,6 @@ impl Component for RenderingTree {
         Ok(self)
     }
 }
-
-impl<T: StaticType> StaticType for Option<T> {}
 
 impl<T: Component> Component for Option<T> {
     fn render(self, ctx: &RenderCtx) {
@@ -60,7 +44,6 @@ impl<T: Component> Component for Option<T> {
     }
 }
 
-impl StaticType for DrawCommand {}
 impl Component for DrawCommand {
     fn render(self, _ctx: &RenderCtx) {
         unreachable!()
@@ -70,7 +53,6 @@ impl Component for DrawCommand {
     }
 }
 
-impl StaticType for PathDrawCommand {}
 impl Component for PathDrawCommand {
     fn render(self, _ctx: &RenderCtx) {
         unreachable!()
@@ -82,7 +64,6 @@ impl Component for PathDrawCommand {
     }
 }
 
-impl StaticType for ImageDrawCommand {}
 impl Component for ImageDrawCommand {
     fn render(self, _ctx: &RenderCtx) {
         unreachable!()
@@ -94,7 +75,6 @@ impl Component for ImageDrawCommand {
     }
 }
 
-impl StaticType for TextDrawCommand {}
 impl Component for TextDrawCommand {
     fn render(self, _ctx: &RenderCtx) {
         unreachable!()
@@ -106,7 +86,6 @@ impl Component for TextDrawCommand {
     }
 }
 
-impl<T: Fn(&RenderCtx)> StaticType for T {}
 impl<T: Fn(&RenderCtx)> Component for T {
     fn render(self, ctx: &RenderCtx) {
         self(ctx)
@@ -122,11 +101,6 @@ macro_rules! component_impl {
         )*
     ) => {
         $(
-            impl<$($T: StaticType),*> StaticType for ($($T,)*) {
-                fn static_type_name(&self) -> &'static str {
-                    std::any::type_name::<Self>()
-                }
-            }
             impl<$($T: Component),*> Component for ($($T,)*) {
                 fn render(self, ctx: &RenderCtx) {
                     $(ctx.add(self.$i);)*

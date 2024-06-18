@@ -47,7 +47,6 @@ fn memo_should_work() {
         update_state_1: bool,
     }
 
-    impl StaticType for A {}
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let (state, set_state) = ctx.state(|| 1);
@@ -128,7 +127,6 @@ fn effect_by_set_state_should_work() {
         update_state_1: bool,
     }
 
-    impl StaticType for A {}
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let (state, set_state) = ctx.state(|| 1);
@@ -208,7 +206,6 @@ fn effect_by_memo_should_work() {
         update_state: bool,
     }
 
-    impl StaticType for A {}
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let (state, set_state) = ctx.state(|| 1);
@@ -306,7 +303,6 @@ fn interval_should_work() {
         dt_record: Arc<Mutex<Duration>>,
     }
 
-    impl StaticType for A {}
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             ctx.interval("every 30 ms", Duration::from_millis(30), |dt| {
@@ -406,7 +402,6 @@ fn controlled_memo_should_work() {
         update_state_1: bool,
     }
 
-    impl StaticType for A {}
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let (state, set_state) = ctx.state(|| 1);
@@ -503,7 +498,6 @@ fn atom_should_work() {
         value_in_b: Arc<AtomicUsize>,
     }
 
-    impl StaticType for A {}
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let (_my_atom, set_my_atom) = ctx.init_atom(&MY_ATOM, || 5);
@@ -592,7 +586,6 @@ fn cloned_set_state_should_work() {
 
     static MY_ATOM: Atom<usize> = Atom::uninitialized();
 
-    impl StaticType for A {}
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let (_state, set_state) = ctx.state(|| 5);

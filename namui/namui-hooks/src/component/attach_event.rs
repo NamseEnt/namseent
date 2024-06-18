@@ -17,7 +17,6 @@ pub struct AttachEvent<'a, C: Component> {
     on_event: OnEvent<'a>,
 }
 
-impl<'a, C: 'a + Component> StaticType for AttachEvent<'a, C> {}
 impl<'a, C: 'a + Component> Component for AttachEvent<'a, C> {
     fn render(self, ctx: &RenderCtx) {
         ctx.add(self.component).attach_event(self.on_event);
