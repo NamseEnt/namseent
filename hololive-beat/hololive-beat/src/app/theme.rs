@@ -16,6 +16,7 @@ pub const THEME: Theme = Theme {
     text: Color::WHITE,
 };
 
+#[allow(dead_code)]
 pub struct Theme {
     pub blue: Color,
     pub yellow: Color,
