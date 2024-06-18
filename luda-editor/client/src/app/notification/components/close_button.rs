@@ -10,7 +10,7 @@ impl Component for CloseButton {
     fn render(self, ctx: &RenderCtx)  {
         let Self { wh, color } = self;
         ctx.compose(|ctx| {
-            namui_prebuilt::table::hooks::padding(wh.height / 6.0, |wh, ctx| {
+            namui_prebuilt::table::padding(wh.height / 6.0, |wh, ctx| {
                 let path = Path::new()
                     .move_to(0.px(), 0.px())
                     .line_to(wh.width, wh.height)

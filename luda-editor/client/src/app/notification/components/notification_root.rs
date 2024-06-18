@@ -27,13 +27,13 @@ impl Component for NotificationRoot {
 
         ctx.compose(|ctx| {
             let mut ctx = ctx.translate(xy);
-            namui_prebuilt::table::hooks::vertical_padding(PADDING, |wh, ctx| {
-                namui_prebuilt::table::hooks::vertical(notifications.deref().iter().map(
+            namui_prebuilt::table::vertical_padding(PADDING, |wh, ctx| {
+                namui_prebuilt::table::vertical(notifications.deref().iter().map(
                     |notification| {
-                        namui_prebuilt::table::hooks::fixed(NOTIFICATION_CARD_HEIGHT, |wh, ctx| {
-                            namui_prebuilt::table::hooks::padding(PADDING, |wh, ctx| {
-                                namui_prebuilt::table::hooks::horizontal([
-                                    namui_prebuilt::table::hooks::fixed(wh.height, |wh, ctx| {
+                        namui_prebuilt::table::fixed(NOTIFICATION_CARD_HEIGHT, |wh, ctx| {
+                            namui_prebuilt::table::padding(PADDING, |wh, ctx| {
+                                namui_prebuilt::table::horizontal([
+                                    namui_prebuilt::table::fixed(wh.height, |wh, ctx| {
                                         if notification.loading {
                                             ctx.add(LoadingIndicator {
                                                 wh,
@@ -41,7 +41,7 @@ impl Component for NotificationRoot {
                                             });
                                         }
                                     }),
-                                    namui_prebuilt::table::hooks::ratio(1, |wh, ctx| {
+                                    namui_prebuilt::table::ratio(1, |wh, ctx| {
                                         ctx.clip(
                                             Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
                                             ClipOp::Intersect,
@@ -53,14 +53,14 @@ impl Component for NotificationRoot {
                                             PADDING,
                                         ));
                                     }),
-                                    namui_prebuilt::table::hooks::fixed(wh.height, |wh, ctx| {
+                                    namui_prebuilt::table::fixed(wh.height, |wh, ctx| {
                                         ctx.add(CopyButton {
                                             wh,
                                             color: notification.level.text_color(),
                                             content: &notification.message,
                                         });
                                     }),
-                                    namui_prebuilt::table::hooks::fixed(wh.height, |wh, ctx| {
+                                    namui_prebuilt::table::fixed(wh.height, |wh, ctx| {
                                         if !notification.loading {
                                             ctx.add(
                                                 CloseButton {

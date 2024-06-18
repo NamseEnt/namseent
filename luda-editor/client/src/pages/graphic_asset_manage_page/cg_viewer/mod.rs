@@ -3,7 +3,7 @@ mod part_picker;
 use self::part_picker::PartPicker;
 use crate::{color, components::cg_render::CgRender, storage::get_project_cg_thumbnail_image_url};
 use namui::*;
-use namui_prebuilt::{button, simple_rect, table::hooks::*, typography};
+use namui_prebuilt::{button, simple_rect, table::*, typography};
 use rpc::data::{CgFile, ScreenCg};
 use std::ops::Deref;
 

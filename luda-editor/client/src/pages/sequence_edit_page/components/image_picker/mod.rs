@@ -4,7 +4,7 @@ use crate::{
     storage::get_project_image_url,
 };
 use namui::*;
-use namui_prebuilt::{table::hooks::TableCell, *};
+use namui_prebuilt::{table::TableCell, *};
 use rpc::data::{Cut, ImageWithLabels};
 
 const OUTER_PADDING: Px = px(8.0);
@@ -47,15 +47,15 @@ impl Component for ImagePicker<'_> {
         };
 
         ctx.compose(|ctx| {
-            table::hooks::padding(OUTER_PADDING, |wh, ctx| {
+            table::padding(OUTER_PADDING, |wh, ctx| {
                 let max_items_per_row = (wh.width / (THUMBNAIL_WH.width)).floor() as usize;
                 ctx.add(scroll_view::AutoScrollViewWithCtx {
                     scroll_bar_width: 4.px(),
                     wh,
                     content: |ctx| {
-                        table::hooks::vertical(images.chunks(max_items_per_row).map(|images| {
-                            table::hooks::fixed(THUMBNAIL_WH.height, {
-                                table::hooks::horizontal(images.iter().map(|image| {
+                        table::vertical(images.chunks(max_items_per_row).map(|images| {
+                            table::fixed(THUMBNAIL_WH.height, {
+                                table::horizontal(images.iter().map(|image| {
                                     render_thumbnail(image, project_id, &on_internal_event)
                                 }))
                             })
@@ -86,8 +86,8 @@ fn render_thumbnail<'a>(
     project_id: Uuid,
     on_internal_event: &'a dyn Fn(InternalEvent),
 ) -> TableCell<'a> {
-    table::hooks::fixed::<'a>(THUMBNAIL_WH.width, {
-        table::hooks::padding(INNER_PADDING, move |wh, ctx| {
+    table::fixed::<'a>(THUMBNAIL_WH.width, {
+        table::padding(INNER_PADDING, move |wh, ctx| {
             ctx.add(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)

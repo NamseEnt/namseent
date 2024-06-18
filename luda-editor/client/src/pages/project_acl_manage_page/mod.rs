@@ -9,7 +9,7 @@ use namui::text_input::Style;
 use namui_prebuilt::button::TextButton;
 use namui_prebuilt::list_view::AutoListView;
 use namui_prebuilt::typography;
-use namui_prebuilt::{simple_rect, table::hooks::*};
+use namui_prebuilt::{simple_rect, table::*};
 use rpc::list_user_acls::UserAcl;
 use rpc::types::ProjectAclUserPermission;
 use std::fmt::Write;

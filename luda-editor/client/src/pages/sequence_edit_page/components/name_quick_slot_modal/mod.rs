@@ -1,6 +1,6 @@
 use crate::{color, pages::sequence_edit_page::atom::NAME_QUICK_SLOT};
 use namui::{prelude::*, text_input::Style};
-use namui_prebuilt::{button::TextButton, simple_rect, table::hooks::*, typography};
+use namui_prebuilt::{button::TextButton, simple_rect, table::*, typography};
 
 const MODAL_MAX_WH: Wh<Px> = Wh {
     width: px(512.0),

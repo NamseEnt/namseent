@@ -12,7 +12,7 @@ use super::{
 };
 use keyframe::{ease, functions::EaseOutCubic, num_traits::Signed};
 use namui::{time::since_start, *};
-use namui_prebuilt::table::hooks::*;
+use namui_prebuilt::table::*;
 
 #[component]
 pub struct MusicSelectPage<'a> {
