@@ -11,7 +11,6 @@ use namui_prebuilt::*;
 use rpc::data::{CgFile, ImageWithLabels, Memo, ProjectSharedData, Sequence};
 use std::collections::HashMap;
 
-#[namui::component]
 pub struct SequenceEditPage {
     pub wh: Wh<Px>,
     pub project_id: Uuid,

@@ -1,6 +1,5 @@
 use super::*;
 
-#[namui::component]
 pub struct WysiwygTool<'a> {
     pub graphic_dest_rect: Rect<Px>,
     pub original_graphic_size: Wh<Px>,

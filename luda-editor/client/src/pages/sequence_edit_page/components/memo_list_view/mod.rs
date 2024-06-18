@@ -5,7 +5,6 @@ use namui_prebuilt::scroll_view::{self};
 use namui_prebuilt::{simple_rect, table, transparent_rect};
 use rpc::data::Memo;
 
-#[namui::component]
 pub struct MemoListView<'a> {
     pub wh: Wh<Px>,
     pub memos: Option<&'a Vec<Memo>>,
@@ -57,7 +56,6 @@ impl Component for MemoListView<'_> {
     }
 }
 
-#[namui::component]
 struct MemoComponent<'a> {
     width: Px,
     memo: &'a Memo,
@@ -107,7 +105,6 @@ impl Component for MemoComponent<'_> {
     }
 }
 
-#[namui::component]
 struct MemoContent<'a> {
     width: Px,
     memo: &'a Memo,

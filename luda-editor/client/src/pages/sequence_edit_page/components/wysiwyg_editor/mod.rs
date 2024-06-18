@@ -31,7 +31,6 @@ use rotator::Rotator;
 use rpc::data::{CgFile, CutUpdateAction, ScreenGraphic};
 use std::ops::{ControlFlow, Deref};
 
-#[namui::component]
 pub struct WysiwygEditor<'a> {
     pub wh: Wh<Px>,
     pub cut_id: Uuid,

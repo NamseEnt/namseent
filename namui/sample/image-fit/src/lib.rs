@@ -6,7 +6,6 @@ pub fn main() {
     })
 }
 
-#[namui::component]
 struct App;
 
 impl Component for App {

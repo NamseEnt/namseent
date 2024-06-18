@@ -5,7 +5,6 @@ use decomposed_string::DecomposedString;
 use namui::*;
 use namui_prebuilt::*;
 
-#[namui::component]
 pub struct AutoCompleteTextInput<'a> {
     pub text_input_instance: TextInputInstance,
     pub wh: Wh<Px>,

@@ -12,7 +12,6 @@ use crate::{
 use namui_prebuilt::table::*;
 use rpc::data::{CgFile, ScreenGraphic, SequenceUpdateAction};
 
-#[namui::component]
 pub struct CutCell<'a> {
     pub wh: Wh<Px>,
     pub index: usize,

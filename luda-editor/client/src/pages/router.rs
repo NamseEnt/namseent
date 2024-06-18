@@ -1,7 +1,6 @@
 use super::*;
 use namui::*;
 
-#[namui::component]
 pub struct Router {
     pub wh: Wh<Px>,
 }

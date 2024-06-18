@@ -9,7 +9,6 @@ use crate::{
 use namui_prebuilt::*;
 use rpc::data::{CutUpdateAction, ScreenCg, ScreenGraphic, ScreenImage};
 
-#[namui::component]
 pub struct BackgroundWithEvent<'a> {
     pub cut: &'a Cut,
     pub wh: Wh<Px>,

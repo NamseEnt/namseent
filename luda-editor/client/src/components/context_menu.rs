@@ -111,7 +111,6 @@ enum Item {
     Divider,
 }
 
-#[namui::component]
 pub struct ContextMenu;
 
 impl Component for ContextMenu {

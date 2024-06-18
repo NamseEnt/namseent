@@ -7,7 +7,6 @@ pub fn main() {
     })
 }
 
-#[namui::component]
 struct MediaExample;
 
 impl Component for MediaExample {

@@ -27,7 +27,6 @@ pub async fn main() {
     namui_context.start(|| Init {}).await;
 }
 
-#[namui::component]
 struct Init {}
 
 impl namui::Component for Init {

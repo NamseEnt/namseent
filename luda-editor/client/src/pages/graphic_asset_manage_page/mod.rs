@@ -30,7 +30,6 @@ static IMAGES_ATOM: Atom<Vec<ImageWithLabels>> = Atom::uninitialized_new();
 static CG_FILES_ATOM: Atom<Vec<CgFile>> = Atom::uninitialized_new();
 static SELECTED_ASSET_ATOM: Atom<Option<SelectedAsset>> = Atom::uninitialized_new();
 
-#[namui::component]
 pub struct GraphicAssetManagePage {
     pub wh: Wh<Px>,
     pub project_id: Uuid,

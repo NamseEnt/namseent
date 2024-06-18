@@ -1,7 +1,6 @@
 use super::{wysiwyg_tool::WysiwygTool, *};
 use crate::{app::notification, clipboard::LudaEditorClipboardItem};
 
-#[namui::component]
 pub struct GraphicClip<'a> {
     pub cut_id: Uuid,
     pub graphic_index: Uuid,

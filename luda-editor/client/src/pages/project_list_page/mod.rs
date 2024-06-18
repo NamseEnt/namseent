@@ -7,7 +7,6 @@ use namui::*;
 use namui_prebuilt::*;
 use rpc::list_editable_projects::EditableProject;
 
-#[namui::component]
 pub struct ProjectListPage {
     pub wh: Wh<Px>,
 }
@@ -196,7 +195,6 @@ impl Component for ProjectListPage {
     }
 }
 
-#[namui::component]
 pub struct ProjectCell {
     wh: Wh<Px>,
     project: EditableProject,

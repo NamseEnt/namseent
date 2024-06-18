@@ -1,7 +1,6 @@
 use namui::*;
 use rpc::data::Circumscribed;
 
-#[namui::component]
 pub struct Resizer<'a> {
     pub rect: Rect<Px>,
     pub dragging_context: Option<ResizerDraggingContext>,

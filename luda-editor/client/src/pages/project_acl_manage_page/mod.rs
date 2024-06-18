@@ -18,7 +18,6 @@ use top_bar::TopBar;
 
 const BUTTON_WIDTH: Px = px(128.0);
 
-#[namui::component]
 pub struct ProjectAclManagePage {
     pub wh: Wh<Px>,
     pub project_id: Uuid,

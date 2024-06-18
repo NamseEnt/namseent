@@ -1,7 +1,6 @@
 use super::*;
 use rpc::data::Circumscribed;
 
-#[namui::component]
 pub struct Mover<'a> {
     pub image_dest_rect: Rect<Px>,
     pub dragging: Option<Dragging>,

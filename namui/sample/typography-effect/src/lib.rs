@@ -6,7 +6,6 @@ pub fn main() {
     })
 }
 
-#[namui::component]
 struct TypographyEffectExample;
 
 impl Component for TypographyEffectExample {

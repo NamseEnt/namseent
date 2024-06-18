@@ -17,7 +17,6 @@ const MIN_THUMBNAIL_CONTAINER_SIDE_PADDING: Px = px(8.0);
 const ROW_VERTICAL_PADDING: Px = px(8.0);
 const DIVIDER_HEIGHT: Px = px(32.0);
 
-#[namui::component]
 pub struct PartPicker<'a> {
     pub wh: Wh<Px>,
     pub cg_file: &'a CgFile,
