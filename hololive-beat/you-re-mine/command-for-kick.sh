@@ -1,1 +1,0 @@
-aubionotes -i kick.opus -O specflux -T seconds -B 64 -H 16 -s -30 > kick.txt
