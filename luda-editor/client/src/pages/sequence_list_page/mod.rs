@@ -123,12 +123,12 @@ impl Component for SequenceListPage {
         }
 
         ctx.compose(|ctx| {
-            table::hooks::horizontal([
-                table::hooks::ratio(1.0, |_wh, _ctx| {}),
-                table::hooks::ratio(
+            table::horizontal([
+                table::ratio(1.0, |_wh, _ctx| {}),
+                table::ratio(
                     2.0,
-                    table::hooks::vertical([
-                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
+                    table::vertical([
+                        table::fixed(ITEM_HEIGHT, |wh, ctx| {
                             ctx.add(button::TextButton {
                                 rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 text: "Manage Graphic Assets",
@@ -144,7 +144,7 @@ impl Component for SequenceListPage {
                                 },
                             });
                         }),
-                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
+                        table::fixed(ITEM_HEIGHT, |wh, ctx| {
                             ctx.add(button::TextButton {
                                 rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 text: "Manage Project ACL",
@@ -160,8 +160,8 @@ impl Component for SequenceListPage {
                                 },
                             });
                         }),
-                        table::hooks::fixed(ITEM_HEIGHT, |_wh, _ctx| {}),
-                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
+                        table::fixed(ITEM_HEIGHT, |_wh, _ctx| {}),
+                        table::fixed(ITEM_HEIGHT, |wh, ctx| {
                             ctx.add(button::TextButton {
                                 rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 text: "[+] Add Sequence",
@@ -173,7 +173,7 @@ impl Component for SequenceListPage {
                                 on_mouse_up_in: &|_| on_add_button_click(),
                             });
                         }),
-                        table::hooks::ratio(1.0, |wh, ctx| {
+                        table::ratio(1.0, |wh, ctx| {
                             let item_wh = Wh::new(wh.width, ITEM_HEIGHT);
 
                             ctx.add(list_view::AutoListView {
@@ -208,7 +208,7 @@ impl Component for SequenceListPage {
                         }),
                     ]),
                 ),
-                table::hooks::ratio(1.0, |_wh, _ctx| {}),
+                table::ratio(1.0, |_wh, _ctx| {}),
             ])(wh, ctx)
         });
 

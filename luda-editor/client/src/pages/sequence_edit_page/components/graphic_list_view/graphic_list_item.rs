@@ -35,16 +35,16 @@ impl Component for GraphicListItem<'_> {
         };
 
         ctx.compose(|ctx| {
-            table::hooks::horizontal([
-                table::hooks::fixed(wh.height, |wh, ctx| {
+            table::horizontal([
+                table::fixed(wh.height, |wh, ctx| {
                     ctx.add(GraphicThumbnail {
                         project_id,
                         wh,
                         graphic,
                     });
                 }),
-                table::hooks::ratio(1, |wh, ctx| {
-                    table::hooks::padding(PADDING, |wh, ctx| {
+                table::ratio(1, |wh, ctx| {
+                    table::padding(PADDING, |wh, ctx| {
                         ctx.add(namui_prebuilt::typography::body::left(
                             wh.height,
                             graphic_name,

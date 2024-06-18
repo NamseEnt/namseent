@@ -8,7 +8,7 @@ use crate::app::{
     play_state::{restart_game, PlayState, PLAY_STATE_ATOM},
 };
 use namui::{time::since_start, *};
-use namui_prebuilt::table::hooks::*;
+use namui_prebuilt::table::*;
 
 pub static SETTING_OVERLAY_OPEN_ATOM: Atom<bool> = Atom::uninitialized();
 

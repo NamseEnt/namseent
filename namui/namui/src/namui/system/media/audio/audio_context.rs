@@ -123,7 +123,7 @@ impl AudioContext {
     }
 
     pub(crate) fn set_volume(&self, volume: f32) {
-        let volume = volume.max(0.0).min(1.0);
+        let volume = volume.clamp(0.0, 1.0);
         self.volume
             .store(volume, std::sync::atomic::Ordering::Relaxed);
     }

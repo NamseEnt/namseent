@@ -17,7 +17,7 @@ impl Component for CopyButton<'_> {
             false => color,
         };
         ctx.compose(|ctx| {
-            namui_prebuilt::table::hooks::padding(wh.height / 6.0, |wh, ctx| {
+            namui_prebuilt::table::padding(wh.height / 6.0, |wh, ctx| {
                 let stroke_width = wh.height / 8.0;
                 let offset = wh / 4.0;
                 let wh = wh - offset;

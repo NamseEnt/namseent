@@ -3,7 +3,7 @@ use crate::{
     pages::router::{move_to, Route},
 };
 use namui::*;
-use namui_prebuilt::{button::TextButtonFit, simple_rect, table::hooks::*, typography};
+use namui_prebuilt::{button::TextButtonFit, simple_rect, table::*, typography};
 
 #[component]
 pub(super) struct TopBar {
