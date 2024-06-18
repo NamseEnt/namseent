@@ -517,7 +517,6 @@ fn atom_should_work() {
         value_in_b: Arc<AtomicUsize>,
     }
 
-    impl StaticType for B {}
     impl Component for B {
         fn render(self, ctx: &RenderCtx) {
             let (my_atom, _set_my_atom) = ctx.atom(&MY_ATOM);

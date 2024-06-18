@@ -1,5 +1,4 @@
 use crate::*;
-use std::{any::TypeId, fmt::Debug};
 
 pub trait Component {
     fn render(self, ctx: &RenderCtx);
