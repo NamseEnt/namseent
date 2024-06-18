@@ -42,9 +42,11 @@ pub fn stop_watch(key: impl AsRef<str>) -> StopWatch {
 }
 
 /// You can await on this.
-/// ```no_run
+/// 
+/// ```ignore
 /// sleep(Duration::from_secs(1)).await;
 /// ```
+/// 
 /// Sleep 0 duration if passed duration is less than 0.
 pub fn sleep(duration: Duration) -> time::Sleep {
     TIME_SYSTEM.get().unwrap().sleep(duration)
