@@ -23,7 +23,7 @@ pub use namui_type::*;
 pub use render::*;
 pub use serde;
 pub use shader_macro::shader;
-#[cfg(not(target_os = "wasi"))]
+#[cfg(target_os = "windows")]
 pub use system::media::*;
 pub use system::*;
 pub use tokio;

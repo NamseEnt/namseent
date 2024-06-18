@@ -380,7 +380,7 @@ fn main() {
     let ffmpeg_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
         .join("ffmpeg")
         .join(env::var("TARGET").unwrap());
-    eprintln!("ffmpeg_dir: {:?}", ffmpeg_dir);
+    println!("FFMPEG_DIR: {:?}", ffmpeg_dir);
 
     unzip_ffmpeg(&ffmpeg_dir);
 

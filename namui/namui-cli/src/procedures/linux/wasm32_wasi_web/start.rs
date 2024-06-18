@@ -82,6 +82,12 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
 }
 
 async fn start_web_code() -> Result<Child> {
+    let mut process = tokio::process::Command::new("npm")
+        .current_dir(get_cli_root_path().join("webCode"))
+        .args(["ci"])
+        .spawn()?;
+    process.wait().await?;
+
     let process = tokio::process::Command::new("npm")
         .current_dir(get_cli_root_path().join("webCode"))
         .args(["run", "dev"])

@@ -4,7 +4,7 @@ pub mod font;
 pub mod image;
 pub mod keyboard;
 pub mod log;
-#[cfg(not(target_os = "wasi"))]
+#[cfg(target_os = "windows")]
 pub mod media;
 pub mod mouse;
 pub mod network;
@@ -53,7 +53,7 @@ pub(super) async fn init_system() -> InitResult {
     eprintln!("before init typeface");
 
     tokio::try_join!(typeface::init())?;
-    #[cfg(not(target_os = "wasi"))]
+    #[cfg(target_os = "windows")]
     tokio::try_join!(media::init())?; // todo: join this with typeface
 
     eprintln!("after init typeface");

@@ -11,6 +11,8 @@ mod typeface;
 // TODO
 // mod runtime_effect;
 
+#[cfg(target_os = "linux")]
+mod linux;
 #[cfg(target_os = "wasi")]
 mod wasi;
 #[cfg(target_os = "windows")]
@@ -30,6 +32,8 @@ use std::sync::Arc;
 pub(crate) use text_blob::*;
 pub(crate) use typeface::*;
 
+#[cfg(target_os = "linux")]
+pub use linux::*;
 #[cfg(target_os = "wasi")]
 pub use wasi::*;
 #[cfg(target_os = "windows")]
@@ -42,6 +46,10 @@ pub fn init_skia(window_wh: Wh<IntPx>) -> Result<NativeSkia> {
 #[cfg(target_os = "windows")]
 pub fn init_skia(screen_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
     NativeSkia::new(screen_id, window_wh)
+}
+#[cfg(target_os = "linux")]
+pub fn init_skia(_screen_id: usize, _window_wh: Wh<IntPx>) -> Result<NativeSkia> {
+    unimplemented!()
 }
 
 pub fn init_calculate() -> Result<Arc<impl SkCalculate + Send + Sync>> {
