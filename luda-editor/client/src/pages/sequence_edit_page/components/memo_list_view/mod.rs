@@ -33,9 +33,9 @@ impl Component for MemoListView<'_> {
                 let Some(memos) = memos else {
                     return;
                 };
-                table::hooks::vertical(memos.iter().map(|memo| {
-                    table::hooks::fit(
-                        table::hooks::FitAlign::LeftTop,
+                table::vertical(memos.iter().map(|memo| {
+                    table::fit(
+                        table::FitAlign::LeftTop,
                         MemoComponent {
                             width: wh.width,
                             memo,

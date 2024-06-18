@@ -1,6 +1,6 @@
 use crate::app::{setting_overlay::slider::Slider, theme::THEME};
 use namui::*;
-use namui_prebuilt::{table::hooks::*, typography::adjust_font_size};
+use namui_prebuilt::{table::*, typography::adjust_font_size};
 
 #[component]
 pub struct VolumeSetting {

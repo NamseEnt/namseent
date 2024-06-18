@@ -367,16 +367,16 @@ pub fn render_over_text_hooks<'a>(
     character_name_side: impl 'a + Fn(Wh<Px>, &mut ComposeCtx),
     cut_text_side: impl 'a + Fn(Wh<Px>, &mut ComposeCtx),
 ) {
-    table::hooks::vertical([
-        table::hooks::ratio(3, |_wh, _ctx| {}),
-        table::hooks::ratio(
+    table::vertical([
+        table::ratio(3, |_wh, _ctx| {}),
+        table::ratio(
             1,
-            table::hooks::vertical([
-                table::hooks::ratio(
+            table::vertical([
+                table::ratio(
                     1,
-                    table::hooks::horizontal_padding(32.px(), character_name_side),
+                    table::horizontal_padding(32.px(), character_name_side),
                 ),
-                table::hooks::ratio(3, table::hooks::padding_no_clip(32.px(), cut_text_side)),
+                table::ratio(3, table::padding_no_clip(32.px(), cut_text_side)),
             ]),
         ),
     ])(wh, ctx);

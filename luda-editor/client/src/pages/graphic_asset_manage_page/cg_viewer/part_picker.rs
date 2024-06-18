@@ -3,7 +3,7 @@ use crate::{color, components::tool_tip::ToolTip, storage::get_project_cg_part_v
 use namui::*;
 use namui_prebuilt::{
     scroll_view, simple_rect,
-    table::hooks::*,
+    table::*,
     typography::{center_text, center_text_full_height},
 };
 use rpc::data::{CgFile, CgPart, CgPartVariant, PartSelectionType, ScreenCg};

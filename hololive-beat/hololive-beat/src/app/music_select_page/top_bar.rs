@@ -6,7 +6,7 @@ use crate::app::{
     theme::THEME,
 };
 use namui::*;
-use namui_prebuilt::{simple_rect, table::hooks::*, typography};
+use namui_prebuilt::{simple_rect, table::*, typography};
 
 #[component]
 pub struct TopBar<'a> {

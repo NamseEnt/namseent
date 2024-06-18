@@ -5,7 +5,7 @@ use crate::app::{
     MUSIC_SPEED_MAP_ATOM,
 };
 use namui::*;
-use namui_prebuilt::{table::hooks::*, typography::adjust_font_size};
+use namui_prebuilt::{table::*, typography::adjust_font_size};
 
 #[component]
 pub struct SpeedDropdown<'a> {

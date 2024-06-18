@@ -1,6 +1,6 @@
 use crate::{color, storage::get_project_image_url};
 use namui::*;
-use namui_prebuilt::{button, simple_rect, table::hooks::*, typography};
+use namui_prebuilt::{button, simple_rect, table::*, typography};
 
 const MODAL_MAX_WH: Wh<Px> = Wh {
     width: px(1280.0),

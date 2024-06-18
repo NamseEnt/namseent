@@ -16,8 +16,8 @@ impl Component for Header {
         let Self { wh } = self;
 
         ctx.compose(|ctx| {
-            table::hooks::vertical_padding(PADDING.height, |wh, ctx| {
-                table::hooks::horizontal_padding(PADDING.width, |wh, ctx| {
+            table::vertical_padding(PADDING.height, |wh, ctx| {
+                table::horizontal_padding(PADDING.width, |wh, ctx| {
                     ctx.add(text(TextParam {
                         text: "Graphic List".to_string(),
                         x: 0.px(),
