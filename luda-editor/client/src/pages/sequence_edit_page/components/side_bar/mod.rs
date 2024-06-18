@@ -8,7 +8,6 @@ use namui_prebuilt::{
 };
 use rpc::data::{Cut, Memo};
 
-#[component]
 pub struct SideBar<'a> {
     pub wh: Wh<Px>,
     pub project_id: Uuid,

@@ -76,7 +76,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             AddKey::Uuid(uuid) => ChildKey::Uuid(uuid),
             AddKey::Incremental => ChildKey::IncrementalComponent {
                 index: self.composer.get_next_component_index(),
-                type_name: component.static_type_name(),
+                type_name: std::any::type_name_of_val(&component),
             },
         };
 

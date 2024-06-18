@@ -6,7 +6,6 @@ use rpc::data::ImageWithLabels;
 
 const DOUBLE_CLICK_TIME: Time = Time::Sec(0.3);
 
-#[component]
 pub(super) struct ImageList {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
@@ -42,7 +41,6 @@ impl Component for ImageList {
     }
 }
 
-#[component]
 struct Thumbnail<'a> {
     wh: Wh<Px>,
     project_id: Uuid,

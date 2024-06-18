@@ -4,7 +4,6 @@ use std::fmt::Debug;
 
 type ItemRenderFn<'a, TItem> = Box<dyn 'a + Fn(Wh<Px>, TItem, ComposeCtx)>;
 
-#[component]
 pub struct AutoVHListView<'a, TItem, TIterator, TItems>
 where
     TIterator: Iterator<Item = TItem>,
@@ -45,7 +44,6 @@ where
     }
 }
 
-#[component]
 pub struct VHListView<'a, TItem, TIterator, TItems>
 where
     TIterator: Iterator<Item = TItem>,
@@ -103,7 +101,6 @@ where
     }
 }
 
-#[component]
 struct Content<'a, TItem, TIterator, TItems>
 where
     TIterator: Iterator<Item = TItem>,

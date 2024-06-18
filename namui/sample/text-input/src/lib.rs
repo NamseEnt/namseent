@@ -6,7 +6,6 @@ pub fn main() {
     })
 }
 
-#[namui::component]
 struct TextInputExample;
 
 impl Component for TextInputExample {

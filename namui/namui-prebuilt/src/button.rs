@@ -21,7 +21,6 @@ fn attach_text_button_event(
     });
 }
 
-#[component]
 pub struct TextButton<'a> {
     pub rect: Rect<Px>,
     pub text: &'a str,
@@ -58,7 +57,6 @@ impl Component for TextButton<'_> {
     }
 }
 
-#[component]
 pub struct TextButtonFit<'a> {
     pub height: Px,
     pub text: &'a str,
@@ -102,7 +100,6 @@ impl Component for TextButtonFit<'_> {
     }
 }
 
-#[component]
 pub struct TextButtonFitAlign<'a> {
     pub wh: Wh<Px>,
     pub align: TextAlign,
@@ -157,7 +154,6 @@ impl Component for TextButtonFitAlign<'_> {
     }
 }
 
-#[component]
 pub struct BodyTextButton<'a> {
     pub rect: Rect<Px>,
     pub text: &'a str,

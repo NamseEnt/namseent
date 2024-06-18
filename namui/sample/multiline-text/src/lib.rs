@@ -7,7 +7,6 @@ pub fn main() {
     })
 }
 
-#[namui::component]
 struct MultilineTextExample {}
 
 impl Component for MultilineTextExample {

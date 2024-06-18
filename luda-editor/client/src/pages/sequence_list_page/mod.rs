@@ -6,7 +6,6 @@ use namui::*;
 use namui_prebuilt::*;
 use rpc::list_project_sequences::SequenceNameAndId;
 
-#[namui::component]
 pub struct SequenceListPage {
     pub wh: Wh<Px>,
     pub project_id: namui::Uuid,
@@ -261,7 +260,6 @@ impl Component for SequenceListPage {
     }
 }
 
-#[namui::component]
 pub struct SequenceCell<'a> {
     wh: Wh<Px>,
     project_id: Uuid,

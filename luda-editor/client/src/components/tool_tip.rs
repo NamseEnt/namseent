@@ -2,7 +2,6 @@ use crate::color;
 use namui::*;
 
 #[derive(Clone)]
-#[component]
 pub struct ToolTip {
     pub global_xy: Xy<Px>,
     pub text: String,

@@ -4,7 +4,6 @@ use namui::*;
 use namui_prebuilt::*;
 use rpc::data::*;
 
-#[component]
 pub struct SequencePlayer<'a> {
     pub wh: Wh<Px>,
     pub sequence: &'a Sequence,
@@ -433,7 +432,6 @@ fn render_graphics(
     });
 }
 
-#[component]
 pub struct SequencePlayerGraphic<'a> {
     project_id: Uuid,
     wh: Wh<Px>,

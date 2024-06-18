@@ -7,7 +7,6 @@ use anyhow::Result;
 use namui::*;
 use namui_prebuilt::*;
 
-#[namui::component]
 pub struct App;
 
 #[derive(Debug, PartialEq)]

@@ -12,7 +12,6 @@ use namui_prebuilt::*;
 use rpc::data::{CgFile, Cut, CutUpdateAction, SequenceUpdateAction};
 use std::collections::BTreeSet;
 
-#[namui::component]
 pub struct CutEditor<'a> {
     pub wh: Wh<Px>,
     pub cut: &'a Cut,

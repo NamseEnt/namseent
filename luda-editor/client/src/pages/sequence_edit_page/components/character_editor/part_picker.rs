@@ -18,7 +18,6 @@ const THUMBNAIL_WH: Wh<Px> = Wh {
     height: px(96.0),
 };
 
-#[namui::component]
 pub struct PartPicker<'a> {
     pub wh: Wh<Px>,
     pub cg_file: &'a CgFile,

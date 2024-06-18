@@ -13,7 +13,6 @@ use std::collections::HashMap;
 
 static DRAGGING_CONTEXT: Atom<Option<DraggingContext>> = Atom::uninitialized_new();
 
-#[namui::component]
 pub struct CutListView<'a> {
     pub wh: Wh<Px>,
     pub cuts: &'a Vec<Cut>,

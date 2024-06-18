@@ -2,7 +2,6 @@ use crate::color;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
-#[component]
 pub struct Header {
     pub wh: Wh<Px>,
 }

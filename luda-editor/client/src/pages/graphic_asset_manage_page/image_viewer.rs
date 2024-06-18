@@ -9,7 +9,6 @@ const MODAL_MAX_WH: Wh<Px> = Wh {
 const MODAL_MIN_MARGIN: Px = px(16.0);
 const TITLE_BAR_HEIGHT: Px = px(48.0);
 
-#[component]
 pub struct ImageViewer<'a> {
     pub wh: Wh<Px>,
     pub image: &'a rpc::data::ImageWithLabels,

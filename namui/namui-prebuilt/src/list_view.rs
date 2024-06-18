@@ -1,7 +1,6 @@
 use crate::scroll_view::{self};
 use namui::*;
 
-#[namui::component]
 pub struct AutoListView<C: Component> {
     pub height: Px,
     pub scroll_bar_width: Px,
@@ -30,7 +29,6 @@ impl<C: Component> Component for AutoListView<C> {
     }
 }
 
-#[namui::component]
 pub struct ListView<'a, C: Component> {
     pub height: Px,
     pub scroll_bar_width: Px,
@@ -66,7 +64,6 @@ impl<C: Component> Component for ListView<'_, C> {
     }
 }
 
-#[namui::component]
 struct ListViewInner<C: Component> {
     height: Px,
     item_wh: Wh<Px>,

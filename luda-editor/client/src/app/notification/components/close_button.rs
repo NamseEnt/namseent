@@ -1,7 +1,6 @@
 use namui::*;
 use namui_prebuilt::simple_rect;
 
-#[component]
 pub struct CloseButton {
     pub wh: Wh<Px>,
     pub color: Color,

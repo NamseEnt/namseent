@@ -1,7 +1,6 @@
 use namui::*;
 use namui_prebuilt::simple_rect;
 
-#[namui::component]
 pub struct RenameModal<'a> {
     pub init_sequence_name: String,
     pub on_rename_done: &'a (dyn 'a + Fn(String)),

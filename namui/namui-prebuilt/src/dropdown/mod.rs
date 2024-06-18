@@ -4,7 +4,6 @@ use std::{fmt::Debug, ops::Deref};
 
 const LEFT_PADDING: Px = px(10.0);
 
-#[component]
 pub struct Dropdown<'a> {
     pub rect: Rect<Px>,
     pub items: Vec<Item<'a>>,
@@ -139,7 +138,6 @@ impl Debug for Item<'_> {
     }
 }
 
-#[component]
 struct InternalItem {
     wh: Wh<Px>,
     text: String,

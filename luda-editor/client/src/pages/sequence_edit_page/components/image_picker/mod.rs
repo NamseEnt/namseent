@@ -14,7 +14,6 @@ const THUMBNAIL_WH: Wh<Px> = Wh {
     height: px(144.0),
 };
 
-#[namui::component]
 pub struct ImagePicker<'a> {
     pub wh: Wh<Px>,
     pub project_id: Uuid,

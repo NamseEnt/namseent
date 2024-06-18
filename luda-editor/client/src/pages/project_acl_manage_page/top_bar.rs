@@ -5,7 +5,6 @@ use crate::{
 use namui::*;
 use namui_prebuilt::{button::TextButtonFit, simple_rect, table::*, typography};
 
-#[component]
 pub(super) struct TopBar {
     pub wh: Wh<Px>,
     pub project_id: Uuid,

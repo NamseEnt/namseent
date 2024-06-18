@@ -26,7 +26,6 @@ use std::{
  *  - User can disable the default behavior of the text input by providing the codes that should be prevented.
  */
 
-#[component]
 pub struct TextInput<'a> {
     pub rect: Rect<Px>,
     pub start_text: &'a str,

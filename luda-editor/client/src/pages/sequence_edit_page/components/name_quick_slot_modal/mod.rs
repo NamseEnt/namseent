@@ -21,7 +21,6 @@ pub enum Event {
     Close,
 }
 
-#[component]
 pub struct NameQuickSlotModal<'a> {
     pub wh: Wh<Px>,
     pub on_event: &'a dyn Fn(Event),

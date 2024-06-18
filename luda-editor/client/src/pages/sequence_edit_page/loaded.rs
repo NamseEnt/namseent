@@ -13,7 +13,6 @@ use namui_prebuilt::*;
 use rpc::data::*;
 use std::collections::HashMap;
 
-#[namui::component]
 pub struct LoadedSequenceEditorPage {
     pub wh: Wh<Px>,
     pub project_shared_data: ProjectSharedData,

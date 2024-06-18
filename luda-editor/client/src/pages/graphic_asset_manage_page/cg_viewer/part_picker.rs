@@ -17,7 +17,6 @@ const MIN_THUMBNAIL_CONTAINER_SIDE_PADDING: Px = px(8.0);
 const ROW_VERTICAL_PADDING: Px = px(8.0);
 const DIVIDER_HEIGHT: Px = px(32.0);
 
-#[namui::component]
 pub struct PartPicker<'a> {
     pub wh: Wh<Px>,
     pub cg_file: &'a CgFile,
@@ -89,7 +88,6 @@ impl Component for PartPicker<'_> {
     }
 }
 
-#[component]
 struct CgPartList<'a> {
     wh: Wh<Px>,
     cg_file: &'a CgFile,
@@ -156,7 +154,6 @@ impl Component for CgPartList<'_> {
     }
 }
 
-#[component]
 struct CgPartGroup<'a> {
     width: Px,
     cg_part: &'a CgPart,
@@ -284,7 +281,6 @@ fn render_title_bar(cg_part: &CgPart) -> TableCell {
     })
 }
 
-#[component]
 struct NoSelectionButton<'a> {
     wh: Wh<Px>,
     no_selection: bool,
@@ -347,7 +343,6 @@ fn render_divider<'a>(height: Px) -> TableCell<'a> {
     })
 }
 
-#[component]
 struct Thumbnail<'a> {
     wh: Wh<Px>,
     cg_part: &'a CgPart,

@@ -12,7 +12,6 @@ use crate::{
 use namui_prebuilt::table::*;
 use rpc::data::{CgFile, ScreenGraphic, SequenceUpdateAction};
 
-#[namui::component]
 pub struct CutCell<'a> {
     pub wh: Wh<Px>,
     pub index: usize,
@@ -203,7 +202,6 @@ fn render_comment_badge(width: Px, memo_count: usize, color: Color) -> Rendering
     ])
 }
 
-#[component]
 struct Thumbnail<'a> {
     wh: Wh<Px>,
     cut: &'a Cut,
@@ -261,7 +259,6 @@ impl Component for Thumbnail<'_> {
     }
 }
 
-#[component]
 struct GraphicClip<'a> {
     container_wh: Wh<Px>,
     project_id: Uuid,
@@ -345,7 +342,6 @@ impl Component for GraphicClip<'_> {
     }
 }
 
-#[component]
 struct TextBox<'a> {
     container_wh: Wh<Px>,
     cut: &'a Cut,

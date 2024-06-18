@@ -35,8 +35,6 @@ pub struct ImageRender {
     pub paint: Option<Paint>,
 }
 
-impl StaticType for ImageRender {}
-
 impl Component for ImageRender {
     fn render(self, ctx: &RenderCtx) {
         let Self {

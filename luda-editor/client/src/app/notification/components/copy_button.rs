@@ -2,7 +2,6 @@ use crate::app::notification::{self};
 use namui::*;
 use namui_prebuilt::simple_rect;
 
-#[component]
 pub struct CopyButton<'a> {
     pub wh: Wh<Px>,
     pub color: Color,

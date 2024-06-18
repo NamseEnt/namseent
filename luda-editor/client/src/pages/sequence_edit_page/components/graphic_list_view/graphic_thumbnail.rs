@@ -6,7 +6,6 @@ use crate::{
 use namui::*;
 use rpc::data::ScreenGraphic;
 
-#[component]
 pub struct GraphicThumbnail<'a> {
     pub project_id: Uuid,
     pub wh: Wh<Px>,

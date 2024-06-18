@@ -2,7 +2,6 @@ use crate::color;
 use namui::{prelude::*, text_input::Style};
 use namui_prebuilt::*;
 
-#[namui::component]
 pub struct MemoEditor<'a> {
     pub sequence_id: Uuid,
     pub cut_id: Uuid,

@@ -3,7 +3,6 @@ use crate::{color, pages::graphic_asset_manage_page::TAB_ATOM};
 use namui::*;
 use namui_prebuilt::{simple_rect, table::*, typography};
 
-#[component]
 pub(super) struct SideBar {
     pub wh: Wh<Px>,
 }
@@ -44,7 +43,6 @@ impl Component for SideBar {
     }
 }
 
-#[component]
 struct TabButton {
     wh: Wh<Px>,
     tab: Tab,

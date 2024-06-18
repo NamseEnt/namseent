@@ -6,7 +6,6 @@ pub fn main() {
     })
 }
 
-#[namui::component]
 struct RectExample;
 
 impl Component for RectExample {

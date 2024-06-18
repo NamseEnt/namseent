@@ -12,7 +12,6 @@ use namui_prebuilt::*;
 use rpc::data::{Cut, CutUpdateAction, ScreenCg, ScreenGraphic};
 use std::{ops::Deref, sync::atomic::AtomicBool};
 
-#[namui::component]
 pub struct CharacterEditor<'a> {
     pub edit_target: EditTarget,
     pub wh: Wh<Px>,

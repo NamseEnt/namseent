@@ -7,7 +7,6 @@ pub fn main() {
     })
 }
 
-#[namui::component]
 struct MouseExample;
 
 impl Component for MouseExample {
