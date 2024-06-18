@@ -21,7 +21,7 @@ use crate::{
 };
 use futures::join;
 use namui::*;
-use namui_prebuilt::{simple_rect, table::hooks::*};
+use namui_prebuilt::{simple_rect, table::*};
 use rpc::data::{CgFile, ImageWithLabels, ScreenCg, ScreenCgPart};
 use std::ops::Deref;
 
