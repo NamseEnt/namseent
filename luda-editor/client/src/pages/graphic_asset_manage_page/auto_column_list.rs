@@ -1,6 +1,6 @@
 use crate::color;
 use namui::*;
-use namui_prebuilt::{scroll_view, simple_rect, table::hooks::*, typography};
+use namui_prebuilt::{scroll_view, simple_rect, table::*, typography};
 use std::fmt::Debug;
 
 const THUMBNAIL_WH: Wh<Px> = Wh {
