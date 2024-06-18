@@ -1,12 +1,12 @@
 #[cfg(target_os = "wasi")]
 mod wasi;
-#[cfg(target_os = "windows")]
-mod windows;
+#[cfg(not(target_os = "wasi"))]
+mod winit;
 
 #[cfg(target_os = "wasi")]
 use wasi as inner;
-#[cfg(target_os = "windows")]
-use windows as inner;
+#[cfg(not(target_os = "wasi"))]
+use winit as inner;
 
 use super::InitResult;
 use anyhow::Result;
