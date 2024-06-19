@@ -47,7 +47,7 @@ impl<'a> RowBlock<'a> {
                     color: Color::grayscale_f01(0.8),
                     background: Some(TextStyleBackground {
                         color: crate::color::BACKGROUND,
-                        margin: None,
+                        ..Default::default()
                     }),
                     ..Default::default()
                 },

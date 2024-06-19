@@ -16,7 +16,7 @@ impl Link {
                 color: Color::grayscale_f01(1.8),
                 background: Some(TextStyleBackground {
                     color: crate::color::BACKGROUND,
-                    margin: None,
+                    ..Default::default()
                 }),
                 underline: Some(
                     PaintBuilder::new()

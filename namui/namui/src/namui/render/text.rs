@@ -15,6 +15,7 @@ pub struct TextStyleDropShadow {
 pub struct TextStyleBackground {
     pub color: Color,
     pub margin: Option<Ltrb<Px>>,
+    pub round: Option<Px>,
 }
 #[derive(Clone, Debug)]
 pub struct TextStyle {
@@ -183,6 +184,7 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
             fill: Some(RectFill {
                 color: background.color,
             }),
+            round: background.round.map(|round| RectRound { radius: round }),
             ..Default::default()
         },
     })
