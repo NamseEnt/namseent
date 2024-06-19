@@ -13,7 +13,8 @@ pub mod screen;
 pub mod skia;
 pub mod time;
 pub mod typeface;
-// #[cfg(target_os = "wasi")]
+#[cfg(target_os = "wasi")]
+pub mod wasi;
 // pub mod clipboard;
 // #[cfg(target_os = "wasi")]
 // pub mod deep_link;
