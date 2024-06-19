@@ -1,4 +1,5 @@
 pub mod http;
+pub mod ws;
 
 use super::InitResult;
 

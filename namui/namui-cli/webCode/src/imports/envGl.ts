@@ -1,16 +1,17 @@
+import { Exports } from "../exports";
 import {
     computeUnpackAlignedImageSize,
     getSizePerPixel,
 } from "./getSizePerPixel";
 
 export function envGl({
-    malloc,
     canvas,
     memory,
+    exports,
 }: {
-    malloc: (size: number) => number;
     canvas: OffscreenCanvas | undefined;
     memory: WebAssembly.Memory;
+    exports: () => Exports;
 }) {
     const webgl = canvas?.getContext("webgl2");
     const stringCache = new Map<number, number>();
@@ -51,7 +52,7 @@ export function envGl({
     function stringToNewUTF8(string: string) {
         const bytes = new TextEncoder().encode(string);
         console.log("call malloc on stringToNewUTF8", string);
-        const ptr = malloc(bytes.length + 1);
+        const ptr = exports()._malloc(bytes.length + 1);
         const buffer = new Uint8Array(memory.buffer);
         buffer.set(bytes, ptr);
         buffer[ptr + bytes.length] = 0;
