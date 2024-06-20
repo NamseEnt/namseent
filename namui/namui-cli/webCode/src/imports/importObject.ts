@@ -4,7 +4,7 @@ import { BundleSharedTree } from "../fds";
 import { sendMessageToMainThread } from "../interWorkerProtocol";
 import { textInputImports } from "./textInput";
 import { Exports } from "../exports";
-import { webSocketImports } from "./webSocket";
+import { webSocketImports } from "../webSocket";
 
 export function createImportObject({
     memory,
@@ -82,7 +82,6 @@ export function createImportObject({
             }),
             ...webSocketImports({
                 memory,
-                exports,
             }),
             poll_event: (wasmBufferPtr: number): number => {
                 if (!eventSystem) {
