@@ -64,7 +64,6 @@ export function webSocketImports({ memory }: { memory: WebAssembly.Memory }) {
 
             Atomics.wait(new Int32Array(idBuffer), 0, 0);
             const id = new Uint32Array(idBuffer)[0];
-
             return id;
         },
         _web_socket_send: (id: number, data_ptr: number, data_len: number) => {
