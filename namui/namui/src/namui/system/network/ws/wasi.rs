@@ -1,137 +1,14 @@
 use anyhow::Result;
 use dashmap::DashMap;
-use std::{borrow::Cow, sync::OnceLock};
-
-/// For easy implementation, I chose to use a single thread for all WebSocket connections.
-///
-/// ```text
-/// # eventBuffer protocol
-/// [ws id: u32][message type: u8][message data: ...]
-/// - 0x01: on open
-/// - 0x02: on close
-/// - 0x03: on small message (<= 64KB)
-///     - u16: byte length
-///     - u8[data length]: data
-/// - 0x04: on big message start (< 4GB)
-///     - u32: total byte length
-///     - u16: chunk count
-/// - 0x05: on big message chunk
-///     - u16: chunk byte length
-///     - u8[data length]: data
-/// ```
-struct WsThread {}
-static WS_THREAD: OnceLock<WsThread> = OnceLock::new();
-struct EventBuffer {
-    buffer: Box<[u8]>,
-    buffer_index: usize,
-    read_count: usize,
-}
-impl EventBuffer {
-    fn new() -> Self {
-        Self {
-            buffer: vec![0; 4 * 1024 * 1024].into_boxed_slice(),
-            buffer_index: 0,
-            read_count: 0,
-        }
-    }
-    fn flush_read_count(&mut self) -> usize {
-        let read_count = self.read_count;
-        self.read_count = 0;
-        read_count
-    }
-    fn read_bytes(&mut self, byte_length: usize) -> Cow<'_, [u8]> {
-        if self.buffer_index + byte_length <= self.buffer.len() {
-            let slice = &self.buffer[self.buffer_index..self.buffer_index + byte_length];
-            self.buffer_index += byte_length;
-            Cow::Borrowed(slice)
-        } else {
-            let mut vec = vec![0; byte_length];
-            vec.copy_from_slice(&self.buffer[self.buffer_index..]);
-            self.buffer_index = byte_length - (self.buffer.len() - self.buffer_index);
-            Cow::from(vec)
-        }
-    }
-    fn read_u8(&mut self) -> u8 {
-        self.read_bytes(1)[0]
-    }
-    fn read_u16(&mut self) -> u16 {
-        let bytes = self.read_bytes(2);
-        u16::from_le_bytes([bytes[0], bytes[1]])
-    }
-    fn read_u32(&mut self) -> u32 {
-        let bytes = self.read_bytes(4);
-        u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
-    }
-}
-impl WsThread {
-    fn new() -> Self {
-        std::thread::spawn(move || {
-            let mut event_buffer = EventBuffer::new();
-
-            unsafe {
-                _init_web_socket_thread(event_buffer.buffer.as_ptr(), event_buffer.buffer.len());
-            }
-
-            let send_event = |id, event: WsEvent| {
-                let Some(tx) = WS_EVENT_TX.get().unwrap().get(&id) else {
-                    return;
-                };
-                let _ = tx.send(event);
-            };
-
-            loop {
-                let byte_length = unsafe { _web_socket_event_poll() };
-                assert!(byte_length != 0);
-
-                let id = event_buffer.read_u32();
-                let message_type = event_buffer.read_u8();
-                match message_type {
-                    0x01 => {
-                        send_event(id, WsEvent::Open);
-                        unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
-                    }
-                    0x02 => {
-                        send_event(id, WsEvent::Close);
-                        unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
-                    }
-                    0x03 => {
-                        let data_length = event_buffer.read_u16() as usize;
-                        let data = event_buffer
-                            .read_bytes(data_length)
-                            .into_owned()
-                            .into_boxed_slice();
-                        send_event(id, WsEvent::Message(data));
-                        unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
-                    }
-                    0x04 => {
-                        let total_byte_length = event_buffer.read_u32() as usize;
-                        let chunk_count = event_buffer.read_u16() as usize;
-
-                        unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
-
-                        let mut data = Vec::with_capacity(total_byte_length);
-                        for _ in 0..chunk_count {
-                            let chunk_byte_length = event_buffer.read_u16() as usize;
-                            let chunk_data =
-                                event_buffer.read_bytes(chunk_byte_length).into_owned();
-
-                            data.extend_from_slice(&chunk_data);
-
-                            unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
-                        }
-
-                        send_event(id, WsEvent::Message(data.into_boxed_slice()));
-                    }
-                    _ => unreachable!(),
-                }
-            }
-        });
-        Self {}
-    }
-}
+use std::{
+    borrow::Cow,
+    sync::{atomic::AtomicBool, Arc, OnceLock},
+};
 
 pub async fn connect(url: impl ToString) -> Result<(WsSender, WsReceiver)> {
-    let _ = WS_THREAD.get_or_init(WsThread::new);
+    let ws_thread = WS_THREAD.get_or_init(WsThread::new);
+    ws_thread.wait_for_init().await;
+
     let id = {
         let url = url.to_string();
         tokio::task::spawn_blocking(move || unsafe {
@@ -210,4 +87,150 @@ extern "C" {
     fn _web_socket_event_commit(byte_length: usize);
     fn _new_web_socket(url_ptr: *const u8, url_len: usize) -> u32;
     fn _web_socket_send(id: u32, data_ptr: *const u8, data_len: usize);
+}
+
+/// For easy implementation, I chose to use a single thread for all WebSocket connections.
+///
+/// ```text
+/// # eventBuffer protocol
+/// [ws id: u32][message type: u8][message data: ...]
+/// - 0x01: on open
+/// - 0x02: on close
+/// - 0x03: on small message (<= 64KB)
+///     - u16: byte length
+///     - u8[data length]: data
+/// - 0x04: on big message start (< 4GB)
+///     - u32: total byte length
+///     - u16: chunk count
+/// - 0x05: on big message chunk
+///     - u16: chunk byte length
+///     - u8[data length]: data
+/// ```
+struct WsThread {
+    initialized: Arc<AtomicBool>,
+}
+static WS_THREAD: OnceLock<WsThread> = OnceLock::new();
+impl WsThread {
+    fn new() -> Self {
+        let initialized = Arc::new(AtomicBool::new(false));
+        std::thread::spawn({
+            let initialized = initialized.clone();
+            move || {
+                let mut event_buffer = EventBuffer::new();
+
+                unsafe {
+                    _init_web_socket_thread(
+                        event_buffer.buffer.as_ptr(),
+                        event_buffer.buffer.len(),
+                    );
+                }
+
+                initialized.store(true, std::sync::atomic::Ordering::Relaxed);
+
+                let send_event = |id, event: WsEvent| {
+                    let Some(tx) = WS_EVENT_TX.get().unwrap().get(&id) else {
+                        return;
+                    };
+                    let _ = tx.send(event);
+                };
+
+                loop {
+                    let byte_length = unsafe { _web_socket_event_poll() };
+                    assert!(byte_length != 0);
+
+                    let id = event_buffer.read_u32();
+                    let message_type = event_buffer.read_u8();
+                    match message_type {
+                        0x01 => {
+                            send_event(id, WsEvent::Open);
+                            unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+                        }
+                        0x02 => {
+                            send_event(id, WsEvent::Close);
+                            unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+                        }
+                        0x03 => {
+                            let data_length = event_buffer.read_u16() as usize;
+                            let data = event_buffer
+                                .read_bytes(data_length)
+                                .into_owned()
+                                .into_boxed_slice();
+                            send_event(id, WsEvent::Message(data));
+                            unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+                        }
+                        0x04 => {
+                            let total_byte_length = event_buffer.read_u32() as usize;
+                            let chunk_count = event_buffer.read_u16() as usize;
+
+                            unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+
+                            let mut data = Vec::with_capacity(total_byte_length);
+                            for _ in 0..chunk_count {
+                                let chunk_byte_length = event_buffer.read_u16() as usize;
+                                let chunk_data =
+                                    event_buffer.read_bytes(chunk_byte_length).into_owned();
+
+                                data.extend_from_slice(&chunk_data);
+
+                                unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+                            }
+
+                            send_event(id, WsEvent::Message(data.into_boxed_slice()));
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+            }
+        });
+        Self { initialized }
+    }
+
+    async fn wait_for_init(&self) {
+        while !self.initialized.load(std::sync::atomic::Ordering::Relaxed) {
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+    }
+}
+
+struct EventBuffer {
+    buffer: Box<[u8]>,
+    buffer_index: usize,
+    read_count: usize,
+}
+impl EventBuffer {
+    fn new() -> Self {
+        Self {
+            buffer: vec![0; 4 * 1024 * 1024].into_boxed_slice(),
+            buffer_index: 0,
+            read_count: 0,
+        }
+    }
+    fn flush_read_count(&mut self) -> usize {
+        let read_count = self.read_count;
+        self.read_count = 0;
+        read_count
+    }
+    fn read_bytes(&mut self, byte_length: usize) -> Cow<'_, [u8]> {
+        if self.buffer_index + byte_length <= self.buffer.len() {
+            let slice = &self.buffer[self.buffer_index..self.buffer_index + byte_length];
+            self.buffer_index += byte_length;
+            Cow::Borrowed(slice)
+        } else {
+            let mut vec = vec![0; byte_length];
+            vec.copy_from_slice(&self.buffer[self.buffer_index..]);
+            self.buffer_index = byte_length - (self.buffer.len() - self.buffer_index);
+            Cow::from(vec)
+        }
+    }
+    fn read_u8(&mut self) -> u8 {
+        self.read_bytes(1)[0]
+    }
+    fn read_u16(&mut self) -> u16 {
+        let bytes = self.read_bytes(2);
+        u16::from_le_bytes([bytes[0], bytes[1]])
+    }
+    fn read_u32(&mut self) -> u32 {
+        let bytes = self.read_bytes(4);
+        u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
 }

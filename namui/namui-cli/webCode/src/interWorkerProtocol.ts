@@ -43,6 +43,23 @@ export type WorkerMessagePayload =
       }
     | {
           type: "text-input-blur";
+      }
+    // WebSocket
+    | {
+          type: "init-web-socket-thread";
+          eventBuffer: SharedArrayBuffer;
+          writtenBuffer: SharedArrayBuffer;
+      }
+    | {
+          type: "new-web-socket";
+          url: string;
+          /** Uint32, non-zero id. */
+          idBuffer: SharedArrayBuffer;
+      }
+    | {
+          type: "web-socket-send";
+          id: number;
+          data: ArrayBuffer;
       };
 
 export function sendMessageToMainThread(

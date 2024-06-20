@@ -3,6 +3,7 @@ import { WorkerMessagePayload, sendToWorker } from "./interWorkerProtocol";
 import MainWorker from "./main-worker?worker";
 import { TextInput } from "./textInput";
 import ThreadWorker from "./thread-worker?worker";
+import { webSocketHandleOnMainThread } from "./webSocket";
 
 const canvas = document.createElement("canvas");
 canvas.width = window.innerWidth;
@@ -27,7 +28,9 @@ sendToWorker(mainWorker, {
     initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
 });
 
-function onMessage(message: MessageEvent) {
+let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;
+
+function onMessage(this: Worker, message: MessageEvent) {
     const payload: WorkerMessagePayload = message.data;
 
     switch (payload.type) {
@@ -54,6 +57,25 @@ function onMessage(message: MessageEvent) {
         case "text-input-focus":
         case "text-input-blur": {
             textInput.onMessage(payload);
+            break;
+        }
+        // WebSocket
+        case "init-web-socket-thread": {
+            webSocketHandle = webSocketHandleOnMainThread(payload);
+            break;
+        }
+        case "new-web-socket": {
+            if (!webSocketHandle) {
+                throw new Error("WebSocket handle is not initialized");
+            }
+            webSocketHandle.onNewWebSocket(payload);
+            break;
+        }
+        case "web-socket-send": {
+            if (!webSocketHandle) {
+                throw new Error("WebSocket handle is not initialized");
+            }
+            webSocketHandle.send(payload);
             break;
         }
         default:
