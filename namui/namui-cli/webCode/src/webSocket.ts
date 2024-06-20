@@ -45,7 +45,6 @@ export function webSocketImports({ memory }: { memory: WebAssembly.Memory }) {
         },
         _web_socket_event_poll: (): number => {
             Atomics.wait(new Int32Array(writtenBuffer), 0, 0);
-
             return Atomics.load(new Int32Array(writtenBuffer), 0);
         },
         _web_socket_event_commit: (len: number) => {
