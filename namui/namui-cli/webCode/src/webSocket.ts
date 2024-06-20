@@ -1,4 +1,7 @@
-import { sendMessageToMainThread } from "./interWorkerProtocol";
+import {
+    WorkerMessagePayload,
+    sendMessageToMainThread,
+} from "./interWorkerProtocol";
 
 /*
 # eventBuffer protocol
@@ -28,22 +31,21 @@ export function webSocketImports({ memory }: { memory: WebAssembly.Memory }) {
             eventBufferPtr: number,
             eventBufferLen: number,
         ) => {
-            const eventBuffer = memory.buffer.slice(
-                eventBufferPtr,
-                eventBufferPtr + eventBufferLen,
-            );
-            if (!(eventBuffer instanceof SharedArrayBuffer)) {
-                throw new Error("eventBuffer must be SharedArrayBuffer");
+            if (!(memory.buffer instanceof SharedArrayBuffer)) {
+                throw new Error("memory.buffer must be SharedArrayBuffer");
             }
 
             sendMessageToMainThread({
                 type: "init-web-socket-thread",
-                eventBuffer,
+                wasmMemory: memory.buffer,
                 writtenBuffer,
+                eventBufferPtr,
+                eventBufferLen,
             });
         },
         _web_socket_event_poll: (): number => {
             Atomics.wait(new Int32Array(writtenBuffer), 0, 0);
+
             return Atomics.load(new Int32Array(writtenBuffer), 0);
         },
         _web_socket_event_commit: (len: number) => {
@@ -79,18 +81,30 @@ export function webSocketImports({ memory }: { memory: WebAssembly.Memory }) {
 }
 
 export function webSocketHandleOnMainThread({
-    eventBuffer,
+    wasmMemory,
     writtenBuffer,
-}: {
-    eventBuffer: SharedArrayBuffer;
-    writtenBuffer: SharedArrayBuffer;
-}) {
+    eventBufferPtr,
+    eventBufferLen,
+}: WorkerMessagePayload & { type: "init-web-socket-thread" }) {
     let nextId = 1;
     const webSockets = new Map<number, WebSocket>();
-    const messages: {
-        id: number;
-        data: ArrayBuffer;
-    }[] = [];
+    const events: (
+        | {
+              type: "message";
+              id: number;
+              data: ArrayBuffer;
+          }
+        | {
+              type: "onopen" | "onclose";
+              id: number;
+          }
+    )[] = [];
+    function pushEvent(event: (typeof events)[number]) {
+        events.push(event);
+        if (events.length === 1) {
+            loopSendingMessage();
+        }
+    }
     let writerIndex = 0;
 
     function onNewWebSocket({
@@ -101,23 +115,25 @@ export function webSocketHandleOnMainThread({
         idBuffer: SharedArrayBuffer;
     }) {
         const webSocket = new WebSocket(url);
+        webSocket.binaryType = "arraybuffer";
         const id = nextId++;
         webSockets.set(id, webSocket);
 
         webSocket.onopen = async () => {
-            await write(["u32", id], ["u8", 0x01]);
+            pushEvent({ type: "onopen", id });
         };
         webSocket.onclose = async () => {
-            await write(["u32", id], ["u8", 0x02]);
+            pushEvent({ type: "onclose", id });
         };
-        webSocket.onmessage = (event: MessageEvent<ArrayBuffer>) => {
-            messages.push({
+        webSocket.onmessage = (event: MessageEvent) => {
+            pushEvent({
+                type: "message",
                 id,
-                data: event.data,
+                data:
+                    typeof event.data === "string"
+                        ? new TextEncoder().encode(event.data)
+                        : event.data,
             });
-            if (messages.length === 1) {
-                loopSendingMessage();
-            }
         };
 
         new Uint32Array(idBuffer)[0] = id;
@@ -138,49 +154,65 @@ export function webSocketHandleOnMainThread({
      * Only one execution at a time.
      */
     async function loopSendingMessage() {
-        const message = messages[0];
-        if (!message) {
+        const event = events[0];
+        if (!event) {
             return;
         }
 
         const _64KB = 64 * 1024;
-        const { data, id } = message;
+        switch (event.type) {
+            case "onopen": {
+                await write(["u32", event.id], ["u8", 0x01]);
+                break;
+            }
+            case "onclose": {
+                await write(["u32", event.id], ["u8", 0x02]);
+                break;
+            }
+            case "message": {
+                const { data, id } = event;
 
-        const isSmallMessage = data.byteLength <= _64KB;
-        if (isSmallMessage) {
-            await write(
-                ["u32", id],
-                ["u8", 0x03],
-                ["u16", data.byteLength],
-                ["bytes", data],
-            );
-        } else {
-            const chunkCount = Math.ceil(data.byteLength / _64KB);
+                const isSmallMessage = data.byteLength <= _64KB;
+                if (isSmallMessage) {
+                    await write(
+                        ["u32", id],
+                        ["u8", 0x03],
+                        ["u16", data.byteLength],
+                        ["bytes", data],
+                    );
+                    break;
+                }
 
-            await write(
-                ["u32", id],
-                ["u8", 0x04],
-                ["u32", data.byteLength],
-                ["u16", chunkCount],
-            );
+                const chunkCount = Math.ceil(data.byteLength / _64KB);
 
-            for (
-                let sentBytes = 0;
-                sentBytes < data.byteLength;
-                sentBytes += _64KB
-            ) {
-                const chunkSize = Math.min(_64KB, data.byteLength - sentBytes);
-
-                write(
+                await write(
                     ["u32", id],
-                    ["u8", 0x05],
-                    ["u16", chunkSize],
-                    ["bytes", data.slice(sentBytes, sentBytes + chunkSize)],
+                    ["u8", 0x04],
+                    ["u32", data.byteLength],
+                    ["u16", chunkCount],
                 );
+
+                for (
+                    let sentBytes = 0;
+                    sentBytes < data.byteLength;
+                    sentBytes += _64KB
+                ) {
+                    const chunkSize = Math.min(
+                        _64KB,
+                        data.byteLength - sentBytes,
+                    );
+
+                    await write(
+                        ["u32", id],
+                        ["u8", 0x05],
+                        ["u16", chunkSize],
+                        ["bytes", data.slice(sentBytes, sentBytes + chunkSize)],
+                    );
+                }
             }
         }
 
-        messages.shift();
+        events.shift();
         loopSendingMessage();
     }
 
@@ -208,22 +240,22 @@ export function webSocketHandleOnMainThread({
         await waitForBufferAvailable(totalByteLength);
 
         for (const tuple of tuples) {
-            write(tuple);
+            writeTuple(tuple);
         }
 
         Atomics.add(new Int32Array(writtenBuffer), 0, totalByteLength);
-        Atomics.notify(new Int32Array(writtenBuffer), 1);
+        Atomics.notify(new Int32Array(writtenBuffer), 0);
 
         return; // below implementations
 
-        function write(
+        function writeTuple(
             tuple:
                 | ["u8", number]
                 | ["u16", number]
                 | ["u32", number]
                 | ["bytes", ArrayBuffer],
         ) {
-            if (eventBuffer.byteLength <= writerIndex) {
+            if (eventBufferLen <= writerIndex) {
                 writerIndex = 0;
             }
 
@@ -251,9 +283,13 @@ export function webSocketHandleOnMainThread({
                 }
             }
 
-            const bufferRight = eventBuffer.byteLength - writerIndex;
-            new Uint8Array(eventBuffer).set(
-                new Uint8Array(value, 0, bufferRight),
+            const bufferRight = eventBufferLen - writerIndex;
+            new Uint8Array(wasmMemory, eventBufferPtr).set(
+                new Uint8Array(
+                    value,
+                    0,
+                    Math.min(value.byteLength, bufferRight),
+                ),
                 writerIndex,
             );
 
@@ -263,16 +299,17 @@ export function webSocketHandleOnMainThread({
             }
 
             const left = value.byteLength - bufferRight;
-            new Uint8Array(eventBuffer).set(
+            new Uint8Array(wasmMemory, eventBufferPtr).set(
                 new Uint8Array(value, bufferRight),
                 0,
             );
+
             writerIndex = left;
         }
         async function waitForBufferAvailable(byteLength: number) {
             while (true) {
                 const written = Atomics.load(new Int32Array(writtenBuffer), 0);
-                const bufferAvailable = eventBuffer.byteLength - written;
+                const bufferAvailable = eventBufferLen - written;
                 if (byteLength <= bufferAvailable) {
                     return;
                 }

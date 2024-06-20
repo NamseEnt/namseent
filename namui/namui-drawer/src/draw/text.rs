@@ -39,10 +39,14 @@ impl Draw for &TextDrawCommand {
                     width,
                 } in glyph_groups
                 {
+                    let glyph_ids: GlyphIds = glyphs.into_iter().map(|x| x.id).collect();
+
+                    if glyph_ids.is_empty() {
+                        continue;
+                    }
+
                     let font_metrics = skia.font_metrics(&font).unwrap();
                     let bottom = y + get_bottom_of_baseline(self.baseline, font_metrics);
-
-                    let glyph_ids = glyphs.into_iter().map(|x| x.id).collect();
 
                     if let Some(underline_paint) = &self.underline {
                         skia.surface().canvas().draw_line(

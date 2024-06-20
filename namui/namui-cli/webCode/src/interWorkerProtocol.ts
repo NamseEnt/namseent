@@ -47,8 +47,10 @@ export type WorkerMessagePayload =
     // WebSocket
     | {
           type: "init-web-socket-thread";
-          eventBuffer: SharedArrayBuffer;
+          wasmMemory: SharedArrayBuffer;
           writtenBuffer: SharedArrayBuffer;
+          eventBufferPtr: number;
+          eventBufferLen: number;
       }
     | {
           type: "new-web-socket";

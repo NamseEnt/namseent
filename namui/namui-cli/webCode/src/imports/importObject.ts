@@ -232,7 +232,6 @@ function implSetJmp({
         size *= 2;
         exports().free(table);
         table = exports().malloc((size + 1) * 8);
-        console.log("again saveSetjmp", table, size);
         table = saveSetjmp(env, label, table, size);
         tempRet0 = size; // FIXME: unneeded?
         return table;

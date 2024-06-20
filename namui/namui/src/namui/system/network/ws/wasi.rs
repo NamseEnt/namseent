@@ -136,7 +136,7 @@ impl WsThread {
 
                 loop {
                     let byte_length = unsafe { _web_socket_event_poll() };
-                    assert!(byte_length != 0);
+                    assert_ne!(byte_length, 0);
 
                     let id = event_buffer.read_u32();
                     let message_type = event_buffer.read_u8();
@@ -211,6 +211,7 @@ impl EventBuffer {
         read_count
     }
     fn read_bytes(&mut self, byte_length: usize) -> Cow<'_, [u8]> {
+        self.read_count += byte_length;
         if self.buffer_index + byte_length <= self.buffer.len() {
             let slice = &self.buffer[self.buffer_index..self.buffer_index + byte_length];
             self.buffer_index += byte_length;

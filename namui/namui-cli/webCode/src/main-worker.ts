@@ -5,6 +5,7 @@ import { init } from "./__generated__/bundle";
 import { getFds } from "./fds";
 import { WorkerMessagePayload } from "./interWorkerProtocol";
 import { Exports } from "./exports";
+import { patchWasi } from "./patchWasi";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -30,6 +31,7 @@ self.onmessage = async (message) => {
 
     const fds = getFds(bundleSharedTree);
     const wasi = new WASI([], env, fds);
+    patchWasi(wasi);
 
     const { eventBuffer, initialWindowWh } = payload;
 

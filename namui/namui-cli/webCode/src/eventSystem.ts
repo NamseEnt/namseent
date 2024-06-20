@@ -75,7 +75,6 @@ export class EventSystemOnWorker {
     public pollEvent(wasmBufferPtr: number): number {
         if (this.lastEventTime) {
             const now = performance.now();
-            // console.log("last event handling time: ", now - this.lastEventTime);
             this.lastEventTime = now;
         } else {
             this.lastEventTime = performance.now();

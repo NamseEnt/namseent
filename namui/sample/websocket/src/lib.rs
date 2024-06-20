@@ -18,6 +18,7 @@ fn render(ctx: &RenderCtx) {
             tokio::spawn(async move {
                 while let Some(value) = ws_receiver.recv().await {
                     let text = std::str::from_utf8(&value).unwrap().to_string();
+
                     set_content.mutate(move |content| {
                         *content += &text;
                         *content += "\n"

@@ -51,7 +51,6 @@ export function envGl({
 
     function stringToNewUTF8(string: string) {
         const bytes = new TextEncoder().encode(string);
-        console.log("call malloc on stringToNewUTF8", string);
         const ptr = exports().malloc(bytes.length + 1);
         const buffer = new Uint8Array(memory.buffer);
         buffer.set(bytes, ptr);
