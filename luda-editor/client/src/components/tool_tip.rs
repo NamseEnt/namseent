@@ -35,6 +35,7 @@ impl Component for ToolTip {
                         right: 4.px(),
                         bottom: 4.px(),
                     }),
+                    ..Default::default()
                 }),
                 line_height_percent: 100.percent(),
                 underline: None,

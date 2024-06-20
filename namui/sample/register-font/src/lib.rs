@@ -49,7 +49,7 @@ impl Component for FontExample {
                 color: Color::WHITE,
                 background: Some(TextStyleBackground {
                     color: Color::BLACK,
-                    margin: None,
+                    ..Default::default()
                 }),
                 line_height_percent: 100.percent(),
                 underline: None,
