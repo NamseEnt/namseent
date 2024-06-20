@@ -19,7 +19,7 @@ import { sendMessageToMainThread } from "./interWorkerProtocol";
 */
 
 export function webSocketImports({ memory }: { memory: WebAssembly.Memory }) {
-    // ASSUME: this imports only run on specific one thread.
+    // ASSUME: this imports only run on specific one thread, except _new_web_socket and _web_socket_send.
 
     const writtenBuffer = new SharedArrayBuffer(4);
 
