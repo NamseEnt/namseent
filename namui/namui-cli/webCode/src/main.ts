@@ -1,4 +1,5 @@
 import { startEventSystemOnMainThread } from "./eventSystem";
+import { insertJsHandleOnMainThread } from "./insertJs";
 import { WorkerMessagePayload, sendToWorker } from "./interWorkerProtocol";
 import MainWorker from "./main-worker?worker";
 import { TextInput } from "./textInput";
@@ -29,6 +30,7 @@ sendToWorker(mainWorker, {
 });
 
 let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;
+const insertJsHandle = insertJsHandleOnMainThread();
 
 function onMessage(this: Worker, message: MessageEvent) {
     const payload: WorkerMessagePayload = message.data;
@@ -76,6 +78,15 @@ function onMessage(this: Worker, message: MessageEvent) {
                 throw new Error("WebSocket handle is not initialized");
             }
             webSocketHandle.send(payload);
+            break;
+        }
+        // Js Insert
+        case "insert-js": {
+            insertJsHandle.onInsertJs(payload);
+            break;
+        }
+        case "insert-js-drop": {
+            insertJsHandle.onInsertJsDrop(payload);
             break;
         }
         default:
