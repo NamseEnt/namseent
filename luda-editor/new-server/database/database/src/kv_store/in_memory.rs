@@ -1,13 +1,21 @@
 use super::KvStore;
 use anyhow::Result;
 use quick_cache::sync::Cache;
-use std::sync::{atomic::AtomicBool, Arc};
+use std::{
+    sync::{atomic::AtomicBool, Arc},
+    time::{Duration, Instant, SystemTime},
+};
 
 #[derive(Clone)]
 pub(crate) struct InMemoryCachedKsStore<Store: KvStore + Clone> {
     store: Store,
-    cache: Arc<Cache<String, Option<Arc<Vec<u8>>>>>,
+    cache: Arc<Cache<String, Option<Cached>>>,
     enabled: Arc<AtomicBool>,
+}
+#[derive(Clone)]
+struct Cached {
+    value: Arc<Vec<u8>>,
+    expired_at: Option<SystemTime>,
 }
 impl<Store: KvStore + Clone> InMemoryCachedKsStore<Store> {
     pub fn new(store: Store, enabled: bool) -> Self {
@@ -30,33 +38,62 @@ impl<Store: KvStore + Clone> InMemoryCachedKsStore<Store> {
 // If you want strong consistency, create new one and put lock on that method.
 impl<Store: KvStore + Clone> KvStore for InMemoryCachedKsStore<Store> {
     async fn get(&self, key: impl AsRef<str>) -> Result<Option<super::ValueBuffer>> {
+        let key = key.as_ref().to_string();
         if !self.enabled() {
             return self.store.get(key).await;
         }
 
-        if let Some(buffer) = self.cache.get(key.as_ref()) {
-            return Ok(buffer
-                .as_ref()
-                .map(|buffer| super::ValueBuffer::Arc(buffer.clone())));
+        if let Some(cached) = self.cache.get(&key) {
+            let Some(cached) = cached else {
+                return Ok(None);
+            };
+
+            if let Some(expired_at) = cached.expired_at {
+                if expired_at < SystemTime::now() {
+                    self.cache.insert(key, None);
+                    return Ok(None);
+                }
+            }
+            return Ok(Some(super::ValueBuffer::Arc(cached.value.clone())));
         }
 
-        let stored = self.store.get(key.as_ref()).await?;
+        let stored = self.store.get_with_expiration(&key).await?;
         self.cache.insert(
-            key.as_ref().to_string(),
-            stored.as_ref().map(|stored| stored.get_arc_vec()),
+            key,
+            stored.as_ref().map(|(buffer, expired_at)| Cached {
+                value: buffer.get_arc_vec(),
+                expired_at: *expired_at,
+            }),
         );
 
-        Ok(stored)
+        Ok(stored.map(|(buffer, _)| buffer))
     }
 
-    async fn put(&self, key: impl AsRef<str>, value: &impl AsRef<[u8]>) -> Result<()> {
-        self.store.put(key.as_ref(), value).await?;
+    async fn get_with_expiration(
+        &self,
+        _key: impl AsRef<str>,
+    ) -> Result<Option<(super::ValueBuffer, Option<SystemTime>)>> {
+        todo!("Not implemented yet.")
+    }
+
+    async fn put(
+        &self,
+        key: impl AsRef<str>,
+        value: &impl AsRef<[u8]>,
+        ttl: Option<Duration>,
+    ) -> Result<()> {
+        self.store.put(key.as_ref(), value, ttl).await?;
         if !self.enabled() {
             return Ok(());
         }
         self.cache.insert(
             key.as_ref().to_string(),
-            Some(Arc::new(value.as_ref().to_vec())),
+            Some(Cached {
+                value: value.as_ref().to_vec().into(),
+                // expired_at would have mismatch between the cache and the store
+                // because the timing of calling below `SystemTime::now()` is different to the store's `now` time.
+                expired_at: ttl.map(|ttl| SystemTime::now() + ttl),
+            }),
         );
         Ok(())
     }
@@ -75,8 +112,9 @@ impl<Store: KvStore + Clone> KvStore for InMemoryCachedKsStore<Store> {
         &self,
         key: impl AsRef<str>,
         value_fn: impl FnOnce() -> Result<Bytes>,
+        ttl: Option<Duration>,
     ) -> Result<()> {
-        self.store.create(key.as_ref(), value_fn).await?;
+        self.store.create(key.as_ref(), value_fn, ttl).await?;
         if !self.enabled() {
             return Ok(());
         }

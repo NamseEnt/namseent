@@ -2,7 +2,10 @@ use super::KvStore;
 use anyhow::Result;
 use aws_sdk_s3::primitives::ByteStream;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
-use std::sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard};
+use std::{
+    sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard},
+    time::{Duration, Instant, SystemTime},
+};
 
 #[derive(Clone)]
 pub struct SqliteKvStore {
@@ -21,11 +24,14 @@ impl SqliteKvStore {
         conn.pragma_update(None, "journal_mode", "WAL").unwrap();
         conn.pragma_update(None, "synchronous", "NORMAL").unwrap();
         conn.execute(
+            // - expired_at: 0 means no expiration,
+            //               otherwise it's the Unix Time, the number of seconds since 1970-01-01 00:00:00 UTC.
             "CREATE TABLE IF NOT EXISTS
                     kv_store (
                         key TEXT PRIMARY KEY,
                         value BLOB,
-                        version INTEGER
+                        version INTEGER,
+                        expired_at INTEGER
                     )",
             [],
         )
@@ -42,6 +48,31 @@ impl SqliteKvStore {
 
                 if let Err(err) = backup(&sqlite3, &s3_client, &bucket_name).await {
                     eprintln!("Failed to backup db: {}", err);
+                }
+            }
+        });
+
+        // ttl removal
+        tokio::spawn({
+            let write = write.clone();
+            async move {
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
+
+                    let time = std::time::Instant::now();
+
+                    let write_conn = write.lock().unwrap();
+                    let deleted_count = write_conn
+                    .execute(
+                        "DELETE FROM kv_store WHERE expired_at != 0 AND expired_at < unixepoch()",
+                        [],
+                    )
+                    .unwrap();
+
+                    println!(
+                        "Deleted expired keys in {:?}, deleted count: {deleted_count}",
+                        time.elapsed()
+                    );
                 }
             }
         });
@@ -63,7 +94,14 @@ impl SqliteKvStore {
 impl KvStore for SqliteKvStore {
     async fn get(&self, key: impl AsRef<str>) -> Result<Option<super::ValueBuffer>> {
         self.read_conn(|read_conn| {
-            let mut stmt = read_conn.prepare("SELECT value FROM kv_store WHERE key = ?")?;
+            let mut stmt = read_conn.prepare(
+                "
+                SELECT value
+                FROM kv_store 
+                WHERE key = ? 
+                    AND (expired_at = 0 OR expired_at >= unixepoch())
+            ",
+            )?;
             let vec: Option<Vec<_>> = stmt
                 .query_row([key.as_ref()], |row| row.get(0))
                 .optional()?;
@@ -72,11 +110,56 @@ impl KvStore for SqliteKvStore {
         })
     }
 
-    async fn put(&self, key: impl AsRef<str>, value: &impl AsRef<[u8]>) -> Result<()> {
+    async fn get_with_expiration(
+        &self,
+        key: impl AsRef<str>,
+    ) -> Result<Option<(super::ValueBuffer, Option<SystemTime>)>> {
+        self.read_conn(|read_conn| {
+            let mut stmt = read_conn.prepare(
+                "
+                SELECT value, expired_at
+                FROM kv_store 
+                WHERE key = ? 
+                    AND (expired_at = 0 OR expired_at >= unixepoch())
+            ",
+            )?;
+            let output: Option<(Vec<_>, Option<u64>)> = stmt
+                .query_row([key.as_ref()], |row| Ok((row.get(0)?, row.get(1)?)))
+                .optional()?;
+
+            Ok(output.map(|(vec, expired_at)| {
+                (
+                    super::ValueBuffer::Vec(vec),
+                    expired_at.and_then(|expired_at| {
+                        if expired_at == 0 {
+                            None
+                        } else {
+                            Some(std::time::UNIX_EPOCH + std::time::Duration::from_secs(expired_at))
+                        }
+                    }),
+                )
+            }))
+        })
+    }
+
+    async fn put(
+        &self,
+        key: impl AsRef<str>,
+        value: &impl AsRef<[u8]>,
+        ttl: Option<Duration>,
+    ) -> Result<()> {
         let write_conn = self.write_conn();
-        let mut stmt = write_conn
-            .prepare("INSERT OR REPLACE INTO kv_store (key, value, version) VALUES (?, ?, 0)")?;
-        assert_eq!(stmt.execute((key.as_ref(), value.as_ref()))?, 1);
+        let mut stmt = write_conn.prepare(
+            "
+                INSERT OR REPLACE INTO kv_store 
+                (key, value, version, expired_at)
+                VALUES (?, ?, 0, ?)",
+        )?;
+
+        assert_eq!(
+            stmt.execute((key.as_ref(), value.as_ref(), ttl_to_expired_at(ttl)))?,
+            1
+        );
 
         Ok(())
     }
@@ -93,21 +176,37 @@ impl KvStore for SqliteKvStore {
         &self,
         key: impl AsRef<str>,
         value_fn: impl FnOnce() -> Result<Bytes>,
+        ttl: Option<Duration>,
     ) -> Result<()> {
         let mut write_conn = self.write_conn();
         let tx = write_conn.transaction()?;
 
-        let mut stmt = tx.prepare("SELECT value FROM kv_store WHERE key = ?")?;
-        let vec: Option<Vec<_>> = stmt
+        let mut stmt = tx.prepare(
+            "
+            SELECT expired_at
+            FROM kv_store
+            WHERE key = ?",
+        )?;
+        let expired_at: Option<u64> = stmt
             .query_row([key.as_ref()], |row| row.get(0))
             .optional()?;
-        if vec.is_some() {
-            return Ok(());
+        if let Some(expired_at) = expired_at {
+            if expired_at == 0 || now_epoch_time_secs() < expired_at {
+                return Ok(());
+            }
         }
 
         let value = value_fn()?;
-        let mut stmt = tx.prepare("INSERT INTO kv_store (key, value, version) VALUES (?, ?, 0)")?;
-        assert_eq!(stmt.execute((key.as_ref(), value.as_ref()))?, 1);
+        let mut stmt = tx.prepare(
+            "
+            INSERT OR REPLACE INTO kv_store
+            (key, value, version, expired_at)
+            VALUES (?, ?, 0, ?)",
+        )?;
+        assert_eq!(
+            stmt.execute((key.as_ref(), value.as_ref(), ttl_to_expired_at(ttl)))?,
+            1
+        );
 
         Ok(())
     }
@@ -294,4 +393,16 @@ async fn migrate() -> Result<()> {
     )?;
 
     Ok(())
+}
+
+fn ttl_to_expired_at(ttl: Option<Duration>) -> u64 {
+    ttl.map(|ttl| ttl.as_secs() + now_epoch_time_secs())
+        .unwrap_or(0)
+}
+
+fn now_epoch_time_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
 }
