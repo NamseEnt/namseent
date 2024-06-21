@@ -48,7 +48,6 @@ export function textInputImports({ memory }: { memory: WebAssembly.Memory }): {
         ) => {
             const buffer = new Uint8Array(text_len);
             buffer.set(new Uint8Array(memory.buffer, text_ptr, text_len));
-            console.log("buffer", buffer);
             const text = new TextDecoder().decode(buffer);
             const preventDefaultCodes = new Uint8Array(
                 memory.buffer,

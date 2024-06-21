@@ -3,32 +3,32 @@ import { EventSystemOnWorker } from "../eventSystem";
 import { BundleSharedTree } from "../fds";
 import { sendMessageToMainThread } from "../interWorkerProtocol";
 import { textInputImports } from "./textInput";
+import { Exports } from "../exports";
+import { webSocketImports } from "../webSocket";
 
 export function createImportObject({
     memory,
     module,
     nextTid,
     wasiImport,
-    malloc,
-    free,
     canvas,
     bundleSharedTree,
     eventBuffer,
     initialWindowWh,
+    exports,
 }: {
     memory: WebAssembly.Memory;
     module: WebAssembly.Module;
     nextTid: SharedArrayBuffer;
     wasiImport: Record<string, any>;
-    malloc: (size: number) => number;
-    free: (ptr: number) => void;
     canvas?: OffscreenCanvas;
     bundleSharedTree: BundleSharedTree;
     eventBuffer: SharedArrayBuffer;
     initialWindowWh: number;
+    exports: () => Exports;
 }) {
     const glFunctions = envGl({
-        malloc,
+        exports,
         canvas,
         memory,
     }) as any;
@@ -75,10 +75,12 @@ export function createImportObject({
             ...glFunctions,
             ...implSetJmp({
                 memory,
-                malloc,
-                free,
+                exports,
             }),
             ...textInputImports({
+                memory,
+            }),
+            ...webSocketImports({
                 memory,
             }),
             poll_event: (wasmBufferPtr: number): number => {
@@ -143,12 +145,10 @@ export function createImportObject({
 // https://github.com/aheejin/emscripten/blob/878a2f1306e25cce0c1627ef5c06e9f60d85df80/system/lib/compiler-rt/emscripten_setjmp.c
 function implSetJmp({
     memory,
-    malloc,
-    free,
+    exports,
 }: {
     memory: WebAssembly.Memory;
-    malloc: (size: number) => number;
-    free: (ptr: number) => void;
+    exports: () => Exports;
 }): {
     saveSetjmp: Function;
     testSetjmp: Function;
@@ -230,9 +230,8 @@ function implSetJmp({
         }
 
         size *= 2;
-        free(table);
-        table = malloc((size + 1) * 8);
-        console.log("again saveSetjmp", table, size);
+        exports().free(table);
+        table = exports().malloc((size + 1) * 8);
         table = saveSetjmp(env, label, table, size);
         tempRet0 = size; // FIXME: unneeded?
         return table;

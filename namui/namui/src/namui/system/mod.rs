@@ -50,13 +50,9 @@ pub(super) async fn init_system() -> InitResult {
     //     web::init(),
     // )?;
 
-    eprintln!("before init typeface");
-
     tokio::try_join!(typeface::init())?;
     #[cfg(target_os = "windows")]
     tokio::try_join!(media::init())?; // todo: join this with typeface
-
-    eprintln!("after init typeface");
 
     SYSTEM_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
 

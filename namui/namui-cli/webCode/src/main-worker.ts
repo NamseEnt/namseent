@@ -4,6 +4,8 @@ import wasmUrl from "namui-runtime-wasm.wasm?url";
 import { init } from "./__generated__/bundle";
 import { getFds } from "./fds";
 import { WorkerMessagePayload } from "./interWorkerProtocol";
+import { Exports } from "./exports";
+import { patchWasi } from "./patchWasi";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -29,6 +31,7 @@ self.onmessage = async (message) => {
 
     const fds = getFds(bundleSharedTree);
     const wasi = new WASI([], env, fds);
+    patchWasi(wasi);
 
     const { eventBuffer, initialWindowWh } = payload;
 
@@ -39,31 +42,22 @@ self.onmessage = async (message) => {
 
     const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
 
-    let exports: {
-        malloc: (size: number) => number;
-        free: (ptr: number) => void;
-        memory: WebAssembly.Memory;
-    } = {} as any;
+    let exports: Exports = "not initialized" as unknown as Exports;
 
     const importObject = createImportObject({
         memory,
         module,
         nextTid,
         wasiImport: wasi.wasiImport,
-        malloc: (size: number) => {
-            return exports.malloc(size);
-        },
-        free: (ptr: number) => {
-            return exports.free(ptr);
-        },
         canvas,
         bundleSharedTree,
         eventBuffer,
         initialWindowWh,
+        exports: () => exports,
     });
 
     const instance = await WebAssembly.instantiate(module, importObject);
-    exports = instance.exports as any;
+    exports = instance.exports as Exports;
 
     wasi.start(instance as any);
 };

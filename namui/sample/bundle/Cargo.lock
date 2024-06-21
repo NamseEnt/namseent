@@ -930,15 +930,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hooks-macro"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.31",
-]
-
-[[package]]
 name = "http"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1308,7 +1299,6 @@ dependencies = [
  "elsa",
  "ffmpeg-next",
  "futures",
- "hooks-macro",
  "indexmap",
  "lazy_static",
  "namui-cfg",
@@ -1362,6 +1352,7 @@ dependencies = [
  "namui-type",
  "rustc-hash",
  "smol_str",
+ "tokio 1.38.0",
 ]
 
 [[package]]

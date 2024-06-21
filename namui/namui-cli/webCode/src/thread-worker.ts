@@ -2,6 +2,8 @@ import { WASI } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
 import { getFds } from "./fds";
 import { WorkerMessagePayload } from "./interWorkerProtocol";
+import { Exports } from "./exports";
+import { patchWasi } from "./patchWasi";
 
 self.onmessage = async (message) => {
     const payload: WorkerMessagePayload = message.data;
@@ -23,27 +25,23 @@ self.onmessage = async (message) => {
     const env = ["RUST_BACKTRACE=full"];
     const fds = getFds(bundleSharedTree);
     const wasi = new WASI([], env, fds);
+    patchWasi(wasi);
 
-    let exports: Record<string, Function> = {};
+    let exports: Exports = "not initialized" as unknown as Exports;
 
     const importObject = createImportObject({
         memory: importMemory,
         module,
         nextTid,
         wasiImport: wasi.wasiImport,
-        malloc: (size: number) => {
-            return exports._malloc(size);
-        },
-        free: (ptr: number) => {
-            return exports._free(ptr);
-        },
         bundleSharedTree,
         eventBuffer,
         initialWindowWh,
+        exports: () => exports,
     });
 
     const instance = await WebAssembly.instantiate(module, importObject);
-    exports = instance.exports as Record<string, Function>;
+    exports = instance.exports as Exports;
 
     wasi.initialize(instance as any);
     console.debug("thread start", tid);
