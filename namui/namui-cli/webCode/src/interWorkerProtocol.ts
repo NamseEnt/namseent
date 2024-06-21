@@ -62,6 +62,23 @@ export type WorkerMessagePayload =
           type: "web-socket-send";
           id: number;
           data: ArrayBuffer;
+      }
+    // Js Insert
+    | {
+          type: "insert-js";
+          js: string;
+          /** Uint32, non-zero id. */
+          idBuffer: SharedArrayBuffer;
+          ringBuffer?: {
+              wasmMemory: SharedArrayBuffer;
+              ptr: number;
+              len: number;
+              writtenBuffer: SharedArrayBuffer;
+          };
+      }
+    | {
+          type: "insert-js-drop";
+          id: number;
       };
 
 export function sendMessageToMainThread(

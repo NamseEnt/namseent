@@ -1,9 +1,7 @@
+use crate::RingBuffer;
 use anyhow::Result;
 use dashmap::DashMap;
-use std::{
-    borrow::Cow,
-    sync::{atomic::AtomicBool, Arc, OnceLock},
-};
+use std::sync::{atomic::AtomicBool, Arc, OnceLock};
 
 pub async fn connect(url: impl ToString) -> Result<(WsSender, WsReceiver)> {
     let ws_thread = WS_THREAD.get_or_init(WsThread::new);
@@ -116,13 +114,10 @@ impl WsThread {
         std::thread::spawn({
             let initialized = initialized.clone();
             move || {
-                let mut event_buffer = EventBuffer::new();
+                let mut event_buffer = RingBuffer::new(4 * 1024 * 1024);
 
                 unsafe {
-                    _init_web_socket_thread(
-                        event_buffer.buffer.as_ptr(),
-                        event_buffer.buffer.len(),
-                    );
+                    _init_web_socket_thread(event_buffer.ptr(), event_buffer.size());
                 }
 
                 initialized.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -135,19 +130,18 @@ impl WsThread {
                 };
 
                 loop {
-                    let byte_length = unsafe { _web_socket_event_poll() };
-                    assert_ne!(byte_length, 0);
+                    assert_ne!(unsafe { _web_socket_event_poll() }, 0);
 
                     let id = event_buffer.read_u32();
                     let message_type = event_buffer.read_u8();
                     match message_type {
                         0x01 => {
                             send_event(id, WsEvent::Open);
-                            unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+                            unsafe { _web_socket_event_commit(event_buffer.take_read_count()) }
                         }
                         0x02 => {
                             send_event(id, WsEvent::Close);
-                            unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+                            unsafe { _web_socket_event_commit(event_buffer.take_read_count()) }
                         }
                         0x03 => {
                             let data_length = event_buffer.read_u16() as usize;
@@ -156,13 +150,13 @@ impl WsThread {
                                 .into_owned()
                                 .into_boxed_slice();
                             send_event(id, WsEvent::Message(data));
-                            unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+                            unsafe { _web_socket_event_commit(event_buffer.take_read_count()) }
                         }
                         0x04 => {
                             let total_byte_length = event_buffer.read_u32() as usize;
                             let chunk_count = event_buffer.read_u16() as usize;
 
-                            unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+                            unsafe { _web_socket_event_commit(event_buffer.take_read_count()) }
 
                             let mut data = Vec::with_capacity(total_byte_length);
                             for _ in 0..chunk_count {
@@ -172,7 +166,7 @@ impl WsThread {
 
                                 data.extend_from_slice(&chunk_data);
 
-                                unsafe { _web_socket_event_commit(event_buffer.flush_read_count()) }
+                                unsafe { _web_socket_event_commit(event_buffer.take_read_count()) }
                             }
 
                             send_event(id, WsEvent::Message(data.into_boxed_slice()));
@@ -189,49 +183,5 @@ impl WsThread {
         while !self.initialized.load(std::sync::atomic::Ordering::Relaxed) {
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         }
-    }
-}
-
-struct EventBuffer {
-    buffer: Box<[u8]>,
-    buffer_index: usize,
-    read_count: usize,
-}
-impl EventBuffer {
-    fn new() -> Self {
-        Self {
-            buffer: vec![0; 4 * 1024 * 1024].into_boxed_slice(),
-            buffer_index: 0,
-            read_count: 0,
-        }
-    }
-    fn flush_read_count(&mut self) -> usize {
-        let read_count = self.read_count;
-        self.read_count = 0;
-        read_count
-    }
-    fn read_bytes(&mut self, byte_length: usize) -> Cow<'_, [u8]> {
-        self.read_count += byte_length;
-        if self.buffer_index + byte_length <= self.buffer.len() {
-            let slice = &self.buffer[self.buffer_index..self.buffer_index + byte_length];
-            self.buffer_index += byte_length;
-            Cow::Borrowed(slice)
-        } else {
-            let mut vec = vec![0; byte_length];
-            vec.copy_from_slice(&self.buffer[self.buffer_index..]);
-            self.buffer_index = byte_length - (self.buffer.len() - self.buffer_index);
-            Cow::from(vec)
-        }
-    }
-    fn read_u8(&mut self) -> u8 {
-        self.read_bytes(1)[0]
-    }
-    fn read_u16(&mut self) -> u16 {
-        let bytes = self.read_bytes(2);
-        u16::from_le_bytes([bytes[0], bytes[1]])
-    }
-    fn read_u32(&mut self) -> u32 {
-        let bytes = self.read_bytes(4);
-        u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 }

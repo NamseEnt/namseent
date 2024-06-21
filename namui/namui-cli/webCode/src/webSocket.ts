@@ -1,3 +1,4 @@
+import { RingBufferWriter } from "./RingBufferWriter";
 import {
     WorkerMessagePayload,
     sendMessageToMainThread,
@@ -103,7 +104,12 @@ export function webSocketHandleOnMainThread({
             loopSendingMessage();
         }
     }
-    let writerIndex = 0;
+    const ringBuffer = new RingBufferWriter(
+        wasmMemory,
+        eventBufferPtr,
+        eventBufferLen,
+        writtenBuffer,
+    );
 
     function onNewWebSocket({
         url,
@@ -160,11 +166,11 @@ export function webSocketHandleOnMainThread({
         const _64KB = 64 * 1024;
         switch (event.type) {
             case "onopen": {
-                await write(["u32", event.id], ["u8", 0x01]);
+                await ringBuffer.write(["u32", event.id], ["u8", 0x01]);
                 break;
             }
             case "onclose": {
-                await write(["u32", event.id], ["u8", 0x02]);
+                await ringBuffer.write(["u32", event.id], ["u8", 0x02]);
                 break;
             }
             case "message": {
@@ -172,7 +178,7 @@ export function webSocketHandleOnMainThread({
 
                 const isSmallMessage = data.byteLength <= _64KB;
                 if (isSmallMessage) {
-                    await write(
+                    await ringBuffer.write(
                         ["u32", id],
                         ["u8", 0x03],
                         ["u16", data.byteLength],
@@ -183,7 +189,7 @@ export function webSocketHandleOnMainThread({
 
                 const chunkCount = Math.ceil(data.byteLength / _64KB);
 
-                await write(
+                await ringBuffer.write(
                     ["u32", id],
                     ["u8", 0x04],
                     ["u32", data.byteLength],
@@ -200,7 +206,7 @@ export function webSocketHandleOnMainThread({
                         data.byteLength - sentBytes,
                     );
 
-                    await write(
+                    await ringBuffer.write(
                         ["u32", id],
                         ["u8", 0x05],
                         ["u16", chunkSize],
@@ -212,114 +218,5 @@ export function webSocketHandleOnMainThread({
 
         events.shift();
         loopSendingMessage();
-    }
-
-    async function write(
-        ...tuples: (
-            | ["u8", number]
-            | ["u16", number]
-            | ["u32", number]
-            | ["bytes", ArrayBuffer]
-        )[]
-    ) {
-        const totalByteLength = tuples.reduce((a, b) => {
-            switch (b[0]) {
-                case "u8":
-                    return a + 1;
-                case "u16":
-                    return a + 2;
-                case "u32":
-                    return a + 4;
-                case "bytes":
-                    return a + b[1].byteLength;
-            }
-        }, 0);
-
-        await waitForBufferAvailable(totalByteLength);
-
-        for (const tuple of tuples) {
-            writeTuple(tuple);
-        }
-
-        Atomics.add(new Int32Array(writtenBuffer), 0, totalByteLength);
-        Atomics.notify(new Int32Array(writtenBuffer), 0);
-
-        return; // below implementations
-
-        function writeTuple(
-            tuple:
-                | ["u8", number]
-                | ["u16", number]
-                | ["u32", number]
-                | ["bytes", ArrayBuffer],
-        ) {
-            if (eventBufferLen <= writerIndex) {
-                writerIndex = 0;
-            }
-
-            const type = tuple[0];
-            let value: ArrayBuffer;
-            switch (type) {
-                case "u8": {
-                    value = new Uint8Array([tuple[1]]);
-                    break;
-                }
-                case "u16": {
-                    value = new Uint16Array([tuple[1]]);
-                    break;
-                }
-                case "u32": {
-                    value = new Uint32Array([tuple[1]]);
-                    break;
-                }
-                case "bytes": {
-                    value = tuple[1];
-                    break;
-                }
-                default: {
-                    throw new Error(`Unsupported type: ${type}`);
-                }
-            }
-
-            const bufferRight = eventBufferLen - writerIndex;
-            new Uint8Array(wasmMemory, eventBufferPtr).set(
-                new Uint8Array(
-                    value,
-                    0,
-                    Math.min(value.byteLength, bufferRight),
-                ),
-                writerIndex,
-            );
-
-            if (value.byteLength <= bufferRight) {
-                writerIndex += value.byteLength;
-                return value.byteLength;
-            }
-
-            const left = value.byteLength - bufferRight;
-            new Uint8Array(wasmMemory, eventBufferPtr).set(
-                new Uint8Array(value, bufferRight),
-                0,
-            );
-
-            writerIndex = left;
-        }
-        async function waitForBufferAvailable(byteLength: number) {
-            while (true) {
-                const written = Atomics.load(new Int32Array(writtenBuffer), 0);
-                const bufferAvailable = eventBufferLen - written;
-                if (byteLength <= bufferAvailable) {
-                    return;
-                }
-                const { async, value } = Atomics.waitAsync(
-                    new Int32Array(writtenBuffer),
-                    0,
-                    written,
-                );
-                if (async) {
-                    await value;
-                }
-            }
-        }
     }
 }
