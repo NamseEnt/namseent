@@ -159,7 +159,7 @@ impl Component for Thumbnail<'_> {
 
             ctx.add(ImageDrawCommand {
                 rect: wh.to_rect(),
-                source: image.src.clone(),
+                image: image.clone(),
                 fit: ImageFit::Contain,
                 paint: None,
             });
@@ -173,7 +173,7 @@ impl Component for Thumbnail<'_> {
 
             ctx.add(ImageDrawCommand {
                 rect: wh.to_rect(),
-                source: image.src.clone(),
+                image: image.clone(),
                 fit: ImageFit::Cover,
                 paint: Some(
                     Paint::new(Color::BLACK).set_image_filter(ImageFilter::Blur {
