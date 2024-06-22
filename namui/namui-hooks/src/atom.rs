@@ -23,7 +23,7 @@ impl<State: 'static + Send + Sync> Atom<State> {
         *self.index.get().unwrap()
     }
 
-    pub(crate) fn is_initialized(&self) -> bool {
+    pub fn is_initialized(&self) -> bool {
         self.index.get().is_some()
     }
 
