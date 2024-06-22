@@ -1,33 +1,60 @@
 use super::*;
+use network::*;
 
 pub struct Home;
 
+enum Selection {
+    Nothing,
+    Team { team_id: String },
+    Project { team_id: String, project_id: String },
+}
+
 impl Component for Home {
     fn render(self, ctx: &RenderCtx) {
-        let (teams, set_teams) = ctx.state::<OptionDataFetch<Vec<Team>>>(|| None);
-        let (projects, set_projects) = ctx.state::<OptionDataFetch<Vec<Project>>>(|| None);
-        let (episodes, set_episodes) = ctx.state::<OptionDataFetch<Vec<Episode>>>(|| None);
+        let (selection, set_selection) = ctx.state(|| Selection::Nothing);
 
         let screen_wh = namui::screen::size().map(|x| x.into_px());
 
         ctx.compose(|ctx| {
             horizontal([
                 ratio(1, |wh, ctx| {
-                    option_data_fetch(&ctx, &teams, wh, |teams| TeamList {
+                    ctx.add(TeamList {
                         wh,
-                        teams: teams.as_slice(),
+                        on_select_team: &|team| {
+                            set_selection.set(Selection::Team {
+                                team_id: team.id.clone(),
+                            });
+                        },
                     });
                 }),
                 ratio(1, |wh, ctx| {
-                    option_data_fetch(&ctx, &projects, wh, |projects| ProjectList {
+                    ctx.add(ProjectList {
                         wh,
-                        projects: projects.as_slice(),
+                        team_id: match selection.as_ref() {
+                            Selection::Team { team_id } => Some(team_id),
+                            Selection::Project { team_id, .. } => Some(team_id),
+                            _ => None,
+                        },
+                        on_select_project: &|project| {
+                            let team_id = match selection.as_ref() {
+                                Selection::Team { team_id } => team_id.clone(),
+                                Selection::Project { team_id, .. } => team_id.clone(),
+                                _ => unreachable!(),
+                            };
+                            set_selection.set(Selection::Project {
+                                team_id,
+                                project_id: project.id.clone(),
+                            });
+                        },
                     });
                 }),
                 ratio(1, |wh, ctx| {
-                    option_data_fetch(&ctx, &episodes, wh, |episodes| EpisodeList {
+                    ctx.add(EpisodeList {
                         wh,
-                        episodes: episodes.as_slice(),
+                        project_id: match selection.as_ref() {
+                            Selection::Project { project_id, .. } => Some(project_id),
+                            _ => None,
+                        },
                     });
                 }),
             ])(screen_wh, ctx);
@@ -35,116 +62,217 @@ impl Component for Home {
     }
 }
 
-struct Team {
-    name: String,
-}
-struct Project {
-    name: String,
-}
-
-struct Episode {
-    name: String,
-}
-
 struct TeamList<'a> {
     wh: Wh<Px>,
-    teams: &'a [Team],
+    on_select_team: &'a dyn Fn(&Team),
 }
 
 impl Component for TeamList<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, teams } = self;
+        let Self { wh, on_select_team } = self;
 
-        ctx.compose(|ctx| {
-            vertical(
-                [].into_iter()
-                    .chain([fixed(24.px(), |wh, ctx| {
-                        ctx.add(typography::center_text(
-                            wh,
-                            "팀 리스트",
-                            Color::WHITE,
-                            16.int_px(),
-                        ));
-                    })])
-                    .chain(teams.iter().map(|team| {
-                        fixed(24.px(), |wh, ctx| {
-                            ctx.add(typography::center_text(
-                                wh,
-                                &team.name,
-                                Color::WHITE,
-                                16.int_px(),
-                            ));
-                        })
-                    }))
-                    .chain([fixed(24.px(), |wh, ctx| {
-                        ctx.add(simple_button(wh, "새 팀 만들기", |_event| {
-                            router::route(router::Route::NewTeamPage);
-                        }));
-                    })])
-                    .chain([fixed(24.px(), |wh, ctx| {
-                        ctx.add(simple_button(wh, "팀 가입하기", |_event| {}));
-                    })]),
-            )(wh, ctx)
-        });
+        let title = || {
+            [fixed(24.px(), |wh, ctx| {
+                ctx.add(typography::center_text(
+                    wh,
+                    "팀 리스트",
+                    Color::WHITE,
+                    16.int_px(),
+                ));
+            })]
+        };
+
+        get_teams_render(
+            ctx,
+            |_| GetTeamsReq {},
+            (),
+            || {
+                ctx.compose(|ctx| vertical(title())(wh, ctx));
+            },
+            |err: &GetTeamsErr| {
+                ctx.add(typography::center_text(
+                    wh,
+                    format!("로딩 실패: {err:?}"),
+                    Color::RED,
+                    16.int_px(),
+                ));
+            },
+            |GetTeamsRes { teams }| {
+                ctx.compose(|ctx| {
+                    vertical(
+                        title()
+                            .into_iter()
+                            .chain(teams.iter().map(|team| {
+                                fixed(24.px(), move |wh, ctx| {
+                                    ctx.add(typography::center_text(
+                                        wh,
+                                        &team.name,
+                                        Color::WHITE,
+                                        16.int_px(),
+                                    ))
+                                    .attach_event(|event| {
+                                        if let Event::MouseUp { event } = event {
+                                            if event.is_local_xy_in()
+                                                && event.button == Some(MouseButton::Left)
+                                            {
+                                                on_select_team(team);
+                                            }
+                                        }
+                                    });
+                                })
+                            }))
+                            .chain([fixed(24.px(), |wh, ctx| {
+                                ctx.add(simple_button(wh, "새 팀 만들기", |_event| {
+                                    router::route(router::Route::NewTeamPage);
+                                }));
+                            })])
+                            .chain([fixed(24.px(), |wh, ctx| {
+                                ctx.add(simple_button(wh, "팀 가입하기", |_event| {}));
+                            })]),
+                    )(wh, ctx)
+                });
+            },
+        );
     }
 }
 
 struct ProjectList<'a> {
     wh: Wh<Px>,
-    projects: &'a [Project],
+    team_id: Option<&'a String>,
+    on_select_project: &'a dyn Fn(&Project),
 }
 
 impl Component for ProjectList<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, projects } = self;
+        let Self {
+            wh,
+            team_id,
+            on_select_project,
+        } = self;
 
-        ctx.compose(|ctx| {
-            vertical(
-                [].into_iter()
-                    .chain(projects.iter().map(|project| {
-                        fixed(24.px(), |wh, ctx| {
-                            ctx.add(typography::center_text(
-                                wh,
-                                &project.name,
-                                Color::WHITE,
-                                16.int_px(),
-                            ));
-                        })
-                    }))
-                    .chain([fixed(24.px(), |wh, ctx| {
-                        ctx.add(simple_button(wh, "새 프로젝트", |_event| {}));
-                    })]),
-            )(wh, ctx)
-        });
+        let title = || {
+            [fixed(24.px(), |wh, ctx| {
+                ctx.add(typography::center_text(
+                    wh,
+                    "프로젝트 리스트",
+                    Color::WHITE,
+                    16.int_px(),
+                ));
+            })]
+        };
+
+        get_projects_render(
+            ctx,
+            |team_id| {
+                let team_id = team_id.as_ref()?;
+                Some(GetProjectsReq { team_id })
+            },
+            team_id,
+            || {
+                ctx.compose(|ctx| vertical(title())(wh, ctx));
+            },
+            |err| {
+                ctx.add(typography::center_text(
+                    wh,
+                    format!("로딩 실패: {err:?}"),
+                    Color::RED,
+                    16.int_px(),
+                ));
+            },
+            |GetProjectsRes { projects }| {
+                ctx.compose(|ctx| {
+                    vertical(
+                        title()
+                            .into_iter()
+                            .chain(projects.iter().map(|project| {
+                                fixed(24.px(), move |wh, ctx| {
+                                    ctx.add(typography::center_text(
+                                        wh,
+                                        &project.name,
+                                        Color::WHITE,
+                                        16.int_px(),
+                                    ))
+                                    .attach_event(|event| {
+                                        if let Event::MouseUp { event } = event {
+                                            if event.is_local_xy_in()
+                                                && event.button == Some(MouseButton::Left)
+                                            {
+                                                on_select_project(project);
+                                            }
+                                        }
+                                    });
+                                })
+                            }))
+                            .chain([fixed(24.px(), |wh, ctx| {
+                                ctx.add(simple_button(wh, "새 프로젝트", |_event| {}));
+                            })]),
+                    )(wh, ctx)
+                });
+            },
+        );
     }
 }
 
 struct EpisodeList<'a> {
     wh: Wh<Px>,
-    episodes: &'a [Episode],
+    project_id: Option<&'a String>,
 }
 
 impl Component for EpisodeList<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, episodes } = self;
+        let Self { wh, project_id } = self;
 
-        ctx.compose(|ctx| {
-            vertical(
-                [].into_iter()
-                    .chain(episodes.iter().map(|episode| {
-                        fixed(24.px(), |wh, ctx| {
-                            ctx.add(typography::center_text(
-                                wh,
-                                &episode.name,
-                                Color::WHITE,
-                                16.int_px(),
-                            ));
-                        })
-                    }))
-                    .chain([fixed(24.px(), |wh, ctx| {
-                        ctx.add(simple_button(wh, "새 에피소드", |_event| {}));
-                    })]),
-            )(wh, ctx)
-        });
+        let title = || {
+            [fixed(24.px(), |wh, ctx| {
+                ctx.add(typography::center_text(
+                    wh,
+                    "에피소드 리스트",
+                    Color::WHITE,
+                    16.int_px(),
+                ));
+            })]
+        };
+
+        get_episodes_render(
+            ctx,
+            |project_id| {
+                Some(GetEpisodesReq {
+                    project_id: project_id?,
+                })
+            },
+            project_id,
+            || {
+                ctx.compose(|ctx| vertical(title())(wh, ctx));
+            },
+            |err| {
+                ctx.add(typography::center_text(
+                    wh,
+                    format!("로딩 실패: {err:?}"),
+                    Color::RED,
+                    16.int_px(),
+                ));
+            },
+            |GetEpisodesRes { episodes }| {
+                ctx.compose(|ctx| {
+                    vertical(
+                        title()
+                            .into_iter()
+                            .chain(episodes.iter().map(|episode| {
+                                fixed(24.px(), |wh, ctx| {
+                                    ctx.add(typography::center_text(
+                                        wh,
+                                        &episode.name,
+                                        Color::WHITE,
+                                        16.int_px(),
+                                    ));
+                                })
+                            }))
+                            .chain([fixed(24.px(), |wh, ctx| {
+                                ctx.add(simple_button(wh, "새 에피소드", |_event| {}));
+                            })]),
+                    )(wh, ctx)
+                });
+            },
+        );
     }
 }

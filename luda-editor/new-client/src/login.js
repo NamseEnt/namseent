@@ -19,73 +19,11 @@ gIdOnload.dataset.itp_support = "true";
 document.body.appendChild(gIdOnload);
 
 function done(data) {
-    console.log("on done", data);
     const jsonBytes = new TextEncoder().encode(JSON.stringify(data));
     namui_sendData(jsonBytes);
 }
 
-// const jsonBytes = new TextEncoder().encode(
-//     JSON.stringify([
-//         {
-//             name: "John Doe",
-//             email: "asdks@com",
-//             id: "1234567890",
-//             age: "25",
-//         },
-//         {
-//             name: "John Doe",
-//             email: "asdks@com",
-//             id: "1234567890",
-//             age: "25",
-//         },
-//         {
-//             name: "John Doe",
-//             email: "asdks@com",
-//             id: "1234567890",
-//             age: "25",
-//         },
-//         {
-//             name: "John Doe",
-//             email: "asdks@com",
-//             id: "1234567890",
-//             age: "25",
-//         },
-//         {
-//             name: "John Doe",
-//             email: "asdks@com",
-//             id: "1234567890",
-//             age: "25",
-//         },
-//         {
-//             name: "John Doe",
-//             email: "asdks@com",
-//             id: "1234567890",
-//             age: "25",
-//         },
-//         {
-//             name: "John Doe",
-//             email: "asdks@com",
-//             id: "1234567890",
-//             age: "25",
-//         },
-//         {
-//             name: "John Doe",
-//             email: "asdks@com",
-//             id: "1234567890",
-//             age: "25",
-//         },
-//         {
-//             name: "John Doe",
-//             email: "asdks@com",
-//             id: "1234567890",
-//             age: "25",
-//         },
-//     ]),
-// );
-// namui_sendData(jsonBytes);
-
 function namui_onDrop() {
-    console.log("namui_onDrop");
     script.remove();
     gIdOnload.remove();
 }

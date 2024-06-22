@@ -3,7 +3,10 @@ mod public;
 use crate::*;
 use elsa::*;
 use rustc_hash::FxHashSet;
-use std::sync::{atomic::{AtomicBool, AtomicUsize}, mpsc};
+use std::sync::{
+    atomic::{AtomicBool, AtomicUsize},
+    mpsc,
+};
 
 pub struct World {
     composers: FrozenIndexMap<ComposerId, Box<Composer>>,
@@ -15,7 +18,7 @@ pub struct World {
     updated_sig_ids: FrozenIndexSet<Box<SigId>>,
     get_now: Box<dyn Fn() -> Instant>,
     record_used_sig_ids: FrozenVec<Box<SigId>>,
-    pub(crate) atom_list: FrozenVec<Box<dyn Value + Send + Sync>>,
+    pub(crate) atom_list: FrozenVec<Box<dyn Value + Send>>,
     pub(crate) atom_index: AtomicUsize,
     pub(crate) raw_event: Option<RawEvent>,
     pub(crate) is_stop_event_propagation: AtomicBool,

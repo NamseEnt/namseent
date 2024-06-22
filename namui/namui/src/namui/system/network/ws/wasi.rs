@@ -59,12 +59,13 @@ pub async fn connect(url: impl ToString) -> Result<(WsSender, WsReceiver)> {
     Ok((ws_sender, ws_receiver))
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct WsSender {
     id: u32,
 }
 impl WsSender {
-    pub fn send(&self, data: &[u8]) {
-        let data = data.to_vec().into_boxed_slice();
+    pub fn send(&self, data: impl AsRef<[u8]>) {
+        let data = data.as_ref().to_vec().into_boxed_slice();
         unsafe { _web_socket_send(self.id, data.as_ptr(), data.len()) };
     }
 }

@@ -32,6 +32,9 @@ impl<'world, T: ?Sized, Ref: Borrow<T>> Sig<'world, T, Ref> {
     pub fn map<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> Sig<'world, U, &U> {
         Sig::new(f(self.value.borrow()), self.id, self.world)
     }
+    pub fn map2<U: 'world, F: FnOnce(&T) -> U>(self, f: F) -> Sig<'world, U, U> {
+        Sig::new(f(self.value.borrow()), self.id, self.world)
+    }
 }
 
 impl<T: ?Sized + Debug, Ref: Borrow<T>> Debug for Sig<'_, T, Ref> {

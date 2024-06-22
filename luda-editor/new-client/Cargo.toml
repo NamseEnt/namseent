@@ -10,3 +10,4 @@ namui = true
 [dependencies]
 namui = { path = "../../namui/namui" }
 namui-prebuilt = { path = "../../namui/namui-prebuilt" }
+serde = { version = "1.0.203", features = ["derive"] }

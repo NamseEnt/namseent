@@ -3,6 +3,8 @@ use std::sync::{atomic::AtomicBool, Arc};
 
 /// Insert JavaScript code into the WASI runtime.
 ///
+/// You should keep returned JsHandle to keep running the JavaScript code.
+///
 /// ### Special function on js
 /// - `namui_sendData(data: ArrayBuffer)`
 ///     - Send data to the WASI runtime.
@@ -11,14 +13,14 @@ use std::sync::{atomic::AtomicBool, Arc};
 /// - `namui_onDrop()`
 ///    - Called when the handle is dropped. You might implement cleanup logic here.
 ///    - example) `const namui_onDrop = () => { ...remove event listener... }`
-pub async fn insert_js<OnData: Fn(&[u8]) + 'static + Send>(
+pub async fn insert_js<OnData: FnMut(&[u8]) + 'static + Send>(
     js: impl ToString,
     on_data: Option<OnData>,
 ) -> JsHandle {
     let js = js.to_string();
     let dropped = Arc::new(AtomicBool::new(false));
 
-    let Some(on_data) = on_data else {
+    let Some(mut on_data) = on_data else {
         return JsHandle::WithoutOnData {
             id: tokio::task::spawn_blocking(move || unsafe { _insert_js(js.as_ptr(), js.len()) })
                 .await
