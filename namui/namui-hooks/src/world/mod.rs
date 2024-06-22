@@ -15,20 +15,11 @@ pub struct World {
     updated_sig_ids: FrozenIndexSet<Box<SigId>>,
     get_now: Box<dyn Fn() -> Instant>,
     record_used_sig_ids: FrozenVec<Box<SigId>>,
-    pub(crate) atom_list: FrozenVec<Box<dyn Value + Send + Sync>>,
+    pub(crate) atom_list: FrozenVec<Box<dyn Value + Send>>,
     pub(crate) atom_index: AtomicUsize,
     pub(crate) raw_event: Option<RawEvent>,
     pub(crate) is_stop_event_propagation: AtomicBool,
     pub(crate) sk_calculate: &'static dyn SkCalculate,
-}
-
-#[cfg(target_family = "wasm")]
-unsafe impl Send for World {}
-#[cfg(target_family = "wasm")]
-unsafe impl Sync for World {}
-
-impl Drop for World {
-    fn drop(&mut self) {}
 }
 
 impl World {
