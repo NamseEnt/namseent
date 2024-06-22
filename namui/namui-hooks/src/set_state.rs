@@ -59,7 +59,7 @@ impl<'a, State: 'static> SetState<'a, State> {
 
     pub fn cloned(&self) -> StaticSetState<State>
     where
-        State: Send + Sync,
+        State: Send,
     {
         StaticSetState::new(self.sig_id, self.send_sync_set_state_tx.clone())
     }
@@ -67,7 +67,7 @@ impl<'a, State: 'static> SetState<'a, State> {
 
 
 #[derive(Debug)]
-pub struct AtomSetState<'a, State: Send + Sync + 'static> {
+pub struct AtomSetState<'a, State: Send + 'static> {
     sig_id: SigId,
     set_state_tx: &'a std::sync::mpsc::Sender<SendSyncSetStateItem>,
     _state: std::marker::PhantomData<State>,
@@ -75,7 +75,7 @@ pub struct AtomSetState<'a, State: Send + Sync + 'static> {
 
 // This doesn't work with derive(Clone) so I have to implement it manually.
 #[allow(clippy::non_canonical_clone_impl)]
-impl<'a, State: Send + Sync + 'static> Clone for AtomSetState<'a, State> {
+impl<'a, State: Send + 'static> Clone for AtomSetState<'a, State> {
     fn clone(&self) -> Self {
         Self {
             sig_id: self.sig_id,
@@ -84,9 +84,9 @@ impl<'a, State: Send + Sync + 'static> Clone for AtomSetState<'a, State> {
         }
     }
 }
-impl<'a, State: Send + Sync + 'static> Copy for AtomSetState<'a, State> {}
+impl<'a, State: Send + 'static> Copy for AtomSetState<'a, State> {}
 
-impl<'a, State: Send + Sync + 'static> AtomSetState<'a, State> {
+impl<'a, State: Send + 'static> AtomSetState<'a, State> {
     pub(crate) fn new(
         sig_id: SigId,
         set_state_tx: &'a std::sync::mpsc::Sender<SendSyncSetStateItem>,
@@ -106,7 +106,7 @@ impl<'a, State: Send + Sync + 'static> AtomSetState<'a, State> {
             .unwrap();
     }
 
-    pub fn mutate(&self, mutate: impl FnOnce(&mut State) + Send + Sync + 'static) {
+    pub fn mutate(&self, mutate: impl FnOnce(&mut State) + Send + 'static) {
         self.set_state_tx
             .send(SendSyncSetStateItem::Mutate {
                 sig_id: self.sig_id,
@@ -125,13 +125,13 @@ impl<'a, State: Send + Sync + 'static> AtomSetState<'a, State> {
 }
 
 #[derive(Debug, Clone)]
-pub struct StaticSetState<State: Send + Sync + 'static> {
+pub struct StaticSetState<State: Send + 'static> {
     sig_id: SigId,
     set_state_tx: std::sync::mpsc::Sender<SendSyncSetStateItem>,
     _state: std::marker::PhantomData<State>,
 }
 
-impl<State: Send + Sync + 'static> StaticSetState<State> {
+impl<State: Send + 'static> StaticSetState<State> {
     pub(crate) fn new(
         sig_id: SigId,
         get_send_sync_set_state_tx: std::sync::mpsc::Sender<SendSyncSetStateItem>,
@@ -151,7 +151,7 @@ impl<State: Send + Sync + 'static> StaticSetState<State> {
             .unwrap();
     }
 
-    pub fn mutate(&self, mutate: impl FnOnce(&mut State) + Send + Sync + 'static) {
+    pub fn mutate(&self, mutate: impl FnOnce(&mut State) + Send + 'static) {
         self.set_state_tx
             .send(SendSyncSetStateItem::Mutate {
                 sig_id: self.sig_id,
@@ -179,11 +179,11 @@ pub(crate) type MutateFnOnce = Box<dyn FnOnce(&mut (dyn Value))>;
 pub(crate) enum SendSyncSetStateItem {
     Set {
         sig_id: SigId,
-        value: Box<dyn Value + Send + Sync>,
+        value: Box<dyn Value + Send>,
     },
     Mutate {
         sig_id: SigId,
         mutate: SendSyncMutateFnOnce,
     },
 }
-pub(crate) type SendSyncMutateFnOnce = Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>;
+pub(crate) type SendSyncMutateFnOnce = Box<dyn FnOnce(&mut (dyn Value)) + Send>;
