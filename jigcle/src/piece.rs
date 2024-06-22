@@ -1,6 +1,5 @@
 use namui::*;
 
-#[component]
 pub struct Piece {
     pub wh: Wh<Px>,
     pub piece_index: Xy<usize>,

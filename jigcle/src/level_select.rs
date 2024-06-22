@@ -6,7 +6,6 @@ const TABLE_ROW: usize = 3;
 const ITEM_PER_ROW: usize = 4;
 const SPACING: Px = px(8.);
 
-#[component]
 pub struct LevelSelect;
 
 impl Component for LevelSelect {
@@ -137,7 +136,6 @@ fn load_levels<'a>(ctx: &'a RenderCtx) -> Sig<'a, Vec<Level>, &'a Vec<Level>> {
     levels
 }
 
-#[component]
 pub struct Thumbnail<'a> {
     level: &'a Level,
     wh: Wh<Px>,

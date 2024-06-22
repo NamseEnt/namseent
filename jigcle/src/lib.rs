@@ -14,7 +14,6 @@ pub fn main() {
     namui::start(|| Game)
 }
 
-#[component]
 pub struct Game;
 
 impl Component for Game {

@@ -1,7 +1,6 @@
 use namui::*;
 use namui_prebuilt::simple_rect;
 
-#[component]
 pub struct SolutionBoard {
     pub wh_counts: Wh<usize>,
     pub image_wh: Wh<Px>,
