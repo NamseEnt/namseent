@@ -33,7 +33,7 @@ impl Component for Game {
             };
             ctx.add(ImageDrawCommand {
                 rect: wh.to_rect(),
-                source: image.src.clone(),
+                image: image.clone(),
                 fit: ImageFit::Cover,
                 paint: None,
             });

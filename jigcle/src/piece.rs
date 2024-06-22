@@ -4,7 +4,7 @@ pub struct Piece {
     pub wh: Wh<Px>,
     pub piece_index: Xy<usize>,
     pub ltrb_edge: Ltrb<Edge>,
-    pub image: ImageSource,
+    pub image: Image,
     pub image_wh: Wh<Px>,
     pub piece_state: PieceState,
 }
@@ -173,7 +173,7 @@ impl Component for Piece {
                 .clip(clip_path.clone(), ClipOp::Intersect)
                 .add(ImageDrawCommand {
                     rect: Rect::zero_wh(image_wh),
-                    source: image.clone(),
+                    image: image.clone(),
                     fit: ImageFit::Contain,
                     paint,
                 });
