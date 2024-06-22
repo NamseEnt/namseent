@@ -1,6 +1,6 @@
 use crate::level::{load_level_list, Level};
 use namui::*;
-use namui_prebuilt::{simple_rect, table::hooks::*};
+use namui_prebuilt::{simple_rect, table::*};
 
 const TABLE_ROW: usize = 3;
 const ITEM_PER_ROW: usize = 4;
