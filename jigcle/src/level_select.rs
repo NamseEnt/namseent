@@ -1,5 +1,4 @@
 use crate::level::{load_level_list, Level};
-use namui::OrderedFloat;
 use namui::*;
 use namui_prebuilt::{simple_rect, table::*};
 
@@ -178,7 +177,7 @@ impl Component for Thumbnail<'_> {
                 fit: ImageFit::Cover,
                 paint: Some(
                     Paint::new(Color::BLACK).set_image_filter(ImageFilter::Blur {
-                        sigma_xy: Xy::single(OrderedFloat(16.0)),
+                        sigma_xy: Xy::single(16.0),
                         tile_mode: Some(TileMode::Mirror),
                         input: None,
                         crop_rect: None,
