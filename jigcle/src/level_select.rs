@@ -54,6 +54,9 @@ impl Component for LevelSelect {
                     let Event::MouseDown { event } = event else {
                         return;
                     };
+                    if !event.is_local_xy_in() {
+                        return;
+                    }
                     event.stop_propagation();
                     set_page.mutate(move |page| {
                         *page = (page_len as isize + (*page as isize) - 1) as usize % page_len;
@@ -83,6 +86,9 @@ impl Component for LevelSelect {
                     let Event::MouseDown { event } = event else {
                         return;
                     };
+                    if !event.is_local_xy_in() {
+                        return;
+                    }
                     event.stop_propagation();
                     set_page.mutate(move |page| {
                         *page = (*page + 1) % page_len;
