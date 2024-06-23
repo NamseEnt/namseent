@@ -177,7 +177,7 @@ impl Component for Thumbnail<'_> {
                 fit: ImageFit::Cover,
                 paint: Some(
                     Paint::new(Color::BLACK).set_image_filter(ImageFilter::Blur {
-                        sigma_xy: Xy::single(16.0),
+                        sigma_xy: Xy::single(16.0.into()),
                         tile_mode: Some(TileMode::Mirror),
                         input: None,
                         crop_rect: None,
