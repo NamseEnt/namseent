@@ -5,6 +5,11 @@ use url::Url;
 pub trait PathLike {
     fn path(&self) -> PathBuf;
 }
+impl PathLike for &PathBuf {
+    fn path(&self) -> PathBuf {
+        self.to_path_buf()
+    }
+}
 impl PathLike for PathBuf {
     fn path(&self) -> PathBuf {
         self.clone()

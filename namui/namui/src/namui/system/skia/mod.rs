@@ -9,6 +9,7 @@ use wasi as inner;
 use winit as inner;
 
 use super::InitResult;
+use crate::ResourceLocation;
 use anyhow::Result;
 use namui_skia::*;
 use namui_type::*;
@@ -43,8 +44,26 @@ pub async fn load_typeface(typeface_name: String, bytes: Vec<u8>) -> Result<()> 
     Ok(())
 }
 
-pub async fn load_image_from_url(url: impl AsRef<str>) -> Result<Image> {
-    let bytes = crate::system::network::http::get_bytes(url.as_ref()).await?;
+pub async fn load_image_from_resource_location(
+    resource_location: impl AsRef<ResourceLocation>,
+) -> Result<Image> {
+    match resource_location.as_ref() {
+        ResourceLocation::Bundle(path) => {
+            let bytes = crate::file::bundle::read(path).await?;
+            load_image_from_bytes(bytes.as_ref()).await
+        }
+        ResourceLocation::LocalStorage(path) => {
+            let bytes = crate::file::local_storage::read(path).await?;
+            load_image_from_bytes(bytes.as_ref()).await
+        }
+        ResourceLocation::Network(url) => {
+            let bytes = crate::system::network::http::get_bytes(url.as_ref()).await?;
+            load_image_from_bytes(bytes.as_ref()).await
+        }
+    }
+}
+
+async fn load_image_from_bytes(bytes: &[u8]) -> Result<Image> {
     let image = sk_calculate()
         .load_image_from_encoded(bytes.as_ref())
         .await?;

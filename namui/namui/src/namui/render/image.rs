@@ -25,7 +25,7 @@ pub fn image(ImageParam { image, rect, style }: ImageParam) -> RenderingTree {
 
 pub enum ImageSource {
     Image { image: Image },
-    Url { url: String },
+    ResourceLocation { resource_location: ResourceLocation },
 }
 
 pub struct ImageRender {
@@ -51,8 +51,8 @@ impl Component for ImageRender {
                     style: ImageStyle { fit, paint },
                 }));
             }
-            ImageSource::Url { url } => {
-                let image = ctx.image(url);
+            ImageSource::ResourceLocation { resource_location } => {
+                let image = ctx.image(resource_location);
 
                 let Some(Ok(image)) = image.as_ref() else {
                     return;

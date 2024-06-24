@@ -1,8 +1,10 @@
 pub(crate) mod change_path_to_platform;
 mod open_external;
+mod resource_location;
 
 use crate::*;
 pub use open_external::*;
+pub use resource_location::*;
 use serde::{Deserialize, Serialize};
 
 pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
