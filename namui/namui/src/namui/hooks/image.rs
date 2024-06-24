@@ -7,7 +7,10 @@ use std::ops::Deref;
 pub type Load<T> = Option<Result<T>>;
 
 pub trait ImageTrait {
-    fn image(&self, url: impl AsRef<ResourceLocation>) -> Sig<Load<Image>, &Load<Image>>;
+    fn image(
+        &self,
+        resource_location: impl AsRef<ResourceLocation>,
+    ) -> Sig<Load<Image>, &Load<Image>>;
 }
 
 impl ImageTrait for RenderCtx<'_, '_> {
