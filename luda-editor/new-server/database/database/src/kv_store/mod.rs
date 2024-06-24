@@ -1,18 +1,15 @@
-mod heap_archived;
 mod in_memory;
 mod sqlite;
 
+use crate::*;
 use anyhow::Result;
-pub(crate) use heap_archived::*;
 pub(crate) use in_memory::*;
 pub(crate) use sqlite::*;
-use std::{
-    sync::Arc,
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
 
 /// * `ttl` - Minimum resolution: seconds
-pub(crate) trait KvStore {
+#[allow(async_fn_in_trait)]
+pub trait KvStore {
     async fn get(&self, key: impl AsRef<str>) -> Result<Option<ValueBuffer>>;
     async fn get_with_expiration(
         &self,
@@ -41,33 +38,4 @@ pub(crate) trait KvStore {
         value_fn: impl FnOnce() -> Result<Bytes>,
         ttl: Option<Duration>,
     ) -> Result<()>;
-}
-pub enum ValueBuffer {
-    Vec(Vec<u8>),
-    Arc(Arc<Vec<u8>>),
-}
-impl ValueBuffer {
-    pub fn get_arc_vec(&self) -> Arc<Vec<u8>> {
-        match self {
-            Self::Vec(vec) => Arc::new(vec.clone()),
-            Self::Arc(arc) => arc.clone(),
-        }
-    }
-
-    pub fn as_slice(&self) -> &[u8] {
-        match self {
-            Self::Vec(vec) => vec.as_slice(),
-            Self::Arc(arc) => arc.as_slice(),
-        }
-    }
-}
-impl From<Vec<u8>> for ValueBuffer {
-    fn from(vec: Vec<u8>) -> Self {
-        Self::Vec(vec)
-    }
-}
-impl From<Arc<Vec<u8>>> for ValueBuffer {
-    fn from(arc: Arc<Vec<u8>>) -> Self {
-        Self::Arc(arc)
-    }
 }

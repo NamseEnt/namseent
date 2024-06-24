@@ -8,14 +8,14 @@ pub struct HeapArchived<T> {
 }
 
 impl<T> HeapArchived<T> {
-    pub(crate) fn new(buffer: impl Into<ValueBuffer>) -> Self {
+    pub fn new(buffer: impl Into<ValueBuffer>) -> Self {
         Self {
             buffer: buffer.into(),
             _phantom: std::marker::PhantomData,
         }
     }
     #[allow(dead_code)]
-    pub(crate) fn deserialize(&self) -> T
+    pub fn deserialize(&self) -> T
     where
         T: rkyv::Archive,
         T::Archived: Deserialize<T, SharedDeserializeMap>,

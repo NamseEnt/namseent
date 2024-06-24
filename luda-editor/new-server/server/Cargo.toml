@@ -20,3 +20,5 @@ arc-swap = "1.7.1"
 md-5 = "0.10.6"
 hex = "0.4.3"
 jsonwebtoken = "9.3.0"
+database = { path = "../database/database" }
+futures = "0.3.30"

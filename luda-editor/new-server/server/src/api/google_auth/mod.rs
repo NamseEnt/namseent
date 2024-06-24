@@ -1,6 +1,5 @@
 mod verify_jwt;
 
-use crate::kv_store::HeapArchived;
 use crate::*;
 use anyhow::Result;
 use md5::{Digest, Md5};
@@ -24,14 +23,14 @@ pub struct GoogleIdentity {
 
 impl GoogleIdentity {
     #[allow(dead_code)]
-    pub async fn put(&self, db: &Db) -> Result<()> {
+    pub async fn put(&self, db: &Database) -> Result<()> {
         let key = format!(
             "GoogleIdentity/google_sub:{google_sub}",
             google_sub = self.google_sub
         );
 
         let bytes = rkyv::to_bytes::<_, 64>(self)?;
-        db.sqlite.put(key, &bytes).await?;
+        db.put(key, &bytes, None).await?;
         Ok(())
     }
 }
@@ -42,12 +41,12 @@ pub struct GoogleIdentityGet {
 
 impl GoogleIdentityGet {
     #[allow(dead_code)]
-    pub async fn get(&self, db: &Db) -> Result<Option<HeapArchived<GoogleIdentity>>> {
+    pub async fn get(&self, db: &Database) -> Result<Option<HeapArchived<GoogleIdentity>>> {
         let key = format!(
             "GoogleIdentity/google_sub:{google_sub}",
             google_sub = self.google_sub
         );
-        Ok(db.sqlite.get(key).await?.map(HeapArchived::new))
+        Ok(db.get(key).await?.map(HeapArchived::new))
     }
 }
 
@@ -59,19 +58,18 @@ pub struct User {
 
 impl User {
     #[allow(dead_code)]
-    pub async fn put(&self, db: &Db) -> Result<()> {
+    pub async fn put(&self, db: &Database) -> Result<()> {
         let key = format!("User/id:{id}", id = self.id);
 
         let bytes = rkyv::to_bytes::<_, 64>(self)?;
-        db.sqlite.put(key, &bytes).await?;
+        db.put(key, &bytes, None).await?;
         Ok(())
     }
     #[allow(dead_code)]
-    async fn create(&self, db: &Db) -> Result<()> {
+    async fn create(&self, db: &Database) -> Result<()> {
         let key = format!("User/id:{id}", id = self.id);
 
-        db.sqlite
-            .create(key, || Ok(rkyv::to_bytes::<_, 64>(self)?))
+        db.create(key, || Ok(rkyv::to_bytes::<_, 64>(self)?), None)
             .await?;
         Ok(())
     }
@@ -79,7 +77,7 @@ impl User {
 
 pub async fn google_auth(
     ArchivedRequest { jwt }: &ArchivedRequest,
-    db: Db,
+    db: Database,
     session: Session,
 ) -> Result<Response> {
     static GOOGLE_JWKS_CLIENT: OnceLock<GoogleJwksClient> = OnceLock::new();
