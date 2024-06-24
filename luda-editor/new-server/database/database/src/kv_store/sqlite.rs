@@ -4,7 +4,7 @@ use aws_sdk_s3::primitives::ByteStream;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::{
     sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard},
-    time::{Duration, Instant, SystemTime},
+    time::{Duration, SystemTime},
 };
 
 #[derive(Clone)]

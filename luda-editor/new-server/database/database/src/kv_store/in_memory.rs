@@ -3,7 +3,7 @@ use anyhow::Result;
 use quick_cache::sync::Cache;
 use std::{
     sync::{atomic::AtomicBool, Arc},
-    time::{Duration, Instant, SystemTime},
+    time::{Duration, SystemTime},
 };
 
 #[derive(Clone)]
@@ -25,7 +25,7 @@ impl<Store: KvStore + Clone> InMemoryCachedKsStore<Store> {
             enabled: Arc::new(AtomicBool::new(enabled)),
         }
     }
-    pub fn set_enabled(&self, enabled: bool) {
+    pub fn set_cache_enabled(&self, enabled: bool) {
         self.enabled
             .store(enabled, std::sync::atomic::Ordering::Relaxed);
     }
