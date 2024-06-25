@@ -10,7 +10,7 @@ use axum::{
     routing::get,
     Router,
 };
-use database::*;
+use database::Database;
 use s3::*;
 use session::*;
 use std::net::SocketAddr;

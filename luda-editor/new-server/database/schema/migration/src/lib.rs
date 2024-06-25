@@ -1,11 +1,18 @@
 mod latest_version;
-mod migrate_0_1;
+// mod migrate_0_1;
 
 use anyhow::Result;
 pub use latest_version::*;
 
-pub async fn migrate(from_version: usize, db_conn: impl DatabaseConnection) -> Result<()> {
-    assert!(from_version <= LATEST_VERSION);
+pub async fn migrate(
+    from_version: usize,
+    #[allow(unused_variables)] db_conn: impl DatabaseConnection,
+) -> Result<()> {
+    #[allow(clippy::absurd_extreme_comparisons)]
+    {
+        assert!(from_version <= LATEST_VERSION);
+    }
+
     if from_version == LATEST_VERSION {
         return Ok(());
     }
@@ -13,13 +20,15 @@ pub async fn migrate(from_version: usize, db_conn: impl DatabaseConnection) -> R
         eprintln!("WARN: version gap is greater than 1. {from_version} -> {LATEST_VERSION}");
     }
 
+    #[allow(clippy::match_single_binding)]
     match from_version {
-        0 => {
-            migrate_0_1::migrate(db_conn)?;
-        }
+        // 0 => {
+        //     migrate_0_1::migrate(db_conn)?;
+        // }
         _ => unreachable!(),
     }
 
+    #[allow(unreachable_code)]
     Ok(())
 }
 

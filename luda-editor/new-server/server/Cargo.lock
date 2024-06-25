@@ -834,6 +834,7 @@ name = "document"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "rkyv",
  "schema-macro",
 ]
 
@@ -1482,7 +1483,6 @@ dependencies = [
  "anyhow",
  "document",
  "schema-0",
- "schema-1",
 ]
 
 [[package]]
@@ -2019,6 +2019,7 @@ dependencies = [
 name = "rpc"
 version = "0.1.0"
 dependencies = [
+ "database",
  "proc-macro2",
  "quote",
  "rkyv",
@@ -2032,14 +2033,6 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "rpc-parser",
- "syn 2.0.68",
-]
-
-[[package]]
-name = "rpc-parser"
-version = "0.1.0"
-dependencies = [
  "syn 2.0.68",
 ]
 
@@ -2165,15 +2158,6 @@ dependencies = [
 
 [[package]]
 name = "schema-0"
-version = "0.0.1"
-dependencies = [
- "document",
- "rkyv",
- "schema-macro",
-]
-
-[[package]]
-name = "schema-1"
 version = "0.0.1"
 dependencies = [
  "document",
@@ -2319,9 +2303,7 @@ dependencies = [
  "axum-server",
  "database",
  "futures",
- "hex",
  "jsonwebtoken",
- "md-5",
  "moka",
  "reqwest",
  "rkyv",
@@ -2329,6 +2311,7 @@ dependencies = [
  "serde",
  "tokio",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -2851,9 +2834,9 @@ checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
 name = "uuid"
-version = "1.8.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a183cf7feeba97b4dd1c0d46788634f6221d87fa961b305bed08c851829efcc0"
+checksum = "5de17fd2f7da591098415cff336e12965a28061ddace43b59cb3c430179c9439"
 dependencies = [
  "getrandom",
 ]

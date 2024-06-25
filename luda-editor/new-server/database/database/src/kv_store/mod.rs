@@ -2,7 +2,6 @@ mod in_memory;
 mod sqlite;
 
 use crate::*;
-use anyhow::Result;
 pub(crate) use in_memory::*;
 pub(crate) use sqlite::*;
 use std::time::{Duration, SystemTime};
@@ -37,5 +36,9 @@ pub trait KvStore {
         key: impl AsRef<str>,
         value_fn: impl FnOnce() -> Result<Bytes>,
         ttl: Option<Duration>,
+    ) -> Result<()>;
+    async fn transact(
+        &self,
+        transact_items: impl IntoIterator<Item = crate::TransactItem>,
     ) -> Result<()>;
 }

@@ -1,5 +1,5 @@
 use super::KvStore;
-use anyhow::Result;
+use crate::Result;
 use quick_cache::sync::Cache;
 use std::{
     sync::{atomic::AtomicBool, Arc},
@@ -115,10 +115,28 @@ impl<Store: KvStore + Clone> KvStore for InMemoryCachedKsStore<Store> {
         ttl: Option<Duration>,
     ) -> Result<()> {
         self.store.create(key.as_ref(), value_fn, ttl).await?;
-        if !self.enabled() {
-            return Ok(());
-        }
         self.cache.remove(key.as_ref());
+
+        Ok(())
+    }
+
+    async fn transact(
+        &self,
+        transact_items: impl IntoIterator<Item = crate::TransactItem>,
+    ) -> Result<()> {
+        let transact_items = transact_items.into_iter().collect::<Vec<_>>();
+        let keys = transact_items
+            .iter()
+            .map(|item| match item {
+                crate::TransactItem::Put { key, .. } => key.clone(),
+                crate::TransactItem::Create { key, .. } => key.clone(),
+            })
+            .collect::<Vec<_>>();
+
+        self.store.transact(transact_items).await?;
+        for key in keys {
+            self.cache.remove(&key);
+        }
 
         Ok(())
     }

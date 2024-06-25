@@ -1,7 +1,7 @@
 use super::KvStore;
-use anyhow::Result;
+use crate::Result;
 use aws_sdk_s3::primitives::ByteStream;
-use rusqlite::{Connection, OpenFlags, OptionalExtension};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction};
 use std::{
     sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard},
     time::{Duration, SystemTime},
@@ -16,7 +16,7 @@ const DB_PATH: &str = "db.sqlite";
 const BACKUP_PATH: &str = "db.sqlite.backup";
 
 impl SqliteKvStore {
-    pub async fn new(s3_client: aws_sdk_s3::Client, bucket_name: String) -> Result<Self> {
+    pub async fn new(s3_client: aws_sdk_s3::Client, bucket_name: String) -> anyhow::Result<Self> {
         try_fetch_db_file_from_s3(&s3_client, &bucket_name).await?;
 
         let conn = Connection::open(DB_PATH).unwrap();
@@ -148,27 +148,18 @@ impl KvStore for SqliteKvStore {
         value: &impl AsRef<[u8]>,
         ttl: Option<Duration>,
     ) -> Result<()> {
-        let write_conn = self.write_conn();
-        let mut stmt = write_conn.prepare(
-            "
-                INSERT OR REPLACE INTO kv_store 
-                (key, value, version, expired_at)
-                VALUES (?, ?, 0, ?)",
-        )?;
-
-        assert_eq!(
-            stmt.execute((key.as_ref(), value.as_ref(), ttl_to_expired_at(ttl)))?,
-            1
-        );
-
+        let mut write_conn = self.write_conn();
+        let trx = write_conn.transaction()?;
+        put(&trx, key, value, ttl)?;
+        trx.commit()?;
         Ok(())
     }
 
     async fn delete(&self, key: impl AsRef<str>) -> Result<()> {
-        let write_conn = self.write_conn();
-        let mut stmt = write_conn.prepare("DELETE FROM kv_store WHERE key = ?")?;
-        stmt.execute([key.as_ref()])?;
-
+        let mut write_conn = self.write_conn();
+        let trx = write_conn.transaction()?;
+        delete(&trx, key)?;
+        trx.commit()?;
         Ok(())
     }
 
@@ -178,36 +169,31 @@ impl KvStore for SqliteKvStore {
         value_fn: impl FnOnce() -> Result<Bytes>,
         ttl: Option<Duration>,
     ) -> Result<()> {
-        let mut write_conn = self.write_conn();
-        let tx = write_conn.transaction()?;
+        let mut write_conn: MutexGuard<Connection> = self.write_conn();
+        let trx = write_conn.transaction()?;
+        create(&trx, key, value_fn, ttl)?;
+        trx.commit()?;
+        Ok(())
+    }
 
-        let mut stmt = tx.prepare(
-            "
-            SELECT expired_at
-            FROM kv_store
-            WHERE key = ?",
-        )?;
-        let expired_at: Option<u64> = stmt
-            .query_row([key.as_ref()], |row| row.get(0))
-            .optional()?;
-        if let Some(expired_at) = expired_at {
-            if expired_at == 0 || now_epoch_time_secs() < expired_at {
-                return Ok(());
+    async fn transact(
+        &self,
+        transact_items: impl IntoIterator<Item = crate::TransactItem>,
+    ) -> Result<()> {
+        let mut write_conn: MutexGuard<Connection> = self.write_conn();
+        let trx = write_conn.transaction()?;
+
+        for item in transact_items.into_iter() {
+            match item {
+                crate::TransactItem::Put { key, value, ttl } => {
+                    put(&trx, key, &value, ttl)?;
+                }
+                crate::TransactItem::Create { key, value, ttl } => {
+                    create(&trx, key, || Ok(value), ttl)?;
+                }
             }
         }
-
-        let value = value_fn()?;
-        let mut stmt = tx.prepare(
-            "
-            INSERT OR REPLACE INTO kv_store
-            (key, value, version, expired_at)
-            VALUES (?, ?, 0, ?)",
-        )?;
-        assert_eq!(
-            stmt.execute((key.as_ref(), value.as_ref(), ttl_to_expired_at(ttl)))?,
-            1
-        );
-
+        trx.commit()?;
         Ok(())
     }
 
@@ -276,7 +262,7 @@ impl KvStore for SqliteKvStore {
 async fn try_fetch_db_file_from_s3(
     s3_client: &aws_sdk_s3::Client,
     bucket_name: &str,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     if std::fs::metadata(DB_PATH).is_ok() {
         return Ok(());
     }
@@ -298,7 +284,7 @@ async fn backup(
     sqlite3: &AtomicPtr<rusqlite::ffi::sqlite3>,
     s3_client: &aws_sdk_s3::Client,
     bucket_name: &str,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     println!("Start Backup db.sqlite");
     let now = std::time::SystemTime::now();
 
@@ -319,7 +305,10 @@ async fn backup(
     Ok(())
 }
 
-async fn save_db_backup_to_s3(s3_client: &aws_sdk_s3::Client, bucket_name: &str) -> Result<()> {
+async fn save_db_backup_to_s3(
+    s3_client: &aws_sdk_s3::Client,
+    bucket_name: &str,
+) -> anyhow::Result<()> {
     // TODO: multipart
     s3_client
         .put_object()
@@ -332,7 +321,7 @@ async fn save_db_backup_to_s3(s3_client: &aws_sdk_s3::Client, bucket_name: &str)
     Ok(())
 }
 
-async fn migrate() -> Result<()> {
+async fn migrate() -> anyhow::Result<()> {
     let pramga_conn = Connection::open(DB_PATH)?;
     let current_version = {
         let result = pramga_conn.query_row("PRAGMA kv_store.user_version", [], |row| {
@@ -352,7 +341,7 @@ async fn migrate() -> Result<()> {
             fn map<From: document::Document, To: document::Document>(
                 &self,
                 mut f: impl FnMut(From) -> To,
-            ) -> Result<()> {
+            ) -> anyhow::Result<()> {
                 let read_conn =
                     Connection::open_with_flags(DB_PATH, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
                 let mut write_conn = Connection::open(DB_PATH)?;
@@ -405,4 +394,68 @@ fn now_epoch_time_secs() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs()
+}
+
+fn put(
+    trx: &Transaction<'_>,
+    key: impl AsRef<str>,
+    value: &impl AsRef<[u8]>,
+    ttl: Option<Duration>,
+) -> Result<()> {
+    let mut stmt = trx.prepare(
+        "
+            INSERT OR REPLACE INTO kv_store 
+            (key, value, version, expired_at)
+            VALUES (?, ?, 0, ?)",
+    )?;
+
+    assert_eq!(
+        stmt.execute((key.as_ref(), value.as_ref(), ttl_to_expired_at(ttl)))?,
+        1
+    );
+
+    Ok(())
+}
+
+fn delete(trx: &Transaction<'_>, key: impl AsRef<str>) -> Result<()> {
+    let mut stmt = trx.prepare("DELETE FROM kv_store WHERE key = ?")?;
+    stmt.execute([key.as_ref()])?;
+
+    Ok(())
+}
+
+fn create<Bytes: AsRef<[u8]>>(
+    trx: &Transaction<'_>,
+    key: impl AsRef<str>,
+    value_fn: impl FnOnce() -> Result<Bytes>,
+    ttl: Option<Duration>,
+) -> Result<()> {
+    let mut stmt = trx.prepare(
+        "
+        SELECT expired_at
+        FROM kv_store
+        WHERE key = ?",
+    )?;
+    let expired_at: Option<u64> = stmt
+        .query_row([key.as_ref()], |row| row.get(0))
+        .optional()?;
+    if let Some(expired_at) = expired_at {
+        if expired_at == 0 || now_epoch_time_secs() < expired_at {
+            return Ok(());
+        }
+    }
+
+    let value = value_fn()?;
+    let mut stmt = trx.prepare(
+        "
+        INSERT OR REPLACE INTO kv_store
+        (key, value, version, expired_at)
+        VALUES (?, ?, 0, ?)",
+    )?;
+    assert_eq!(
+        stmt.execute((key.as_ref(), value.as_ref(), ttl_to_expired_at(ttl)))?,
+        1
+    );
+
+    Ok(())
 }

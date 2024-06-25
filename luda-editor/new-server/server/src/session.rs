@@ -12,9 +12,8 @@ impl Session {
             user_id: Default::default(),
         }
     }
-    pub(crate) fn login(&self, user_id: impl AsRef<str>) {
-        self.user_id
-            .store(Some(user_id.as_ref().to_string().into()));
+    pub(crate) fn login(&self, user_id: impl ToString) {
+        self.user_id.store(Some(user_id.to_string().into()));
     }
     #[allow(dead_code)]
     pub(crate) fn user_id(&self) -> Option<Arc<String>> {

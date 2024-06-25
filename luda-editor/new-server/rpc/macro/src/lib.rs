@@ -1,8 +1,10 @@
+mod parser;
+
 use quote::quote;
 
 #[proc_macro]
 pub fn define_rpc(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let rpc = syn::parse_macro_input!(input as rpc_parser::Rpc);
+    let rpc = syn::parse_macro_input!(input as parser::Rpc);
 
     let define_rpc_meta = define_rpc_meta(&rpc);
     let define_rpc_structs_and_mods = define_rpc_structs_and_mods(&rpc);
@@ -12,7 +14,7 @@ pub fn define_rpc(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     })
 }
 
-fn define_rpc_meta(rpc: &rpc_parser::Rpc) -> proc_macro2::TokenStream {
+fn define_rpc_meta(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
     let services = rpc.services.iter().map(|service| {
         let name: &syn::Ident = &service.name;
         let snake_case_name = &service.snake_case_name();
@@ -62,16 +64,38 @@ fn define_rpc_meta(rpc: &rpc_parser::Rpc) -> proc_macro2::TokenStream {
     }
 }
 
-fn define_rpc_structs_and_mods(rpc: &rpc_parser::Rpc) -> proc_macro2::TokenStream {
+fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
     let services = rpc.services.iter().map(|service| {
         let service_name = service.snake_case_name();
         let apis = service.apis.iter().map(|api| {
             let api_name = &api.name;
             let items = api.items.iter().map(|item| {
+                let mut extra = quote! {};
+                if let syn::Item::Enum(enum_item) = item {
+                    if enum_item.ident == "Error" {
+                        extra = quote! {
+                            impl std::fmt::Display for Error {
+                                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                    write!(f, "{:?}", self)
+                                }
+                            }
+                            impl std::error::Error for Error {}
+
+                            impl From<database::Error> for Error {
+                                fn from(e: database::Error) -> Self {
+                                    Error::InternalServerError {
+                                        err: format!("{e}"),
+                                    }
+                                }
+                            }
+                        };
+                    }
+                }
                 quote! {
                     #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
                     #[archive(check_bytes)]
                     #item
+                    #extra
                 }
             });
             quote! {

@@ -64,20 +64,23 @@ impl syn::parse::Parse for Api {
         let mut items = Vec::new();
         while !content.is_empty() {
             let mut item: syn::Item = content.parse()?;
-            let span = item.span();
 
             match &mut item {
-                syn::Item::Const(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
+                syn::Item::Const(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
                 syn::Item::Enum(x) => {
                     if x.ident.to_string() == "Error" {
-                        let mut fields = Punctuated::new();
-                        fields.push(syn::parse_quote!(error: String));
+                        x.attrs.push(syn::parse_quote!(#[derive(Debug)]));
+                        
                         x.variants.push(syn::Variant {
                             attrs: Vec::new(),
-                            ident: Ident::new("InternalServerError", span),
+                            ident: Ident::new("InternalServerError", x.span()),
                             fields: syn::Fields::Named(syn::FieldsNamed {
-                                brace_token: syn::token::Brace(span),
-                                named: fields,
+                                brace_token: syn::token::Brace(x.span()),
+                                named: {
+                                    let mut fields = Punctuated::new();
+                                    fields.push(syn::parse_quote!(err: String));
+                                    fields
+                                },
                             }),
                             discriminant: None,
                         });
@@ -88,23 +91,28 @@ impl syn::parse::Parse for Api {
                             "Enums must have at least one variant",
                         ));
                     }
-                    x.vis = syn::Visibility::Public(syn::token::Pub(span))
+                    x.vis = syn::Visibility::Public(syn::token::Pub(x.span()))
                 }
-                syn::Item::ExternCrate(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
-                syn::Item::Fn(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
-                syn::Item::Mod(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
-                syn::Item::Static(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
+                syn::Item::ExternCrate(x) => {
+                    x.vis = syn::Visibility::Public(syn::token::Pub(x.span()))
+                }
+                syn::Item::Fn(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
+                syn::Item::Mod(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
+                syn::Item::Static(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
                 syn::Item::Struct(x) => {
-                    x.vis = syn::Visibility::Public(syn::token::Pub(span));
+                    x.vis = syn::Visibility::Public(syn::token::Pub(x.span()));
+                    let span = x.span();
                     x.fields.iter_mut().for_each(|field| {
                         field.vis = syn::Visibility::Public(syn::token::Pub(span));
                     });
                 }
-                syn::Item::Trait(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
-                syn::Item::TraitAlias(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
-                syn::Item::Type(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
-                syn::Item::Union(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
-                syn::Item::Use(x) => x.vis = syn::Visibility::Public(syn::token::Pub(span)),
+                syn::Item::Trait(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
+                syn::Item::TraitAlias(x) => {
+                    x.vis = syn::Visibility::Public(syn::token::Pub(x.span()))
+                }
+                syn::Item::Type(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
+                syn::Item::Union(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
+                syn::Item::Use(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
                 _ => todo!(),
             }
             items.push(item);

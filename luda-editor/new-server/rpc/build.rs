@@ -45,15 +45,22 @@ fn generate_server_api_files(rpc: &Rpc) {
         std::fs::write(service_path.join("mod.rs"), service_mod_rs_lines.join("")).unwrap();
 
         for api in &service.apis {
-            let api_path = service_path.join(format!("{}.rs", api.name));
-            if api_path.exists() {
+            let api_dir = service_path.join(format!("{}", api.name));
+            if !api_dir.exists() {
+                std::fs::create_dir_all(&api_dir).unwrap();
+            }
+            let api_mod_rs = api_dir.join("mod.rs");
+            if api_mod_rs.exists() {
                 continue;
             }
             let api_name = &api.name;
             std::fs::write(
-                &api_path,
+                &api_mod_rs,
                 format!(
-                    r#"use crate::*;
+                    "
+
+use crate::*;
+use database::schema::*;
 use rpc::{service_snake_name}::{api_name}::*;
 
 pub async fn google_auth(
@@ -63,7 +70,7 @@ pub async fn google_auth(
 ) -> Result<Response, Error> {{
     todo!()
 }}
-"#
+"
                 ),
             )
             .unwrap();

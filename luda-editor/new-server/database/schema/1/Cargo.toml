@@ -1,9 +1,0 @@
-[package]
-name = "schema-1"
-version = "0.0.1"
-edition = "2021"
-
-[dependencies]
-document = { path = "../document" }
-schema-macro = { path = "../macro" }
-rkyv = { version = "0.7.44" }
