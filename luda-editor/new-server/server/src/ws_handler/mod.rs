@@ -1,3 +1,5 @@
+mod handle;
+
 use crate::*;
 use axum::{
     extract::{State, WebSocketUpgrade},
@@ -105,41 +107,25 @@ async fn handle_msg(
             return Ok(());
         }
     };
-    let packet_type = u16::from_be_bytes([in_packet[0], in_packet[1]]);
-    let in_payload = &in_packet[2..];
+    let packet_id = u32::from_be_bytes([in_packet[0], in_packet[1], in_packet[2], in_packet[3]]);
+    let api_index = u16::from_be_bytes([in_packet[4], in_packet[5]]);
+    let in_payload = &in_packet[6..];
 
-    enum Status {
-        Ok = 0,
-        ServerError = 1,
-    }
-    let (mut out_payload, status): (Vec<u8>, Status) = match packet_type {
-        0 => {
-            let Ok(request) = rkyv::validation::validators::check_archived_root::<
-                api::google_auth::Request,
-            >(in_payload) else {
-                return Err(anyhow::anyhow!("Failed to validate packet"));
-            };
-            match api::google_auth::google_auth(request, db, session)
-                .await
-                .and_then(|response| Ok(rkyv::to_bytes::<_, 64>(&response)?))
-            {
-                Ok(bytes) => (bytes.into_vec(), Status::Ok),
-                Err(error) => {
-                    eprintln!("Error on google_auth: {:?}", error);
-                    (Vec::new(), Status::ServerError)
-                }
-            }
-        }
-        _ => return Err(anyhow::anyhow!("Unknown packet type: {}", packet_type)),
-    };
+    // let (mut out_payload, status): (Vec<u8>, Status) =
+    let result = handle::handle(api_index, in_payload, db, session).await?;
 
     /*
-        out packet = [payload][1byte status][2byte packet_type]
-        The reason to put status and packet_type at the end is to reduce heap allocation and copying.
+        out packet = [payload][1byte status][4byte packet_id]
+        The reason to put metadata at the end is to reduce heap allocation and copying.
     */
 
+    let (mut out_payload, status) = match result {
+        handle::HandleResult::Response(x) => (x, 0),
+        handle::HandleResult::Error(x) => (x, 1),
+    };
+
     out_payload.extend_from_slice(&(status as u8).to_be_bytes());
-    out_payload.extend_from_slice(&packet_type.to_be_bytes());
+    out_payload.extend_from_slice(&packet_id.to_be_bytes());
 
     out_msg_tx.send(OutMessage::Binary(out_payload)).await?;
     Ok(())
