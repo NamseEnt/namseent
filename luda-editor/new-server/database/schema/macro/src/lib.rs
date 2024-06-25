@@ -232,7 +232,6 @@ fn struct_create_define(
 
 struct Parsed<'a> {
     name: &'a Ident,
-    data_struct: &'a DataStruct,
     attrs_removed_input: DeriveInput,
     pk_fields_without_pk_attr: Vec<Field>,
     fields_without_pk_attr: Vec<Field>,
@@ -241,11 +240,6 @@ struct Parsed<'a> {
 impl<'a> Parsed<'a> {
     fn new(input: &'a DeriveInput) -> Self {
         let name = &input.ident;
-        let data_struct = match &input.data {
-            Data::Struct(data) => data,
-            _ => panic!("Document can only be derived on structs"),
-        };
-
         let mut attrs_removed_input = input.clone();
         let mut pk_fields_without_pk_attr = Vec::new();
         let mut fields_without_pk_attr = Vec::new();
@@ -265,7 +259,6 @@ impl<'a> Parsed<'a> {
 
         Self {
             name,
-            data_struct,
             attrs_removed_input,
             pk_fields_without_pk_attr,
             fields_without_pk_attr,
