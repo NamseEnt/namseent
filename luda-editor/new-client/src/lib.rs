@@ -3,12 +3,14 @@ mod home;
 mod network;
 mod new_team_page;
 mod router;
+mod rpc;
 mod simple_button;
 mod toast;
 
 use data_fetch::*;
 use namui::*;
 use namui_prebuilt::{table::*, *};
+use network::*;
 use simple_button::*;
 
 static SERVER_CONNECTION_ATOM: Atom<ServerConnection> = Atom::uninitialized();
@@ -64,41 +66,6 @@ impl Component for Login {
             ));
         }
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct ServerConnection {
-    sender: namui::network::ws::WsSender,
-    // receiver: namui::network::ws::WsReceiver,
-}
-impl ServerConnection {
-    pub async fn request<Response, Error>(
-        &self,
-        request_packet: RequestPacket,
-    ) -> Result<Response, Error> {
-        todo!()
-    }
-}
-trait Request {
-    fn as_packet(&self) -> RequestPacket;
-}
-
-struct RequestPacket {}
-
-async fn connect_to_server(jwt: String) -> Result<ServerConnection> {
-    let (sender, mut receiver) = namui::network::ws::connect("ws://localhost:8080").await?;
-
-    sender.send(jwt.as_bytes());
-
-    let data = receiver
-        .recv()
-        .await
-        .ok_or(anyhow!("Failed to get auth response"))?;
-
-    Ok(ServerConnection {
-        sender,
-        // receiver,
-    })
 }
 
 async fn take_google_gsi_jwt() -> String {

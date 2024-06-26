@@ -5,6 +5,8 @@ edition = "2021"
 
 
 [dependencies]
+luda-rpc = { path = "../rpc", features = ["server"] }
+database = { path = "../database/database" }
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.7.5", features = ["ws"] }
 anyhow = { version = "1.0.83", features = ["backtrace"] }
@@ -18,7 +20,5 @@ reqwest = { version = "0.12.4", features = ["json"] }
 serde = { version = "1.0.202", features = ["derive"] }
 arc-swap = "1.7.1"
 jsonwebtoken = "9.3.0"
-database = { path = "../database/database" }
 futures = "0.3.30"
-rpc = { path = "../rpc" }
 uuid = { version = "1.9.1", features = ["v4"] }

@@ -1,5 +1,5 @@
 use super::*;
-use network::*;
+use luda_rpc::*;
 
 pub struct Home;
 
@@ -82,14 +82,15 @@ impl Component for TeamList<'_> {
             })]
         };
 
-        get_teams_render(
+        use crate::rpc::team::get_my_teams::*;
+        get_my_teams_render(
             ctx,
-            |_| GetTeamsReq {},
+            |_| Some(RefRequest {}),
             (),
             || {
                 ctx.compose(|ctx| vertical(title())(wh, ctx));
             },
-            |err: &GetTeamsErr| {
+            |err| {
                 ctx.add(typography::center_text(
                     wh,
                     format!("로딩 실패: {err:?}"),
@@ -97,7 +98,7 @@ impl Component for TeamList<'_> {
                     16.int_px(),
                 ));
             },
-            |GetTeamsRes { teams }| {
+            |Response { teams }| {
                 ctx.compose(|ctx| {
                     vertical(
                         title()
@@ -161,11 +162,12 @@ impl Component for ProjectList<'_> {
             })]
         };
 
+        use crate::rpc::project::get_projects::*;
         get_projects_render(
             ctx,
             |team_id| {
                 let team_id = team_id.as_ref()?;
-                Some(GetProjectsReq { team_id })
+                Some(RefRequest { team_id })
             },
             team_id,
             || {
@@ -179,7 +181,7 @@ impl Component for ProjectList<'_> {
                     16.int_px(),
                 ));
             },
-            |GetProjectsRes { projects }| {
+            |Response { projects }| {
                 ctx.compose(|ctx| {
                     vertical(
                         title()
@@ -233,10 +235,11 @@ impl Component for EpisodeList<'_> {
             })]
         };
 
+        use crate::rpc::episode::get_episodes::*;
         get_episodes_render(
             ctx,
             |project_id| {
-                Some(GetEpisodesReq {
+                Some(RefRequest {
                     project_id: project_id?,
                 })
             },
@@ -252,7 +255,7 @@ impl Component for EpisodeList<'_> {
                     16.int_px(),
                 ));
             },
-            |GetEpisodesRes { episodes }| {
+            |Response { episodes }| {
                 ctx.compose(|ctx| {
                     vertical(
                         title()

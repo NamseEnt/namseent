@@ -989,6 +989,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "luda-rpc"
+version = "0.1.0"
+dependencies = [
+ "database",
+ "proc-macro2",
+ "quote",
+ "rkyv",
+ "rpc-macro",
+ "syn 2.0.68",
+]
+
+[[package]]
 name = "md-5"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1300,18 +1312,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "rpc"
-version = "0.1.0"
-dependencies = [
- "database",
- "proc-macro2",
- "quote",
- "rkyv",
- "rpc-macro",
- "syn 2.0.68",
 ]
 
 [[package]]

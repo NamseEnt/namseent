@@ -2,7 +2,7 @@ mod verify_jwt;
 
 use crate::*;
 use database::schema::*;
-use rpc::auth::google_auth::*;
+use luda_rpc::auth::google_auth::*;
 use std::sync::OnceLock;
 use verify_jwt::*;
 
@@ -53,5 +53,5 @@ pub async fn google_auth(
 
     session.login(user_id);
 
-    todo!()
+    Ok(Response {})
 }

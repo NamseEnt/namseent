@@ -54,6 +54,9 @@ impl syn::parse::Parse for Service {
 pub struct Api {
     pub name: syn::Ident,
     pub items: Vec<syn::Item>,
+    pub request: syn::Item,
+    pub response: syn::Item,
+    pub error: syn::Item,
 }
 impl syn::parse::Parse for Api {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
@@ -62,6 +65,11 @@ impl syn::parse::Parse for Api {
         let content;
         let _brace_token = syn::braced!(content in input);
         let mut items = Vec::new();
+
+        let mut request = None;
+        let mut response = None;
+        let mut error = None;
+
         while !content.is_empty() {
             let mut item: syn::Item = content.parse()?;
 
@@ -70,7 +78,7 @@ impl syn::parse::Parse for Api {
                 syn::Item::Enum(x) => {
                     if x.ident.to_string() == "Error" {
                         x.attrs.push(syn::parse_quote!(#[derive(Debug)]));
-                        
+
                         x.variants.push(syn::Variant {
                             attrs: Vec::new(),
                             ident: Ident::new("InternalServerError", x.span()),
@@ -115,9 +123,31 @@ impl syn::parse::Parse for Api {
                 syn::Item::Use(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
                 _ => todo!(),
             }
+
+            let ident = match &item {
+                syn::Item::Enum(item_enum) => Some(&item_enum.ident),
+                syn::Item::Struct(item_struct) => Some(&item_struct.ident),
+                _ => None,
+            };
+            if ident.is_some() {
+                if ident.as_ref().unwrap().to_string() == "Request" {
+                    request = Some(item.clone());
+                } else if ident.as_ref().unwrap().to_string() == "Response" {
+                    response = Some(item.clone());
+                } else if ident.as_ref().unwrap().to_string() == "Error" {
+                    error = Some(item.clone());
+                }
+            }
+
             items.push(item);
         }
 
-        Ok(Api { name, items })
+        Ok(Api {
+            name,
+            items,
+            request: request.expect("Request not found"),
+            response: response.expect("Response not found"),
+            error: error.expect("Error not found"),
+        })
     }
 }

@@ -1455,6 +1455,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "luda-rpc"
+version = "0.1.0"
+dependencies = [
+ "database",
+ "proc-macro2",
+ "quote",
+ "rkyv",
+ "rpc-macro",
+ "syn 2.0.68",
+]
+
+[[package]]
 name = "matchit"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2016,18 +2028,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rpc"
-version = "0.1.0"
-dependencies = [
- "database",
- "proc-macro2",
- "quote",
- "rkyv",
- "rpc-macro",
- "syn 2.0.68",
-]
-
-[[package]]
 name = "rpc-macro"
 version = "0.1.0"
 dependencies = [
@@ -2304,10 +2304,10 @@ dependencies = [
  "database",
  "futures",
  "jsonwebtoken",
+ "luda-rpc",
  "moka",
  "reqwest",
  "rkyv",
- "rpc",
  "serde",
  "tokio",
  "tracing-subscriber",
