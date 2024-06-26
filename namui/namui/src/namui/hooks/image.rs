@@ -1,24 +1,31 @@
-use crate::skia::load_image_from_url;
+use crate::{skia::load_image_from_resource_location, ResourceLocation};
 use anyhow::Result;
 use namui_hooks::*;
 use namui_skia::*;
+use std::ops::Deref;
 
 pub type Load<T> = Option<Result<T>>;
 
 pub trait ImageTrait {
-    fn image(&self, url: impl AsRef<str>) -> Sig<Load<Image>, &Load<Image>>;
+    fn image(
+        &self,
+        resource_location: impl AsRef<ResourceLocation>,
+    ) -> Sig<Load<Image>, &Load<Image>>;
 }
 
 impl ImageTrait for RenderCtx<'_, '_> {
-    fn image(&self, url: impl AsRef<str>) -> Sig<Load<Image>, &Load<Image>> {
-        let url = self.track_eq(&url.as_ref().to_string());
+    fn image(
+        &self,
+        resource_location: impl AsRef<ResourceLocation>,
+    ) -> Sig<Load<Image>, &Load<Image>> {
+        let resource_location = self.track_eq(resource_location.as_ref());
         let (load, set_load) = self.state(|| Load::None);
 
         // without sig
         let loaded = load.is_some();
 
-        self.effect(format!("Load image from {url}"), || {
-            let url = (*url).clone();
+        self.effect(format!("Load image from {resource_location}"), || {
+            let resource_location = resource_location.deref().clone();
 
             if loaded {
                 set_load.set(None);
@@ -26,7 +33,7 @@ impl ImageTrait for RenderCtx<'_, '_> {
 
             let set_load = set_load.cloned();
             let join_handle = crate::spawn(async move {
-                let image = load_image_from_url(&url).await;
+                let image = load_image_from_resource_location(resource_location).await;
                 set_load.set(Some(image));
             });
 
