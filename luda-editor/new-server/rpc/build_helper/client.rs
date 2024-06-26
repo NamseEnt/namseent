@@ -24,6 +24,8 @@ fn generate_rpc_files(rpc: &Rpc) {
     )
     .unwrap();
 
+    let mut api_index: u16 = 0;
+
     for service in &rpc.services {
         let service_snake_name = &service.snake_case_name;
         let service_path = rpc_path.join(service_snake_name.to_string());
@@ -77,7 +79,7 @@ fn generate_rpc_files(rpc: &Rpc) {
                     request: impl FnOnce(Deps) -> Option<#ref_request_implicit_lifetime>,
                     dependencies: Deps,
                 ) -> Sig<'a, OptionResult, &'a OptionResult> {
-                    server_rpc(ctx, request, dependencies)
+                    server_rpc(ctx, request, dependencies, #api_index)
                 }
 
                 pub fn #api_name_render<'a, Deps: Dependencies + 'a>(
@@ -98,6 +100,8 @@ fn generate_rpc_files(rpc: &Rpc) {
                 }
             };
             write_fmt(api_mod_rs, content);
+
+            api_index += 1;
         }
     }
 }

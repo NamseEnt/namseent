@@ -1,6 +1,7 @@
 mod handle;
 
 use crate::*;
+use anyhow::anyhow;
 use axum::{
     extract::{State, WebSocketUpgrade},
     response::Response,
@@ -107,9 +108,14 @@ async fn handle_msg(
             return Ok(());
         }
     };
-    let packet_id = u32::from_be_bytes([in_packet[0], in_packet[1], in_packet[2], in_packet[3]]);
-    let api_index = u16::from_be_bytes([in_packet[4], in_packet[5]]);
-    let in_payload = &in_packet[6..];
+    if in_packet.len() < 6 {
+        return Err(anyhow!("Invalid packet"));
+    }
+
+    let (in_payload, header) = in_packet.split_at(in_packet.len() - 6);
+
+    let packet_id = u32::from_le_bytes(header[0..4].try_into()?);
+    let api_index = u16::from_le_bytes(header[4..6].try_into()?);
 
     // let (mut out_payload, status): (Vec<u8>, Status) =
     let result = handle::handle(api_index, in_payload, db, session).await?;

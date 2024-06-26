@@ -7,7 +7,7 @@ pub fn get_projects<'a, Deps: Dependencies + 'a>(
     request: impl FnOnce(Deps) -> Option<RefRequest<'a>>,
     dependencies: Deps,
 ) -> Sig<'a, OptionResult, &'a OptionResult> {
-    server_rpc(ctx, request, dependencies)
+    server_rpc(ctx, request, dependencies, 2u16)
 }
 pub fn get_projects_render<'a, Deps: Dependencies + 'a>(
     ctx: &'a RenderCtx,

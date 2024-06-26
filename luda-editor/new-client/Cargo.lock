@@ -501,6 +501,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "6.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "804c8821570c3f8b70230c2ba75ffa5c0f9a4189b9a432b6656c536712acae28"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+]
+
+[[package]]
 name = "dbus"
 version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1217,6 +1231,7 @@ dependencies = [
 name = "luda-editor-client"
 version = "0.1.0"
 dependencies = [
+ "dashmap 6.0.1",
  "luda-rpc",
  "namui",
  "namui-prebuilt",
@@ -1296,7 +1311,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bumpalo",
- "dashmap",
+ "dashmap 5.5.3",
  "derivative",
  "elsa",
  "ffmpeg-next",

@@ -1,24 +1,38 @@
 mod dependencies;
 
 use crate::*;
+use dashmap::DashMap;
 pub use dependencies::*;
 use luda_rpc::rkyv;
+use std::sync::Arc;
+use tokio::{sync::oneshot, task::JoinHandle};
 
 type SigRef<'a, T> = Sig<'a, T, &'a T>;
 
+type Serializer = rkyv::ser::serializers::AllocSerializer<1024>;
+
 pub fn server_rpc<
     'a,
-    Req: rkyv::Serialize<rkyv::ser::serializers::AllocSerializer<1024>> + Send + 'a,
+    Req: rkyv::Serialize<Serializer> + Send + 'a,
     Deps: Dependencies + 'a,
-    Response: Send + 'static,
-    Error: Send + 'static,
+    Response: rkyv::Archive + Send + 'static,
+    Error: rkyv::Archive + Send + 'static,
 >(
     ctx: &'a RenderCtx,
     request: impl FnOnce(Deps) -> Option<Req>,
     dependencies: Deps,
-) -> SigRef<'a, Option<Result<Response, Error>>> {
+    api_index: u16,
+) -> SigRef<'a, Option<Result<Response, Error>>>
+where
+    <Response as luda_rpc::rkyv::Archive>::Archived: luda_rpc::rkyv::Deserialize<
+        Response,
+        luda_rpc::rkyv::de::deserializers::SharedDeserializeMap,
+    >,
+    <Error as luda_rpc::rkyv::Archive>::Archived:
+        luda_rpc::rkyv::Deserialize<Error, luda_rpc::rkyv::de::deserializers::SharedDeserializeMap>,
+{
     let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
-    let server_connection = *server_connection;
+    let server_connection = server_connection.clone();
     let (response, set_response) = ctx.state(|| None);
     let dependencies_changed = dependencies.changed(ctx);
     let deps_sig = ctx.controlled_memo(|_| {
@@ -37,11 +51,27 @@ pub fn server_rpc<
 
         let set_response = set_response.cloned();
         let bytes = rkyv::to_bytes(&req).unwrap().to_vec();
-        let request_packet = RequestPacket { bytes };
+        let request_packet = RequestPacket::new(api_index, bytes);
 
-        let join_handle = tokio::spawn(async move {
-            let response = server_connection.request(request_packet).await;
+        let join_handle: JoinHandle<Result<()>> = tokio::spawn(async move {
+            let response_packet = server_connection.request(request_packet).await?;
+
+            let response = match response_packet.status {
+                ResponseStatus::Response => {
+                    let response = unsafe {
+                        rkyv::from_bytes_unchecked(&response_packet.out_payload).unwrap()
+                    };
+                    Ok(response)
+                }
+                ResponseStatus::Error => {
+                    let error = unsafe {
+                        rkyv::from_bytes_unchecked(&response_packet.out_payload).unwrap()
+                    };
+                    Err(error)
+                }
+            };
             set_response.set(Some(response));
+            Ok(())
         });
 
         EffectCleanUp::Once(Box::new(move || {
@@ -52,38 +82,106 @@ pub fn server_rpc<
     response
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ServerConnection {
     sender: namui::network::ws::WsSender,
     // receiver: namui::network::ws::WsReceiver,
+    response_map: Arc<DashMap<u32, oneshot::Sender<Vec<u8>>>>,
 }
 impl ServerConnection {
-    pub async fn request<Response, Error>(
+    pub async fn new(url: impl ToString) -> Result<Self> {
+        let (sender, mut receiver) = namui::network::ws::connect(url).await?;
+
+        tokio::spawn(async move {});
+
+        Ok(Self {
+            sender,
+            response_map: Default::default(),
+        })
+    }
+    async fn request(
         &self,
         request_packet: RequestPacket,
-    ) -> Result<Response, Error> {
-        todo!()
+    ) -> Result<ResponsePacket, oneshot::error::RecvError> {
+        let packet_id = request_packet.packet_id;
+
+        let (tx, rx) = oneshot::channel();
+        self.response_map.insert(packet_id, tx);
+
+        self.sender.send(request_packet.into_bytes());
+
+        let out_packet_bytes = rx.await?;
+        assert!(out_packet_bytes.len() >= 5);
+
+        let (out_payload, header) = {
+            let mut out_packet_bytes = out_packet_bytes;
+            let header = out_packet_bytes.split_off(out_packet_bytes.len() - 5);
+            (out_packet_bytes, header)
+        };
+
+        let status = match header[0] {
+            0 => ResponseStatus::Response,
+            1 => ResponseStatus::Error,
+            _ => unreachable!("Invalid status: {}", header[0]),
+        };
+
+        Ok(ResponsePacket {
+            status,
+            out_payload,
+        })
     }
 }
 
 struct RequestPacket {
-    bytes: Vec<u8>,
+    packet_id: u32,
+    api_index: u16,
+    in_payload: Vec<u8>,
+}
+
+#[repr(u8)]
+enum ResponseStatus {
+    Response = 0,
+    Error = 1,
+}
+
+struct ResponsePacket {
+    status: ResponseStatus,
+    out_payload: Vec<u8>,
+}
+
+impl RequestPacket {
+    fn new(api_index: u16, in_payload: Vec<u8>) -> Self {
+        let packet_id = {
+            static PACKET_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+            PACKET_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        };
+        Self {
+            packet_id,
+            api_index,
+            in_payload,
+        }
+    }
+    fn into_bytes(self) -> Vec<u8> {
+        let mut bytes = self.in_payload;
+        bytes.extend_from_slice(&self.packet_id.to_le_bytes());
+        bytes.extend_from_slice(&self.api_index.to_le_bytes());
+        bytes
+    }
 }
 
 pub async fn connect_to_server(jwt: String) -> Result<ServerConnection> {
-    let (sender, mut receiver) = namui::network::ws::connect("ws://localhost:8080").await?;
+    todo!()
+    // sender.send(jwt.as_bytes());
 
-    sender.send(jwt.as_bytes());
+    // let data = receiver
+    //     .recv()
+    //     .await
+    //     .ok_or(anyhow!("Failed to get auth response"))?;
 
-    let data = receiver
-        .recv()
-        .await
-        .ok_or(anyhow!("Failed to get auth response"))?;
-
-    Ok(ServerConnection {
-        sender,
-        // receiver,
-    })
+    // Ok(ServerConnection {
+    //     sender,
+    //     // receiver,
+    // })
 }
 
 // // GetTeams
