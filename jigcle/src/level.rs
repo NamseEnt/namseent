@@ -19,7 +19,7 @@ pub struct Level {
     pub audio_filename: String,
 }
 impl Level {
-    pub fn image_path(&self) -> String {
-        format!("bundle:level/{}/{}", self.name, self.image_filename)
+    pub fn image_source(&self) -> ResourceLocation {
+        ResourceLocation::bundle(format!("level/{}/{}", self.name, self.image_filename))
     }
 }
