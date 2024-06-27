@@ -122,14 +122,15 @@ impl<Store: KvStore + Clone> KvStore for InMemoryCachedKsStore<Store> {
 
     async fn transact(
         &self,
-        transact_items: impl IntoIterator<Item = crate::TransactItem>,
+        transact_items: impl IntoIterator<Item = document::TransactItem>,
     ) -> Result<()> {
         let transact_items = transact_items.into_iter().collect::<Vec<_>>();
         let keys = transact_items
             .iter()
             .map(|item| match item {
-                crate::TransactItem::Put { key, .. } => key.clone(),
-                crate::TransactItem::Create { key, .. } => key.clone(),
+                document::TransactItem::Put { key, .. } => key.clone(),
+                document::TransactItem::Create { key, .. } => key.clone(),
+                document::TransactItem::Delete { key } => key.clone(),
             })
             .collect::<Vec<_>>();
 

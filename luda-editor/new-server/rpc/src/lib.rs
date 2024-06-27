@@ -12,8 +12,31 @@ rpc_macro::define_rpc! {
                 jwt: String,
             }
             struct Response {
+                session_token: String,
             }
             enum Error {
+                AlreadyLoggedIn,
+            }
+        },
+        session_token_auth: {
+            struct Request {
+                session_token: String,
+            }
+            struct Response {
+            }
+            enum Error {
+                AlreadyLoggedIn,
+                SessionTokenNotExist,
+            }
+        },
+        revoke_session_token: {
+            struct Request {
+                session_token: String,
+            }
+            struct Response {
+            }
+            enum Error {
+                Unauthorized,
             }
         },
     },

@@ -1,15 +1,21 @@
 mod dependencies;
 
 use crate::*;
-use dashmap::DashMap;
 pub use dependencies::*;
 use luda_rpc::rkyv;
-use std::sync::Arc;
-use tokio::{sync::oneshot, task::JoinHandle};
+use std::{collections::HashMap, sync::Arc};
+use tokio::{
+    sync::oneshot,
+    task::{AbortHandle, JoinHandle},
+};
 
 type SigRef<'a, T> = Sig<'a, T, &'a T>;
 
 type Serializer = rkyv::ser::serializers::AllocSerializer<1024>;
+
+pub static SERVER_CONNECTION_ATOM: Atom<ServerConnection> = Atom::uninitialized();
+
+// 연결이 끊기면 다시 보낸다. transaction id를 이용해서 동일한 요청을 여러번 처리하지 않도록 도와준다.
 
 pub fn server_rpc<
     'a,
@@ -59,13 +65,13 @@ where
             let response = match response_packet.status {
                 ResponseStatus::Response => {
                     let response = unsafe {
-                        rkyv::from_bytes_unchecked(&response_packet.out_payload).unwrap()
+                        rkyv::from_bytes_unchecked(&response_packet.response_payload).unwrap()
                     };
                     Ok(response)
                 }
                 ResponseStatus::Error => {
                     let error = unsafe {
-                        rkyv::from_bytes_unchecked(&response_packet.out_payload).unwrap()
+                        rkyv::from_bytes_unchecked(&response_packet.response_payload).unwrap()
                     };
                     Err(error)
                 }
@@ -82,41 +88,124 @@ where
     response
 }
 
-#[derive(Debug, Clone)]
-pub struct ServerConnection {
-    sender: namui::network::ws::WsSender,
-    // receiver: namui::network::ws::WsReceiver,
-    response_map: Arc<DashMap<u32, oneshot::Sender<Vec<u8>>>>,
+struct Request {
+    packet_id: u32,
+    bytes: Vec<u8>,
+    response_tx: oneshot::Sender<Vec<u8>>,
 }
+
+struct ConnectionKeeper {
+    abort_handle: AbortHandle,
+    request_tx: tokio::sync::mpsc::UnboundedSender<Request>,
+}
+
+impl ConnectionKeeper {
+    fn new(url: impl ToString) -> Self {
+        let url = url.to_string();
+        let (request_tx, mut request_rx) = tokio::sync::mpsc::unbounded_channel::<Request>();
+
+        let join_handle: JoinHandle<()> = tokio::spawn({
+            async move {
+                let mut requests = HashMap::<u32, Request>::new();
+                loop {
+                    let (sender, mut receiver) =
+                        match namui::network::ws::connect(url.clone()).await {
+                            Ok(ok) => ok,
+                            Err(error) => {
+                                eprintln!("Failed to connect to server: {}", error);
+                                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                                continue;
+                            }
+                        };
+
+                    // 밀린 요청 보내고
+                    for request in requests.values() {
+                        sender.send(&request.bytes);
+                    }
+
+                    tokio::select! {
+                        request = request_rx.recv() => {
+                            match request {
+                                Some(request) => {
+                                    sender.send(&request.bytes);
+                                    requests.insert(request.packet_id, request);
+                                },
+                                None => {
+                                    // Connection Keeper Dropped
+                                    return;
+                                },
+                            }
+                        },
+                        response = receiver.recv() => {
+                            match response {
+                                Some(response) => {
+                                    let packet_id = u32::from_le_bytes(response[0..4].try_into().unwrap());
+                                    let request = requests.remove(&packet_id).unwrap();
+                                    request.response_tx.send(response.into_vec()).unwrap();
+                                },
+                                None => {
+                                    // Disconnected
+                                    println!("Server Connection Closed");
+                                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                                    continue;
+                                },
+                            }
+                        },
+                    }
+                }
+            }
+        });
+        Self {
+            abort_handle: join_handle.abort_handle(),
+            request_tx,
+        }
+    }
+    async fn request(&self, packet_id: u32, request_packet_bytes: Vec<u8>) -> Vec<u8> {
+        let (response_tx, response_rx) = oneshot::channel();
+        self.request_tx
+            .send(Request {
+                packet_id,
+                bytes: request_packet_bytes,
+                response_tx,
+            })
+            .unwrap();
+        response_rx.await.unwrap()
+    }
+}
+impl Drop for ConnectionKeeper {
+    fn drop(&mut self) {
+        self.abort_handle.abort();
+    }
+}
+
+#[derive(Clone)]
+pub struct ServerConnection {
+    connection_keeper: Arc<ConnectionKeeper>,
+}
+
 impl ServerConnection {
-    pub async fn new(url: impl ToString) -> Result<Self> {
-        let (sender, mut receiver) = namui::network::ws::connect(url).await?;
-
-        tokio::spawn(async move {});
-
-        Ok(Self {
-            sender,
-            response_map: Default::default(),
-        })
+    pub fn new(url: impl ToString) -> Self {
+        Self {
+            connection_keeper: ConnectionKeeper::new(url).into(),
+        }
     }
     async fn request(
         &self,
         request_packet: RequestPacket,
     ) -> Result<ResponsePacket, oneshot::error::RecvError> {
         let packet_id = request_packet.packet_id;
+        let request_packet_bytes = request_packet.into_bytes();
 
-        let (tx, rx) = oneshot::channel();
-        self.response_map.insert(packet_id, tx);
+        let response_packet_bytes = self
+            .connection_keeper
+            .request(packet_id, request_packet_bytes)
+            .await;
+        assert!(response_packet_bytes.len() >= 5);
 
-        self.sender.send(request_packet.into_bytes());
-
-        let out_packet_bytes = rx.await?;
-        assert!(out_packet_bytes.len() >= 5);
-
-        let (out_payload, header) = {
-            let mut out_packet_bytes = out_packet_bytes;
-            let header = out_packet_bytes.split_off(out_packet_bytes.len() - 5);
-            (out_packet_bytes, header)
+        let (response_payload, header) = {
+            let mut response_packet_bytes = response_packet_bytes;
+            let header = response_packet_bytes.split_off(response_packet_bytes.len() - 5);
+            (response_packet_bytes, header)
         };
 
         let status = match header[0] {
@@ -127,7 +216,7 @@ impl ServerConnection {
 
         Ok(ResponsePacket {
             status,
-            out_payload,
+            response_payload,
         })
     }
 }
@@ -146,7 +235,7 @@ enum ResponseStatus {
 
 struct ResponsePacket {
     status: ResponseStatus,
-    out_payload: Vec<u8>,
+    response_payload: Vec<u8>,
 }
 
 impl RequestPacket {
@@ -184,178 +273,6 @@ pub async fn connect_to_server(jwt: String) -> Result<ServerConnection> {
     // })
 }
 
-// // GetTeams
-
-// pub struct GetTeamsReq {}
-// impl Request for GetTeamsReq {
-//     fn as_packet(&self) -> RequestPacket {
-//         RequestPacket {}
-//     }
-// }
-// pub struct GetTeamsRes {
-//     pub teams: Vec<Team>,
-// }
-// #[derive(Debug)]
-// pub enum GetTeamsErr {
-//     InternalServerError(String),
-//     NetworkError(String),
-// }
-
-// pub type GetTeamsOptionResult = Option<Result<GetTeamsRes, GetTeamsErr>>;
-
-// pub trait GetTeamsReqOptional: Into<Option<GetTeamsReq>> {}
-// impl GetTeamsReqOptional for GetTeamsReq {}
-// impl GetTeamsReqOptional for Option<GetTeamsReq> {}
-
-// pub fn get_teams<'a, Request: GetTeamsReqOptional, Deps: Dependencies + 'a>(
-//     ctx: &'a RenderCtx,
-//     request: impl FnOnce(Deps) -> Request,
-//     dependencies: Deps,
-// ) -> Sig<'a, GetTeamsOptionResult, &'a GetTeamsOptionResult> {
-//     server_get(ctx, |deps| request(deps).into(), dependencies)
-// }
-
-// pub fn get_teams_render<'a, Request: GetTeamsReqOptional, Deps: Dependencies + 'a>(
-//     ctx: &'a RenderCtx,
-//     request: impl FnOnce(Deps) -> Request,
-//     dependencies: Deps,
-//     on_loading: impl FnOnce(),
-//     on_err: impl FnOnce(&GetTeamsErr),
-//     on_res: impl FnOnce(&GetTeamsRes),
-// ) {
-//     match get_teams(ctx, request, dependencies).as_ref() {
-//         Some(result) => match result {
-//             Ok(res) => on_res(res),
-//             Err(err) => on_err(err),
-//         },
-//         None => on_loading(),
-//     }
-// }
-
-// // GetProjects
-
-// pub struct GetProjectsReq<'a> {
-//     pub team_id: &'a String,
-// }
-// impl Request for GetProjectsReq<'_> {
-//     fn as_packet(&self) -> RequestPacket {
-//         todo!()
-//     }
-// }
-// pub struct GetProjectsRes {
-//     pub projects: Vec<Project>,
-// }
-// #[derive(Debug)]
-// pub enum GetProjectsErr {
-//     InternalServerError(String),
-//     NetworkError(String),
-// }
-
-// pub type GetProjectsOptionResult = Option<Result<GetProjectsRes, GetProjectsErr>>;
-
-// pub trait GetProjectsReqOptional<'a> {
-//     fn into(self) -> Option<GetProjectsReq<'a>>;
-// }
-// impl<'a> GetProjectsReqOptional<'a> for GetProjectsReq<'a> {
-//     fn into(self) -> Option<GetProjectsReq<'a>> {
-//         Some(self)
-//     }
-// }
-// impl<'a> GetProjectsReqOptional<'a> for Option<GetProjectsReq<'a>> {
-//     fn into(self) -> Option<GetProjectsReq<'a>> {
-//         self
-//     }
-// }
-
-// pub fn get_projects<'a, Request: GetProjectsReqOptional<'a> + 'a, Deps: Dependencies + 'a>(
-//     ctx: &'a RenderCtx,
-//     request: impl FnOnce(Deps) -> Request,
-//     dependencies: Deps,
-// ) -> Sig<'a, GetProjectsOptionResult, &'a GetProjectsOptionResult> {
-//     server_get(ctx, |deps| request(deps).into(), dependencies)
-// }
-
-// pub fn get_projects_render<
-//     'a,
-//     Request: GetProjectsReqOptional<'a> + 'a,
-//     Deps: Dependencies + 'a,
-// >(
-//     ctx: &'a RenderCtx,
-//     request: impl FnOnce(Deps) -> Request,
-//     dependencies: Deps,
-//     on_loading: impl FnOnce(),
-//     on_err: impl FnOnce(&GetProjectsErr),
-//     on_res: impl FnOnce(&GetProjectsRes),
-// ) {
-//     match get_projects(ctx, request, dependencies).as_ref() {
-//         Some(result) => match result {
-//             Ok(res) => on_res(res),
-//             Err(err) => on_err(err),
-//         },
-//         None => on_loading(),
-//     }
-// }
-
-// // GetEpisodes
-
-// pub struct GetEpisodesReq<'a> {
-//     pub project_id: &'a String,
-// }
-// impl Request for GetEpisodesReq<'_> {
-//     fn as_packet(&self) -> RequestPacket {
-//         todo!()
-//     }
-// }
-// pub struct GetEpisodesRes {
-//     pub episodes: Vec<Episode>,
-// }
-// #[derive(Debug)]
-// pub enum GetEpisodesErr {
-//     InternalServerError(String),
-//     NetworkError(String),
-// }
-
-// pub type GetEpisodesOptionResult = Option<Result<GetEpisodesRes, GetEpisodesErr>>;
-
-// pub trait GetEpisodesReqOptional<'a> {
-//     fn into(self) -> Option<GetEpisodesReq<'a>>;
-// }
-// impl<'a> GetEpisodesReqOptional<'a> for GetEpisodesReq<'a> {
-//     fn into(self) -> Option<GetEpisodesReq<'a>> {
-//         Some(self)
-//     }
-// }
-// impl<'a> GetEpisodesReqOptional<'a> for Option<GetEpisodesReq<'a>> {
-//     fn into(self) -> Option<GetEpisodesReq<'a>> {
-//         self
-//     }
-// }
-
-// pub fn get_episodes<'a, Request: GetEpisodesReqOptional<'a> + 'a, Deps: Dependencies + 'a>(
-//     ctx: &'a RenderCtx,
-//     request: impl FnOnce(Deps) -> Request,
-//     dependencies: Deps,
-// ) -> Sig<'a, GetEpisodesOptionResult, &'a GetEpisodesOptionResult> {
-//     server_get(ctx, |deps| request(deps).into(), dependencies)
-// }
-
-// pub fn get_episodes_render<
-//     'a,
-//     Request: GetEpisodesReqOptional<'a> + 'a,
-//     Deps: Dependencies + 'a,
-// >(
-//     ctx: &'a RenderCtx,
-//     request: impl FnOnce(Deps) -> Request,
-//     dependencies: Deps,
-//     on_loading: impl FnOnce(),
-//     on_err: impl FnOnce(&GetEpisodesErr),
-//     on_res: impl FnOnce(&GetEpisodesRes),
-// ) {
-//     match get_episodes(ctx, request, dependencies).as_ref() {
-//         Some(result) => match result {
-//             Ok(res) => on_res(res),
-//             Err(err) => on_err(err),
-//         },
-//         None => on_loading(),
-//     }
-// }
+pub(crate) async fn login(jwt: String) -> Result<(), rpc::auth::google_auth::Error> {
+    todo!()
+}

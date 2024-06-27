@@ -1,4 +1,4 @@
-use quote::quote;
+use quote::{quote, ToTokens};
 use spanned::Spanned;
 use syn::*;
 
@@ -14,6 +14,7 @@ pub fn schema(
     let struct_get_define = struct_get_define(&parsed);
     let struct_put_define = struct_put_define(&parsed);
     let struct_create_define = struct_create_define(&parsed);
+    let struct_delete_define = struct_delete_define(&parsed);
 
     let attrs_removed_input = &parsed.attrs_removed_input;
 
@@ -42,6 +43,7 @@ pub fn schema(
         #struct_get_define
         #struct_put_define
         #struct_create_define
+        #struct_delete_define
     };
 
     output.into()
@@ -58,16 +60,7 @@ fn struct_get_define(
     let pk_fields_names = pk_fields_without_pk_attr
         .iter()
         .map(|field| field.ident.as_ref().unwrap());
-    let pk_fields_as_refs = pk_fields_without_pk_attr.iter().map(|field| {
-        let mut field = field.clone();
-        field.ty = Type::Reference(TypeReference {
-            and_token: Default::default(),
-            lifetime: Some(Lifetime::new("'a", field.span())),
-            mutability: None,
-            elem: Box::new(field.ty),
-        });
-        field
-    });
+    let pk_fields_as_refs = as_ref_fields(pk_fields_without_pk_attr);
 
     quote! {
         pub struct #get_struct_name<'a> {
@@ -99,33 +92,21 @@ fn struct_put_define(
     let pk_fields_names = pk_fields_without_pk_attr
         .iter()
         .map(|field| field.ident.as_ref().unwrap());
-    let fields_as_refs = fields_without_pk_attr
-        .iter()
-        .map(|field| {
-            let mut field = field.clone();
-            field.ty = Type::Reference(TypeReference {
-                and_token: Default::default(),
-                lifetime: Some(Lifetime::new("'a", field.span())),
-                mutability: None,
-                elem: Box::new(field.ty),
-            });
-            field
-        })
-        .collect::<Vec<_>>();
-    let fields_names = fields_as_refs
-        .iter()
-        .map(|field| field.ident.as_ref().unwrap());
+
+    let ref_fields_with_rkyv_with_attr = as_ref_fields_with_rkyv_with_attr(fields_without_pk_attr);
+    let ref_fields = as_ref_fields(fields_without_pk_attr);
+
+    let fields_names = ref_fields.iter().map(|field| field.ident.as_ref().unwrap());
 
     quote! {
         pub struct #put_struct_name<'a> {
-            #(#fields_as_refs,)*
+            #(#ref_fields,)*
             pub ttl: Option<std::time::Duration>,
         }
         #[derive(rkyv::Archive, rkyv::Serialize)]
         struct #put_struct_name_internal<'a> {
             #(
-                #[with(rkyv::with::Inline)]
-                #fields_as_refs,
+                #ref_fields_with_rkyv_with_attr,
             )*
         }
         impl TryInto<document::TransactItem> for #put_struct_name<'_> {
@@ -134,7 +115,7 @@ fn struct_put_define(
                 let key = {
                     let mut key = String::new();
                     #(
-                        key += &format!("{}:{}", stringify!(#pk_fields_names),self.#pk_fields_names);
+                        key += &format!("{}:{}", stringify!(#pk_fields_names), self.#pk_fields_names);
                     )*
                     key
                 };
@@ -171,19 +152,10 @@ fn struct_create_define(
     let pk_fields_names = pk_fields_without_pk_attr
         .iter()
         .map(|field| field.ident.as_ref().unwrap());
-    let fields_as_refs = fields_without_pk_attr
-        .iter()
-        .map(|field| {
-            let mut field = field.clone();
-            field.ty = Type::Reference(TypeReference {
-                and_token: Default::default(),
-                lifetime: Some(Lifetime::new("'a", field.span())),
-                mutability: None,
-                elem: Box::new(field.ty),
-            });
-            field
-        })
-        .collect::<Vec<_>>();
+
+    let ref_fields_with_rkyv_with_attr = as_ref_fields_with_rkyv_with_attr(fields_without_pk_attr);
+
+    let fields_as_refs = as_ref_fields(fields_without_pk_attr);
     let fields_names = fields_as_refs
         .iter()
         .map(|field| field.ident.as_ref().unwrap());
@@ -196,8 +168,7 @@ fn struct_create_define(
         #[derive(rkyv::Archive, rkyv::Serialize)]
         struct #create_struct_name_internal<'a> {
             #(
-                #[with(rkyv::with::Inline)]
-                #fields_as_refs,
+                #ref_fields_with_rkyv_with_attr,
             )*
         }
         impl TryInto<document::TransactItem> for #create_struct_name<'_> {
@@ -228,6 +199,78 @@ fn struct_create_define(
             }
         }
     }
+}
+
+fn struct_delete_define(
+    Parsed {
+        name,
+        pk_fields_without_pk_attr,
+        ..
+    }: &Parsed,
+) -> impl quote::ToTokens {
+    let delete_struct_name = Ident::new(&format!("{}Delete", name), name.span());
+    let pk_fields_names = pk_fields_without_pk_attr
+        .iter()
+        .map(|field| field.ident.as_ref().unwrap());
+    let pk_ref_fields = as_ref_fields(pk_fields_without_pk_attr);
+
+    quote! {
+        pub struct #delete_struct_name<'a> {
+            #(#pk_ref_fields),*
+        }
+        impl TryInto<document::TransactItem> for #delete_struct_name<'_> {
+            type Error = document::SerErr;
+            fn try_into(self) -> Result<document::TransactItem, document::SerErr> {
+                let key = {
+                    let mut key = String::new();
+                    #(
+                        key += &format!("{}:{}", stringify!(#pk_fields_names),self.#pk_fields_names);
+                    )*
+                    key
+                };
+
+                Ok(document::TransactItem::Delete {
+                    key,
+                })
+            }
+        }
+    }
+}
+
+fn as_ref_fields_with_rkyv_with_attr<'a>(
+    fields: impl 'a + IntoIterator<Item = &'a Field>,
+) -> Vec<Field> {
+    fields
+        .into_iter()
+        .map(|field| {
+            let mut field = field.clone();
+            if field.ty.to_token_stream().to_string() == "String" {
+                field.ty = parse_quote! {&'a str};
+                field
+                    .attrs
+                    .push(parse_quote! {#[with(rkyv::with::RefAsBox)]});
+            } else {
+                let ty = field.ty;
+                field.ty = parse_quote! {&'a #ty};
+                field.attrs.push(parse_quote! {#[with(rkyv::with::Inline)]});
+            }
+
+            field
+        })
+        .collect::<Vec<_>>()
+}
+
+fn as_ref_fields<'a>(fields: impl 'a + IntoIterator<Item = &'a Field>) -> Vec<Field> {
+    as_ref_fields_with_rkyv_with_attr(fields)
+        .into_iter()
+        .map(|field| {
+            let mut field = field.clone();
+            field
+                .attrs
+                .retain(|attr| !attr.path.segments[0].ident.to_string().starts_with("with"));
+            field
+        })
+        .collect::<Vec<_>>()
 }
 
 struct Parsed<'a> {

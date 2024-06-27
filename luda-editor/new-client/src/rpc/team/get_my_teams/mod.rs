@@ -7,7 +7,7 @@ pub fn get_my_teams<'a, Deps: Dependencies + 'a>(
     request: impl FnOnce(Deps) -> Option<RefRequest>,
     dependencies: Deps,
 ) -> Sig<'a, OptionResult, &'a OptionResult> {
-    server_rpc(ctx, request, dependencies, 1u16)
+    server_rpc(ctx, request, dependencies, 3u16)
 }
 pub fn get_my_teams_render<'a, Deps: Dependencies + 'a>(
     ctx: &'a RenderCtx,

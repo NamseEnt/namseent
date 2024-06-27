@@ -13,3 +13,10 @@ pub struct GoogleIdentityDoc {
     pub sub: String,
     pub user_id: String,
 }
+
+#[schema]
+pub struct SessionTokenDoc {
+    #[pk]
+    pub session_token: String,
+    pub user_id: String,
+}

@@ -1,5 +1,6 @@
 mod verify_jwt;
 
+use super::generate_session_token;
 use crate::*;
 use database::schema::*;
 use luda_rpc::auth::google_auth::*;
@@ -11,6 +12,10 @@ pub async fn google_auth(
     db: Database,
     session: Session,
 ) -> Result<Response, Error> {
+    if session.logged_in() {
+        return Err(Error::AlreadyLoggedIn {});
+    }
+
     let jwks_client = {
         static GOOGLE_JWKS_CLIENT: OnceLock<GoogleJwksClient> = OnceLock::new();
         GOOGLE_JWKS_CLIENT.get_or_init(|| {
@@ -31,8 +36,7 @@ pub async fn google_auth(
     let google_identity = db.get(GoogleIdentityDocGet { sub: &sub }).await?;
 
     if let Some(google_identity) = google_identity {
-        session.login(&google_identity.user_id);
-        return Ok(Response {});
+        return done(db, session, &google_identity.user_id).await;
     }
 
     let user_id = uuid::Uuid::new_v4().to_string();
@@ -51,7 +55,11 @@ pub async fn google_auth(
     ))
     .await?;
 
-    session.login(user_id);
+    done(db, session, &user_id).await
+}
 
-    Ok(Response {})
+async fn done(db: Database, session: Session, user_id: &str) -> Result<Response, Error> {
+    session.login(user_id);
+    let session_token = generate_session_token(&db, user_id).await?;
+    Ok(Response { session_token })
 }

@@ -7,18 +7,20 @@ mod rpc;
 mod simple_button;
 mod toast;
 
-use data_fetch::*;
 use namui::*;
 use namui_prebuilt::{table::*, *};
 use network::*;
 use simple_button::*;
 
-static SERVER_CONNECTION_ATOM: Atom<ServerConnection> = Atom::uninitialized();
-
 pub fn main() {
     namui::start(|ctx| {
-        if !SERVER_CONNECTION_ATOM.is_initialized() {
-            ctx.add(Login);
+        let (server_connection, set_server_connection) = ctx
+            .init_atom(&network::SERVER_CONNECTION_ATOM, || {
+                ServerConnection::new("ws://localhost:8080")
+            });
+        let (logged_in, set_logged_in) = ctx.state(|| false);
+        if !*logged_in {
+            ctx.add(Login { set_logged_in });
             return;
         }
 
@@ -35,23 +37,23 @@ pub fn main() {
     });
 }
 
-struct Login;
-impl Component for Login {
+struct Login<'a> {
+    set_logged_in: SetState<'a, bool>,
+}
+impl Component for Login<'_> {
     fn render(self, ctx: &RenderCtx) {
         let (error, set_error) = ctx.state(|| None::<String>);
 
         ctx.effect("Insert gsi html api", || {
             let set_error = set_error.cloned();
+            let set_logged_in = self.set_logged_in.cloned();
             let handle = tokio::spawn(async move {
                 let jwt = take_google_gsi_jwt().await;
-                let connection = match connect_to_server(jwt).await {
-                    Ok(connection) => connection,
-                    Err(err) => {
-                        set_error.set(Some(format!("Failed to connect to server: {}", err)));
-                        return;
-                    }
+                if let Err(err) = network::login(jwt).await {
+                    set_error.set(Some(format!("Failed to connect to server: {}", err)));
+                    return;
                 };
-                SERVER_CONNECTION_ATOM.set(connection);
+                set_logged_in.set(true);
             });
 
             move || handle.abort()

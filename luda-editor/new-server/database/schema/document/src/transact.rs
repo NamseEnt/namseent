@@ -18,6 +18,9 @@ pub enum TransactItem {
         value: Vec<u8>,
         ttl: Option<Duration>,
     },
+    Delete {
+        key: String,
+    },
 }
 
 pub trait Transact {

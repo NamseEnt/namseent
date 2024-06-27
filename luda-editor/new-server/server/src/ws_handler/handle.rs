@@ -28,6 +28,37 @@ pub async fn handle(
         }
         1u16 => {
             let Ok(request) = rkyv::validation::validators::check_archived_root::<
+                luda_rpc::auth::session_token_auth::Request,
+            >(in_payload) else {
+                return Err(anyhow::anyhow!("Failed to validate packet"));
+            };
+            match api::auth::session_token_auth::session_token_auth(request, db, session).await {
+                Ok(response) => Ok(HandleResult::Response(
+                    rkyv::to_bytes::<_, 64>(&response)?.to_vec(),
+                )),
+                Err(error) => Ok(HandleResult::Error(
+                    rkyv::to_bytes::<_, 64>(&error)?.to_vec(),
+                )),
+            }
+        }
+        2u16 => {
+            let Ok(request) = rkyv::validation::validators::check_archived_root::<
+                luda_rpc::auth::revoke_session_token::Request,
+            >(in_payload) else {
+                return Err(anyhow::anyhow!("Failed to validate packet"));
+            };
+            match api::auth::revoke_session_token::revoke_session_token(request, db, session).await
+            {
+                Ok(response) => Ok(HandleResult::Response(
+                    rkyv::to_bytes::<_, 64>(&response)?.to_vec(),
+                )),
+                Err(error) => Ok(HandleResult::Error(
+                    rkyv::to_bytes::<_, 64>(&error)?.to_vec(),
+                )),
+            }
+        }
+        3u16 => {
+            let Ok(request) = rkyv::validation::validators::check_archived_root::<
                 luda_rpc::team::get_my_teams::Request,
             >(in_payload) else {
                 return Err(anyhow::anyhow!("Failed to validate packet"));
@@ -41,7 +72,7 @@ pub async fn handle(
                 )),
             }
         }
-        2u16 => {
+        4u16 => {
             let Ok(request) = rkyv::validation::validators::check_archived_root::<
                 luda_rpc::project::get_projects::Request,
             >(in_payload) else {
@@ -56,7 +87,7 @@ pub async fn handle(
                 )),
             }
         }
-        3u16 => {
+        5u16 => {
             let Ok(request) = rkyv::validation::validators::check_archived_root::<
                 luda_rpc::episode::get_episodes::Request,
             >(in_payload) else {

@@ -19,4 +19,8 @@ impl Session {
     pub(crate) fn user_id(&self) -> Option<Arc<String>> {
         (*self.user_id.load()).clone()
     }
+
+    pub(crate) fn logged_in(&self) -> bool {
+        self.user_id.load().is_some()
+    }
 }

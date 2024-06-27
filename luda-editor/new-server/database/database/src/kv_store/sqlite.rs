@@ -178,19 +178,20 @@ impl KvStore for SqliteKvStore {
 
     async fn transact(
         &self,
-        transact_items: impl IntoIterator<Item = crate::TransactItem>,
+        transact_items: impl IntoIterator<Item = document::TransactItem>,
     ) -> Result<()> {
         let mut write_conn: MutexGuard<Connection> = self.write_conn();
         let trx = write_conn.transaction()?;
 
         for item in transact_items.into_iter() {
             match item {
-                crate::TransactItem::Put { key, value, ttl } => {
+                document::TransactItem::Put { key, value, ttl } => {
                     put(&trx, key, &value, ttl)?;
                 }
-                crate::TransactItem::Create { key, value, ttl } => {
+                document::TransactItem::Create { key, value, ttl } => {
                     create(&trx, key, || Ok(value), ttl)?;
                 }
+                document::TransactItem::Delete { key } => delete(&trx, key)?,
             }
         }
         trx.commit()?;
