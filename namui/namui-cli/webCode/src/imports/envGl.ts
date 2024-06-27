@@ -393,8 +393,10 @@ export function envGl({
             webgl.shaderSource(shader, source);
         },
         glScissor: () => {
-            throw new Error("not implemented");
-            // return webgl!.scissor();
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            return webgl.scissor;
         },
         glReadPixels: () => {
             throw new Error("not implemented");
