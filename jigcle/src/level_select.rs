@@ -112,7 +112,11 @@ impl Component for LevelSelect {
                                         fixed(
                                             thumbnail_wh.width,
                                             padding(SPACING, |wh, ctx| {
-                                                ctx.add(Thumbnail { level, wh });
+                                                let key = format!(
+                                                    "level_select-thumbnail-{}",
+                                                    level.name
+                                                );
+                                                ctx.add_with_key(key, Thumbnail { level, wh });
                                             }),
                                         )
                                     })),
