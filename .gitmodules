@@ -7,3 +7,6 @@
 [submodule "namui/third-party-forks/tokio"]
 	path = namui/third-party-forks/tokio
 	url = https://github.com/namseent/tokio
+[submodule "namui/third-party-forks/rusqlite"]
+	path = namui/third-party-forks/rusqlite
+	url = https://github.com/namseent/rusqlite

@@ -1,21 +1,19 @@
 import { WASI } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
 import wasmUrl from "namui-runtime-wasm.wasm?url";
-import { init } from "./__generated__/bundle";
-import { getFds } from "./fds";
-import { WorkerMessagePayload } from "./interWorkerProtocol";
+import {
+    WorkerMessagePayload,
+    sendMessageToMainThread,
+} from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
+import { overrideWasiFs } from "./fileSystem";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
 const env = ["RUST_BACKTRACE=full"];
 
-const memory = new WebAssembly.Memory({
-    initial: 128,
-    maximum: 16384,
-    shared: true,
-});
+const threadId = 0;
 
 const nextTid = new SharedArrayBuffer(4);
 new Uint32Array(nextTid)[0] = 1;
@@ -27,13 +25,11 @@ self.onmessage = async (message) => {
         throw new Error(`Unexpected message type: ${payload.type}`);
     }
 
-    const bundleSharedTree = await init();
-
-    const fds = getFds(bundleSharedTree);
-    const wasi = new WASI([], env, fds);
+    const wasi = new WASI([], env, []);
     patchWasi(wasi);
+    overrideWasiFs({ wasi, threadId });
 
-    const { eventBuffer, initialWindowWh } = payload;
+    const { eventBuffer, initialWindowWh, wasmMemory } = payload;
 
     const canvas = new OffscreenCanvas(
         (initialWindowWh >> 16) & 0xffff,
@@ -45,12 +41,11 @@ self.onmessage = async (message) => {
     let exports: Exports = "not initialized" as unknown as Exports;
 
     const importObject = createImportObject({
-        memory,
+        memory: wasmMemory,
         module,
         nextTid,
         wasiImport: wasi.wasiImport,
         canvas,
-        bundleSharedTree,
         eventBuffer,
         initialWindowWh,
         exports: () => exports,
@@ -60,4 +55,9 @@ self.onmessage = async (message) => {
     exports = instance.exports as Exports;
 
     wasi.start(instance as any);
+
+    sendMessageToMainThread({
+        type: "fs-thread-disconnect",
+        threadId,
+    });
 };

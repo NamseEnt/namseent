@@ -1,6 +1,5 @@
 import { envGl } from "./envGl";
 import { EventSystemOnWorker } from "../eventSystem";
-import { BundleSharedTree } from "../fds";
 import { sendMessageToMainThread } from "../interWorkerProtocol";
 import { textInputImports } from "./textInput";
 import { Exports } from "../exports";
@@ -13,7 +12,6 @@ export function createImportObject({
     nextTid,
     wasiImport,
     canvas,
-    bundleSharedTree,
     eventBuffer,
     initialWindowWh,
     exports,
@@ -23,7 +21,6 @@ export function createImportObject({
     nextTid: SharedArrayBuffer;
     wasiImport: Record<string, any>;
     canvas?: OffscreenCanvas;
-    bundleSharedTree: BundleSharedTree;
     eventBuffer: SharedArrayBuffer;
     initialWindowWh: number;
     exports: () => Exports;
@@ -131,10 +128,9 @@ export function createImportObject({
                     type: "thread-spawn",
                     tid,
                     nextTid,
-                    importMemory: memory,
+                    wasmMemory: memory,
                     module,
                     startArgPtr,
-                    bundleSharedTree,
                     eventBuffer,
                     initialWindowWh,
                 });

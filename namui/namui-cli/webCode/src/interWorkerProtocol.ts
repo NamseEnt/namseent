@@ -1,14 +1,11 @@
-import { BundleSharedTree } from "./fds";
-
 export type WorkerMessagePayload =
     | {
           type: "thread-spawn";
           tid: number;
           nextTid: SharedArrayBuffer;
-          importMemory: WebAssembly.Memory;
+          wasmMemory: WebAssembly.Memory;
           module: WebAssembly.Module;
           startArgPtr: number;
-          bundleSharedTree: BundleSharedTree;
           eventBuffer: SharedArrayBuffer;
           initialWindowWh: number;
       }
@@ -16,6 +13,7 @@ export type WorkerMessagePayload =
           type: "start-main-thread";
           eventBuffer: SharedArrayBuffer;
           initialWindowWh: number;
+          wasmMemory: WebAssembly.Memory;
       }
     | {
           type: "bitmap";
@@ -47,7 +45,7 @@ export type WorkerMessagePayload =
     // WebSocket
     | {
           type: "init-web-socket-thread";
-          wasmMemory: SharedArrayBuffer;
+          wasmMemory: WebAssembly.Memory;
           writtenBuffer: SharedArrayBuffer;
           eventBufferPtr: number;
           eventBufferLen: number;
@@ -79,6 +77,20 @@ export type WorkerMessagePayload =
     | {
           type: "insert-js-drop";
           id: number;
+      }
+    // File System
+    | {
+          type: "fs-thread-connect";
+          threadId: number;
+          protocolBuffer: SharedArrayBuffer;
+      }
+    | {
+          type: "fs-thread-disconnect";
+          threadId: number;
+      }
+    | {
+          type: "fs-init";
+          wasmMemory: WebAssembly.Memory;
       };
 
 export function sendMessageToMainThread(

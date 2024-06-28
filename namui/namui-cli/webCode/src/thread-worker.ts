@@ -1,9 +1,12 @@
 import { WASI } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
-import { getFds } from "./fds";
-import { WorkerMessagePayload } from "./interWorkerProtocol";
+import {
+    WorkerMessagePayload,
+    sendMessageToMainThread,
+} from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
+import { overrideWasiFs } from "./fileSystem";
 
 self.onmessage = async (message) => {
     const payload: WorkerMessagePayload = message.data;
@@ -14,27 +17,25 @@ self.onmessage = async (message) => {
     const {
         tid,
         nextTid,
-        importMemory,
+        wasmMemory,
         module,
         startArgPtr,
-        bundleSharedTree,
         eventBuffer,
         initialWindowWh,
     } = payload;
 
     const env = ["RUST_BACKTRACE=full"];
-    const fds = getFds(bundleSharedTree);
-    const wasi = new WASI([], env, fds);
+    const wasi = new WASI([], env, []);
     patchWasi(wasi);
+    overrideWasiFs({ wasi, threadId: tid });
 
     let exports: Exports = "not initialized" as unknown as Exports;
 
     const importObject = createImportObject({
-        memory: importMemory,
+        memory: wasmMemory,
         module,
         nextTid,
         wasiImport: wasi.wasiImport,
-        bundleSharedTree,
         eventBuffer,
         initialWindowWh,
         exports: () => exports,
@@ -47,4 +48,9 @@ self.onmessage = async (message) => {
     console.debug("thread start", tid);
     (instance.exports.wasi_thread_start as any)(tid, startArgPtr);
     console.debug("thread end", tid);
+
+    sendMessageToMainThread({
+        type: "fs-thread-disconnect",
+        threadId: tid,
+    });
 };

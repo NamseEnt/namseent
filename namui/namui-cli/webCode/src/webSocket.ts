@@ -38,7 +38,7 @@ export function webSocketImports({ memory }: { memory: WebAssembly.Memory }) {
 
             sendMessageToMainThread({
                 type: "init-web-socket-thread",
-                wasmMemory: memory.buffer,
+                wasmMemory: memory,
                 writtenBuffer,
                 eventBufferPtr,
                 eventBufferLen,
@@ -105,7 +105,7 @@ export function webSocketHandleOnMainThread({
         }
     }
     const ringBuffer = new RingBufferWriter(
-        wasmMemory,
+        wasmMemory.buffer,
         eventBufferPtr,
         eventBufferLen,
         writtenBuffer,
