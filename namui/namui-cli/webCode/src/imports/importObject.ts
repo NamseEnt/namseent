@@ -15,6 +15,7 @@ export function createImportObject({
     eventBuffer,
     initialWindowWh,
     exports,
+    bundleSqlite,
 }: {
     memory: WebAssembly.Memory;
     module: WebAssembly.Module;
@@ -24,6 +25,7 @@ export function createImportObject({
     eventBuffer: SharedArrayBuffer;
     initialWindowWh: number;
     exports: () => Exports;
+    bundleSqlite: () => ArrayBuffer;
 }) {
     const glFunctions = envGl({
         exports,
@@ -133,6 +135,7 @@ export function createImportObject({
                     startArgPtr,
                     eventBuffer,
                     initialWindowWh,
+                    bundleSqlite: bundleSqlite(),
                 });
 
                 return tid;

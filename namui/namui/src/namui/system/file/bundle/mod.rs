@@ -3,26 +3,20 @@ use crate::file::types::PathLike;
 use crate::system::InitResult;
 use anyhow::anyhow;
 use rusqlite::Connection;
+use rusqlite::OpenFlags;
 use rusqlite::OptionalExtension;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use tokio::io::{self, Error};
 
 pub async fn init() -> InitResult {
-    sqlite(|conn| {
-        let paths = conn
-            .query_row("SELECT path FROM bundle", [], |row| {
-                row.get::<usize, String>(0)
-            })
-            .unwrap();
-        println!("paths: {:#?}", paths);
-    });
     Ok(())
 }
 
 fn sqlite<T>(func: impl FnOnce(&Connection) -> T) -> T {
     thread_local! {
-        static SQLITE: Connection = Connection::open(bundle_sqlite_path().unwrap()).unwrap();
+        static SQLITE: Connection = Connection::open_with_flags(
+            bundle_sqlite_path().unwrap(), OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
     }
 
     SQLITE.with(|sqlite| func(sqlite))
@@ -30,12 +24,12 @@ fn sqlite<T>(func: impl FnOnce(&Connection) -> T) -> T {
 
 fn bundle_sqlite_path() -> io::Result<PathBuf> {
     if cfg!(target_os = "wasi") {
-        Ok(PathBuf::from("./bundle.sqlite"))
+        Ok(PathBuf::from("file:./bundle.sqlite?immutable=1"))
     } else {
         Ok(std::env::current_exe()?
             .parent()
             .ok_or_else(|| io::Error::new(ErrorKind::Other, anyhow!("No parent")))?
-            .join("bundle.sqlite"))
+            .join("bundle.sqlite?immutable=1"))
     }
 }
 

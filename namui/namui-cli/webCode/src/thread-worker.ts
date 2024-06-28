@@ -1,4 +1,10 @@
-import { WASI } from "@bjorn3/browser_wasi_shim";
+import {
+    ConsoleStdout,
+    File,
+    OpenFile,
+    PreopenDirectory,
+    WASI,
+} from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
 import {
     WorkerMessagePayload,
@@ -6,7 +12,6 @@ import {
 } from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
-import { overrideWasiFs } from "./fileSystem";
 
 self.onmessage = async (message) => {
     const payload: WorkerMessagePayload = message.data;
@@ -22,12 +27,30 @@ self.onmessage = async (message) => {
         startArgPtr,
         eventBuffer,
         initialWindowWh,
+        bundleSqlite,
     } = payload;
 
     const env = ["RUST_BACKTRACE=full"];
-    const wasi = new WASI([], env, []);
+
+    const wasi = new WASI([], env, [
+        new OpenFile(new File([])), // stdin
+        ConsoleStdout.lineBuffered((msg) =>
+            console.log(`[WASI stdout(tid: ${tid})] ${msg}`),
+        ),
+        ConsoleStdout.lineBuffered((msg) =>
+            console.warn(`[WASI stderr(tid: ${tid})] ${msg}`),
+        ),
+        new PreopenDirectory(
+            ".",
+            new Map([
+                [
+                    "bundle.sqlite",
+                    new File(new Uint8Array(bundleSqlite), { readonly: true }),
+                ],
+            ]),
+        ),
+    ]);
     patchWasi(wasi);
-    overrideWasiFs({ wasi, threadId: tid });
 
     let exports: Exports = "not initialized" as unknown as Exports;
 
@@ -39,6 +62,7 @@ self.onmessage = async (message) => {
         eventBuffer,
         initialWindowWh,
         exports: () => exports,
+        bundleSqlite: () => bundleSqlite,
     });
 
     const instance = await WebAssembly.instantiate(module, importObject);

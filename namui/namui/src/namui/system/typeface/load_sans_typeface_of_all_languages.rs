@@ -37,14 +37,12 @@ pub async fn load_all_typefaces() -> Result<()> {
         default_typefaces
             .into_iter()
             .map(|(typeface_name, url)| async move {
-                println!("loading typeface: {typeface_name}");
                 let bytes = get_file_from_bundle_with_cached(&url)
                     .await
                     .map_err(|error| {
                         eprintln!("error: {:?}", error);
                         anyhow!("Could not fetch {}: {}", url, error)
                     })?;
-                println!("loaded typeface: {typeface_name}");
 
                 crate::system::typeface::register_typeface(typeface_name.to_string(), bytes)
                     .await?;

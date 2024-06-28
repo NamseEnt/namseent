@@ -8,6 +8,7 @@ export type WorkerMessagePayload =
           startArgPtr: number;
           eventBuffer: SharedArrayBuffer;
           initialWindowWh: number;
+          bundleSqlite: ArrayBuffer;
       }
     | {
           type: "start-main-thread";

@@ -107,7 +107,7 @@ impl NamuiBundleManifest {
     }
 
     pub(crate) fn bundle_to_sqlite(&self, sqlite_path: impl AsRef<std::path::Path>) -> Result<()> {
-        let ops = self.get_collect_operations(Path::new("bundle"))?;
+        let ops = self.get_collect_operations(Path::new(""))?;
         let now = std::time::Instant::now();
         bundle_to_sqlite(sqlite_path, ops)?;
         println!("INFO: bundle_to_sqlite took: {:?}", now.elapsed());

@@ -3,13 +3,6 @@ import { fsFuncs } from ".";
 import { WorkerMessagePayload } from "../interWorkerProtocol";
 import bundleSqliteUrl from "bundle.sqlite?url";
 import { ReadonlyArrayBufferHandle } from "./ReadonlyArrayBufferHandle";
-import {
-    ConsoleStdout,
-    Fd,
-    File,
-    OpenFile,
-    PreopenDirectory,
-} from "./browser_wasi_shim";
 
 const waitDisconnectMap = new Map<number, () => void>();
 let wasmMemoryResolve: (value: WebAssembly.Memory) => void;
