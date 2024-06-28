@@ -17,7 +17,7 @@ pub fn collect_all(
     let mut ops: Vec<CollectOperation> = vec![];
     collect_runtime(&mut ops, additional_runtime_path, target)?;
     collect_rust_build(&mut ops, &project_path, target, release)?;
-    collect_bundle(&mut ops, &bundle_manifest)?;
+    collect_bundle(&bundle_manifest, &dest_path)?;
     collect_deep_link_manifest(&mut ops, &project_path, target)?;
 
     collect_resources(&project_path, &dest_path, ops)?;
@@ -104,11 +104,11 @@ fn collect_rust_build(
 }
 
 fn collect_bundle(
-    ops: &mut Vec<CollectOperation>,
     bundle_manifest: &NamuiBundleManifest,
+    dest_path: impl AsRef<std::path::Path>,
 ) -> Result<()> {
-    let mut bundle_ops = bundle_manifest.get_collect_operations(PathBuf::from("bundle"))?;
-    ops.append(&mut bundle_ops);
+    bundle_manifest.bundle_to_sqlite(dest_path.as_ref().join("bundle.sqlite"))?;
+
     Ok(())
 }
 
@@ -129,17 +129,17 @@ fn collect_deep_link_manifest(
 
 pub struct CollectOperation {
     pub src_path: PathBuf,
-    pub dest_path: PathBuf,
+    pub dest_dir_path: PathBuf,
 }
 
 impl CollectOperation {
     pub fn new(
         src_path: impl AsRef<std::path::Path>,
-        dest_path: impl AsRef<std::path::Path>,
+        dest_dir_path: impl AsRef<std::path::Path>,
     ) -> Self {
         Self {
             src_path: src_path.as_ref().to_path_buf(),
-            dest_path: dest_path.as_ref().to_path_buf(),
+            dest_dir_path: dest_dir_path.as_ref().to_path_buf(),
         }
     }
 
@@ -149,25 +149,38 @@ impl CollectOperation {
         release_path: impl AsRef<std::path::Path>,
     ) -> Result<()> {
         let src_path = project_root_path.as_ref().join(&self.src_path);
-        let dest_path = release_path.as_ref().join(&self.dest_path);
-        copy_resource(src_path, dest_path)
+        let dest_dir_path = release_path.as_ref().join(&self.dest_dir_path);
+        copy_resource(src_path, dest_dir_path)
+    }
+
+    pub fn dest_path(&self) -> PathBuf {
+        self.dest_dir_path.join(self.src_path.file_name().unwrap())
     }
 }
 
-fn copy_resource(from: impl AsRef<std::path::Path>, to: impl AsRef<std::path::Path>) -> Result<()> {
+fn copy_resource(
+    from: impl AsRef<std::path::Path>,
+    dest_dir_path: impl AsRef<std::path::Path>,
+) -> Result<()> {
     let from = from.as_ref();
-    let to = to.as_ref();
-    debug_println!("resource_collect_service: copy {:?} -> {:?}", &from, &to);
-    ensure_dir(to)?;
-    match from.is_dir() {
-        true => copy_dir(from, to),
-        false => copy_file(from, to),
-    }
+    let dest_dir_path = dest_dir_path.as_ref();
+    debug_println!(
+        "resource_collect_service: copy {:?} -> {:?}/{:?}",
+        &from,
+        &dest_dir_path,
+        &from.file_name().unwrap()
+    );
+    ensure_dir(dest_dir_path)?;
+    assert!(dest_dir_path.is_file());
+    copy_file(from, dest_dir_path)
 }
 
-fn copy_file(from: impl AsRef<std::path::Path>, to: impl AsRef<std::path::Path>) -> Result<()> {
+fn copy_file(
+    from: impl AsRef<std::path::Path>,
+    dest_dir_path: impl AsRef<std::path::Path>,
+) -> Result<()> {
     let from = from.as_ref();
-    let to = to.as_ref();
+    let dest_dir_path = dest_dir_path.as_ref();
 
     const COPY_OPTION: fs_extra::file::CopyOptions = fs_extra::file::CopyOptions {
         overwrite: true,
@@ -175,35 +188,12 @@ fn copy_file(from: impl AsRef<std::path::Path>, to: impl AsRef<std::path::Path>)
         buffer_size: 64000,
     };
     let src_file_name = &from.file_name().unwrap();
-    let dest_path_with_file_name = &to.join(src_file_name);
+    let dest_path_with_file_name = &dest_dir_path.join(src_file_name);
     fs_extra::file::copy(from, dest_path_with_file_name, &COPY_OPTION).map_err(|error| {
         anyhow!(
             "resource_collect_service: copy file {:?} -> {:?}\n\t{}",
             from,
             dest_path_with_file_name,
-            error
-        )
-    })?;
-    Ok(())
-}
-
-fn copy_dir(from: impl AsRef<std::path::Path>, to: impl AsRef<std::path::Path>) -> Result<()> {
-    let from = from.as_ref();
-    let to = to.as_ref();
-
-    const COPY_OPTION: fs_extra::dir::CopyOptions = fs_extra::dir::CopyOptions {
-        overwrite: true,
-        skip_exist: false,
-        copy_inside: true,
-        content_only: true,
-        buffer_size: 64000,
-        depth: 0,
-    };
-    fs_extra::dir::copy(from, to, &COPY_OPTION).map_err(|error| {
-        anyhow!(
-            "resource_collect_service: copy dir {:?} -> {:?}\n\t{}",
-            &from,
-            &to,
             error
         )
     })?;

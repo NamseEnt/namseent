@@ -1,6 +1,5 @@
 import { envGl } from "./envGl";
 import { EventSystemOnWorker } from "../eventSystem";
-import { BundleSharedTree } from "../fds";
 import { sendMessageToMainThread } from "../interWorkerProtocol";
 import { textInputImports } from "./textInput";
 import { Exports } from "../exports";
@@ -13,20 +12,20 @@ export function createImportObject({
     nextTid,
     wasiImport,
     canvas,
-    bundleSharedTree,
     eventBuffer,
     initialWindowWh,
     exports,
+    bundleSqlite,
 }: {
     memory: WebAssembly.Memory;
     module: WebAssembly.Module;
     nextTid: SharedArrayBuffer;
     wasiImport: Record<string, any>;
     canvas?: OffscreenCanvas;
-    bundleSharedTree: BundleSharedTree;
     eventBuffer: SharedArrayBuffer;
     initialWindowWh: number;
     exports: () => Exports;
+    bundleSqlite: () => ArrayBuffer;
 }) {
     const glFunctions = envGl({
         exports,
@@ -131,12 +130,12 @@ export function createImportObject({
                     type: "thread-spawn",
                     tid,
                     nextTid,
-                    importMemory: memory,
+                    wasmMemory: memory,
                     module,
                     startArgPtr,
-                    bundleSharedTree,
                     eventBuffer,
                     initialWindowWh,
+                    bundleSqlite: bundleSqlite(),
                 });
 
                 return tid;

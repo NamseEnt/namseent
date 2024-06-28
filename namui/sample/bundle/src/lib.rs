@@ -2,6 +2,7 @@ use namui::*;
 use namui_prebuilt::typography;
 
 pub fn main() {
+    println!("hi");
     namui::start(render)
 }
 
@@ -11,7 +12,7 @@ fn render(ctx: &RenderCtx) {
     ctx.effect("load media", || {
         let set_content = set_content.cloned();
         namui::spawn(async move {
-            let buffer = namui::system::file::bundle::read("bundle:resources/text.txt")
+            let buffer = namui::system::file::bundle::read("resources/text.txt")
                 .await
                 .unwrap();
             let content = std::str::from_utf8(&buffer).unwrap();

@@ -1,7 +1,15 @@
-import { WASI } from "@bjorn3/browser_wasi_shim";
+import {
+    ConsoleStdout,
+    File,
+    OpenFile,
+    PreopenDirectory,
+    WASI,
+} from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
-import { getFds } from "./fds";
-import { WorkerMessagePayload } from "./interWorkerProtocol";
+import {
+    WorkerMessagePayload,
+    sendMessageToMainThread,
+} from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
 
@@ -14,30 +22,47 @@ self.onmessage = async (message) => {
     const {
         tid,
         nextTid,
-        importMemory,
+        wasmMemory,
         module,
         startArgPtr,
-        bundleSharedTree,
         eventBuffer,
         initialWindowWh,
+        bundleSqlite,
     } = payload;
 
     const env = ["RUST_BACKTRACE=full"];
-    const fds = getFds(bundleSharedTree);
-    const wasi = new WASI([], env, fds);
+
+    const wasi = new WASI([], env, [
+        new OpenFile(new File([])), // stdin
+        ConsoleStdout.lineBuffered((msg) =>
+            console.log(`[WASI stdout(tid: ${tid})] ${msg}`),
+        ),
+        ConsoleStdout.lineBuffered((msg) =>
+            console.warn(`[WASI stderr(tid: ${tid})] ${msg}`),
+        ),
+        new PreopenDirectory(
+            ".",
+            new Map([
+                [
+                    "bundle.sqlite",
+                    new File(new Uint8Array(bundleSqlite), { readonly: true }),
+                ],
+            ]),
+        ),
+    ]);
     patchWasi(wasi);
 
     let exports: Exports = "not initialized" as unknown as Exports;
 
     const importObject = createImportObject({
-        memory: importMemory,
+        memory: wasmMemory,
         module,
         nextTid,
         wasiImport: wasi.wasiImport,
-        bundleSharedTree,
         eventBuffer,
         initialWindowWh,
         exports: () => exports,
+        bundleSqlite: () => bundleSqlite,
     });
 
     const instance = await WebAssembly.instantiate(module, importObject);
@@ -47,4 +72,9 @@ self.onmessage = async (message) => {
     console.debug("thread start", tid);
     (instance.exports.wasi_thread_start as any)(tid, startArgPtr);
     console.debug("thread end", tid);
+
+    sendMessageToMainThread({
+        type: "fs-thread-disconnect",
+        threadId: tid,
+    });
 };

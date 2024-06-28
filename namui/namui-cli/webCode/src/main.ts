@@ -21,12 +21,19 @@ const eventBuffer = new SharedArrayBuffer(512 * 1024);
 const { onTextInputEvent } = startEventSystemOnMainThread(eventBuffer);
 const textInput = new TextInput(onTextInputEvent);
 
+const wasmMemory = new WebAssembly.Memory({
+    initial: 128,
+    maximum: 16384,
+    shared: true,
+});
+
 const mainWorker = new MainWorker();
 
 sendToWorker(mainWorker, {
     type: "start-main-thread",
     eventBuffer,
     initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
+    wasmMemory,
 });
 
 let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;
