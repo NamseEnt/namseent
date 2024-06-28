@@ -5,31 +5,31 @@ pub async fn load_all_typefaces() -> Result<()> {
     let default_typefaces = [
         (
             "NotoSansKR-Bold",
-            crate::Url::parse("bundle:__system__/font/Ko/NotoSansKR-Bold.woff2").unwrap(),
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Bold.woff2").unwrap(),
         ),
         (
             "NotoSansKR-Light",
-            crate::Url::parse("bundle:__system__/font/Ko/NotoSansKR-Light.woff2").unwrap(),
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Light.woff2").unwrap(),
         ),
         (
             "NotoSansKR-Medium",
-            crate::Url::parse("bundle:__system__/font/Ko/NotoSansKR-Medium.woff2").unwrap(),
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Medium.woff2").unwrap(),
         ),
         (
             "NotoSansKR-Regular",
-            crate::Url::parse("bundle:__system__/font/Ko/NotoSansKR-Regular.woff2").unwrap(),
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Regular.woff2").unwrap(),
         ),
         (
             "NotoSansKR-Thin",
-            crate::Url::parse("bundle:__system__/font/Ko/NotoSansKR-Thin.woff2").unwrap(),
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Thin.woff2").unwrap(),
         ),
         (
             "NotoColorEmoji",
-            crate::Url::parse("bundle:__system__/font/NotoColorEmoji.woff2").unwrap(),
+            crate::Url::parse("__system__/font/NotoColorEmoji.woff2").unwrap(),
         ),
         (
             "NotoSansKR-Black",
-            crate::Url::parse("bundle:__system__/font/Ko/NotoSansKR-Black.woff2").unwrap(),
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Black.woff2").unwrap(),
         ),
     ];
 

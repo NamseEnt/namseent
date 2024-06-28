@@ -20,7 +20,7 @@ impl Component for MediaExample {
 
         ctx.effect("load media", || {
             let mp3 = namui::system::media::new_media(
-                &namui::system::file::bundle::to_real_path("bundle:resources/audio.mp3").unwrap(),
+                &namui::system::file::bundle::to_real_path("resources/audio.mp3").unwrap(),
             )
             .unwrap();
             println!("mp3 loaded");
@@ -28,7 +28,7 @@ impl Component for MediaExample {
             set_media_handle_for_toggle.set(Some(mp3));
 
             let opus = namui::system::media::new_media(
-                &namui::system::file::bundle::to_real_path("bundle:resources/audio.opus").unwrap(),
+                &namui::system::file::bundle::to_real_path("resources/audio.opus").unwrap(),
             )
             .unwrap();
             println!("opus loaded");
@@ -38,7 +38,7 @@ impl Component for MediaExample {
                 let set_sliced_audio = set_sliced_audio.cloned();
                 async move {
                     let opus = namui::system::media::new_full_load_once_audio(
-                        &namui::system::file::bundle::to_real_path("bundle:resources/audio.opus")
+                        &namui::system::file::bundle::to_real_path("resources/audio.opus")
                             .unwrap(),
                     )
                     .await
@@ -52,7 +52,7 @@ impl Component for MediaExample {
             });
 
             let mp4 = namui::system::media::new_media(
-                &namui::system::file::bundle::to_real_path("bundle:resources/video.mp4").unwrap(),
+                &namui::system::file::bundle::to_real_path("resources/video.mp4").unwrap(),
             )
             .unwrap();
             println!("mp4 loaded");

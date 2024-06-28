@@ -31,7 +31,7 @@ impl Portal {
                         width: 2.tile(),
                         height: 3.tile(),
                     },
-                    image_url: Url::parse("bundle:image/portal.png").unwrap(),
+                    image_url: Url::parse("image/portal.png").unwrap(),
                 }),
             ));
     }
