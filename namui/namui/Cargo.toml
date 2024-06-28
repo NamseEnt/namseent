@@ -45,8 +45,6 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
 ] }
 reqwest = { path = "../third-party-forks/reqwest" }
 rusqlite = { path = "../third-party-forks/rusqlite", features = ["bundled"] }
-# r2d2_sqlite = "0.24.0"
-# r2d2 = "0.8.10"
 
 [target.'cfg(not(target_os="wasi"))'.dependencies]
 winit = "0.29.4"
