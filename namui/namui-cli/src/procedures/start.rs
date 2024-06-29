@@ -13,10 +13,9 @@ pub async fn start(target: Target, manifest_path: PathBuf, release: bool) -> Res
                 Target::Wasm32WasiWeb => {
                     linux::wasm32_wasi_web::start(&manifest_path, release).await?
                 }
-                Target::X86_64PcWindowsMsvc => bail!(
-                    "{} doesn't support start directly. Try build and run manually.",
-                    target
-                ),
+                Target::X86_64PcWindowsMsvc => {
+                    linux::x86_64_pc_windows_msvc::start(&manifest_path, release).await?
+                }
             }
         }
     } else if cfg!(target_os = "windows") {
