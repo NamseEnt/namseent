@@ -72,9 +72,4 @@ self.onmessage = async (message) => {
     console.debug("thread start", tid);
     (instance.exports.wasi_thread_start as any)(tid, startArgPtr);
     console.debug("thread end", tid);
-
-    sendMessageToMainThread({
-        type: "fs-thread-disconnect",
-        threadId: tid,
-    });
 };
