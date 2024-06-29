@@ -27,7 +27,7 @@ fn bundle_sqlite_path() -> io::Result<PathBuf> {
         Ok(std::env::current_exe()?
             .parent()
             .ok_or_else(|| io::Error::new(ErrorKind::Other, anyhow!("No parent")))?
-            .join("bundle.sqlite?immutable=1"))
+            .join("bundle.sqlite"))
     }
 }
 
