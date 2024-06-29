@@ -1,7 +1,7 @@
 use crate::util::get_cli_root_path;
 use std::path::PathBuf;
 
-pub fn wasi_cargo_envs() -> [(&'static str, PathBuf); 8] {
+pub fn wasi_cargo_envs() -> [(&'static str, PathBuf); 9] {
     let cli_root_path = get_cli_root_path();
 
     [
@@ -10,6 +10,10 @@ pub fn wasi_cargo_envs() -> [(&'static str, PathBuf); 8] {
         ("CC", cli_root_path.join("wasi-sdk/bin/clang")),
         ("CXX", cli_root_path.join("wasi-sdk/bin/clang++")),
         ("WASI_SDK", cli_root_path.join("wasi-sdk")),
+        (
+            "WASI_SYSROOT",
+            cli_root_path.join("wasi-sdk/share/wasi-sysroot"),
+        ),
         (
             "EMSDK_SYSTEM_INCLUDE",
             cli_root_path.join("emscripten/system/include"),
