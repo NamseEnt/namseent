@@ -5,40 +5,43 @@ pub async fn load_all_typefaces() -> Result<()> {
     let default_typefaces = [
         (
             "NotoSansKR-Bold",
-            "__system__/font/Ko/NotoSansKR-Bold.woff2",
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Bold.woff2").unwrap(),
         ),
         (
             "NotoSansKR-Light",
-            "__system__/font/Ko/NotoSansKR-Light.woff2",
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Light.woff2").unwrap(),
         ),
         (
             "NotoSansKR-Medium",
-            "__system__/font/Ko/NotoSansKR-Medium.woff2",
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Medium.woff2").unwrap(),
         ),
         (
             "NotoSansKR-Regular",
-            "__system__/font/Ko/NotoSansKR-Regular.woff2",
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Regular.woff2").unwrap(),
         ),
         (
             "NotoSansKR-Thin",
-            "__system__/font/Ko/NotoSansKR-Thin.woff2",
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Thin.woff2").unwrap(),
         ),
-        ("NotoColorEmoji", "__system__/font/NotoColorEmoji.woff2"),
+        (
+            "NotoColorEmoji",
+            crate::Url::parse("__system__/font/NotoColorEmoji.woff2").unwrap(),
+        ),
         (
             "NotoSansKR-Black",
-            "__system__/font/Ko/NotoSansKR-Black.woff2",
+            crate::Url::parse("__system__/font/Ko/NotoSansKR-Black.woff2").unwrap(),
         ),
     ];
 
     try_join_all(
         default_typefaces
             .into_iter()
-            .map(|(typeface_name, path)| async move {
-                let bytes = get_file_from_bundle_with_cached(&path)
+            .map(|(typeface_name, url)| async move {
+                let bytes = get_file_from_bundle_with_cached(&url)
                     .await
                     .map_err(|error| {
                         eprintln!("error: {:?}", error);
-                        anyhow!("Could not fetch {}: {}", path, error)
+                        anyhow!("Could not fetch {}: {}", url, error)
                     })?;
 
                 crate::system::typeface::register_typeface(typeface_name.to_string(), bytes)
@@ -52,7 +55,7 @@ pub async fn load_all_typefaces() -> Result<()> {
     Ok(())
 }
 
-async fn get_file_from_bundle_with_cached(url: &str) -> Result<Vec<u8>> {
-    let file = crate::file::bundle::read(url).await?;
+async fn get_file_from_bundle_with_cached(url: &crate::Url) -> Result<Vec<u8>> {
+    let file = crate::file::bundle::read(url.clone()).await?;
     Ok(file)
 }
