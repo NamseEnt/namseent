@@ -58,6 +58,13 @@ self.onmessage = async (message) => {
 
             let exports: Exports = "not initialized" as unknown as Exports;
 
+            const storageProtocolBuffer = new SharedArrayBuffer(32);
+            sendMessageToMainThread({
+                type: "storage-thread-connect",
+                threadId,
+                protocolBuffer: storageProtocolBuffer,
+            });
+
             const importObject = createImportObject({
                 memory: wasmMemory,
                 module,
@@ -68,6 +75,7 @@ self.onmessage = async (message) => {
                 initialWindowWh,
                 exports: () => exports,
                 bundleSqlite: () => bundleSqlite,
+                storageProtocolBuffer,
             });
 
             const instance = await WebAssembly.instantiate(
@@ -93,4 +101,9 @@ self.onmessage = async (message) => {
     );
 
     wasi.start(instance as any);
+
+    sendMessageToMainThread({
+        type: "storage-thread-disconnect",
+        threadId,
+    });
 };

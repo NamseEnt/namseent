@@ -1,8 +1,14 @@
 pub mod bundle;
-mod init;
-pub mod local_storage;
+pub mod kv_store;
 pub mod picker;
 pub mod system_drive;
 pub mod types;
 
-pub(super) use init::init;
+use super::*;
+use crate::namui::system::InitResult;
+use tokio::try_join;
+
+pub async fn init() -> InitResult {
+    try_join![bundle::init(), kv_store::init(),]?;
+    Ok(())
+}
