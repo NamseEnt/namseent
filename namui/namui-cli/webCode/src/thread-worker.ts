@@ -6,10 +6,7 @@ import {
     WASI,
 } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
-import {
-    WorkerMessagePayload,
-    sendMessageToMainThread,
-} from "./interWorkerProtocol";
+import { WorkerMessagePayload } from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
 
