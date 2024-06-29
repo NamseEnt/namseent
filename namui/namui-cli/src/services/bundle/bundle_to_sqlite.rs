@@ -2,17 +2,15 @@ use super::*;
 use anyhow::Result;
 use rayon::prelude::*;
 use rusqlite::{Connection, DatabaseName, OptionalExtension};
-use std::{
-    collections::HashSet,
-    io::{self},
-    time::UNIX_EPOCH,
-};
+use std::{collections::HashSet, fs::create_dir_all, io, time::UNIX_EPOCH};
 
 pub fn bundle_to_sqlite(
     sqlite_path: impl AsRef<std::path::Path>,
     collect_operations: Vec<CollectOperation>,
 ) -> Result<()> {
     let sqlite_path = sqlite_path.as_ref().to_path_buf();
+    create_dir_all(sqlite_path.parent().unwrap())?;
+    println!("{sqlite_path:#?}");
     let create_conn = || Connection::open(&sqlite_path).unwrap();
     let conn = create_conn();
 

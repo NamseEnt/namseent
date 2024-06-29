@@ -17,10 +17,10 @@ pub fn collect_all(
     let mut ops: Vec<CollectOperation> = vec![];
     collect_runtime(&mut ops, additional_runtime_path, target)?;
     collect_rust_build(&mut ops, &project_path, target, release)?;
-    collect_bundle(&bundle_manifest, &dest_path)?;
     collect_deep_link_manifest(&mut ops, &project_path, target)?;
 
     collect_resources(&project_path, &dest_path, ops)?;
+    collect_bundle(&bundle_manifest, &dest_path)?;
 
     bundle_manifest.create_bundle_metadata_file(&dest_path)?;
     Ok(())
