@@ -14,7 +14,6 @@
     "vite": "^5.2.0"
   },
   "dependencies": {
-    "@bjorn3/browser_wasi_shim": "^0.3.0",
-    "@sqlite.org/sqlite-wasm": "^3.46.0-build2"
+    "@bjorn3/browser_wasi_shim": "^0.3.0"
   }
 }

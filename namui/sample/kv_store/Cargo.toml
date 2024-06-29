@@ -1,5 +1,5 @@
 [package]
-name = "local_storage"
+name = "kv_store"
 version = "0.1.0"
 edition = "2021"
 

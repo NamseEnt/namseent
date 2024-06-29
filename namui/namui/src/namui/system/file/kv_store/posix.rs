@@ -16,6 +16,7 @@ pub async fn init() -> InitResult {
 
 pub fn get(key: impl AsRef<str>) -> Result<Option<Vec<u8>>> {
     let key = key.as_ref();
+
     sqlite(|conn| {
         Ok(conn
             .query_row(
@@ -27,9 +28,8 @@ pub fn get(key: impl AsRef<str>) -> Result<Option<Vec<u8>>> {
     })
 }
 
-pub fn set(key: impl AsRef<str>, content: impl AsRef<[u8]>) -> Result<()> {
+pub fn set(key: impl AsRef<str>, content: &[u8]) -> Result<()> {
     let key = key.as_ref();
-    let content = content.as_ref();
     sqlite(|conn| {
         conn.execute(
             "INSERT OR REPLACE INTO local_storage (key, value) VALUES (?, ?)",
@@ -59,5 +59,5 @@ fn local_storage_sqlite_path() -> Result<PathBuf> {
     Ok(std::env::current_exe()?
         .parent()
         .ok_or_else(|| anyhow!("No parent of current_exe"))?
-        .join("bundle.sqlite"))
+        .join("kv_store.sqlite"))
 }

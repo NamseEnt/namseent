@@ -79,19 +79,19 @@ export type WorkerMessagePayload =
           type: "insert-js-drop";
           id: number;
       }
-    // File System
+    // Storage System
     | {
-          type: "fs-thread-connect";
+          type: "storage-init";
+          wasmMemory: WebAssembly.Memory;
+      }
+    | {
+          type: "storage-thread-connect";
           threadId: number;
           protocolBuffer: SharedArrayBuffer;
       }
     | {
-          type: "fs-thread-disconnect";
+          type: "storage-thread-disconnect";
           threadId: number;
-      }
-    | {
-          type: "fs-init";
-          wasmMemory: WebAssembly.Memory;
       };
 
 export function sendMessageToMainThread(

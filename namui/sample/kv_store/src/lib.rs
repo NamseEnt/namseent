@@ -2,7 +2,6 @@ use namui::*;
 use namui_prebuilt::{button, typography};
 
 pub fn main() {
-    println!("hi");
     namui::start(render)
 }
 
@@ -12,14 +11,13 @@ fn render(ctx: &RenderCtx) {
     const KEY: &str = "abc";
 
     ctx.effect("load media", || {
-        let buffer = namui::system::file::local_storage::get(KEY).unwrap();
-        set_value.set(buffer)
+        set_value.set(namui::system::file::kv_store::get(KEY).unwrap());
     });
 
     ctx.add(typography::body::left_top(
         match value.as_ref() {
             Some(value) => format!("{:?}", value),
-            None => "loading...".to_string(),
+            None => "None".to_string(),
         },
         Color::BLACK,
     ));
@@ -42,7 +40,7 @@ fn render(ctx: &RenderCtx) {
                         *value = Some(vec![1]);
                     }
                 }
-                namui::system::file::local_storage::set(KEY, value.as_ref().unwrap()).unwrap();
+                namui::system::file::kv_store::set(KEY, value.as_ref().unwrap()).unwrap();
             });
         },
     });
@@ -56,7 +54,8 @@ fn render(ctx: &RenderCtx) {
         fill_color: Color::WHITE,
         mouse_buttons: vec![MouseButton::Left],
         on_mouse_up_in: |_| {
-            namui::system::file::local_storage::delete(KEY).unwrap();
+            namui::system::file::kv_store::delete(KEY).unwrap();
+            set_value.set(namui::system::file::kv_store::get(KEY).unwrap());
         },
     });
 }

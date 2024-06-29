@@ -5,7 +5,7 @@ import MainWorker from "./main-worker?worker";
 import { TextInput } from "./textInput";
 import ThreadWorker from "./thread-worker?worker";
 import { webSocketHandleOnMainThread } from "./webSocket";
-import FsWorker from "./fileSystem/fsWorker?worker";
+import StorageWorker from "./storage/worker?worker";
 
 const canvas = document.createElement("canvas");
 canvas.width = window.innerWidth;
@@ -28,9 +28,9 @@ const wasmMemory = new WebAssembly.Memory({
     shared: true,
 });
 
-const fsWorker = new FsWorker();
-sendToWorker(fsWorker, {
-    type: "fs-init",
+const storageWorker = new StorageWorker();
+sendToWorker(storageWorker, {
+    type: "storage-init",
     wasmMemory,
 });
 
@@ -104,12 +104,12 @@ function onMessage(this: Worker, message: MessageEvent) {
             break;
         }
         // File System
-        case "fs-thread-connect": {
-            fsWorker.postMessage(payload);
+        case "storage-thread-connect": {
+            storageWorker.postMessage(payload);
             break;
         }
-        case "fs-thread-disconnect": {
-            fsWorker.postMessage(payload);
+        case "storage-thread-disconnect": {
+            storageWorker.postMessage(payload);
             break;
         }
         default:

@@ -14,7 +14,6 @@ import {
 } from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
-import { overrideWasiFs } from "./fileSystem";
 import bundleSqliteUrl from "bundle.sqlite?url";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
@@ -64,6 +63,13 @@ self.onmessage = async (message) => {
 
             let exports: Exports = "not initialized" as unknown as Exports;
 
+            const storageProtocolBuffer = new SharedArrayBuffer(32);
+            sendMessageToMainThread({
+                type: "storage-thread-connect",
+                threadId,
+                protocolBuffer: storageProtocolBuffer,
+            });
+
             const importObject = createImportObject({
                 memory: wasmMemory,
                 module,
@@ -74,6 +80,7 @@ self.onmessage = async (message) => {
                 initialWindowWh,
                 exports: () => exports,
                 bundleSqlite: () => bundleSqlite,
+                storageProtocolBuffer,
             });
 
             const instance = await WebAssembly.instantiate(
@@ -101,7 +108,7 @@ self.onmessage = async (message) => {
     wasi.start(instance as any);
 
     sendMessageToMainThread({
-        type: "fs-thread-disconnect",
+        type: "storage-thread-disconnect",
         threadId,
     });
 };
