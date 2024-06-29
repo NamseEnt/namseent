@@ -6,10 +6,7 @@ import {
     WASI,
 } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
-import {
-    WorkerMessagePayload,
-    sendMessageToMainThread,
-} from "./interWorkerProtocol";
+import { WorkerMessagePayload } from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
 
@@ -45,7 +42,7 @@ self.onmessage = async (message) => {
             new Map([
                 [
                     "bundle.sqlite",
-                    new File(new Uint8Array(bundleSqlite), { readonly: true }),
+                    new File(new Uint8Array(bundleSqlite), { readonly: false }),
                 ],
             ]),
         ),
@@ -72,9 +69,4 @@ self.onmessage = async (message) => {
     console.debug("thread start", tid);
     (instance.exports.wasi_thread_start as any)(tid, startArgPtr);
     console.debug("thread end", tid);
-
-    sendMessageToMainThread({
-        type: "fs-thread-disconnect",
-        threadId: tid,
-    });
 };

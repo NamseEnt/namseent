@@ -5,6 +5,7 @@ import { textInputImports } from "./textInput";
 import { Exports } from "../exports";
 import { webSocketImports } from "../webSocket";
 import { insertJsImports } from "../insertJs";
+import { localStorageImports } from "./localStorage";
 
 export function createImportObject({
     memory,
@@ -84,6 +85,9 @@ export function createImportObject({
                 memory,
             }),
             ...insertJsImports({
+                memory,
+            }),
+            ...localStorageImports({
                 memory,
             }),
             poll_event: (wasmBufferPtr: number): number => {

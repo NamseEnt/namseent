@@ -42,7 +42,9 @@ self.onmessage = async (message) => {
             console.warn(`[WASI stderr(tid: ${threadId})] ${msg}`),
         ),
     ];
-    const wasi = new WASI([], env, fd);
+    const wasi = new WASI([], env, fd, {
+        debug: true,
+    });
     patchWasi(wasi);
 
     const [instance, bundleSqlite] = await Promise.all([
@@ -86,7 +88,7 @@ self.onmessage = async (message) => {
             new Map([
                 [
                     "bundle.sqlite",
-                    new File(new Uint8Array(bundleSqlite), { readonly: true }),
+                    new File(new Uint8Array(bundleSqlite), { readonly: false }),
                 ],
             ]),
         ),

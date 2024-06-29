@@ -1,0 +1,22 @@
+building: Namui
+No errors
+building: WebRuntime
+INFO: bundle_to_sqlite took: 488.152245ms
+
+added 13 packages, and audited 15 packages in 910ms
+
+3 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+No errors
+
+> wasi@0.0.0 dev
+> vite
+
+
+  VITE v5.2.11  ready in 313 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help

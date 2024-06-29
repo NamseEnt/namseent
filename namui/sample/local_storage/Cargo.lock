@@ -266,14 +266,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ff69b9dd49fd426c69a0db9fc04dd934cdb6645ff000864d98f7e2af8830eaa"
 
 [[package]]
-name = "bundle"
-version = "0.1.0"
-dependencies = [
- "namui",
- "namui-prebuilt",
-]
-
-[[package]]
 name = "bytemuck"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1225,6 +1217,14 @@ name = "linux-raw-sys"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4cd1a83af159aa67994778be9070f0ae1bd732942279cabb14f86f986a21456"
+
+[[package]]
+name = "local_storage"
+version = "0.1.0"
+dependencies = [
+ "namui",
+ "namui-prebuilt",
+]
 
 [[package]]
 name = "lock_api"

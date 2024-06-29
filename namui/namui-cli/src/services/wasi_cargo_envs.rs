@@ -11,6 +11,10 @@ pub fn wasi_cargo_envs() -> [(&'static str, PathBuf); 9] {
         ("CXX", cli_root_path.join("wasi-sdk/bin/clang++")),
         ("WASI_SDK", cli_root_path.join("wasi-sdk")),
         (
+            "WASI_SYSROOT",
+            cli_root_path.join("wasi-sdk/share/wasi-sysroot"),
+        ),
+        (
             "EMSDK_SYSTEM_INCLUDE",
             cli_root_path.join("emscripten/system/include"),
         ),
@@ -18,10 +22,6 @@ pub fn wasi_cargo_envs() -> [(&'static str, PathBuf); 9] {
         (
             "CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER",
             cli_root_path.join("wasi-sdk/bin/wasm-ld"),
-        ),
-        (
-            "RUSTFLAGS",
-            "-Ctarget-feature=+atomics,+bulk-memory,+mutable-globals".into(),
         ),
     ]
 }
