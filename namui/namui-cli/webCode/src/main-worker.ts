@@ -8,9 +8,13 @@ import {
 } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
 import wasmUrl from "namui-runtime-wasm.wasm?url";
-import { WorkerMessagePayload } from "./interWorkerProtocol";
+import {
+    WorkerMessagePayload,
+    sendMessageToMainThread,
+} from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
+import { overrideWasiFs } from "./fileSystem";
 import bundleSqliteUrl from "bundle.sqlite?url";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
@@ -95,4 +99,9 @@ self.onmessage = async (message) => {
     );
 
     wasi.start(instance as any);
+
+    sendMessageToMainThread({
+        type: "fs-thread-disconnect",
+        threadId,
+    });
 };
