@@ -3,6 +3,7 @@ use crate::file::types::PathLike;
 use crate::system::InitResult;
 use anyhow::anyhow;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
+use std::env;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use tokio::io::{self, Error};
@@ -24,10 +25,28 @@ fn bundle_sqlite_path() -> io::Result<PathBuf> {
     if cfg!(target_os = "wasi") {
         Ok(PathBuf::from("file:./bundle.sqlite?immutable=1"))
     } else {
-        Ok(std::env::current_exe()?
+        // https://www.sqlite.org/uri.html
+        let mut file_path = std::env::current_exe()?
             .parent()
             .ok_or_else(|| io::Error::new(ErrorKind::Other, anyhow!("No parent")))?
-            .join("bundle.sqlite?immutable=1"))
+            .join("bundle.sqlite")
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        file_path = file_path.replace("?", "%3f");
+        file_path = file_path.replace("#", "%23");
+        if env::consts::OS == "windows" {
+            file_path = file_path.replace("\\", "/");
+        }
+        file_path = prune_slashes(&file_path);
+        if env::consts::OS == "windows" {
+            append_slash_if_starts_with_drive_letter(&mut file_path);
+        }
+        file_path.insert_str(0, "file:");
+        file_path.push_str("?immutable=1");
+
+        Ok(PathBuf::from(file_path))
     }
 }
 
@@ -57,4 +76,26 @@ pub async fn read_json<T: serde::de::DeserializeOwned>(path_like: impl PathLike)
 
 pub fn read_dir(_path: impl PathLike) -> io::Result<Vec<Dirent>> {
     todo!()
+}
+
+fn prune_slashes(path: &str) -> String {
+    let mut result = String::new();
+    let mut iter = path.chars().peekable();
+    while let Some(c) = iter.next() {
+        if c == '/' {
+            result.push(c);
+            while let Some('/') = iter.peek() {
+                iter.next();
+            }
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
+
+fn append_slash_if_starts_with_drive_letter(path: &mut String) {
+    if path.len() >= 2 && path.chars().nth(1) == Some(':') {
+        path.insert(0, '/');
+    }
 }
