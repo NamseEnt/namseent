@@ -171,7 +171,7 @@ fn copy_resource(
         &from.file_name().unwrap()
     );
     ensure_dir(dest_dir_path)?;
-    assert!(dest_dir_path.is_file());
+    assert!(from.is_file());
     copy_file(from, dest_dir_path)
 }
 
