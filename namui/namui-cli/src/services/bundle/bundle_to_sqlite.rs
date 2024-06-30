@@ -10,7 +10,6 @@ pub fn bundle_to_sqlite(
 ) -> Result<()> {
     let sqlite_path = sqlite_path.as_ref().to_path_buf();
     create_dir_all(sqlite_path.parent().unwrap())?;
-    println!("{sqlite_path:#?}");
     let create_conn = || Connection::open(&sqlite_path).unwrap();
     let conn = create_conn();
 
