@@ -626,5 +626,7 @@ fn set_state_should_be_copied_into_async_effect() {
         }
     }
 
-    World::run(&mut world, A {});
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        World::run(&mut world, A {});
+    });
 }
