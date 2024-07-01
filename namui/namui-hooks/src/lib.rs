@@ -8,7 +8,6 @@ mod set_state;
 mod sig;
 mod value;
 mod world;
-mod abort;
 
 pub use atom::*;
 pub use component::*;
@@ -22,7 +21,6 @@ pub use set_state::*;
 pub use sig::*;
 use value::*;
 pub use world::*;
-pub use abort::*;
 
 #[cfg(test)]
 mod test;

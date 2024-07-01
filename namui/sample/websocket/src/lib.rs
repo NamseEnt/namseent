@@ -9,7 +9,6 @@ fn render(ctx: &RenderCtx) {
     let (content, set_content) = ctx.state(String::new);
 
     ctx.effect("web socket", || {
-        let set_content = set_content.cloned();
         tokio::spawn(async move {
             let (ws_sender, mut ws_receiver) = namui::network::ws::connect("http://localhost:8080")
                 .await

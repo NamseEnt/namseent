@@ -115,7 +115,6 @@ impl Component for TextInput<'_> {
         };
 
         ctx.effect("Blur on umount if focused", || {
-            let set_focus_ctx = set_focus_ctx.cloned();
             move || {
                 set_focus_ctx.mutate(move |focus_ctx| {
                     let focus_ctx = focus_ctx.get_mut().unwrap();

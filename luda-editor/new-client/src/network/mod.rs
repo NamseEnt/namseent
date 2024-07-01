@@ -55,7 +55,6 @@ where
             return EffectCleanUp::None;
         };
 
-        let set_response = set_response.cloned();
         let bytes = rkyv::to_bytes(&req).unwrap().to_vec();
         let request_packet = RequestPacket::new(api_index, bytes);
 
