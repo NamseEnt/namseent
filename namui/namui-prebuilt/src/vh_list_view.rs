@@ -44,7 +44,7 @@ where
     }
 }
 
-pub struct VHListView<'a, TItem, TIterator, TItems>
+pub struct VHListView<TItem, TIterator, TItems>
 where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
@@ -55,7 +55,7 @@ where
     pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
     pub item_render: ItemRenderFn<'a, TItem>,
     pub scroll_y: Px,
-    pub set_scroll_y: SetState<'a, Px>,
+    pub set_scroll_y: SetState<Px>,
 }
 impl<TItem, TIterator, TItems> Component for VHListView<'_, TItem, TIterator, TItems>
 where
