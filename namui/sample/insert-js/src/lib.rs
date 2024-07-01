@@ -10,7 +10,6 @@ fn render(ctx: &RenderCtx) {
     let (content, set_content) = ctx.state(String::new);
 
     ctx.effect("Insert google gsi html api", || {
-        let set_content = set_content.cloned();
         println!("insert js start");
 
         let is_component_unmounted = Arc::new(AtomicBool::new(false));
