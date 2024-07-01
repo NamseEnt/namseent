@@ -34,7 +34,7 @@ pub async fn load_all_typefaces() -> Result<()> {
         default_typefaces
             .into_iter()
             .map(|(typeface_name, path)| async move {
-                let bytes = get_file_from_bundle_with_cached(&path)
+                let bytes = get_file_from_bundle_with_cached(path)
                     .await
                     .map_err(|error| {
                         eprintln!("error: {:?}", error);
