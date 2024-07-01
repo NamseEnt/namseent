@@ -7,14 +7,11 @@ impl World {
         sk_calculate: &'static dyn SkCalculate,
     ) -> Self {
         let (set_state_tx, set_state_rx) = std::sync::mpsc::channel();
-        let (send_sync_set_state_tx, send_sync_set_state_rx) = std::sync::mpsc::channel();
         Self {
             composers: Default::default(),
             instances: Default::default(),
-            set_state_tx,
+            set_state_tx: Box::leak(Box::new(set_state_tx)),
             set_state_rx,
-            send_sync_set_state_tx,
-            send_sync_set_state_rx,
             updated_sig_ids: Default::default(),
             get_now: Box::new(get_now),
             record_used_sig_ids: Default::default(),

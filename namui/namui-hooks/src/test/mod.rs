@@ -570,7 +570,7 @@ fn atom_should_work() {
 }
 
 #[test]
-fn cloned_set_state_should_work() {
+fn set_state_should_be_copied_into_async_move() {
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
     #[derive(Debug)]
@@ -590,12 +590,39 @@ fn cloned_set_state_should_work() {
             let (_state, set_state) = ctx.state(|| 5);
             let (_my_atom, set_my_atom) = ctx.init_atom(&MY_ATOM, || 5);
 
-            let set_state = set_state.cloned();
-            let set_my_atom = set_my_atom.cloned();
             spawn(async move {
                 set_state.set(6);
                 set_my_atom.set(6);
             });
+        }
+    }
+
+    World::run(&mut world, A {});
+}
+
+#[test]
+fn set_state_should_be_copied_into_async_effect() {
+    let mut world = World::init(Instant::now, &MockSkCalculate);
+
+    #[derive(Debug)]
+    struct A {}
+
+    impl Component for A {
+        fn render(self, ctx: &RenderCtx) {
+            let (state0, set_state0) = ctx.state(|| 5);
+            let (state1, set_state1) = ctx.state(|| 5);
+
+            ctx.async_effect("single deps test", state0, move |state| async move {
+                set_state0.set(state + 5);
+            });
+
+            ctx.async_effect(
+                "tuple deps test",
+                (state0, state1),
+                move |(state, state1)| async move {
+                    set_state1.set(state + state1);
+                },
+            );
         }
     }
 

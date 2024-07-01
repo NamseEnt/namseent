@@ -1,4 +1,7 @@
+mod dependencies;
+
 use crate::*;
+use dependencies::*;
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -25,7 +28,7 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
 
 // Component
 impl<'a, 'rt> RenderCtx<'a, 'rt> {
-    pub fn state<T: 'static>(&self, init: impl FnOnce() -> T) -> (Sig<T, &T>, SetState<T>) {
+    pub fn state<T: 'static + Send>(&self, init: impl FnOnce() -> T) -> (Sig<T, &T>, SetState<T>) {
         self.component_ctx.state(init)
     }
     pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T, Rc<T>> {
@@ -41,6 +44,22 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     ) {
         self.component_ctx.effect(title, func)
     }
+    pub fn async_effect<Fut, Deps>(
+        &self,
+        title: impl AsRef<str>,
+        sig_deps: impl Dependencies<Deps>,
+        future_fn: impl FnOnce(Deps) -> Fut + Send + 'static,
+    ) where
+        Fut: std::future::Future + Send + 'static,
+        Fut::Output: Send + 'static,
+        Deps: Send + 'static,
+    {
+        self.component_ctx.effect(title, move || {
+            let deps = sig_deps.cloned();
+            let handle = tokio::spawn(async move { future_fn(deps).await });
+            move || handle.abort()
+        })
+    }
     pub fn interval(&self, title: impl AsRef<str>, interval: Duration, job: impl FnOnce(Duration)) {
         self.component_ctx.interval(title, interval, job)
     }
@@ -54,13 +73,13 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
         &self,
         atom: &'static Atom<T>,
         init: impl Fn() -> T,
-    ) -> (Sig<T, &T>, AtomSetState<T>) {
+    ) -> (Sig<T, &T>, SetState<T>) {
         self.component_ctx.init_atom(atom, init)
     }
     pub fn atom<T: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<T>,
-    ) -> (Sig<T, &T>, AtomSetState<T>) {
+    ) -> (Sig<T, &T>, SetState<T>) {
         self.component_ctx.atom(atom)
     }
 }
