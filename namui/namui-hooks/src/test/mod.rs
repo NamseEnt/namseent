@@ -604,11 +604,15 @@ fn set_state_should_be_copied_into_async_move() {
 fn set_state_should_be_copied_into_async_effect() {
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
+    let (tx, mut rx) = tokio::sync::mpsc::channel(5);
     #[derive(Debug)]
-    struct A {}
+    struct A {
+        tx: tokio::sync::mpsc::Sender<i32>,
+    }
 
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
+            let Self { tx } = self;
             let (state0, set_state0) = ctx.state(|| 5);
             let (state1, set_state1) = ctx.state(|| 5);
 
@@ -621,12 +625,15 @@ fn set_state_should_be_copied_into_async_effect() {
                 (state0, state1),
                 move |(state, state1)| async move {
                     set_state1.set(state + state1);
+                    tx.send(state + state1).await.unwrap();
                 },
             );
         }
     }
 
     tokio::runtime::Runtime::new().unwrap().block_on(async {
-        World::run(&mut world, A {});
+        World::run(&mut world, A { tx });
+        let value = rx.recv().await.unwrap();
+        assert_eq!(value, 10);
     });
 }

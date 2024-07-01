@@ -21,4 +21,5 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt"] }
 tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "rt",
     "rt-multi-thread",
+    "sync",
 ] }
