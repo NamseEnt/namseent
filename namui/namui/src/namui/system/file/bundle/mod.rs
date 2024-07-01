@@ -34,10 +34,10 @@ fn bundle_sqlite_path() -> io::Result<PathBuf> {
             .unwrap()
             .to_string();
 
-        file_path = file_path.replace("?", "%3f");
-        file_path = file_path.replace("#", "%23");
+        file_path = file_path.replace('?', "%3f");
+        file_path = file_path.replace('#', "%23");
         if env::consts::OS == "windows" {
-            file_path = file_path.replace("\\", "/");
+            file_path = file_path.replace('\\', "/");
         }
         file_path = prune_slashes(&file_path);
         if env::consts::OS == "windows" {
