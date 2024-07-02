@@ -8,7 +8,7 @@ pub struct ScrollView<C: Component> {
     pub set_scroll_y: SetState<Px>,
 }
 
-impl<C: Component> Component for ScrollView<'_, C> {
+impl<C: Component> Component for ScrollView<C> {
     fn render(self, ctx: &RenderCtx) {
         ctx.add(ScrollViewWithCtx {
             wh: self.wh,
@@ -70,7 +70,7 @@ pub struct ScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
     pub set_scroll_y: SetState<Px>,
 }
 
-impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<'_, Func> {
+impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<Func> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,

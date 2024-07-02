@@ -44,7 +44,7 @@ where
     }
 }
 
-pub struct VHListView<TItem, TIterator, TItems>
+pub struct VHListView<'a, TItem, TIterator, TItems>
 where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,

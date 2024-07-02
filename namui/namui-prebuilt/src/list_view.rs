@@ -38,7 +38,7 @@ pub struct ListView<C: Component> {
     pub set_scroll_y: SetState<Px>,
 }
 
-impl<C: Component> Component for ListView<'_, C> {
+impl<C: Component> Component for ListView<C> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
