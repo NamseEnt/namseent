@@ -35,7 +35,6 @@ impl Component for MediaExample {
             set_audio_opus.set(Some(opus));
 
             namui::spawn({
-                let set_sliced_audio = set_sliced_audio.cloned();
                 async move {
                     let opus = namui::system::media::new_full_load_once_audio(
                         &namui::system::file::bundle::to_real_path("resources/audio.opus")

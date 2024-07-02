@@ -4,6 +4,7 @@ use std::{
     fmt::{Debug, Display},
 };
 
+#[derive(Clone, Copy)]
 pub struct Sig<'world, T: ?Sized, Ref: Borrow<T>> {
     id: SigId,
     value: Ref,

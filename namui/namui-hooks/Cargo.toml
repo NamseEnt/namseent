@@ -14,3 +14,12 @@ elsa = { version = "1.10.0", features = ["indexmap"] }
 namui-type = { path = "../namui-type", features = ["namui_internal"] }
 rustc-hash = "1.1.0"
 smol_str = "0.2.1"
+tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt"] }
+
+# for test
+[dev-dependencies]
+tokio = { path = "../third-party-forks/tokio/tokio", features = [
+    "rt",
+    "rt-multi-thread",
+    "sync",
+] }

@@ -8,14 +8,12 @@ use std::sync::{atomic::{AtomicBool, AtomicUsize}, mpsc};
 pub struct World {
     composers: FrozenIndexMap<ComposerId, Box<Composer>>,
     instances: FrozenIndexMap<InstanceId, Box<Instance>>,
-    set_state_tx: mpsc::Sender<SetStateItem>,
     set_state_rx: mpsc::Receiver<SetStateItem>,
-    send_sync_set_state_tx: mpsc::Sender<SendSyncSetStateItem>,
-    send_sync_set_state_rx: mpsc::Receiver<SendSyncSetStateItem>,
+    pub(crate) set_state_tx: &'static mpsc::Sender<SetStateItem>,
     updated_sig_ids: FrozenIndexSet<Box<SigId>>,
     get_now: Box<dyn Fn() -> Instant>,
     record_used_sig_ids: FrozenVec<Box<SigId>>,
-    pub(crate) atom_list: FrozenVec<Box<dyn Value + Send>>,
+    pub(crate) atom_list: FrozenVec<Box<dyn Value>>,
     pub(crate) atom_index: AtomicUsize,
     pub(crate) raw_event: Option<RawEvent>,
     pub(crate) is_stop_event_propagation: AtomicBool,
@@ -89,39 +87,14 @@ impl World {
                         instance.state_list.as_mut()[index] = value;
                         self.add_sig_updated(sig_id);
                     }
-                    SigId::Memo { .. } | SigId::Atom { .. } => unreachable!(),
-                    SigId::TrackEq { .. } => todo!(),
-                },
-                SetStateItem::Mutate { sig_id, mutate } => match sig_id {
-                    SigId::State { instance_id, index } => {
-                        let instance = self.instances.as_mut().get_mut(&instance_id).unwrap();
-                        let value = instance.state_list.as_mut().get_mut(index).unwrap();
-                        mutate(value.as_mut());
-                        self.add_sig_updated(sig_id);
-                    }
-                    SigId::Memo { .. } | SigId::Atom { .. } => unreachable!(),
-                    SigId::TrackEq { .. } => todo!(),
-                },
-            }
-        }
-
-        for set_state_item in self.send_sync_set_state_rx.try_iter() {
-            match set_state_item {
-                SendSyncSetStateItem::Set { sig_id, value } => match sig_id {
-                    SigId::State { instance_id, index } => {
-                        let instance = self.instances.as_mut().get_mut(&instance_id).unwrap();
-                        instance.state_list.as_mut()[index] = value;
-                        self.add_sig_updated(sig_id);
-                    }
                     SigId::Atom { index } => {
                         self.atom_list.as_mut()[index] = value;
                         self.add_sig_updated(sig_id);
                     }
-                    SigId::Memo { .. } | SigId::TrackEq { .. } => {
-                        unreachable!()
-                    }
+                    SigId::Memo { .. } => unreachable!(),
+                    SigId::TrackEq { .. } => todo!(),
                 },
-                SendSyncSetStateItem::Mutate { sig_id, mutate } => match sig_id {
+                SetStateItem::Mutate { sig_id, mutate } => match sig_id {
                     SigId::State { instance_id, index } => {
                         let instance = self.instances.as_mut().get_mut(&instance_id).unwrap();
                         let value = instance.state_list.as_mut().get_mut(index).unwrap();
@@ -133,9 +106,8 @@ impl World {
                         mutate(value.as_mut());
                         self.add_sig_updated(sig_id);
                     }
-                    SigId::Memo { .. } | SigId::TrackEq { .. } => {
-                        unreachable!()
-                    }
+                    SigId::Memo { .. } => unreachable!(),
+                    SigId::TrackEq { .. } => todo!(),
                 },
             }
         }
@@ -197,14 +169,6 @@ impl World {
 
     fn reset_updated_sig_ids(&mut self) {
         self.updated_sig_ids.as_mut().clear();
-    }
-
-    pub(crate) fn get_set_state_tx(&self) -> &mpsc::Sender<SetStateItem> {
-        &self.set_state_tx
-    }
-
-    pub(crate) fn get_send_sync_set_state_tx(&self) -> &mpsc::Sender<SendSyncSetStateItem> {
-        &self.send_sync_set_state_tx
     }
 
     pub(crate) fn now(&self) -> Instant {

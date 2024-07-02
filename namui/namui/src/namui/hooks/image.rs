@@ -31,7 +31,6 @@ impl ImageTrait for RenderCtx<'_, '_> {
                 set_load.set(None);
             }
 
-            let set_load = set_load.cloned();
             let join_handle = crate::spawn(async move {
                 let image = load_image_from_resource_location(resource_location).await;
                 set_load.set(Some(image));

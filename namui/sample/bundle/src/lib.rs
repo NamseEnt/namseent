@@ -9,7 +9,6 @@ fn render(ctx: &RenderCtx) {
     let (content, set_content) = ctx.state(|| None);
 
     ctx.effect("load media", || {
-        let set_content = set_content.cloned();
         namui::spawn(async move {
             let buffer = namui::system::file::bundle::read("resources/text.txt")
                 .await

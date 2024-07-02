@@ -29,16 +29,16 @@ impl<C: Component> Component for AutoListView<C> {
     }
 }
 
-pub struct ListView<'a, C: Component> {
+pub struct ListView<C: Component> {
     pub height: Px,
     pub scroll_bar_width: Px,
     pub item_wh: Wh<Px>,
     pub items: Vec<(String, C)>,
     pub scroll_y: Px,
-    pub set_scroll_y: SetState<'a, Px>,
+    pub set_scroll_y: SetState<Px>,
 }
 
-impl<C: Component> Component for ListView<'_, C> {
+impl<C: Component> Component for ListView<C> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
