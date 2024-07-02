@@ -130,8 +130,8 @@ async fn handle_msg(
         handle::HandleResult::Error(x) => (x, 1),
     };
 
-    out_payload.extend_from_slice(&(status as u8).to_be_bytes());
-    out_payload.extend_from_slice(&packet_id.to_be_bytes());
+    out_payload.extend_from_slice(&(status as u8).to_le_bytes());
+    out_payload.extend_from_slice(&packet_id.to_le_bytes());
 
     out_msg_tx.send(OutMessage::Binary(out_payload)).await?;
     Ok(())

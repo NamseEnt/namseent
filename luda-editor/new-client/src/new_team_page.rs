@@ -30,7 +30,7 @@ impl Component for NewTeamPage {
             validate();
             set_create_team_job.set(Job::InProgress);
 
-            let handle = tokio::spawn(async move {
+            ctx.spawn(async move {
                 let result = Result::<(), String>::Ok(());
 
                 match result {
@@ -43,7 +43,6 @@ impl Component for NewTeamPage {
                     }
                 }
             });
-            ctx.abort_on_unmount(handle);
         };
 
         ctx.compose(|ctx| {

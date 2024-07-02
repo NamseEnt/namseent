@@ -8,6 +8,7 @@ pub async fn session_token_auth(
     db: Database,
     session: Session,
 ) -> Result<Response, Error> {
+    println!("session_token_auth");
     if session.logged_in() {
         return Err(Error::AlreadyLoggedIn);
     };

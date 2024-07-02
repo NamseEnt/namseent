@@ -25,3 +25,18 @@ pub fn get_my_teams_render<'a, Deps: Dependencies + 'a>(
         None => on_loading(),
     }
 }
+impl ServerConnection {
+    pub async fn get_my_teams<'a>(
+        &'a self,
+        request: RefRequest,
+    ) -> Result<Result<Response, Error>> {
+        Ok(self
+            .request(
+                3u16,
+                luda_rpc::rkyv::to_bytes::<_, 1024>(&request)
+                    .unwrap()
+                    .to_vec(),
+            )
+            .await?)
+    }
+}

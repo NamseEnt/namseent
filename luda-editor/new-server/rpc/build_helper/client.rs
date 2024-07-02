@@ -12,6 +12,10 @@ fn client_src_path() -> &'static std::path::Path {
 
 fn generate_rpc_files(rpc: &Rpc) {
     let rpc_path = client_src_path().join("rpc");
+    if rpc_path.exists() {
+        std::fs::remove_dir_all(&rpc_path).unwrap();
+    }
+    std::fs::create_dir_all(&rpc_path).unwrap();
     let mut rpc_mod_rs_lines = rpc
         .services
         .iter()
@@ -96,6 +100,22 @@ fn generate_rpc_files(rpc: &Rpc) {
                             Err(err) => on_err(err),
                         },
                         None => on_loading(),
+                    }
+                }
+
+                impl ServerConnection {
+                    pub async fn #api_name<'a>(
+                        &'a self,
+                        request: #ref_request_implicit_lifetime,
+                    ) -> Result<Result<Response, Error>> {
+                        Ok(self
+                            .request(
+                                #api_index,
+                                luda_rpc::rkyv::to_bytes::<_, 1024>(&request)
+                                    .unwrap()
+                                    .to_vec()
+                        )
+                        .await?)
                     }
                 }
             };

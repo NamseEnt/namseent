@@ -10,4 +10,4 @@ export AWS_REGION=ap-northeast-2
 # export RUST_BACKTRACE=1
 # export RUST_LOG=debug
 
-cargo run --manifest-path ./server/Cargo.toml
+cargo watch --why -C ./server -w . -x run

@@ -14,10 +14,9 @@ use simple_button::*;
 
 pub fn main() {
     namui::start(|ctx| {
-        let (server_connection, set_server_connection) = ctx
-            .init_atom(&network::SERVER_CONNECTION_ATOM, || {
-                ServerConnection::new("ws://localhost:8080")
-            });
+        let _ = ctx.init_atom(&network::SERVER_CONNECTION_ATOM, || {
+            ServerConnection::new("ws://localhost:8080/ws")
+        });
         let (logged_in, set_logged_in) = ctx.state(|| false);
         if !*logged_in {
             ctx.add(Login { set_logged_in });
@@ -37,26 +36,87 @@ pub fn main() {
     });
 }
 
-struct Login<'a> {
-    set_logged_in: SetState<'a, bool>,
+struct Login {
+    set_logged_in: SetState<bool>,
 }
-impl Component for Login<'_> {
+impl Component for Login {
     fn render(self, ctx: &RenderCtx) {
+        let Self { set_logged_in } = self;
         let (error, set_error) = ctx.state(|| None::<String>);
+        let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
+        let server_connection = server_connection.clone_inner();
+
+        const KV_STORE_SESSION_TOKEN_KEY: &str = "session_token";
 
         ctx.effect("Insert gsi html api", || {
-            let set_error = set_error.cloned();
-            let set_logged_in = self.set_logged_in.cloned();
-            let handle = tokio::spawn(async move {
-                let jwt = take_google_gsi_jwt().await;
-                if let Err(err) = network::login(jwt).await {
-                    set_error.set(Some(format!("Failed to connect to server: {}", err)));
-                    return;
-                };
-                set_logged_in.set(true);
-            });
+            ctx.spawn(async move {
+                let result: Result<()> = async move {
+                    let session_token =
+                        namui::system::file::kv_store::get(KV_STORE_SESSION_TOKEN_KEY)?;
 
-            move || handle.abort()
+                    if let Some(session_token) = session_token {
+                        let session_token_string = String::from_utf8(session_token).unwrap();
+
+                        use rpc::auth::session_token_auth::*;
+                        match server_connection
+                            .session_token_auth(RefRequest {
+                                session_token: &session_token_string,
+                            })
+                            .await?
+                        {
+                            Ok(_) => {
+                                return Ok(());
+                            }
+                            Err(err) => match err {
+                                Error::AlreadyLoggedIn => {
+                                    return Ok(());
+                                }
+                                Error::SessionTokenNotExist => {
+                                    // continue
+                                }
+                                Error::InternalServerError { err } => {
+                                    return Err(anyhow!(
+                                        "session_token_auth | Internal server error: {err}"
+                                    ));
+                                }
+                            },
+                        }
+                    }
+
+                    let jwt = take_google_gsi_jwt().await;
+                    {
+                        use rpc::auth::google_auth::*;
+                        match server_connection
+                            .google_auth(RefRequest { jwt: &jwt })
+                            .await?
+                        {
+                            Ok(response) => {
+                                namui::system::file::kv_store::set(
+                                    KV_STORE_SESSION_TOKEN_KEY,
+                                    response.session_token.as_bytes(),
+                                )?;
+                                Ok(())
+                            }
+                            Err(err) => match err {
+                                Error::AlreadyLoggedIn => Ok(()),
+                                Error::InternalServerError { err } => {
+                                    Err(anyhow!("google_auth | Internal server error: {err}"))
+                                }
+                            },
+                        }
+                    }
+                }
+                .await;
+
+                match result {
+                    Ok(_) => {
+                        set_logged_in.set(true);
+                    }
+                    Err(err) => {
+                        set_error.set(Some(err.to_string()));
+                    }
+                }
+            });
         });
 
         if let Some(error) = error.as_ref() {
@@ -64,6 +124,13 @@ impl Component for Login<'_> {
                 namui::screen::size().map(|x| x.into_px()),
                 error,
                 Color::RED,
+                20.int_px(),
+            ));
+        } else {
+            ctx.add(typography::center_text(
+                namui::screen::size().map(|x| x.into_px()),
+                "login...",
+                Color::BLACK,
                 20.int_px(),
             ));
         }

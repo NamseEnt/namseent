@@ -38,7 +38,7 @@ where
         luda_rpc::rkyv::Deserialize<Error, luda_rpc::rkyv::de::deserializers::SharedDeserializeMap>,
 {
     let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
-    let server_connection = server_connection.clone();
+    let server_connection = server_connection.clone_inner();
     let (response, set_response) = ctx.state(|| None);
     let dependencies_changed = dependencies.changed(ctx);
     let deps_sig = ctx.controlled_memo(|_| {
@@ -52,36 +52,16 @@ where
         deps_sig.record_as_used();
 
         let Some(req) = request(dependencies) else {
-            return EffectCleanUp::None;
+            return;
         };
 
         let bytes = rkyv::to_bytes(&req).unwrap().to_vec();
-        let request_packet = RequestPacket::new(api_index, bytes);
 
-        let join_handle: JoinHandle<Result<()>> = tokio::spawn(async move {
-            let response_packet = server_connection.request(request_packet).await?;
-
-            let response = match response_packet.status {
-                ResponseStatus::Response => {
-                    let response = unsafe {
-                        rkyv::from_bytes_unchecked(&response_packet.response_payload).unwrap()
-                    };
-                    Ok(response)
-                }
-                ResponseStatus::Error => {
-                    let error = unsafe {
-                        rkyv::from_bytes_unchecked(&response_packet.response_payload).unwrap()
-                    };
-                    Err(error)
-                }
-            };
+        ctx.spawn(async move {
+            let response = server_connection.request(api_index, bytes).await?;
             set_response.set(Some(response));
-            Ok(())
+            Result::<()>::Ok(())
         });
-
-        EffectCleanUp::Once(Box::new(move || {
-            join_handle.abort();
-        }))
     });
 
     response
@@ -138,7 +118,8 @@ impl ConnectionKeeper {
                         response = receiver.recv() => {
                             match response {
                                 Some(response) => {
-                                    let packet_id = u32::from_le_bytes(response[0..4].try_into().unwrap());
+                                    let packet_id = u32::from_le_bytes(response[response.len() - 4..].try_into().unwrap());
+                                    println!("packet_id: {packet_id}");
                                     let request = requests.remove(&packet_id).unwrap();
                                     request.response_tx.send(response.into_vec()).unwrap();
                                 },
@@ -188,7 +169,47 @@ impl ServerConnection {
             connection_keeper: ConnectionKeeper::new(url).into(),
         }
     }
-    async fn request(
+
+    pub async fn request<
+        Response: rkyv::Archive + Send + 'static,
+        Error: rkyv::Archive + Send + 'static,
+    >(
+        &self,
+        api_index: u16,
+        request_bytes: Vec<u8>,
+    ) -> Result<Result<Response, Error>, oneshot::error::RecvError>
+    where
+        <Response as luda_rpc::rkyv::Archive>::Archived: luda_rpc::rkyv::Deserialize<
+            Response,
+            luda_rpc::rkyv::de::deserializers::SharedDeserializeMap,
+        >,
+        <Error as luda_rpc::rkyv::Archive>::Archived: luda_rpc::rkyv::Deserialize<
+            Error,
+            luda_rpc::rkyv::de::deserializers::SharedDeserializeMap,
+        >,
+    {
+        let request_packet = RequestPacket::new(api_index, request_bytes);
+
+        let response_packet = self.request_raw(request_packet).await?;
+
+        let response = match response_packet.status {
+            ResponseStatus::Response => {
+                let response = unsafe {
+                    rkyv::from_bytes_unchecked(&response_packet.response_payload).unwrap()
+                };
+                Ok(response)
+            }
+            ResponseStatus::Error => {
+                let error = unsafe {
+                    rkyv::from_bytes_unchecked(&response_packet.response_payload).unwrap()
+                };
+                Err(error)
+            }
+        };
+        Ok(response)
+    }
+
+    async fn request_raw(
         &self,
         request_packet: RequestPacket,
     ) -> Result<ResponsePacket, oneshot::error::RecvError> {
@@ -255,23 +276,4 @@ impl RequestPacket {
         bytes.extend_from_slice(&self.api_index.to_le_bytes());
         bytes
     }
-}
-
-pub async fn connect_to_server(jwt: String) -> Result<ServerConnection> {
-    todo!()
-    // sender.send(jwt.as_bytes());
-
-    // let data = receiver
-    //     .recv()
-    //     .await
-    //     .ok_or(anyhow!("Failed to get auth response"))?;
-
-    // Ok(ServerConnection {
-    //     sender,
-    //     // receiver,
-    // })
-}
-
-pub(crate) async fn login(jwt: String) -> Result<(), rpc::auth::google_auth::Error> {
-    todo!()
 }

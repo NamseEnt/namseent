@@ -16,5 +16,16 @@ pub fn write_fmt(path: impl AsRef<Path>, code: impl ToString) {
     if !output.status.success() {
         panic!("Failed to run rustfmt: {:?}", output);
     }
-    std::fs::write(path, output.stdout).unwrap();
+
+    write_if_changed(path, String::from_utf8(output.stdout).unwrap())
+}
+pub fn write_if_changed(path: impl AsRef<Path>, contents: impl ToString) {
+    let contents = contents.to_string();
+    if let Ok(existing) = std::fs::read_to_string(&path) {
+        if existing == contents {
+            return;
+        }
+    }
+    println!("Writing {}", path.as_ref().display());
+    std::fs::write(&path, contents).unwrap();
 }

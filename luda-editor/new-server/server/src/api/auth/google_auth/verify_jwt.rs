@@ -52,7 +52,7 @@ impl GoogleJwksClient {
                 let cache_control = response.headers().get("cache-control").unwrap();
                 let max_age = cache_control
                     .to_str()?
-                    .split(',')
+                    .split(", ")
                     .find(|s| s.starts_with("max-age="))
                     .unwrap()
                     .split('=')
@@ -90,8 +90,6 @@ impl GoogleJwksClient {
                 &DecodingKey::from_rsa_components(&jwk.n, &jwk.e)?,
                 &validation,
             )?;
-
-            println!("token: {:?}", token);
 
             return Ok(token.claims);
         }

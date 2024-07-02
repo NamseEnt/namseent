@@ -43,7 +43,7 @@ async fn start_server() -> Result<()> {
         "8080".to_string()
     };
 
-    let addr = format!("[::]:{port}").parse()?;
+    let addr = format!("0.0.0.0:{port}").parse()?;
 
     println!("Listening on {}", addr);
     axum_server::bind(addr)

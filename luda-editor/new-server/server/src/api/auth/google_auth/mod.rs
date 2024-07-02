@@ -20,7 +20,7 @@ pub async fn google_auth(
         static GOOGLE_JWKS_CLIENT: OnceLock<GoogleJwksClient> = OnceLock::new();
         GOOGLE_JWKS_CLIENT.get_or_init(|| {
             GoogleJwksClient::new(
-                "595497537052-2ah859bei8e1ugcdglrkim5b279euhpt.apps.googleusercontent.com"
+                "857257861263-96dkj0a5mhihgbsh663qi54ko1us7gf9.apps.googleusercontent.com"
                     .to_string(),
             )
         })

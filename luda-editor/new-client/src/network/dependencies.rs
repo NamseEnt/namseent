@@ -4,7 +4,7 @@ pub trait Dependencies {
     fn changed(&self, ctx: &RenderCtx) -> bool;
 }
 
-impl<T: 'static + PartialEq + Clone> Dependencies for Option<&T> {
+impl<T: 'static + PartialEq + Clone + Send> Dependencies for Option<&T> {
     fn changed(&self, ctx: &RenderCtx) -> bool {
         let (state, set_state) = ctx.state(|| self.cloned());
         if *self != state.as_ref().as_ref() {

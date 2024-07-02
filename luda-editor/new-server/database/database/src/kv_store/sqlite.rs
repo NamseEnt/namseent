@@ -14,6 +14,7 @@ pub struct SqliteKvStore {
 
 const DB_PATH: &str = "db.sqlite";
 const BACKUP_PATH: &str = "db.sqlite.backup";
+const DB_S3_KEY: &str = "db.sqlite";
 
 impl SqliteKvStore {
     pub async fn new(s3_client: aws_sdk_s3::Client, bucket_name: String) -> anyhow::Result<Self> {
@@ -268,12 +269,21 @@ async fn try_fetch_db_file_from_s3(
         return Ok(());
     }
 
-    let object = s3_client
+    let result = s3_client
         .get_object()
         .bucket(bucket_name)
-        .key("db.sqlite")
+        .key(DB_S3_KEY)
         .send()
-        .await?;
+        .await;
+    let object = match result {
+        Ok(object) => object,
+        Err(err) => match err.as_service_error() {
+            Some(aws_sdk_s3::operation::get_object::GetObjectError::NoSuchKey(_)) => {
+                return Ok(());
+            }
+            _ => return Err(err.into()),
+        },
+    };
 
     let mut file = tokio::fs::File::create(DB_PATH).await?;
     tokio::io::copy(&mut object.body.into_async_read(), &mut file).await?;
@@ -314,7 +324,7 @@ async fn save_db_backup_to_s3(
     s3_client
         .put_object()
         .bucket(bucket_name)
-        .key("db.sqlite")
+        .key(DB_S3_KEY)
         .body(ByteStream::from_path(BACKUP_PATH).await?)
         .send()
         .await?;
@@ -325,9 +335,8 @@ async fn save_db_backup_to_s3(
 async fn migrate() -> anyhow::Result<()> {
     let pramga_conn = Connection::open(DB_PATH)?;
     let current_version = {
-        let result = pramga_conn.query_row("PRAGMA kv_store.user_version", [], |row| {
-            row.get::<_, usize>(0)
-        });
+        let result =
+            pramga_conn.query_row("PRAGMA main.user_version", [], |row| row.get::<_, usize>(0));
         if let Err(rusqlite::Error::QueryReturnedNoRows) = result {
             None
         } else {
@@ -378,8 +387,8 @@ async fn migrate() -> anyhow::Result<()> {
     }
 
     pramga_conn.execute(
-        "PRAGMA kv_store.user_version = ?",
-        [migration::LATEST_VERSION],
+        &format!("PRAGMA main.user_version = {}", migration::LATEST_VERSION),
+        [],
     )?;
 
     Ok(())

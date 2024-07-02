@@ -25,3 +25,18 @@ pub fn session_token_auth_render<'a, Deps: Dependencies + 'a>(
         None => on_loading(),
     }
 }
+impl ServerConnection {
+    pub async fn session_token_auth<'a>(
+        &'a self,
+        request: RefRequest<'a>,
+    ) -> Result<Result<Response, Error>> {
+        Ok(self
+            .request(
+                1u16,
+                luda_rpc::rkyv::to_bytes::<_, 1024>(&request)
+                    .unwrap()
+                    .to_vec(),
+            )
+            .await?)
+    }
+}
