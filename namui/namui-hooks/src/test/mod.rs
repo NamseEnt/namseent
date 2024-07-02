@@ -132,10 +132,10 @@ fn effect_by_set_state_should_work() {
             let (state, set_state) = ctx.state(|| 1);
             let (state1, set_state1) = ctx.state(|| 2);
 
-            let memo = ctx.memo(|| *state + *state1);
-
-            self.record
-                .store(*memo, std::sync::atomic::Ordering::Relaxed);
+            ctx.effect("", || {
+                self.record
+                    .store(*state + *state1, std::sync::atomic::Ordering::Relaxed);
+            });
 
             if self.update_state {
                 set_state.set(2);
@@ -271,6 +271,107 @@ fn effect_by_memo_should_work() {
             update_state: false,
         },
     );
+}
+
+#[test]
+fn effect_clean_up_should_work() {
+    use std::sync::{atomic::AtomicUsize, Arc};
+
+    let mut world = World::init(Instant::now, &MockSkCalculate);
+
+    let record = Arc::new(AtomicUsize::new(0));
+
+    #[derive(Debug)]
+    struct A {
+        record: Arc<AtomicUsize>,
+        use_b: bool,
+    }
+
+    #[derive(Debug)]
+    struct B {
+        record: Arc<AtomicUsize>,
+    }
+
+    #[derive(Debug)]
+    struct C {
+        record: Arc<AtomicUsize>,
+    }
+
+    impl Component for A {
+        fn render(self, ctx: &RenderCtx) {
+            let Self { record, use_b } = self;
+
+            if use_b {
+                ctx.add(B { record })
+            } else {
+                ctx.add(C { record })
+            };
+        }
+    }
+
+    impl Component for B {
+        fn render(self, ctx: &RenderCtx) {
+            let Self { record } = self;
+
+            ctx.effect("B", || {
+                move || {
+                    record.fetch_add(5, std::sync::atomic::Ordering::Relaxed);
+                }
+            })
+        }
+    }
+
+    impl Component for C {
+        fn render(self, ctx: &RenderCtx) {
+            let Self { record } = self;
+
+            ctx.effect("C", || {
+                move || {
+                    record.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                }
+            })
+        }
+    }
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            use_b: true,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 0);
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            use_b: true,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 0);
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            use_b: false,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 5);
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            use_b: true,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 6);
 }
 
 #[test]
