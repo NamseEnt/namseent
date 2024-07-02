@@ -39,7 +39,7 @@ mod tests {
 
     #[test]
     fn change_path_to_platform() {
-        let bundle_path = "bundle:abc";
+        let bundle_path = "abc";
         let test_cases_platform_prefix_expected: Vec<(PathBuf, PathBuf)> = vec![
             ("", "abc"),
             ("/", "/abc"),

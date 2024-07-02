@@ -1,7 +1,5 @@
 use crate::cli::Target;
 use crate::*;
-use itertools::Itertools;
-use rayon::prelude::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
 use services::bundle::NamuiBundleManifest;
 use services::runtime_project::{wasm::generate_runtime_project, GenerateRuntimeProjectArgs};
@@ -40,12 +38,9 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
         .build_finished(BuildStatusCategory::Namui, result.error_messages, vec![])
         .await;
 
-    let bundle_manifest = NamuiBundleManifest::parse(project_root_path.clone())?;
-
     let vite_config = ViteConfig {
         project_root_path: &project_root_path,
         release,
-        bundle_manifest: &bundle_manifest,
     };
 
     build_status_service
@@ -99,175 +94,22 @@ async fn start_web_code() -> Result<Child> {
 struct ViteConfig<'a> {
     project_root_path: &'a Path,
     release: bool,
-    bundle_manifest: &'a NamuiBundleManifest,
 }
 async fn update_vite_config(config: &ViteConfig<'_>) -> Result<()> {
-    let namui_runtime_wasm_path = config.project_root_path.join(format!(
-        "target/namui/target/wasm32-wasip1-threads/{}/namui-runtime-wasm.wasm",
+    let bundle_manifest = NamuiBundleManifest::parse(config.project_root_path)?;
+
+    let target_project_path = config.project_root_path.join(format!(
+        "target/namui/target/wasm32-wasip1-threads/{}",
         if config.release { "release" } else { "debug" }
     ));
+    let namui_runtime_wasm_path = target_project_path.join("namui-runtime-wasm.wasm");
+    let bundle_sqlite_path = target_project_path.join("bundle.sqlite");
+    bundle_manifest.bundle_to_sqlite(&bundle_sqlite_path)?;
 
     let generated_dist = get_cli_root_path().join("webCode/src/__generated__");
-    let bundle_dist = generated_dist.join("bundle");
 
     let _ = remove_dir_all(&generated_dist).await;
     create_dir_all(&generated_dist).await?;
-
-    let collect_operations = config
-        .bundle_manifest
-        .get_collect_operations(&bundle_dist)?;
-
-    collect_operations
-        .into_par_iter()
-        .try_for_each(|op| op.execute(config.project_root_path, &bundle_dist))?;
-
-    let files = walkdir::WalkDir::new(&bundle_dist)
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|e| !e.file_type().is_dir())
-        .collect::<Vec<_>>();
-
-    let imports = files
-        .iter()
-        .enumerate()
-        .map(|(i, entry)| {
-            let path = entry.path();
-            let suffix = path.strip_prefix(&bundle_dist).unwrap();
-            let name = suffix.to_string_lossy();
-            let name = name.replace('\\', "/");
-            format!(r#"import mod{i} from "./bundle/{name}?url";"#,)
-        })
-        .join("\n");
-
-    let mut bundle_code = imports
-        + r#"
-export async function init() {
-    const opfsRoot = await navigator.storage.getDirectory();
-    const bundleRoot = await opfsRoot.getDirectoryHandle("bundle", { create: true });
-
-    // TODO: Remove only changed files.
-    for await (const key of bundleRoot.keys()) {
-        await bundleRoot.removeEntry(key, { recursive: true });
-    }
-
-    type BundleSharedTree = {
-        [key: string]: BundleSharedTree | SharedArrayBuffer;
-    };
-
-    const directories: Record<string, {
-        directoryHandle: FileSystemDirectoryHandle,
-        sharedTree: BundleSharedTree,
-    }> = {};
-
-    const bundleSharedTree: BundleSharedTree = {};
-"#;
-
-    for entry in walkdir::WalkDir::new(&bundle_dist)
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|e| e.file_type().is_dir())
-    {
-        let path = entry.path();
-        let suffix = path.strip_prefix(&bundle_dist)?;
-        let Some(parent) = suffix.parent() else {
-            continue;
-        };
-
-        let parent_direct_handle_in_js = if parent.parent().is_none() {
-            "bundleRoot".to_string()
-        } else {
-            format!(
-                "directories[\"{}\"]!.directoryHandle",
-                parent.to_string_lossy()
-            )
-        };
-
-        let parent_shared_tree_in_js = if parent.parent().is_none() {
-            "bundleSharedTree".to_string()
-        } else {
-            format!("directories[\"{}\"]!.sharedTree", parent.to_string_lossy())
-        };
-
-        bundle_code.push_str(&format!(
-            r#"
-    directories["{key}"] = {{
-        directoryHandle: await {parent_direct_handle_in_js}.getDirectoryHandle("{name}", {{ create: true }}),
-        sharedTree: {{}},
-    }};
-    {parent_shared_tree_in_js}["{name}"] = directories["{key}"].sharedTree;
-"#,
-            key = suffix.to_string_lossy(),
-            name = path.file_name().unwrap().to_string_lossy(),
-        ));
-    }
-
-    bundle_code.push_str(
-        r#"
-
-    const makeFile = async (
-        fileUrl: string,
-        directoryHandle: FileSystemDirectoryHandle,
-        sharedTree: BundleSharedTree,
-        filename: string,
-    ) => {
-        const [
-            arrayBuffer,
-            accessHandle,
-        ] = await Promise.all([
-            fetch(fileUrl).then((res) => res.arrayBuffer()),
-            directoryHandle.getFileHandle(filename, { create: true })
-                .then((fileHandle) => fileHandle.createSyncAccessHandle()),
-        ])
-        accessHandle.write(arrayBuffer);
-        const sharedBuffer = new SharedArrayBuffer(arrayBuffer.byteLength);
-        new Uint8Array(sharedBuffer).set(new Uint8Array(arrayBuffer));
-        sharedTree[filename] = sharedBuffer;
-        accessHandle.flush();
-        accessHandle.close();
-    };
-    await Promise.all([
-"#,
-    );
-    for (i, entry) in files.iter().enumerate() {
-        let path = entry.path();
-        let suffix = path.strip_prefix(&bundle_dist).unwrap();
-        let filename = entry.file_name().to_string_lossy();
-
-        let parent = suffix.parent().unwrap();
-        let directory_handle = if parent.parent().is_none() {
-            "bundleRoot".to_string()
-        } else {
-            format!(
-                "directories[\"{}\"].directoryHandle",
-                parent.to_string_lossy()
-            )
-        };
-
-        let parent_shared_tree = if parent.parent().is_none() {
-            "bundleSharedTree".to_string()
-        } else {
-            format!("directories[\"{}\"].sharedTree", parent.to_string_lossy())
-        };
-
-        bundle_code.push_str(&format!(
-            r#"makeFile(
-    mod{i},
-    {directory_handle},
-    {parent_shared_tree},
-    "{filename}",
-),
-"#
-        ));
-    }
-    bundle_code.push_str(
-        r#"
-    ]);
-
-    return bundleSharedTree;
-}"#,
-    );
-
-    tokio::fs::write(generated_dist.join("bundle.ts"), bundle_code).await?;
 
     tokio::fs::write(
         get_cli_root_path().join("webCode/vite.config.js"),
@@ -291,12 +133,14 @@ export default defineConfig({{
     resolve: {{
         alias: {{
             "namui-runtime-wasm.wasm?url": "{namui_runtime_wasm}?url",
+            "bundle.sqlite?url": "{bundle_sqlite}?url",
         }}
     }},
 }});
 "#,
             namui_runtime_wasm = namui_runtime_wasm_path.to_string_lossy(),
             cli_root = get_cli_root_path().to_string_lossy(),
+            bundle_sqlite = bundle_sqlite_path.to_string_lossy(),
         ),
     )
     .await?;
