@@ -1,11 +1,16 @@
+mod bundle_to_sqlite;
 mod lexicon;
 mod token;
 use crate::*;
 
 use super::resource_collect_service::CollectOperation;
 use crate::util::get_cli_root_path;
+use bundle_to_sqlite::bundle_to_sqlite;
 use lexicon::*;
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 use token::*;
 
 #[derive(Debug)]
@@ -24,7 +29,7 @@ struct Bundle {
 }
 
 impl NamuiBundleManifest {
-    pub fn parse(project_root_path: PathBuf) -> Result<Self> {
+    pub fn parse(project_root_path: impl AsRef<std::path::Path>) -> Result<Self> {
         let project_bundle = parse_bundle(&project_root_path)?;
         let system_bundle = parse_bundle(get_cli_root_path())?;
 
@@ -50,7 +55,7 @@ impl NamuiBundleManifest {
         Ok(Self {
             project_bundle,
             system_bundle,
-            project_root_path,
+            project_root_path: project_root_path.as_ref().to_path_buf(),
             url_src_path_map,
             metadata_json,
         })
@@ -73,7 +78,7 @@ impl NamuiBundleManifest {
         Ok(merged_query)
     }
 
-    pub fn get_collect_operations(
+    fn get_collect_operations(
         &self,
         dest_root_path: impl AsRef<std::path::Path>,
     ) -> Result<Vec<CollectOperation>> {
@@ -99,6 +104,14 @@ impl NamuiBundleManifest {
             self.metadata_json(),
         )
         .map_err(|error| anyhow!("could not create bundle_metadata.json: {}", error))
+    }
+
+    pub(crate) fn bundle_to_sqlite(&self, sqlite_path: impl AsRef<std::path::Path>) -> Result<()> {
+        let ops = self.get_collect_operations(Path::new(""))?;
+        let now = std::time::Instant::now();
+        bundle_to_sqlite(sqlite_path, ops)?;
+        println!("INFO: bundle_to_sqlite took: {:?}", now.elapsed());
+        Ok(())
     }
 }
 

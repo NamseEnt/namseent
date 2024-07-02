@@ -17,7 +17,7 @@ impl Component for FontExample {
         ctx.effect("load font", || {
             namui::spawn(async move {
                 set_loading.set(true);
-                let font = namui::file::bundle::read("bundle:resources/MoiraiOne-Regular.ttf")
+                let font = namui::file::bundle::read("resources/MoiraiOne-Regular.ttf")
                     .await
                     .unwrap();
                 typeface::register_typeface(TYPEFACE_NAME, font)

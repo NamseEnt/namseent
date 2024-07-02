@@ -5,6 +5,7 @@ import MainWorker from "./main-worker?worker";
 import { TextInput } from "./textInput";
 import ThreadWorker from "./thread-worker?worker";
 import { webSocketHandleOnMainThread } from "./webSocket";
+import StorageWorker from "./storage/worker?worker";
 
 const canvas = document.createElement("canvas");
 canvas.width = window.innerWidth;
@@ -21,12 +22,25 @@ const eventBuffer = new SharedArrayBuffer(512 * 1024);
 const { onTextInputEvent } = startEventSystemOnMainThread(eventBuffer);
 const textInput = new TextInput(onTextInputEvent);
 
+const wasmMemory = new WebAssembly.Memory({
+    initial: 128,
+    maximum: 16384,
+    shared: true,
+});
+
+const storageWorker = new StorageWorker();
+sendToWorker(storageWorker, {
+    type: "storage-init",
+    wasmMemory,
+});
+
 const mainWorker = new MainWorker();
 
 sendToWorker(mainWorker, {
     type: "start-main-thread",
     eventBuffer,
     initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
+    wasmMemory,
 });
 
 let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;
@@ -87,6 +101,15 @@ function onMessage(this: Worker, message: MessageEvent) {
         }
         case "insert-js-drop": {
             insertJsHandle.onInsertJsDrop(payload);
+            break;
+        }
+        // File System
+        case "storage-thread-connect": {
+            storageWorker.postMessage(payload);
+            break;
+        }
+        case "storage-thread-disconnect": {
+            storageWorker.postMessage(payload);
             break;
         }
         default:

@@ -10,7 +10,7 @@ fn render(ctx: &RenderCtx) {
 
     ctx.effect("load media", || {
         namui::spawn(async move {
-            let buffer = namui::system::file::bundle::read("bundle:resources/text.txt")
+            let buffer = namui::system::file::bundle::read("resources/text.txt")
                 .await
                 .unwrap();
             let content = std::str::from_utf8(&buffer).unwrap();

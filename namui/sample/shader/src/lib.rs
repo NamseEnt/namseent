@@ -136,7 +136,7 @@ impl Entity for ShaderExample {
                             return image.eval(result_xy).rgba;
                         }
                     });
-                    let image_source_url = Url::parse("bundle:resources/test.jpg").unwrap();
+                    let image_source_url = Url::parse("resources/test.jpg").unwrap();
 
                     let image = namui::image::try_load_url(&image_source_url);
                     if image.is_none() {
@@ -231,7 +231,7 @@ impl Entity for ShaderExample {
                         }
                     });
 
-                    let image_source_url = Url::parse("bundle:resources/sweat.png").unwrap();
+                    let image_source_url = Url::parse("resources/sweat.png").unwrap();
 
                     let image = namui::image::try_load_url(&image_source_url);
                     if image.is_none() {

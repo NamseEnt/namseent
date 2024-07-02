@@ -33,7 +33,7 @@ fn append_components(
                 width: VISUAL_WIDTH,
                 height: VISUAL_HEIGHT,
             },
-            image_url: Url::parse("bundle:image/wall.png").unwrap(),
+            image_url: Url::parse("image/wall.png").unwrap(),
         })
         .collect();
     let mut sprite_batch = SpriteBatch::new(sprites);
