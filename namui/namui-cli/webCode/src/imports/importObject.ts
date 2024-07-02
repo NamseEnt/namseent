@@ -5,6 +5,7 @@ import { textInputImports } from "./textInput";
 import { Exports } from "../exports";
 import { webSocketImports } from "../webSocket";
 import { insertJsImports } from "../insertJs";
+import { storageImports } from "../storage/imports";
 
 export function createImportObject({
     memory,
@@ -16,6 +17,7 @@ export function createImportObject({
     initialWindowWh,
     exports,
     bundleSqlite,
+    storageProtocolBuffer,
 }: {
     memory: WebAssembly.Memory;
     module: WebAssembly.Module;
@@ -26,6 +28,7 @@ export function createImportObject({
     initialWindowWh: number;
     exports: () => Exports;
     bundleSqlite: () => ArrayBuffer;
+    storageProtocolBuffer: SharedArrayBuffer;
 }) {
     const glFunctions = envGl({
         exports,
@@ -85,6 +88,10 @@ export function createImportObject({
             }),
             ...insertJsImports({
                 memory,
+            }),
+            ...storageImports({
+                memory,
+                storageProtocolBuffer,
             }),
             poll_event: (wasmBufferPtr: number): number => {
                 if (!eventSystem) {
@@ -210,7 +217,6 @@ function implSetJmp({
         table: number,
         size: number,
     ) {
-        console.debug("saveSetjmp", env, label, table, size);
         setjmpId++;
 
         const envBuffer = new Uint32Array(memory.buffer, env, 1);
@@ -254,7 +260,6 @@ function implSetJmp({
     //   }
 
     function testSetjmp(id: number, table: number, size: number) {
-        console.debug("testSetjmp", id, table, size);
         const tableBuffer = new Uint32Array(memory.buffer, table, size * 2);
 
         let i = 0;

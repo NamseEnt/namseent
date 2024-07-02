@@ -6,7 +6,10 @@ import {
     WASI,
 } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
-import { WorkerMessagePayload } from "./interWorkerProtocol";
+import {
+    WorkerMessagePayload,
+    sendMessageToMainThread,
+} from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
 
@@ -16,6 +19,7 @@ self.onmessage = async (message) => {
     if (payload.type !== "thread-spawn") {
         throw new Error(`Unexpected message type: ${payload.type}`);
     }
+
     const {
         tid,
         nextTid,
@@ -51,6 +55,13 @@ self.onmessage = async (message) => {
 
     let exports: Exports = "not initialized" as unknown as Exports;
 
+    const storageProtocolBuffer = new SharedArrayBuffer(32);
+    sendMessageToMainThread({
+        type: "storage-thread-connect",
+        threadId: tid,
+        protocolBuffer: storageProtocolBuffer,
+    });
+
     const importObject = createImportObject({
         memory: wasmMemory,
         module,
@@ -60,6 +71,7 @@ self.onmessage = async (message) => {
         initialWindowWh,
         exports: () => exports,
         bundleSqlite: () => bundleSqlite,
+        storageProtocolBuffer,
     });
 
     const instance = await WebAssembly.instantiate(module, importObject);
@@ -69,4 +81,9 @@ self.onmessage = async (message) => {
     console.debug("thread start", tid);
     (instance.exports.wasi_thread_start as any)(tid, startArgPtr);
     console.debug("thread end", tid);
+
+    sendMessageToMainThread({
+        type: "storage-thread-disconnect",
+        threadId: tid,
+    });
 };

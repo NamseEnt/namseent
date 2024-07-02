@@ -128,7 +128,6 @@ export function envGl({
             }
         },
         glGetString: (name: number) => {
-            console.debug("glGetString", name.toString(16));
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -145,7 +144,6 @@ export function envGl({
                 case 7936 /* GL_VENDOR */:
                 case 7937 /* GL_RENDERER */:
                     const paramter = webgl.getParameter(name);
-                    console.debug("paramter", paramter);
 
                     if (!paramter) {
                         // This occurs e.g. if one attempts GL_UNMASKED_VENDOR_WEBGL when it is not supported.
@@ -202,7 +200,6 @@ export function envGl({
                     let glVersion = webgl.getParameter(7938 /*GL_VERSION*/);
                     // return GLES version string corresponding to the version of the WebGL context
                     glVersion = `OpenGL ES 3.0 (${glVersion})`;
-                    console.debug("glVersion", glVersion);
                     ret = stringToNewUTF8(glVersion);
                     break;
                 case 35724 /* GL_SHADING_LANGUAGE_VERSION */:
@@ -389,7 +386,6 @@ export function envGl({
                 });
             }
             source += decoder.decode();
-            console.debug("shader source", source);
             webgl.shaderSource(shader, source);
         },
         glScissor: () => {
@@ -485,7 +481,6 @@ export function envGl({
                 case 35716: // INFO_LOG_LENGTH
                     {
                         const log = webgl.getShaderInfoLog(shader);
-                        console.debug("shaderInfoLog", log);
                         memoryView().setInt32(
                             paramsPtr,
                             log ? log.length + 1 : 0,
@@ -1022,7 +1017,6 @@ export function envGl({
                 nameBytes.push(byte);
             }
             const name = new TextDecoder().decode(new Uint8Array(nameBytes));
-            console.debug("name", name);
             webgl.bindAttribLocation(programInfo.program, index, name);
         },
         /**
