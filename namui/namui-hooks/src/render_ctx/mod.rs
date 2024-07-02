@@ -82,6 +82,15 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     ) -> (Sig<T, &T>, SetState<T>) {
         self.component_ctx.atom(atom)
     }
+    /// This method just keep JoinHandle to abort when the component is unmounted.
+    /// This is not the replacement of `async_effect`, but `tokio::spawn`.
+    pub fn spawn<Fut>(&self, future: Fut)
+    where
+        Fut: std::future::Future + Send + 'static,
+        Fut::Output: Send + 'static,
+    {
+        self.component_ctx.spawn(future)
+    }
 }
 
 pub(crate) fn run<'a>(
