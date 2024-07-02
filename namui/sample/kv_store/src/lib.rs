@@ -24,13 +24,13 @@ fn render(ctx: &RenderCtx) {
 
     ctx.add(button::TextButton {
         rect: Rect::from_xy_wh(Xy::new(100.px(), 100.px()), Wh::new(100.px(), 40.px())),
-        text: "Add 1".to_string(),
+        text: "Add 1",
         text_color: Color::BLACK,
         stroke_color: Color::BLACK,
         stroke_width: 1.px(),
         fill_color: Color::WHITE,
         mouse_buttons: vec![MouseButton::Left],
-        on_mouse_up_in: |_| {
+        on_mouse_up_in: &|_| {
             set_value.mutate(|value| {
                 match value {
                     Some(value) => {
@@ -47,13 +47,13 @@ fn render(ctx: &RenderCtx) {
 
     ctx.add(button::TextButton {
         rect: Rect::from_xy_wh(Xy::new(100.px(), 200.px()), Wh::new(100.px(), 40.px())),
-        text: "Delete".to_string(),
+        text: "Delete",
         text_color: Color::BLACK,
         stroke_color: Color::BLACK,
         stroke_width: 1.px(),
         fill_color: Color::WHITE,
         mouse_buttons: vec![MouseButton::Left],
-        on_mouse_up_in: |_| {
+        on_mouse_up_in: &|_| {
             namui::system::file::kv_store::delete(KEY).unwrap();
             set_value.set(namui::system::file::kv_store::get(KEY).unwrap());
         },

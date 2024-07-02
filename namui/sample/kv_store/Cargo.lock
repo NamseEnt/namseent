@@ -1372,7 +1372,6 @@ dependencies = [
  "namui-type",
  "rustc-hash",
  "smol_str",
- "tokio 1.38.0",
 ]
 
 [[package]]

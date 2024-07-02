@@ -10,7 +10,7 @@ use winit as inner;
 
 use super::InitResult;
 use crate::ResourceLocation;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use namui_skia::*;
 use namui_type::*;
 use std::sync::*;
@@ -52,8 +52,8 @@ pub async fn load_image_from_resource_location(
             let bytes = crate::file::bundle::read(path).await?;
             load_image_from_bytes(bytes.as_ref()).await
         }
-        ResourceLocation::LocalStorage(path) => {
-            let bytes = crate::file::local_storage::read(path).await?;
+        ResourceLocation::KvStore(key) => {
+            let bytes = crate::file::kv_store::get(key)?.ok_or_else(|| anyhow!("Not found"))?;
             load_image_from_bytes(bytes.as_ref()).await
         }
         ResourceLocation::Network(url) => {

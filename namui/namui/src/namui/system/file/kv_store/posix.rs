@@ -19,11 +19,9 @@ pub fn get(key: impl AsRef<str>) -> Result<Option<Vec<u8>>> {
 
     sqlite(|conn| {
         Ok(conn
-            .query_row(
-                "SELECT value FROM kv_store WHERE key = ?",
-                [key],
-                |row| row.get::<usize, Vec<u8>>(0),
-            )
+            .query_row("SELECT value FROM kv_store WHERE key = ?", [key], |row| {
+                row.get::<usize, Vec<u8>>(0)
+            })
             .optional()?)
     })
 }
