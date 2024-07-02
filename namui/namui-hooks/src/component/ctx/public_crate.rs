@@ -347,4 +347,16 @@ impl ComponentCtx<'_> {
 
         (sig, set_state)
     }
+    pub fn spawn<Fut>(&self, future: Fut)
+    where
+        Fut: std::future::Future + Send + 'static,
+        Fut::Output: Send + 'static,
+    {
+        let handle = tokio::spawn(future);
+
+        self.instance
+            .abort_handle_list
+            .borrow_mut()
+            .push(handle.abort_handle())
+    }
 }

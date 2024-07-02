@@ -132,10 +132,10 @@ fn effect_by_set_state_should_work() {
             let (state, set_state) = ctx.state(|| 1);
             let (state1, set_state1) = ctx.state(|| 2);
 
-            let memo = ctx.memo(|| *state + *state1);
-
-            self.record
-                .store(*memo, std::sync::atomic::Ordering::Relaxed);
+            ctx.effect("", || {
+                self.record
+                    .store(*state + *state1, std::sync::atomic::Ordering::Relaxed);
+            });
 
             if self.update_state {
                 set_state.set(2);
@@ -271,6 +271,107 @@ fn effect_by_memo_should_work() {
             update_state: false,
         },
     );
+}
+
+#[test]
+fn effect_clean_up_should_work() {
+    use std::sync::{atomic::AtomicUsize, Arc};
+
+    let mut world = World::init(Instant::now, &MockSkCalculate);
+
+    let record = Arc::new(AtomicUsize::new(0));
+
+    #[derive(Debug)]
+    struct A {
+        record: Arc<AtomicUsize>,
+        use_b: bool,
+    }
+
+    #[derive(Debug)]
+    struct B {
+        record: Arc<AtomicUsize>,
+    }
+
+    #[derive(Debug)]
+    struct C {
+        record: Arc<AtomicUsize>,
+    }
+
+    impl Component for A {
+        fn render(self, ctx: &RenderCtx) {
+            let Self { record, use_b } = self;
+
+            if use_b {
+                ctx.add(B { record })
+            } else {
+                ctx.add(C { record })
+            };
+        }
+    }
+
+    impl Component for B {
+        fn render(self, ctx: &RenderCtx) {
+            let Self { record } = self;
+
+            ctx.effect("B", || {
+                move || {
+                    record.fetch_add(5, std::sync::atomic::Ordering::Relaxed);
+                }
+            })
+        }
+    }
+
+    impl Component for C {
+        fn render(self, ctx: &RenderCtx) {
+            let Self { record } = self;
+
+            ctx.effect("C", || {
+                move || {
+                    record.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                }
+            })
+        }
+    }
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            use_b: true,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 0);
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            use_b: true,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 0);
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            use_b: false,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 5);
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            use_b: true,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 6);
 }
 
 #[test]
@@ -604,11 +705,15 @@ fn set_state_should_be_copied_into_async_move() {
 fn set_state_should_be_copied_into_async_effect() {
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
+    let (tx, mut rx) = tokio::sync::mpsc::channel(5);
     #[derive(Debug)]
-    struct A {}
+    struct A {
+        tx: tokio::sync::mpsc::Sender<i32>,
+    }
 
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
+            let Self { tx } = self;
             let (state0, set_state0) = ctx.state(|| 5);
             let (state1, set_state1) = ctx.state(|| 5);
 
@@ -621,10 +726,15 @@ fn set_state_should_be_copied_into_async_effect() {
                 (state0, state1),
                 move |(state, state1)| async move {
                     set_state1.set(state + state1);
+                    tx.send(state + state1).await.unwrap();
                 },
             );
         }
     }
 
-    World::run(&mut world, A {});
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        World::run(&mut world, A { tx });
+        let value = rx.recv().await.unwrap();
+        assert_eq!(value, 10);
+    });
 }

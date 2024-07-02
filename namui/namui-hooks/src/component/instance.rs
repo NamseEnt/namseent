@@ -11,6 +11,7 @@ pub(crate) struct Instance {
     pub(crate) track_eq_list: RefCell<Vec<Rc<dyn Value>>>,
     pub(crate) effect_list: RefCell<Vec<Effect>>,
     pub(crate) interval_called_list: RefCell<Vec<Instant>>,
+    pub(crate) abort_handle_list: RefCell<Vec<tokio::task::AbortHandle>>,
 }
 impl Instance {
     pub(crate) fn new(id: InstanceId) -> Self {
@@ -22,6 +23,7 @@ impl Instance {
             track_eq_list: Default::default(),
             effect_list: Default::default(),
             interval_called_list: Default::default(),
+            abort_handle_list: Default::default(),
         }
     }
 
@@ -33,6 +35,19 @@ impl Instance {
     pub(crate) fn take_rendered_flag(&mut self) -> bool {
         self.rendered_flag
             .swap(false, std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
+impl Drop for Instance {
+    fn drop(&mut self) {
+        let effect_list = self.effect_list.take();
+        for effect in effect_list {
+            effect.clean_up.call();
+        }
+        let abort_handle_list = self.abort_handle_list.take();
+        for abort_handle in abort_handle_list {
+            abort_handle.abort();
+        }
     }
 }
 

@@ -3,6 +3,9 @@ use crate::*;
 pub trait Dependencies<T: 'static> {
     fn cloned(&self) -> T;
 }
+impl Dependencies<()> for () {
+    fn cloned(&self) {}
+}
 impl<T: 'static + Send + Clone, R: std::borrow::Borrow<T>> Dependencies<T> for Sig<'_, T, R> {
     fn cloned(&self) -> T {
         self.as_ref().clone()
