@@ -9,17 +9,23 @@ pub type SerErr = rkyv::ser::serializers::CompositeSerializerError<
 
 pub enum TransactItem {
     Put {
-        key: String,
+        name: String,
+        pk: String,
+        sk: Option<String>,
         value: Vec<u8>,
         ttl: Option<Duration>,
     },
     Create {
-        key: String,
+        name: String,
+        pk: String,
+        sk: Option<String>,
         value: Vec<u8>,
         ttl: Option<Duration>,
     },
     Delete {
-        key: String,
+        name: String,
+        pk: String,
+        sk: Option<String>,
     },
 }
 

@@ -61,6 +61,7 @@ fn struct_get_define(
         .iter()
         .map(|field| field.ident.as_ref().unwrap());
     let pk_fields_as_refs = as_ref_fields(pk_fields_without_pk_attr);
+    let pk_field_count = pk_fields_as_refs.len();
 
     quote! {
         pub struct #get_struct_name<'a> {
@@ -68,13 +69,22 @@ fn struct_get_define(
         }
         impl document::DocumentGet for #get_struct_name<'_> {
             type Output = #name;
-            fn key(&self) -> String {
-                let mut key = String::new();
+            fn pk<'a>(&'a self) -> Pk<'a> {
+                let mut parts = Vec::with_capacity(#pk_field_count);
                 #(
-                    key += &format!("{}:{}", stringify!(#pk_fields_names),self.#pk_fields_names);
+                    parts.push(stringify!(#pk_fields_names));
+                    parts.push(self.#pk_fields_names);
                 )*
-                key
+                Pk::new(parts)
             }
+            // fn sk(&self) -> Option<String> {
+            //     todo!()
+            //     // let mut key = String::new();
+            //     // #(
+            //     //     key += &format!("{}:{}", stringify!(#pk_fields_names),self.#pk_fields_names);
+            //     // )*
+            //     // key
+            // }
         }
     }
 }

@@ -1,4 +1,4 @@
-use super::KvStore;
+use super::DocumentStore;
 use crate::Result;
 use aws_sdk_s3::primitives::ByteStream;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction};
@@ -28,12 +28,24 @@ impl SqliteKvStore {
             // - expired_at: 0 means no expiration,
             //               otherwise it's the Unix Time, the number of seconds since 1970-01-01 00:00:00 UTC.
             "CREATE TABLE IF NOT EXISTS
-                    kv_store (
-                        key TEXT PRIMARY KEY,
+                    documents (
+                        name TEXT NOT NULL,
+                        pk TEXT  NOT NULL,
+                        sk TEXT,
                         value BLOB,
                         version INTEGER,
-                        expired_at INTEGER
+                        expired_at INTEGER,
+                        PRIMARY KEY (pk, sk)
                     )",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS
+                documents_name_index
+            ON
+                documents (name)
+                ",
             [],
         )
         .unwrap();
@@ -64,11 +76,14 @@ impl SqliteKvStore {
 
                     let write_conn = write.lock().unwrap();
                     let deleted_count = write_conn
-                    .execute(
-                        "DELETE FROM kv_store WHERE expired_at != 0 AND expired_at < unixepoch()",
-                        [],
-                    )
-                    .unwrap();
+                        .execute(
+                            "DELETE FROM
+                                documents
+                            WHERE
+                                expired_at != 0 AND expired_at < unixepoch()",
+                            (),
+                        )
+                        .unwrap();
 
                     println!(
                         "Deleted expired keys in {:?}, deleted count: {deleted_count}",
@@ -92,19 +107,29 @@ impl SqliteKvStore {
     }
 }
 
-impl KvStore for SqliteKvStore {
-    async fn get(&self, key: impl AsRef<str>) -> Result<Option<super::ValueBuffer>> {
+impl DocumentStore for SqliteKvStore {
+    async fn get(
+        &self,
+        name: &str,
+        pk: &str,
+        sk: Option<&str>,
+    ) -> Result<Option<super::ValueBuffer>> {
         self.read_conn(|read_conn| {
             let mut stmt = read_conn.prepare(
                 "
-                SELECT value
-                FROM kv_store 
-                WHERE key = ? 
+                SELECT
+                    value
+                FROM
+                    documents 
+                WHERE
+                    name = ?
+                    AND pk = ?
+                    AND sk = ?
                     AND (expired_at = 0 OR expired_at >= unixepoch())
             ",
             )?;
             let vec: Option<Vec<_>> = stmt
-                .query_row([key.as_ref()], |row| row.get(0))
+                .query_row((name, pk, sk), |row| row.get(0))
                 .optional()?;
 
             Ok(vec.map(super::ValueBuffer::Vec))
@@ -113,19 +138,27 @@ impl KvStore for SqliteKvStore {
 
     async fn get_with_expiration(
         &self,
-        key: impl AsRef<str>,
+        name: &str,
+        pk: &str,
+        sk: Option<&str>,
     ) -> Result<Option<(super::ValueBuffer, Option<SystemTime>)>> {
         self.read_conn(|read_conn| {
             let mut stmt = read_conn.prepare(
                 "
-                SELECT value, expired_at
-                FROM kv_store 
-                WHERE key = ? 
+                SELECT
+                    value,
+                    expired_at
+                FROM
+                    documents 
+                name
+                    name = ?
+                    AND pk = ?
+                    AND sk = ?
                     AND (expired_at = 0 OR expired_at >= unixepoch())
             ",
             )?;
             let output: Option<(Vec<_>, Option<u64>)> = stmt
-                .query_row([key.as_ref()], |row| Ok((row.get(0)?, row.get(1)?)))
+                .query_row((name, pk, sk), |row| Ok((row.get(0)?, row.get(1)?)))
                 .optional()?;
 
             Ok(output.map(|(vec, expired_at)| {
@@ -145,34 +178,38 @@ impl KvStore for SqliteKvStore {
 
     async fn put(
         &self,
-        key: impl AsRef<str>,
+        name: &str,
+        pk: &str,
+        sk: Option<&str>,
         value: &impl AsRef<[u8]>,
         ttl: Option<Duration>,
     ) -> Result<()> {
         let mut write_conn = self.write_conn();
         let trx = write_conn.transaction()?;
-        put(&trx, key, value, ttl)?;
+        put(&trx, name, pk, sk, value, ttl)?;
         trx.commit()?;
         Ok(())
     }
 
-    async fn delete(&self, key: impl AsRef<str>) -> Result<()> {
+    async fn delete(&self, name: &str, pk: &str, sk: Option<&str>) -> Result<()> {
         let mut write_conn = self.write_conn();
         let trx = write_conn.transaction()?;
-        delete(&trx, key)?;
+        delete(&trx, name, pk, sk)?;
         trx.commit()?;
         Ok(())
     }
 
     async fn create<Bytes: AsRef<[u8]>>(
         &self,
-        key: impl AsRef<str>,
+        name: &str,
+        pk: &str,
+        sk: Option<&str>,
         value_fn: impl FnOnce() -> Result<Bytes>,
         ttl: Option<Duration>,
     ) -> Result<()> {
         let mut write_conn: MutexGuard<Connection> = self.write_conn();
         let trx = write_conn.transaction()?;
-        create(&trx, key, value_fn, ttl)?;
+        create(&trx, name, pk, sk, value_fn, ttl)?;
         trx.commit()?;
         Ok(())
     }
@@ -186,13 +223,27 @@ impl KvStore for SqliteKvStore {
 
         for item in transact_items.into_iter() {
             match item {
-                document::TransactItem::Put { key, value, ttl } => {
-                    put(&trx, key, &value, ttl)?;
+                document::TransactItem::Put {
+                    name,
+                    pk,
+                    sk,
+                    value,
+                    ttl,
+                } => {
+                    put(&trx, &name, &pk, sk.as_deref(), &value, ttl)?;
                 }
-                document::TransactItem::Create { key, value, ttl } => {
-                    create(&trx, key, || Ok(value), ttl)?;
+                document::TransactItem::Create {
+                    name,
+                    pk,
+                    sk,
+                    value,
+                    ttl,
+                } => {
+                    create(&trx, &name, &pk, sk.as_deref(), || Ok(value), ttl)?;
                 }
-                document::TransactItem::Delete { key } => delete(&trx, key)?,
+                document::TransactItem::Delete { name, pk, sk } => {
+                    delete(&trx, &name, &pk, sk.as_deref())?
+                }
             }
         }
         trx.commit()?;
@@ -201,7 +252,7 @@ impl KvStore for SqliteKvStore {
 
     // async fn update<T, Fut>(
     //     &self,
-    //     key: impl AsRef<str>,
+    //     name: &str, pk: &str, sk: Option<&str>,
     //     update: impl FnOnce(Option<HeapArchived<T>>) -> Fut,
     // ) -> Result<bool>
     // where
@@ -210,8 +261,8 @@ impl KvStore for SqliteKvStore {
     // {
     //     let output: Option<(Vec<_>, usize)> = self.read_conn(|read_conn| {
     //         let mut stmt =
-    //             read_conn.prepare("SELECT (value, version) FROM kv_store WHERE key = ?")?;
-    //         stmt.query_row([key.as_ref()], |row| Ok((row.get(0)?, row.get(1)?)))
+    //             read_conn.prepare("SELECT (value, version) FROM documents WHERE key = ?")?;
+    //         stmt.query_row((pk, sk), |row| Ok((row.get(0)?, row.get(name)?)))
     //             .optional()
     //     })?;
 
@@ -226,8 +277,8 @@ impl KvStore for SqliteKvStore {
 
     //     let write_conn = self.write_conn();
     //     let Some(new_value) = new_value else {
-    //         let mut stmt = write_conn.prepare("DELETE FROM kv_store WHERE key = ?")?;
-    //         stmt.execute([key.as_ref()])?;
+    //         let mut stmt = write_conn.prepare("DELETE FROM documents WHERE key = ?")?;
+    //         stmt.execute((pk, sname))?;
     //         return Ok(true);
     //     };
 
@@ -235,14 +286,14 @@ impl KvStore for SqliteKvStore {
 
     //     if let Some(version) = version {
     //         let mut stmt = write_conn.prepare(
-    //             "UPDATE kv_store SET value = ?, version = version + 1 WHERE key = ? AND version = ?",
-    //         )?;
+    //             "UPDATE documents SET value = ?, version = version + 1 WHERE key = ? AND version = ?",
+    //       name
     //         let changed = stmt.execute((buffer.as_slice(), key.as_ref(), version))?;
     //         return Ok(changed == 0);
     //     }
 
     //     let mut stmt =
-    //         write_conn.prepare("INSERT INTO kv_store (key, value, version) VALUES (?, ?, 0)")?;
+    //         write_conn.prepare("INSERT INTO documents (key, value, version) VALUES (?, ?, 0)name
 
     //     match stmt.execute((key.as_ref(), buffer.as_slice())) {
     //         Ok(count) => {
@@ -356,14 +407,34 @@ async fn migrate() -> anyhow::Result<()> {
                     Connection::open_with_flags(DB_PATH, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
                 let mut write_conn = Connection::open(DB_PATH)?;
 
-                let mut read_stmt =
-                    read_conn.prepare("SELECT value, key FROM kv_store WHERE key LIKE ?")?;
-                let mut rows = read_stmt.query([format!("{}-%", From::name())])?;
+                let mut read_stmt = read_conn.prepare(
+                    "
+                        SELECT
+                            value, pk, sk
+                        FROM
+                            documents
+                        WHERE
+                            name = ?
+                            AND (expired_at = 0 OR expired_at >= unixepoch())
+                        ",
+                )?;
+                let mut rows = read_stmt.query([From::name()])?;
 
                 let trx = write_conn.transaction()?;
                 {
-                    let mut write_stmt =
-                        trx.prepare("UPDATE kv_store SET value = ?, version = 0 WHERE key = ?")?;
+                    let mut write_stmt = trx.prepare(
+                        "
+                        UPDATE
+                            documents
+                        SET
+                            name = ?,
+                            value = ?,
+                            version = 0
+                        WHERE
+                            pk = ?
+                            AND sk = ?
+                        ",
+                    )?;
 
                     while let Some(row) = rows.next()? {
                         let from_bytes = row.get::<_, Vec<u8>>(0)?;
@@ -408,62 +479,76 @@ fn now_epoch_time_secs() -> u64 {
 
 fn put(
     trx: &Transaction<'_>,
-    key: impl AsRef<str>,
+    name: &str,
+    pk: &str,
+    sk: Option<&str>,
     value: &impl AsRef<[u8]>,
     ttl: Option<Duration>,
 ) -> Result<()> {
     let mut stmt = trx.prepare(
         "
-            INSERT OR REPLACE INTO kv_store 
-            (key, value, version, expired_at)
-            VALUES (?, ?, 0, ?)",
+            INSERT OR REPLACE INTO documents 
+            (name, pk, sk, value, version, expired)
+            VALUES (? ?, ?, ?, 0, ?)",
     )?;
 
     assert_eq!(
-        stmt.execute((key.as_ref(), value.as_ref(), ttl_to_expired_at(ttl)))?,
+        stmt.execute((name, pk, sk, value.as_ref(), ttl_to_expired_at(ttl)))?,
         1
     );
 
     Ok(())
 }
 
-fn delete(trx: &Transaction<'_>, key: impl AsRef<str>) -> Result<()> {
-    let mut stmt = trx.prepare("DELETE FROM kv_store WHERE key = ?")?;
-    stmt.execute([key.as_ref()])?;
+fn delete(trx: &Transaction<'_>, name: &str, pk: &str, sk: Option<&str>) -> Result<()> {
+    let mut stmt = trx.prepare(
+        "
+        DELETE FROM
+            documents
+        WHERE
+            name = ?
+            AND pk = ?
+            AND sk = ?
+    ",
+    )?;
+    stmt.execute((name, pk, sk))?;
 
     Ok(())
 }
 
 fn create<Bytes: AsRef<[u8]>>(
     trx: &Transaction<'_>,
-    key: impl AsRef<str>,
+    name: &str,
+    pk: &str,
+    sk: Option<&str>,
     value_fn: impl FnOnce() -> Result<Bytes>,
     ttl: Option<Duration>,
 ) -> Result<()> {
     let mut stmt = trx.prepare(
         "
-        SELECT expired_at
-        FROM kv_store
-        WHERE key = ?",
+        SELECT count(*)
+        FROM documents
+        WHERE
+            name = ?
+            AND key = ?
+            AND sk = ?
+            AND (expired_at = 0 OR expired_at >= unixepoch())
+        ",
     )?;
-    let expired_at: Option<u64> = stmt
-        .query_row([key.as_ref()], |row| row.get(0))
-        .optional()?;
-    if let Some(expired_at) = expired_at {
-        if expired_at == 0 || now_epoch_time_secs() < expired_at {
-            return Ok(());
-        }
+    let count: i8 = stmt.query_row((name, pk, sk), |row| row.get(0))?;
+    if count != 0 {
+        return Ok(());
     }
 
     let value = value_fn()?;
     let mut stmt = trx.prepare(
         "
-        INSERT OR REPLACE INTO kv_store
-        (key, value, version, expired_at)
-        VALUES (?, ?, 0, ?)",
+        INSERT OR REPLACE INTO documents
+        (name, pk, sk, value, version, exname)
+        VALUES (?, ?, ?, ?, 0, ?)",
     )?;
     assert_eq!(
-        stmt.execute((key.as_ref(), value.as_ref(), ttl_to_expired_at(ttl)))?,
+        stmt.execute((name, pk, sk, value.as_ref(), ttl_to_expired_at(ttl)))?,
         1
     );
 

@@ -21,5 +21,7 @@ pub trait Document {
 pub trait DocumentGet {
     type Output;
 
-    fn key(&self) -> String;
+    fn name() -> &'static str;
+    fn pk(&self) -> String;
+    fn sk(&self) -> Option<String>;
 }

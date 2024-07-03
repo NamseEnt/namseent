@@ -48,6 +48,7 @@ rpc_macro::define_rpc! {
                 teams: Vec<Team>,
             }
             enum Error {
+                NeedLogin,
             }
         }
     },

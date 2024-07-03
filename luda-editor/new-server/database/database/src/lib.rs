@@ -1,7 +1,7 @@
-mod kv_store;
+mod document_store;
 
 use document::*;
-pub use kv_store::KvStore;
+pub use document_store::DocumentStore;
 pub use migration::schema;
 
 pub async fn init(
@@ -9,15 +9,15 @@ pub async fn init(
     bucket_name: String,
     turn_on_in_memory_cache: bool,
 ) -> anyhow::Result<Database> {
-    let sqlite = kv_store::SqliteKvStore::new(s3_client, bucket_name).await?;
-    let store = kv_store::InMemoryCachedKsStore::new(sqlite, turn_on_in_memory_cache);
+    let sqlite = document_store::SqliteKvStore::new(s3_client, bucket_name).await?;
+    let store = document_store::InMemoryCachedKsStore::new(sqlite, turn_on_in_memory_cache);
 
     Ok(Database { store })
 }
 
 #[derive(Clone)]
 pub struct Database {
-    store: kv_store::InMemoryCachedKsStore<kv_store::SqliteKvStore>,
+    store: document_store::InMemoryCachedKsStore<document_store::SqliteKvStore>,
 }
 impl Database {
     pub fn set_memory_cache(&self, turn_on: bool) {
@@ -27,14 +27,16 @@ impl Database {
         &self,
         document_get: impl DocumentGet<Output = T>,
     ) -> Result<Option<HeapArchived<T>>> {
-        let key = document_get.key();
-        let value_buffer = self.store.get(key).await?;
+        let value_buffer = self
+            .store
+            .get(T::name(), &document_get.pk(), document_get.sk().as_deref())
+            .await?;
         Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
     }
 
     pub async fn transact(&self, transact: impl Transact) -> Result<()> {
         let transact_items = transact.try_into_transact_items()?;
-        KvStore::transact(self, transact_items).await
+        self.store.transact(transact_items).await
     }
 }
 
@@ -62,45 +64,3 @@ impl From<SerErr> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-impl KvStore for Database {
-    async fn get(&self, key: impl AsRef<str>) -> Result<Option<ValueBuffer>> {
-        self.store.get(key).await
-    }
-
-    async fn get_with_expiration(
-        &self,
-        key: impl AsRef<str>,
-    ) -> Result<Option<(ValueBuffer, Option<std::time::SystemTime>)>> {
-        self.store.get_with_expiration(key).await
-    }
-
-    async fn put(
-        &self,
-        key: impl AsRef<str>,
-        value: &impl AsRef<[u8]>,
-        ttl: Option<std::time::Duration>,
-    ) -> Result<()> {
-        self.store.put(key, value, ttl).await
-    }
-
-    async fn delete(&self, key: impl AsRef<str>) -> Result<()> {
-        self.store.delete(key).await
-    }
-
-    async fn create<Bytes: AsRef<[u8]>>(
-        &self,
-        key: impl AsRef<str>,
-        value_fn: impl FnOnce() -> Result<Bytes>,
-        ttl: Option<std::time::Duration>,
-    ) -> Result<()> {
-        self.store.create(key, value_fn, ttl).await
-    }
-
-    async fn transact(
-        &self,
-        transact_items: impl IntoIterator<Item = crate::TransactItem>,
-    ) -> Result<()> {
-        self.store.transact(transact_items).await
-    }
-}
