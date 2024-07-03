@@ -7,3 +7,4 @@ edition = "2021"
 schema-macro = { path = "../macro" }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 rkyv = { version = "0.7.44", features = ["validation"] }
+arrayvec = "0.7.4"

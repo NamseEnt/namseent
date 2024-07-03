@@ -1,3 +1,6 @@
+mod parsed;
+
+use parsed::*;
 use quote::{quote, ToTokens};
 use spanned::Spanned;
 use syn::*;
@@ -10,6 +13,8 @@ pub fn schema(
     let input: syn::DeriveInput = parse_macro_input!(input as syn::DeriveInput);
     let parsed = Parsed::new(&input);
     let struct_name = &input.ident;
+
+    let ref_struct = parsed.ref_struct();
 
     let struct_get_define = struct_get_define(&parsed);
     let struct_put_define = struct_put_define(&parsed);
@@ -40,6 +45,8 @@ pub fn schema(
             }
         }
 
+        #ref_struct
+
         #struct_get_define
         #struct_put_define
         #struct_create_define
@@ -49,19 +56,16 @@ pub fn schema(
     output.into()
 }
 
-fn struct_get_define(
-    Parsed {
+fn struct_get_define(parsed: &Parsed) -> impl quote::ToTokens {
+    let Parsed {
         name,
         pk_fields_without_pk_attr,
+        pk_cow,
+        sk_cow,
         ..
-    }: &Parsed,
-) -> impl quote::ToTokens {
+    } = parsed;
     let get_struct_name = Ident::new(&format!("{}Get", name), name.span());
-    let pk_fields_names = pk_fields_without_pk_attr
-        .iter()
-        .map(|field| field.ident.as_ref().unwrap());
     let pk_fields_as_refs = as_ref_fields(pk_fields_without_pk_attr);
-    let pk_field_count = pk_fields_as_refs.len();
 
     quote! {
         pub struct #get_struct_name<'a> {
@@ -69,79 +73,46 @@ fn struct_get_define(
         }
         impl document::DocumentGet for #get_struct_name<'_> {
             type Output = #name;
-            fn pk<'a>(&'a self) -> Pk<'a> {
-                let mut parts = Vec::with_capacity(#pk_field_count);
-                #(
-                    parts.push(stringify!(#pk_fields_names));
-                    parts.push(self.#pk_fields_names);
-                )*
-                Pk::new(parts)
+
+            fn name() -> &'static str {
+                stringify!(#name)
             }
-            // fn sk(&self) -> Option<String> {
-            //     todo!()
-            //     // let mut key = String::new();
-            //     // #(
-            //     //     key += &format!("{}:{}", stringify!(#pk_fields_names),self.#pk_fields_names);
-            //     // )*
-            //     // key
-            // }
+            fn pk<'a>(&'a self) -> std::borrow::Cow<'a, [u8]> {
+                #pk_cow
+            }
+            fn sk<'a>(&'a self) -> Option<std::borrow::Cow<'a, [u8]>> {
+                #sk_cow
+            }
         }
     }
 }
 
-fn struct_put_define(
-    Parsed {
+fn struct_put_define(parsed: &Parsed) -> impl quote::ToTokens {
+    let Parsed {
         name,
-        pk_fields_without_pk_attr,
-        fields_without_pk_attr,
+        fields_without_pksk_attr,
+        ref_struct_value,
+        pk_cow,
+        sk_cow,
         ..
-    }: &Parsed,
-) -> impl quote::ToTokens {
+    } = parsed;
     let put_struct_name = Ident::new(&format!("{}Put", name), name.span());
-    let put_struct_name_internal = Ident::new(&format!("Internal{}Put", name), name.span());
-    let pk_fields_names = pk_fields_without_pk_attr
-        .iter()
-        .map(|field| field.ident.as_ref().unwrap());
-
-    let ref_fields_with_rkyv_with_attr = as_ref_fields_with_rkyv_with_attr(fields_without_pk_attr);
-    let ref_fields = as_ref_fields(fields_without_pk_attr);
-
-    let fields_names = ref_fields.iter().map(|field| field.ident.as_ref().unwrap());
+    let ref_fields = as_ref_fields(fields_without_pksk_attr);
 
     quote! {
         pub struct #put_struct_name<'a> {
             #(#ref_fields,)*
             pub ttl: Option<std::time::Duration>,
         }
-        #[derive(rkyv::Archive, rkyv::Serialize)]
-        struct #put_struct_name_internal<'a> {
-            #(
-                #ref_fields_with_rkyv_with_attr,
-            )*
-        }
-        impl TryInto<document::TransactItem> for #put_struct_name<'_> {
+
+        impl<'a> TryInto<document::TransactItem<'a>> for #put_struct_name<'a> {
             type Error = document::SerErr;
-            fn try_into(self) -> Result<document::TransactItem, document::SerErr> {
-                let key = {
-                    let mut key = String::new();
-                    #(
-                        key += &format!("{}:{}", stringify!(#pk_fields_names), self.#pk_fields_names);
-                    )*
-                    key
-                };
-
-                use rkyv::ser::{serializers::AllocSerializer, Serializer};
-                let mut serializer = AllocSerializer::<1024>::default();
-                serializer.serialize_value(&#put_struct_name_internal{
-                    #(
-                        #fields_names: self.#fields_names,
-                    )*
-                })?;
-                let value = serializer.into_serializer().into_inner().to_vec();
-
+            fn try_into(self) -> Result<document::TransactItem<'a>, document::SerErr> {
                 Ok(document::TransactItem::Put {
-                    key,
-                    value,
+                    name: stringify!(#name),
+                    pk: #pk_cow,
+                    sk: #sk_cow,
+                    value: #ref_struct_value,
                     ttl: self.ttl
                 })
             }
@@ -152,58 +123,31 @@ fn struct_put_define(
 fn struct_create_define(
     Parsed {
         name,
-        pk_fields_without_pk_attr,
-        fields_without_pk_attr,
+        fields_without_pksk_attr,
+        pk_cow,
+        sk_cow,
+        ref_struct_value,
         ..
     }: &Parsed,
 ) -> impl quote::ToTokens {
     let create_struct_name = Ident::new(&format!("{}Create", name), name.span());
-    let create_struct_name_internal = Ident::new(&format!("Internal{}Create", name), name.span());
-    let pk_fields_names = pk_fields_without_pk_attr
-        .iter()
-        .map(|field| field.ident.as_ref().unwrap());
-
-    let ref_fields_with_rkyv_with_attr = as_ref_fields_with_rkyv_with_attr(fields_without_pk_attr);
-
-    let fields_as_refs = as_ref_fields(fields_without_pk_attr);
-    let fields_names = fields_as_refs
-        .iter()
-        .map(|field| field.ident.as_ref().unwrap());
+    let fields_as_refs = as_ref_fields(fields_without_pksk_attr);
 
     quote! {
         pub struct #create_struct_name<'a> {
             #(#fields_as_refs,)*
             pub ttl: Option<std::time::Duration>,
         }
-        #[derive(rkyv::Archive, rkyv::Serialize)]
-        struct #create_struct_name_internal<'a> {
-            #(
-                #ref_fields_with_rkyv_with_attr,
-            )*
-        }
-        impl TryInto<document::TransactItem> for #create_struct_name<'_> {
+        impl<'a> TryInto<document::TransactItem<'a>> for #create_struct_name<'a> {
             type Error = document::SerErr;
-            fn try_into(self) -> Result<document::TransactItem, document::SerErr> {
-                let key = {
-                    let mut key = String::new();
-                    #(
-                        key += &format!("{}:{}", stringify!(#pk_fields_names),self.#pk_fields_names);
-                    )*
-                    key
-                };
+            fn try_into(self) -> Result<document::TransactItem<'a>, document::SerErr> {
+
 
                 Ok(document::TransactItem::Create {
-                    key,
-                    value: {
-                        use rkyv::ser::{serializers::AllocSerializer, Serializer};
-                        let mut serializer = AllocSerializer::<1024>::default();
-                        serializer.serialize_value(&#create_struct_name_internal{
-                            #(
-                                #fields_names: self.#fields_names,
-                            )*
-                        })?;
-                        serializer.into_serializer().into_inner().to_vec()
-                    },
+                    name: stringify!(#name),
+                    pk: #pk_cow,
+                    sk: #sk_cow,
+                    value: #ref_struct_value,
                     ttl: self.ttl
                 })
             }
@@ -215,32 +159,25 @@ fn struct_delete_define(
     Parsed {
         name,
         pk_fields_without_pk_attr,
+        pk_cow,
+        sk_cow,
         ..
     }: &Parsed,
 ) -> impl quote::ToTokens {
     let delete_struct_name = Ident::new(&format!("{}Delete", name), name.span());
-    let pk_fields_names = pk_fields_without_pk_attr
-        .iter()
-        .map(|field| field.ident.as_ref().unwrap());
     let pk_ref_fields = as_ref_fields(pk_fields_without_pk_attr);
 
     quote! {
         pub struct #delete_struct_name<'a> {
             #(#pk_ref_fields),*
         }
-        impl TryInto<document::TransactItem> for #delete_struct_name<'_> {
+        impl<'a> TryInto<document::TransactItem<'a>> for #delete_struct_name<'a> {
             type Error = document::SerErr;
-            fn try_into(self) -> Result<document::TransactItem, document::SerErr> {
-                let key = {
-                    let mut key = String::new();
-                    #(
-                        key += &format!("{}:{}", stringify!(#pk_fields_names),self.#pk_fields_names);
-                    )*
-                    key
-                };
-
+            fn try_into(self) -> Result<document::TransactItem<'a>, document::SerErr> {
                 Ok(document::TransactItem::Delete {
-                    key,
+                    name: stringify!(#name),
+                    pk: #pk_cow,
+                    sk: #sk_cow,
                 })
             }
         }
@@ -281,40 +218,4 @@ fn as_ref_fields<'a>(fields: impl 'a + IntoIterator<Item = &'a Field>) -> Vec<Fi
             field
         })
         .collect::<Vec<_>>()
-}
-
-struct Parsed<'a> {
-    name: &'a Ident,
-    attrs_removed_input: DeriveInput,
-    pk_fields_without_pk_attr: Vec<Field>,
-    fields_without_pk_attr: Vec<Field>,
-}
-
-impl<'a> Parsed<'a> {
-    fn new(input: &'a DeriveInput) -> Self {
-        let name = &input.ident;
-        let mut attrs_removed_input = input.clone();
-        let mut pk_fields_without_pk_attr = Vec::new();
-        let mut fields_without_pk_attr = Vec::new();
-        {
-            let struct_input = match &mut attrs_removed_input.data {
-                Data::Struct(data) => data,
-                _ => unreachable!(),
-            };
-            struct_input.fields.iter_mut().for_each(|field| {
-                if field.attrs.iter().any(|attr| attr.path.is_ident("pk")) {
-                    field.attrs.retain(|attr| !attr.path.is_ident("pk"));
-                    pk_fields_without_pk_attr.push(field.clone());
-                }
-                fields_without_pk_attr.push(field.clone());
-            });
-        }
-
-        Self {
-            name,
-            attrs_removed_input,
-            pk_fields_without_pk_attr,
-            fields_without_pk_attr,
-        }
-    }
 }

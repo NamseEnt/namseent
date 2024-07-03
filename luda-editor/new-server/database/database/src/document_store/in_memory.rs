@@ -1,5 +1,6 @@
 use super::DocumentStore;
 use crate::Result;
+use document::TransactItems;
 use quick_cache::{sync::Cache, Equivalent};
 use std::{
     sync::{atomic::AtomicBool, Arc},
@@ -37,11 +38,11 @@ impl<Store: DocumentStore + Clone> InMemoryCachedKsStore<Store> {
 #[derive(Eq, PartialEq, Hash)]
 struct CacheKey {
     name: String,
-    pk: String,
-    sk: Option<String>,
+    pk: Vec<u8>,
+    sk: Option<Vec<u8>>,
 }
 
-impl Equivalent<CacheKey> for (&str, &str, Option<&str>) {
+impl Equivalent<CacheKey> for (&str, &[u8], Option<&[u8]>) {
     fn equivalent(&self, key: &CacheKey) -> bool {
         self.0 == key.name && self.1 == key.pk && self.2 == key.sk.as_deref()
     }
@@ -52,9 +53,9 @@ impl Equivalent<CacheKey> for (&str, &str, Option<&str>) {
 impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store> {
     async fn get(
         &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
     ) -> Result<Option<super::ValueBuffer>> {
         if !self.enabled() {
             return self.store.get(name, pk, sk).await;
@@ -70,8 +71,8 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
                     self.cache.insert(
                         CacheKey {
                             name: name.to_string(),
-                            pk: pk.to_string(),
-                            sk: sk.map(|sk| sk.to_string()),
+                            pk: pk.to_vec(),
+                            sk: sk.map(|sk| sk.to_vec()),
                         },
                         None,
                     );
@@ -85,8 +86,8 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
         self.cache.insert(
             CacheKey {
                 name: name.to_string(),
-                pk: pk.to_string(),
-                sk: sk.map(|sk| sk.to_string()),
+                pk: pk.to_vec(),
+                sk: sk.map(|sk| sk.to_vec()),
             },
             stored.as_ref().map(|(buffer, expired_at)| Cached {
                 value: buffer.get_arc_vec(),
@@ -99,23 +100,21 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
 
     async fn get_with_expiration(
         &self,
-        _name: &str,
-        _pk: &str,
-        _sk: Option<&str>,
+        _name: &'static str,
+        _pk: &[u8],
+        _sk: Option<&[u8]>,
     ) -> Result<Option<(super::ValueBuffer, Option<SystemTime>)>> {
         todo!("Not implemented yet.")
     }
 
     async fn put(
         &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
         value: &impl AsRef<[u8]>,
         ttl: Option<Duration>,
     ) -> Result<()> {
-        let pk = pk.as_ref();
-        let sk = sk.map(|sk| sk.as_ref());
         self.store.put(name, pk, sk, value, ttl).await?;
         if !self.enabled() {
             return Ok(());
@@ -123,8 +122,8 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
         self.cache.insert(
             CacheKey {
                 name: name.to_string(),
-                pk: pk.to_string(),
-                sk: sk.map(|sk| sk.to_string()),
+                pk: pk.to_vec(),
+                sk: sk.map(|sk| sk.to_vec()),
             },
             Some(Cached {
                 value: value.as_ref().to_vec().into(),
@@ -136,9 +135,7 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
         Ok(())
     }
 
-    async fn delete(&self, name: &str, pk: &str, sk: Option<&str>) -> Result<()> {
-        let pk = pk.as_ref();
-        let sk = sk.map(|sk| sk.as_ref());
+    async fn delete(&self, name: &'static str, pk: &[u8], sk: Option<&[u8]>) -> Result<()> {
         self.store.delete(name, pk, sk).await?;
         if !self.enabled() {
             return Ok(());
@@ -150,42 +147,45 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
 
     async fn create<Bytes: AsRef<[u8]>>(
         &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
         value_fn: impl FnOnce() -> Result<Bytes>,
         ttl: Option<Duration>,
     ) -> Result<()> {
         self.store.create(name, pk, sk, value_fn, ttl).await?;
+        if !self.enabled() {
+            return Ok(());
+        }
         self.cache.remove(&(name, pk, sk));
 
         Ok(())
     }
 
-    async fn transact(
-        &self,
-        transact_items: impl IntoIterator<Item = document::TransactItem>,
-    ) -> Result<()> {
-        let transact_items = transact_items.into_iter().collect::<Vec<_>>();
+    async fn transact<'a>(&'a self, transact_items: &TransactItems<'a>) -> Result<()> {
+        if !self.enabled() {
+            self.store.transact(transact_items).await?;
+            return Ok(());
+        }
+
         let keys = transact_items
             .iter()
             .map(|item| match item {
                 document::TransactItem::Put { name, pk, sk, .. } => {
-                    (name.clone(), pk.clone(), sk.clone())
+                    (name, pk.as_ref(), sk.as_deref())
                 }
                 document::TransactItem::Create { name, pk, sk, .. } => {
-                    (name.clone(), pk.clone(), sk.clone())
+                    (name, pk.as_ref(), sk.as_deref())
                 }
                 document::TransactItem::Delete { name, pk, sk } => {
-                    (name.clone(), pk.clone(), sk.clone())
+                    (name, pk.as_ref(), sk.as_deref())
                 }
             })
             .collect::<Vec<_>>();
 
         self.store.transact(transact_items).await?;
         for (name, pk, sk) in keys {
-            self.cache
-                .remove(&(name.as_str(), pk.as_str(), sk.as_deref()));
+            self.cache.remove(&(*name, pk, sk));
         }
 
         Ok(())

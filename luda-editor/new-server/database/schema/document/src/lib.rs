@@ -4,6 +4,7 @@ mod value_buffer;
 
 pub use anyhow::Result;
 pub use heap_archived::*;
+use std::borrow::Cow;
 pub use transact::*;
 pub use value_buffer::ValueBuffer;
 
@@ -22,6 +23,6 @@ pub trait DocumentGet {
     type Output;
 
     fn name() -> &'static str;
-    fn pk(&self) -> String;
-    fn sk(&self) -> Option<String>;
+    fn pk(&self) -> Cow<'_, [u8]>;
+    fn sk(&self) -> Option<Cow<'_, [u8]>>;
 }

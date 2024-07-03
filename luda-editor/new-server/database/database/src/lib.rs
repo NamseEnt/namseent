@@ -34,9 +34,9 @@ impl Database {
         Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
     }
 
-    pub async fn transact(&self, transact: impl Transact) -> Result<()> {
+    pub async fn transact<'a>(&'a self, transact: impl Transact<'a> + 'a + Send) -> Result<()> {
         let transact_items = transact.try_into_transact_items()?;
-        self.store.transact(transact_items).await
+        self.store.transact(&transact_items).await
     }
 }
 

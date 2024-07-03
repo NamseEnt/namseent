@@ -9,42 +9,44 @@ use std::time::{Duration, SystemTime};
 /// * `ttl` - Minimum resolution: seconds
 #[allow(async_fn_in_trait)]
 pub trait DocumentStore {
-    async fn get(&self, name: &str, pk: &str, sk: Option<&str>) -> Result<Option<ValueBuffer>>;
+    async fn get(
+        &self,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
+    ) -> Result<Option<ValueBuffer>>;
     async fn get_with_expiration(
         &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
     ) -> Result<Option<(ValueBuffer, Option<SystemTime>)>>;
     async fn put(
         &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
         value: &impl AsRef<[u8]>,
         ttl: Option<Duration>,
     ) -> Result<()>;
-    async fn delete(&self, name: &str, pk: &str, sk: Option<&str>) -> Result<()>;
+    async fn delete(&self, name: &'static str, pk: &[u8], sk: Option<&[u8]>) -> Result<()>;
+    async fn create<Bytes: AsRef<[u8]>>(
+        &self,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
+        value_fn: impl FnOnce() -> Result<Bytes>,
+        ttl: Option<Duration>,
+    ) -> Result<()>;
+    async fn transact<'a>(&'a self, transact_items: &TransactItems<'a>) -> Result<()>;
     // /// optimistic locking update
     // /// Return value: true if the update was successful, false if conflict
     // async fn update<T, Fut>(
     //     &self,
-    //     key: &str,
+    //     key: &[u8],
     //     update: impl FnOnce(Option<HeapArchived<T>>) -> Fut,
     // ) -> Result<bool>
     // where
     //     T: rkyv::Archive + rkyv::Serialize<AllocSerializer<64>>,
     //     Fut: Future<Output = Option<Option<T>>>;
-    async fn create<Bytes: AsRef<[u8]>>(
-        &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
-        value_fn: impl FnOnce() -> Result<Bytes>,
-        ttl: Option<Duration>,
-    ) -> Result<()>;
-    async fn transact(
-        &self,
-        transact_items: impl IntoIterator<Item = crate::TransactItem>,
-    ) -> Result<()>;
 }

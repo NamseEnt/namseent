@@ -1,6 +1,7 @@
 use super::DocumentStore;
 use crate::Result;
 use aws_sdk_s3::primitives::ByteStream;
+use document::TransactItems;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction};
 use std::{
     sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard},
@@ -30,8 +31,8 @@ impl SqliteKvStore {
             "CREATE TABLE IF NOT EXISTS
                     documents (
                         name TEXT NOT NULL,
-                        pk TEXT  NOT NULL,
-                        sk TEXT,
+                        pk BLOB NOT NULL,
+                        sk BLOB,
                         value BLOB,
                         version INTEGER,
                         expired_at INTEGER,
@@ -110,9 +111,9 @@ impl SqliteKvStore {
 impl DocumentStore for SqliteKvStore {
     async fn get(
         &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
     ) -> Result<Option<super::ValueBuffer>> {
         self.read_conn(|read_conn| {
             let mut stmt = read_conn.prepare(
@@ -138,9 +139,9 @@ impl DocumentStore for SqliteKvStore {
 
     async fn get_with_expiration(
         &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
     ) -> Result<Option<(super::ValueBuffer, Option<SystemTime>)>> {
         self.read_conn(|read_conn| {
             let mut stmt = read_conn.prepare(
@@ -178,9 +179,9 @@ impl DocumentStore for SqliteKvStore {
 
     async fn put(
         &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
         value: &impl AsRef<[u8]>,
         ttl: Option<Duration>,
     ) -> Result<()> {
@@ -191,7 +192,7 @@ impl DocumentStore for SqliteKvStore {
         Ok(())
     }
 
-    async fn delete(&self, name: &str, pk: &str, sk: Option<&str>) -> Result<()> {
+    async fn delete(&self, name: &'static str, pk: &[u8], sk: Option<&[u8]>) -> Result<()> {
         let mut write_conn = self.write_conn();
         let trx = write_conn.transaction()?;
         delete(&trx, name, pk, sk)?;
@@ -201,9 +202,9 @@ impl DocumentStore for SqliteKvStore {
 
     async fn create<Bytes: AsRef<[u8]>>(
         &self,
-        name: &str,
-        pk: &str,
-        sk: Option<&str>,
+        name: &'static str,
+        pk: &[u8],
+        sk: Option<&[u8]>,
         value_fn: impl FnOnce() -> Result<Bytes>,
         ttl: Option<Duration>,
     ) -> Result<()> {
@@ -214,14 +215,11 @@ impl DocumentStore for SqliteKvStore {
         Ok(())
     }
 
-    async fn transact(
-        &self,
-        transact_items: impl IntoIterator<Item = document::TransactItem>,
-    ) -> Result<()> {
+    async fn transact<'a>(&'a self, transact_items: &TransactItems<'a>) -> Result<()> {
         let mut write_conn: MutexGuard<Connection> = self.write_conn();
         let trx = write_conn.transaction()?;
 
-        for item in transact_items.into_iter() {
+        for item in transact_items {
             match item {
                 document::TransactItem::Put {
                     name,
@@ -230,7 +228,7 @@ impl DocumentStore for SqliteKvStore {
                     value,
                     ttl,
                 } => {
-                    put(&trx, &name, &pk, sk.as_deref(), &value, ttl)?;
+                    put(&trx, name, pk, sk.as_deref(), &value, *ttl)?;
                 }
                 document::TransactItem::Create {
                     name,
@@ -239,10 +237,10 @@ impl DocumentStore for SqliteKvStore {
                     value,
                     ttl,
                 } => {
-                    create(&trx, &name, &pk, sk.as_deref(), || Ok(value), ttl)?;
+                    create(&trx, name, pk, sk.as_deref(), || Ok(value), *ttl)?;
                 }
                 document::TransactItem::Delete { name, pk, sk } => {
-                    delete(&trx, &name, &pk, sk.as_deref())?
+                    delete(&trx, name, pk, sk.as_deref())?
                 }
             }
         }
@@ -252,7 +250,7 @@ impl DocumentStore for SqliteKvStore {
 
     // async fn update<T, Fut>(
     //     &self,
-    //     name: &str, pk: &str, sk: Option<&str>,
+    //     name: &'static str, pk: &[u8], sk: Option<&[u8]>,
     //     update: impl FnOnce(Option<HeapArchived<T>>) -> Fut,
     // ) -> Result<bool>
     // where
@@ -479,9 +477,9 @@ fn now_epoch_time_secs() -> u64 {
 
 fn put(
     trx: &Transaction<'_>,
-    name: &str,
-    pk: &str,
-    sk: Option<&str>,
+    name: &'static str,
+    pk: &[u8],
+    sk: Option<&[u8]>,
     value: &impl AsRef<[u8]>,
     ttl: Option<Duration>,
 ) -> Result<()> {
@@ -500,7 +498,7 @@ fn put(
     Ok(())
 }
 
-fn delete(trx: &Transaction<'_>, name: &str, pk: &str, sk: Option<&str>) -> Result<()> {
+fn delete(trx: &Transaction<'_>, name: &'static str, pk: &[u8], sk: Option<&[u8]>) -> Result<()> {
     let mut stmt = trx.prepare(
         "
         DELETE FROM
@@ -518,9 +516,9 @@ fn delete(trx: &Transaction<'_>, name: &str, pk: &str, sk: Option<&str>) -> Resu
 
 fn create<Bytes: AsRef<[u8]>>(
     trx: &Transaction<'_>,
-    name: &str,
-    pk: &str,
-    sk: Option<&str>,
+    name: &'static str,
+    pk: &[u8],
+    sk: Option<&[u8]>,
     value_fn: impl FnOnce() -> Result<Bytes>,
     ttl: Option<Duration>,
 ) -> Result<()> {
@@ -535,7 +533,7 @@ fn create<Bytes: AsRef<[u8]>>(
             AND (expired_at = 0 OR expired_at >= unixepoch())
         ",
     )?;
-    let count: i8 = stmt.query_row((name, pk, sk), |row| row.get(0))?;
+    let count: i8 = stmt.query_row((name, &pk, &sk), |row| row.get(0))?;
     if count != 0 {
         return Ok(());
     }
@@ -548,7 +546,7 @@ fn create<Bytes: AsRef<[u8]>>(
         VALUES (?, ?, ?, ?, 0, ?)",
     )?;
     assert_eq!(
-        stmt.execute((name, pk, sk, value.as_ref(), ttl_to_expired_at(ttl)))?,
+        stmt.execute((name, &pk, &sk, value.as_ref(), ttl_to_expired_at(ttl)))?,
         1
     );
 
