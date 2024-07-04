@@ -1,3 +1,4 @@
+use super::MediaSource;
 use crate::media::{
     audio::{start_audio_resampling, AudioBuffer, AudioConfig},
     core::{spawn_decoding_thread, DecodingStream, DecodingThreadCommand, MediaController},
@@ -9,11 +10,11 @@ use anyhow::Result;
 use namui_type::*;
 
 pub(crate) fn open_media(
-    path: &impl AsRef<std::path::Path>,
+    source: &MediaSource,
     command_rx: std::sync::mpsc::Receiver<WithInstant<DecodingThreadCommand>>,
     audio_output_config: AudioConfig,
 ) -> Result<(Option<VideoFramer>, Option<AudioBuffer>, Duration)> {
-    let input_ctx = ffmpeg_next::format::input(&path)?;
+    let input_ctx = source.create_input_context()?;
 
     let mut video_framer = None;
     let mut audio_buffer = None;

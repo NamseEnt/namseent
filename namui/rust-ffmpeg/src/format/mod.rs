@@ -1,3 +1,4 @@
+use libc::c_void;
 pub use util::format::{pixel, Pixel};
 pub use util::format::{sample, Sample};
 use util::interrupt;
@@ -18,12 +19,16 @@ pub use self::format::{Input, Output};
 pub mod network;
 
 use std::ffi::{CStr, CString};
+use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::path::Path;
-use std::ptr;
+use std::ptr::{self};
 use std::str::from_utf8_unchecked;
+use std::sync::Arc;
 
 use ffi::*;
 use {Dictionary, Error, Format};
+
+const INPUT_BUFFER_SIZE: usize = 32_768;
 
 #[cfg(not(feature = "ffmpeg_5_0"))]
 pub fn register_all() {
@@ -163,6 +168,80 @@ pub fn input<P: AsRef<Path>>(path: &P) -> Result<context::Input, Error> {
             },
 
             e => Err(Error::from(e)),
+        }
+    }
+}
+
+pub fn input_bytes(bytes: Arc<Vec<u8>>) -> Result<context::Input, Error> {
+    unsafe {
+        unsafe extern "C" fn read_packet(
+            opaque: *mut c_void,
+            buffer: *mut u8,
+            _buffer_size: i32,
+        ) -> i32 {
+            let cursor = &mut *(opaque as *mut Cursor<InputBytes>);
+            let buffer = &mut *(buffer as *mut [u8; INPUT_BUFFER_SIZE]);
+            match cursor.read(buffer) {
+                Ok(read) => read as i32,
+                Err(_) => AVERROR_INVALIDDATA,
+            }
+        }
+        unsafe extern "C" fn seek(opaque: *mut c_void, offset: i64, whence: i32) -> i64 {
+            let cursor = &mut *(opaque as *mut Cursor<InputBytes>);
+            let seek_from = match whence {
+                SEEK_SET => SeekFrom::Start(offset as u64),
+                SEEK_CUR => SeekFrom::Current(offset),
+                SEEK_END => SeekFrom::End(offset),
+                AVSEEK_SIZE => return cursor.get_ref().0.len() as i64,
+                _ => return -1,
+            };
+            match cursor.seek(seek_from) {
+                Ok(position) => position as i64,
+                Err(_error) => -1,
+            }
+        }
+        let buffer = av_malloc(INPUT_BUFFER_SIZE);
+        let bytes: *mut Cursor<InputBytes> =
+            Box::into_raw(Box::new(Cursor::new(InputBytes(bytes))));
+        let file_name = CString::new("").unwrap();
+
+        let mut ps = avformat_alloc_context();
+        let avio = avio_alloc_context(
+            buffer as *mut u8,
+            INPUT_BUFFER_SIZE as i32,
+            0,
+            bytes as *mut _,
+            Some(read_packet),
+            None,
+            Some(seek),
+        );
+
+        (*ps).pb = avio;
+        (*ps).flags = AVFMT_FLAG_CUSTOM_IO;
+
+        let free = || {
+            av_free(buffer);
+            bytes.drop_in_place();
+        };
+
+        match avformat_open_input(
+            &mut ps,
+            file_name.as_ptr(),
+            ptr::null_mut(),
+            ptr::null_mut(),
+        ) {
+            0 => match avformat_find_stream_info(ps, ptr::null_mut()) {
+                r if r >= 0 => Ok(context::Input::wrap_with_bytes(ps, bytes, buffer)),
+                e => {
+                    avformat_close_input(&mut ps);
+                    free();
+                    Err(Error::from(e))
+                }
+            },
+            e => {
+                free();
+                Err(Error::from(e))
+            }
         }
     }
 }
@@ -325,5 +404,12 @@ pub fn output_as_with<P: AsRef<Path>>(
 
             e => Err(Error::from(e)),
         }
+    }
+}
+
+pub struct InputBytes(Arc<Vec<u8>>);
+impl AsRef<[u8]> for InputBytes {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }

@@ -11,9 +11,10 @@ mod with_instant;
 use super::InitResult;
 use anyhow::*;
 pub use audio::*;
+use core::MediaSource;
 use media_context::MediaContext;
 pub use media_handle::MediaHandle;
-use std::{path::Path, sync::OnceLock};
+use std::sync::OnceLock;
 
 const AUDIO_CHANNEL_BOUND: usize = 128;
 const VIDEO_CHANNEL_BOUND: usize = 10;
@@ -29,8 +30,8 @@ pub(super) async fn init() -> InitResult {
     Ok(())
 }
 
-pub fn new_media(path: &impl AsRef<Path>) -> Result<MediaHandle> {
-    MEDIA_SYSTEM.get().unwrap().new_media(path)
+pub fn new_media(source: impl Into<MediaSource>) -> Result<MediaHandle> {
+    MEDIA_SYSTEM.get().unwrap().new_media(source.into())
 }
 
 /// Volume will be clamped to 0.0 ~ 1.0 if it is out of range.
@@ -43,12 +44,22 @@ pub fn volume() -> f32 {
     MEDIA_SYSTEM.get().unwrap().volume()
 }
 
-pub async fn new_full_load_once_audio(path: &impl AsRef<Path>) -> Result<FullLoadOnceAudio> {
-    Ok(FullLoadOnceAudio::new(MEDIA_SYSTEM.get().unwrap().audio_context.clone(), path).await?)
+pub async fn new_full_load_once_audio(source: impl Into<MediaSource>) -> Result<FullLoadOnceAudio> {
+    Ok(FullLoadOnceAudio::new(
+        MEDIA_SYSTEM.get().unwrap().audio_context.clone(),
+        source.into(),
+    )
+    .await?)
 }
 
-pub async fn new_full_load_repeat_audio(path: &impl AsRef<Path>) -> Result<FullLoadRepeatAudio> {
-    Ok(FullLoadRepeatAudio::new(MEDIA_SYSTEM.get().unwrap().audio_context.clone(), path).await?)
+pub async fn new_full_load_repeat_audio(
+    source: impl Into<MediaSource>,
+) -> Result<FullLoadRepeatAudio> {
+    Ok(FullLoadRepeatAudio::new(
+        MEDIA_SYSTEM.get().unwrap().audio_context.clone(),
+        source.into(),
+    )
+    .await?)
 }
 
 pub fn play_audio_consume(audio_consume: impl AudioConsume + 'static) -> Result<()> {

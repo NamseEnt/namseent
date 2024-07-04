@@ -4,7 +4,9 @@ use std::ops::{Deref, DerefMut};
 
 use super::common::Context;
 use super::destructor;
+use crate::format::InputBytes;
 use ffi::*;
+use libc::c_void;
 use util::range::Range;
 #[cfg(not(feature = "ffmpeg_5_0"))]
 use Codec;
@@ -13,6 +15,8 @@ use {format, Error, Packet, Stream};
 pub struct Input {
     ptr: *mut AVFormatContext,
     ctx: Context,
+    input_bytes: Option<*mut std::io::Cursor<InputBytes>>,
+    input_buffer: Option<*mut c_void>,
 }
 
 unsafe impl Send for Input {}
@@ -22,6 +26,21 @@ impl Input {
         Input {
             ptr,
             ctx: Context::wrap(ptr, destructor::Mode::Input),
+            input_bytes: None,
+            input_buffer: None,
+        }
+    }
+
+    pub unsafe fn wrap_with_bytes(
+        ptr: *mut AVFormatContext,
+        input_bytes: *mut std::io::Cursor<InputBytes>,
+        input_buffer: *mut c_void,
+    ) -> Self {
+        Input {
+            ptr,
+            ctx: Context::wrap(ptr, destructor::Mode::Input),
+            input_bytes: Some(input_bytes),
+            input_buffer: Some(input_buffer),
         }
     }
 
@@ -149,6 +168,21 @@ impl Deref for Input {
 impl DerefMut for Input {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.ctx
+    }
+}
+
+impl Drop for Input {
+    fn drop(&mut self) {
+        if let Some(input_bytes) = self.input_bytes {
+            unsafe {
+                input_bytes.drop_in_place();
+            }
+        }
+        if let Some(input_buffer) = self.input_buffer {
+            unsafe {
+                av_free(input_buffer);
+            }
+        }
     }
 }
 

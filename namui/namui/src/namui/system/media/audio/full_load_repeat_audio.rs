@@ -1,10 +1,10 @@
-use crate::media::audio::{self, AudioConfig, AudioConsume, AudioContext};
+use crate::media::{
+    audio::{self, AudioConfig, AudioConsume, AudioContext},
+    core::MediaSource,
+};
 use anyhow::{bail, Result};
 use namui_type::*;
-use std::{
-    path::Path,
-    sync::{atomic::AtomicBool, Arc},
-};
+use std::sync::{atomic::AtomicBool, Arc};
 
 #[derive(Debug, Clone)]
 pub struct FullLoadRepeatAudio {
@@ -21,14 +21,10 @@ impl Drop for FullLoadRepeatAudio {
 }
 
 impl FullLoadRepeatAudio {
-    pub(crate) async fn new(
-        audio_context: Arc<AudioContext>,
-        path: impl AsRef<Path>,
-    ) -> Result<Self> {
+    pub(crate) async fn new(audio_context: Arc<AudioContext>, source: MediaSource) -> Result<Self> {
         let output_config = audio_context.output_config;
-        let path = path.as_ref().to_path_buf();
         let buffer = tokio::task::spawn_blocking(move || -> Result<Vec<f32>> {
-            let mut input_ctx = ffmpeg_next::format::input(&path)?;
+            let mut input_ctx = source.create_input_context()?;
 
             let audio_stream = input_ctx
                 .streams()
