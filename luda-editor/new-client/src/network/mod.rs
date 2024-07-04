@@ -3,7 +3,7 @@ mod dependencies;
 use crate::*;
 pub use dependencies::*;
 use luda_rpc::rkyv;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use tokio::{
     sync::oneshot,
     task::{AbortHandle, JoinHandle},
@@ -21,8 +21,8 @@ pub fn server_rpc<
     'a,
     Req: rkyv::Serialize<Serializer> + Send + 'a,
     Deps: Dependencies + 'a,
-    Response: rkyv::Archive + Send + 'static,
-    Error: rkyv::Archive + Send + 'static,
+    Response: rkyv::Archive + Send + 'static + Debug,
+    Error: rkyv::Archive + Send + 'static + Debug,
 >(
     ctx: &'a RenderCtx,
     request: impl FnOnce(Deps) -> Option<Req>,
@@ -171,8 +171,8 @@ impl ServerConnection {
     }
 
     pub async fn request<
-        Response: rkyv::Archive + Send + 'static,
-        Error: rkyv::Archive + Send + 'static,
+        Response: rkyv::Archive + Send + 'static + Debug,
+        Error: rkyv::Archive + Send + 'static + Debug,
     >(
         &self,
         api_index: u16,
@@ -206,6 +206,7 @@ impl ServerConnection {
                 Err(error)
             }
         };
+        println!("NETWORK-LOG: response: {:?}", response);
         Ok(response)
     }
 

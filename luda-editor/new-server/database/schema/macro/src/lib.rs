@@ -20,6 +20,7 @@ pub fn schema(
     let struct_put_define = struct_put_define(&parsed);
     let struct_create_define = struct_create_define(&parsed);
     let struct_delete_define = struct_delete_define(&parsed);
+    let struct_query_define = struct_query_define(&parsed);
 
     let attrs_removed_input = &parsed.attrs_removed_input;
 
@@ -51,6 +52,7 @@ pub fn schema(
         #struct_put_define
         #struct_create_define
         #struct_delete_define
+        #struct_query_define
     };
 
     output.into()
@@ -59,24 +61,20 @@ pub fn schema(
 fn struct_get_define(parsed: &Parsed) -> impl quote::ToTokens {
     let Parsed {
         name,
-        pk_fields_without_pk_attr,
         pk_cow,
         sk_cow,
+        pk_sk_ref_fields,
         ..
     } = parsed;
     let get_struct_name = Ident::new(&format!("{}Get", name), name.span());
-    let pk_fields_as_refs = as_ref_fields(pk_fields_without_pk_attr);
 
     quote! {
         pub struct #get_struct_name<'a> {
-            #(#pk_fields_as_refs),*
+            #(#pk_sk_ref_fields),*
         }
         impl document::DocumentGet for #get_struct_name<'_> {
             type Output = #name;
 
-            fn name() -> &'static str {
-                stringify!(#name)
-            }
             fn pk<'a>(&'a self) -> std::borrow::Cow<'a, [u8]> {
                 #pk_cow
             }
@@ -158,18 +156,17 @@ fn struct_create_define(
 fn struct_delete_define(
     Parsed {
         name,
-        pk_fields_without_pk_attr,
         pk_cow,
         sk_cow,
+        pk_sk_ref_fields,
         ..
     }: &Parsed,
 ) -> impl quote::ToTokens {
     let delete_struct_name = Ident::new(&format!("{}Delete", name), name.span());
-    let pk_ref_fields = as_ref_fields(pk_fields_without_pk_attr);
 
     quote! {
         pub struct #delete_struct_name<'a> {
-            #(#pk_ref_fields),*
+            #(#pk_sk_ref_fields),*
         }
         impl<'a> TryInto<document::TransactItem<'a>> for #delete_struct_name<'a> {
             type Error = document::SerErr;
@@ -179,6 +176,29 @@ fn struct_delete_define(
                     pk: #pk_cow,
                     sk: #sk_cow,
                 })
+            }
+        }
+    }
+}
+
+fn struct_query_define(parsed: &Parsed) -> impl quote::ToTokens {
+    let Parsed {
+        name,
+        pk_cow,
+        pk_ref_fields,
+        ..
+    } = parsed;
+    let query_struct_name = Ident::new(&format!("{}Query", name), name.span());
+
+    quote! {
+        pub struct #query_struct_name<'a> {
+            #(#pk_ref_fields),*
+        }
+        impl document::DocumentQuery for #query_struct_name<'_> {
+            type Output = #name;
+
+            fn pk<'a>(&'a self) -> std::borrow::Cow<'a, [u8]> {
+                #pk_cow
             }
         }
     }

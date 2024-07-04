@@ -118,7 +118,7 @@ fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
                             });
                         }
                         quote! {
-                            #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+                            #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
                             #[archive(check_bytes)]
                             #item_struct
                         }
@@ -141,7 +141,7 @@ fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
                     | _ => quote! {},
                 };
                 quote! {
-                    #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+                    #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
                     #[archive(check_bytes)]
                     #item
                     #extra

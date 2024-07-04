@@ -77,8 +77,6 @@ impl syn::parse::Parse for Api {
                 syn::Item::Const(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
                 syn::Item::Enum(x) => {
                     if x.ident.to_string() == "Error" {
-                        x.attrs.push(syn::parse_quote!(#[derive(Debug)]));
-
                         x.variants.push(syn::Variant {
                             attrs: Vec::new(),
                             ident: Ident::new("InternalServerError", x.span()),

@@ -22,7 +22,12 @@ pub trait Document {
 pub trait DocumentGet {
     type Output;
 
-    fn name() -> &'static str;
     fn pk(&self) -> Cow<'_, [u8]>;
     fn sk(&self) -> Option<Cow<'_, [u8]>>;
+}
+
+pub trait DocumentQuery {
+    type Output;
+
+    fn pk(&self) -> Cow<'_, [u8]>;
 }

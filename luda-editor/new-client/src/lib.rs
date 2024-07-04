@@ -119,21 +119,28 @@ impl Component for Login {
             });
         });
 
-        if let Some(error) = error.as_ref() {
-            ctx.add(typography::center_text(
-                namui::screen::size().map(|x| x.into_px()),
-                error,
-                Color::RED,
-                20.int_px(),
-            ));
+        let (color, text) = if let Some(error) = error.as_ref() {
+            (Color::RED, error.to_string())
         } else {
-            ctx.add(typography::center_text(
-                namui::screen::size().map(|x| x.into_px()),
-                "login...",
-                Color::BLACK,
-                20.int_px(),
-            ));
-        }
+            (Color::BLACK, "login...".to_string())
+        };
+        let wh = namui::screen::size().map(|x| x.into_px());
+        ctx.add(namui::text(TextParam {
+            text,
+            x: wh.width / 2.0,
+            y: wh.height / 2.0,
+            align: TextAlign::Center,
+            baseline: TextBaseline::Middle,
+            font: Font {
+                name: "NotoSansKR-Regular".to_string(),
+                size: 20.int_px(),
+            },
+            style: TextStyle {
+                color,
+                ..Default::default()
+            },
+            max_width: Some(wh.width),
+        }));
     }
 }
 

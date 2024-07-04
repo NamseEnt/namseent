@@ -8,8 +8,8 @@ pub async fn session_token_auth(
     db: Database,
     session: Session,
 ) -> Result<Response, Error> {
-    println!("session_token_auth");
-    if session.logged_in() {
+    println!("session_token_auth {:?}", session);
+    if session.logged_in().await {
         return Err(Error::AlreadyLoggedIn);
     };
 
@@ -17,7 +17,7 @@ pub async fn session_token_auth(
         return Err(Error::SessionTokenNotExist);
     };
 
-    session.login(&doc.user_id);
+    session.login(&doc.user_id).await;
     refresh_session_token_ttl(&db, &doc).await?;
 
     Ok(Response {})

@@ -1,4 +1,4 @@
-use super::DocumentStore;
+use super::*;
 use crate::Result;
 use aws_sdk_s3::primitives::ByteStream;
 use document::TransactItems;
@@ -114,7 +114,7 @@ impl DocumentStore for SqliteKvStore {
         name: &'static str,
         pk: &[u8],
         sk: Option<&[u8]>,
-    ) -> Result<Option<super::ValueBuffer>> {
+    ) -> Result<Option<ValueBuffer>> {
         self.read_conn(|read_conn| {
             let mut stmt = read_conn.prepare(
                 "
@@ -133,7 +133,7 @@ impl DocumentStore for SqliteKvStore {
                 .query_row((name, pk, sk), |row| row.get(0))
                 .optional()?;
 
-            Ok(vec.map(super::ValueBuffer::Vec))
+            Ok(vec.map(ValueBuffer::Vec))
         })
     }
 
@@ -142,7 +142,7 @@ impl DocumentStore for SqliteKvStore {
         name: &'static str,
         pk: &[u8],
         sk: Option<&[u8]>,
-    ) -> Result<Option<(super::ValueBuffer, Option<SystemTime>)>> {
+    ) -> Result<Option<(ValueBuffer, Option<SystemTime>)>> {
         self.read_conn(|read_conn| {
             let mut stmt = read_conn.prepare(
                 "
@@ -151,7 +151,7 @@ impl DocumentStore for SqliteKvStore {
                     expired_at
                 FROM
                     documents 
-                name
+                WHERE
                     name = ?
                     AND pk = ?
                     AND sk = ?
@@ -164,7 +164,7 @@ impl DocumentStore for SqliteKvStore {
 
             Ok(output.map(|(vec, expired_at)| {
                 (
-                    super::ValueBuffer::Vec(vec),
+                    ValueBuffer::Vec(vec),
                     expired_at.and_then(|expired_at| {
                         if expired_at == 0 {
                             None
@@ -174,6 +174,31 @@ impl DocumentStore for SqliteKvStore {
                     }),
                 )
             }))
+        })
+    }
+
+    async fn query(&self, name: &'static str, pk: &[u8]) -> Result<Vec<ValueBuffer>> {
+        self.read_conn(|read_conn| {
+            let mut stmt = read_conn.prepare(
+                "
+                SELECT
+                    value
+                FROM
+                    documents 
+                WHERE
+                    name = ?
+                    AND pk = ?
+                    AND (expired_at = 0 OR expired_at >= unixepoch())
+            ",
+            )?;
+            let mut rows = stmt.query((name, pk))?;
+
+            let mut vec = Vec::new();
+            while let Some(row) = rows.next()? {
+                vec.push(ValueBuffer::Vec(row.get(0)?));
+            }
+
+            Ok(vec)
         })
     }
 
@@ -247,67 +272,6 @@ impl DocumentStore for SqliteKvStore {
         trx.commit()?;
         Ok(())
     }
-
-    // async fn update<T, Fut>(
-    //     &self,
-    //     name: &'static str, pk: &[u8], sk: Option<&[u8]>,
-    //     update: impl FnOnce(Option<HeapArchived<T>>) -> Fut,
-    // ) -> Result<bool>
-    // where
-    //     T: rkyv::Archive + rkyv::Serialize<AllocSerializer<64>>,
-    //     Fut: Future<Output = Option<Option<T>>>,
-    // {
-    //     let output: Option<(Vec<_>, usize)> = self.read_conn(|read_conn| {
-    //         let mut stmt =
-    //             read_conn.prepare("SELECT (value, version) FROM documents WHERE key = ?")?;
-    //         stmt.query_row((pk, sk), |row| Ok((row.get(0)?, row.get(name)?)))
-    //             .optional()
-    //     })?;
-
-    //     let (old_value, version) = match output {
-    //         Some((vec, version)) => (Some(HeapArchived::new(vec)), Some(version)),
-    //         None => (None, None),
-    //     };
-
-    //     let Some(new_value) = update(old_value).await else {
-    //         return Ok(true);
-    //     };
-
-    //     let write_conn = self.write_conn();
-    //     let Some(new_value) = new_value else {
-    //         let mut stmt = write_conn.prepare("DELETE FROM documents WHERE key = ?")?;
-    //         stmt.execute((pk, sname))?;
-    //         return Ok(true);
-    //     };
-
-    //     let buffer = rkyv::to_bytes(&new_value)?;
-
-    //     if let Some(version) = version {
-    //         let mut stmt = write_conn.prepare(
-    //             "UPDATE documents SET value = ?, version = version + 1 WHERE key = ? AND version = ?",
-    //       name
-    //         let changed = stmt.execute((buffer.as_slice(), key.as_ref(), version))?;
-    //         return Ok(changed == 0);
-    //     }
-
-    //     let mut stmt =
-    //         write_conn.prepare("INSERT INTO documents (key, value, version) VALUES (?, ?, 0)name
-
-    //     match stmt.execute((key.as_ref(), buffer.as_slice())) {
-    //         Ok(count) => {
-    //             assert_eq!(count, 1);
-    //             Ok(true)
-    //         }
-    //         Err(err) => {
-    //             if let rusqlite::Error::SqliteFailure(err, _) = err {
-    //                 if let rusqlite::ErrorCode::ConstraintViolation = err.code {
-    //                     return Ok(false);
-    //                 }
-    //             }
-    //             Err(err.into())
-    //         }
-    //     }
-    // }
 }
 
 async fn try_fetch_db_file_from_s3(
@@ -436,13 +400,14 @@ async fn migrate() -> anyhow::Result<()> {
 
                     while let Some(row) = rows.next()? {
                         let from_bytes = row.get::<_, Vec<u8>>(0)?;
-                        let key = row.get::<_, String>(1)?;
+                        let pk = row.get::<_, String>(1)?;
+                        let sk = row.get::<_, Option<String>>(2)?;
 
                         let from = From::from_bytes(from_bytes)?;
                         let to = f(from);
                         let to_bytes = to.to_bytes()?;
 
-                        write_stmt.execute((to_bytes.as_slice(), key))?;
+                        write_stmt.execute((to_bytes.as_slice(), pk, sk))?;
                     }
                 }
                 trx.commit()?;
@@ -486,8 +451,8 @@ fn put(
     let mut stmt = trx.prepare(
         "
             INSERT OR REPLACE INTO documents 
-            (name, pk, sk, value, version, expired)
-            VALUES (? ?, ?, ?, 0, ?)",
+            (name, pk, sk, value, version, expired_at)
+            VALUES (?, ?, ?, ?, 0, ?)",
     )?;
 
     assert_eq!(
@@ -528,7 +493,7 @@ fn create<Bytes: AsRef<[u8]>>(
         FROM documents
         WHERE
             name = ?
-            AND key = ?
+            AND pk = ?
             AND sk = ?
             AND (expired_at = 0 OR expired_at >= unixepoch())
         ",
@@ -541,8 +506,8 @@ fn create<Bytes: AsRef<[u8]>>(
     let value = value_fn()?;
     let mut stmt = trx.prepare(
         "
-        INSERT OR REPLACE INTO documents
-        (name, pk, sk, value, version, exname)
+        INSERT INTO documents
+        (name, pk, sk, value, version, expired_at)
         VALUES (?, ?, ?, ?, 0, ?)",
     )?;
     assert_eq!(

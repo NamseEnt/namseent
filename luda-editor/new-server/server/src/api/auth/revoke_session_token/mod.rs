@@ -7,7 +7,7 @@ pub async fn revoke_session_token(
     db: Database,
     session: Session,
 ) -> Result<Response, Error> {
-    let Some(user_id) = session.user_id() else {
+    let Some(user_id) = session.user_id().await else {
         return Err(Error::Unauthorized);
     };
 

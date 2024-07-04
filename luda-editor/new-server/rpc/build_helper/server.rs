@@ -51,7 +51,7 @@ fn generate_api_files(rpc: &Rpc) {
                 })
                 .collect::<Vec<String>>()
                 .join("")
-                + "\npub use common::*;\n"
+                + "\n#[allow(unused_imports)]\npub use common::*;\n"
         };
         write_if_changed(
             service_path.join("mod.rs"),

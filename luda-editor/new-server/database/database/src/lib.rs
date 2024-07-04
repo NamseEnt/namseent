@@ -33,7 +33,16 @@ impl Database {
             .await?;
         Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
     }
-
+    pub async fn query<T: Document>(
+        &self,
+        document_query: impl DocumentQuery<Output = T>,
+    ) -> Result<Vec<HeapArchived<T>>> {
+        let value_buffer = self.store.query(T::name(), &document_query.pk()).await?;
+        Ok(value_buffer
+            .into_iter()
+            .map(|value_buffer| T::heap_archived(value_buffer))
+            .collect())
+    }
     pub async fn transact<'a>(&'a self, transact: impl Transact<'a> + 'a + Send) -> Result<()> {
         let transact_items = transact.try_into_transact_items()?;
         self.store.transact(&transact_items).await

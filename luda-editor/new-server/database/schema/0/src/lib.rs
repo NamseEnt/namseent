@@ -32,6 +32,6 @@ pub struct TeamDoc {
 pub struct UserTeamDoc {
     #[pk]
     pub user_id: String,
-    // #[sk]
+    #[sk]
     pub team_id: String,
 }

@@ -1,4 +1,4 @@
-use crate::as_ref_fields_with_rkyv_with_attr;
+use crate::{as_ref_fields, as_ref_fields_with_rkyv_with_attr};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::*;
@@ -6,12 +6,13 @@ use syn::*;
 pub struct Parsed<'a> {
     pub name: &'a Ident,
     pub attrs_removed_input: DeriveInput,
-    pub pk_fields_without_pk_attr: Vec<Field>,
     pub fields_without_pksk_attr: Vec<Field>,
     pub ref_struct_name: Ident,
     pub ref_struct_value: TokenStream,
     pub pk_cow: TokenStream,
     pub sk_cow: TokenStream,
+    pub pk_sk_ref_fields: Vec<Field>,
+    pub pk_ref_fields: Vec<Field>,
 }
 
 impl<'a> Parsed<'a> {
@@ -162,16 +163,25 @@ impl<'a> Parsed<'a> {
                 }
             }
         };
+        let pk_sk_ref_fields = {
+            let mut pk_sk_ref_fields = vec![];
+            pk_sk_ref_fields.extend(as_ref_fields(&pk_fields_without_pk_attr));
+            pk_sk_ref_fields.extend(as_ref_fields(&sk_fields_without_sk_attr));
+            pk_sk_ref_fields
+        };
+
+        let pk_ref_fields = as_ref_fields(&pk_fields_without_pk_attr);
 
         Self {
             name,
             attrs_removed_input,
-            pk_fields_without_pk_attr,
             fields_without_pksk_attr,
             ref_struct_name,
             ref_struct_value,
             pk_cow,
             sk_cow,
+            pk_sk_ref_fields,
+            pk_ref_fields,
         }
     }
 

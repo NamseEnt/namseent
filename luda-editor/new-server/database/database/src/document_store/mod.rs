@@ -21,6 +21,7 @@ pub trait DocumentStore {
         pk: &[u8],
         sk: Option<&[u8]>,
     ) -> Result<Option<(ValueBuffer, Option<SystemTime>)>>;
+    async fn query(&self, name: &'static str, pk: &[u8]) -> Result<Vec<ValueBuffer>>;
     async fn put(
         &self,
         name: &'static str,

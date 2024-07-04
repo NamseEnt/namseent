@@ -1,6 +1,6 @@
-use super::DocumentStore;
+use super::*;
 use crate::Result;
-use document::TransactItems;
+use document::{TransactItems, ValueBuffer};
 use quick_cache::{sync::Cache, Equivalent};
 use std::{
     sync::{atomic::AtomicBool, Arc},
@@ -56,7 +56,7 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
         name: &'static str,
         pk: &[u8],
         sk: Option<&[u8]>,
-    ) -> Result<Option<super::ValueBuffer>> {
+    ) -> Result<Option<ValueBuffer>> {
         if !self.enabled() {
             return self.store.get(name, pk, sk).await;
         }
@@ -79,7 +79,7 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
                     return Ok(None);
                 }
             }
-            return Ok(Some(super::ValueBuffer::Arc(cached.value.clone())));
+            return Ok(Some(ValueBuffer::Arc(cached.value.clone())));
         }
 
         let stored = self.store.get_with_expiration(name, pk, sk).await?;
@@ -103,8 +103,13 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
         _name: &'static str,
         _pk: &[u8],
         _sk: Option<&[u8]>,
-    ) -> Result<Option<(super::ValueBuffer, Option<SystemTime>)>> {
+    ) -> Result<Option<(ValueBuffer, Option<SystemTime>)>> {
         todo!("Not implemented yet.")
+    }
+
+    /// Query is not cached.
+    async fn query(&self, name: &'static str, pk: &[u8]) -> Result<Vec<ValueBuffer>> {
+        self.store.query(name, pk).await
     }
 
     async fn put(

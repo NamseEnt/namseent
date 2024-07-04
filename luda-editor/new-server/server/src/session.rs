@@ -1,9 +1,9 @@
-use arc_swap::ArcSwapOption;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct Session {
-    user_id: Arc<ArcSwapOption<String>>,
+    user_id: Arc<RwLock<Option<Arc<String>>>>,
 }
 
 impl Session {
@@ -12,15 +12,18 @@ impl Session {
             user_id: Default::default(),
         }
     }
-    pub(crate) fn login(&self, user_id: impl ToString) {
-        self.user_id.store(Some(user_id.to_string().into()));
-    }
-    #[allow(dead_code)]
-    pub(crate) fn user_id(&self) -> Option<Arc<String>> {
-        (*self.user_id.load()).clone()
+    pub(crate) async fn login(&self, user_id: impl ToString) {
+        self.user_id
+            .write()
+            .await
+            .replace(user_id.to_string().into());
     }
 
-    pub(crate) fn logged_in(&self) -> bool {
-        self.user_id.load().is_some()
+    pub(crate) async fn user_id(&self) -> Option<Arc<String>> {
+        self.user_id.read().await.clone()
+    }
+
+    pub(crate) async fn logged_in(&self) -> bool {
+        self.user_id.read().await.is_some()
     }
 }

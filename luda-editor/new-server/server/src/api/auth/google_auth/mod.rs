@@ -12,7 +12,7 @@ pub async fn google_auth(
     db: Database,
     session: Session,
 ) -> Result<Response, Error> {
-    if session.logged_in() {
+    if session.logged_in().await {
         return Err(Error::AlreadyLoggedIn {});
     }
 
@@ -59,7 +59,8 @@ pub async fn google_auth(
 }
 
 async fn done(db: Database, session: Session, user_id: &str) -> Result<Response, Error> {
-    session.login(user_id);
+    session.login(user_id).await;
+    println!("session: {:?}", session);
     let session_token = generate_session_token(&db, user_id).await?;
     Ok(Response { session_token })
 }

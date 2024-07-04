@@ -1277,6 +1277,7 @@ dependencies = [
  "rkyv",
  "rpc-macro",
  "syn 2.0.68",
+ "walkdir",
 ]
 
 [[package]]
