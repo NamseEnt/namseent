@@ -309,7 +309,6 @@ async fn backup(
     s3_client: &aws_sdk_s3::Client,
     bucket_name: &str,
 ) -> anyhow::Result<()> {
-    println!("Start Backup db.sqlite");
     let now = std::time::SystemTime::now();
 
     let _ = std::fs::remove_file(BACKUP_PATH);
@@ -321,10 +320,7 @@ async fn backup(
 
     save_db_backup_to_s3(s3_client, bucket_name).await?;
 
-    println!(
-        "Successfully backed up db.sqlite in {:?}",
-        now.elapsed().unwrap()
-    );
+    println!("Sqlite Backup {}ms", now.elapsed().unwrap().as_millis());
 
     Ok(())
 }

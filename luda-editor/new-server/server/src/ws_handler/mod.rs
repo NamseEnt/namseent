@@ -13,6 +13,7 @@ pub async fn ws_handler(ws: WebSocketUpgrade, State(db): State<Database>) -> Res
     // But sometime it should be waited. Make a rule for that.
     ws.on_upgrade(|socket| async move {
         use axum::extract::ws;
+        println!("New connection");
 
         let session = Session::new();
         const MAX_CONCURRENT_REQUESTS: usize = 16;
@@ -83,6 +84,8 @@ pub async fn ws_handler(ws: WebSocketUpgrade, State(db): State<Database>) -> Res
         });
 
         let _ = tokio::join!(in_msg_recv_task, msg_process_task, out_msg_send_task);
+
+        println!("Connection closed");
     })
 }
 

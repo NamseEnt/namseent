@@ -1,6 +1,6 @@
 mkdir -p s3local
 
-docker-compose up -d --remove-orphans
+docker compose up -d --remove-orphans
 
 export BUCKET_NAME=visual-novel
 export AWS_ACCESS_KEY_ID=minio

@@ -21,11 +21,14 @@ pub fn schema(
     let struct_create_define = struct_create_define(&parsed);
     let struct_delete_define = struct_delete_define(&parsed);
     let struct_query_define = struct_query_define(&parsed);
+    let debug_define = debug_define(&parsed);
 
     let attrs_removed_input = &parsed.attrs_removed_input;
 
     let output = quote! {
-        #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+        #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+        #[archive_attr(derive(Debug))]
+        #[archive(check_bytes)]
         #attrs_removed_input
 
         impl document::Document for #struct_name {
@@ -53,6 +56,8 @@ pub fn schema(
         #struct_create_define
         #struct_delete_define
         #struct_query_define
+
+        #debug_define
     };
 
     output.into()
@@ -139,8 +144,6 @@ fn struct_create_define(
         impl<'a> TryInto<document::TransactItem<'a>> for #create_struct_name<'a> {
             type Error = document::SerErr;
             fn try_into(self) -> Result<document::TransactItem<'a>, document::SerErr> {
-
-
                 Ok(document::TransactItem::Create {
                     name: stringify!(#name),
                     pk: #pk_cow,
@@ -204,6 +207,26 @@ fn struct_query_define(parsed: &Parsed) -> impl quote::ToTokens {
     }
 }
 
+fn debug_define(parsed: &Parsed) -> impl quote::ToTokens {
+    let Parsed { name, .. } = parsed;
+
+    quote! {
+        document::inventory::submit! {
+            document::DocumentLogPlugin::new(stringify!(#name), |value| {
+                let Ok(deserialized) = rkyv::validation::validators::check_archived_root::<
+                    #name
+                >(value) else {
+                    println!("Validation failed");
+                    return;
+                };
+                // let deserialized = unsafe { rkyv::from_bytes_unchecked::<#name>(value).unwrap() };
+                // let archived = unsafe { rkyv::archived_root::<#name>(value) };
+                println!("{:#?}", deserialized);
+            })
+        }
+    }
+}
+
 fn as_ref_fields_with_rkyv_with_attr<'a>(
     fields: impl 'a + IntoIterator<Item = &'a Field>,
 ) -> Vec<Field> {
@@ -215,7 +238,7 @@ fn as_ref_fields_with_rkyv_with_attr<'a>(
                 field.ty = parse_quote! {&'a str};
                 field
                     .attrs
-                    .push(parse_quote! {#[with(rkyv::with::RefAsBox)]});
+                    .push(parse_quote! {#[with(document::rkyv_with::StrAsString)]});
             } else {
                 let ty = field.ty;
                 field.ty = parse_quote! {&'a #ty};

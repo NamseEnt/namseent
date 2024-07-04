@@ -91,46 +91,49 @@ impl ConnectionKeeper {
                         match namui::network::ws::connect(url.clone()).await {
                             Ok(ok) => ok,
                             Err(error) => {
-                                eprintln!("Failed to connect to server: {}", error);
+                                eprintln!("NETWORK-LOG: Failed to connect to server: {}", error);
                                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                                 continue;
                             }
                         };
+                    println!("NETWORK-LOG: Server Connected");
 
                     // 밀린 요청 보내고
                     for request in requests.values() {
                         sender.send(&request.bytes);
                     }
 
-                    tokio::select! {
-                        request = request_rx.recv() => {
-                            match request {
-                                Some(request) => {
-                                    sender.send(&request.bytes);
-                                    requests.insert(request.packet_id, request);
-                                },
-                                None => {
-                                    // Connection Keeper Dropped
-                                    return;
-                                },
-                            }
-                        },
-                        response = receiver.recv() => {
-                            match response {
-                                Some(response) => {
-                                    let packet_id = u32::from_le_bytes(response[response.len() - 4..].try_into().unwrap());
-                                    println!("packet_id: {packet_id}");
-                                    let request = requests.remove(&packet_id).unwrap();
-                                    request.response_tx.send(response.into_vec()).unwrap();
-                                },
-                                None => {
-                                    // Disconnected
-                                    println!("Server Connection Closed");
-                                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                                    continue;
-                                },
-                            }
-                        },
+                    loop {
+                        tokio::select! {
+                            request = request_rx.recv() => {
+                                match request {
+                                    Some(request) => {
+                                        sender.send(&request.bytes);
+                                        requests.insert(request.packet_id, request);
+                                    },
+                                    None => {
+                                        // Connection Keeper Dropped
+                                        return;
+                                    },
+                                }
+                            },
+                            response = receiver.recv() => {
+                                match response {
+                                    Some(response) => {
+                                        let packet_id = u32::from_le_bytes(response[response.len() - 4..].try_into().unwrap());
+                                        println!("packet_id: {packet_id}");
+                                        let request = requests.remove(&packet_id).unwrap();
+                                        request.response_tx.send(response.into_vec()).unwrap();
+                                    },
+                                    None => {
+                                        // Disconnected
+                                        println!("Server Connection Closed");
+                                        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                                        continue;
+                                    },
+                                }
+                            },
+                        }
                     }
                 }
             }
@@ -188,6 +191,7 @@ impl ServerConnection {
             luda_rpc::rkyv::de::deserializers::SharedDeserializeMap,
         >,
     {
+        println!("NETWORK-LOG: request: {:?}", api_index);
         let request_packet = RequestPacket::new(api_index, request_bytes);
 
         let response_packet = self.request_raw(request_packet).await?;

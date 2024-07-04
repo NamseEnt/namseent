@@ -34,6 +34,7 @@ pub async fn google_auth(
     })?;
 
     let google_identity = db.get(GoogleIdentityDocGet { sub: &sub }).await?;
+    println!("google_identity: {:?}", google_identity);
 
     if let Some(google_identity) = google_identity {
         return done(db, session, &google_identity.user_id).await;
@@ -54,6 +55,9 @@ pub async fn google_auth(
         },
     ))
     .await?;
+
+    let google_identity = db.get(GoogleIdentityDocGet { sub: &sub }).await?;
+    println!("google_identity2 : {:?}", google_identity);
 
     done(db, session, &user_id).await
 }

@@ -1,9 +1,11 @@
 mod heap_archived;
+pub mod rkyv_with;
 mod transact;
 mod value_buffer;
 
 pub use anyhow::Result;
 pub use heap_archived::*;
+pub use inventory;
 use std::borrow::Cow;
 pub use transact::*;
 pub use value_buffer::ValueBuffer;
@@ -31,3 +33,19 @@ pub trait DocumentQuery {
 
     fn pk(&self) -> Cow<'_, [u8]>;
 }
+
+pub struct DocumentLogPlugin {
+    pub name: &'static str,
+    pub debug_log_value: fn(&[u8]),
+}
+
+impl DocumentLogPlugin {
+    pub const fn new(name: &'static str, debug_log_value: fn(&[u8])) -> Self {
+        DocumentLogPlugin {
+            name,
+            debug_log_value,
+        }
+    }
+}
+
+inventory::collect!(DocumentLogPlugin);

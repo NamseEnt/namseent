@@ -1,6 +1,8 @@
 export AWS_ACCESS_KEY_ID=minio
 export AWS_SECRET_ACCESS_KEY=minio123
 
+docker compose up -d --remove-orphans
+
 echo "before create-bucket"
 aws s3api create-bucket \
   --endpoint-url http://localhost:9000 \

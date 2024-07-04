@@ -1,6 +1,10 @@
 use super::*;
 use rkyv::{de::deserializers::SharedDeserializeMap, Archived, Deserialize};
-use std::{ops::Deref, sync::Arc};
+use std::{
+    fmt::{Debug, Pointer},
+    ops::Deref,
+    sync::Arc,
+};
 
 pub struct HeapArchived<T> {
     buffer: ValueBuffer,
@@ -36,5 +40,11 @@ impl<T: rkyv::Archive> Deref for HeapArchived<T> {
 
     fn deref(&self) -> &Self::Target {
         unsafe { rkyv::archived_root::<T>(self.buffer.as_slice()) }
+    }
+}
+
+impl<T: Debug + rkyv::Archive> Debug for HeapArchived<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.deref().fmt(f)
     }
 }
