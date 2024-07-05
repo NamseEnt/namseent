@@ -1,5 +1,4 @@
 use std::ffi::CString;
-use std::mem;
 use std::ops::{Deref, DerefMut};
 
 use super::common::Context;
@@ -197,7 +196,7 @@ impl<'a> PacketIter<'a> {
 }
 
 impl<'a> Iterator for PacketIter<'a> {
-    type Item = (Stream<'a>, Packet);
+    type Item = (Stream, Packet);
 
     fn next(&mut self) -> Option<<Self as Iterator>::Item> {
         let mut packet = Packet::empty();
@@ -205,10 +204,7 @@ impl<'a> Iterator for PacketIter<'a> {
         loop {
             match packet.read(self.context) {
                 Ok(..) => unsafe {
-                    return Some((
-                        Stream::wrap(mem::transmute_copy(&self.context), packet.stream()),
-                        packet,
-                    ));
+                    return Some((Stream::wrap(self.context.clone(), packet.stream()), packet));
                 },
 
                 Err(Error::Eof) => return None,
