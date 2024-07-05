@@ -1,6 +1,7 @@
 use super::{atomic_floating::AtomicF32, AudioConsume};
 use crate::media::audio::AudioConfig;
 use anyhow::{anyhow, Result};
+use num::Zero;
 use std::{fmt::Debug, mem::size_of, sync::Arc};
 
 /// Currently it implemented WASAPI IAudioClient.
@@ -68,6 +69,9 @@ impl AudioContext {
                     let volume = volume.load(std::sync::atomic::Ordering::Relaxed);
 
                     let buffer_frame_count = audio_client.get_available_space_in_frames().unwrap();
+                    if buffer_frame_count.is_zero() {
+                        continue;
+                    }
                     let mut output = vec![0.0f32; buffer_frame_count as usize * CHANNELS];
 
                     for audio_buffer in &mut audios {
