@@ -4,7 +4,7 @@ use luda_rpc::team_invite::invalidate_team_invite_code::*;
 
 pub async fn invalidate_team_invite_code(
     ArchivedRequest { team_id, code }: &ArchivedRequest,
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<Response, Error> {
     let Some(user_id) = session.user_id().await else {

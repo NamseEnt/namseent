@@ -9,7 +9,7 @@ use verify_jwt::*;
 
 pub async fn google_auth(
     ArchivedRequest { jwt }: &ArchivedRequest,
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<Response, Error> {
     if session.logged_in().await {
@@ -62,9 +62,9 @@ pub async fn google_auth(
     done(db, session, &user_id).await
 }
 
-async fn done(db: Database, session: Session, user_id: &str) -> Result<Response, Error> {
+async fn done(db: &Database, session: Session, user_id: &str) -> Result<Response, Error> {
     session.login(user_id).await;
     println!("session: {:?}", session);
-    let session_token = generate_session_token(&db, user_id).await?;
+    let session_token = generate_session_token(db, user_id).await?;
     Ok(Response { session_token })
 }

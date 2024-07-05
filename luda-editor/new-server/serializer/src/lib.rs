@@ -1,7 +1,8 @@
 use rkyv::{
+    de::deserializers::{SharedDeserializeMap, SharedDeserializeMapError},
     ser::{serializers::AllocSerializer, ScratchSpace, Serializer},
     with::UnixTimestampError,
-    Fallible, Serialize,
+    Archive, Deserialize, Fallible, Serialize,
 };
 use std::error::Error;
 
@@ -13,11 +14,12 @@ pub type SerErr = MySerializerError<
     >,
 >;
 
-pub fn serialize<T>(value: &T) -> Result<Vec<u8>, SerErr>
+pub type Result<T> = std::result::Result<T, SerErr>;
+
+pub fn serialize<T>(value: &T) -> Result<Vec<u8>>
 where
     T: Serialize<MySerializer<AllocSerializer<1024>>>,
 {
-    // rkyv::to_bytes(value)
     let mut serializer = MySerializer::default();
     serializer.serialize_value(value)?;
     Ok(serializer
@@ -25,6 +27,14 @@ where
         .into_serializer()
         .into_inner()
         .to_vec())
+}
+
+pub fn deserialize<T>(bytes: &[u8]) -> Result<T>
+where
+    T: Archive,
+    T::Archived: Deserialize<T, SharedDeserializeMap>,
+{
+    Ok(unsafe { rkyv::from_bytes_unchecked(bytes)? })
 }
 
 pub struct MySerializer<S> {
@@ -49,8 +59,10 @@ impl<S: Serializer> Serializer for MySerializer<S> {
     }
 
     #[inline]
-    fn write(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
-        self.inner.write(bytes).map_err(MySerializerError::Inner)
+    fn write(&mut self, bytes: &[u8]) -> std::result::Result<(), Self::Error> {
+        self.inner
+            .write(bytes)
+            .map_err(MySerializerError::Serialize)
     }
 }
 
@@ -58,20 +70,20 @@ impl<S: ScratchSpace> ScratchSpace for MySerializer<S> {
     unsafe fn push_scratch(
         &mut self,
         layout: std::alloc::Layout,
-    ) -> Result<std::ptr::NonNull<[u8]>, Self::Error> {
+    ) -> std::result::Result<std::ptr::NonNull<[u8]>, Self::Error> {
         self.inner
             .push_scratch(layout)
-            .map_err(MySerializerError::Inner)
+            .map_err(MySerializerError::Serialize)
     }
 
     unsafe fn pop_scratch(
         &mut self,
         ptr: std::ptr::NonNull<u8>,
         layout: std::alloc::Layout,
-    ) -> Result<(), Self::Error> {
+    ) -> std::result::Result<(), Self::Error> {
         self.inner
             .pop_scratch(ptr, layout)
-            .map_err(MySerializerError::Inner)
+            .map_err(MySerializerError::Serialize)
     }
 }
 
@@ -85,7 +97,8 @@ impl<S: Default> Default for MySerializer<S> {
 
 #[derive(Debug)]
 pub enum MySerializerError<E> {
-    Inner(E),
+    Serialize(E),
+    Deserialize(SharedDeserializeMapError),
     TimeBeforeUnixEpoch,
 }
 
@@ -95,10 +108,17 @@ impl<E> From<UnixTimestampError> for MySerializerError<E> {
     }
 }
 
+impl<E> From<SharedDeserializeMapError> for MySerializerError<E> {
+    fn from(err: SharedDeserializeMapError) -> Self {
+        Self::Deserialize(err)
+    }
+}
+
 impl<E: Error> std::fmt::Display for MySerializerError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            MySerializerError::Inner(err) => write!(f, "{}", err),
+            MySerializerError::Serialize(err) => write!(f, "{}", err),
+            MySerializerError::Deserialize(err) => write!(f, "{}", err),
             MySerializerError::TimeBeforeUnixEpoch => write!(f, "Time before Unix epoch"),
         }
     }

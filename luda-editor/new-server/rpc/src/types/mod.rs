@@ -19,6 +19,8 @@ pub struct Project {
 pub struct Episode {
     pub id: String,
     pub name: String,
+    #[with(rkyv::with::UnixTimestamp)]
+    pub created_at: SystemTime,
 }
 
 #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]

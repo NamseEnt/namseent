@@ -496,13 +496,14 @@ fn create<Bytes: AsRef<[u8]>>(
     )?;
     let count: i8 = stmt.query_row((name, &pk, &sk), |row| row.get(0))?;
     if count != 0 {
-        return Ok(());
+        return Err(Error::AlreadyExistsOnCreate);
     }
 
     let value = value_fn()?;
     let mut stmt = trx.prepare(
+        // 'replace' to ignore expired documents. So should check expiration before this query.
         "
-        INSERT INTO documents
+        INSERT OR REPLACE INTO documents
         (name, pk, sk, value, version, expired_at)
         VALUES (?, ?, ?, ?, 0, ?)",
     )?;

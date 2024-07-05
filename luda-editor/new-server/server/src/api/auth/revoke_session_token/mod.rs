@@ -4,7 +4,7 @@ use luda_rpc::auth::revoke_session_token::*;
 
 pub async fn revoke_session_token(
     ArchivedRequest { session_token }: &ArchivedRequest,
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<Response, Error> {
     let Some(user_id) = session.user_id().await else {

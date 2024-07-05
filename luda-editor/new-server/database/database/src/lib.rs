@@ -29,7 +29,11 @@ impl Database {
     ) -> Result<Option<HeapArchived<T>>> {
         let value_buffer = self
             .store
-            .get(T::name(), &document_get.pk(), document_get.sk().as_deref())
+            .get(
+                T::name(),
+                &document_get.pk()?,
+                document_get.sk()?.as_deref(),
+            )
             .await?;
         Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
     }
@@ -37,7 +41,7 @@ impl Database {
         &self,
         document_query: impl DocumentQuery<Output = T>,
     ) -> Result<Vec<HeapArchived<T>>> {
-        let value_buffer = self.store.query(T::name(), &document_query.pk()).await?;
+        let value_buffer = self.store.query(T::name(), &document_query.pk()?).await?;
         Ok(value_buffer
             .into_iter()
             .map(|value_buffer| T::heap_archived(value_buffer))
@@ -53,6 +57,7 @@ impl Database {
 pub enum Error {
     SqliteError(rusqlite::Error),
     SerializationError(SerErr),
+    AlreadyExistsOnCreate,
 }
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

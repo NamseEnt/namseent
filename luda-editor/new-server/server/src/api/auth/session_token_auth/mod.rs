@@ -5,7 +5,7 @@ use luda_rpc::auth::session_token_auth::*;
 
 pub async fn session_token_auth(
     ArchivedRequest { session_token }: &ArchivedRequest,
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<Response, Error> {
     println!("session_token_auth {:?}", session);
@@ -18,7 +18,7 @@ pub async fn session_token_auth(
     };
 
     session.login(&doc.user_id).await;
-    refresh_session_token_ttl(&db, &doc).await?;
+    refresh_session_token_ttl(db, &doc).await?;
 
     Ok(Response {})
 }

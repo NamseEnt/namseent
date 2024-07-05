@@ -121,7 +121,7 @@ async fn handle_msg(
     let api_index = u16::from_le_bytes(header[4..6].try_into()?);
 
     // let (mut out_payload, status): (Vec<u8>, Status) =
-    let result = handle::handle(api_index, in_payload, db, session).await?;
+    let result = handle::handle(api_index, in_payload, &db, session).await?;
 
     /*
         out packet = [payload][1byte status][4byte packet_id]

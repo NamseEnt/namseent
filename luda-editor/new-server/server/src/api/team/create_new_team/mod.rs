@@ -6,7 +6,7 @@ const MAX_TEAM_COUNT: usize = 20;
 
 pub async fn create_new_team(
     ArchivedRequest { name }: &ArchivedRequest,
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<Response, Error> {
     let Some(user_id) = session.user_id().await else {
@@ -21,6 +21,11 @@ pub async fn create_new_team(
     let team_id = randum::rand();
 
     db.transact((
+        TeamNameToTeamIdDocCreate {
+            team_name: name,
+            team_id: &team_id,
+            ttl: None,
+        },
         TeamDocPut {
             id: &team_id,
             name,
@@ -32,7 +37,11 @@ pub async fn create_new_team(
             ttl: None,
         },
     ))
-    .await?;
+    .await
+    .map_err(|err| match err {
+        database::Error::AlreadyExistsOnCreate => Error::DuplicatedName,
+        _ => err.into(),
+    })?;
 
     Ok(Response {})
 }

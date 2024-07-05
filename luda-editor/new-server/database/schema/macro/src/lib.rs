@@ -37,11 +37,11 @@ pub fn schema(
             }
 
             fn from_bytes(bytes: Vec<u8>) -> document::Result<Self> {
-                unsafe { Ok(rkyv::from_bytes_unchecked(&bytes)?) }
+                document::deserialize(&bytes)
             }
 
             fn to_bytes(&self) -> document::Result<Vec<u8>> {
-                Ok(document::serialize(self)?)
+                document::serialize(self)
             }
         }
 
@@ -76,11 +76,11 @@ fn struct_get_define(parsed: &Parsed) -> impl quote::ToTokens {
         impl document::DocumentGet for #get_struct_name<'_> {
             type Output = #name;
 
-            fn pk<'a>(&'a self) -> std::borrow::Cow<'a, [u8]> {
-                #pk_cow
+            fn pk<'a>(&'a self) -> document::Result<std::borrow::Cow<'a, [u8]>> {
+                Ok(#pk_cow)
             }
-            fn sk<'a>(&'a self) -> Option<std::borrow::Cow<'a, [u8]>> {
-                #sk_cow
+            fn sk<'a>(&'a self) -> document::Result<Option<std::borrow::Cow<'a, [u8]>>> {
+                Ok(#sk_cow)
             }
         }
     }
@@ -106,7 +106,7 @@ fn struct_put_define(parsed: &Parsed) -> impl quote::ToTokens {
 
         impl<'a> TryInto<document::TransactItem<'a>> for #put_struct_name<'a> {
             type Error = document::SerErr;
-            fn try_into(self) -> Result<document::TransactItem<'a>, document::SerErr> {
+            fn try_into(self) -> document::Result<document::TransactItem<'a>> {
                 Ok(document::TransactItem::Put {
                     name: stringify!(#name),
                     pk: #pk_cow,
@@ -139,7 +139,7 @@ fn struct_create_define(
         }
         impl<'a> TryInto<document::TransactItem<'a>> for #create_struct_name<'a> {
             type Error = document::SerErr;
-            fn try_into(self) -> Result<document::TransactItem<'a>, document::SerErr> {
+            fn try_into(self) -> document::Result<document::TransactItem<'a>> {
                 Ok(document::TransactItem::Create {
                     name: stringify!(#name),
                     pk: #pk_cow,
@@ -169,7 +169,7 @@ fn struct_delete_define(
         }
         impl<'a> TryInto<document::TransactItem<'a>> for #delete_struct_name<'a> {
             type Error = document::SerErr;
-            fn try_into(self) -> Result<document::TransactItem<'a>, document::SerErr> {
+            fn try_into(self) -> document::Result<document::TransactItem<'a>> {
                 Ok(document::TransactItem::Delete {
                     name: stringify!(#name),
                     pk: #pk_cow,
@@ -196,8 +196,8 @@ fn struct_query_define(parsed: &Parsed) -> impl quote::ToTokens {
         impl document::DocumentQuery for #query_struct_name<'_> {
             type Output = #name;
 
-            fn pk<'a>(&'a self) -> std::borrow::Cow<'a, [u8]> {
-                #pk_cow
+            fn pk<'a>(&'a self) -> document::Result<std::borrow::Cow<'a, [u8]>> {
+                Ok(#pk_cow)
             }
         }
     }

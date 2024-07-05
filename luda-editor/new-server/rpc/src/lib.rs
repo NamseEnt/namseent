@@ -61,6 +61,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 TooManyTeams,
+                DuplicatedName,
             }
         },
     },
@@ -115,6 +116,20 @@ rpc_macro::define_rpc! {
         },
     },
     Project: {
+        create_new_project: {
+            struct Request {
+                team_id: String,
+                name: String,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                TooManyProjects,
+                DuplicatedName,
+            }
+        },
         get_projects: {
             struct Request {
                 team_id: String,
@@ -123,10 +138,25 @@ rpc_macro::define_rpc! {
                 projects: Vec<Project>,
             }
             enum Error {
+                NeedLogin,
+                PermissionDenied,
             }
         },
     },
     Episode: {
+        create_new_episode: {
+            struct Request {
+                project_id: String,
+                name: String,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                ProjectNotExist,
+            }
+        },
         get_episodes: {
             struct Request {
                 project_id: String,
@@ -135,6 +165,9 @@ rpc_macro::define_rpc! {
                 episodes: Vec<Episode>,
             }
             enum Error {
+                NeedLogin,
+                PermissionDenied,
+                ProjectNotExist,
             }
         },
     },

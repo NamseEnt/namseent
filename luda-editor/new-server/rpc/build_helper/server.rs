@@ -85,7 +85,7 @@ use luda_rpc::{service_snake_name}::{api_name}::*;
 
 pub async fn {api_name}(
     ArchivedRequest {{ }}: &ArchivedRequest,
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<Response, Error> {{
     todo!()
@@ -144,7 +144,7 @@ fn generate_api_wire_up_file(rpc: &Rpc) {
         pub async fn handle(
             api_index: u16,
             in_payload: &[u8],
-            db: Database,
+            db: &Database,
             session: Session,
         ) -> Result<HandleResult> {
             match api_index {

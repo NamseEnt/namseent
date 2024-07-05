@@ -4,7 +4,7 @@ use luda_rpc::team_invite::join_team::*;
 
 pub async fn join_team(
     ArchivedRequest { code }: &ArchivedRequest,
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<Response, Error> {
     let Some(user_id) = session.user_id().await else {
@@ -15,13 +15,11 @@ pub async fn join_team(
         return Err(Error::InvalidCode);
     };
 
-    db.transact(
-        UserToTeamDocPut {
-            user_id: &user_id,
-            team_id: &team_invite_code_to_team.team_id,
-            ttl: None,
-        },
-    )
+    db.transact(UserToTeamDocPut {
+        user_id: &user_id,
+        team_id: &team_invite_code_to_team.team_id,
+        ttl: None,
+    })
     .await?;
 
     Ok(Response {})

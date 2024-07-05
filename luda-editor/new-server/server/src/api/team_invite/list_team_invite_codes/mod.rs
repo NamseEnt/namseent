@@ -4,7 +4,7 @@ use luda_rpc::{team_invite::list_team_invite_codes::*, TeamInviteCode};
 
 pub async fn list_team_invite_codes(
     ArchivedRequest { team_id }: &ArchivedRequest,
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<Response, Error> {
     let Some(user_id) = session.user_id().await else {

@@ -3,7 +3,6 @@ pub mod rkyv_with;
 mod transact;
 mod value_buffer;
 
-pub use anyhow::Result;
 pub use heap_archived::*;
 pub use inventory;
 pub use schema_macro::schema;
@@ -26,14 +25,14 @@ pub trait Document {
 pub trait DocumentGet {
     type Output;
 
-    fn pk(&self) -> Cow<'_, [u8]>;
-    fn sk(&self) -> Option<Cow<'_, [u8]>>;
+    fn pk(&self) -> Result<Cow<'_, [u8]>>;
+    fn sk(&self) -> Result<Option<Cow<'_, [u8]>>>;
 }
 
 pub trait DocumentQuery {
     type Output;
 
-    fn pk(&self) -> Cow<'_, [u8]>;
+    fn pk(&self) -> Result<Cow<'_, [u8]>>;
 }
 
 pub struct DocumentLogPlugin {

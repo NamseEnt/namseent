@@ -1,6 +1,5 @@
-use crate::*;
 pub use arrayvec::ArrayVec;
-use serializer::SerErr;
+use serializer::*;
 use std::{borrow::Cow, time::Duration};
 
 pub enum TransactItem<'a> {
@@ -33,12 +32,12 @@ pub enum TransactItem<'a> {
 pub type TransactItems<'a> = ArrayVec<TransactItem<'a>, 10>;
 
 pub trait Transact<'a> {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr>
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>>
     where
         Self: 'a;
 }
 impl<'a, T: TryInto<TransactItem<'a>, Error = SerErr>> Transact<'a> for T {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         Ok(ArrayVec::from_iter([self.try_into()?]))
     }
 }
@@ -48,7 +47,7 @@ impl<
         T2: TryInto<TransactItem<'a>, Error = SerErr>,
     > Transact<'a> for (T1, T2)
 {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         let (t1, t2) = self;
         Ok(ArrayVec::from_iter([t1.try_into()?, t2.try_into()?]))
     }
@@ -60,7 +59,7 @@ impl<
         T3: TryInto<TransactItem<'a>, Error = SerErr>,
     > Transact<'a> for (T1, T2, T3)
 {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         let (t1, t2, t3) = self;
         Ok(ArrayVec::from_iter([
             t1.try_into()?,
@@ -77,7 +76,7 @@ impl<
         T4: TryInto<TransactItem<'a>, Error = SerErr>,
     > Transact<'a> for (T1, T2, T3, T4)
 {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         let (t1, t2, t3, t4) = self;
         Ok(ArrayVec::from_iter([
             t1.try_into()?,
@@ -96,7 +95,7 @@ impl<
         T5: TryInto<TransactItem<'a>, Error = SerErr>,
     > Transact<'a> for (T1, T2, T3, T4, T5)
 {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         let (t1, t2, t3, t4, t5) = self;
         Ok(ArrayVec::from_iter([
             t1.try_into()?,
@@ -117,7 +116,7 @@ impl<
         T6: TryInto<TransactItem<'a>, Error = SerErr>,
     > Transact<'a> for (T1, T2, T3, T4, T5, T6)
 {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         let (t1, t2, t3, t4, t5, t6) = self;
         Ok(ArrayVec::from_iter([
             t1.try_into()?,
@@ -140,7 +139,7 @@ impl<
         T7: TryInto<TransactItem<'a>, Error = SerErr>,
     > Transact<'a> for (T1, T2, T3, T4, T5, T6, T7)
 {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         let (t1, t2, t3, t4, t5, t6, t7) = self;
         Ok(ArrayVec::from_iter([
             t1.try_into()?,
@@ -166,7 +165,7 @@ impl<
         T8: TryInto<TransactItem<'a>, Error = SerErr>,
     > Transact<'a> for (T1, T2, T3, T4, T5, T6, T7, T8)
 {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         let (t1, t2, t3, t4, t5, t6, t7, t8) = self;
         Ok(ArrayVec::from_iter([
             t1.try_into()?,
@@ -194,7 +193,7 @@ impl<
         T9: TryInto<TransactItem<'a>, Error = SerErr>,
     > Transact<'a> for (T1, T2, T3, T4, T5, T6, T7, T8, T9)
 {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         let (t1, t2, t3, t4, t5, t6, t7, t8, t9) = self;
         Ok(ArrayVec::from_iter([
             t1.try_into()?,
@@ -224,7 +223,7 @@ impl<
         T10: TryInto<TransactItem<'a>, Error = SerErr>,
     > Transact<'a> for (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)
 {
-    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>, SerErr> {
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a>, 10>> {
         let (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10) = self;
         Ok(ArrayVec::from_iter([
             t1.try_into()?,

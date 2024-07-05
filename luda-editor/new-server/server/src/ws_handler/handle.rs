@@ -7,7 +7,7 @@ pub enum HandleResult {
 pub async fn handle(
     api_index: u16,
     in_payload: &[u8],
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<HandleResult> {
     match api_index {
@@ -125,6 +125,17 @@ pub async fn handle(
         }
         9u16 => {
             let Ok(request) = rkyv::validation::validators::check_archived_root::<
+                luda_rpc::project::create_new_project::Request,
+            >(in_payload) else {
+                return Err(anyhow::anyhow!("Failed to validate packet"));
+            };
+            match api::project::create_new_project::create_new_project(request, db, session).await {
+                Ok(response) => Ok(HandleResult::Response(serializer::serialize(&response)?)),
+                Err(error) => Ok(HandleResult::Error(serializer::serialize(&error)?)),
+            }
+        }
+        10u16 => {
+            let Ok(request) = rkyv::validation::validators::check_archived_root::<
                 luda_rpc::project::get_projects::Request,
             >(in_payload) else {
                 return Err(anyhow::anyhow!("Failed to validate packet"));
@@ -134,7 +145,18 @@ pub async fn handle(
                 Err(error) => Ok(HandleResult::Error(serializer::serialize(&error)?)),
             }
         }
-        10u16 => {
+        11u16 => {
+            let Ok(request) = rkyv::validation::validators::check_archived_root::<
+                luda_rpc::episode::create_new_episode::Request,
+            >(in_payload) else {
+                return Err(anyhow::anyhow!("Failed to validate packet"));
+            };
+            match api::episode::create_new_episode::create_new_episode(request, db, session).await {
+                Ok(response) => Ok(HandleResult::Response(serializer::serialize(&response)?)),
+                Err(error) => Ok(HandleResult::Error(serializer::serialize(&error)?)),
+            }
+        }
+        12u16 => {
             let Ok(request) = rkyv::validation::validators::check_archived_root::<
                 luda_rpc::episode::get_episodes::Request,
             >(in_payload) else {

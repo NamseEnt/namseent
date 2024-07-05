@@ -1,4 +1,5 @@
 use crate::*;
+use api::team::is_team_member;
 use database::schema::*;
 use luda_rpc::{team_invite::create_team_invite_code::*, TeamInviteCode};
 use std::time::{Duration, SystemTime};
@@ -8,17 +9,14 @@ const SEVEN_DAYS: Duration = Duration::from_secs(3600 * 24 * 7);
 
 pub async fn create_team_invite_code(
     ArchivedRequest { team_id }: &ArchivedRequest,
-    db: Database,
+    db: &Database,
     session: Session,
 ) -> Result<Response, Error> {
     let Some(user_id) = session.user_id().await else {
         return Err(Error::NeedLogin);
     };
 
-    let user_team_query = db.query(UserToTeamDocQuery { user_id: &user_id }).await?;
-    let is_team_member = user_team_query.iter().any(|doc| doc.team_id == *team_id);
-
-    if !is_team_member {
+    if !is_team_member(db, team_id, &user_id).await? {
         return Err(Error::PermissionDenied);
     }
 
