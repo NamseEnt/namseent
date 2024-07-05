@@ -1,11 +1,11 @@
-use crate::{as_ref_fields, as_ref_fields_with_rkyv_with_attr};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
+use spanned::Spanned;
 use syn::*;
 
 pub struct Parsed<'a> {
     pub name: &'a Ident,
-    pub attrs_removed_input: DeriveInput,
+    pub input_redefine: TokenStream,
     pub fields_without_pksk_attr: Vec<Field>,
     pub ref_struct_name: Ident,
     pub ref_struct_value: TokenStream,
@@ -18,27 +18,43 @@ pub struct Parsed<'a> {
 impl<'a> Parsed<'a> {
     pub fn new(input: &'a DeriveInput) -> Self {
         let name = &input.ident;
-        let mut attrs_removed_input = input.clone();
-        let mut pk_fields_without_pk_attr = Vec::new();
-        let mut sk_fields_without_sk_attr = Vec::new();
-        let mut fields_without_pksk_attr = Vec::new();
-        {
-            let struct_input = match &mut attrs_removed_input.data {
+
+        let (pk_fields_without_pk_attr, sk_fields_without_sk_attr, fields_without_pksk_attr) = {
+            let struct_input = match &input.data {
                 Data::Struct(data) => data,
                 _ => unreachable!(),
             };
-            struct_input.fields.iter_mut().for_each(|field| {
-                if field.attrs.iter().any(|attr| attr.path.is_ident("pk")) {
-                    field.attrs.retain(|attr| !attr.path.is_ident("pk"));
-                    pk_fields_without_pk_attr.push(field.clone());
-                }
-                if field.attrs.iter().any(|attr| attr.path.is_ident("sk")) {
-                    field.attrs.retain(|attr| !attr.path.is_ident("sk"));
-                    sk_fields_without_sk_attr.push(field.clone());
-                }
-                fields_without_pksk_attr.push(field.clone());
-            });
-        }
+
+            let mut pk_fields_without_pk_attr = vec![];
+            let mut sk_fields_without_sk_attr = vec![];
+            let mut fields_without_pksk_attr = vec![];
+            struct_input
+                .fields
+                .clone()
+                .into_iter()
+                .for_each(|mut field| {
+                    field.vis = Visibility::Public(VisPublic {
+                        pub_token: token::Pub(field.vis.span()),
+                    });
+
+                    if field.attrs.iter().any(|attr| attr.path.is_ident("pk")) {
+                        field.attrs.retain(|attr| !attr.path.is_ident("pk"));
+                        pk_fields_without_pk_attr.push(field.clone());
+                    }
+                    if field.attrs.iter().any(|attr| attr.path.is_ident("sk")) {
+                        field.attrs.retain(|attr| !attr.path.is_ident("sk"));
+                        sk_fields_without_sk_attr.push(field.clone());
+                    }
+                    fields_without_pksk_attr.push(field);
+                });
+            (
+                pk_fields_without_pk_attr,
+                sk_fields_without_sk_attr,
+                fields_without_pksk_attr,
+            )
+        };
+
+        let input_redefine = input_redefine(input);
         let ref_struct_name = Ident::new(&format!("{}Ref", name), name.span());
         let field_names = fields_without_pksk_attr
             .iter()
@@ -47,14 +63,11 @@ impl<'a> Parsed<'a> {
 
         let ref_struct_value = quote! {
             {
-                use rkyv::ser::{serializers::AllocSerializer, Serializer};
-                let mut serializer = AllocSerializer::<1024>::default();
-                serializer.serialize_value(&#ref_struct_name{
+                document::serialize(&#ref_struct_name{
                     #(
                         #field_names: self.#field_names,
                     )*
-                })?;
-                serializer.into_serializer().into_inner().to_vec()
+                })?
             }
         };
 
@@ -97,13 +110,11 @@ impl<'a> Parsed<'a> {
                             #pk_ref_fields,
                         )*
                     }
-                    let mut serializer = AllocSerializer::<1024>::default();
-                    serializer.serialize_value(&Pk{
+                    document::serialize(&Pk{
                         #(
                             #pk_field_names: self.#pk_field_names,
                         )*
-                    })?;
-                    serializer.into_serializer().into_inner().to_vec().into()
+                    })?.into()
                 }
             }
         };
@@ -153,13 +164,11 @@ impl<'a> Parsed<'a> {
                             #sk_ref_fields,
                         )*
                     }
-                    let mut serializer = AllocSerializer::<1024>::default();
-                    serializer.serialize_value(&Sk{
+                    Some(document::serialize(&Sk{
                         #(
                             #sk_field_names: self.#sk_field_names,
                         )*
-                    })?;
-                    Some(serializer.into_serializer().into_inner().to_vec().into())
+                    })?.into())
                 }
             }
         };
@@ -174,7 +183,7 @@ impl<'a> Parsed<'a> {
 
         Self {
             name,
-            attrs_removed_input,
+            input_redefine,
             fields_without_pksk_attr,
             ref_struct_name,
             ref_struct_value,
@@ -202,4 +211,89 @@ impl<'a> Parsed<'a> {
             }
         }
     }
+}
+
+fn input_redefine(input: &DeriveInput) -> TokenStream {
+    let mut input = input.clone();
+    input.vis = Visibility::Public(VisPublic {
+        pub_token: token::Pub(input.vis.span()),
+    });
+
+    let struct_input = match &mut input.data {
+        Data::Struct(data) => data,
+        _ => unreachable!(),
+    };
+
+    struct_input.fields.iter_mut().for_each(|field| {
+        field.vis = Visibility::Public(VisPublic {
+            pub_token: token::Pub(field.vis.span()),
+        });
+        field
+            .attrs
+            .retain(|attr| !attr.path.is_ident("pk") && !attr.path.is_ident("sk"));
+
+        let field_ty_name = field.ty.to_token_stream().to_string();
+        if field_ty_name == "SystemTime" {
+            field
+                .attrs
+                .push(parse_quote! {#[with(rkyv::with::UnixTimestamp)]});
+        }
+    });
+
+    quote! {
+        #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+        #[archive_attr(derive(Debug))]
+        #[archive(check_bytes)]
+        #input
+    }
+}
+
+fn as_ref_fields_with_rkyv_with_attr<'a>(
+    fields: impl 'a + IntoIterator<Item = &'a Field>,
+) -> Vec<Field> {
+    fields
+        .into_iter()
+        .map(|field| {
+            let mut field = field.clone();
+            let field_name = field.ty.to_token_stream().to_string();
+
+            match field_name.as_str() {
+                "String" => {
+                    field.ty = parse_quote! {&'a str};
+                    field
+                        .attrs
+                        .push(parse_quote! {#[with(document::rkyv_with::StrAsString)]});
+                }
+                "SystemTime" => {
+                    field
+                        .attrs
+                        .push(parse_quote! {#[with(rkyv::with::UnixTimestamp)]});
+                }
+                "u8" | "u16" | "u32" | "u64" | "u128" | "usize" | "i8" | "i16" | "i32" | "i64"
+                | "i128" | "isize" => {
+                    // Copy
+                }
+                _ => {
+                    let ty = field.ty;
+                    field.ty = parse_quote! {&'a #ty};
+                    field.attrs.push(parse_quote! {#[with(rkyv::with::Inline)]});
+                }
+            }
+
+            field
+        })
+        .collect::<Vec<_>>()
+}
+
+pub fn as_ref_fields<'a>(fields: impl 'a + IntoIterator<Item = &'a Field>) -> Vec<Field> {
+    as_ref_fields_with_rkyv_with_attr(fields)
+        .into_iter()
+        .map(|field| {
+            let mut field = field.clone();
+            field
+                .attrs
+                .retain(|attr| !attr.path.segments[0].ident.to_string().starts_with("with"));
+            field
+        })
+        .collect::<Vec<_>>()
 }

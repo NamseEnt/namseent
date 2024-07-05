@@ -40,7 +40,7 @@ pub async fn google_auth(
         return done(db, session, &google_identity.user_id).await;
     }
 
-    let user_id = uuid::Uuid::new_v4().to_string();
+    let user_id = randum::rand();
 
     db.transact((
         UserDocCreate {

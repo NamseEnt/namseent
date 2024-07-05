@@ -6,6 +6,8 @@ mod value_buffer;
 pub use anyhow::Result;
 pub use heap_archived::*;
 pub use inventory;
+pub use schema_macro::schema;
+pub use serializer::*;
 use std::borrow::Cow;
 pub use transact::*;
 pub use value_buffer::ValueBuffer;

@@ -14,7 +14,7 @@ pub async fn get_my_teams(
     };
 
     let user_teams = db
-        .query(UserTeamDocQuery {
+        .query(UserToTeamDocQuery {
             user_id: user_id.as_str(),
         })
         .await?;

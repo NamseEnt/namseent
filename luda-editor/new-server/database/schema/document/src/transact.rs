@@ -1,12 +1,7 @@
 use crate::*;
 pub use arrayvec::ArrayVec;
+use serializer::SerErr;
 use std::{borrow::Cow, time::Duration};
-
-pub type SerErr = rkyv::ser::serializers::CompositeSerializerError<
-    std::convert::Infallible,
-    rkyv::ser::serializers::AllocScratchError,
-    rkyv::ser::serializers::SharedSerializeMapError,
->;
 
 pub enum TransactItem<'a> {
     Put {

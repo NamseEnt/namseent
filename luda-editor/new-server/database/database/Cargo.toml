@@ -11,4 +11,3 @@ rusqlite = { path = "../rusqlite-0.31.0", features = ["backup", "bundled"] }
 tokio = { version = "1.38.0", features = ["rt", "time"] }
 migration = { path = "../schema/migration" }
 document = { path = "../schema/document" }
-rkyv = { version = "0.7.44", features = ["validation"] }

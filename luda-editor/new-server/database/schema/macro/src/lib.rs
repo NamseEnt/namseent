@@ -1,7 +1,7 @@
 mod parsed;
 
 use parsed::*;
-use quote::{quote, ToTokens};
+use quote::quote;
 use spanned::Spanned;
 use syn::*;
 
@@ -13,6 +13,7 @@ pub fn schema(
     let input: syn::DeriveInput = parse_macro_input!(input as syn::DeriveInput);
     let parsed = Parsed::new(&input);
     let struct_name = &input.ident;
+    let input_redefine = &parsed.input_redefine;
 
     let ref_struct = parsed.ref_struct();
 
@@ -23,13 +24,8 @@ pub fn schema(
     let struct_query_define = struct_query_define(&parsed);
     let debug_define = debug_define(&parsed);
 
-    let attrs_removed_input = &parsed.attrs_removed_input;
-
     let output = quote! {
-        #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-        #[archive_attr(derive(Debug))]
-        #[archive(check_bytes)]
-        #attrs_removed_input
+        #input_redefine
 
         impl document::Document for #struct_name {
             fn name() -> &'static str {
@@ -45,7 +41,7 @@ pub fn schema(
             }
 
             fn to_bytes(&self) -> document::Result<Vec<u8>> {
-                Ok(rkyv::to_bytes::<_, 1024>(self)?.to_vec())
+                Ok(document::serialize(self)?)
             }
         }
 
@@ -219,46 +215,8 @@ fn debug_define(parsed: &Parsed) -> impl quote::ToTokens {
                     println!("Validation failed");
                     return;
                 };
-                // let deserialized = unsafe { rkyv::from_bytes_unchecked::<#name>(value).unwrap() };
-                // let archived = unsafe { rkyv::archived_root::<#name>(value) };
                 println!("{:#?}", deserialized);
             })
         }
     }
-}
-
-fn as_ref_fields_with_rkyv_with_attr<'a>(
-    fields: impl 'a + IntoIterator<Item = &'a Field>,
-) -> Vec<Field> {
-    fields
-        .into_iter()
-        .map(|field| {
-            let mut field = field.clone();
-            if field.ty.to_token_stream().to_string() == "String" {
-                field.ty = parse_quote! {&'a str};
-                field
-                    .attrs
-                    .push(parse_quote! {#[with(document::rkyv_with::StrAsString)]});
-            } else {
-                let ty = field.ty;
-                field.ty = parse_quote! {&'a #ty};
-                field.attrs.push(parse_quote! {#[with(rkyv::with::Inline)]});
-            }
-
-            field
-        })
-        .collect::<Vec<_>>()
-}
-
-fn as_ref_fields<'a>(fields: impl 'a + IntoIterator<Item = &'a Field>) -> Vec<Field> {
-    as_ref_fields_with_rkyv_with_attr(fields)
-        .into_iter()
-        .map(|field| {
-            let mut field = field.clone();
-            field
-                .attrs
-                .retain(|attr| !attr.path.segments[0].ident.to_string().starts_with("with"));
-            field
-        })
-        .collect::<Vec<_>>()
 }

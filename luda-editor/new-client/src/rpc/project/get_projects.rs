@@ -7,7 +7,7 @@ pub fn get_projects<'a, Deps: Dependencies + 'a>(
     request: impl FnOnce(Deps) -> Option<RefRequest<'a>>,
     dependencies: Deps,
 ) -> Sig<'a, OptionResult, &'a OptionResult> {
-    server_rpc(ctx, request, dependencies, 4u16)
+    server_rpc(ctx, request, dependencies, 9u16)
 }
 pub fn get_projects_render<'a, Deps: Dependencies + 'a>(
     ctx: &'a RenderCtx,
@@ -32,7 +32,7 @@ impl ServerConnection {
     ) -> Result<Result<Response, Error>> {
         Ok(self
             .request(
-                4u16,
+                9u16,
                 luda_rpc::rkyv::to_bytes::<_, 1024>(&request)
                     .unwrap()
                     .to_vec(),

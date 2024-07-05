@@ -544,7 +544,6 @@ dependencies = [
  "document",
  "migration",
  "quick_cache",
- "rkyv",
  "rusqlite",
  "tokio",
 ]
@@ -588,6 +587,7 @@ dependencies = [
  "inventory",
  "rkyv",
  "schema-macro",
+ "serializer",
 ]
 
 [[package]]
@@ -1006,6 +1006,7 @@ dependencies = [
 name = "luda-rpc"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "database",
  "proc-macro2",
  "quote",
@@ -1533,6 +1534,13 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.68",
+]
+
+[[package]]
+name = "serializer"
+version = "0.1.0"
+dependencies = [
+ "rkyv",
 ]
 
 [[package]]

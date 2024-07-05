@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct Team {
@@ -17,4 +19,12 @@ pub struct Project {
 pub struct Episode {
     pub id: String,
     pub name: String,
+}
+
+#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[archive(check_bytes)]
+pub struct TeamInviteCode {
+    pub code: String,
+    #[with(rkyv::with::UnixTimestamp)]
+    pub expiration_time: SystemTime,
 }

@@ -118,10 +118,10 @@ fn generate_api_wire_up_file(rpc: &Rpc) {
                         .await
                     {
                         Ok(response) => Ok(HandleResult::Response(
-                            rkyv::to_bytes::<_, 64>(&response)?.to_vec()
+                            serializer::serialize(&response)?
                         )),
                         Err(error) => Ok(HandleResult::Error(
-                            rkyv::to_bytes::<_, 64>(&error)?.to_vec()
+                            serializer::serialize(&error)?
                         )),
                     }
                 }

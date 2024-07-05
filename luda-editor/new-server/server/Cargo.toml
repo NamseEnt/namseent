@@ -7,6 +7,8 @@ edition = "2021"
 [dependencies]
 luda-rpc = { path = "../rpc", features = ["server"] }
 database = { path = "../database/database" }
+serializer = { path = "../serializer" }
+randum = { path = "../randum" }
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.7.5", features = ["ws"] }
 anyhow = { version = "1.0.83", features = ["backtrace"] }
@@ -20,4 +22,3 @@ reqwest = { version = "0.12.4", features = ["json"] }
 serde = { version = "1.0.202", features = ["derive"] }
 jsonwebtoken = "9.3.0"
 futures = "0.3.30"
-uuid = { version = "1.9.1", features = ["v4"] }

@@ -14,6 +14,7 @@ quote = "1.0.29"
 syn = { version = "2.0.68", features = ["full"] }
 rkyv = { version = "0.7.44", features = ["validation"] }
 database = { path = "../database/database", optional = true }
+anyhow = { version = "1.0.86", features = ["backtrace"] }
 
 [build-dependencies]
 proc-macro2 = "1.0.86"
@@ -22,4 +23,5 @@ quote = "1.0.29"
 syn = { version = "2.0.68", features = ["full"] }
 rkyv = { version = "0.7.44", features = ["validation"] }
 database = { path = "../database/database", optional = true }
+anyhow = { version = "1.0.86", features = ["backtrace"] }
 walkdir = "2"

@@ -794,7 +794,6 @@ dependencies = [
  "document",
  "migration",
  "quick_cache",
- "rkyv",
  "rusqlite",
  "tokio",
 ]
@@ -838,6 +837,7 @@ dependencies = [
  "inventory",
  "rkyv",
  "schema-macro",
+ "serializer",
 ]
 
 [[package]]
@@ -1466,6 +1466,7 @@ dependencies = [
 name = "luda-rpc"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "database",
  "proc-macro2",
  "quote",
@@ -1907,6 +1908,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "randum"
+version = "0.1.0"
+dependencies = [
+ "rand",
+]
+
+[[package]]
 name = "raw-cpuid"
 version = "11.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2311,6 +2319,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "serializer"
+version = "0.1.0"
+dependencies = [
+ "rkyv",
+]
+
+[[package]]
 name = "server"
 version = "0.1.0"
 dependencies = [
@@ -2324,12 +2339,13 @@ dependencies = [
  "jsonwebtoken",
  "luda-rpc",
  "moka",
+ "randum",
  "reqwest",
  "rkyv",
  "serde",
+ "serializer",
  "tokio",
  "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]

@@ -1,3 +1,4 @@
+#![allow(clippy::enum_variant_names)]
 //! `rpc_macro::define_rpc!` will automatically put `InternalServerError` in the `Error` enum.
 
 mod types;
@@ -50,7 +51,68 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
             }
-        }
+        },
+        create_new_team: {
+            struct Request {
+                name: String,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                TooManyTeams,
+            }
+        },
+    },
+    TeamInvite: {
+        join_team: {
+            struct Request {
+                code: String,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                InvalidCode,
+            }
+        },
+        create_team_invite_code: {
+            struct Request {
+                team_id: String,
+            }
+            struct Response {
+                code: TeamInviteCode,
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                TooManyCodes,
+            }
+        },
+        list_team_invite_codes: {
+            struct Request {
+                team_id: String,
+            }
+            struct Response {
+                codes: Vec<TeamInviteCode>,
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+            }
+        },
+        invalidate_team_invite_code: {
+            struct Request {
+                team_id: String,
+                code: String,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+            }
+        },
     },
     Project: {
         get_projects: {
@@ -62,7 +124,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
             }
-        }
+        },
     },
     Episode: {
         get_episodes: {
@@ -74,6 +136,6 @@ rpc_macro::define_rpc! {
             }
             enum Error {
             }
-        }
+        },
     },
 }

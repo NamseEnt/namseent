@@ -1,6 +1,6 @@
 mod build_helper;
 #[path = "src/lib.rs"]
-#[allow(unused_imports)]
+#[allow(unused_imports, dead_code)]
 mod rpc;
 
 use rpc::Rpc;

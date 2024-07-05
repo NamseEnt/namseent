@@ -1,37 +1,54 @@
-use schema_macro::schema;
+use document::*;
+use std::time::SystemTime;
 
 #[schema]
-pub struct UserDoc {
+struct UserDoc {
     #[pk]
-    pub id: String,
-    pub name: String,
+    id: String,
+    name: String,
 }
 
 #[schema]
-pub struct GoogleIdentityDoc {
+struct GoogleIdentityDoc {
     #[pk]
-    pub sub: String,
-    pub user_id: String,
+    sub: String,
+    user_id: String,
 }
 
 #[schema]
-pub struct SessionTokenDoc {
+struct SessionTokenDoc {
     #[pk]
-    pub session_token: String,
-    pub user_id: String,
+    session_token: String,
+    user_id: String,
 }
 
 #[schema]
-pub struct TeamDoc {
+struct TeamDoc {
     #[pk]
-    pub id: String,
-    pub name: String,
+    id: String,
+    name: String,
 }
 
 #[schema]
-pub struct UserTeamDoc {
+struct UserToTeamDoc {
     #[pk]
-    pub user_id: String,
+    user_id: String,
     #[sk]
-    pub team_id: String,
+    team_id: String,
+}
+
+#[schema]
+struct TeamInviteCodeDoc {
+    #[pk]
+    team_id: String,
+    #[sk]
+    code: String,
+    expiration_time: SystemTime,
+}
+
+#[schema]
+struct TeamInviteCodeToTeamDoc {
+    #[pk]
+    code: String,
+    team_id: String,
 }
