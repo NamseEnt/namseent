@@ -1,4 +1,5 @@
 use super::*;
+use rpc::team::create_new_team::*;
 
 pub struct NewTeamPage;
 
@@ -8,42 +9,31 @@ impl Component for NewTeamPage {
         let (team_name, set_team_name) = ctx.state(String::new);
         let (team_name_validate_err, set_team_name_validate_err) =
             ctx.state::<Option<String>>(|| None);
-        let (create_team_job, set_create_team_job) =
-            ctx.state::<Job<CreateTeamRes, String>>(|| Job::NotStarted);
+        let (create_new_team_err, set_create_new_team_err) = ctx.state::<Option<Error>>(|| None);
 
-        let validate = || {
-            if team_name.is_empty() {
-                set_team_name_validate_err.set(Some(
-                    "팀 이름이 비어있습니다. 팀 이름을 입력해주세요".to_string(),
-                ));
-                return;
-            }
-
-            set_team_name_validate_err.set(None);
-        };
-
-        let submit = || {
-            if create_team_job.is_in_progress() {
-                return;
-            }
-
-            validate();
-            set_create_team_job.set(Job::InProgress);
-
-            ctx.spawn(async move {
-                let result = Result::<(), String>::Ok(());
-
-                match result {
-                    Ok(_) => {
-                        toast::positive("팀 생성 완료");
-                        router::route(router::Route::Home);
-                    }
-                    Err(err) => {
-                        set_create_team_job.set(Job::Err(err));
-                    }
+        let (submit, on_progress) = rpc::team::create_new_team::make_create_team_fn(
+            ctx,
+            || {
+                if team_name.is_empty() {
+                    set_team_name_validate_err.set(Some(
+                        "팀 이름이 비어있습니다. 팀 이름을 입력해주세요".to_string(),
+                    ));
+                    return Err(());
                 }
-            });
-        };
+
+                set_team_name_validate_err.set(None);
+                Ok(rpc::team::create_new_team::RefRequest { name: &team_name })
+            },
+            move |result| match result {
+                Ok(_) => {
+                    toast::positive("팀 생성 완료");
+                    router::route(router::Route::Home);
+                }
+                Err(err) => {
+                    set_create_new_team_err.set(Some(err));
+                }
+            },
+        );
 
         ctx.compose(|ctx| {
             vertical([
@@ -117,10 +107,16 @@ impl Component for NewTeamPage {
                         submit();
                     }));
                 }),
-                if let Job::Err(err) = create_team_job.as_ref() {
+                if let Some(err) = create_new_team_err.as_ref() {
+                    let text = match err {
+                        Error::NeedLogin => "로그인이 필요합니다".to_string(),
+                        Error::TooManyTeams => "팀을 더 이상 만들 수 없습니다".to_string(),
+                        Error::DuplicatedName => "이미 존재하는 팀 이름입니다".to_string(),
+                        Error::InternalServerError { err } => format!("서버 오류: {}", err),
+                    };
                     fixed(16.px(), |wh, ctx| {
                         ctx.add(namui::text(TextParam {
-                            text: err.to_string(),
+                            text,
                             x: 0.px(),
                             y: 12.px(),
                             align: TextAlign::Left,
@@ -136,37 +132,29 @@ impl Component for NewTeamPage {
                             max_width: Some(wh.width),
                         }));
                     })
+                } else if on_progress {
+                    fixed(16.px(), |wh, ctx| {
+                        ctx.add(namui::text(TextParam {
+                            text: "진행중...".to_string(),
+                            x: 0.px(),
+                            y: 12.px(),
+                            align: TextAlign::Left,
+                            baseline: TextBaseline::Middle,
+                            font: Font {
+                                name: "NotoSansKR-Regular".to_string(),
+                                size: 12.int_px(),
+                            },
+                            style: TextStyle {
+                                color: Color::WHITE,
+                                ..Default::default()
+                            },
+                            max_width: Some(wh.width),
+                        }));
+                    })
                 } else {
                     empty()
                 },
             ])(screen_wh, ctx);
         });
-    }
-}
-
-struct CreateTeamRes {}
-
-enum Job<Ok, Err> {
-    NotStarted,
-    InProgress,
-    Ok(Ok),
-    Err(Err),
-}
-
-impl<Ok, Err> Job<Ok, Err> {
-    fn is_not_started(&self) -> bool {
-        matches!(self, Job::NotStarted)
-    }
-
-    fn is_in_progress(&self) -> bool {
-        matches!(self, Job::InProgress)
-    }
-
-    fn is_ok(&self) -> bool {
-        matches!(self, Job::Ok(_))
-    }
-
-    fn is_err(&self) -> bool {
-        matches!(self, Job::Err(_))
     }
 }

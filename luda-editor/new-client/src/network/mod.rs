@@ -15,8 +15,6 @@ type Serializer = rkyv::ser::serializers::AllocSerializer<1024>;
 
 pub static SERVER_CONNECTION_ATOM: Atom<ServerConnection> = Atom::uninitialized();
 
-// 연결이 끊기면 다시 보낸다. transaction id를 이용해서 동일한 요청을 여러번 처리하지 않도록 도와준다.
-
 pub fn server_rpc<
     'a,
     Req: rkyv::Serialize<Serializer> + Send + 'a,
@@ -58,7 +56,7 @@ where
         let bytes = rkyv::to_bytes(&req).unwrap().to_vec();
 
         ctx.spawn(async move {
-            let response = server_connection.request(api_index, bytes).await?;
+            let response = server_connection.request(api_index, bytes).await;
             set_response.set(Some(response));
             Result::<()>::Ok(())
         });
@@ -180,7 +178,7 @@ impl ServerConnection {
         &self,
         api_index: u16,
         request_bytes: Vec<u8>,
-    ) -> Result<Result<Response, Error>, oneshot::error::RecvError>
+    ) -> Result<Response, Error>
     where
         <Response as luda_rpc::rkyv::Archive>::Archived: luda_rpc::rkyv::Deserialize<
             Response,
@@ -194,7 +192,7 @@ impl ServerConnection {
         println!("NETWORK-LOG: request: {:?}", api_index);
         let request_packet = RequestPacket::new(api_index, request_bytes);
 
-        let response_packet = self.request_raw(request_packet).await?;
+        let response_packet = self.request_raw(request_packet).await;
 
         let response = match response_packet.status {
             ResponseStatus::Response => {
@@ -211,13 +209,10 @@ impl ServerConnection {
             }
         };
         println!("NETWORK-LOG: response: {:?}", response);
-        Ok(response)
+        response
     }
 
-    async fn request_raw(
-        &self,
-        request_packet: RequestPacket,
-    ) -> Result<ResponsePacket, oneshot::error::RecvError> {
+    async fn request_raw(&self, request_packet: RequestPacket) -> ResponsePacket {
         let packet_id = request_packet.packet_id;
         let request_packet_bytes = request_packet.into_bytes();
 
@@ -239,10 +234,10 @@ impl ServerConnection {
             _ => unreachable!("Invalid status: {}", header[0]),
         };
 
-        Ok(ResponsePacket {
+        ResponsePacket {
             status,
             response_payload,
-        })
+        }
     }
 }
 

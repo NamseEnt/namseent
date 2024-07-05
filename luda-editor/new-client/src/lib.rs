@@ -62,7 +62,7 @@ impl Component for Login {
                             .session_token_auth(RefRequest {
                                 session_token: &session_token_string,
                             })
-                            .await?
+                            .await
                         {
                             Ok(_) => {
                                 return Ok(());
@@ -88,7 +88,7 @@ impl Component for Login {
                         use rpc::auth::google_auth::*;
                         match server_connection
                             .google_auth(RefRequest { jwt: &jwt })
-                            .await?
+                            .await
                         {
                             Ok(response) => {
                                 namui::system::file::kv_store::set(
