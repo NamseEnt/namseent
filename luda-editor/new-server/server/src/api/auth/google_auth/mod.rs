@@ -31,7 +31,7 @@ pub async fn google_auth(
             .verify(jwt)
             .await
             .map_err(|err| Error::InternalServerError {
-                err: "Failed to verify JWT".to_string(),
+                err: format!("Failed to verify JWT: {}", err),
             })?;
 
     let google_identity = db.get(GoogleIdentityDocGet { sub: &sub }).await?;
@@ -55,8 +55,6 @@ pub async fn google_auth(
         },
     ))
     .await?;
-
-    let google_identity = db.get(GoogleIdentityDocGet { sub: &sub }).await?;
 
     done(db, session, &user_id).await
 }

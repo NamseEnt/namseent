@@ -85,7 +85,7 @@ fn generate_rpc_files(rpc: &Rpc) {
 
                 pub type OptionResult = Option<Result<Response, Error>>;
 
-                pub fn #api_name<'a, Deps: Dependencies + 'a>(
+                pub fn #api_name<'a, Deps: Dependencies<'a> + 'a>(
                     ctx: &'a RenderCtx,
                     request: impl FnOnce(Deps) -> Option<#ref_request_implicit_lifetime>,
                     dependencies: Deps,
@@ -93,7 +93,7 @@ fn generate_rpc_files(rpc: &Rpc) {
                     server_rpc(ctx, request, dependencies, #api_index)
                 }
 
-                pub fn #api_name_render<'a, Deps: Dependencies + 'a>(
+                pub fn #api_name_render<'a, Deps: Dependencies<'a> + 'a>(
                     ctx: &'a RenderCtx,
                     request: impl FnOnce(Deps) -> Option<#ref_request_implicit_lifetime>,
                     dependencies: Deps,

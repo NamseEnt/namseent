@@ -6,14 +6,14 @@ use std::sync::{
     Arc,
 };
 pub type OptionResult = Option<Result<Response, Error>>;
-pub fn get_episodes<'a, Deps: Dependencies + 'a>(
+pub fn get_episodes<'a, Deps: Dependencies<'a> + 'a>(
     ctx: &'a RenderCtx,
     request: impl FnOnce(Deps) -> Option<RefRequest<'a>>,
     dependencies: Deps,
 ) -> Sig<'a, OptionResult, &'a OptionResult> {
     server_rpc(ctx, request, dependencies, 12u16)
 }
-pub fn get_episodes_render<'a, Deps: Dependencies + 'a>(
+pub fn get_episodes_render<'a, Deps: Dependencies<'a> + 'a>(
     ctx: &'a RenderCtx,
     request: impl FnOnce(Deps) -> Option<RefRequest<'a>>,
     dependencies: Deps,

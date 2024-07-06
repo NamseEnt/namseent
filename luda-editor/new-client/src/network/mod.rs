@@ -18,7 +18,7 @@ pub static SERVER_CONNECTION_ATOM: Atom<ServerConnection> = Atom::uninitialized(
 pub fn server_rpc<
     'a,
     Req: rkyv::Serialize<Serializer> + Send + 'a,
-    Deps: Dependencies + 'a,
+    Deps: Dependencies<'a> + 'a,
     Response: rkyv::Archive + Send + 'static + Debug,
     Error: rkyv::Archive + Send + 'static + Debug,
 >(
@@ -38,16 +38,11 @@ where
     let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
     let server_connection = server_connection.clone_inner();
     let (response, set_response) = ctx.state(|| None);
-    let dependencies_changed = dependencies.changed(ctx);
-    let deps_sig = ctx.controlled_memo(|_| {
-        if dependencies_changed {
-            return ControlledMemo::Changed(());
-        }
-        ControlledMemo::Unchanged(())
-    });
+    let deps_sig = dependencies.changed(ctx);
 
     ctx.effect("server get", || {
         deps_sig.record_as_used();
+        println!("request api: {}, {}", api_index, deps_sig.is_updated());
 
         let Some(req) = request(dependencies) else {
             return;

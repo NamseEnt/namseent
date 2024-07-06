@@ -6,14 +6,14 @@ use std::sync::{
     Arc,
 };
 pub type OptionResult = Option<Result<Response, Error>>;
-pub fn join_team<'a, Deps: Dependencies + 'a>(
+pub fn join_team<'a, Deps: Dependencies<'a> + 'a>(
     ctx: &'a RenderCtx,
     request: impl FnOnce(Deps) -> Option<RefRequest<'a>>,
     dependencies: Deps,
 ) -> Sig<'a, OptionResult, &'a OptionResult> {
     server_rpc(ctx, request, dependencies, 5u16)
 }
-pub fn join_team_render<'a, Deps: Dependencies + 'a>(
+pub fn join_team_render<'a, Deps: Dependencies<'a> + 'a>(
     ctx: &'a RenderCtx,
     request: impl FnOnce(Deps) -> Option<RefRequest<'a>>,
     dependencies: Deps,

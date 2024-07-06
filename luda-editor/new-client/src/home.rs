@@ -105,21 +105,25 @@ impl Component for TeamList<'_> {
                             .into_iter()
                             .chain(teams.iter().map(|team| {
                                 fixed(24.px(), move |wh, ctx| {
-                                    ctx.add(typography::center_text(
-                                        wh,
-                                        &team.name,
-                                        Color::WHITE,
-                                        16.int_px(),
-                                    ))
-                                    .attach_event(|event| {
-                                        if let Event::MouseUp { event } = event {
-                                            if event.is_local_xy_in()
-                                                && event.button == Some(MouseButton::Left)
-                                            {
-                                                on_select_team(team);
-                                            }
-                                        }
-                                    });
+                                    ctx.add(
+                                        typography::center_text(
+                                            wh,
+                                            &team.name,
+                                            Color::WHITE,
+                                            16.int_px(),
+                                        )
+                                        .attach_event(
+                                            |event| {
+                                                if let Event::MouseUp { event } = event {
+                                                    if event.is_local_xy_in()
+                                                        && event.button == Some(MouseButton::Left)
+                                                    {
+                                                        on_select_team(team);
+                                                    }
+                                                }
+                                            },
+                                        ),
+                                    );
                                 })
                             }))
                             .chain([fixed(24.px(), |wh, ctx| {
@@ -166,6 +170,7 @@ impl Component for ProjectList<'_> {
         get_projects_render(
             ctx,
             |team_id| {
+                println!("get_project_render!");
                 let team_id = team_id.as_ref()?;
                 Some(RefRequest { team_id })
             },
