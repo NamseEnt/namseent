@@ -7,7 +7,7 @@ use {DictionaryRef, Discard, Rational};
 
 #[derive(Debug)]
 pub struct Stream {
-    pub context: Context,
+    context: Context,
     index: usize,
 }
 
