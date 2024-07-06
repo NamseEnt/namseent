@@ -2,7 +2,7 @@ use file::bundle;
 use namui::*;
 use serde::{Deserialize, Serialize};
 
-const LEVEL_LIST_PATH: &str = "bundle:level/list.yaml";
+const LEVEL_LIST_PATH: &str = "level/list.yaml";
 
 pub async fn load_level_list() -> Result<Vec<Level>> {
     let yaml_string = bundle::read(LEVEL_LIST_PATH).await?;
