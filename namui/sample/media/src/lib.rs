@@ -51,15 +51,14 @@ impl Component for MediaExample {
                     .unwrap(),
             ));
 
-            // TODO: fix this
-            // let mp4 = namui::system::media::new_media(
-            //     namui::system::file::bundle::read("resources/video.mp4")
-            //         .await
-            //         .unwrap(),
-            // )
-            // .unwrap();
-            // println!("mp4 loaded");
-            // set_video_mp4.set(Some(mp4));
+            let mp4 = namui::system::media::new_media(
+                namui::system::file::bundle::read("resources/video.mp4")
+                    .await
+                    .unwrap(),
+            )
+            .unwrap();
+            println!("mp4 loaded");
+            set_video_mp4.set(Some(mp4));
         });
 
         let seek_to = |media_handle: MediaHandle, to: Duration| {
