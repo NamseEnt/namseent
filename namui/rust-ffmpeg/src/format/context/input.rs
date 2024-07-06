@@ -5,7 +5,6 @@ use super::common::Context;
 use super::destructor;
 use crate::format::InputBytes;
 use ffi::*;
-use libc::c_void;
 use util::range::Range;
 #[cfg(not(feature = "ffmpeg_5_0"))]
 use Codec;
@@ -14,32 +13,15 @@ use {format, Error, Packet, Stream};
 pub struct Input {
     ptr: *mut AVFormatContext,
     ctx: Context,
-    input_bytes: Option<*mut std::io::Cursor<InputBytes>>,
-    input_buffer: Option<*mut c_void>,
 }
 
 unsafe impl Send for Input {}
 
 impl Input {
-    pub unsafe fn wrap(ptr: *mut AVFormatContext) -> Self {
+    pub unsafe fn wrap(ptr: *mut AVFormatContext, mode: Mode) -> Self {
         Input {
             ptr,
-            ctx: Context::wrap(ptr, destructor::Mode::Input),
-            input_bytes: None,
-            input_buffer: None,
-        }
-    }
-
-    pub unsafe fn wrap_with_bytes(
-        ptr: *mut AVFormatContext,
-        input_bytes: *mut std::io::Cursor<InputBytes>,
-        input_buffer: *mut c_void,
-    ) -> Self {
-        Input {
-            ptr,
-            ctx: Context::wrap(ptr, destructor::Mode::Input),
-            input_bytes: Some(input_bytes),
-            input_buffer: Some(input_buffer),
+            ctx: Context::wrap(ptr, mode.into()),
         }
     }
 
@@ -170,21 +152,6 @@ impl DerefMut for Input {
     }
 }
 
-impl Drop for Input {
-    fn drop(&mut self) {
-        if let Some(input_bytes) = self.input_bytes {
-            unsafe {
-                input_bytes.drop_in_place();
-            }
-        }
-        if let Some(input_buffer) = self.input_buffer {
-            unsafe {
-                av_free(input_buffer);
-            }
-        }
-    }
-}
-
 pub struct PacketIter<'a> {
     context: &'a mut Input,
 }
@@ -225,5 +192,20 @@ pub fn dump(ctx: &Input, index: i32, url: Option<&str>) {
             url.unwrap_or_else(|| CString::new("").unwrap()).as_ptr(),
             0,
         );
+    }
+}
+
+pub enum Mode {
+    Path,
+    Bytes {
+        input_bytes: *mut std::io::Cursor<InputBytes>,
+    },
+}
+impl From<Mode> for destructor::Mode {
+    fn from(value: Mode) -> Self {
+        match value {
+            Mode::Path => destructor::Mode::Input,
+            Mode::Bytes { input_bytes } => destructor::Mode::InputBytes { input_bytes },
+        }
     }
 }

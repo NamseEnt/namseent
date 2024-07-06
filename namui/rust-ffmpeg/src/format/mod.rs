@@ -81,7 +81,10 @@ pub fn open<P: AsRef<Path>>(path: &P, format: &Format) -> Result<Context, Error>
                 ptr::null_mut(),
             ) {
                 0 => match avformat_find_stream_info(ps, ptr::null_mut()) {
-                    r if r >= 0 => Ok(Context::Input(context::Input::wrap(ps))),
+                    r if r >= 0 => Ok(Context::Input(context::Input::wrap(
+                        ps,
+                        context::input::Mode::Path,
+                    ))),
                     e => Err(Error::from(e)),
                 },
 
@@ -128,7 +131,10 @@ pub fn open_with<P: AsRef<Path>>(
 
                 match res {
                     0 => match avformat_find_stream_info(ps, ptr::null_mut()) {
-                        r if r >= 0 => Ok(Context::Input(context::Input::wrap(ps))),
+                        r if r >= 0 => Ok(Context::Input(context::Input::wrap(
+                            ps,
+                            context::input::Mode::Path,
+                        ))),
                         e => Err(Error::from(e)),
                     },
 
@@ -160,7 +166,7 @@ pub fn input<P: AsRef<Path>>(path: &P) -> Result<context::Input, Error> {
 
         match avformat_open_input(&mut ps, path.as_ptr(), ptr::null_mut(), ptr::null_mut()) {
             0 => match avformat_find_stream_info(ps, ptr::null_mut()) {
-                r if r >= 0 => Ok(context::Input::wrap(ps)),
+                r if r >= 0 => Ok(context::Input::wrap(ps, context::input::Mode::Path)),
                 e => {
                     avformat_close_input(&mut ps);
                     Err(Error::from(e))
@@ -200,7 +206,7 @@ pub fn input_bytes(bytes: Arc<Vec<u8>>) -> Result<context::Input, Error> {
                 Err(_error) => -1,
             }
         }
-        let buffer = av_malloc(INPUT_BUFFER_SIZE);
+        let buffer: *mut c_void = av_malloc(INPUT_BUFFER_SIZE);
         let bytes: *mut Cursor<InputBytes> =
             Box::into_raw(Box::new(Cursor::new(InputBytes(bytes))));
         let file_name = CString::new("").unwrap();
@@ -231,7 +237,10 @@ pub fn input_bytes(bytes: Arc<Vec<u8>>) -> Result<context::Input, Error> {
             ptr::null_mut(),
         ) {
             0 => match avformat_find_stream_info(ps, ptr::null_mut()) {
-                r if r >= 0 => Ok(context::Input::wrap_with_bytes(ps, bytes, buffer)),
+                r if r >= 0 => Ok(context::Input::wrap(
+                    ps,
+                    context::input::Mode::Bytes { input_bytes: bytes },
+                )),
                 e => {
                     avformat_close_input(&mut ps);
                     free();
@@ -260,7 +269,7 @@ pub fn input_with_dictionary<P: AsRef<Path>>(
 
         match res {
             0 => match avformat_find_stream_info(ps, ptr::null_mut()) {
-                r if r >= 0 => Ok(context::Input::wrap(ps)),
+                r if r >= 0 => Ok(context::Input::wrap(ps, context::input::Mode::Path)),
                 e => {
                     avformat_close_input(&mut ps);
                     Err(Error::from(e))
@@ -286,7 +295,7 @@ where
 
         match avformat_open_input(&mut ps, path.as_ptr(), ptr::null_mut(), ptr::null_mut()) {
             0 => match avformat_find_stream_info(ps, ptr::null_mut()) {
-                r if r >= 0 => Ok(context::Input::wrap(ps)),
+                r if r >= 0 => Ok(context::Input::wrap(ps, context::input::Mode::Path)),
                 e => {
                     avformat_close_input(&mut ps);
                     Err(Error::from(e))
