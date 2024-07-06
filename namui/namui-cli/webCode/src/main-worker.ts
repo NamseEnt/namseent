@@ -8,7 +8,7 @@ import {
 } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
 import wasmUrl from "namui-runtime-wasm.wasm?url";
-import { WorkerMessagePayload } from "./interWorkerProtocol";
+import { sendMessageToMainThread, WorkerMessagePayload } from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
 import bundleSqliteUrl from "bundle.sqlite?url";
