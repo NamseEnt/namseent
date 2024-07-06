@@ -136,7 +136,6 @@ fn load_levels<'a>(ctx: &'a RenderCtx) -> Sig<'a, Vec<Level>, &'a Vec<Level>> {
     let (levels, set_levels) = ctx.state(Vec::new);
 
     ctx.effect("load levels", || {
-        let set_levels = set_levels.cloned();
         namui::spawn(async move {
             let level_list = load_level_list().await.unwrap();
             set_levels.set(level_list);

@@ -164,13 +164,13 @@ impl Component for Piece {
 
             ctx.translate((-wh.as_xy()) * *piece_index)
                 .add(namui::path(
-                    clip_path.clone(),
+                    clip_path.clone_inner(),
                     Paint::new(Color::BLACK)
                         .set_style(PaintStyle::Stroke)
                         .set_stroke_width(2.px())
                         .set_anti_alias(true),
                 ))
-                .clip(clip_path.clone(), ClipOp::Intersect)
+                .clip(clip_path.clone_inner(), ClipOp::Intersect)
                 .add(ImageDrawCommand {
                     rect: Rect::zero_wh(image_wh),
                     image: image.clone(),
