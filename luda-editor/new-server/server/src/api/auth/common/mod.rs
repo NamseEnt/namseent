@@ -10,8 +10,8 @@ const SEVEN_DAYS: Duration = Duration::from_secs(3600 * 24 * 7);
 pub async fn generate_session_token(db: &Database, user_id: &str) -> database::Result<String> {
     let session_token = randum::rand();
     db.transact(SessionTokenDocPut {
-        user_id,
         session_token: &session_token,
+        user_id,
         ttl: Some(SEVEN_DAYS),
     })
     .await?;

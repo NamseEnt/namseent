@@ -72,7 +72,24 @@ impl Component for NewTeamPage {
                             size: 16.int_px(),
                             name: "NotoSansKR-Regular".to_string(),
                         },
-                        style: Default::default(),
+                        style: Style {
+                            rect: RectStyle {
+                                stroke: Some(RectStroke {
+                                    color: Color::WHITE,
+                                    width: 1.px(),
+                                    border_position: BorderPosition::Middle,
+                                }),
+                                fill: Some(RectFill {
+                                    color: Color::grayscale_f01(0.3),
+                                }),
+                                round: Some(RectRound { radius: 4.px() }),
+                            },
+                            text: TextStyle {
+                                color: Color::WHITE,
+                                ..Default::default()
+                            },
+                            padding: Ltrb::all(8.px()),
+                        },
                         prevent_default_codes: &[Code::Enter],
                         focus: None,
                         on_edit_done: &|text| {

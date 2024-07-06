@@ -1,4 +1,3 @@
-mod data_fetch;
 mod home;
 mod network;
 mod new_team_page;
@@ -53,6 +52,8 @@ impl Component for Login {
                 let result: Result<()> = async move {
                     let session_token =
                         namui::system::file::kv_store::get(KV_STORE_SESSION_TOKEN_KEY)?;
+
+                    println!("Session token: {:?}", session_token);
 
                     if let Some(session_token) = session_token {
                         let session_token_string = String::from_utf8(session_token).unwrap();

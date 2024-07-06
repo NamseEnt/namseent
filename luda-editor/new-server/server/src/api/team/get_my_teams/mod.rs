@@ -8,7 +8,6 @@ pub async fn get_my_teams(
     db: &Database,
     session: Session,
 ) -> Result<Response, Error> {
-    println!("session: {:?}", session);
     let Some(user_id) = session.user_id().await else {
         return Err(Error::NeedLogin);
     };

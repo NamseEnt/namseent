@@ -1,3 +1,6 @@
+//! # Important Note for Developer
+//! 1. SK is optional. If it's None, it should be a empty byte blob, not NULL.
+
 use super::*;
 use crate::Result;
 use aws_sdk_s3::primitives::ByteStream;
@@ -26,13 +29,14 @@ impl SqliteKvStore {
         conn.pragma_update(None, "journal_mode", "WAL").unwrap();
         conn.pragma_update(None, "synchronous", "NORMAL").unwrap();
         conn.execute(
+            // - sk: If it's None, it will be a empty byte blob.
             // - expired_at: 0 means no expiration,
             //               otherwise it's the Unix Time, the number of seconds since 1970-01-01 00:00:00 UTC.
             "CREATE TABLE IF NOT EXISTS
                     documents (
                         name TEXT NOT NULL,
                         pk BLOB NOT NULL,
-                        sk BLOB,
+                        sk BLOB NOT NULL,
                         value BLOB,
                         version INTEGER,
                         expired_at INTEGER,
@@ -130,7 +134,7 @@ impl DocumentStore for SqliteKvStore {
             ",
             )?;
             let vec: Option<Vec<_>> = stmt
-                .query_row((name, pk, sk), |row| row.get(0))
+                .query_row((name, pk, sk.unwrap_or_default()), |row| row.get(0))
                 .optional()?;
 
             Ok(vec.map(ValueBuffer::Vec))
@@ -159,7 +163,9 @@ impl DocumentStore for SqliteKvStore {
             ",
             )?;
             let output: Option<(Vec<_>, Option<u64>)> = stmt
-                .query_row((name, pk, sk), |row| Ok((row.get(0)?, row.get(1)?)))
+                .query_row((name, pk, sk.unwrap_or_default()), |row| {
+                    Ok((row.get(0)?, row.get(1)?))
+                })
                 .optional()?;
 
             Ok(output.map(|(vec, expired_at)| {
@@ -403,7 +409,7 @@ async fn migrate() -> anyhow::Result<()> {
                         let to = f(from);
                         let to_bytes = to.to_bytes()?;
 
-                        write_stmt.execute((to_bytes.as_slice(), pk, sk))?;
+                        write_stmt.execute((to_bytes.as_slice(), pk, sk.unwrap_or_default()))?;
                     }
                 }
                 trx.commit()?;
@@ -452,7 +458,13 @@ fn put(
     )?;
 
     assert_eq!(
-        stmt.execute((name, pk, sk, value.as_ref(), ttl_to_expired_at(ttl)))?,
+        stmt.execute((
+            name,
+            pk,
+            sk.unwrap_or_default(),
+            value.as_ref(),
+            ttl_to_expired_at(ttl)
+        ))?,
         1
     );
 
@@ -470,7 +482,7 @@ fn delete(trx: &Transaction<'_>, name: &'static str, pk: &[u8], sk: Option<&[u8]
             AND sk = ?
     ",
     )?;
-    stmt.execute((name, pk, sk))?;
+    stmt.execute((name, pk, sk.unwrap_or_default()))?;
 
     Ok(())
 }
@@ -494,7 +506,7 @@ fn create<Bytes: AsRef<[u8]>>(
             AND (expired_at = 0 OR expired_at >= unixepoch())
         ",
     )?;
-    let count: i8 = stmt.query_row((name, &pk, &sk), |row| row.get(0))?;
+    let count: i8 = stmt.query_row((name, &pk, &sk.unwrap_or_default()), |row| row.get(0))?;
     if count != 0 {
         return Err(Error::AlreadyExistsOnCreate);
     }
@@ -508,7 +520,13 @@ fn create<Bytes: AsRef<[u8]>>(
         VALUES (?, ?, ?, ?, 0, ?)",
     )?;
     assert_eq!(
-        stmt.execute((name, &pk, &sk, value.as_ref(), ttl_to_expired_at(ttl)))?,
+        stmt.execute((
+            name,
+            &pk,
+            &sk.unwrap_or_default(),
+            value.as_ref(),
+            ttl_to_expired_at(ttl)
+        ))?,
         1
     );
 

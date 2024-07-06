@@ -26,15 +26,15 @@ pub async fn google_auth(
         })
     };
 
-    let Claims { sub, name } = jwks_client.verify(jwt).await.map_err(|err| {
-        eprintln!("Failed to verify JWT: {:?}", err);
-        Error::InternalServerError {
-            err: "Failed to verify JWT".to_string(),
-        }
-    })?;
+    let Claims { sub, name } =
+        jwks_client
+            .verify(jwt)
+            .await
+            .map_err(|err| Error::InternalServerError {
+                err: "Failed to verify JWT".to_string(),
+            })?;
 
     let google_identity = db.get(GoogleIdentityDocGet { sub: &sub }).await?;
-    println!("google_identity: {:?}", google_identity);
 
     if let Some(google_identity) = google_identity {
         return done(db, session, &google_identity.user_id).await;
@@ -57,14 +57,12 @@ pub async fn google_auth(
     .await?;
 
     let google_identity = db.get(GoogleIdentityDocGet { sub: &sub }).await?;
-    println!("google_identity2 : {:?}", google_identity);
 
     done(db, session, &user_id).await
 }
 
 async fn done(db: &Database, session: Session, user_id: &str) -> Result<Response, Error> {
     session.login(user_id).await;
-    println!("session: {:?}", session);
     let session_token = generate_session_token(db, user_id).await?;
     Ok(Response { session_token })
 }
