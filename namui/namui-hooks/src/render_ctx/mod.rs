@@ -37,6 +37,14 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
         self.component_ctx.track_eq(target)
     }
+    pub fn track_eq2<Value: 'static, Target>(
+        &self,
+        target: Target,
+        cmp: impl FnOnce(&Value, &Target) -> bool,
+        to_value: impl FnOnce(Target) -> Value,
+    ) -> Sig<Value, Rc<Value>> {
+        self.component_ctx.track_eq2(target, cmp, to_value)
+    }
     pub fn effect<CleanUp: Into<EffectCleanUp>>(
         &self,
         title: impl AsRef<str>,

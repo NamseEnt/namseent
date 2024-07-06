@@ -132,6 +132,57 @@ impl ComponentCtx<'_> {
 
         sig
     }
+    pub fn track_eq2<Value: 'static, Target>(
+        &self,
+        target: Target,
+        cmp: impl FnOnce(&Value, &Target) -> bool,
+        to_value: impl FnOnce(Target) -> Value,
+    ) -> Sig<Value, Rc<Value>> {
+        let mut track_eq_list = self.instance.track_eq_list.borrow_mut();
+
+        let track_eq_index = self
+            .track_eq_index
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+        let sig_id = SigId::TrackEq {
+            instance_id: self.instance.id,
+            index: track_eq_index,
+        };
+
+        let first_track = || track_eq_list.len() <= track_eq_index;
+        let not_eq = || {
+            let value: &Value = track_eq_list[track_eq_index]
+                .as_ref()
+                .as_any()
+                .downcast_ref()
+                .unwrap();
+
+            !cmp(value, &target)
+        };
+
+        if first_track() || not_eq() {
+            let rc_value = Rc::new(to_value(target));
+            match track_eq_list.get_mut(track_eq_index) {
+                Some(value) => {
+                    *value = rc_value;
+                }
+                None => {
+                    assert_eq!(track_eq_list.len(), track_eq_index);
+                    track_eq_list.push(rc_value);
+                }
+            }
+
+            self.add_sig_updated(sig_id);
+        }
+
+        let value = track_eq_list.get(track_eq_index).unwrap();
+
+        let value: Rc<Value> = Rc::downcast(value.clone().into_rc()).unwrap();
+
+        let sig = Sig::new(value, sig_id, self.world);
+
+        sig
+    }
 
     pub(crate) fn effect<'a, CleanUp: Into<EffectCleanUp>>(
         &'a self,
