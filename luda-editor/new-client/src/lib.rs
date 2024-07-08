@@ -74,7 +74,7 @@ impl Component for Login {
                                     return Ok(());
                                 }
                                 Error::SessionTokenNotExist => {
-                                    // continue
+                                    // ok, let's continue below.
                                 }
                                 Error::InternalServerError { err } => {
                                     return Err(anyhow!(
