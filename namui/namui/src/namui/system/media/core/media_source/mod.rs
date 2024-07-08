@@ -1,4 +1,9 @@
+mod input_bytes;
+
+use super::input_context::{InputBytes, InputContext, InputContextMode};
+use input_bytes::input_bytes;
 use std::{
+    io::Cursor,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -11,10 +16,18 @@ pub enum MediaSource {
 impl MediaSource {
     pub(crate) fn create_input_context(
         &self,
-    ) -> std::result::Result<ffmpeg_next::format::context::Input, ffmpeg_next::Error> {
+    ) -> std::result::Result<InputContext, ffmpeg_next::Error> {
         match self {
-            MediaSource::Path(path) => ffmpeg_next::format::input(path),
-            MediaSource::Bytes(bytes) => ffmpeg_next::format::input_bytes(bytes.clone()),
+            MediaSource::Path(path) => {
+                let context = ffmpeg_next::format::input(path)?;
+                Ok(InputContext::wrap(context, InputContextMode::Path))
+            }
+            MediaSource::Bytes(bytes) => {
+                let bytes: *mut Cursor<InputBytes> =
+                    Box::into_raw(Box::new(Cursor::new(InputBytes(bytes.clone()))));
+                let context = input_bytes(bytes)?;
+                Ok(InputContext::wrap(context, InputContextMode::Bytes(bytes)))
+            }
         }
     }
 }

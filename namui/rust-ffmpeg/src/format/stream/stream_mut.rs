@@ -1,22 +1,25 @@
+use std::mem;
+use std::ops::Deref;
+
 use super::Stream;
 use ffi::*;
 use format::context::common::Context;
-use std::ops::Deref;
 use {codec, Dictionary, Rational};
 
-pub struct StreamMut {
-    context: Context,
+pub struct StreamMut<'a> {
+    context: &'a mut Context,
     index: usize,
 
-    immutable: Stream,
+    immutable: Stream<'a>,
 }
 
-impl StreamMut {
-    pub unsafe fn wrap(context: Context, index: usize) -> StreamMut {
+impl<'a> StreamMut<'a> {
+    pub unsafe fn wrap(context: &mut Context, index: usize) -> StreamMut {
         StreamMut {
-            context: context.clone(),
+            context: mem::transmute_copy(&context),
             index,
-            immutable: Stream::wrap(context, index),
+
+            immutable: Stream::wrap(mem::transmute_copy(&context), index),
         }
     }
 
@@ -25,7 +28,7 @@ impl StreamMut {
     }
 }
 
-impl StreamMut {
+impl<'a> StreamMut<'a> {
     pub fn set_time_base<R: Into<Rational>>(&mut self, value: R) {
         unsafe {
             (*self.as_mut_ptr()).time_base = value.into().into();
@@ -60,8 +63,8 @@ impl StreamMut {
     }
 }
 
-impl Deref for StreamMut {
-    type Target = Stream;
+impl<'a> Deref for StreamMut<'a> {
+    type Target = Stream<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.immutable

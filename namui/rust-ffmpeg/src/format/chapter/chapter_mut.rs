@@ -1,24 +1,27 @@
+use std::mem;
+use std::ops::Deref;
+
 use super::Chapter;
 use ffi::*;
 use format::context::common::Context;
-use std::ops::Deref;
 use {Dictionary, DictionaryMut, Rational};
 
 // WARNING: index refers to the offset in the chapters array (starting from 0)
 // it is not necessarly equal to the id (which may start at 1)
-pub struct ChapterMut {
-    context: Context,
+pub struct ChapterMut<'a> {
+    context: &'a mut Context,
     index: usize,
-    immutable: Chapter,
+
+    immutable: Chapter<'a>,
 }
 
-impl ChapterMut {
-    pub unsafe fn wrap(context: Context, index: usize) -> ChapterMut {
+impl<'a> ChapterMut<'a> {
+    pub unsafe fn wrap(context: &mut Context, index: usize) -> ChapterMut {
         ChapterMut {
-            context: context.clone(),
+            context: mem::transmute_copy(&context),
             index,
 
-            immutable: Chapter::wrap(context, index),
+            immutable: Chapter::wrap(mem::transmute_copy(&context), index),
         }
     }
 
@@ -27,7 +30,7 @@ impl ChapterMut {
     }
 }
 
-impl ChapterMut {
+impl<'a> ChapterMut<'a> {
     pub fn set_id(&mut self, value: i64) {
         unsafe {
             (*self.as_mut_ptr()).id = value as _;
@@ -67,8 +70,8 @@ impl ChapterMut {
     }
 }
 
-impl Deref for ChapterMut {
-    type Target = Chapter;
+impl<'a> Deref for ChapterMut<'a> {
+    type Target = Chapter<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.immutable

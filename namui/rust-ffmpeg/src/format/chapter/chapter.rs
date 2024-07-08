@@ -1,16 +1,17 @@
 use ffi::*;
-use format::context::common::Context;
 use {DictionaryRef, Rational};
+
+use format::context::common::Context;
 
 // WARNING: index refers to the offset in the chapters array (starting from 0)
 // it is not necessarly equal to the id (which may start at 1)
-pub struct Chapter {
-    context: Context,
+pub struct Chapter<'a> {
+    context: &'a Context,
     index: usize,
 }
 
-impl Chapter {
-    pub unsafe fn wrap(context: Context, index: usize) -> Chapter {
+impl<'a> Chapter<'a> {
+    pub unsafe fn wrap(context: &Context, index: usize) -> Chapter {
         Chapter { context, index }
     }
 
@@ -19,7 +20,7 @@ impl Chapter {
     }
 }
 
-impl Chapter {
+impl<'a> Chapter<'a> {
     pub fn index(&self) -> usize {
         self.index
     }
@@ -48,7 +49,7 @@ impl Chapter {
     }
 }
 
-impl PartialEq for Chapter {
+impl<'a> PartialEq for Chapter<'a> {
     fn eq(&self, other: &Self) -> bool {
         unsafe { self.as_ptr() == other.as_ptr() }
     }

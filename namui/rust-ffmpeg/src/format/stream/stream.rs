@@ -6,13 +6,13 @@ use libc::c_int;
 use {DictionaryRef, Discard, Rational};
 
 #[derive(Debug)]
-pub struct Stream {
-    context: Context,
+pub struct Stream<'a> {
+    context: &'a Context,
     index: usize,
 }
 
-impl Stream {
-    pub unsafe fn wrap(context: Context, index: usize) -> Stream {
+impl<'a> Stream<'a> {
+    pub unsafe fn wrap(context: &Context, index: usize) -> Stream {
         Stream { context, index }
     }
 
@@ -21,7 +21,7 @@ impl Stream {
     }
 }
 
-impl Stream {
+impl<'a> Stream<'a> {
     pub fn id(&self) -> i32 {
         unsafe { (*self.as_ptr()).id }
     }
@@ -82,16 +82,16 @@ impl Stream {
     }
 }
 
-impl PartialEq for Stream {
+impl<'a> PartialEq for Stream<'a> {
     fn eq(&self, other: &Self) -> bool {
         unsafe { self.as_ptr() == other.as_ptr() }
     }
 }
 
-impl Eq for Stream {}
+impl<'a> Eq for Stream<'a> {}
 
 pub struct SideDataIter<'a> {
-    stream: &'a Stream,
+    stream: &'a Stream<'a>,
     current: c_int,
 }
 

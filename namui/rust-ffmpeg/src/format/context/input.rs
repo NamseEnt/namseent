@@ -1,9 +1,9 @@
 use std::ffi::CString;
+use std::mem;
 use std::ops::{Deref, DerefMut};
 
 use super::common::Context;
 use super::destructor;
-use crate::format::InputBytes;
 use ffi::*;
 use util::range::Range;
 #[cfg(not(feature = "ffmpeg_5_0"))]
@@ -18,10 +18,10 @@ pub struct Input {
 unsafe impl Send for Input {}
 
 impl Input {
-    pub unsafe fn wrap(ptr: *mut AVFormatContext, mode: Mode) -> Self {
+    pub unsafe fn wrap(ptr: *mut AVFormatContext) -> Self {
         Input {
             ptr,
-            ctx: Context::wrap(ptr, mode.into()),
+            ctx: Context::wrap(ptr, destructor::Mode::Input),
         }
     }
 
@@ -126,9 +126,9 @@ impl Input {
             match avformat_seek_file(
                 self.as_mut_ptr(),
                 -1,
-                range.start().cloned().unwrap_or(i64::MIN),
+                range.start().cloned().unwrap_or(i64::min_value()),
                 ts,
-                range.end().cloned().unwrap_or(i64::MAX),
+                range.end().cloned().unwrap_or(i64::max_value()),
                 0,
             ) {
                 s if s >= 0 => Ok(()),
@@ -163,7 +163,7 @@ impl<'a> PacketIter<'a> {
 }
 
 impl<'a> Iterator for PacketIter<'a> {
-    type Item = (Stream, Packet);
+    type Item = (Stream<'a>, Packet);
 
     fn next(&mut self) -> Option<<Self as Iterator>::Item> {
         let mut packet = Packet::empty();
@@ -171,7 +171,10 @@ impl<'a> Iterator for PacketIter<'a> {
         loop {
             match packet.read(self.context) {
                 Ok(..) => unsafe {
-                    return Some((Stream::wrap(self.context.clone(), packet.stream()), packet));
+                    return Some((
+                        Stream::wrap(mem::transmute_copy(&self.context), packet.stream()),
+                        packet,
+                    ));
                 },
 
                 Err(Error::Eof) => return None,
@@ -192,20 +195,5 @@ pub fn dump(ctx: &Input, index: i32, url: Option<&str>) {
             url.unwrap_or_else(|| CString::new("").unwrap()).as_ptr(),
             0,
         );
-    }
-}
-
-pub enum Mode {
-    Path,
-    Bytes {
-        input_bytes: *mut std::io::Cursor<InputBytes>,
-    },
-}
-impl From<Mode> for destructor::Mode {
-    fn from(value: Mode) -> Self {
-        match value {
-            Mode::Path => destructor::Mode::Input,
-            Mode::Bytes { input_bytes } => destructor::Mode::InputBytes { input_bytes },
-        }
     }
 }

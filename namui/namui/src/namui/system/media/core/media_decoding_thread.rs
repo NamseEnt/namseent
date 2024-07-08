@@ -1,3 +1,4 @@
+use super::input_context::InputContext;
 use crate::system::media::{
     core::{DecodingStream, MediaController},
     with_instant::WithInstant,
@@ -20,7 +21,7 @@ pub(crate) enum DecodingThreadCommand {
 }
 
 pub(crate) fn spawn_decoding_thread(
-    input_ctx: ffmpeg_next::format::context::Input,
+    input_ctx: InputContext,
     decoding_streams: Vec<Option<DecodingStream>>,
     command_rx: std::sync::mpsc::Receiver<WithInstant<DecodingThreadCommand>>,
     media_controller: MediaController,
@@ -41,7 +42,7 @@ pub(crate) fn spawn_decoding_thread(
 }
 
 struct DecodingThreadRunner {
-    input_ctx: ffmpeg_next::format::context::Input,
+    input_ctx: InputContext,
     decoding_streams: Vec<Option<DecodingStream>>,
     command_rx: std::sync::mpsc::Receiver<WithInstant<DecodingThreadCommand>>,
     media_controller: MediaController,

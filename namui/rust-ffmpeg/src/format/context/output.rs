@@ -86,7 +86,7 @@ impl Output {
 
             let index = (*self.ctx.as_ptr()).nb_streams - 1;
 
-            Ok(StreamMut::wrap(self.ctx.clone(), index as usize))
+            Ok(StreamMut::wrap(&mut self.ctx, index as usize))
         }
     }
 

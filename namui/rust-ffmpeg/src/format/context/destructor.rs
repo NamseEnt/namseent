@@ -1,12 +1,8 @@
-use crate::format::InputBytes;
 use ffi::*;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Mode {
     Input,
-    InputBytes {
-        input_bytes: *mut std::io::Cursor<InputBytes>,
-    },
     Output,
 }
 
@@ -26,10 +22,7 @@ impl Drop for Destructor {
         unsafe {
             match self.mode {
                 Mode::Input => avformat_close_input(&mut self.ptr),
-                Mode::InputBytes { input_bytes } => {
-                    input_bytes.drop_in_place();
-                    avformat_close_input(&mut self.ptr);
-                }
+
                 Mode::Output => {
                     avio_close((*self.ptr).pb);
                     avformat_free_context(self.ptr);
