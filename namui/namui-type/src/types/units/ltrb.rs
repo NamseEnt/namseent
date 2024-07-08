@@ -8,6 +8,20 @@ pub struct Ltrb<T> {
     pub bottom: T,
 }
 
+impl<T> Ltrb<T> {
+    pub fn all(value: T) -> Self
+    where
+        T: Clone,
+    {
+        Self {
+            left: value.clone(),
+            top: value.clone(),
+            right: value.clone(),
+            bottom: value,
+        }
+    }
+}
+
 impl<T: Default> Default for Ltrb<T> {
     fn default() -> Self {
         Self {

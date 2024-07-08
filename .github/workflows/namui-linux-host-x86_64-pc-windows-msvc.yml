@@ -81,7 +81,7 @@ jobs:
 
       - name: Install cargo-xwin
         run: |
-          cargo install cargo-xwin
+          cargo install cargo-xwin --locked
 
       - name: Run commands
         working-directory: ${{ matrix.dir }}
