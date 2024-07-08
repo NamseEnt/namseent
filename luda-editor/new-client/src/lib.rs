@@ -1,5 +1,6 @@
 mod home;
 mod network;
+mod new_project_page;
 mod new_team_page;
 mod router;
 mod rpc;

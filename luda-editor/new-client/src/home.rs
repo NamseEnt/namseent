@@ -1,17 +1,21 @@
 use super::*;
 use luda_rpc::*;
 
-pub struct Home;
+pub struct Home<'a> {
+    pub initial_selection: &'a Selection,
+}
 
-enum Selection {
+#[derive(Clone)]
+pub enum Selection {
     Nothing,
     Team { team_id: String },
     Project { team_id: String, project_id: String },
 }
 
-impl Component for Home {
+impl Component for Home<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let (selection, set_selection) = ctx.state(|| Selection::Nothing);
+        let Self { initial_selection } = self;
+        let (selection, set_selection) = ctx.state(|| initial_selection.clone());
 
         let screen_wh = namui::screen::size().map(|x| x.into_px());
 
@@ -85,7 +89,7 @@ impl Component for TeamList<'_> {
         use crate::rpc::team::get_my_teams::*;
         get_my_teams_render(
             ctx,
-            |_| Some(RefRequest {}),
+            |_| Some((RefRequest {}, ())),
             (),
             || {
                 ctx.compose(|ctx| vertical(title())(wh, ctx));
@@ -98,7 +102,7 @@ impl Component for TeamList<'_> {
                     16.int_px(),
                 ));
             },
-            |Response { teams }| {
+            |(Response { teams }, _)| {
                 ctx.compose(|ctx| {
                     vertical(
                         title()
@@ -128,7 +132,7 @@ impl Component for TeamList<'_> {
                             }))
                             .chain([fixed(24.px(), |wh, ctx| {
                                 ctx.add(simple_button(wh, "새 팀 만들기", |_event| {
-                                    router::route(router::Route::NewTeamPage);
+                                    router::route(router::Route::NewTeam);
                                 }));
                             })])
                             .chain([fixed(24.px(), |wh, ctx| {
@@ -170,9 +174,8 @@ impl Component for ProjectList<'_> {
         get_projects_render(
             ctx,
             |team_id| {
-                println!("get_project_render!");
                 let team_id = team_id.as_ref()?;
-                Some(RefRequest { team_id })
+                Some((RefRequest { team_id }, *team_id))
             },
             team_id,
             || {
@@ -186,32 +189,40 @@ impl Component for ProjectList<'_> {
                     16.int_px(),
                 ));
             },
-            |Response { projects }| {
+            |(Response { projects }, team_id)| {
                 ctx.compose(|ctx| {
                     vertical(
                         title()
                             .into_iter()
                             .chain(projects.iter().map(|project| {
                                 fixed(24.px(), move |wh, ctx| {
-                                    ctx.add(typography::center_text(
-                                        wh,
-                                        &project.name,
-                                        Color::WHITE,
-                                        16.int_px(),
-                                    ))
-                                    .attach_event(|event| {
-                                        if let Event::MouseUp { event } = event {
-                                            if event.is_local_xy_in()
-                                                && event.button == Some(MouseButton::Left)
-                                            {
-                                                on_select_project(project);
-                                            }
-                                        }
-                                    });
+                                    ctx.add(
+                                        typography::center_text(
+                                            wh,
+                                            &project.name,
+                                            Color::WHITE,
+                                            16.int_px(),
+                                        )
+                                        .attach_event(
+                                            |event| {
+                                                if let Event::MouseUp { event } = event {
+                                                    if event.is_local_xy_in()
+                                                        && event.button == Some(MouseButton::Left)
+                                                    {
+                                                        on_select_project(project);
+                                                    }
+                                                }
+                                            },
+                                        ),
+                                    );
                                 })
                             }))
                             .chain([fixed(24.px(), |wh, ctx| {
-                                ctx.add(simple_button(wh, "새 프로젝트", |_event| {}));
+                                ctx.add(simple_button(wh, "새 프로젝트", |_event| {
+                                    router::route(router::Route::NewProject {
+                                        team_id: team_id.clone(),
+                                    });
+                                }));
                             })]),
                     )(wh, ctx)
                 });
@@ -244,9 +255,12 @@ impl Component for EpisodeList<'_> {
         get_episodes_render(
             ctx,
             |project_id| {
-                Some(RefRequest {
-                    project_id: project_id?,
-                })
+                Some((
+                    RefRequest {
+                        project_id: project_id?,
+                    },
+                    (),
+                ))
             },
             project_id,
             || {
@@ -260,7 +274,7 @@ impl Component for EpisodeList<'_> {
                     16.int_px(),
                 ));
             },
-            |Response { episodes }| {
+            |(Response { episodes }, _)| {
                 ctx.compose(|ctx| {
                     vertical(
                         title()

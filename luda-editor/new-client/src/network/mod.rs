@@ -2,38 +2,35 @@ mod dependencies;
 
 use crate::*;
 pub use dependencies::*;
-use luda_rpc::rkyv;
+use luda_rpc::rkyv::{self, de::deserializers::SharedDeserializeMap, *};
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use tokio::{
     sync::oneshot,
     task::{AbortHandle, JoinHandle},
 };
 
-type SigRef<'a, T> = Sig<'a, T, &'a T>;
+pub type SigRef<'a, T> = Sig<'a, T, &'a T>;
+type Owned<T> = <T as StaticOwned>::Owned;
+type OptionResult<T, E> = Option<Result<T, E>>;
 
 type Serializer = rkyv::ser::serializers::AllocSerializer<1024>;
 
 pub static SERVER_CONNECTION_ATOM: Atom<ServerConnection> = Atom::uninitialized();
 
-pub fn server_rpc<
-    'a,
-    Req: rkyv::Serialize<Serializer> + Send + 'a,
-    Deps: Dependencies<'a> + 'a,
-    Response: rkyv::Archive + Send + 'static + Debug,
-    Error: rkyv::Archive + Send + 'static + Debug,
->(
+pub fn server_rpc<'a, Req, Deps, Artifacts, Response, Error>(
     ctx: &'a RenderCtx,
-    request: impl FnOnce(Deps) -> Option<Req>,
+    request: impl FnOnce(Deps) -> Option<(Req, Artifacts)>,
     dependencies: Deps,
     api_index: u16,
-) -> SigRef<'a, Option<Result<Response, Error>>>
+) -> SigRef<'a, OptionResult<(Response, Owned<Artifacts>), Error>>
 where
-    <Response as luda_rpc::rkyv::Archive>::Archived: luda_rpc::rkyv::Deserialize<
-        Response,
-        luda_rpc::rkyv::de::deserializers::SharedDeserializeMap,
-    >,
-    <Error as luda_rpc::rkyv::Archive>::Archived:
-        luda_rpc::rkyv::Deserialize<Error, luda_rpc::rkyv::de::deserializers::SharedDeserializeMap>,
+    Deps: Dependencies<'a> + 'a,
+    Artifacts: StaticOwned,
+    Response: rkyv::Archive + Send + 'static + Debug,
+    <Response as Archive>::Archived: Deserialize<Response, SharedDeserializeMap>,
+    Error: rkyv::Archive + Send + 'static + Debug,
+    <Error as Archive>::Archived: Deserialize<Error, SharedDeserializeMap>,
+    Req: rkyv::Serialize<Serializer> + Send + 'a,
 {
     let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
     let server_connection = server_connection.clone_inner();
@@ -44,15 +41,19 @@ where
         deps_sig.record_as_used();
         println!("request api: {}, {}", api_index, deps_sig.is_updated());
 
-        let Some(req) = request(dependencies) else {
+        let Some((req, artifacts)) = request(dependencies) else {
             return;
         };
 
         let bytes = rkyv::to_bytes(&req).unwrap().to_vec();
+        let owned_artifacts = artifacts.owned();
 
         ctx.spawn(async move {
-            let response = server_connection.request(api_index, bytes).await;
-            set_response.set(Some(response));
+            let result = server_connection.request(api_index, bytes).await;
+            set_response.set(Some(match result {
+                Ok(response) => Ok((response, owned_artifacts)),
+                Err(err) => Err(err),
+            }));
             Result::<()>::Ok(())
         });
     });
@@ -175,14 +176,9 @@ impl ServerConnection {
         request_bytes: Vec<u8>,
     ) -> Result<Response, Error>
     where
-        <Response as luda_rpc::rkyv::Archive>::Archived: luda_rpc::rkyv::Deserialize<
-            Response,
-            luda_rpc::rkyv::de::deserializers::SharedDeserializeMap,
-        >,
-        <Error as luda_rpc::rkyv::Archive>::Archived: luda_rpc::rkyv::Deserialize<
-            Error,
-            luda_rpc::rkyv::de::deserializers::SharedDeserializeMap,
-        >,
+        <Response as Archive>::Archived:
+            Deserialize<Response, de::deserializers::SharedDeserializeMap>,
+        <Error as Archive>::Archived: Deserialize<Error, de::deserializers::SharedDeserializeMap>,
     {
         println!("NETWORK-LOG: request: {:?}", api_index);
         let request_packet = RequestPacket::new(api_index, request_bytes);

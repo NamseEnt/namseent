@@ -43,5 +43,7 @@ pub async fn create_new_team(
         _ => err.into(),
     })?;
 
-    Ok(Response {})
+    Ok(Response {
+        team_id,
+    })
 }

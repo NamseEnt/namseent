@@ -5,22 +5,28 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-pub type OptionResult = Option<Result<Response, Error>>;
-pub fn session_token_auth<'a, Deps: Dependencies<'a> + 'a>(
+pub fn session_token_auth<'a, Deps, Artifacts>(
     ctx: &'a RenderCtx,
-    request: impl FnOnce(Deps) -> Option<RefRequest<'a>>,
+    request: impl FnOnce(Deps) -> Option<(RefRequest<'a>, Artifacts)>,
     dependencies: Deps,
-) -> Sig<'a, OptionResult, &'a OptionResult> {
+) -> SigRef<'a, Option<Result<(Response, <Artifacts as StaticOwned>::Owned), Error>>>
+where
+    Deps: Dependencies<'a> + 'a,
+    Artifacts: StaticOwned,
+{
     server_rpc(ctx, request, dependencies, 1u16)
 }
-pub fn session_token_auth_render<'a, Deps: Dependencies<'a> + 'a>(
+pub fn session_token_auth_render<'a, Deps, Artifacts>(
     ctx: &'a RenderCtx,
-    request: impl FnOnce(Deps) -> Option<RefRequest<'a>>,
+    request: impl FnOnce(Deps) -> Option<(RefRequest<'a>, Artifacts)>,
     dependencies: Deps,
     on_loading: impl FnOnce(),
     on_err: impl FnOnce(&Error),
-    on_res: impl FnOnce(&Response),
-) {
+    on_res: impl FnOnce(&(Response, <Artifacts as StaticOwned>::Owned)),
+) where
+    Deps: Dependencies<'a> + 'a,
+    Artifacts: StaticOwned,
+{
     match session_token_auth(ctx, request, dependencies).as_ref() {
         Some(result) => match result {
             Ok(res) => on_res(res),
@@ -43,11 +49,17 @@ impl ServerConnection {
         .await
     }
 }
-pub fn make_create_team_fn<'a>(
+pub fn make_session_token_auth_fn<'a, MakeRequestFn, ResponseFn, Artifacts>(
     ctx: &'a RenderCtx,
-    pre_request: impl FnOnce() -> Result<RefRequest<'a>, ()> + 'a,
-    post_request: impl FnOnce(Result<Response, Error>) + 'static + Send,
-) -> (impl FnOnce() + 'a, bool) {
+    make_request: MakeRequestFn,
+    response_fn: ResponseFn,
+) -> (impl FnOnce() + 'a, bool)
+where
+    MakeRequestFn: FnOnce() -> Option<(RefRequest<'a>, Artifacts)> + 'a,
+    ResponseFn:
+        FnOnce(Result<(Response, <Artifacts as StaticOwned>::Owned), Error>) + 'static + Send,
+    Artifacts: StaticOwned,
+{
     let on_progress = ctx.memo(|| Arc::new(AtomicBool::new(false)));
     let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
     let server_connection = server_connection.clone_inner();
@@ -57,18 +69,22 @@ pub fn make_create_team_fn<'a>(
             if on_progress.swap(true, Ordering::Relaxed) {
                 return;
             }
-            let Ok(request) = pre_request() else {
+            let Some((request, artifacts)) = make_request() else {
                 on_progress.store(false, Ordering::Relaxed);
                 return;
             };
             let bytes = luda_rpc::rkyv::to_bytes::<_, 1024>(&request)
                 .unwrap()
                 .to_vec();
+            let owned_artifacts = artifacts.owned();
             let on_progress = on_progress.clone_inner();
             tokio::spawn(async move {
                 let result = server_connection.request(1u16, bytes).await;
                 on_progress.store(false, Ordering::Relaxed);
-                post_request(result);
+                response_fn(match result {
+                    Ok(res) => Ok((res, owned_artifacts)),
+                    Err(err) => Err(err),
+                });
             });
         },
         ret_on_progress,

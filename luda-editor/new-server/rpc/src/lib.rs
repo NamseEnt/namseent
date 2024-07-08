@@ -57,6 +57,7 @@ rpc_macro::define_rpc! {
                 name: String,
             }
             struct Response {
+                team_id: String,
             }
             enum Error {
                 NeedLogin,
@@ -122,6 +123,7 @@ rpc_macro::define_rpc! {
                 name: String,
             }
             struct Response {
+                project_id: String,
             }
             enum Error {
                 NeedLogin,

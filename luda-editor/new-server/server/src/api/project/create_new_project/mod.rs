@@ -42,5 +42,5 @@ pub async fn create_new_project(
         _ => err.into(),
     })?;
 
-    Ok(Response {})
+    Ok(Response { project_id })
 }

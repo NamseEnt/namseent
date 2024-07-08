@@ -1,38 +1,51 @@
 use super::*;
-use rpc::team::create_new_team::*;
+use rpc::project::create_new_project::*;
 
-pub struct NewTeamPage;
+pub struct NewProjectPage<'a> {
+    pub team_id: &'a String,
+}
 
-impl Component for NewTeamPage {
+impl Component for NewProjectPage<'_> {
     fn render(self, ctx: &RenderCtx) {
+        let Self { team_id } = self;
         let screen_wh = namui::screen::size().map(|x| x.into_px());
-        let (team_name, set_team_name) = ctx.state(String::new);
-        let (team_name_validate_err, set_team_name_validate_err) =
+        let (project_name, set_project_name) = ctx.state(String::new);
+        let (project_name_validate_err, set_project_name_validate_err) =
             ctx.state::<Option<String>>(|| None);
-        let (create_new_team_err, set_create_new_team_err) = ctx.state::<Option<Error>>(|| None);
+        let (create_new_project_err, set_create_new_project_err) =
+            ctx.state::<Option<Error>>(|| None);
 
-        let (submit, on_progress) = make_create_new_team_fn(
+        let (submit, on_progress) = make_create_new_project_fn(
             ctx,
             || {
-                if team_name.is_empty() {
-                    set_team_name_validate_err.set(Some(
-                        "팀 이름이 비어있습니다. 팀 이름을 입력해주세요".to_string(),
+                if project_name.is_empty() {
+                    set_project_name_validate_err.set(Some(
+                        "프로젝트 이름이 비어있습니다. 프로젝트 이름을 입력해주세요".to_string(),
                     ));
                     return None;
                 }
 
-                set_team_name_validate_err.set(None);
-                Some((RefRequest { name: &team_name }, ()))
+                set_project_name_validate_err.set(None);
+                Some((
+                    RefRequest {
+                        team_id,
+                        name: &project_name,
+                    },
+                    team_id,
+                ))
             },
             move |result| match result {
-                Ok((Response { team_id }, _)) => {
-                    toast::positive("팀 생성 완료");
+                Ok((Response { project_id }, team_id)) => {
+                    toast::positive("프로젝트 생성 완료");
                     router::route(router::Route::Home {
-                        initial_selection: home::Selection::Team { team_id },
+                        initial_selection: home::Selection::Project {
+                            team_id,
+                            project_id,
+                        },
                     });
                 }
                 Err(err) => {
-                    set_create_new_team_err.set(Some(err));
+                    set_create_new_project_err.set(Some(err));
                 }
             },
         );
@@ -42,13 +55,13 @@ impl Component for NewTeamPage {
                 fixed(24.px(), |wh, ctx| {
                     ctx.add(typography::title::left(
                         wh.height,
-                        "새 팀 만들기",
+                        "새 프로젝트 만들기",
                         Color::WHITE,
                     ));
                 }),
                 fixed(16.px(), |wh, ctx| {
                     ctx.add(namui::text(TextParam {
-                        text: "팀 이름".to_string(),
+                        text: "프로젝트 이름".to_string(),
                         x: 0.px(),
                         y: 12.px(),
                         align: TextAlign::Left,
@@ -67,7 +80,7 @@ impl Component for NewTeamPage {
                 fixed(24.px(), |wh, ctx| {
                     ctx.add(TextInput {
                         rect: Rect::zero_wh(wh),
-                        start_text: team_name.as_ref(),
+                        start_text: project_name.as_ref(),
                         text_align: TextAlign::Center,
                         text_baseline: TextBaseline::Middle,
                         font: Font {
@@ -95,14 +108,14 @@ impl Component for NewTeamPage {
                         prevent_default_codes: &[Code::Enter],
                         focus: None,
                         on_edit_done: &|text| {
-                            set_team_name.set(text);
+                            set_project_name.set(text);
                         },
                     });
                 }),
-                if let Some(team_name_validate_err) = team_name_validate_err.as_ref() {
+                if let Some(project_name_validate_err) = project_name_validate_err.as_ref() {
                     fixed(16.px(), |wh, ctx| {
                         ctx.add(namui::text(TextParam {
-                            text: team_name_validate_err.to_string(),
+                            text: project_name_validate_err.to_string(),
                             x: 0.px(),
                             y: 12.px(),
                             align: TextAlign::Left,
@@ -126,12 +139,13 @@ impl Component for NewTeamPage {
                         submit();
                     }));
                 }),
-                if let Some(err) = create_new_team_err.as_ref() {
+                if let Some(err) = create_new_project_err.as_ref() {
                     let text = match err {
                         Error::NeedLogin => "로그인이 필요합니다".to_string(),
-                        Error::TooManyTeams => "팀을 더 이상 만들 수 없습니다".to_string(),
-                        Error::DuplicatedName => "이미 존재하는 팀 이름입니다".to_string(),
+                        Error::TooManyProjects => "프로젝트를 더 이상 만들 수 없습니다".to_string(),
+                        Error::DuplicatedName => "이미 존재하는 프로젝트 이름입니다".to_string(),
                         Error::InternalServerError { err } => format!("서버 오류: {}", err),
+                        Error::PermissionDenied => "팀에 대한 권한이 없습니다".to_string(),
                     };
                     fixed(16.px(), |wh, ctx| {
                         ctx.add(namui::text(TextParam {
