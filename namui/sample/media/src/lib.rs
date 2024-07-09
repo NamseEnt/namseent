@@ -18,9 +18,11 @@ impl Component for MediaExample {
             ctx.state::<Option<MediaHandle>>(|| None);
         let (sliced_audio, set_sliced_audio) = ctx.state::<Option<FullLoadOnceAudio>>(|| None);
 
-        ctx.effect("load media", || {
+        ctx.async_effect("load media", (), move |_| async move {
             let mp3 = namui::system::media::new_media(
-                &namui::system::file::bundle::to_real_path("resources/audio.mp3").unwrap(),
+                namui::system::file::bundle::read("resources/audio.mp3")
+                    .await
+                    .unwrap(),
             )
             .unwrap();
             println!("mp3 loaded");
@@ -28,34 +30,34 @@ impl Component for MediaExample {
             set_media_handle_for_toggle.set(Some(mp3));
 
             let opus = namui::system::media::new_media(
-                &namui::system::file::bundle::to_real_path("resources/audio.opus").unwrap(),
+                namui::system::file::bundle::read("resources/audio.opus")
+                    .await
+                    .unwrap(),
             )
             .unwrap();
             println!("opus loaded");
             set_audio_opus.set(Some(opus));
 
-            namui::spawn({
-                async move {
-                    let opus = namui::system::media::new_full_load_once_audio(
-                        &namui::system::file::bundle::to_real_path("resources/audio.opus")
-                            .unwrap(),
-                    )
+            let opus = namui::system::media::new_full_load_once_audio(
+                namui::system::file::bundle::read("resources/audio.opus")
                     .await
-                    .unwrap();
-                    println!("full load once audio loaded");
-                    set_sliced_audio.set(Some(
-                        opus.slice(Duration::from_secs(1)..Duration::from_secs(2))
-                            .unwrap(),
-                    ));
-                }
-            });
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+            println!("full load once audio loaded");
+            set_sliced_audio.set(Some(
+                opus.slice(Duration::from_secs(1)..Duration::from_secs(2))
+                    .unwrap(),
+            ));
 
             let mp4 = namui::system::media::new_media(
-                &namui::system::file::bundle::to_real_path("resources/video.mp4").unwrap(),
+                namui::system::file::bundle::read("resources/video.mp4")
+                    .await
+                    .unwrap(),
             )
             .unwrap();
             println!("mp4 loaded");
-
             set_video_mp4.set(Some(mp4));
         });
 

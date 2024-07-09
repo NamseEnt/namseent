@@ -1,10 +1,8 @@
 use super::{audio::AudioContext, core::MediaCore};
 use crate::*;
 use anyhow::Result;
-use std::{
-    path::Path,
-    sync::{Arc, Mutex},
-};
+use media::core::MediaSource;
+use std::sync::{Arc, Mutex};
 
 /// MediaHandle is user-exposed handle of media.
 /// It has mutex-locked Media.
@@ -20,9 +18,9 @@ pub struct MediaHandle {
 }
 
 impl MediaHandle {
-    pub(crate) fn new(audio_context: Arc<AudioContext>, path: &impl AsRef<Path>) -> Result<Self> {
+    pub(crate) fn new(audio_context: Arc<AudioContext>, source: MediaSource) -> Result<Self> {
         Ok(Self {
-            core: Arc::new(Mutex::new(MediaCore::new(audio_context, path)?)),
+            core: Arc::new(Mutex::new(MediaCore::new(audio_context, source)?)),
         })
     }
     pub fn play(&self) -> Result<()> {
