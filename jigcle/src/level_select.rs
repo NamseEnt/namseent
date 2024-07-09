@@ -182,16 +182,15 @@ impl Component for Thumbnail<'_> {
             source: ImageSource::ResourceLocation {
                 resource_location: image_source.clone(),
             },
-            fit: ImageFit::Contain,
-            // paint: Some(
-            //     Paint::new(Color::BLACK).set_image_filter(ImageFilter::Blur {
-            //         sigma_xy: Xy::single(16.0.into()),
-            //         tile_mode: Some(TileMode::Mirror),
-            //         input: None,
-            //         crop_rect: None,
-            //     }),
-            // ),
-            paint: None,
+            fit: ImageFit::Cover,
+            paint: Some(
+                Paint::new(Color::BLACK).set_image_filter(ImageFilter::Blur {
+                    sigma_xy: Xy::single(16.0.into()),
+                    tile_mode: Some(TileMode::Mirror),
+                    input: None,
+                    crop_rect: None,
+                }),
+            ),
         });
 
         ctx.add(simple_rect(
