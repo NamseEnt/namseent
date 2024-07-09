@@ -1,7 +1,7 @@
-use super::audio::AudioContext;
+use super::{audio::AudioContext, core::MediaSource};
 use crate::MediaHandle;
 use anyhow::Result;
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 pub struct MediaContext {
     pub(crate) audio_context: Arc<AudioContext>,
@@ -14,8 +14,8 @@ impl MediaContext {
         })
     }
 
-    pub(crate) fn new_media(&self, path: &impl AsRef<Path>) -> Result<MediaHandle> {
-        MediaHandle::new(self.audio_context.clone(), path)
+    pub(crate) fn new_media(&self, source: MediaSource) -> Result<MediaHandle> {
+        MediaHandle::new(self.audio_context.clone(), source)
     }
 
     pub(crate) fn set_volume(&self, zero_to_one: f32) {

@@ -1,3 +1,4 @@
+use super::MediaSource;
 use crate::system::media::{
     audio::AudioContext,
     core::{open_media, DecodingThreadCommand},
@@ -16,7 +17,7 @@ pub(crate) struct MediaCore {
     playback_duration_offset: Duration,
     audio_context: Arc<AudioContext>,
     video_framer: Option<VideoFramer>,
-    path: std::path::PathBuf,
+    source: MediaSource,
 }
 
 #[derive(Debug)]
@@ -26,14 +27,11 @@ enum PlaybackState {
 }
 
 impl MediaCore {
-    pub(crate) fn new(
-        audio_context: Arc<AudioContext>,
-        path: &impl AsRef<std::path::Path>,
-    ) -> Result<Self> {
+    pub(crate) fn new(audio_context: Arc<AudioContext>, source: MediaSource) -> Result<Self> {
         let (command_tx, command_rx) = std::sync::mpsc::sync_channel(32);
 
         let (video_framer, audio_buffer, media_duration) =
-            open_media(path, command_rx, audio_context.output_config)?;
+            open_media(&source, command_rx, audio_context.output_config)?;
 
         if let Some(audio_buffer) = audio_buffer {
             audio_context.load_audio(audio_buffer)?;
@@ -46,7 +44,7 @@ impl MediaCore {
             playback_duration_offset: Duration::default(),
             audio_context,
             video_framer,
-            path: path.as_ref().to_path_buf(),
+            source,
         })
     }
     pub fn play(&mut self) -> Result<()> {
@@ -118,6 +116,6 @@ impl MediaCore {
             .and_then(|video_framer| video_framer.get_image())
     }
     pub(crate) fn clone_independent(&self) -> Result<Self> {
-        Self::new(self.audio_context.clone(), &self.path)
+        Self::new(self.audio_context.clone(), self.source.clone())
     }
 }
