@@ -93,6 +93,8 @@ fn download_wasi_sdk() -> Result<()> {
         if first_line == format!("{VERSION}.0") {
             return Ok(());
         }
+
+        std::fs::remove_dir_all(&dist)?;
     }
 
     println!("DOWNLOADING WASI-SDK {VERSION}.0");
