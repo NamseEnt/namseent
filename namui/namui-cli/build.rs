@@ -78,23 +78,33 @@ fn generate_completions() -> Result<()> {
 }
 
 fn download_wasi_sdk() -> Result<()> {
+    const VERSION: &str = "23";
+
     let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let dist = root.join("wasi-sdk");
     let temp = root.join("wasi-sdk-temp");
+
     if dist.exists() {
-        return Ok(());
+        let version_file = std::fs::read_to_string(dist.join("VERSION"))?;
+        let first_line = version_file.lines().next().unwrap();
+
+        println!("WASI-SDK {VERSION}.0 Installed");
+
+        if first_line == format!("{VERSION}.0") {
+            return Ok(());
+        }
     }
 
-    println!("DOWNLOADING WASI-SDK");
+    println!("DOWNLOADING WASI-SDK {VERSION}.0");
 
-    let url = "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-22/wasi-sdk-22.0-linux.tar.gz";
+    let url = format!("https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{VERSION}/wasi-sdk-{VERSION}.0-linux.tar.gz");
 
     let response = reqwest::blocking::get(url)?.error_for_status()?;
 
     let mut d = flate2::read::GzDecoder::new(response);
     let mut archive = tar::Archive::new(&mut d);
     archive.unpack(&temp)?;
-    std::fs::rename(temp.join("wasi-sdk-22.0"), dist)?;
+    std::fs::rename(temp.join(format!("wasi-sdk-{VERSION}.0")), dist)?;
     std::fs::remove_dir(temp)?;
 
     Ok(())

@@ -32,14 +32,6 @@ pub use tokio::task::{spawn, spawn_local};
 pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
     namui_type::set_log(|x| log::log(x));
 
-    #[cfg(target_os = "wasi")]
-    {
-        eprintln!(
-            "i don't know why but it solve the bug, {:?}",
-            std::path::Path::new("").exists()
-        );
-    }
-
     let tokio_runtime: tokio::runtime::Runtime =
         tokio_runtime().expect("Failed to create tokio runtime");
     tokio_runtime.spawn(async move {
