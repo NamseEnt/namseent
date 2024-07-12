@@ -1,6 +1,6 @@
 use crate::*;
 
-#[schema]
+#[document]
 struct ProjectDoc {
     #[pk]
     id: String,
@@ -8,7 +8,7 @@ struct ProjectDoc {
     name: String,
 }
 
-#[schema]
+#[document]
 struct TeamToProjectDoc {
     #[pk]
     team_id: String,
@@ -16,10 +16,27 @@ struct TeamToProjectDoc {
     project_id: String,
 }
 
-#[schema]
+#[document]
 struct ProjectNameDoc {
     #[pk]
     team_id: String,
     #[pk]
     project_name: String,
+}
+
+#[document]
+struct SpeakerDoc {
+    #[pk]
+    project_id: String,
+    #[sk]
+    speaker_id: String,
+}
+
+#[document]
+struct SpeakerNameL10nDoc {
+    #[pk]
+    speaker_id: String,
+    #[sk]
+    language_code: String,
+    text: String,
 }

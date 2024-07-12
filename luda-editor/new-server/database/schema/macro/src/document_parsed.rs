@@ -3,7 +3,7 @@ use quote::{quote, ToTokens};
 use spanned::Spanned;
 use syn::*;
 
-pub struct Parsed<'a> {
+pub struct DocumentParsed<'a> {
     pub name: &'a Ident,
     pub input_redefine: TokenStream,
     pub fields_without_pksk_attr: Vec<Field>,
@@ -15,7 +15,7 @@ pub struct Parsed<'a> {
     pub pk_ref_fields: Vec<Field>,
 }
 
-impl<'a> Parsed<'a> {
+impl<'a> DocumentParsed<'a> {
     pub fn new(input: &'a DeriveInput) -> Self {
         let name = &input.ident;
 
@@ -231,13 +231,6 @@ fn input_redefine(input: &DeriveInput) -> TokenStream {
         field
             .attrs
             .retain(|attr| !attr.path.is_ident("pk") && !attr.path.is_ident("sk"));
-
-        let field_ty_name = field.ty.to_token_stream().to_string();
-        if field_ty_name == "SystemTime" {
-            field
-                .attrs
-                .push(parse_quote! {#[with(rkyv::with::UnixTimestamp)]});
-        }
     });
 
     quote! {
@@ -263,11 +256,6 @@ fn as_ref_fields_with_rkyv_with_attr<'a>(
                     field
                         .attrs
                         .push(parse_quote! {#[with(document::rkyv_with::StrAsString)]});
-                }
-                "SystemTime" => {
-                    field
-                        .attrs
-                        .push(parse_quote! {#[with(rkyv::with::UnixTimestamp)]});
                 }
                 "u8" | "u16" | "u32" | "u64" | "u128" | "usize" | "i8" | "i16" | "i32" | "i64"
                 | "i128" | "isize" => {

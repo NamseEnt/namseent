@@ -2,7 +2,12 @@ use super::*;
 
 crate::vector_types!(Wh, { width, height });
 
-impl<T: Clone> Wh<T> {
+impl<T> Wh<T>
+where
+    T: Clone,
+    T: std::fmt::Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: std::fmt::Debug,
+{
     pub fn as_xy(&self) -> Xy<T> {
         Xy {
             x: self.width.clone(),

@@ -1,20 +1,20 @@
 use crate::*;
 
-#[schema]
+#[document]
 struct UserDoc {
     #[pk]
     id: String,
     name: String,
 }
 
-#[schema]
+#[document]
 struct GoogleIdentityDoc {
     #[pk]
     sub: String,
     user_id: String,
 }
 
-#[schema]
+#[document]
 struct SessionTokenDoc {
     #[pk]
     session_token: String,

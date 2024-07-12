@@ -1,13 +1,13 @@
 use crate::*;
 
-#[schema]
+#[document]
 struct TeamDoc {
     #[pk]
     id: String,
     name: String,
 }
 
-#[schema]
+#[document]
 struct UserToTeamDoc {
     #[pk]
     user_id: String,
@@ -15,7 +15,7 @@ struct UserToTeamDoc {
     team_id: String,
 }
 
-#[schema]
+#[document]
 struct TeamNameToTeamIdDoc {
     #[pk]
     team_name: String,

@@ -1,6 +1,6 @@
 use crate::*;
 
-#[schema]
+#[document]
 struct TeamInviteCodeDoc {
     #[pk]
     team_id: String,
@@ -9,7 +9,7 @@ struct TeamInviteCodeDoc {
     expiration_time: SystemTime,
 }
 
-#[schema]
+#[document]
 struct TeamInviteCodeToTeamDoc {
     #[pk]
     code: String,

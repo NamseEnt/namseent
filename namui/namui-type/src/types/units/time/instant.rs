@@ -1,7 +1,7 @@
-use crate::Duration;
+use crate::*;
 use std::{fmt::Debug, sync::OnceLock};
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[type_derives(-Debug, Copy, PartialOrd, Eq, Ord)]
 pub struct Instant {
     inner: Duration,
 }
@@ -69,7 +69,6 @@ fn add_duration(lhs: Instant, rhs: Duration) -> Instant {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
 
     #[test]
     fn test_instant_sub() {

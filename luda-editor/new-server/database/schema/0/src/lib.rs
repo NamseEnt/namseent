@@ -7,20 +7,22 @@
 //!     - PKs are serialized in the order of fields.
 //!
 //! # Auto Public Visibility
-//! - All [schema] structs and their fields are public by macro.
+//! - All [document] structs and their fields are public by macro.
 //!
 
+mod asset;
 mod auth;
 mod episode;
 mod project;
 mod team;
 mod team_invite;
 
+pub use asset::*;
 pub use auth::*;
 pub use episode::*;
+pub use namui_type::*;
 pub use project::*;
 pub use team::*;
 pub use team_invite::*;
 
 use document::*;
-use std::time::SystemTime;

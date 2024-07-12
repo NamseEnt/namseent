@@ -1,8 +1,9 @@
-use crate::Duration;
+use crate::*;
 use std::fmt::Debug;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[type_derives(-Debug, Copy, PartialOrd, Eq, Ord)]
 pub struct SystemTime {
+    #[with(rkyv::with::UnixTimestamp)]
     inner: std::time::SystemTime,
 }
 
@@ -62,7 +63,6 @@ fn add_duration(lhs: SystemTime, rhs: Duration) -> SystemTime {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
 
     #[test]
     fn test_system_time_sub() {
