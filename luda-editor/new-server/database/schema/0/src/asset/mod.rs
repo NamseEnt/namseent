@@ -19,11 +19,20 @@ struct AssetDoc {
     id: String,
     name: String,
     shared: bool,
-    asset_type: AssetType,
+    asset_kind: AssetKind,
+    byte_size: u64,
 }
 
 #[doc_part]
-enum AssetType {
+enum AssetKind {
     Sprite,
     Audio,
+}
+
+#[document]
+struct TeamAssetDoc {
+    #[pk]
+    team_id: String,
+    #[sk]
+    asset_id: String,
 }

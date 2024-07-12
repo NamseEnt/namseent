@@ -173,4 +173,23 @@ rpc_macro::define_rpc! {
             }
         },
     },
+    Asset: {
+        get_presigned_url_to_upload_team_asset: {
+            struct Request {
+                team_id: String,
+                asset_name: String,
+                byte_size: u64,
+                asset_kind: migration::schema::AssetKind,
+            }
+            struct Response {
+                asset_id: String,
+                presigned_url: String,
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                NotEnoughSpace,
+            }
+        },
+    },
 }
