@@ -1,4 +1,7 @@
-use crate::level::{load_level_list, Level};
+use crate::{
+    level::{load_level_list, Level},
+    playground::PLAYING_LEVEL_ATOM,
+};
 use namui::*;
 use namui_prebuilt::{simple_rect, table::*};
 
@@ -14,6 +17,7 @@ impl Component for LevelSelect {
 
         let levels = load_levels(ctx);
         let (page, set_page) = ctx.state(|| 0_usize);
+        let (_playing_level, set_playing_level) = ctx.atom(&PLAYING_LEVEL_ATOM);
 
         let rows = levels.chunks(ITEM_PER_ROW).collect::<Vec<_>>();
         let pages = rows.chunks(TABLE_ROW).collect::<Vec<_>>();
@@ -116,7 +120,17 @@ impl Component for LevelSelect {
                                                     "level_select-thumbnail-{}",
                                                     level.name
                                                 );
-                                                ctx.add_with_key(key, Thumbnail { level, wh });
+                                                ctx.add_with_key(key, Thumbnail { level, wh })
+                                                    .attach_event(|event| {
+                                                        let Event::MouseDown { event } = event
+                                                        else {
+                                                            return;
+                                                        };
+                                                        if !event.is_local_xy_in() {
+                                                            return;
+                                                        }
+                                                        set_playing_level.set(Some(level.clone()));
+                                                    });
                                             }),
                                         )
                                     })),

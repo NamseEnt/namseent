@@ -1,12 +1,20 @@
-use piece::*;
-use solution_board::*;
+use crate::{
+    level::Level,
+    piece::{Edge, Piece, PieceState},
+    solution_board::SolutionBoard,
+};
+use file::bundle;
+use namui::*;
+use skia::load_image_from_resource_location;
+use std::ops::Deref;
 
-const IMAGE: &str = "bundle:image.jpg";
-const MUSIC: &str = "bundle:music.opus";
+// const SFX_5: &str = "sfx/416179__inspectorj__book-flipping-through-pages-a.opus";
+const SFX_7: &str = "sfx/469045__hawkeye_sprout__drop-book.opus";
+const SFX_8: &str = "sfx/375587__samulis__agogo-agogobell2_mp_2.opus";
 
-const SFX_5: &str = "bundle:sfx/416179__inspectorj__book-flipping-through-pages-a.opus";
-const SFX_7: &str = "bundle:sfx/469045__hawkeye_sprout__drop-book.opus";
-const SFX_8: &str = "bundle:/sfx/375587__samulis__agogo-agogobell2_mp_2.opus";
+pub static PLAYING_LEVEL_ATOM: Atom<Option<Level>> = Atom::uninitialized();
+
+pub struct Playground;
 
 /*
 
@@ -47,60 +55,74 @@ playground의 크기가 좀 더 커져야할 것 같음. 즉, 피스의 크기�
 playground를 줄이니까 꽤 괜찮음.
 노래는 그냥 브금으로 깔았음.
 */
-impl Component for Game {
+impl Component for Playground {
     fn render(self, ctx: &RenderCtx) {
-        let image = ctx.image(IMAGE);
-        let (bgm, set_bgm) = ctx.state::<Option<FullLoadRepeatAudio>>(|| None);
-        let sfx5 = load_sfx(ctx, SFX_5);
+        let (playing_level, _set_playing_level) = ctx.atom(&PLAYING_LEVEL_ATOM);
+        let (_bgm, set_bgm) = ctx.state(|| None);
+        let (image, set_image) = ctx.state(|| None);
+
         let sfx7 = load_sfx(ctx, SFX_7);
         let sfx8 = load_sfx(ctx, SFX_8);
 
-        ctx.effect("load bgm", || {
-            let set_bgm = set_bgm.cloned();
-            namui::spawn(async move {
-                let path = namui::system::file::bundle::to_real_path(MUSIC).unwrap();
+        ctx.effect("load level", || {
+            let Some(level) = playing_level.deref() else {
+                return EffectCleanUp::None;
+            };
 
-                let bgm = namui::media::new_full_load_repeat_audio(&path)
-                    .await
-                    .unwrap();
-
-                set_bgm.set(Some(bgm));
+            let load_bgm = namui::spawn({
+                let audio_source = level.audio_source();
+                async move {
+                    let ResourceLocation::Bundle(bundled_path) = audio_source else {
+                        unreachable!("audio source must be bundled");
+                    };
+                    let bgm_bytes = bundle::read(bundled_path).await.unwrap();
+                    let bgm_handle = namui::media::new_full_load_repeat_audio(bgm_bytes)
+                        .await
+                        .unwrap();
+                    bgm_handle.play().unwrap();
+                    set_bgm.set(Some(bgm_handle));
+                }
             });
-        });
 
-        let Some(sfx5) = sfx5.as_ref() else { return };
+            let load_image = namui::spawn({
+                let image_source = level.image_source();
+                async move {
+                    let image = load_image_from_resource_location(image_source)
+                        .await
+                        .unwrap();
+                    log!("image loaded {} {}", image.info.width, image.info.height);
+                    set_image.set(Some(image));
+                }
+            });
+
+            EffectCleanUp::once(move || {
+                load_bgm.abort();
+                load_image.abort();
+            })
+        });
         let Some(sfx7) = sfx7.as_ref() else { return };
         let Some(sfx8) = sfx8.as_ref() else { return };
 
         let failure_sfxs = [sfx8];
         let match_sfxs = [sfx7];
         let playground_drop_sfxs = [sfx7];
-        let _opening_sfx = sfx5;
 
-        let Some(Ok(image)) = image.as_ref() else {
+        let Some(image) = image.as_ref() else {
+            return;
+        };
+        let Some(level) = playing_level.as_ref() else {
             return;
         };
 
-        ctx.effect("repeat bgm", || {
-            let Some(bgm) = bgm.as_ref() else {
-                return;
-            };
-
-            bgm.play().unwrap();
-        });
-
-        const PUZZLE_WIDTH: usize = 8;
-        const PUZZLE_HEIGHT: usize = 8;
-
-        const PUZZLE_WH: Wh<usize> = Wh::new(PUZZLE_WIDTH, PUZZLE_HEIGHT);
+        let puzzle_wh = level.puzzle_size;
         let image_height = 600.px();
-        let image_width = image_height * (image.wh.height / image.wh.width).as_f32();
+        let image_width = image_height * (image.info.width / image.info.height).as_f32();
         let image_wh = Wh::new(image_width, image_height);
-        let piece_wh = image_wh / PUZZLE_WH;
+        let piece_wh = image_wh / puzzle_wh;
 
         let screen_wh = Wh::new(1920.px(), 1080.px());
 
-        let ltrb_edges = ctx.memo(|| create_ltrb_edges(PUZZLE_WH));
+        let ltrb_edges = ctx.memo(|| create_ltrb_edges(puzzle_wh));
 
         #[derive(Debug, Clone, Copy)]
         enum PiecePosition {
@@ -115,9 +137,15 @@ impl Component for Game {
         }
 
         let (piece_positions, set_piece_positions) = ctx.state(|| {
-            let mut piece_xys = [[PiecePosition::Playground {
-                xy: Xy::<Px>::zero(),
-            }; PUZZLE_WIDTH]; PUZZLE_HEIGHT];
+            let mut piece_xys = vec![
+                vec![
+                    PiecePosition::Playground {
+                        xy: Xy::<Px>::zero(),
+                    };
+                    puzzle_wh.width
+                ];
+                puzzle_wh.height
+            ];
 
             let start_piece_range_rect = {
                 let screen_right_middle_center =
@@ -150,10 +178,11 @@ impl Component for Game {
         });
 
         let solution_board_slot_piece_index_map = ctx.memo(|| {
-            let mut solution_board_slot_piece_index_map = [[None; PUZZLE_WIDTH]; PUZZLE_HEIGHT];
+            let mut solution_board_slot_piece_index_map =
+                vec![vec![None; puzzle_wh.width]; puzzle_wh.height];
 
-            for y in 0..PUZZLE_HEIGHT {
-                for x in 0..PUZZLE_WIDTH {
+            for y in 0..puzzle_wh.height {
+                for x in 0..puzzle_wh.width {
                     let PiecePosition::SolutionBoard { slot_index } = piece_positions[y][x] else {
                         continue;
                     };
@@ -269,13 +298,13 @@ impl Component for Game {
                                 neighbor_slot_indexes
                                     .push((Location::Top, Xy::new(slot_index.x, slot_index.y - 1)))
                             }
-                            if slot_index.x < PUZZLE_WH.width - 1 {
+                            if slot_index.x < puzzle_wh.width - 1 {
                                 neighbor_slot_indexes.push((
                                     Location::Right,
                                     Xy::new(slot_index.x + 1, slot_index.y),
                                 ));
                             }
-                            if slot_index.y < PUZZLE_WH.height - 1 {
+                            if slot_index.y < puzzle_wh.height - 1 {
                                 neighbor_slot_indexes.push((
                                     Location::Bottom,
                                     Xy::new(slot_index.x, slot_index.y + 1),
@@ -396,7 +425,7 @@ impl Component for Game {
                     wh: piece_wh,
                     piece_index,
                     ltrb_edge: ltrb_edges[piece_index.y][piece_index.x],
-                    image: image.src.clone(),
+                    image: image.clone(),
                     image_wh,
                     piece_state: PieceState::Shaking { started_at },
                 });
@@ -416,7 +445,7 @@ impl Component for Game {
                 wh: piece_wh,
                 piece_index,
                 ltrb_edge: ltrb_edges[piece_index.y][piece_index.x],
-                image: image.src.clone(),
+                image: image.clone(),
                 image_wh,
                 piece_state: PieceState::None,
             });
@@ -431,7 +460,7 @@ impl Component for Game {
                 wh: piece_wh,
                 piece_index,
                 ltrb_edge: ltrb_edges[piece_index.y][piece_index.x],
-                image: image.src.clone(),
+                image: image.clone(),
                 image_wh,
                 piece_state: PieceState::DraggingShadow,
             });
@@ -443,8 +472,8 @@ impl Component for Game {
                 let iter = [PositionType::Playground, PositionType::SolutionBoard]
                     .into_iter()
                     .flat_map(|piece_type| {
-                        (0..PUZZLE_WH.height).flat_map(move |y| {
-                            (0..PUZZLE_WH.width).map(move |x| (piece_type, x, y))
+                        (0..puzzle_wh.height).flat_map(move |y| {
+                            (0..puzzle_wh.width).map(move |x| (piece_type, x, y))
                         })
                     });
 
@@ -480,7 +509,7 @@ impl Component for Game {
                                 wh: piece_wh,
                                 piece_index,
                                 ltrb_edge: ltrb_edges[y][x],
-                                image: image.src.clone(),
+                                image: image.clone(),
                                 image_wh,
                                 piece_state: PieceState::None,
                             })
@@ -502,7 +531,7 @@ impl Component for Game {
         );
 
         ctx.translate(solution_board_xy).add(SolutionBoard {
-            wh_counts: PUZZLE_WH,
+            wh_counts: puzzle_wh,
             image_wh,
         });
     }
@@ -515,10 +544,12 @@ fn load_sfx<'a>(
     let (sfx, set_sfx) = ctx.state(|| None);
 
     ctx.effect("load sfx", || {
-        let set_sfx = set_sfx.cloned();
-        let path = namui::system::file::bundle::to_real_path(path).unwrap();
+        let path = path.to_string();
         namui::spawn(async move {
-            let bgm = namui::media::new_full_load_once_audio(&path).await.unwrap();
+            let sfx_bytes = bundle::read(path).await.unwrap();
+            let bgm = namui::media::new_full_load_once_audio(sfx_bytes)
+                .await
+                .unwrap();
 
             set_sfx.set(Some(bgm));
         });

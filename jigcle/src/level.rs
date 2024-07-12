@@ -22,4 +22,7 @@ impl Level {
     pub fn image_source(&self) -> ResourceLocation {
         ResourceLocation::bundle(format!("level/{}/{}", self.name, self.image_filename))
     }
+    pub fn audio_source(&self) -> ResourceLocation {
+        ResourceLocation::bundle(format!("level/{}/{}", self.name, self.audio_filename))
+    }
 }
