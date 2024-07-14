@@ -5,6 +5,7 @@ use crate::{
 };
 use file::bundle;
 use namui::*;
+use namui_prebuilt::button;
 use skia::load_image_from_resource_location;
 use std::ops::Deref;
 
@@ -57,7 +58,7 @@ playground를 줄이니까 꽤 괜찮음.
 */
 impl Component for Playground {
     fn render(self, ctx: &RenderCtx) {
-        let (playing_level, _set_playing_level) = ctx.atom(&PLAYING_LEVEL_ATOM);
+        let (playing_level, set_playing_level) = ctx.atom(&PLAYING_LEVEL_ATOM);
         let (_bgm, set_bgm) = ctx.state(|| None);
         let (image, set_image) = ctx.state(|| None);
 
@@ -100,6 +101,28 @@ impl Component for Playground {
                 load_image.abort();
             })
         });
+
+        ctx.add(button::TextButton {
+            rect: Rect::Xywh {
+                x: 16.px(),
+                y: 16.px(),
+                width: 256.px(),
+                height: 64.px(),
+            },
+            text: "Back",
+            text_color: Color::WHITE,
+            stroke_color: Color::WHITE,
+            stroke_width: 2.px(),
+            fill_color: Color::grayscale_alpha_f01(0.0, 0.25),
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: &|event| {
+                if !event.is_local_xy_in() {
+                    return;
+                }
+                set_playing_level.set(None);
+            },
+        });
+
         let Some(sfx7) = sfx7.as_ref() else { return };
         let Some(sfx8) = sfx8.as_ref() else { return };
 
