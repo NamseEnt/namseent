@@ -196,6 +196,10 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
         Ok(())
     }
 
+    async fn wait_backup(&self) -> Result<()> {
+        self.store.wait_backup().await
+    }
+
     // async fn update<T, Fut>(
     //     &self,
     //     key: &str,

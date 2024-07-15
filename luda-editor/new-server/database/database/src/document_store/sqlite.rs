@@ -10,10 +10,14 @@ use std::{
     sync::{atomic::AtomicPtr, Arc, Mutex, MutexGuard},
     time::{Duration, SystemTime},
 };
+use tokio::sync::{mpsc, oneshot};
+
+type BackupNotify = oneshot::Sender<()>;
 
 #[derive(Clone)]
 pub struct SqliteKvStore {
     write: Arc<Mutex<Connection>>,
+    backup_req_tx: mpsc::UnboundedSender<BackupNotify>,
 }
 
 const DB_PATH: &str = "db.sqlite";
@@ -60,12 +64,48 @@ impl SqliteKvStore {
         let sqlite3 = AtomicPtr::new(conn.db.borrow_mut().db);
         let write = Arc::new(Mutex::new(conn));
 
-        tokio::spawn(async move {
-            loop {
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        let (backup_req_tx, mut backup_req_rx) = mpsc::unbounded_channel();
 
-                if let Err(err) = backup(&sqlite3, &s3_client, &bucket_name).await {
+        tokio::spawn(async move {
+            let mut backup_waits: Vec<BackupNotify> = vec![];
+            loop {
+                tokio::select! {
+                    result = backup_req_rx.recv() => {
+                        let Some(notify) = result else {
+                            println!("Backup stopped, backup_req_rx is dropped");
+                            return;
+                        };
+                        backup_waits.push(notify);
+                    }
+                    _ = tokio::time::sleep(tokio::time::Duration::from_secs(5)) => {}
+                }
+
+                loop {
+                    match backup_req_rx.try_recv() {
+                        Ok(notify) => {
+                            backup_waits.push(notify);
+                        }
+                        Err(err) => match err {
+                            mpsc::error::TryRecvError::Empty => {
+                                break;
+                            }
+                            mpsc::error::TryRecvError::Disconnected => {
+                                println!("Backup stopped, backup_req_rx is dropped");
+                                return;
+                            }
+                        },
+                    }
+                }
+
+                match backup(&sqlite3, &s3_client, &bucket_name).await {
+                    Ok(_) => {
+                        for notify in backup_waits.drain(..) {
+                            let _ = notify.send(());
+                        }
+                    }
+                    Err(err) => {
                     eprintln!("Failed to backup db: {}", err);
+                    }
                 }
             }
         });
@@ -98,7 +138,10 @@ impl SqliteKvStore {
             }
         });
 
-        Ok(Self { write })
+        Ok(Self {
+            write,
+            backup_req_tx,
+        })
     }
 
     fn read_conn<T>(&self, f: impl FnOnce(&Connection) -> T) -> T {
@@ -276,6 +319,15 @@ impl DocumentStore for SqliteKvStore {
             }
         }
         trx.commit()?;
+        Ok(())
+    }
+
+    async fn wait_backup(&self) -> Result<()> {
+        let (tx, rx) = oneshot::channel();
+        self.backup_req_tx
+            .send(tx)
+            .map_err(|e| Error::BackupAborted(e.to_string()))?;
+        rx.await.map_err(|e| Error::BackupAborted(e.to_string()))?;
         Ok(())
     }
 }

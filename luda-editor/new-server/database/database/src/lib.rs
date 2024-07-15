@@ -48,8 +48,9 @@ impl Database {
             .collect())
     }
     pub async fn transact<'a>(&'a self, transact: impl Transact<'a> + 'a + Send) -> Result<()> {
-        let transact_items = transact.try_into_transact_items()?;
-        self.store.transact(&transact_items).await
+    }
+    pub async fn wait_backup(&self) -> Result<()> {
+        self.store.wait_backup().await
     }
 }
 
