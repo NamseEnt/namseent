@@ -48,6 +48,8 @@ impl Database {
             .collect())
     }
     pub async fn transact<'a>(&'a self, transact: impl Transact<'a> + 'a + Send) -> Result<()> {
+        let mut transact_items = transact.try_into_transact_items()?;
+        self.store.transact(&mut transact_items).await
     }
     pub async fn wait_backup(&self) -> Result<()> {
         self.store.wait_backup().await
@@ -59,6 +61,7 @@ pub enum Error {
     SqliteError(rusqlite::Error),
     SerializationError(SerErr),
     AlreadyExistsOnCreate,
+    BackupAborted(String),
 }
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

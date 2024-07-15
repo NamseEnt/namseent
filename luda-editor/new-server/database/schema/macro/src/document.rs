@@ -141,8 +141,8 @@ fn struct_create_define(
                     name: stringify!(#name),
                     pk: #pk_cow,
                     sk: #sk_cow,
-                    value: #ref_struct_value,
-                    ttl: self.ttl
+                    value_fn: Some(Box::new(move || Ok(#ref_struct_value))),
+                    ttl: self.ttl,
                 })
             }
         }

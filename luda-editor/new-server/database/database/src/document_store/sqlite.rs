@@ -104,7 +104,7 @@ impl SqliteKvStore {
                         }
                     }
                     Err(err) => {
-                    eprintln!("Failed to backup db: {}", err);
+                        eprintln!("Failed to backup db: {}", err);
                     }
                 }
             }
@@ -289,7 +289,7 @@ impl DocumentStore for SqliteKvStore {
         Ok(())
     }
 
-    async fn transact<'a>(&'a self, transact_items: &TransactItems<'a>) -> Result<()> {
+    async fn transact<'a>(&'a self, transact_items: &mut TransactItems<'a>) -> Result<()> {
         let mut write_conn: MutexGuard<Connection> = self.write_conn();
         let trx = write_conn.transaction()?;
 
@@ -308,10 +308,17 @@ impl DocumentStore for SqliteKvStore {
                     name,
                     pk,
                     sk,
-                    value,
+                    value_fn,
                     ttl,
                 } => {
-                    create(&trx, name, pk, sk.as_deref(), || Ok(value), *ttl)?;
+                    create(
+                        &trx,
+                        name,
+                        pk,
+                        sk.as_deref(),
+                        || Ok(value_fn.take().unwrap()()?),
+                        *ttl,
+                    )?;
                 }
                 document::TransactItem::Delete { name, pk, sk } => {
                     delete(&trx, name, pk, sk.as_deref())?

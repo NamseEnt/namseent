@@ -14,7 +14,7 @@ pub enum TransactItem<'a> {
         name: &'static str,
         pk: Cow<'a, [u8]>,
         sk: Option<Cow<'a, [u8]>>,
-        value: Vec<u8>,
+        value_fn: Option<Box<dyn 'a + Send + FnOnce() -> Result<Vec<u8>>>>,
         ttl: Option<Duration>,
     },
     Delete {
