@@ -36,3 +36,11 @@ struct TeamAssetDoc {
     #[sk]
     asset_id: String,
 }
+
+#[document]
+struct TeamAssetTotalBytesDoc {
+    #[pk]
+    team_id: String,
+    limit_bytes: u64,
+    used_bytes: u64,
+}

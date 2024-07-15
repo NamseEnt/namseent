@@ -61,6 +61,8 @@ pub enum Error {
     SqliteError(rusqlite::Error),
     SerializationError(SerErr),
     AlreadyExistsOnCreate,
+    NotExistsOnUpdate,
+    UpdateAborted,
     BackupAborted(String),
 }
 impl std::fmt::Display for Error {

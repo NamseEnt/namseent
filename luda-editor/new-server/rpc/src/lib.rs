@@ -174,7 +174,7 @@ rpc_macro::define_rpc! {
         },
     },
     Asset: {
-        get_presigned_url_to_upload_team_asset: {
+        reserve_team_asset_upload: {
             struct Request {
                 team_id: String,
                 asset_name: String,
@@ -183,7 +183,7 @@ rpc_macro::define_rpc! {
             }
             struct Response {
                 asset_id: String,
-                presigned_url: String,
+                presigned_post_url: String,
             }
             enum Error {
                 NeedLogin,

@@ -175,14 +175,14 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
 
         self.store.transact(transact_items).await?;
 
-        let keys = transact_items.iter().map(|item| match item {
-            document::TransactItem::Put { name, pk, sk, .. } => (name, pk, sk),
-            document::TransactItem::Create { name, pk, sk, .. } => (name, pk, sk),
-            document::TransactItem::Delete { name, pk, sk } => (name, pk, sk),
+        transact_items.iter().for_each(|item| match item {
+            TransactItem::Put { name, pk, sk, .. }
+            | TransactItem::Create { name, pk, sk, .. }
+            | TransactItem::Update { name, pk, sk, .. }
+            | TransactItem::Delete { name, pk, sk } => {
+                self.cache.remove(&(*name, pk.as_ref(), sk.as_deref()));
+            }
         });
-        for (name, pk, sk) in keys {
-            self.cache.remove(&(*name, pk.as_ref(), sk.as_deref()));
-        }
 
         Ok(())
     }

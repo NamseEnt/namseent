@@ -1553,6 +1553,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "database",
+ "migration",
  "proc-macro2",
  "quote",
  "rkyv",
@@ -1650,6 +1651,7 @@ dependencies = [
  "num",
  "ordered-float",
  "postcard",
+ "rkyv",
  "serde",
  "siphasher",
  "url",
@@ -1840,6 +1842,7 @@ checksum = "19ff2cf528c6c03d9ed653d6c4ce1dc0582dc4af309790ad92f07c1cd551b0be"
 dependencies = [
  "num-traits",
  "rand",
+ "rkyv",
  "serde",
 ]
 
@@ -2496,6 +2499,7 @@ dependencies = [
 name = "serializer"
 version = "0.1.0"
 dependencies = [
+ "namui-type",
  "rkyv",
 ]
 

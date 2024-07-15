@@ -17,11 +17,26 @@ pub enum TransactItem<'a> {
         value_fn: Option<Box<dyn 'a + Send + FnOnce() -> Result<Vec<u8>>>>,
         ttl: Option<Duration>,
     },
+    Update {
+        name: &'static str,
+        pk: Cow<'a, [u8]>,
+        sk: Option<Cow<'a, [u8]>>,
+        update_fn: UpdateFn<'a>,
+    },
     Delete {
         name: &'static str,
         pk: Cow<'a, [u8]>,
         sk: Option<Cow<'a, [u8]>>,
     },
+}
+
+type UpdateFn<'a> = Option<Box<dyn 'a + Send + FnOnce(&mut Vec<u8>) -> Result<WantUpdate>>>;
+
+pub enum WantUpdate {
+    /// No changes but keeps the transaction
+    No,
+    Yes,
+    Abort,
 }
 // impl<'a> AsRef<TransactItem<'a>> for TransactItem<'a> {
 //     fn as_ref(&self) -> &TransactItem<'a> {

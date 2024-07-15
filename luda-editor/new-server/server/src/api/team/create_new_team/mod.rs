@@ -36,6 +36,12 @@ pub async fn create_new_team(
             team_id: &team_id,
             ttl: None,
         },
+        TeamAssetTotalBytesDocPut {
+            team_id: &team_id,
+            used_bytes: 0,
+            limit_bytes: 100 * 1024 * 1024, // 100MB
+            ttl: None,
+        },
     ))
     .await
     .map_err(|err| match err {
@@ -43,7 +49,5 @@ pub async fn create_new_team(
         _ => err.into(),
     })?;
 
-    Ok(Response {
-        team_id,
-    })
+    Ok(Response { team_id })
 }

@@ -295,7 +295,7 @@ impl DocumentStore for SqliteKvStore {
 
         for item in transact_items {
             match item {
-                document::TransactItem::Put {
+                TransactItem::Put {
                     name,
                     pk,
                     sk,
@@ -304,7 +304,7 @@ impl DocumentStore for SqliteKvStore {
                 } => {
                     put(&trx, name, pk, sk.as_deref(), &value, *ttl)?;
                 }
-                document::TransactItem::Create {
+                TransactItem::Create {
                     name,
                     pk,
                     sk,
@@ -320,9 +320,17 @@ impl DocumentStore for SqliteKvStore {
                         *ttl,
                     )?;
                 }
-                document::TransactItem::Delete { name, pk, sk } => {
-                    delete(&trx, name, pk, sk.as_deref())?
+                TransactItem::Update {
+                    name,
+                    pk,
+                    sk,
+                    update_fn,
+                } => {
+                    update(&trx, name, pk, sk.as_deref(), |vec| {
+                        Ok(update_fn.take().unwrap()(vec)?)
+                    })?;
                 }
+                TransactItem::Delete { name, pk, sk } => delete(&trx, name, pk, sk.as_deref())?,
             }
         }
         trx.commit()?;
@@ -590,4 +598,54 @@ fn create<Bytes: AsRef<[u8]>>(
     );
 
     Ok(())
+}
+
+fn update(
+    trx: &Transaction<'_>,
+    name: &'static str,
+    pk: &[u8],
+    sk: Option<&[u8]>,
+    update_fn: impl FnOnce(&mut Vec<u8>) -> Result<WantUpdate>,
+) -> Result<()> {
+    let mut stmt = trx.prepare(
+        "
+        SELECT value
+        FROM documents
+        WHERE
+            name = ?
+            AND pk = ?
+            AND sk = ?
+            AND (expired_at = 0 OR expired_at >= unixepoch())
+        ",
+    )?;
+    let Some(mut value): Option<Vec<u8>> = stmt
+        .query_row((name, &pk, &sk.unwrap_or_default()), |row| row.get(0))
+        .optional()?
+    else {
+        return Err(Error::NotExistsOnUpdate);
+    };
+
+    match update_fn(&mut value)? {
+        WantUpdate::No => Ok(()),
+        WantUpdate::Abort => Err(Error::UpdateAborted),
+        WantUpdate::Yes => {
+            let mut stmt = trx.prepare(
+                "
+                UPDATE documents
+                SET value = ?
+                WHERE
+                    name = ?
+                    AND pk = ?
+                    AND sk = ?
+                    AND (expired_at = 0 OR expired_at >= unixepoch())
+                ",
+            )?;
+            assert_eq!(
+                stmt.execute((name, &pk, &sk.unwrap_or_default(), value))?,
+                1
+            );
+
+            Ok(())
+        }
+    }
 }
