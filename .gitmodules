@@ -10,3 +10,6 @@
 [submodule "namui/third-party-forks/rusqlite"]
 	path = namui/third-party-forks/rusqlite
 	url = https://github.com/namseent/rusqlite
+[submodule "luda-editor/third-party-forks/psd"]
+	path = luda-editor/third-party-forks/psd
+	url = https://github.com/NamseEnt/psd.git

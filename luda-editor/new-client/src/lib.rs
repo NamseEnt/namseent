@@ -1,3 +1,4 @@
+mod episode_editor;
 mod home;
 mod network;
 mod new_project_page;

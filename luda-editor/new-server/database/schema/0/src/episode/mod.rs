@@ -36,6 +36,8 @@ struct SceneSprite {
     circumcircle: Circumcircle,
     /// - key: part id
     /// - value: part option ids
+    ///
+    /// For single image sprite, no entry should be in this map.
     part_option_selections: HashMap<String, HashSet<String>>,
 }
 

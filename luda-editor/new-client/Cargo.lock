@@ -581,6 +581,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "document"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arrayvec",
+ "inventory",
+ "rkyv",
+ "schema-macro",
+ "serializer",
+]
+
+[[package]]
 name = "downcast-rs"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1107,6 +1119,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f958d3d68f4167080a18141e10381e7634563984a537f2a49a30fd8e53ac5767"
+
+[[package]]
 name = "ipnet"
 version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1273,6 +1291,7 @@ name = "luda-rpc"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "migration",
  "proc-macro2",
  "quote",
  "rkyv",
@@ -1303,6 +1322,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5de893c32cde5f383baa4c04c5d6dbdd735cfd4a794b0debdb2bb1b421da5ff4"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "migration"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "document",
+ "schema-0",
 ]
 
 [[package]]
@@ -1443,6 +1471,7 @@ dependencies = [
  "num",
  "ordered-float",
  "postcard",
+ "rkyv",
  "serde",
  "siphasher",
  "skia-safe",
@@ -1757,6 +1786,7 @@ checksum = "a76df7075c7d4d01fdcb46c912dd17fba5b60c78ea480b475f2b6ab6f666584e"
 dependencies = [
  "num-traits",
  "rand",
+ "rkyv",
  "serde",
 ]
 
@@ -2232,6 +2262,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "schema-0"
+version = "0.0.1"
+dependencies = [
+ "document",
+ "namui-type",
+ "rkyv",
+ "schema-macro",
+]
+
+[[package]]
+name = "schema-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.105",
+]
+
+[[package]]
 name = "scoped-tls"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2341,6 +2390,14 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serializer"
+version = "0.1.0"
+dependencies = [
+ "namui-type",
+ "rkyv",
 ]
 
 [[package]]
