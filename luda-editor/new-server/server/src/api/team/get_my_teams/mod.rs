@@ -7,9 +7,9 @@ pub async fn get_my_teams(
     ArchivedRequest {}: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     let Some(user_id) = session.user_id().await else {
-        return Err(Error::NeedLogin);
+        bail!(Error::NeedLogin)
     };
 
     let user_teams = db
@@ -24,11 +24,9 @@ pub async fn get_my_teams(
                 id: x.team_id.as_str(),
             })
             .await?
-            .ok_or_else(|| Error::InternalServerError {
-                err: format!("team not found: {}", x.team_id),
-            })?
+            .ok_or_else(|| anyhow!("team not found: {}", x.team_id))?
             .deserialize();
-        Ok::<_, Error>(team_doc)
+        anyhow::Ok(team_doc)
     }))
     .await?;
 

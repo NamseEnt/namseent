@@ -8,9 +8,9 @@ pub async fn get_episodes(
     ArchivedRequest { project_id }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     let Some(user_id) = session.user_id().await else {
-        return Err(Error::NeedLogin);
+        bail!(Error::NeedLogin)
     };
 
     let project_doc = db
@@ -20,7 +20,7 @@ pub async fn get_episodes(
     let team_id = &project_doc.team_id;
 
     if !is_team_member(db, team_id, &user_id).await? {
-        return Err(Error::PermissionDenied);
+        bail!(Error::PermissionDenied)
     }
 
     let project_to_episode_query = db.query(ProjectToEpisodeDocQuery { project_id }).await?;
@@ -29,9 +29,7 @@ pub async fn get_episodes(
             id: doc.episode_id.as_str(),
         })
         .await?
-        .ok_or(Error::InternalServerError {
-            err: format!("episode not found: {}", doc.episode_id),
-        })
+        .ok_or(anyhow!("episode not found: {}", doc.episode_id))
     }))
     .await?;
 

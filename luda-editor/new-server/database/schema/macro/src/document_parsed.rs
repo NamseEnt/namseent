@@ -258,7 +258,7 @@ fn as_ref_fields_with_rkyv_with_attr<'a>(
                         .push(parse_quote! {#[with(document::rkyv_with::StrAsString)]});
                 }
                 "u8" | "u16" | "u32" | "u64" | "u128" | "usize" | "i8" | "i16" | "i32" | "i64"
-                | "i128" | "isize" => {
+                | "i128" | "isize" | "SystemTime" | "bool" => {
                     // Copy
                 }
                 _ => {

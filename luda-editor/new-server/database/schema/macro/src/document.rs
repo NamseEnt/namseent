@@ -70,7 +70,7 @@ fn struct_get_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
 
     quote! {
         pub struct #get_struct_name<'a> {
-            #(#pk_sk_ref_fields),*
+            #(#pk_sk_ref_fields,)*
         }
         impl document::DocumentGet for #get_struct_name<'_> {
             type Output = #name;
@@ -154,22 +154,21 @@ fn struct_create_define(
 fn struct_update_define(
     DocumentParsed {
         name,
-        fields_without_pksk_attr,
+        pk_sk_ref_fields,
         pk_cow,
         sk_cow,
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
     let update_struct_name = Ident::new(&format!("{}Update", name), name.span());
-    let fields_as_refs = as_ref_fields(fields_without_pksk_attr);
 
     quote! {
         pub struct #update_struct_name<'a, WantUpdateFn, UpdateFn>
         where
-            WantUpdateFn: 'a + Send + FnOnce(&ArchivedTeamNameToTeamIdDoc) -> WantUpdate,
-            UpdateFn: 'a + Send + FnOnce(&mut TeamNameToTeamIdDoc),
+            WantUpdateFn: 'a + Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate,
+            UpdateFn: 'a + Send + FnOnce(&mut #name),
         {
-            #(#fields_as_refs,)*
+            #(#pk_sk_ref_fields,)*
             pub want_update: WantUpdateFn,
             pub update: UpdateFn,
         }
@@ -177,8 +176,8 @@ fn struct_update_define(
         impl<'a, WantUpdateFn, UpdateFn> TryInto<document::TransactItem<'a>>
             for #update_struct_name<'a, WantUpdateFn, UpdateFn>
         where
-            WantUpdateFn: 'a + Send + FnOnce(&ArchivedTeamNameToTeamIdDoc) -> WantUpdate,
-            UpdateFn: 'a + Send + FnOnce(&mut TeamNameToTeamIdDoc),
+            WantUpdateFn: 'a + Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate,
+            UpdateFn: 'a + Send + FnOnce(&mut #name),
         {
             type Error = document::SerErr;
             fn try_into(self) -> document::Result<document::TransactItem<'a>> {
@@ -188,10 +187,10 @@ fn struct_update_define(
                     sk: #sk_cow,
                     update_fn: Some(Box::new(|vec| {
                         let want_update =
-                            (self.want_update)(unsafe { rkyv::archived_root::<TeamNameToTeamIdDoc>(vec) });
+                            (self.want_update)(unsafe { rkyv::archived_root::<#name>(vec) });
 
                         if let WantUpdate::Yes = want_update {
-                            let mut doc = deserialize::<TeamNameToTeamIdDoc>(vec)?;
+                            let mut doc = deserialize::<#name>(vec)?;
                             (self.update)(&mut doc);
                             *vec = serialize(&doc)?;
                         }
@@ -217,7 +216,7 @@ fn struct_delete_define(
 
     quote! {
         pub struct #delete_struct_name<'a> {
-            #(#pk_sk_ref_fields),*
+            #(#pk_sk_ref_fields,)*
         }
         impl<'a> TryInto<document::TransactItem<'a>> for #delete_struct_name<'a> {
             type Error = document::SerErr;
@@ -243,7 +242,7 @@ fn struct_query_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
 
     quote! {
         pub struct #query_struct_name<'a> {
-            #(#pk_ref_fields),*
+            #(#pk_ref_fields,)*
         }
         impl document::DocumentQuery for #query_struct_name<'_> {
             type Output = #name;

@@ -17,7 +17,6 @@ pub type SerErr = MySerializerError<
 >;
 
 pub type Result<T> = std::result::Result<T, SerErr>;
-
 pub fn serialize<T>(value: &T) -> Result<Vec<u8>>
 where
     T: Serialize<MySerializer<AllocSerializer<1024>>>,
@@ -37,6 +36,22 @@ where
     T::Archived: Deserialize<T, SharedDeserializeMap>,
 {
     Ok(unsafe { rkyv::from_bytes_unchecked(bytes)? })
+}
+
+pub trait DeserializeInfallible<T>: rkyv::Deserialize<T, rkyv::Infallible>
+where
+    T: rkyv::Archive,
+{
+    fn deserialize(&self) -> T {
+        rkyv::Deserialize::deserialize(self, &mut rkyv::Infallible).unwrap()
+    }
+}
+
+impl<T> DeserializeInfallible<T> for rkyv::Archived<T>
+where
+    T: rkyv::Archive,
+    <T as Archive>::Archived: Deserialize<T, rkyv::Infallible>,
+{
 }
 
 pub struct MySerializer<S> {

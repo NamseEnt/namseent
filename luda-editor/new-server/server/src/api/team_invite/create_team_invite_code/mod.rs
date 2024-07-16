@@ -2,7 +2,7 @@ use crate::*;
 use api::team::is_team_member;
 use database::schema::*;
 use luda_rpc::{team_invite::create_team_invite_code::*, TeamInviteCode};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 const MAX_TEAM_INVITE_CODE_COUNT: usize = 20;
 const SEVEN_DAYS: Duration = Duration::from_secs(3600 * 24 * 7);
@@ -11,19 +11,19 @@ pub async fn create_team_invite_code(
     ArchivedRequest { team_id }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     let Some(user_id) = session.user_id().await else {
-        return Err(Error::NeedLogin);
+        bail!(Error::NeedLogin)
     };
 
     if !is_team_member(db, team_id, &user_id).await? {
-        return Err(Error::PermissionDenied);
+        bail!(Error::PermissionDenied)
     }
 
     let team_invite_codes = db.query(TeamInviteCodeDocQuery { team_id }).await?;
 
     if MAX_TEAM_INVITE_CODE_COUNT < team_invite_codes.len() {
-        return Err(Error::TooManyCodes);
+        bail!(Error::TooManyCodes)
     }
 
     let code = randum::rand();

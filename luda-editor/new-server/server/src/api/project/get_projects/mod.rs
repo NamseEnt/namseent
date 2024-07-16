@@ -8,13 +8,13 @@ pub async fn get_projects(
     ArchivedRequest { team_id }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     let Some(user_id) = session.user_id().await else {
-        return Err(Error::NeedLogin);
+        bail!(Error::NeedLogin)
     };
 
     if !is_team_member(db, team_id, &user_id).await? {
-        return Err(Error::PermissionDenied);
+        bail!(Error::PermissionDenied)
     }
 
     let team_to_project_query = db.query(TeamToProjectDocQuery { team_id }).await?;
@@ -23,9 +23,7 @@ pub async fn get_projects(
             id: doc.project_id.as_str(),
         })
         .await?
-        .ok_or(Error::InternalServerError {
-            err: format!("project not found: {}", doc.project_id),
-        })
+        .ok_or(anyhow!("project not found: {}", doc.project_id))
     }))
     .await?;
 

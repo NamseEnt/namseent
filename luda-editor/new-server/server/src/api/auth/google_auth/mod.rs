@@ -11,9 +11,9 @@ pub async fn google_auth(
     ArchivedRequest { jwt }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     if session.logged_in().await {
-        return Err(Error::AlreadyLoggedIn {});
+        bail!(Error::AlreadyLoggedIn)
     }
 
     let jwks_client = {
@@ -26,13 +26,7 @@ pub async fn google_auth(
         })
     };
 
-    let Claims { sub, name } =
-        jwks_client
-            .verify(jwt)
-            .await
-            .map_err(|err| Error::InternalServerError {
-                err: format!("Failed to verify JWT: {}", err),
-            })?;
+    let Claims { sub, name } = jwks_client.verify(jwt).await?;
 
     let google_identity = db.get(GoogleIdentityDocGet { sub: &sub }).await?;
 
@@ -59,7 +53,7 @@ pub async fn google_auth(
     done(db, session, &user_id).await
 }
 
-async fn done(db: &Database, session: Session, user_id: &str) -> Result<Response, Error> {
+async fn done(db: &Database, session: Session, user_id: &str) -> Result<Response> {
     session.login(user_id).await;
     let session_token = generate_session_token(db, user_id).await?;
     Ok(Response { session_token })

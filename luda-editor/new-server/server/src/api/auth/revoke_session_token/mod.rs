@@ -6,9 +6,9 @@ pub async fn revoke_session_token(
     ArchivedRequest { session_token }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     let Some(user_id) = session.user_id().await else {
-        return Err(Error::Unauthorized);
+        bail!(Error::Unauthorized)
     };
 
     let Some(doc) = db.get(SessionTokenDocGet { session_token }).await? else {
@@ -16,7 +16,7 @@ pub async fn revoke_session_token(
     };
 
     if doc.user_id.as_ref() != user_id.as_ref() {
-        return Err(Error::Unauthorized);
+        bail!(Error::Unauthorized)
     }
 
     db.transact(SessionTokenDocDelete { session_token }).await?;

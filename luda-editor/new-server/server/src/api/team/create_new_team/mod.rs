@@ -8,14 +8,14 @@ pub async fn create_new_team(
     ArchivedRequest { name }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     let Some(user_id) = session.user_id().await else {
-        return Err(Error::NeedLogin);
+        bail!(Error::NeedLogin)
     };
 
     let user_team_query = db.query(UserToTeamDocQuery { user_id: &user_id }).await?;
     if user_team_query.len() > MAX_TEAM_COUNT {
-        return Err(Error::TooManyTeams);
+        bail!(Error::TooManyTeams)
     }
 
     let team_id = randum::rand();
@@ -45,8 +45,8 @@ pub async fn create_new_team(
     ))
     .await
     .map_err(|err| match err {
-        database::Error::AlreadyExistsOnCreate => Error::DuplicatedName,
-        _ => err.into(),
+        database::Error::AlreadyExistsOnCreate => anyhow!(Error::DuplicatedName),
+        _ => anyhow!(err),
     })?;
 
     Ok(Response { team_id })

@@ -7,13 +7,13 @@ pub async fn create_new_project(
     ArchivedRequest { team_id, name }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     let Some(user_id) = session.user_id().await else {
-        return Err(Error::NeedLogin);
+        bail!(Error::NeedLogin)
     };
 
     if !is_team_member(db, team_id, &user_id).await? {
-        return Err(Error::PermissionDenied);
+        bail!(Error::PermissionDenied)
     }
 
     let project_id = randum::rand();
@@ -38,8 +38,8 @@ pub async fn create_new_project(
     ))
     .await
     .map_err(|err| match err {
-        database::Error::AlreadyExistsOnCreate => Error::DuplicatedName,
-        _ => err.into(),
+        database::Error::AlreadyExistsOnCreate => anyhow!(Error::DuplicatedName),
+        _ => anyhow!(err),
     })?;
 
     Ok(Response { project_id })

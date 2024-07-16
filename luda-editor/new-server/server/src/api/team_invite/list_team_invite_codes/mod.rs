@@ -6,9 +6,9 @@ pub async fn list_team_invite_codes(
     ArchivedRequest { team_id }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     let Some(user_id) = session.user_id().await else {
-        return Err(Error::NeedLogin);
+        bail!(Error::NeedLogin)
     };
 
     if db
@@ -19,7 +19,7 @@ pub async fn list_team_invite_codes(
         .await?
         .is_none()
     {
-        return Err(Error::PermissionDenied);
+        bail!(Error::PermissionDenied)
     };
 
     let query = db.query(TeamInviteCodeDocQuery { team_id }).await?;

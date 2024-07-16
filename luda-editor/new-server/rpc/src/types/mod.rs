@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use namui_type::*;
 
 #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
@@ -19,7 +19,6 @@ pub struct Project {
 pub struct Episode {
     pub id: String,
     pub name: String,
-    #[with(rkyv::with::UnixTimestamp)]
     pub created_at: SystemTime,
 }
 
@@ -27,6 +26,5 @@ pub struct Episode {
 #[archive(check_bytes)]
 pub struct TeamInviteCode {
     pub code: String,
-    #[with(rkyv::with::UnixTimestamp)]
     pub expiration_time: SystemTime,
 }

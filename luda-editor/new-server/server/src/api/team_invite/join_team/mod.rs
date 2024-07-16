@@ -6,13 +6,13 @@ pub async fn join_team(
     ArchivedRequest { code }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     let Some(user_id) = session.user_id().await else {
-        return Err(Error::NeedLogin);
+        bail!(Error::NeedLogin)
     };
 
     let Some(team_invite_code_to_team) = db.get(TeamInviteCodeToTeamDocGet { code }).await? else {
-        return Err(Error::InvalidCode);
+        bail!(Error::InvalidCode)
     };
 
     db.transact(UserToTeamDocPut {

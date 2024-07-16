@@ -183,7 +183,8 @@ rpc_macro::define_rpc! {
             }
             struct Response {
                 asset_id: String,
-                presigned_post_url: String,
+                presigned_put_uri: String,
+                headers: Vec<(String, String)>,
             }
             enum Error {
                 NeedLogin,

@@ -5,6 +5,7 @@ edition = "2021"
 
 
 [dependencies]
+namui-type = { path = "../../../namui/namui-type" }
 luda-rpc = { path = "../rpc", features = ["server"] }
 database = { path = "../database/database" }
 serializer = { path = "../serializer" }

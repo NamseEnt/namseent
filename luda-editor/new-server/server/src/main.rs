@@ -3,7 +3,7 @@ mod s3;
 mod session;
 mod ws_handler;
 
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
 use axum::{
     extract::{ConnectInfo, State},
     response::IntoResponse,

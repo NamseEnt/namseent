@@ -1,6 +1,6 @@
 mod document_store;
 
-use document::*;
+pub use document::*;
 pub use document_store::DocumentStore;
 pub use migration::schema;
 

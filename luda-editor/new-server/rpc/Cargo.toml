@@ -16,6 +16,7 @@ rkyv = { version = "0.7.44", features = ["validation"] }
 database = { path = "../database/database", optional = true }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 migration = { path = "../database/schema/migration" }
+namui-type = { path = "../../../namui/namui-type" }
 
 [build-dependencies]
 walkdir = "2"
@@ -27,3 +28,4 @@ rkyv = { version = "0.7.44", features = ["validation"] }
 database = { path = "../database/database", optional = true }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 migration = { path = "../database/schema/migration" }
+namui-type = { path = "../../../namui/namui-type" }

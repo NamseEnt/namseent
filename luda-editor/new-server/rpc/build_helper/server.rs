@@ -87,7 +87,7 @@ pub async fn {api_name}(
     ArchivedRequest {{ }}: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {{
+) -> Result<Response> {{
     todo!()
 }}
 "
@@ -120,9 +120,18 @@ fn generate_api_wire_up_file(rpc: &Rpc) {
                         Ok(response) => Ok(HandleResult::Response(
                             serializer::serialize(&response)?
                         )),
-                        Err(error) => Ok(HandleResult::Error(
-                            serializer::serialize(&error)?
-                        )),
+                        Err(error) => {
+                            Ok(HandleResult::Error(match error
+                                .downcast_ref::<luda_rpc::#service_name::#api_name::Error>(
+                            ) {
+                                Some(error) => serializer::serialize(error),
+                                None => serializer::serialize(
+                                    &luda_rpc::#service_name::#api_name::Error::InternalServerError {
+                                        err: error.to_string(),
+                                    },
+                                ),
+                            }?))
+                        }
                     }
                 }
             }

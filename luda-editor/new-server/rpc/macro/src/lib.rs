@@ -90,15 +90,6 @@ fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
                                 }
                             }
                             impl std::error::Error for Error {}
-
-                            #[cfg(feature = "server")]
-                            impl From<database::Error> for Error {
-                                fn from(e: database::Error) -> Self {
-                                    Error::InternalServerError {
-                                        err: format!("{e}"),
-                                    }
-                                }
-                            }
                         };
                     }
                 }

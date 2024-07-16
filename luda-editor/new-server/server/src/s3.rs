@@ -27,3 +27,7 @@ pub fn bucket_name() -> &'static str {
     static BUCKET_NAME: OnceLock<String> = OnceLock::new();
     BUCKET_NAME.get_or_init(|| std::env::var("BUCKET_NAME").unwrap())
 }
+
+pub fn asset_key(asset_id: &str) -> String {
+    format!("asset/{}", asset_id)
+}

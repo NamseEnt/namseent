@@ -7,13 +7,13 @@ pub async fn session_token_auth(
     ArchivedRequest { session_token }: &ArchivedRequest,
     db: &Database,
     session: Session,
-) -> Result<Response, Error> {
+) -> Result<Response> {
     if session.logged_in().await {
-        return Err(Error::AlreadyLoggedIn);
+        bail!(Error::AlreadyLoggedIn)
     };
 
     let Some(doc) = db.get(SessionTokenDocGet { session_token }).await? else {
-        return Err(Error::SessionTokenNotExist);
+        bail!(Error::SessionTokenNotExist)
     };
 
     session.login(&doc.user_id).await;
