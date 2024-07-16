@@ -8,7 +8,6 @@ pub struct SystemTime {
 }
 
 impl SystemTime {
-    #[cfg(feature = "namui_internal")]
     pub fn now() -> Self {
         Self {
             inner: std::time::SystemTime::now(),
@@ -39,6 +38,11 @@ auto_ops::impl_op!(-|lhs: &SystemTime, rhs: Duration| -> SystemTime { add_durati
 auto_ops::impl_op!(-|lhs: SystemTime, rhs: &Duration| -> SystemTime { add_duration(lhs, -*rhs) });
 auto_ops::impl_op!(-|lhs: &SystemTime, rhs: &Duration| -> SystemTime { add_duration(*lhs, -*rhs) });
 
+auto_ops::impl_op!(+|lhs: SystemTime, rhs: std::time::Duration| -> SystemTime { add_std_duration(lhs, rhs) });
+auto_ops::impl_op!(+|lhs: &SystemTime, rhs: std::time::Duration| -> SystemTime { add_std_duration(*lhs, rhs) });
+auto_ops::impl_op!(+|lhs: SystemTime, rhs: &std::time::Duration| -> SystemTime { add_std_duration(lhs, *rhs) });
+auto_ops::impl_op!(+|lhs: &SystemTime, rhs: &std::time::Duration| -> SystemTime { add_std_duration(*lhs, *rhs) });
+
 fn sub_system_time(lhs: SystemTime, rhs: SystemTime) -> Duration {
     let duration = match lhs.inner.duration_since(rhs.inner) {
         Ok(duration) => duration,
@@ -57,6 +61,12 @@ fn add_duration(lhs: SystemTime, rhs: Duration) -> SystemTime {
         false => SystemTime {
             inner: lhs.inner - rhs.inner,
         },
+    }
+}
+
+fn add_std_duration(lhs: SystemTime, rhs: std::time::Duration) -> SystemTime {
+    SystemTime {
+        inner: lhs.inner + rhs,
     }
 }
 
