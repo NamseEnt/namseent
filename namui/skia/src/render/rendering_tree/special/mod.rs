@@ -19,7 +19,7 @@ pub use transform::*;
 pub use translate::*;
 pub use with_id::*;
 
-#[type_derives(Hash, Eq, -serde::Serialize, -serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum SpecialRenderingNode {
     Translate(TranslateNode),
     Clip(ClipNode),

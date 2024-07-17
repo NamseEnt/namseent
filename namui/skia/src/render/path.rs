@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives(Default, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Default, Eq, Hash)]
 pub struct Path {
     commands: Vec<PathCommand>,
 }
@@ -95,7 +95,7 @@ impl Path {
     }
 }
 
-#[type_derives(Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub enum PathCommand {
     AddRect {
         rect: Rect<Px>,

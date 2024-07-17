@@ -1,7 +1,7 @@
 use super::*;
 
 /// `OnTopNode` ignores clip and draw on top of other nodes.
-#[type_derives(Hash, Eq, -serde::Serialize, -serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct OnTopNode {
     pub rendering_tree: Box<RenderingTree>,
 }

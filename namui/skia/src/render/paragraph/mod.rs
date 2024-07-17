@@ -9,7 +9,7 @@ use std::sync::Arc;
 use textwrap::{core::Fragment, word_splitters::split_words, wrap_algorithms::wrap_first_fit, *};
 use unicode_segmentation::UnicodeSegmentation;
 
-#[type_derives(-PartialEq, -serde::Serialize, -serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Paragraph {
     pub vec: Vec<Line>,
     pub group_glyph: Arc<dyn GroupGlyph>,
@@ -275,14 +275,14 @@ pub fn get_multiline_y_baseline_offset(
     }
 }
 
-#[type_derives(Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum NewLineBy {
     Wrap,
     /// `\n`
     LineFeed,
 }
 
-#[type_derives(-serde::Serialize, -serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Line {
     /// Should not have `\n`
     pub chars: Vec<char>,

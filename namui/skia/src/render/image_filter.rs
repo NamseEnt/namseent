@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives(Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum ImageFilter {
     Blur {
         sigma_xy: Xy<OrderedFloat<f32>>,

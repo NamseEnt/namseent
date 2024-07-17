@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives(-PartialEq, -serde::Serialize, -serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Caret<'a> {
     pub line_index: usize,
     pub caret_index_in_line: usize,
@@ -61,7 +61,7 @@ pub(crate) fn get_caret(selection_index: usize, paragraph: &Paragraph) -> Caret<
     }
 }
 
-#[type_derives(Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum CaretKey {
     ArrowUp,
     ArrowDown,

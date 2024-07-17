@@ -1,7 +1,6 @@
-use crate::*;
 use std::hash::Hash;
 
-#[type_derives(Copy, -PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub enum MaskFilter {
     Blur { blur_style: BlurStyle, sigma: f32 },
 }
@@ -33,7 +32,7 @@ impl PartialEq for MaskFilter {
 }
 impl Eq for MaskFilter {}
 
-#[type_derives(Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum BlurStyle {
     /// Fuzzy inside and outside
     Normal,

@@ -8,7 +8,7 @@ pub(crate) struct NativeColorFilter {
 
 impl NativeColorFilter {
     pub(crate) fn get(color_filter: ColorFilter) -> Arc<NativeColorFilter> {
-        static CACHE: SerdeLruCache<ColorFilter, NativeColorFilter> = SerdeLruCache::new();
+        static CACHE: LruCache<ColorFilter, NativeColorFilter> = LruCache::new();
 
         CACHE.get_or_create(&color_filter, |color_filter| NativeColorFilter {
             skia_color_filter: {

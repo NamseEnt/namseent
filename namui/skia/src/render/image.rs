@@ -2,7 +2,7 @@ use super::*;
 use crate::*;
 use std::{fmt::Debug, hash::Hash};
 
-#[type_derives(-PartialEq, -serde::Serialize, -serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Image {
     pub info: ImageInfo,
     pub skia_image: std::sync::Arc<skia_safe::Image>,
@@ -35,7 +35,7 @@ impl Hash for Image {
     }
 }
 
-#[type_derives(Copy, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash)]
 pub struct ImageInfo {
     pub alpha_type: AlphaType,
     pub color_type: ColorType,
