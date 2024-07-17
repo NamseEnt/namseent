@@ -1,3 +1,4 @@
+use macro_common_lib::*;
 use syn::{punctuated::Punctuated, spanned::Spanned, Ident};
 
 pub struct Rpc {
@@ -76,7 +77,7 @@ impl syn::parse::Parse for Api {
             match &mut item {
                 syn::Item::Const(x) => x.vis = syn::Visibility::Public(syn::token::Pub(x.span())),
                 syn::Item::Enum(x) => {
-                    if x.ident.to_string() == "Error" {
+                    if x.ident == "Error" {
                         x.variants.push(syn::Variant {
                             attrs: Vec::new(),
                             ident: Ident::new("InternalServerError", x.span()),
@@ -127,12 +128,12 @@ impl syn::parse::Parse for Api {
                 syn::Item::Struct(item_struct) => Some(&item_struct.ident),
                 _ => None,
             };
-            if ident.is_some() {
-                if ident.as_ref().unwrap().to_string() == "Request" {
+            if let Some(ident) = ident {
+                if ident == "Request" {
                     request = Some(item.clone());
-                } else if ident.as_ref().unwrap().to_string() == "Response" {
+                } else if ident == "Response" {
                     response = Some(item.clone());
-                } else if ident.as_ref().unwrap().to_string() == "Error" {
+                } else if ident == "Error" {
                     error = Some(item.clone());
                 }
             }

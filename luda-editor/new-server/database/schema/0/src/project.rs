@@ -4,7 +4,6 @@ use crate::*;
 struct ProjectDoc {
     #[pk]
     id: String,
-    team_id: String,
     name: String,
 }
 
@@ -14,6 +13,13 @@ struct TeamToProjectDoc {
     team_id: String,
     #[sk]
     project_id: String,
+}
+
+#[document]
+struct ProjectToTeamDoc {
+    #[pk]
+    project_id: String,
+    team_id: String,
 }
 
 #[document]

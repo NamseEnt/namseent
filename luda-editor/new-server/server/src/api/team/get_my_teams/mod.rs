@@ -19,20 +19,18 @@ pub async fn get_my_teams(
         .await?;
 
     let team_docs = try_join_all(user_teams.iter().map(|x| async {
-        let team_doc = db
-            .get(TeamDocGet {
-                id: x.team_id.as_str(),
-            })
-            .await?
-            .ok_or_else(|| anyhow!("team not found: {}", x.team_id))?
-            .deserialize();
-        anyhow::Ok(team_doc)
+        db.get(TeamDocGet {
+            id: x.team_id.as_str(),
+        })
+        .await
     }))
-    .await?;
+    .await?
+    .into_iter()
+    .flatten()
+    .map(|x| x.deserialize());
 
     Ok(Response {
         teams: team_docs
-            .into_iter()
             .map(|x| Team {
                 id: x.id,
                 name: x.name,

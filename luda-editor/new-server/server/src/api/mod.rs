@@ -4,5 +4,6 @@ pub mod asset;
 pub mod auth;
 pub mod episode;
 pub mod project;
+pub mod scene;
 pub mod team;
 pub mod team_invite;

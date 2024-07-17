@@ -2,31 +2,14 @@ use crate::*;
 use std::collections::{HashMap, HashSet};
 
 #[document]
-struct EpisodeDoc {
-    #[pk]
-    id: String,
-    name: String,
-    created_at: SystemTime,
-    scene_ids: Vec<String>,
-}
-
-#[document]
-struct ProjectToEpisodeDoc {
-    #[pk]
-    project_id: String,
-    #[sk]
-    episode_id: String,
-}
-
-#[document]
 struct SceneDoc {
     #[pk]
     id: String,
     speaker_id: String,
     sprites: Vec<SceneSprite>,
-    /// If `background_image_s3_key`` is None, it means the background should be black.
-    background_image_s3_key: Option<String>,
-    /// If `bgm`` is None, it means previous bgm should be continued.
+    /// `None` means the background should be black.
+    background_sprite: Option<SceneSprite>,
+    /// `None` means previous bgm should be continued.
     bgm: Option<SceneSound>,
 }
 

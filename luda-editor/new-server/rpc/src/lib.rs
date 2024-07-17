@@ -3,6 +3,7 @@
 
 mod types;
 
+use macro_common_lib::*;
 pub use rkyv;
 pub use types::*;
 
@@ -169,6 +170,22 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
+                ProjectNotExist,
+            }
+        },
+    },
+    Scene: {
+        get_scenes: {
+            struct Request {
+                episode_id: String,
+            }
+            struct Response {
+                scenes: Vec<Scene>,
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                EpisodeNotExist,
                 ProjectNotExist,
             }
         },

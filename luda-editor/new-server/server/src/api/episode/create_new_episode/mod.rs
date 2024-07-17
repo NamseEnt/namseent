@@ -12,11 +12,11 @@ pub async fn create_new_episode(
         bail!(Error::NeedLogin)
     };
 
-    let project_doc = db
-        .get(ProjectDocGet { id: project_id })
+    let team_id = &db
+        .get(ProjectToTeamDocGet { project_id })
         .await?
-        .ok_or(Error::ProjectNotExist)?;
-    let team_id = &project_doc.team_id;
+        .ok_or(Error::ProjectNotExist)?
+        .team_id;
 
     if !is_team_member(db, team_id, &user_id).await? {
         bail!(Error::PermissionDenied)
@@ -35,6 +35,11 @@ pub async fn create_new_episode(
         ProjectToEpisodeDocPut {
             project_id,
             episode_id: &episode_id,
+            ttl: None,
+        },
+        EpisodeToProjectDocPut {
+            episode_id: &episode_id,
+            project_id,
             ttl: None,
         },
     ))

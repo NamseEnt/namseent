@@ -13,11 +13,11 @@ pub async fn get_episodes(
         bail!(Error::NeedLogin)
     };
 
-    let project_doc = db
-        .get(ProjectDocGet { id: project_id })
+    let team_id = &db
+        .get(ProjectToTeamDocGet { project_id })
         .await?
-        .ok_or(Error::ProjectNotExist)?;
-    let team_id = &project_doc.team_id;
+        .ok_or(Error::ProjectNotExist)?
+        .team_id;
 
     if !is_team_member(db, team_id, &user_id).await? {
         bail!(Error::PermissionDenied)
@@ -28,15 +28,15 @@ pub async fn get_episodes(
         db.get(EpisodeDocGet {
             id: doc.episode_id.as_str(),
         })
-        .await?
-        .ok_or(anyhow!("episode not found: {}", doc.episode_id))
+        .await
     }))
-    .await?;
+    .await?
+    .into_iter()
+    .flatten()
+    .map(|x| x.deserialize());
 
     Ok(Response {
         episodes: episode_docs
-            .into_iter()
-            .map(|x| x.deserialize())
             .map(|doc| Episode {
                 id: doc.id,
                 name: doc.name,

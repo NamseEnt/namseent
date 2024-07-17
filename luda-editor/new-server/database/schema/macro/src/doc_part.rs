@@ -1,4 +1,5 @@
 use crate::doc_part_parsed::*;
+use macro_common_lib::*;
 use quote::quote;
 use syn::*;
 

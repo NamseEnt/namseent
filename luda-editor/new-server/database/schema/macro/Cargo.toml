@@ -7,6 +7,4 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-syn = { version = "1.0", features = ["full"] }
-quote = "1.0"
-proc-macro2 = "1.0.86"
+macro-common-lib = { path = "../../../macro-common-lib" }

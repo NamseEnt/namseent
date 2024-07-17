@@ -1,6 +1,8 @@
 mod parser;
 
+use macro_common_lib::*;
 use quote::quote;
+use syn::spanned::Spanned;
 
 #[proc_macro]
 pub fn define_rpc(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -76,10 +78,9 @@ fn define_rpc_meta(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
 fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
     let services = rpc.services.iter().map(|service| {
         let service_name = service.snake_case_name();
-        let apis =
-            service.apis.iter().map(|api| {
-                let api_name = &api.name;
-                let items = api.items.iter().map(|item| {
+        let apis = service.apis.iter().map(|api| {
+            let api_name = &api.name;
+            let items = api.items.iter().map(|item| {
                 let mut extra = quote! {};
                 if let syn::Item::Enum(enum_item) = item {
                     if enum_item.ident == "Error" {
@@ -95,41 +96,30 @@ fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
                 }
                 let ref_item = match item {
                     syn::Item::Struct(item_struct) => {
-                        let mut item_struct = item_struct.clone();
-                        item_struct.ident = syn::Ident::new(
+                        let ident = syn::Ident::new(
                             &format!("Ref{}", item_struct.ident),
                             item_struct.ident.span(),
                         );
-                        if !item_struct.fields.is_empty() {
-                            item_struct.generics.params.push(syn::parse_quote!('a));
-                            item_struct.fields.iter_mut().for_each(|field| {
-                                let ty = &field.ty;
-                                field.ty = syn::parse_quote!(&'a #ty);
-                                field.attrs.push(syn::parse_quote!(#[with(rkyv::with::Inline)]));
-                            });
-                        }
+                        let lifetime_generic = if item_struct.fields.is_empty() {
+                            quote! {}
+                        } else {
+                            quote! { <'a> }
+                        };
+                        let mut fields = macro_common_lib::as_ref_fields_with_rkyv_with_attr(
+                            item_struct.fields.iter(),
+                        );
+                        fields.iter_mut().for_each(|field| {
+                            field.vis = syn::Visibility::Public(syn::token::Pub(field.span()))
+                        });
                         quote! {
                             #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
                             #[archive(check_bytes)]
-                            #item_struct
+                            pub struct #ident #lifetime_generic {
+                                #(#fields,)*
+                            }
                         }
                     }
-                    syn::Item::Const(_)
-                    | syn::Item::Enum(_)
-                    | syn::Item::ExternCrate(_)
-                    | syn::Item::Fn(_)
-                    | syn::Item::ForeignMod(_)
-                    | syn::Item::Impl(_)
-                    | syn::Item::Macro(_)
-                    | syn::Item::Mod(_)
-                    | syn::Item::Static(_)
-                    | syn::Item::Trait(_)
-                    | syn::Item::TraitAlias(_)
-                    | syn::Item::Type(_)
-                    | syn::Item::Union(_)
-                    | syn::Item::Use(_)
-                    | syn::Item::Verbatim(_)
-                    | _ => quote! {},
+                    _ => quote! {},
                 };
                 quote! {
                     #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -140,14 +130,14 @@ fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
                     #ref_item
                 }
             });
-                quote! {
-                    pub mod #api_name {
-                        use super::super::types::*;
+            quote! {
+                pub mod #api_name {
+                    use super::super::types::*;
 
-                        #(#items)*
-                    }
+                    #(#items)*
                 }
-            });
+            }
+        });
 
         quote! {
             pub mod #service_name {

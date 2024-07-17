@@ -7,6 +7,4 @@ version = "0.1.0"
 proc-macro = true
 
 [dependencies]
-quote = "1.0.29"
-proc-macro2 = "1.0.86"
-syn = { version = "2.0.22", features = ["full"] }
+macro-common-lib = { path = "../../macro-common-lib" }

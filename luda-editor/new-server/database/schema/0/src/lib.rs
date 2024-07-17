@@ -14,6 +14,7 @@ mod asset;
 mod auth;
 mod episode;
 mod project;
+mod scene;
 mod team;
 mod team_invite;
 
@@ -22,6 +23,7 @@ pub use auth::*;
 pub use episode::*;
 pub use namui_type::*;
 pub use project::*;
+pub use scene::*;
 pub use team::*;
 pub use team_invite::*;
 

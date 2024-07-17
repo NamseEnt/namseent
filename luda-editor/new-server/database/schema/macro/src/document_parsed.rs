@@ -1,7 +1,7 @@
+use macro_common_lib::*;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use spanned::Spanned;
-use syn::*;
+use syn::{spanned::Spanned, *};
 
 pub struct DocumentParsed<'a> {
     pub name: &'a Ident,
@@ -33,16 +33,14 @@ impl<'a> DocumentParsed<'a> {
                 .clone()
                 .into_iter()
                 .for_each(|mut field| {
-                    field.vis = Visibility::Public(VisPublic {
-                        pub_token: token::Pub(field.vis.span()),
-                    });
+                    field.vis = Visibility::Public(token::Pub(field.vis.span()));
 
-                    if field.attrs.iter().any(|attr| attr.path.is_ident("pk")) {
-                        field.attrs.retain(|attr| !attr.path.is_ident("pk"));
+                    if field.attrs.iter().any(|attr| attr.path().is_ident("pk")) {
+                        field.attrs.retain(|attr| !attr.path().is_ident("pk"));
                         pk_fields_without_pk_attr.push(field.clone());
                     }
-                    if field.attrs.iter().any(|attr| attr.path.is_ident("sk")) {
-                        field.attrs.retain(|attr| !attr.path.is_ident("sk"));
+                    if field.attrs.iter().any(|attr| attr.path().is_ident("sk")) {
+                        field.attrs.retain(|attr| !attr.path().is_ident("sk"));
                         sk_fields_without_sk_attr.push(field.clone());
                     }
                     fields_without_pksk_attr.push(field);
@@ -215,9 +213,7 @@ impl<'a> DocumentParsed<'a> {
 
 fn input_redefine(input: &DeriveInput) -> TokenStream {
     let mut input = input.clone();
-    input.vis = Visibility::Public(VisPublic {
-        pub_token: token::Pub(input.vis.span()),
-    });
+    input.vis = Visibility::Public(token::Pub(input.vis.span()));
 
     let struct_input = match &mut input.data {
         Data::Struct(data) => data,
@@ -225,12 +221,10 @@ fn input_redefine(input: &DeriveInput) -> TokenStream {
     };
 
     struct_input.fields.iter_mut().for_each(|field| {
-        field.vis = Visibility::Public(VisPublic {
-            pub_token: token::Pub(field.vis.span()),
-        });
+        field.vis = Visibility::Public(token::Pub(field.vis.span()));
         field
             .attrs
-            .retain(|attr| !attr.path.is_ident("pk") && !attr.path.is_ident("sk"));
+            .retain(|attr| !attr.path().is_ident("pk") && !attr.path().is_ident("sk"));
     });
 
     quote! {
@@ -239,49 +233,4 @@ fn input_redefine(input: &DeriveInput) -> TokenStream {
         #[archive(check_bytes)]
         #input
     }
-}
-
-fn as_ref_fields_with_rkyv_with_attr<'a>(
-    fields: impl 'a + IntoIterator<Item = &'a Field>,
-) -> Vec<Field> {
-    fields
-        .into_iter()
-        .map(|field| {
-            let mut field = field.clone();
-            let field_name = field.ty.to_token_stream().to_string();
-
-            match field_name.as_str() {
-                "String" => {
-                    field.ty = parse_quote! {&'a str};
-                    field
-                        .attrs
-                        .push(parse_quote! {#[with(document::rkyv_with::StrAsString)]});
-                }
-                "u8" | "u16" | "u32" | "u64" | "u128" | "usize" | "i8" | "i16" | "i32" | "i64"
-                | "i128" | "isize" | "SystemTime" | "bool" => {
-                    // Copy
-                }
-                _ => {
-                    let ty = field.ty;
-                    field.ty = parse_quote! {&'a #ty};
-                    field.attrs.push(parse_quote! {#[with(rkyv::with::Inline)]});
-                }
-            }
-
-            field
-        })
-        .collect::<Vec<_>>()
-}
-
-pub fn as_ref_fields<'a>(fields: impl 'a + IntoIterator<Item = &'a Field>) -> Vec<Field> {
-    as_ref_fields_with_rkyv_with_attr(fields)
-        .into_iter()
-        .map(|field| {
-            let mut field = field.clone();
-            field
-                .attrs
-                .retain(|attr| !attr.path.segments[0].ident.to_string().starts_with("with"));
-            field
-        })
-        .collect::<Vec<_>>()
 }

@@ -1,6 +1,6 @@
 use crate::document_parsed::*;
+use macro_common_lib::*;
 use quote::quote;
-use spanned::Spanned;
 use syn::*;
 
 pub fn document(

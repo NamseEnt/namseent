@@ -3,6 +3,7 @@ mod build_helper;
 #[allow(unused_imports, dead_code)]
 mod rpc;
 
+use macro_common_lib::*;
 use rpc::Rpc;
 
 fn main() {

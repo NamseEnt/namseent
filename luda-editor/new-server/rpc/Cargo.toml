@@ -8,24 +8,22 @@ server = ["dep:database"]
 client = []
 
 [dependencies]
-proc-macro2 = "1.0.86"
+macro-common-lib = { path = "../macro-common-lib" }
 rpc-macro = { path = "./macro" }
-quote = "1.0.29"
-syn = { version = "2.0.68", features = ["full"] }
 rkyv = { version = "0.7.44", features = ["validation"] }
 database = { path = "../database/database", optional = true }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 migration = { path = "../database/schema/migration" }
 namui-type = { path = "../../../namui/namui-type" }
+serializer = { path = "../serializer" }
 
 [build-dependencies]
+macro-common-lib = { path = "../macro-common-lib" }
 walkdir = "2"
-proc-macro2 = "1.0.86"
 rpc-macro = { path = "./macro" }
-quote = "1.0.29"
-syn = { version = "2.0.68", features = ["full"] }
 rkyv = { version = "0.7.44", features = ["validation"] }
 database = { path = "../database/database", optional = true }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 migration = { path = "../database/schema/migration" }
 namui-type = { path = "../../../namui/namui-type" }
+serializer = { path = "../serializer" }

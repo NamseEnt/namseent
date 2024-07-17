@@ -22,15 +22,15 @@ pub async fn get_projects(
         db.get(ProjectDocGet {
             id: doc.project_id.as_str(),
         })
-        .await?
-        .ok_or(anyhow!("project not found: {}", doc.project_id))
+        .await
     }))
-    .await?;
+    .await?
+    .into_iter()
+    .flatten()
+    .map(|x| x.deserialize());
 
     Ok(Response {
         projects: project_docs
-            .into_iter()
-            .map(|x| x.deserialize())
             .map(|doc| Project {
                 id: doc.id,
                 name: doc.name,

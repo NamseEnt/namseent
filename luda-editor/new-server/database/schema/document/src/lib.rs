@@ -1,11 +1,11 @@
 mod heap_archived;
-pub mod rkyv_with;
 mod transact;
 mod value_buffer;
 
 pub use heap_archived::*;
 pub use inventory;
 pub use schema_macro::*;
+pub use serializer;
 pub use serializer::*;
 use std::borrow::Cow;
 pub use transact::*;

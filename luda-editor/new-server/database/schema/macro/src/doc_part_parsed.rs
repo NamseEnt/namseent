@@ -1,7 +1,7 @@
+use macro_common_lib::*;
 use proc_macro2::TokenStream;
 use quote::quote;
-use spanned::Spanned;
-use syn::*;
+use syn::{spanned::Spanned, *};
 
 pub struct DocumentPartParsed {
     pub input_redefine: TokenStream,
@@ -16,17 +16,17 @@ impl DocumentPartParsed {
 
 fn input_redefine(input: &DeriveInput) -> TokenStream {
     let mut input = input.clone();
-    input.vis = Visibility::Public(VisPublic {
-        pub_token: token::Pub(input.vis.span()),
-    });
+    input.vis = Visibility::Public(token::Pub(input.vis.span()));
 
     fn replace_recursive(field: &mut Field) {
         if field
             .attrs
             .iter()
-            .any(|attr| attr.path.is_ident("recursive"))
+            .any(|attr| attr.path().is_ident("recursive"))
         {
-            field.attrs.retain(|attr| !attr.path.is_ident("recursive"));
+            field
+                .attrs
+                .retain(|attr| !attr.path().is_ident("recursive"));
             field.attrs.push(parse_quote! {
                 #[omit_bounds]
             });
@@ -39,9 +39,7 @@ fn input_redefine(input: &DeriveInput) -> TokenStream {
     match &mut input.data {
         Data::Struct(struct_input) => {
             struct_input.fields.iter_mut().for_each(|field| {
-                field.vis = Visibility::Public(VisPublic {
-                    pub_token: token::Pub(field.vis.span()),
-                });
+                field.vis = Visibility::Public(token::Pub(field.vis.span()));
 
                 replace_recursive(field);
             });

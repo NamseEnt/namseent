@@ -21,13 +21,17 @@ pub async fn create_new_project(
     db.transact((
         ProjectDocPut {
             id: &project_id,
-            team_id,
             name,
             ttl: None,
         },
         TeamToProjectDocPut {
             team_id,
             project_id: &project_id,
+            ttl: None,
+        },
+        ProjectToTeamDocPut {
+            project_id: &project_id,
+            team_id,
             ttl: None,
         },
         ProjectNameDocCreate {

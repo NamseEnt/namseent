@@ -77,9 +77,7 @@ fn generate_api_files(rpc: &Rpc) {
             write_if_changed(
                 &api_mod_rs,
                 format!(
-                    "
-
-use crate::*;
+                    "use crate::*;
 use database::schema::*;
 use luda_rpc::{service_snake_name}::{api_name}::*;
 

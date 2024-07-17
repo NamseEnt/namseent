@@ -1,4 +1,7 @@
+mod scene;
+
 use namui_type::*;
+pub use scene::*;
 
 #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
