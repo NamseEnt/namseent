@@ -14,12 +14,12 @@ impl NativeTextBlob {
         }
     }
     pub fn from_glyph_ids(glyph_ids: GlyphIds, font: &Font) -> Option<Arc<Self>> {
-        #[derive(serde::Serialize)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
         struct CacheKey {
             glyph_ids: GlyphIds,
             font: Font,
         }
-        static CACHE: SerdeLruCache<CacheKey, NativeTextBlob> = SerdeLruCache::new();
+        static CACHE: LruCache<CacheKey, NativeTextBlob> = LruCache::new();
         let cache_key = CacheKey {
             glyph_ids: glyph_ids.clone(),
             font: font.clone(),

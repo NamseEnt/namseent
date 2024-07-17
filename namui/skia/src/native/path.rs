@@ -8,7 +8,7 @@ pub(crate) struct NativePath {
 
 impl NativePath {
     pub(crate) fn get(path: &Path) -> Arc<Self> {
-        static CACHE: SerdeLruCache<Path, NativePath> = SerdeLruCache::new();
+        static CACHE: LruCache<Path, NativePath> = LruCache::new();
         CACHE.get_or_create(path, NativePath::new)
     }
     pub fn new(path: &Path) -> Self {

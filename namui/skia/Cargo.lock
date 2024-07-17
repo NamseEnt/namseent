@@ -807,12 +807,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "derivative",
- "derive-macro",
  "float-cmp",
  "namui-type",
  "num",
  "ordered-float",
- "serde",
  "skia-safe",
  "textwrap",
  "tokio",
