@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives(Default, Hash, Eq, -serde::Serialize, -serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Default, Hash, Eq)]
 pub struct Paint {
     pub color: Color,
     pub paint_style: Option<PaintStyle>,

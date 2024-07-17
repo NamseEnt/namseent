@@ -14,7 +14,6 @@ mod types;
 
 pub use codes::*;
 pub use command::*;
-use derive_macro::type_derives;
 pub use event::*;
 pub use font::*;
 pub use image::*;

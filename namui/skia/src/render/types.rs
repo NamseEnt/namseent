@@ -4,7 +4,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-#[type_derives(Copy, Default)]
+#[derive(Debug, PartialEq, Clone, Copy, Default)]
 pub struct FontMetrics {
     /// suggested space above the baseline. < 0
     pub ascent: Px,
@@ -20,7 +20,7 @@ impl FontMetrics {
     }
 }
 
-#[type_derives(Copy, Default, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Default, Hash, Eq)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -201,7 +201,7 @@ impl From<Color> for skia_safe::Color {
     }
 }
 
-#[type_derives(Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct Hsl01 {
     hue: f32,
     saturation: f32,
@@ -209,7 +209,7 @@ struct Hsl01 {
     alpha: f32,
 }
 
-#[type_derives(Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum PaintStyle {
     Fill,
     Stroke,
@@ -224,7 +224,7 @@ impl From<PaintStyle> for skia_safe::PaintStyle {
     }
 }
 
-#[type_derives(Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum StrokeCap {
     Butt,
     Round,
@@ -241,7 +241,7 @@ impl From<StrokeCap> for skia_safe::PaintCap {
     }
 }
 
-#[type_derives(Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum StrokeJoin {
     Bevel,
     Miter,
@@ -258,7 +258,7 @@ impl From<StrokeJoin> for skia_safe::PaintJoin {
     }
 }
 
-#[type_derives(Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub struct StrokeOptions {
     pub width: Option<Px>,
     pub miter_limit: Option<Px>,
@@ -271,7 +271,7 @@ pub struct StrokeOptions {
     pub cap: Option<StrokeCap>,
 }
 
-#[type_derives(Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum ClipOp {
     Intersect,
     Difference,
@@ -286,7 +286,7 @@ impl From<ClipOp> for skia_safe::ClipOp {
     }
 }
 
-#[type_derives(Copy, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash)]
 pub enum AlphaType {
     Opaque,
     Premul,
@@ -318,7 +318,7 @@ impl From<AlphaType> for skia_safe::AlphaType {
     }
 }
 
-#[type_derives(Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum ColorType {
     Alpha8,
     Rgb565,
@@ -445,7 +445,7 @@ impl From<ColorType> for skia_safe::ColorType {
     }
 }
 
-#[type_derives(Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FilterMode {
     Linear,
     Nearest,
@@ -460,7 +460,7 @@ impl From<FilterMode> for skia_safe::FilterMode {
     }
 }
 
-#[type_derives(Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum MipmapMode {
     None,
     Nearest,
@@ -477,7 +477,7 @@ impl From<MipmapMode> for skia_safe::MipmapMode {
     }
 }
 
-#[type_derives(Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum BlendMode {
     Clear,
     Src,
@@ -546,7 +546,7 @@ impl From<BlendMode> for skia_safe::BlendMode {
     }
 }
 
-#[type_derives(Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 /// Explain: https://developer.android.com/reference/android/graphics/Shader.TileMode#summary
 pub enum TileMode {
     /// Replicate the edge color if the shader draws outside of its original bounds
@@ -570,21 +570,21 @@ impl From<TileMode> for skia_safe::TileMode {
     }
 }
 
-#[type_derives(Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ColorSpace {
     Srgb,
     DisplayP3,
     AdobeRgb,
 }
 
-#[type_derives(Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum TextAlign {
     Left,
     Center,
     Right,
 }
 
-#[type_derives(Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum TextBaseline {
     Top,
     Middle,
@@ -592,7 +592,7 @@ pub enum TextBaseline {
 }
 
 /// Example: https://developer.mozilla.org/ko/docs/Web/CSS/object-fit
-#[type_derives(Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum ImageFit {
     /// The replaced content is sized to fill the element's content box.
     /// The entire object will completely fill the box.
@@ -612,7 +612,7 @@ pub enum ImageFit {
     None,
 }
 
-#[type_derives(Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub struct ColorFilter {
     pub color: Color,
     pub blend_mode: BlendMode,
@@ -621,7 +621,7 @@ pub struct ColorFilter {
 pub type GlyphId = skia_safe::GlyphId;
 pub type GlyphIds = Vec<GlyphId>;
 
-#[type_derives(Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum MouseButton {
     Left,
     Middle,
