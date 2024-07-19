@@ -75,40 +75,35 @@ impl Component for Dropdown<'_> {
                         height: body_height,
                         scroll_bar_width: 5.px(),
                         item_wh: rect.wh(),
-                        items: items
-                            .into_iter()
-                            .enumerate()
-                            .map(|(item_index, item)| {
-                                let is_mouse_over =
-                                    mouse_over_item_index.deref() == &Some(item_index);
-                                let is_selected = item.is_selected;
+                        items: items.into_iter().enumerate().map(|(item_index, item)| {
+                            let is_mouse_over = mouse_over_item_index.deref() == &Some(item_index);
+                            let is_selected = item.is_selected;
 
-                                let item_component = InternalItem {
-                                    wh: rect.wh(),
-                                    text: item.text,
-                                    is_selected,
-                                    is_mouse_over,
+                            let item_component = InternalItem {
+                                wh: rect.wh(),
+                                text: item.text,
+                                is_selected,
+                                is_mouse_over,
+                            }
+                            .attach_event(move |event| match event {
+                                Event::MouseDown { event } => {
+                                    if event.is_local_xy_in() {
+                                        set_mouse_over_item_index.set(Some(item_index));
+                                    }
                                 }
-                                .attach_event(move |event| match event {
-                                    Event::MouseDown { event } => {
-                                        if event.is_local_xy_in() {
-                                            set_mouse_over_item_index.set(Some(item_index));
+                                Event::MouseMove { event } => {
+                                    if event.is_local_xy_in() {
+                                        event.stop_propagation();
+                                        if !is_selected {
+                                            (item.on_select_item)();
                                         }
+                                        set_is_opened.set(false);
                                     }
-                                    Event::MouseMove { event } => {
-                                        if event.is_local_xy_in() {
-                                            event.stop_propagation();
-                                            if !is_selected {
-                                                (item.on_select_item)();
-                                            }
-                                            set_is_opened.set(false);
-                                        }
-                                    }
-                                    _ => {}
-                                });
-                                (item_index.to_string(), item_component)
-                            })
-                            .collect(),
+                                }
+                                _ => {}
+                            });
+                            (item_index.to_string().into(), item_component)
+                        }),
                     })
                     .add(simple_rect(
                         Wh {

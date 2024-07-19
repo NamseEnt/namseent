@@ -1,14 +1,23 @@
 use crate::scroll_view::{self};
 use namui::*;
+use std::borrow::Cow;
 
-pub struct AutoListView<C: Component> {
+pub struct AutoListView<'a, Items, C>
+where
+    C: Component,
+    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+{
     pub height: Px,
     pub scroll_bar_width: Px,
     pub item_wh: Wh<Px>,
-    pub items: Vec<(String, C)>,
+    pub items: Items,
 }
 
-impl<C: Component> Component for AutoListView<C> {
+impl<'a, Items, C> Component for AutoListView<'a, Items, C>
+where
+    C: Component,
+    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+{
     fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
@@ -29,16 +38,24 @@ impl<C: Component> Component for AutoListView<C> {
     }
 }
 
-pub struct ListView<C: Component> {
+pub struct ListView<'a, Items, C>
+where
+    C: Component,
+    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+{
     pub height: Px,
     pub scroll_bar_width: Px,
     pub item_wh: Wh<Px>,
-    pub items: Vec<(String, C)>,
+    pub items: Items,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<Px>,
 }
 
-impl<C: Component> Component for ListView<C> {
+impl<'a, Items, C> Component for ListView<'a, Items, C>
+where
+    C: Component,
+    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+{
     fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
@@ -64,14 +81,22 @@ impl<C: Component> Component for ListView<C> {
     }
 }
 
-struct ListViewInner<C: Component> {
+struct ListViewInner<'a, Items, C>
+where
+    C: Component,
+    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+{
     height: Px,
     item_wh: Wh<Px>,
-    items: Vec<(String, C)>,
+    items: Items,
     scroll_y: Px,
 }
 
-impl<C: Component> Component for ListViewInner<C> {
+impl<'a, Items, C> Component for ListViewInner<'a, Items, C>
+where
+    C: Component,
+    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+{
     fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
@@ -125,7 +150,7 @@ impl<C: Component> Component for ListViewInner<C> {
 
         ctx.compose(|ctx| {
             for (index, (key, visible_item)) in visible_items.into_iter().enumerate() {
-                ctx.compose_with_key(key, |ctx| {
+                ctx.compose_with_key(key.as_ref(), |ctx| {
                     ctx.translate((0.px(), item_wh.height * (index + visible_item_start_index)))
                         .add(visible_item);
                 });
