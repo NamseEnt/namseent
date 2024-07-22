@@ -1,7 +1,7 @@
 mod dependencies;
 
 use crate::*;
-use dependencies::*;
+pub use dependencies::*;
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -45,6 +45,9 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     ) -> Sig<Value, Rc<Value>> {
         self.component_ctx.track_eq2(target, cmp, to_value)
     }
+    pub fn track_eq_tuple(&self, track_eq_tuple: &impl TrackEqTuple) -> bool {
+        self.component_ctx.track_eq_tuple(track_eq_tuple)
+    }
     pub fn effect<CleanUp: Into<EffectCleanUp>>(
         &self,
         title: impl AsRef<str>,
@@ -54,19 +57,18 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     }
     pub fn async_effect<Fut, Deps>(
         &self,
-        title: impl AsRef<str>,
-        sig_deps: impl Dependencies<Deps>,
-        future_fn: impl FnOnce(Deps) -> Fut + Send + 'static,
+        _title: impl AsRef<str>,
+        deps: Deps,
+        future_fn: impl FnOnce(<Deps as Dependencies>::Owned) -> Fut + Send + 'static,
     ) where
         Fut: std::future::Future + Send + 'static,
         Fut::Output: Send + 'static,
-        Deps: Send + 'static,
+        Deps: Dependencies + TrackEqTuple,
     {
-        self.component_ctx.effect(title, move || {
-            let deps = sig_deps.cloned();
-            let handle = tokio::spawn(async move { future_fn(deps).await });
-            move || handle.abort()
-        })
+        if deps.track_eq(&self.component_ctx) {
+            let owned = deps.to_owned();
+            self.spawn(future_fn(owned))
+        }
     }
     pub fn interval(&self, title: impl AsRef<str>, interval: Duration, job: impl FnOnce(Duration)) {
         self.component_ctx.interval(title, interval, job)
@@ -99,6 +101,9 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
         Fut::Output: Send + 'static,
     {
         self.component_ctx.spawn(future)
+    }
+    pub fn is_sig_updated<T, R: std::borrow::Borrow<T>>(&self, sig: &Sig<T, R>) -> bool {
+        self.component_ctx.is_sig_updated(&sig.id)
     }
 }
 

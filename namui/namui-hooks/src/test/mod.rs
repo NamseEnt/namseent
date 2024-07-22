@@ -717,18 +717,53 @@ fn set_state_should_be_copied_into_async_effect() {
             let (state0, set_state0) = ctx.state(|| 5);
             let (state1, set_state1) = ctx.state(|| 5);
 
-            ctx.async_effect("single deps test", state0, move |state| async move {
+            ctx.async_effect("single sig deps test", state0, move |state| async move {
                 set_state0.set(state + 5);
             });
 
-            ctx.async_effect(
-                "tuple deps test",
-                (state0, state1),
+            ctx.async_effect("sig tuple deps test", (state0, state1), {
+                let tx = tx.clone();
                 move |(state, state1)| async move {
-                    set_state1.set(state + state1);
-                    tx.send(state + state1).await.unwrap();
-                },
+                    let value = state + state1;
+                    set_state1.set(value);
+                    tx.send(value).await.unwrap();
+                }
+            });
+
+            ctx.async_effect(
+                "unit type deps test",
+                (),
+                move |_unit_type: ()| async move {},
             );
+
+            // TODO: Need to test when deps changed by props
+
+            ctx.async_effect("single ref deps test", &5, {
+                let tx = tx.clone();
+                move |five| async move {
+                    let value = five;
+                    set_state1.set(value);
+                    tx.send(value).await.unwrap();
+                }
+            });
+
+            ctx.async_effect("ref tuple deps test", (&5, &7), {
+                let tx = tx.clone();
+                move |(five, seven): (i32, i32)| async move {
+                    let value = five + seven;
+                    set_state1.set(value);
+                    tx.send(value).await.unwrap();
+                }
+            });
+
+            ctx.async_effect("sig ref tuple deps test", (state0, &7), {
+                let tx = tx.clone();
+                move |(state0, seven)| async move {
+                    let value = state0 + seven;
+                    set_state1.set(value);
+                    tx.send(value).await.unwrap();
+                }
+            });
         }
     }
 

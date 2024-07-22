@@ -6,7 +6,7 @@ use std::{
 
 #[derive(Clone, Copy)]
 pub struct Sig<'world, T: ?Sized, Ref: Borrow<T>> {
-    id: SigId,
+    pub(crate) id: SigId,
     value: Ref,
     world: &'world World,
     _phantom: std::marker::PhantomData<T>,
