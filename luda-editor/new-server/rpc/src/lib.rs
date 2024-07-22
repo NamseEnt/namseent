@@ -174,8 +174,8 @@ rpc_macro::define_rpc! {
             }
         },
     },
-    Scene: {
-        get_scenes: {
+    EpisodeEditor: {
+        join_episode_editor: {
             struct Request {
                 episode_id: String,
             }
@@ -186,7 +186,33 @@ rpc_macro::define_rpc! {
                 NeedLogin,
                 PermissionDenied,
                 EpisodeNotExist,
-                ProjectNotExist,
+                OtherUserEditing,
+            }
+        },
+        exit_episode_editor: {
+            struct Request {
+                episode_id: String,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                EpisodeNotExist,
+            }
+        },
+        try_edit_episode: {
+            struct Request {
+                episode_id: String,
+                action: EpisodeEditAction,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                EpisodeNotExist,
+                ImpossibleAction,
             }
         },
     },

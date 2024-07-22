@@ -1,4 +1,5 @@
 use crate::*;
+use api::team::is_team_member;
 use database::schema::*;
 use luda_rpc::team_invite::invalidate_team_invite_code::*;
 
@@ -7,14 +8,9 @@ pub async fn invalidate_team_invite_code(
     db: &Database,
     session: Session,
 ) -> Result<Response> {
-    let Some(user_id) = session.user_id().await else {
-        bail!(Error::NeedLogin)
-    };
+    let user_id = session.user_id().await.ok_or(Error::NeedLogin)?;
 
-    let user_to_team_query = db.query(UserToTeamDocQuery { user_id: &user_id }).await?;
-    let is_team_member = user_to_team_query.iter().any(|doc| doc.team_id == *team_id);
-
-    if !is_team_member {
+    if !is_team_member(db, team_id, &user_id).await? {
         bail!(Error::PermissionDenied)
     }
 

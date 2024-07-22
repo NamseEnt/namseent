@@ -1,5 +1,5 @@
 use crate::*;
-use api::team::is_team_member;
+use api::team::is_project_member;
 use database::schema::*;
 use futures::future::try_join_all;
 use luda_rpc::{episode::get_episodes::*, Episode};
@@ -9,17 +9,9 @@ pub async fn get_episodes(
     db: &Database,
     session: Session,
 ) -> Result<Response> {
-    let Some(user_id) = session.user_id().await else {
-        bail!(Error::NeedLogin)
-    };
+    let user_id = session.user_id().await.ok_or(Error::NeedLogin)?;
 
-    let team_id = &db
-        .get(ProjectToTeamDocGet { project_id })
-        .await?
-        .ok_or(Error::ProjectNotExist)?
-        .team_id;
-
-    if !is_team_member(db, team_id, &user_id).await? {
+    if !is_project_member(db, project_id, &user_id).await? {
         bail!(Error::PermissionDenied)
     }
 

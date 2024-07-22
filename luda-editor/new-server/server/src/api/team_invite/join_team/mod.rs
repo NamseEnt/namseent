@@ -7,9 +7,7 @@ pub async fn join_team(
     db: &Database,
     session: Session,
 ) -> Result<Response> {
-    let Some(user_id) = session.user_id().await else {
-        bail!(Error::NeedLogin)
-    };
+    let user_id = session.user_id().await.ok_or(Error::NeedLogin)?;
 
     let Some(team_invite_code_to_team) = db.get(TeamInviteCodeToTeamDocGet { code }).await? else {
         bail!(Error::InvalidCode)

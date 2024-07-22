@@ -23,3 +23,16 @@ struct EpisodeToProjectDoc {
     episode_id: String,
     project_id: String,
 }
+
+#[document]
+struct EpisodeEditingUserDoc {
+    #[pk]
+    episode_id: String,
+    editing_user: Option<EditingUser>,
+}
+
+#[doc_part]
+struct EditingUser {
+    user_id: String,
+    last_edit_time: SystemTime,
+}

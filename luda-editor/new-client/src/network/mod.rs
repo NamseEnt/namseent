@@ -1,7 +1,4 @@
-mod dependencies;
-
 use crate::*;
-pub use dependencies::*;
 use luda_rpc::rkyv::{self, de::deserializers::SharedDeserializeMap, *};
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use tokio::{
@@ -10,52 +7,51 @@ use tokio::{
 };
 
 pub type SigRef<'a, T> = Sig<'a, T, &'a T>;
-type Owned<T> = <T as StaticOwned>::Owned;
 type OptionResult<T, E> = Option<Result<T, E>>;
 
 type Serializer = rkyv::ser::serializers::AllocSerializer<1024>;
 
 pub static SERVER_CONNECTION_ATOM: Atom<ServerConnection> = Atom::uninitialized();
 
-pub fn server_rpc<'a, Req, Deps, Artifacts, Response, Error>(
-    ctx: &'a RenderCtx,
-    request: impl FnOnce(Deps) -> Option<(Req, Artifacts)>,
+pub fn server_rpc<'ctx, Req, Deps, Artifacts, Response, Error, RequestFn>(
+    ctx: &'ctx RenderCtx,
+    request: RequestFn,
     dependencies: Deps,
     api_index: u16,
-) -> SigRef<'a, OptionResult<(Response, Owned<Artifacts>), Error>>
+) -> SigRef<'ctx, OptionResult<(Response, <Artifacts as Dependencies>::Owned), Error>>
 where
-    Deps: Dependencies<'a> + 'a,
-    Artifacts: StaticOwned,
+    Deps: TrackEqTuple,
+    // <Deps as Dependencies>::Owned: Send + 'static,
+    Artifacts: Dependencies,
+    <Artifacts as Dependencies>::Owned: Send + 'static,
     Response: rkyv::Archive + Send + 'static + Debug,
     <Response as Archive>::Archived: Deserialize<Response, SharedDeserializeMap>,
     Error: rkyv::Archive + Send + 'static + Debug,
     <Error as Archive>::Archived: Deserialize<Error, SharedDeserializeMap>,
-    Req: rkyv::Serialize<Serializer> + Send + 'a,
+    Req: rkyv::Serialize<Serializer> + Send + 'ctx,
+    RequestFn: FnOnce(Deps) -> Option<(Req, Artifacts)>,
 {
     let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
     let server_connection = server_connection.clone_inner();
     let (response, set_response) = ctx.state(|| None);
-    let deps_sig = dependencies.changed(ctx);
 
-    ctx.effect("server get", || {
-        deps_sig.record_as_used();
-        println!("request api: {}, {}", api_index, deps_sig.is_updated());
+    if !ctx.track_eq_tuple(&dependencies) {
+        return response;
+    }
 
-        let Some((req, artifacts)) = request(dependencies) else {
-            return;
-        };
+    let Some((req, artifacts)) = request(dependencies) else {
+        return response;
+    };
+    println!("request api: {api_index}");
+    let bytes = rkyv::to_bytes(&req).unwrap().to_vec();
+    let owned_artifacts = artifacts.to_owned();
 
-        let bytes = rkyv::to_bytes(&req).unwrap().to_vec();
-        let owned_artifacts = artifacts.owned();
-
-        ctx.spawn(async move {
-            let result = server_connection.request(api_index, bytes).await;
-            set_response.set(Some(match result {
-                Ok(response) => Ok((response, owned_artifacts)),
-                Err(err) => Err(err),
-            }));
-            Result::<()>::Ok(())
-        });
+    ctx.spawn(async move {
+        let result = server_connection.request(api_index, bytes).await;
+        set_response.set(Some(match result {
+            Ok(response) => Ok((response, owned_artifacts)),
+            Err(err) => Err(err),
+        }));
     });
 
     response

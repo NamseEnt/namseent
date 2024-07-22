@@ -7,9 +7,7 @@ pub async fn list_team_invite_codes(
     db: &Database,
     session: Session,
 ) -> Result<Response> {
-    let Some(user_id) = session.user_id().await else {
-        bail!(Error::NeedLogin)
-    };
+    let user_id = session.user_id().await.ok_or(Error::NeedLogin)?;
 
     if db
         .get(UserToTeamDocGet {

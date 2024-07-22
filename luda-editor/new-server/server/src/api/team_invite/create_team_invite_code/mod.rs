@@ -12,9 +12,7 @@ pub async fn create_team_invite_code(
     db: &Database,
     session: Session,
 ) -> Result<Response> {
-    let Some(user_id) = session.user_id().await else {
-        bail!(Error::NeedLogin)
-    };
+    let user_id = session.user_id().await.ok_or(Error::NeedLogin)?;
 
     if !is_team_member(db, team_id, &user_id).await? {
         bail!(Error::PermissionDenied)

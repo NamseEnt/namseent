@@ -89,14 +89,17 @@ fn generate_rpc_files(rpc: &Rpc) {
                     'a,
                     Deps,
                     Artifacts,
+                    RequestFn,
                 >(
                     ctx: &'a RenderCtx,
-                    request: impl FnOnce(Deps) -> Option<(#ref_request_implicit_lifetime, Artifacts)>,
+                    request: RequestFn,
                     dependencies: Deps,
-                ) -> SigRef<'a, Option<Result<(Response, <Artifacts as StaticOwned>::Owned), Error>>>
+                ) -> SigRef<'a, Option<Result<(Response, <Artifacts as Dependencies>::Owned), Error>>>
                 where
-                    Deps: Dependencies<'a> + 'a,
-                    Artifacts: StaticOwned,
+                    Deps: TrackEqTuple,
+                    Artifacts: Dependencies,
+                    <Artifacts as Dependencies>::Owned: 'static + Send,
+                    RequestFn: FnOnce(Deps) -> Option<(#ref_request_implicit_lifetime, Artifacts)>,
                 {
                     server_rpc(ctx, request, dependencies, #api_index)
                 }
@@ -105,17 +108,20 @@ fn generate_rpc_files(rpc: &Rpc) {
                     'a,
                     Deps,
                     Artifacts,
+                    RequestFn,
                 >(
                     ctx: &'a RenderCtx,
-                    request: impl FnOnce(Deps) -> Option<(#ref_request_implicit_lifetime, Artifacts)>,
+                    request: RequestFn,
                     dependencies: Deps,
                     on_loading: impl FnOnce(),
                     on_err: impl FnOnce(&Error),
-                    on_res: impl FnOnce(&(Response, <Artifacts as StaticOwned>::Owned)),
+                    on_res: impl FnOnce(&(Response, <Artifacts as Dependencies>::Owned)),
                 )
                 where
-                    Deps: Dependencies<'a> + 'a,
-                    Artifacts: StaticOwned,
+                    Deps: TrackEqTuple,
+                    Artifacts: Dependencies,
+                    <Artifacts as Dependencies>::Owned: 'static + Send,
+                    RequestFn: FnOnce(Deps) -> Option<(#ref_request_implicit_lifetime, Artifacts)>,
                 {
                     match #api_name(ctx, request, dependencies).as_ref() {
                         Some(result) => match result {
@@ -153,8 +159,9 @@ fn generate_rpc_files(rpc: &Rpc) {
                 ) -> (impl FnOnce() + 'a, bool)
                 where
                     MakeRequestFn: FnOnce() -> Option<(#ref_request_implicit_lifetime, Artifacts)> + 'a,
-                    ResponseFn: FnOnce(Result<(Response, <Artifacts as StaticOwned>::Owned), Error>) + 'static + Send,
-                    Artifacts: StaticOwned,
+                    ResponseFn: FnOnce(Result<(Response, <Artifacts as Dependencies>::Owned), Error>) + 'static + Send,
+                    Artifacts: Dependencies,
+                    <Artifacts as Dependencies>::Owned: 'static + Send,
                 {
                     let on_progress = ctx.memo(|| Arc::new(AtomicBool::new(false)));
                     let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
@@ -175,7 +182,7 @@ fn generate_rpc_files(rpc: &Rpc) {
                                 .unwrap()
                                 .to_vec();
 
-                            let owned_artifacts = artifacts.owned();
+                            let owned_artifacts = artifacts.to_owned();
 
                             let on_progress = on_progress.clone_inner();
                             tokio::spawn(async move {

@@ -31,3 +31,9 @@ pub struct TeamInviteCode {
     pub code: String,
     pub expiration_time: SystemTime,
 }
+
+#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[archive(check_bytes)]
+pub enum EpisodeEditAction {
+    EditText,
+}
