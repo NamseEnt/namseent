@@ -295,7 +295,7 @@ fn render_layer_trees_to_canvas(
                     // Maybe layer is empty
                     continue;
                 };
-                let paint = create_paint_from_layer_tree(layer_tree);
+                let paint = Paint::default();
                 canvas.draw_image(image, (layer.layer_left(), layer.layer_top()), Some(&paint));
             }
         }
