@@ -93,9 +93,6 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     {
         self.component_ctx.spawn(future)
     }
-    pub fn is_sig_updated<T, R: std::borrow::Borrow<T>>(&self, sig: &Sig<T, R>) -> bool {
-        self.component_ctx.is_sig_updated(&sig.id)
-    }
 }
 
 pub(crate) fn run<'a>(
