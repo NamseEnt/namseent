@@ -53,6 +53,12 @@ impl LayerTree<'_> {
             },
         }
     }
+    fn opacity(&self) -> u8 {
+        match self {
+            LayerTree::Group { group, .. } => group.opacity(),
+            LayerTree::Layer { layer } => layer.opacity(),
+        }
+    }
 }
 pub fn make_tree(psd: &psd::Psd) -> anyhow::Result<Vec<LayerTree>> {
     let mut tree = vec![];
@@ -272,7 +278,7 @@ fn render_layer_trees_to_canvas(
         let _auto_restore = AutoRestoreCanvas::new(canvas);
         let blend_mode = layer_tree.blend_mode();
         {
-            let paint = blend_mode_to_paint(&blend_mode);
+            let paint = create_paint_from_layer_tree(layer_tree);
             let save_layer_rec = SaveLayerRec::default().paint(&paint);
             canvas.save_layer(&save_layer_rec);
         }
@@ -289,7 +295,7 @@ fn render_layer_trees_to_canvas(
                     // Maybe layer is empty
                     continue;
                 };
-                let paint = blend_mode_to_paint(&blend_mode);
+                let paint = create_paint_from_layer_tree(layer_tree);
                 canvas.draw_image(image, (layer.layer_left(), layer.layer_top()), Some(&paint));
             }
         }
@@ -316,9 +322,10 @@ fn render_layer_trees_to_canvas(
     Ok(())
 }
 
-fn blend_mode_to_paint(blend_mode: &BlendMode) -> skia_safe::Paint {
+fn create_paint_from_layer_tree(layer_tree: &LayerTree) -> skia_safe::Paint {
     let mut paint = Paint::default();
-    match blend_mode {
+
+    match layer_tree.blend_mode() {
         // BlendMode::PassThrough => todo!(),
         BlendMode::Normal => paint.set_blend_mode(skia_safe::BlendMode::SrcOver),
         // BlendMode::Dissolve => todo!(),
@@ -350,6 +357,9 @@ fn blend_mode_to_paint(blend_mode: &BlendMode) -> skia_safe::Paint {
         // TODO: implement other blend modes
         _ => &mut paint.set_blend_mode(skia_safe::BlendMode::SrcOver),
     };
+
+    paint.set_alpha(layer_tree.opacity());
+
     paint
 }
 
