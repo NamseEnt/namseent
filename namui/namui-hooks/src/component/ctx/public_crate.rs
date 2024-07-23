@@ -133,10 +133,82 @@ impl ComponentCtx<'_> {
         sig
     }
 
-    pub(crate) fn effect<'a, CleanUp: Into<EffectCleanUp>>(
-        &'a self,
+    pub fn track_eq_custom<T, P>(
+        &self,
+        target: &T,
+        to_owned: impl FnOnce(&T) -> P,
+        cmp: impl FnOnce(&T, &P) -> bool,
+    ) -> Sig<P, Rc<P>>
+    where
+        P: 'static,
+    {
+        let mut track_eq_list = self.instance.track_eq_list.borrow_mut();
+
+        let track_eq_index = self
+            .track_eq_index
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+        let sig_id = SigId::TrackEq {
+            instance_id: self.instance.id,
+            index: track_eq_index,
+        };
+
+        let first_track = || track_eq_list.len() <= track_eq_index;
+        let not_eq = || {
+            let value: &P = track_eq_list[track_eq_index]
+                .as_ref()
+                .as_any()
+                .downcast_ref()
+                .unwrap();
+
+            !cmp(target, value)
+        };
+
+        if first_track() || not_eq() {
+            let rc_value = Rc::new(to_owned(target));
+            match track_eq_list.get_mut(track_eq_index) {
+                Some(value) => {
+                    *value = rc_value;
+                }
+                None => {
+                    assert_eq!(track_eq_list.len(), track_eq_index);
+                    track_eq_list.push(rc_value);
+                }
+            }
+
+            self.add_sig_updated(sig_id);
+        }
+
+        let value = track_eq_list.get(track_eq_index).unwrap();
+
+        let value: Rc<P> = Rc::downcast(value.clone().into_rc()).unwrap();
+
+        let sig = Sig::new(value, sig_id, self.world);
+
+        sig
+    }
+
+    pub(crate) fn track_eq_tuple(&self, track_eq_tuple: &impl TrackEqTuple) -> bool {
+        let mut track_eq_tuple_list = self.instance.track_eq_tuple_list.borrow_mut();
+
+        let track_eq_index = self
+            .track_eq_index
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+        let first_track = track_eq_tuple_list.len() <= track_eq_index;
+        if first_track {
+            track_eq_tuple_list.push(());
+        }
+
+        let track_eq_result = track_eq_tuple.track_eq(self);
+
+        first_track || track_eq_result
+    }
+
+    pub(crate) fn effect<CleanUp: Into<EffectCleanUp>>(
+        &self,
         title: impl AsRef<str>,
-        func: impl FnOnce() -> CleanUp + 'a,
+        func: impl FnOnce() -> CleanUp,
     ) {
         let _ = title;
 

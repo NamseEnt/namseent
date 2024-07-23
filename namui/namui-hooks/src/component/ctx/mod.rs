@@ -6,7 +6,7 @@ pub use effect_clean_up::*;
 use std::sync::atomic::AtomicUsize;
 
 /// Component state management
-pub(crate) struct ComponentCtx<'a> {
+pub struct ComponentCtx<'a> {
     world: &'a World,
     instance: &'a Instance,
     state_index: AtomicUsize,
@@ -29,7 +29,7 @@ impl<'a> ComponentCtx<'a> {
         }
     }
 
-    fn is_sig_updated(&self, target_sig_id: &SigId) -> bool {
+    pub(crate) fn is_sig_updated(&self, target_sig_id: &SigId) -> bool {
         self.world.is_sig_updated(target_sig_id)
     }
 

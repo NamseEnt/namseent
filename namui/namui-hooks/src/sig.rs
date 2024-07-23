@@ -33,6 +33,9 @@ impl<'world, T: ?Sized, Ref: Borrow<T>> Sig<'world, T, Ref> {
     pub fn map<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> Sig<'world, U, &U> {
         Sig::new(f(self.value.borrow()), self.id, self.world)
     }
+    pub fn is_updated(&self) -> bool {
+        self.world.is_sig_updated(&self.id)
+    }
 }
 
 impl<T: ?Sized + Debug, Ref: Borrow<T>> Debug for Sig<'_, T, Ref> {
