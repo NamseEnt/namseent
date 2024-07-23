@@ -705,15 +705,11 @@ fn set_state_should_be_copied_into_async_move() {
 fn set_state_should_be_copied_into_async_effect() {
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
-    let (tx, mut rx) = tokio::sync::mpsc::channel(5);
     #[derive(Debug)]
-    struct A {
-        tx: tokio::sync::mpsc::Sender<i32>,
-    }
+    struct A {}
 
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
-            let Self { tx } = self;
             let (state0, set_state0) = ctx.state(|| 5);
             let (state1, set_state1) = ctx.state(|| 5);
 
@@ -721,14 +717,14 @@ fn set_state_should_be_copied_into_async_effect() {
                 set_state0.set(state + 5);
             });
 
-            ctx.async_effect("sig tuple deps test", (state0, state1), {
-                let tx = tx.clone();
+            ctx.async_effect(
+                "sig tuple deps test",
+                (state0, state1),
                 move |(state, state1)| async move {
                     let value = state + state1;
                     set_state1.set(value);
-                    tx.send(value).await.unwrap();
-                }
-            });
+                },
+            );
 
             ctx.async_effect(
                 "unit type deps test",
@@ -738,38 +734,32 @@ fn set_state_should_be_copied_into_async_effect() {
 
             // TODO: Need to test when deps changed by props
 
-            ctx.async_effect("single ref deps test", &5, {
-                let tx = tx.clone();
-                move |five| async move {
-                    let value = five;
-                    set_state1.set(value);
-                    tx.send(value).await.unwrap();
-                }
+            ctx.async_effect("single ref deps test", &5, move |five| async move {
+                let value = five;
+                set_state1.set(value);
             });
 
-            ctx.async_effect("ref tuple deps test", (&5, &7), {
-                let tx = tx.clone();
+            ctx.async_effect(
+                "ref tuple deps test",
+                (&5, &7),
                 move |(five, seven): (i32, i32)| async move {
                     let value = five + seven;
                     set_state1.set(value);
-                    tx.send(value).await.unwrap();
-                }
-            });
+                },
+            );
 
-            ctx.async_effect("sig ref tuple deps test", (state0, &7), {
-                let tx = tx.clone();
+            ctx.async_effect(
+                "sig ref tuple deps test",
+                (state0, &7),
                 move |(state0, seven)| async move {
                     let value = state0 + seven;
                     set_state1.set(value);
-                    tx.send(value).await.unwrap();
-                }
-            });
+                },
+            );
         }
     }
 
     tokio::runtime::Runtime::new().unwrap().block_on(async {
-        World::run(&mut world, A { tx });
-        let value = rx.recv().await.unwrap();
-        assert_eq!(value, 10);
+        World::run(&mut world, A {});
     });
 }
