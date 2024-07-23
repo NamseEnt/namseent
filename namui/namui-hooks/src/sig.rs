@@ -6,7 +6,7 @@ use std::{
 
 #[derive(Clone, Copy)]
 pub struct Sig<'world, T: ?Sized, Ref: Borrow<T>> {
-    pub(crate) id: SigId,
+    id: SigId,
     value: Ref,
     world: &'world World,
     _phantom: std::marker::PhantomData<T>,
@@ -32,6 +32,9 @@ impl<'world, T: ?Sized, Ref: Borrow<T>> Sig<'world, T, Ref> {
     }
     pub fn map<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> Sig<'world, U, &U> {
         Sig::new(f(self.value.borrow()), self.id, self.world)
+    }
+    pub fn is_updated(&self) -> bool {
+        self.world.is_sig_updated(&self.id)
     }
 }
 
