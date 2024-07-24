@@ -69,9 +69,10 @@ impl World {
                     .instance_id_map
                     .insert(child_key.clone(), child_instance_id.into());
 
-                let child_instance = self
-                    .instances
-                    .insert(child_instance_id, Instance::new(child_instance_id).into());
+                let child_instance = self.instances.insert(
+                    child_instance_id,
+                    Box::new(Instance::new(child_instance_id)),
+                );
 
                 child_instance
             }
@@ -84,7 +85,7 @@ impl World {
                 SetStateItem::Set { sig_id, value } => match sig_id {
                     SigId::State { instance_id, index } => {
                         let instance = self.instances.as_mut().get_mut(&instance_id).unwrap();
-                        instance.state_list.as_mut()[index] = value;
+                        instance.state_list.get_mut()[index] = value;
                         self.add_sig_updated(sig_id);
                     }
                     SigId::Atom { index } => {
@@ -97,7 +98,7 @@ impl World {
                 SetStateItem::Mutate { sig_id, mutate } => match sig_id {
                     SigId::State { instance_id, index } => {
                         let instance = self.instances.as_mut().get_mut(&instance_id).unwrap();
-                        let value = instance.state_list.as_mut().get_mut(index).unwrap();
+                        let value = instance.state_list.get_mut().get_mut(index).unwrap();
                         mutate(value.as_mut());
                         self.add_sig_updated(sig_id);
                     }
@@ -109,6 +110,138 @@ impl World {
                     SigId::Memo { .. } => unreachable!(),
                     SigId::TrackEq { .. } => todo!(),
                 },
+                SetStateItem::Mutate2 { sig_ids, mutate } => {
+                    let (sig_id1, sig_id2) = sig_ids;
+                    assert_ne!(sig_id1, sig_id2);
+
+                    match (sig_id1, sig_id2) {
+                        (
+                            SigId::State {
+                                instance_id: instance_id1,
+                                index: index1,
+                            },
+                            SigId::State {
+                                instance_id: instance_id2,
+                                index: index2,
+                            },
+                        ) => {
+                            let instance_1 = self.instances.get(&instance_id1).unwrap();
+                            let instance_2 = self.instances.get(&instance_id2).unwrap();
+
+                            let state_list1 = unsafe { &mut *instance_1.state_list.get() };
+                            let state_list2 = unsafe { &mut *instance_2.state_list.get() };
+
+                            let value1 = state_list1.get_mut(index1).unwrap();
+                            let value2 = state_list2.get_mut(index2).unwrap();
+
+                            mutate((value1.as_mut(), value2.as_mut()));
+
+                            self.add_sig_updated(sig_id1);
+                            self.add_sig_updated(sig_id2);
+                        }
+                        _ => todo!(),
+                    }
+                }
+                SetStateItem::Mutate3 { sig_ids, mutate } => {
+                    let (sig_id1, sig_id2, sig_id3) = sig_ids;
+                    assert_ne!(sig_id1, sig_id2);
+                    assert_ne!(sig_id1, sig_id3);
+                    assert_ne!(sig_id2, sig_id3);
+
+                    match (sig_id1, sig_id2, sig_id3) {
+                        (
+                            SigId::State {
+                                instance_id: instance_id1,
+                                index: index1,
+                            },
+                            SigId::State {
+                                instance_id: instance_id2,
+                                index: index2,
+                            },
+                            SigId::State {
+                                instance_id: instance_id3,
+                                index: index3,
+                            },
+                        ) => {
+                            let instance_1 = self.instances.get(&instance_id1).unwrap();
+                            let instance_2 = self.instances.get(&instance_id2).unwrap();
+                            let instance_3 = self.instances.get(&instance_id3).unwrap();
+
+                            let state_list1 = unsafe { &mut *instance_1.state_list.get() };
+                            let state_list2 = unsafe { &mut *instance_2.state_list.get() };
+                            let state_list3 = unsafe { &mut *instance_3.state_list.get() };
+
+                            let value1 = state_list1.get_mut(index1).unwrap();
+                            let value2 = state_list2.get_mut(index2).unwrap();
+                            let value3 = state_list3.get_mut(index3).unwrap();
+
+                            mutate((value1.as_mut(), value2.as_mut(), value3.as_mut()));
+
+                            self.add_sig_updated(sig_id1);
+                            self.add_sig_updated(sig_id2);
+                            self.add_sig_updated(sig_id3);
+                        }
+                        _ => todo!(),
+                    }
+                }
+                SetStateItem::Mutate4 { sig_ids, mutate } => {
+                    let (sig_id1, sig_id2, sig_id3, sig_id4) = sig_ids;
+                    assert_ne!(sig_id1, sig_id2);
+                    assert_ne!(sig_id1, sig_id3);
+                    assert_ne!(sig_id1, sig_id4);
+                    assert_ne!(sig_id2, sig_id3);
+                    assert_ne!(sig_id2, sig_id4);
+                    assert_ne!(sig_id3, sig_id4);
+
+                    match (sig_id1, sig_id2, sig_id3, sig_id4) {
+                        (
+                            SigId::State {
+                                instance_id: instance_id1,
+                                index: index1,
+                            },
+                            SigId::State {
+                                instance_id: instance_id2,
+                                index: index2,
+                            },
+                            SigId::State {
+                                instance_id: instance_id3,
+                                index: index3,
+                            },
+                            SigId::State {
+                                instance_id: instance_id4,
+                                index: index4,
+                            },
+                        ) => {
+                            let instance_1 = self.instances.get(&instance_id1).unwrap();
+                            let instance_2 = self.instances.get(&instance_id2).unwrap();
+                            let instance_3 = self.instances.get(&instance_id3).unwrap();
+                            let instance_4 = self.instances.get(&instance_id4).unwrap();
+
+                            let state_list1 = unsafe { &mut *instance_1.state_list.get() };
+                            let state_list2 = unsafe { &mut *instance_2.state_list.get() };
+                            let state_list3 = unsafe { &mut *instance_3.state_list.get() };
+                            let state_list4 = unsafe { &mut *instance_4.state_list.get() };
+
+                            let value1 = state_list1.get_mut(index1).unwrap();
+                            let value2 = state_list2.get_mut(index2).unwrap();
+                            let value3 = state_list3.get_mut(index3).unwrap();
+                            let value4 = state_list4.get_mut(index4).unwrap();
+
+                            mutate((
+                                value1.as_mut(),
+                                value2.as_mut(),
+                                value3.as_mut(),
+                                value4.as_mut(),
+                            ));
+
+                            self.add_sig_updated(sig_id1);
+                            self.add_sig_updated(sig_id2);
+                            self.add_sig_updated(sig_id3);
+                            self.add_sig_updated(sig_id4);
+                        }
+                        _ => todo!(),
+                    }
+                }
             }
         }
     }

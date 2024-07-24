@@ -54,9 +54,10 @@ impl World {
 
         let root_instance = match self.instances.get(&InstanceId::root()) {
             Some(instance) => instance,
-            None => self
-                .instances
-                .insert(InstanceId::root(), Instance::new(InstanceId::root()).into()),
+            None => self.instances.insert(
+                InstanceId::root(),
+                Box::new(Instance::new(InstanceId::root())),
+            ),
         };
 
         self.raw_event = event;

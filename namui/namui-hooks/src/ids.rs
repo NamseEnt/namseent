@@ -16,7 +16,8 @@ impl ComposerId {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+#[repr(transparent)]
 pub(crate) struct InstanceId {
     id: usize,
 }
