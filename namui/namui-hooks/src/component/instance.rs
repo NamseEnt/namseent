@@ -1,12 +1,15 @@
 use crate::*;
-use elsa::FrozenVec;
-use std::{cell::RefCell, rc::Rc, sync::atomic::AtomicBool};
+use std::{
+    cell::{RefCell, UnsafeCell},
+    rc::Rc,
+    sync::atomic::AtomicBool,
+};
 
 /// the state of component.
 pub(crate) struct Instance {
     pub(crate) id: InstanceId,
     rendered_flag: AtomicBool,
-    pub(crate) state_list: FrozenVec<Box<dyn Value>>,
+    pub(crate) state_list: UnsafeCell<Vec<Box<dyn Value>>>,
     pub(crate) memo_list: RefCell<Vec<Memo>>,
     pub(crate) track_eq_list: RefCell<Vec<Rc<dyn Value>>>,
     pub(crate) track_eq_tuple_list: RefCell<Vec<()>>,

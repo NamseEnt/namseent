@@ -1,31 +1,35 @@
 use super::*;
-use std::rc::Rc;
+use std::{ops::Deref, rc::Rc};
 
 impl ComponentCtx<'_> {
     pub fn state<State: 'static + Send>(
         &self,
         init: impl FnOnce() -> State,
     ) -> (Sig<State, &State>, SetState<State>) {
-        let state_list = &self.instance.state_list;
-
         let state_index = self
             .state_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+        let state = unsafe {
+            let state_list = &mut *self.instance.state_list.get();
+
+            let no_state = state_list.len() <= state_index;
+
+            if no_state {
+                let state = init();
+                state_list.push(Box::new(state));
+                assert_eq!(state_list.len(), state_index + 1);
+            };
+
+            state_list.get(state_index).unwrap().deref()
+        };
+
+        let state: &State = state.as_any().downcast_ref().unwrap();
 
         let sig_id = SigId::State {
             index: state_index,
             instance_id: self.instance.id,
         };
-
-        let no_state = state_list.len() <= state_index;
-
-        let state = if no_state {
-            let state = init();
-            state_list.push_get(Box::new(state))
-        } else {
-            state_list.get(state_index).unwrap()
-        };
-        let state: &State = state.as_any().downcast_ref().unwrap();
 
         let set_state = SetState::new(sig_id, self.world.set_state_tx);
 

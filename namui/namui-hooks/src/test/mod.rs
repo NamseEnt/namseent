@@ -763,3 +763,70 @@ fn set_state_should_be_copied_into_async_effect() {
         World::run(&mut world, A {});
     });
 }
+
+#[test]
+fn tuple_set_state_should_work() {
+    use std::sync::{atomic::AtomicUsize, Arc};
+
+    let mut world = World::init(Instant::now, &MockSkCalculate);
+
+    let record = Arc::new(AtomicUsize::new(0));
+
+    #[derive(Debug)]
+    struct A {
+        record: Arc<AtomicUsize>,
+        update_state: bool,
+    }
+
+    impl Component for A {
+        fn render(self, ctx: &RenderCtx) {
+            let (state, set_state) = ctx.state(|| 1.0);
+            let (state1, set_state1) = ctx.state(|| 2);
+            let (state2, set_state2) = ctx.state(|| 2);
+
+            self.record.store(
+                *state as usize + *state1 + *state2 as usize,
+                std::sync::atomic::Ordering::Relaxed,
+            );
+
+            if self.update_state {
+                // NOTE: I shuffled set_state order on test purpose
+                (set_state1, set_state, set_state2).mutate(|(state1, state, state2)| {
+                    *state = 2.0;
+                    *state1 = 3;
+                    *state2 = 4_i32;
+                });
+            }
+        }
+    }
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            update_state: true,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 5);
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            update_state: false,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 9);
+
+    World::run(
+        &mut world,
+        A {
+            record: record.clone(),
+            update_state: false,
+        },
+    );
+
+    assert_eq!(record.load(std::sync::atomic::Ordering::Relaxed), 9);
+}
