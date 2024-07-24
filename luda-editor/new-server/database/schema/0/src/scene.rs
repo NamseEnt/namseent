@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 struct SceneDoc {
     #[pk]
     id: String,
-    speaker_id: String,
+    speaker_id: Option<String>,
     sprites: Vec<SceneSprite>,
     /// `None` means the background should be black.
     background_sprite: Option<SceneSprite>,

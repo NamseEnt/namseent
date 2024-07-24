@@ -24,7 +24,7 @@ struct SpritePartOption {
     dest_rect: Rect<Px>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Copy)]
 #[doc_part]
 enum BlendMode {
     PassThrough,

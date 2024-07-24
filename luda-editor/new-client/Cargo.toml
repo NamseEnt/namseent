@@ -13,3 +13,4 @@ namui-prebuilt = { path = "../../namui/namui-prebuilt" }
 serde = { version = "1.0.203", features = ["derive"] }
 luda-rpc = { path = "../new-server/rpc" }
 dashmap = "6.0.1"
+randum = { path = "../new-server/randum" }

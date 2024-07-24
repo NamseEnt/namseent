@@ -55,7 +55,7 @@ fn input_redefine(input: &DeriveInput) -> TokenStream {
     };
 
     quote! {
-        #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+        #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
         #[archive_attr(derive(Debug))]
         #[archive(check_bytes)]
         #[archive(bound(serialize = "__S: rkyv::ser::ScratchSpace + rkyv::ser::Serializer"))]

@@ -3,21 +3,21 @@ mod scene;
 use namui_type::*;
 pub use scene::*;
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct Team {
     pub id: String,
     pub name: String,
 }
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct Project {
     pub id: String,
     pub name: String,
 }
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct Episode {
     pub id: String,
@@ -25,15 +25,25 @@ pub struct Episode {
     pub created_at: SystemTime,
 }
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct TeamInviteCode {
     pub code: String,
     pub expiration_time: SystemTime,
 }
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub enum EpisodeEditAction {
-    EditText,
+    AddNewScene {
+        id: String,
+    },
+    EditText {
+        scene_id: String,
+        language_code: String,
+        text: String,
+    },
+    UpdateScene {
+        scene: Scene,
+    },
 }

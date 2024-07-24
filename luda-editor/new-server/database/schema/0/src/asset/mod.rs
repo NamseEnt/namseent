@@ -24,7 +24,7 @@ struct AssetDoc {
 }
 
 #[doc_part]
-#[derive(Clone, Copy)]
+#[derive(Copy)]
 enum AssetKind {
     Sprite,
     Audio,
