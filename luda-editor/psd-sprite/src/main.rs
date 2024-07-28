@@ -8,7 +8,16 @@ fn main() {
 
     let lock = PartsSpriteLock {
         name: "test".to_string(),
-        part_names: BTreeSet::new(),
+        part_names: BTreeSet::from_iter(
+            [
+                "입_s.놀람",
+                "홍조_s.레이어 80",
+                "코_s.코",
+                "눈_s.일반",
+                "눈썹_s.슬픔",
+            ]
+            .map(|name| name.to_string()),
+        ),
     };
     let image = parts_sprite.render(&lock).unwrap();
     let webp_bytes = sk_image_to_webp(&image).unwrap();
