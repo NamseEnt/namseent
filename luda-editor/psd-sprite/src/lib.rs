@@ -14,6 +14,7 @@ use skia_util::{set_photoshop_blend_mode, AutoRestoreCanvas};
 use std::{
     borrow::Borrow,
     collections::{BTreeMap, BTreeSet},
+    io::Cursor,
     iter::Peekable,
 };
 
@@ -133,11 +134,20 @@ pub struct SpriteImage {
 }
 impl SpriteImage {
     fn to_sk_image(&self) -> Result<Image> {
-        let data = Data::new_copy(&self.webp);
-        let image = Image::from_encoded(data).ok_or(anyhow::anyhow!(
-            "Failed to create sk image from SpriteImage"
-        ))?;
-        Ok(image)
+        let image = image::ImageReader::new(Cursor::new(&self.webp))
+            .with_guessed_format()?
+            .decode()?;
+        let rgba = image.to_rgba8().into_vec();
+        Ok(skia_safe::image::images::raster_from_data(
+            &ImageInfo::new_n32(
+                (image.width() as i32, image.height() as i32),
+                skia_safe::AlphaType::Unpremul,
+                None,
+            ),
+            Data::new_copy(&rgba),
+            image.width() as usize * 4,
+        )
+        .ok_or(anyhow::anyhow!("Failed to create image from SpriteImage"))?)
     }
 }
 
