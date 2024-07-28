@@ -13,7 +13,7 @@ use skia_safe::{
 use skia_util::{set_photoshop_blend_mode, AutoRestoreCanvas};
 use std::{
     borrow::Borrow,
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, HashMap},
     io::Cursor,
     iter::Peekable,
 };
@@ -165,6 +165,8 @@ fn render_parts_sprite(
         return Err(anyhow::anyhow!("No layer to rasterize"));
     }
 
+    let parts_sprite_images = HashMap::from_iter(load_parts_sprite_images(sprite_part));
+
     let image_info = ImageInfo::new_n32(
         (rect.width(), rect.height()),
         skia_safe::AlphaType::Unpremul,
@@ -173,16 +175,37 @@ fn render_parts_sprite(
     let mut surface: Surface = skia_safe::surfaces::raster(&image_info, None, None).unwrap();
     let canvas = surface.canvas();
     canvas.translate((-rect.left(), -rect.top()));
-    render_parts_sprite_to_canvas(canvas, std::slice::from_ref(sprite_part), parts_sprite_lock)?;
+
+    render_parts_sprite_to_canvas(
+        canvas,
+        std::slice::from_ref(sprite_part),
+        parts_sprite_lock,
+        &parts_sprite_images,
+    )?;
 
     let image = surface.image_snapshot();
     Ok(image)
+}
+
+fn load_parts_sprite_images(sprite_part: &PartsSprite) -> Vec<(String, Image)> {
+    match &sprite_part.kind {
+        SpritePartKind::SingleSelect { options: entries }
+        | SpritePartKind::MultiSelect { options: entries }
+        | SpritePartKind::Directory { entries } => entries
+            .par_iter()
+            .flat_map(|entry| load_parts_sprite_images(entry))
+            .collect(),
+        SpritePartKind::Fixed { image } => image
+            .to_sk_image()
+            .map_or(Vec::new(), |image| vec![(sprite_part.name.clone(), image)]),
+    }
 }
 
 fn render_parts_sprite_to_canvas<T: Borrow<PartsSprite>>(
     canvas: &skia_safe::Canvas,
     parts_sprites: &[T],
     parts_sprite_lock: &PartsSpriteLock,
+    parts_sprite_images: &HashMap<String, Image>,
 ) -> Result<()> {
     let _auto_restore = AutoRestoreCanvas::new(canvas);
     let mut parts_sprites = parts_sprites.into_iter().rev().peekable();
@@ -213,6 +236,7 @@ fn render_parts_sprite_to_canvas<T: Borrow<PartsSprite>>(
                     canvas,
                     std::slice::from_ref(selected_parts_sprite),
                     parts_sprite_lock,
+                    parts_sprite_images,
                 )?
             }
             SpritePartKind::MultiSelect { options } => {
@@ -224,13 +248,17 @@ fn render_parts_sprite_to_canvas<T: Borrow<PartsSprite>>(
                     canvas,
                     selected_parts_sprite.as_slice(),
                     parts_sprite_lock,
+                    parts_sprite_images,
                 )?
             }
-            SpritePartKind::Directory { entries } => {
-                render_parts_sprite_to_canvas(canvas, entries.as_slice(), parts_sprite_lock)?
-            }
+            SpritePartKind::Directory { entries } => render_parts_sprite_to_canvas(
+                canvas,
+                entries.as_slice(),
+                parts_sprite_lock,
+                parts_sprite_images,
+            )?,
             SpritePartKind::Fixed { image } => {
-                let std::result::Result::Ok(sk_image) = image.to_sk_image() else {
+                let Some(sk_image) = parts_sprite_images.get(&parts_sprite.name) else {
                     // Maybe layer is empty
                     continue;
                 };
@@ -259,6 +287,7 @@ fn render_parts_sprite_to_canvas<T: Borrow<PartsSprite>>(
                     canvas,
                     std::slice::from_ref(clipping_parts_sprite),
                     parts_sprite_lock,
+                    parts_sprite_images,
                 )?;
             }
         }
