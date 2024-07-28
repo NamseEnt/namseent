@@ -176,7 +176,7 @@ fn into_sprite_parts(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<
                         name: prefixes.join("."),
                         kind,
                         blend_mode: group.blend_mode(),
-                        clipping_base: !group.is_clipping_mask(),
+                        clipping_base: group.is_clipping_mask(),
                         opacity: group.opacity(),
                         rect: rect_px,
                     });
@@ -220,7 +220,7 @@ fn into_sprite_parts(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<
                                 webp: Box::from(webp_bytes.as_ref()),
                             },
                         },
-                        clipping_base: !layer.is_clipping_mask(),
+                        clipping_base: layer.is_clipping_mask(),
                         opacity: layer.opacity(),
                         rect: rect_px,
                     })
