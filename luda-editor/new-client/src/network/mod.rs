@@ -1,6 +1,10 @@
 use crate::*;
 use luda_rpc::rkyv::{self, de::deserializers::SharedDeserializeMap, *};
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    sync::{Arc, OnceLock},
+};
 use tokio::{
     sync::oneshot,
     task::{AbortHandle, JoinHandle},
@@ -10,8 +14,6 @@ pub type SigRef<'a, T> = Sig<'a, T, &'a T>;
 type OptionResult<T, E> = Option<Result<T, E>>;
 
 type Serializer = rkyv::ser::serializers::AllocSerializer<1024>;
-
-pub static SERVER_CONNECTION_ATOM: Atom<ServerConnection> = Atom::uninitialized();
 
 pub fn server_rpc<'ctx, Req, Deps, Artifacts, Response, Error, RequestFn>(
     ctx: &'ctx RenderCtx,
@@ -31,8 +33,6 @@ where
     Req: rkyv::Serialize<Serializer> + Send + 'ctx,
     RequestFn: FnOnce(Deps) -> Option<(Req, Artifacts)>,
 {
-    let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
-    let server_connection = server_connection.clone_inner();
     let (response, set_response) = ctx.state(|| None);
 
     if !ctx.track_eq_tuple(&dependencies) {
@@ -47,7 +47,7 @@ where
     let owned_artifacts = artifacts.to_owned();
 
     ctx.spawn(async move {
-        let result = server_connection.request(api_index, bytes).await;
+        let result = server_connection().request(api_index, bytes).await;
         set_response.set(Some(match result {
             Ok(response) => Ok((response, owned_artifacts)),
             Err(err) => Err(err),
@@ -156,11 +156,16 @@ pub struct ServerConnection {
     connection_keeper: Arc<ConnectionKeeper>,
 }
 
+static SERVER_CONNECTION: OnceLock<ServerConnection> = OnceLock::new();
+pub fn server_connection() -> &'static ServerConnection {
+    SERVER_CONNECTION.get().unwrap()
+}
+
 impl ServerConnection {
-    pub fn new(url: impl ToString) -> Self {
-        Self {
+    pub(crate) fn init(url: impl ToString) {
+        SERVER_CONNECTION.set(Self {
             connection_keeper: ConnectionKeeper::new(url).into(),
-        }
+        });
     }
 
     pub async fn request<

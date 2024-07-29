@@ -164,8 +164,6 @@ fn generate_rpc_files(rpc: &Rpc) {
                     <Artifacts as Dependencies>::Owned: 'static + Send,
                 {
                     let on_progress = ctx.memo(|| Arc::new(AtomicBool::new(false)));
-                    let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
-                    let server_connection = server_connection.clone_inner();
                     let ret_on_progress = on_progress.load(Ordering::Relaxed);
 
                     (
@@ -186,7 +184,7 @@ fn generate_rpc_files(rpc: &Rpc) {
 
                             let on_progress = on_progress.clone_inner();
                             tokio::spawn(async move {
-                                let result = server_connection.request(#api_index, bytes).await;
+                                let result = server_connection().request(#api_index, bytes).await;
 
                                 on_progress.store(false, Ordering::Relaxed);
 

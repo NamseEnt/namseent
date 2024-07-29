@@ -35,10 +35,6 @@ impl Component for SceneList<'_> {
     }
 }
 
-pub fn scene_list(scenes: &[Scene]) -> table::TableCell<'_> {
-    table::fixed(160.px(), |wh, ctx| {})
-}
-
 struct SceneListCell<'a> {
     index: usize,
     scene: &'a Scene,

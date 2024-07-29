@@ -2,7 +2,10 @@
 
 mod common;
 pub mod exit_episode_editor;
+pub mod get_speaker_names;
 pub mod join_episode_editor;
+pub mod load_speaker_slots;
+pub mod save_speaker_slots;
 pub mod try_edit_episode;
 
 #[allow(unused_imports)]

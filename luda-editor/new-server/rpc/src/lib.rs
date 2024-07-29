@@ -215,6 +215,44 @@ rpc_macro::define_rpc! {
                 ImpossibleAction,
             }
         },
+        load_speaker_slots: {
+            struct Request {
+                episode_id: String,
+            }
+            struct Response {
+                speaker_ids: Vec<String>,
+            }
+            enum Error {
+                NeedLogin,
+                EpisodeNotExist,
+            }
+        },
+        save_speaker_slots: {
+            struct Request {
+                episode_id: String,
+                speaker_ids: Vec<String>,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                EpisodeNotExist,
+            }
+        },
+        get_speaker_names: {
+            struct Request {
+                project_id: String,
+                speaker_ids: Vec<String>,
+                language_code: String,
+            }
+            struct Response {
+                speaker_names: Vec<Option<String>>,
+            }
+            enum Error {
+                NeedLogin,
+                EpisodeNotExist,
+            }
+        }
     },
     Asset: {
         reserve_team_asset_upload: {

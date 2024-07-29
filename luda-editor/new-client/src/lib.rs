@@ -15,8 +15,8 @@ use simple_button::*;
 
 pub fn main() {
     namui::start(|ctx| {
-        let _ = ctx.init_atom(&network::SERVER_CONNECTION_ATOM, || {
-            ServerConnection::new("ws://localhost:8080/ws")
+        ctx.effect("init server connection", || {
+            ServerConnection::init("ws://localhost:8080/ws")
         });
         let (logged_in, set_logged_in) = ctx.state(|| false);
         if !*logged_in {
@@ -44,8 +44,6 @@ impl Component for Login {
     fn render(self, ctx: &RenderCtx) {
         let Self { set_logged_in } = self;
         let (error, set_error) = ctx.state(|| None::<String>);
-        let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
-        let server_connection = server_connection.clone_inner();
 
         const KV_STORE_SESSION_TOKEN_KEY: &str = "session_token";
 
@@ -61,7 +59,7 @@ impl Component for Login {
                         let session_token_string = String::from_utf8(session_token).unwrap();
 
                         use rpc::auth::session_token_auth::*;
-                        match server_connection
+                        match server_connection()
                             .session_token_auth(RefRequest {
                                 session_token: &session_token_string,
                             })
@@ -89,7 +87,7 @@ impl Component for Login {
                     let jwt = take_google_gsi_jwt().await;
                     {
                         use rpc::auth::google_auth::*;
-                        match server_connection
+                        match server_connection()
                             .google_auth(RefRequest { jwt: &jwt })
                             .await
                         {

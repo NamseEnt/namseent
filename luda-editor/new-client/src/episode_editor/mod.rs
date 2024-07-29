@@ -1,16 +1,21 @@
 mod scene_editor;
 mod scene_list;
+mod speaker_selector;
 
 use super::*;
 use luda_rpc::{EpisodeEditAction, Scene};
 
 pub struct EpisodeEditor<'a> {
+    pub project_id: &'a String,
     pub episode_id: &'a String,
 }
 
 impl Component for EpisodeEditor<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { episode_id } = self;
+        let Self {
+            project_id,
+            episode_id,
+        } = self;
 
         let wh = namui::screen::size().map(|x| x.into_px());
 
@@ -35,6 +40,7 @@ impl Component for EpisodeEditor<'_> {
             match result {
                 Ok((response, _)) => {
                     ctx.add(LoadedEpisodeEditor {
+                        project_id,
                         episode_id,
                         initial_scenes: &response.scenes,
                     });
@@ -53,6 +59,7 @@ impl Component for EpisodeEditor<'_> {
 }
 
 struct LoadedEpisodeEditor<'a> {
+    project_id: &'a String,
     episode_id: &'a String,
     initial_scenes: &'a Vec<Scene>,
 }
@@ -60,10 +67,10 @@ struct LoadedEpisodeEditor<'a> {
 impl Component for LoadedEpisodeEditor<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
+            project_id,
             episode_id,
             initial_scenes,
         } = self;
-        let (server_connection, _) = ctx.atom(&SERVER_CONNECTION_ATOM);
         let (scenes, set_scenes) = ctx.state(|| initial_scenes.clone());
         let (selected_scene_id, set_selected_scene_id) = ctx.state(|| Option::<String>::None);
         let (action_history, set_action_history) = ctx.state(Vec::<EditActionForUndo>::new);
@@ -71,12 +78,11 @@ impl Component for LoadedEpisodeEditor<'_> {
         let action_queue_tx = ctx.memo(|| {
             let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-            let server_connection = server_connection.clone_inner();
             let episode_id = episode_id.clone();
             ctx.spawn(async move {
                 while let Some(action) = rx.recv().await {
                     use rpc::episode_editor::try_edit_episode::*;
-                    let result = server_connection
+                    let result = server_connection()
                         .try_edit_episode(RefRequest {
                             episode_id: &episode_id,
                             action: &action,
@@ -169,6 +175,8 @@ impl Component for LoadedEpisodeEditor<'_> {
                     .as_ref()
                     .as_ref()
                     .and_then(|id| scenes.iter().find(|x| &x.id == id)),
+                project_id,
+                episode_id,
             });
         });
         let properties_panel = table::ratio(1, |wh, ctx| {});
