@@ -9,6 +9,7 @@ pub struct SpeakerSelector<'a> {
     pub scene: &'a Scene,
     pub project_id: &'a String,
     pub episode_id: &'a String,
+    pub select_speaker: &'a dyn Fn(&String),
 }
 
 impl Component for SpeakerSelector<'_> {
@@ -18,6 +19,7 @@ impl Component for SpeakerSelector<'_> {
             scene,
             project_id,
             episode_id,
+            select_speaker,
         } = self;
         let (speaker_ids, set_speaker_ids) = ctx.state::<Option<Vec<String>>>(|| None);
         let (speakers, set_speakers) =
@@ -96,7 +98,9 @@ impl Component for SpeakerSelector<'_> {
                             fill_color: Color::BLACK,
                             side_padding: 8.px(),
                             mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: &|_event| todo!(),
+                            on_mouse_up_in: &|_event| {
+                                select_speaker(speaker_id);
+                            },
                         });
                     }));
                 }

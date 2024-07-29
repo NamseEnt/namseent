@@ -8,6 +8,7 @@ pub struct SceneEditor<'a> {
     pub scene: Option<&'a Scene>,
     pub project_id: &'a String,
     pub episode_id: &'a String,
+    pub select_speaker: &'a dyn Fn(&String),
 }
 
 impl Component for SceneEditor<'_> {
@@ -17,6 +18,7 @@ impl Component for SceneEditor<'_> {
             scene,
             project_id,
             episode_id,
+            select_speaker,
         } = self;
 
         let Some(scene) = scene else { return };
@@ -32,6 +34,7 @@ impl Component for SceneEditor<'_> {
                         scene,
                         project_id,
                         episode_id,
+                        select_speaker,
                     });
                 }),
                 table::fixed(320.px(), |wh, ctx| {

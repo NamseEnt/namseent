@@ -160,6 +160,22 @@ impl Component for LoadedEpisodeEditor<'_> {
             edit_episode(EpisodeEditAction::AddNewScene { id: randum::rand() });
         };
 
+        let scene = selected_scene_id
+            .as_ref()
+            .as_ref()
+            .and_then(|id| scenes.iter().find(|x| &x.id == id));
+
+        let select_speaker = &|speaker_id: &String| {
+            let Some(scene) = scene else { return };
+            edit_episode(EpisodeEditAction::UpdateScene {
+                scene: {
+                    let mut scene = scene.clone();
+                    scene.speaker_id = Some(speaker_id.clone());
+                    scene
+                },
+            });
+        };
+
         let wh = namui::screen::size().map(|x| x.into_px());
 
         let scene_list = table::fixed(160.px(), |wh, ctx| {
@@ -171,12 +187,10 @@ impl Component for LoadedEpisodeEditor<'_> {
         let scene_editor = table::ratio(1, |wh, ctx| {
             ctx.add(scene_editor::SceneEditor {
                 wh,
-                scene: selected_scene_id
-                    .as_ref()
-                    .as_ref()
-                    .and_then(|id| scenes.iter().find(|x| &x.id == id)),
+                scene,
                 project_id,
                 episode_id,
+                select_speaker,
             });
         });
         let properties_panel = table::ratio(1, |wh, ctx| {});
