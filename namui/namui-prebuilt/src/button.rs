@@ -1,5 +1,6 @@
 use crate::{simple_rect, typography::center_text_full_height};
 use namui::*;
+use std::borrow::Cow;
 
 fn attach_text_button_event(
     ctx: ComposeCtx,
@@ -59,9 +60,12 @@ impl<Text: AsRef<str>, OnMouseUpIn: FnOnce(MouseEvent)> Component
     }
 }
 
-pub struct TextButtonFit<'a> {
+pub struct TextButtonFit<'a, Text>
+where
+    Text: Into<Cow<'a, str>>,
+{
     pub height: Px,
-    pub text: &'a str,
+    pub text: Text,
     pub text_color: Color,
     pub stroke_color: Color,
     pub stroke_width: Px,
@@ -70,7 +74,10 @@ pub struct TextButtonFit<'a> {
     pub mouse_buttons: Vec<MouseButton>,
     pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
-impl Component for TextButtonFit<'_> {
+impl<'a, Text> Component for TextButtonFit<'a, Text>
+where
+    Text: Into<Cow<'a, str>>,
+{
     fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
@@ -83,7 +90,7 @@ impl Component for TextButtonFit<'_> {
             mouse_buttons,
             on_mouse_up_in,
         } = self;
-        let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
+        let center_text = center_text_full_height(Wh::new(0.px(), height), text.into(), text_color);
         let width = namui::bounding_box(&center_text).map(|bounding_box| bounding_box.width());
 
         ctx.compose(|ctx| {
