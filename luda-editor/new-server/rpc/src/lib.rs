@@ -5,6 +5,7 @@ mod types;
 
 use macro_common_lib::*;
 pub use rkyv;
+use std::collections::HashMap;
 pub use types::*;
 
 rpc_macro::define_rpc! {
@@ -181,6 +182,8 @@ rpc_macro::define_rpc! {
             }
             struct Response {
                 scenes: Vec<Scene>,
+                /// key: (scene_id, language_code)
+                texts: HashMap<String, HashMap<String, Option<String>>>,
             }
             enum Error {
                 NeedLogin,
@@ -252,7 +255,7 @@ rpc_macro::define_rpc! {
                 NeedLogin,
                 EpisodeNotExist,
             }
-        }
+        },
     },
     Asset: {
         reserve_team_asset_upload: {

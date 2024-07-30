@@ -38,6 +38,9 @@ pub enum EpisodeEditAction {
     AddNewScene {
         id: String,
     },
+    RemoveScene {
+        id: String,
+    },
     EditText {
         scene_id: String,
         language_code: String,

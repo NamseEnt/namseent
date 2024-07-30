@@ -132,7 +132,7 @@ fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
             });
             quote! {
                 pub mod #api_name {
-                    use super::super::types::*;
+                    use super::super::*;
 
                     #(#items)*
                 }
