@@ -163,9 +163,12 @@ pub fn server_connection() -> &'static ServerConnection {
 
 impl ServerConnection {
     pub(crate) fn init(url: impl ToString) {
-        SERVER_CONNECTION.set(Self {
-            connection_keeper: ConnectionKeeper::new(url).into(),
-        });
+        SERVER_CONNECTION
+            .set(Self {
+                connection_keeper: ConnectionKeeper::new(url).into(),
+            })
+            .map_err(|_| anyhow!("ServerConnection already initialized"))
+            .unwrap();
     }
 
     pub async fn request<

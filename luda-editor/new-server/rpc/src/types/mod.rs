@@ -35,8 +35,9 @@ pub struct TeamInviteCode {
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub enum EpisodeEditAction {
-    AddNewScene {
-        id: String,
+    AddScene {
+        index: usize,
+        scene: Scene,
     },
     RemoveScene {
         id: String,
