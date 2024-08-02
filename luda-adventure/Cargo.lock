@@ -622,6 +622,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "fallible-iterator"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
+
+[[package]]
+name = "fallible-streaming-iterator"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
+
+[[package]]
 name = "fastrand"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -964,6 +976,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashlink"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ba4ff7128dee98c7dc9794b6a411377e1404dba1c97deb8d1a55297bd25d8af"
+dependencies = [
+ "hashbrown 0.14.3",
+]
+
+[[package]]
 name = "heapless"
 version = "0.7.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1261,6 +1282,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "libsqlite3-sys"
+version = "0.28.0"
+dependencies = [
+ "cc",
+ "pkg-config",
+ "vcpkg",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1416,6 +1446,7 @@ dependencies = [
  "percent-encoding",
  "rand",
  "reqwest",
+ "rusqlite",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -1473,11 +1504,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "derivative",
- "derive-macro",
  "namui-type",
  "num",
  "ordered-float",
- "serde",
  "skia-safe",
  "textwrap",
  "tokio 1.38.0",
@@ -2179,6 +2208,18 @@ checksum = "b40f1bfe5acdab44bc63e6699c28b74f75ec43afb59f3eda01e145aff86a25fa"
 dependencies = [
  "heapless",
  "num-traits",
+ "smallvec",
+]
+
+[[package]]
+name = "rusqlite"
+version = "0.31.0"
+dependencies = [
+ "bitflags 2.4.1",
+ "fallible-iterator",
+ "fallible-streaming-iterator",
+ "hashlink",
+ "libsqlite3-sys",
  "smallvec",
 ]
 
