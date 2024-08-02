@@ -9,7 +9,7 @@ pub(crate) async fn get_container_config() -> Result<Option<ContainerConfig>> {
     let aws_ssm_client = AWS_SSM_CLIENT
         .get_or_init(|| async {
             let config =
-                aws_config::load_defaults(aws_config::BehaviorVersion::v2023_11_09()).await;
+                aws_config::load_defaults(aws_config::BehaviorVersion::v2024_03_28()).await;
             aws_sdk_ssm::Client::new(&config)
         })
         .await;
