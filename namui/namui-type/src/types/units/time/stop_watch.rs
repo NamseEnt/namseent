@@ -3,18 +3,15 @@ use std::fmt::Debug;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct StopWatch {
-    inner: Instant,
-    now_fn: fn() -> Instant,
+    last: Instant,
     key: String,
     index: usize,
 }
 
 impl StopWatch {
-    #[cfg(feature = "namui_internal")]
-    pub fn new(key: String, inner: Instant, now_fn: fn() -> Instant) -> Self {
+    pub fn new(key: String) -> Self {
         Self {
-            inner,
-            now_fn,
+            last: Instant::now(),
             key,
             index: 0,
         }
@@ -22,9 +19,9 @@ impl StopWatch {
 
     pub fn lap(&mut self) -> Duration {
         self.index += 1;
-        let now = (self.now_fn)();
-        let elapsed = now - self.inner;
-        self.inner = now;
+        let now = Instant::now();
+        let elapsed = now - self.last;
+        self.last = now;
         elapsed
     }
 
@@ -32,17 +29,17 @@ impl StopWatch {
     /// So if you use this recursively, the outside one will have the bigger elapsed time.
     /// You should test outside without inner one later.
     pub fn lap_and_print(&mut self) {
-        let now = (self.now_fn)();
-        let elapsed = now - self.inner;
+        let now = Instant::now();
+        let elapsed = now - self.last;
         crate::log!("StopWatch - {:?}({}): {elapsed:?}", self.key, self.index);
 
         self.index += 1;
-        self.inner = (self.now_fn)();
+        self.last = Instant::now();
     }
 }
 
 impl Debug for StopWatch {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt(f)
+        self.last.fmt(f)
     }
 }
