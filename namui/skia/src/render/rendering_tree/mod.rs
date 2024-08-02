@@ -18,6 +18,7 @@ pub enum RenderingTree {
 /// Order of tree traversal is important.
 /// - draw = pre-order dfs (NLR)
 /// - events = Reverse post-order (RLN)
+///
 /// reference: https://en.wikipedia.org/wiki/Tree_traversal
 impl RenderingTree {
     pub fn iter(&self) -> impl Iterator<Item = &RenderingTree> {
