@@ -17,7 +17,7 @@ env:
   AWS_DEFAULT_REGION: ap-northeast-2
   CDK_DEFAULT_ACCOUNT: 962920162112
   CDK_DEFAULT_REGION: ap-northeast-2
-  CARGO_VERSION: 1.74.0
+  CARGO_VERSION: 1.80.0
   RUST_CACHE_PATHS: |
     ~/.cargo/
     oioi/agent/target/
@@ -125,10 +125,10 @@ jobs:
       - name: Deploy test cdk
         working-directory: oioi
         run: |
-          BRANCH_NAME=$(echo "${GITHUB_REF}" | tr "[:upper:]" "[:lower:]" | sed -e "s#refs/heads/##g" -e 's/\//-/g' -e 's/|/-/g')
+          export BRANCH_NAME=$(echo "${GITHUB_REF}" | tr "[:upper:]" "[:lower:]" | sed -e "s#refs/heads/##g" -e 's/\//-/g' -e 's/|/-/g')
           echo BRANCH_NAME = $BRANCH_NAME
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-          STACK_NAME=$(echo $BRANCH_NAME | tr "[:upper:]" "[:lower:]" | tr -cd '[:alnum:]')
+          export STACK_NAME=$(echo $BRANCH_NAME | tr "[:upper:]" "[:lower:]" | tr -cd '[:alnum:]')
           echo STACK_NAME = $STACK_NAME
           echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
 

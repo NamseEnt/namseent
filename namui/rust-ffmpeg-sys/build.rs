@@ -80,10 +80,10 @@ impl ParseCallbacks for Callbacks {
         let codec_flag_prefix = "AV_CODEC_FLAG_";
         let error_max_size = "AV_ERROR_MAX_STRING_SIZE";
 
-        if value >= i64::min_value() && _name.starts_with(ch_layout_prefix) {
+        if _name.starts_with(ch_layout_prefix) {
             Some(IntKind::ULongLong)
-        } else if value >= i32::min_value() as i64
-            && value <= i32::max_value() as i64
+        } else if value >= i32::MIN as i64
+            && value <= i32::MAX as i64
             && (_name.starts_with(codec_cap_prefix) || _name.starts_with(codec_flag_prefix))
         {
             Some(IntKind::UInt)
@@ -92,7 +92,7 @@ impl ParseCallbacks for Callbacks {
                 name: "usize",
                 is_signed: false,
             })
-        } else if value >= i32::min_value() as i64 && value <= i32::max_value() as i64 {
+        } else if value >= i32::MIN as i64 && value <= i32::MAX as i64 {
             Some(IntKind::Int)
         } else {
             None

@@ -126,7 +126,7 @@ impl Input {
             match avformat_seek_file(
                 self.as_mut_ptr(),
                 -1,
-                range.start().cloned().unwrap_or(i64::min_value()),
+                range.start().cloned().unwrap_or(i64::MIN),
                 ts,
                 range.end().cloned().unwrap_or(i64::max_value()),
                 0,
