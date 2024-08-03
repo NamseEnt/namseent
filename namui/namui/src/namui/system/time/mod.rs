@@ -38,7 +38,7 @@ pub fn now() -> Instant {
 }
 
 pub fn stop_watch(key: impl AsRef<str>) -> StopWatch {
-    StopWatch::new(key.as_ref().to_string(), now(), now)
+    StopWatch::new(key.as_ref().to_string())
 }
 
 /// You can await on this.

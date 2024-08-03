@@ -1372,6 +1372,7 @@ dependencies = [
  "namui-type",
  "rustc-hash",
  "smol_str",
+ "tokio 1.38.0",
 ]
 
 [[package]]
@@ -1387,11 +1388,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "derivative",
- "derive-macro",
  "namui-type",
  "num",
  "ordered-float",
- "serde",
  "skia-safe",
  "textwrap",
  "tokio 1.38.0",

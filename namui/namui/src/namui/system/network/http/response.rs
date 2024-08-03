@@ -33,7 +33,7 @@ impl Response {
     ///
     /// - The server didn't send a `content-length` header.
     /// - The response is compressed and automatically decoded (thus changing
-    ///  the actual decoded length).
+    ///   the actual decoded length).
     pub fn content_length(&self) -> Option<u64> {
         self.reqwest_response.content_length()
     }

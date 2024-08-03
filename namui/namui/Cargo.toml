@@ -8,7 +8,7 @@ edition = "2021"
 targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"]
 
 [dependencies]
-namui-type = { path = "../namui-type", features = ["namui_internal"] }
+namui-type = { path = "../namui-type" }
 namui-hooks = { path = "../namui-hooks" }
 namui-skia = { path = "../skia" }
 namui-cfg = { path = "../namui-cfg" }

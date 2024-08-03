@@ -9,9 +9,6 @@ targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"]
 [features]
 default = []
 skia = ["dep:skia-safe"]
-namui_internal = [
-    # for namui crate internal use. Don't use this feature if you don't know about it.
-]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive", "rc"] }
