@@ -4,10 +4,8 @@ use crate::{
     ecs,
 };
 use namui::*;
-use wasm_bindgen_test::wasm_bindgen_test;
 
 #[test]
-#[wasm_bindgen_test]
 fn character_should_escape_edge_of_wall() {
     let mut game = Game::new();
     add_character(&mut game.ecs_app);

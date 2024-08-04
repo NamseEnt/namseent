@@ -13,10 +13,6 @@ mod storage;
 
 use namui::*;
 
-#[cfg(test)]
-#[cfg(target_family = "wasm")]
-wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-
 static SETTING: late_init::LateInit<setting::Setting> =
     late_init::LateInit::<setting::Setting>::new();
 static RPC: late_init::LateInit<rpc::Rpc> = late_init::LateInit::<rpc::Rpc>::new();
@@ -30,7 +26,7 @@ pub async fn main() {
 struct Init {}
 
 impl namui::Component for Init {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let (loaded, set_loaded) = ctx.state(|| false);
 
         ctx.effect("Init", || {
@@ -80,6 +76,5 @@ impl namui::Component for Init {
         });
 
         ctx.component(loaded.then(|| app::App {}));
-        
     }
 }
