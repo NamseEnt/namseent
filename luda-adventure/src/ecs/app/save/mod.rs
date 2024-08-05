@@ -60,10 +60,8 @@ mod test {
     use crate::component::*;
     use namui::*;
     use std::str::FromStr;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn save_should_works() {
         let app_id = Uuid::from_str("e2dec5e5-c48d-4476-9133-d52719c7c25e").unwrap();
         let mut app = App::new_with_id(app_id);
@@ -94,7 +92,6 @@ mod test {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn load_should_works() {
         let ron = r#"
             (

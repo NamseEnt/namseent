@@ -9,6 +9,3 @@ namui = true
 [dependencies]
 namui = { path = "../../namui" }
 namui-prebuilt = { path = "../../namui-prebuilt" }
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3"
