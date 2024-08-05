@@ -1,4 +1,5 @@
 mod scene_sprite_list;
+mod scene_sprite_position_tool;
 mod sprite_select_tool;
 
 use namui::*;
@@ -27,10 +28,17 @@ impl Component for SceneSpriteEditor<'_> {
                     }
                 }),
                 table::fixed(320.px(), |wh, ctx| {
-                    ctx.add(sprite_select_tool::SpriteSelectTool {});
+                    ctx.add(sprite_select_tool::SpriteSelectTool {
+                        wh,
+                        sprite_docs: todo!(),
+                    });
                 }),
                 table::fixed(320.px(), |wh, ctx| {
-                    ctx.add(scene_sprite_position_tool);
+                    ctx.add(scene_sprite_position_tool::SceneSpritePositionTool {
+                        wh,
+                        position: todo!(),
+                        on_change_position: todo!(),
+                    });
                 }),
                 table::fixed(320.px(), |wh, ctx| {
                     ctx.add(scene_sprite_size_tool);
