@@ -85,7 +85,7 @@ impl Component for TextDrawCommand {
     }
 }
 
-impl<T: Fn(&RenderCtx)> Component for T {
+impl<T: FnOnce(&RenderCtx)> Component for T {
     fn render(self, ctx: &RenderCtx) {
         self(ctx)
     }
