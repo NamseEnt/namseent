@@ -451,10 +451,8 @@ pub fn fit<'a>(
 // mod tests {
 //     use super::*;
 //     use std::sync::atomic::AtomicBool;
-//     use wasm_bindgen_test::wasm_bindgen_test;
 
 //     #[test]
-//     #[wasm_bindgen_test]
 //     fn closure_should_give_right_wh() {
 //         let button_render_called = AtomicBool::new(false);
 //         let label_render_called = AtomicBool::new(false);

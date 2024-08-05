@@ -160,10 +160,8 @@ namui::lazy_static! {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn hangul_should_be_parsed() {
         for (text, alphabets) in [
             ("안녕하세ㄱ욟", "ㅇㅏㄴㄴㅕㅇㅎㅏㅅㅔㄱㅇㅛㄹㅂ"),
@@ -177,7 +175,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn starts_with_check_should_works_with_double_jongseong() {
         assert!(DecomposedString::parse("날부").starts_with("ㄴ"));
         assert!(DecomposedString::parse("날부").starts_with("나"));
@@ -191,7 +188,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn starts_with_check_should_works_with_alphanumeric() {
         assert!(DecomposedString::parse("qwe123r4").starts_with("q"));
         assert!(DecomposedString::parse("qwe123r4").starts_with("qwe"));

@@ -12,7 +12,3 @@ pub mod vh_list_view;
 // pub mod sheet;
 
 pub use simple_rect::*;
-
-#[cfg(test)]
-#[cfg(target_family = "wasm")]
-wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);

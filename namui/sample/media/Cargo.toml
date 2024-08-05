@@ -9,6 +9,3 @@ targets = ["x86_64-pc-windows-msvc"]
 [dependencies]
 namui = { path = "../../namui" }
 namui-prebuilt = { path = "../../namui-prebuilt" }
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3"
