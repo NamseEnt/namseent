@@ -2,7 +2,7 @@ mod parts;
 
 use crate::*;
 pub use parts::*;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[document]
 struct SpriteDoc {
@@ -29,11 +29,11 @@ impl Sprite {
 #[doc_part]
 struct PartsSprite {
     name: String,
-    parts: HashMap<String, SpritePart>,
+    parts: BTreeMap<String, SpritePart>,
 }
 
 #[doc_part]
 struct SingleImageSprite {
+    id: String,
     name: String,
-    s3_key: String,
 }

@@ -6,7 +6,7 @@ struct SceneDoc {
     #[pk]
     id: String,
     speaker_id: Option<String>,
-    sprites: Vec<SceneSprite>,
+    scene_sprites: Vec<SceneSprite>,
     /// `None` means the background should be black.
     background_sprite: Option<SceneSprite>,
     /// `None` means previous bgm should be continued.
@@ -15,7 +15,7 @@ struct SceneDoc {
 
 #[doc_part]
 struct SceneSprite {
-    sprite_id: String,
+    sprite_id: Option<String>,
     circumcircle: Circumcircle,
     /// - key: part id
     /// - value: part option ids

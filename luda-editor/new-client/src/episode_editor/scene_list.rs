@@ -26,7 +26,7 @@ impl Component for SceneList<'_> {
                         scroll_bar_width: 20.px(),
                         item_wh: Wh::new(wh.width, 200.px()),
                         items: scenes.iter().enumerate().map(|(index, scene)| {
-                            (scene.id.as_str().into(), SceneListCell { index, scene })
+                            (scene.id.as_str(), SceneListCell { index, scene })
                         }),
                     });
                 }),

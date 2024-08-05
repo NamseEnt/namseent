@@ -51,3 +51,6 @@ pub enum EpisodeEditAction {
         scene: Scene,
     },
 }
+
+pub type SceneSprite = migration::schema::SceneSprite;
+pub type Sprite = migration::schema::SpriteDoc;
