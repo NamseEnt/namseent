@@ -1,6 +1,6 @@
 use crate::*;
 use anyhow::Result;
-use psd::{IntoRgba, PsdLayer};
+use psd::{image_data_section::ChannelBytes, IntoRgba, PsdLayer, ToMask};
 use rayon::prelude::*;
 use skia_safe::{Data, ImageInfo, Paint, Surface};
 use skia_util::sk_image_to_webp;
@@ -29,6 +29,25 @@ impl LayerTree<'_> {
                 width: layer.width(),
                 height: layer.height(),
             },
+        }
+    }
+
+    fn get_mask(&self) -> Option<RenderingImage> {
+        let masks = match self {
+            LayerTree::Group { group, .. } => (
+                mask_to_rendering_image(group.raster_mask()),
+                mask_to_rendering_image(group.vector_mask()),
+            ),
+            LayerTree::Layer { layer } => (
+                mask_to_rendering_image(layer.raster_mask()),
+                mask_to_rendering_image(layer.vector_mask()),
+            ),
+        };
+
+        match masks {
+            (None, None) => None,
+            (None, Some(mask)) | (Some(mask), None) => Some(mask),
+            (Some(raster_mask), Some(vector_mask)) => raster_mask.intersect_as_mask(&vector_mask),
         }
     }
 }
@@ -144,6 +163,7 @@ pub fn into_parts_sprite(layer_tree: Vec<LayerTree>, name: String) -> Result<Par
         clipping_base: true,
         opacity: 255,
         rect,
+        mask: None,
     })
 }
 
@@ -159,6 +179,11 @@ fn into_sprite_parts(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<
                 width: rect.width().px(),
                 height: rect.height().px(),
             };
+            let mask = layer_tree
+                .get_mask()
+                .map(|mask| mask.to_sprite_image())
+                .transpose()?;
+
             match layer_tree {
                 LayerTree::Group { group, children } => {
                     prefixes.push(group.name());
@@ -179,6 +204,7 @@ fn into_sprite_parts(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<
                         clipping_base: group.is_clipping_mask(),
                         opacity: group.opacity(),
                         rect: rect_px,
+                        mask,
                     });
                 }
                 LayerTree::Layer { layer } => {
@@ -223,9 +249,44 @@ fn into_sprite_parts(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<
                         clipping_base: layer.is_clipping_mask(),
                         opacity: layer.opacity(),
                         rect: rect_px,
+                        mask,
                     })
                 }
             }
         })
         .collect()
+}
+
+fn mask_to_rendering_image(
+    mask: Option<(&ChannelBytes, i32, i32, i32, i32)>,
+) -> Option<RenderingImage> {
+    let Some((bytes, top, right, bottom, left)) = mask else {
+        return None;
+    };
+    let rect = Rect::Ltrb {
+        left,
+        top,
+        right,
+        bottom,
+    };
+    if rect.width() == 0 || rect.height() == 0 {
+        return None;
+    }
+    let raw_data = bytes.to_raw_data();
+    let bottom_image_info = ImageInfo::new_a8((rect.width(), rect.height()));
+    let sk_image = skia_safe::image::images::raster_from_data(
+        &bottom_image_info,
+        Data::new_copy(&raw_data),
+        rect.width() as _,
+    );
+
+    sk_image.map(|sk_image| RenderingImage {
+        dest_rect: Rect::Ltrb {
+            left,
+            top,
+            right,
+            bottom,
+        },
+        sk_image,
+    })
 }
