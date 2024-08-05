@@ -2,22 +2,16 @@ use crate::*;
 use rkyv::*;
 
 #[doc_part]
+/// This struct just stores the options to on/off the parts of a sprite.
 struct SpritePart {
     id: String,
     name: String,
-    kind: SpritePartKind,
-}
-
-#[doc_part]
-enum SpritePartKind {
-    Fixed { image: SpritePartOption },
-    SingleSelect { images: Vec<SpritePartOption> },
-    MultiSelect { images: Vec<SpritePartOption> },
+    is_single_select: bool,
+    part_options: Vec<SpritePartOption>,
 }
 
 #[doc_part]
 struct SpritePartOption {
     id: String,
     name: String,
-    dest_rect: Rect<Px>,
 }
