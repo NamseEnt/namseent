@@ -1,12 +1,12 @@
 use crate::*;
 
-pub struct SceneSpritePositionTool<'a> {
+pub struct PositionTool<'a> {
     pub wh: Wh<Px>,
     pub position: Xy<f32>,
     pub on_change_position: &'a dyn Fn(Xy<f32>),
 }
 
-impl Component for SceneSpritePositionTool<'_> {
+impl Component for PositionTool<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
@@ -16,8 +16,8 @@ impl Component for SceneSpritePositionTool<'_> {
 
         ctx.compose(|ctx| {
             table::vertical([
-                table::fit(FitAlign::LeftTop, |ctx| {
-                    ctx.add(typography::body::left(32.px(), "위치", Color::WHITE));
+                table::fixed(64.px(), |wh, ctx| {
+                    ctx.add(typography::body::left(wh.height, "위치", Color::WHITE));
                 }),
                 table::ratio(1, |wh, ctx| {
                     ctx.add(
