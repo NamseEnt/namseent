@@ -12,7 +12,3 @@ pub use group::*;
 pub use line::*;
 pub use link::*;
 use namui::*;
-
-#[cfg(test)]
-#[cfg(target_family = "wasm")]
-wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);

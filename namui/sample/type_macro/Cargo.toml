@@ -9,6 +9,3 @@ namui = true
 [dependencies]
 namui = { path = "../../namui" }
 serde = { version = "1.0", features = ["derive"] }
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3"
