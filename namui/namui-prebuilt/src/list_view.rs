@@ -1,11 +1,11 @@
 use crate::scroll_view::{self};
 use namui::*;
-use std::borrow::Cow;
 
-pub struct AutoListView<'a, Items, C>
+pub struct AutoListView<Items, Key, C>
 where
     C: Component,
-    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
 {
     pub height: Px,
     pub scroll_bar_width: Px,
@@ -13,10 +13,11 @@ where
     pub items: Items,
 }
 
-impl<'a, Items, C> Component for AutoListView<'a, Items, C>
+impl<Items, Key, C> Component for AutoListView<Items, Key, C>
 where
     C: Component,
-    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
 {
     fn render(self, ctx: &RenderCtx) {
         let Self {
@@ -38,10 +39,11 @@ where
     }
 }
 
-pub struct ListView<'a, Items, C>
+pub struct ListView<Items, Key, C>
 where
     C: Component,
-    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
 {
     pub height: Px,
     pub scroll_bar_width: Px,
@@ -51,10 +53,11 @@ where
     pub set_scroll_y: SetState<Px>,
 }
 
-impl<'a, Items, C> Component for ListView<'a, Items, C>
+impl<Items, Key, C> Component for ListView<Items, Key, C>
 where
     C: Component,
-    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
 {
     fn render(self, ctx: &RenderCtx) {
         let Self {
@@ -81,10 +84,11 @@ where
     }
 }
 
-struct ListViewInner<'a, Items, C>
+struct ListViewInner<Items, Key, C>
 where
     C: Component,
-    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
 {
     height: Px,
     item_wh: Wh<Px>,
@@ -92,10 +96,11 @@ where
     scroll_y: Px,
 }
 
-impl<'a, Items, C> Component for ListViewInner<'a, Items, C>
+impl<Items, Key, C> Component for ListViewInner<Items, Key, C>
 where
     C: Component,
-    Items: ExactSizeIterator<Item = (Cow<'a, str>, C)>,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
 {
     fn render(self, ctx: &RenderCtx) {
         let Self {
@@ -150,7 +155,7 @@ where
 
         ctx.compose(|ctx| {
             for (index, (key, visible_item)) in visible_items.into_iter().enumerate() {
-                ctx.compose_with_key(key.as_ref(), |ctx| {
+                ctx.compose_with_key(key, |ctx| {
                     ctx.translate((0.px(), item_wh.height * (index + visible_item_start_index)))
                         .add(visible_item);
                 });

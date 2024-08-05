@@ -102,7 +102,7 @@ impl Component for Dropdown<'_> {
                                 }
                                 _ => {}
                             });
-                            (item_index.to_string().into(), item_component)
+                            (item_index, item_component)
                         }),
                     })
                     .add(simple_rect(
