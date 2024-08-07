@@ -625,3 +625,40 @@ where
         }
     }
 }
+
+impl<T> Rect<T>
+where
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
+{
+    pub fn map<U>(&self, f: impl Fn(&T) -> U) -> Rect<U>
+    where
+        U: Debug + rkyv::Archive,
+        <U as rkyv::Archive>::Archived: Debug,
+    {
+        match self {
+            Rect::Xywh {
+                x,
+                y,
+                width,
+                height,
+            } => Rect::Xywh {
+                x: f(x),
+                y: f(y),
+                width: f(width),
+                height: f(height),
+            },
+            Rect::Ltrb {
+                left,
+                top,
+                right,
+                bottom,
+            } => Rect::Ltrb {
+                left: f(left),
+                top: f(top),
+                right: f(right),
+                bottom: f(bottom),
+            },
+        }
+    }
+}
