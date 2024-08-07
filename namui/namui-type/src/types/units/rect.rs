@@ -627,14 +627,8 @@ where
 }
 
 impl<T> Rect<T>
-where
-    T: Debug + rkyv::Archive,
-    <T as rkyv::Archive>::Archived: Debug,
 {
     pub fn map<U>(&self, f: impl Fn(&T) -> U) -> Rect<U>
-    where
-        U: Debug + rkyv::Archive,
-        <U as rkyv::Archive>::Archived: Debug,
     {
         match self {
             Rect::Xywh {
