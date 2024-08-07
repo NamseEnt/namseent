@@ -32,7 +32,7 @@ impl LayerTree<'_> {
         }
     }
 
-    fn get_mask(&self) -> Option<RenderingImage> {
+    fn get_mask(&self) -> Option<SkPositionImage> {
         let masks = match self {
             LayerTree::Group { group, .. } => (
                 mask_to_rendering_image(group.raster_mask()),
@@ -144,7 +144,7 @@ fn layer_to_sk_image(layer: &PsdLayer) -> Result<skia_safe::Image> {
     .ok_or(anyhow::anyhow!("Failed to create image from layer"))?)
 }
 
-pub fn into_parts_sprite(layer_tree: Vec<LayerTree>, name: String) -> Result<PartsSprite> {
+pub fn into_parts_sprite(layer_tree: Vec<LayerTree>, name: String) -> Result<PartsSpriteAsset> {
     let entries = into_sprite_parts(layer_tree, vec![])?;
     let rect = entries
         .iter()
@@ -156,7 +156,7 @@ pub fn into_parts_sprite(layer_tree: Vec<LayerTree>, name: String) -> Result<Par
         })
         .unwrap_or_default();
 
-    Ok(PartsSprite {
+    Ok(PartsSpriteAsset {
         name,
         kind: SpritePartKind::Directory { entries },
         blend_mode: BlendMode::Normal,
@@ -167,10 +167,13 @@ pub fn into_parts_sprite(layer_tree: Vec<LayerTree>, name: String) -> Result<Par
     })
 }
 
-fn into_sprite_parts(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<Vec<PartsSprite>> {
+fn into_sprite_parts(
+    layer_tree: Vec<LayerTree>,
+    prefixes: Vec<&str>,
+) -> Result<Vec<PartsSpriteAsset>> {
     layer_tree
         .into_par_iter()
-        .map(|layer_tree| -> Result<PartsSprite> {
+        .map(|layer_tree| -> Result<PartsSpriteAsset> {
             let mut prefixes = prefixes.clone();
             let rect = layer_tree.rect();
             let rect_px = Rect::Xywh {
@@ -197,7 +200,7 @@ fn into_sprite_parts(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<
                         }
                         _ => SpritePartKind::Directory { entries: parts },
                     };
-                    return Ok(PartsSprite {
+                    return Ok(PartsSpriteAsset {
                         name: prefixes.join("."),
                         kind,
                         blend_mode: group.blend_mode(),
@@ -232,7 +235,7 @@ fn into_sprite_parts(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<
                     let image = surface.image_snapshot();
                     let webp_bytes = sk_image_to_webp(&image)?;
 
-                    Ok(PartsSprite {
+                    Ok(PartsSpriteAsset {
                         name: prefixes.join("."),
                         blend_mode: layer.blend_mode(),
                         kind: SpritePartKind::Fixed {
@@ -259,7 +262,7 @@ fn into_sprite_parts(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<
 
 fn mask_to_rendering_image(
     mask: Option<(&ChannelBytes, i32, i32, i32, i32)>,
-) -> Option<RenderingImage> {
+) -> Option<SkPositionImage> {
     let Some((bytes, top, right, bottom, left)) = mask else {
         return None;
     };
@@ -280,7 +283,7 @@ fn mask_to_rendering_image(
         rect.width() as _,
     );
 
-    sk_image.map(|sk_image| RenderingImage {
+    sk_image.map(|sk_image| SkPositionImage {
         dest_rect: Rect::Ltrb {
             left,
             top,

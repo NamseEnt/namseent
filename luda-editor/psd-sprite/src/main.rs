@@ -1,9 +1,9 @@
-use psd_sprite::{skia_util::sk_image_to_webp, PartsSprite, PartsSpriteLock};
+use psd_sprite::{skia_util::sk_image_to_webp, PartsSpriteAsset, PartsSpriteLock};
 use std::collections::BTreeSet;
 
 fn main() {
     let psd_bytes = include_bytes!("test.psd");
-    let parts_sprite = PartsSprite::from_psd_bytes(psd_bytes, "test".to_string()).unwrap();
+    let parts_sprite = PartsSpriteAsset::from_psd_bytes(psd_bytes, "test".to_string()).unwrap();
     print_parts_sprite_names(&parts_sprite, 0);
 
     let lock = PartsSpriteLock {
@@ -24,7 +24,7 @@ fn main() {
     std::fs::write("test.webp", webp_bytes).unwrap();
 }
 
-fn print_parts_sprite_names(parts_sprite: &PartsSprite, indent: usize) {
+fn print_parts_sprite_names(parts_sprite: &PartsSpriteAsset, indent: usize) {
     for _ in 0..indent {
         print!("   ");
     }
