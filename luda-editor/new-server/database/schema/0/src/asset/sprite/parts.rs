@@ -4,7 +4,6 @@ use rkyv::*;
 #[doc_part]
 /// This struct just stores the options to on/off the parts of a sprite.
 struct SpritePart {
-    id: String,
     name: String,
     is_single_select: bool,
     part_options: Vec<SpritePartOption>,
@@ -12,6 +11,5 @@ struct SpritePart {
 
 #[doc_part]
 struct SpritePartOption {
-    id: String,
     name: String,
 }
