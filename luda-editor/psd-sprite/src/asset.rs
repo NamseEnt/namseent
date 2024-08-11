@@ -1,55 +1,114 @@
 use crate::*;
+use layer_tree::*;
 use namui_type::*;
-use psd::BlendMode;
-use sk_position_image::SkPositionImage;
+use psd::{BlendMode, IntoRgba};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use schema_0::SceneSprite;
+use skia_safe::{Data, ImageFilter};
+use skia_util::*;
+use std::{borrow::Borrow, collections::HashMap, io::Cursor, iter::Peekable};
 
 #[derive(Debug)]
 pub struct PartsSpriteAsset {
-    entries: Vec<Entry>,
+    pub(crate) entries: Vec<Entry>,
     pub rect: Rect<Px>,
 }
 impl PartsSpriteAsset {
-    pub fn from_psd_bytes(psd_bytes: &[u8], name: String) -> Result<Self> {
+    pub fn from_psd_bytes(psd_bytes: &[u8]) -> anyhow::Result<Self> {
         let psd = psd::Psd::from_bytes(psd_bytes)?;
+        let rect = Wh::new(psd.psd_width(), psd.psd_height())
+            .map(|x| (x as f32).px())
+            .to_rect();
         let layer_trees = make_tree(&psd)?;
-        Ok(layer_tree::into_parts_sprite(layer_trees, name)?)
+        Ok(layer_tree::into_parts_sprite_asset(layer_trees, rect)?)
     }
 
-    pub fn render(&self, lock: &PartsSpriteLock) -> Result<Image> {
-        render_parts_sprite(self, lock)
+    pub fn render(&self, scene_sprite: &SceneSprite) -> anyhow::Result<Option<ImageFilter>> {
+        render_parts_sprite(scene_sprite, self)
+    }
+
+    pub fn to_parts_sprite(&self, name: String) -> anyhow::Result<schema_0::PartsSprite> {
+        fn to_options(entries: &[Entry]) -> Vec<schema_0::SpritePartOption> {
+            entries
+                .iter()
+                .map(|entry| schema_0::SpritePartOption {
+                    name: entry.name.clone(),
+                })
+                .collect()
+        }
+        fn collect_parts(entry: &Entry) -> Vec<(String, schema_0::SpritePart)> {
+            match &entry.kind {
+                EntryKind::Layer { .. } => vec![],
+                EntryKind::Group { entries } => {
+                    let name = entry.name.clone();
+                    match name {
+                        name if name.ends_with("_m") => {
+                            vec![(
+                                name,
+                                schema_0::SpritePart {
+                                    name: entry.name.clone(),
+                                    is_single_select: false,
+                                    part_options: to_options(&entries),
+                                },
+                            )]
+                        }
+                        name if name.ends_with("_s") => {
+                            vec![(
+                                name,
+                                schema_0::SpritePart {
+                                    name: entry.name.clone(),
+                                    is_single_select: true,
+                                    part_options: to_options(&entries),
+                                },
+                            )]
+                        }
+                        _ => entries
+                            .par_iter()
+                            .flat_map(|entry| collect_parts(entry))
+                            .collect(),
+                    }
+                }
+            }
+        }
+
+        let parts = self
+            .entries
+            .par_iter()
+            .flat_map(|entry| collect_parts(entry))
+            .collect();
+        Ok(schema_0::PartsSprite { name, parts })
     }
 }
 
 #[derive(Debug)]
-struct Entry {
-    name: String,
-    blend_mode: BlendMode,
-    clipping_base: bool,
-    opacity: u8,
-    rect: Rect<Px>,
-    mask: Option<SpriteImage>,
-    kind: EntryKind,
+pub(crate) struct Entry {
+    pub(crate) name: String,
+    pub(crate) blend_mode: BlendMode,
+    pub(crate) clipping_base: bool,
+    pub(crate) opacity: u8,
+    pub(crate) mask: Option<SpriteImage>,
+    pub(crate) kind: EntryKind,
 }
 
 #[derive(Debug)]
-enum EntryKind {
+pub(crate) enum EntryKind {
     Layer { image: SpriteImage },
     Group { entries: Vec<Entry> },
 }
 
 #[derive(Debug)]
 pub(crate) struct SpriteImage {
-    dest_rect: Rect<Px>,
-    webp: Box<[u8]>,
+    pub(crate) dest_rect: Rect<Px>,
+    pub(crate) webp: Box<[u8]>,
 }
 impl SpriteImage {
-    pub fn to_sk_image(&self) -> Result<Image> {
+    pub fn to_sk_image(&self) -> anyhow::Result<skia_safe::Image> {
         let image = image::ImageReader::new(Cursor::new(&self.webp))
             .with_guessed_format()?
             .decode()?;
         let rgba = image.to_rgba8().into_vec();
         Ok(skia_safe::image::images::raster_from_data(
-            &ImageInfo::new_n32(
+            &skia_safe::ImageInfo::new_n32(
                 (image.width() as i32, image.height() as i32),
                 skia_safe::AlphaType::Unpremul,
                 None,
@@ -60,13 +119,13 @@ impl SpriteImage {
         .ok_or(anyhow::anyhow!("Failed to create image from SpriteImage"))?)
     }
 
-    pub fn to_sk_image_a8(&self) -> Result<Image> {
+    pub fn to_sk_image_a8(&self) -> anyhow::Result<skia_safe::Image> {
         let image = image::ImageReader::new(Cursor::new(&self.webp))
             .with_guessed_format()?
             .decode()?;
         let rgba = image.to_luma8().into_vec();
         Ok(skia_safe::image::images::raster_from_data(
-            &ImageInfo::new_a8((image.width() as i32, image.height() as i32)),
+            &skia_safe::ImageInfo::new_a8((image.width() as i32, image.height() as i32)),
             Data::new_copy(&rgba),
             image.width() as usize,
         )
@@ -74,233 +133,250 @@ impl SpriteImage {
             "Failed to create a8 image from SpriteImage"
         ))?)
     }
+}
 
-    pub fn from_sk_position_image(sk_position_image: SkPositionImage) -> Result<Self> {
-        let webp = sk_image_to_webp(&sk_position_image.sk_image)?;
-        Ok(SpriteImage {
-            dest_rect: sk_position_image.dest_rect.map(|a| a.px()),
-            webp: webp.into_boxed_slice(),
-        })
+fn load_parts_sprite_images(sprite_part: &PartsSpriteAsset) -> Vec<(String, ImageFilter)> {
+    let images = sprite_part
+        .entries
+        .par_iter()
+        .flat_map(load_parts_sprite_images_from_entry)
+        .collect();
+    return images;
+
+    fn load_parts_sprite_images_from_entry(entry: &Entry) -> Vec<(String, ImageFilter)> {
+        match &entry.kind {
+            EntryKind::Layer { image } => image
+                .to_sk_image()
+                .map(|sk_image| {
+                    skia_safe::image_filters::image(sk_image, None, None, None)
+                        .and_then(|image_filter| {
+                            image_filter.offset(
+                                None,
+                                (
+                                    image.dest_rect.left().as_f32(),
+                                    image.dest_rect.top().as_f32(),
+                                ),
+                            )
+                        })
+                        .map(|image_filter| vec![(entry.name.clone(), image_filter)])
+                        .unwrap_or_default()
+                })
+                .unwrap_or_default(),
+            EntryKind::Group { entries } => entries
+                .par_iter()
+                .flat_map(|entry| load_parts_sprite_images_from_entry(entry))
+                .collect(),
+        }
+    }
+}
+
+fn load_parts_sprite_mask_images(sprite_part: &PartsSpriteAsset) -> Vec<(String, ImageFilter)> {
+    let masks = sprite_part
+        .entries
+        .par_iter()
+        .flat_map(load_parts_sprite_mask_images_from_entry)
+        .collect();
+    return masks;
+
+    fn load_parts_sprite_mask_images_from_entry(entry: &Entry) -> Vec<(String, ImageFilter)> {
+        let mut masks = entry
+            .mask
+            .as_ref()
+            .map(|mask| {
+                mask.to_sk_image_a8()
+                    .map(|sk_image| {
+                        let src_rect = skia_safe::Rect::from_wh(
+                            mask.dest_rect.width().as_f32(),
+                            mask.dest_rect.height().as_f32(),
+                        );
+                        let dst_rect = skia_safe::Rect::from_ltrb(
+                            mask.dest_rect.left().as_f32(),
+                            mask.dest_rect.top().as_f32(),
+                            mask.dest_rect.bottom().as_f32(),
+                            mask.dest_rect.right().as_f32(),
+                        );
+                        skia_safe::image_filters::image(
+                            sk_image,
+                            Some(&src_rect),
+                            Some(&dst_rect),
+                            None,
+                        )
+                        .map(|image| vec![(entry.name.clone(), image)])
+                        .unwrap_or_default()
+                    })
+                    .unwrap_or_default()
+            })
+            .unwrap_or_default();
+        match &entry.kind {
+            EntryKind::Layer { .. } => masks,
+            EntryKind::Group { entries } => {
+                let child_masks: Vec<_> = entries
+                    .par_iter()
+                    .flat_map(|entry| load_parts_sprite_mask_images_from_entry(entry))
+                    .collect();
+                masks.extend(child_masks);
+                masks
+            }
+        }
     }
 }
 
 fn render_parts_sprite(
-    sprite_part: &PartsSpriteAsset,
-    parts_sprite_lock: &PartsSpriteLock,
-) -> Result<Image> {
-    let rect: Rect<i32> = Rect::Xywh {
-        x: sprite_part.rect.x().as_f32() as _,
-        y: sprite_part.rect.y().as_f32() as _,
-        width: sprite_part.rect.width().as_f32() as _,
-        height: sprite_part.rect.height().as_f32() as _,
-    };
-    if rect.width() == 0 || rect.height() == 0 {
-        return Err(anyhow::anyhow!("No layer to rasterize"));
-    }
-
-    let parts_sprite_images = HashMap::from_iter(load_parts_sprite_images(sprite_part));
-    let parts_sprite_mask_images = HashMap::from_iter(load_parts_sprite_mask_images(sprite_part));
-
-    let image_info = ImageInfo::new_n32(
-        (rect.width(), rect.height()),
-        skia_safe::AlphaType::Unpremul,
+    scene_sprite: &schema_0::SceneSprite,
+    asset: &PartsSpriteAsset,
+) -> anyhow::Result<Option<ImageFilter>> {
+    let parts_sprite_images = HashMap::from_iter(load_parts_sprite_images(asset));
+    let parts_sprite_mask_images = HashMap::from_iter(load_parts_sprite_mask_images(asset));
+    let rendered = render_entries(
         None,
-    );
-    let mut surface: Surface = skia_safe::surfaces::raster(&image_info, None, None).unwrap();
-    let canvas = surface.canvas();
-    canvas.translate((-rect.left(), -rect.top()));
-
-    render_parts_sprite_to_canvas(
-        canvas,
-        std::slice::from_ref(sprite_part),
-        parts_sprite_lock,
+        &asset.entries,
+        scene_sprite,
         &parts_sprite_images,
         &parts_sprite_mask_images,
         &None,
+        255,
     )?;
 
-    let image = surface.image_snapshot();
-    Ok(image)
+    Ok(rendered)
 }
 
-fn load_parts_sprite_images(sprite_part: &PartsSpriteAsset) -> Vec<(String, SkPositionImage)> {
-    match &sprite_part.kind {
-        Entry::SingleSelect { options: entries }
-        | Entry::MultiSelect { options: entries }
-        | Entry::Group { entries } => entries
-            .par_iter()
-            .flat_map(|entry| load_parts_sprite_images(entry))
-            .collect(),
-        Entry::Layer { image } => image
-            .to_sk_image()
-            .map(|sk_image| SkPositionImage {
-                dest_rect: Rect::Ltrb {
-                    left: image.dest_rect.left().as_f32() as i32,
-                    top: image.dest_rect.top().as_f32() as i32,
-                    right: image.dest_rect.right().as_f32() as i32,
-                    bottom: image.dest_rect.bottom().as_f32() as i32,
-                },
-                sk_image,
-            })
-            .map_or(Vec::new(), |image| vec![(sprite_part.name.clone(), image)]),
-    }
-}
+fn render_entries<T: Borrow<Entry>>(
+    mut background: Option<ImageFilter>,
+    entries: &[T],
+    scene_sprite: &SceneSprite,
+    parts_sprite_images: &HashMap<String, ImageFilter>,
+    parts_sprite_mask_images: &HashMap<String, ImageFilter>,
+    parent_mask: &Option<ImageFilter>,
+    parent_opacity: u8,
+) -> anyhow::Result<Option<ImageFilter>> {
+    let mut entries = entries.into_iter().rev().peekable();
 
-fn load_parts_sprite_mask_images(sprite_part: &PartsSpriteAsset) -> Vec<(String, SkPositionImage)> {
-    match &sprite_part.kind {
-        Entry::SingleSelect { options: entries }
-        | Entry::MultiSelect { options: entries }
-        | Entry::Group { entries } => entries
-            .par_iter()
-            .flat_map(|entry| load_parts_sprite_mask_images(entry))
-            .collect(),
-        Entry::Layer { .. } => sprite_part
-            .mask
-            .as_ref()
-            .and_then(|mask| {
-                mask.to_sk_image_a8().ok().map(|sk_image| SkPositionImage {
-                    dest_rect: Rect::Ltrb {
-                        left: mask.dest_rect.left().as_f32() as i32,
-                        top: mask.dest_rect.top().as_f32() as i32,
-                        right: mask.dest_rect.right().as_f32() as i32,
-                        bottom: mask.dest_rect.bottom().as_f32() as i32,
-                    },
-                    sk_image,
-                })
-            })
-            .map_or(Vec::new(), |mask| vec![(sprite_part.name.clone(), mask)]),
-    }
-}
-
-fn render_parts_sprite_to_canvas<T: Borrow<PartsSpriteAsset>>(
-    canvas: &skia_safe::Canvas,
-    parts_sprites: &[T],
-    parts_sprite_lock: &PartsSpriteLock,
-    parts_sprite_images: &HashMap<String, SkPositionImage>,
-    parts_sprite_mask_images: &HashMap<String, SkPositionImage>,
-    parent_mask: &Option<SkPositionImage>,
-) -> Result<()> {
-    let _auto_restore = AutoRestoreCanvas::new(canvas);
-    let mut parts_sprites = parts_sprites.into_iter().rev().peekable();
-
-    while let Some(parts_sprite) = parts_sprites.next() {
-        let _auto_restore = AutoRestoreCanvas::new(canvas);
-        let parts_sprite = parts_sprite.borrow();
-        let blend_mode = parts_sprite.blend_mode;
+    while let Some(entry) = entries.next() {
+        let entry = <T as Borrow<Entry>>::borrow(&entry);
+        let blend_mode = entry.blend_mode;
         let passthrough = matches!(blend_mode, BlendMode::PassThrough);
-        let has_clipping_layer = has_clipping_layer(&mut parts_sprites);
+        let has_clipping_layer = has_clipping_layer(&mut entries);
         let mask = {
-            let mask_image = parts_sprite_mask_images.get(&parts_sprite.name);
+            let mask_image = parts_sprite_mask_images.get(&entry.name);
             match (parent_mask, mask_image) {
                 (None, None) => None,
                 (None, Some(mask)) | (Some(mask), None) => Some(mask.clone()),
-                (Some(parent_mask), Some(mask)) => parent_mask.intersect_as_mask(mask),
+                (Some(parent_mask), Some(mask_image)) => skia_safe::image_filters::blend(
+                    skia_safe::BlendMode::DstIn,
+                    Some(parent_mask.clone()),
+                    Some(mask_image.clone()),
+                    None,
+                ),
             }
         };
 
-        if !passthrough || !has_clipping_layer {
-            let paint = create_paint_from_parts_sprite(parts_sprite);
-            let save_layer_rec = SaveLayerRec::default().paint(&paint);
-            canvas.save_layer(&save_layer_rec);
-        }
-
-        match &parts_sprite.kind {
-            Entry::SingleSelect { options } => {
-                let selected_parts_sprite = options
-                    .into_iter()
-                    .find(|option| parts_sprite_lock.part_names.contains(&option.name));
-                let Some(selected_parts_sprite) = selected_parts_sprite else {
-                    continue;
-                };
-                render_parts_sprite_to_canvas(
-                    canvas,
-                    std::slice::from_ref(selected_parts_sprite),
-                    parts_sprite_lock,
-                    parts_sprite_images,
-                    parts_sprite_mask_images,
-                    &mask,
-                )?
-            }
-            Entry::MultiSelect { options } => {
-                let selected_parts_sprite = options
-                    .into_iter()
-                    .filter(|option| parts_sprite_lock.part_names.contains(&option.name))
-                    .collect::<Vec<_>>();
-                render_parts_sprite_to_canvas(
-                    canvas,
-                    selected_parts_sprite.as_slice(),
-                    parts_sprite_lock,
-                    parts_sprite_images,
-                    parts_sprite_mask_images,
-                    &mask,
-                )?
-            }
-            Entry::Group { entries } => render_parts_sprite_to_canvas(
-                canvas,
-                entries.as_slice(),
-                parts_sprite_lock,
-                parts_sprite_images,
-                parts_sprite_mask_images,
-                &mask,
-            )?,
-            Entry::Layer { .. } => {
-                let Some(image) = parts_sprite_images.get(&parts_sprite.name) else {
-                    // Maybe layer is empty
-                    continue;
-                };
-                let paint = Paint::default();
-                canvas.draw_image(&image.sk_image, image.left_top(), Some(&paint));
-
-                if let Some(mask) = &mask {
-                    let mut paint = Paint::default();
-                    paint.set_blend_mode(skia_safe::BlendMode::DstIn);
-                    canvas.draw_image(&mask.sk_image, mask.left_top(), Some(&paint));
+        let mut foreground = match &entry.kind {
+            EntryKind::Layer { .. } => parts_sprite_images.get(&entry.name).cloned(),
+            EntryKind::Group { entries } => match &entry.name {
+                name if name.ends_with("_m") || name.ends_with("_s") => {
+                    let entries =
+                        if let Some(part_names) = scene_sprite.part_option_selections.get(name) {
+                            entries
+                                .into_iter()
+                                .filter(|entry| part_names.contains(&entry.name))
+                                .collect::<Vec<_>>()
+                        } else {
+                            vec![]
+                        };
+                    render_entries(
+                        None,
+                        &entries,
+                        scene_sprite,
+                        parts_sprite_images,
+                        parts_sprite_mask_images,
+                        &None,
+                        255,
+                    )?
                 }
-            }
+                _ => {
+                    if passthrough && !has_clipping_layer {
+                        background = render_entries(
+                            background,
+                            entries,
+                            scene_sprite,
+                            parts_sprite_images,
+                            parts_sprite_mask_images,
+                            &mask,
+                            entry.opacity,
+                        )?;
+                        continue;
+                    }
+
+                    render_entries(
+                        None,
+                        &entries,
+                        scene_sprite,
+                        parts_sprite_images,
+                        parts_sprite_mask_images,
+                        &None,
+                        255,
+                    )?
+                }
+            },
+        };
+
+        if let Some(mask) = mask {
+            foreground = skia_safe::image_filters::blend(
+                skia_safe::BlendMode::DstIn,
+                foreground,
+                mask,
+                None,
+            );
         }
 
         if has_clipping_layer {
-            let _auto_restore = AutoRestoreCanvas::new(canvas);
-            {
-                let mut paint = Paint::default();
-                paint.set_blend_mode(skia_safe::BlendMode::SrcIn);
-                let save_layer_rec = SaveLayerRec::default()
-                    .flags(SaveLayerFlags::INIT_WITH_PREVIOUS)
-                    .paint(&paint);
-                canvas.save_layer(&save_layer_rec);
-            }
-            while let Some(parts_sprite) = parts_sprites.peek() {
-                if <T as Borrow<PartsSpriteAsset>>::borrow(parts_sprite).clipping_base {
+            let mask = foreground.clone();
+            while let Some(entry) = entries.peek() {
+                if <T as Borrow<Entry>>::borrow(entry).clipping_base {
                     break;
                 }
-                let clipping_parts_sprite = parts_sprites.next().unwrap();
-                render_parts_sprite_to_canvas(
-                    canvas,
-                    std::slice::from_ref(clipping_parts_sprite),
-                    parts_sprite_lock,
+                let clipping_entry = entries.next().unwrap();
+                foreground = render_entries(
+                    foreground,
+                    std::slice::from_ref(clipping_entry),
+                    scene_sprite,
                     parts_sprite_images,
                     parts_sprite_mask_images,
-                    &mask,
+                    &None,
+                    255,
                 )?;
             }
+            foreground = skia_safe::image_filters::blend(
+                skia_safe::BlendMode::DstIn,
+                foreground,
+                mask,
+                None,
+            );
         }
+
+        if entry.opacity != 255 || parent_opacity != 255 {
+            let opacity = (entry.opacity as f32 / 255.0) * (parent_opacity as f32 / 255.0);
+            let mut color_matrix = skia_safe::ColorMatrix::default();
+            color_matrix.set_scale(1., 1., 1., opacity);
+            let color_filter = skia_safe::color_filters::matrix(&color_matrix);
+            foreground = skia_safe::image_filters::color_filter(color_filter, foreground, None);
+        }
+
+        background = skia_safe::image_filters::blend(
+            photoshop_blend_mode_into_blender(blend_mode),
+            background.unwrap_or(skia_safe::image_filters::empty()),
+            foreground.unwrap_or(skia_safe::image_filters::empty()),
+            None,
+        );
     }
-    Ok(())
+
+    Ok(background)
 }
 
-fn create_paint_from_parts_sprite(parts_sprite: &PartsSpriteAsset) -> skia_safe::Paint {
-    let mut paint = Paint::default();
-
-    set_photoshop_blend_mode(&mut paint, parts_sprite.blend_mode);
-    paint.set_alpha(parts_sprite.opacity);
-
-    paint
-}
-
-fn has_clipping_layer<T: Borrow<PartsSpriteAsset>>(
-    parts_sprites: &mut Peekable<std::iter::Rev<std::slice::Iter<T>>>,
+fn has_clipping_layer<T: Borrow<Entry>>(
+    entries: &mut Peekable<std::iter::Rev<std::slice::Iter<T>>>,
 ) -> bool {
-    parts_sprites.peek().is_some_and(|parts_sprite| {
-        !<T as Borrow<PartsSpriteAsset>>::borrow(parts_sprite).clipping_base
-    })
+    entries
+        .peek()
+        .is_some_and(|parts_sprite| !<T as Borrow<Entry>>::borrow(parts_sprite).clipping_base)
 }

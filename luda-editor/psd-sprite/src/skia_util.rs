@@ -1,7 +1,7 @@
 use anyhow::{Ok, Result};
 use image::ImageBuffer;
 use psd::BlendMode;
-use skia_safe::{Blender, Data, Image, Paint, RuntimeEffect};
+use skia_safe::{Blender, Data, Image, RuntimeEffect};
 use std::io::Cursor;
 
 pub fn sk_image_to_webp(image: &Image) -> Result<Vec<u8>> {
@@ -62,34 +62,15 @@ pub fn sk_image_to_webp(image: &Image) -> Result<Vec<u8>> {
     Ok(webp_bytes)
 }
 
-pub struct AutoRestoreCanvas<'canvas> {
-    canvas: &'canvas skia_safe::Canvas,
-    save_count: usize,
-}
-impl<'canvas> AutoRestoreCanvas<'canvas> {
-    pub fn new(canvas: &'canvas skia_safe::Canvas) -> Self {
-        let save_count = canvas.save_count();
-        Self { canvas, save_count }
-    }
-}
-impl Drop for AutoRestoreCanvas<'_> {
-    fn drop(&mut self) {
-        self.canvas.restore_to_count(self.save_count);
-    }
-}
-
-pub fn set_photoshop_blend_mode(paint: &mut Paint, blend_mode: BlendMode) {
+pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_safe::Blender {
     match blend_mode {
         // BlendMode::PassThrough => todo!(),
-        BlendMode::Normal => paint.set_blend_mode(skia_safe::BlendMode::SrcOver),
         // BlendMode::Dissolve => todo!(),
-        BlendMode::Darken => paint.set_blend_mode(skia_safe::BlendMode::Darken),
-        BlendMode::Multiply => paint.set_blend_mode(skia_safe::BlendMode::Multiply),
-        BlendMode::ColorBurn => paint.set_blend_mode(skia_safe::BlendMode::ColorBurn),
-        BlendMode::LinearBurn => {
-            let blender = Blender::arithmetic(0.0, 1.0, 1.0, -1.0, false);
-            paint.set_blender(blender)
-        }
+        BlendMode::Normal => skia_safe::BlendMode::SrcOver.into(),
+        BlendMode::Darken => skia_safe::BlendMode::Darken.into(),
+        BlendMode::Multiply => skia_safe::BlendMode::Multiply.into(),
+        BlendMode::ColorBurn => skia_safe::BlendMode::ColorBurn.into(),
+        BlendMode::LinearBurn => Blender::arithmetic(0.0, 1.0, 1.0, -1.0, false).unwrap(),
         BlendMode::DarkerColor => {
             let sksl = r#"
                 vec4 BRIGHTNESS_MAP = vec4(0.299, 0.587, 0.114, 0.0);
@@ -106,15 +87,12 @@ pub fn set_photoshop_blend_mode(paint: &mut Paint, blend_mode: BlendMode) {
             "#;
             let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
             let blender = effect.make_blender(Data::new_empty(), None);
-            paint.set_blender(blender)
+            blender.unwrap()
         }
-        BlendMode::Lighten => paint.set_blend_mode(skia_safe::BlendMode::Lighten),
-        BlendMode::Screen => paint.set_blend_mode(skia_safe::BlendMode::Screen),
-        BlendMode::ColorDodge => paint.set_blend_mode(skia_safe::BlendMode::ColorDodge),
-        BlendMode::LinearDodge => {
-            let blender = Blender::arithmetic(0.0, 1.0, 1.0, 0.0, false);
-            paint.set_blender(blender)
-        }
+        BlendMode::Lighten => skia_safe::BlendMode::Lighten.into(),
+        BlendMode::Screen => skia_safe::BlendMode::Screen.into(),
+        BlendMode::ColorDodge => skia_safe::BlendMode::ColorDodge.into(),
+        BlendMode::LinearDodge => Blender::arithmetic(0.0, 1.0, 1.0, 0.0, false).unwrap(),
         BlendMode::LighterColor => {
             let sksl = r#"
                 vec4 BRIGHTNESS_MAP = vec4(0.299, 0.587, 0.114, 0.0);
@@ -131,11 +109,11 @@ pub fn set_photoshop_blend_mode(paint: &mut Paint, blend_mode: BlendMode) {
             "#;
             let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
             let blender = effect.make_blender(Data::new_empty(), None);
-            paint.set_blender(blender)
+            blender.unwrap()
         }
-        BlendMode::Overlay => paint.set_blend_mode(skia_safe::BlendMode::Overlay),
-        BlendMode::SoftLight => paint.set_blend_mode(skia_safe::BlendMode::SoftLight),
-        BlendMode::HardLight => paint.set_blend_mode(skia_safe::BlendMode::HardLight),
+        BlendMode::Overlay => skia_safe::BlendMode::Overlay.into(),
+        BlendMode::SoftLight => skia_safe::BlendMode::SoftLight.into(),
+        BlendMode::HardLight => skia_safe::BlendMode::HardLight.into(),
         BlendMode::VividLight => {
             let sksl = r#"
                 vec4 main(vec4 src, vec4 dst) {
@@ -155,7 +133,7 @@ pub fn set_photoshop_blend_mode(paint: &mut Paint, blend_mode: BlendMode) {
             "#;
             let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
             let blender = effect.make_blender(Data::new_empty(), None);
-            paint.set_blender(blender)
+            blender.unwrap()
         }
         BlendMode::LinearLight => {
             let sksl = r#"
@@ -176,7 +154,7 @@ pub fn set_photoshop_blend_mode(paint: &mut Paint, blend_mode: BlendMode) {
             "#;
             let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
             let blender = effect.make_blender(Data::new_empty(), None);
-            paint.set_blender(blender)
+            blender.unwrap()
         }
         BlendMode::PinLight => {
             let sksl = r#"
@@ -197,7 +175,7 @@ pub fn set_photoshop_blend_mode(paint: &mut Paint, blend_mode: BlendMode) {
             "#;
             let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
             let blender = effect.make_blender(Data::new_empty(), None);
-            paint.set_blender(blender)
+            blender.unwrap()
         }
         BlendMode::HardMix => {
             let sksl = r#"
@@ -211,10 +189,10 @@ pub fn set_photoshop_blend_mode(paint: &mut Paint, blend_mode: BlendMode) {
             "#;
             let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
             let blender = effect.make_blender(Data::new_empty(), None);
-            paint.set_blender(blender)
+            blender.unwrap()
         }
-        BlendMode::Difference => paint.set_blend_mode(skia_safe::BlendMode::Difference),
-        BlendMode::Exclusion => paint.set_blend_mode(skia_safe::BlendMode::Exclusion),
+        BlendMode::Difference => skia_safe::BlendMode::Difference.into(),
+        BlendMode::Exclusion => skia_safe::BlendMode::Exclusion.into(),
         BlendMode::Subtract => {
             let sksl = r#"
                 vec4 main(vec4 src, vec4 dst) {
@@ -227,7 +205,7 @@ pub fn set_photoshop_blend_mode(paint: &mut Paint, blend_mode: BlendMode) {
             "#;
             let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
             let blender = effect.make_blender(Data::new_empty(), None);
-            paint.set_blender(blender)
+            blender.unwrap()
         }
         BlendMode::Divide => {
             let sksl = r#"
@@ -241,13 +219,12 @@ pub fn set_photoshop_blend_mode(paint: &mut Paint, blend_mode: BlendMode) {
             "#;
             let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
             let blender = effect.make_blender(Data::new_empty(), None);
-            paint.set_blender(blender)
+            blender.unwrap()
         }
-        BlendMode::Hue => paint.set_blend_mode(skia_safe::BlendMode::Hue),
-        BlendMode::Saturation => paint.set_blend_mode(skia_safe::BlendMode::Saturation),
-        BlendMode::Color => paint.set_blend_mode(skia_safe::BlendMode::Color),
-        BlendMode::Luminosity => paint.set_blend_mode(skia_safe::BlendMode::Luminosity),
-        // TODO: implement other blend modes
-        _ => &mut paint.set_blend_mode(skia_safe::BlendMode::SrcOver),
-    };
+        BlendMode::Hue => skia_safe::BlendMode::Hue.into(),
+        BlendMode::Saturation => skia_safe::BlendMode::Saturation.into(),
+        BlendMode::Color => skia_safe::BlendMode::Color.into(),
+        BlendMode::Luminosity => skia_safe::BlendMode::Luminosity.into(),
+        _ => skia_safe::BlendMode::SrcOver.into(),
+    }
 }

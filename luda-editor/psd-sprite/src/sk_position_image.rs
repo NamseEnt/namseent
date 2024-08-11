@@ -1,3 +1,5 @@
+use crate::{asset::SpriteImage, skia_util::sk_image_to_webp};
+use anyhow::Result;
 use namui_type::*;
 use skia_safe::{Image, ImageInfo, Paint};
 
@@ -34,6 +36,14 @@ impl SkPositionImage {
 
     fn left_top(&self) -> (i32, i32) {
         (self.dest_rect.left(), self.dest_rect.top())
+    }
+
+    pub fn to_sprite_image(&self) -> Result<SpriteImage> {
+        let webp = sk_image_to_webp(&self.sk_image)?;
+        Ok(SpriteImage {
+            dest_rect: self.dest_rect.map(|x| x.px()),
+            webp: webp.into_boxed_slice(),
+        })
     }
 }
 impl AsRef<SkPositionImage> for &SkPositionImage {

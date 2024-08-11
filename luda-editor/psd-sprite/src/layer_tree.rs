@@ -1,7 +1,10 @@
 use crate::*;
 use anyhow::Result;
+use asset::{Entry, EntryKind, PartsSpriteAsset, SpriteImage};
+use namui::*;
 use psd::{image_data_section::ChannelBytes, IntoRgba, PsdLayer, ToMask};
 use rayon::prelude::*;
+use sk_position_image::SkPositionImage;
 use skia_safe::{Data, ImageInfo, Paint, Surface};
 use skia_util::sk_image_to_webp;
 
@@ -35,12 +38,12 @@ impl LayerTree<'_> {
     fn get_mask(&self) -> Option<SkPositionImage> {
         let masks = match self {
             LayerTree::Group { group, .. } => (
-                mask_to_rendering_image(group.raster_mask()),
-                mask_to_rendering_image(group.vector_mask()),
+                mask_to_sk_position_image(group.raster_mask()),
+                mask_to_sk_position_image(group.vector_mask()),
             ),
             LayerTree::Layer { layer } => (
-                mask_to_rendering_image(layer.raster_mask()),
-                mask_to_rendering_image(layer.vector_mask()),
+                mask_to_sk_position_image(layer.raster_mask()),
+                mask_to_sk_position_image(layer.vector_mask()),
             ),
         };
 
@@ -144,44 +147,20 @@ fn layer_to_sk_image(layer: &PsdLayer) -> Result<skia_safe::Image> {
     .ok_or(anyhow::anyhow!("Failed to create image from layer"))?)
 }
 
-pub fn into_parts_sprite(layer_tree: Vec<LayerTree>, name: String) -> Result<PartsSpriteAsset> {
-    let entries = into_sprite_parts(layer_tree, vec![])?;
-    let rect = entries
-        .iter()
-        .fold(None, |rect, part| {
-            let Some(rect) = rect else {
-                return Some(part.rect);
-            };
-            Some(rect.get_minimum_rectangle_containing(part.rect))
-        })
-        .unwrap_or_default();
-
-    Ok(PartsSpriteAsset {
-        name,
-        kind: SpritePartKind::Directory { entries },
-        blend_mode: BlendMode::Normal,
-        clipping_base: true,
-        opacity: 255,
-        rect,
-        mask: None,
-    })
+pub fn into_parts_sprite_asset(
+    layer_tree: Vec<LayerTree>,
+    rect: Rect<Px>,
+) -> Result<PartsSpriteAsset> {
+    let entries = into_entries(layer_tree, vec![])?;
+    Ok(PartsSpriteAsset { entries, rect })
 }
 
-fn into_sprite_parts(
-    layer_tree: Vec<LayerTree>,
-    prefixes: Vec<&str>,
-) -> Result<Vec<PartsSpriteAsset>> {
+fn into_entries(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<Vec<Entry>> {
     layer_tree
         .into_par_iter()
-        .map(|layer_tree| -> Result<PartsSpriteAsset> {
+        .map(|layer_tree| -> Result<Entry> {
             let mut prefixes = prefixes.clone();
             let rect = layer_tree.rect();
-            let rect_px = Rect::Xywh {
-                x: rect.x().px(),
-                y: rect.y().px(),
-                width: rect.width().px(),
-                height: rect.height().px(),
-            };
             let mask = layer_tree
                 .get_mask()
                 .map(|mask| mask.to_sprite_image())
@@ -190,25 +169,15 @@ fn into_sprite_parts(
             match layer_tree {
                 LayerTree::Group { group, children } => {
                     prefixes.push(group.name());
-                    let parts = into_sprite_parts(children, prefixes.clone())?;
-                    let kind = match group.name() {
-                        name if name.ends_with("_m") => {
-                            SpritePartKind::MultiSelect { options: parts }
-                        }
-                        name if name.ends_with("_s") => {
-                            SpritePartKind::SingleSelect { options: parts }
-                        }
-                        _ => SpritePartKind::Directory { entries: parts },
-                    };
-                    return Ok(PartsSpriteAsset {
+                    let entries = into_entries(children, prefixes.clone())?;
+                    Ok(Entry {
                         name: prefixes.join("."),
-                        kind,
                         blend_mode: group.blend_mode(),
-                        clipping_base: group.is_clipping_mask(),
+                        clipping_base: !group.is_clipping_mask(),
                         opacity: group.opacity(),
-                        rect: rect_px,
                         mask,
-                    });
+                        kind: asset::EntryKind::Group { entries },
+                    })
                 }
                 LayerTree::Layer { layer } => {
                     prefixes.push(layer.name());
@@ -235,24 +204,23 @@ fn into_sprite_parts(
                     let image = surface.image_snapshot();
                     let webp_bytes = sk_image_to_webp(&image)?;
 
-                    Ok(PartsSpriteAsset {
+                    Ok(Entry {
                         name: prefixes.join("."),
                         blend_mode: layer.blend_mode(),
-                        kind: SpritePartKind::Fixed {
+                        clipping_base: !layer.is_clipping_mask(),
+                        opacity: layer.opacity(),
+                        mask,
+                        kind: EntryKind::Layer {
                             image: SpriteImage {
-                                dest_rect: Rect::Xywh {
-                                    x: rect.x().px(),
-                                    y: rect.y().px(),
-                                    width: rect.width().px(),
-                                    height: rect.height().px(),
+                                dest_rect: Rect::Ltrb {
+                                    left: layer.layer_left().px(),
+                                    top: layer.layer_top().px(),
+                                    right: layer.layer_right().px(),
+                                    bottom: layer.layer_bottom().px(),
                                 },
-                                webp: Box::from(webp_bytes.as_ref()),
+                                webp: webp_bytes.as_slice().into(),
                             },
                         },
-                        clipping_base: layer.is_clipping_mask(),
-                        opacity: layer.opacity(),
-                        rect: rect_px,
-                        mask,
                     })
                 }
             }
@@ -260,7 +228,7 @@ fn into_sprite_parts(
         .collect()
 }
 
-fn mask_to_rendering_image(
+fn mask_to_sk_position_image(
     mask: Option<(&ChannelBytes, i32, i32, i32, i32)>,
 ) -> Option<SkPositionImage> {
     let Some((bytes, top, right, bottom, left)) = mask else {
