@@ -324,7 +324,6 @@ fn render_entries<T: Borrow<Entry>>(
         }
 
         if has_clipping_layer {
-            println!("clipping: {}", entry.name);
             let mask = foreground.clone();
             while let Some(entry) = entries.peek() {
                 if !<T as Borrow<Entry>>::borrow(entry).clipping_base {
