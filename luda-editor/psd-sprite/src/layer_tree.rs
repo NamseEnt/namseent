@@ -151,16 +151,20 @@ pub fn into_parts_sprite_asset(
     layer_tree: Vec<LayerTree>,
     rect: Rect<Px>,
 ) -> Result<PartsSpriteAsset> {
-    let entries = into_entries(layer_tree, vec![])?;
+    let entries = into_entries(layer_tree, vec![], rect.map(|x| x.as_f32() as i32))?;
     Ok(PartsSpriteAsset { entries, rect })
 }
 
-fn into_entries(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<Vec<Entry>> {
+fn into_entries(
+    layer_tree: Vec<LayerTree>,
+    prefixes: Vec<&str>,
+    psd_rect: Rect<i32>,
+) -> Result<Vec<Entry>> {
     layer_tree
         .into_par_iter()
         .map(|layer_tree| -> Result<Entry> {
             let mut prefixes = prefixes.clone();
-            let rect = layer_tree.rect();
+            let layer_rect = layer_tree.rect();
             let mask = layer_tree
                 .get_mask()
                 .map(|mask| mask.to_sprite_image())
@@ -169,7 +173,7 @@ fn into_entries(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<Vec<E
             match layer_tree {
                 LayerTree::Group { group, children } => {
                     prefixes.push(group.name());
-                    let entries = into_entries(children, prefixes.clone())?;
+                    let entries = into_entries(children, prefixes.clone(), psd_rect)?;
                     Ok(Entry {
                         name: prefixes.join("."),
                         blend_mode: group.blend_mode(),
@@ -181,18 +185,19 @@ fn into_entries(layer_tree: Vec<LayerTree>, prefixes: Vec<&str>) -> Result<Vec<E
                 }
                 LayerTree::Layer { layer } => {
                     prefixes.push(layer.name());
-                    if rect.width() == 0 || rect.height() == 0 {
+                    if layer_rect.width() == 0 || layer_rect.height() == 0 {
                         return Err(anyhow::anyhow!("No layer to rasterize"));
                     }
+                    let clipped_rect = layer_rect.intersect(psd_rect).unwrap_or_default();
                     let bottom_image_info = ImageInfo::new_n32(
-                        (rect.width(), rect.height()),
+                        (clipped_rect.width(), clipped_rect.height()),
                         skia_safe::AlphaType::Unpremul,
                         None,
                     );
                     let mut surface: Surface =
                         skia_safe::surfaces::raster(&bottom_image_info, None, None).unwrap();
                     let canvas = surface.canvas();
-                    canvas.translate((-rect.left(), -rect.top()));
+                    canvas.translate((-layer_rect.left(), -layer_rect.top()));
                     if let std::result::Result::Ok(image) = layer_to_sk_image(layer) {
                         let paint = Paint::default();
                         canvas.draw_image(
