@@ -185,24 +185,18 @@ fn load_parts_sprite_mask_images(sprite_part: &PartsSpriteAsset) -> Vec<(String,
             .map(|mask| {
                 mask.to_sk_image_a8()
                     .map(|sk_image| {
-                        let src_rect = skia_safe::Rect::from_wh(
-                            mask.dest_rect.width().as_f32(),
-                            mask.dest_rect.height().as_f32(),
-                        );
-                        let dst_rect = skia_safe::Rect::from_ltrb(
-                            mask.dest_rect.left().as_f32(),
-                            mask.dest_rect.top().as_f32(),
-                            mask.dest_rect.bottom().as_f32(),
-                            mask.dest_rect.right().as_f32(),
-                        );
-                        skia_safe::image_filters::image(
-                            sk_image,
-                            Some(&src_rect),
-                            Some(&dst_rect),
-                            None,
-                        )
-                        .map(|image| vec![(entry.name.clone(), image)])
-                        .unwrap_or_default()
+                        skia_safe::image_filters::image(sk_image, None, None, None)
+                            .and_then(|image_filter| {
+                                image_filter.offset(
+                                    None,
+                                    (
+                                        mask.dest_rect.left().as_f32(),
+                                        mask.dest_rect.top().as_f32(),
+                                    ),
+                                )
+                            })
+                            .map(|image| vec![(entry.name.clone(), image)])
+                            .unwrap_or_default()
                     })
                     .unwrap_or_default()
             })
@@ -284,7 +278,7 @@ fn render_entries<T: Borrow<Entry>>(
                             vec![]
                         };
                     render_entries(
-                        None,
+                        Some(skia_safe::image_filters::empty()),
                         &entries,
                         scene_sprite,
                         parts_sprite_images,
@@ -308,7 +302,7 @@ fn render_entries<T: Borrow<Entry>>(
                     }
 
                     render_entries(
-                        None,
+                        Some(skia_safe::image_filters::empty()),
                         &entries,
                         scene_sprite,
                         parts_sprite_images,
@@ -330,9 +324,10 @@ fn render_entries<T: Borrow<Entry>>(
         }
 
         if has_clipping_layer {
+            println!("clipping: {}", entry.name);
             let mask = foreground.clone();
             while let Some(entry) = entries.peek() {
-                if <T as Borrow<Entry>>::borrow(entry).clipping_base {
+                if !<T as Borrow<Entry>>::borrow(entry).clipping_base {
                     break;
                 }
                 let clipping_entry = entries.next().unwrap();
@@ -364,6 +359,7 @@ fn render_entries<T: Borrow<Entry>>(
 
         background = skia_safe::image_filters::blend(
             photoshop_blend_mode_into_blender(blend_mode),
+            // skia_safe::BlendMode::SrcOver,
             background.unwrap_or(skia_safe::image_filters::empty()),
             foreground.unwrap_or(skia_safe::image_filters::empty()),
             None,
@@ -378,5 +374,5 @@ fn has_clipping_layer<T: Borrow<Entry>>(
 ) -> bool {
     entries
         .peek()
-        .is_some_and(|parts_sprite| !<T as Borrow<Entry>>::borrow(parts_sprite).clipping_base)
+        .is_some_and(|parts_sprite| <T as Borrow<Entry>>::borrow(parts_sprite).clipping_base)
 }
