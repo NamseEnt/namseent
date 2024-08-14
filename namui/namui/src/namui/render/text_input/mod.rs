@@ -6,14 +6,7 @@ mod selection;
 use crate::*;
 pub use focus::*;
 use selection::*;
-use std::{
-    fmt::Debug,
-    ops::Range,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
-    },
-};
+use std::{fmt::Debug, ops::Range, sync::Mutex};
 
 /**
  * Specification for Text Input
@@ -512,25 +505,10 @@ impl Default for Style {
     }
 }
 
-pub struct KeyDownEvent {
-    pub code: Code,
-    pub(crate) is_prevented_default: Arc<AtomicBool>,
-    pub is_composing: bool,
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct CursorPosition {
     pub is_at_top: bool,
     pub is_at_bottom: bool,
-}
-
-impl KeyDownEvent {
-    pub fn prevent_default(&self) {
-        self.is_prevented_default.store(true, Ordering::Relaxed);
-    }
-    pub fn is_prevented_default(&self) -> bool {
-        self.is_prevented_default.load(Ordering::Relaxed)
-    }
 }
 
 pub enum ArrowUpDown {

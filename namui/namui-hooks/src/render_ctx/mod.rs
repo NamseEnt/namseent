@@ -3,7 +3,6 @@ mod dependencies;
 use crate::*;
 pub use dependencies::*;
 use std::ops::Deref;
-use std::rc::Rc;
 
 pub struct RenderCtx<'a, 'rt> {
     component_ctx: ComponentCtx<'a>,
@@ -28,22 +27,14 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
 
 // Component
 impl<'a, 'rt> RenderCtx<'a, 'rt> {
-    pub fn state<T: 'static + Send>(&self, init: impl FnOnce() -> T) -> (Sig<T, &T>, SetState<T>) {
+    pub fn state<T: 'static + Send>(&self, init: impl FnOnce() -> T) -> (Sig<T>, SetState<T>) {
         self.component_ctx.state(init)
     }
-    pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T, Rc<T>> {
+    pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T> {
         self.component_ctx.memo(func)
     }
-    pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
+    pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T> {
         self.component_ctx.track_eq(target)
-    }
-    pub fn track_eq2<Value: 'static, Target>(
-        &self,
-        target: Target,
-        cmp: impl FnOnce(&Value, &Target) -> bool,
-        to_value: impl FnOnce(Target) -> Value,
-    ) -> Sig<Value, Rc<Value>> {
-        self.component_ctx.track_eq2(target, cmp, to_value)
     }
     pub fn track_eq_tuple(&self, track_eq_tuple: &impl TrackEqTuple) -> bool {
         self.component_ctx.track_eq_tuple(track_eq_tuple)
@@ -77,20 +68,17 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     pub fn controlled_memo<T: 'static>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
-    ) -> Sig<T, Rc<T>> {
+    ) -> Sig<T> {
         self.component_ctx.controlled_memo(func)
     }
     pub fn init_atom<T: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<T>,
         init: impl Fn() -> T,
-    ) -> (Sig<T, &T>, SetState<T>) {
+    ) -> (Sig<T>, SetState<T>) {
         self.component_ctx.init_atom(atom, init)
     }
-    pub fn atom<T: Send + Sync + 'static>(
-        &self,
-        atom: &'static Atom<T>,
-    ) -> (Sig<T, &T>, SetState<T>) {
+    pub fn atom<T: Send + Sync + 'static>(&self, atom: &'static Atom<T>) -> (Sig<T>, SetState<T>) {
         self.component_ctx.atom(atom)
     }
     /// This method just keep JoinHandle to abort when the component is unmounted.
@@ -102,7 +90,7 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     {
         self.component_ctx.spawn(future)
     }
-    pub fn is_sig_updated<T, R: std::borrow::Borrow<T>>(&self, sig: &Sig<T, R>) -> bool {
+    pub fn is_sig_updated<T>(&self, sig: &Sig<T>) -> bool {
         self.component_ctx.is_sig_updated(&sig.id)
     }
 }

@@ -5,10 +5,9 @@ pub trait Dependencies {
     fn to_owned(self) -> Self::Owned;
 }
 
-impl<T, R> Dependencies for Sig<'_, T, R>
+impl<T> Dependencies for Sig<'_, T>
 where
     T: Clone,
-    R: std::borrow::Borrow<T>,
 {
     type Owned = T;
     fn to_owned(self) -> Self::Owned {
@@ -45,10 +44,7 @@ pub trait TrackEqTuple {
     fn track_eq(&self, ctx: &ComponentCtx) -> bool;
 }
 
-impl<T, R> TrackEqTuple for Sig<'_, T, R>
-where
-    R: std::borrow::Borrow<T>,
-{
+impl<T> TrackEqTuple for Sig<'_, T> {
     fn track_eq(&self, _ctx: &ComponentCtx) -> bool {
         self.is_updated()
     }
@@ -206,7 +202,7 @@ mod tests {
         }
 
         let world = World::init(Instant::now, &MockSkCalculate);
-        let sig = Sig::new(1, SigId::Atom { index: 0 }, &world);
+        let sig = Sig::new(&1, SigId::Atom { index: 0 }, &world);
         let _cloned: i32 = sig.to_owned();
     }
 }
