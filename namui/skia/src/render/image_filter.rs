@@ -14,7 +14,7 @@ pub enum ImageFilter {
         src: Image,
     },
     Blend {
-        mode: BlendMode,
+        blender: Blender,
         background: Box<ImageFilter>,
         foreground: Box<ImageFilter>,
     },
@@ -37,9 +37,13 @@ impl ImageFilter {
         }
     }
 
-    pub fn blend(mode: BlendMode, background: ImageFilter, foreground: ImageFilter) -> Self {
+    pub fn blend(
+        blender: impl Into<Blender>,
+        background: ImageFilter,
+        foreground: ImageFilter,
+    ) -> Self {
         ImageFilter::Blend {
-            mode,
+            blender: blender.into(),
             background: Box::new(background),
             foreground: Box::new(foreground),
         }
@@ -76,11 +80,11 @@ impl From<&ImageFilter> for skia_safe::ImageFilter {
             )
             .unwrap(),
             ImageFilter::Blend {
-                mode,
+                blender: mode,
                 background,
                 foreground,
             } => skia_safe::image_filters::blend(
-                skia_safe::BlendMode::from(*mode),
+                skia_safe::Blender::from(mode.clone()),
                 skia_safe::ImageFilter::from(background.as_ref()),
                 skia_safe::ImageFilter::from(foreground.as_ref()),
                 None,
