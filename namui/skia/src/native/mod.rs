@@ -1,3 +1,4 @@
+mod blender;
 mod calculate;
 mod canvas;
 mod color_filter;
@@ -21,6 +22,7 @@ mod windows;
 use self::calculate::NativeCalculate;
 use crate::*;
 use anyhow::Result;
+pub(crate) use blender::*;
 pub(crate) use color_filter::*;
 pub(crate) use font::*;
 pub(crate) use group_glyph::*;

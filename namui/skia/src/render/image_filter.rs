@@ -81,11 +81,11 @@ impl From<&ImageFilter> for skia_safe::ImageFilter {
             )
             .unwrap(),
             ImageFilter::Blend {
-                blender: mode,
+                blender,
                 background,
                 foreground,
             } => skia_safe::image_filters::blend(
-                skia_safe::Blender::from(mode.clone()),
+                skia_safe::Blender::from(blender),
                 skia_safe::ImageFilter::from(background.as_ref()),
                 skia_safe::ImageFilter::from(foreground.as_ref()),
                 None,
