@@ -22,6 +22,10 @@ pub enum ImageFilter {
         offset: Xy<Px>,
         input: Box<ImageFilter>,
     },
+    ColorFilter {
+        color_filter: ColorFilter,
+        input: Box<ImageFilter>,
+    },
     Empty,
 }
 
@@ -38,6 +42,13 @@ impl ImageFilter {
             mode,
             background: Box::new(background),
             foreground: Box::new(foreground),
+        }
+    }
+
+    pub fn color_filter(self, color_filter: ColorFilter) -> Self {
+        ImageFilter::ColorFilter {
+            color_filter,
+            input: Box::new(self),
         }
     }
 }
@@ -77,6 +88,15 @@ impl From<&ImageFilter> for skia_safe::ImageFilter {
             .unwrap(),
             ImageFilter::Offset { offset, input } => skia_safe::image_filters::offset(
                 (offset.x.as_f32(), offset.y.as_f32()),
+                skia_safe::ImageFilter::from(input.as_ref()),
+                None,
+            )
+            .unwrap(),
+            ImageFilter::ColorFilter {
+                color_filter,
+                input,
+            } => skia_safe::image_filters::color_filter(
+                NativeColorFilter::from(color_filter).skia(),
                 skia_safe::ImageFilter::from(input.as_ref()),
                 None,
             )
