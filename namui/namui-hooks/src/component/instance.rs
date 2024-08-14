@@ -1,7 +1,6 @@
 use crate::*;
 use std::{
     cell::{RefCell, UnsafeCell},
-    rc::Rc,
     sync::atomic::AtomicBool,
 };
 
@@ -10,8 +9,8 @@ pub(crate) struct Instance {
     pub(crate) id: InstanceId,
     rendered_flag: AtomicBool,
     pub(crate) state_list: UnsafeCell<Vec<Box<dyn Value>>>,
-    pub(crate) memo_list: RefCell<Vec<Memo>>,
-    pub(crate) track_eq_list: RefCell<Vec<Rc<dyn Value>>>,
+    pub(crate) memo_list: UnsafeCell<Vec<Memo>>,
+    pub(crate) track_eq_list: UnsafeCell<Vec<Box<dyn Value>>>,
     pub(crate) track_eq_tuple_list: RefCell<Vec<()>>,
     pub(crate) effect_list: RefCell<Vec<Effect>>,
     pub(crate) interval_called_list: RefCell<Vec<Instant>>,
@@ -57,7 +56,7 @@ impl Drop for Instance {
 }
 
 pub(crate) struct Memo {
-    pub(crate) value: Rc<dyn Value>,
+    pub(crate) value: Box<dyn Value>,
     pub(crate) used_sig_ids: Vec<SigId>,
 }
 

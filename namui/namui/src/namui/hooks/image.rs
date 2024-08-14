@@ -7,17 +7,11 @@ use std::ops::Deref;
 pub type Load<T> = Option<Result<T>>;
 
 pub trait ImageTrait {
-    fn image(
-        &self,
-        resource_location: impl AsRef<ResourceLocation>,
-    ) -> Sig<Load<Image>, &Load<Image>>;
+    fn image(&self, resource_location: impl AsRef<ResourceLocation>) -> Sig<Load<Image>>;
 }
 
 impl ImageTrait for RenderCtx<'_, '_> {
-    fn image(
-        &self,
-        resource_location: impl AsRef<ResourceLocation>,
-    ) -> Sig<Load<Image>, &Load<Image>> {
+    fn image(&self, resource_location: impl AsRef<ResourceLocation>) -> Sig<Load<Image>> {
         let resource_location = self.track_eq(resource_location.as_ref());
         let (load, set_load) = self.state(|| Load::None);
 
