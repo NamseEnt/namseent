@@ -1,16 +1,16 @@
 use super::*;
-use std::{ops::Deref, rc::Rc};
+use std::ops::Deref;
 
 impl ComponentCtx<'_> {
-    pub fn state<State: 'static + Send>(
+    pub(crate) fn state<State: 'static + Send>(
         &self,
         init: impl FnOnce() -> State,
-    ) -> (Sig<State, &State>, SetState<State>) {
+    ) -> (Sig<State>, SetState<State>) {
         let state_index = self
             .state_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        let state = unsafe {
+        let value = unsafe {
             let state_list = &mut *self.instance.state_list.get();
 
             let no_state = state_list.len() <= state_index;
@@ -24,7 +24,7 @@ impl ComponentCtx<'_> {
             state_list.get(state_index).unwrap().deref()
         };
 
-        let state: &State = state.as_any().downcast_ref().unwrap();
+        let state: &State = value.as_any().downcast_ref().unwrap();
 
         let sig_id = SigId::State {
             index: state_index,
@@ -37,117 +37,201 @@ impl ComponentCtx<'_> {
 
         (sig, set_state)
     }
-    pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T, Rc<T>> {
-        let mut memo_list = self.instance.memo_list.borrow_mut();
 
+    pub(crate) fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T> {
         let memo_index = self
             .memo_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-
-        let non_initialized = memo_list.len() <= memo_index;
-
-        let used_sig_updated = || {
-            memo_list
-                .get(memo_index)
-                .unwrap()
-                .used_sig_ids
-                .iter()
-                .any(|used_sig_id| self.is_sig_updated(used_sig_id))
-        };
 
         let sig_id = SigId::Memo {
             index: memo_index,
             instance_id: self.instance.id,
         };
 
-        if non_initialized || used_sig_updated() {
-            let record_start_index = self.world.start_record_used_sigs();
-            let value = func();
-            let used_sig_ids = self.world.take_record_used_sigs(record_start_index);
+        let value = unsafe {
+            let memo_list = &mut *self.instance.memo_list.get();
 
-            let new_memo = Memo {
-                value: Rc::new(value),
-                used_sig_ids,
+            let non_initialized = memo_list.len() <= memo_index;
+
+            let used_sig_updated = || {
+                memo_list
+                    .get(memo_index)
+                    .unwrap()
+                    .used_sig_ids
+                    .iter()
+                    .any(|used_sig_id| self.is_sig_updated(used_sig_id))
             };
 
-            match memo_list.get_mut(memo_index) {
-                Some(memo) => {
-                    *memo = new_memo;
+            if non_initialized || used_sig_updated() {
+                let record_start_index = self.world.start_record_used_sigs();
+                let value = func();
+                let used_sig_ids = self.world.take_record_used_sigs(record_start_index);
+
+                let new_memo = Memo {
+                    value: Box::new(value),
+                    used_sig_ids,
+                };
+
+                match memo_list.get_mut(memo_index) {
+                    Some(memo) => {
+                        *memo = new_memo;
+                    }
+                    None => {
+                        assert_eq!(memo_list.len(), memo_index);
+                        memo_list.push(new_memo);
+                    }
                 }
-                None => {
-                    assert_eq!(memo_list.len(), memo_index);
-                    memo_list.push(new_memo);
-                }
+
+                self.add_sig_updated(sig_id);
             }
 
-            self.add_sig_updated(sig_id);
-        }
+            let memo = memo_list.get(memo_index).unwrap();
+            memo.value.deref()
+        };
 
-        let memo = memo_list.get(memo_index).unwrap();
+        let state: &T = value.as_any().downcast_ref().unwrap();
 
-        let value: Rc<T> = Rc::downcast(memo.value.clone().into_rc()).unwrap();
+        Sig::new(state, sig_id, self.world)
+    }
+
+    pub(crate) fn controlled_memo<T: 'static>(
+        &self,
+        func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
+    ) -> Sig<T> {
+        let memo_index = self
+            .memo_index
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+        let sig_id = SigId::Memo {
+            index: memo_index,
+            instance_id: self.instance.id,
+        };
+
+        let value = unsafe {
+            let memo_list = &mut *self.instance.memo_list.get();
+
+            let non_initialized = memo_list.len() <= memo_index;
+
+            let used_sig_updated = || {
+                memo_list
+                    .get(memo_index)
+                    .unwrap()
+                    .used_sig_ids
+                    .iter()
+                    .any(|used_sig_id| self.is_sig_updated(used_sig_id))
+            };
+
+            let run_func = |value| {
+                let record_start_index = self.world.start_record_used_sigs();
+                let result = func(value);
+                let used_sig_ids = self.world.take_record_used_sigs(record_start_index);
+
+                let value = match result {
+                    ControlledMemo::Changed(value) => {
+                        self.add_sig_updated(sig_id);
+                        value
+                    }
+                    ControlledMemo::Unchanged(value) => value,
+                };
+
+                (value, used_sig_ids)
+            };
+
+            if non_initialized {
+                let (value, used_sig_ids) = run_func(None);
+
+                let memo = Memo {
+                    value: Box::new(value),
+                    used_sig_ids,
+                };
+                memo_list.push(memo);
+            } else if used_sig_updated() {
+                let is_memo_last_index = memo_index == memo_list.len() - 1;
+
+                // move last element to memo_index
+                let memo = memo_list.swap_remove(memo_index);
+                let input = *memo.value.into_box_any().downcast::<T>().unwrap();
+
+                let (value, used_sig_ids) = run_func(Some(input));
+
+                let mut memo = Memo {
+                    value: Box::new(value),
+                    used_sig_ids,
+                };
+
+                if !is_memo_last_index {
+                    // swap last element and memo. new memo will be in [memo_index].
+                    std::mem::swap(&mut memo_list[memo_index], &mut memo);
+                }
+                // and push last element to the end
+                memo_list.push(memo);
+            }
+
+            let memo = memo_list.get(memo_index).unwrap();
+            memo.value.deref()
+        };
+
+        let state: &T = value.as_any().downcast_ref().unwrap();
+
+        Sig::new(state, sig_id, self.world)
+    }
+
+    pub(crate) fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T> {
+        let track_eq_index = self
+            .track_eq_index
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+        let sig_id = SigId::TrackEq {
+            instance_id: self.instance.id,
+            index: track_eq_index,
+        };
+
+        let value = unsafe {
+            let track_eq_list = &mut *self.instance.track_eq_list.get();
+
+            let first_track = || track_eq_list.len() <= track_eq_index;
+            let not_eq = || {
+                let value: &T = track_eq_list[track_eq_index]
+                    .as_ref()
+                    .as_any()
+                    .downcast_ref()
+                    .unwrap();
+
+                value != target
+            };
+
+            if first_track() || not_eq() {
+                let rc_value = Box::new(target.clone());
+                match track_eq_list.get_mut(track_eq_index) {
+                    Some(value) => {
+                        *value = rc_value;
+                    }
+                    None => {
+                        assert_eq!(track_eq_list.len(), track_eq_index);
+                        track_eq_list.push(rc_value);
+                    }
+                }
+
+                self.add_sig_updated(sig_id);
+            }
+
+            track_eq_list.get(track_eq_index).unwrap().deref()
+        };
+
+        let value: &T = value.as_any().downcast_ref().unwrap();
 
         Sig::new(value, sig_id, self.world)
     }
 
-    pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T, Rc<T>> {
-        let mut track_eq_list = self.instance.track_eq_list.borrow_mut();
-
-        let track_eq_index = self
-            .track_eq_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-
-        let sig_id = SigId::TrackEq {
-            instance_id: self.instance.id,
-            index: track_eq_index,
-        };
-
-        let first_track = || track_eq_list.len() <= track_eq_index;
-        let not_eq = || {
-            let value: &T = track_eq_list[track_eq_index]
-                .as_ref()
-                .as_any()
-                .downcast_ref()
-                .unwrap();
-
-            value != target
-        };
-
-        if first_track() || not_eq() {
-            let rc_value = Rc::new(target.clone());
-            match track_eq_list.get_mut(track_eq_index) {
-                Some(value) => {
-                    *value = rc_value;
-                }
-                None => {
-                    assert_eq!(track_eq_list.len(), track_eq_index);
-                    track_eq_list.push(rc_value);
-                }
-            }
-
-            self.add_sig_updated(sig_id);
-        }
-
-        let value = track_eq_list.get(track_eq_index).unwrap();
-
-        let value: Rc<T> = Rc::downcast(value.clone().into_rc()).unwrap();
-
-        let sig = Sig::new(value, sig_id, self.world);
-
-        sig
-    }
-
-    pub fn track_eq_custom<T, P>(
+    pub(crate) fn track_eq_custom<T, P>(
         &self,
         target: &T,
         to_owned: impl FnOnce(&T) -> P,
         cmp: impl FnOnce(&T, &P) -> bool,
-    ) -> Sig<P, Rc<P>>
+    ) -> Sig<P>
     where
         P: 'static,
     {
-        let mut track_eq_list = self.instance.track_eq_list.borrow_mut();
-
         let track_eq_index = self
             .track_eq_index
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -157,41 +241,42 @@ impl ComponentCtx<'_> {
             index: track_eq_index,
         };
 
-        let first_track = || track_eq_list.len() <= track_eq_index;
-        let not_eq = || {
-            let value: &P = track_eq_list[track_eq_index]
-                .as_ref()
-                .as_any()
-                .downcast_ref()
-                .unwrap();
+        let value = unsafe {
+            let track_eq_list = &mut *self.instance.track_eq_list.get();
 
-            !cmp(target, value)
-        };
+            let first_track = || track_eq_list.len() <= track_eq_index;
+            let not_eq = || {
+                let value: &P = track_eq_list[track_eq_index]
+                    .as_ref()
+                    .as_any()
+                    .downcast_ref()
+                    .unwrap();
 
-        if first_track() || not_eq() {
-            let rc_value = Rc::new(to_owned(target));
-            match track_eq_list.get_mut(track_eq_index) {
-                Some(value) => {
-                    *value = rc_value;
+                !cmp(target, value)
+            };
+
+            if first_track() || not_eq() {
+                let owned = to_owned(target);
+                match track_eq_list.get_mut(track_eq_index) {
+                    Some(value) => {
+                        *value = Box::new(owned);
+                    }
+                    None => {
+                        assert_eq!(track_eq_list.len(), track_eq_index);
+                        track_eq_list.push(Box::new(owned));
+                    }
                 }
-                None => {
-                    assert_eq!(track_eq_list.len(), track_eq_index);
-                    track_eq_list.push(rc_value);
-                }
+
+                self.add_sig_updated(sig_id);
             }
 
-            self.add_sig_updated(sig_id);
-        }
+            track_eq_list.get(track_eq_index).unwrap().deref()
+        };
 
-        let value = track_eq_list.get(track_eq_index).unwrap();
+        let value: &P = value.as_any().downcast_ref().unwrap();
 
-        let value: Rc<P> = Rc::downcast(value.clone().into_rc()).unwrap();
-
-        let sig = Sig::new(value, sig_id, self.world);
-
-        sig
+        Sig::new(value, sig_id, self.world)
     }
-
     pub(crate) fn track_eq_tuple(&self, track_eq_tuple: &impl TrackEqTuple) -> bool {
         let mut track_eq_tuple_list = self.instance.track_eq_tuple_list.borrow_mut();
 
@@ -253,8 +338,12 @@ impl ComponentCtx<'_> {
             *effect = call_func();
         }
     }
-
-    pub fn interval(&self, title: impl AsRef<str>, interval: Duration, job: impl FnOnce(Duration)) {
+    pub(crate) fn interval(
+        &self,
+        title: impl AsRef<str>,
+        interval: Duration,
+        job: impl FnOnce(Duration),
+    ) {
         let _ = title;
 
         let mut interval_last_call_at_list = self.instance.interval_called_list.borrow_mut();
@@ -289,90 +378,11 @@ impl ComponentCtx<'_> {
         }
     }
 
-    pub fn controlled_memo<T: 'static>(
-        &self,
-        func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
-    ) -> Sig<T, Rc<T>> {
-        let mut memo_list = self.instance.memo_list.borrow_mut();
-
-        let memo_index = self
-            .memo_index
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-
-        let non_initialized = memo_list.len() <= memo_index;
-
-        let used_sig_updated = || {
-            memo_list
-                .get(memo_index)
-                .unwrap()
-                .used_sig_ids
-                .iter()
-                .any(|used_sig_id| self.is_sig_updated(used_sig_id))
-        };
-
-        let sig_id = SigId::Memo {
-            index: memo_index,
-            instance_id: self.instance.id,
-        };
-
-        let run_func = |value| {
-            let record_start_index = self.world.start_record_used_sigs();
-            let result = func(value);
-            let used_sig_ids = self.world.take_record_used_sigs(record_start_index);
-
-            let value = match result {
-                ControlledMemo::Changed(value) => {
-                    self.add_sig_updated(sig_id);
-                    value
-                }
-                ControlledMemo::Unchanged(value) => value,
-            };
-
-            (value, used_sig_ids)
-        };
-
-        if non_initialized {
-            let (value, used_sig_ids) = run_func(None);
-
-            let memo = Memo {
-                value: Rc::new(value),
-                used_sig_ids,
-            };
-            memo_list.push(memo);
-        } else if used_sig_updated() {
-            let is_memo_last_index = memo_index == memo_list.len() - 1;
-
-            // move last element to memo_index
-            let memo = memo_list.swap_remove(memo_index);
-            let input: Rc<T> = Rc::downcast(memo.value.into_rc_any()).unwrap();
-            let input = Rc::into_inner(input).unwrap();
-
-            let (value, used_sig_ids) = run_func(Some(input));
-
-            let mut memo = Memo {
-                value: Rc::new(value),
-                used_sig_ids,
-            };
-
-            if !is_memo_last_index {
-                // swap last element and memo. new memo will be in [memo_index].
-                std::mem::swap(&mut memo_list[memo_index], &mut memo);
-            }
-            // and push last element to the end
-            memo_list.push(memo);
-        }
-
-        let memo = memo_list.get(memo_index).unwrap();
-
-        let value: Rc<T> = Rc::downcast(memo.value.clone().into_rc()).unwrap();
-
-        Sig::new(value, sig_id, self.world)
-    }
-    pub fn init_atom<State: Send + Sync + 'static>(
+    pub(crate) fn init_atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
         init: impl Fn() -> State,
-    ) -> (Sig<State, &State>, SetState<State>) {
+    ) -> (Sig<State>, SetState<State>) {
         let atom_list = &self.world.atom_list;
 
         if !atom.is_initialized() {
@@ -404,10 +414,10 @@ impl ComponentCtx<'_> {
 
         (sig, set_state)
     }
-    pub fn atom<State: Send + Sync + 'static>(
+    pub(crate) fn atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
-    ) -> (Sig<State, &State>, SetState<State>) {
+    ) -> (Sig<State>, SetState<State>) {
         let atom_list = &self.world.atom_list;
 
         let atom_index = atom.get_index();
@@ -423,7 +433,7 @@ impl ComponentCtx<'_> {
 
         (sig, set_state)
     }
-    pub fn spawn<Fut>(&self, future: Fut)
+    pub(crate) fn spawn<Fut>(&self, future: Fut)
     where
         Fut: std::future::Future + Send + 'static,
         Fut::Output: Send + 'static,
