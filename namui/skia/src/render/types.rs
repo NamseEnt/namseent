@@ -612,12 +612,6 @@ pub enum ImageFit {
     None,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
-pub struct ColorFilter {
-    pub color: Color,
-    pub blend_mode: BlendMode,
-}
-
 pub type GlyphId = skia_safe::GlyphId;
 pub type GlyphIds = Vec<GlyphId>;
 

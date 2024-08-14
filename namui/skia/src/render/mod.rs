@@ -1,4 +1,5 @@
 mod codes;
+mod color_filter;
 mod command;
 mod event;
 mod font;
@@ -13,6 +14,7 @@ mod shader;
 mod types;
 
 pub use codes::*;
+pub use color_filter::*;
 pub use command::*;
 pub use event::*;
 pub use font::*;
