@@ -1,4 +1,5 @@
 use crate::*;
+use std::fmt::Debug;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum ImageFilter {
@@ -9,6 +10,36 @@ pub enum ImageFilter {
         /// crop_rect is not supported in wasm
         crop_rect: Option<Rect<Px>>,
     },
+    Image {
+        src: Image,
+    },
+    Blend {
+        mode: BlendMode,
+        background: Box<ImageFilter>,
+        foreground: Box<ImageFilter>,
+    },
+    Offset {
+        offset: Xy<Px>,
+        input: Box<ImageFilter>,
+    },
+    Empty,
+}
+
+impl ImageFilter {
+    pub fn offset(self, offset: Xy<Px>) -> Self {
+        ImageFilter::Offset {
+            offset,
+            input: Box::new(self),
+        }
+    }
+
+    pub fn blend(mode: BlendMode, background: ImageFilter, foreground: ImageFilter) -> Self {
+        ImageFilter::Blend {
+            mode,
+            background: Box::new(background),
+            foreground: Box::new(foreground),
+        }
+    }
 }
 
 impl From<&ImageFilter> for skia_safe::ImageFilter {
@@ -26,6 +57,37 @@ impl From<&ImageFilter> for skia_safe::ImageFilter {
                 crop_rect.map(|x| skia_safe::Rect::from(x).into()),
             )
             .unwrap(),
+            ImageFilter::Image { src } => skia_safe::image_filters::image(
+                skia_safe::Image::clone(&src.skia_image),
+                None,
+                None,
+                None,
+            )
+            .unwrap(),
+            ImageFilter::Blend {
+                mode,
+                background,
+                foreground,
+            } => skia_safe::image_filters::blend(
+                skia_safe::BlendMode::from(*mode),
+                skia_safe::ImageFilter::from(background.as_ref()),
+                skia_safe::ImageFilter::from(foreground.as_ref()),
+                None,
+            )
+            .unwrap(),
+            ImageFilter::Offset { offset, input } => skia_safe::image_filters::offset(
+                (offset.x.as_f32(), offset.y.as_f32()),
+                skia_safe::ImageFilter::from(input.as_ref()),
+                None,
+            )
+            .unwrap(),
+            ImageFilter::Empty => skia_safe::image_filters::empty(),
         }
+    }
+}
+
+impl Default for ImageFilter {
+    fn default() -> Self {
+        ImageFilter::Empty
     }
 }
