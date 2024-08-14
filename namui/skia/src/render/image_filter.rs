@@ -1,8 +1,10 @@
 use crate::*;
 use std::fmt::Debug;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq, Default)]
 pub enum ImageFilter {
+    #[default]
+    Empty,
     Blur {
         sigma_xy: Xy<OrderedFloat<f32>>,
         tile_mode: Option<TileMode>,
@@ -26,7 +28,6 @@ pub enum ImageFilter {
         color_filter: ColorFilter,
         input: Box<ImageFilter>,
     },
-    Empty,
 }
 
 impl ImageFilter {
@@ -107,11 +108,5 @@ impl From<&ImageFilter> for skia_safe::ImageFilter {
             .unwrap(),
             ImageFilter::Empty => skia_safe::image_filters::empty(),
         }
-    }
-}
-
-impl Default for ImageFilter {
-    fn default() -> Self {
-        ImageFilter::Empty
     }
 }
