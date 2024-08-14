@@ -1,3 +1,5 @@
+mod pass_sig;
+
 use crate::*;
 use std::sync::{Arc, Mutex};
 
