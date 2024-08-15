@@ -5,15 +5,15 @@ use std::{
 };
 
 #[derive(Clone, Copy)]
-pub struct Sig<'world, T: ?Sized, Ref: Borrow<T>> {
-    id: SigId,
-    value: Ref,
-    world: &'world World,
+pub struct Sig<'a, T: ?Sized> {
+    pub(crate) id: SigId,
+    value: &'a T,
+    world: &'a World,
     _phantom: std::marker::PhantomData<T>,
 }
 
-impl<'world, T: ?Sized, Ref: Borrow<T>> Sig<'world, T, Ref> {
-    pub(crate) fn new(value: Ref, id: SigId, world: &'world World) -> Self {
+impl<'a, T: ?Sized> Sig<'a, T> {
+    pub(crate) fn new(value: &'a T, id: SigId, world: &'a World) -> Self {
         Self {
             value,
             id,
@@ -30,15 +30,15 @@ impl<'world, T: ?Sized, Ref: Borrow<T>> Sig<'world, T, Ref> {
     {
         self.value.borrow().clone()
     }
-    pub fn map<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> Sig<'world, U, &U> {
-        Sig::new(f(self.value.borrow()), self.id, self.world)
+    pub fn map<U: ?Sized, F: FnOnce(&T) -> &U>(&self, f: F) -> Sig<'a, U> {
+        Sig::new(f(self.value), self.id, self.world)
     }
     pub fn is_updated(&self) -> bool {
         self.world.is_sig_updated(&self.id)
     }
 }
 
-impl<T: ?Sized + Debug, Ref: Borrow<T>> Debug for Sig<'_, T, Ref> {
+impl<T: ?Sized + Debug> Debug for Sig<'_, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Sig")
             .field("id", &self.id)
@@ -47,13 +47,13 @@ impl<T: ?Sized + Debug, Ref: Borrow<T>> Debug for Sig<'_, T, Ref> {
     }
 }
 
-impl<T: ?Sized + Display, Ref: Borrow<T>> Display for Sig<'_, T, Ref> {
+impl<T: ?Sized + Display> Display for Sig<'_, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.value.borrow().fmt(f)
     }
 }
 
-impl<T: ?Sized, Ref: Borrow<T>> std::ops::Deref for Sig<'_, T, Ref> {
+impl<T: ?Sized> std::ops::Deref for Sig<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -62,7 +62,7 @@ impl<T: ?Sized, Ref: Borrow<T>> std::ops::Deref for Sig<'_, T, Ref> {
     }
 }
 
-impl<T: ?Sized, Ref: Borrow<T>> AsRef<T> for Sig<'_, T, Ref> {
+impl<T: ?Sized> AsRef<T> for Sig<'_, T> {
     fn as_ref(&self) -> &T {
         self.record_as_used();
         self.value.borrow()
