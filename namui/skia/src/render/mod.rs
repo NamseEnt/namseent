@@ -1,4 +1,6 @@
+mod blender;
 mod codes;
+mod color_filter;
 mod command;
 mod event;
 mod font;
@@ -12,7 +14,9 @@ mod rendering_tree;
 mod shader;
 mod types;
 
+pub use blender::*;
 pub use codes::*;
+pub use color_filter::*;
 pub use command::*;
 pub use event::*;
 pub use font::*;
