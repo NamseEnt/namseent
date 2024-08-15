@@ -1,11 +1,11 @@
 use namui::{PercentExt, Xy};
-use psd_sprite::{skia_util::sk_image_to_webp, PartsSpriteAsset};
+use psd_sprite::{skia_util::sk_image_to_webp, PsdSprite};
 use schema_0::{Circumcircle, SceneSprite};
 use std::collections::{HashMap, HashSet};
 
 fn main() {
     let psd_bytes = include_bytes!("test.psd");
-    let parts_sprite_asset = PartsSpriteAsset::from_psd_bytes(psd_bytes).unwrap();
+    let psd_sprite = PsdSprite::from_psd_bytes(psd_bytes).unwrap();
     let scene_sprite = SceneSprite {
         sprite_id: None,
         circumcircle: Circumcircle {
@@ -35,7 +35,7 @@ fn main() {
             ),
         ]),
     };
-    let image_filter = parts_sprite_asset.render(&scene_sprite).unwrap().unwrap();
+    let image_filter = psd_sprite.render(&scene_sprite).unwrap().unwrap();
     let image_info =
         skia_safe::ImageInfo::new_n32((1024, 2048), skia_safe::AlphaType::Unpremul, None);
     let mut surface = skia_safe::surfaces::raster(&image_info, None, None).unwrap();

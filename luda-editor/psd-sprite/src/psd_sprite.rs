@@ -9,22 +9,22 @@ use skia_util::*;
 use std::{borrow::Borrow, collections::HashMap, io::Cursor, iter::Peekable};
 
 #[derive(Debug)]
-pub struct PartsSpriteAsset {
+pub struct PsdSprite {
     pub(crate) entries: Vec<Entry>,
     pub rect: Rect<Px>,
 }
-impl PartsSpriteAsset {
+impl PsdSprite {
     pub fn from_psd_bytes(psd_bytes: &[u8]) -> anyhow::Result<Self> {
         let psd = psd::Psd::from_bytes(psd_bytes)?;
         let rect = Wh::new(psd.psd_width(), psd.psd_height())
             .map(|x| (x as f32).px())
             .to_rect();
         let layer_trees = make_tree(&psd)?;
-        Ok(layer_tree::into_parts_sprite_asset(layer_trees, rect)?)
+        Ok(layer_tree::into_psd_sprite(layer_trees, rect)?)
     }
 
     pub fn render(&self, scene_sprite: &SceneSprite) -> anyhow::Result<Option<ImageFilter>> {
-        render_parts_sprite(scene_sprite, self)
+        render_psd_sprite(scene_sprite, self)
     }
 
     pub fn to_parts_sprite(&self, name: String) -> anyhow::Result<schema_0::PartsSprite> {
@@ -135,7 +135,7 @@ impl SpriteImage {
     }
 }
 
-fn load_parts_sprite_images(sprite_part: &PartsSpriteAsset) -> Vec<(String, ImageFilter)> {
+fn load_parts_sprite_images(sprite_part: &PsdSprite) -> Vec<(String, ImageFilter)> {
     let images = sprite_part
         .entries
         .par_iter()
@@ -170,7 +170,7 @@ fn load_parts_sprite_images(sprite_part: &PartsSpriteAsset) -> Vec<(String, Imag
     }
 }
 
-fn load_parts_sprite_mask_images(sprite_part: &PartsSpriteAsset) -> Vec<(String, ImageFilter)> {
+fn load_parts_sprite_mask_images(sprite_part: &PsdSprite) -> Vec<(String, ImageFilter)> {
     let masks = sprite_part
         .entries
         .par_iter()
@@ -215,15 +215,15 @@ fn load_parts_sprite_mask_images(sprite_part: &PartsSpriteAsset) -> Vec<(String,
     }
 }
 
-fn render_parts_sprite(
+fn render_psd_sprite(
     scene_sprite: &schema_0::SceneSprite,
-    asset: &PartsSpriteAsset,
+    psd_sprite: &PsdSprite,
 ) -> anyhow::Result<Option<ImageFilter>> {
-    let parts_sprite_images = HashMap::from_iter(load_parts_sprite_images(asset));
-    let parts_sprite_mask_images = HashMap::from_iter(load_parts_sprite_mask_images(asset));
+    let parts_sprite_images = HashMap::from_iter(load_parts_sprite_images(psd_sprite));
+    let parts_sprite_mask_images = HashMap::from_iter(load_parts_sprite_mask_images(psd_sprite));
     let rendered = render_entries(
         None,
-        &asset.entries,
+        &psd_sprite.entries,
         scene_sprite,
         &parts_sprite_images,
         &parts_sprite_mask_images,

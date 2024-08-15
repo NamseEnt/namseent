@@ -1,6 +1,5 @@
 use crate::*;
 use anyhow::Result;
-use asset::{Entry, EntryKind, PartsSpriteAsset, SpriteImage};
 use namui::*;
 use psd::{image_data_section::ChannelBytes, IntoRgba, PsdLayer, ToMask};
 use rayon::prelude::*;
@@ -147,12 +146,9 @@ fn layer_to_sk_image(layer: &PsdLayer) -> Result<skia_safe::Image> {
     .ok_or(anyhow::anyhow!("Failed to create image from layer"))?)
 }
 
-pub fn into_parts_sprite_asset(
-    layer_tree: Vec<LayerTree>,
-    rect: Rect<Px>,
-) -> Result<PartsSpriteAsset> {
+pub fn into_psd_sprite(layer_tree: Vec<LayerTree>, rect: Rect<Px>) -> Result<PsdSprite> {
     let entries = into_entries(layer_tree, vec![], rect.map(|x| x.as_f32() as i32))?;
-    Ok(PartsSpriteAsset { entries, rect })
+    Ok(PsdSprite { entries, rect })
 }
 
 fn into_entries(
@@ -180,7 +176,7 @@ fn into_entries(
                         clipping_base: !group.is_clipping_mask(),
                         opacity: group.opacity(),
                         mask,
-                        kind: asset::EntryKind::Group { entries },
+                        kind: psd_sprite::EntryKind::Group { entries },
                     })
                 }
                 LayerTree::Layer { layer } => {

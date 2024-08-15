@@ -1,4 +1,4 @@
-use crate::{asset::SpriteImage, skia_util::sk_image_to_webp};
+use crate::{psd_sprite::SpriteImage, skia_util::sk_image_to_webp};
 use anyhow::Result;
 use namui_type::*;
 use skia_safe::{Image, ImageInfo, Paint};
