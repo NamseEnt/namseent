@@ -1,10 +1,11 @@
 use crate::*;
 use layer_tree::*;
+use namui::{ColorFilter, Image, ImageFilter, ImageInfo};
 use namui_type::*;
 use psd::{BlendMode, IntoRgba};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use schema_0::SceneSprite;
-use skia_safe::{Data, ImageFilter};
+use skia_safe::Data;
 use skia_util::*;
 use std::{borrow::Borrow, collections::HashMap, io::Cursor, iter::Peekable};
 
@@ -102,7 +103,7 @@ pub(crate) struct SpriteImage {
     pub(crate) webp: Box<[u8]>,
 }
 impl SpriteImage {
-    pub fn to_sk_image(&self) -> anyhow::Result<skia_safe::Image> {
+    pub fn to_namui_image(&self) -> anyhow::Result<Image> {
         let image = image::ImageReader::new(Cursor::new(&self.webp))
             .with_guessed_format()?
             .decode()?;
@@ -116,10 +117,21 @@ impl SpriteImage {
             Data::new_copy(&rgba),
             image.width() as usize * 4,
         )
+        .map(|sk_image| {
+            Image::new(
+                ImageInfo {
+                    alpha_type: namui::AlphaType::Unpremul,
+                    color_type: namui::ColorType::Rgba8888,
+                    height: (image.height() as f32).px(),
+                    width: (image.width() as f32).px(),
+                },
+                sk_image,
+            )
+        })
         .ok_or(anyhow::anyhow!("Failed to create image from SpriteImage"))?)
     }
 
-    pub fn to_sk_image_a8(&self) -> anyhow::Result<skia_safe::Image> {
+    pub fn to_namui_image_a8(&self) -> anyhow::Result<Image> {
         let image = image::ImageReader::new(Cursor::new(&self.webp))
             .with_guessed_format()?
             .decode()?;
@@ -129,6 +141,17 @@ impl SpriteImage {
             Data::new_copy(&rgba),
             image.width() as usize,
         )
+        .map(|sk_image| {
+            Image::new(
+                ImageInfo {
+                    alpha_type: namui::AlphaType::Unpremul,
+                    color_type: namui::ColorType::Alpha8,
+                    height: (image.height() as f32).px(),
+                    width: (image.width() as f32).px(),
+                },
+                sk_image,
+            )
+        })
         .ok_or(anyhow::anyhow!(
             "Failed to create a8 image from SpriteImage"
         ))?)
@@ -146,20 +169,10 @@ fn load_parts_sprite_images(sprite_part: &PsdSprite) -> Vec<(String, ImageFilter
     fn load_parts_sprite_images_from_entry(entry: &Entry) -> Vec<(String, ImageFilter)> {
         match &entry.kind {
             EntryKind::Layer { image } => image
-                .to_sk_image()
-                .map(|sk_image| {
-                    skia_safe::image_filters::image(sk_image, None, None, None)
-                        .and_then(|image_filter| {
-                            image_filter.offset(
-                                None,
-                                (
-                                    image.dest_rect.left().as_f32(),
-                                    image.dest_rect.top().as_f32(),
-                                ),
-                            )
-                        })
-                        .map(|image_filter| vec![(entry.name.clone(), image_filter)])
-                        .unwrap_or_default()
+                .to_namui_image()
+                .map(|src| {
+                    let image_filter = ImageFilter::Image { src }.offset(image.dest_rect.xy());
+                    vec![(entry.name.clone(), image_filter)]
                 })
                 .unwrap_or_default(),
             EntryKind::Group { entries } => entries
@@ -182,21 +195,11 @@ fn load_parts_sprite_mask_images(sprite_part: &PsdSprite) -> Vec<(String, ImageF
         let mut masks = entry
             .mask
             .as_ref()
-            .map(|mask| {
-                mask.to_sk_image_a8()
-                    .map(|sk_image| {
-                        skia_safe::image_filters::image(sk_image, None, None, None)
-                            .and_then(|image_filter| {
-                                image_filter.offset(
-                                    None,
-                                    (
-                                        mask.dest_rect.left().as_f32(),
-                                        mask.dest_rect.top().as_f32(),
-                                    ),
-                                )
-                            })
-                            .map(|image| vec![(entry.name.clone(), image)])
-                            .unwrap_or_default()
+            .map(|mask: &SpriteImage| {
+                mask.to_namui_image_a8()
+                    .map(|src| {
+                        let image_filter = ImageFilter::Image { src }.offset(mask.dest_rect.xy());
+                        vec![(entry.name.clone(), image_filter)]
                     })
                     .unwrap_or_default()
             })
@@ -255,12 +258,11 @@ fn render_entries<T: Borrow<Entry>>(
             match (parent_mask, mask_image) {
                 (None, None) => None,
                 (None, Some(mask)) | (Some(mask), None) => Some(mask.clone()),
-                (Some(parent_mask), Some(mask_image)) => skia_safe::image_filters::blend(
-                    skia_safe::BlendMode::DstIn,
-                    Some(parent_mask.clone()),
-                    Some(mask_image.clone()),
-                    None,
-                ),
+                (Some(parent_mask), Some(mask_image)) => Some(ImageFilter::blend(
+                    namui::BlendMode::DstIn,
+                    parent_mask.clone(),
+                    mask_image.clone(),
+                )),
             }
         };
 
@@ -278,7 +280,7 @@ fn render_entries<T: Borrow<Entry>>(
                             vec![]
                         };
                     render_entries(
-                        Some(skia_safe::image_filters::empty()),
+                        Some(ImageFilter::Empty),
                         &entries,
                         scene_sprite,
                         parts_sprite_images,
@@ -302,7 +304,7 @@ fn render_entries<T: Borrow<Entry>>(
                     }
 
                     render_entries(
-                        Some(skia_safe::image_filters::empty()),
+                        Some(ImageFilter::Empty),
                         &entries,
                         scene_sprite,
                         parts_sprite_images,
@@ -315,12 +317,11 @@ fn render_entries<T: Borrow<Entry>>(
         };
 
         if let Some(mask) = mask {
-            foreground = skia_safe::image_filters::blend(
-                skia_safe::BlendMode::DstIn,
-                foreground,
+            foreground = Some(ImageFilter::blend(
+                namui::BlendMode::DstIn,
+                foreground.unwrap_or_default(),
                 mask,
-                None,
-            );
+            ));
         }
 
         if has_clipping_layer {
@@ -340,29 +341,24 @@ fn render_entries<T: Borrow<Entry>>(
                     255,
                 )?;
             }
-            foreground = skia_safe::image_filters::blend(
-                skia_safe::BlendMode::DstIn,
-                foreground,
-                mask,
-                None,
-            );
+            foreground = Some(ImageFilter::blend(
+                namui::BlendMode::DstIn,
+                foreground.unwrap_or_default(),
+                mask.unwrap_or_default(),
+            ));
         }
 
         if entry.opacity != 255 || parent_opacity != 255 {
             let opacity = (entry.opacity as f32 / 255.0) * (parent_opacity as f32 / 255.0);
-            let mut color_matrix = skia_safe::ColorMatrix::default();
-            color_matrix.set_scale(1., 1., 1., opacity);
-            let color_filter = skia_safe::color_filters::matrix(&color_matrix);
-            foreground = skia_safe::image_filters::color_filter(color_filter, foreground, None);
+            let color_filter = ColorFilter::scale_matrix(1.0, 1.0, 1.0, opacity);
+            foreground = Some(foreground.unwrap_or_default().color_filter(color_filter));
         }
 
-        background = skia_safe::image_filters::blend(
+        background = Some(ImageFilter::blend(
             photoshop_blend_mode_into_blender(blend_mode),
-            // skia_safe::BlendMode::SrcOver,
-            background.unwrap_or(skia_safe::image_filters::empty()),
-            foreground.unwrap_or(skia_safe::image_filters::empty()),
-            None,
-        );
+            background.unwrap_or_default(),
+            foreground.unwrap_or_default(),
+        ));
     }
 
     Ok(background)

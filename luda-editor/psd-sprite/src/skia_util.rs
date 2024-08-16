@@ -1,7 +1,7 @@
 use anyhow::{Ok, Result};
 use image::ImageBuffer;
 use psd::BlendMode;
-use skia_safe::{Blender, Data, Image, RuntimeEffect};
+use skia_safe::Image;
 use std::io::Cursor;
 
 pub fn sk_image_to_webp(image: &Image) -> Result<Vec<u8>> {
@@ -62,15 +62,15 @@ pub fn sk_image_to_webp(image: &Image) -> Result<Vec<u8>> {
     Ok(webp_bytes)
 }
 
-pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_safe::Blender {
+pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> namui::Blender {
     match blend_mode {
         // BlendMode::PassThrough => todo!(),
         // BlendMode::Dissolve => todo!(),
-        BlendMode::Normal => skia_safe::BlendMode::SrcOver.into(),
-        BlendMode::Darken => skia_safe::BlendMode::Darken.into(),
-        BlendMode::Multiply => skia_safe::BlendMode::Multiply.into(),
-        BlendMode::ColorBurn => skia_safe::BlendMode::ColorBurn.into(),
-        BlendMode::LinearBurn => Blender::arithmetic(0.0, 1.0, 1.0, -1.0, false).unwrap(),
+        BlendMode::Normal => namui::BlendMode::SrcOver.into(),
+        BlendMode::Darken => namui::BlendMode::Darken.into(),
+        BlendMode::Multiply => namui::BlendMode::Multiply.into(),
+        BlendMode::ColorBurn => namui::BlendMode::ColorBurn.into(),
+        BlendMode::LinearBurn => namui::Blender::arithmetic(0.0, 1.0, 1.0, -1.0),
         BlendMode::DarkerColor => {
             let sksl = r#"
                 vec4 BRIGHTNESS_MAP = vec4(0.299, 0.587, 0.114, 0.0);
@@ -85,14 +85,12 @@ pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_saf
                     return new_src + (1 - new_src.a) * dst;
                 }
             "#;
-            let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
-            let blender = effect.make_blender(Data::new_empty(), None);
-            blender.unwrap()
+            namui::Blender::Sksl(sksl.to_string())
         }
-        BlendMode::Lighten => skia_safe::BlendMode::Lighten.into(),
-        BlendMode::Screen => skia_safe::BlendMode::Screen.into(),
-        BlendMode::ColorDodge => skia_safe::BlendMode::ColorDodge.into(),
-        BlendMode::LinearDodge => Blender::arithmetic(0.0, 1.0, 1.0, 0.0, false).unwrap(),
+        BlendMode::Lighten => namui::BlendMode::Lighten.into(),
+        BlendMode::Screen => namui::BlendMode::Screen.into(),
+        BlendMode::ColorDodge => namui::BlendMode::ColorDodge.into(),
+        BlendMode::LinearDodge => namui::Blender::arithmetic(0.0, 1.0, 1.0, 0.0),
         BlendMode::LighterColor => {
             let sksl = r#"
                 vec4 BRIGHTNESS_MAP = vec4(0.299, 0.587, 0.114, 0.0);
@@ -107,13 +105,11 @@ pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_saf
                     return new_src + (1 - new_src.a) * dst;
                 }
             "#;
-            let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
-            let blender = effect.make_blender(Data::new_empty(), None);
-            blender.unwrap()
+            namui::Blender::Sksl(sksl.to_string())
         }
-        BlendMode::Overlay => skia_safe::BlendMode::Overlay.into(),
-        BlendMode::SoftLight => skia_safe::BlendMode::SoftLight.into(),
-        BlendMode::HardLight => skia_safe::BlendMode::HardLight.into(),
+        BlendMode::Overlay => namui::BlendMode::Overlay.into(),
+        BlendMode::SoftLight => namui::BlendMode::SoftLight.into(),
+        BlendMode::HardLight => namui::BlendMode::HardLight.into(),
         BlendMode::VividLight => {
             let sksl = r#"
                 vec4 main(vec4 src, vec4 dst) {
@@ -131,9 +127,7 @@ pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_saf
                     return new_src + (1 - new_src.a) * dst;
                 }
             "#;
-            let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
-            let blender = effect.make_blender(Data::new_empty(), None);
-            blender.unwrap()
+            namui::Blender::Sksl(sksl.to_string())
         }
         BlendMode::LinearLight => {
             let sksl = r#"
@@ -152,9 +146,7 @@ pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_saf
                     return new_src + (1 - new_src.a) * dst;
                 }
             "#;
-            let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
-            let blender = effect.make_blender(Data::new_empty(), None);
-            blender.unwrap()
+            namui::Blender::Sksl(sksl.to_string())
         }
         BlendMode::PinLight => {
             let sksl = r#"
@@ -173,9 +165,7 @@ pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_saf
                     return new_src + (1 - new_src.a) * dst;
                 }
             "#;
-            let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
-            let blender = effect.make_blender(Data::new_empty(), None);
-            blender.unwrap()
+            namui::Blender::Sksl(sksl.to_string())
         }
         BlendMode::HardMix => {
             let sksl = r#"
@@ -187,12 +177,10 @@ pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_saf
                     return new_src + (1 - new_src.a) * dst;
                 }
             "#;
-            let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
-            let blender = effect.make_blender(Data::new_empty(), None);
-            blender.unwrap()
+            namui::Blender::Sksl(sksl.to_string())
         }
-        BlendMode::Difference => skia_safe::BlendMode::Difference.into(),
-        BlendMode::Exclusion => skia_safe::BlendMode::Exclusion.into(),
+        BlendMode::Difference => namui::BlendMode::Difference.into(),
+        BlendMode::Exclusion => namui::BlendMode::Exclusion.into(),
         BlendMode::Subtract => {
             let sksl = r#"
                 vec4 main(vec4 src, vec4 dst) {
@@ -203,9 +191,7 @@ pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_saf
                     return new_src + (1 - new_src.a) * dst;
                 }
             "#;
-            let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
-            let blender = effect.make_blender(Data::new_empty(), None);
-            blender.unwrap()
+            namui::Blender::Sksl(sksl.to_string())
         }
         BlendMode::Divide => {
             let sksl = r#"
@@ -217,14 +203,12 @@ pub fn photoshop_blend_mode_into_blender(blend_mode: psd::BlendMode) -> skia_saf
                     return new_src + (1 - new_src.a) * dst;
                 }
             "#;
-            let effect = RuntimeEffect::make_for_blender(sksl, None).unwrap();
-            let blender = effect.make_blender(Data::new_empty(), None);
-            blender.unwrap()
+            namui::Blender::Sksl(sksl.to_string())
         }
-        BlendMode::Hue => skia_safe::BlendMode::Hue.into(),
-        BlendMode::Saturation => skia_safe::BlendMode::Saturation.into(),
-        BlendMode::Color => skia_safe::BlendMode::Color.into(),
-        BlendMode::Luminosity => skia_safe::BlendMode::Luminosity.into(),
-        _ => skia_safe::BlendMode::SrcOver.into(),
+        BlendMode::Hue => namui::BlendMode::Hue.into(),
+        BlendMode::Saturation => namui::BlendMode::Saturation.into(),
+        BlendMode::Color => namui::BlendMode::Color.into(),
+        BlendMode::Luminosity => namui::BlendMode::Luminosity.into(),
+        _ => namui::BlendMode::SrcOver.into(),
     }
 }

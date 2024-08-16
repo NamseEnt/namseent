@@ -1,5 +1,5 @@
 use namui::{PercentExt, Xy};
-use psd_sprite::{skia_util::sk_image_to_webp, PsdSprite};
+use psd_sprite::PsdSprite;
 use schema_0::{Circumcircle, SceneSprite};
 use std::collections::{HashMap, HashSet};
 
@@ -35,15 +35,5 @@ fn main() {
             ),
         ]),
     };
-    let image_filter = psd_sprite.render(&scene_sprite).unwrap().unwrap();
-    let image_info =
-        skia_safe::ImageInfo::new_n32((1024, 2048), skia_safe::AlphaType::Unpremul, None);
-    let mut surface = skia_safe::surfaces::raster(&image_info, None, None).unwrap();
-    let canvas = surface.canvas();
-    let mut paint = skia_safe::Paint::default();
-    paint.set_image_filter(image_filter);
-    canvas.draw_rect(skia_safe::Rect::from_isize((1024, 2048)), &paint);
-    let image = surface.image_snapshot();
-    let webp_bytes = sk_image_to_webp(&image).unwrap();
-    std::fs::write("test.webp", webp_bytes).unwrap();
+    let _image_filter = psd_sprite.render(&scene_sprite).unwrap().unwrap();
 }
