@@ -98,15 +98,17 @@ fn download_wasi_sdk() -> Result<()> {
     }
 
     println!("DOWNLOADING WASI-SDK {VERSION}.0");
-
-    let url = format!("https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{VERSION}/wasi-sdk-{VERSION}.0-linux.tar.gz");
+    let url = format!("https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{VERSION}/wasi-sdk-{VERSION}.0-x86_64-linux.tar.gz");
 
     let response = reqwest::blocking::get(url)?.error_for_status()?;
 
     let mut d = flate2::read::GzDecoder::new(response);
     let mut archive = tar::Archive::new(&mut d);
     archive.unpack(&temp)?;
-    std::fs::rename(temp.join(format!("wasi-sdk-{VERSION}.0")), dist)?;
+    std::fs::rename(
+        temp.join(format!("wasi-sdk-{VERSION}.0-x86_64-linux")),
+        dist,
+    )?;
     std::fs::remove_dir(temp)?;
 
     Ok(())
