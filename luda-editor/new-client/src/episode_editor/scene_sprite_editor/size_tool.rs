@@ -2,16 +2,16 @@ use crate::*;
 
 pub struct SizeTool<'a> {
     pub wh: Wh<Px>,
-    pub radius: Percent,
-    pub on_change_radius: &'a dyn Fn(Percent),
+    pub size_radius: Percent,
+    pub on_change_size_radius: &'a dyn Fn(Percent),
 }
 
 impl Component for SizeTool<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            radius,
-            on_change_radius,
+            size_radius,
+            on_change_size_radius,
         } = self;
 
         let (is_dragging, set_is_dragging) = ctx.state(|| false);
@@ -21,7 +21,7 @@ impl Component for SizeTool<'_> {
                 table::fixed(64.px(), |wh, ctx| {
                     ctx.add(typography::body::left(
                         wh.height,
-                        format!("크기 - {}", radius.round()),
+                        format!("크기 - {}", size_radius.round()),
                         Color::WHITE,
                     ));
                 }),
@@ -64,13 +64,13 @@ impl Component for SizeTool<'_> {
                             };
 
                             let x = mouse_event.local_xy().x / wh.width;
-                            on_change_radius(100.percent() * x);
+                            on_change_size_radius(100.percent() * x);
                         }),
                     );
 
                     let cursor_width = 24.px();
 
-                    let x = wh.width * radius;
+                    let x = wh.width * size_radius;
                     ctx.translate((x, 0.px())).add(path(
                         namui::Path::new().add_rect(Rect::from_xy_wh(
                             Xy::new(-cursor_width / 2, 0.px()),

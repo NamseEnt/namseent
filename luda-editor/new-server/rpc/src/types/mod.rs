@@ -57,3 +57,5 @@ pub type SpriteDoc = migration::schema::SpriteDoc;
 pub type Sprite = migration::schema::Sprite;
 pub type SpritePart = migration::schema::SpritePart;
 pub type SpritePartOption = migration::schema::SpritePartOption;
+pub type SystemTag = migration::schema::SystemTag;
+pub type SpriteTag = migration::schema::SpriteTag;

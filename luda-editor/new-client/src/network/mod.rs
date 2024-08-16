@@ -10,7 +10,6 @@ use tokio::{
     task::{AbortHandle, JoinHandle},
 };
 
-pub type SigRef<'a, T> = Sig<'a, T, &'a T>;
 type OptionResult<T, E> = Option<Result<T, E>>;
 
 type Serializer = rkyv::ser::serializers::AllocSerializer<1024>;
@@ -20,7 +19,7 @@ pub fn server_rpc<'ctx, Req, Deps, Artifacts, Response, Error, RequestFn>(
     request: RequestFn,
     dependencies: Deps,
     api_index: u16,
-) -> SigRef<'ctx, OptionResult<(Response, <Artifacts as Dependencies>::Owned), Error>>
+) -> Sig<'ctx, OptionResult<(Response, <Artifacts as Dependencies>::Owned), Error>>
 where
     Deps: TrackEqTuple,
     // <Deps as Dependencies>::Owned: Send + 'static,

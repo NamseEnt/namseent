@@ -94,7 +94,7 @@ fn generate_rpc_files(rpc: &Rpc) {
                     ctx: &'a RenderCtx,
                     request: RequestFn,
                     dependencies: Deps,
-                ) -> SigRef<'a, Option<Result<(Response, <Artifacts as Dependencies>::Owned), Error>>>
+                ) -> Sig<'a, Option<Result<(Response, <Artifacts as Dependencies>::Owned), Error>>>
                 where
                     Deps: TrackEqTuple,
                     Artifacts: Dependencies,

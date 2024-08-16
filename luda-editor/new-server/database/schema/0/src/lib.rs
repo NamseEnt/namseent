@@ -17,6 +17,7 @@ mod project;
 mod scene;
 mod team;
 mod team_invite;
+mod translation;
 
 pub use asset::*;
 pub use auth::*;
@@ -26,5 +27,6 @@ pub use project::*;
 pub use scene::*;
 pub use team::*;
 pub use team_invite::*;
+pub use translation::*;
 
 use document::*;

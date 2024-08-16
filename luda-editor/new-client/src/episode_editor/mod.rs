@@ -45,8 +45,8 @@ impl Component for EpisodeEditor<'_> {
                     ctx.add(LoadedEpisodeEditor {
                         project_id,
                         episode_id,
-                        initial_scenes: scenes,
-                        initial_texts: texts,
+                        initial_scenes: &scenes,
+                        initial_texts: &texts,
                     });
                 }
                 Err(err) => {

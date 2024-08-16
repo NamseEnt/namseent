@@ -8,23 +8,25 @@ use namui_prebuilt::*;
 
 pub struct SceneSpriteEditor<'a> {
     pub wh: Wh<Px>,
+    _phantom: std::marker::PhantomData<&'a ()>,
 }
 
 impl Component for SceneSpriteEditor<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh } = self;
+        let Self { wh, _phantom } = self;
         ctx.compose(|ctx| {
             table::vertical([
                 table::fixed(320.px(), {
                     |wh, ctx| {
                         ctx.add(scene_sprite_list::SceneSpriteList {
                             wh,
-                            scene_sprites,
-                            remove_scene_sprite,
-                            add_new_scene_sprite,
-                            move_scene_sprite_up_down,
-                            select_scene_sprite,
-                            selected_scene_sprite_index,
+                            scene_sprites: todo!(),
+                            remove_scene_sprite: todo!(),
+                            add_new_scene_sprite: todo!(),
+                            move_scene_sprite_up_down: todo!(),
+                            select_scene_sprite: todo!(),
+                            selected_scene_sprite_index: todo!(),
+                            sprite_docs: todo!(),
                         });
                     }
                 }),
@@ -42,7 +44,11 @@ impl Component for SceneSpriteEditor<'_> {
                     });
                 }),
                 table::fixed(320.px(), |wh, ctx| {
-                    ctx.add(size_tool::SizeTool { wh });
+                    ctx.add(size_tool::SizeTool {
+                        wh,
+                        size_radius: todo!(),
+                        on_change_size_radius: todo!(),
+                    });
                 }),
             ])(wh, ctx)
         });
