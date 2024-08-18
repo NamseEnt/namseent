@@ -9,15 +9,13 @@ pub struct SystemTime {
 }
 impl Clone for ArchivedSystemTime {
     fn clone(&self) -> Self {
-        Self {
-            inner: self.inner.clone(),
-        }
+        *self
     }
 }
 impl Copy for ArchivedSystemTime {}
-impl Into<SystemTime> for ArchivedSystemTime {
-    fn into(self) -> SystemTime {
-        self.deserialize(&mut Infallible).unwrap()
+impl From<ArchivedSystemTime> for SystemTime {
+    fn from(value: ArchivedSystemTime) -> Self {
+        value.deserialize(&mut Infallible).unwrap()
     }
 }
 
