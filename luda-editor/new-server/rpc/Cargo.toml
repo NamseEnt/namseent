@@ -1,0 +1,29 @@
+[package]
+name = "luda-rpc"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+server = ["dep:database"]
+client = []
+
+[dependencies]
+macro-common-lib = { path = "../macro-common-lib" }
+rpc-macro = { path = "./macro" }
+rkyv = { version = "0.7.44", features = ["validation"] }
+database = { path = "../database/database", optional = true }
+anyhow = { version = "1.0.86", features = ["backtrace"] }
+migration = { path = "../database/schema/migration" }
+namui-type = { path = "../../../namui/namui-type" }
+serializer = { path = "../serializer" }
+
+[build-dependencies]
+macro-common-lib = { path = "../macro-common-lib" }
+walkdir = "2"
+rpc-macro = { path = "./macro" }
+rkyv = { version = "0.7.44", features = ["validation"] }
+database = { path = "../database/database", optional = true }
+anyhow = { version = "1.0.86", features = ["backtrace"] }
+migration = { path = "../database/schema/migration" }
+namui-type = { path = "../../../namui/namui-type" }
+serializer = { path = "../serializer" }

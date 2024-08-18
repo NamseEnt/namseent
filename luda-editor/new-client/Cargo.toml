@@ -1,0 +1,16 @@
+[package]
+name = "luda-editor-client"
+version = "0.1.0"
+authors = ["namse <skatpgusskat@naver.com>"]
+edition = "2021"
+
+[package.metadata]
+namui = true
+
+[dependencies]
+namui = { path = "../../namui/namui" }
+namui-prebuilt = { path = "../../namui/namui-prebuilt" }
+serde = { version = "1.0.203", features = ["derive"] }
+luda-rpc = { path = "../new-server/rpc" }
+dashmap = "6.0.1"
+randum = { path = "../new-server/randum" }

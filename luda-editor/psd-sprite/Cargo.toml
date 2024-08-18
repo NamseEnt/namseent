@@ -1,0 +1,14 @@
+[package]
+name = "psd-sprite"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+psd = { path = "../third-party-forks/psd" }
+namui-type = { path = "../../namui/namui-type" }
+rayon = "1.10.0"
+anyhow = { version = "1.0.86", features = ["backtrace"] }
+image = "0.25.2"
+skia-safe = { path = "../../namui/third-party-forks/rust-skia/skia-safe" }
+schema-0 = { version = "0.0.1", path = "../new-server/database/schema/0" }
+namui = { version = "0.1.0", path = "../../namui/namui" }

@@ -1,0 +1,13 @@
+services:
+  s3:
+    command: "server /data --console-address :9001"
+    image: minio/minio:latest
+    container_name: s3-local
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - "./s3local:/data"
+    environment:
+      - MINIO_ACCESS_KEY=minio
+      - MINIO_SECRET_KEY=minio123

@@ -2,6 +2,7 @@ use namui::*;
 use namui_prebuilt::typography;
 
 pub fn main() {
+    println!("hi");
     namui::start(render)
 }
 

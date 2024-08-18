@@ -30,7 +30,7 @@ fn render(ctx: &RenderCtx) {
         stroke_width: 1.px(),
         fill_color: Color::WHITE,
         mouse_buttons: vec![MouseButton::Left],
-        on_mouse_up_in: &|_| {
+        on_mouse_up_in: |_| {
             set_value.mutate(|value| {
                 match value {
                     Some(value) => {
@@ -53,7 +53,7 @@ fn render(ctx: &RenderCtx) {
         stroke_width: 1.px(),
         fill_color: Color::WHITE,
         mouse_buttons: vec![MouseButton::Left],
-        on_mouse_up_in: &|_| {
+        on_mouse_up_in: |_| {
             namui::system::file::kv_store::delete(KEY).unwrap();
             set_value.set(namui::system::file::kv_store::get(KEY).unwrap());
         },

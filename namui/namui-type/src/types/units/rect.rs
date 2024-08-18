@@ -1,8 +1,13 @@
 use crate::*;
 use num::cast::AsPrimitive;
+use std::fmt::Debug;
 
 #[type_derives(Copy, Eq, Hash)]
-pub enum Rect<T> {
+pub enum Rect<T>
+where
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
+{
     Xywh {
         x: T,
         y: T,
@@ -18,14 +23,23 @@ pub enum Rect<T> {
 }
 
 #[type_derives(Copy, Eq)]
-pub struct Xywh<T> {
+pub struct Xywh<T>
+where
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
+{
     pub x: T,
     pub y: T,
     pub width: T,
     pub height: T,
 }
 
-impl<T: Clone> Rect<T> {
+impl<T> Rect<T>
+where
+    T: Clone,
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
+{
     pub fn from_xy_wh(xy: Xy<T>, wh: Wh<T>) -> Self {
         Rect::Xywh {
             x: xy.x,
@@ -129,6 +143,8 @@ impl<T: Clone> Rect<T> {
 impl<T> Rect<T>
 where
     T: Clone + std::ops::Sub<Output = T>,
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
 {
     pub fn as_xywh(&self) -> Xywh<T> {
         match self {
@@ -262,6 +278,8 @@ where
 impl<T> Rect<T>
 where
     T: std::ops::Add<Output = T> + Clone,
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
 {
     pub fn as_ltrb(&self) -> Ltrb<T> {
         match self {
@@ -379,6 +397,8 @@ where
 impl<T> Rect<T>
 where
     T: std::ops::Mul<f32, Output = T> + Clone,
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
 {
     pub fn scale(&self, ratio: impl AsPrimitive<f32>) -> Self {
         let ratio = ratio.as_();
@@ -415,6 +435,8 @@ where
     &'a T: std::ops::Add<&'a T, Output = T>
         + std::ops::Div<f32, Output = T>
         + std::ops::Add<T, Output = T>,
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
 {
     pub fn center(&'a self) -> Xy<T> {
         match self {
@@ -443,6 +465,8 @@ where
 impl<T> Rect<T>
 where
     T: PartialOrd + std::ops::Add<T, Output = T> + Clone,
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
 {
     pub fn intersect(&self, other: Rect<T>) -> Option<Rect<T>> {
         let my_ltrb = self.as_ltrb();
@@ -542,6 +566,8 @@ where
 impl<T> Default for Rect<T>
 where
     T: Default,
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
 {
     fn default() -> Self {
         Rect::Ltrb {
@@ -556,6 +582,8 @@ where
 impl<T> std::ops::Add<Xy<T>> for Rect<T>
 where
     T: std::ops::Add<Output = T> + Clone,
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
 {
     type Output = Rect<T>;
     fn add(self, rhs: Xy<T>) -> Self::Output {
@@ -615,6 +643,8 @@ impl From<Rect<Px>> for skia_safe::Rect {
 impl<T> Into<Rect<T>> for skia_safe::Rect
 where
     T: From<f32>,
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
 {
     fn into(self) -> Rect<T> {
         Rect::Ltrb {
@@ -627,8 +657,14 @@ where
 }
 
 impl<T> Rect<T>
+where
+    T: Debug + rkyv::Archive,
+    <T as rkyv::Archive>::Archived: Debug,
 {
     pub fn map<U>(&self, f: impl Fn(&T) -> U) -> Rect<U>
+    where
+        U: Debug + rkyv::Archive,
+        <U as rkyv::Archive>::Archived: Debug,
     {
         match self {
             Rect::Xywh {

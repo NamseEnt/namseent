@@ -3,7 +3,10 @@ mod public;
 use crate::*;
 use elsa::*;
 use rustc_hash::FxHashSet;
-use std::sync::{atomic::{AtomicBool, AtomicUsize}, mpsc};
+use std::sync::{
+    atomic::{AtomicBool, AtomicUsize},
+    mpsc,
+};
 
 pub struct World {
     composers: FrozenIndexMap<ComposerId, Box<Composer>>,

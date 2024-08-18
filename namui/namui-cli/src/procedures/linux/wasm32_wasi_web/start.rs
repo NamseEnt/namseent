@@ -124,6 +124,7 @@ export default defineConfig({{
             "Cross-Origin-Resource-Policy": "same-origin",
             "Cross-Origin-Embedder-Policy": "require-corp",
             "Cross-Origin-Opener-Policy": "same-origin",
+            "Referrer-Policy": "no-referrer-when-downgrade",
         }},
         allow: [
             "{namui_runtime_wasm}",

@@ -35,7 +35,7 @@ impl Percent {
 
 impl Display for Percent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:.*?}%", f.precision().unwrap_or(1), self.0.0)
+        write!(f, "{:.*?}%", f.precision().unwrap_or(1), self.0.as_f32())
     }
 }
 

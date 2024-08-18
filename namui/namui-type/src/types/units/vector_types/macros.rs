@@ -10,10 +10,18 @@ macro_rules! vector_types {
         use $crate::*;
 
         #[type_derives(Copy, Eq, Hash)]
-        pub struct $type_name<T> {
+        pub struct $type_name<T>
+        where
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
+        {
             $( pub $field_ident: T ),*
         }
-        impl<T> $type_name<T> {
+        impl<T> $type_name<T>
+        where
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
+        {
             #[inline(always)]
             pub const fn new($($field_ident: T),*) -> Self {
                 Self { $($field_ident),* }
@@ -22,13 +30,20 @@ macro_rules! vector_types {
             pub fn map<U, F>(self, f: F) -> $type_name<U>
             where
                 F: Fn(T) -> U,
+                U: std::fmt::Debug + rkyv::Archive,
+                <U as rkyv::Archive>::Archived: std::fmt::Debug,
             {
                 $type_name {
                     $( $field_ident: f(self.$field_ident) ),*
                 }
             }
         }
-        impl<T: Clone> $type_name<T> {
+        impl<T> $type_name<T>
+        where
+            T: Clone,
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
+        {
             pub fn single(value: T) -> $type_name<T> {
                 $type_name {
                     $( $field_ident: value.clone() ),*
@@ -37,6 +52,8 @@ macro_rules! vector_types {
             pub fn into_type<U>(&self) -> $type_name<U>
             where
                 T: Into<U>,
+                U: std::fmt::Debug + rkyv::Archive,
+                <U as rkyv::Archive>::Archived: std::fmt::Debug,
             {
                 $type_name {
                     $( $field_ident: self.$field_ident.clone().into() ),*
@@ -69,6 +86,10 @@ macro_rules! vector_types {
         where
             Lhs: std::ops::Div<Rhs, Output = Lhs>,
             Rhs: $crate::Ratio + Clone,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             type Output = $type_name<Lhs>;
             fn div(self, rhs: Rhs) -> Self::Output {
@@ -82,6 +103,10 @@ macro_rules! vector_types {
         where
             Lhs: std::ops::Div<Rhs, Output = Lhs> + Clone,
             Rhs: $crate::Ratio + Clone,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             type Output = $type_name<Lhs>;
             fn div(self, rhs: Rhs) -> Self::Output {
@@ -95,6 +120,10 @@ macro_rules! vector_types {
         where
             Lhs: std::ops::DivAssign<Rhs>,
             Rhs: $crate::Ratio + Clone,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             fn div_assign(&mut self, rhs: Rhs) {
                 $( self.$field_ident.div_assign(rhs.clone()); )*
@@ -105,6 +134,10 @@ macro_rules! vector_types {
         where
             Lhs: std::ops::Mul<Rhs, Output = Lhs>,
             Rhs: $crate::Ratio + Clone,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             type Output = $type_name<Lhs>;
             fn mul(self, rhs: Rhs) -> Self::Output {
@@ -118,6 +151,10 @@ macro_rules! vector_types {
         where
             Lhs: std::ops::Mul<Rhs, Output = Lhs> + Clone,
             Rhs: $crate::Ratio + Clone,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             type Output = $type_name<Lhs>;
             fn mul(self, rhs: Rhs) -> Self::Output {
@@ -131,6 +168,10 @@ macro_rules! vector_types {
         where
             Lhs: std::ops::MulAssign<Rhs>,
             Rhs: $crate::Ratio + Clone,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             fn mul_assign(&mut self, rhs: Rhs) {
                 $( self.$field_ident.mul_assign(rhs.clone()); )*
@@ -140,6 +181,8 @@ macro_rules! vector_types {
         impl<T> std::ops::AddAssign<$type_name<T>> for $type_name<T>
         where
             T: std::ops::AddAssign + Clone,
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             fn add_assign(&mut self, rhs: $type_name<T>) {
                 $( self.$field_ident.add_assign(rhs.$field_ident.clone()); )*
@@ -149,6 +192,8 @@ macro_rules! vector_types {
         impl<'a, T> std::ops::AddAssign<&'a $type_name<T>> for $type_name<T>
         where
             T: std::ops::AddAssign + Clone,
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             fn add_assign(&mut self, rhs: &$type_name<T>) {
                 $( self.$field_ident.add_assign(rhs.$field_ident.clone()); )*
@@ -158,6 +203,8 @@ macro_rules! vector_types {
         impl<T> std::ops::SubAssign<$type_name<T>> for $type_name<T>
         where
             T: std::ops::SubAssign + Clone,
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             fn sub_assign(&mut self, rhs: $type_name<T>) {
                 $( self.$field_ident.sub_assign(rhs.$field_ident.clone()); )*
@@ -167,6 +214,8 @@ macro_rules! vector_types {
         impl<'a, T> std::ops::SubAssign<&'a $type_name<T>> for $type_name<T>
         where
             T: std::ops::SubAssign + Clone,
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             fn sub_assign(&mut self, rhs: &$type_name<T>) {
                 $( self.$field_ident.sub_assign(rhs.$field_ident.clone()); )*
@@ -177,6 +226,8 @@ macro_rules! vector_types {
         impl<T> $type_name<T>
         where
             T: From<f32>,
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             #[inline(always)]
             pub fn zero() -> $type_name<T> {
@@ -193,6 +244,8 @@ macro_rules! vector_types {
         impl<T> $type_name<T>
         where
             T: From<f32> + Into<f32> + Copy,
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             pub fn length(&self) -> T {
                 let length_in_f32 = {
@@ -209,6 +262,8 @@ macro_rules! vector_types {
         impl<T> $type_name<T>
         where
             T: std::ops::Mul<Output = T> + std::ops::AddAssign + Clone + Default,
+            T: std::fmt::Debug + rkyv::Archive,
+            <T as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             pub fn dot(&self, rhs: &$type_name<T>) -> T {
                 let mut sum = T::default();
@@ -227,6 +282,12 @@ macro_rules! overload_tuple_types_binary_operator {
         impl<Lhs, Rhs, TOutput> std::ops::$ops_trait<$type_name<Rhs>> for $type_name<Lhs>
         where
             Lhs: std::ops::$ops_trait<Rhs, Output = TOutput>,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            TOutput: std::fmt::Debug + rkyv::Archive,
+            <TOutput as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             type Output = $type_name<TOutput>;
             fn $fn_name(self, rhs: $type_name<Rhs>) -> Self::Output {
@@ -238,6 +299,12 @@ macro_rules! overload_tuple_types_binary_operator {
         impl<'a, Lhs, Rhs, TOutput> std::ops::$ops_trait<$type_name<Rhs>> for &'a $type_name<Lhs>
         where
             Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + Clone,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            TOutput: std::fmt::Debug + rkyv::Archive,
+            <TOutput as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             type Output = $type_name<TOutput>;
             fn $fn_name(self, rhs: $type_name<Rhs>) -> Self::Output {
@@ -250,6 +317,12 @@ macro_rules! overload_tuple_types_binary_operator {
         where
             Lhs: std::ops::$ops_trait<Rhs, Output = TOutput>,
             Rhs: Clone,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            TOutput: std::fmt::Debug + rkyv::Archive,
+            <TOutput as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             type Output = $type_name<TOutput>;
             fn $fn_name(self, rhs: &'b $type_name<Rhs>) -> Self::Output {
@@ -262,6 +335,12 @@ macro_rules! overload_tuple_types_binary_operator {
         where
             Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + Clone,
             Rhs: Clone,
+            Lhs: std::fmt::Debug + rkyv::Archive,
+            <Lhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            Rhs: std::fmt::Debug + rkyv::Archive,
+            <Rhs as rkyv::Archive>::Archived: std::fmt::Debug,
+            TOutput: std::fmt::Debug + rkyv::Archive,
+            <TOutput as rkyv::Archive>::Archived: std::fmt::Debug,
         {
             type Output = $type_name<TOutput>;
             fn $fn_name(self, rhs: &'b $type_name<Rhs>) -> Self::Output {
