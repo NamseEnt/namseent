@@ -10,7 +10,7 @@ pub fn sk_image_to_webp(image: &Image) -> Result<Vec<u8>> {
     let row_bytes = image.width() as usize * image_info.bytes_per_pixel();
     let mut pixels = vec![0; image.height() as usize * row_bytes];
     image.read_pixels(
-        &image_info,
+        image_info,
         &mut pixels,
         row_bytes,
         (0, 0),

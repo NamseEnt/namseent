@@ -47,7 +47,7 @@ impl PsdSprite {
                                 schema_0::SpritePart {
                                     name: entry.name.clone(),
                                     is_single_select: false,
-                                    part_options: to_options(&entries),
+                                    part_options: to_options(entries),
                                 },
                             )]
                         }
@@ -57,24 +57,17 @@ impl PsdSprite {
                                 schema_0::SpritePart {
                                     name: entry.name.clone(),
                                     is_single_select: true,
-                                    part_options: to_options(&entries),
+                                    part_options: to_options(entries),
                                 },
                             )]
                         }
-                        _ => entries
-                            .par_iter()
-                            .flat_map(|entry| collect_parts(entry))
-                            .collect(),
+                        _ => entries.par_iter().flat_map(collect_parts).collect(),
                     }
                 }
             }
         }
 
-        let parts = self
-            .entries
-            .par_iter()
-            .flat_map(|entry| collect_parts(entry))
-            .collect();
+        let parts = self.entries.par_iter().flat_map(collect_parts).collect();
         schema_0::PartsSprite { name, parts }
     }
 }
@@ -175,7 +168,7 @@ fn load_parts_sprite_images(sprite_part: &PsdSprite) -> Vec<(String, ImageFilter
                 .unwrap_or_default(),
             EntryKind::Group { entries } => entries
                 .par_iter()
-                .flat_map(|entry| load_parts_sprite_images_from_entry(entry))
+                .flat_map(load_parts_sprite_images_from_entry)
                 .collect(),
         }
     }
@@ -207,7 +200,7 @@ fn load_parts_sprite_mask_images(sprite_part: &PsdSprite) -> Vec<(String, ImageF
             EntryKind::Group { entries } => {
                 let child_masks: Vec<_> = entries
                     .par_iter()
-                    .flat_map(|entry| load_parts_sprite_mask_images_from_entry(entry))
+                    .flat_map(load_parts_sprite_mask_images_from_entry)
                     .collect();
                 masks.extend(child_masks);
                 masks
@@ -242,10 +235,10 @@ fn render_entries<T: Borrow<Entry>>(
     parent_mask: &Option<ImageFilter>,
     parent_opacity: u8,
 ) -> Option<ImageFilter> {
-    let mut entries = entries.into_iter().rev().peekable();
+    let mut entries = entries.iter().rev().peekable();
 
     while let Some(entry) = entries.next() {
-        let entry = <T as Borrow<Entry>>::borrow(&entry);
+        let entry = <T as Borrow<Entry>>::borrow(entry);
         let blend_mode = entry.blend_mode;
         let passthrough = matches!(blend_mode, BlendMode::PassThrough);
         let has_clipping_layer = has_clipping_layer(&mut entries);
@@ -269,7 +262,7 @@ fn render_entries<T: Borrow<Entry>>(
                     let entries =
                         if let Some(part_names) = scene_sprite.part_option_selections.get(name) {
                             entries
-                                .into_iter()
+                                .iter()
                                 .filter(|entry| part_names.contains(&entry.name))
                                 .collect::<Vec<_>>()
                         } else {
@@ -301,7 +294,7 @@ fn render_entries<T: Borrow<Entry>>(
 
                     render_entries(
                         Some(ImageFilter::Empty),
-                        &entries,
+                        entries,
                         scene_sprite,
                         parts_sprite_images,
                         parts_sprite_mask_images,
