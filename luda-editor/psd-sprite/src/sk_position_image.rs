@@ -11,9 +11,7 @@ pub(crate) struct SkPositionImage {
 impl SkPositionImage {
     pub fn intersect_as_mask(&self, other: &SkPositionImage) -> Option<Self> {
         let merged_rect = self.dest_rect.intersect(other.dest_rect);
-        let Some(merged_rect) = merged_rect else {
-            return None;
-        };
+        let merged_rect = merged_rect?;
 
         let mut surface = skia_safe::surfaces::raster(
             &ImageInfo::new_a8((merged_rect.width(), merged_rect.height())),

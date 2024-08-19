@@ -20,15 +20,15 @@ impl PsdSprite {
         let rect = Wh::new(psd.psd_width(), psd.psd_height())
             .map(|x| (x as f32).px())
             .to_rect();
-        let layer_trees = make_tree(&psd)?;
-        Ok(layer_tree::into_psd_sprite(layer_trees, rect)?)
+        let layer_trees = make_tree(&psd);
+        layer_tree::into_psd_sprite(layer_trees, rect)
     }
 
-    pub fn render(&self, scene_sprite: &SceneSprite) -> anyhow::Result<Option<ImageFilter>> {
+    pub fn render(&self, scene_sprite: &SceneSprite) -> Option<ImageFilter> {
         render_psd_sprite(scene_sprite, self)
     }
 
-    pub fn to_parts_sprite(&self, name: String) -> anyhow::Result<schema_0::PartsSprite> {
+    pub fn to_parts_sprite(&self, name: String) -> schema_0::PartsSprite {
         fn to_options(entries: &[Entry]) -> Vec<schema_0::SpritePartOption> {
             entries
                 .iter()
@@ -77,7 +77,7 @@ impl PsdSprite {
             .par_iter()
             .flat_map(|entry| collect_parts(entry))
             .collect();
-        Ok(schema_0::PartsSprite { name, parts })
+        schema_0::PartsSprite { name, parts }
     }
 }
 
@@ -108,7 +108,7 @@ impl SpriteImage {
             .with_guessed_format()?
             .decode()?;
         let rgba = image.to_rgba8().into_vec();
-        Ok(skia_safe::image::images::raster_from_data(
+        skia_safe::image::images::raster_from_data(
             &skia_safe::ImageInfo::new_n32(
                 (image.width() as i32, image.height() as i32),
                 skia_safe::AlphaType::Unpremul,
@@ -128,7 +128,7 @@ impl SpriteImage {
                 sk_image,
             )
         })
-        .ok_or(anyhow::anyhow!("Failed to create image from SpriteImage"))?)
+        .ok_or(anyhow::anyhow!("Failed to create image from SpriteImage"))
     }
 
     pub fn to_namui_image_a8(&self) -> anyhow::Result<Image> {
@@ -136,7 +136,7 @@ impl SpriteImage {
             .with_guessed_format()?
             .decode()?;
         let rgba = image.to_luma8().into_vec();
-        Ok(skia_safe::image::images::raster_from_data(
+        skia_safe::image::images::raster_from_data(
             &skia_safe::ImageInfo::new_a8((image.width() as i32, image.height() as i32)),
             Data::new_copy(&rgba),
             image.width() as usize,
@@ -154,7 +154,7 @@ impl SpriteImage {
         })
         .ok_or(anyhow::anyhow!(
             "Failed to create a8 image from SpriteImage"
-        ))?)
+        ))
     }
 }
 
@@ -221,10 +221,10 @@ fn load_parts_sprite_mask_images(sprite_part: &PsdSprite) -> Vec<(String, ImageF
 fn render_psd_sprite(
     scene_sprite: &schema_0::SceneSprite,
     psd_sprite: &PsdSprite,
-) -> anyhow::Result<Option<ImageFilter>> {
+) -> Option<ImageFilter> {
     let parts_sprite_images = HashMap::from_iter(load_parts_sprite_images(psd_sprite));
     let parts_sprite_mask_images = HashMap::from_iter(load_parts_sprite_mask_images(psd_sprite));
-    let rendered = render_entries(
+    render_entries(
         None,
         &psd_sprite.entries,
         scene_sprite,
@@ -232,9 +232,7 @@ fn render_psd_sprite(
         &parts_sprite_mask_images,
         &None,
         255,
-    )?;
-
-    Ok(rendered)
+    )
 }
 
 fn render_entries<T: Borrow<Entry>>(
@@ -245,7 +243,7 @@ fn render_entries<T: Borrow<Entry>>(
     parts_sprite_mask_images: &HashMap<String, ImageFilter>,
     parent_mask: &Option<ImageFilter>,
     parent_opacity: u8,
-) -> anyhow::Result<Option<ImageFilter>> {
+) -> Option<ImageFilter> {
     let mut entries = entries.into_iter().rev().peekable();
 
     while let Some(entry) = entries.next() {
@@ -287,7 +285,7 @@ fn render_entries<T: Borrow<Entry>>(
                         parts_sprite_mask_images,
                         &None,
                         255,
-                    )?
+                    )
                 }
                 _ => {
                     if passthrough && !has_clipping_layer {
@@ -299,7 +297,7 @@ fn render_entries<T: Borrow<Entry>>(
                             parts_sprite_mask_images,
                             &mask,
                             entry.opacity,
-                        )?;
+                        );
                         continue;
                     }
 
@@ -311,7 +309,7 @@ fn render_entries<T: Borrow<Entry>>(
                         parts_sprite_mask_images,
                         &None,
                         255,
-                    )?
+                    )
                 }
             },
         };
@@ -339,7 +337,7 @@ fn render_entries<T: Borrow<Entry>>(
                     parts_sprite_mask_images,
                     &None,
                     255,
-                )?;
+                );
             }
             foreground = Some(ImageFilter::blend(
                 namui::BlendMode::DstIn,
@@ -361,7 +359,7 @@ fn render_entries<T: Borrow<Entry>>(
         ));
     }
 
-    Ok(background)
+    background
 }
 
 fn has_clipping_layer<T: Borrow<Entry>>(

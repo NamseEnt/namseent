@@ -53,21 +53,21 @@ impl LayerTree<'_> {
         }
     }
 }
-pub fn make_tree(psd: &psd::Psd) -> anyhow::Result<Vec<LayerTree>> {
+pub fn make_tree(psd: &psd::Psd) -> Vec<LayerTree> {
     let mut tree = vec![];
 
     for layer in psd.layers() {
-        let group_children = open_group_children(psd, &mut tree, layer.parent_id())?;
+        let group_children = open_group_children(psd, &mut tree, layer.parent_id());
         group_children.push(LayerTree::Layer { layer })
     }
 
-    return Ok(tree);
+    return tree;
 
     fn open_group_children<'psd, 'tree>(
         psd: &'psd psd::Psd,
         tree: &'tree mut Vec<LayerTree<'psd>>,
         group_id: Option<u32>,
-    ) -> anyhow::Result<&'tree mut Vec<LayerTree<'psd>>> {
+    ) -> &'tree mut Vec<LayerTree<'psd>> {
         let group_ids_bottom_to_top = {
             let mut group_ids_bottom_to_top = vec![];
             let mut group = group_id.and_then(|group_id| psd.groups().get(&group_id));
@@ -103,7 +103,7 @@ pub fn make_tree(psd: &psd::Psd) -> anyhow::Result<Vec<LayerTree>> {
                     LayerTree::Layer { .. } => unreachable!("It should be group"),
                 }
             });
-        Ok(group_children)
+        group_children
     }
 }
 
@@ -134,16 +134,16 @@ fn layer_to_rgba(layer: &PsdLayer) -> Result<Vec<u8>> {
 fn layer_to_sk_image(layer: &PsdLayer) -> Result<skia_safe::Image> {
     let rgba = layer_to_rgba(layer)?;
 
-    Ok(skia_safe::image::images::raster_from_data(
+    skia_safe::image::images::raster_from_data(
         &ImageInfo::new_n32(
-            (layer.width() as i32, layer.height() as i32),
+            (layer.width(), layer.height()),
             skia_safe::AlphaType::Unpremul,
             None,
         ),
         Data::new_copy(&rgba),
         layer.width() as usize * 4,
     )
-    .ok_or(anyhow::anyhow!("Failed to create image from layer"))?)
+    .ok_or(anyhow::anyhow!("Failed to create image from layer"))
 }
 
 pub fn into_psd_sprite(layer_tree: Vec<LayerTree>, rect: Rect<Px>) -> Result<PsdSprite> {
@@ -232,9 +232,7 @@ fn into_entries(
 fn mask_to_sk_position_image(
     mask: Option<(&ChannelBytes, i32, i32, i32, i32)>,
 ) -> Option<SkPositionImage> {
-    let Some((bytes, top, right, bottom, left)) = mask else {
-        return None;
-    };
+    let (bytes, top, right, bottom, left) = mask?;
     let rect = Rect::Ltrb {
         left,
         top,

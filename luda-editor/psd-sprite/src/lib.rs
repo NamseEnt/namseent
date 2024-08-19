@@ -42,6 +42,6 @@ mod tests {
                 ),
             ]),
         };
-        let _image_filter = psd_sprite.render(&scene_sprite).unwrap().unwrap();
+        let _image_filter = psd_sprite.render(&scene_sprite).unwrap();
     }
 }
