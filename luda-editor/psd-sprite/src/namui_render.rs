@@ -7,8 +7,28 @@ use skia_safe::Data;
 use std::{borrow::Borrow, collections::HashMap, io::Cursor, iter::Peekable};
 
 impl PsdSprite {
-    pub fn render(&self, scene_sprite: &SceneSprite) -> Option<ImageFilter> {
-        create_image_filter(scene_sprite, self)
+    pub fn render(&self, ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>) {
+        let (image_filter, set_image_filter) = ctx.state(|| None);
+
+        ctx.effect("create image filter", || {
+            set_image_filter.set(create_image_filter(scene_sprite, self));
+        });
+
+        ctx.compose(|ctx| {
+            let Some(image_filter) = image_filter.as_ref() else {
+                return;
+            };
+            let SceneSprite { circumcircle, .. } = scene_sprite;
+            let paint = Paint::default().set_image_filter(image_filter.clone());
+            let ratio = screen_wh.length() * circumcircle.radius / self.wh.length();
+            let sprite_wh = self.wh * ratio;
+            let ctx = ctx.translate((
+                screen_wh.width * circumcircle.xy.x - (sprite_wh.width / 2),
+                screen_wh.height * circumcircle.xy.y - (sprite_wh.height / 2),
+            ));
+            let path = Path::new().add_rect(sprite_wh.to_rect());
+            ctx.add(PathDrawCommand { path, paint });
+        });
     }
 }
 
