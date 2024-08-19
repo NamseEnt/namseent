@@ -1,6 +1,6 @@
 use crate::*;
 use anyhow::Result;
-use namui::*;
+use namui_type::*;
 use psd::{image_data_section::ChannelBytes, IntoRgba, PsdLayer, ToMask};
 use rayon::prelude::*;
 use sk_position_image::SkPositionImage;
