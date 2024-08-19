@@ -146,9 +146,9 @@ fn layer_to_sk_image(layer: &PsdLayer) -> Result<skia_safe::Image> {
     .ok_or(anyhow::anyhow!("Failed to create image from layer"))
 }
 
-pub fn into_psd_sprite(layer_tree: Vec<LayerTree>, rect: Rect<Px>) -> Result<PsdSprite> {
-    let entries = into_entries(layer_tree, vec![], rect.map(|x| x.as_f32() as i32))?;
-    Ok(PsdSprite { entries, rect })
+pub fn into_psd_sprite(layer_tree: Vec<LayerTree>, wh: Wh<Px>) -> Result<PsdSprite> {
+    let entries = into_entries(layer_tree, vec![], wh.to_rect().map(|x| x.as_f32() as i32))?;
+    Ok(PsdSprite { entries, wh })
 }
 
 fn into_entries(

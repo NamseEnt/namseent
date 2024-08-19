@@ -12,16 +12,14 @@ use std::{borrow::Borrow, collections::HashMap, io::Cursor, iter::Peekable};
 #[derive(Debug)]
 pub struct PsdSprite {
     pub(crate) entries: Vec<Entry>,
-    pub rect: Rect<Px>,
+    pub wh: Wh<Px>,
 }
 impl PsdSprite {
     pub fn from_psd_bytes(psd_bytes: &[u8]) -> anyhow::Result<Self> {
         let psd = psd::Psd::from_bytes(psd_bytes)?;
-        let rect = Wh::new(psd.psd_width(), psd.psd_height())
-            .map(|x| (x as f32).px())
-            .to_rect();
+        let wh = Wh::new(psd.psd_width(), psd.psd_height()).map(|x| (x as f32).px());
         let layer_trees = make_tree(&psd);
-        layer_tree::into_psd_sprite(layer_trees, rect)
+        layer_tree::into_psd_sprite(layer_trees, wh)
     }
 
     pub fn render(&self, scene_sprite: &SceneSprite) -> Option<ImageFilter> {
