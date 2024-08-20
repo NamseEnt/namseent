@@ -1,0 +1,25 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+namui-type = { path = "../../../namui/namui-type" }
+luda-rpc = { path = "../rpc", features = ["server"] }
+database = { path = "../database/database" }
+serializer = { path = "../serializer" }
+randum = { path = "../randum" }
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7.5", features = ["ws"] }
+anyhow = { version = "1.0.83", features = ["backtrace"] }
+axum-server = "0.6.0"
+rkyv = { version = "0.7.44", features = ["validation"] }
+moka = { version = "0.12.7", features = ["sync"] }
+aws-sdk-s3 = "1.28.0"
+aws-config = "1.4.0"
+tracing-subscriber = "0.3.18"
+reqwest = { version = "0.12.4", features = ["json"] }
+serde = { version = "1.0.202", features = ["derive"] }
+jsonwebtoken = "9.3.0"
+futures = "0.3.30"

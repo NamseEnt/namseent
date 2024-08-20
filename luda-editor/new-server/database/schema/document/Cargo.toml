@@ -1,0 +1,12 @@
+[package]
+name = "document"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+schema-macro = { path = "../macro" }
+serializer = { path = "../../../serializer" }
+anyhow = { version = "1.0.86", features = ["backtrace"] }
+rkyv = { version = "0.7.44", features = ["validation"] }
+arrayvec = "0.7.4"
+inventory = "0.3.15"

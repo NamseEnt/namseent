@@ -92,7 +92,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 if let Some(media) = audio_mp3.as_ref() {
                     media.clone_independent().unwrap().play().unwrap();
                 }
@@ -123,7 +123,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() else {
                     return;
                 };
@@ -149,7 +149,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() else {
                     return;
                 };
@@ -170,7 +170,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 if let Some(media) = audio_opus.as_ref() {
                     media.clone_independent().unwrap().play().unwrap();
                 }
@@ -194,7 +194,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 if let Some(audio) = sliced_audio.as_ref() {
                     audio.clone().play().unwrap();
                 }
@@ -222,7 +222,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 if let Some(video_mp4) = video_mp4.as_ref() {
                     if video_mp4.is_playing() {
                         video_mp4.pause().unwrap();
@@ -246,7 +246,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 if let Some(video_mp4) = video_mp4.as_ref() {
                     println!(
                         "video_mp4.playback_duration(): {:?}",
@@ -281,7 +281,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![],
-            on_mouse_up_in: &|_| {},
+            on_mouse_up_in: |_| {},
         });
 
         ctx.add(TextButton {
@@ -297,7 +297,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 if let Some(video_mp4) = video_mp4.as_ref() {
                     println!(
                         "video_mp4.playback_duration(): {:?}",
@@ -328,7 +328,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 system::media::set_volume(system::media::volume() - 0.05);
             },
         });
@@ -346,7 +346,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![],
-            on_mouse_up_in: &|_| {},
+            on_mouse_up_in: |_| {},
         });
 
         ctx.add(TextButton {
@@ -362,7 +362,7 @@ impl Component for MediaExample {
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: &|_| {
+            on_mouse_up_in: |_| {
                 system::media::set_volume(system::media::volume() + 0.05);
             },
         });

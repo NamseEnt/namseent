@@ -64,6 +64,7 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
     pub fn interval(&self, title: impl AsRef<str>, interval: Duration, job: impl FnOnce(Duration)) {
         self.component_ctx.interval(title, interval, job)
     }
+    /// Returning `ControlledMemo::Unchanged(value)` will not update sig, but it will return `Sig(value)`.
     pub fn controlled_memo<T: 'static>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,

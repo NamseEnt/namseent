@@ -1,9 +1,22 @@
-use crate::Duration;
+use crate::*;
+use rkyv::{Deserialize, Infallible};
 use std::fmt::Debug;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[type_derives(-Debug, Copy, PartialOrd, Eq, Ord)]
 pub struct SystemTime {
+    #[with(rkyv::with::UnixTimestamp)]
     inner: std::time::SystemTime,
+}
+impl Clone for ArchivedSystemTime {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+impl Copy for ArchivedSystemTime {}
+impl From<ArchivedSystemTime> for SystemTime {
+    fn from(value: ArchivedSystemTime) -> Self {
+        value.deserialize(&mut Infallible).unwrap()
+    }
 }
 
 impl SystemTime {
@@ -25,6 +38,19 @@ auto_ops::impl_op!(-|lhs: &SystemTime, rhs: SystemTime| -> Duration { sub_system
 auto_ops::impl_op!(-|lhs: SystemTime, rhs: &SystemTime| -> Duration { sub_system_time(lhs, *rhs) });
 auto_ops::impl_op!(-|lhs: &SystemTime, rhs: &SystemTime| -> Duration {
     sub_system_time(*lhs, *rhs)
+});
+
+auto_ops::impl_op!(-|lhs: SystemTime, rhs: ArchivedSystemTime| -> Duration {
+    sub_system_time(lhs, rhs.into())
+});
+auto_ops::impl_op!(-|lhs: &SystemTime, rhs: ArchivedSystemTime| -> Duration {
+    sub_system_time(*lhs, rhs.into())
+});
+auto_ops::impl_op!(-|lhs: SystemTime, rhs: &ArchivedSystemTime| -> Duration {
+    sub_system_time(lhs, (*rhs).into())
+});
+auto_ops::impl_op!(-|lhs: &SystemTime, rhs: &ArchivedSystemTime| -> Duration {
+    sub_system_time(*lhs, (*rhs).into())
 });
 
 auto_ops::impl_op!(+|lhs: SystemTime, rhs: Duration| -> SystemTime { add_duration(lhs, rhs) });
@@ -72,7 +98,6 @@ fn add_std_duration(lhs: SystemTime, rhs: std::time::Duration) -> SystemTime {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
 
     #[test]
     fn test_system_time_sub() {

@@ -1,7 +1,8 @@
+use crate::*;
 use anyhow::Result;
 use std::fmt::Debug;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[type_derives(-Debug, Copy, PartialOrd, Eq, Ord)]
 pub struct Duration {
     pub(crate) sign: bool,
     pub(crate) inner: std::time::Duration,

@@ -1,0 +1,9 @@
+[package]
+name = "macro-common-lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+syn = { version = "2.0.71", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0.86"
