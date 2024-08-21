@@ -6,7 +6,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 #[derive(Debug)]
 pub struct PsdSprite {
-    pub(crate) entries: Vec<Entry>,
+    pub entries: Vec<Entry>,
     pub wh: Wh<Px>,
 }
 impl PsdSprite {
@@ -64,26 +64,23 @@ impl PsdSprite {
 }
 
 #[derive(Debug)]
-#[cfg_attr(not(feature = "namui_render"), allow(dead_code))]
-pub(crate) struct Entry {
-    pub(crate) name: String,
-    pub(crate) blend_mode: BlendMode,
-    pub(crate) clipping_base: bool,
-    pub(crate) opacity: u8,
-    pub(crate) mask: Option<SpriteImage>,
-    pub(crate) kind: EntryKind,
+pub struct Entry {
+    pub name: String,
+    pub blend_mode: BlendMode,
+    pub clipping_base: bool,
+    pub opacity: u8,
+    pub mask: Option<SpriteImage>,
+    pub kind: EntryKind,
 }
 
 #[derive(Debug)]
-#[cfg_attr(not(feature = "namui_render"), allow(dead_code))]
-pub(crate) enum EntryKind {
+pub enum EntryKind {
     Layer { image: SpriteImage },
     Group { entries: Vec<Entry> },
 }
 
 #[derive(Debug)]
-#[cfg_attr(not(feature = "namui_render"), allow(dead_code))]
-pub(crate) struct SpriteImage {
-    pub(crate) dest_rect: Rect<Px>,
-    pub(crate) webp: Box<[u8]>,
+pub struct SpriteImage {
+    pub dest_rect: Rect<Px>,
+    pub webp: Box<[u8]>,
 }
