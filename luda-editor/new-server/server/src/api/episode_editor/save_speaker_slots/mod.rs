@@ -3,7 +3,10 @@ use database::schema::*;
 use luda_rpc::episode_editor::save_speaker_slots::*;
 
 pub async fn save_speaker_slots(
-    ArchivedRequest { .. }: &ArchivedRequest,
+    ArchivedRequest {
+        episode_id,
+        speaker_ids,
+    }: &ArchivedRequest,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
