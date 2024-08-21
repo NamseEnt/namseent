@@ -53,7 +53,7 @@ pub async fn reserve_team_asset_upload(
 
     let presigned = s3::s3()
         .put_object()
-        .bucket(s3::bucket_name())
+        .bucket(s3::asset_bucket_name())
         .key(s3::asset_key(&asset_id))
         .content_length(*byte_size as i64)
         .presigned(PresigningConfig::expires_in(
