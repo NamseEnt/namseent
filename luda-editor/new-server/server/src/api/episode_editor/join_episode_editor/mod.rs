@@ -18,7 +18,10 @@ pub async fn join_episode_editor(
 
     try_lock_editor(db, episode_id, &user_id).await?;
 
-    Ok(Response { scenes: todo!() })
+    Ok(Response {
+        scenes: todo!(),
+        texts: todo!(),
+    })
 }
 
 async fn try_lock_editor(db: &Database, episode_id: &str, user_id: &str) -> Result<()> {
