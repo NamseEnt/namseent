@@ -28,7 +28,12 @@ async fn real_main() -> Result<()> {
 }
 
 async fn start_server() -> Result<()> {
-    let database = database::init(s3().clone(), bucket_name().to_string(), !is_on_aws()).await?;
+    let database = database::init(
+        s3().clone(),
+        database_bucket_name().to_string(),
+        !is_on_aws(),
+    )
+    .await?;
 
     let app = Router::new()
         .route("/turn_on_memory_cache", get(turn_on_memory_cache))
