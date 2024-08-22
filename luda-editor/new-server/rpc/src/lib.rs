@@ -253,7 +253,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
-                EpisodeNotExist,
+                PermissionDenied,
             }
         },
     },
