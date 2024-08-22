@@ -183,7 +183,7 @@ rpc_macro::define_rpc! {
             struct Response {
                 scenes: Vec<Scene>,
                 /// key: (scene_id, language_code)
-                texts: HashMap<String, HashMap<String, Option<String>>>,
+                texts: HashMap<String, HashMap<String, String>>,
             }
             enum Error {
                 NeedLogin,

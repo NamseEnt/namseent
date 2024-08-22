@@ -1,7 +1,10 @@
 use crate::*;
 use api::team::has_episode_edit_permission;
 use database::{schema::*, WantUpdate};
+use futures::{future::try_join_all, try_join};
 use luda_rpc::episode_editor::join_episode_editor::*;
+use rkyv::Archive;
+use std::collections::HashMap;
 
 const LOCK_TIMEOUT: Duration = Duration::from_secs(300);
 
@@ -18,10 +21,57 @@ pub async fn join_episode_editor(
 
     try_lock_editor(db, episode_id, &user_id).await?;
 
-    Ok(Response {
-        scenes: todo!(),
-        texts: todo!(),
-    })
+    let episode = db
+        .get(EpisodeDocGet { id: episode_id })
+        .await?
+        .ok_or(Error::EpisodeNotExist)?;
+
+    let (scenes, texts) = try_join!(
+        get_scenes(db, &episode.scene_ids),
+        get_texts(db, &episode.scene_ids),
+    )?;
+
+    Ok(Response { scenes, texts })
+}
+
+async fn get_texts(
+    db: &Database,
+    scene_ids: &<Vec<String> as Archive>::Archived,
+) -> Result<HashMap<String, HashMap<String, String>>> {
+    let docs = try_join_all(
+        scene_ids
+            .iter()
+            .map(|scene_id| async move { db.query(SceneTextL10nDocQuery { scene_id }).await }),
+    )
+    .await?
+    .into_iter()
+    .flatten()
+    .map(|x| x.deserialize());
+
+    let mut texts = HashMap::new();
+
+    for doc in docs {
+        let entry = texts.entry(doc.scene_id).or_insert_with(HashMap::new);
+        entry.insert(doc.language_code, doc.text);
+    }
+
+    Ok(texts)
+}
+
+async fn get_scenes(
+    db: &Database,
+    scene_ids: &<Vec<String> as Archive>::Archived,
+) -> Result<Vec<SceneDoc>> {
+    Ok(try_join_all(
+        scene_ids
+            .iter()
+            .map(|scene_id| async move { db.get(SceneDocGet { id: scene_id }).await }),
+    )
+    .await?
+    .into_iter()
+    .flatten()
+    .map(|x| x.deserialize())
+    .collect())
 }
 
 async fn try_lock_editor(db: &Database, episode_id: &str, user_id: &str) -> Result<()> {
