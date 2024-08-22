@@ -1,3 +1,4 @@
+use super::EPISODE_EDITOR_LOCK_TIMEOUT;
 use crate::*;
 use api::team::has_episode_edit_permission;
 use database::{schema::*, WantUpdate};
@@ -5,8 +6,6 @@ use futures::{future::try_join_all, try_join};
 use luda_rpc::episode_editor::join_episode_editor::*;
 use rkyv::Archive;
 use std::collections::HashMap;
-
-const LOCK_TIMEOUT: Duration = Duration::from_secs(300);
 
 pub async fn join_episode_editor(
     ArchivedRequest { episode_id }: &ArchivedRequest,
@@ -75,44 +74,43 @@ async fn get_scenes(
 }
 
 async fn try_lock_editor(db: &Database, episode_id: &str, user_id: &str) -> Result<()> {
-    if let Err(err) = db
-        .transact(EpisodeEditingUserDocUpdate {
-            episode_id,
-            want_update: |doc| {
-                let Some(editing_user) = doc.editing_user.as_ref() else {
-                    return WantUpdate::Yes;
-                };
+    db.transact(EpisodeEditingUserDocUpdate {
+        episode_id,
+        want_update: |doc| {
+            let Some(editing_user) = doc.editing_user.as_ref() else {
+                return WantUpdate::Yes;
+            };
 
-                if editing_user.user_id == user_id {
-                    if SystemTime::now() - editing_user.last_edit_time < LOCK_TIMEOUT {
-                        return WantUpdate::No;
-                    }
+            let not_timeout =
+                SystemTime::now() - editing_user.last_edit_time < EPISODE_EDITOR_LOCK_TIMEOUT;
 
-                    return WantUpdate::Yes;
+            if editing_user.user_id == user_id {
+                if not_timeout {
+                    return WantUpdate::No;
                 }
 
-                if SystemTime::now() - editing_user.last_edit_time < LOCK_TIMEOUT {
-                    return WantUpdate::Abort;
-                }
-
-                WantUpdate::Yes
-            },
-            update: |doc| {
-                doc.editing_user = Some(EditingUser {
-                    user_id: user_id.to_string(),
-                    last_edit_time: SystemTime::now(),
-                });
-            },
-        })
-        .await
-    {
-        match err {
-            database::Error::UpdateAborted => {
-                bail!(Error::OtherUserEditing)
+                return WantUpdate::Yes;
             }
-            _ => return Err(err.into()),
-        }
-    }
+
+            if not_timeout {
+                return WantUpdate::Abort;
+            }
+
+            WantUpdate::Yes
+        },
+        update: |doc| {
+            doc.editing_user = Some(EditingUser {
+                user_id: user_id.to_string(),
+                last_edit_time: SystemTime::now(),
+            });
+        },
+    })
+    .await
+    .map_err(|err| match err {
+        database::Error::UpdateAborted => anyhow!(Error::OtherUserEditing),
+        database::Error::NotExistsOnUpdate => anyhow!(Error::EpisodeNotExist),
+        _ => anyhow!(err),
+    })?;
 
     Ok(())
 }
