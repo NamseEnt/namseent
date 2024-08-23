@@ -12,6 +12,7 @@ pub struct ComponentCtx<'a> {
     state_index: AtomicUsize,
     memo_index: AtomicUsize,
     track_eq_index: AtomicUsize,
+    track_eq_tuple_index: AtomicUsize,
     effect_index: AtomicUsize,
     interval_index: AtomicUsize,
 }
@@ -24,6 +25,7 @@ impl<'a> ComponentCtx<'a> {
             state_index: Default::default(),
             memo_index: Default::default(),
             track_eq_index: Default::default(),
+            track_eq_tuple_index: Default::default(),
             effect_index: Default::default(),
             interval_index: Default::default(),
         }
