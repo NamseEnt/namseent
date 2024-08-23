@@ -280,11 +280,11 @@ impl ComponentCtx<'_> {
     pub(crate) fn track_eq_tuple(&self, track_eq_tuple: &impl TrackEqTuple) -> bool {
         let mut track_eq_tuple_list = self.instance.track_eq_tuple_list.borrow_mut();
 
-        let track_eq_index = self
-            .track_eq_index
+        let track_eq_tuple_index = self
+            .track_eq_tuple_index
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        let first_track = track_eq_tuple_list.len() <= track_eq_index;
+        let first_track = track_eq_tuple_list.len() <= track_eq_tuple_index;
         if first_track {
             track_eq_tuple_list.push(());
         }
