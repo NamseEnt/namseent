@@ -23,12 +23,14 @@ impl RenderPsdSprite for PsdSprite {
             let SceneSprite { circumcircle, .. } = scene_sprite;
             let paint = Paint::default().set_image_filter(image_filter.clone());
             let ratio = screen_wh.length() * circumcircle.radius / self.wh.length();
-            let sprite_wh = self.wh * ratio;
-            let ctx = ctx.translate((
-                screen_wh.width * circumcircle.xy.x - (sprite_wh.width / 2),
-                screen_wh.height * circumcircle.xy.y - (sprite_wh.height / 2),
-            ));
-            let path = Path::new().add_rect(sprite_wh.to_rect());
+            let ctx = ctx
+                .translate((
+                    screen_wh.width * circumcircle.xy.x,
+                    screen_wh.height * circumcircle.xy.y,
+                ))
+                .scale(Xy::single(ratio))
+                .translate(self.wh.as_xy() * -0.5);
+            let path = Path::new();
             ctx.add(PathDrawCommand { path, paint });
         });
     }
