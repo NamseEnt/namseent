@@ -227,6 +227,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
+                PermissionDenied,
                 EpisodeNotExist,
             }
         },
@@ -239,7 +240,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
-                EpisodeNotExist,
+                PermissionDenied,
             }
         },
         get_speaker_names: {
