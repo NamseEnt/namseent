@@ -14,5 +14,6 @@ serde = { version = "1.0.203", features = ["derive"] }
 luda-rpc = { path = "../new-server/rpc" }
 dashmap = "6.0.1"
 randum = { path = "../new-server/randum" }
+serde_json = "1.0.125"
 psd-sprite = { version = "0.1.0", path = "../psd-sprite" }
 psd-sprite-render = { version = "0.1.0", path = "../psd-sprite-render" }
