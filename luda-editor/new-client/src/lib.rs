@@ -3,6 +3,7 @@ mod home;
 mod network;
 mod new_project_page;
 mod new_team_page;
+mod render_psd_sprite;
 mod router;
 mod rpc;
 mod simple_button;
