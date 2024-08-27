@@ -20,22 +20,10 @@ pub async fn save_speaker_slots(
     db.transact(EpisodeSpeakerSlotDocPut {
         user_id: &user_id,
         episode_id,
-        speaker_ids, // &Vec<String>
+        speaker_ids,
         ttl: None,
     })
     .await?;
-    let a = A { value: speaker_ids };
-
-    let vec = &vec![String::new()];
-    let a = A { value: vec };
-
-    database::serialize(&A { value: speaker_ids });
-
-    database::serialize(&A { value: vec });
-
-    // B { a: &A {} };
-    // let c = &C {};
-    // B { a: c };
 
     Ok(Response {})
 }
