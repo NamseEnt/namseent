@@ -19,6 +19,8 @@ pub fn encode(
     height: usize,
     bytes: &[u8],
 ) -> Result<Vec<u8>> {
+    let parallel_runner = ThreadsRunner::default();
+
     let mut encoder = encoder_builder()
         .color_encoding(match color_format {
             ColorFormat::Rgba8888 => encode::ColorEncoding::Srgb,
@@ -30,6 +32,9 @@ pub fn encode(
         })
         .lossless(lossless)
         .uses_original_profile(true)
+        .quality(3.0)
+        .speed(encode::EncoderSpeed::Lightning)
+        .parallel_runner(&parallel_runner)
         .build()?;
 
     let frame = encode::EncoderFrame::new(bytes).num_channels(match color_format {
@@ -50,7 +55,8 @@ pub struct Decoded {
 }
 
 pub fn decode(bytes: &[u8]) -> Result<Decoded> {
-    let decoder = decoder_builder().build()?;
+    let thread_runner = ThreadsRunner::default();
+    let decoder = decoder_builder().parallel_runner(&thread_runner).build()?;
 
     let (metadata, pixels) = decoder.decode(bytes)?;
 
