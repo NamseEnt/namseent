@@ -11,8 +11,9 @@ pub struct DocumentParsed<'a> {
     pub ref_struct_value: TokenStream,
     pub pk_cow: TokenStream,
     pub sk_cow: TokenStream,
-    pub pk_sk_ref_fields: Vec<Field>,
-    pub pk_ref_fields: Vec<Field>,
+    pub ref_fielder: RefFielder,
+    pub pk_ref_fielder: RefFielder,
+    pub pk_sk_ref_fielder: RefFielder,
 }
 
 impl<'a> DocumentParsed<'a> {
@@ -98,7 +99,7 @@ impl<'a> DocumentParsed<'a> {
             let pk_field_names = pk_fields_without_pk_attr
                 .iter()
                 .map(|field| field.ident.as_ref().unwrap());
-            let pk_ref_fields = as_ref_fields_with_rkyv_with_attr(pk_fields_without_pk_attr.iter());
+            let pk_ref_fields = RefFielder::new(&pk_fields_without_pk_attr).fields;
 
             quote! {
                 {
@@ -152,7 +153,7 @@ impl<'a> DocumentParsed<'a> {
             let sk_field_names = sk_fields_without_sk_attr
                 .iter()
                 .map(|field| field.ident.as_ref().unwrap());
-            let sk_ref_fields = as_ref_fields_with_rkyv_with_attr(sk_fields_without_sk_attr.iter());
+            let sk_ref_fields = RefFielder::new(&sk_fields_without_sk_attr).fields;
 
             quote! {
                 {
@@ -170,16 +171,15 @@ impl<'a> DocumentParsed<'a> {
                 }
             }
         };
-        let pk_sk_ref_fields = {
-            let mut pk_sk_ref_fields = vec![];
-            pk_sk_ref_fields.extend(as_ref_fields(&pk_fields_without_pk_attr));
-            pk_sk_ref_fields.extend(as_ref_fields(&sk_fields_without_sk_attr));
-            pk_sk_ref_fields
-        };
-
-        let pk_ref_fields = as_ref_fields(&pk_fields_without_pk_attr);
 
         Self {
+            ref_fielder: RefFielder::new(&fields_without_pksk_attr),
+            pk_ref_fielder: RefFielder::new(&pk_fields_without_pk_attr),
+            pk_sk_ref_fielder: RefFielder::new(
+                pk_fields_without_pk_attr
+                    .iter()
+                    .chain(&sk_fields_without_sk_attr),
+            ),
             name,
             input_redefine,
             fields_without_pksk_attr,
@@ -187,8 +187,6 @@ impl<'a> DocumentParsed<'a> {
             ref_struct_value,
             pk_cow,
             sk_cow,
-            pk_sk_ref_fields,
-            pk_ref_fields,
         }
     }
 
@@ -198,14 +196,13 @@ impl<'a> DocumentParsed<'a> {
             ref_struct_name,
             ..
         } = self;
-        let ref_fields_with_rkyv_with_attr =
-            as_ref_fields_with_rkyv_with_attr(fields_without_pksk_attr);
+        let RefFielder {
+            fields, generics, ..
+        } = RefFielder::new(fields_without_pksk_attr);
         quote! {
             #[derive(rkyv::Archive, rkyv::Serialize)]
-            struct #ref_struct_name<'a> {
-                #(
-                    #ref_fields_with_rkyv_with_attr,
-                )*
+            struct #ref_struct_name #generics {
+                #(#fields,)*
             }
         }
     }

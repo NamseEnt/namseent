@@ -2,7 +2,6 @@ mod parser;
 
 use macro_common_lib::*;
 use quote::quote;
-use syn::spanned::Spanned;
 
 #[proc_macro]
 pub fn define_rpc(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -100,21 +99,13 @@ fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
                             &format!("Ref{}", item_struct.ident),
                             item_struct.ident.span(),
                         );
-                        let lifetime_generic = if item_struct.fields.is_empty() {
-                            quote! {}
-                        } else {
-                            quote! { <'a> }
-                        };
-                        let mut fields = macro_common_lib::as_ref_fields_with_rkyv_with_attr(
-                            item_struct.fields.iter(),
-                        );
-                        fields.iter_mut().for_each(|field| {
-                            field.vis = syn::Visibility::Public(syn::token::Pub(field.span()))
-                        });
+                        let RefFielder {
+                            generics, fields, ..
+                        } = RefFielder::new(&item_struct.fields);
                         quote! {
                             #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
                             #[archive(check_bytes)]
-                            pub struct #ident #lifetime_generic {
+                            pub struct #ident #generics {
                                 #(#fields,)*
                             }
                         }
