@@ -2,7 +2,12 @@ use crate::blender::photoshop_blend_mode_into_blender;
 use namui::*;
 use psd_sprite::*;
 use schema_0::SceneSprite;
-use std::{borrow::Borrow, collections::HashMap, iter::Peekable, sync::Arc};
+use std::{
+    borrow::Borrow,
+    collections::HashMap,
+    iter::Peekable,
+    sync::{Arc, RwLock},
+};
 
 pub trait RenderPsdSprite {
     fn render(&self, ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>);

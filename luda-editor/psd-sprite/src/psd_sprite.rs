@@ -1,6 +1,7 @@
 use namui_type::*;
 use psd::BlendMode;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PsdSprite {
@@ -81,4 +82,16 @@ pub struct SpriteImage {
 pub enum SpriteImageId {
     Mask { prefix: String },
     Layer { prefix: String },
+}
+impl SpriteImage {
+    /// Use better keying strategy if needed.
+    pub fn to_key(&self) -> u64 {
+        let SpriteImage { dest_rect, webp } = self;
+        let dest_rect = dest_rect;
+        let webp = webp;
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        dest_rect.hash(&mut hasher);
+        webp.hash(&mut hasher);
+        hasher.finish()
+    }
 }
