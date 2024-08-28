@@ -6,6 +6,7 @@ import { Exports } from "../exports";
 import { webSocketImports } from "../webSocket";
 import { insertJsImports } from "../insertJs";
 import { storageImports } from "../storage/imports";
+import { hardwareConcurrencyImports } from "./hardwareConcurrency ";
 
 export function createImportObject({
     memory,
@@ -128,6 +129,9 @@ export function createImportObject({
                     bitmap,
                 });
             },
+            ...hardwareConcurrencyImports({
+                memory,
+            }),
         },
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {

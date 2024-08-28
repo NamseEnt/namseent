@@ -45,6 +45,7 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
 ] }
 reqwest = { path = "../third-party-forks/reqwest" }
 rusqlite = { path = "../third-party-forks/rusqlite", features = ["bundled"] }
+rayon = "1.10.0"
 
 [target.'cfg(not(target_os="wasi"))'.dependencies]
 winit = "0.29.4"

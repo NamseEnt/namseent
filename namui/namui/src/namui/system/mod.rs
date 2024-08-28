@@ -40,6 +40,7 @@ pub(super) async fn init_system() -> InitResult {
         network::init(),
         screen::init(),
         time::init(),
+        setup_rayon_concurrency(),
     )?;
 
     skia::init()?;
@@ -63,4 +64,12 @@ pub(super) async fn init_system() -> InitResult {
 #[allow(dead_code)]
 pub(crate) fn system_initialized() -> bool {
     SYSTEM_INITIALIZED.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+async fn setup_rayon_concurrency() -> InitResult {
+    let concurrency = utils::hardware_concurrency().await;
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(concurrency as usize)
+        .build_global()?;
+    anyhow::Ok(())
 }

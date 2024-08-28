@@ -71,6 +71,12 @@ impl Drop for JsHandle {
     }
 }
 
+pub(crate) async fn hardware_concurrency() -> u32 {
+    tokio::task::spawn_blocking(|| unsafe { _hardware_concurrency() })
+        .await
+        .unwrap()
+}
+
 // # data callback protocol
 // [data byte length: u16][message data: ...]
 extern "C" {
@@ -84,4 +90,5 @@ extern "C" {
     fn _insert_js_drop(js_id: u32);
     fn _insert_js_data_poll(timeout_ms: u32) -> u32;
     fn _insert_js_data_commit(byte_length: usize);
+    fn _hardware_concurrency() -> u32;
 }
