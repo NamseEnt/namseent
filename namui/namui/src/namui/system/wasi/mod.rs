@@ -71,10 +71,8 @@ impl Drop for JsHandle {
     }
 }
 
-pub(crate) async fn hardware_concurrency() -> u32 {
-    tokio::task::spawn_blocking(|| unsafe { _hardware_concurrency() })
-        .await
-        .unwrap()
+pub(crate) fn hardware_concurrency() -> u32 {
+    unsafe { _hardware_concurrency() }
 }
 
 // # data callback protocol

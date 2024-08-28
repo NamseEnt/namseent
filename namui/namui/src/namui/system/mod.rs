@@ -67,7 +67,7 @@ pub(crate) fn system_initialized() -> bool {
 }
 
 async fn setup_rayon_concurrency() -> InitResult {
-    let concurrency = utils::hardware_concurrency().await;
+    let concurrency = utils::hardware_concurrency();
     rayon::ThreadPoolBuilder::new()
         .num_threads(concurrency as usize)
         .build_global()?;
