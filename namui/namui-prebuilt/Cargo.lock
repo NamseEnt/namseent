@@ -1303,13 +1303,9 @@ name = "namui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bumpalo",
  "dashmap",
- "derivative",
- "elsa",
  "ffmpeg-next",
  "futures",
- "indexmap",
  "lazy_static",
  "namui-cfg",
  "namui-drawer",
@@ -1322,15 +1318,9 @@ dependencies = [
  "rand",
  "reqwest",
  "rusqlite",
- "rustc-hash",
  "serde",
  "serde_json",
  "shader-macro",
- "slab",
- "smallvec",
- "smol_str",
- "stable_deref_trait",
- "static-tree",
  "tokio 1.38.0",
  "url",
  "wasapi",
@@ -2396,15 +2386,6 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
-
-[[package]]
-name = "static-tree"
-version = "0.1.0"
-dependencies = [
- "elsa",
- "rustc-hash",
- "slab",
-]
 
 [[package]]
 name = "strict-num"
