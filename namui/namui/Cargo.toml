@@ -22,17 +22,7 @@ serde_json = "1.0"
 percent-encoding = "2"
 futures = "0.3.17"
 num = { version = "0.4.0", features = ["std"] }
-derivative = "2.2.0"
 dashmap = "5"
-elsa = { version = "1.10.0", features = ["indexmap"] }
-stable_deref_trait = "1.2.0"
-bumpalo = { version = "3.15.4", features = ["collections"] }
-slab = "0.4.9"
-smallvec = "1.13.2"
-rustc-hash = "1.1.0"
-smol_str = "0.2.1"
-indexmap = "2.2.5"
-static-tree = { path = "../static-tree" }
 rand = "0.8.5"
 tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "sync",
@@ -45,6 +35,7 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
 ] }
 reqwest = { path = "../third-party-forks/reqwest" }
 rusqlite = { path = "../third-party-forks/rusqlite", features = ["bundled"] }
+rayon = "1.10.0"
 
 [target.'cfg(not(target_os="wasi"))'.dependencies]
 winit = "0.29.4"
