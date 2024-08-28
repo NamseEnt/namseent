@@ -128,6 +128,9 @@ export function createImportObject({
                     bitmap,
                 });
             },
+            _hardware_concurrency: () => {
+                return navigator.hardwareConcurrency;
+            },
         },
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {
