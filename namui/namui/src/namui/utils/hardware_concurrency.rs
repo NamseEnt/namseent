@@ -5,5 +5,7 @@ pub(crate) async fn hardware_concurrency() -> u32 {
 
 #[cfg(not(target_os = "wasi"))]
 pub(crate) async fn hardware_concurrency() -> u32 {
-    std::thread::available_parallelism().unwrap_or(1) as u32
+    std::thread::available_parallelism()
+        .map(|x| x.get() as u32)
+        .unwrap_or(1)
 }
