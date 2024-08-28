@@ -6,7 +6,6 @@ import { TextInput } from "./textInput";
 import ThreadWorker from "./thread-worker?worker";
 import { webSocketHandleOnMainThread } from "./webSocket";
 import StorageWorker from "./storage/worker?worker";
-import { hardwareConcurrencyHandleOnMainThread } from "./imports/hardwareConcurrency ";
 
 const canvas = document.createElement("canvas");
 canvas.width = window.innerWidth;
@@ -46,7 +45,6 @@ sendToWorker(mainWorker, {
 
 let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;
 const insertJsHandle = insertJsHandleOnMainThread();
-const hardwareConcurrencyHandle = hardwareConcurrencyHandleOnMainThread();
 
 function onMessage(this: Worker, message: MessageEvent) {
     const payload: WorkerMessagePayload = message.data;
@@ -112,10 +110,6 @@ function onMessage(this: Worker, message: MessageEvent) {
         }
         case "storage-thread-disconnect": {
             storageWorker.postMessage(payload);
-            break;
-        }
-        case "hardware-concurrency": {
-            hardwareConcurrencyHandle.onHardwareConcurrency(payload);
             break;
         }
         default:

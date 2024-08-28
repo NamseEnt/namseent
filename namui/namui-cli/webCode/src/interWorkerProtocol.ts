@@ -92,10 +92,6 @@ export type WorkerMessagePayload =
     | {
           type: "storage-thread-disconnect";
           threadId: number;
-      }
-    | {
-          type: "hardware-concurrency";
-          concurrencyBuffer: SharedArrayBuffer;
       };
 
 export function sendMessageToMainThread(
