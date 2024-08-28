@@ -82,5 +82,5 @@ pub enum EntryKind {
 #[derive(Debug)]
 pub struct SpriteImage {
     pub dest_rect: Rect<Px>,
-    pub webp: Box<[u8]>,
+    pub encoded: Vec<u8>,
 }
