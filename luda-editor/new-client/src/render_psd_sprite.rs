@@ -2,7 +2,7 @@ use super::*;
 use luda_rpc::SceneSprite;
 use psd_sprite::PsdSprite;
 use psd_sprite_render::RenderPsdSprite;
-use std::{collections::HashMap, error::Error};
+use std::{collections::HashMap, error::Error, sync::Arc};
 
 static PSD_SPRITE_LOAD_STATE_ATOM: Atom<HashMap<String, PsdSpriteLoadState>> =
     Atom::uninitialized();
@@ -24,14 +24,19 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
             }
         });
         ctx.spawn(async move {
-            // TODO: Load PSD sprite from the server.
+            // TODO: Load PSD sprite from the server and cache.
             let psd_bytes = namui::file::bundle::read("test.psd").await.unwrap();
             let psd_sprite = PsdSprite::from_psd_bytes(&psd_bytes);
 
             match psd_sprite {
                 Ok(psd_sprite) => {
                     set_psd_sprite_load_state_map.mutate(move |map| {
-                        map.insert(sprite_id, PsdSpriteLoadState::Loaded(psd_sprite));
+                        map.insert(
+                            sprite_id,
+                            PsdSpriteLoadState::Loaded {
+                                psd_sprite: Arc::new(psd_sprite),
+                            },
+                        );
                     });
                 }
                 Err(err) => {
@@ -44,7 +49,7 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
         return;
     };
 
-    let PsdSpriteLoadState::Loaded(psd_sprite) = load_state else {
+    let PsdSpriteLoadState::Loaded { psd_sprite } = load_state else {
         return;
     };
 
@@ -53,7 +58,9 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
 
 enum PsdSpriteLoadState {
     Loading,
-    Loaded(PsdSprite),
+    Loaded {
+        psd_sprite: Arc<PsdSprite>,
+    },
     #[allow(unused)]
     Error(Box<dyn Error + Send + Sync>),
 }

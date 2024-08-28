@@ -2,26 +2,33 @@ use crate::blender::photoshop_blend_mode_into_blender;
 use namui::*;
 use psd_sprite::*;
 use schema_0::SceneSprite;
-use std::{borrow::Borrow, collections::HashMap, iter::Peekable};
+use std::{borrow::Borrow, collections::HashMap, iter::Peekable, sync::Arc};
 
 pub trait RenderPsdSprite {
     fn render(&self, ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>);
 }
-impl RenderPsdSprite for PsdSprite {
+impl RenderPsdSprite for Arc<PsdSprite> {
     fn render(&self, ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>) {
-        let (image_filter, set_image_filter) = ctx.state(|| None);
+        let (image_filter_create_state, set_image_filter_create_state) =
+            ctx.state(|| ImageFilterCreateState::Unset);
 
-        // TODO: Commented because of compile errors.
-
-        ctx.effect("create image filter", || {
-            match create_image_filter(scene_sprite, self, todo!()) {
-                Ok(image_filter) => set_image_filter.set(image_filter),
-                Err(err) => todo!(),
-            }
-        });
+        if let ImageFilterCreateState::Unset = image_filter_create_state.as_ref() {
+            set_image_filter_create_state.set(ImageFilterCreateState::Creating);
+            let psd_sprite = self.clone();
+            let scene_sprite = scene_sprite.clone();
+            ctx.spawn(async move {
+                let result = match create_image_filter(&scene_sprite, &psd_sprite) {
+                    Some(image_filter) => ImageFilterCreateState::Created { image_filter },
+                    None => ImageFilterCreateState::Error,
+                };
+                set_image_filter_create_state.set(result);
+            });
+        }
 
         ctx.compose(|ctx| {
-            let Some(image_filter) = image_filter.as_ref() else {
+            let ImageFilterCreateState::Created { image_filter } =
+                image_filter_create_state.as_ref()
+            else {
                 return;
             };
             let SceneSprite { circumcircle, .. } = scene_sprite;
@@ -297,6 +304,14 @@ fn loaded_image_to_namui(
         },
         skia_image: skia_image.clone(),
     }
+}
+
+#[derive(Clone)]
+enum ImageFilterCreateState {
+    Unset,
+    Creating,
+    Created { image_filter: ImageFilter },
+    Error,
 }
 
 #[cfg(test)]
