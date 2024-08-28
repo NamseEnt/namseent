@@ -1,6 +1,7 @@
 use crate::document_parsed::*;
 use macro_common_lib::*;
 use quote::quote;
+use spanned::Spanned;
 use syn::*;
 
 pub fn document(
@@ -63,22 +64,29 @@ fn struct_get_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
         name,
         pk_cow,
         sk_cow,
-        pk_sk_ref_fields,
+        pk_sk_ref_fielder,
         ..
     } = parsed;
     let get_struct_name = Ident::new(&format!("{}Get", name), name.span());
 
+    let RefFielder {
+        generics,
+        generics_without_bounds,
+        fields_without_attr,
+        ..
+    } = pk_sk_ref_fielder;
+
     quote! {
-        pub struct #get_struct_name<'a> {
-            #(#pk_sk_ref_fields,)*
+        pub struct #get_struct_name #generics {
+            #(#fields_without_attr,)*
         }
-        impl document::DocumentGet for #get_struct_name<'_> {
+        impl #generics document::DocumentGet for #get_struct_name #generics_without_bounds {
             type Output = #name;
 
-            fn pk<'a>(&'a self) -> document::Result<std::borrow::Cow<'a, [u8]>> {
+            fn pk<'b>(&'b self) -> document::Result<std::borrow::Cow<'b, [u8]>> {
                 Ok(#pk_cow)
             }
-            fn sk<'a>(&'a self) -> document::Result<Option<std::borrow::Cow<'a, [u8]>>> {
+            fn sk<'b>(&'b self) -> document::Result<Option<std::borrow::Cow<'b, [u8]>>> {
                 Ok(#sk_cow)
             }
         }
@@ -88,22 +96,28 @@ fn struct_get_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
 fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     let DocumentParsed {
         name,
-        fields_without_pksk_attr,
         ref_struct_value,
         pk_cow,
         sk_cow,
+        ref_fielder,
         ..
     } = parsed;
     let put_struct_name = Ident::new(&format!("{}Put", name), name.span());
-    let ref_fields = as_ref_fields(fields_without_pksk_attr);
+
+    let RefFielder {
+        generics,
+        generics_without_bounds,
+        fields_without_attr,
+        ..
+    } = ref_fielder;
 
     quote! {
-        pub struct #put_struct_name<'a> {
-            #(#ref_fields,)*
+        pub struct #put_struct_name #generics {
+            #(#fields_without_attr,)*
             pub ttl: Option<std::time::Duration>,
         }
 
-        impl<'a> TryInto<document::TransactItem<'a>> for #put_struct_name<'a> {
+        impl #generics TryInto<document::TransactItem<'a>> for #put_struct_name #generics_without_bounds {
             type Error = document::SerErr;
             fn try_into(self) -> document::Result<document::TransactItem<'a>> {
                 Ok(document::TransactItem::Put {
@@ -121,22 +135,28 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
 fn struct_create_define(
     DocumentParsed {
         name,
-        fields_without_pksk_attr,
         pk_cow,
         sk_cow,
         ref_struct_value,
+        ref_fielder,
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
     let create_struct_name = Ident::new(&format!("{}Create", name), name.span());
-    let fields_as_refs = as_ref_fields(fields_without_pksk_attr);
+
+    let RefFielder {
+        generics,
+        generics_without_bounds,
+        fields_without_attr,
+        ..
+    } = ref_fielder;
 
     quote! {
-        pub struct #create_struct_name<'a> {
-            #(#fields_as_refs,)*
+        pub struct #create_struct_name #generics {
+            #(#fields_without_attr,)*
             pub ttl: Option<std::time::Duration>,
         }
-        impl<'a> TryInto<document::TransactItem<'a>> for #create_struct_name<'a> {
+        impl #generics TryInto<document::TransactItem<'a>> for #create_struct_name #generics_without_bounds {
             type Error = document::SerErr;
             fn try_into(self) -> document::Result<document::TransactItem<'a>> {
                 Ok(document::TransactItem::Create {
@@ -154,30 +174,51 @@ fn struct_create_define(
 fn struct_update_define(
     DocumentParsed {
         name,
-        pk_sk_ref_fields,
         pk_cow,
         sk_cow,
+        pk_sk_ref_fielder:
+            RefFielder {
+                generics,
+                fields_without_attr,
+                ..
+            },
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
     let update_struct_name = Ident::new(&format!("{}Update", name), name.span());
 
+    let mut generics = generics.clone();
+    generics
+        .params
+        .push(parse_quote!(WantUpdateFn: 'a + Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate));
+    generics
+        .params
+        .push(parse_quote!(UpdateFn: 'a + Send + FnOnce(&mut #name)));
+
+    let generics_without_bounds = {
+        let mut generics = generics.clone();
+        generics.params.iter_mut().for_each(|param| match param {
+            GenericParam::Type(param) => {
+                param.bounds = Default::default();
+            }
+            GenericParam::Lifetime(param) => {
+                param.bounds = Default::default();
+            }
+            GenericParam::Const(_param) => {}
+        });
+        generics
+    };
+
     quote! {
-        pub struct #update_struct_name<'a, WantUpdateFn, UpdateFn>
-        where
-            WantUpdateFn: 'a + Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate,
-            UpdateFn: 'a + Send + FnOnce(&mut #name),
+        pub struct #update_struct_name #generics
         {
-            #(#pk_sk_ref_fields,)*
+            #(#fields_without_attr,)*
             pub want_update: WantUpdateFn,
             pub update: UpdateFn,
         }
 
-        impl<'a, WantUpdateFn, UpdateFn> TryInto<document::TransactItem<'a>>
-            for #update_struct_name<'a, WantUpdateFn, UpdateFn>
-        where
-            WantUpdateFn: 'a + Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate,
-            UpdateFn: 'a + Send + FnOnce(&mut #name),
+        impl #generics TryInto<document::TransactItem<'a>>
+            for #update_struct_name #generics_without_bounds
         {
             type Error = document::SerErr;
             fn try_into(self) -> document::Result<document::TransactItem<'a>> {
@@ -208,17 +249,23 @@ fn struct_delete_define(
         name,
         pk_cow,
         sk_cow,
-        pk_sk_ref_fields,
+        pk_sk_ref_fielder:
+            RefFielder {
+                generics,
+                generics_without_bounds,
+                fields_without_attr,
+                ..
+            },
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
     let delete_struct_name = Ident::new(&format!("{}Delete", name), name.span());
 
     quote! {
-        pub struct #delete_struct_name<'a> {
-            #(#pk_sk_ref_fields,)*
+        pub struct #delete_struct_name #generics {
+            #(#fields_without_attr,)*
         }
-        impl<'a> TryInto<document::TransactItem<'a>> for #delete_struct_name<'a> {
+        impl #generics TryInto<document::TransactItem<'a>> for #delete_struct_name #generics_without_bounds {
             type Error = document::SerErr;
             fn try_into(self) -> document::Result<document::TransactItem<'a>> {
                 Ok(document::TransactItem::Delete {
@@ -235,19 +282,25 @@ fn struct_query_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     let DocumentParsed {
         name,
         pk_cow,
-        pk_ref_fields,
+        pk_ref_fielder:
+            RefFielder {
+                generics,
+                generics_without_bounds,
+                fields_without_attr,
+                ..
+            },
         ..
     } = parsed;
     let query_struct_name = Ident::new(&format!("{}Query", name), name.span());
 
     quote! {
-        pub struct #query_struct_name<'a> {
-            #(#pk_ref_fields,)*
+        pub struct #query_struct_name #generics {
+            #(#fields_without_attr,)*
         }
-        impl document::DocumentQuery for #query_struct_name<'_> {
+        impl #generics document::DocumentQuery for #query_struct_name #generics_without_bounds {
             type Output = #name;
 
-            fn pk<'a>(&'a self) -> document::Result<std::borrow::Cow<'a, [u8]>> {
+            fn pk<'b>(&'b self) -> document::Result<std::borrow::Cow<'b, [u8]>> {
                 Ok(#pk_cow)
             }
         }
