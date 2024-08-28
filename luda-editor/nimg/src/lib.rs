@@ -32,8 +32,6 @@ pub fn encode(
         })
         .lossless(lossless)
         .uses_original_profile(true)
-        .quality(3.0)
-        .speed(encode::EncoderSpeed::Lightning)
         .parallel_runner(&parallel_runner)
         .build()?;
 

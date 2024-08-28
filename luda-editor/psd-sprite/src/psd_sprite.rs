@@ -84,9 +84,3 @@ pub struct SpriteImage {
     pub dest_rect: Rect<Px>,
     pub encoded: Vec<u8>,
 }
-
-impl SpriteImage {
-    pub fn decode(&self) -> anyhow::Result<nimg::Decoded> {
-        nimg::decode(&self.encoded)
-    }
-}
