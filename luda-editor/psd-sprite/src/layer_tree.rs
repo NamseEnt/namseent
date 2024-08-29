@@ -1,10 +1,10 @@
 use crate::*;
 use anyhow::Result;
-use mask_image::MaskImage;
 use namui_type::*;
 use psd::{image_data_section::ChannelBytes, IntoRgba, PsdLayer, ToMask};
 use rayon::prelude::*;
-use std::borrow::Cow;
+use sk_position_image::SkPositionImage;
+use skia_safe::{Data, ImageInfo, Paint, Surface};
 
 #[derive(Debug)]
 pub enum LayerTree<'psd> {
@@ -33,7 +33,7 @@ impl LayerTree<'_> {
         }
     }
 
-    fn get_mask(&self) -> Option<MaskImage> {
+    fn get_mask(&self) -> Option<SkPositionImage> {
         let masks = match self {
             LayerTree::Group { group, .. } => (
                 mask_to_sk_position_image(group.raster_mask()),
@@ -48,7 +48,7 @@ impl LayerTree<'_> {
         match masks {
             (None, None) => None,
             (None, Some(mask)) | (Some(mask), None) => Some(mask),
-            (Some(raster_mask), Some(vector_mask)) => raster_mask.intersect(&vector_mask),
+            (Some(raster_mask), Some(vector_mask)) => raster_mask.intersect_as_mask(&vector_mask),
         }
     }
 }
@@ -106,7 +106,7 @@ pub fn make_tree(psd: &psd::Psd) -> Vec<LayerTree> {
     }
 }
 
-fn layer_to_rgba_channels(layer: &PsdLayer) -> Result<[Cow<'_, [u8]>; 4]> {
+fn layer_to_rgba(layer: &PsdLayer) -> Result<Vec<u8>> {
     let r = layer.red().to_raw_data();
     let g = layer
         .green()
@@ -120,7 +120,29 @@ fn layer_to_rgba_channels(layer: &PsdLayer) -> Result<[Cow<'_, [u8]>; 4]> {
         .alpha()
         .ok_or(anyhow::anyhow!("Alpha channel is missing in layer"))?
         .to_raw_data();
-    Ok([r, g, b, a])
+    let mut rgba = Vec::with_capacity(r.len() * 4);
+    for i in 0..r.len() {
+        rgba.push(r[i]);
+        rgba.push(g[i]);
+        rgba.push(b[i]);
+        rgba.push(a[i]);
+    }
+    Ok(rgba)
+}
+
+fn layer_to_sk_image(layer: &PsdLayer) -> Result<skia_safe::Image> {
+    let rgba = layer_to_rgba(layer)?;
+
+    skia_safe::image::images::raster_from_data(
+        &ImageInfo::new_n32(
+            (layer.width(), layer.height()),
+            skia_safe::AlphaType::Unpremul,
+            None,
+        ),
+        Data::new_copy(&rgba),
+        layer.width() as usize * 4,
+    )
+    .ok_or(anyhow::anyhow!("Failed to create image from layer"))
 }
 
 pub fn into_psd_sprite(layer_tree: Vec<LayerTree>, wh: Wh<Px>) -> Result<PsdSprite> {
@@ -134,7 +156,7 @@ fn into_entries(
     psd_rect: Rect<i32>,
 ) -> Result<Vec<Entry>> {
     layer_tree
-        .into_iter()
+        .into_par_iter()
         .map(|layer_tree| -> Result<Entry> {
             let mut prefixes = prefixes.clone();
             let layer_rect = layer_tree.rect();
@@ -158,34 +180,29 @@ fn into_entries(
                 }
                 LayerTree::Layer { layer } => {
                     prefixes.push(layer.name());
-                    if layer_rect.width() == 0
-                        || layer_rect.height() == 0
-                        || layer_rect.bottom() < 0
-                        || layer_rect.right() < 0
-                    {
+                    if layer_rect.width() == 0 || layer_rect.height() == 0 {
                         return Err(anyhow::anyhow!("No layer to rasterize"));
                     }
-
                     let clipped_rect = layer_rect.intersect(psd_rect).unwrap_or_default();
-
-                    let [r, g, b, a] = layer_to_rgba_channels(layer)?;
-
-                    let psd_wh = psd_rect.wh().map(|x| x as usize);
-
-                    let clipped_rgb = clip_and_interleave_channels([r, g, b], layer_rect, psd_wh);
-                    let clipped_a = clip_and_interleave_channels([a], layer_rect, psd_wh);
-
-                    let encoded_rgb = nimg::encode_rgb8(
-                        clipped_rect.width() as usize,
-                        clipped_rect.height() as usize,
-                        &clipped_rgb,
-                    )?;
-
-                    let encoded_a = nimg::encode_a8(
-                        clipped_rect.width() as usize,
-                        clipped_rect.height() as usize,
-                        &clipped_a,
-                    )?;
+                    let bottom_image_info = ImageInfo::new_n32(
+                        (clipped_rect.width(), clipped_rect.height()),
+                        skia_safe::AlphaType::Unpremul,
+                        None,
+                    );
+                    let mut surface: Surface =
+                        skia_safe::surfaces::raster(&bottom_image_info, None, None).unwrap();
+                    let canvas = surface.canvas();
+                    canvas.translate((-layer_rect.left(), -layer_rect.top()));
+                    if let std::result::Result::Ok(image) = layer_to_sk_image(layer) {
+                        let paint = Paint::default();
+                        canvas.draw_image(
+                            image,
+                            (layer.layer_left(), layer.layer_top()),
+                            Some(&paint),
+                        );
+                    };
+                    let image = surface.image_snapshot();
+                    let encoded = crate::encode::encode_image(&image)?;
 
                     Ok(Entry {
                         name: prefixes.join("."),
@@ -201,10 +218,7 @@ fn into_entries(
                                     right: layer.layer_right().px(),
                                     bottom: layer.layer_bottom().px(),
                                 },
-                                encoded: SpriteImageBuffer::Rgb8A8 {
-                                    rgb: encoded_rgb,
-                                    a: encoded_a,
-                                },
+                                encoded,
                             },
                         },
                     })
@@ -214,80 +228,34 @@ fn into_entries(
         .collect()
 }
 
-fn clip_and_interleave_channels<const N: usize>(
-    channels: [Cow<'_, [u8]>; N],
-    layer_rect: Rect<i32>,
-    psd_wh: Wh<usize>,
-) -> Vec<u8> {
-    let overflowed_left = if layer_rect.left() < 0 {
-        layer_rect.left().unsigned_abs() as usize
-    } else {
-        0
-    };
-    let overflowed_top = if layer_rect.top() < 0 {
-        layer_rect.top().unsigned_abs() as usize
-    } else {
-        0
-    };
-    let clipped_width = (layer_rect.width() as usize - overflowed_left).min(psd_wh.width);
-    let clipped_height = (layer_rect.height() as usize - overflowed_left).min(psd_wh.height);
-
-    let mut vec = Vec::with_capacity(clipped_width * clipped_height * N);
-
-    let layer_width = layer_rect.width() as usize;
-
-    for y in 0..clipped_height {
-        let y_index = (y + overflowed_top) * layer_width;
-        for x in 0..clipped_width {
-            for channel in &channels {
-                let index = y_index + x + overflowed_left;
-                vec.push(channel[index]);
-            }
-        }
-    }
-    vec
-}
-
 fn mask_to_sk_position_image(
     mask: Option<(&ChannelBytes, i32, i32, i32, i32)>,
-) -> Option<MaskImage> {
+) -> Option<SkPositionImage> {
     let (bytes, top, right, bottom, left) = mask?;
-
-    clipped 시리즈 잘 고쳐봐. overflow를 계산해야해.
-    let clipped_left = left.min(0).unsigned_abs() as usize;
-    let clipped_top = top.min(0).unsigned_abs() as usize;
-    let clipped_right = right.max(0) as usize;
-    let clipped_bottom = bottom.max(0) as usize;
-
-    let clipped_rect = Rect::Ltrb {
-        left: 0,
-        top: 0,
-        right: clipped_right,
-        bottom: clipped_bottom,
+    let rect = Rect::Ltrb {
+        left,
+        top,
+        right,
+        bottom,
     };
-    if clipped_rect.width() == 0 || clipped_rect.height() == 0 {
+    if rect.width() == 0 || rect.height() == 0 {
         return None;
     }
     let raw_data = bytes.to_raw_data();
+    let bottom_image_info = ImageInfo::new_a8((rect.width(), rect.height()));
+    let sk_image = skia_safe::image::images::raster_from_data(
+        &bottom_image_info,
+        Data::new_copy(&raw_data),
+        rect.width() as _,
+    );
 
-    if left > 0 && top > 0 {
-        return Some(MaskImage {
-            dest_rect: clipped_rect,
-            bytes: raw_data,
-        });
-    }
-
-    let mut bytes = Vec::with_capacity(clipped_rect.width() * clipped_rect.height());
-
-    for y in 0..clipped_rect.height() {
-        let start = (y + clipped_top) * clipped_rect.width() + clipped_left;
-        let end = start + clipped_rect.width();
-        let src = &raw_data[start..end];
-        bytes.extend_from_slice(src);
-    }
-
-    Some(MaskImage {
-        dest_rect: clipped_rect,
-        bytes: bytes.into(),
+    sk_image.map(|sk_image| SkPositionImage {
+        dest_rect: Rect::Ltrb {
+            left,
+            top,
+            right,
+            bottom,
+        },
+        sk_image,
     })
 }

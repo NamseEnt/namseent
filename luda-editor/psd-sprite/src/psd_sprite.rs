@@ -82,25 +82,11 @@ pub enum EntryKind {
 #[derive(Debug)]
 pub struct SpriteImage {
     pub dest_rect: Rect<Px>,
-    pub encoded: SpriteImageBuffer,
-}
-
-#[derive(Debug)]
-pub enum SpriteImageBuffer {
-    Rgb8A8 { rgb: Vec<u8>, a: Vec<u8> },
-    A8 { a: Vec<u8> },
+    pub encoded: nimg::Nimg,
 }
 
 impl SpriteImage {
-    pub fn decode(&self) -> anyhow::Result<SpriteImageBuffer> {
-        match &self.encoded {
-            SpriteImageBuffer::Rgb8A8 { rgb, a } => Ok(SpriteImageBuffer::Rgb8A8 {
-                rgb: nimg::decode_rgb8(rgb)?,
-                a: nimg::decode_a8(a)?,
-            }),
-            SpriteImageBuffer::A8 { a } => Ok(SpriteImageBuffer::A8 {
-                a: nimg::decode_a8(a)?,
-            }),
-        }
+    pub fn decode(&self) -> anyhow::Result<(Vec<u8>, nimg::ColorType)> {
+        Ok((self.encoded.decode()?, self.encoded.color_type))
     }
 }

@@ -5,10 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { version = "1.0.86", features = ["backtrace"] }
-image-webp = "0.1.3"
-jpegxl-rs = { version = "0.10.4", default-features = false, features = [
-    "threads",
-] }
+jpegxl-rs = { version = "0.10.4", features = ["threads"] }
 zune-jpeg = "0.4.13"
 
 [target.'cfg(target_feature = "avx2")'.dependencies]
