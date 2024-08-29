@@ -257,7 +257,12 @@ mod test {
     #[test]
     fn test_create_image_filter() {
         let psd_bytes = include_bytes!("test.psd");
+
+        let now = std::time::Instant::now();
         let psd_sprite = PsdSprite::from_psd_bytes(psd_bytes).unwrap();
+        println!("PsdSprite::from_psd_bytes: {:?}", now.elapsed());
+
+        let now = std::time::Instant::now();
         let scene_sprite = SceneSprite {
             sprite_id: None,
             circumcircle: Circumcircle {
@@ -288,5 +293,6 @@ mod test {
             ]),
         };
         let _image_filter = create_image_filter(&scene_sprite, &psd_sprite).unwrap();
+        println!("create_image_filter: {:?}", now.elapsed());
     }
 }
