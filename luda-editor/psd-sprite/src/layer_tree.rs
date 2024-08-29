@@ -5,7 +5,7 @@ use psd::{image_data_section::ChannelBytes, IntoRgba, PsdLayer, ToMask};
 use rayon::prelude::*;
 use sk_position_image::SkPositionImage;
 use skia_safe::{Data, ImageInfo, Paint, Surface};
-use skia_util::sk_image_to_webp;
+use skia_util::encode_image;
 
 #[derive(Debug)]
 pub enum LayerTree<'psd> {
@@ -203,7 +203,7 @@ fn into_entries(
                         );
                     };
                     let image = surface.image_snapshot();
-                    let webp_bytes = sk_image_to_webp(&image)?;
+                    let encoded = encode_image(&image)?;
 
                     Ok(Entry {
                         name: prefixes.join("."),
@@ -219,7 +219,7 @@ fn into_entries(
                                     right: layer.layer_right().px(),
                                     bottom: layer.layer_bottom().px(),
                                 },
-                                webp: webp_bytes.as_slice().into(),
+                                encoded,
                             },
                         },
                     })

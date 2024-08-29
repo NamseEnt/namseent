@@ -1,4 +1,4 @@
-use crate::{psd_sprite::SpriteImage, skia_util::sk_image_to_webp};
+use crate::{psd_sprite::SpriteImage, skia_util::encode_image};
 use anyhow::Result;
 use namui_type::*;
 use skia_safe::{Image, ImageInfo, Paint};
@@ -37,10 +37,9 @@ impl SkPositionImage {
     }
 
     pub fn to_sprite_image(&self) -> Result<SpriteImage> {
-        let webp = sk_image_to_webp(&self.sk_image)?;
         Ok(SpriteImage {
             dest_rect: self.dest_rect.map(|x| x.px()),
-            webp: webp.into_boxed_slice(),
+            encoded: encode_image(&self.sk_image)?,
         })
     }
 }
