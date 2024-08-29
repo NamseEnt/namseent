@@ -2,75 +2,42 @@
 mod test;
 
 use anyhow::Result;
-use jpegxl_rs::*;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ColorFormat {
-    Rgba8888,
-    R8,
+pub fn encode_rgb8(width: usize, height: usize, data: &[u8]) -> Result<Vec<u8>> {
+    let mut output = vec![];
+
+    jpeg_encoder::Encoder::new(&mut output, 80).encode(
+        data,
+        width as u16,
+        height as u16,
+        jpeg_encoder::ColorType::Rgb,
+    )?;
+
+    Ok(output)
 }
 
-/// # Parameters
-/// - `lossless`: alpha channel is not lossy even if lossless is false
-pub fn encode(
-    color_format: ColorFormat,
-    lossless: bool,
-    width: usize,
-    height: usize,
-    bytes: &[u8],
-) -> Result<Vec<u8>> {
-    let parallel_runner = ThreadsRunner::default();
-
-    let mut encoder = encoder_builder()
-        .color_encoding(match color_format {
-            ColorFormat::Rgba8888 => encode::ColorEncoding::Srgb,
-            ColorFormat::R8 => encode::ColorEncoding::SrgbLuma,
-        })
-        .has_alpha(match color_format {
-            ColorFormat::Rgba8888 => true,
-            ColorFormat::R8 => false,
-        })
-        .lossless(lossless)
-        .uses_original_profile(true)
-        .quality(3.0)
-        .speed(encode::EncoderSpeed::Lightning)
-        .parallel_runner(&parallel_runner)
-        .build()?;
-
-    let frame = encode::EncoderFrame::new(bytes).num_channels(match color_format {
-        ColorFormat::Rgba8888 => 4,
-        ColorFormat::R8 => 1,
-    });
-
-    let result = encoder.encode_frame::<_, u8>(&frame, width as u32, height as u32)?;
-
-    Ok(result.data)
+pub fn decode_rgb8(data: &[u8]) -> Result<Vec<u8>> {
+    Ok(zune_jpeg::JpegDecoder::new(data).decode()?)
 }
 
-pub struct Decoded {
-    pub width: usize,
-    pub height: usize,
-    pub color_format: ColorFormat,
-    pub pixels: Vec<u8>,
+pub fn encode_a8(width: usize, height: usize, data: &[u8]) -> Result<Vec<u8>> {
+    let mut output = vec![];
+
+    image_webp::WebPEncoder::new(&mut output).encode(
+        data,
+        width as u32,
+        height as u32,
+        image_webp::ColorType::L8,
+    )?;
+
+    Ok(output)
 }
 
-pub fn decode(bytes: &[u8]) -> Result<Decoded> {
-    let thread_runner = ThreadsRunner::default();
-    let decoder = decoder_builder().parallel_runner(&thread_runner).build()?;
+pub fn decode_a8(data: &[u8]) -> Result<Vec<u8>> {
+    let mut output = vec![];
 
-    let (metadata, pixels) = decoder.decode(bytes)?;
+    let mut decoder = image_webp::WebPDecoder::new(std::io::Cursor::new(data))?;
+    decoder.read_image(&mut output)?;
 
-    Ok(Decoded {
-        width: metadata.width as usize,
-        height: metadata.height as usize,
-        color_format: match metadata.has_alpha_channel {
-            false => ColorFormat::R8,
-            true => ColorFormat::Rgba8888,
-        },
-        pixels: if let decode::Pixels::Uint8(pixels) = pixels {
-            pixels
-        } else {
-            return Err(anyhow::anyhow!("Expected u8 pixels"));
-        },
-    })
+    Ok(output)
 }
