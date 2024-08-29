@@ -51,11 +51,11 @@ where
     #[inline(always)]
     pub fn zero_wh(wh: Wh<T>) -> Self
     where
-        T: From<f32>,
+        T: Default,
     {
         Rect::Xywh {
-            x: 0.0.into(),
-            y: 0.0.into(),
+            x: T::default(),
+            y: T::default(),
             width: wh.width,
             height: wh.height,
         }
