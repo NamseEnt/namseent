@@ -11,3 +11,6 @@ anyhow = { version = "1.0.86", features = ["backtrace"] }
 skia-safe = { path = "../../namui/third-party-forks/rust-skia/skia-safe" }
 schema-0 = { version = "0.0.1", path = "../new-server/database/schema/0" }
 nimg = { path = "../nimg" }
+
+[profile.dev.package.nimg]
+opt-level = 3

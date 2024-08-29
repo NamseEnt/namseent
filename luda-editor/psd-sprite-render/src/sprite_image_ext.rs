@@ -4,56 +4,41 @@ use skia_safe::Data;
 
 pub(crate) trait SpriteImageExt {
     fn to_namui_image(&self) -> anyhow::Result<Image>;
-    fn to_namui_image_a8(&self) -> anyhow::Result<Image>;
 }
 impl SpriteImageExt for SpriteImage {
     fn to_namui_image(&self) -> anyhow::Result<Image> {
-        let decoded = self.decode()?;
+        let (pixels, color_type) = self.decode()?;
 
-        skia_safe::image::images::raster_from_data(
-            &skia_safe::ImageInfo::new_n32(
-                (decoded.width as i32, decoded.height as i32),
-                skia_safe::AlphaType::Unpremul,
-                None,
-            ),
-            Data::new_copy(&decoded.pixels),
-            decoded.width * 4,
-        )
-        .map(|sk_image| {
-            Image::new(
-                ImageInfo {
-                    alpha_type: namui::AlphaType::Unpremul,
-                    color_type: namui::ColorType::Rgba8888,
-                    height: (decoded.height as f32).px(),
-                    width: (decoded.width as f32).px(),
-                },
-                sk_image,
-            )
-        })
-        .ok_or(anyhow::anyhow!("Failed to create image from SpriteImage"))
-    }
+        let width = self.dest_rect.width().as_f32() as i32;
+        let height = self.dest_rect.height().as_f32() as i32;
 
-    fn to_namui_image_a8(&self) -> anyhow::Result<Image> {
-        let decoded = self.decode()?;
+        let image_info = match color_type {
+            psd_sprite::ColorType::RgbA8888 => {
+                skia_safe::ImageInfo::new_n32((width, height), skia_safe::AlphaType::Unpremul, None)
+            }
+            psd_sprite::ColorType::A8 { .. } => skia_safe::ImageInfo::new_a8((width, height)),
+        };
 
-        skia_safe::image::images::raster_from_data(
-            &skia_safe::ImageInfo::new_a8((decoded.width as i32, decoded.height as i32)),
-            Data::new_copy(&decoded.pixels),
-            decoded.width,
-        )
-        .map(|sk_image| {
-            Image::new(
-                ImageInfo {
-                    alpha_type: namui::AlphaType::Unpremul,
-                    color_type: namui::ColorType::Alpha8,
-                    height: (decoded.height as f32).px(),
-                    width: (decoded.width as f32).px(),
-                },
-                sk_image,
-            )
-        })
-        .ok_or(anyhow::anyhow!(
-            "Failed to create a8 image from SpriteImage"
-        ))
+        let row_bytes = match color_type {
+            psd_sprite::ColorType::RgbA8888 => width * 4,
+            psd_sprite::ColorType::A8 { .. } => width,
+        } as usize;
+
+        skia_safe::image::images::raster_from_data(&image_info, Data::new_copy(&pixels), row_bytes)
+            .map(|sk_image| {
+                Image::new(
+                    ImageInfo {
+                        alpha_type: namui::AlphaType::Unpremul,
+                        color_type: match color_type {
+                            psd_sprite::ColorType::RgbA8888 => namui::ColorType::Rgba8888,
+                            psd_sprite::ColorType::A8 { .. } => namui::ColorType::Alpha8,
+                        },
+                        height: (height as f32).px(),
+                        width: (width as f32).px(),
+                    },
+                    sk_image,
+                )
+            })
+            .ok_or(anyhow::anyhow!("Failed to create image from SpriteImage"))
     }
 }

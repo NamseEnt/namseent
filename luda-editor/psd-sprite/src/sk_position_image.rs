@@ -1,4 +1,4 @@
-use crate::{psd_sprite::SpriteImage, skia_util::encode_image};
+use crate::psd_sprite::SpriteImage;
 use anyhow::Result;
 use namui_type::*;
 use skia_safe::{Image, ImageInfo, Paint};
@@ -39,7 +39,7 @@ impl SkPositionImage {
     pub fn to_sprite_image(&self) -> Result<SpriteImage> {
         Ok(SpriteImage {
             dest_rect: self.dest_rect.map(|x| x.px()),
-            encoded: encode_image(&self.sk_image)?,
+            encoded: crate::encode::encode_image(&self.sk_image)?,
         })
     }
 }

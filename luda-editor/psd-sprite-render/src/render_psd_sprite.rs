@@ -226,7 +226,7 @@ fn load_parts_sprite_mask_images(sprite_part: &PsdSprite) -> Vec<(String, ImageF
             .mask
             .as_ref()
             .map(|mask: &SpriteImage| {
-                mask.to_namui_image_a8()
+                mask.to_namui_image()
                     .map(|src| {
                         let image_filter = ImageFilter::Image { src }.offset(mask.dest_rect.xy());
                         vec![(entry.name.clone(), image_filter)]

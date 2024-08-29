@@ -1,8 +1,7 @@
-use anyhow::{Ok, Result};
-use nimg::*;
+use anyhow::{bail, Result};
 use skia_safe::Image;
 
-pub fn encode_image(image: &Image) -> Result<Vec<u8>> {
+pub(crate) fn encode_image(image: &Image) -> Result<nimg::Nimg> {
     let width = image.width() as usize;
     let height = image.height() as usize;
 
@@ -11,7 +10,7 @@ pub fn encode_image(image: &Image) -> Result<Vec<u8>> {
         skia_safe::ColorType::Alpha8 => skia_safe::ColorType::Alpha8,
         skia_safe::ColorType::BGRA8888 => skia_safe::ColorType::RGBA8888,
         skia_safe::ColorType::RGBA8888 => skia_safe::ColorType::RGBA8888,
-        color_type => unimplemented!("Unsupported color type: {:?}", color_type),
+        color_type => bail!("Unsupported color type: {:?}", color_type),
     };
     let row_bytes = image.width() as usize * image_info.bytes_per_pixel();
     let mut pixels = vec![0; image.height() as usize * row_bytes];
@@ -24,12 +23,9 @@ pub fn encode_image(image: &Image) -> Result<Vec<u8>> {
         skia_safe::image::CachingHint::Disallow,
     );
 
-    let encoded = match dest_color_type {
-        skia_safe::ColorType::Alpha8 => encode(ColorFormat::R8, true, width, height, &pixels)?,
-        skia_safe::ColorType::RGBA8888 => {
-            encode(ColorFormat::Rgba8888, false, width, height, &pixels)?
-        }
+    Ok(match dest_color_type {
+        skia_safe::ColorType::Alpha8 => nimg::encode_a8(width, height, &pixels)?,
+        skia_safe::ColorType::RGBA8888 => nimg::encode_rgba8(width, height, &pixels)?,
         _ => unreachable!(),
-    };
-    Ok(encoded)
+    })
 }

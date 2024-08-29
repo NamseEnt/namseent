@@ -5,6 +5,11 @@ edition = "2021"
 
 [dependencies]
 anyhow = { version = "1.0.86", features = ["backtrace"] }
-jpegxl-rs = { version = "0.10.4", default-features = false, features = [
-    "threads",
-] }
+jpegxl-rs = { version = "0.10.4", features = ["threads"] }
+zune-jpeg = "0.4.13"
+
+[target.'cfg(target_feature = "avx2")'.dependencies]
+jpeg-encoder = { version = "0.6.0", features = ["simd"] }
+
+[target.'cfg(not(target_feature = "avx2"))'.dependencies]
+jpeg-encoder = { version = "0.6.0" }
