@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use skia_safe::Image;
 
-pub(crate) fn encode_image(image: &Image) -> Result<nimg::Nimg> {
+pub(crate) fn encode_image(image: &Image) -> Result<Vec<u8>> {
     let width = image.width() as usize;
     let height = image.height() as usize;
 
@@ -23,9 +23,14 @@ pub(crate) fn encode_image(image: &Image) -> Result<nimg::Nimg> {
         skia_safe::image::CachingHint::Disallow,
     );
 
-    Ok(match dest_color_type {
-        skia_safe::ColorType::Alpha8 => nimg::encode_a8(&pixels)?,
-        skia_safe::ColorType::RGBA8888 => nimg::encode_rgba8888(width, height, &pixels)?,
-        _ => unreachable!(),
-    })
+    nimg::encode(
+        match dest_color_type {
+            skia_safe::ColorType::Alpha8 => nimg::ColorType::A8,
+            skia_safe::ColorType::RGBA8888 => nimg::ColorType::Rgba8888,
+            _ => unreachable!(),
+        },
+        width,
+        height,
+        &pixels,
+    )
 }

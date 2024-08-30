@@ -33,7 +33,7 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "rt-multi-thread",
     "fs",
 ] }
-reqwest = { path = "../third-party-forks/reqwest" }
+reqwest = { path = "../third-party-forks/reqwest", features = ["stream"] }
 rusqlite = { path = "../third-party-forks/rusqlite", features = ["bundled"] }
 rayon = "1.10.0"
 

@@ -5,6 +5,7 @@ use psd::{image_data_section::ChannelBytes, IntoRgba, PsdLayer, ToMask};
 use rayon::prelude::*;
 use sk_position_image::SkPositionImage;
 use skia_safe::{Data, ImageInfo, Paint, Surface};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum LayerTree<'psd> {
@@ -52,7 +53,7 @@ impl LayerTree<'_> {
         }
     }
 }
-pub fn make_tree(psd: &psd::Psd) -> Vec<LayerTree> {
+pub(crate) fn make_tree(psd: &psd::Psd) -> Vec<LayerTree> {
     let mut tree = vec![];
 
     for layer in psd.layers() {
@@ -145,32 +146,67 @@ fn layer_to_sk_image(layer: &PsdLayer) -> Result<skia_safe::Image> {
     .ok_or(anyhow::anyhow!("Failed to create image from layer"))
 }
 
-pub fn into_psd_sprite(layer_tree: Vec<LayerTree>, wh: Wh<Px>) -> Result<PsdSprite> {
-    let entries = into_entries(layer_tree, vec![], wh.to_rect().map(|x| x.as_f32() as i32))?;
-    Ok(PsdSprite { entries, wh })
+pub(crate) type SpriteImages = HashMap<SpriteImageId, Vec<u8>>;
+type SpriteImagesMutex = std::sync::Arc<std::sync::Mutex<SpriteImages>>;
+
+pub(crate) fn into_psd_sprite(
+    layer_tree: Vec<LayerTree>,
+    wh: Wh<Px>,
+) -> Result<(PsdSprite, SpriteImages)> {
+    let images = SpriteImagesMutex::default();
+    let entries = into_entries(
+        layer_tree,
+        vec![],
+        wh.to_rect().map(|x| x.as_f32() as i32),
+        images.clone(),
+    )?;
+    Ok((
+        PsdSprite { entries, wh },
+        std::sync::Arc::try_unwrap(images)
+            .unwrap()
+            .into_inner()
+            .unwrap(),
+    ))
 }
 
 fn into_entries(
     layer_tree: Vec<LayerTree>,
     prefixes: Vec<&str>,
     psd_rect: Rect<i32>,
+    images: SpriteImagesMutex,
 ) -> Result<Vec<Entry>> {
     layer_tree
         .into_par_iter()
-        .map(|layer_tree| -> Result<Entry> {
+        .map_with(images, |images, layer_tree| -> Result<Entry> {
             let mut prefixes = prefixes.clone();
             let layer_rect = layer_tree.rect();
+
+            match &layer_tree {
+                LayerTree::Group { group, .. } => {
+                    prefixes.push(group.name());
+                }
+                LayerTree::Layer { layer } => {
+                    prefixes.push(layer.name());
+                }
+            }
+
+            let name = prefixes.join(".");
+
             let mask = layer_tree
                 .get_mask()
-                .map(|mask| mask.to_sprite_image())
+                .map(|mask| {
+                    mask.to_sprite_image(SpriteImageId::Mask {
+                        prefix: name.clone(),
+                    })
+                })
                 .transpose()?;
 
             match layer_tree {
                 LayerTree::Group { group, children } => {
-                    prefixes.push(group.name());
-                    let entries = into_entries(children, prefixes.clone(), psd_rect)?;
+                    let entries =
+                        into_entries(children, prefixes.clone(), psd_rect, images.clone())?;
                     Ok(Entry {
-                        name: prefixes.join("."),
+                        name,
                         blend_mode: group.blend_mode(),
                         clipping_base: !group.is_clipping_mask(),
                         opacity: group.opacity(),
@@ -179,7 +215,6 @@ fn into_entries(
                     })
                 }
                 LayerTree::Layer { layer } => {
-                    prefixes.push(layer.name());
                     if layer_rect.width() == 0 || layer_rect.height() == 0 {
                         return Err(anyhow::anyhow!("No layer to rasterize"));
                     }
@@ -203,22 +238,26 @@ fn into_entries(
                     };
                     let image = surface.image_snapshot();
                     let encoded = crate::encode::encode_image(&image)?;
+                    let id = SpriteImageId::Layer {
+                        prefix: name.clone(),
+                    };
+                    images.lock().unwrap().insert(id.clone(), encoded.clone());
 
                     Ok(Entry {
-                        name: prefixes.join("."),
+                        name: name.clone(),
                         blend_mode: layer.blend_mode(),
                         clipping_base: !layer.is_clipping_mask(),
                         opacity: layer.opacity(),
                         mask,
                         kind: EntryKind::Layer {
                             image: SpriteImage {
+                                id,
                                 dest_rect: Rect::Ltrb {
                                     left: layer.layer_left().px(),
                                     top: layer.layer_top().px(),
                                     right: layer.layer_right().px(),
                                     bottom: layer.layer_bottom().px(),
                                 },
-                                encoded,
                             },
                         },
                     })

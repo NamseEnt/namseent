@@ -1,7 +1,6 @@
-use crate::{blender::photoshop_blend_mode_into_blender, sprite_image_ext::SpriteImageExt};
+use crate::{blender::photoshop_blend_mode_into_blender, SpriteLoadedImages};
 use namui::*;
 use psd_sprite::*;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use schema_0::SceneSprite;
 use std::{borrow::Borrow, collections::HashMap, iter::Peekable};
 
@@ -12,8 +11,13 @@ impl RenderPsdSprite for PsdSprite {
     fn render(&self, ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>) {
         let (image_filter, set_image_filter) = ctx.state(|| None);
 
+        // TODO: Commented because of compile errors.
+
         ctx.effect("create image filter", || {
-            set_image_filter.set(create_image_filter(scene_sprite, self));
+            match create_image_filter(scene_sprite, self, todo!()) {
+                Ok(image_filter) => set_image_filter.set(image_filter),
+                Err(err) => todo!(),
+            }
         });
 
         ctx.compose(|ctx| {
@@ -39,10 +43,15 @@ impl RenderPsdSprite for PsdSprite {
 fn create_image_filter(
     scene_sprite: &schema_0::SceneSprite,
     psd_sprite: &PsdSprite,
-) -> Option<ImageFilter> {
-    let parts_sprite_images = HashMap::from_iter(load_parts_sprite_images(psd_sprite));
-    let parts_sprite_mask_images = HashMap::from_iter(load_parts_sprite_mask_images(psd_sprite));
-    render_entries(
+    sprite_loaded_images: &SpriteLoadedImages,
+) -> Result<Option<ImageFilter>> {
+    let parts_sprite_images =
+        HashMap::from_iter(load_parts_sprite_images(psd_sprite, sprite_loaded_images)?);
+    let parts_sprite_mask_images = HashMap::from_iter(load_parts_sprite_mask_images(
+        psd_sprite,
+        sprite_loaded_images,
+    )?);
+    Ok(render_entries(
         None,
         &psd_sprite.entries,
         scene_sprite,
@@ -50,7 +59,7 @@ fn create_image_filter(
         &parts_sprite_mask_images,
         &None,
         255,
-    )
+    ))
 }
 
 fn render_entries<T: Borrow<Entry>>(
@@ -188,63 +197,88 @@ fn has_clipping_layer<T: Borrow<Entry>>(
         .is_some_and(|parts_sprite| <T as Borrow<Entry>>::borrow(parts_sprite).clipping_base)
 }
 
-fn load_parts_sprite_images(sprite_part: &PsdSprite) -> Vec<(String, ImageFilter)> {
-    let images = sprite_part
-        .entries
-        .par_iter()
-        .flat_map(load_parts_sprite_images_from_entry)
-        .collect();
-    return images;
+fn load_parts_sprite_images(
+    sprite_part: &PsdSprite,
+    sprite_loaded_images: &SpriteLoadedImages,
+) -> Result<Vec<(String, ImageFilter)>> {
+    return load_entries(&sprite_part.entries, sprite_loaded_images);
 
-    fn load_parts_sprite_images_from_entry(entry: &Entry) -> Vec<(String, ImageFilter)> {
+    fn load_entries(
+        entries: &[Entry],
+        sprite_loaded_images: &SpriteLoadedImages,
+    ) -> Result<Vec<(String, ImageFilter)>> {
+        Ok(entries
+            .iter()
+            .map(|entry| load_entry(entry, sprite_loaded_images))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect())
+    }
+
+    fn load_entry(
+        entry: &Entry,
+        sprite_loaded_images: &SpriteLoadedImages,
+    ) -> Result<Vec<(String, ImageFilter)>> {
         match &entry.kind {
-            EntryKind::Layer { image } => image
-                .to_namui_image()
-                .map(|src| {
-                    let image_filter = ImageFilter::Image { src }.offset(image.dest_rect.xy());
+            EntryKind::Layer {
+                image: sprite_image,
+            } => sprite_loaded_images
+                .get(&sprite_image.id)
+                .ok_or(anyhow::anyhow!("image not found: {:?}", sprite_image.id))
+                .map(|loaded_image| {
+                    let image_filter = ImageFilter::Image {
+                        src: loaded_image.clone(),
+                    }
+                    .offset(sprite_image.dest_rect.xy());
                     vec![(entry.name.clone(), image_filter)]
-                })
-                .unwrap_or_default(),
-            EntryKind::Group { entries } => entries
-                .par_iter()
-                .flat_map(load_parts_sprite_images_from_entry)
-                .collect(),
+                }),
+            EntryKind::Group { entries } => load_entries(entries, sprite_loaded_images),
         }
     }
 }
 
-fn load_parts_sprite_mask_images(sprite_part: &PsdSprite) -> Vec<(String, ImageFilter)> {
-    let masks = sprite_part
-        .entries
-        .par_iter()
-        .flat_map(load_parts_sprite_mask_images_from_entry)
-        .collect();
-    return masks;
+fn load_parts_sprite_mask_images(
+    sprite_part: &PsdSprite,
+    sprite_loaded_images: &SpriteLoadedImages,
+) -> Result<Vec<(String, ImageFilter)>> {
+    return load_entries(&sprite_part.entries, sprite_loaded_images);
 
-    fn load_parts_sprite_mask_images_from_entry(entry: &Entry) -> Vec<(String, ImageFilter)> {
-        let mut masks = entry
-            .mask
-            .as_ref()
-            .map(|mask: &SpriteImage| {
-                mask.to_namui_image()
-                    .map(|src| {
-                        let image_filter = ImageFilter::Image { src }.offset(mask.dest_rect.xy());
-                        vec![(entry.name.clone(), image_filter)]
-                    })
-                    .unwrap_or_default()
-            })
-            .unwrap_or_default();
-        match &entry.kind {
-            EntryKind::Layer { .. } => masks,
-            EntryKind::Group { entries } => {
-                let child_masks: Vec<_> = entries
-                    .par_iter()
-                    .flat_map(load_parts_sprite_mask_images_from_entry)
-                    .collect();
-                masks.extend(child_masks);
-                masks
-            }
+    fn load_entries(
+        entries: &[Entry],
+        sprite_loaded_images: &SpriteLoadedImages,
+    ) -> Result<Vec<(String, ImageFilter)>> {
+        Ok(entries
+            .iter()
+            .map(|entry| load_entry(entry, sprite_loaded_images))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect())
+    }
+
+    fn load_entry(
+        entry: &Entry,
+        sprite_loaded_images: &SpriteLoadedImages,
+    ) -> Result<Vec<(String, ImageFilter)>> {
+        let mut ret = vec![];
+        if let Some(mask) = entry.mask.as_ref() {
+            let loaded_image = sprite_loaded_images
+                .get(&mask.id)
+                .ok_or(anyhow::anyhow!("image not found: {:?}", mask.id))?;
+
+            ret.push((
+                entry.name.clone(),
+                ImageFilter::Image {
+                    src: loaded_image.clone(),
+                }
+                .offset(mask.dest_rect.xy()),
+            ))
         }
+        if let EntryKind::Group { entries } = &entry.kind {
+            ret.extend(load_entries(entries, sprite_loaded_images)?);
+        }
+        Ok(ret)
     }
 }
 
@@ -254,28 +288,23 @@ mod test {
     use schema_0::Circumcircle;
     use std::collections::HashSet;
 
-    #[test]
-    fn test_create_image_filter() {
+    #[tokio::test]
+    async fn test_create_image_filter() {
         let psd_bytes = include_bytes!("test.psd");
 
         let now = std::time::Instant::now();
-        let psd_sprite = PsdSprite::from_psd_bytes(psd_bytes).unwrap();
-        println!("PsdSprite::from_psd_bytes: {:?}", now.elapsed());
-
-        println!(
-            "psd_sprite.image_encoded_byte_size: {}",
-            psd_sprite.image_encoded_byte_size()
-        );
-
-        let bytes = psd_sprite.image_encoded_bytes().concat();
-        println!("before zstd: {}", bytes.len());
-
-        let full_encoded = zstd::encode_all(bytes.as_slice(), 9).unwrap();
-        println!("full_encoded.len(): {}", full_encoded.len());
+        let (encoded_psd_sprite, _parts_sprite) =
+            psd_sprite::encode_psd_sprite(psd_bytes, "test.psd").unwrap();
+        println!("psd_sprite::encode_psd_sprite: {:?}", now.elapsed());
+        println!("encoded_psd_sprite.len(): {}", encoded_psd_sprite.len());
 
         let now = std::time::Instant::now();
-        zstd::decode_all(full_encoded.as_slice()).unwrap();
-        println!("zstd::decode_all: {:?}", now.elapsed());
+        let (psd_sprite, loaded_images) = crate::decode_psd_sprite(futures_util::stream::iter(
+            vec![Ok(bytes::Bytes::copy_from_slice(&encoded_psd_sprite))],
+        ))
+        .await
+        .unwrap();
+        println!("decode_psd_sprite: {:?}", now.elapsed());
 
         let now = std::time::Instant::now();
         let scene_sprite = SceneSprite {
@@ -307,7 +336,8 @@ mod test {
                 ),
             ]),
         };
-        let _image_filter = create_image_filter(&scene_sprite, &psd_sprite).unwrap();
+        let _image_filter =
+            create_image_filter(&scene_sprite, &psd_sprite, &loaded_images).unwrap();
         println!("create_image_filter: {:?}", now.elapsed());
     }
 }
