@@ -121,7 +121,7 @@ pub async fn decode_psd_sprite(
         sprite_image_loading_task.insert(sprite_image_id, task);
     }
 
-    let sprite_loaded_images =
+    let sprite_loaded_images: HashMap<_, _> =
         futures_util::future::try_join_all(sprite_image_loading_task.into_iter().map(
             |(id, task)| async move {
                 let image = task.await??;

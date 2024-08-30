@@ -1,18 +1,3 @@
-//! # nimg
-//!
-//! # Data format
-//!
-//! ## Header
-//! - body format type: u8
-//! - body length: u32le
-//! - color type: u8
-//! - width: u32le
-//! - height: u32le
-//!
-//! ## Body
-//! - body: [u8; length]
-//!
-
 #[cfg(test)]
 mod test;
 
@@ -65,9 +50,10 @@ pub fn encode(
 
             if rgb_jpeg.len() + a_zstd.len() < rgba_zstd.len() {
                 let mut output = Vec::with_capacity(4 + rgb_jpeg.len() + a_zstd.len());
-                output.extend_from_slice(&rgb_jpeg.len().to_le_bytes());
+                output.extend_from_slice(&(rgb_jpeg.len() as u32).to_le_bytes());
                 output.extend(rgb_jpeg);
                 output.extend(a_zstd);
+
                 (FormatType::Rgb888JpegA8Zstd, output)
             } else {
                 (FormatType::Rgba8888Zstd, rgba_zstd)
@@ -86,22 +72,23 @@ pub fn encode(
         width: width as u32,
         height: height as u32,
     };
+    let header_bytes = bincode::serialize(&header)?;
 
-    let mut output = Vec::with_capacity(Header::header_size() + body.len());
-    output.extend_from_slice(&[header.format_type as u8]);
-    output.extend_from_slice(&header.body_length.to_le_bytes());
+    let mut output = Vec::with_capacity(header_bytes.len() + body.len());
+    output.extend(header_bytes);
     output.extend(body);
 
     Ok(output)
 }
 
 pub fn decode(data: &[u8]) -> Result<(Header, Vec<u8>)> {
-    let header = Header::parse_header(&data[..Header::header_size()])?;
-    let body = header.parse_body(&data[Header::header_size()..])?;
+    let header: Header = bincode::deserialize(&data)?;
+    let header_size = data.len() - header.body_length as usize;
+    let body = header.parse_body(&data[header_size..])?;
     Ok((header, body))
 }
 
-#[repr(C)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Header {
     format_type: FormatType,
     body_length: u32,
@@ -111,23 +98,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn header_size() -> usize {
-        std::mem::size_of::<Header>()
-    }
-
-    pub fn parse_header(data: &[u8]) -> Result<Header> {
-        assert_eq!(data.len(), Self::header_size());
-
-        Ok(Header {
-            format_type: FormatType::try_from(data[0])?,
-            body_length: u32::from_le_bytes([data[1], data[2], data[3], data[4]]),
-            color_type: ColorType::try_from(data[5])?,
-            width: u32::from_le_bytes([data[6], data[7], data[8], data[9]]),
-            height: u32::from_le_bytes([data[10], data[11], data[12], data[13]]),
-        })
-    }
-
-    pub fn parse_body(&self, data: &[u8]) -> Result<Vec<u8>> {
+    fn parse_body(&self, data: &[u8]) -> Result<Vec<u8>> {
         assert_eq!(data.len(), self.body_length as usize);
 
         match self.format_type {
@@ -163,7 +134,7 @@ impl Header {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum ColorType {
     Rgba8888,
@@ -182,6 +153,7 @@ impl TryFrom<u8> for ColorType {
     }
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 #[allow(clippy::enum_variant_names)]
 enum FormatType {

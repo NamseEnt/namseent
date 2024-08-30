@@ -1552,7 +1552,9 @@ name = "nimg"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "jpeg-encoder",
+ "serde",
  "zstd",
  "zune-jpeg",
 ]
