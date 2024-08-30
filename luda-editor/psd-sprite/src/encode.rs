@@ -24,8 +24,8 @@ pub(crate) fn encode_image(image: &Image) -> Result<nimg::Nimg> {
     );
 
     Ok(match dest_color_type {
-        skia_safe::ColorType::Alpha8 => nimg::encode_a8(width, height, &pixels)?,
-        skia_safe::ColorType::RGBA8888 => nimg::encode_rgba8(width, height, &pixels)?,
+        skia_safe::ColorType::Alpha8 => nimg::encode_a8(&pixels)?,
+        skia_safe::ColorType::RGBA8888 => nimg::encode_rgba8888(width, height, &pixels)?,
         _ => unreachable!(),
     })
 }

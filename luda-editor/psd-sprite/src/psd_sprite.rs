@@ -61,6 +61,19 @@ impl PsdSprite {
         let parts = self.entries.par_iter().flat_map(collect_parts).collect();
         schema_0::PartsSprite { name, parts }
     }
+
+    pub fn image_encoded_byte_size(&self) -> usize {
+        self.entries
+            .iter()
+            .map(|entry| entry.image_encoded_byte_size())
+            .sum()
+    }
+    pub fn image_encoded_bytes(&self) -> Vec<Vec<u8>> {
+        self.entries
+            .par_iter()
+            .flat_map(|entry| entry.image_encoded_bytes())
+            .collect()
+    }
 }
 
 #[derive(Debug)]
@@ -71,6 +84,38 @@ pub struct Entry {
     pub opacity: u8,
     pub mask: Option<SpriteImage>,
     pub kind: EntryKind,
+}
+
+impl Entry {
+    pub fn image_encoded_byte_size(&self) -> usize {
+        self.mask
+            .as_ref()
+            .map(|mask| mask.image_encoded_byte_size())
+            .unwrap_or_default()
+            + match &self.kind {
+                EntryKind::Layer { image } => image.image_encoded_byte_size(),
+                EntryKind::Group { entries } => entries
+                    .iter()
+                    .map(|entry| entry.image_encoded_byte_size())
+                    .sum(),
+            }
+    }
+
+    pub fn image_encoded_bytes(&self) -> Vec<Vec<u8>> {
+        let mask = self
+            .mask
+            .as_ref()
+            .map(|mask| mask.image_encoded_bytes())
+            .unwrap_or_default();
+        let image = match &self.kind {
+            EntryKind::Layer { image } => image.image_encoded_bytes(),
+            EntryKind::Group { entries } => entries
+                .par_iter()
+                .flat_map(|entry| entry.image_encoded_bytes())
+                .collect(),
+        };
+        mask.into_iter().chain(image.into_iter()).collect()
+    }
 }
 
 #[derive(Debug)]
@@ -88,5 +133,13 @@ pub struct SpriteImage {
 impl SpriteImage {
     pub fn decode(&self) -> anyhow::Result<(Vec<u8>, nimg::ColorType)> {
         Ok((self.encoded.decode()?, self.encoded.color_type))
+    }
+
+    pub fn image_encoded_byte_size(&self) -> usize {
+        self.encoded.image_encoded_byte_size()
+    }
+
+    pub fn image_encoded_bytes(&self) -> Vec<Vec<u8>> {
+        self.encoded.image_encoded_bytes()
     }
 }

@@ -11,3 +11,6 @@ skia-safe = { path = "../../namui/third-party-forks/rust-skia/skia-safe" }
 schema-0 = { version = "0.0.1", path = "../new-server/database/schema/0" }
 namui = { version = "0.1.0", path = "../../namui/namui" }
 psd-sprite = { version = "0.1.0", path = "../psd-sprite" }
+
+[dev-dependencies]
+zstd = "0.13.2"

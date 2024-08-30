@@ -13,14 +13,14 @@ impl SpriteImageExt for SpriteImage {
         let height = self.dest_rect.height().as_f32() as i32;
 
         let image_info = match color_type {
-            psd_sprite::ColorType::RgbA8888 => {
+            psd_sprite::ColorType::Rgba8888 => {
                 skia_safe::ImageInfo::new_n32((width, height), skia_safe::AlphaType::Unpremul, None)
             }
             psd_sprite::ColorType::A8 { .. } => skia_safe::ImageInfo::new_a8((width, height)),
         };
 
         let row_bytes = match color_type {
-            psd_sprite::ColorType::RgbA8888 => width * 4,
+            psd_sprite::ColorType::Rgba8888 => width * 4,
             psd_sprite::ColorType::A8 { .. } => width,
         } as usize;
 
@@ -30,7 +30,7 @@ impl SpriteImageExt for SpriteImage {
                     ImageInfo {
                         alpha_type: namui::AlphaType::Unpremul,
                         color_type: match color_type {
-                            psd_sprite::ColorType::RgbA8888 => namui::ColorType::Rgba8888,
+                            psd_sprite::ColorType::Rgba8888 => namui::ColorType::Rgba8888,
                             psd_sprite::ColorType::A8 { .. } => namui::ColorType::Alpha8,
                         },
                         height: (height as f32).px(),

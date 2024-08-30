@@ -262,6 +262,21 @@ mod test {
         let psd_sprite = PsdSprite::from_psd_bytes(psd_bytes).unwrap();
         println!("PsdSprite::from_psd_bytes: {:?}", now.elapsed());
 
+        println!(
+            "psd_sprite.image_encoded_byte_size: {}",
+            psd_sprite.image_encoded_byte_size()
+        );
+
+        let bytes = psd_sprite.image_encoded_bytes().concat();
+        println!("before zstd: {}", bytes.len());
+
+        let full_encoded = zstd::encode_all(bytes.as_slice(), 9).unwrap();
+        println!("full_encoded.len(): {}", full_encoded.len());
+
+        let now = std::time::Instant::now();
+        zstd::decode_all(full_encoded.as_slice()).unwrap();
+        println!("zstd::decode_all: {:?}", now.elapsed());
+
         let now = std::time::Instant::now();
         let scene_sprite = SceneSprite {
             sprite_id: None,
