@@ -34,22 +34,24 @@ impl LayerTree<'_> {
         }
     }
 
-    fn get_mask(&self) -> Option<SkPositionImage> {
+    fn get_mask(&self) -> Result<Option<SkPositionImage>> {
         let masks = match self {
             LayerTree::Group { group, .. } => (
-                mask_to_sk_position_image(group.raster_mask()),
-                mask_to_sk_position_image(group.vector_mask()),
+                mask_to_sk_position_image(group.raster_mask())?,
+                mask_to_sk_position_image(group.vector_mask())?,
             ),
             LayerTree::Layer { layer } => (
-                mask_to_sk_position_image(layer.raster_mask()),
-                mask_to_sk_position_image(layer.vector_mask()),
+                mask_to_sk_position_image(layer.raster_mask())?,
+                mask_to_sk_position_image(layer.vector_mask())?,
             ),
         };
 
         match masks {
-            (None, None) => None,
-            (None, Some(mask)) | (Some(mask), None) => Some(mask),
-            (Some(raster_mask), Some(vector_mask)) => raster_mask.intersect_as_mask(&vector_mask),
+            (None, None) => Ok(None),
+            (None, Some(mask)) | (Some(mask), None) => Ok(Some(mask)),
+            (Some(raster_mask), Some(vector_mask)) => {
+                Ok(raster_mask.intersect_as_mask(&vector_mask))
+            }
         }
     }
 }
@@ -192,14 +194,21 @@ fn into_entries(
 
             let name = prefixes.join(".");
 
-            let mask = layer_tree
-                .get_mask()
-                .map(|mask| {
-                    mask.to_sprite_image(SpriteImageId::Mask {
-                        prefix: name.clone(),
-                    })
-                })
-                .transpose()?;
+            let mask = 'outer: {
+                let Some(mask) = layer_tree.get_mask()? else {
+                    break 'outer None;
+                };
+
+                let id = SpriteImageId::Mask {
+                    prefix: name.clone(),
+                };
+
+                let encoded = encode_sk_position_image(&mask)?;
+
+                images.lock().unwrap().insert(id.clone(), encoded);
+
+                Some(mask.to_sprite_image(id))
+            };
 
             match layer_tree {
                 LayerTree::Group { group, children } => {
@@ -269,8 +278,10 @@ fn into_entries(
 
 fn mask_to_sk_position_image(
     mask: Option<(&ChannelBytes, i32, i32, i32, i32)>,
-) -> Option<SkPositionImage> {
-    let (bytes, top, right, bottom, left) = mask?;
+) -> Result<Option<SkPositionImage>> {
+    let Some((bytes, top, right, bottom, left)) = mask else {
+        return Ok(None);
+    };
     let rect = Rect::Ltrb {
         left,
         top,
@@ -278,7 +289,7 @@ fn mask_to_sk_position_image(
         bottom,
     };
     if rect.width() == 0 || rect.height() == 0 {
-        return None;
+        return Ok(None);
     }
     let raw_data = bytes.to_raw_data();
     let bottom_image_info = ImageInfo::new_a8((rect.width(), rect.height()));
@@ -286,9 +297,10 @@ fn mask_to_sk_position_image(
         &bottom_image_info,
         Data::new_copy(&raw_data),
         rect.width() as _,
-    );
+    )
+    .ok_or(anyhow::anyhow!("Failed to create image from mask"))?;
 
-    sk_image.map(|sk_image| SkPositionImage {
+    Ok(Some(SkPositionImage {
         dest_rect: Rect::Ltrb {
             left,
             top,
@@ -296,5 +308,30 @@ fn mask_to_sk_position_image(
             bottom,
         },
         sk_image,
-    })
+    }))
+}
+
+fn encode_sk_position_image(position_image: &SkPositionImage) -> Result<Vec<u8>> {
+    let mut surface: Surface =
+        skia_safe::surfaces::raster(position_image.sk_image.image_info(), None, None).ok_or(
+            anyhow::anyhow!("Failed to create surface from SkPositionImage"),
+        )?;
+    let canvas = surface.canvas();
+    canvas.translate((
+        -position_image.dest_rect.left(),
+        -position_image.dest_rect.top(),
+    ));
+
+    canvas.draw_image(
+        &position_image.sk_image,
+        (
+            position_image.dest_rect.left(),
+            position_image.dest_rect.top(),
+        ),
+        Some(&Paint::default()),
+    );
+    let image = surface.image_snapshot();
+    let encoded = crate::encode::encode_image(&image)?;
+
+    Ok(encoded)
 }
