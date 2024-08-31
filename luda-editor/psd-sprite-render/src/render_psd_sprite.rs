@@ -28,11 +28,17 @@ impl RenderPsdSprite for Arc<PsdSprite> {
             set_image_filter_create_state.set(ImageFilterCreateState::Creating);
             let psd_sprite = self.clone();
             let scene_sprite = scene_sprite.clone();
-            let loaded_images = loaded_images.clone();
             ctx.spawn(async move {
                 let result = match create_image_filter(&scene_sprite, &psd_sprite, &loaded_images) {
-                    Some(image_filter) => ImageFilterCreateState::Created { image_filter },
-                    None => ImageFilterCreateState::Error,
+                    Ok(image_filter) => match image_filter {
+                        Some(image_filter) => ImageFilterCreateState::Created { image_filter },
+                        None => ImageFilterCreateState::Error {
+                            error: Arc::new(anyhow::anyhow!("image_filter is None")),
+                        },
+                    },
+                    Err(error) => ImageFilterCreateState::Error {
+                        error: Arc::new(error),
+                    },
                 };
                 set_image_filter_create_state.set(result);
             });
@@ -323,8 +329,13 @@ fn loaded_image_to_namui(
 enum ImageFilterCreateState {
     Unset,
     Creating,
-    Created { image_filter: ImageFilter },
-    Error,
+    Created {
+        image_filter: ImageFilter,
+    },
+    #[allow(dead_code)]
+    Error {
+        error: Arc<anyhow::Error>,
+    },
 }
 
 #[cfg(test)]

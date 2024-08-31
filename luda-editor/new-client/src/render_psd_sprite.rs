@@ -1,6 +1,6 @@
 use super::*;
 use luda_rpc::SceneSprite;
-use psd_sprite::{decode_psd_sprite, PsdSprite};
+use psd_sprite::{decode_psd_sprite_from_bytes, PsdSprite, SpriteLoadedImages};
 use psd_sprite_render::RenderPsdSprite;
 use std::{
     collections::HashMap,
@@ -24,20 +24,11 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
             namui::log!("Loading PSD sprite: {}", sprite_id);
             // TODO: Load PSD sprite from the server and cache.
             let psd_bytes = namui::file::bundle::read("test.psd").await.unwrap();
-            let psd_sprite = PsdSprite::from_psd_bytes(&psd_bytes);
-            let (encoded_psd_sprite, _parts_sprite) =
-                psd_sprite::encode_psd_sprite(&psd_bytes, "test.psd").unwrap();
-            let now = std::time::Instant::now();
-            let (psd_sprite, loaded_images) =
-                psd_sprite::decode_psd_sprite(futures_util::stream::iter(vec![Ok(
-                    bytes::Bytes::copy_from_slice(&encoded_psd_sprite),
-                )]))
-                .await
-                .unwrap();
+            let decode_result = decode_psd_sprite_from_bytes(&psd_bytes, "test.psd").await;
 
-            let load_state = psd_sprite.map_or_else(
+            let load_state = decode_result.map_or_else(
                 |err| PsdSpriteLoadState::Error(err.into()),
-                |psd_sprite| PsdSpriteLoadState::Loaded {
+                |(psd_sprite, loaded_images)| PsdSpriteLoadState::Loaded {
                     psd_sprite: Arc::new(psd_sprite),
                     loaded_images: Arc::new(loaded_images),
                 },
@@ -55,14 +46,14 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
         return;
     };
 
-    psd_sprite.render(ctx, scene_sprite, loaded_images, screen_wh);
+    psd_sprite.render(ctx, scene_sprite, loaded_images.clone(), screen_wh);
 }
 
 enum PsdSpriteLoadState {
     Loading,
     Loaded {
         psd_sprite: Arc<PsdSprite>,
-        loaded_images: HashMap<SpriteImageId, SpriteLoadedImage>,
+        loaded_images: Arc<SpriteLoadedImages>,
     },
     #[allow(unused)]
     Error(Box<dyn Error + Send + Sync>),
