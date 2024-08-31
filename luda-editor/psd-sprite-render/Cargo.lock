@@ -1947,8 +1947,11 @@ name = "psd-sprite"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-compression",
  "bincode",
+ "bytes",
  "futures-core",
+ "futures-util",
  "namui-type",
  "nimg",
  "psd",
@@ -1956,6 +1959,7 @@ dependencies = [
  "schema-0",
  "serde",
  "skia-safe",
+ "tokio 1.38.0",
  "zstd",
 ]
 
@@ -1964,9 +1968,7 @@ name = "psd-sprite-render"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-compression",
  "bytes",
- "futures-core",
  "futures-util",
  "namui",
  "psd",
@@ -1974,8 +1976,6 @@ dependencies = [
  "rayon",
  "schema-0",
  "skia-safe",
- "zstd",
- "zstd-safe",
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-use crate::{blender::photoshop_blend_mode_into_blender, SpriteLoadedImages};
+use crate::blender::photoshop_blend_mode_into_blender;
 use namui::*;
 use psd_sprite::*;
 use schema_0::SceneSprite;
@@ -228,7 +228,7 @@ fn load_parts_sprite_images(
                 .ok_or(anyhow::anyhow!("image not found: {:?}", sprite_image.id))
                 .map(|loaded_image| {
                     let image_filter = ImageFilter::Image {
-                        src: loaded_image.clone(),
+                        src: loaded_image_to_namui(loaded_image),
                     }
                     .offset(sprite_image.dest_rect.xy());
                     vec![(entry.name.clone(), image_filter)]
@@ -270,7 +270,7 @@ fn load_parts_sprite_mask_images(
             ret.push((
                 entry.name.clone(),
                 ImageFilter::Image {
-                    src: loaded_image.clone(),
+                    src: loaded_image_to_namui(loaded_image),
                 }
                 .offset(mask.dest_rect.xy()),
             ))
@@ -279,6 +279,23 @@ fn load_parts_sprite_mask_images(
             ret.extend(load_entries(entries, sprite_loaded_images)?);
         }
         Ok(ret)
+    }
+}
+
+fn loaded_image_to_namui(
+    SpriteLoadedImage { header, skia_image }: &SpriteLoadedImage,
+) -> namui::Image {
+    namui::Image {
+        info: ImageInfo {
+            alpha_type: namui::AlphaType::Unpremul,
+            color_type: match header.color_type {
+                psd_sprite::ColorType::Rgba8888 => namui::ColorType::Rgba8888,
+                psd_sprite::ColorType::A8 => namui::ColorType::Alpha8,
+            },
+            height: (header.height as f32).px(),
+            width: (header.width as f32).px(),
+        },
+        skia_image: skia_image.clone(),
     }
 }
 
@@ -299,11 +316,12 @@ mod test {
         println!("encoded_psd_sprite.len(): {}", encoded_psd_sprite.len());
 
         let now = std::time::Instant::now();
-        let (psd_sprite, loaded_images) = crate::decode_psd_sprite(futures_util::stream::iter(
-            vec![Ok(bytes::Bytes::copy_from_slice(&encoded_psd_sprite))],
-        ))
-        .await
-        .unwrap();
+        let (psd_sprite, loaded_images) =
+            psd_sprite::decode_psd_sprite(futures_util::stream::iter(vec![Ok(
+                bytes::Bytes::copy_from_slice(&encoded_psd_sprite),
+            )]))
+            .await
+            .unwrap();
         println!("decode_psd_sprite: {:?}", now.elapsed());
 
         let now = std::time::Instant::now();

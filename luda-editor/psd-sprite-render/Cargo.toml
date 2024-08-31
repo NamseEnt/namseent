@@ -11,9 +11,7 @@ skia-safe = { path = "../../namui/third-party-forks/rust-skia/skia-safe" }
 schema-0 = { version = "0.0.1", path = "../new-server/database/schema/0" }
 namui = { version = "0.1.0", path = "../../namui/namui" }
 psd-sprite = { version = "0.1.0", path = "../psd-sprite" }
-zstd = "0.13.2"
-futures-core = "0.3.30"
-futures-util = "0.3.30"
+
+[dev-dependencies]
 bytes = "1.7.1"
-zstd-safe = "7.2.1"
-async-compression = { version = "0.4.12", features = ["futures-io", "zstd"] }
+futures-util = { version = "0.3.30", features = ["io"] }
