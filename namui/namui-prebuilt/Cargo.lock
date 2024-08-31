@@ -2058,6 +2058,7 @@ dependencies = [
  "system-configuration",
  "tokio 1.39.3",
  "tokio-native-tls",
+ "tokio-util",
  "tower-service",
  "url",
  "winreg",

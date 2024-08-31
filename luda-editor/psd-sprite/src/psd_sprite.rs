@@ -1,22 +1,14 @@
-use crate::*;
-use layer_tree::*;
 use namui_type::*;
-use psd::{BlendMode, IntoRgba};
+use psd::BlendMode;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PsdSprite {
     pub entries: Vec<Entry>,
     pub wh: Wh<Px>,
 }
-impl PsdSprite {
-    pub fn from_psd_bytes(psd_bytes: &[u8]) -> anyhow::Result<Self> {
-        let psd = psd::Psd::from_bytes(psd_bytes)?;
-        let wh = Wh::new(psd.psd_width(), psd.psd_height()).map(|x| (x as f32).px());
-        let layer_trees = make_tree(&psd);
-        layer_tree::into_psd_sprite(layer_trees, wh)
-    }
 
+impl PsdSprite {
     pub fn to_parts_sprite(&self, name: String) -> schema_0::PartsSprite {
         fn to_options(entries: &[Entry]) -> Vec<schema_0::SpritePartOption> {
             entries
@@ -61,22 +53,9 @@ impl PsdSprite {
         let parts = self.entries.par_iter().flat_map(collect_parts).collect();
         schema_0::PartsSprite { name, parts }
     }
-
-    pub fn image_encoded_byte_size(&self) -> usize {
-        self.entries
-            .iter()
-            .map(|entry| entry.image_encoded_byte_size())
-            .sum()
-    }
-    pub fn image_encoded_bytes(&self) -> Vec<Vec<u8>> {
-        self.entries
-            .par_iter()
-            .flat_map(|entry| entry.image_encoded_bytes())
-            .collect()
-    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Entry {
     pub name: String,
     pub blend_mode: BlendMode,
@@ -86,60 +65,20 @@ pub struct Entry {
     pub kind: EntryKind,
 }
 
-impl Entry {
-    pub fn image_encoded_byte_size(&self) -> usize {
-        self.mask
-            .as_ref()
-            .map(|mask| mask.image_encoded_byte_size())
-            .unwrap_or_default()
-            + match &self.kind {
-                EntryKind::Layer { image } => image.image_encoded_byte_size(),
-                EntryKind::Group { entries } => entries
-                    .iter()
-                    .map(|entry| entry.image_encoded_byte_size())
-                    .sum(),
-            }
-    }
-
-    pub fn image_encoded_bytes(&self) -> Vec<Vec<u8>> {
-        let mask = self
-            .mask
-            .as_ref()
-            .map(|mask| mask.image_encoded_bytes())
-            .unwrap_or_default();
-        let image = match &self.kind {
-            EntryKind::Layer { image } => image.image_encoded_bytes(),
-            EntryKind::Group { entries } => entries
-                .par_iter()
-                .flat_map(|entry| entry.image_encoded_bytes())
-                .collect(),
-        };
-        mask.into_iter().chain(image.into_iter()).collect()
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum EntryKind {
     Layer { image: SpriteImage },
     Group { entries: Vec<Entry> },
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SpriteImage {
+    pub id: SpriteImageId,
     pub dest_rect: Rect<Px>,
-    pub encoded: nimg::Nimg,
 }
 
-impl SpriteImage {
-    pub fn decode(&self) -> anyhow::Result<(Vec<u8>, nimg::ColorType)> {
-        Ok((self.encoded.decode()?, self.encoded.color_type))
-    }
-
-    pub fn image_encoded_byte_size(&self) -> usize {
-        self.encoded.image_encoded_byte_size()
-    }
-
-    pub fn image_encoded_bytes(&self) -> Vec<Vec<u8>> {
-        self.encoded.image_encoded_bytes()
-    }
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
+pub enum SpriteImageId {
+    Mask { prefix: String },
+    Layer { prefix: String },
 }

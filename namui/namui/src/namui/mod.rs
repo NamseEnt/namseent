@@ -21,6 +21,7 @@ pub use namui_skia::*;
 pub use namui_type as types;
 pub use namui_type::*;
 pub use render::*;
+pub use reqwest;
 pub use serde;
 pub use shader_macro::shader;
 #[cfg(target_os = "windows")]

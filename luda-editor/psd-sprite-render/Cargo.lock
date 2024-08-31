@@ -133,6 +133,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "175571dd1d178ced59193a6fc02dde1b972eb0bc56c892cde9beeceac5bf0f6b"
 
 [[package]]
+name = "async-compression"
+version = "0.4.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fec134f64e2bc57411226dfc4e52dec859ddfc7e711fc5e07b612584f000e4aa"
+dependencies = [
+ "futures-core",
+ "futures-io",
+ "memchr",
+ "pin-project-lite",
+ "zstd",
+ "zstd-safe",
+]
+
+[[package]]
 name = "atomic-polyfill"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -179,6 +193,15 @@ name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bindgen"
@@ -1529,7 +1552,9 @@ name = "nimg"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "jpeg-encoder",
+ "serde",
  "zstd",
  "zune-jpeg",
 ]
@@ -1913,6 +1938,7 @@ name = "psd"
 version = "0.1.0"
 dependencies = [
  "rayon",
+ "serde",
  "thiserror",
 ]
 
@@ -1921,12 +1947,20 @@ name = "psd-sprite"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-compression",
+ "bincode",
+ "bytes",
+ "futures-core",
+ "futures-util",
  "namui-type",
  "nimg",
  "psd",
  "rayon",
  "schema-0",
+ "serde",
  "skia-safe",
+ "tokio 1.38.0",
+ "zstd",
 ]
 
 [[package]]
@@ -1934,13 +1968,14 @@ name = "psd-sprite-render"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
+ "futures-util",
  "namui",
  "psd",
  "psd-sprite",
  "rayon",
  "schema-0",
  "skia-safe",
- "zstd",
 ]
 
 [[package]]
@@ -2151,6 +2186,7 @@ dependencies = [
  "system-configuration",
  "tokio 1.39.3",
  "tokio-native-tls",
+ "tokio-util",
  "tower-service",
  "url",
  "winreg",
@@ -2359,18 +2395,18 @@ checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
 
 [[package]]
 name = "serde"
-version = "1.0.208"
+version = "1.0.209"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cff085d2cb684faa248efb494c39b68e522822ac0de72ccf08109abde717cfb2"
+checksum = "99fce0ffe7310761ca6bf9faf5115afbc19688edd00171d81b1bb1b116c63e09"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.208"
+version = "1.0.209"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24008e81ff7613ed8e5ba0cfaf24e2c2f1e5b8a0495711e44fcd4882fca62bcf"
+checksum = "a5831b979fd7b5439637af1752d535ff49f4860c0f341d1baeb6faf0f4242170"
 dependencies = [
  "proc-macro2",
  "quote",

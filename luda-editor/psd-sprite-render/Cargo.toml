@@ -13,4 +13,5 @@ namui = { version = "0.1.0", path = "../../namui/namui" }
 psd-sprite = { version = "0.1.0", path = "../psd-sprite" }
 
 [dev-dependencies]
-zstd = "0.13.2"
+bytes = "1.7.1"
+futures-util = { version = "0.3.30", features = ["io"] }
