@@ -1,7 +1,17 @@
 export type StrictArrayBuffer = ArrayBuffer & { buffer?: undefined };
 
+export type RingBufferInput =
+    | ["u8", number]
+    | ["u16", number]
+    | ["u32", number]
+    | ["bytes", ArrayBuffer];
+
+export type RingBufferInputs = RingBufferInput[];
+
 export class RingBufferWriter {
     private writerIndex = 0;
+    private isWriting = false;
+    private queue: RingBufferInputs[] = [];
     public constructor(
         private readonly wasmMemory: ArrayBuffer,
         private readonly bufferPtr: number,
@@ -9,15 +19,31 @@ export class RingBufferWriter {
         private readonly writtenBuffer: SharedArrayBuffer,
     ) {}
 
-    public async write(
-        ...tuples: (
-            | ["u8", number]
-            | ["u16", number]
-            | ["u32", number]
-            | ["bytes", ArrayBuffer]
-        )[]
-    ) {
-        const totalByteLength = tuples.reduce((a, b) => {
+    /**
+     * It's FIFO.
+     */
+    public write(...inputs: RingBufferInputs) {
+        this.queue.push(inputs);
+        if (this.isWriting) {
+            return;
+        }
+        this.runQueueLoop();
+    }
+
+    private async runQueueLoop() {
+        this.isWriting = true;
+        try {
+            while (this.queue.length) {
+                const inputs = this.queue.shift()!;
+                await this.writeInputOneByOne(inputs);
+            }
+        } finally {
+            this.isWriting = false;
+        }
+    }
+
+    private async writeInputOneByOne(inputs: RingBufferInputs) {
+        const totalByteLength = inputs.reduce((a, b) => {
             switch (b[0]) {
                 case "u8":
                     return a + 1;
@@ -38,16 +64,16 @@ export class RingBufferWriter {
 
         await this.waitForBufferAvailable(totalByteLength);
 
-        for (const tuple of tuples) {
-            this.writeTuple(tuple);
+        for (const input of inputs) {
+            this.writeInput(input);
         }
 
         Atomics.add(new Uint32Array(this.writtenBuffer), 0, totalByteLength);
         Atomics.notify(new Int32Array(this.writtenBuffer), 0);
     }
 
-    writeTuple(
-        tuple:
+    private writeInput(
+        input:
             | ["u8", number]
             | ["u16", number]
             | ["u32", number]
@@ -57,23 +83,23 @@ export class RingBufferWriter {
             this.writerIndex = 0;
         }
 
-        const type = tuple[0];
+        const type = input[0];
         let value: StrictArrayBuffer;
         switch (type) {
             case "u8": {
-                value = new Uint8Array([tuple[1]]).buffer;
+                value = new Uint8Array([input[1]]).buffer;
                 break;
             }
             case "u16": {
-                value = new Uint16Array([tuple[1]]).buffer;
+                value = new Uint16Array([input[1]]).buffer;
                 break;
             }
             case "u32": {
-                value = new Uint32Array([tuple[1]]).buffer;
+                value = new Uint32Array([input[1]]).buffer;
                 break;
             }
             case "bytes": {
-                value = tuple[1];
+                value = input[1];
                 break;
             }
             default: {
@@ -100,7 +126,7 @@ export class RingBufferWriter {
 
         this.writerIndex = left;
     }
-    async waitForBufferAvailable(byteLength: number) {
+    private async waitForBufferAvailable(byteLength: number) {
         while (true) {
             const written = Atomics.load(
                 new Uint32Array(this.writtenBuffer),

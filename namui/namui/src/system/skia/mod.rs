@@ -9,7 +9,7 @@ use wasi as inner;
 use winit as inner;
 
 use super::InitResult;
-use crate::ResourceLocation;
+use crate::*;
 use anyhow::{anyhow, Result};
 use namui_skia::*;
 use namui_type::*;
@@ -57,7 +57,14 @@ pub async fn load_image_from_resource_location(
             load_image_from_bytes(bytes.as_ref()).await
         }
         ResourceLocation::Network(url) => {
-            let bytes = crate::system::network::http::get_bytes(url.as_ref()).await?;
+            use crate::system::network::http;
+            let bytes = http::Request::get(url.to_string())
+                .body(())?
+                .send()
+                .await?
+                .ensure_status_code()?
+                .bytes()
+                .await?;
             load_image_from_bytes(bytes.as_ref()).await
         }
     }

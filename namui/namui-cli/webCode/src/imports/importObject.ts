@@ -6,6 +6,9 @@ import { Exports } from "../exports";
 import { webSocketImports } from "../webSocket";
 import { insertJsImports } from "../insertJs";
 import { storageImports } from "../storage/imports";
+import { bufferPoolImports } from "../bufferPool";
+import { newEventSystemImports } from "../newEventSystem";
+import { httpFetchImports } from "../httpFetch/httpFetch";
 
 export function createImportObject({
     memory,
@@ -93,6 +96,9 @@ export function createImportObject({
                 memory,
                 storageProtocolBuffer,
             }),
+            ...bufferPoolImports({ memory }),
+            ...newEventSystemImports({ memory }),
+            ...httpFetchImports({ memory }),
             poll_event: (wasmBufferPtr: number): number => {
                 if (!eventSystem) {
                     eventSystem = new EventSystemOnWorker(eventBuffer, memory);

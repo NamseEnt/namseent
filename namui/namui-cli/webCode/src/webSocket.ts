@@ -70,11 +70,14 @@ export function webSocketImports({ memory }: { memory: WebAssembly.Memory }) {
         _web_socket_send: (id: number, data_ptr: number, data_len: number) => {
             const data = new Uint8Array(data_len);
             data.set(new Uint8Array(memory.buffer, data_ptr, data_len));
-            sendMessageToMainThread({
-                type: "web-socket-send",
-                id,
-                data,
-            });
+            sendMessageToMainThread(
+                {
+                    type: "web-socket-send",
+                    id,
+                    data: data.buffer,
+                },
+                [data.buffer],
+            );
         },
     };
 }
@@ -98,10 +101,58 @@ export function webSocketHandleOnMainThread({
               id: number;
           }
     )[] = [];
-    function pushEvent(event: (typeof events)[number]) {
-        events.push(event);
-        if (events.length === 1) {
-            loopSendingMessage();
+    function writeEvent(event: (typeof events)[number]) {
+        const _64KB = 64 * 1024;
+        switch (event.type) {
+            case "onopen": {
+                ringBuffer.write(["u32", event.id], ["u8", 0x01]);
+                break;
+            }
+            case "onclose": {
+                ringBuffer.write(["u32", event.id], ["u8", 0x02]);
+                break;
+            }
+            case "message": {
+                const { data, id } = event;
+
+                const isSmallMessage = data.byteLength <= _64KB;
+                if (isSmallMessage) {
+                    ringBuffer.write(
+                        ["u32", id],
+                        ["u8", 0x03],
+                        ["u16", data.byteLength],
+                        ["bytes", data],
+                    );
+                    break;
+                }
+
+                const chunkCount = Math.ceil(data.byteLength / _64KB);
+
+                ringBuffer.write(
+                    ["u32", id],
+                    ["u8", 0x04],
+                    ["u32", data.byteLength],
+                    ["u16", chunkCount],
+                );
+
+                for (
+                    let sentBytes = 0;
+                    sentBytes < data.byteLength;
+                    sentBytes += _64KB
+                ) {
+                    const chunkSize = Math.min(
+                        _64KB,
+                        data.byteLength - sentBytes,
+                    );
+
+                    ringBuffer.write(
+                        ["u32", id],
+                        ["u8", 0x05],
+                        ["u16", chunkSize],
+                        ["bytes", data.slice(sentBytes, sentBytes + chunkSize)],
+                    );
+                }
+            }
         }
     }
     const ringBuffer = new RingBufferWriter(
@@ -124,13 +175,13 @@ export function webSocketHandleOnMainThread({
         webSockets.set(id, webSocket);
 
         webSocket.onopen = async () => {
-            pushEvent({ type: "onopen", id });
+            writeEvent({ type: "onopen", id });
         };
         webSocket.onclose = async () => {
-            pushEvent({ type: "onclose", id });
+            writeEvent({ type: "onclose", id });
         };
         webSocket.onmessage = (event: MessageEvent) => {
-            pushEvent({
+            writeEvent({
                 type: "message",
                 id,
                 data:
@@ -152,71 +203,4 @@ export function webSocketHandleOnMainThread({
         onNewWebSocket,
         send,
     };
-
-    // below implementations
-    /**
-     * Only one execution at a time.
-     */
-    async function loopSendingMessage() {
-        const event = events[0];
-        if (!event) {
-            return;
-        }
-
-        const _64KB = 64 * 1024;
-        switch (event.type) {
-            case "onopen": {
-                await ringBuffer.write(["u32", event.id], ["u8", 0x01]);
-                break;
-            }
-            case "onclose": {
-                await ringBuffer.write(["u32", event.id], ["u8", 0x02]);
-                break;
-            }
-            case "message": {
-                const { data, id } = event;
-
-                const isSmallMessage = data.byteLength <= _64KB;
-                if (isSmallMessage) {
-                    await ringBuffer.write(
-                        ["u32", id],
-                        ["u8", 0x03],
-                        ["u16", data.byteLength],
-                        ["bytes", data],
-                    );
-                    break;
-                }
-
-                const chunkCount = Math.ceil(data.byteLength / _64KB);
-
-                await ringBuffer.write(
-                    ["u32", id],
-                    ["u8", 0x04],
-                    ["u32", data.byteLength],
-                    ["u16", chunkCount],
-                );
-
-                for (
-                    let sentBytes = 0;
-                    sentBytes < data.byteLength;
-                    sentBytes += _64KB
-                ) {
-                    const chunkSize = Math.min(
-                        _64KB,
-                        data.byteLength - sentBytes,
-                    );
-
-                    await ringBuffer.write(
-                        ["u32", id],
-                        ["u8", 0x05],
-                        ["u16", chunkSize],
-                        ["bytes", data.slice(sentBytes, sentBytes + chunkSize)],
-                    );
-                }
-            }
-        }
-
-        events.shift();
-        loopSendingMessage();
-    }
 }
