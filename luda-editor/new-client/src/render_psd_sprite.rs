@@ -2,54 +2,42 @@ use super::*;
 use luda_rpc::SceneSprite;
 use psd_sprite::PsdSprite;
 use psd_sprite_render::RenderPsdSprite;
-use std::{collections::HashMap, error::Error, sync::Arc};
+use std::{
+    collections::HashMap,
+    error::Error,
+    sync::{Arc, RwLock},
+};
 
-static PSD_SPRITE_LOAD_STATE_ATOM: Atom<HashMap<String, PsdSpriteLoadState>> =
-    Atom::uninitialized();
+lazy_static! {
+    static ref PSD_SPRITE_LOAD_STATE: PsdSpriteStorage = PsdSpriteStorage::new();
+}
 
 pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>) {
-    let (psd_sprite_load_state_map, set_psd_sprite_load_state_map) =
-        ctx.init_atom(&PSD_SPRITE_LOAD_STATE_ATOM, HashMap::new);
-
     let Some(sprite_id) = &scene_sprite.sprite_id else {
         return;
     };
 
-    let Some(load_state) = psd_sprite_load_state_map.get(sprite_id) else {
+    let Some(load_state) = PSD_SPRITE_LOAD_STATE.try_get(sprite_id) else {
         let sprite_id = sprite_id.clone();
-        set_psd_sprite_load_state_map.mutate({
-            let sprite_id = sprite_id.clone();
-            move |map| {
-                map.insert(sprite_id, PsdSpriteLoadState::Loading);
-            }
-        });
+        PSD_SPRITE_LOAD_STATE.set(sprite_id.clone(), PsdSpriteLoadState::Loading);
         ctx.spawn(async move {
+            namui::log!("Loading PSD sprite: {}", sprite_id);
             // TODO: Load PSD sprite from the server and cache.
             let psd_bytes = namui::file::bundle::read("test.psd").await.unwrap();
             let psd_sprite = PsdSprite::from_psd_bytes(&psd_bytes);
 
-            match psd_sprite {
-                Ok(psd_sprite) => {
-                    set_psd_sprite_load_state_map.mutate(move |map| {
-                        map.insert(
-                            sprite_id,
-                            PsdSpriteLoadState::Loaded {
-                                psd_sprite: Arc::new(psd_sprite),
-                            },
-                        );
-                    });
-                }
-                Err(err) => {
-                    set_psd_sprite_load_state_map.mutate(move |map| {
-                        map.insert(sprite_id, PsdSpriteLoadState::Error(err.into()));
-                    });
-                }
-            }
+            let load_state = psd_sprite.map_or_else(
+                |err| PsdSpriteLoadState::Error(err.into()),
+                |psd_sprite| PsdSpriteLoadState::Loaded {
+                    psd_sprite: Arc::new(psd_sprite),
+                },
+            );
+            PSD_SPRITE_LOAD_STATE.set(sprite_id.clone(), load_state);
         });
         return;
     };
 
-    let PsdSpriteLoadState::Loaded { psd_sprite } = load_state else {
+    let PsdSpriteLoadState::Loaded { psd_sprite } = load_state.as_ref() else {
         return;
     };
 
@@ -63,4 +51,24 @@ enum PsdSpriteLoadState {
     },
     #[allow(unused)]
     Error(Box<dyn Error + Send + Sync>),
+}
+
+struct PsdSpriteStorage {
+    storage: RwLock<HashMap<String, Arc<PsdSpriteLoadState>>>,
+}
+impl PsdSpriteStorage {
+    fn new() -> Self {
+        Self {
+            storage: RwLock::new(HashMap::new()),
+        }
+    }
+    fn try_get(&self, sprite_id: &str) -> Option<Arc<PsdSpriteLoadState>> {
+        self.storage.read().unwrap().get(sprite_id).cloned()
+    }
+    fn set(&self, sprite_id: String, load_state: PsdSpriteLoadState) {
+        self.storage
+            .write()
+            .unwrap()
+            .insert(sprite_id, Arc::new(load_state));
+    }
 }
