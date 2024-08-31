@@ -5,10 +5,22 @@ use schema_0::SceneSprite;
 use std::{borrow::Borrow, collections::HashMap, iter::Peekable, sync::Arc};
 
 pub trait RenderPsdSprite {
-    fn render(&self, ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>);
+    fn render(
+        &self,
+        ctx: &RenderCtx,
+        scene_sprite: &SceneSprite,
+        loaded_images: Arc<HashMap<SpriteImageId, SpriteLoadedImage>>,
+        screen_wh: Wh<Px>,
+    );
 }
 impl RenderPsdSprite for Arc<PsdSprite> {
-    fn render(&self, ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>) {
+    fn render(
+        &self,
+        ctx: &RenderCtx,
+        scene_sprite: &SceneSprite,
+        loaded_images: Arc<HashMap<SpriteImageId, SpriteLoadedImage>>,
+        screen_wh: Wh<Px>,
+    ) {
         let (image_filter_create_state, set_image_filter_create_state) =
             ctx.state(|| ImageFilterCreateState::Unset);
 
@@ -16,8 +28,9 @@ impl RenderPsdSprite for Arc<PsdSprite> {
             set_image_filter_create_state.set(ImageFilterCreateState::Creating);
             let psd_sprite = self.clone();
             let scene_sprite = scene_sprite.clone();
+            let loaded_images = loaded_images.clone();
             ctx.spawn(async move {
-                let result = match create_image_filter(&scene_sprite, &psd_sprite) {
+                let result = match create_image_filter(&scene_sprite, &psd_sprite, &loaded_images) {
                     Some(image_filter) => ImageFilterCreateState::Created { image_filter },
                     None => ImageFilterCreateState::Error,
                 };

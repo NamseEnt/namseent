@@ -1,6 +1,6 @@
 use super::*;
 use luda_rpc::SceneSprite;
-use psd_sprite::PsdSprite;
+use psd_sprite::{decode_psd_sprite, PsdSprite};
 use psd_sprite_render::RenderPsdSprite;
 use std::{
     collections::HashMap,
@@ -25,11 +25,21 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
             // TODO: Load PSD sprite from the server and cache.
             let psd_bytes = namui::file::bundle::read("test.psd").await.unwrap();
             let psd_sprite = PsdSprite::from_psd_bytes(&psd_bytes);
+            let (encoded_psd_sprite, _parts_sprite) =
+                psd_sprite::encode_psd_sprite(&psd_bytes, "test.psd").unwrap();
+            let now = std::time::Instant::now();
+            let (psd_sprite, loaded_images) =
+                psd_sprite::decode_psd_sprite(futures_util::stream::iter(vec![Ok(
+                    bytes::Bytes::copy_from_slice(&encoded_psd_sprite),
+                )]))
+                .await
+                .unwrap();
 
             let load_state = psd_sprite.map_or_else(
                 |err| PsdSpriteLoadState::Error(err.into()),
                 |psd_sprite| PsdSpriteLoadState::Loaded {
                     psd_sprite: Arc::new(psd_sprite),
+                    loaded_images: Arc::new(loaded_images),
                 },
             );
             PSD_SPRITE_LOAD_STATE.set(sprite_id.clone(), load_state);
@@ -37,17 +47,22 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
         return;
     };
 
-    let PsdSpriteLoadState::Loaded { psd_sprite } = load_state.as_ref() else {
+    let PsdSpriteLoadState::Loaded {
+        psd_sprite,
+        loaded_images,
+    } = load_state.as_ref()
+    else {
         return;
     };
 
-    psd_sprite.render(ctx, scene_sprite, screen_wh);
+    psd_sprite.render(ctx, scene_sprite, loaded_images, screen_wh);
 }
 
 enum PsdSpriteLoadState {
     Loading,
     Loaded {
         psd_sprite: Arc<PsdSprite>,
+        loaded_images: HashMap<SpriteImageId, SpriteLoadedImage>,
     },
     #[allow(unused)]
     Error(Box<dyn Error + Send + Sync>),
