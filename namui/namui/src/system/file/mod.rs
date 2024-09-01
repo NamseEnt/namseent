@@ -5,7 +5,7 @@ pub mod system_drive;
 pub mod types;
 
 use super::*;
-use crate::namui::system::InitResult;
+use crate::system::InitResult;
 use tokio::try_join;
 
 pub async fn init() -> InitResult {
