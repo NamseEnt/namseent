@@ -2,7 +2,20 @@ use crate::blender::photoshop_blend_mode_into_blender;
 use namui::*;
 use psd_sprite::*;
 use schema_0::SceneSprite;
-use std::{borrow::Borrow, collections::HashMap, iter::Peekable, sync::Arc};
+use std::{
+    borrow::Borrow,
+    collections::HashMap,
+    hash::{Hash, Hasher},
+    iter::Peekable,
+    ops::Deref,
+    sync::{Arc, RwLock},
+};
+
+lazy_static! {
+    static ref IMAGE_FILTER_STORAGE: ImageFilterStorage = ImageFilterStorage::new();
+}
+
+type ImageFilterCreationKey = u64;
 
 pub trait RenderPsdSprite {
     fn render(
@@ -21,11 +34,23 @@ impl RenderPsdSprite for Arc<PsdSprite> {
         loaded_images: Arc<HashMap<SpriteImageId, SpriteLoadedImage>>,
         screen_wh: Wh<Px>,
     ) {
-        let (image_filter_create_state, set_image_filter_create_state) =
-            ctx.state(|| ImageFilterCreateState::Unset);
+        let image_filter_recreation_key =
+            ctx.track_eq(&get_image_filter_creation_key(scene_sprite));
 
-        if let ImageFilterCreateState::Unset = image_filter_create_state.as_ref() {
-            set_image_filter_create_state.set(ImageFilterCreateState::Creating);
+        ctx.effect("create image filter", move || {
+            let image_filter_recreation_key = *image_filter_recreation_key;
+
+            if IMAGE_FILTER_STORAGE
+                .try_get(&image_filter_recreation_key)
+                .is_some()
+            {
+                return;
+            }
+
+            IMAGE_FILTER_STORAGE.set(
+                image_filter_recreation_key,
+                ImageFilterCreateState::Creating,
+            );
             let psd_sprite = self.clone();
             let scene_sprite = scene_sprite.clone();
             ctx.spawn(async move {
@@ -40,16 +65,18 @@ impl RenderPsdSprite for Arc<PsdSprite> {
                         error: Arc::new(error),
                     },
                 };
-                set_image_filter_create_state.set(result);
+                IMAGE_FILTER_STORAGE.set(image_filter_recreation_key, result);
             });
-        }
+        });
 
         ctx.compose(|ctx| {
-            let ImageFilterCreateState::Created { image_filter } =
-                image_filter_create_state.as_ref()
-            else {
+            let Some(state) = IMAGE_FILTER_STORAGE.try_get(&image_filter_recreation_key) else {
                 return;
             };
+            let ImageFilterCreateState::Created { image_filter } = state.deref() else {
+                return;
+            };
+
             let SceneSprite { circumcircle, .. } = scene_sprite;
             let paint = Paint::default().set_image_filter(image_filter.clone());
             let ratio = screen_wh.length() * circumcircle.radius / self.wh.length();
@@ -327,7 +354,6 @@ fn loaded_image_to_namui(
 
 #[derive(Clone)]
 enum ImageFilterCreateState {
-    Unset,
     Creating,
     Created {
         image_filter: ImageFilter,
@@ -336,6 +362,44 @@ enum ImageFilterCreateState {
     Error {
         error: Arc<anyhow::Error>,
     },
+}
+struct ImageFilterStorage {
+    storage: RwLock<HashMap<ImageFilterCreationKey, Arc<ImageFilterCreateState>>>,
+}
+impl ImageFilterStorage {
+    fn new() -> Self {
+        Self {
+            storage: RwLock::new(HashMap::new()),
+        }
+    }
+    fn try_get(&self, key: &ImageFilterCreationKey) -> Option<Arc<ImageFilterCreateState>> {
+        self.storage.read().unwrap().get(key).cloned()
+    }
+    fn set(&self, key: ImageFilterCreationKey, create_state: ImageFilterCreateState) {
+        self.storage
+            .write()
+            .unwrap()
+            .insert(key, Arc::new(create_state));
+    }
+}
+
+fn get_image_filter_creation_key(scene_sprite: &SceneSprite) -> ImageFilterCreationKey {
+    let SceneSprite {
+        sprite_id,
+        part_option_selections,
+        ..
+    } = scene_sprite;
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    sprite_id.hash(&mut hasher);
+    part_option_selections
+        .iter()
+        .for_each(|(part_name, selections)| {
+            part_name.hash(&mut hasher);
+            selections
+                .iter()
+                .for_each(|part_option_id| part_option_id.hash(&mut hasher))
+        });
+    hasher.finish()
 }
 
 #[cfg(test)]
