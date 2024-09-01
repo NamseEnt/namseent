@@ -1,4 +1,4 @@
-use crate::namui::*;
+use crate::*;
 
 #[derive(Clone, Copy, Debug)]
 pub enum BorderPosition {

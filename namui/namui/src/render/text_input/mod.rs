@@ -140,7 +140,7 @@ impl Component for TextInput<'_> {
         ctx.add(self.draw_texts_divided_by_selection(&paragraph, &selection, &text));
 
         ctx.add(
-            namui::rect(RectParam {
+            rect(RectParam {
                 rect: self.rect,
                 style: RectStyle {
                     stroke: if self.style.rect.stroke.is_some() || self.style.rect.fill.is_some() {

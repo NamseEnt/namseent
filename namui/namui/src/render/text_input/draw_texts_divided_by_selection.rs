@@ -12,7 +12,7 @@ impl TextInput<'_> {
             selection.map_or(true, |selection| selection.start == selection.end);
 
         if is_not_divided_by_selection {
-            return namui::text(self.text_param(text));
+            return text(self.text_param(text));
         };
 
         let Selection::Range(selection) = selection else {
@@ -194,7 +194,7 @@ impl TextInput<'_> {
                 width += paragraph.group_glyph.width(" ");
             };
 
-            namui::rect(crate::RectParam {
+            rect(crate::RectParam {
                 rect: crate::Rect::Xywh {
                     x: left,
                     y: top,
@@ -204,13 +204,13 @@ impl TextInput<'_> {
                 style: crate::RectStyle {
                     stroke: None,
                     fill: Some(crate::RectFill {
-                        color: namui::Color::BLUE,
+                        color: Color::BLUE,
                     }),
                     round: None,
                 },
             })
         } else {
-            let left_text_text_param = namui::TextParam {
+            let left_text_text_param = TextParam {
                 x: left_text_left,
                 y,
                 text: caret_devided_strings.left,
@@ -218,14 +218,14 @@ impl TextInput<'_> {
                 ..self.text_param(text)
             };
 
-            let selected_text_text_param = namui::TextParam {
+            let selected_text_text_param = TextParam {
                 x: selected_text_left,
                 y,
                 text: caret_devided_strings.selected,
-                style: namui::TextStyle {
-                    color: namui::Color::WHITE,
+                style: TextStyle {
+                    color: Color::WHITE,
                     background: Some(TextStyleBackground {
-                        color: namui::Color::TRANSPARENT,
+                        color: Color::TRANSPARENT,
                         ..Default::default()
                     }),
                     ..left_text_text_param.style.clone()
@@ -233,7 +233,7 @@ impl TextInput<'_> {
                 align: crate::TextAlign::Left,
                 ..self.text_param(text)
             };
-            let right_text_text_param = namui::TextParam {
+            let right_text_text_param = TextParam {
                 x: right_text_left,
                 y,
                 text: caret_devided_strings.right,
@@ -241,9 +241,9 @@ impl TextInput<'_> {
                 ..self.text_param(text)
             };
 
-            let left_text = namui::text(left_text_text_param);
-            let selected_text = namui::text(selected_text_text_param);
-            let right_text = namui::text(right_text_text_param);
+            let left_text = text(left_text_text_param);
+            let selected_text = text(selected_text_text_param);
+            let right_text = text(right_text_text_param);
 
             render([left_text, selected_text, right_text])
         }
@@ -271,13 +271,13 @@ impl TextInput<'_> {
         );
 
         match self.text_align {
-            namui::TextAlign::Left => result,
-            namui::TextAlign::Center => (
+            TextAlign::Left => result,
+            TextAlign::Center => (
                 result.0 - total_width / 2.0,
                 result.1 - total_width / 2.0,
                 result.2 - total_width / 2.0,
             ),
-            namui::TextAlign::Right => (
+            TextAlign::Right => (
                 result.0 - total_width,
                 result.1 - total_width,
                 result.2 - total_width,

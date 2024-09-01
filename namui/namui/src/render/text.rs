@@ -93,8 +93,8 @@ pub fn text(param: TextParam) -> RenderingTree {
 //   });
 // }
 pub(crate) fn get_text_paint(color: Color) -> Paint {
-    namui::Paint::new(color)
-        .set_style(namui::PaintStyle::Fill)
+    Paint::new(color)
+        .set_style(PaintStyle::Fill)
         .set_anti_alias(true)
 }
 fn draw_text(param: &TextParam, font: &Font) -> DrawCommand {
@@ -121,10 +121,10 @@ fn draw_text(param: &TextParam, font: &Font) -> DrawCommand {
 fn draw_border(param: &TextParam, font: &Font) -> Option<DrawCommand> {
     let border = param.style.border?;
 
-    let border_paint = namui::Paint::new(border.color)
-        .set_style(namui::PaintStyle::Stroke)
+    let border_paint = Paint::new(border.color)
+        .set_style(PaintStyle::Stroke)
         .set_stroke_width(border.width)
-        .set_stroke_join(namui::StrokeJoin::Miter)
+        .set_stroke_join(StrokeJoin::Miter)
         .set_anti_alias(true);
 
     Some(DrawCommand::Text {
