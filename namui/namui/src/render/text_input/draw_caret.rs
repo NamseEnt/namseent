@@ -47,9 +47,9 @@ impl TextInput<'_> {
         let total_width = left_text_width + right_text_width;
 
         let left = match props.text_align {
-            namui::TextAlign::Left => props.text_x() - 1.px(),
-            namui::TextAlign::Center => props.text_x() - total_width / 2.0,
-            namui::TextAlign::Right => props.text_x() - total_width + 1.px(),
+            TextAlign::Left => props.text_x() - 1.px(),
+            TextAlign::Center => props.text_x() - total_width / 2.0,
+            TextAlign::Right => props.text_x() - total_width + 1.px(),
         } + left_text_width;
 
         let font_metrics = paragraph.group_glyph.font_metrics();
