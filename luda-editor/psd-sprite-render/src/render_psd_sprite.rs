@@ -17,56 +17,59 @@ lazy_static! {
 
 type ImageFilterCreationKey = u64;
 
-pub trait RenderPsdSprite {
-    fn render(
-        &self,
-        ctx: &RenderCtx,
-        scene_sprite: &SceneSprite,
-        loaded_images: Arc<HashMap<SpriteImageId, SpriteLoadedImage>>,
-        screen_wh: Wh<Px>,
-    );
+pub struct RenderPsdSprite<'a> {
+    pub psd_sprite: Arc<PsdSprite>,
+    pub scene_sprite: &'a SceneSprite,
+    pub loaded_images: Arc<HashMap<SpriteImageId, SpriteLoadedImage>>,
+    pub screen_wh: Wh<Px>,
 }
-impl RenderPsdSprite for Arc<PsdSprite> {
-    fn render(
-        &self,
-        ctx: &RenderCtx,
-        scene_sprite: &SceneSprite,
-        loaded_images: Arc<HashMap<SpriteImageId, SpriteLoadedImage>>,
-        screen_wh: Wh<Px>,
-    ) {
+impl Component for RenderPsdSprite<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            psd_sprite,
+            scene_sprite,
+            loaded_images,
+            screen_wh,
+        } = self;
         let image_filter_recreation_key =
             ctx.track_eq(&get_image_filter_creation_key(scene_sprite));
 
-        ctx.effect("create image filter", move || {
-            let image_filter_recreation_key = *image_filter_recreation_key;
+        ctx.effect("create image filter", {
+            let psd_sprite = psd_sprite.clone();
+            move || {
+                let image_filter_recreation_key = *image_filter_recreation_key;
 
-            if IMAGE_FILTER_STORAGE
-                .try_get(&image_filter_recreation_key)
-                .is_some()
-            {
-                return;
+                if IMAGE_FILTER_STORAGE
+                    .try_get(&image_filter_recreation_key)
+                    .is_some()
+                {
+                    return;
+                }
+
+                IMAGE_FILTER_STORAGE.set(
+                    image_filter_recreation_key,
+                    ImageFilterCreateState::Creating,
+                );
+
+                let scene_sprite = scene_sprite.clone();
+                ctx.spawn(async move {
+                    let result =
+                        match create_image_filter(&scene_sprite, &psd_sprite, &loaded_images) {
+                            Ok(image_filter) => match image_filter {
+                                Some(image_filter) => {
+                                    ImageFilterCreateState::Created { image_filter }
+                                }
+                                None => ImageFilterCreateState::Error {
+                                    error: Arc::new(anyhow::anyhow!("image_filter is None")),
+                                },
+                            },
+                            Err(error) => ImageFilterCreateState::Error {
+                                error: Arc::new(error),
+                            },
+                        };
+                    IMAGE_FILTER_STORAGE.set(image_filter_recreation_key, result);
+                });
             }
-
-            IMAGE_FILTER_STORAGE.set(
-                image_filter_recreation_key,
-                ImageFilterCreateState::Creating,
-            );
-            let psd_sprite = self.clone();
-            let scene_sprite = scene_sprite.clone();
-            ctx.spawn(async move {
-                let result = match create_image_filter(&scene_sprite, &psd_sprite, &loaded_images) {
-                    Ok(image_filter) => match image_filter {
-                        Some(image_filter) => ImageFilterCreateState::Created { image_filter },
-                        None => ImageFilterCreateState::Error {
-                            error: Arc::new(anyhow::anyhow!("image_filter is None")),
-                        },
-                    },
-                    Err(error) => ImageFilterCreateState::Error {
-                        error: Arc::new(error),
-                    },
-                };
-                IMAGE_FILTER_STORAGE.set(image_filter_recreation_key, result);
-            });
         });
 
         ctx.compose(|ctx| {
@@ -79,14 +82,14 @@ impl RenderPsdSprite for Arc<PsdSprite> {
 
             let SceneSprite { circumcircle, .. } = scene_sprite;
             let paint = Paint::default().set_image_filter(image_filter.clone());
-            let ratio = screen_wh.length() * circumcircle.radius / self.wh.length();
+            let ratio = screen_wh.length() * circumcircle.radius / psd_sprite.wh.length();
             let ctx = ctx
                 .translate((
                     screen_wh.width * circumcircle.xy.x,
                     screen_wh.height * circumcircle.xy.y,
                 ))
                 .scale(Xy::single(ratio))
-                .translate(self.wh.as_xy() * -0.5);
+                .translate(psd_sprite.wh.as_xy() * -0.5);
             let path = Path::new();
             ctx.add(PathDrawCommand { path, paint });
         });

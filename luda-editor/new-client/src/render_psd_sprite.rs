@@ -46,7 +46,15 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
         return;
     };
 
-    psd_sprite.render(ctx, scene_sprite, loaded_images.clone(), screen_wh);
+    ctx.add_with_key(
+        format!("{scene_sprite:?}"),
+        RenderPsdSprite {
+            psd_sprite: psd_sprite.clone(),
+            scene_sprite,
+            loaded_images: loaded_images.clone(),
+            screen_wh,
+        },
+    );
 }
 
 enum PsdSpriteLoadState {
