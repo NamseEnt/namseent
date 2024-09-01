@@ -9,7 +9,7 @@ use std::{
 };
 
 lazy_static! {
-    static ref PSD_SPRITE_LOAD_STATE: PsdSpriteStorage = PsdSpriteStorage::new();
+    static ref PSD_SPRITE_STORAGE: PsdSpriteStorage = PsdSpriteStorage::new();
 }
 
 pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>) {
@@ -17,9 +17,9 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
         return;
     };
 
-    let Some(load_state) = PSD_SPRITE_LOAD_STATE.try_get(sprite_id) else {
+    let Some(load_state) = PSD_SPRITE_STORAGE.try_get(sprite_id) else {
         let sprite_id = sprite_id.clone();
-        PSD_SPRITE_LOAD_STATE.set(sprite_id.clone(), PsdSpriteLoadState::Loading);
+        PSD_SPRITE_STORAGE.set(sprite_id.clone(), PsdSpriteLoadState::Loading);
         ctx.spawn(async move {
             namui::log!("Loading PSD sprite: {}", sprite_id);
             // TODO: Load PSD sprite from the server and cache.
@@ -33,7 +33,7 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
                     loaded_images: Arc::new(loaded_images),
                 },
             );
-            PSD_SPRITE_LOAD_STATE.set(sprite_id.clone(), load_state);
+            PSD_SPRITE_STORAGE.set(sprite_id.clone(), load_state);
         });
         return;
     };
