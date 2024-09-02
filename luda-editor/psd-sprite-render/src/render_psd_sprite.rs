@@ -2,38 +2,94 @@ use crate::blender::photoshop_blend_mode_into_blender;
 use namui::*;
 use psd_sprite::*;
 use schema_0::SceneSprite;
-use std::{borrow::Borrow, collections::HashMap, iter::Peekable};
+use std::{
+    borrow::Borrow,
+    collections::HashMap,
+    hash::{Hash, Hasher},
+    iter::Peekable,
+    ops::Deref,
+    sync::{Arc, RwLock},
+};
 
-pub trait RenderPsdSprite {
-    fn render(&self, ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>);
+lazy_static! {
+    static ref IMAGE_FILTER_STORAGE: ImageFilterStorage = ImageFilterStorage::new();
 }
-impl RenderPsdSprite for PsdSprite {
-    fn render(&self, ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh: Wh<Px>) {
-        let (image_filter, set_image_filter) = ctx.state(|| None);
 
-        // TODO: Commented because of compile errors.
+type ImageFilterCreationKey = u64;
 
-        ctx.effect("create image filter", || {
-            match create_image_filter(scene_sprite, self, todo!()) {
-                Ok(image_filter) => set_image_filter.set(image_filter),
-                Err(err) => todo!(),
+pub struct RenderPsdSprite<'a> {
+    pub psd_sprite: Arc<PsdSprite>,
+    pub scene_sprite: &'a SceneSprite,
+    pub loaded_images: Arc<HashMap<SpriteImageId, SpriteLoadedImage>>,
+    pub screen_wh: Wh<Px>,
+}
+impl Component for RenderPsdSprite<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            psd_sprite,
+            scene_sprite,
+            loaded_images,
+            screen_wh,
+        } = self;
+        let image_filter_recreation_key =
+            ctx.track_eq(&get_image_filter_creation_key(scene_sprite));
+
+        ctx.effect("create image filter", {
+            let psd_sprite = psd_sprite.clone();
+            move || {
+                let image_filter_recreation_key = *image_filter_recreation_key;
+
+                if IMAGE_FILTER_STORAGE
+                    .try_get(&image_filter_recreation_key)
+                    .is_some()
+                {
+                    return;
+                }
+
+                IMAGE_FILTER_STORAGE.set(
+                    image_filter_recreation_key,
+                    ImageFilterCreateState::Creating,
+                );
+
+                let scene_sprite = scene_sprite.clone();
+                ctx.spawn(async move {
+                    let result =
+                        match create_image_filter(&scene_sprite, &psd_sprite, &loaded_images) {
+                            Ok(image_filter) => match image_filter {
+                                Some(image_filter) => {
+                                    ImageFilterCreateState::Created { image_filter }
+                                }
+                                None => ImageFilterCreateState::Error {
+                                    error: Arc::new(anyhow::anyhow!("image_filter is None")),
+                                },
+                            },
+                            Err(error) => ImageFilterCreateState::Error {
+                                error: Arc::new(error),
+                            },
+                        };
+                    IMAGE_FILTER_STORAGE.set(image_filter_recreation_key, result);
+                });
             }
         });
 
         ctx.compose(|ctx| {
-            let Some(image_filter) = image_filter.as_ref() else {
+            let Some(state) = IMAGE_FILTER_STORAGE.try_get(&image_filter_recreation_key) else {
                 return;
             };
+            let ImageFilterCreateState::Created { image_filter } = state.deref() else {
+                return;
+            };
+
             let SceneSprite { circumcircle, .. } = scene_sprite;
             let paint = Paint::default().set_image_filter(image_filter.clone());
-            let ratio = screen_wh.length() * circumcircle.radius / self.wh.length();
+            let ratio = screen_wh.length() * circumcircle.radius / psd_sprite.wh.length();
             let ctx = ctx
                 .translate((
                     screen_wh.width * circumcircle.xy.x,
                     screen_wh.height * circumcircle.xy.y,
                 ))
                 .scale(Xy::single(ratio))
-                .translate(self.wh.as_xy() * -0.5);
+                .translate(psd_sprite.wh.as_xy() * -0.5);
             let path = Path::new();
             ctx.add(PathDrawCommand { path, paint });
         });
@@ -297,6 +353,56 @@ fn loaded_image_to_namui(
         },
         skia_image: skia_image.clone(),
     }
+}
+
+#[derive(Clone)]
+enum ImageFilterCreateState {
+    Creating,
+    Created {
+        image_filter: ImageFilter,
+    },
+    #[allow(dead_code)]
+    Error {
+        error: Arc<anyhow::Error>,
+    },
+}
+struct ImageFilterStorage {
+    storage: RwLock<HashMap<ImageFilterCreationKey, Arc<ImageFilterCreateState>>>,
+}
+impl ImageFilterStorage {
+    fn new() -> Self {
+        Self {
+            storage: RwLock::new(HashMap::new()),
+        }
+    }
+    fn try_get(&self, key: &ImageFilterCreationKey) -> Option<Arc<ImageFilterCreateState>> {
+        self.storage.read().unwrap().get(key).cloned()
+    }
+    fn set(&self, key: ImageFilterCreationKey, create_state: ImageFilterCreateState) {
+        self.storage
+            .write()
+            .unwrap()
+            .insert(key, Arc::new(create_state));
+    }
+}
+
+fn get_image_filter_creation_key(scene_sprite: &SceneSprite) -> ImageFilterCreationKey {
+    let SceneSprite {
+        sprite_id,
+        part_option_selections,
+        ..
+    } = scene_sprite;
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    sprite_id.hash(&mut hasher);
+    part_option_selections
+        .iter()
+        .for_each(|(part_name, selections)| {
+            part_name.hash(&mut hasher);
+            selections
+                .iter()
+                .for_each(|part_option_id| part_option_id.hash(&mut hasher))
+        });
+    hasher.finish()
 }
 
 #[cfg(test)]

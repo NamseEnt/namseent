@@ -192,3 +192,16 @@ pub async fn decode_psd_sprite(
 
     Ok((psd_sprite, sprite_loaded_images))
 }
+
+/// Combination of `encode_psd_sprite` and `decode_psd_sprite`.
+/// This is useful for testing.
+pub async fn decode_psd_sprite_from_bytes(
+    psd_bytes: &[u8],
+    filename: &str,
+) -> anyhow::Result<(PsdSprite, SpriteLoadedImages)> {
+    let (encoded_psd_sprite, _parts_sprite) = encode_psd_sprite(psd_bytes, filename)?;
+    decode_psd_sprite(futures_util::stream::iter(vec![Ok(
+        bytes::Bytes::copy_from_slice(&encoded_psd_sprite),
+    )]))
+    .await
+}
