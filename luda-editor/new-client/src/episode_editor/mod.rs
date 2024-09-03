@@ -1,3 +1,4 @@
+mod properties_panel;
 mod scene_list;
 mod scene_preview;
 mod scene_sprite_editor;
@@ -291,7 +292,9 @@ impl Component for LoadedEpisodeEditor<'_> {
                 ])(wh, ctx);
             });
         });
-        let properties_panel = table::ratio(1, |wh, ctx| {});
+        let properties_panel = table::ratio(1, |wh, ctx| {
+            ctx.add(PropertiesPanel { wh });
+        });
 
         ctx.compose(|ctx| horizontal([scene_list, scene_editor, properties_panel])(wh, ctx));
     }
