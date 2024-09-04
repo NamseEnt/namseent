@@ -7,6 +7,7 @@ mod text_editor;
 
 use super::*;
 use luda_rpc::{EpisodeEditAction, Scene};
+use properties_panel::PropertiesPanel;
 use std::{collections::HashMap, sync::Arc};
 
 pub struct EpisodeEditor<'a> {
@@ -298,7 +299,13 @@ impl Component for LoadedEpisodeEditor<'_> {
             });
         });
         let properties_panel = table::ratio(1, |wh, ctx| {
-            ctx.add(PropertiesPanel { wh });
+            let Some(scene) = scene else { return };
+            ctx.add(PropertiesPanel {
+                wh,
+                scene,
+                edit_episode: &edit_episode,
+                sprite_docs: todo!(),
+            });
         });
 
         ctx.compose(|ctx| horizontal([scene_list, scene_editor, properties_panel])(wh, ctx));

@@ -1,16 +1,22 @@
 use crate::*;
 use list_view::AutoListView;
 use luda_rpc::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub struct SpriteSelectTool<'a> {
     pub wh: Wh<Px>,
-    pub sprite_docs: Sig<'a, [SpriteDoc]>,
+    pub sprite_docs: Sig<'a, HashMap<String, SpriteDoc>>,
+    /// fn(part_name, part_option_name)
+    pub select_part: &'a dyn Fn(&str, &str),
 }
 
 impl Component for SpriteSelectTool<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, sprite_docs } = self;
+        let Self {
+            wh,
+            sprite_docs,
+            select_part,
+        } = self;
 
         let (selected_sprite_id, set_selected_sprite_id) = ctx.state::<Option<String>>(|| None);
         let (selected_part_name, set_selected_part_name) = ctx.state::<Option<String>>(|| None);
@@ -19,14 +25,14 @@ impl Component for SpriteSelectTool<'_> {
         let tag_filtered_sprite_docs = ctx.memo(|| {
             sprite_docs
                 .iter()
-                .filter(|sprite_doc| {
+                .filter(|(_id, sprite_doc)| {
                     sprite_doc.tags.iter().any(|tag| match tag {
-                        SpriteTag::System { tag } => selected_tags.contains(tag),
+                        SpriteTag::System { tag } => selected_tags.contains(&tag),
                         SpriteTag::Custom { .. } => false,
                     })
                 })
-                .cloned()
-                .collect::<Vec<_>>()
+                .map(|(id, sprite)| (id.clone(), sprite.clone()))
+                .collect::<HashMap<String, SpriteDoc>>()
         });
 
         let tag_toggle_button = |tag: SystemTag| {
@@ -50,15 +56,10 @@ impl Component for SpriteSelectTool<'_> {
             })
         };
 
-        let selected_sprite_doc =
-            selected_sprite_id
-                .as_ref()
-                .as_ref()
-                .and_then(|selected_sprite_id| {
-                    sprite_docs
-                        .iter()
-                        .find(|sprite_doc| &sprite_doc.id == selected_sprite_id)
-                });
+        let selected_sprite_doc = selected_sprite_id
+            .as_ref()
+            .as_ref()
+            .and_then(|selected_sprite_id| sprite_docs.get(selected_sprite_id));
 
         ctx.compose(|ctx| {
             table::vertical([
@@ -80,18 +81,16 @@ impl Component for SpriteSelectTool<'_> {
                         table::ratio(1, |wh, ctx| {
                             let sprite_column = Column {
                                 wh,
-                                items: tag_filtered_sprite_docs.iter().enumerate().map(
-                                    |(index, sprite)| {
-                                        let preview = |wh: Wh<Px>, ctx: &ComposeCtx| todo!();
-                                        let on_select = || todo!();
-                                        (
-                                            sprite.id.as_str(),
-                                            preview,
-                                            sprite.sprite.name().to_string(),
-                                            on_select,
-                                        )
-                                    },
-                                ),
+                                items: tag_filtered_sprite_docs.iter().map(|(id, sprite)| {
+                                    let on_select = || {
+                                        set_selected_sprite_id.set(Some(id.clone()));
+                                    };
+                                    (
+                                        sprite.id.as_str(),
+                                        sprite.sprite.name().to_string(),
+                                        on_select,
+                                    )
+                                }),
                             };
                             ctx.add(sprite_column);
                         }),
@@ -105,10 +104,11 @@ impl Component for SpriteSelectTool<'_> {
                             let part_column = Column {
                                 wh,
                                 items: sprite.parts.iter().enumerate().map(
-                                    |(index, (name, part))| {
-                                        let preview = |wh: Wh<Px>, ctx: &ComposeCtx| todo!();
-                                        let on_select = || todo!();
-                                        (index, preview, name.to_string(), on_select)
+                                    |(index, (name, _part))| {
+                                        let on_select = || {
+                                            set_selected_part_name.set(Some(name.clone()));
+                                        };
+                                        (index, name.to_string(), on_select)
                                     },
                                 ),
                             };
@@ -131,9 +131,10 @@ impl Component for SpriteSelectTool<'_> {
                                 wh,
                                 items: part.part_options.iter().enumerate().map(
                                     |(index, part_option)| {
-                                        let preview = |wh: Wh<Px>, ctx: &ComposeCtx| todo!();
-                                        let on_select = || todo!();
-                                        (index, preview, part_option.name.to_string(), on_select)
+                                        let on_select = || {
+                                            select_part(selected_part_name, &part_option.name);
+                                        };
+                                        (index, part_option.name.to_string(), on_select)
                                     },
                                 ),
                             };
@@ -146,23 +147,21 @@ impl Component for SpriteSelectTool<'_> {
     }
 }
 
-struct Column<Key, Items, Preview, OnSelect>
+struct Column<Key, Items, OnSelect>
 where
     Key: Into<AddKey>,
-    Preview: Fn(Wh<Px>, &ComposeCtx),
     OnSelect: Fn(),
-    Items: ExactSizeIterator<Item = (Key, Preview, String, OnSelect)>,
+    Items: ExactSizeIterator<Item = (Key, String, OnSelect)>,
 {
     wh: Wh<Px>,
     items: Items,
 }
 
-impl<Key, Items, Preview, OnSelect> Component for Column<Key, Items, Preview, OnSelect>
+impl<Key, Items, OnSelect> Component for Column<Key, Items, OnSelect>
 where
     Key: Into<AddKey>,
-    Preview: Fn(Wh<Px>, &ComposeCtx),
     OnSelect: Fn(),
-    Items: ExactSizeIterator<Item = (Key, Preview, String, OnSelect)>,
+    Items: ExactSizeIterator<Item = (Key, String, OnSelect)>,
 {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, items } = self;
@@ -174,33 +173,27 @@ where
             scroll_bar_width: 10.px(),
             item_wh,
             items: items.map(|item| {
-                let (key, preview, text, on_select) = item;
+                let (key, text, on_select) = item;
                 (key, move |ctx: &RenderCtx| {
-                    ctx.compose(|ctx| {
-                        table::horizontal([
-                            table::fixed(128.px(), |wh, ctx| {
-                                preview(wh, &ctx);
-                            }),
-                            table::ratio(1, |wh, ctx| {
-                                ctx.add(namui::text(TextParam {
-                                    text,
-                                    x: 0.px(),
-                                    y: wh.height / 2.0,
-                                    align: TextAlign::Left,
-                                    baseline: TextBaseline::Middle,
-                                    font: Font {
-                                        name: "NotoSansKR-Regular".to_string(),
-                                        size: 16.int_px(),
-                                    },
-                                    style: TextStyle {
-                                        color: Color::WHITE,
-                                        ..Default::default()
-                                    },
-                                    max_width: Some(wh.width),
-                                }));
-                            }),
-                        ])(item_wh, ctx)
-                    });
+                    ctx.add(namui::text(TextParam {
+                        text,
+                        x: 0.px(),
+                        y: wh.height / 2.0,
+                        align: TextAlign::Left,
+                        baseline: TextBaseline::Middle,
+                        font: Font {
+                            name: "NotoSansKR-Regular".to_string(),
+                            size: 16.int_px(),
+                        },
+                        style: TextStyle {
+                            color: Color::WHITE,
+                            ..Default::default()
+                        },
+                        max_width: Some(wh.width),
+                    }));
+                    ctx.add(simple_button(wh, "", move |_| {
+                        on_select();
+                    }));
                 })
             }),
         });

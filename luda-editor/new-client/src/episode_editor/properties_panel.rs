@@ -1,19 +1,32 @@
+use super::scene_sprite_editor::SceneSpriteEditor;
+use luda_rpc::{EpisodeEditAction, Scene, SpriteDoc};
 use namui::*;
 use namui_prebuilt::{button, table::*};
+use std::collections::HashMap;
 
 static PROPERTIES_PANEL_TAB_ATOM: Atom<PropertiesPanelTab> = Atom::uninitialized();
 
-pub struct PropertiesPanel {
+pub struct PropertiesPanel<'a> {
     pub wh: Wh<Px>,
-    // scene: &'a Scene,
-    // selected_sprite_id: Option<String>,
+    pub scene: &'a Scene,
+    pub edit_episode: &'a dyn Fn(EpisodeEditAction),
+    pub sprite_docs: Sig<'a, HashMap<String, SpriteDoc>>,
 }
-impl Component for PropertiesPanel {
+impl Component for PropertiesPanel<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh } = self;
+        let Self {
+            wh,
+            scene,
+            sprite_docs,
+            edit_episode,
+        } = self;
 
         let (properties_panel_tab, set_properties_panel_tab) =
             ctx.init_atom(&PROPERTIES_PANEL_TAB_ATOM, || PropertiesPanelTab::Standing);
+
+        let update_scene = &|scene: Scene| {
+            edit_episode(EpisodeEditAction::UpdateScene { scene });
+        };
 
         ctx.compose(|ctx| {
             vertical([
@@ -43,8 +56,15 @@ impl Component for PropertiesPanel {
                         ),
                     ]),
                 ),
-                ratio(1, |_wh, _ctx| match properties_panel_tab.as_ref() {
-                    PropertiesPanelTab::Standing => {}
+                ratio(1, |wh, ctx| match properties_panel_tab.as_ref() {
+                    PropertiesPanelTab::Standing => {
+                        ctx.add(SceneSpriteEditor {
+                            wh,
+                            scene,
+                            update_scene,
+                            sprite_docs,
+                        });
+                    }
                     PropertiesPanelTab::Background => {}
                     PropertiesPanelTab::Audio => {}
                 }),

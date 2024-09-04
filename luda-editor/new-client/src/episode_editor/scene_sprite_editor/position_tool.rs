@@ -2,8 +2,8 @@ use crate::*;
 
 pub struct PositionTool<'a> {
     pub wh: Wh<Px>,
-    pub position: Xy<f32>,
-    pub on_change_position: &'a dyn Fn(Xy<f32>),
+    pub position: Xy<Percent>,
+    pub on_change_position: &'a dyn Fn(Xy<Percent>),
 }
 
 impl Component for PositionTool<'_> {
@@ -41,7 +41,9 @@ impl Component for PositionTool<'_> {
                                 return;
                             }
 
-                            on_change_position(event.local_xy() / wh.as_xy());
+                            on_change_position(
+                                (event.local_xy() / wh.as_xy()).map(|xy| (100.0 * xy).percent()),
+                            );
                         }),
                     );
 
@@ -50,8 +52,10 @@ impl Component for PositionTool<'_> {
                         Xy::new(-radius, -radius),
                         Wh::new(radius * 2, radius * 2),
                     ));
-                    let paint = Paint::new(Color::WHITE).set_style(PaintStyle::Stroke);
-                    let rendering_tree = path(circle, paint);
+                    let default_paint = Paint::new(Color::WHITE).set_style(PaintStyle::Stroke);
+                    let active_paint = Paint::new(Color::BLUE).set_style(PaintStyle::Fill);
+                    let default_rendering_tree = path(circle.clone(), default_paint);
+                    let active_rendering_tree = path(circle, active_paint);
 
                     let rows = 5;
                     let cols = 5;
@@ -61,9 +65,20 @@ impl Component for PositionTool<'_> {
                             let x = wh.width * ((col as f32 + 0.5) / (cols - 1) as f32);
                             let y = wh.height * ((row as f32 + 0.5) / (rows - 1) as f32);
 
-                            ctx.translate((x, y)).add(rendering_tree.clone());
+                            ctx.translate((x, y)).add(default_rendering_tree.clone());
                         }
                     }
+
+                    let active_xy = {
+                        let cols = (cols - 1) as f32;
+                        let rows = (rows - 1) as f32;
+                        let x = wh.width * (cols * position.x.as_f32()).round().min(cols).max(0.0)
+                            / cols;
+                        let y = wh.height * (rows * position.y.as_f32()).round().min(rows).max(0.0)
+                            / rows;
+                        (x, y)
+                    };
+                    ctx.translate(active_xy).add(active_rendering_tree);
                 }),
             ])(wh, ctx)
         });

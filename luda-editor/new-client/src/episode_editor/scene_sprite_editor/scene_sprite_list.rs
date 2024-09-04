@@ -1,6 +1,7 @@
 use crate::*;
 use list_view::AutoListView;
 use luda_rpc::*;
+use render_psd_sprite::render_psd_sprite;
 use std::collections::HashMap;
 
 pub struct SceneSpriteList<'a> {
@@ -11,7 +12,7 @@ pub struct SceneSpriteList<'a> {
     pub add_new_scene_sprite: &'a dyn Fn(),
     /// true for up, false for down
     pub move_scene_sprite_up_down: &'a dyn Fn(usize, bool),
-    pub select_scene_sprite: &'a dyn Fn(&str),
+    pub select_scene_sprite_index: &'a dyn Fn(usize),
     pub selected_scene_sprite_index: Option<usize>,
 }
 
@@ -24,7 +25,7 @@ impl Component for SceneSpriteList<'_> {
             remove_scene_sprite,
             add_new_scene_sprite,
             move_scene_sprite_up_down,
-            select_scene_sprite,
+            select_scene_sprite_index,
             selected_scene_sprite_index,
         } = self;
 
@@ -95,7 +96,8 @@ impl Component for SceneSpriteList<'_> {
                                         wh: item_wh,
                                         sprite_name,
                                         scene_sprite,
-                                        select_scene_sprite,
+                                        select_scene_sprite_index,
+                                        index,
                                     },
                                 )
                             },
@@ -111,7 +113,8 @@ struct SceneSpriteCell<'a> {
     wh: Wh<Px>,
     sprite_name: &'a str,
     scene_sprite: &'a SceneSprite,
-    select_scene_sprite: &'a dyn Fn(&str),
+    select_scene_sprite_index: &'a dyn Fn(usize),
+    index: usize,
 }
 impl Component for SceneSpriteCell<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -119,22 +122,34 @@ impl Component for SceneSpriteCell<'_> {
             wh,
             sprite_name,
             scene_sprite,
-            select_scene_sprite,
+            select_scene_sprite_index,
+            index,
         } = self;
 
         ctx.add(simple_button(wh, "", |_| {
-            if let Some(sprite_id) = scene_sprite.sprite_id.as_ref() {
-                select_scene_sprite(sprite_id);
-            }
+            select_scene_sprite_index(index);
         }));
 
         ctx.compose(|ctx| {
             table::horizontal([
-                table::fixed(128.px(), |wh, ctx| todo!("ctx.add(scene_sprite_preview);")),
+                table::fixed(128.px(), |wh, ctx| {
+                    ctx.add(SceneSpritePreview { wh, scene_sprite });
+                }),
                 table::ratio(1, |wh, ctx| {
                     ctx.add(typography::body::left(wh.height, sprite_name, Color::WHITE));
                 }),
             ])(wh, ctx)
         });
+    }
+}
+
+struct SceneSpritePreview<'a> {
+    wh: Wh<Px>,
+    scene_sprite: &'a SceneSprite,
+}
+impl Component for SceneSpritePreview<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { wh, scene_sprite } = self;
+        render_psd_sprite(ctx, scene_sprite, wh);
     }
 }
