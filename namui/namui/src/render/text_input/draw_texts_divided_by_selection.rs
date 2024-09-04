@@ -12,7 +12,7 @@ impl TextInput<'_> {
             selection.map_or(true, |selection| selection.start == selection.end);
 
         if is_not_divided_by_selection {
-            return text(self.text_param(text));
+            return super::text(self.text_param(text));
         };
 
         let Selection::Range(selection) = selection else {
@@ -203,9 +203,7 @@ impl TextInput<'_> {
                 },
                 style: crate::RectStyle {
                     stroke: None,
-                    fill: Some(crate::RectFill {
-                        color: Color::BLUE,
-                    }),
+                    fill: Some(crate::RectFill { color: Color::BLUE }),
                     round: None,
                 },
             })
@@ -241,9 +239,9 @@ impl TextInput<'_> {
                 ..self.text_param(text)
             };
 
-            let left_text = text(left_text_text_param);
-            let selected_text = text(selected_text_text_param);
-            let right_text = text(right_text_text_param);
+            let left_text = super::text(left_text_text_param);
+            let selected_text = super::text(selected_text_text_param);
+            let right_text = super::text(right_text_text_param);
 
             render([left_text, selected_text, right_text])
         }
