@@ -92,6 +92,49 @@ export type WorkerMessagePayload =
     | {
           type: "storage-thread-disconnect";
           threadId: number;
+      }
+    // Http Fetch
+    | {
+          type: "new-http-fetch";
+          url: string;
+          method: string;
+          idBuffer: SharedArrayBuffer;
+      }
+    | {
+          type: "http-fetch-set-header";
+          fetchId: number;
+          key: string;
+          value: string;
+      }
+    | {
+          type: "http-fetch-start";
+          fetchId: number;
+      }
+    | {
+          type: "http-fetch-push-request-body-chunk";
+          fetchId: number;
+          data: ArrayBuffer;
+      }
+    | {
+          type: "http-fetch-finish-request-body-stream";
+          fetchId: number;
+      }
+    | {
+          type: "http-fetch-error-on-rust-side";
+          fetchId: number;
+      }
+    // New Event System
+    | {
+          type: "init-new-event-system-thread";
+          wasmMemory: WebAssembly.Memory;
+          writtenBuffer: SharedArrayBuffer;
+          eventBufferPtr: number;
+          eventBufferLen: number;
+      }
+    | {
+          type: "buffer-pool-new-buffer";
+          ptr: number;
+          len: number;
       };
 
 export function sendMessageToMainThread(

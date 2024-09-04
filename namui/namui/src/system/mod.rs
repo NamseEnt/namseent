@@ -29,6 +29,9 @@ type InitResult = Result<()>;
 static SYSTEM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 pub(super) async fn init_system() -> InitResult {
+    #[cfg(target_os = "wasi")]
+    wasi::init().await?;
+
     futures::try_join!(
         cache::init(),
         file::init(),

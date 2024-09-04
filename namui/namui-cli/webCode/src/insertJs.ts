@@ -91,10 +91,7 @@ export function insertJsHandleOnMainThread(): {
         }
     >();
 
-    (window as any).namui_onData = async (
-        id: number,
-        data: StrictArrayBuffer,
-    ) => {
+    (window as any).namui_onData = (id: number, data: StrictArrayBuffer) => {
         const js = jsMap.get(id);
         if (!js) {
             console.log(`No js for ${id} found but namui_onData is called.`);
@@ -112,7 +109,7 @@ export function insertJsHandleOnMainThread(): {
                 `Data byte length ${data.byteLength} is larger than 0xffff`,
             );
         }
-        await js.ringBuffer.write(["u16", data.byteLength], ["bytes", data]);
+        js.ringBuffer.write(["u16", data.byteLength], ["bytes", data]);
     };
 
     return {

@@ -21,7 +21,6 @@ pub use namui_skia::*;
 pub use namui_type as types;
 pub use namui_type::*;
 pub use render::*;
-pub use reqwest;
 pub use serde;
 pub use shader_macro::shader;
 #[cfg(target_os = "windows")]
@@ -29,6 +28,7 @@ pub use system::media::*;
 pub use system::*;
 pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
+pub use system::network::http::{RequestExt, ResponseExt};
 
 pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
     namui_type::set_log(|x| log::log(x));

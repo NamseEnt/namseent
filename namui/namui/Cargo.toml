@@ -33,13 +33,25 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "rt-multi-thread",
     "fs",
 ] }
-reqwest = { path = "../third-party-forks/reqwest", features = ["stream"] }
 rusqlite = { path = "../third-party-forks/rusqlite", features = ["bundled"] }
 rayon = "1.10.0"
+http = "1.1.0"
+http-body = "1.0.1"
+bytes = "1.7.1"
+hyper = "1.4.1"
+http-body-util = "0.1.2"
 
 [target.'cfg(not(target_os="wasi"))'.dependencies]
+hyper-rustls = { version = "0.27.2", default-features = false, features = [
+    "http1",
+    "http2",
+    "native-tokio",
+    "ring",
+    "tls12",
+] }
 winit = "0.29.4"
 opener = "0.7.1"
+hyper-util = { version = "0.1.7", features = ["client", "http1", "http2"] }
 
 [target.'cfg(target_os="windows")'.dependencies]
 wasapi = "0.14.0"

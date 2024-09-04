@@ -10,7 +10,7 @@
       "Webworker.Iterable",
       "ESNext.AsyncIterable",
       "DOM.Iterable",
-      "dom.asynciterable"
+      "DOM.AsyncIterable"
     ],
     "skipLibCheck": true,
 
