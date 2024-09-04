@@ -252,12 +252,17 @@ impl Component for LoadedEpisodeEditor<'_> {
             });
         };
 
+        let select_scene = &|scene_id: &str| {
+            set_selected_scene_id.set(Some(scene_id.to_string()));
+        };
+
         let wh = namui::screen::size().map(|x| x.into_px());
 
         let scene_list = table::fixed(160.px(), |wh, ctx| {
             ctx.add(scene_list::SceneList {
                 wh,
                 scenes: &scenes,
+                select_scene,
             });
         });
         let scene_editor = table::ratio(1, |wh, ctx| {

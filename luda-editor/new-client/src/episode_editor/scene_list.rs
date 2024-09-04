@@ -6,11 +6,16 @@ use namui_prebuilt::*;
 pub struct SceneList<'a> {
     pub wh: Wh<Px>,
     pub scenes: &'a [Scene],
+    pub select_scene: &'a dyn Fn(&str),
 }
 
 impl Component for SceneList<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, scenes } = self;
+        let Self {
+            wh,
+            scenes,
+            select_scene,
+        } = self;
         ctx.compose(|ctx| {
             table::vertical([
                 table::fixed(40.px(), |wh, ctx| {
@@ -34,6 +39,7 @@ impl Component for SceneList<'_> {
                                     index,
                                     scene,
                                     wh: item_wh,
+                                    select_scene,
                                 },
                             )
                         }),
@@ -48,11 +54,17 @@ struct SceneListCell<'a> {
     index: usize,
     scene: &'a Scene,
     wh: Wh<Px>,
+    select_scene: &'a dyn Fn(&str),
 }
 
 impl Component for SceneListCell<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { index, scene, wh } = self;
+        let Self {
+            index,
+            scene,
+            wh,
+            select_scene,
+        } = self;
         /*
         썸네일을 어떻게 보여줄 것인가?
         저장하고 보여줄 것인가, 매번 새로 그릴 것인가?
@@ -72,6 +84,17 @@ impl Component for SceneListCell<'_> {
             render_psd_sprite(ctx, scene_sprite, wh);
         }
 
-        ctx.add(simple_rect(wh, Color::TRANSPARENT, 1.px(), Color::BLACK));
+        ctx.add(
+            simple_rect(wh, Color::TRANSPARENT, 1.px(), Color::BLACK).attach_event(|event| {
+                let Event::MouseDown { event } = event else {
+                    return;
+                };
+                if !event.is_local_xy_in() {
+                    return;
+                }
+                event.stop_propagation();
+                select_scene(&scene.id);
+            }),
+        );
     }
 }
