@@ -64,15 +64,15 @@ jobs:
       - name: Run commands
         working-directory: ${{ matrix.dir }}
         env:
-          CLANGCC: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang"
-          CLANGCXX: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang++"
-          CC: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang"
-          CXX: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang++"
-          WASI_SDK: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk"
-          WASI_SYSROOT: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/share/wasi-sysroot"
-          EMSDK_SYSTEM_INCLUDE: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/emscripten/system/include"
-          CLANG_PATH: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang"
-          CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/wasm-ld"
+          CLANGCC: ${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang
+          CLANGCXX: ${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang++
+          CC: ${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang
+          CXX: ${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang++
+          WASI_SDK: ${{ github.workspace }}/namui/namui-cli/wasi-sdk
+          WASI_SYSROOT: ${{ github.workspace }}/namui/namui-cli/wasi-sdk/share/wasi-sysroot
+          EMSDK_SYSTEM_INCLUDE: ${{ github.workspace }}/namui/namui-cli/emscripten/system/include
+          CLANG_PATH: ${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang
+          CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER: ${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/wasm-ld
         run: |
           echo "Running commands in ${{ matrix.dir }}"
 
