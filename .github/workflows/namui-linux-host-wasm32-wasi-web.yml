@@ -67,7 +67,7 @@ jobs:
           echo "Running commands in ${{ matrix.dir }}"
 
           # Set the CLI root path
-          CLI_ROOT_PATH="~/namui/namui-cli"
+          CLI_ROOT_PATH="$GITHUB_WORKSPACE/namui/namui-cli"
 
           # Set environment variables
           export CLANGCC="$CLI_ROOT_PATH/wasi-sdk/bin/clang"
