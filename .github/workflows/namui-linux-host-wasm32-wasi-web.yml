@@ -51,11 +51,21 @@ jobs:
           path: |
             ~/.cargo/
             ${{ matrix.dir }}/target/
-            ./namui/namui-cli/wasi-sdk
           key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-wasm32-wasi-web-${{ matrix.dir }}-${{ hashFiles(env.CARGO_LOCK_PATH) }}
           restore-keys: |
             ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-wasm32-wasi-web-${{ matrix.dir }}-
             ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-wasm32-wasi-web-
+    
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ${{ github.workspace }}/namui/namui-cli/wasi-sdk/
+            ${{ github.workspace }}/namui/namui-cli/emscripten/
+            ${{ github.workspace }}/namui/namui-cli/target/
+          key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-wasm32-wasi-web-namui-cli-${{ hashFiles('namui/namui-cli/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-wasm32-wasi-web-namui-cli-
+      
       - name: Install wasi-sdk
         run: |
           cd namui/namui-cli
