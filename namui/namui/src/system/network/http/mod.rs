@@ -1,119 +1,99 @@
-mod response;
-mod simple;
+#[cfg(not(target_os = "wasi"))]
+mod non_wasi;
+#[cfg(target_os = "wasi")]
+pub(crate) mod wasi;
+
+#[cfg(not(target_os = "wasi"))]
+use non_wasi as inner;
+#[cfg(target_os = "wasi")]
+use wasi as inner;
 
 use crate::simple_error_impl;
-use reqwest::IntoUrl;
-pub use reqwest::Method;
-pub use response::*;
-pub use simple::*;
-use url::*;
+use http::{header::CONTENT_LENGTH, StatusCode};
+pub use http::{Request, Response};
 
-pub async fn fetch(
-    url: impl IntoUrl,
-    method: Method,
-    build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
-) -> Result<Response, HttpError> {
-    let builder = reqwest::Client::new().request(method, url);
-    Ok(Response::new(build(builder).send().await?))
+#[allow(async_fn_in_trait)]
+pub trait RequestExt {
+    async fn send(self) -> std::result::Result<Response<impl ResponseBody>, HttpError>;
 }
 
-pub async fn fetch_bytes(
-    url: impl IntoUrl,
-    method: Method,
-    build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
-) -> Result<impl AsRef<[u8]>, HttpError> {
-    let response = fetch(url, method, build).await?;
-    response.error_for_400599().await?.bytes().await
+impl RequestExt for Request<()> {
+    async fn send(self) -> std::result::Result<Response<impl ResponseBody>, HttpError> {
+        inner::send(self.map(|_| http_body_util::Empty::new())).await
+    }
 }
 
-pub async fn fetch_serde<T, TDeserializeError, TDeserialize>(
-    url: impl IntoUrl,
-    method: Method,
-    build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
-    deserialize: TDeserialize,
-) -> Result<T, HttpError>
-where
-    T: serde::de::DeserializeOwned,
-    TDeserializeError: serde::de::Error,
-    TDeserialize: FnOnce(&[u8]) -> Result<T, TDeserializeError>,
-{
-    deserialize(fetch_bytes(url, method, build).await?.as_ref()).map_err(|error| {
-        HttpError::Deserialize {
-            message: error.to_string(),
-        }
-    })
+#[allow(async_fn_in_trait)]
+pub trait ResponseExt {
+    fn ensure_status_code(self) -> std::result::Result<Self, HttpError>
+    where
+        Self: Sized;
+    async fn bytes(self) -> std::result::Result<Vec<u8>, HttpError>
+    where
+        Self: Sized;
+}
+impl<T: ResponseBody> ResponseExt for Response<T> {
+    fn ensure_status_code(self) -> std::result::Result<Self, HttpError>
+    where
+        Self: Sized,
+    {
+        StatusCode::from_u16(self.status().as_u16())
+            .map_err(|err| HttpError::HttpError(err.into()))
+            .map(|_| self)
+    }
+    async fn bytes(self) -> std::result::Result<Vec<u8>, HttpError>
+    where
+        Self: Sized,
+    {
+        let content_length = self
+            .headers()
+            .get(CONTENT_LENGTH)
+            .map(|header| {
+                header
+                    .to_str()
+                    .map_err(|_| HttpError::WrongContentLength(Some(header.as_bytes().to_vec())))?
+                    .parse::<usize>()
+                    .map_err(|_| HttpError::WrongContentLength(Some(header.as_bytes().to_vec())))
+            })
+            .transpose()?;
+
+        self.into_body().bytes(content_length).await
+    }
 }
 
-pub async fn fetch_json<T: serde::de::DeserializeOwned>(
-    url: impl IntoUrl,
-    method: Method,
-    build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
-) -> Result<T, HttpError> {
-    fetch_serde(url, method, build, |slice| serde_json::from_slice(slice)).await
+pub enum ReqBody {
+    Empty,
+    Vec { data: Vec<u8> },
+}
+
+impl From<()> for ReqBody {
+    fn from(_: ()) -> Self {
+        ReqBody::Empty
+    }
+}
+
+pub trait ResponseBody {
+    fn bytes(
+        self,
+        content_length: Option<usize>,
+    ) -> impl std::future::Future<Output = std::result::Result<Vec<u8>, HttpError>> + std::marker::Send;
 }
 
 #[derive(Debug)]
 pub enum HttpError {
-    Status { status: u16, message: String },
-    Timeout { message: String },
-    Request { message: String },
-    RedirectPolicy { message: String },
-    Connection { message: String },
-    Body { message: String },
-    Decode { message: String },
-    Unknown(Box<dyn std::error::Error>),
-    Deserialize { message: String },
-    UrlParseError(url::ParseError),
-    JsonParseError(serde_json::Error),
-    TextParseError { message: String },
+    Disconnected,
+    WrongContentLength(Option<Vec<u8>>),
+    HyperError(hyper::Error),
+    TooManyBytes,
+    HttpError(http::Error),
+    ReqBodyErr(Box<dyn std::error::Error + Send + Sync>),
+    TaskJoinError(tokio::task::JoinError),
+    Unknown(String),
 }
 simple_error_impl!(HttpError);
 
-impl From<reqwest::Error> for HttpError {
-    fn from(error: reqwest::Error) -> Self {
-        let is_connect = {
-            #[cfg(not(target_arch = "wasm32"))]
-            fn is_connect(error: &reqwest::Error) -> bool {
-                error.is_connect()
-            }
-            #[cfg(target_arch = "wasm32")]
-            fn is_connect(_: &reqwest::Error) -> bool {
-                false
-            }
-            is_connect(&error)
-        };
-
-        if error.is_timeout() {
-            HttpError::Timeout {
-                message: format!("{:?}", error),
-            }
-        } else if error.is_request() {
-            HttpError::Request {
-                message: format!("{:?}", error),
-            }
-        } else if error.is_redirect() {
-            HttpError::RedirectPolicy {
-                message: format!("{:?}", error),
-            }
-        } else if is_connect {
-            HttpError::Connection {
-                message: format!("{:?}", error),
-            }
-        } else if error.is_decode() {
-            HttpError::Decode {
-                message: format!("{:?}", error),
-            }
-        } else if error.is_body() {
-            HttpError::Body {
-                message: format!("{:?}", error),
-            }
-        } else {
-            HttpError::Unknown(error.into())
-        }
-    }
-}
-impl From<url::ParseError> for HttpError {
-    fn from(error: url::ParseError) -> Self {
-        HttpError::UrlParseError(error)
+impl From<hyper::Error> for HttpError {
+    fn from(e: hyper::Error) -> Self {
+        HttpError::HyperError(e)
     }
 }
