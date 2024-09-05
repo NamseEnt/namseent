@@ -73,6 +73,7 @@ jobs:
           EMSDK_SYSTEM_INCLUDE: ${{ github.workspace }}/namui/namui-cli/emscripten/system/include
           CLANG_PATH: ${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang
           CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER: ${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/wasm-ld
+          CARGO_BUILD_TARGET: wasm32-wasip1-threads
         run: |
           echo "Running commands in ${{ matrix.dir }}"
 
