@@ -63,22 +63,18 @@ jobs:
 
       - name: Run commands
         working-directory: ${{ matrix.dir }}
+        env:
+          CLANGCC: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang"
+          CLANGCXX: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang++"
+          CC: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang"
+          CXX: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang++"
+          WASI_SDK: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk"
+          WASI_SYSROOT: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/share/wasi-sysroot"
+          EMSDK_SYSTEM_INCLUDE: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/emscripten/system/include"
+          CLANG_PATH: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/clang"
+          CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER: "{{ env.$GITHUB_WORKSPACE }}/namui/namui-cli/wasi-sdk/bin/wasm-ld"
         run: |
           echo "Running commands in ${{ matrix.dir }}"
-
-          # Set the CLI root path
-          CLI_ROOT_PATH="$GITHUB_WORKSPACE/namui/namui-cli"
-
-          # Set environment variables
-          export CLANGCC="$CLI_ROOT_PATH/wasi-sdk/bin/clang"
-          export CLANGCXX="$CLI_ROOT_PATH/wasi-sdk/bin/clang++"
-          export CC="$CLI_ROOT_PATH/wasi-sdk/bin/clang"
-          export CXX="$CLI_ROOT_PATH/wasi-sdk/bin/clang++"
-          export WASI_SDK="$CLI_ROOT_PATH/wasi-sdk"
-          export WASI_SYSROOT="$CLI_ROOT_PATH/wasi-sdk/share/wasi-sysroot"
-          export EMSDK_SYSTEM_INCLUDE="$CLI_ROOT_PATH/emscripten/system/include"
-          export CLANG_PATH="$CLI_ROOT_PATH/wasi-sdk/bin/clang"
-          export CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER="$CLI_ROOT_PATH/wasi-sdk/bin/wasm-ld"
 
           # Print the environment variables to verify
           echo "CLANGCC=$CLANGCC"
