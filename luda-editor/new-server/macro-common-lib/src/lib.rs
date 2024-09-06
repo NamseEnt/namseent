@@ -50,7 +50,7 @@ impl RefFielder {
                     field.ty = parse_quote! {&'a [#str_ident]};
 
                     generic_params
-                        .push(parse_quote! {#str_ident: std::ops::Deref<Target = str> + std::marker::Sync});
+                        .push(parse_quote! {#str_ident: std::ops::Deref<Target = str> + std::marker::Sync + 'a});
                     generic_params_without_bounds.push(parse_quote! {#str_ident});
                 }
                 _ => {
