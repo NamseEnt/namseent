@@ -13,7 +13,6 @@ impl<T: serde::Serialize> SerdeHash<T> {
         let vec = postcard::to_stdvec(&value).unwrap();
         let mut hasher = DefaultHasher::new();
         hasher.write(&vec);
-        hasher.finish();
 
         Self {
             _value: std::marker::PhantomData,
