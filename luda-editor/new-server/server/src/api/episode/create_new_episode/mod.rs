@@ -10,7 +10,7 @@ pub async fn create_new_episode(
 ) -> Result<Response> {
     let user_id = session.user_id().await.ok_or(Error::NeedLogin)?;
 
-    if !is_project_member(db, &project_id, &user_id).await? {
+    if !is_project_member(db, project_id, &user_id).await? {
         bail!(Error::PermissionDenied)
     }
 
@@ -21,7 +21,7 @@ pub async fn create_new_episode(
             id: &episode_id,
             name,
             created_at: SystemTime::now(),
-            scene_ids: &Vec::new(),
+            scene_ids: &Vec::<String>::new(),
             ttl: None,
         },
         ProjectToEpisodeDocPut {
