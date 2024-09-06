@@ -84,14 +84,16 @@ fn download_wasi_sdk() -> Result<()> {
     let dist = root.join("wasi-sdk");
     let temp = root.join("wasi-sdk-temp");
 
+    let version_file_path = dist.join("VERSION");
+    let expected_version_file_content = format!("{VERSION}.0");
+
     if dist.exists() {
-        let version_file = std::fs::read_to_string(dist.join("VERSION"))?;
-        let first_line = version_file.lines().next().unwrap();
+        if let std::io::Result::Ok(version_file) = std::fs::read_to_string(&version_file_path) {
+            println!("WASI-SDK {version_file} Installed");
 
-        println!("WASI-SDK {VERSION}.0 Installed");
-
-        if first_line == format!("{VERSION}.0") {
-            return Ok(());
+            if version_file == expected_version_file_content {
+                return Ok(());
+            }
         }
 
         std::fs::remove_dir_all(&dist)?;
@@ -110,6 +112,8 @@ fn download_wasi_sdk() -> Result<()> {
         dist,
     )?;
     std::fs::remove_dir(temp)?;
+
+    std::fs::write(version_file_path, expected_version_file_content)?;
 
     Ok(())
 }
