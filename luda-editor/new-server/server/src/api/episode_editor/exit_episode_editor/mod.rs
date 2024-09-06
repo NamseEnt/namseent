@@ -16,7 +16,7 @@ pub async fn exit_episode_editor(
 }
 
 async fn try_unlock_editor(db: &Database, episode_id: &str, user_id: &str) -> Result<()> {
-    db.transact(EpisodeEditingUserDocUpdate {
+    db.transact::<()>(EpisodeEditingUserDocUpdate {
         episode_id,
         want_update: |doc| {
             let Some(editing_user) = doc.editing_user.as_ref() else {

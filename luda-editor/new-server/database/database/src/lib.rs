@@ -47,7 +47,10 @@ impl Database {
             .map(|value_buffer| T::heap_archived(value_buffer))
             .collect())
     }
-    pub async fn transact<'a>(&'a self, transact: impl Transact<'a> + 'a + Send) -> Result<()> {
+    pub async fn transact<'a, AbortReason>(
+        &'a self,
+        transact: impl Transact<'a, AbortReason> + 'a + Send,
+    ) -> Result<MaybeAborted<AbortReason>> {
         let mut transact_items = transact.try_into_transact_items()?;
         self.store.transact(&mut transact_items).await
     }
@@ -62,7 +65,6 @@ pub enum Error {
     SerializationError(SerErr),
     AlreadyExistsOnCreate,
     NotExistsOnUpdate,
-    UpdateAborted,
     BackupAborted(String),
 }
 impl std::fmt::Display for Error {
@@ -84,3 +86,24 @@ impl From<SerErr> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+pub enum MaybeAborted<AbortReason> {
+    Aborted { reason: AbortReason },
+    No,
+}
+
+impl<AbortReason> MaybeAborted<AbortReason> {
+    fn is_aborted(&self) -> bool {
+        matches!(self, MaybeAborted::Aborted { .. })
+    }
+
+    pub fn err_if_aborted<Err>(
+        self,
+        func: impl FnOnce(AbortReason) -> Err,
+    ) -> std::result::Result<(), Err> {
+        match self {
+            MaybeAborted::Aborted { reason } => Err(func(reason)),
+            MaybeAborted::No => Ok(()),
+        }
+    }
+}

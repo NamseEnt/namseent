@@ -74,7 +74,10 @@ async fn get_scenes(
 }
 
 async fn try_lock_editor(db: &Database, episode_id: &str, user_id: &str) -> Result<()> {
-    db.transact(EpisodeEditingUserDocUpdate {
+    enum AbortReason {
+        OtherUserEditing,
+    }
+    db.transact::<AbortReason>(EpisodeEditingUserDocUpdate {
         episode_id,
         want_update: |doc| {
             let Some(editing_user) = doc.editing_user.as_ref() else {
@@ -93,7 +96,9 @@ async fn try_lock_editor(db: &Database, episode_id: &str, user_id: &str) -> Resu
             }
 
             if not_timeout {
-                return WantUpdate::Abort;
+                return WantUpdate::Abort {
+                    reason: AbortReason::OtherUserEditing,
+                };
             }
 
             WantUpdate::Yes
@@ -107,9 +112,11 @@ async fn try_lock_editor(db: &Database, episode_id: &str, user_id: &str) -> Resu
     })
     .await
     .map_err(|err| match err {
-        database::Error::UpdateAborted => anyhow!(Error::OtherUserEditing),
         database::Error::NotExistsOnUpdate => anyhow!(Error::EpisodeNotExist),
         _ => anyhow!(err),
+    })?
+    .err_if_aborted(|reason| match reason {
+        AbortReason::OtherUserEditing => Error::OtherUserEditing,
     })?;
 
     Ok(())

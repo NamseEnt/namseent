@@ -36,7 +36,7 @@ pub async fn google_auth(
 
     let user_id = randum::rand();
 
-    db.transact((
+    db.transact::<()>((
         UserDocCreate {
             id: &user_id,
             name: &name,

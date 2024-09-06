@@ -27,7 +27,7 @@ pub async fn create_team_invite_code(
     let code = randum::rand();
     let expiration_time = SystemTime::now() + SEVEN_DAYS;
 
-    db.transact((
+    db.transact::<()>((
         TeamInviteCodeDocPut {
             team_id,
             code: &code,

@@ -1,8 +1,7 @@
 use crate::*;
 use api::team::has_episode_edit_permission;
-use database::schema::*;
+use database::{schema::*, DeserializeInfallible};
 use luda_rpc::episode_editor::load_speaker_slots::*;
-use rkyv::{Deserialize, Infallible};
 
 pub async fn load_speaker_slots(
     ArchivedRequest { episode_id }: &ArchivedRequest,
@@ -24,6 +23,6 @@ pub async fn load_speaker_slots(
         .ok_or(Error::EpisodeNotExist)?;
 
     Ok(Response {
-        speaker_ids: doc.speaker_ids.deserialize(&mut Infallible)?,
+        speaker_ids: doc.speaker_ids.deserialize(),
     })
 }

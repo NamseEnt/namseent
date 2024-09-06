@@ -216,6 +216,8 @@ rpc_macro::define_rpc! {
                 PermissionDenied,
                 EpisodeNotExist,
                 ImpossibleAction,
+                YouDoNotHaveEditorLock,
+                InvalidSceneIndex,
             }
         },
         load_speaker_slots: {

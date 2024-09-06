@@ -14,7 +14,7 @@ pub async fn invalidate_team_invite_code(
         bail!(Error::PermissionDenied)
     }
 
-    db.transact((
+    db.transact::<()>((
         TeamInviteCodeDocDelete { team_id, code },
         TeamInviteCodeToTeamDocDelete { code },
     ))

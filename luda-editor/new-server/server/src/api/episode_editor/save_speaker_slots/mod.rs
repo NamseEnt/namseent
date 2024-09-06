@@ -17,7 +17,7 @@ pub async fn save_speaker_slots(
         bail!(Error::PermissionDenied)
     }
 
-    db.transact(EpisodeSpeakerSlotDocPut {
+    db.transact::<()>(EpisodeSpeakerSlotDocPut {
         user_id: &user_id,
         episode_id,
         speaker_ids,

@@ -16,7 +16,7 @@ pub async fn create_new_episode(
 
     let episode_id = randum::rand();
 
-    db.transact((
+    db.transact::<()>((
         EpisodeDocPut {
             id: &episode_id,
             name,

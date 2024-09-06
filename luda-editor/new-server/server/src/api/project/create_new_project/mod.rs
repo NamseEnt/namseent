@@ -16,7 +16,7 @@ pub async fn create_new_project(
 
     let project_id = randum::rand();
 
-    db.transact((
+    db.transact::<()>((
         ProjectDocPut {
             id: &project_id,
             name,
