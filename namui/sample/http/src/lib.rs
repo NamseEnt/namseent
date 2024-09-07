@@ -61,7 +61,7 @@ fn render(ctx: &RenderCtx) {
                                     .collect::<Vec<String>>()
                                     .join("");
                                 let line = format!("\n[{}] {}", bytes_hex.len(), bytes_hex);
-                                
+
                                 set_stream_content.mutate(move |content| {
                                     if let Some(content) = content {
                                         *content += line.as_str();
