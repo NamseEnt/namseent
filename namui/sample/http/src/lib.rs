@@ -69,7 +69,7 @@ fn render(ctx: &RenderCtx) {
                                         *content = Some(line);
                                     }
                                 });
-                                
+
                                 if length > 512 * 1024 {
                                     break;
                                 }
