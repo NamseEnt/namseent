@@ -112,7 +112,7 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
                         await this.getResponseBodyBuffer();
 
                     // NOTE: Currently byob doesn't support to write to shared buffer directly
-                    const tempBuffer = new Uint8Array(buffer.buffer.byteLength);
+                    const tempBuffer = new Uint8Array(buffer.length);
 
                     const { value, done } = await reader.read(tempBuffer);
 
