@@ -112,7 +112,7 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
                         await this.getResponseBodyBuffer();
 
                     // NOTE: Currently byob doesn't support to write to shared buffer directly
-                    const tempBuffer = new Uint8Array(buffer.buffer.byteLength);
+                    const tempBuffer = new Uint8Array(buffer.length);
 
                     const { value, done } = await reader.read(tempBuffer);
 
@@ -134,6 +134,7 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
                     }
                 }
             } catch (error) {
+                console.error(request.url, error);
                 this.onError(fetchId, error);
             } finally {
                 this.cleanUpFetch(fetchId);
@@ -172,8 +173,9 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
             }
 
             requestBody.isSomeoneWriting = false;
-        } catch (err) {
-            this.onError(fetchId, err);
+        } catch (error) {
+            console.error(error);
+            this.onError(fetchId, error);
             this.cleanUpFetch(fetchId);
         }
     }
@@ -189,8 +191,9 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
         if (!requestBody.isSomeoneWriting) {
             try {
                 await requestBody.stream.getWriter().close();
-            } catch (err) {
-                this.onError(fetchId, err);
+            } catch (error) {
+                console.error(error);
+                this.onError(fetchId, error);
                 this.cleanUpFetch(fetchId);
             }
         }
