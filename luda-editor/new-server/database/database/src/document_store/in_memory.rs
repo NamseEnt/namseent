@@ -167,13 +167,14 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
         Ok(())
     }
 
-    async fn transact<'a>(&'a self, transact_items: &mut TransactItems<'a>) -> Result<()> {
+    async fn transact<'a, AbortReason>(
+        &'a self,
+        transact_items: &mut TransactItems<'a, AbortReason>,
+    ) -> Result<MaybeAborted<AbortReason>> {
+        let result = self.store.transact(transact_items).await;
         if !self.enabled() {
-            self.store.transact(transact_items).await?;
-            return Ok(());
+            return result;
         }
-
-        self.store.transact(transact_items).await?;
 
         transact_items.iter().for_each(|item| match item {
             TransactItem::Put { name, pk, sk, .. }
@@ -184,7 +185,7 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
             }
         });
 
-        Ok(())
+        result
     }
 
     async fn wait_backup(&self) -> Result<()> {

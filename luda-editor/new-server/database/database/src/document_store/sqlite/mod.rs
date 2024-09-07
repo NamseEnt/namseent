@@ -292,7 +292,10 @@ impl DocumentStore for SqliteKvStore {
         Ok(())
     }
 
-    async fn transact<'a>(&'a self, transact_items: &mut TransactItems<'a>) -> Result<()> {
+    async fn transact<'a, AbortReason>(
+        &'a self,
+        transact_items: &mut TransactItems<'a, AbortReason>,
+    ) -> Result<MaybeAborted<AbortReason>> {
         let mut write_conn: MutexGuard<Connection> = self.write_conn();
         let trx = write_conn.transaction()?;
 
@@ -329,15 +332,18 @@ impl DocumentStore for SqliteKvStore {
                     sk,
                     update_fn,
                 } => {
-                    update(&trx, name, pk, sk.as_deref(), |vec| {
+                    let maybe_aborted = update(&trx, name, pk, sk.as_deref(), |vec| {
                         Ok(update_fn.take().unwrap()(vec)?)
                     })?;
+                    if maybe_aborted.is_aborted() {
+                        return Ok(maybe_aborted);
+                    }
                 }
                 TransactItem::Delete { name, pk, sk } => delete(&trx, name, pk, sk.as_deref())?,
             }
         }
         trx.commit()?;
-        Ok(())
+        Ok(MaybeAborted::No)
     }
 
     async fn wait_backup(&self) -> Result<()> {
@@ -537,13 +543,13 @@ fn create<Bytes: AsRef<[u8]>>(
     Ok(())
 }
 
-fn update(
+fn update<AbortReason>(
     trx: &Transaction<'_>,
     name: &'static str,
     pk: &[u8],
     sk: Option<&[u8]>,
-    update_fn: impl FnOnce(&mut Vec<u8>) -> Result<WantUpdate>,
-) -> Result<()> {
+    update_fn: impl FnOnce(&mut Vec<u8>) -> Result<WantUpdate<AbortReason>>,
+) -> Result<MaybeAborted<AbortReason>> {
     let mut stmt = trx.prepare(
         "
         SELECT value
@@ -563,8 +569,8 @@ fn update(
     };
 
     match update_fn(&mut value)? {
-        WantUpdate::No => Ok(()),
-        WantUpdate::Abort => Err(Error::UpdateAborted),
+        WantUpdate::No => Ok(MaybeAborted::No),
+        WantUpdate::Abort { reason } => Ok(MaybeAborted::Aborted { reason }),
         WantUpdate::Yes => {
             let mut stmt = trx.prepare(
                 "
@@ -582,7 +588,7 @@ fn update(
                 1
             );
 
-            Ok(())
+            Ok(MaybeAborted::No)
         }
     }
 }

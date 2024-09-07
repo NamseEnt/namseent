@@ -17,7 +17,8 @@ pub async fn revoke_session_token(
         bail!(Error::Unauthorized)
     }
 
-    db.transact(SessionTokenDocDelete { session_token }).await?;
+    db.transact::<()>(SessionTokenDocDelete { session_token })
+        .await?;
 
     Ok(Response {})
 }

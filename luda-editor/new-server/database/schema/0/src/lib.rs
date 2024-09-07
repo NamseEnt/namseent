@@ -13,6 +13,7 @@
 mod asset;
 mod auth;
 mod episode;
+mod episode_editor;
 mod project;
 mod scene;
 mod team;
@@ -22,6 +23,7 @@ mod translation;
 pub use asset::*;
 pub use auth::*;
 pub use episode::*;
+pub use episode_editor::*;
 pub use namui_type::*;
 pub use project::*;
 pub use scene::*;

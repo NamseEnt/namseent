@@ -183,7 +183,7 @@ rpc_macro::define_rpc! {
             struct Response {
                 scenes: Vec<Scene>,
                 /// key: (scene_id, language_code)
-                texts: HashMap<String, HashMap<String, Option<String>>>,
+                texts: HashMap<String, HashMap<String, String>>,
             }
             enum Error {
                 NeedLogin,
@@ -216,6 +216,8 @@ rpc_macro::define_rpc! {
                 PermissionDenied,
                 EpisodeNotExist,
                 ImpossibleAction,
+                YouDoNotHaveEditorLock,
+                InvalidSceneIndex,
             }
         },
         load_speaker_slots: {
@@ -227,6 +229,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
+                PermissionDenied,
                 EpisodeNotExist,
             }
         },
@@ -239,7 +242,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
-                EpisodeNotExist,
+                PermissionDenied,
             }
         },
         get_speaker_names: {
@@ -253,7 +256,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
-                EpisodeNotExist,
+                PermissionDenied,
             }
         },
     },

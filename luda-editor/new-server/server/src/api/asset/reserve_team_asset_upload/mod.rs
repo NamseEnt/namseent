@@ -22,12 +22,18 @@ pub async fn reserve_team_asset_upload(
 
     let asset_id = rand();
 
-    db.transact((
+    enum AbortReason {
+        NotEnoughSpace,
+    }
+
+    db.transact::<AbortReason>((
         TeamAssetTotalBytesDocUpdate {
             team_id,
             want_update: |doc| {
                 if doc.limit_bytes < doc.used_bytes + byte_size {
-                    return WantUpdate::Abort;
+                    return WantUpdate::Abort {
+                        reason: AbortReason::NotEnoughSpace,
+                    };
                 }
                 WantUpdate::Yes
             },
@@ -49,7 +55,10 @@ pub async fn reserve_team_asset_upload(
             ttl: None,
         },
     ))
-    .await?;
+    .await?
+    .err_if_aborted(|abort_reason| match abort_reason {
+        AbortReason::NotEnoughSpace => Error::NotEnoughSpace,
+    })?;
 
     let presigned = s3::s3()
         .put_object()

@@ -111,15 +111,23 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
         ..
     } = ref_fielder;
 
+    let try_into_generics = {
+        let mut generics = generics.clone();
+        generics.params.push(parse_quote! { AbortReason });
+        generics
+    };
+
     quote! {
         pub struct #put_struct_name #generics {
             #(#fields_without_attr,)*
             pub ttl: Option<std::time::Duration>,
         }
 
-        impl #generics TryInto<document::TransactItem<'a>> for #put_struct_name #generics_without_bounds {
+        impl #try_into_generics TryInto<document::TransactItem<'a, AbortReason>>
+            for #put_struct_name #generics_without_bounds
+        {
             type Error = document::SerErr;
-            fn try_into(self) -> document::Result<document::TransactItem<'a>> {
+            fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Put {
                     name: stringify!(#name),
                     pk: #pk_cow,
@@ -151,14 +159,22 @@ fn struct_create_define(
         ..
     } = ref_fielder;
 
+    let try_into_generics = {
+        let mut generics = generics.clone();
+        generics.params.push(parse_quote! { AbortReason });
+        generics
+    };
+
     quote! {
         pub struct #create_struct_name #generics {
             #(#fields_without_attr,)*
             pub ttl: Option<std::time::Duration>,
         }
-        impl #generics TryInto<document::TransactItem<'a>> for #create_struct_name #generics_without_bounds {
+        impl #try_into_generics TryInto<document::TransactItem<'a, AbortReason>>
+            for #create_struct_name #generics_without_bounds
+        {
             type Error = document::SerErr;
-            fn try_into(self) -> document::Result<document::TransactItem<'a>> {
+            fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Create {
                     name: stringify!(#name),
                     pk: #pk_cow,
@@ -188,9 +204,10 @@ fn struct_update_define(
     let update_struct_name = Ident::new(&format!("{}Update", name), name.span());
 
     let mut generics = generics.clone();
+    generics.params.push(parse_quote!(AbortReason));
     generics
         .params
-        .push(parse_quote!(WantUpdateFn: 'a + Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate));
+        .push(parse_quote!(WantUpdateFn: 'a + Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate<AbortReason>));
     generics
         .params
         .push(parse_quote!(UpdateFn: 'a + Send + FnOnce(&mut #name)));
@@ -217,11 +234,11 @@ fn struct_update_define(
             pub update: UpdateFn,
         }
 
-        impl #generics TryInto<document::TransactItem<'a>>
+        impl #generics TryInto<document::TransactItem<'a, AbortReason>>
             for #update_struct_name #generics_without_bounds
         {
             type Error = document::SerErr;
-            fn try_into(self) -> document::Result<document::TransactItem<'a>> {
+            fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Update {
                     name: stringify!(#name),
                     pk: #pk_cow,
@@ -261,13 +278,20 @@ fn struct_delete_define(
 ) -> impl quote::ToTokens {
     let delete_struct_name = Ident::new(&format!("{}Delete", name), name.span());
 
+    let try_into_generics = {
+        let mut generics = generics.clone();
+        generics.params.push(parse_quote! { AbortReason });
+        generics
+    };
+
     quote! {
         pub struct #delete_struct_name #generics {
             #(#fields_without_attr,)*
         }
-        impl #generics TryInto<document::TransactItem<'a>> for #delete_struct_name #generics_without_bounds {
+        impl #try_into_generics TryInto<document::TransactItem<'a, AbortReason>>
+            for #delete_struct_name #generics_without_bounds {
             type Error = document::SerErr;
-            fn try_into(self) -> document::Result<document::TransactItem<'a>> {
+            fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Delete {
                     name: stringify!(#name),
                     pk: #pk_cow,

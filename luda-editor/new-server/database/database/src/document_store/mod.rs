@@ -39,7 +39,10 @@ pub trait DocumentStore {
         value_fn: impl FnOnce() -> Result<Bytes>,
         ttl: Option<Duration>,
     ) -> Result<()>;
-    async fn transact<'a>(&'a self, transact_items: &mut TransactItems<'a>) -> Result<()>;
+    async fn transact<'a, AbortReason>(
+        &'a self,
+        transact_items: &mut TransactItems<'a, AbortReason>,
+    ) -> Result<MaybeAborted<AbortReason>>;
     async fn wait_backup(&self) -> Result<()>;
     // /// optimistic locking update
     // /// Return value: true if the update was successful, false if conflict

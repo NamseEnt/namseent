@@ -18,7 +18,7 @@ pub async fn create_new_team(
 
     let team_id = randum::rand();
 
-    db.transact((
+    db.transact::<()>((
         TeamNameToTeamIdDocCreate {
             team_name: name,
             team_id: &team_id,

@@ -13,7 +13,7 @@ pub async fn join_team(
         bail!(Error::InvalidCode)
     };
 
-    db.transact(UserToTeamDocPut {
+    db.transact::<()>(UserToTeamDocPut {
         user_id: &user_id,
         team_id: &team_invite_code_to_team.team_id,
         ttl: None,
