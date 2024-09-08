@@ -32,8 +32,11 @@ impl RingBuffer {
             Cow::Borrowed(slice)
         } else {
             let mut vec = vec![0; byte_length];
-            vec.copy_from_slice(&self.buffer[self.buffer_index..]);
-            self.buffer_index = byte_length - (self.buffer.len() - self.buffer_index);
+            let head_length = self.buffer.len() - self.buffer_index;
+            let tail_length = byte_length - head_length;
+            vec[..head_length].copy_from_slice(&self.buffer[self.buffer_index..]);
+            vec[head_length..].copy_from_slice(&self.buffer[..tail_length]);
+            self.buffer_index = tail_length;
             Cow::from(vec)
         }
     }
