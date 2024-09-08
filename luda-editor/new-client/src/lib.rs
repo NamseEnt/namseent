@@ -1,3 +1,4 @@
+mod asset_manage_page;
 mod episode_editor;
 mod home;
 mod network;
