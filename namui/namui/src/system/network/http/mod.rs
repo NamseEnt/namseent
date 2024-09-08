@@ -22,6 +22,11 @@ impl RequestExt for Request<()> {
         inner::send(self.map(|_| http_body_util::Empty::new())).await
     }
 }
+impl RequestExt for Request<Vec<u8>> {
+    async fn send(self) -> std::result::Result<Response<impl ResponseBody>, HttpError> {
+        inner::send(self.map(|body| http_body_util::Full::new(bytes::Bytes::from(body)))).await
+    }
+}
 
 #[allow(async_fn_in_trait)]
 pub trait ResponseExt {
