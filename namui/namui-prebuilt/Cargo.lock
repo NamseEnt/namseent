@@ -1308,6 +1308,7 @@ dependencies = [
  "serde_json",
  "shader-macro",
  "tokio 1.38.0",
+ "tokio-stream",
  "url",
  "wasapi",
  "winit",
@@ -2510,6 +2511,15 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "tokio 1.39.3",
+]
+
+[[package]]
+name = "tokio-stream"
+version = "0.1.15"
+dependencies = [
+ "futures-core",
+ "pin-project-lite",
+ "tokio 1.38.0",
 ]
 
 [[package]]

@@ -104,8 +104,9 @@ export class NoStreamHttpFetchHandle implements HttpFetchHandle {
             this.onResponse(fetchId, response);
             const responseBody = await response.arrayBuffer();
             this.onResponseBody(fetchId, new Uint8Array(responseBody));
-        } catch (err) {
-            this.onError(fetchId, err);
+        } catch (error) {
+            console.error(error);
+            this.onError(fetchId, error);
         } finally {
             this.cleanUpFetch(fetchId);
         }

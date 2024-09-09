@@ -13,7 +13,7 @@ pub use anyhow::{anyhow, bail, Result};
 pub use auto_ops;
 pub use bounding_box::*;
 pub use common::*;
-pub use futures::{future::join_all, future::try_join_all, join, try_join};
+pub use futures::{future::join_all, future::try_join_all, join, try_join, StreamExt};
 pub use hooks::*;
 pub use lazy_static::lazy_static;
 pub use namui_cfg::*;
@@ -25,10 +25,10 @@ pub use serde;
 pub use shader_macro::shader;
 #[cfg(target_os = "windows")]
 pub use system::media::*;
+pub use system::network::http::{RequestExt, ResponseExt};
 pub use system::*;
 pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
-pub use system::network::http::{RequestExt, ResponseExt};
 
 pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
     namui_type::set_log(|x| log::log(x));

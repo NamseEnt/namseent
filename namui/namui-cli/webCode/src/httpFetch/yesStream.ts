@@ -134,6 +134,7 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
                     }
                 }
             } catch (error) {
+                console.error(request.url, error);
                 this.onError(fetchId, error);
             } finally {
                 this.cleanUpFetch(fetchId);
@@ -172,8 +173,9 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
             }
 
             requestBody.isSomeoneWriting = false;
-        } catch (err) {
-            this.onError(fetchId, err);
+        } catch (error) {
+            console.error(error);
+            this.onError(fetchId, error);
             this.cleanUpFetch(fetchId);
         }
     }
@@ -189,8 +191,9 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
         if (!requestBody.isSomeoneWriting) {
             try {
                 await requestBody.stream.getWriter().close();
-            } catch (err) {
-                this.onError(fetchId, err);
+            } catch (error) {
+                console.error(error);
+                this.onError(fetchId, error);
                 this.cleanUpFetch(fetchId);
             }
         }
