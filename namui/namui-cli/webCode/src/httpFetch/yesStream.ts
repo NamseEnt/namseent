@@ -43,8 +43,6 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
     }): void {
         const request = new Request(url, {
             method,
-            // @ts-ignore
-            duplex: "half",
         });
 
         const id = this.nextId++;
@@ -94,6 +92,8 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
                         ? undefined
                         : readable,
                     signal: abortController.signal,
+                    // @ts-ignore
+                    duplex: "half",
                 });
                 this.onResponse(fetchId, response);
 
