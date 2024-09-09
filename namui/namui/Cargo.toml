@@ -37,6 +37,7 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "rt-multi-thread",
     "fs",
 ] }
+tokio-stream = { path = "../third-party-forks/tokio/tokio-stream" }
 rusqlite = { path = "../third-party-forks/rusqlite", features = ["bundled"] }
 rayon = "1.10.0"
 http = "1.1.0"

@@ -12,10 +12,8 @@ pub(crate) async fn send<ReqBody, ReqBodyErr>(
     request: Request<ReqBody>,
 ) -> std::result::Result<Response<impl ResponseBody>, HttpError>
 where
-    ReqBody: http_body::Body<Data = bytes::Bytes, Error = ReqBodyErr>
-        + Send
-        + std::marker::Unpin
-        + 'static,
+    ReqBody: http_body::Body<Error = ReqBodyErr> + Send + std::marker::Unpin + 'static,
+    ReqBody::Data: Send,
     ReqBodyErr: std::error::Error + Send + Sync + 'static,
 {
     let http_connector = {
@@ -62,5 +60,19 @@ impl ResponseBody for http_body_util::BodyStream<hyper::body::Incoming> {
             }
             Ok(bytes)
         }
+    }
+
+    fn stream(
+        self,
+    ) -> impl futures::Stream<Item = std::result::Result<bytes::Bytes, HttpError>>
+           + std::marker::Send
+           + Unpin {
+        self.map(|result| {
+            let frame = result?;
+            if frame.is_trailers() {
+                return Err(HttpError::TrailerNotSupported);
+            }
+            Ok(frame.into_data().unwrap())
+        })
     }
 }

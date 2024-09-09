@@ -19,7 +19,19 @@ pub trait RequestExt {
 
 impl RequestExt for Request<()> {
     async fn send(self) -> std::result::Result<Response<impl ResponseBody>, HttpError> {
-        inner::send(self.map(|_| http_body_util::Empty::new())).await
+        inner::send(self.map(|_| http_body_util::Empty::<bytes::Bytes>::new())).await
+    }
+}
+
+impl RequestExt for Request<Vec<u8>> {
+    async fn send(self) -> std::result::Result<Response<impl ResponseBody>, HttpError> {
+        inner::send(self.map(|body| http_body_util::Full::new(bytes::Bytes::from(body)))).await
+    }
+}
+
+impl RequestExt for Request<Box<[u8]>> {
+    async fn send(self) -> std::result::Result<Response<impl ResponseBody>, HttpError> {
+        inner::send(self.map(|body| http_body_util::Full::new(bytes::Bytes::from(body)))).await
     }
 }
 impl RequestExt for Request<Vec<u8>> {
@@ -34,6 +46,9 @@ pub trait ResponseExt {
     where
         Self: Sized;
     async fn bytes(self) -> std::result::Result<Vec<u8>, HttpError>
+    where
+        Self: Sized;
+    fn stream(self) -> impl futures::Stream<Item = std::result::Result<bytes::Bytes, HttpError>>
     where
         Self: Sized;
 }
@@ -64,6 +79,13 @@ impl<T: ResponseBody> ResponseExt for Response<T> {
 
         self.into_body().bytes(content_length).await
     }
+
+    fn stream(self) -> impl futures::Stream<Item = std::result::Result<bytes::Bytes, HttpError>>
+    where
+        Self: Sized,
+    {
+        self.into_body().stream()
+    }
 }
 
 pub enum ReqBody {
@@ -82,6 +104,11 @@ pub trait ResponseBody {
         self,
         content_length: Option<usize>,
     ) -> impl std::future::Future<Output = std::result::Result<Vec<u8>, HttpError>> + std::marker::Send;
+    fn stream(
+        self,
+    ) -> impl futures::Stream<Item = std::result::Result<bytes::Bytes, HttpError>>
+           + std::marker::Send
+           + Unpin;
 }
 
 #[derive(Debug)]
@@ -94,11 +121,18 @@ pub enum HttpError {
     ReqBodyErr(Box<dyn std::error::Error + Send + Sync>),
     TaskJoinError(tokio::task::JoinError),
     Unknown(String),
+    TrailerNotSupported,
 }
 simple_error_impl!(HttpError);
 
 impl From<hyper::Error> for HttpError {
     fn from(e: hyper::Error) -> Self {
         HttpError::HyperError(e)
+    }
+}
+
+impl From<http::Error> for HttpError {
+    fn from(e: http::Error) -> Self {
+        HttpError::HttpError(e)
     }
 }
