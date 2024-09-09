@@ -1,6 +1,6 @@
 use super::{HttpError, ResponseBody};
 use anyhow::Result;
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 use dashmap::DashMap;
 use futures::StreamExt;
 use http::{HeaderName, HeaderValue, Request, Response, StatusCode};
@@ -14,10 +14,8 @@ pub(crate) async fn send<ReqBody, ReqBodyErr>(
     request: Request<ReqBody>,
 ) -> std::result::Result<Response<impl ResponseBody>, HttpError>
 where
-    ReqBody: http_body::Body<Data = bytes::Bytes, Error = ReqBodyErr>
-        + Send
-        + std::marker::Unpin
-        + 'static,
+    ReqBody: http_body::Body<Error = ReqBodyErr> + Send + std::marker::Unpin + 'static,
+    ReqBody::Data: Send,
     ReqBodyErr: std::error::Error + Send + Sync + 'static,
 {
     let (parts, body) = request.into_parts();
@@ -63,7 +61,7 @@ where
         tokio::select! {
             error_from_js = &mut error_from_js_rx => {
                 error_from_js_txs().remove(&fetch_id);
-                return Err(HttpError::Unknown(error_from_js.unwrap()));
+                return Err(HttpError::Unknown(format!("error_from_js: {error_from_js:?}")));
             },
             frame = body_stream.next() => {
                 let frame = match frame {
@@ -73,9 +71,10 @@ where
                         return Err(HttpError::ReqBodyErr(Box::new(error)));
                     },
                 };
-                let data = frame.into_data().unwrap();
+                let data = frame.into_data().map_err(|_| HttpError::TrailerNotSupported)?;
+                let chunk = data.chunk();
                 unsafe {
-                    _http_fetch_push_request_body_chunk(fetch_id, data.as_ptr(), data.len());
+                    _http_fetch_push_request_body_chunk(fetch_id, chunk.as_ptr(), chunk.len());
                 }
             }
         }
@@ -94,7 +93,7 @@ where
         error_from_js = error_from_js_rx => {
             response_waiters().remove(&fetch_id);
             error_from_js_txs().remove(&fetch_id);
-            Err(HttpError::Unknown(error_from_js.unwrap()))
+            Err(HttpError::Unknown(format!("error_from_js: {error_from_js:?}")))
         },
         response = response_receiver => {
             response_waiters().remove(&fetch_id);
@@ -143,11 +142,15 @@ fn error_from_js_txs() -> &'static DashMap<u32, oneshot::Sender<String>> {
 }
 
 struct ResBody {
-    fetch_id: u32,
+    instance: ResponseBodyInstance,
     rx: UnboundedReceiver<ResBodyChunk>,
 }
 
-impl Drop for ResBody {
+struct ResponseBodyInstance {
+    fetch_id: u32,
+}
+
+impl Drop for ResponseBodyInstance {
     fn drop(&mut self) {
         res_body_txs().remove(&self.fetch_id);
     }
@@ -166,9 +169,9 @@ impl ResponseBody for ResBody {
             }
             if bytes.len() > content_length {
                 unsafe {
-                    _http_fetch_error_on_rust_side(self.fetch_id);
+                    _http_fetch_error_on_rust_side(self.instance.fetch_id);
                 }
-                res_body_txs().remove(&self.fetch_id);
+                res_body_txs().remove(&self.instance.fetch_id);
                 return Err(HttpError::TooManyBytes);
             }
             Ok(bytes)
@@ -179,6 +182,33 @@ impl ResponseBody for ResBody {
             }
             Ok(bytes)
         }
+    }
+
+    fn stream(
+        self,
+    ) -> impl futures::Stream<Item = std::result::Result<bytes::Bytes, HttpError>>
+           + std::marker::Send
+           + Unpin {
+        ResStreamBody {
+            _instance: self.instance,
+            stream: tokio_stream::wrappers::UnboundedReceiverStream::new(self.rx),
+        }
+    }
+}
+
+struct ResStreamBody {
+    _instance: ResponseBodyInstance,
+    stream: tokio_stream::wrappers::UnboundedReceiverStream<ResBodyChunk>,
+}
+
+impl futures::Stream for ResStreamBody {
+    type Item = std::result::Result<bytes::Bytes, HttpError>;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        self.stream.poll_next_unpin(cx)
     }
 }
 
@@ -208,7 +238,10 @@ pub(crate) fn http_fetch_on_response(fetch_id: u32, status: u16, headers: Vec<(S
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         res_body_txs().insert(fetch_id, tx);
 
-        let response = match builder.body(ResBody { fetch_id, rx }) {
+        let response = match builder.body(ResBody {
+            instance: ResponseBodyInstance { fetch_id },
+            rx,
+        }) {
             Ok(response) => response,
             Err(error) => break 'outer Err(HttpError::HttpError(error)),
         };
@@ -237,6 +270,8 @@ pub(crate) fn http_fetch_on_error(fetch_id: u32, message: String) {
     };
 
     if let Some((_, res_body_tx)) = res_body_txs().remove(&fetch_id) {
-        let _ = res_body_tx.send(Err(HttpError::Unknown(message)));
+        let _ = res_body_tx.send(Err(HttpError::Unknown(format!(
+            "http_fetch_on_error: {message}"
+        ))));
     }
 }
