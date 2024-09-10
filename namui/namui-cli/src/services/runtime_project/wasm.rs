@@ -84,6 +84,7 @@ rustflags = [
     "-Clink-arg=--export=malloc",
     "-Clink-arg=--export=free",
 
+    // Supported by every main browser: https://caniuse.com/wasm-simd
     "-Ctarget-feature=+simd128",
 ]
 
