@@ -96,7 +96,7 @@ async fn select_asset_file() -> Result<SelectedAssetFile> {
     return Ok(SelectedAssetFile { name, bytes });
 
     async fn try_read_i32(rx: &mut UnboundedReceiver<Vec<u8>>) -> Result<i32> {
-        let bytes = rx.recv().await.unwrap();
+        let bytes = rx.recv().await.ok_or(anyhow!("data channel closed"))?;
         if bytes.len() != 4 {
             return Err(anyhow!("invalid i32 bytes length: {}", bytes.len()));
         }
@@ -111,7 +111,7 @@ async fn select_asset_file() -> Result<SelectedAssetFile> {
             x => return Err(anyhow!("invalid file name length: {x}")),
         };
 
-        let name_bytes = rx.recv().await.unwrap();
+        let name_bytes = rx.recv().await.ok_or(anyhow!("data channel closed"))?;
         if name_bytes.len() != name_byte_length as usize {
             return Err(anyhow!(
                 "invalid file name bytes length: {}",
@@ -135,7 +135,7 @@ async fn select_asset_file() -> Result<SelectedAssetFile> {
                 0 => return Err(anyhow!("chunk read aborted")),
                 x => return Err(anyhow!("invalid chunk length: {x}")),
             };
-            let chunk = rx.recv().await.unwrap();
+            let chunk = rx.recv().await.ok_or(anyhow!("data channel closed"))?;
             if chunk.len() != chunk_length as usize {
                 return Err(anyhow!(
                     "invalid chunk bytes length: {}, {} expected",
