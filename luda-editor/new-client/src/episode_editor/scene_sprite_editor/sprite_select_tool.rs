@@ -27,7 +27,7 @@ impl Component for SpriteSelectTool<'_> {
                 .iter()
                 .filter(|(_id, sprite_doc)| {
                     sprite_doc.tags.iter().any(|tag| match tag {
-                        SpriteTag::System { tag } => selected_tags.contains(&tag),
+                        SpriteTag::System { tag } => selected_tags.contains(tag),
                         SpriteTag::Custom { .. } => false,
                     })
                 })

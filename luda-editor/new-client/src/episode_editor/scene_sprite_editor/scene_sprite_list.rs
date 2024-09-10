@@ -76,18 +76,18 @@ impl Component for SceneSpriteList<'_> {
                         scroll_bar_width: 16.px(),
                         height: wh.height,
                         item_wh,
-                        items: scene_sprites.into_iter().enumerate().map(
-                            |(index, scene_sprite)| {
+                        items: scene_sprites
+                            .iter()
+                            .enumerate()
+                            .map(|(index, scene_sprite)| {
                                 let sprite_name = scene_sprite
                                     .sprite_id
                                     .as_ref()
-                                    .and_then(|sprite_id| {
-                                        Some(
-                                            sprite_docs
-                                                .get(sprite_id)
-                                                .map(|sprite_doc| sprite_doc.sprite.name())
-                                                .unwrap_or("???"),
-                                        )
+                                    .map(|sprite_id| {
+                                        sprite_docs
+                                            .get(sprite_id)
+                                            .map(|sprite_doc| sprite_doc.sprite.name())
+                                            .unwrap_or("???")
                                     })
                                     .unwrap_or("");
                                 (
@@ -100,8 +100,7 @@ impl Component for SceneSpriteList<'_> {
                                         index,
                                     },
                                 )
-                            },
-                        ),
+                            }),
                     });
                 }),
             ])(wh, ctx)
