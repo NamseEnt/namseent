@@ -24,15 +24,11 @@ use std::sync::Arc;
 ///    - sprite image byte length: u32le
 ///    - sprite image
 ///
-pub fn encode_psd_sprite(
-    psd_bytes: &[u8],
-    filename: &str,
-) -> anyhow::Result<(Vec<u8>, schema_0::PartsSprite)> {
+pub fn encode_psd_sprite(psd_bytes: &[u8]) -> anyhow::Result<Vec<u8>> {
     let psd = psd::Psd::from_bytes(psd_bytes)?;
     let wh = Wh::new(psd.psd_width(), psd.psd_height()).map(|x| (x as f32).px());
     let layer_trees = layer_tree::make_tree(&psd);
     let (psd_sprite, images) = layer_tree::into_psd_sprite(layer_trees, wh)?;
-    let parts_sprite = psd_sprite.to_parts_sprite(filename.to_string());
 
     let serialized_psd_sprite = bincode::serialize(&psd_sprite)?;
 
@@ -65,7 +61,7 @@ pub fn encode_psd_sprite(
 
     let zstd_compressed = zstd::encode_all(output.as_slice(), 9)?;
 
-    Ok((zstd_compressed, parts_sprite))
+    Ok(zstd_compressed)
 }
 
 pub type SpriteLoadedImages = HashMap<SpriteImageId, SpriteLoadedImage>;
@@ -197,9 +193,8 @@ pub async fn decode_psd_sprite(
 /// This is useful for testing.
 pub async fn decode_psd_sprite_from_bytes(
     psd_bytes: &[u8],
-    filename: &str,
 ) -> anyhow::Result<(PsdSprite, SpriteLoadedImages)> {
-    let (encoded_psd_sprite, _parts_sprite) = encode_psd_sprite(psd_bytes, filename)?;
+    let encoded_psd_sprite = encode_psd_sprite(psd_bytes)?;
     decode_psd_sprite(futures_util::stream::iter(vec![Ok(
         bytes::Bytes::copy_from_slice(&encoded_psd_sprite),
     )]))
