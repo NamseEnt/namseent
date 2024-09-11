@@ -50,7 +50,7 @@ import { BufferPoolHandleOnMainThread } from "./bufferPool";
     });
 
     let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;
-    const insertJsHandle = insertJsHandleOnMainThread();
+    let insertJsHandle: ReturnType<typeof insertJsHandleOnMainThread>;
     let newEventSystemHandle: NewEventSystemHandleOnMainThread;
     let bufferPoolHandle: BufferPoolHandleOnMainThread;
     const supportsRequestStreams = await isSupportsRequestStreams();
@@ -107,6 +107,10 @@ import { BufferPoolHandleOnMainThread } from "./bufferPool";
             // Js Insert
             case "insert-js": {
                 insertJsHandle.onInsertJs(payload);
+                break;
+            }
+            case "insert-js-data-buffer": {
+                insertJsHandle.onInsertJsDataBuffer(payload);
                 break;
             }
             case "insert-js-drop": {
@@ -171,6 +175,10 @@ import { BufferPoolHandleOnMainThread } from "./bufferPool";
                     supportsRequestStreams,
                     newEventSystemHandle,
                     bufferPoolHandle,
+                );
+                insertJsHandle = insertJsHandleOnMainThread(
+                    newEventSystemHandle,
+                    wasmMemory,
                 );
                 break;
             }
