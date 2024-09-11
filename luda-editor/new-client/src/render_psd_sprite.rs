@@ -24,7 +24,7 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
             namui::log!("Loading PSD sprite: {}", sprite_id);
             // TODO: Load PSD sprite from the server and cache.
             let psd_bytes = namui::file::bundle::read("test.psd").await.unwrap();
-            let decode_result = decode_psd_sprite_from_bytes(&psd_bytes, "test.psd").await;
+            let decode_result = decode_psd_sprite_from_bytes(&psd_bytes).await;
 
             let load_state = decode_result.map_or_else(
                 |err| PsdSpriteLoadState::Error(err.into()),

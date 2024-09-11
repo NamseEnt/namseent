@@ -416,8 +416,7 @@ mod test {
         let psd_bytes = include_bytes!("test.psd");
 
         let now = std::time::Instant::now();
-        let (encoded_psd_sprite, _parts_sprite) =
-            psd_sprite::encode_psd_sprite(psd_bytes, "test.psd").unwrap();
+        let encoded_psd_sprite = psd_sprite::encode_psd_sprite(psd_bytes).unwrap();
         println!("psd_sprite::encode_psd_sprite: {:?}", now.elapsed());
         println!("encoded_psd_sprite.len(): {}", encoded_psd_sprite.len());
 

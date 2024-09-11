@@ -72,8 +72,9 @@ where
 }
 
 impl TrackEqTuple for () {
-    fn track_eq(&self, _ctx: &ComponentCtx) -> bool {
-        false
+    fn track_eq(&self, ctx: &ComponentCtx) -> bool {
+        let sig = ctx.track_eq(self);
+        sig.is_updated()
     }
 }
 
