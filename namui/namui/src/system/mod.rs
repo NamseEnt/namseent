@@ -1,11 +1,10 @@
+pub mod audio;
 pub mod cache;
 pub mod file;
 pub mod font;
 pub mod image;
 pub mod keyboard;
 pub mod log;
-#[cfg(target_os = "windows")]
-pub mod media;
 pub mod mouse;
 pub mod network;
 pub mod platform;
@@ -33,6 +32,7 @@ pub(super) async fn init_system() -> InitResult {
     wasi::init().await?;
 
     futures::try_join!(
+        audio::init(),
         cache::init(),
         file::init(),
         font::init(),
@@ -55,9 +55,7 @@ pub(super) async fn init_system() -> InitResult {
     //     web::init(),
     // )?;
 
-    tokio::try_join!(typeface::init())?;
-    #[cfg(target_os = "windows")]
-    tokio::try_join!(media::init())?; // todo: join this with typeface
+    futures::try_join!(typeface::init())?;
 
     SYSTEM_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
 

@@ -12,6 +12,7 @@ import {
 } from "./httpFetch/httpFetch";
 import { NewEventSystemHandleOnMainThread } from "./newEventSystem";
 import { BufferPoolHandleOnMainThread } from "./bufferPool";
+import { audioHandleOnMainThread } from "./audio";
 
 (async function main() {
     const canvas = document.createElement("canvas");
@@ -55,6 +56,7 @@ import { BufferPoolHandleOnMainThread } from "./bufferPool";
     let bufferPoolHandle: BufferPoolHandleOnMainThread;
     const supportsRequestStreams = await isSupportsRequestStreams();
     let httpFetchHandle: ReturnType<typeof httpFetchHandleOnMainThread>;
+    const audioHandle = audioHandleOnMainThread();
 
     function onMessage(this: Worker, message: MessageEvent) {
         const payload: WorkerMessagePayload = message.data;
@@ -172,6 +174,31 @@ import { BufferPoolHandleOnMainThread } from "./bufferPool";
                     newEventSystemHandle,
                     bufferPoolHandle,
                 );
+                break;
+            }
+            // Audio
+            case "audio-init": {
+                audioHandle.audioInit(payload);
+                break;
+            }
+            case "audio-drop": {
+                audioHandle.audioDrop(payload);
+                break;
+            }
+            case "audio-play": {
+                audioHandle.audioPlay(payload);
+                break;
+            }
+            case "audio-play_and_forget": {
+                audioHandle.audioPlayAndForget(payload);
+                break;
+            }
+            case "audio-playback_drop": {
+                audioHandle.audioPlaybackDrop(payload);
+                break;
+            }
+            case "audio-context-volume-set": {
+                audioHandle.audioContextVolumeSet(payload);
                 break;
             }
             default:

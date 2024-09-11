@@ -9,6 +9,7 @@ import { storageImports } from "../storage/imports";
 import { bufferPoolImports } from "../bufferPool";
 import { newEventSystemImports } from "../newEventSystem";
 import { httpFetchImports } from "../httpFetch/httpFetch";
+import { audioImports } from "../audio";
 
 export function createImportObject({
     memory,
@@ -99,6 +100,7 @@ export function createImportObject({
             ...bufferPoolImports({ memory }),
             ...newEventSystemImports({ memory }),
             ...httpFetchImports({ memory }),
+            ...audioImports({ memory }),
             poll_event: (wasmBufferPtr: number): number => {
                 if (!eventSystem) {
                     eventSystem = new EventSystemOnWorker(eventBuffer, memory);

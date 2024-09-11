@@ -83,6 +83,8 @@ rustflags = [
     "-Clink-arg=--export=__data_end",
     "-Clink-arg=--export=malloc",
     "-Clink-arg=--export=free",
+
+    "-Ctarget-feature=+simd128",
 ]
 
 [env]
