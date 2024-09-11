@@ -3,7 +3,6 @@ use luda_rpc::{asset::reserve_team_asset_upload, AssetKind};
 use namui::*;
 use namui_prebuilt::table::*;
 use network::http;
-use std::io::Write;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 pub struct AssetManagePage<'a> {
@@ -84,8 +83,7 @@ async fn select_asset_file() -> Result<SelectedAssetFile> {
         Some(move |data: &[u8]| {
             data_tx.send(data.to_vec()).unwrap();
         }),
-    )
-    .await;
+    );
 
     // See protocol in select_asset_file.js
     let name = try_read_file_name(&mut data_rx).await?;
@@ -95,57 +93,15 @@ async fn select_asset_file() -> Result<SelectedAssetFile> {
 
     return Ok(SelectedAssetFile { name, bytes });
 
-    async fn try_read_i32(rx: &mut UnboundedReceiver<Vec<u8>>) -> Result<i32> {
-        let bytes = rx.recv().await.ok_or(anyhow!("data channel closed"))?;
-        if bytes.len() != 4 {
-            return Err(anyhow!("invalid i32 bytes length: {}", bytes.len()));
-        }
-        let mut i32_bytes: [u8; 4] = [0; 4];
-        i32_bytes.copy_from_slice(&bytes);
-        Ok(i32::from_be_bytes(i32_bytes))
-    }
     async fn try_read_file_name(rx: &mut UnboundedReceiver<Vec<u8>>) -> Result<String> {
-        let name_byte_length = match try_read_i32(rx).await? {
-            x if x > 0 => x,
-            -1 => return Err(anyhow!("file name not selected")),
-            x => return Err(anyhow!("invalid file name length: {x}")),
-        };
-
         let name_bytes = rx.recv().await.ok_or(anyhow!("data channel closed"))?;
-        if name_bytes.len() != name_byte_length as usize {
-            return Err(anyhow!(
-                "invalid file name bytes length: {}",
-                name_bytes.len()
-            ));
+        if name_bytes.is_empty() {
+            return Err(anyhow!("file not selected"));
         }
         Ok(String::from_utf8(name_bytes)?)
     }
     async fn try_read_file_bytes(rx: &mut UnboundedReceiver<Vec<u8>>) -> Result<Vec<u8>> {
-        let file_byte_length = try_read_i32(rx).await?;
-        if file_byte_length < 0 {
-            return Err(anyhow!("invalid file bytes length: {}", file_byte_length));
-        }
-        let mut file_bytes = Vec::with_capacity(file_byte_length as usize);
-        let mut writer = std::io::Cursor::new(&mut file_bytes);
-        let mut read_count = 0;
-
-        while read_count < file_byte_length {
-            let chunk_length = match try_read_i32(rx).await? {
-                x if x > 0 => x,
-                0 => return Err(anyhow!("chunk read aborted")),
-                x => return Err(anyhow!("invalid chunk length: {x}")),
-            };
-            let chunk = rx.recv().await.ok_or(anyhow!("data channel closed"))?;
-            if chunk.len() != chunk_length as usize {
-                return Err(anyhow!(
-                    "invalid chunk bytes length: {}, {} expected",
-                    chunk.len(),
-                    chunk_length
-                ));
-            }
-            read_count += chunk_length;
-            writer.write_all(&chunk)?;
-        }
+        let file_bytes = rx.recv().await.ok_or(anyhow!("data channel closed"))?;
         Ok(file_bytes)
     }
 }

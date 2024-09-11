@@ -156,8 +156,7 @@ async fn take_google_gsi_jwt() -> String {
             let str = std::str::from_utf8(data).unwrap();
             data_tx.send(str.to_string()).unwrap();
         }),
-    )
-    .await;
+    );
 
     let data = data_rx.recv().await.unwrap();
 
