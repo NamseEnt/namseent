@@ -49,17 +49,6 @@ export type NewSystemEvent =
       }
     | {
           type: "buffer-pool/request-buffer";
-      }
-    | {
-          type: "insert-js/request-data-buffer";
-          jsId: U32;
-          requestId: U32;
-          bufferLen: U32;
-      }
-    | {
-          type: "insert-js/data";
-          jsId: U32;
-          requestId: U32;
       };
 
 export function newEventSystemImports({
