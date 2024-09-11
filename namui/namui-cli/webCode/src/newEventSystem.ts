@@ -49,7 +49,18 @@ export type NewSystemEvent =
       }
     | {
           type: "buffer-pool/request-buffer";
-      };
+      }
+    | {
+          type: "insert-js/request-data-buffer";
+          jsId: U32;
+          requestId: U32;
+          bufferLen: U32;
+      }
+    | {
+          type: "insert-js/data";
+          jsId: U32;
+          requestId: U32;
+    };
 
 export function newEventSystemImports({
     memory,
@@ -141,6 +152,19 @@ export class NewEventSystemHandleOnMainThread {
             }
             case "buffer-pool/request-buffer": {
                 input.push(["u8", 5]);
+                break;
+            }
+            case "insert-js/request-data-buffer": {
+                input.push(["u8", 6]);
+                input.push(event.jsId);
+                input.push(event.requestId);
+                input.push(event.bufferLen);
+                break;
+            }
+            case "insert-js/data": {
+                input.push(["u8", 7]);
+                input.push(event.jsId);
+                input.push(event.requestId);
                 break;
             }
             default: {
