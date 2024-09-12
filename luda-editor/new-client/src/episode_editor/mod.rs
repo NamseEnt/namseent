@@ -1,6 +1,6 @@
 mod scene_list;
 mod scene_preview;
-mod scene_sprite_editor;
+// mod scene_sprite_editor;
 mod speaker_selector;
 mod text_editor;
 
