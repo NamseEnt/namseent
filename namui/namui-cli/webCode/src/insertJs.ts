@@ -123,7 +123,7 @@ export function insertJsHandleOnMainThread(
                 throw new Error(`No data for ${requestId} found`);
             }
 
-            new Uint8Array(data).set(new Uint8Array(memory.buffer, bufferPtr));
+            new Uint8Array(memory.buffer, bufferPtr).set(new Uint8Array(data));
 
             js.dataBufferRequestMap.delete(requestId);
 
