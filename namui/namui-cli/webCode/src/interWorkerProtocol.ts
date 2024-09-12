@@ -134,6 +134,35 @@ export type WorkerMessagePayload =
           type: "buffer-pool-new-buffer";
           ptr: number;
           len: number;
+      }
+    // Audio
+    | {
+          type: "audio-init";
+          audioId: number;
+          buffer: ArrayBuffer;
+      }
+    | {
+          type: "audio-drop";
+          audioId: number;
+      }
+    | {
+          type: "audio-play";
+          audioId: number;
+          playbackId: number;
+          repeat: boolean;
+      }
+    | {
+          type: "audio-play_and_forget";
+          audioId: number;
+      }
+    | {
+          type: "audio-playback_drop";
+          playbackId: number;
+      }
+    | {
+          type: "audio-context-volume-set";
+          volume: number;
+          requestSequenceNumber: number;
       };
 
 export function sendMessageToMainThread(
