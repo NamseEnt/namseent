@@ -1701,9 +1701,9 @@ checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
 name = "opusic-sys"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e941266d8dac305d927f680e2a8f62c97c8db3ba64502f7a017e8c44dda38f10"
+checksum = "5674e9b17161beea3d6ae7416a18cdf48f53f6ecf47a3434acd6224b067b4802"
 dependencies = [
  "cmake",
  "libc",
