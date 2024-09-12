@@ -107,7 +107,7 @@ export function insertJsHandleOnMainThread(
             jsMap.delete(jsId);
         },
 
-        OnInsertJsDataBuffer({
+        onInsertJsDataBuffer({
             bufferPtr,
             requestId,
             jsId,
