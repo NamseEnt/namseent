@@ -32,7 +32,7 @@ impl Component for Home<'_> {
                     });
                 }),
                 ratio(1, |wh, ctx| {
-                    ctx.add(ProjectList {
+                    ctx.add(Team {
                         wh,
                         team_id: match selection.as_ref() {
                             Selection::Team { team_id } => Some(team_id),
@@ -68,7 +68,7 @@ impl Component for Home<'_> {
 
 struct TeamList<'a> {
     wh: Wh<Px>,
-    on_select_team: &'a dyn Fn(&Team),
+    on_select_team: &'a dyn Fn(&luda_rpc::Team),
 }
 
 impl Component for TeamList<'_> {
@@ -142,6 +142,56 @@ impl Component for TeamList<'_> {
                 });
             },
         );
+    }
+}
+
+struct Team<'a> {
+    wh: Wh<Px>,
+    team_id: Option<&'a String>,
+    on_select_project: &'a dyn Fn(&Project),
+}
+impl Component for Team<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            wh,
+            team_id,
+            on_select_project,
+        } = self;
+
+        ctx.compose(|ctx| {
+            vertical([
+                fixed(24.px(), |wh, ctx| {
+                    ctx.add(AssetManageOpenButton { wh, team_id });
+                }),
+                ratio(1, |wh, ctx| {
+                    ctx.add(ProjectList {
+                        wh,
+                        team_id,
+                        on_select_project,
+                    });
+                }),
+            ])(wh, ctx);
+        });
+    }
+}
+
+struct AssetManageOpenButton<'a> {
+    wh: Wh<Px>,
+    team_id: Option<&'a String>,
+}
+impl Component for AssetManageOpenButton<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { wh, team_id } = self;
+
+        ctx.add(simple_button(wh, "에셋 관리", |_event| {
+            let Some(team_id) = team_id else {
+                toast::negative("팀을 먼저 선택해주세요");
+                return;
+            };
+            router::route(router::Route::AssetManage {
+                team_id: team_id.clone(),
+            });
+        }));
     }
 }
 

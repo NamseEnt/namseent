@@ -65,6 +65,23 @@ fn spawn_thread() {
                     event::Event::BufferPoolRequestBuffer => {
                         crate::system::wasi::buffer_pool::send_new_buffer_to_js();
                     }
+                    event::Event::InsertJsRequestDataBuffer {
+                        js_id,
+                        request_id,
+                        buffer_len,
+                    } => {
+                        crate::system::wasi::insert_js::on_request_data_buffer(
+                            js_id as usize,
+                            request_id as usize,
+                            buffer_len as usize,
+                        );
+                    }
+                    event::Event::InsertJsData { js_id, request_id } => {
+                        crate::system::wasi::insert_js::on_data(
+                            js_id as usize,
+                            request_id as usize,
+                        );
+                    }
                 }
             }
         }

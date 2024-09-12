@@ -66,18 +66,17 @@ export type WorkerMessagePayload =
     | {
           type: "insert-js";
           js: string;
-          /** Uint32, non-zero id. */
-          idBuffer: SharedArrayBuffer;
-          ringBuffer?: {
-              wasmMemory: SharedArrayBuffer;
-              ptr: number;
-              len: number;
-              writtenBuffer: SharedArrayBuffer;
-          };
+          jsId: number;
       }
     | {
           type: "insert-js-drop";
-          id: number;
+          jsId: number;
+      }
+    | {
+          type: "insert-js-data-buffer";
+          jsId: number;
+          requestId: number;
+          bufferPtr: number;
       }
     // Storage System
     | {

@@ -45,8 +45,8 @@ impl Component for EpisodeEditor<'_> {
                     ctx.add(LoadedEpisodeEditor {
                         project_id,
                         episode_id,
-                        initial_scenes: &scenes,
-                        initial_texts: &texts,
+                        initial_scenes: scenes,
+                        initial_texts: texts,
                     });
                 }
                 Err(err) => {
@@ -66,7 +66,7 @@ struct LoadedEpisodeEditor<'a> {
     project_id: &'a String,
     episode_id: &'a String,
     initial_scenes: &'a Vec<Scene>,
-    initial_texts: &'a HashMap<String, HashMap<String, Option<String>>>,
+    initial_texts: &'a HashMap<String, HashMap<String, String>>,
 }
 
 impl Component for LoadedEpisodeEditor<'_> {
@@ -149,7 +149,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                         texts
                             .get_mut(&scene_id)
                             .unwrap()
-                            .insert(language_code, Some(text));
+                            .insert(language_code, text);
                     }
                     EditActionForUndo::UpdateScene { scene } => {
                         let Some(scene_index) = scenes.iter().position(|x| x.id == scene.id) else {
@@ -194,8 +194,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                         let text = texts
                             .entry(scene_id.clone())
                             .or_insert_with(HashMap::new)
-                            .insert(language_code.clone(), Some(text.clone()))
-                            .unwrap_or(None)
+                            .insert(language_code.clone(), text.clone())
                             .unwrap_or("".to_string());
                         history.push(EditActionForUndo::EditText {
                             scene_id,
@@ -282,8 +281,6 @@ impl Component for LoadedEpisodeEditor<'_> {
                         let text = texts
                             .get(&scene.id)
                             .and_then(|x| x.get("kor"))
-                            .unwrap_or(&None)
-                            .as_ref()
                             .unwrap_or(&empty_text);
                         ctx.add(text_editor::TextEditor {
                             wh,

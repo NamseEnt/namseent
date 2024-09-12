@@ -6,6 +6,7 @@ pub enum Route {
     Home { initial_selection: home::Selection },
     NewTeam,
     NewProject { team_id: String },
+    AssetManage { team_id: String },
 }
 
 static ROUTE_ATOM: Atom<Route> = Atom::uninitialized();
@@ -24,6 +25,9 @@ impl Component for Router {
             }
             Route::NewProject { team_id } => {
                 ctx.add(new_project_page::NewProjectPage { team_id });
+            }
+            Route::AssetManage { team_id } => {
+                ctx.add(asset_manage_page::AssetManagePage { team_id });
             }
         }
     }

@@ -1,24 +1,4 @@
-pub(crate) enum Event {
-    HttpFetchOnResponse {
-        fetch_id: u32,
-        status: u16,
-        headers: Vec<(String, String)>,
-    },
-    HttpFetchOnResponseBodyChunk {
-        fetch_id: u32,
-        pooled_buffer_ptr: u32,
-        written: u32,
-    },
-    HttpFetchOnResponseBodyDone {
-        fetch_id: u32,
-    },
-    HttpFetchOnError {
-        fetch_id: u32,
-        message: String,
-    },
-    BufferPoolRequestBuffer,
-}
-
+// This comment is for Copilot.
 // export type NewSystemEvent =
 //     | {
 //           type: "http-fetch/on-response";
@@ -50,7 +30,48 @@ pub(crate) enum Event {
 //       }
 //     | {
 //           type: "buffer-pool/request-buffer";
-//       };
+//       }
+//     | {
+//          type: "insert-js/request-data-buffer";
+//          jsId: U32;
+//          requestId: U32;
+//          bufferLen: U32;
+//       }
+//     | {
+//         type: "insert-js/data";
+//         jsId: U32;
+//         requestId: U32;
+//       }
+
+pub(crate) enum Event {
+    HttpFetchOnResponse {
+        fetch_id: u32,
+        status: u16,
+        headers: Vec<(String, String)>,
+    },
+    HttpFetchOnResponseBodyChunk {
+        fetch_id: u32,
+        pooled_buffer_ptr: u32,
+        written: u32,
+    },
+    HttpFetchOnResponseBodyDone {
+        fetch_id: u32,
+    },
+    HttpFetchOnError {
+        fetch_id: u32,
+        message: String,
+    },
+    BufferPoolRequestBuffer,
+    InsertJsRequestDataBuffer {
+        js_id: u32,
+        request_id: u32,
+        buffer_len: u32,
+    },
+    InsertJsData {
+        js_id: u32,
+        request_id: u32,
+    },
+}
 
 pub(crate) fn read(event_buffer: &mut namui_type::RingBuffer) -> Event {
     let message_type = event_buffer.read_u8();
@@ -100,6 +121,21 @@ pub(crate) fn read(event_buffer: &mut namui_type::RingBuffer) -> Event {
             Event::HttpFetchOnError { fetch_id, message }
         }
         5 => Event::BufferPoolRequestBuffer,
+        6 => {
+            let js_id = event_buffer.read_u32();
+            let request_id = event_buffer.read_u32();
+            let buffer_len = event_buffer.read_u32();
+            Event::InsertJsRequestDataBuffer {
+                js_id,
+                request_id,
+                buffer_len,
+            }
+        }
+        7 => {
+            let js_id = event_buffer.read_u32();
+            let request_id = event_buffer.read_u32();
+            Event::InsertJsData { js_id, request_id }
+        }
         _ => unreachable!(),
     }
 }

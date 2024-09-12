@@ -1,155 +1,137 @@
-import { RingBufferWriter, StrictArrayBuffer } from "./RingBufferWriter";
+import { StrictArrayBuffer } from "./RingBufferWriter";
 import {
     WorkerMessagePayload,
     sendMessageToMainThread,
 } from "./interWorkerProtocol";
+import { NewEventSystemHandleOnMainThread } from "./newEventSystem";
 
 // # data callback protocol
 // [data byte length: u16][message data: ...]
 
 export function insertJsImports({ memory }: { memory: WebAssembly.Memory }) {
-    const writtenBuffer = new SharedArrayBuffer(4);
-
-    function insertJs(
-        jsPtr: number,
-        jsLen: number,
-        ringBuffer?: {
-            ringBufferPtr: number;
-            ringBufferLen: number;
-        },
-    ): number {
-        if (!(memory.buffer instanceof SharedArrayBuffer)) {
-            throw new Error("memory.buffer must be SharedArrayBuffer");
-        }
-        const jsBuffer = new Uint8Array(jsLen);
-        jsBuffer.set(new Uint8Array(memory.buffer, jsPtr, jsLen));
-        const js = new TextDecoder().decode(jsBuffer);
-        const idBuffer = new SharedArrayBuffer(4);
-
-        sendMessageToMainThread({
-            type: "insert-js",
-            js,
-            idBuffer,
-            ringBuffer: ringBuffer
-                ? {
-                      wasmMemory: memory.buffer,
-                      ptr: ringBuffer.ringBufferPtr,
-                      len: ringBuffer.ringBufferLen,
-                      writtenBuffer,
-                  }
-                : undefined,
-        });
-
-        Atomics.wait(new Int32Array(idBuffer), 0, 0);
-        const id = new Uint32Array(idBuffer)[0];
-        return id;
-    }
-
     return {
-        _insert_js: (jsPtr: number, jsLen: number): number => {
-            return insertJs(jsPtr, jsLen);
-        },
-        _insert_js_with_data_callback: (
-            jsPtr: number,
-            jsLen: number,
-            ringBufferPtr: number,
-            ringBufferLen: number,
-        ): number => {
-            return insertJs(jsPtr, jsLen, {
-                ringBufferPtr,
-                ringBufferLen,
+        _insert_js: (jsPtr: number, jsLen: number, jsId: number) => {
+            if (!(memory.buffer instanceof SharedArrayBuffer)) {
+                throw new Error("memory.buffer must be SharedArrayBuffer");
+            }
+            const jsBuffer = new Uint8Array(jsLen);
+            jsBuffer.set(new Uint8Array(memory.buffer, jsPtr, jsLen));
+            const js = new TextDecoder().decode(jsBuffer);
+
+            sendMessageToMainThread({
+                type: "insert-js",
+                js,
+                jsId,
             });
         },
         _insert_js_drop: (jsId: number) => {
             sendMessageToMainThread({
                 type: "insert-js-drop",
-                id: jsId,
+                jsId,
             });
         },
-        _insert_js_data_poll: (timeoutMs: number): number => {
-            Atomics.wait(new Int32Array(writtenBuffer), 0, 0, timeoutMs);
-            return Atomics.load(new Uint32Array(writtenBuffer), 0);
-        },
-        _insert_js_data_commit: (byteLength: number) => {
-            Atomics.sub(new Uint32Array(writtenBuffer), 0, byteLength);
+        _insert_js_data_buffer: (
+            jsId: number,
+            requestId: number,
+            bufferPtr: number,
+        ) => {
+            sendMessageToMainThread({
+                type: "insert-js-data-buffer",
+                jsId,
+                requestId,
+                bufferPtr,
+            });
         },
     };
 }
 
-export function insertJsHandleOnMainThread(): {
-    onInsertJs: (payload: WorkerMessagePayload & { type: "insert-js" }) => void;
-    onInsertJsDrop: (
-        payload: WorkerMessagePayload & { type: "insert-js-drop" },
-    ) => void;
-} {
-    let nextId = 1;
+export function insertJsHandleOnMainThread(
+    newEventSystemHandle: NewEventSystemHandleOnMainThread,
+    memory: WebAssembly.Memory,
+) {
+    let nextRequestId = 0;
     const jsMap = new Map<
         number,
         {
             script: HTMLScriptElement;
-            ringBuffer?: RingBufferWriter;
+            dataBufferRequestMap: Map<number, StrictArrayBuffer>;
         }
     >();
 
-    (window as any).namui_onData = (id: number, data: StrictArrayBuffer) => {
-        const js = jsMap.get(id);
+    (window as any).namui_onData = (jsId: number, data: StrictArrayBuffer) => {
+        const js = jsMap.get(jsId);
         if (!js) {
-            console.log(`No js for ${id} found but namui_onData is called.`);
-            return;
-        }
-        if (!js.ringBuffer) {
-            console.warn(
-                "No ring buffer found. Make sure that you are using `Some(OnData)`.",
-            );
+            console.log(`No js for ${jsId} found but namui_onData is called.`);
             return;
         }
 
-        if (data.byteLength > 0xffff) {
-            throw new Error(
-                `Data byte length ${data.byteLength} is larger than 0xffff`,
-            );
-        }
-        js.ringBuffer.write(["u16", data.byteLength], ["bytes", data]);
+        const requestId = nextRequestId++;
+
+        js.dataBufferRequestMap.set(requestId, data);
+
+        newEventSystemHandle.sendEvent({
+            type: "insert-js/request-data-buffer",
+            jsId: ["u32", jsId],
+            bufferLen: ["u32", data.byteLength],
+            requestId: ["u32", requestId],
+        });
     };
 
     return {
-        onInsertJs({ idBuffer, js, ringBuffer }) {
-            const id = nextId++;
-
+        onInsertJs({ js, jsId }: WorkerMessagePayload & { type: "insert-js" }) {
             const script = document.createElement("script");
 
-            jsMap.set(id, {
+            jsMap.set(jsId, {
                 script,
-                ringBuffer: ringBuffer
-                    ? new RingBufferWriter(
-                          ringBuffer.wasmMemory,
-                          ringBuffer.ptr,
-                          ringBuffer.len,
-                          ringBuffer.writtenBuffer,
-                      )
-                    : undefined,
+                dataBufferRequestMap: new Map(),
             });
 
             script.textContent = `const namui_sendData = (data) => {
-                window.namui_onData(${id}, data);
+                window.namui_onData(${jsId}, data);
             }
             ${js}
-            window.namui_onDrop_${id} = namui_onDrop;`;
+            window.namui_onDrop_${jsId} = namui_onDrop;`;
             document.body.appendChild(script);
-
-            Atomics.store(new Int32Array(idBuffer), 0, id);
-            Atomics.notify(new Int32Array(idBuffer), 0);
         },
-        onInsertJsDrop({ id }) {
-            const js = jsMap.get(id);
+        onInsertJsDrop({
+            jsId,
+        }: WorkerMessagePayload & { type: "insert-js-drop" }) {
+            const js = jsMap.get(jsId);
             if (!js) {
-                return;
+                throw new Error(`No js for ${jsId} found`);
             }
-            const onDropKey = `namui_onDrop_${id}`;
+            const onDropKey = `namui_onDrop_${jsId}`;
             (window as any)[onDropKey]?.();
             delete (window as any)[onDropKey];
             js.script.remove();
-            jsMap.delete(id);
+            jsMap.delete(jsId);
+        },
+
+        onInsertJsDataBuffer({
+            bufferPtr,
+            requestId,
+            jsId,
+        }: WorkerMessagePayload & {
+            type: "insert-js-data-buffer";
+        }) {
+            const js = jsMap.get(jsId);
+            if (!js) {
+                throw new Error(`No js for ${jsId} found`);
+            }
+            const data = js.dataBufferRequestMap.get(requestId);
+            if (!data) {
+                throw new Error(`No data for ${requestId} found`);
+            }
+
+            new Uint8Array(memory.buffer, bufferPtr).set(new Uint8Array(data));
+
+            js.dataBufferRequestMap.delete(requestId);
+
+            newEventSystemHandle.sendEvent({
+                type: "insert-js/data",
+                jsId: ["u32", jsId],
+                requestId: ["u32", requestId],
+            });
         },
     };
 }
