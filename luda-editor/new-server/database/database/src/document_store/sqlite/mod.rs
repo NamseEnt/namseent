@@ -45,7 +45,7 @@ impl SqliteKvStore {
                         value BLOB,
                         version INTEGER,
                         expired_at INTEGER,
-                        PRIMARY KEY (pk, sk)
+                        PRIMARY KEY (name, pk, sk)
                     )",
             [],
         )

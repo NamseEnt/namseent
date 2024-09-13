@@ -30,6 +30,59 @@ pub enum TransactItem<'a, AbortReason> {
     },
 }
 
+impl<'a, AbortReason> std::fmt::Debug for TransactItem<'a, AbortReason> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransactItem::Put {
+                name,
+                pk,
+                sk,
+                value,
+                ttl,
+            } => f
+                .debug_struct("Put")
+                .field("name", name)
+                .field("pk", pk)
+                .field("sk", sk)
+                .field("value", value)
+                .field("ttl", ttl)
+                .finish(),
+            TransactItem::Create {
+                name,
+                pk,
+                sk,
+                value_fn: _,
+                ttl,
+            } => f
+                .debug_struct("Create")
+                .field("name", name)
+                .field("pk", pk)
+                .field("sk", sk)
+                .field("value_fn", &"...")
+                .field("ttl", ttl)
+                .finish(),
+            TransactItem::Update {
+                name,
+                pk,
+                sk,
+                update_fn: _,
+            } => f
+                .debug_struct("Update")
+                .field("name", name)
+                .field("pk", pk)
+                .field("sk", sk)
+                .field("update_fn", &"...")
+                .finish(),
+            TransactItem::Delete { name, pk, sk } => f
+                .debug_struct("Delete")
+                .field("name", name)
+                .field("pk", pk)
+                .field("sk", sk)
+                .finish(),
+        }
+    }
+}
+
 type UpdateFn<'a, AbortReason> =
     Option<Box<dyn 'a + Send + FnOnce(&mut Vec<u8>) -> Result<WantUpdate<AbortReason>>>>;
 
