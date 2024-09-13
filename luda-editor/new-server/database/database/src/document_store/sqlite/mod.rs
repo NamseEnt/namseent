@@ -106,7 +106,7 @@ impl SqliteKvStore {
                             }
                         }
                         Err(err) => {
-                            eprintln!("Failed to backup db: {}", err);
+                            eprintln!("Failed to backup db: {:?}", err);
                         }
                     }
                 }

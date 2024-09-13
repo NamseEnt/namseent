@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.86"
+anyhow = { version = "1.0.86", features = ["backtrace"] }
 tokio = { version = "1", features = ["full"] }
 rkyv = { version = "0.7.44", features = ["validation"] }
 rusqlite = { path = "../rusqlite-0.31.0", features = ["bundled"] }

@@ -64,10 +64,13 @@ pub async fn try_fetch_db_file_from_s3(
 }
 
 fn copy_db_and_wal() -> anyhow::Result<()> {
-    std::fs::remove_dir_all(BACKUP_DIR)?;
+    let backup_dir_path = backup_dir_path();
+    if backup_dir_path.exists() {
+        std::fs::remove_dir_all(BACKUP_DIR)?;
+    }
+
     std::fs::create_dir_all(BACKUP_DIR)?;
 
-    let backup_dir_path = backup_dir_path();
     let backup_db_path = backup_dir_path.join(DB_FILENAME);
     let backup_wal_path = backup_dir_path.join(DB_WAL_FILENAME);
 
