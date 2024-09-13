@@ -58,3 +58,4 @@ pub type Sprite = migration::schema::Sprite;
 pub type SystemTag = migration::schema::SystemTag;
 pub type SpriteTag = migration::schema::SpriteTag;
 pub type AssetKind = migration::schema::AssetKind;
+pub type AssetDoc = migration::schema::AssetDoc;
