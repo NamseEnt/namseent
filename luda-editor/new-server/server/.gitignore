@@ -1,5 +1,6 @@
 src/ws_handler/handle.rs
-/db.sqlite*
+**/db.sqlite*
+backup
 
 # Edit at https://www.toptal.com/developers/gitignore?templates=rust
 
