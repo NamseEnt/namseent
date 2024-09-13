@@ -279,5 +279,17 @@ rpc_macro::define_rpc! {
                 NotEnoughSpace,
             }
         },
+        get_team_asset_docs: {
+            struct Request {
+                team_id: String,
+            }
+            struct Response {
+                asset_docs: Vec<AssetDoc>,
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+            }
+        },
     },
 }
