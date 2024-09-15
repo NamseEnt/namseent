@@ -207,4 +207,12 @@ mod tests {
         let result = encode_to_ogg_opus(&pcms);
         assert!(result.is_ok());
     }
+
+    // 애매한 갯수의 샘플을 넣어서 테스트
+    #[test]
+    fn test_encode_stereo_to_ogg_opus_odd_numbers_samples() {
+        let pcms = vec![vec![0.0; 123456]; 2];
+        let result = encode_to_ogg_opus(&pcms);
+        assert!(result.is_ok());
+    }
 }
