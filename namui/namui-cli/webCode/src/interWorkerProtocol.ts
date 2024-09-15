@@ -78,6 +78,12 @@ export type WorkerMessagePayload =
           requestId: number;
           bufferPtr: number;
       }
+    | {
+          type: "insert-js-send-data-from-rust";
+          jsId: number;
+          sendDataId: number;
+          data: ArrayBuffer;
+      }
     // Storage System
     | {
           type: "storage-init";
