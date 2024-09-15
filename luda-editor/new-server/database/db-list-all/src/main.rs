@@ -56,6 +56,8 @@ async fn real_main() -> Result<()> {
         let pk: Vec<u8> = row.get(4)?;
         let sk: Option<Vec<u8>> = row.get(5)?;
 
+        println!("--------");
+
         if let Some(debug_log_value) = debug_log_value_map.get(&name.as_ref()) {
             debug_log_value(&value)
         } else {
