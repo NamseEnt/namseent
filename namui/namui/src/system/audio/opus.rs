@@ -183,7 +183,8 @@ where
                 absgp as u64,
             )?;
 
-            interleaved_samples = &interleaved_samples[frame_size..];
+            interleaved_samples =
+                &interleaved_samples[(frame_size.min(interleaved_samples.len()))..];
         }
     }
 
