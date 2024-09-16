@@ -11,6 +11,7 @@ use anyhow::{anyhow, bail, Result};
 use cpal as inner;
 use futures::TryStreamExt;
 pub use inner::Audio;
+pub use opus::encode_to_ogg_opus;
 #[cfg(target_os = "wasi")]
 use wasi as inner;
 
