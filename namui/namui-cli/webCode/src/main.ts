@@ -119,6 +119,10 @@ import { audioHandleOnMainThread } from "./audio";
                 insertJsHandle.onInsertJsDrop(payload);
                 break;
             }
+            case "insert-js-send-data-from-rust": {
+                insertJsHandle.onInsertJsSendDataFromRust(payload);
+                break;
+            }
             // File System
             case "storage-thread-connect": {
                 storageWorker.postMessage(payload);

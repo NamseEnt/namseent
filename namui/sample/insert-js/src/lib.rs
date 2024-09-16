@@ -16,7 +16,7 @@ fn render(ctx: &RenderCtx) {
         tokio::spawn({
             let is_component_unmounted = is_component_unmounted.clone();
             async move {
-                let _js_handle = namui::wasi::insert_js(
+                let js_handle = namui::wasi::insert_js(
                     include_str!("login.js"),
                     Some(move |data: &[u8]| {
                         let string = std::str::from_utf8(data).unwrap().to_string();
@@ -26,8 +26,9 @@ fn render(ctx: &RenderCtx) {
                             *content += "\n"
                         })
                     }),
-                )
-                .await;
+                );
+
+                js_handle.send_data([1, 2, 3, 4, 5]);
 
                 // To keep _js_handle alive
                 while !is_component_unmounted.load(std::sync::atomic::Ordering::Relaxed) {

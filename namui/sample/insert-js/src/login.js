@@ -67,3 +67,7 @@ namui_sendData(jsonBytes);
 function namui_onDrop() {
     console.log("namui_onDrop");
 }
+
+function namui_onData(data) {
+    console.log("namui_onData", data);
+}
