@@ -94,18 +94,44 @@ where
             bail!("{}", CStr::from_ptr(opus_strerror(error)).to_str().unwrap());
         }
 
-        let lookahead = opus_encoder_ctl(encoder, OPUS_GET_LOOKAHEAD_REQUEST) as u16;
+        let mut lookahead: opus_int32 = 0;
+        let error = opus_encoder_ctl(encoder, OPUS_GET_LOOKAHEAD_REQUEST, &mut lookahead) as u16;
+        if error != 0 {
+            bail!(
+                "{}",
+                CStr::from_ptr(opus_strerror(error as i32))
+                    .to_str()
+                    .unwrap()
+            );
+        }
 
         {
-            // https://github.com/sheosi/ogg-opus/blob/master/src/encode.rs#L120
+            // https://wiki.xiph.org/OggOpus#ID_Header
+            //  0                   1                   2                   3
+            //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |       'O'     |      'p'      |     'u'       |     's'       |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |       'H'     |       'e'     |     'a'       |     'd'       |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |  version = 1  | channel count |           pre-skip            |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |                original input sample rate in Hz               |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |    output gain Q7.8 in dB     |  channel map  |               |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               :
+            // |                                                               |
+            // :          optional channel mapping table...                    :
+            // |                                                               |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             let mut head = Vec::with_capacity(19);
             head.extend("OpusHead".bytes());
-            head.push(1); // Version number, always 1
-            head.push(channel_count as u8); // Channels
-            head.extend(lookahead.to_le_bytes());
+            head.push(1);
+            head.push(channel_count as u8);
+            head.extend((lookahead as u16).to_le_bytes());
             head.extend(48000u32.to_le_bytes());
             head.extend(0u16.to_le_bytes()); // Output gain
-            head.push(0); // Channel map family. If Channel map != 0, here should go channel mapping table
+            head.push(0);
 
             assert_eq!(head.len(), 19);
 
