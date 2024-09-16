@@ -157,31 +157,32 @@ where
         let mut sample_count = 0;
 
         while !interleaved_samples.is_empty() {
-            let frame_size = if interleaved_samples.len() > MAX_FRAME_SIZE {
+            let frame_size = if interleaved_samples.len() > MAX_FRAME_SIZE * channel_count {
                 MAX_FRAME_SIZE
             } else {
                 MIN_FRAME_SIZE
             };
+            let pcm_len = frame_size * channel_count;
 
             let mut output_buffer: Vec<u8> = vec![0; 8192];
 
-            let frame = {
-                if interleaved_samples.len() > frame_size {
-                    Cow::Borrowed(&interleaved_samples[..frame_size])
+            let pcm = {
+                if interleaved_samples.len() > pcm_len {
+                    Cow::Borrowed(&interleaved_samples[..pcm_len])
                 } else {
-                    let mut frame = Vec::with_capacity(frame_size);
+                    let mut frame = Vec::with_capacity(pcm_len);
                     frame.extend_from_slice(interleaved_samples);
-                    frame.extend(vec![0.0; frame_size - interleaved_samples.len()]);
+                    frame.extend(vec![0.0; pcm_len - interleaved_samples.len()]);
                     Cow::Owned(frame)
                 }
             };
-            assert_eq!(frame_size, frame.len());
+            assert_eq!(pcm_len, pcm.len());
 
-            let is_end = frame_size >= interleaved_samples.len();
+            let is_end = pcm_len >= interleaved_samples.len();
 
             let output_len = opus_encode_float(
                 encoder,
-                frame.as_ptr(),
+                pcm.as_ptr(),
                 frame_size as c_int,
                 output_buffer.as_mut_ptr(),
                 output_buffer.len() as c_int,
@@ -196,7 +197,8 @@ where
 
             sample_count += frame_size;
 
-            let absgp = lookahead as usize + sample_count;
+            // https://wiki.xiph.org/OggOpus#Granule_Position
+            let granule_position = lookahead as usize + sample_count;
 
             writer.write_packet(
                 output_buffer,
@@ -206,11 +208,10 @@ where
                 } else {
                     ogg::PacketWriteEndInfo::NormalPacket
                 },
-                absgp as u64,
+                granule_position as u64,
             )?;
 
-            interleaved_samples =
-                &interleaved_samples[(frame_size.min(interleaved_samples.len()))..];
+            interleaved_samples = &interleaved_samples[(pcm_len.min(interleaved_samples.len()))..];
         }
     }
 
