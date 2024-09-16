@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [package.metadata.namui]
-targets = ["wasm32-wasip1-threads"]
+targets = ["wasm32-wasi-web"]
 
 [dependencies]
 namui = { path = "../../namui" }
