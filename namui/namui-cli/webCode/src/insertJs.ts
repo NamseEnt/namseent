@@ -42,6 +42,25 @@ export function insertJsImports({ memory }: { memory: WebAssembly.Memory }) {
                 bufferPtr,
             });
         },
+        _insert_js_send_data_from_rust: (
+            jsId: number,
+            sendDataId: number,
+            bufferPtr: number,
+            bufferLen: number,
+        ) => {
+            const data = new Uint8Array(bufferLen);
+            data.set(new Uint8Array(memory.buffer, bufferPtr, bufferLen));
+
+            sendMessageToMainThread(
+                {
+                    type: "insert-js-send-data-from-rust",
+                    sendDataId,
+                    jsId,
+                    data,
+                },
+                [data.buffer],
+            );
+        },
     };
 }
 
@@ -55,10 +74,15 @@ export function insertJsHandleOnMainThread(
         {
             script: HTMLScriptElement;
             dataBufferRequestMap: Map<number, StrictArrayBuffer>;
+            nextSendDataId: number;
+            sendDataQueueMap: Map<number, StrictArrayBuffer>;
         }
     >();
 
-    (window as any).namui_onData = (jsId: number, data: StrictArrayBuffer) => {
+    (window as any).namui_onDataFromJs = (
+        jsId: number,
+        data: StrictArrayBuffer,
+    ) => {
         const js = jsMap.get(jsId);
         if (!js) {
             console.log(`No js for ${jsId} found but namui_onData is called.`);
@@ -84,13 +108,17 @@ export function insertJsHandleOnMainThread(
             jsMap.set(jsId, {
                 script,
                 dataBufferRequestMap: new Map(),
+                nextSendDataId: 0,
+                sendDataQueueMap: new Map(),
             });
 
             script.textContent = `const namui_sendData = (data) => {
-                window.namui_onData(${jsId}, data);
+                window.namui_onDataFromJs(${jsId}, data);
             }
             ${js}
-            window.namui_onDrop_${jsId} = namui_onDrop;`;
+            window.namui_onDrop_${jsId} = namui_onDrop;
+            window.namui_onDataFromRust_${jsId} = namui_onData;
+            `;
             document.body.appendChild(script);
         },
         onInsertJsDrop({
@@ -132,6 +160,33 @@ export function insertJsHandleOnMainThread(
                 jsId: ["u32", jsId],
                 requestId: ["u32", requestId],
             });
+        },
+        onInsertJsSendDataFromRust({
+            jsId,
+            sendDataId,
+            data,
+        }: WorkerMessagePayload & {
+            type: "insert-js-send-data-from-rust";
+        }) {
+            const js = jsMap.get(jsId);
+            if (!js) {
+                throw new Error(`No js for ${jsId} found`);
+            }
+
+            js.sendDataQueueMap.set(sendDataId, data);
+
+            while (js.sendDataQueueMap.size) {
+                const data = js.sendDataQueueMap.get(js.nextSendDataId);
+                if (!data) {
+                    break;
+                }
+
+                js.sendDataQueueMap.delete(js.nextSendDataId);
+                js.nextSendDataId++;
+
+                const onDataKey = `namui_onDataFromRust_${jsId}`;
+                (window as any)[onDataKey]?.(data);
+            }
         },
     };
 }

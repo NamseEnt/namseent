@@ -45,11 +45,28 @@ pub fn insert_js<OnData: FnMut(&[u8]) + 'static + Send>(
         _insert_js(js.as_ptr(), js.len(), js_id);
     }
 
-    JsHandle { js_id }
+    JsHandle {
+        js_id,
+        send_data_next_id: Default::default(),
+    }
 }
 
 pub struct JsHandle {
     js_id: usize,
+    send_data_next_id: AtomicUsize,
+}
+
+impl JsHandle {
+    /// Sending data to js is guaranteed to be ordered.
+    pub fn send_data(&self, data: impl AsRef<[u8]>) {
+        let send_data_id = self
+            .send_data_next_id
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let data = data.as_ref();
+        unsafe {
+            _insert_js_send_data_from_rust(self.js_id, send_data_id, data.as_ptr(), data.len());
+        }
+    }
 }
 
 impl Drop for JsHandle {
@@ -69,6 +86,12 @@ extern "C" {
     fn _insert_js(js_ptr: *const u8, js_len: usize, js_id: usize) -> usize;
     fn _insert_js_drop(js_id: usize);
     fn _insert_js_data_buffer(js_id: usize, request_id: usize, buffer_ptr: *const u8);
+    fn _insert_js_send_data_from_rust(
+        js_id: usize,
+        send_data_id: usize,
+        buffer_ptr: *const u8,
+        buffer_len: usize,
+    );
 }
 
 pub(crate) fn on_request_data_buffer(js_id: usize, request_id: usize, buffer_len: usize) {
