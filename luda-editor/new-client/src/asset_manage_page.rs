@@ -3,6 +3,7 @@ use luda_rpc::{asset::reserve_team_asset_upload, AssetKind};
 use namui::*;
 use namui_prebuilt::table::*;
 use network::http;
+use psd_sprite::encode_psd_sprite;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 pub struct AssetManagePage<'a> {
@@ -24,11 +25,15 @@ impl Component for AssetManagePage<'_> {
                         toast::negative("에셋 파일 선택 실패");
                         return;
                     };
+                    let Ok(encoded_bytes) = encode_psd_sprite(&bytes) else {
+                        toast::negative("에셋 인코딩 실패");
+                        return;
+                    };
                     match server_connection()
                         .reserve_team_asset_upload(RefRequest {
                             team_id: &team_id,
                             asset_name: &name,
-                            byte_size: bytes.len() as u64,
+                            byte_size: encoded_bytes.len() as u64,
                             asset_kind: &AssetKind::Sprite,
                         })
                         .await
@@ -37,7 +42,7 @@ impl Component for AssetManagePage<'_> {
                             presigned_put_uri,
                             headers,
                             ..
-                        }) => match upload_asset(presigned_put_uri, headers, bytes).await {
+                        }) => match upload_asset(presigned_put_uri, headers, encoded_bytes).await {
                             Ok(_) => toast::positive("에셋 업로드 성공".to_string()),
                             Err(_) => toast::negative("에셋 업로드 실패".to_string()),
                         },
