@@ -1,6 +1,5 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import path = require("path");
 
 export class VisualNovelStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -9,72 +8,6 @@ export class VisualNovelStack extends cdk.Stack {
         const s3Bucket = new cdk.aws_s3.Bucket(this, "S3Bucket", {
             removalPolicy: cdk.RemovalPolicy.RETAIN,
         });
-
-        const sslCertRenewalLambda = new cdk.aws_lambda.Function(
-            this,
-            "SSLCertRenewalLambda",
-            {
-                code: cdk.aws_lambda.Code.fromAssetImage(
-                    path.join(__dirname, "sslCertRenewal"),
-                ),
-                handler: "function.handler",
-                runtime: cdk.aws_lambda.Runtime.PROVIDED_AL2023,
-                environment: {
-                    BUCKET_NAME: s3Bucket.bucketName,
-                },
-                role: new cdk.aws_iam.Role(this, "sslCertRenewalLambdaRole", {
-                    assumedBy: new cdk.aws_iam.ServicePrincipal(
-                        "lambda.amazonaws.com",
-                    ),
-                    inlinePolicies: {
-                        InstancePolicy: new cdk.aws_iam.PolicyDocument({
-                            statements: [
-                                new cdk.aws_iam.PolicyStatement({
-                                    effect: cdk.aws_iam.Effect.ALLOW,
-                                    actions: [
-                                        "route53:ListHostedZones",
-                                        "route53:GetChange",
-                                    ],
-                                    resources: ["*"],
-                                }),
-                                new cdk.aws_iam.PolicyStatement({
-                                    effect: cdk.aws_iam.Effect.ALLOW,
-                                    actions: [
-                                        "route53:ChangeResourceRecordSets",
-                                    ],
-                                    resources: [
-                                        "arn:aws:route53:::hostedzone/Z03861008D2C0NOIITVX",
-                                    ],
-                                }),
-                                new cdk.aws_iam.PolicyStatement({
-                                    effect: cdk.aws_iam.Effect.ALLOW,
-                                    actions: [
-                                        "s3:DeleteObject",
-                                        "s3:GetBucketLocation",
-                                        "s3:GetObject",
-                                        "s3:ListBucket",
-                                        "s3:PutObject",
-                                    ],
-                                    resources: [s3Bucket.bucketArn],
-                                }),
-                            ],
-                        }),
-                    },
-                }),
-            },
-        );
-
-        const sslCertRenewalRule = new cdk.aws_events.Rule(
-            this,
-            "SSLCertRenewalRule",
-            {
-                schedule: cdk.aws_events.Schedule.expression("rate(30 days)"),
-            },
-        );
-
-        sslCertRenewalRule.addTarget(
-            new cdk.aws_events_targets.LambdaFunction(sslCertRenewalLambda),
-        );
 
         const vpc = new cdk.aws_ec2.Vpc(this, "VPC", {
             ipProtocol: cdk.aws_ec2.IpProtocol.DUAL_STACK,
