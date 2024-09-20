@@ -112,13 +112,14 @@ export function insertJsHandleOnMainThread(
                 sendDataQueueMap: new Map(),
             });
 
-            script.textContent = `const namui_sendData = (data) => {
-                window.namui_onDataFromJs(${jsId}, data);
-            }
-            ${js}
-            window.namui_onDrop_${jsId} = namui_onDrop;
-            window.namui_onDataFromRust_${jsId} = namui_onData;
-            `;
+            script.textContent = `{
+                const namui_sendData = (data) => {
+                    window.namui_onDataFromJs(${jsId}, data);
+                }
+                ${js}
+                window.namui_onDrop_${jsId} = namui_onDrop;
+                window.namui_onDataFromRust_${jsId} = namui_onData;
+            }`;
             document.body.appendChild(script);
         },
         onInsertJsDrop({

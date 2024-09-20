@@ -30,3 +30,7 @@ inputElement.click();
 function namui_onDrop() {
     inputElement.remove();
 }
+
+function namui_onData() {
+    return;
+}
