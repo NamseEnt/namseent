@@ -1,4 +1,4 @@
-use super::render_psd_sprite::render_psd_sprite;
+use super::psd_sprite_util::render_psd_sprite;
 use luda_rpc::Scene;
 use namui::*;
 use namui_prebuilt::*;

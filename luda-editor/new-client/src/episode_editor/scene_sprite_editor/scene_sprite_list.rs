@@ -1,7 +1,7 @@
 use crate::*;
 use list_view::AutoListView;
 use luda_rpc::*;
-use render_psd_sprite::render_psd_sprite;
+use psd_sprite_util::render_psd_sprite;
 use std::collections::HashMap;
 
 pub struct SceneSpriteList<'a> {
@@ -86,7 +86,7 @@ impl Component for SceneSpriteList<'_> {
                                     .map(|sprite_id| {
                                         sprite_docs
                                             .get(sprite_id)
-                                            .map(|sprite_doc| sprite_doc.sprite.name())
+                                            .map(|sprite_doc| sprite_doc.sprite.name.as_str())
                                             .unwrap_or("???")
                                     })
                                     .unwrap_or("");

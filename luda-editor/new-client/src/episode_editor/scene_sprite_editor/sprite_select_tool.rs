@@ -1,13 +1,17 @@
 use crate::*;
 use list_view::AutoListView;
 use luda_rpc::*;
-use std::collections::{HashMap, HashSet};
+use psd_sprite_util::{get_or_load_psd_sprite, PsdSpriteLoadState};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Deref,
+};
 
 pub struct SpriteSelectTool<'a> {
     pub wh: Wh<Px>,
     pub sprite_docs: Sig<'a, HashMap<String, SpriteDoc>>,
     /// fn(part_name, part_option_name)
-    pub select_part: &'a dyn Fn(&str, &str),
+    pub select_part_option: &'a dyn Fn(&str, &str, bool),
 }
 
 impl Component for SpriteSelectTool<'_> {
@@ -15,12 +19,22 @@ impl Component for SpriteSelectTool<'_> {
         let Self {
             wh,
             sprite_docs,
-            select_part,
+            select_part_option,
         } = self;
 
         let (selected_sprite_id, set_selected_sprite_id) = ctx.state::<Option<String>>(|| None);
         let (selected_part_name, set_selected_part_name) = ctx.state::<Option<String>>(|| None);
         let (selected_tags, set_selected_tags) = ctx.state::<HashSet<SystemTag>>(Default::default);
+        let parts = ctx.memo(|| {
+            let Some(selected_sprite_id) = selected_sprite_id.deref() else {
+                return Default::default();
+            };
+            let psd_load_state = get_or_load_psd_sprite(selected_sprite_id.clone());
+            let PsdSpriteLoadState::Loaded { psd_sprite, .. } = psd_load_state.as_ref() else {
+                return Default::default();
+            };
+            psd_sprite.parts()
+        });
 
         let tag_filtered_sprite_docs = ctx.memo(|| {
             sprite_docs
@@ -56,11 +70,6 @@ impl Component for SpriteSelectTool<'_> {
             })
         };
 
-        let selected_sprite_doc = selected_sprite_id
-            .as_ref()
-            .as_ref()
-            .and_then(|selected_sprite_id| sprite_docs.get(selected_sprite_id));
-
         ctx.compose(|ctx| {
             table::vertical([
                 table::fixed(
@@ -87,7 +96,7 @@ impl Component for SpriteSelectTool<'_> {
                                     };
                                     (
                                         sprite.id.as_str(),
-                                        sprite.sprite.name().to_string(),
+                                        sprite.sprite.name.to_string(),
                                         on_select,
                                     )
                                 }),
@@ -95,46 +104,36 @@ impl Component for SpriteSelectTool<'_> {
                             ctx.add(sprite_column);
                         }),
                         table::ratio(1, |wh, ctx| {
-                            let Some(sprite_doc) = selected_sprite_doc.as_ref() else {
-                                return;
-                            };
-                            let Sprite::Parts { sprite } = &sprite_doc.sprite else {
-                                return;
-                            };
                             let part_column = Column {
                                 wh,
-                                items: sprite.parts.iter().enumerate().map(
-                                    |(index, (name, _part))| {
-                                        let on_select = || {
-                                            set_selected_part_name.set(Some(name.clone()));
-                                        };
-                                        (index, name.to_string(), on_select)
-                                    },
-                                ),
+                                items: parts.iter().enumerate().map(|(index, (name, _part))| {
+                                    let on_select = || {
+                                        set_selected_part_name.set(Some(name.clone()));
+                                    };
+                                    (index, name.to_string(), on_select)
+                                }),
                             };
                             ctx.add(part_column);
                         }),
                         table::ratio(1, |wh, ctx| {
-                            let Some(sprite_doc) = selected_sprite_doc.as_ref() else {
-                                return;
-                            };
                             let Some(selected_part_name) = selected_part_name.as_ref() else {
                                 return;
                             };
-                            let Sprite::Parts { sprite } = &sprite_doc.sprite else {
-                                return;
-                            };
-                            let Some(part) = sprite.parts.get(selected_part_name) else {
+                            let Some(part) = parts.get(selected_part_name) else {
                                 return;
                             };
                             let part_option_column = Column {
                                 wh,
-                                items: part.part_options.iter().enumerate().map(
-                                    |(index, part_option)| {
-                                        let on_select = || {
-                                            select_part(selected_part_name, &part_option.name);
+                                items: part.options.iter().enumerate().map(
+                                    |(index, option_name)| {
+                                        let on_select = move || {
+                                            select_part_option(
+                                                selected_part_name,
+                                                option_name,
+                                                part.is_single_select,
+                                            );
                                         };
-                                        (index, part_option.name.to_string(), on_select)
+                                        (index, option_name.to_string(), on_select)
                                     },
                                 ),
                             };

@@ -3,7 +3,7 @@ mod scene_sprite_list;
 mod size_tool;
 mod sprite_select_tool;
 
-use luda_rpc::{Circumcircle, Scene, SceneSprite, Sprite, SpriteDoc};
+use luda_rpc::{Circumcircle, Scene, SceneSprite, SpriteDoc};
 use namui::*;
 use namui_prebuilt::*;
 use std::collections::HashMap;
@@ -66,45 +66,33 @@ impl Component for SceneSpriteEditor<'_> {
             set_selected_scene_sprite_index.set(Some(index));
         };
 
-        let select_part = &|part_name: &str, part_option_name: &str| {
-            let Some(index) = *selected_scene_sprite_index else {
-                return;
-            };
-            let mut scene = scene.clone();
-            let Some(scene_sprite) = scene.scene_sprites.get_mut(index) else {
-                return;
-            };
-            let Some(sprite_id) = scene_sprite.sprite_id.as_ref() else {
-                return;
-            };
-            let Some(Sprite::Parts { sprite }) = sprite_docs
-                .get(sprite_id)
-                .map(|scene_doc| &scene_doc.sprite)
-            else {
-                return;
-            };
-            let Some(part) = sprite.parts.get(sprite_id) else {
-                return;
-            };
-            let is_single_select = part.is_single_select;
-            let Some(part_option_selection) =
-                scene_sprite.part_option_selections.get_mut(part_name)
-            else {
-                return;
-            };
+        let select_part_option =
+            &|part_name: &str, part_option_name: &str, is_single_select: bool| {
+                let Some(index) = *selected_scene_sprite_index else {
+                    return;
+                };
+                let mut scene = scene.clone();
+                let Some(scene_sprite) = scene.scene_sprites.get_mut(index) else {
+                    return;
+                };
+                let Some(part_option_selection) =
+                    scene_sprite.part_option_selections.get_mut(part_name)
+                else {
+                    return;
+                };
 
-            let already_selected = part_option_selection.contains(part_option_name);
-            if is_single_select {
-                part_option_selection.clear();
-                part_option_selection.insert(part_option_name.to_string());
-            } else if already_selected {
-                part_option_selection.remove(part_option_name);
-            } else {
-                part_option_selection.insert(part_option_name.to_string());
-            }
+                let already_selected = part_option_selection.contains(part_option_name);
+                if is_single_select {
+                    part_option_selection.clear();
+                    part_option_selection.insert(part_option_name.to_string());
+                } else if already_selected {
+                    part_option_selection.remove(part_option_name);
+                } else {
+                    part_option_selection.insert(part_option_name.to_string());
+                }
 
-            update_scene(scene);
-        };
+                update_scene(scene);
+            };
 
         let on_change_position = &|position: Xy<Percent>| {
             let Some(index) = *selected_scene_sprite_index else {
@@ -150,7 +138,7 @@ impl Component for SceneSpriteEditor<'_> {
                     ctx.add(sprite_select_tool::SpriteSelectTool {
                         wh,
                         sprite_docs: sprite_docs.clone(),
-                        select_part,
+                        select_part_option,
                     });
                 }),
                 table::fixed(320.px(), |wh, ctx| {
