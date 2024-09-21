@@ -1,5 +1,5 @@
 use crate::{server_connection, simple_button, toast};
-use luda_rpc::{asset::reserve_team_asset_upload, AssetKind};
+use luda_rpc::{asset::reserve_team_asset_upload, AssetKind, AssetTag};
 use namui::*;
 use namui_prebuilt::table::*;
 use network::http;
@@ -35,6 +35,9 @@ impl Component for AssetManagePage<'_> {
                             asset_name: &name,
                             byte_size: encoded_bytes.len() as u64,
                             asset_kind: &AssetKind::Sprite,
+                            tags: &vec![AssetTag::System {
+                                tag: luda_rpc::AssetSystemTag::SpriteCharacter,
+                            }],
                         })
                         .await
                     {
