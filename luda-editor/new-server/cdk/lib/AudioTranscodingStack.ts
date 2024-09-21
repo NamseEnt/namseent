@@ -14,33 +14,33 @@ export class AudioTranscodingStack extends cdk.Stack {
             publicReadAccess: true,
         });
 
-        // assetBucket.addToResourcePolicy(
-        //     new cdk.aws_iam.PolicyStatement({
-        //         effect: cdk.aws_iam.Effect.ALLOW,
-        //         actions: ["s3:GetObject"],
-        //         resources: [`${assetBucket.bucketArn}/*`],
-        //         principals: [new cdk.aws_iam.AnyPrincipal()],
-        //     }),
-        // );
+        assetBucket.addToResourcePolicy(
+            new cdk.aws_iam.PolicyStatement({
+                effect: cdk.aws_iam.Effect.ALLOW,
+                actions: ["s3:GetObject"],
+                resources: [`${assetBucket.bucketArn}/*`],
+                principals: [new cdk.aws_iam.AnyPrincipal()],
+            }),
+        );
 
-        // if (isLocalstack) {
-        //     assetBucket.addToResourcePolicy(
-        //         new cdk.aws_iam.PolicyStatement({
-        //             effect: cdk.aws_iam.Effect.ALLOW,
-        //             actions: ["s3:PutObject"],
-        //             resources: [`${assetBucket.bucketArn}/*`],
-        //             principals: [new cdk.aws_iam.AnyPrincipal()],
-        //         }),
-        //     );
-        //     assetBucket.addToResourcePolicy(
-        //         new cdk.aws_iam.PolicyStatement({
-        //             effect: cdk.aws_iam.Effect.ALLOW,
-        //             actions: ["s3:ListObject"],
-        //             resources: [assetBucket.bucketArn],
-        //             principals: [new cdk.aws_iam.AnyPrincipal()],
-        //         }),
-        //     );
-        // }
+        if (isLocalstack) {
+            assetBucket.addToResourcePolicy(
+                new cdk.aws_iam.PolicyStatement({
+                    effect: cdk.aws_iam.Effect.ALLOW,
+                    actions: ["s3:PutObject"],
+                    resources: [`${assetBucket.bucketArn}/*`],
+                    principals: [new cdk.aws_iam.AnyPrincipal()],
+                }),
+            );
+            assetBucket.addToResourcePolicy(
+                new cdk.aws_iam.PolicyStatement({
+                    effect: cdk.aws_iam.Effect.ALLOW,
+                    actions: ["s3:ListObject"],
+                    resources: [assetBucket.bucketArn],
+                    principals: [new cdk.aws_iam.AnyPrincipal()],
+                }),
+            );
+        }
 
         const audioTranscodingLambda = new cdk.aws_lambda.Function(
             this,
