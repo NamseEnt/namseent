@@ -9,7 +9,7 @@ use std::{
 
 pub struct SpriteSelectTool<'a> {
     pub wh: Wh<Px>,
-    pub sprite_docs: Sig<'a, HashMap<String, SpriteDoc>>,
+    pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
     /// fn(part_name, part_option_name)
     pub select_part_option: &'a dyn Fn(&str, &str, bool),
 }
@@ -18,13 +18,14 @@ impl Component for SpriteSelectTool<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            sprite_docs,
+            asset_docs,
             select_part_option,
         } = self;
 
         let (selected_sprite_id, set_selected_sprite_id) = ctx.state::<Option<String>>(|| None);
         let (selected_part_name, set_selected_part_name) = ctx.state::<Option<String>>(|| None);
-        let (selected_tags, set_selected_tags) = ctx.state::<HashSet<SystemTag>>(Default::default);
+        let (selected_tags, set_selected_tags) =
+            ctx.state::<HashSet<AssetSystemTag>>(Default::default);
         let parts = ctx.memo(|| {
             let Some(selected_sprite_id) = selected_sprite_id.deref() else {
                 return Default::default();
@@ -36,25 +37,29 @@ impl Component for SpriteSelectTool<'_> {
             psd_sprite.parts()
         });
 
-        let tag_filtered_sprite_docs = ctx.memo(|| {
-            sprite_docs
+        let tag_filtered_asset_docs = ctx.memo(|| {
+            asset_docs
                 .iter()
-                .filter(|(_id, sprite_doc)| {
-                    sprite_doc.tags.iter().any(|tag| match tag {
-                        SpriteTag::System { tag } => selected_tags.contains(tag),
-                        SpriteTag::Custom { .. } => false,
+                .filter(|(_id, asset_tag)| {
+                    if !matches!(asset_tag.asset_kind, AssetKind::Sprite) {
+                        return false;
+                    }
+                    asset_tag.tags.iter().any(|tag| match tag {
+                        AssetTag::System { tag } => selected_tags.contains(tag),
+                        AssetTag::Custom { .. } => false,
                     })
                 })
                 .map(|(id, sprite)| (id.clone(), sprite.clone()))
-                .collect::<HashMap<String, SpriteDoc>>()
+                .collect::<HashMap<String, AssetDoc>>()
         });
 
-        let tag_toggle_button = |tag: SystemTag| {
-            let is_on = selected_tags.contains(&SystemTag::Character);
+        let tag_toggle_button = |tag: AssetSystemTag| {
+            let is_on = selected_tags.contains(&AssetSystemTag::SpriteCharacter);
             let text = match tag {
-                SystemTag::Character => "인물",
-                SystemTag::Object => "사물",
-                SystemTag::Background => "배경",
+                AssetSystemTag::SpriteCharacter => "인물",
+                AssetSystemTag::SpriteObject => "사물",
+                AssetSystemTag::SpriteBackground => "배경",
+                _ => unreachable!(),
             };
 
             table::ratio(1, move |wh, ctx| {
@@ -76,11 +81,11 @@ impl Component for SpriteSelectTool<'_> {
                     64.px(),
                     table::horizontal([
                         table::fixed(64.px(), |_, _| {}),
-                        tag_toggle_button(SystemTag::Character),
+                        tag_toggle_button(AssetSystemTag::SpriteCharacter),
                         table::fixed(16.px(), |_, _| {}),
-                        tag_toggle_button(SystemTag::Object),
+                        tag_toggle_button(AssetSystemTag::SpriteObject),
                         table::fixed(16.px(), |_, _| {}),
-                        tag_toggle_button(SystemTag::Background),
+                        tag_toggle_button(AssetSystemTag::SpriteBackground),
                         table::fixed(64.px(), |_, _| {}),
                     ]),
                 ),
@@ -90,15 +95,11 @@ impl Component for SpriteSelectTool<'_> {
                         table::ratio(1, |wh, ctx| {
                             let sprite_column = Column {
                                 wh,
-                                items: tag_filtered_sprite_docs.iter().map(|(id, sprite)| {
+                                items: tag_filtered_asset_docs.iter().map(|(id, sprite)| {
                                     let on_select = || {
                                         set_selected_sprite_id.set(Some(id.clone()));
                                     };
-                                    (
-                                        sprite.id.as_str(),
-                                        sprite.sprite.name.to_string(),
-                                        on_select,
-                                    )
+                                    (sprite.id.as_str(), sprite.name.to_string(), on_select)
                                 }),
                             };
                             ctx.add(sprite_column);

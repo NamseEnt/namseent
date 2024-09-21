@@ -3,7 +3,7 @@ mod scene_sprite_list;
 mod size_tool;
 mod sprite_select_tool;
 
-use luda_rpc::{Circumcircle, Scene, SceneSprite, SpriteDoc};
+use luda_rpc::{AssetDoc, Circumcircle, Scene, SceneSprite};
 use namui::*;
 use namui_prebuilt::*;
 use std::collections::HashMap;
@@ -12,7 +12,7 @@ pub struct SceneSpriteEditor<'a> {
     pub wh: Wh<Px>,
     pub scene: &'a Scene,
     pub update_scene: &'a dyn Fn(Scene),
-    pub sprite_docs: Sig<'a, HashMap<String, SpriteDoc>>,
+    pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
 }
 
 impl Component for SceneSpriteEditor<'_> {
@@ -21,7 +21,7 @@ impl Component for SceneSpriteEditor<'_> {
             wh,
             scene,
             update_scene,
-            sprite_docs,
+            asset_docs,
         } = self;
 
         let (selected_scene_sprite_index, set_selected_scene_sprite_index) = ctx.state(|| None);
@@ -125,19 +125,19 @@ impl Component for SceneSpriteEditor<'_> {
                         ctx.add(scene_sprite_list::SceneSpriteList {
                             wh,
                             scene_sprites,
+                            asset_docs: &asset_docs,
                             remove_scene_sprite,
                             add_new_scene_sprite,
                             move_scene_sprite_up_down,
                             select_scene_sprite_index,
                             selected_scene_sprite_index: *selected_scene_sprite_index,
-                            sprite_docs: sprite_docs.as_ref(),
                         });
                     }
                 }),
                 table::fixed(320.px(), |wh, ctx| {
                     ctx.add(sprite_select_tool::SpriteSelectTool {
                         wh,
-                        sprite_docs: sprite_docs.clone(),
+                        asset_docs: asset_docs.clone(),
                         select_part_option,
                     });
                 }),

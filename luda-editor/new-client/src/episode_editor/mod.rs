@@ -6,11 +6,14 @@ mod speaker_selector;
 mod text_editor;
 
 use super::*;
-use luda_rpc::{EpisodeEditAction, Scene};
+use crate::rpc::asset::get_team_asset_docs;
+use crate::rpc::episode_editor::join_episode_editor;
+use luda_rpc::{AssetDoc, EpisodeEditAction, Scene};
 use properties_panel::PropertiesPanel;
 use std::{collections::HashMap, sync::Arc};
 
 pub struct EpisodeEditor<'a> {
+    pub team_id: &'a String,
     pub project_id: &'a String,
     pub episode_id: &'a String,
 }
@@ -18,47 +21,66 @@ pub struct EpisodeEditor<'a> {
 impl Component for EpisodeEditor<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
+            team_id,
             project_id,
             episode_id,
         } = self;
 
         let wh = namui::screen::size().map(|x| x.into_px());
 
-        {
-            use crate::rpc::episode_editor::join_episode_editor::*;
-            let result = join_episode_editor(
-                ctx,
-                |episode_id| Some((RefRequest { episode_id }, ())),
-                episode_id,
-            );
+        let join_result = join_episode_editor::join_episode_editor(
+            ctx,
+            |episode_id| Some((join_episode_editor::RefRequest { episode_id }, ())),
+            episode_id,
+        );
+        let asset_result = get_team_asset_docs::get_team_asset_docs(
+            ctx,
+            |team_id| Some((get_team_asset_docs::RefRequest { team_id }, ())),
+            team_id,
+        );
+        let asset_docs = ctx.memo({
+            || {
+                let Some(Ok((get_team_asset_docs::Response { asset_docs }, _))) =
+                    asset_result.as_ref()
+                else {
+                    return HashMap::new();
+                };
+                asset_docs
+                    .iter()
+                    .map(|asset_doc| (asset_doc.name.clone(), asset_doc.clone()))
+                    .collect()
+            }
+        });
 
-            let Some(result) = result.as_ref() else {
+        let (Some(join_result), Some(asset_result)) = (join_result.as_ref(), asset_result.as_ref())
+        else {
+            ctx.add(typography::center_text(
+                wh,
+                "로딩중...",
+                Color::RED,
+                16.int_px(),
+            ));
+            return;
+        };
+
+        match (join_result, asset_result) {
+            (Ok((join_episode_editor::Response { scenes, texts }, _)), Ok(_)) => {
+                ctx.add(LoadedEpisodeEditor {
+                    project_id,
+                    episode_id,
+                    initial_scenes: scenes,
+                    initial_texts: texts,
+                    asset_docs,
+                });
+            }
+            (join_result, asset_result) => {
+                let errors = (join_result.as_ref().err(), asset_result.as_ref().err());
                 ctx.add(typography::center_text(
                     wh,
-                    "로딩중...",
+                    format!("에러: {:#?}", errors),
                     Color::RED,
                     16.int_px(),
                 ));
-                return;
-            };
-
-            match result {
-                Ok((Response { scenes, texts }, _)) => {
-                    ctx.add(LoadedEpisodeEditor {
-                        project_id,
-                        episode_id,
-                        initial_scenes: scenes,
-                        initial_texts: texts,
-                    });
-                }
-                Err(err) => {
-                    ctx.add(typography::center_text(
-                        wh,
-                        format!("에러: {:?}", err),
-                        Color::RED,
-                        16.int_px(),
-                    ));
-                }
             }
         }
     }
@@ -69,6 +91,7 @@ struct LoadedEpisodeEditor<'a> {
     episode_id: &'a String,
     initial_scenes: &'a Vec<Scene>,
     initial_texts: &'a HashMap<String, HashMap<String, String>>,
+    asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
 }
 
 impl Component for LoadedEpisodeEditor<'_> {
@@ -78,6 +101,7 @@ impl Component for LoadedEpisodeEditor<'_> {
             episode_id,
             initial_scenes,
             initial_texts,
+            asset_docs,
         } = self;
         let (scenes, set_scenes) = ctx.state(|| initial_scenes.clone());
         let (texts, set_texts) = ctx.state(|| initial_texts.clone());
@@ -304,7 +328,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                 wh,
                 scene,
                 edit_episode: &edit_episode,
-                sprite_docs: todo!(),
+                asset_docs,
             });
         });
 

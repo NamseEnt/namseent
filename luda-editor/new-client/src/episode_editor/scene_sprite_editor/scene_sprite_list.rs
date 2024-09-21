@@ -7,7 +7,7 @@ use std::collections::HashMap;
 pub struct SceneSpriteList<'a> {
     pub wh: Wh<Px>,
     pub scene_sprites: &'a [SceneSprite],
-    pub sprite_docs: &'a HashMap<String, SpriteDoc>,
+    pub asset_docs: &'a HashMap<String, AssetDoc>,
     pub remove_scene_sprite: &'a dyn Fn(usize),
     pub add_new_scene_sprite: &'a dyn Fn(),
     /// true for up, false for down
@@ -21,7 +21,7 @@ impl Component for SceneSpriteList<'_> {
         let Self {
             wh,
             scene_sprites,
-            sprite_docs,
+            asset_docs,
             remove_scene_sprite,
             add_new_scene_sprite,
             move_scene_sprite_up_down,
@@ -84,9 +84,9 @@ impl Component for SceneSpriteList<'_> {
                                     .sprite_id
                                     .as_ref()
                                     .map(|sprite_id| {
-                                        sprite_docs
+                                        asset_docs
                                             .get(sprite_id)
-                                            .map(|sprite_doc| sprite_doc.sprite.name.as_str())
+                                            .map(|asset_doc| asset_doc.name.as_str())
                                             .unwrap_or("???")
                                     })
                                     .unwrap_or("");

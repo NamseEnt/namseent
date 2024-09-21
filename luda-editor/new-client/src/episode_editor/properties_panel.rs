@@ -1,5 +1,5 @@
 use super::scene_sprite_editor::SceneSpriteEditor;
-use luda_rpc::{EpisodeEditAction, Scene, SpriteDoc};
+use luda_rpc::{AssetDoc, EpisodeEditAction, Scene};
 use namui::*;
 use namui_prebuilt::{button, table::*};
 use std::collections::HashMap;
@@ -10,14 +10,14 @@ pub struct PropertiesPanel<'a> {
     pub wh: Wh<Px>,
     pub scene: &'a Scene,
     pub edit_episode: &'a dyn Fn(EpisodeEditAction),
-    pub sprite_docs: Sig<'a, HashMap<String, SpriteDoc>>,
+    pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
 }
 impl Component for PropertiesPanel<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             scene,
-            sprite_docs,
+            asset_docs,
             edit_episode,
         } = self;
 
@@ -62,7 +62,7 @@ impl Component for PropertiesPanel<'_> {
                             wh,
                             scene,
                             update_scene,
-                            sprite_docs,
+                            asset_docs,
                         });
                     }
                     PropertiesPanelTab::Background => {}
