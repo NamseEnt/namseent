@@ -6,12 +6,11 @@
 //! Any member of the team can delete the assets uploaded by the team.
 //! Trash can function. What the team deleted is temporarily stored for 1 week by default, and can be forcibly deleted
 
-mod audio;
-mod sprite;
+mod tag;
 
 use crate::*;
-pub use audio::*;
-pub use sprite::*;
+use std::collections::HashSet;
+pub use tag::*;
 
 #[document]
 struct AssetDoc {
@@ -21,6 +20,7 @@ struct AssetDoc {
     shared: bool,
     asset_kind: AssetKind,
     byte_size: u64,
+    tags: HashSet<AssetTag>,
 }
 
 #[doc_part]
@@ -36,6 +36,13 @@ struct TeamAssetDoc {
     team_id: String,
     #[sk]
     asset_id: String,
+}
+
+#[document]
+struct AssetTeamDoc {
+    #[pk]
+    asset_id: String,
+    team_id: String,
 }
 
 #[document]

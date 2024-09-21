@@ -266,7 +266,8 @@ rpc_macro::define_rpc! {
                 team_id: String,
                 asset_name: String,
                 byte_size: u64,
-                asset_kind: migration::schema::AssetKind,
+                asset_kind: AssetKind,
+                tags: Vec<AssetTag>,
             }
             struct Response {
                 asset_id: String,
@@ -288,6 +289,19 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
+                PermissionDenied,
+            }
+        },
+        update_asset_tags_for_asset: {
+            struct Request {
+                asset_id: String,
+                tags: Vec<AssetTag>,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                AssetNotExist,
                 PermissionDenied,
             }
         },
