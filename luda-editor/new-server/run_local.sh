@@ -2,6 +2,8 @@
 
 set -e
 
+(cd ./cdk/lib/audio-transcoding-lambda-code && bash ./build_and_zip.sh)
+
 mkdir -p s3local
 
 docker compose up -d --remove-orphans
