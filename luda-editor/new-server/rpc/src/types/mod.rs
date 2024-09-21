@@ -52,10 +52,4 @@ pub enum EpisodeEditAction {
     },
 }
 
-pub type SceneSprite = migration::schema::SceneSprite;
-pub type SpriteDoc = migration::schema::SpriteDoc;
-pub type Sprite = migration::schema::Sprite;
-pub type SystemTag = migration::schema::SystemTag;
-pub type SpriteTag = migration::schema::SpriteTag;
-pub type AssetKind = migration::schema::AssetKind;
-pub type AssetDoc = migration::schema::AssetDoc;
+pub use migration::schema::{AssetDoc, AssetKind, AssetSystemTag, AssetTag, SceneSprite};

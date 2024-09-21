@@ -107,3 +107,12 @@ impl<AbortReason> MaybeAborted<AbortReason> {
         }
     }
 }
+
+impl MaybeAborted<()> {
+    pub fn unwrap(self) {
+        match self {
+            MaybeAborted::Aborted { .. } => unreachable!("You should make AbortReason generic"),
+            MaybeAborted::No => (),
+        }
+    }
+}

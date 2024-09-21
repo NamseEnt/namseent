@@ -11,6 +11,7 @@ pub async fn reserve_team_asset_upload(
         asset_name,
         byte_size,
         asset_kind,
+        tags,
     }: &ArchivedRequest,
     db: &Database,
     session: Session,
@@ -46,6 +47,11 @@ pub async fn reserve_team_asset_upload(
             asset_id: &asset_id,
             ttl: None,
         },
+        AssetTeamDocPut {
+            asset_id: &asset_id,
+            team_id,
+            ttl: None,
+        },
         AssetDocPut {
             id: &asset_id,
             name: asset_name,
@@ -53,6 +59,7 @@ pub async fn reserve_team_asset_upload(
             asset_kind: &asset_kind.deserialize(),
             byte_size: *byte_size,
             ttl: None,
+            tags: &tags.iter().map(|x| x.deserialize()).collect(),
         },
     ))
     .await?
