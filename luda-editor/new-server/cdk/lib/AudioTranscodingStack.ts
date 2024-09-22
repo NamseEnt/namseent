@@ -12,6 +12,21 @@ export class AudioTranscodingStack extends cdk.Stack {
         const assetBucket = new cdk.aws_s3.Bucket(this, "AssetBucket", {
             bucketName: isLocalstack ? localstackAssetBucketName : undefined,
             publicReadAccess: true,
+            cors: [
+                ...(isLocalstack
+                    ? [
+                          {
+                              allowedMethods: [
+                                  cdk.aws_s3.HttpMethods.DELETE,
+                                  cdk.aws_s3.HttpMethods.GET,
+                                  cdk.aws_s3.HttpMethods.POST,
+                                  cdk.aws_s3.HttpMethods.PUT,
+                              ],
+                              allowedOrigins: ["*"],
+                          },
+                      ]
+                    : []),
+            ],
         });
 
         assetBucket.addToResourcePolicy(
