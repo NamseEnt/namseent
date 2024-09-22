@@ -584,7 +584,7 @@ fn update<AbortReason>(
                 ",
             )?;
             assert_eq!(
-                stmt.execute((name, &pk, &sk.unwrap_or_default(), value))?,
+                stmt.execute((value, name, &pk, &sk.unwrap_or_default()))?,
                 1
             );
 
