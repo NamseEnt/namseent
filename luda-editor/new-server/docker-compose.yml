@@ -1,13 +1,16 @@
 services:
-  s3:
-    command: "server /data --console-address :9001"
-    image: minio/minio:latest
-    container_name: s3-local
+  localstack:
+    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
+    image: localstack/localstack
     ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - "./s3local:/data"
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
     environment:
-      - MINIO_ACCESS_KEY=minio
-      - MINIO_SECRET_KEY=minio123
+      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
+      - DEBUG=${DEBUG:-0}
+      - SERVICES=${SERVICES:-s3,lambda,ec2,cloudformation,ecr,iam,ssm,events}
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh"
+      - "./cdk:/cdk"
