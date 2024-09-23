@@ -10,6 +10,7 @@ fn render(ctx: &RenderCtx) {
     let (geojs_content, set_geojs_content) = ctx.state(|| None);
     let (google_content, set_google_content) = ctx.state(|| None);
     let (stream_content, set_stream_content) = ctx.state(|| None);
+    let (stream_post_content, set_stream_post_content) = ctx.state(|| None);
 
     ctx.effect("geojs - no cors", || {
         ctx.spawn(async move {
@@ -96,6 +97,33 @@ fn render(ctx: &RenderCtx) {
         });
     });
 
+    ctx.effect("stream post", || {
+        ctx.spawn(async move {
+            let result = async move {
+                namui::system::network::http::Request::builder()
+                    .uri("http://localhost:8123")
+                    .method("POST")
+                    .body(vec![1, 2, 3])?
+                    .send()
+                    .await?
+                    .bytes()
+                    .await
+            }
+            .await;
+
+            match result {
+                Ok(bytes) => {
+                    let content = String::from_utf8(bytes).unwrap();
+                    set_stream_post_content.set(Some(content));
+                }
+                Err(err) => {
+                    let content = err.to_string();
+                    set_stream_post_content.set(Some(format!("stream error: {}", content)));
+                }
+            }
+        });
+    });
+
     ctx.compose(|ctx| {
         table::vertical([
             table::ratio(1, |_, ctx| {
@@ -121,6 +149,15 @@ fn render(ctx: &RenderCtx) {
                     match stream_content.as_ref() {
                         Some(content) => "stream: ".to_string() + &content.to_string(),
                         None => "stream loading...".to_string(),
+                    },
+                    Color::BLACK,
+                ));
+            }),
+            table::ratio(1, |_, ctx| {
+                ctx.add(typography::body::left_top(
+                    match stream_post_content.as_ref() {
+                        Some(content) => "stream post: ".to_string() + &content.to_string(),
+                        None => "stream post loading...".to_string(),
                     },
                     Color::BLACK,
                 ));
