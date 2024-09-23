@@ -2,7 +2,7 @@ use crate::*;
 use api::team::is_team_member;
 use aws_sdk_s3::presigning::PresigningConfig;
 use database::{schema::*, DeserializeInfallible, WantUpdate};
-use luda_rpc::asset::reserve_team_asset_upload::*;
+use luda_rpc::{asset::reserve_team_asset_upload::*, asset_s3_put_key};
 use randum::rand;
 
 pub async fn reserve_team_asset_upload(
@@ -70,7 +70,7 @@ pub async fn reserve_team_asset_upload(
     let presigned = s3::s3()
         .put_object()
         .bucket(s3::asset_bucket_name())
-        .key(s3::asset_key(&asset_id))
+        .key(asset_s3_put_key(&asset_id, asset_kind.deserialize()))
         .content_length(*byte_size as i64)
         .presigned(PresigningConfig::expires_in(
             std::time::Duration::from_secs(180),
