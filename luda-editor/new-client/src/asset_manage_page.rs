@@ -119,7 +119,7 @@ async fn upload_asset(
     headers: Vec<(String, String)>,
     bytes: Vec<u8>,
 ) -> Result<()> {
-    let mut builder = http::Request::post(presigned_put_uri);
+    let mut builder = http::Request::put(presigned_put_uri);
     for (key, value) in headers {
         builder = builder.header(key, value);
     }
