@@ -87,10 +87,16 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
 
         (async () => {
             try {
+                const requestBody = ["GET", "HEAD", "OPTIONS"].includes(
+                    request.method,
+                )
+                    ? undefined
+                    : request.url.startsWith("http://")
+                    ? await fullRead(readable)
+                    : readable;
+
                 const response = await fetch(request, {
-                    body: ["GET", "HEAD"].includes(request.method)
-                        ? undefined
-                        : readable,
+                    body: requestBody,
                     signal: abortController.signal,
                     // @ts-ignore
                     duplex: "half",
@@ -170,6 +176,8 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
 
             if (requestBody.isOver) {
                 writer.close();
+            } else {
+                writer.releaseLock();
             }
 
             requestBody.isSomeoneWriting = false;
@@ -216,4 +224,26 @@ export class YesStreamHttpFetchHandle implements HttpFetchHandle {
     onHttpFetchErrorOnRustSide(fetchId: number): void {
         this.cleanUpFetch(fetchId);
     }
+}
+async function fullRead(
+    readable: ReadableStream<ArrayBuffer>,
+): Promise<Uint8Array> {
+    const reader = readable.getReader();
+    const chunks: Uint8Array[] = [];
+    let totalLength = 0;
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+            break;
+        }
+        chunks.push(new Uint8Array(value));
+        totalLength += value.byteLength;
+    }
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+    }
+    return result;
 }
