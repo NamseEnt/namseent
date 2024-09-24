@@ -124,6 +124,9 @@ async fn upload_asset(
         builder = builder.header(key, value);
     }
     let response = builder.body(bytes)?.send().await?;
-    response.ensure_status_code()?;
+    let status = response.ensure_status_code()?.status();
+    if !status.is_success() {
+        return Err(anyhow!("status code: {}", status));
+    }
     Ok(())
 }
