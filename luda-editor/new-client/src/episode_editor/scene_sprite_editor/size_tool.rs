@@ -55,6 +55,9 @@ impl Component for SizeTool<'_> {
                                     event
                                 }
                                 Event::MouseUp { event } => {
+                                    if !*is_dragging {
+                                        return;
+                                    }
                                     set_is_dragging.set(false);
                                     event
                                 }
