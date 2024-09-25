@@ -7,6 +7,7 @@ pub struct SceneList<'a> {
     pub wh: Wh<Px>,
     pub scenes: &'a [Scene],
     pub select_scene: &'a dyn Fn(&str),
+    pub add_new_scene: &'a dyn Fn(),
 }
 
 impl Component for SceneList<'_> {
@@ -15,6 +16,7 @@ impl Component for SceneList<'_> {
             wh,
             scenes,
             select_scene,
+            add_new_scene,
         } = self;
         ctx.compose(|ctx| {
             table::vertical([
@@ -25,6 +27,26 @@ impl Component for SceneList<'_> {
                         Color::WHITE,
                         16.int_px(),
                     ));
+                }),
+                table::fixed(40.px(), |wh, ctx| {
+                    // TODO: 임시 버튼. 추후 디자인 필요.
+                    ctx.add(
+                        typography::center_text(
+                            wh,
+                            "Add New Scene Last",
+                            Color::WHITE,
+                            16.int_px(),
+                        )
+                        .attach_event(|event| {
+                            let Event::MouseDown { event } = event else {
+                                return;
+                            };
+                            if !event.is_local_xy_in() {
+                                return;
+                            }
+                            add_new_scene();
+                        }),
+                    );
                 }),
                 table::ratio(1, |wh, ctx| {
                     let item_wh = Wh::new(wh.width, wh.width / 4 * 3);

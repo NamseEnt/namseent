@@ -288,6 +288,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                 wh,
                 scenes: &scenes,
                 select_scene,
+                add_new_scene: &add_new_scene,
             });
         });
         let scene_editor = table::ratio(1, |wh, ctx| {
