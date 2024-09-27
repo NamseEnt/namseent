@@ -150,6 +150,9 @@ impl Component for SceneSpriteEditor<'_> {
                     }
                 }),
                 table::fixed(320.px(), |wh, ctx| {
+                    if selected_scene_sprite.is_none() {
+                        return;
+                    }
                     ctx.add(sprite_select_tool::SpriteSelectTool {
                         wh,
                         asset_docs: asset_docs.clone(),
