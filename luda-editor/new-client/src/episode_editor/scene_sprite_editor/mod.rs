@@ -4,9 +4,10 @@ mod size_tool;
 mod sprite_select_tool;
 
 use luda_rpc::{AssetDoc, Circumcircle, Scene, SceneSprite};
+use math::num::Zero;
 use namui::*;
 use namui_prebuilt::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub struct SceneSpriteEditor<'a> {
     pub wh: Wh<Px>,
@@ -87,11 +88,10 @@ impl Component for SceneSpriteEditor<'_> {
                 let Some(scene_sprite) = scene.scene_sprites.get_mut(index) else {
                     return;
                 };
-                let Some(part_option_selection) =
-                    scene_sprite.part_option_selections.get_mut(part_name)
-                else {
-                    return;
-                };
+                let part_option_selection = scene_sprite
+                    .part_option_selections
+                    .entry(part_name.to_string())
+                    .or_insert(HashSet::new());
 
                 let already_selected = part_option_selection.contains(part_option_name);
                 if is_single_select {
@@ -99,6 +99,9 @@ impl Component for SceneSpriteEditor<'_> {
                     part_option_selection.insert(part_option_name.to_string());
                 } else if already_selected {
                     part_option_selection.remove(part_option_name);
+                    if part_option_selection.len().is_zero() {
+                        scene_sprite.part_option_selections.remove(part_name);
+                    }
                 } else {
                     part_option_selection.insert(part_option_name.to_string());
                 }
