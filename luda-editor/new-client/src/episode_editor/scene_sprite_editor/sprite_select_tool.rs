@@ -54,7 +54,7 @@ impl Component for SpriteSelectTool<'_> {
         });
 
         let tag_toggle_button = |tag: AssetSystemTag| {
-            let is_on = selected_tags.contains(&AssetSystemTag::SpriteCharacter);
+            let is_on = selected_tags.contains(&tag);
             let text = match tag {
                 AssetSystemTag::SpriteCharacter => "인물",
                 AssetSystemTag::SpriteObject => "사물",
