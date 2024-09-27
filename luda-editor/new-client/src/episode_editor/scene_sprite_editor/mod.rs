@@ -66,6 +66,18 @@ impl Component for SceneSpriteEditor<'_> {
             set_selected_scene_sprite_index.set(Some(index));
         };
 
+        let select_sprite = &|sprite_id: &str| {
+            let Some(index) = *selected_scene_sprite_index else {
+                return;
+            };
+            let mut scene = scene.clone();
+            let Some(scene_sprite) = scene.scene_sprites.get_mut(index) else {
+                return;
+            };
+            scene_sprite.sprite_id = Some(sprite_id.to_string());
+            update_scene(scene);
+        };
+
         let select_part_option =
             &|part_name: &str, part_option_name: &str, is_single_select: bool| {
                 let Some(index) = *selected_scene_sprite_index else {
@@ -138,6 +150,7 @@ impl Component for SceneSpriteEditor<'_> {
                     ctx.add(sprite_select_tool::SpriteSelectTool {
                         wh,
                         asset_docs: asset_docs.clone(),
+                        select_sprite,
                         select_part_option,
                     });
                 }),

@@ -10,7 +10,7 @@ use std::{
 pub struct SpriteSelectTool<'a> {
     pub wh: Wh<Px>,
     pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
-    /// fn(part_name, part_option_name)
+    pub select_sprite: &'a dyn Fn(&str),
     pub select_part_option: &'a dyn Fn(&str, &str, bool),
 }
 
@@ -19,6 +19,7 @@ impl Component for SpriteSelectTool<'_> {
         let Self {
             wh,
             asset_docs,
+            select_sprite,
             select_part_option,
         } = self;
 
@@ -98,6 +99,7 @@ impl Component for SpriteSelectTool<'_> {
                                 items: tag_filtered_asset_docs.iter().map(|(id, sprite)| {
                                     let on_select = || {
                                         set_selected_sprite_id.set(Some(id.clone()));
+                                        select_sprite(id);
                                     };
                                     (sprite.id.as_str(), sprite.name.to_string(), on_select)
                                 }),
