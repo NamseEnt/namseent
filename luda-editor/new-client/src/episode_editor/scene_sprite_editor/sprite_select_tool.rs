@@ -168,7 +168,7 @@ where
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, items } = self;
 
-        let item_wh = Wh::new(wh.width, 80.px());
+        let item_wh = Wh::new(wh.width, 48.px());
 
         ctx.add(AutoListView {
             height: wh.height,
@@ -180,7 +180,7 @@ where
                     ctx.add(namui::text(TextParam {
                         text,
                         x: 0.px(),
-                        y: wh.height / 2.0,
+                        y: item_wh.height / 2.0,
                         align: TextAlign::Left,
                         baseline: TextBaseline::Middle,
                         font: Font {
@@ -193,7 +193,7 @@ where
                         },
                         max_width: Some(wh.width),
                     }));
-                    ctx.add(simple_button(wh, "", move |_| {
+                    ctx.add(simple_button(item_wh, "", move |_| {
                         on_select();
                     }));
                 })
