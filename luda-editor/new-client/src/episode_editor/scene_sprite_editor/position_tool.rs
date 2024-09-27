@@ -20,6 +20,17 @@ impl Component for PositionTool<'_> {
                     ctx.add(typography::body::left(wh.height, "위치", Color::WHITE));
                 }),
                 table::ratio(1, |wh, ctx| {
+                    const ROWS: isize = 5;
+                    const COLS: isize = 5;
+
+                    let to_nearest_point = |xy: Xy<f32>| {
+                        let cols = COLS as f32;
+                        let rows = ROWS as f32;
+                        let x = ((cols * xy.x).floor().min(cols).max(0.0) + 0.5) / cols;
+                        let y = ((rows * xy.y).floor().min(rows).max(0.0) + 0.5) / rows;
+                        Xy::new(x, y)
+                    };
+
                     ctx.add(
                         rect(RectParam {
                             rect: Rect::zero_wh(wh),
@@ -41,9 +52,8 @@ impl Component for PositionTool<'_> {
                                 return;
                             }
 
-                            on_change_position(
-                                (event.local_xy() / wh.as_xy()).map(|xy| (100.0 * xy).percent()),
-                            );
+                            let new_xy = to_nearest_point(event.local_xy() / wh.as_xy());
+                            on_change_position(new_xy.map(|xy| (100.0 * xy).percent()));
                         }),
                     );
 
@@ -57,27 +67,16 @@ impl Component for PositionTool<'_> {
                     let default_rendering_tree = path(circle.clone(), default_paint);
                     let active_rendering_tree = path(circle, active_paint);
 
-                    let rows = 5;
-                    let cols = 5;
-
-                    for row in 0..rows {
-                        for col in 0..cols {
-                            let x = wh.width * ((col as f32 + 0.5) / (cols - 1) as f32);
-                            let y = wh.height * ((row as f32 + 0.5) / (rows - 1) as f32);
+                    for row in 0..ROWS {
+                        for col in 0..COLS {
+                            let x = wh.width * ((col as f32 + 0.5) / (COLS) as f32);
+                            let y = wh.height * ((row as f32 + 0.5) / (ROWS) as f32);
 
                             ctx.translate((x, y)).add(default_rendering_tree.clone());
                         }
                     }
 
-                    let active_xy = {
-                        let cols = (cols - 1) as f32;
-                        let rows = (rows - 1) as f32;
-                        let x = wh.width * (cols * position.x.as_f32()).round().min(cols).max(0.0)
-                            / cols;
-                        let y = wh.height * (rows * position.y.as_f32()).round().min(rows).max(0.0)
-                            / rows;
-                        (x, y)
-                    };
+                    let active_xy = wh.as_xy() * to_nearest_point(position.map(|x| x.as_f32()));
                     ctx.translate(active_xy).add(active_rendering_tree);
                 }),
             ])(wh, ctx)
