@@ -52,7 +52,9 @@ pub enum EpisodeEditAction {
     },
 }
 
-pub use migration::schema::{AssetDoc, AssetKind, AssetSystemTag, AssetTag, SceneSprite};
+pub use migration::schema::{
+    AssetDoc, AssetKind, AssetSystemTag, AssetTag, Circumcircle, SceneSprite,
+};
 
 /// Use this on the client side to get the S3 URL of an asset.
 pub fn asset_s3_get_key(asset_id: &str, asset_kind: AssetKind) -> String {

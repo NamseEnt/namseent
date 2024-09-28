@@ -1,5 +1,5 @@
 use crate::{server_connection, simple_button, toast};
-use luda_rpc::{asset::reserve_team_asset_upload, AssetKind};
+use luda_rpc::{asset::reserve_team_asset_upload, AssetKind, AssetTag};
 use namui::*;
 use namui_prebuilt::table::*;
 use network::http;
@@ -35,6 +35,9 @@ impl Component for AssetManagePage<'_> {
                             asset_name: &name,
                             byte_size: encoded_bytes.len() as u64,
                             asset_kind: &AssetKind::Sprite,
+                            tags: &vec![AssetTag::System {
+                                tag: luda_rpc::AssetSystemTag::SpriteCharacter,
+                            }],
                         })
                         .await
                     {
@@ -116,11 +119,14 @@ async fn upload_asset(
     headers: Vec<(String, String)>,
     bytes: Vec<u8>,
 ) -> Result<()> {
-    let mut builder = http::Request::post(presigned_put_uri);
+    let mut builder = http::Request::put(presigned_put_uri);
     for (key, value) in headers {
         builder = builder.header(key, value);
     }
     let response = builder.body(bytes)?.send().await?;
-    response.ensure_status_code()?;
+    let status = response.ensure_status_code()?.status();
+    if !status.is_success() {
+        return Err(anyhow!("status code: {}", status));
+    }
     Ok(())
 }

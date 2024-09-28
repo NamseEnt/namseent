@@ -55,6 +55,9 @@ impl Component for SizeTool<'_> {
                                     event
                                 }
                                 Event::MouseUp { event } => {
+                                    if !*is_dragging {
+                                        return;
+                                    }
                                     set_is_dragging.set(false);
                                     event
                                 }
@@ -63,7 +66,7 @@ impl Component for SizeTool<'_> {
                                 }
                             };
 
-                            let x = mouse_event.local_xy().x / wh.width;
+                            let x = (mouse_event.local_xy().x / wh.width).clamp(0.0, 1.0);
                             on_change_size_radius(100.percent() * x);
                         }),
                     );
