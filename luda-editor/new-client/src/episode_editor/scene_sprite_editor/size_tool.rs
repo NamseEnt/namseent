@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use crate::*;
 
 pub static SIZE_TOOL_DRAGGING_ATOM: Atom<Option<SizeToolDragging>> = Atom::uninitialized();
@@ -19,12 +21,18 @@ impl Component for SizeTool<'_> {
 
         let (dragging, set_dragging) = ctx.init_atom(&SIZE_TOOL_DRAGGING_ATOM, || None);
 
+        let size_radius = dragging
+            .deref()
+            .as_ref()
+            .map(|dragging| dragging.radius)
+            .unwrap_or(size_radius);
+
         ctx.compose(|ctx| {
             table::vertical([
                 table::fixed(64.px(), |wh, ctx| {
                     ctx.add(typography::body::left(
                         wh.height,
-                        format!("크기 - {}", size_radius.round()),
+                        format!("크기 - {}", size_radius),
                         Color::WHITE,
                     ));
                 }),
