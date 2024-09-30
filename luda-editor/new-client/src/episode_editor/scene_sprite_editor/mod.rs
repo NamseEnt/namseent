@@ -7,6 +7,7 @@ use luda_rpc::{AssetDoc, Circumcircle, Scene, SceneSprite};
 use math::num::Zero;
 use namui::*;
 use namui_prebuilt::*;
+pub use size_tool::SIZE_TOOL_DRAGGING_ATOM;
 use std::collections::{HashMap, HashSet};
 
 pub struct SceneSpriteEditor<'a> {
@@ -26,6 +27,8 @@ impl Component for SceneSpriteEditor<'_> {
         } = self;
 
         let (selected_scene_sprite_index, set_selected_scene_sprite_index) = ctx.state(|| None);
+        let (_size_tool_dragging, set_size_tool_dragging) =
+            ctx.init_atom(&SIZE_TOOL_DRAGGING_ATOM, || None);
 
         let scene_sprites = &scene.scene_sprites;
         let selected_scene_sprite = selected_scene_sprite_index
@@ -121,10 +124,18 @@ impl Component for SceneSpriteEditor<'_> {
             update_scene(scene);
         };
 
-        let on_change_size_radius = &|size_radius: Percent| {
+        let on_change_size_radius = &|size_radius: Percent, is_dragging: bool| {
             let Some(index) = *selected_scene_sprite_index else {
                 return;
             };
+            if is_dragging {
+                set_size_tool_dragging.set(Some(size_tool::SizeToolDragging {
+                    scene_id: scene.id.clone(),
+                    sprite_index: index,
+                    radius: size_radius,
+                }));
+                return;
+            }
             let mut scene = scene.clone();
             let Some(scene_sprite) = scene.scene_sprites.get_mut(index) else {
                 return;
