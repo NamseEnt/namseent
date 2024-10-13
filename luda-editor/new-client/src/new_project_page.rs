@@ -1,4 +1,5 @@
 use super::*;
+use router::Route;
 use rpc::project::create_new_project::*;
 
 pub struct NewProjectPage<'a> {
@@ -50,8 +51,25 @@ impl Component for NewProjectPage<'_> {
             },
         );
 
+        let top_bar = table::fixed(
+            24.px(),
+            horizontal([
+                ratio(1, |_, _| {}),
+                fixed(24.px(), |wh, ctx| {
+                    ctx.add(simple_button(wh, "X", |_| {
+                        router::route(Route::Home {
+                            initial_selection: home::Selection::Team {
+                                team_id: team_id.to_string(),
+                            },
+                        });
+                    }));
+                }),
+            ]),
+        );
+
         ctx.compose(|ctx| {
             vertical([
+                top_bar,
                 fixed(24.px(), |wh, ctx| {
                     ctx.add(typography::title::left(
                         wh.height,

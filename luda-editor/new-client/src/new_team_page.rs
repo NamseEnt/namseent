@@ -1,4 +1,5 @@
 use super::*;
+use router::Route;
 use rpc::team::create_new_team::*;
 
 pub struct NewTeamPage;
@@ -37,8 +38,23 @@ impl Component for NewTeamPage {
             },
         );
 
+        let top_bar = table::fixed(
+            24.px(),
+            horizontal([
+                ratio(1, |_, _| {}),
+                fixed(24.px(), |wh, ctx| {
+                    ctx.add(simple_button(wh, "X", |_| {
+                        router::route(Route::Home {
+                            initial_selection: home::Selection::Nothing,
+                        });
+                    }));
+                }),
+            ]),
+        );
+
         ctx.compose(|ctx| {
             vertical([
+                top_bar,
                 fixed(24.px(), |wh, ctx| {
                     ctx.add(typography::title::left(
                         wh.height,

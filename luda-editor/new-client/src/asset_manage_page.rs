@@ -1,4 +1,8 @@
-use crate::{server_connection, simple_button, simple_toggle_button, toast};
+use crate::{
+    home,
+    router::{self, Route},
+    server_connection, simple_button, simple_toggle_button, toast,
+};
 use luda_rpc::{asset::reserve_team_asset_upload, AssetKind, AssetTag};
 use namui::*;
 use namui_prebuilt::table::*;
@@ -75,8 +79,20 @@ impl Component for AssetManagePage<'_> {
             });
         };
 
+        let top_bar = fixed(24.px(), |wh, ctx| {
+            let button_wh = Wh::new(128.px(), wh.height);
+            ctx.add(simple_button(button_wh, "back", |_| {
+                router::route(Route::Home {
+                    initial_selection: home::Selection::Team {
+                        team_id: team_id.to_string(),
+                    },
+                });
+            }));
+        });
+
         ctx.compose(|ctx| {
             vertical([
+                top_bar,
                 fixed(64.px(), |wh, ctx| {
                     ctx.add(AssetSystemTagSelect {
                         wh,
