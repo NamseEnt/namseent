@@ -1,4 +1,4 @@
-use crate::{server_connection, simple_button, toast};
+use crate::{server_connection, simple_button, simple_toggle_button, toast};
 use luda_rpc::{asset::reserve_team_asset_upload, AssetKind, AssetTag};
 use namui::*;
 use namui_prebuilt::table::*;
@@ -15,29 +15,47 @@ impl Component for AssetManagePage<'_> {
         let Self { team_id } = self;
 
         let screen_wh = namui::screen::size().map(|x| x.into_px());
+        let (asset_tag, set_asset_tag) = ctx.state(|| luda_rpc::AssetSystemTag::SpriteCharacter);
 
         let upload_asset = &|| {
             use reserve_team_asset_upload::*;
+
             ctx.spawn({
                 let team_id = team_id.clone();
+                let asset_tag = *asset_tag;
                 async move {
+                    let asset_kind = match asset_tag {
+                        luda_rpc::AssetSystemTag::SpriteCharacter
+                        | luda_rpc::AssetSystemTag::SpriteObject
+                        | luda_rpc::AssetSystemTag::SpriteBackground => AssetKind::Sprite,
+                        luda_rpc::AssetSystemTag::AudioCharacter
+                        | luda_rpc::AssetSystemTag::AudioProp
+                        | luda_rpc::AssetSystemTag::AudioBackground => AssetKind::Audio,
+                    };
+
                     let Ok(SelectedAssetFile { name, bytes }) = select_asset_file().await else {
                         toast::negative("에셋 파일 선택 실패");
                         return;
                     };
-                    let Ok(encoded_bytes) = encode_psd_sprite(&bytes) else {
-                        toast::negative("에셋 인코딩 실패");
-                        return;
+
+                    let bytes = match asset_tag {
+                        luda_rpc::AssetSystemTag::SpriteCharacter => {
+                            let Ok(bytes) = encode_psd_sprite(&bytes) else {
+                                toast::negative("캐릭터 스프라이트 인코딩 실패");
+                                return;
+                            };
+                            bytes
+                        }
+                        _ => bytes,
                     };
+
                     match server_connection()
                         .reserve_team_asset_upload(RefRequest {
                             team_id: &team_id,
                             asset_name: &name,
-                            byte_size: encoded_bytes.len() as u64,
-                            asset_kind: &AssetKind::Sprite,
-                            tags: &vec![AssetTag::System {
-                                tag: luda_rpc::AssetSystemTag::SpriteCharacter,
-                            }],
+                            byte_size: bytes.len() as u64,
+                            asset_kind: &asset_kind,
+                            tags: &vec![AssetTag::System { tag: asset_tag }],
                         })
                         .await
                     {
@@ -45,7 +63,7 @@ impl Component for AssetManagePage<'_> {
                             presigned_put_uri,
                             headers,
                             ..
-                        }) => match upload_asset(presigned_put_uri, headers, encoded_bytes).await {
+                        }) => match upload_asset(presigned_put_uri, headers, bytes).await {
                             Ok(_) => toast::positive("에셋 업로드 성공".to_string()),
                             Err(_) => toast::negative("에셋 업로드 실패".to_string()),
                         },
@@ -58,9 +76,18 @@ impl Component for AssetManagePage<'_> {
         };
 
         ctx.compose(|ctx| {
-            vertical([fixed(24.px(), |wh, ctx| {
-                ctx.add(AssetUploadButton { wh, upload_asset });
-            })])(screen_wh, ctx);
+            vertical([
+                fixed(64.px(), |wh, ctx| {
+                    ctx.add(AssetSystemTagSelect {
+                        wh,
+                        value: *asset_tag,
+                        on_change: &|tag| set_asset_tag.set(tag),
+                    });
+                }),
+                fixed(24.px(), |wh, ctx| {
+                    ctx.add(AssetUploadButton { wh, upload_asset });
+                }),
+            ])(screen_wh, ctx);
         });
     }
 }
@@ -129,4 +156,60 @@ async fn upload_asset(
         return Err(anyhow!("status code: {}", status));
     }
     Ok(())
+}
+
+struct AssetSystemTagSelect<'a> {
+    wh: Wh<Px>,
+    value: luda_rpc::AssetSystemTag,
+    on_change: &'a dyn Fn(luda_rpc::AssetSystemTag),
+}
+impl Component for AssetSystemTagSelect<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            wh,
+            value,
+            on_change,
+        } = self;
+
+        ctx.compose(|ctx| {
+            let create_toggle_button = |(name, tag)| {
+                ratio(1, move |wh, ctx| {
+                    ctx.add(simple_toggle_button(wh, name, tag == value, |_| {
+                        on_change(tag)
+                    }));
+                })
+            };
+
+            vertical([
+                ratio(
+                    1,
+                    horizontal(
+                        [
+                            ("배경음악", luda_rpc::AssetSystemTag::AudioBackground),
+                            ("캐릭터 오디오", luda_rpc::AssetSystemTag::AudioCharacter),
+                            ("사물 오디오", luda_rpc::AssetSystemTag::AudioProp),
+                        ]
+                        .map(create_toggle_button),
+                    ),
+                ),
+                ratio(
+                    1,
+                    horizontal(
+                        [
+                            (
+                                "배경 스프라이트",
+                                luda_rpc::AssetSystemTag::SpriteBackground,
+                            ),
+                            (
+                                "캐릭터 스프라이트",
+                                luda_rpc::AssetSystemTag::SpriteCharacter,
+                            ),
+                            ("사물 스프라이트", luda_rpc::AssetSystemTag::SpriteObject),
+                        ]
+                        .map(create_toggle_button),
+                    ),
+                ),
+            ])(wh, ctx);
+        });
+    }
 }
