@@ -10,6 +10,7 @@ use crate::rpc::asset::get_team_asset_docs;
 use crate::rpc::episode_editor::join_episode_editor;
 use luda_rpc::{AssetDoc, EpisodeEditAction, Scene};
 use properties_panel::PropertiesPanel;
+use router::Route;
 use std::{collections::HashMap, sync::Arc};
 
 pub struct EpisodeEditor<'a> {
@@ -66,6 +67,7 @@ impl Component for EpisodeEditor<'_> {
         match (join_result, asset_result) {
             (Ok((join_episode_editor::Response { scenes, texts }, _)), Ok(_)) => {
                 ctx.add(LoadedEpisodeEditor {
+                    team_id,
                     project_id,
                     episode_id,
                     initial_scenes: scenes,
@@ -87,6 +89,7 @@ impl Component for EpisodeEditor<'_> {
 }
 
 struct LoadedEpisodeEditor<'a> {
+    team_id: &'a String,
     project_id: &'a String,
     episode_id: &'a String,
     initial_scenes: &'a Vec<Scene>,
@@ -97,6 +100,7 @@ struct LoadedEpisodeEditor<'a> {
 impl Component for LoadedEpisodeEditor<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
+            team_id,
             project_id,
             episode_id,
             initial_scenes,
@@ -333,7 +337,24 @@ impl Component for LoadedEpisodeEditor<'_> {
             });
         });
 
-        ctx.compose(|ctx| horizontal([scene_list, scene_editor, properties_panel])(wh, ctx));
+        let top_bar = table::fixed(24.px(), |wh, ctx| {
+            let button_wh = Wh::new(128.px(), wh.height);
+            ctx.add(simple_button(button_wh, "back", |_| {
+                router::route(Route::Home {
+                    initial_selection: home::Selection::Project {
+                        team_id: team_id.to_string(),
+                        project_id: project_id.to_string(),
+                    },
+                });
+            }));
+        });
+
+        ctx.compose(|ctx| {
+            vertical([
+                top_bar,
+                ratio(1, horizontal([scene_list, scene_editor, properties_panel])),
+            ])(wh, ctx)
+        });
     }
 }
 

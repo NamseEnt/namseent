@@ -1,4 +1,5 @@
 use super::*;
+use router::Route;
 use rpc::episode::create_new_episode::*;
 
 pub struct NewEpisodePage<'a> {
@@ -55,8 +56,26 @@ impl Component for NewEpisodePage<'_> {
             },
         );
 
+        let top_bar = table::fixed(
+            24.px(),
+            horizontal([
+                ratio(1, |_, _| {}),
+                fixed(24.px(), |wh, ctx| {
+                    ctx.add(simple_button(wh, "X", |_| {
+                        router::route(Route::Home {
+                            initial_selection: home::Selection::Project {
+                                team_id: team_id.to_string(),
+                                project_id: project_id.to_string(),
+                            },
+                        });
+                    }));
+                }),
+            ]),
+        );
+
         ctx.compose(|ctx| {
             vertical([
+                top_bar,
                 fixed(24.px(), |wh, ctx| {
                     ctx.add(typography::title::left(
                         wh.height,
