@@ -307,7 +307,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                     table::ratio(1, |wh, ctx| {
                         ctx.add(scene_preview::ScenePreview { wh, scene });
                     }),
-                    table::fixed(160.px(), |wh, ctx| {
+                    table::fixed(48.px(), |wh, ctx| {
                         ctx.add(speaker_selector::SpeakerSelector {
                             wh,
                             scene,

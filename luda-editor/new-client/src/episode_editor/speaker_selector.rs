@@ -76,30 +76,29 @@ impl Component for SpeakerSelector<'_> {
             },
         );
 
-        let Some(speakers) = speakers.as_ref() else {
-            return;
-        };
-
         ctx.compose(|ctx| {
             let items = {
                 let mut items = vec![];
-                for (speaker_id, name) in speakers {
-                    items.push(table::fixed(16.px(), |_wh, _ctx| {}));
-                    items.push(table::fit(table::FitAlign::LeftTop, |ctx| {
-                        ctx.add(button::TextButtonFit {
-                            height: wh.height,
-                            text: name.as_ref().unwrap_or(&"N/A".to_string()),
-                            text_color: Color::WHITE,
-                            stroke_color: Color::WHITE,
-                            stroke_width: 1.px(),
-                            fill_color: Color::BLACK,
-                            side_padding: 8.px(),
-                            mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: &|_event| {
-                                select_speaker(*speaker_id);
-                            },
-                        });
-                    }));
+
+                if let Some(speakers) = speakers.as_ref() {
+                    for (speaker_id, name) in speakers {
+                        items.push(table::fixed(16.px(), |_wh, _ctx| {}));
+                        items.push(table::fit(table::FitAlign::LeftTop, |ctx| {
+                            ctx.add(button::TextButtonFit {
+                                height: wh.height,
+                                text: name.as_ref().unwrap_or(&"N/A".to_string()),
+                                text_color: Color::WHITE,
+                                stroke_color: Color::WHITE,
+                                stroke_width: 1.px(),
+                                fill_color: Color::BLACK,
+                                side_padding: 8.px(),
+                                mouse_buttons: vec![MouseButton::Left],
+                                on_mouse_up_in: &|_event| {
+                                    select_speaker(speaker_id);
+                                },
+                            });
+                        }));
+                    }
                 }
 
                 items.push(table::ratio(1, |_wh, _ctx| {}));
