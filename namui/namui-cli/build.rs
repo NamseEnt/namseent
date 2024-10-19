@@ -7,11 +7,12 @@ use std::process::Command;
 
 include!("src/cli.rs");
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     generate_completions()?;
     generate_symlink()?;
-    download_wasi_sdk()?;
-    download_emsdk()?;
+
+    tokio::try_join!(download_wasi_sdk(), download_emsdk(), download_binaryen(),)?;
 
     Ok(())
 }
@@ -77,7 +78,7 @@ fn generate_completions() -> Result<()> {
     Ok(())
 }
 
-fn download_wasi_sdk() -> Result<()> {
+async fn download_wasi_sdk() -> Result<()> {
     const VERSION: &str = "23";
 
     let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
@@ -100,11 +101,14 @@ fn download_wasi_sdk() -> Result<()> {
     }
 
     println!("DOWNLOADING WASI-SDK {VERSION}.0");
-    let url = format!("https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{VERSION}/wasi-sdk-{VERSION}.0-x86_64-linux.tar.gz");
+    let url = format!(
+        "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{VERSION}/wasi-sdk-{VERSION}.0-x86_64-linux.tar.gz"
+    );
 
-    let response = reqwest::blocking::get(url)?.error_for_status()?;
+    let response = reqwest::get(url).await?.error_for_status()?;
+    let bytes = response.bytes().await?;
 
-    let mut d = flate2::read::GzDecoder::new(response);
+    let mut d = flate2::read::GzDecoder::new(bytes.as_ref());
     let mut archive = tar::Archive::new(&mut d);
     archive.unpack(&temp)?;
     std::fs::rename(
@@ -118,7 +122,7 @@ fn download_wasi_sdk() -> Result<()> {
     Ok(())
 }
 
-fn download_emsdk() -> Result<()> {
+async fn download_emsdk() -> Result<()> {
     let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let dist = root.join("emscripten");
     if dist.exists() {
@@ -159,6 +163,45 @@ fn download_emsdk() -> Result<()> {
         .output()?
         .status
         .success());
+
+    Ok(())
+}
+
+async fn download_binaryen() -> Result<()> {
+    const VERSION: &str = "119";
+
+    let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    let dist = root.join("binaryen");
+    let temp = root.join("binaryen-temp");
+
+    let version_file_path = dist.join("VERSION");
+    let expected_version_file_content = VERSION;
+
+    if dist.exists() {
+        if let std::io::Result::Ok(version_file) = std::fs::read_to_string(&version_file_path) {
+            println!("Binaryen {version_file} Installed");
+
+            if version_file == expected_version_file_content {
+                return Ok(());
+            }
+        }
+
+        std::fs::remove_dir_all(&dist)?;
+    }
+
+    println!("DOWNLOADING BINARYEN {VERSION}");
+    let url = format!("https://github.com/WebAssembly/binaryen/releases/download/version_{VERSION}/binaryen-version_{VERSION}-x86_64-linux.tar.gz");
+
+    let response = reqwest::get(url).await?.error_for_status()?;
+    let bytes = response.bytes().await?;
+
+    let mut d = flate2::read::GzDecoder::new(bytes.as_ref());
+    let mut archive = tar::Archive::new(&mut d);
+    archive.unpack(&temp)?;
+    std::fs::rename(temp.join(format!("binaryen-version_{VERSION}")), dist)?;
+    std::fs::remove_dir(temp)?;
+
+    std::fs::write(version_file_path, expected_version_file_content)?;
 
     Ok(())
 }
