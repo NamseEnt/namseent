@@ -24,10 +24,14 @@ edition = "2021"
 
 [profile.release]
 opt-level = 3
+lto = true
+codegen-units = 1 # Reduce number of codegen units to increase optimizations
+strip = true
+debug = false
 
 [profile.dev]
 opt-level = 1
-    "#,
+"#,
             project_path = project_path_in_relative
                 .to_str()
                 .unwrap()
@@ -84,7 +88,7 @@ rustflags = [
     "-Clink-arg=--export=malloc",
     "-Clink-arg=--export=free",
 
-    // Supported by every main browser: https://caniuse.com/wasm-simd
+    # Supported by every main browser: https://caniuse.com/wasm-simd
     "-Ctarget-feature=+simd128",
 ]
 
