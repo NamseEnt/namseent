@@ -1,4 +1,5 @@
 mod api;
+mod queue_handler;
 mod s3;
 mod session;
 mod ws_handler;
@@ -34,6 +35,8 @@ async fn start_server() -> Result<()> {
         !is_on_aws(),
     )
     .await?;
+
+    tokio::spawn(queue_handler::run(database.clone()));
 
     let app = Router::new()
         .route("/turn_on_memory_cache", get(turn_on_memory_cache))

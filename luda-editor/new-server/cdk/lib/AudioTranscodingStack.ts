@@ -57,6 +57,23 @@ export class AudioTranscodingStack extends cdk.Stack {
             );
         }
 
+        const deadLetterQueue = new cdk.aws_sqs.Queue(this, "DeadLetterQueue", {
+            retentionPeriod: cdk.Duration.days(14),
+            fifo: true,
+        });
+
+        const sqs = new cdk.aws_sqs.Queue(this, "MainSqs", {
+            fifo: true,
+            deadLetterQueue: {
+                queue: deadLetterQueue,
+                maxReceiveCount: 3,
+            },
+        });
+
+        if (isLocalstack) {
+            sqs.grantConsumeMessages(new cdk.aws_iam.AnyPrincipal());
+        }
+
         const audioTranscodingLambda = new cdk.aws_lambda.Function(
             this,
             "audioTranscodingLambda",
@@ -74,6 +91,7 @@ export class AudioTranscodingStack extends cdk.Stack {
                         ? localstackAssetBucketName
                         : assetBucket.bucketName,
                     RUST_BACKTRACE: "1",
+                    QUEUE_URL: sqs.queueUrl,
                 },
                 architecture: cdk.aws_lambda.Architecture.X86_64,
                 role: new cdk.aws_iam.Role(this, "audioTranscodingLambdaRole", {
@@ -103,6 +121,8 @@ export class AudioTranscodingStack extends cdk.Stack {
                 }),
             },
         );
+
+        sqs.grantSendMessages(audioTranscodingLambda);
 
         if (isLocalstack) {
             // cannot use add_event_notification in localstack

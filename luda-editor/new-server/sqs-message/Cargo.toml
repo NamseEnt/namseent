@@ -1,0 +1,11 @@
+[package]
+name = "sqs-message"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rkyv = "0.8.8"
+aws-sdk-sqs = "1.44.0"
+aws-types = "1.3.3"
+anyhow = { version = "1.0.89", features = ["backtrace"] }
+base64 = "0.22.1"

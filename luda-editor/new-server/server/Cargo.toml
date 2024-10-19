@@ -10,6 +10,7 @@ luda-rpc = { path = "../rpc", features = ["server"] }
 database = { path = "../database/database" }
 serializer = { path = "../serializer" }
 randum = { path = "../randum" }
+sqs-message = { path = "../sqs-message" }
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.7.5", features = ["ws"] }
 anyhow = { version = "1.0.83", features = ["backtrace"] }
