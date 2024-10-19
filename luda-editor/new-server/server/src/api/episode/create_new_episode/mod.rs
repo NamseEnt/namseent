@@ -34,6 +34,11 @@ pub async fn create_new_episode(
             project_id,
             ttl: None,
         },
+        EpisodeEditingUserDocPut {
+            episode_id: &episode_id,
+            editing_user: &None,
+            ttl: None,
+        },
     ))
     .await?;
 

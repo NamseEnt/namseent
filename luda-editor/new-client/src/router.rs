@@ -3,10 +3,25 @@ use super::*;
 pub struct Router;
 
 pub enum Route {
-    Home { initial_selection: home::Selection },
+    Home {
+        initial_selection: home::Selection,
+    },
     NewTeam,
-    NewProject { team_id: String },
-    AssetManage { team_id: String },
+    NewProject {
+        team_id: String,
+    },
+    NewEpisode {
+        team_id: String,
+        project_id: String,
+    },
+    AssetManage {
+        team_id: String,
+    },
+    EpisodeEditor {
+        team_id: String,
+        project_id: String,
+        episode_id: String,
+    },
 }
 
 static ROUTE_ATOM: Atom<Route> = Atom::uninitialized();
@@ -26,8 +41,28 @@ impl Component for Router {
             Route::NewProject { team_id } => {
                 ctx.add(new_project_page::NewProjectPage { team_id });
             }
+            Route::NewEpisode {
+                team_id,
+                project_id,
+            } => {
+                ctx.add(new_episode_page::NewEpisodePage {
+                    team_id,
+                    project_id,
+                });
+            }
             Route::AssetManage { team_id } => {
                 ctx.add(asset_manage_page::AssetManagePage { team_id });
+            }
+            Route::EpisodeEditor {
+                team_id,
+                project_id,
+                episode_id,
+            } => {
+                ctx.add(episode_editor::EpisodeEditor {
+                    team_id,
+                    project_id,
+                    episode_id,
+                });
             }
         }
     }

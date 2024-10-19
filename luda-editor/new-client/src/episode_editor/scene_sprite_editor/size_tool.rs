@@ -1,9 +1,14 @@
+use std::ops::Deref;
+
 use crate::*;
+
+pub static SIZE_TOOL_DRAGGING_ATOM: Atom<Option<SizeToolDragging>> = Atom::uninitialized();
 
 pub struct SizeTool<'a> {
     pub wh: Wh<Px>,
     pub size_radius: Percent,
-    pub on_change_size_radius: &'a dyn Fn(Percent),
+    /// Fn(Percent, is_dragging)
+    pub on_change_size_radius: &'a dyn Fn(Percent, bool),
 }
 
 impl Component for SizeTool<'_> {
@@ -14,14 +19,20 @@ impl Component for SizeTool<'_> {
             on_change_size_radius,
         } = self;
 
-        let (is_dragging, set_is_dragging) = ctx.state(|| false);
+        let (dragging, set_dragging) = ctx.init_atom(&SIZE_TOOL_DRAGGING_ATOM, || None);
+
+        let size_radius = dragging
+            .deref()
+            .as_ref()
+            .map(|dragging| dragging.radius)
+            .unwrap_or(size_radius);
 
         ctx.compose(|ctx| {
             table::vertical([
                 table::fixed(64.px(), |wh, ctx| {
                     ctx.add(typography::body::left(
                         wh.height,
-                        format!("크기 - {}", size_radius.round()),
+                        format!("크기 - {}", size_radius),
                         Color::WHITE,
                     ));
                 }),
@@ -40,31 +51,39 @@ impl Component for SizeTool<'_> {
                             },
                         })
                         .attach_event(|event| {
-                            let mouse_event = match event {
+                            let mouse_event = match &event {
                                 Event::MouseDown { event } => {
                                     if !event.is_local_xy_in() {
                                         return;
                                     }
-                                    set_is_dragging.set(true);
                                     event
                                 }
-                                Event::MouseMove { event } => {
-                                    if !*is_dragging {
+                                Event::MouseMove { event } | Event::MouseUp { event } => {
+                                    if dragging.is_none() {
                                         return;
                                     }
                                     event
                                 }
-                                Event::MouseUp { event } => {
-                                    set_is_dragging.set(false);
-                                    event
+                                Event::VisibilityChange => {
+                                    if dragging.is_some() {
+                                        set_dragging.set(None);
+                                    }
+                                    return;
                                 }
                                 _ => {
                                     return;
                                 }
                             };
+                            let radius = {
+                                let x = (mouse_event.local_xy().x / wh.width).clamp(0.0, 1.0);
+                                100.percent() * x
+                            };
+                            on_change_size_radius(radius, true);
 
-                            let x = mouse_event.local_xy().x / wh.width;
-                            on_change_size_radius(100.percent() * x);
+                            if let Event::MouseUp { .. } = &event {
+                                set_dragging.set(None);
+                                on_change_size_radius(radius, false);
+                            }
                         }),
                     );
 
@@ -82,4 +101,10 @@ impl Component for SizeTool<'_> {
             ])(wh, ctx)
         });
     }
+}
+
+pub struct SizeToolDragging {
+    pub scene_id: String,
+    pub sprite_index: usize,
+    pub radius: Percent,
 }
