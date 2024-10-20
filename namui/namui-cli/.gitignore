@@ -1,3 +1,5 @@
+binaryen-temp/
+binaryen/
 emscripten/
 wasi-sdk/
 wasi-sdk-temp/
