@@ -16,6 +16,7 @@ pub async fn start(target: Target, manifest_path: PathBuf, release: bool) -> Res
                 Target::X86_64PcWindowsMsvc => {
                     linux::x86_64_pc_windows_msvc::start(&manifest_path, release).await?
                 }
+                Target::X86_64UnknownLinuxGnu => todo!(),
             }
         }
     } else if cfg!(target_os = "windows") {
