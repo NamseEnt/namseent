@@ -62,6 +62,25 @@ pub(super) async fn init_system() -> InitResult {
     Ok(())
 }
 
+pub async fn init_for_test() -> InitResult {
+    static INITIALIZED: std::sync::OnceLock<tokio::sync::Mutex<bool>> = std::sync::OnceLock::new();
+
+    let mut initialized = INITIALIZED
+        .get_or_init(|| tokio::sync::Mutex::new(false))
+        .lock()
+        .await;
+
+    if *initialized {
+        return Ok(());
+    }
+
+    skia::init()?;
+
+    *initialized = true;
+
+    Ok(())
+}
+
 #[allow(dead_code)]
 pub(crate) fn system_initialized() -> bool {
     SYSTEM_INITIALIZED.load(std::sync::atomic::Ordering::SeqCst)
