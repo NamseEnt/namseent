@@ -25,16 +25,8 @@ impl NativePath {
         let path = path.clone().stroke(StrokeOptions {
             cap: paint.stroke_cap,
             join: paint.stroke_join,
-            width: if paint.stroke_width == 0.px() {
-                None
-            } else {
-                Some(paint.stroke_width)
-            },
-            miter_limit: if paint.stroke_miter == 0.px() {
-                None
-            } else {
-                Some(paint.stroke_miter)
-            },
+            width: Some(paint.stroke_width),
+            miter_limit: Some(paint.stroke_miter),
             precision: None,
         });
 
