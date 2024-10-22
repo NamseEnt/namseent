@@ -56,6 +56,7 @@ fn collect_runtime(
             ));
         }
         Target::X86_64PcWindowsMsvc => {}
+        Target::X86_64UnknownLinuxGnu => {}
     }
     if let Some(additional_runtime_path) = additional_runtime_path {
         ops.push(CollectOperation::new(
@@ -99,6 +100,16 @@ fn collect_rust_build(
                 PathBuf::from(""),
             ));
         }
+        Target::X86_64UnknownLinuxGnu => {
+            let build_dist_path = project_path.join(format!(
+                "target/namui/target/x86_64-unknown-linux-gnu/{}",
+                if release { "release" } else { "debug" }
+            ));
+            ops.push(CollectOperation::new(
+                build_dist_path.join("namui-runtime-x86_64-unknown-linux-gnu"),
+                PathBuf::from(""),
+            ));
+        }
     }
     Ok(())
 }
@@ -120,7 +131,7 @@ fn collect_deep_link_manifest(
     let _ = ops;
     match target {
         Target::Wasm32WasiWeb => {}
-        Target::X86_64PcWindowsMsvc => {
+        Target::X86_64PcWindowsMsvc | Target::X86_64UnknownLinuxGnu => {
             // TODO, but not priority
         }
     }

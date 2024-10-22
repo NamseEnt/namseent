@@ -106,6 +106,7 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 .output()
                 .await?)
         }
+        Target::X86_64UnknownLinuxGnu => todo!(),
     }
 }
 
@@ -120,6 +121,11 @@ fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
             ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
             ("NAMUI_CFG_TARGET_OS", "windows"),
             ("NAMUI_CFG_TARGET_ENV", "msvc"),
+        ],
+        Target::X86_64UnknownLinuxGnu => vec![
+            ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
+            ("NAMUI_CFG_TARGET_OS", "linux"),
+            ("NAMUI_CFG_TARGET_ENV", "gnu"),
         ],
     };
 

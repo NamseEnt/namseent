@@ -19,6 +19,11 @@ pub fn set_user_config(target: Target) -> Result<()> {
             ("target_env", "msvc"),
             ("target_arch", "x86_64"),
         ],
+        Target::X86_64UnknownLinuxGnu => [
+            ("target_os", "linux"),
+            ("target_env", "gnu"),
+            ("target_arch", "x86_64"),
+        ],
     }
     .iter()
     .map(|(key, value)| (key.to_string(), value.to_string()))
