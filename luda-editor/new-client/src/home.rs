@@ -55,9 +55,30 @@ impl Component for Home<'_> {
                 ratio(1, |wh, ctx| {
                     ctx.add(EpisodeList {
                         wh,
+                        team_id: match selection.as_ref() {
+                            Selection::Team { team_id } => Some(team_id),
+                            Selection::Project { team_id, .. } => Some(team_id),
+                            _ => None,
+                        },
                         project_id: match selection.as_ref() {
                             Selection::Project { project_id, .. } => Some(project_id),
                             _ => None,
+                        },
+                        on_select_episode: &|episode| {
+                            let team_id = match selection.as_ref() {
+                                Selection::Team { team_id } => team_id.clone(),
+                                Selection::Project { team_id, .. } => team_id.clone(),
+                                _ => unreachable!(),
+                            };
+                            let project_id = match selection.as_ref() {
+                                Selection::Project { project_id, .. } => project_id.clone(),
+                                _ => unreachable!(),
+                            };
+                            router::route(router::Route::EpisodeEditor {
+                                team_id,
+                                project_id,
+                                episode_id: episode.id.clone(),
+                            });
                         },
                     });
                 }),
@@ -283,12 +304,19 @@ impl Component for ProjectList<'_> {
 
 struct EpisodeList<'a> {
     wh: Wh<Px>,
+    team_id: Option<&'a String>,
     project_id: Option<&'a String>,
+    on_select_episode: &'a dyn Fn(&Episode),
 }
 
 impl Component for EpisodeList<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, project_id } = self;
+        let Self {
+            wh,
+            team_id,
+            project_id,
+            on_select_episode,
+        } = self;
 
         let title = || {
             [fixed(24.px(), |wh, ctx| {
@@ -331,16 +359,41 @@ impl Component for EpisodeList<'_> {
                             .into_iter()
                             .chain(episodes.iter().map(|episode| {
                                 fixed(24.px(), |wh, ctx| {
-                                    ctx.add(typography::center_text(
-                                        wh,
-                                        &episode.name,
-                                        Color::WHITE,
-                                        16.int_px(),
-                                    ));
+                                    ctx.add(
+                                        typography::center_text(
+                                            wh,
+                                            &episode.name,
+                                            Color::WHITE,
+                                            16.int_px(),
+                                        )
+                                        .attach_event(
+                                            |event| {
+                                                if let Event::MouseUp { event } = event {
+                                                    if event.is_local_xy_in()
+                                                        && event.button == Some(MouseButton::Left)
+                                                    {
+                                                        on_select_episode(episode);
+                                                    }
+                                                }
+                                            },
+                                        ),
+                                    );
                                 })
                             }))
                             .chain([fixed(24.px(), |wh, ctx| {
-                                ctx.add(simple_button(wh, "새 에피소드", |_event| {}));
+                                ctx.add(simple_button(wh, "새 에피소드", |_event| {
+                                    let (Some(team_id), Some(project_id)) = (team_id, project_id)
+                                    else {
+                                        toast::negative(
+                                            "오류가 발생했습니다. 새로고침 후 다시 시도해주세요",
+                                        );
+                                        return;
+                                    };
+                                    router::route(router::Route::NewEpisode {
+                                        team_id: team_id.clone(),
+                                        project_id: project_id.clone(),
+                                    });
+                                }));
                             })]),
                     )(wh, ctx)
                 });
