@@ -31,6 +31,7 @@ pub type NamuiCfgMap = HashMap<String, String>;
 pub enum Target {
     Wasm32WasiWeb,
     X86_64PcWindowsMsvc,
+    X86_64UnknownLinuxGnu,
 }
 impl std::fmt::Display for Target {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

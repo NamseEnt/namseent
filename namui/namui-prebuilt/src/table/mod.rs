@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use namui::*;
 use std::collections::HashMap;
 
@@ -215,10 +218,12 @@ impl Component for InternalSlice<'_> {
                     };
                     units.push(unit);
 
+                    let need_clip = fit_bounding_box_map.get(&index).is_some();
+
                     intermediates.push(Intermediate {
                         key,
                         render,
-                        need_clip: true,
+                        need_clip,
                         table_cell_type: TableCellType::Fit { align },
                     });
                 }
@@ -256,8 +261,10 @@ impl Component for InternalSlice<'_> {
         let pixel_sizes = pixel_size_or_ratio_list.iter().map(|(pixel_size, ratio)| {
             if let Some(pixel_size) = pixel_size {
                 *pixel_size
+            } else if let Some(ratio) = ratio {
+                (direction_pixel_size - non_ratio_pixel_size_sum) * *ratio / ratio_sum
             } else {
-                (direction_pixel_size - non_ratio_pixel_size_sum) * ratio.unwrap() / ratio_sum
+                0.px()
             }
         });
 
@@ -294,8 +301,8 @@ impl Component for InternalSlice<'_> {
                 },
             };
 
-            let rendering_tree = ctx.ghost_compose(key, |ctx| {
-                let mut ctx = ctx.translate((xywh.x(), xywh.y()));
+            ctx.compose_with_key(key, |mut ctx| {
+                ctx = ctx.translate((xywh.x(), xywh.y()));
 
                 if let TableCellType::Fit { align } = table_cell_type {
                     let bounding_box = fit_bounding_box_map.get(&index);
@@ -319,31 +326,39 @@ impl Component for InternalSlice<'_> {
                         ctx = ctx.translate((x, y));
                     }
                 }
+                ctx.compose(|ctx| {
+                    let rendering_tree = ctx.ghost_compose(0, |mut ctx| {
+                        if need_clip {
+                            ctx = ctx.clip(
+                                Path::new().add_rect(Rect::Xywh {
+                                    x: px(0.0),
+                                    y: px(0.0),
+                                    width: xywh.width(),
+                                    height: xywh.height(),
+                                }),
+                                ClipOp::Intersect,
+                            );
+                        }
+                        render(direction, xywh.wh(), ctx);
+                    });
 
-                if need_clip {
-                    ctx = ctx.clip(
-                        Path::new().add_rect(Rect::Xywh {
-                            x: px(0.0),
-                            y: px(0.0),
-                            width: xywh.width(),
-                            height: xywh.height(),
-                        }),
-                        ClipOp::Intersect,
-                    );
-                }
-                render(direction, xywh.wh(), ctx);
-            });
+                    if let TableCellType::Fit { .. } = table_cell_type {
+                        let is_first_draw = fit_bounding_box_map.get(&index).is_none();
+                        let bounding_box = namui::bounding_box(&rendering_tree);
+                        set_bounding_box_map.mutate({
+                            move |bounding_box_map| {
+                                bounding_box_map.insert(index, bounding_box);
+                            }
+                        });
 
-            if let TableCellType::Fit { .. } = table_cell_type {
-                let bounding_box = namui::bounding_box(&rendering_tree);
-                set_bounding_box_map.mutate({
-                    move |bounding_box_map| {
-                        bounding_box_map.insert(index, bounding_box);
+                        if !is_first_draw {
+                            ctx.add(rendering_tree);
+                        }
+                    } else {
+                        ctx.add(rendering_tree);
                     }
                 });
-            }
-
-            ctx.add(rendering_tree);
+            });
 
             advanced_pixel_size += pixel_size;
         }
@@ -446,83 +461,3 @@ pub fn fit<'a>(
         }),
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use std::sync::atomic::AtomicBool;
-
-//     #[test]
-//     fn closure_should_give_right_wh() {
-//         let button_render_called = AtomicBool::new(false);
-//         let label_render_called = AtomicBool::new(false);
-//         let body_render_called = AtomicBool::new(false);
-//         let body_inner_render_called = AtomicBool::new(false);
-
-//         let button = calculative(
-//             |parent_wh| parent_wh.height,
-//             |wh, ctx| {
-//                 button_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
-//                 assert_eq!(px(20.0), wh.width);
-//                 assert_eq!(px(20.0), wh.height);
-//             },
-//         );
-
-//         let label = ratio(1, |wh, ctx| {
-//             label_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
-//             assert_eq!(px(280.0), wh.width);
-//             assert_eq!(px(20.0), wh.height);
-//         });
-
-//         let header = fixed(px(20.0), horizontal([("button", button), ("label", label)]));
-
-//         let body = ratio(1.0, |wh, ctx| {
-//             body_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
-//             assert_eq!(px(300.0), wh.width);
-//             assert_eq!(px(480.0), wh.height);
-//             vertical([
-//                 (
-//                     "0",
-//                     ratio(
-//                         1,
-//                         padding(5.px(), |wh, ctx| {
-//                             body_inner_render_called
-//                                 .store(true, std::sync::atomic::Ordering::Relaxed);
-//                             assert_eq!(px(290.0), wh.width);
-//                             assert_eq!(px(470.0), wh.height);
-//                         }),
-//                     ),
-//                 ),
-//                 // Note: RenderingTree is not testable yet, So you cannot test fit well now.
-//                 ("empty", fit(FitAlign::LeftTop, RenderingTree::Empty)),
-//             ])(wh, ctx)
-//         });
-
-//         let ctx = todo!();
-
-//         vertical([header, body])(
-//             Wh {
-//                 width: px(300.0),
-//                 height: px(500.0),
-//             },
-//             ctx,
-//         );
-
-//         assert_eq!(
-//             true,
-//             button_render_called.load(std::sync::atomic::Ordering::Relaxed)
-//         );
-//         assert_eq!(
-//             true,
-//             label_render_called.load(std::sync::atomic::Ordering::Relaxed)
-//         );
-//         assert_eq!(
-//             true,
-//             body_render_called.load(std::sync::atomic::Ordering::Relaxed)
-//         );
-//         assert_eq!(
-//             true,
-//             body_inner_render_called.load(std::sync::atomic::Ordering::Relaxed)
-//         );
-//     }
-// }

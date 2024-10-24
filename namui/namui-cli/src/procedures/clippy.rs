@@ -58,6 +58,25 @@ pub async fn clippy(target: Target, manifest_path: PathBuf) -> Result<()> {
                 .wait()
                 .await?;
         }
+        Target::X86_64UnknownLinuxGnu => {
+            let mut args = vec![];
+            args.extend([
+                "clippy",
+                "--target",
+                "x86_64-unknown-linux-gnu",
+                "--manifest-path",
+                manifest_path.to_str().unwrap(),
+                "--tests",
+            ]);
+
+            Command::new("cargo")
+                .args(args)
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .spawn()?
+                .wait()
+                .await?;
+        }
     }
 
     Ok(())
