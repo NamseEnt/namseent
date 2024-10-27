@@ -30,26 +30,7 @@ impl<T: Nsd> List<T> {
     }
 
     pub fn last(&self) -> Option<T> {
-        if self.extra.is_empty() {
-            if self.source.is_empty() {
-                None
-            } else {
-                let mut source = self.source.clone();
-                let item_count = Leb128::read(&mut source);
-                for index in 0..item_count {
-                    let item_byte_len = Leb128::read(&mut source);
-                    if index == item_count - 1 {
-                        assert_eq!(source.len(), item_byte_len);
-                        let item = T::from_bytes(source.split_to(item_byte_len));
-                        return Some(item);
-                    }
-                }
-                assert_eq!(item_count, 0);
-                None
-            }
-        } else {
-            Some(self.extra.last().unwrap().clone())
-        }
+        self.iter().last()
     }
 
     pub fn len(&self) -> usize {
@@ -67,24 +48,63 @@ impl<T: Nsd> List<T> {
         self.len() == 0
     }
 
-    pub fn pop(&self) -> Option<T> {
-        todo!()
+    pub fn pop(&mut self) -> Option<T> {
+        if let Some(value) = self.extra.pop() {
+            return Some(value);
+        }
+
+        if self.source.is_empty() {
+            return None;
+        }
+
+        self.iter_with_index().last().map(|(index, value)| {
+            self.source_exclude_indexes.push(index);
+            value
+        })
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = T> + '_ {
+        self.iter_with_index().map(|(_, t)| t)
+    }
+
+    fn iter_with_index(&self) -> impl Iterator<Item = (usize, T)> + '_ {
+        ListSourceIter {
+            bytes: self.source_without_tuple_count(),
+            source_exclude_indexes: &self.source_exclude_indexes,
+            index: ListSourceIterIndex::Source(0),
+            extra: &self.extra,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+
+    fn source_without_tuple_count(&self) -> Bytes {
+        let mut source = self.source.clone();
+        let _tuple_count = Leb128::read(&mut source);
+        source
+    }
+}
+
+impl<T: Nsd> Default for List<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 impl<T: Nsd> Nsd for List<T> {
     fn byte_len(&self) -> usize {
-        let mut byte_len = Leb128::new(self.extra.len()).byte_len();
-        for item in self.extra.iter() {
+        let mut byte_len = Leb128::new(self.len()).byte_len();
+
+        self.iter().for_each(|item| {
             byte_len += Leb128::new(item.byte_len()).byte_len();
             byte_len += item.byte_len();
-        }
+        });
+
         byte_len
     }
 
     fn write_on_bytes(&self, bytes: &mut [u8]) -> usize {
         let mut index = 0;
-        index += Leb128::new(self.extra.len()).write_on_bytes(bytes.get_mut(index..).unwrap());
+        index += Leb128::new(self.len()).write_on_bytes(bytes.get_mut(index..).unwrap());
         for item in self.extra.iter() {
             index += Leb128::new(item.byte_len()).write_on_bytes(bytes.get_mut(index..).unwrap());
             index += item.write_on_bytes(bytes.get_mut(index..).unwrap());
@@ -104,38 +124,64 @@ impl<T: Nsd> Nsd for List<T> {
     }
 }
 
+struct ListSourceIter<'a, T> {
+    /// after tuple count
+    bytes: Bytes,
+    source_exclude_indexes: &'a [usize],
+    extra: &'a [T],
+    index: ListSourceIterIndex,
+    _phantom: std::marker::PhantomData<T>,
+}
+
+enum ListSourceIterIndex {
+    Source(usize),
+    Extra(usize),
+}
+
+impl<T: Nsd> std::iter::Iterator for ListSourceIter<'_, T> {
+    type Item = (usize, T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.index {
+            ListSourceIterIndex::Source(index) => {
+                if self.bytes.is_empty() {
+                    self.index = ListSourceIterIndex::Extra(0);
+                    return self.next();
+                }
+
+                let value_byte_len = Leb128::read(&mut self.bytes);
+                let value_bytes = self.bytes.split_to(value_byte_len);
+
+                if self.source_exclude_indexes.contains(&index) {
+                    self.index = ListSourceIterIndex::Source(index + 1);
+                    return self.next();
+                }
+
+                let value = T::from_bytes(value_bytes);
+                self.index = ListSourceIterIndex::Source(index + 1);
+
+                Some((index, value))
+            }
+            ListSourceIterIndex::Extra(index) => {
+                if index >= self.extra.len() {
+                    return None;
+                }
+
+                let value = &self.extra[index];
+                self.index = ListSourceIterIndex::Extra(index + 1);
+
+                Some((index, value.clone()))
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[repr(u8)]
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    enum IetfLanguageTag {
-        Ko,
-        EnUs,
-        Ja,
-    }
-
-    impl Nsd for IetfLanguageTag {
-        fn byte_len(&self) -> usize {
-            std::mem::size_of::<Self>()
-        }
-
-        fn write_on_bytes(&self, bytes: &mut [u8]) -> usize {
-            bytes[0] = *self as u8;
-            self.byte_len()
-        }
-
-        fn from_bytes(bytes: Bytes) -> Self
-        where
-            Self: Sized,
-        {
-            unsafe { std::mem::transmute(bytes[0]) }
-        }
-    }
-
     #[test]
-    fn test_map() {
+    fn test_list() {
         #[derive(Debug, Clone)]
         struct SpeakerDoc {
             names: List<VStr>,
@@ -192,6 +238,8 @@ mod tests {
 
             doc.names.pop();
 
+            assert_eq!(doc.names.len(), 0);
+
             let option_value = doc.names.last();
             assert!(option_value.is_none());
             assert!(doc.names.is_empty());
@@ -217,6 +265,6 @@ mod tests {
             doc.to_bytes()
         };
 
-        assert_eq!(bytes.len(), 23);
+        assert_eq!(bytes.len(), 13);
     }
 }
