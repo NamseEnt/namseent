@@ -321,6 +321,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                         ctx.add(text_editor::TextEditor {
                             wh,
                             text,
+                            scene_id: &scene.id,
                             on_edit_done: on_text_edit_done,
                         });
                     }),
