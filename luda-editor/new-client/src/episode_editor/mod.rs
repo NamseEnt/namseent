@@ -272,10 +272,9 @@ impl Component for LoadedEpisodeEditor<'_> {
             });
         };
 
-        let on_text_edit_done = &|text: String| {
-            let Some(scene) = scene else { return };
+        let on_text_edit_done = &|scene_id: String, text: String| {
             edit_episode(EpisodeEditAction::EditText {
-                scene_id: scene.id.clone(),
+                scene_id,
                 language_code: "kor".to_string(),
                 text,
             });
