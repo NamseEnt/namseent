@@ -1,20 +1,19 @@
-use super::*;
+use crate::*;
 use rkyv::{de::deserializers::SharedDeserializeMap, Archived, Deserialize};
 use std::{
     fmt::{Debug, Pointer},
     ops::Deref,
-    sync::Arc,
 };
 
 pub struct HeapArchived<T> {
-    buffer: ValueBuffer,
+    bytes: Bytes,
     _phantom: std::marker::PhantomData<T>,
 }
 
 impl<T> HeapArchived<T> {
-    pub fn new(buffer: impl Into<ValueBuffer>) -> Self {
+    pub fn new(bytes: Bytes) -> Self {
         Self {
-            buffer: buffer.into(),
+            bytes,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -24,14 +23,7 @@ impl<T> HeapArchived<T> {
         T: rkyv::Archive,
         T::Archived: Deserialize<T, SharedDeserializeMap>,
     {
-        unsafe { rkyv::from_bytes_unchecked(self.buffer.as_slice()).unwrap() }
-    }
-    #[allow(dead_code)]
-    pub(super) fn get_arc_vec(&self) -> Arc<Vec<u8>> {
-        match &self.buffer {
-            ValueBuffer::Vec(vec) => Arc::new(vec.clone()),
-            ValueBuffer::Arc(arc) => arc.clone(),
-        }
+        unsafe { rkyv::from_bytes_unchecked(self.bytes.as_ref()).unwrap() }
     }
 }
 
@@ -39,7 +31,7 @@ impl<T: rkyv::Archive> Deref for HeapArchived<T> {
     type Target = Archived<T>;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { rkyv::archived_root::<T>(self.buffer.as_slice()) }
+        unsafe { rkyv::archived_root::<T>(self.bytes.as_ref()) }
     }
 }
 

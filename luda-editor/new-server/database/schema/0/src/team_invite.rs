@@ -2,16 +2,8 @@ use crate::*;
 
 #[document]
 struct TeamInviteCodeDoc {
-    #[pk]
-    team_id: String,
-    #[sk]
-    code: String,
+    #[id]
+    code: u128,
+    team_id: u128,
     expiration_time: SystemTime,
-}
-
-#[document]
-struct TeamInviteCodeToTeamDoc {
-    #[pk]
-    code: String,
-    team_id: String,
 }

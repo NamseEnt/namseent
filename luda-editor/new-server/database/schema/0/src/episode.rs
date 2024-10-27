@@ -1,38 +1,25 @@
 use crate::*;
+use std::collections::{HashMap, HashSet};
 
 #[document]
 struct EpisodeDoc {
-    #[pk]
-    id: String,
+    #[id]
+    id: u128,
     name: String,
+    team_id: u128,
+    project_id: u128,
     created_at: SystemTime,
-    scene_ids: Vec<String>,
-}
-
-#[document]
-struct ProjectToEpisodeDoc {
-    #[pk]
-    project_id: String,
-    #[sk]
-    episode_id: String,
-}
-
-#[document]
-struct EpisodeToProjectDoc {
-    #[pk]
-    episode_id: String,
-    project_id: String,
-}
-
-#[document]
-struct EpisodeEditingUserDoc {
-    #[pk]
-    episode_id: String,
+    scenes: InsertOrderedMap<SceneId, Scene>,
     editing_user: Option<EditingUser>,
+    speaker_slots: HashMap<UserId, HashSet<SpeakerId>>,
 }
+
+type UserId = u128;
+type SpeakerId = u128;
+type SceneId = u128;
 
 #[doc_part]
 struct EditingUser {
-    user_id: String,
+    user_id: u128,
     last_edit_time: SystemTime,
 }

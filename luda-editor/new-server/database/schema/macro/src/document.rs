@@ -1,7 +1,6 @@
 use crate::document_parsed::*;
 use macro_common_lib::*;
 use quote::quote;
-use spanned::Spanned;
 use syn::*;
 
 pub fn document(
@@ -9,8 +8,10 @@ pub fn document(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let input: syn::DeriveInput = parse_macro_input!(input as syn::DeriveInput);
-    let parsed = DocumentParsed::new(&input);
-    let struct_name = &input.ident;
+    let struct_name = input.ident.clone();
+
+    let parsed = DocumentParsed::new(input);
+
     let input_redefine = &parsed.input_redefine;
 
     let ref_struct = parsed.ref_struct();
@@ -20,7 +21,6 @@ pub fn document(
     let struct_create_define = struct_create_define(&parsed);
     let struct_update_define = struct_update_define(&parsed);
     let struct_delete_define = struct_delete_define(&parsed);
-    let struct_query_define = struct_query_define(&parsed);
     let debug_define = debug_define(&parsed);
 
     let output = quote! {
@@ -31,8 +31,8 @@ pub fn document(
                 stringify!(#struct_name)
             }
 
-            fn heap_archived(value_buffer: document::ValueBuffer) -> document::HeapArchived<Self> {
-                document::HeapArchived::new(value_buffer)
+            fn heap_archived(bytes: document::Bytes) -> document::HeapArchived<Self> {
+                document::HeapArchived::new(bytes)
             }
 
             fn from_bytes(bytes: Vec<u8>) -> document::Result<Self> {
@@ -51,7 +51,6 @@ pub fn document(
         #struct_create_define
         #struct_update_define
         #struct_delete_define
-        #struct_query_define
 
         #debug_define
     };
@@ -62,32 +61,21 @@ pub fn document(
 fn struct_get_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     let DocumentParsed {
         name,
-        pk_cow,
-        sk_cow,
-        pk_sk_ref_fielder,
+        id_fields,
+        id_field_idents,
         ..
     } = parsed;
     let get_struct_name = Ident::new(&format!("{}Get", name), name.span());
 
-    let RefFielder {
-        generics,
-        generics_without_bounds,
-        fields_without_attr,
-        ..
-    } = pk_sk_ref_fielder;
-
     quote! {
-        pub struct #get_struct_name #generics {
-            #(#fields_without_attr,)*
+        pub struct #get_struct_name {
+            #(#id_fields,)*
         }
-        impl #generics document::DocumentGet for #get_struct_name #generics_without_bounds {
+        impl document::DocumentGet for #get_struct_name {
             type Output = #name;
 
-            fn pk<'b>(&'b self) -> document::Result<std::borrow::Cow<'b, [u8]>> {
-                Ok(#pk_cow)
-            }
-            fn sk<'b>(&'b self) -> document::Result<Option<std::borrow::Cow<'b, [u8]>>> {
-                Ok(#sk_cow)
+            fn id(&self) -> u128 {
+                document::id_to_u128(&(#(self.#id_field_idents),*))
             }
         }
     }
@@ -97,43 +85,48 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     let DocumentParsed {
         name,
         ref_struct_value,
-        pk_cow,
-        sk_cow,
-        ref_fielder,
+        id_field_idents,
+        ref_fielder:
+            RefFielder {
+                generics,
+                generics_without_bounds,
+                fields_without_attr,
+                ..
+            },
         ..
     } = parsed;
     let put_struct_name = Ident::new(&format!("{}Put", name), name.span());
 
-    let RefFielder {
-        generics,
-        generics_without_bounds,
-        fields_without_attr,
-        ..
-    } = ref_fielder;
-
     let try_into_generics = {
         let mut generics = generics.clone();
         generics.params.push(parse_quote! { AbortReason });
+
+        if generics
+            .params
+            .iter()
+            .all(|param| !matches!(param, GenericParam::Lifetime(_)))
+        {
+            generics.params.push(parse_quote! { 'a });
+        }
         generics
     };
 
     quote! {
         pub struct #put_struct_name #generics {
             #(#fields_without_attr,)*
-            pub ttl: Option<std::time::Duration>,
         }
 
-        impl #try_into_generics TryInto<document::TransactItem<'a, AbortReason>>
-            for #put_struct_name #generics_without_bounds
+        impl #try_into_generics
+            TryInto<document::TransactItem<'a, AbortReason>>
+            for #put_struct_name
+            #generics_without_bounds
         {
             type Error = document::SerErr;
             fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Put {
                     name: stringify!(#name),
-                    pk: #pk_cow,
-                    sk: #sk_cow,
+                    id: document::id_to_u128(&(#(self.#id_field_idents),*)),
                     value: #ref_struct_value,
-                    ttl: self.ttl
                 })
             }
         }
@@ -143,44 +136,48 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
 fn struct_create_define(
     DocumentParsed {
         name,
-        pk_cow,
-        sk_cow,
         ref_struct_value,
-        ref_fielder,
+        ref_fielder:
+            RefFielder {
+                generics,
+                generics_without_bounds,
+                fields_without_attr,
+                ..
+            },
+        id_field_idents,
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
     let create_struct_name = Ident::new(&format!("{}Create", name), name.span());
 
-    let RefFielder {
-        generics,
-        generics_without_bounds,
-        fields_without_attr,
-        ..
-    } = ref_fielder;
-
     let try_into_generics = {
         let mut generics = generics.clone();
         generics.params.push(parse_quote! { AbortReason });
+        if generics
+            .params
+            .iter()
+            .all(|param| !matches!(param, GenericParam::Lifetime(_)))
+        {
+            generics.params.push(parse_quote! { 'a });
+        }
         generics
     };
 
     quote! {
         pub struct #create_struct_name #generics {
             #(#fields_without_attr,)*
-            pub ttl: Option<std::time::Duration>,
         }
-        impl #try_into_generics TryInto<document::TransactItem<'a, AbortReason>>
-            for #create_struct_name #generics_without_bounds
+        impl #try_into_generics
+            TryInto<document::TransactItem<'a, AbortReason>>
+            for #create_struct_name
+            #generics_without_bounds
         {
             type Error = document::SerErr;
             fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Create {
                     name: stringify!(#name),
-                    pk: #pk_cow,
-                    sk: #sk_cow,
+                    id: document::id_to_u128(&(#(self.#id_field_idents),*)),
                     value_fn: Some(Box::new(move || Ok(#ref_struct_value))),
-                    ttl: self.ttl,
                 })
             }
         }
@@ -190,9 +187,8 @@ fn struct_create_define(
 fn struct_update_define(
     DocumentParsed {
         name,
-        pk_cow,
-        sk_cow,
-        pk_sk_ref_fielder:
+        id_field_idents,
+        id_ref_fielder:
             RefFielder {
                 generics,
                 fields_without_attr,
@@ -203,16 +199,44 @@ fn struct_update_define(
 ) -> impl quote::ToTokens {
     let update_struct_name = Ident::new(&format!("{}Update", name), name.span());
 
-    let mut generics = generics.clone();
-    generics.params.push(parse_quote!(AbortReason));
-    generics
+    let has_lifetime = generics
         .params
-        .push(parse_quote!(WantUpdateFn: 'a + Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate<AbortReason>));
-    generics
-        .params
-        .push(parse_quote!(UpdateFn: 'a + Send + FnOnce(&mut #name)));
+        .iter()
+        .any(|param| matches!(param, GenericParam::Lifetime(_)));
 
-    let generics_without_bounds = {
+    let generics = {
+        let mut generics = generics.clone();
+
+        generics.params.push(parse_quote!(AbortReason));
+        generics.params.push(parse_quote!(WantUpdateFn: Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate<AbortReason>));
+        generics
+            .params
+            .push(parse_quote!(UpdateFn: Send + FnOnce(&mut #name)));
+
+        if has_lifetime {
+            generics.type_params_mut().for_each(|param| {
+                if param.ident == "WantUpdateFn" || param.ident == "UpdateFn" {
+                    param.bounds.insert(0, parse_quote! { 'a });
+                }
+            });
+        }
+        generics
+    };
+
+    let try_into_generics = {
+        let mut generics = generics.clone();
+        if !has_lifetime {
+            generics.params.insert(0, parse_quote! { 'a });
+            generics.type_params_mut().for_each(|param| {
+                if param.ident == "WantUpdateFn" || param.ident == "UpdateFn" {
+                    param.bounds.insert(0, parse_quote! { 'a });
+                }
+            });
+        }
+        generics
+    };
+
+    let try_into_generics_without_bounds = {
         let mut generics = generics.clone();
         generics.params.iter_mut().for_each(|param| match param {
             GenericParam::Type(param) => {
@@ -234,15 +258,16 @@ fn struct_update_define(
             pub update: UpdateFn,
         }
 
-        impl #generics TryInto<document::TransactItem<'a, AbortReason>>
-            for #update_struct_name #generics_without_bounds
+        impl #try_into_generics
+            TryInto<document::TransactItem<'a, AbortReason>>
+            for #update_struct_name
+            #try_into_generics_without_bounds
         {
             type Error = document::SerErr;
             fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Update {
                     name: stringify!(#name),
-                    pk: #pk_cow,
-                    sk: #sk_cow,
+                    id: document::id_to_u128(&(#(self.#id_field_idents),*)),
                     update_fn: Some(Box::new(|vec| {
                         let want_update =
                             (self.want_update)(unsafe { rkyv::archived_root::<#name>(vec) });
@@ -264,68 +289,27 @@ fn struct_update_define(
 fn struct_delete_define(
     DocumentParsed {
         name,
-        pk_cow,
-        sk_cow,
-        pk_sk_ref_fielder:
-            RefFielder {
-                generics,
-                generics_without_bounds,
-                fields_without_attr,
-                ..
-            },
+        id_fields,
+        id_field_idents,
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
     let delete_struct_name = Ident::new(&format!("{}Delete", name), name.span());
 
-    let try_into_generics = {
-        let mut generics = generics.clone();
-        generics.params.push(parse_quote! { AbortReason });
-        generics
-    };
-
     quote! {
-        pub struct #delete_struct_name #generics {
-            #(#fields_without_attr,)*
+        pub struct #delete_struct_name {
+            #(#id_fields,)*
         }
-        impl #try_into_generics TryInto<document::TransactItem<'a, AbortReason>>
-            for #delete_struct_name #generics_without_bounds {
+        impl<'a, AbortReason>
+            TryInto<document::TransactItem<'a, AbortReason>>
+            for #delete_struct_name
+        {
             type Error = document::SerErr;
             fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Delete {
                     name: stringify!(#name),
-                    pk: #pk_cow,
-                    sk: #sk_cow,
+                    id: document::id_to_u128(&(#(self.#id_field_idents),*)),
                 })
-            }
-        }
-    }
-}
-
-fn struct_query_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
-    let DocumentParsed {
-        name,
-        pk_cow,
-        pk_ref_fielder:
-            RefFielder {
-                generics,
-                generics_without_bounds,
-                fields_without_attr,
-                ..
-            },
-        ..
-    } = parsed;
-    let query_struct_name = Ident::new(&format!("{}Query", name), name.span());
-
-    quote! {
-        pub struct #query_struct_name #generics {
-            #(#fields_without_attr,)*
-        }
-        impl #generics document::DocumentQuery for #query_struct_name #generics_without_bounds {
-            type Output = #name;
-
-            fn pk<'b>(&'b self) -> document::Result<std::borrow::Cow<'b, [u8]>> {
-                Ok(#pk_cow)
             }
         }
     }

@@ -1,71 +1,48 @@
 mod document_store;
+mod fs_store;
 
 pub use document::*;
 pub use document_store::DocumentStore;
+use fs_store::FsStore;
 pub use migration::schema;
+use std::sync::Arc;
 
-pub async fn init(
-    s3_client: aws_sdk_s3::Client,
-    bucket_name: String,
-    turn_on_in_memory_cache: bool,
-) -> anyhow::Result<Database> {
-    let sqlite = document_store::SqliteKvStore::new(s3_client, bucket_name).await?;
-    let store = document_store::InMemoryCachedKsStore::new(sqlite, turn_on_in_memory_cache);
-
-    Ok(Database { store })
+pub async fn init(mount_point: impl AsRef<std::path::Path>) -> std::io::Result<Database> {
+    Ok(Database {
+        store: Arc::new(FsStore::new(mount_point).await?),
+    })
 }
 
 #[derive(Clone)]
 pub struct Database {
-    store: document_store::InMemoryCachedKsStore<document_store::SqliteKvStore>,
+    store: Arc<FsStore>,
 }
 impl Database {
-    pub fn set_memory_cache(&self, turn_on: bool) {
-        self.store.set_cache_enabled(turn_on)
-    }
     pub async fn get<T: Document>(
         &self,
         document_get: impl DocumentGet<Output = T>,
     ) -> Result<Option<HeapArchived<T>>> {
-        let value_buffer = self
-            .store
-            .get(
-                T::name(),
-                &document_get.pk()?,
-                document_get.sk()?.as_deref(),
-            )
-            .await?;
+        let value_buffer = self.store.get(T::name(), document_get.id()).await?;
         Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
-    }
-    pub async fn query<T: Document>(
-        &self,
-        document_query: impl DocumentQuery<Output = T>,
-    ) -> Result<Vec<HeapArchived<T>>> {
-        let value_buffer = self.store.query(T::name(), &document_query.pk()?).await?;
-        Ok(value_buffer
-            .into_iter()
-            .map(|value_buffer| T::heap_archived(value_buffer))
-            .collect())
     }
     pub async fn transact<'a, AbortReason>(
         &'a self,
         transact: impl Transact<'a, AbortReason> + 'a + Send,
     ) -> Result<MaybeAborted<AbortReason>> {
-        let mut transact_items = transact.try_into_transact_items()?;
-        self.store.transact(&mut transact_items).await
-    }
-    pub async fn wait_backup(&self) -> Result<()> {
-        self.store.wait_backup().await
+        let transact_items = transact.try_into_transact_items()?;
+        self.store.transact(transact_items).await
     }
 }
 
 #[derive(Debug)]
 pub enum Error {
-    SqliteError(rusqlite::Error),
+    IoError(std::io::Error),
     SerializationError(SerErr),
     AlreadyExistsOnCreate,
     NotExistsOnUpdate,
     BackupAborted(String),
+    Anyhow(anyhow::Error),
+    TooManyFileOpened,
 }
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -74,9 +51,14 @@ impl std::fmt::Display for Error {
 }
 impl std::error::Error for Error {}
 
-impl From<rusqlite::Error> for Error {
-    fn from(e: rusqlite::Error) -> Self {
-        Error::SqliteError(e)
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::IoError(e)
+    }
+}
+impl From<anyhow::Error> for Error {
+    fn from(e: anyhow::Error) -> Self {
+        Error::Anyhow(e)
     }
 }
 impl From<SerErr> for Error {
@@ -93,10 +75,6 @@ pub enum MaybeAborted<AbortReason> {
 }
 
 impl<AbortReason> MaybeAborted<AbortReason> {
-    fn is_aborted(&self) -> bool {
-        matches!(self, MaybeAborted::Aborted { .. })
-    }
-
     pub fn err_if_aborted<Err>(
         self,
         func: impl FnOnce(AbortReason) -> Err,
