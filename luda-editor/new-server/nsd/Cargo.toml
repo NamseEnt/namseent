@@ -1,6 +1,5 @@
 [package]
-name = "nsd"
-description = "No-Ser/De, Zero-Copy Data Format"
+name = "vvv"
 version = "0.1.0"
 edition = "2021"
 

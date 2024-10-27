@@ -1,4 +1,4 @@
-//! # VMap
+//! # Map
 //!
 //! ## Memory Layout
 //!
@@ -11,20 +11,19 @@
 
 use crate::*;
 
-pub struct VMap<K: VVV + Eq, V: VVV> {
+#[derive(Debug, Clone)]
+pub struct Map<K: Nsd + Eq, V: Nsd> {
     source: Bytes,
     source_exclude_indexes: Vec<usize>,
-    extra: Vec<(Bytes, Bytes)>,
-    _phantom: std::marker::PhantomData<(K, V)>,
+    extra: Vec<(K, V)>,
 }
 
-impl<K: VVV + Eq, V: VVV> VMap<K, V> {
+impl<K: Nsd + Eq, V: Nsd> Map<K, V> {
     pub fn new() -> Self {
         Self {
             source: Bytes::new(),
             source_exclude_indexes: Vec::new(),
             extra: Vec::new(),
-            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -45,10 +44,9 @@ impl<K: VVV + Eq, V: VVV> VMap<K, V> {
             }
         }
 
-        for (key_bytes, value_bytes) in self.extra.iter() {
-            let tuple_key = K::from_bytes(key_bytes.clone());
-            if tuple_key == key {
-                return Some(V::from_bytes(value_bytes.clone()));
+        for (tuple_key, tuple_value) in self.extra.iter() {
+            if tuple_key == &key {
+                return Some(tuple_value.clone());
             }
         }
 
@@ -64,20 +62,19 @@ impl<K: VVV + Eq, V: VVV> VMap<K, V> {
 
             if let Some(index) = index {
                 self.source_exclude_indexes.push(index);
-                self.extra.push((key.to_bytes(), value.to_bytes()));
+                self.extra.push((key, value));
                 return;
             }
         }
 
-        for (key_bytes, value_bytes) in self.extra.iter_mut() {
-            let tuple_key = K::from_bytes(key_bytes.clone());
-            if tuple_key == key {
-                *value_bytes = value.to_bytes();
+        for (tuple_key, tuple_value) in self.extra.iter_mut() {
+            if tuple_key == &key {
+                *tuple_value = value;
                 return;
             }
         }
 
-        self.extra.push((key.to_bytes(), value.to_bytes()));
+        self.extra.push((key, value));
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (K, V)> + '_ {
@@ -110,29 +107,25 @@ impl<K: VVV + Eq, V: VVV> VMap<K, V> {
     }
 }
 
-impl<K: VVV + Eq, V: VVV> Default for VMap<K, V> {
+impl<K: Nsd + Eq, V: Nsd> Default for Map<K, V> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<K: VVV + Eq, V: VVV> VVV for VMap<K, V> {
+impl<K: Nsd + Eq, V: Nsd> Nsd for Map<K, V> {
     fn byte_len(&self) -> usize {
         leb128_byte_len(self.len())
             + self
                 .iter()
+                .chain(self.extra.iter().cloned())
                 .map(|(k, v)| {
-                    leb128_byte_len(k.byte_len())
-                        + k.byte_len()
-                        + leb128_byte_len(v.byte_len())
-                        + v.byte_len()
-                })
-                .sum::<usize>()
-            + self
-                .extra
-                .iter()
-                .map(|(k, v)| {
-                    leb128_byte_len(k.len()) + k.len() + leb128_byte_len(v.len()) + v.len()
+                    let key_byte_len = k.byte_len();
+                    let value_byte_len = v.byte_len();
+                    leb128_byte_len(key_byte_len)
+                        + key_byte_len
+                        + leb128_byte_len(value_byte_len)
+                        + value_byte_len
                 })
                 .sum::<usize>()
     }
@@ -160,21 +153,24 @@ impl<K: VVV + Eq, V: VVV> VVV for VMap<K, V> {
         }
 
         for (key, value) in self.extra.iter() {
-            index += Leb128::new(key.len()).write_on_bytes(&mut bytes[index..]);
+            let key_bytes = key.to_bytes();
+            let value_bytes = value.to_bytes();
+
+            index += Leb128::new(key_bytes.len()).write_on_bytes(&mut bytes[index..]);
 
             bytes
-                .get_mut(index..index + key.len())
+                .get_mut(index..index + key_bytes.len())
                 .unwrap()
-                .copy_from_slice(key);
-            index += key.len();
+                .copy_from_slice(&key_bytes);
+            index += key_bytes.len();
 
-            index += Leb128::new(value.len()).write_on_bytes(&mut bytes[index..]);
+            index += Leb128::new(value_bytes.len()).write_on_bytes(&mut bytes[index..]);
 
             bytes
-                .get_mut(index..index + value.len())
+                .get_mut(index..index + value_bytes.len())
                 .unwrap()
-                .copy_from_slice(value);
-            index += value.len();
+                .copy_from_slice(&value_bytes);
+            index += value_bytes.len();
         }
 
         index
@@ -188,7 +184,6 @@ impl<K: VVV + Eq, V: VVV> VVV for VMap<K, V> {
             source: bytes,
             extra: Vec::new(),
             source_exclude_indexes: Vec::new(),
-            _phantom: std::marker::PhantomData,
         }
     }
 }
@@ -201,7 +196,7 @@ struct SourceIter<'a, K, V> {
     _phantom: std::marker::PhantomData<(K, V)>,
 }
 
-impl<K: VVV, V: VVV> std::iter::Iterator for SourceIter<'_, K, V> {
+impl<K: Nsd, V: Nsd> std::iter::Iterator for SourceIter<'_, K, V> {
     type Item = (usize, K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -225,5 +220,104 @@ impl<K: VVV, V: VVV> std::iter::Iterator for SourceIter<'_, K, V> {
         self.index += 1;
 
         Some((self.index, key, value))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[repr(u8)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum IetfLanguageTag {
+        Ko,
+        EnUs,
+        Ja,
+    }
+
+    impl Nsd for IetfLanguageTag {
+        fn byte_len(&self) -> usize {
+            std::mem::size_of::<Self>()
+        }
+
+        fn write_on_bytes(&self, bytes: &mut [u8]) -> usize {
+            bytes[0] = *self as u8;
+            self.byte_len()
+        }
+
+        fn from_bytes(bytes: Bytes) -> Self
+        where
+            Self: Sized,
+        {
+            unsafe { std::mem::transmute(bytes[0]) }
+        }
+    }
+
+    #[test]
+    fn test_map() {
+        #[derive(Debug, Clone)]
+        struct SpeakerDoc {
+            names: Map<IetfLanguageTag, VStr>,
+        }
+        impl Nsd for SpeakerDoc {
+            fn byte_len(&self) -> usize {
+                self.names.byte_len()
+            }
+
+            fn write_on_bytes(&self, bytes: &mut [u8]) -> usize {
+                let mut index = 0;
+                index += self.names.write_on_bytes(bytes.get_mut(index..).unwrap());
+                index
+            }
+
+            fn from_bytes(bytes: Bytes) -> Self
+            where
+                Self: Sized,
+            {
+                let names = Map::from_bytes(bytes);
+                Self { names }
+            }
+        }
+        let bytes = {
+            let mut doc = SpeakerDoc { names: Map::new() };
+
+            doc.names.insert(IetfLanguageTag::Ko, "안녕하세요");
+            let option_value = doc.names.get(IetfLanguageTag::Ko);
+            assert!(option_value.is_some());
+            let value: &str = &option_value.unwrap();
+            assert_eq!(value, "안녕하세요");
+
+            let option_value = doc.names.get(IetfLanguageTag::Ja);
+            assert!(option_value.is_none());
+
+            doc.to_bytes()
+        };
+
+        assert_eq!(bytes.len(), 19);
+
+        let bytes = {
+            let doc = SpeakerDoc::from_bytes(bytes);
+
+            let option_value = doc.names.get(IetfLanguageTag::Ko);
+            assert!(option_value.is_some());
+            let value: &str = &option_value.unwrap();
+            assert_eq!(value, "안녕하세요");
+
+            let option_value = doc.names.get(IetfLanguageTag::Ja);
+            assert!(option_value.is_none());
+
+            let mut doc = doc;
+
+            doc.names.insert(IetfLanguageTag::EnUs, "Hello");
+
+            let option_value = doc.names.get(IetfLanguageTag::EnUs);
+            assert!(option_value.is_some());
+            let value: &str = &option_value.unwrap();
+            assert_eq!(value, "Hello");
+
+            doc.to_bytes()
+        };
+
+        assert_eq!(bytes.len(), 27);
     }
 }
