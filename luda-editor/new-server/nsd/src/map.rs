@@ -53,8 +53,7 @@ impl<K: Nsd + Eq, V: Nsd> Map<K, V> {
         None
     }
 
-    pub fn insert(&mut self, key: K, value: impl Into<V>) {
-        let value: V = value.into();
+    pub fn insert(&mut self, key: K, value: V) {
         if !self.source.is_empty() {
             let index = self
                 .iter_with_index()
@@ -82,7 +81,7 @@ impl<K: Nsd + Eq, V: Nsd> Map<K, V> {
     }
 
     fn iter_with_index(&self) -> impl Iterator<Item = (usize, K, V)> + '_ {
-        SourceIter {
+        MapSourceIter {
             bytes: self.source_without_tuple_count(),
             source_exclude_indexes: &self.source_exclude_indexes,
             index: 0,
@@ -188,7 +187,7 @@ impl<K: Nsd + Eq, V: Nsd> Nsd for Map<K, V> {
     }
 }
 
-struct SourceIter<'a, K, V> {
+struct MapSourceIter<'a, K, V> {
     /// after tuple count
     bytes: Bytes,
     source_exclude_indexes: &'a [usize],
@@ -196,7 +195,7 @@ struct SourceIter<'a, K, V> {
     _phantom: std::marker::PhantomData<(K, V)>,
 }
 
-impl<K: Nsd, V: Nsd> std::iter::Iterator for SourceIter<'_, K, V> {
+impl<K: Nsd, V: Nsd> std::iter::Iterator for MapSourceIter<'_, K, V> {
     type Item = (usize, K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -257,7 +256,7 @@ mod tests {
     fn test_map() {
         #[derive(Debug, Clone)]
         struct SpeakerDoc {
-            names: Map<IetfLanguageTag, VStr>,
+            names: Map<IetfLanguageTag, String>,
         }
         impl Nsd for SpeakerDoc {
             fn byte_len(&self) -> usize {
@@ -281,7 +280,8 @@ mod tests {
         let bytes = {
             let mut doc = SpeakerDoc { names: Map::new() };
 
-            doc.names.insert(IetfLanguageTag::Ko, "안녕하세요");
+            doc.names
+                .insert(IetfLanguageTag::Ko, "안녕하세요".to_string());
             let option_value = doc.names.get(IetfLanguageTag::Ko);
             assert!(option_value.is_some());
             let value: &str = &option_value.unwrap();
@@ -308,7 +308,7 @@ mod tests {
 
             let mut doc = doc;
 
-            doc.names.insert(IetfLanguageTag::EnUs, "Hello");
+            doc.names.insert(IetfLanguageTag::EnUs, "Hello".to_string());
 
             let option_value = doc.names.get(IetfLanguageTag::EnUs);
             assert!(option_value.is_some());
