@@ -62,10 +62,13 @@ impl<T: Nsd + Eq> Nsd for Set<T> {
         self.list.write_on_bytes(bytes)
     }
 
-    fn from_bytes(bytes: Bytes) -> Self {
-        Self {
-            list: List::from_bytes(bytes),
-        }
+    fn from_bytes(bytes: Bytes) -> Result<Self, FromBytesError>
+    where
+        Self: Sized,
+    {
+        Ok(Self {
+            list: List::from_bytes(bytes)?,
+        })
     }
 }
 

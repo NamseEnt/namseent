@@ -175,15 +175,15 @@ impl<K: Nsd + Eq, V: Nsd> Nsd for Map<K, V> {
         index
     }
 
-    fn from_bytes(bytes: Bytes) -> Self
+    fn from_bytes(bytes: Bytes) -> Result<Self, FromBytesError>
     where
         Self: Sized,
     {
-        Self {
+        Ok(Self {
             source: bytes,
             extra: Vec::new(),
             source_exclude_indexes: Vec::new(),
-        }
+        })
     }
 }
 
