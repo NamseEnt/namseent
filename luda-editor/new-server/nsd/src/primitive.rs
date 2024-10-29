@@ -1,4 +1,5 @@
 use crate::*;
+use bytes::Buf;
 
 impl Nsd for usize {
     fn byte_len(&self) -> usize {
@@ -9,11 +10,11 @@ impl Nsd for usize {
         Ok(leb128::write_on_bytes_usize(*self, dest)?)
     }
 
-    fn from_bytes(mut bytes: Bytes) -> Result<Self>
+    fn from_bytes(bytes: &mut Bytes) -> Result<Self>
     where
         Self: Sized,
     {
-        Ok(leb128::read(&mut bytes)?)
+        Ok(leb128::read(bytes)?)
     }
 }
 
@@ -33,13 +34,16 @@ impl Nsd for String {
         Ok(())
     }
 
-    fn from_bytes(mut bytes: Bytes) -> Result<Self>
+    fn from_bytes(bytes: &mut Bytes) -> Result<Self>
     where
         Self: Sized,
     {
-        let len = leb128::read(&mut bytes)?;
-        assert_eq!(len, bytes.len());
-        Ok(String::from_utf8(bytes.to_vec())?)
+        let byte_len = leb128::read(bytes)?;
+        println!("byte_len: {}", byte_len);
+        if bytes.remaining() < byte_len {
+            bail!(FromBytesError::NotEnoughBytes);
+        }
+        Ok(String::from_utf8(bytes.split_to(byte_len).to_vec())?)
     }
 }
 
@@ -51,16 +55,16 @@ mod test {
     fn test_primitive() {
         let value = 123_usize;
         assert_eq!(1, value.byte_len());
-        let bytes = value.to_bytes();
-        let new_value = usize::from_bytes(bytes).unwrap();
+        let mut bytes = value.to_bytes();
+        let new_value = usize::from_bytes(&mut bytes).unwrap();
         assert_eq!(value, new_value);
 
         let value = "hello world".to_string();
         assert_eq!(value.len() + 1, value.byte_len());
-        let bytes = value.to_bytes();
+        let mut bytes = value.to_bytes();
         assert_eq!(bytes[0], value.len() as u8);
         assert_eq!(bytes[1], b"h"[0]);
-        let new_value = String::from_bytes(bytes).unwrap();
+        let new_value = String::from_bytes(&mut bytes).unwrap();
         assert_eq!(value, new_value);
     }
 }

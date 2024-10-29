@@ -14,12 +14,11 @@ pub use list::*;
 pub trait Nsd: Clone {
     fn byte_len(&self) -> usize;
     fn write_on_bytes(&self, dest: &mut [u8]) -> Result<()>;
-    fn from_bytes(bytes: Bytes) -> Result<Self>
+    fn from_bytes(bytes: &mut Bytes) -> Result<Self>
     where
         Self: Sized;
     fn to_bytes(&self) -> Bytes {
         let byte_len = self.byte_len();
-        println!("byte_len: {}", byte_len);
         let mut bytes = BytesMut::with_capacity(byte_len);
         bytes.resize(byte_len, 0);
         self.write_on_bytes(&mut bytes).unwrap();

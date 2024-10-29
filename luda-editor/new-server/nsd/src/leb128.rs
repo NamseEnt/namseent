@@ -39,7 +39,7 @@ pub fn read(bytes: &mut Bytes) -> Result<usize, FromBytesError> {
 }
 pub fn write_on_bytes_usize(mut value: usize, mut dest: &mut [u8]) -> Result<(), FromBytesError> {
     loop {
-        if dest.len() == 0 {
+        if dest.is_empty() {
             return Err(FromBytesError::NotEnoughBytes);
         }
         let mut byte = (value & 0x7F) as u8;
