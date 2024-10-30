@@ -39,7 +39,6 @@ impl Nsd for String {
         Self: Sized,
     {
         let byte_len = leb128::read(bytes)?;
-        println!("byte_len: {}", byte_len);
         if bytes.remaining() < byte_len {
             bail!(FromBytesError::NotEnoughBytes);
         }

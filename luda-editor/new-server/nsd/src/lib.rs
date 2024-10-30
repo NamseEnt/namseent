@@ -1,13 +1,17 @@
 mod leb128;
-mod list;
+#[cfg(feature = "vec")]
+mod std_vec;
 // mod map;
+mod list;
 mod primitive;
+mod str;
 // mod set;
 
 use anyhow::*;
 use bytes::{Bytes, BytesMut};
 use leb128::*;
 pub use list::*;
+pub use str::*;
 // pub use map::*;
 // pub use set::*;
 
@@ -64,5 +68,8 @@ impl<'a> DestWriter<'a> {
         self.dest[self.index..self.index + bytes.len()].copy_from_slice(bytes);
         self.index += bytes.len();
         Result::Ok(())
+    }
+    fn written_len(&self) -> usize {
+        self.index
     }
 }
