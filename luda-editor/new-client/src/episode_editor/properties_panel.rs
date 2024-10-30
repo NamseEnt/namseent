@@ -1,4 +1,4 @@
-use super::scene_sprite_editor::SceneSpriteEditor;
+use super::{scene_audio_editor::SceneAudioEditor, scene_sprite_editor::SceneSpriteEditor};
 use luda_rpc::{AssetDoc, EpisodeEditAction, Scene};
 use namui::*;
 use namui_prebuilt::{button, table::*};
@@ -66,7 +66,14 @@ impl Component for PropertiesPanel<'_> {
                         });
                     }
                     PropertiesPanelTab::Background => {}
-                    PropertiesPanelTab::Audio => {}
+                    PropertiesPanelTab::Audio => {
+                        ctx.add(SceneAudioEditor {
+                            wh,
+                            scene,
+                            update_scene,
+                            asset_docs,
+                        });
+                    }
                 }),
             ])(wh, ctx);
         });

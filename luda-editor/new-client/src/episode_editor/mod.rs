@@ -1,4 +1,5 @@
 mod properties_panel;
+mod scene_audio_editor;
 mod scene_list;
 mod scene_preview;
 mod scene_sprite_editor;
