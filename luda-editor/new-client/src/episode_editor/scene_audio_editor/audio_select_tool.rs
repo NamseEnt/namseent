@@ -7,7 +7,7 @@ pub struct AudioSelectTool<'a> {
     pub wh: Wh<Px>,
     pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
     pub selected_audio: &'a Option<SceneSound>,
-    pub select_audio: &'a dyn Fn(Option<SceneSound>),
+    pub set_audio: &'a dyn Fn(Option<SceneSound>),
 }
 
 impl Component for AudioSelectTool<'_> {
@@ -16,7 +16,7 @@ impl Component for AudioSelectTool<'_> {
             wh,
             asset_docs,
             selected_audio,
-            select_audio,
+            set_audio,
         } = self;
 
         let (selected_tags, set_selected_tags) =
@@ -30,7 +30,7 @@ impl Component for AudioSelectTool<'_> {
                     .map(|selected_audio| selected_audio.volume)
                     .unwrap_or(100.percent()),
             });
-            select_audio(audio);
+            set_audio(audio);
         };
 
         let tag_filtered_asset_docs = ctx.memo(|| {
