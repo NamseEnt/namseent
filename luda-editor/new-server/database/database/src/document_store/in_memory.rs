@@ -171,6 +171,8 @@ impl<Store: DocumentStore + Clone> DocumentStore for InMemoryCachedKsStore<Store
         &'a self,
         transact_items: &mut TransactItems<'a, AbortReason>,
     ) -> Result<MaybeAborted<AbortReason>> {
+        // TODO: Should lock items to prevent inconsistency between cache and store.
+
         let result = self.store.transact(transact_items).await;
         if !self.enabled() {
             return result;

@@ -1,4 +1,5 @@
 mod in_memory;
+mod nfs;
 mod sqlite;
 
 use crate::*;
