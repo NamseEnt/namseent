@@ -1,5 +1,4 @@
 use migration::schema::SceneDoc;
-use migration::schema::SceneSound as SceneSound_;
+pub use migration::schema::SceneSound;
 
 pub type Scene = SceneDoc;
-pub type SceneSound = SceneSound_;
