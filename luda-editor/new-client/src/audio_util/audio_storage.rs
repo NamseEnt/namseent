@@ -6,33 +6,33 @@ use std::{
 };
 
 lazy_static! {
-    static ref PSD_SPRITE_STORAGE: AudioStorage = AudioStorage::new();
+    static ref AUDIO_STORAGE: AudioStorage = AudioStorage::new();
 }
 
 pub fn get_or_load_audio(audio_id: String) -> Arc<AudioLoadState> {
-    let Some(load_state) = PSD_SPRITE_STORAGE.get(&audio_id) else {
-        let loading = PSD_SPRITE_STORAGE.set(audio_id.clone(), AudioLoadState::Loading);
+    let Some(load_state) = AUDIO_STORAGE.get(&audio_id) else {
+        let loading = AUDIO_STORAGE.set(audio_id.clone(), AudioLoadState::Loading);
         spawn(async move {
             let audio_id = audio_id.clone();
 
             let request = match network::http::Request::get(audio_url(&audio_id)).body(()) {
                 Ok(response) => response,
                 Err(error) => {
-                    PSD_SPRITE_STORAGE.set(audio_id, AudioLoadState::Error(error.into()));
+                    AUDIO_STORAGE.set(audio_id, AudioLoadState::Error(error.into()));
                     return;
                 }
             };
             let bytes = match request.send().await {
                 Ok(response) => response.bytes(),
                 Err(error) => {
-                    PSD_SPRITE_STORAGE.set(audio_id, AudioLoadState::Error(error.into()));
+                    AUDIO_STORAGE.set(audio_id, AudioLoadState::Error(error.into()));
                     return;
                 }
             };
             let bytes = match bytes.await {
                 Ok(bytes) => bytes,
                 Err(error) => {
-                    PSD_SPRITE_STORAGE.set(audio_id, AudioLoadState::Error(error.into()));
+                    AUDIO_STORAGE.set(audio_id, AudioLoadState::Error(error.into()));
                     return;
                 }
             };
@@ -41,7 +41,7 @@ pub fn get_or_load_audio(audio_id: String) -> Arc<AudioLoadState> {
                 Err(error) => AudioLoadState::Error(error.into()),
             };
 
-            PSD_SPRITE_STORAGE.set(audio_id, load_state);
+            AUDIO_STORAGE.set(audio_id, load_state);
         });
         return loading;
     };
