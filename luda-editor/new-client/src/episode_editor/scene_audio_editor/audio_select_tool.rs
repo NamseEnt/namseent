@@ -181,7 +181,6 @@ impl Component for AudioListItem<'_> {
             else {
                 return;
             };
-            namui::log!("{:?}", started_at);
             if play_handle.is_some() {
                 return;
             }
