@@ -5,7 +5,7 @@
 //! head: [u64: body checksum] [u32: body length]
 //! body: [[u16: key length] [bytes: key] [u32: value length] [bytes: value]]...
 
-use bytes::{Buf, Bytes};
+use bytes::{Buf, BufMut, Bytes};
 
 const HEADER_SIZE: usize = size_of::<u64>() + size_of::<u32>();
 
@@ -21,19 +21,20 @@ pub(crate) fn serialize_wal_writes(wal_writes: &[WalWrite]) -> Vec<u8> {
             + wal_write.value.as_ref().map_or(0, |v| v.len())
     });
     let mut bytes = Vec::with_capacity(body_length + size_of::<u64>() + size_of::<u32>());
-    bytes.extend_from_slice(&0_u64.to_le_bytes()); // temporary checksum value
-    bytes.extend_from_slice(&(body_length as u32).to_le_bytes());
+    bytes.put_u64_le(0_u64); // temporary checksum value
+    bytes.put_u32_le(body_length as u32);
 
     for wal_write in wal_writes {
         assert!(wal_write.key.bytes().len() <= u16::MAX as usize);
-        bytes.extend_from_slice(&(wal_write.key.bytes().len() as u16).to_le_bytes());
-        bytes.extend_from_slice(wal_write.key.as_bytes());
+        bytes.put_u16_le(wal_write.key.bytes().len() as u16);
+        bytes.put_slice(wal_write.key.as_bytes());
+
         if let Some(value) = &wal_write.value {
             assert!(value.len() <= u32::MAX as usize);
-            bytes.extend_from_slice(&(value.len() as u32).to_le_bytes());
-            bytes.extend_from_slice(value);
+            bytes.put_u32_le(value.len() as u32);
+            bytes.put_slice(value);
         } else {
-            bytes.extend_from_slice(&0_u32.to_le_bytes());
+            bytes.put_u32_le(0_u32);
         }
     }
 
@@ -47,18 +48,17 @@ pub(crate) fn serialize_wal_writes(wal_writes: &[WalWrite]) -> Vec<u8> {
 pub(crate) fn deserialize_wal_writes(
     mut bytes: Bytes,
 ) -> Result<Vec<WalWrite>, WalDeserializeError> {
-    println!("bytes.len(): {}", bytes.len());
     if bytes.len() < HEADER_SIZE {
         return Err(WalDeserializeError::NotEnoughBytes);
     }
 
     let checksum = bytes.get_u64_le();
     let body_length = bytes.get_u32_le() as usize;
-    println!("body_length: {}", body_length);
 
-    if bytes.remaining() != body_length {
+    if bytes.len() < body_length {
         return Err(WalDeserializeError::BodyLengthMismatch);
     }
+    _ = bytes.split_off(body_length);
     if crc().checksum(&bytes) != checksum {
         return Err(WalDeserializeError::ChecksumMismatch);
     }
@@ -79,7 +79,7 @@ pub(crate) fn deserialize_wal_writes(
     Ok(wal_writes)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum WalDeserializeError {
     ChecksumMismatch,
     BodyLengthMismatch,
@@ -103,6 +103,8 @@ pub(crate) struct WalWrite {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bytes::{BufMut, BytesMut};
+    use std::io::Read;
 
     #[test]
     fn test_serialize_wal_writes() {
@@ -119,5 +121,25 @@ mod tests {
         let bytes = serialize_wal_writes(&wal_writes);
         let deserialized_wal_writes = deserialize_wal_writes(Bytes::from(bytes)).unwrap();
         assert_eq!(wal_writes, deserialized_wal_writes);
+    }
+
+    #[test]
+    fn test_for_not_enough_bytes() {
+        let bytes = Bytes::from("".as_bytes());
+        let result = deserialize_wal_writes(bytes);
+        assert_eq!(result, Err(WalDeserializeError::NotEnoughBytes));
+    }
+
+    #[test]
+    fn test_for_checksum_mismatch() {
+        let mut bytes = BytesMut::new();
+        bytes.put_u64_le(1_u64); // incorrect checksum
+        bytes.put_u32_le(5_u32); // body length
+        bytes.put_u16_le(2_u16); // key length
+        bytes.put_slice(b"ab"); // key
+        bytes.put_u32_le(0_u32); // value length
+
+        let result = deserialize_wal_writes(bytes.freeze());
+        assert_eq!(result, Err(WalDeserializeError::ChecksumMismatch));
     }
 }
