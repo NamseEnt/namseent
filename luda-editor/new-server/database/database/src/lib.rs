@@ -4,25 +4,17 @@ pub use document::*;
 pub use document_store::DocumentStore;
 pub use migration::schema;
 
-pub async fn init(
-    s3_client: aws_sdk_s3::Client,
-    bucket_name: String,
-    turn_on_in_memory_cache: bool,
-) -> anyhow::Result<Database> {
-    let sqlite = document_store::SqliteKvStore::new(s3_client, bucket_name).await?;
-    let store = document_store::InMemoryCachedKsStore::new(sqlite, turn_on_in_memory_cache);
-
-    Ok(Database { store })
+pub async fn init(mount_point: impl AsRef<std::path::Path>) -> anyhow::Result<Database> {
+    Ok(Database {
+        store: document_store::NfsV4DocStore::new(mount_point),
+    })
 }
 
 #[derive(Clone)]
 pub struct Database {
-    store: document_store::InMemoryCachedKsStore<document_store::SqliteKvStore>,
+    store: document_store::NfsV4DocStore,
 }
 impl Database {
-    pub fn set_memory_cache(&self, turn_on: bool) {
-        self.store.set_cache_enabled(turn_on)
-    }
     pub async fn get<T: Document>(
         &self,
         document_get: impl DocumentGet<Output = T>,
@@ -53,9 +45,6 @@ impl Database {
     ) -> Result<MaybeAborted<AbortReason>> {
         let mut transact_items = transact.try_into_transact_items()?;
         self.store.transact(&mut transact_items).await
-    }
-    pub async fn wait_backup(&self) -> Result<()> {
-        self.store.wait_backup().await
     }
 }
 

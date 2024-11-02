@@ -5,13 +5,10 @@
 //! head: [u64: body checksum] [u32: body length]
 //! body: [[u16: key length] [bytes: key] [u32: value length] [bytes: value]]...
 
+use super::crc;
 use bytes::{Buf, BufMut, Bytes};
 
 const HEADER_SIZE: usize = size_of::<u64>() + size_of::<u32>();
-
-fn crc() -> crc::Crc<u64> {
-    crc::Crc::<u64>::new(&crc::CRC_64_REDIS)
-}
 
 pub(crate) fn serialize_wal_writes(wal_writes: &[WalWrite]) -> Vec<u8> {
     let body_length = wal_writes.iter().fold(0, |acc, wal_write| {
@@ -104,7 +101,6 @@ pub(crate) struct WalWrite {
 mod tests {
     use super::*;
     use bytes::{BufMut, BytesMut};
-    use std::io::Read;
 
     #[test]
     fn test_serialize_wal_writes() {

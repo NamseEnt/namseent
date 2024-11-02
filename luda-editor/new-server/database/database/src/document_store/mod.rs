@@ -1,10 +1,11 @@
-mod in_memory;
+// mod in_memory;
 mod nfs;
-mod sqlite;
+// mod sqlite;
 
 use crate::*;
-pub(crate) use in_memory::*;
-pub(crate) use sqlite::*;
+// pub(crate) use in_memory::*;
+pub(crate) use nfs::*;
+// pub(crate) use sqlite::*;
 use std::time::{Duration, SystemTime};
 
 /// * `ttl` - Minimum resolution: seconds
@@ -44,15 +45,4 @@ pub trait DocumentStore {
         &'a self,
         transact_items: &mut TransactItems<'a, AbortReason>,
     ) -> Result<MaybeAborted<AbortReason>>;
-    async fn wait_backup(&self) -> Result<()>;
-    // /// optimistic locking update
-    // /// Return value: true if the update was successful, false if conflict
-    // async fn update<T, Fut>(
-    //     &self,
-    //     key: &[u8],
-    //     update: impl FnOnce(Option<HeapArchived<T>>) -> Fut,
-    // ) -> Result<bool>
-    // where
-    //     T: rkyv::Archive + rkyv::Serialize<AllocSerializer<64>>,
-    //     Fut: Future<Output = Option<Option<T>>>;
 }
