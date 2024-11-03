@@ -25,6 +25,14 @@ pub struct NfsV4DocStore {
 
 impl NfsV4DocStore {
     pub fn new(mount_point: impl AsRef<std::path::Path>) -> Self {
+        // remove below.
+        {
+            let mut tree = bp_id_tree::BpIdTree::open(&mount_point).unwrap();
+            _ = tree.insert(5);
+            _ = tree.delete(5);
+            _ = tree.iter();
+        }
+
         let mount_point = mount_point.as_ref().to_path_buf();
 
         let (db_request_tx, db_request_rx) = std::sync::mpsc::channel();
@@ -39,14 +47,10 @@ impl NfsV4DocStore {
         Self { db_request_tx }
     }
     /// Consistency: Read-After-Write
-    async fn read(&self, pk: &str, sk: Option<&str>) -> Result<Option<Bytes>> {
+    async fn read(&self, key: String) -> Result<Option<Bytes>> {
         let (tx, rx) = oneshot::channel();
         self.db_request_tx
-            .send(DbThreadRequest::Read {
-                pk: pk.to_string(),
-                sk: sk.map(|s| s.to_string()),
-                tx,
-            })
+            .send(DbThreadRequest::Read { key, tx })
             .map_err(|_| TransactionError::DbThreadDown)?;
         rx.await.map_err(|_| TransactionError::DbThreadDown)?
     }

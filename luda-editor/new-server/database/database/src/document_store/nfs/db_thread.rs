@@ -20,7 +20,7 @@ pub(crate) fn db_thread(
 
     while let Ok(request) = db_request_rx.recv() {
         match request {
-            DbThreadRequest::Read { pk, sk, tx } => {
+            DbThreadRequest::Read { key, tx } => {
                 if let Some(cached) = cache.get(&key) {
                     _ = tx.send(Ok(cached.get()));
                     continue;
@@ -211,8 +211,7 @@ fn get_last_accessed_secs() -> u64 {
 
 pub(crate) enum DbThreadRequest {
     Read {
-        pk: String,
-        sk: Option<String>,
+        key: String,
         tx: DataTx,
     },
     ReadResult {
