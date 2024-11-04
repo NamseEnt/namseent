@@ -57,16 +57,16 @@ impl Wal {
             match header.body_types {
                 // Init
                 0 => {
-                    let root_node_index =
-                        PageIndex::without_node_type_msb(NonZeroU32::new(1).unwrap());
+                    let root_node_offset = PageOffset::new(1);
 
                     let header = Header {
-                        free_page_stack_top_page_index: PageIndex::NULL,
-                        root_node_index,
-                        padding: [0; 1022],
+                        free_page_stack_top_page_offset: PageOffset::NULL,
+                        root_node_offset,
+                        next_page_offset: PageOffset::new(2),
+                        _padding: [0; 1021],
                     };
 
-                    let root_node = LeafNode::new(PageIndex::NULL);
+                    let root_node = LeafNode::new();
 
                     let mut bytes = Vec::with_capacity(size_of::<Header>() + size_of::<LeafNode>());
                     bytes.put_slice(header.as_slice());
@@ -87,9 +87,9 @@ impl Wal {
                         body.assume_init()
                     };
 
-                    let mut node = read_node_from_file(file, body.node_index)?.into_leaf_node();
+                    let mut node = read_page_from_file(file, body.node_offset)?.into_leaf_node();
                     node.insert(body.id);
-                    write_node_to_file(file, body.node_index, node.into_node())?;
+                    write_node_to_file(file, body.node_offset, node.into_node())?;
                 }
                 _ => unreachable!(),
             }
@@ -121,12 +121,12 @@ impl Wal {
 
     pub(crate) fn write_insert_to_leaf_node(
         &mut self,
-        node_index: PageIndex,
+        node_offset: PageOffset,
         id: u128,
     ) -> Result<()> {
         self.dirty = true;
 
-        let body = InsertToLeafNodeBody { node_index, id };
+        let body = InsertToLeafNodeBody { node_offset, id };
         let body_bytes = body.as_slice();
         let header = WalHeader {
             checksum: crc().checksum(body_bytes),
@@ -145,10 +145,25 @@ impl Wal {
         self.file.sync_all()?;
         Ok(())
     }
+
+    pub(crate) fn allocate_page(&self) -> Result<()> {
+        todo!()
+    }
+
+    pub(crate) fn update_free_page_stack_top_page_offset(
+        &self,
+        page_offset: PageOffset,
+    ) -> Result<()> {
+        todo!()
+    }
+
+    pub(crate) fn write_logs(&self, logs: Vec<operator::OperationLog>) -> Result<()> {
+        todo!()
+    }
 }
 
-fn write_node_to_file(file: &mut File, node_index: PageIndex, node: Node) -> Result<()> {
-    file.seek(node_index.file_pos())?;
+fn write_node_to_file(file: &mut File, node_offset: PageOffset, node: Node) -> Result<()> {
+    file.seek(node_offset.file_pos())?;
 
     file.write_all(node.as_slice())?;
     file.sync_all()?;
@@ -166,7 +181,7 @@ impl AsSlice for WalHeader {}
 
 #[repr(C)]
 struct InsertToLeafNodeBody {
-    node_index: PageIndex,
+    node_offset: PageOffset,
     id: u128,
 }
 impl AsSlice for InsertToLeafNodeBody {}

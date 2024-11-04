@@ -1,11 +1,11 @@
 //! # B+IdTree
 //!
-//! B+IdTree is a B+Tree implementation for storing 128bit Ids.
+//! B+IdTree is a B+Tree implementation for storing 128bit Keys.
 //! All node size is 4KB, which will be called a page.
-//! Page Index size is 31 bit.
-//! B+IdTree can store 2^31 pages, total Ids are 2^31 * 255 = 2^38.
+//! Page Offset size is 32 bit.
+//! B+IdTree can store 2^32 pages, total Keys are 2^32 * 255 = 2^40.
 //!
-//! Page Index '0' will be used as a null.
+//! Page Offset '0' will be used as a null.
 //! Endian is little.
 //!
 //! ## File Structure
@@ -13,34 +13,20 @@
 //! ### Free Page Stack
 //!
 //! Linked List, storing free page's offset in the file.
-//! - Next Free Page Stack Node Index: u32
+//! - Next Free Page Stack Node Offset: u32
 //! - Length in this page: u32
-//! - Free Page Indexes: [u32; 1022]
+//! - Free Page Keys: [u32; 1022]
 //!
-//! ### Header
-//! Header has one page size.
-//! - Free Page Stack Top Node Index: u32
-//! - Root Node Index: u32
-//!   - Root Node would be an Internal Node or a Leaf Node.
-//!
-//! ### Internal Node
-//! - Leaf Type Bit and Parent Node Index: u32
-//!   - 31 bit: Parent Node Index
-//!   - MSB 1 bit: 0 for Internal Node
-//!
-//! ### Leaf Node
-//! - Leaf Type Bit and Parent Node Index: u32
-//!   - 31 bit: Parent Node Index
-//!   - MSB 1 bit: 1 for Leaf Node
 
+mod operator;
 mod wal;
 
+use operator::Operator;
 use std::{
     collections::HashMap,
     fs::File,
-    io::{Read, Result, Seek, SeekFrom, Write},
+    io::{Read, Result, Seek, SeekFrom},
     mem::MaybeUninit,
-    num::NonZeroU32,
     path::Path,
 };
 use wal::*;
@@ -50,7 +36,7 @@ pub struct BpIdTree {
     wal: Wal,
     header: Header,
     // TODO: Remove nodes cache for memory usage.
-    nodes: HashMap<PageIndex, Node>,
+    pages: HashMap<PageOffset, Page>,
 }
 
 impl BpIdTree {
@@ -74,61 +60,25 @@ impl BpIdTree {
 
         Self::read_from_file(file, wal)
     }
-    pub fn insert(&mut self, id: u128) -> Result<()> {
-        let (node_index, mut leaf_node) = self.find_leaf_node_for_insertion(id)?;
-        if !leaf_node.is_full() {
-            self.wal.write_insert_to_leaf_node(node_index, id)?;
-
-            leaf_node.insert(id);
-            self.nodes.insert(node_index, leaf_node.into_node());
-
-            return Ok(());
+    pub fn insert(&mut self, key: u128) -> Result<()> {
+        let done = Operator::new(&self.header, &self.pages, &mut self.file).insert(key)?;
+        self.wal.write_logs(done.logs)?;
+        if let Some(header) = done.updated_header {
+            self.header = header;
         }
-        // - Otherwise, before inserting the new record
-        //     - Split the node.
-        //         - original node has ⌈(K+1)/2⌉ items
-        //         - new node has ⌊(K+1)/2⌋ items
-        //     - Copy ⌈(K+1)/2⌉-th key to the parent, and insert the new node to the parent.
-        //     - Repeat until a parent is found that need not split.
-        //     - Insert the new record into the new node.
-        // - If the root splits, treat it as if it has an empty parent and split as outline above.
-        todo!()
+        for (page_offset, page) in done.updated_pages {
+            self.pages.insert(page_offset, page);
+        }
+        Ok(())
     }
-    pub fn delete(&mut self, id: u128) -> Result<()> {
+    pub fn delete(&mut self, key: u128) -> Result<()> {
         todo!()
     }
     pub fn iter(&self) -> Result<impl Iterator<Item = u128>> {
         // TODO
         Ok(std::iter::empty())
     }
-    fn find_leaf_node_for_insertion(&mut self, id: u128) -> Result<(PageIndex, LeafNode)> {
-        let mut node_index = self.header.root_node_index;
 
-        loop {
-            let node = self.node(node_index)?;
-            if node.is_leaf() {
-                return Ok((node_index, node.into_leaf_node()));
-            }
-            let internal_node = node.into_internal_node();
-            node_index = internal_node.find_child_node_index_for(id);
-        }
-    }
-    fn node(&mut self, node_index: PageIndex) -> Result<Node> {
-        if let Some(node) = self.nodes.get(&node_index) {
-            return Ok(*node);
-        }
-
-        self.read_node_from_file(node_index)
-    }
-    fn read_node_from_file(&mut self, node_index: PageIndex) -> Result<Node> {
-        self.wal.flush(&mut self.file)?;
-
-        let node = read_node_from_file(&mut self.file, node_index)?;
-
-        self.nodes.insert(node_index, node);
-
-        Ok(node)
-    }
     fn read_from_file(mut file: File, wal: Wal) -> Result<Self> {
         let header = unsafe {
             let mut header = MaybeUninit::<Header>::uninit();
@@ -144,42 +94,48 @@ impl BpIdTree {
             file,
             wal,
             header,
-            nodes: HashMap::new(),
+            pages: HashMap::new(),
         })
     }
 }
 
-fn read_node_from_file(file: &mut File, node_index: PageIndex) -> Result<Node> {
-    file.seek(node_index.file_pos())?;
+fn read_page_from_file(file: &mut File, page_offset: PageOffset) -> Result<Page> {
+    file.seek(page_offset.file_pos())?;
 
-    let node = unsafe {
-        let mut node = MaybeUninit::<Node>::uninit();
+    let page = unsafe {
+        let mut page = MaybeUninit::<Page>::uninit();
         file.read_exact(std::slice::from_raw_parts_mut(
-            node.as_mut_ptr() as *mut u8,
-            std::mem::size_of::<Node>(),
+            page.as_mut_ptr() as *mut u8,
+            std::mem::size_of::<Page>(),
         ))?;
-        node.assume_init()
+        page.assume_init()
     };
-    Ok(node)
+    Ok(page)
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct PageIndex {
+struct PageOffset {
     value: u32,
 }
-impl PageIndex {
+impl PageOffset {
     const NULL: Self = Self { value: 0 };
-    fn with_node_type_msb(&self, is_leaf: bool) -> u32 {
-        self.value | if is_leaf { 0x80000000 } else { 0 }
-    }
-
-    fn without_node_type_msb(value: NonZeroU32) -> PageIndex {
-        Self { value: value.get() }
+    fn new(value: u32) -> PageOffset {
+        Self { value }
     }
 
     fn file_pos(&self) -> SeekFrom {
-        SeekFrom::Start((self.value & 0x7FFFFFFF) as u64 * 4096)
+        SeekFrom::Start(self.value as u64 * 4096)
+    }
+
+    fn fetch_increase(&mut self) -> Self {
+        let next = *self;
+        self.value += 1;
+        next
+    }
+
+    fn is_null(&self) -> bool {
+        self == &Self::NULL
     }
 }
 
@@ -192,91 +148,218 @@ trait AsSlice: Sized {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, Copy)]
 struct Header {
-    free_page_stack_top_page_index: PageIndex,
-    root_node_index: PageIndex,
-    padding: [u32; 1022],
+    /// Would be null
+    free_page_stack_top_page_offset: PageOffset,
+    /// Root node would be a leaf node or an internal node.
+    root_node_offset: PageOffset,
+    /// Use this value to allocate new page.
+    next_page_offset: PageOffset,
+    _padding: [u32; 1021],
 }
 impl AsSlice for Header {}
 
 #[repr(C)]
 struct FreePageStackNode {
-    next_node_index: PageIndex,
+    next_page_offset: PageOffset,
     length: u32,
-    free_page_indexes: [u32; 1022],
+    /// would have dirty data.
+    free_page_keys: [u32; 1022],
+}
+impl FreePageStackNode {
+    fn pop(&mut self) -> PageOffset {
+        assert_ne!(self.length, 0);
+        self.length -= 1;
+        let offset = self.free_page_keys[self.length as usize];
+        assert_ne!(offset, 0);
+        PageOffset::new(offset)
+    }
+
+    fn is_empty(&self) -> bool {
+        self.length == 0
+    }
 }
 impl AsSlice for FreePageStackNode {}
 
+const INTERNAL_NODE_KEY_LEN: usize = 203;
+
 #[repr(C)]
+#[derive(Debug, Clone, Copy)]
+/// right side child's key is greater or equal to key.
 struct InternalNode {
-    leaf_type_bit_and_parent_index: u32,
-    id_count: u32,
-    ids: [u128; 203],
-    child_indexes: [PageIndex; 204],
-    _padding: u32,
+    leaf_type: u8,
+    _padding: [u8; 3],
+    key_count: u32,
+    keys: [u128; INTERNAL_NODE_KEY_LEN],
+    child_offsets: [PageOffset; INTERNAL_NODE_KEY_LEN + 1],
+    _padding_1: u32,
 }
 impl AsSlice for InternalNode {}
 
 impl InternalNode {
-    fn offset(&self) -> PageIndex {
-        PageIndex {
-            value: self.leaf_type_bit_and_parent_index & 0x7FFFFFFF,
+    pub fn new(
+        key: u128,
+        left_side_child_offset: PageOffset,
+        right_side_child_offset: PageOffset,
+    ) -> Self {
+        let mut keys = [0; INTERNAL_NODE_KEY_LEN];
+        keys[0] = key;
+
+        let mut child_offsets = [PageOffset::NULL; INTERNAL_NODE_KEY_LEN + 1];
+        child_offsets[0] = left_side_child_offset;
+        child_offsets[1] = right_side_child_offset;
+
+        Self {
+            leaf_type: 0,
+            _padding: [0; 3],
+            key_count: 1,
+            keys,
+            child_offsets,
+            _padding_1: 0,
         }
     }
-
-    fn find_child_node_index_for(&self, id: u128) -> PageIndex {
-        self.ids
+    fn key_index(&self, key: u128) -> Option<usize> {
+        self.keys
             .iter()
-            .take(self.id_count as usize)
+            .take(self.key_count as usize)
             .enumerate()
-            .find(|(_, &key_id)| id < key_id)
-            .map(|(i, _)| self.child_indexes[i])
-            .unwrap_or(self.child_indexes[self.id_count as usize])
+            .find(|(_, &key1)| key < key1)
+            .map(|(i, _)| i)
+    }
+    fn find_child_node_offset_for(&self, key: u128) -> PageOffset {
+        self.key_index(key)
+            .map(|i| self.child_offsets[i])
+            .unwrap_or(self.child_offsets[self.key_count as usize])
+    }
+    fn is_full(&self) -> bool {
+        self.key_count == self.keys.len() as u32
+    }
+    fn insert(&mut self, key: u128, right_side_child_offset: PageOffset) -> Option<InternalNode> {
+        let key_index = self.key_index(key).unwrap_or(self.key_count as usize);
+
+        if !self.is_full() {
+            if key_index < self.key_count as usize {
+                self.keys[key_index..].rotate_right(1);
+                self.child_offsets[key_index + 1..].rotate_right(1);
+            }
+            self.keys[key_index] = key;
+            self.child_offsets[key_index + 1] = right_side_child_offset;
+            self.key_count += 1;
+            return None;
+        }
+
+        let one_plus_keys = {
+            let mut keys = [0; INTERNAL_NODE_KEY_LEN + 1];
+            keys[..key_index].copy_from_slice(&self.keys[..key_index]);
+            keys[key_index] = key;
+            keys[key_index + 1..].copy_from_slice(&self.keys[key_index..]);
+            keys
+        };
+        let one_plus_child_offsets = {
+            let mut offsets = [PageOffset::NULL; INTERNAL_NODE_KEY_LEN + 2];
+            offsets[..key_index + 1].copy_from_slice(&self.child_offsets[..key_index + 1]);
+            offsets[key_index + 1] = right_side_child_offset;
+            offsets[key_index + 2..].copy_from_slice(&self.child_offsets[key_index + 1..]);
+            offsets
+        };
+
+        let floor = one_plus_keys.len() / 2;
+        let ceil = one_plus_keys.len() - floor;
+
+        let mut right_node = unsafe { std::mem::zeroed::<InternalNode>() };
+        let key_count = floor - 1;
+        let offset_count = key_count + 1;
+        right_node.key_count = key_count as u32;
+        right_node.keys[..key_count]
+            .copy_from_slice(&one_plus_keys[(one_plus_keys.len() - key_count)..]);
+        right_node.child_offsets[..offset_count].copy_from_slice(
+            &one_plus_child_offsets[(one_plus_child_offsets.len() - offset_count)..],
+        );
+
+        let key_count = ceil;
+        let offset_count = key_count + 1;
+        self.key_count = key_count as u32;
+        self.keys[..key_count].copy_from_slice(&one_plus_keys[..key_count]);
+        self.child_offsets[..offset_count].copy_from_slice(&one_plus_child_offsets[..offset_count]);
+
+        Some(right_node)
     }
 }
 
+const LEAF_NODE_KEYS_LEN: usize = 255;
+
 #[repr(C)]
+#[derive(Debug, Clone, Copy)]
 struct LeafNode {
-    leaf_type_bit_and_parent_node_index: u32,
+    leaf_type: u8,
+    _padding: [u8; 3],
     id_count: u32,
-    ids: [u128; 255],
+    keys: [u128; LEAF_NODE_KEYS_LEN],
 }
 impl AsSlice for LeafNode {}
 
 impl LeafNode {
-    fn parent_node_index(&self) -> PageIndex {
-        PageIndex {
-            value: self.leaf_type_bit_and_parent_node_index & 0x7FFFFFFF,
-        }
-    }
-
-    fn new(parent_node_index: PageIndex) -> Self {
+    fn new() -> Self {
         Self {
-            leaf_type_bit_and_parent_node_index: parent_node_index.with_node_type_msb(true),
+            leaf_type: 1,
+            _padding: [0; 3],
             id_count: 0,
-            ids: [0; 255],
+            keys: [0; LEAF_NODE_KEYS_LEN],
         }
     }
 
     fn is_full(&self) -> bool {
-        self.id_count == self.ids.len() as u32
+        self.id_count == self.keys.len() as u32
     }
 
-    fn insert(&mut self, id: u128) {
-        let index = self
-            .ids
+    /// Return new splitted leaf node and new key if it's full.
+    /// New leaf node will have half of the keys, bigger values.
+    fn insert(&mut self, key: u128) -> Option<(LeafNode, u128)> {
+        let offset = self
+            .keys
             .iter()
             .take(self.id_count as usize)
             .enumerate()
-            .find(|(_, &key_id)| id < key_id)
+            .find(|(_, &key_id)| key < key_id)
             .map(|(i, _)| i)
             .unwrap_or(self.id_count as usize);
-        self.ids.copy_within(index.., index + 1);
-        self.ids[index] = id;
-        self.id_count += 1;
+        if self.is_full() {
+            let one_plus_keys = {
+                let mut one_plus_keys = [0; LEAF_NODE_KEYS_LEN + 1];
+                one_plus_keys[..offset].copy_from_slice(&self.keys[..offset]);
+                one_plus_keys[offset] = key;
+                one_plus_keys[offset + 1..].copy_from_slice(&self.keys[offset..]);
+                one_plus_keys
+            };
+
+            let floor = one_plus_keys.len() / 2;
+            let ceil = one_plus_keys.len() - floor;
+
+            self.keys[..ceil].copy_from_slice(&one_plus_keys[..ceil]);
+            self.id_count = ceil as u32;
+
+            let mut new_leaf_node = LeafNode::new();
+
+            new_leaf_node.keys[..floor].copy_from_slice(&one_plus_keys[ceil..]);
+            new_leaf_node.id_count = floor as u32;
+
+            Some((new_leaf_node, self.keys[ceil - 1]))
+        } else {
+            if offset < self.id_count as usize {
+                self.keys[offset..].rotate_right(1);
+            }
+            self.keys[offset] = key;
+            self.id_count += 1;
+            None
+        }
     }
 
     fn into_node(self) -> Node {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_page(self) -> Page {
         unsafe { std::mem::transmute(self) }
     }
 }
@@ -284,13 +367,13 @@ impl LeafNode {
 #[repr(C)]
 #[derive(Clone, Copy)]
 struct Node {
-    leaf_type_bit_and_parent_node_index: u32,
-    _padding: [u8; 4092],
+    leaf_type: u8,
+    _padding: [u8; 4095],
 }
 impl AsSlice for Node {}
 impl Node {
     fn is_leaf(&self) -> bool {
-        self.leaf_type_bit_and_parent_node_index & 0x80000000 != 0
+        self.leaf_type != 0
     }
     fn into_internal_node(self) -> InternalNode {
         unsafe { std::mem::transmute(self) }
@@ -302,6 +385,58 @@ impl Node {
         unsafe { std::mem::transmute(self) }
     }
     fn as_leaf_node_mut(&mut self) -> &mut LeafNode {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_page(self) -> Page {
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+struct Page {
+    data: [u8; 4096],
+}
+
+impl Page {
+    fn new() -> Self {
+        Self { data: [0; 4096] }
+    }
+
+    fn into_node(self) -> Node {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_free_page_stack_node(self) -> FreePageStackNode {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn as_header(&self) -> &Header {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn as_free_page_stack_node_mut(&mut self) -> &mut FreePageStackNode {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn as_leaf_node_mut(&mut self) -> &mut LeafNode {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn as_leaf_node(&self) -> &LeafNode {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn into_leaf_node(self) -> LeafNode {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn as_internal_node(&self) -> &InternalNode {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    fn as_internal_node_mut(&mut self) -> &mut InternalNode {
         unsafe { std::mem::transmute(self) }
     }
 }
@@ -317,5 +452,74 @@ mod tests {
         assert_eq!(std::mem::size_of::<InternalNode>(), 4096);
         assert_eq!(std::mem::size_of::<LeafNode>(), 4096);
         assert_eq!(std::mem::size_of::<Node>(), 4096);
+    }
+
+    #[test]
+    fn leaf_node_move_half() {
+        let mut leaf_node = LeafNode::new();
+        for i in (0..(255 * 2)).step_by(2) {
+            assert!(leaf_node.insert(i).is_none());
+        }
+
+        let (new_leaf_node, key) = leaf_node.insert(3).unwrap();
+
+        assert_eq!(leaf_node.id_count, 128);
+        assert_eq!(new_leaf_node.id_count, 128);
+        assert_eq!(key, 252);
+        assert_eq!(key, leaf_node.keys[leaf_node.id_count as usize - 1]);
+
+        let leaf_node_keys = {
+            let mut keys = (0..=253).step_by(2).collect::<Vec<_>>();
+            keys.push(3);
+            keys.sort();
+            keys
+        };
+        assert_eq!(leaf_node.keys[..128], leaf_node_keys);
+
+        let new_leaf_node_keys = (254..510).step_by(2).collect::<Vec<_>>();
+        assert_eq!(new_leaf_node.keys[..128], new_leaf_node_keys);
+    }
+
+    #[test]
+    fn internal_node_insert() {
+        {
+            let mut internal_node = InternalNode::new(3, PageOffset::new(1), PageOffset::new(2));
+            assert!(internal_node.insert(1, PageOffset::new(3)).is_none());
+        }
+    }
+
+    #[test]
+    fn internal_node_insert_split() {
+        let mut internal_node = InternalNode::new(1, PageOffset::new(0), PageOffset::new(1));
+        for i in 1..INTERNAL_NODE_KEY_LEN {
+            assert!(internal_node
+                .insert(i as u128 + 1, PageOffset::new(i as u32 + 1))
+                .is_none());
+        }
+        let right_node = internal_node
+            .insert(
+                INTERNAL_NODE_KEY_LEN as u128 + 1,
+                PageOffset::new(INTERNAL_NODE_KEY_LEN as u32 + 2),
+            )
+            .unwrap();
+
+        let floor = INTERNAL_NODE_KEY_LEN / 2;
+        let ceil = INTERNAL_NODE_KEY_LEN - floor;
+
+        assert_eq!(internal_node.key_count, ceil as u32);
+        assert_eq!(right_node.key_count, internal_node.key_count - 1);
+
+        for i in 0..internal_node.key_count as usize {
+            assert_eq!(internal_node.keys[i], i as u128 + 1);
+            assert_eq!(internal_node.child_offsets[i].value, i as u32);
+        }
+
+        for i in 0..right_node.key_count as usize {
+            assert_eq!(right_node.keys[i], i as u128 + 3 + floor as u128);
+            assert_eq!(
+                right_node.child_offsets[i].value,
+                i as u32 + 2 + floor as u32
+            );
+        }
     }
 }
