@@ -1,9 +1,9 @@
 use super::*;
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{btree_map, hash_map, BTreeMap, HashMap};
 
 pub struct Operator<'a> {
     pages_cached: &'a HashMap<PageOffset, Page>,
-    pages_updated: HashMap<PageOffset, Page>,
+    pages_updated: BTreeMap<PageOffset, Page>,
     pages_read_from_file: HashMap<PageOffset, Page>,
     updated_header: Option<Header>,
     original_header: &'a Header,
@@ -18,7 +18,7 @@ impl<'a> Operator<'a> {
     ) -> Operator<'a> {
         Operator {
             pages_cached,
-            pages_updated: HashMap::new(),
+            pages_updated: Default::default(),
             pages_read_from_file: HashMap::new(),
             updated_header: None,
             original_header: header,
@@ -39,7 +39,10 @@ impl<'a> Operator<'a> {
         *self.page_mut(right_node_offset)?.as_leaf_node_mut() = right_half;
 
         if route.is_empty() {
+            assert_eq!(leaf_node_offset, self.header().root_node_offset);
+
             let internal_node_offset = self.new_page()?;
+
             let internal_node = self.page_mut(internal_node_offset)?.as_internal_node_mut();
             *internal_node = InternalNode::new(key, leaf_node_offset, right_node_offset);
 
@@ -47,37 +50,43 @@ impl<'a> Operator<'a> {
             return Ok(self.done());
         }
 
-        for parent_offset in route.iter().rev().cloned() {
-            let parent_node = self.page_mut(parent_offset)?.as_internal_node_mut();
-            parent_node.insert(key, right_node_offset);
+        let mut key = key;
+        let mut right_node_offset = right_node_offset;
 
-            // let Some((half, key, key)) = parent_node.insert(new_leaf_node_offset, key) else {
-            //     return Ok(self.done());
-            // };
+        let mut must_be_last = false;
+
+        for node_offset in route.iter().rev().cloned() {
+            if must_be_last {
+                unreachable!();
+            }
+
+            let internal_node = self.page_mut(node_offset)?.as_internal_node_mut();
+            let Some((right_node, center_key)) = internal_node.insert(key, right_node_offset)
+            else {
+                return Ok(self.done());
+            };
+            right_node_offset = self.new_page()?;
+            *self.page_mut(right_node_offset)?.as_internal_node_mut() = right_node;
+
+            if node_offset != self.header().root_node_offset {
+                key = center_key;
+                continue;
+            }
+
+            let new_root_node_offset = self.new_page()?;
+            let new_root_node = InternalNode::new(center_key, node_offset, right_node_offset);
+            *self.page_mut(new_root_node_offset)?.as_internal_node_mut() = new_root_node;
+            must_be_last = true;
         }
 
-        todo!()
-
-        // - Otherwise, before inserting the new record
-        //     - Split the node.
-        //         - original node has ⌈(K+1)/2⌉ items
-        //         - new node has ⌊(K+1)/2⌋ items
-        //     - Copy ⌈(K+1)/2⌉-th key to the parent, and insert the new node to the parent.
-        //     - Repeat until a parent is found that need not split.
-        //     - Insert the new record into the new node.
-        // - If the root splits, treat it as if it has an empty parent and split as outline above.
+        Ok(self.done())
     }
     fn done(self) -> Done {
-        todo!()
-        // Done {
-        //     updated_pages: self.pages_updated,
-        //     logs: self.logs,
-        //     updated_header: if self.is_header_updated {
-        //         Some(self.original_header)
-        //     } else {
-        //         None
-        //     },
-        // }
+        Done {
+            updated_header: self.updated_header,
+            pages_read_from_file: self.pages_read_from_file,
+            updated_pages: self.pages_updated,
+        }
     }
     fn find_route_for_insertion(&mut self, key: u128) -> Result<Vec<PageOffset>> {
         let mut node_offset = self.original_header.root_node_offset;
@@ -99,7 +108,7 @@ impl<'a> Operator<'a> {
         } else if let Some(page) = self.pages_cached.get(&page_offset) {
             Ok(page)
         } else {
-            if let Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
+            if let hash_map::Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
                 let page = read_page_from_file(self.file, page_offset)?;
                 e.insert(page);
             }
@@ -108,12 +117,13 @@ impl<'a> Operator<'a> {
         }
     }
     fn page_mut(&mut self, page_offset: PageOffset) -> Result<&mut Page> {
-        if let Entry::Vacant(e) = self.pages_updated.entry(page_offset) {
+        if let btree_map::Entry::Vacant(e) = self.pages_updated.entry(page_offset) {
             let page = {
                 if let Some(page) = self.pages_cached.get(&page_offset) {
                     *page
                 } else {
-                    if let Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
+                    if let hash_map::Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset)
+                    {
                         let page = read_page_from_file(self.file, page_offset)?;
                         e.insert(page);
                     }
@@ -152,17 +162,6 @@ impl<'a> Operator<'a> {
 
         Ok(Some(page_offset))
     }
-    fn push_free_page(&mut self) -> Result<()> {
-        if self.header().free_page_stack_top_page_offset.is_null() {
-            // let page_offset = self.allocate_page()?;
-            // self.wal.update_free_page_stack_top_page_offset(page_offset)?;
-            // self.header.free_page_stack_top_page_offset = page_offset;
-
-            // let stack_top = page.into_free_page_stack_node();
-        }
-
-        todo!()
-    }
     fn allocate_page(&mut self) -> Result<PageOffset> {
         let page_offset = self.header_mut().next_page_offset.fetch_increase();
         let page = Page::new();
@@ -172,23 +171,17 @@ impl<'a> Operator<'a> {
         Ok(page_offset)
     }
     fn header(&self) -> &Header {
-        self.updated_header
-            .as_ref()
-            .unwrap_or_else(|| &self.original_header)
+        self.updated_header.as_ref().unwrap_or(self.original_header)
     }
 
     fn header_mut(&mut self) -> &mut Header {
-        self.updated_header
-            .get_or_insert_with(|| self.original_header.clone())
+        self.updated_header.get_or_insert(*self.original_header)
     }
 }
 
-pub enum OperationLog {
-    UpdatePage { page_offset: PageOffset, page: Page },
-}
-
 pub struct Done {
-    pub updated_pages: HashMap<PageOffset, Page>,
-    pub logs: Vec<OperationLog>,
+    pub updated_pages: BTreeMap<PageOffset, Page>,
+    pub pages_read_from_file: HashMap<PageOffset, Page>,
+    /// If header was updated, `updated_pages` will contain the updated header page too.
     pub updated_header: Option<Header>,
 }

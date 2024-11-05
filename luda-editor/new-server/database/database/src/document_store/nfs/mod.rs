@@ -1,4 +1,4 @@
-mod bp_id_tree;
+mod bp128tree;
 mod db_thread;
 mod document_store_impl;
 mod flush_wals;
@@ -27,7 +27,7 @@ impl NfsV4DocStore {
     pub fn new(mount_point: impl AsRef<std::path::Path>) -> Self {
         // remove below.
         {
-            let mut tree = bp_id_tree::BpIdTree::open(&mount_point).unwrap();
+            let mut tree = bp128tree::BP128Tree::open(&mount_point).unwrap();
             _ = tree.insert(5);
             _ = tree.delete(5);
             _ = tree.iter();
