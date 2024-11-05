@@ -1,4 +1,3 @@
-mod bp128tree;
 mod db_thread;
 mod document_store_impl;
 mod flush_wals;
@@ -25,14 +24,6 @@ pub struct NfsV4DocStore {
 
 impl NfsV4DocStore {
     pub fn new(mount_point: impl AsRef<std::path::Path>) -> Self {
-        // remove below.
-        {
-            let mut tree = bp128tree::BP128Tree::open(&mount_point).unwrap();
-            _ = tree.insert(5);
-            _ = tree.delete(5);
-            _ = tree.iter();
-        }
-
         let mount_point = mount_point.as_ref().to_path_buf();
 
         let (db_request_tx, db_request_rx) = std::sync::mpsc::channel();

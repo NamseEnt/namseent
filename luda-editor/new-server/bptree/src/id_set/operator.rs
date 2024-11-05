@@ -1,5 +1,8 @@
 use super::*;
-use std::collections::{btree_map, hash_map, BTreeMap, HashMap};
+use std::{
+    collections::{btree_map, hash_map, BTreeMap, HashMap},
+    fs::File,
+};
 
 pub struct Operator<'a> {
     pages_cached: &'a HashMap<PageOffset, Page>,
@@ -26,13 +29,13 @@ impl<'a> Operator<'a> {
         }
     }
 
-    pub fn insert(mut self, key: u128) -> Result<Done> {
-        let mut route = self.find_route_for_insertion(key)?;
+    pub fn insert(&mut self, id: u128) -> Result<()> {
+        let mut route = self.find_route_for_insertion(id)?;
         let leaf_node_offset = route.pop().unwrap();
         let leaf_node = self.page_mut(leaf_node_offset)?.as_leaf_node_mut();
 
-        let Some((right_half, key)) = leaf_node.insert(key) else {
-            return Ok(self.done());
+        let Some((right_half, id)) = leaf_node.insert(id) else {
+            return Ok(());
         };
 
         let right_node_offset = self.new_page()?;
@@ -44,52 +47,45 @@ impl<'a> Operator<'a> {
             let internal_node_offset = self.new_page()?;
 
             let internal_node = self.page_mut(internal_node_offset)?.as_internal_node_mut();
-            *internal_node = InternalNode::new(key, leaf_node_offset, right_node_offset);
+            *internal_node = InternalNode::new(id, leaf_node_offset, right_node_offset);
 
             self.header_mut().root_node_offset = internal_node_offset;
-            return Ok(self.done());
+            return Ok(());
         }
 
-        let mut key = key;
+        let mut id = id;
         let mut right_node_offset = right_node_offset;
 
-        let mut must_be_last = false;
-
-        for node_offset in route.iter().rev().cloned() {
-            if must_be_last {
-                unreachable!();
-            }
-
+        while let Some(node_offset) = route.pop() {
             let internal_node = self.page_mut(node_offset)?.as_internal_node_mut();
-            let Some((right_node, center_key)) = internal_node.insert(key, right_node_offset)
-            else {
-                return Ok(self.done());
+            let Some((right_node, center_id)) = internal_node.insert(id, right_node_offset) else {
+                return Ok(());
             };
             right_node_offset = self.new_page()?;
             *self.page_mut(right_node_offset)?.as_internal_node_mut() = right_node;
 
             if node_offset != self.header().root_node_offset {
-                key = center_key;
+                id = center_id;
                 continue;
             }
 
+            assert!(route.is_empty());
             let new_root_node_offset = self.new_page()?;
-            let new_root_node = InternalNode::new(center_key, node_offset, right_node_offset);
+            let new_root_node = InternalNode::new(center_id, node_offset, right_node_offset);
             *self.page_mut(new_root_node_offset)?.as_internal_node_mut() = new_root_node;
-            must_be_last = true;
         }
 
-        Ok(self.done())
+        Ok(())
     }
-    fn done(self) -> Done {
+    pub fn done(self) -> Done {
         Done {
             updated_header: self.updated_header,
             pages_read_from_file: self.pages_read_from_file,
             updated_pages: self.pages_updated,
         }
     }
-    fn find_route_for_insertion(&mut self, key: u128) -> Result<Vec<PageOffset>> {
-        let mut node_offset = self.original_header.root_node_offset;
+    fn find_route_for_insertion(&mut self, id: u128) -> Result<Vec<PageOffset>> {
+        let mut node_offset = self.header().root_node_offset;
         let mut route = vec![];
 
         loop {
@@ -99,7 +95,7 @@ impl<'a> Operator<'a> {
                 return Ok(route);
             }
             let internal_node = node.into_internal_node();
-            node_offset = internal_node.find_child_node_offset_for(key);
+            node_offset = internal_node.find_child_node_offset_for(id);
         }
     }
     fn page(&mut self, page_offset: PageOffset) -> Result<&Page> {

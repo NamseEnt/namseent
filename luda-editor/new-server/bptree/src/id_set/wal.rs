@@ -3,20 +3,18 @@
 //! [Header][Body][Header][Body]...
 //!
 
-use super::{super::crc, *};
+use super::*;
+use crate::checksum;
 use bytes::BufMut;
-use libc::c_int;
 use std::{
     collections::BTreeMap,
-    ffi::CString,
     fs::{File, OpenOptions},
-    io::{BufReader, BufWriter, Read, Seek, Write},
-    os::unix::fs::OpenOptionsExt,
+    io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write},
+    mem::MaybeUninit,
 };
 
 pub struct Wal {
-    // buf_writer: BufWriter<File>,
-    file: File,
+    buf_writer: BufWriter<File>,
     dirty: bool,
 }
 
@@ -27,19 +25,16 @@ impl Wal {
             .read(true)
             .write(true)
             .truncate(false)
-            .custom_flags(libc::O_DIRECT)
             .open(path)?;
 
         Ok(Self {
             dirty: file.metadata()?.len() != 0,
-            // buf_writer: BufWriter::new(file),
-            file,
+            buf_writer: BufWriter::new(file),
         })
     }
 
     fn file(&self) -> &File {
-        // self.buf_writer.get_ref()
-        &self.file
+        self.buf_writer.get_ref()
     }
 
     pub(crate) fn flush(&mut self, file: &mut File) -> Result<()> {
@@ -70,12 +65,8 @@ impl Wal {
                 0 => {
                     let root_node_offset = PageOffset::new(1);
 
-                    let header = Header {
-                        free_page_stack_top_page_offset: PageOffset::NULL,
-                        root_node_offset,
-                        next_page_offset: PageOffset::new(2),
-                        _padding: [0; 1021],
-                    };
+                    let header =
+                        Header::new(PageOffset::NULL, root_node_offset, PageOffset::new(2));
 
                     let root_node = LeafNode::new();
 
@@ -113,7 +104,6 @@ impl Wal {
     }
 
     pub(crate) fn write_init(&mut self) -> Result<()> {
-        println!("write_init");
         self.write_wal(Init)?;
         self.sync_all()?;
         Ok(())
@@ -138,41 +128,20 @@ impl Wal {
 
         let body_bytes = body.as_slice();
         let header = WalHeader {
-            checksum: crc().checksum(body_bytes),
+            checksum: checksum(body_bytes),
             body_length: body_bytes.len() as u32,
             body_types: Body::body_types(),
         };
 
-        // store header and body in a multiple of 512 bytes
-        let header_size = size_of::<WalHeader>();
-        let body_size = body_bytes.len();
-        let padding_size = (512 - ((header_size + body_size) % 512)) % 512;
-        let bytes_size = header_size + body_size + padding_size;
-        assert_eq!(bytes_size % 512, 0);
-        let mut bytes = Vec::with_capacity(bytes_size);
-        bytes.put_slice(header.as_slice());
-        bytes.put_slice(body_bytes);
-        bytes.resize(bytes_size, 0);
+        self.buf_writer.write_all(header.as_slice())?;
+        self.buf_writer.write_all(body_bytes)?;
 
-        println!("bytes.len(): {}", bytes.len());
-        // self.file.write_all(&bytes)?;
-        let mut bytes = [0u8; 1024];
-        let align_offset = bytes.as_ptr().align_offset(512);
-        println!("align_offset: {}", align_offset);
-        let bytes_aligned_512 = bytes.get_mut(align_offset..align_offset + 512).unwrap();
-        println!("bytes_aligned_512.len(): {}", bytes_aligned_512.len());
-        assert_eq!(bytes_aligned_512.as_ptr().align_offset(512), 0);
-        let written = self.file.write(bytes_aligned_512)?;
-
-        println!("written: {}", written);
         Ok(())
     }
 
     fn sync_all(&mut self) -> Result<()> {
-        // self.file.flush()?;
-        // let now = std::time::Instant::now();
-        // self.file().sync_all()?;
-        // println!("sync_all: {:?}", now.elapsed());
+        self.buf_writer.flush()?;
+        self.file().sync_all()?;
 
         Ok(())
     }

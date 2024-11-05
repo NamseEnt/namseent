@@ -1,0 +1,10 @@
+[package]
+name = "bptree"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { version = "1", features = ["backtrace"] }
+bytes = "1"
+crc = "3"
+tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }
