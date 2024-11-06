@@ -62,7 +62,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path).unwrap();
+        let set = IdSet::new(path, 5000).unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();
@@ -84,7 +84,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path).unwrap();
+        let set = IdSet::new(path, 5000).unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();
@@ -111,7 +111,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path).unwrap();
+        let set = IdSet::new(path, 5000).unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();
@@ -144,7 +144,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path).unwrap();
+        let set = IdSet::new(path, 5000).unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();

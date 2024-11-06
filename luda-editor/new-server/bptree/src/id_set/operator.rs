@@ -1,13 +1,13 @@
 use super::*;
 use std::{
-    collections::{btree_map, hash_map, BTreeMap, HashMap},
+    collections::{btree_map::Entry, BTreeMap},
     fs::File,
 };
 
 pub struct Operator<'a> {
     cached_pages: CachedPages,
     pages_updated: BTreeMap<PageOffset, Page>,
-    pages_read_from_file: HashMap<PageOffset, Page>,
+    pages_read_from_file: BTreeMap<PageOffset, Page>,
     file: &'a mut File,
 }
 
@@ -16,7 +16,7 @@ impl<'a> Operator<'a> {
         Operator {
             cached_pages,
             pages_updated: Default::default(),
-            pages_read_from_file: HashMap::new(),
+            pages_read_from_file: Default::default(),
             file,
         }
     }
@@ -109,7 +109,7 @@ impl<'a> Operator<'a> {
         } else if let Some(page) = self.cached_pages.get(&page_offset) {
             Ok(page)
         } else {
-            if let hash_map::Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
+            if let Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
                 let page = read_page_from_file(self.file, page_offset)?;
                 e.insert(page);
             }
@@ -118,13 +118,12 @@ impl<'a> Operator<'a> {
         }
     }
     fn page_mut(&mut self, page_offset: PageOffset) -> Result<&mut Page> {
-        if let btree_map::Entry::Vacant(e) = self.pages_updated.entry(page_offset) {
+        if let Entry::Vacant(e) = self.pages_updated.entry(page_offset) {
             let page = {
                 if let Some(page) = self.cached_pages.get(&page_offset) {
-                    page.clone()
+                    page.as_ref().clone()
                 } else {
-                    if let hash_map::Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset)
-                    {
+                    if let Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
                         let page = read_page_from_file(self.file, page_offset)?;
                         e.insert(page);
                     }
@@ -194,5 +193,5 @@ impl<'a> Operator<'a> {
 
 pub struct Done {
     pub updated_pages: BTreeMap<PageOffset, Page>,
-    pub pages_read_from_file: HashMap<PageOffset, Page>,
+    pub pages_read_from_file: BTreeMap<PageOffset, Page>,
 }

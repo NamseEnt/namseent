@@ -38,7 +38,7 @@ impl Wal {
         self.buf_writer.get_ref()
     }
 
-    pub(crate) fn flush(
+    pub(crate) fn execute(
         &mut self,
         file: &mut File,
         ignore_corruption: bool,

@@ -18,7 +18,11 @@ type OpenedPaths = HashMap<PathBuf, Weak<IdSet>>;
 static OPENED_PATHS: OnceLock<Arc<Mutex<OpenedPaths>>> = OnceLock::new();
 
 impl IdSet {
-    pub fn new(path: impl AsRef<Path>) -> Result<Arc<Self>> {
+    /// - `cache_limit`
+    ///   - 1 cache is 4KB. 100 `cache_limit` will be 400KB.
+    ///   - Put enough `cache_limit`.
+    ///     - If `IdSet` cannot find data from cache, it will read from disk, which is very slow.
+    pub fn new(path: impl AsRef<Path>, cache_limit: usize) -> Result<Arc<Self>> {
         let path = path.as_ref();
 
         let (request_tx, request_rx) = mpsc::channel(4096);
@@ -26,7 +30,7 @@ impl IdSet {
         let this = Arc::new(Self {
             path: path.to_path_buf(),
             request_tx: Arc::new(request_tx),
-            cache: Default::default(),
+            cache: PageCache::new(cache_limit),
         });
 
         {

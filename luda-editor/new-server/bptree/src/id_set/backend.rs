@@ -1,7 +1,7 @@
 use super::*;
 use std::{
     fs::File,
-    io::{Read, Seek},
+    io::{Read, Seek, Write},
     mem::MaybeUninit,
     path::Path,
     time::Duration,
@@ -31,11 +31,11 @@ impl Backend {
             .truncate(false)
             .open(path)?;
 
-        wal.flush(&mut file, true)?;
+        wal.execute(&mut file, true)?;
 
         if file.metadata()?.len() == 0 {
             wal.write_init()?;
-            wal.flush(&mut file, false)?;
+            wal.execute(&mut file, false)?;
         }
 
         let this = Self { file, wal, cache };
@@ -51,18 +51,6 @@ impl Backend {
                 };
                 let mut operator = Operator::new(self.cache.load(), &mut self.file);
 
-                enum Tx {
-                    Insert {
-                        tx: oneshot::Sender<Result<(), ()>>,
-                    },
-                    Delete {
-                        tx: oneshot::Sender<Result<(), ()>>,
-                    },
-                    Contains {
-                        tx: oneshot::Sender<Result<bool, ()>>,
-                        contains: bool,
-                    },
-                }
                 let mut txs = Vec::<Tx>::new();
 
                 let mut result;
@@ -109,19 +97,18 @@ impl Backend {
                 }
 
                 if result.is_ok() {
-                    let done = operator.done();
+                    let Done {
+                        mut updated_pages,
+                        pages_read_from_file,
+                    } = operator.done();
 
-                    result = self.wal.update_pages(&done.updated_pages);
+                    result = self.wal.update_pages(&updated_pages);
 
                     if result.is_ok() {
-                        let mut new_cache = self.cache.clone_inner();
-                        for (page_offset, page) in done.pages_read_from_file {
-                            new_cache.insert(page_offset, page);
-                        }
-                        for (page_offset, page) in done.updated_pages {
-                            new_cache.insert(page_offset, page);
-                        }
-                        self.cache.store(new_cache);
+                        let mut new_pages = pages_read_from_file;
+                        new_pages.append(&mut updated_pages);
+                        let stale_tuples = self.cache.push(new_pages);
+                        self.write_staled_pages(stale_tuples).await;
                     }
                 }
 
@@ -149,31 +136,58 @@ impl Backend {
                 if result.is_err() {
                     continue;
                 }
-
-                let mut retrial = 0;
-
-                while let Err(flush_error) = self.wal.flush(&mut self.file, false) {
-                    let is_corrupted = flush_error.is_corrupted();
-                    if is_corrupted {
-                        unreachable!(
-                            "WAL File corrupted but fsync on write, error: {:?}",
-                            flush_error
-                        );
-                    }
-                    retrial += 1;
-
-                    if retrial > 100 {
-                        unreachable!(
-                            "Too many retrial on wal flush. last error: {:?}",
-                            flush_error
-                        );
-                    }
-
-                    eprintln!("Error on wal flush: {:?}", flush_error);
-                    tokio::time::sleep(Duration::from_millis(100)).await;
-                }
             }
         });
+    }
+    async fn execute_wal(&mut self) {
+        let mut sleep_time = Duration::from_millis(100);
+        let mut retrial = 0;
+
+        while let Err(flush_error) = self.wal.execute(&mut self.file, false) {
+            let is_corrupted = flush_error.is_corrupted();
+            if is_corrupted {
+                unreachable!(
+                    "WAL File did fsync on write but corrupted! error: {:?}",
+                    flush_error
+                );
+            }
+            retrial += 1;
+
+            if retrial > 10 {
+                unreachable!(
+                    "Too many retrial on wal flush. last error: {:?}",
+                    flush_error
+                );
+            }
+
+            eprintln!("Error on wal flush: {:?}", flush_error);
+            tokio::time::sleep(sleep_time).await;
+            sleep_time = (sleep_time * 2).max(Duration::from_secs(4));
+        }
+    }
+
+    /// Don't fsync
+    async fn write_staled_pages(&mut self, stale_tuples: Vec<(PageOffset, Page)>) {
+        let mut sleep_time = Duration::from_millis(100);
+        for _ in 0..=10 {
+            let result: std::io::Result<()> = (|| {
+                for (offset, page) in &stale_tuples {
+                    self.file.seek(offset.file_pos())?;
+                    self.file.write_all(page.as_slice())?;
+                }
+                Ok(())
+            })();
+
+            if result.is_ok() {
+                return;
+            }
+
+            eprintln!("Error on writing staled pages: {:?}", result);
+            tokio::time::sleep(sleep_time).await;
+            sleep_time = (sleep_time * 2).max(Duration::from_secs(4));
+        }
+
+        unreachable!("Too many retrial on writing staled pages");
     }
 }
 
@@ -189,4 +203,17 @@ pub(crate) fn read_page_from_file(file: &mut File, page_offset: PageOffset) -> R
         page.assume_init()
     };
     Ok(page)
+}
+
+enum Tx {
+    Insert {
+        tx: oneshot::Sender<Result<(), ()>>,
+    },
+    Delete {
+        tx: oneshot::Sender<Result<(), ()>>,
+    },
+    Contains {
+        tx: oneshot::Sender<Result<bool, ()>>,
+        contains: bool,
+    },
 }
