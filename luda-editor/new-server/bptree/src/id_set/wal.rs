@@ -113,7 +113,7 @@ impl Wal {
         for (offset, page) in pages {
             let put_page = PutPage {
                 page_offset: *offset,
-                page: *page,
+                page: page.clone(),
             };
 
             self.write_wal(put_page)?;

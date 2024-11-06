@@ -28,7 +28,6 @@ impl<'a> Operator<'a> {
             file,
         }
     }
-
     pub fn insert(&mut self, id: u128) -> Result<()> {
         let mut route = self.find_route_for_insertion(id)?;
         let leaf_node_offset = route.pop().unwrap();
@@ -77,6 +76,16 @@ impl<'a> Operator<'a> {
 
         Ok(())
     }
+    pub fn delete(&mut self, id: u128) -> Result<()> {
+        let leaf_node_offset = self.find_leaf_node_for(id)?;
+        let leaf_node = self.page(leaf_node_offset)?.as_leaf_node();
+        if leaf_node.contains(id) {
+            let leaf_node = self.page_mut(leaf_node_offset)?.as_leaf_node_mut();
+            leaf_node.delete(id);
+        }
+
+        Ok(())
+    }
     pub fn done(self) -> Done {
         Done {
             updated_header: self.updated_header,
@@ -90,12 +99,12 @@ impl<'a> Operator<'a> {
 
         loop {
             route.push(node_offset);
-            let node = self.page(node_offset)?.into_node();
+            let node = self.page(node_offset)?.as_node();
             if node.is_leaf() {
                 return Ok(route);
             }
             let internal_node = node.into_internal_node();
-            node_offset = internal_node.find_child_node_offset_for(id);
+            node_offset = internal_node.find_child_offset_for(id);
         }
     }
     fn page(&mut self, page_offset: PageOffset) -> Result<&Page> {
@@ -116,7 +125,7 @@ impl<'a> Operator<'a> {
         if let btree_map::Entry::Vacant(e) = self.pages_updated.entry(page_offset) {
             let page = {
                 if let Some(page) = self.pages_cached.get(&page_offset) {
-                    *page
+                    page.clone()
                 } else {
                     if let hash_map::Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset)
                     {
@@ -124,7 +133,7 @@ impl<'a> Operator<'a> {
                         e.insert(page);
                     }
 
-                    *self.pages_read_from_file.get(&page_offset).unwrap()
+                    self.pages_read_from_file.get(&page_offset).unwrap().clone()
                 }
             };
             e.insert(page);
@@ -172,6 +181,18 @@ impl<'a> Operator<'a> {
 
     fn header_mut(&mut self) -> &mut Header {
         self.updated_header.get_or_insert(*self.original_header)
+    }
+    fn find_leaf_node_for(&mut self, id: u128) -> Result<PageOffset> {
+        let mut node_offset = self.header().root_node_offset;
+
+        loop {
+            let node = self.page(node_offset)?.as_node();
+            if node.is_leaf() {
+                return Ok(node_offset);
+            }
+            let internal_node = node.into_internal_node();
+            node_offset = internal_node.find_child_offset_for(id);
+        }
     }
 }
 

@@ -47,7 +47,6 @@ impl IdSet {
 
         Ok(this)
     }
-
     pub async fn insert(&self, id: u128) -> Result<()> {
         let (tx, rx) = oneshot::channel();
 
@@ -56,9 +55,29 @@ impl IdSet {
             .await
             .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
 
-        rx.await
-            .map_err(|_| anyhow::anyhow!("id: {} / rx fail to receive result", id))?
-            .map_err(|_| anyhow::anyhow!("IdSet failed to insert id: {}", id))
+        match rx
+            .await
+            .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
+        {
+            true => Ok(()),
+            false => Err(anyhow::anyhow!("Failed to insert id: {}", id)),
+        }
+    }
+    pub async fn delete(&self, id: u128) -> Result<()> {
+        let (tx, rx) = oneshot::channel();
+
+        self.request_tx
+            .send(Request::Delete { id, tx })
+            .await
+            .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
+
+        match rx
+            .await
+            .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
+        {
+            true => Ok(()),
+            false => Err(anyhow::anyhow!("Failed to delete id: {}", id)),
+        }
     }
 }
 

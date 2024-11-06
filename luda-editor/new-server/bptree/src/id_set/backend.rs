@@ -41,26 +41,6 @@ impl Backend {
         this.run(request_rx);
         Ok(())
     }
-    pub fn delete(&mut self, id: Id) -> Result<()> {
-        todo!()
-    }
-    pub fn iter(&self) -> Result<impl Iterator<Item = Id>> {
-        // TODO
-        Ok(std::iter::empty())
-    }
-    fn apply_operator_done(&mut self, done: operator::Done) -> Result<()> {
-        self.wal.update_pages(&done.updated_pages)?;
-        if let Some(header) = done.updated_header {
-            self.header = header;
-        }
-        for (page_offset, page) in done.pages_read_from_file {
-            self.pages.insert(page_offset, page);
-        }
-        for (page_offset, page) in done.updated_pages {
-            self.pages.insert(page_offset, page);
-        }
-        Ok(())
-    }
 
     fn read_from_file(mut file: File, wal: Wal) -> Result<Self> {
         let header = unsafe {
@@ -105,6 +85,13 @@ impl Backend {
                                 break;
                             }
                         }
+                        Request::Delete { id, tx } => {
+                            txs.push(tx);
+                            result = Some(operator.delete(id));
+                            if result.as_ref().unwrap().is_err() {
+                                break;
+                            }
+                        }
                     }
 
                     if start_time.elapsed() > Duration::from_millis(4) {
@@ -142,10 +129,7 @@ impl Backend {
                     eprintln!("Error: {:?}", result);
                 }
 
-                let result_to_send = match result {
-                    Ok(_) => Ok(()),
-                    Err(_) => Err(()),
-                };
+                let result_to_send = result.is_ok();
                 txs.into_iter().for_each(|tx| {
                     let _ = tx.send(result_to_send);
                 });

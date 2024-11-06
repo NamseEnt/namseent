@@ -129,7 +129,7 @@ impl InternalNode {
             .find(|(_, &key1)| id < key1)
             .map(|(i, _)| i)
     }
-    pub fn find_child_node_offset_for(&self, id: Id) -> PageOffset {
+    pub fn find_child_offset_for(&self, id: Id) -> PageOffset {
         self.key_index(id)
             .map(|i| self.child_offsets[i])
             .unwrap_or(self.child_offsets[self.key_count as usize])
@@ -266,6 +266,36 @@ impl LeafNode {
     pub fn into_page(self) -> Page {
         unsafe { std::mem::transmute(self) }
     }
+
+    pub fn contains(&self, id: u128) -> bool {
+        self.keys
+            .iter()
+            .take(self.id_count as usize)
+            .cloned()
+            .any(|key| key == id)
+    }
+
+    /// # Panics
+    ///
+    /// Panics if id is not in the leaf node.
+    pub fn delete(&mut self, id: u128) {
+        let index = self
+            .keys
+            .iter()
+            .take(self.id_count as usize)
+            .cloned()
+            .enumerate()
+            .find(|(_, key_id)| id == *key_id)
+            .map(|(i, _)| i)
+            .unwrap();
+
+        if index < self.id_count as usize - 1 {
+            self.keys
+                .copy_within(index + 1..self.id_count as usize, index);
+        }
+
+        self.id_count -= 1;
+    }
 }
 
 #[repr(C)]
@@ -298,7 +328,7 @@ impl Node {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) struct Page {
     data: [u8; 4096],
 }
@@ -341,6 +371,10 @@ impl Page {
     }
 
     pub fn as_internal_node_mut(&mut self) -> &mut InternalNode {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    pub(crate) fn as_node(&self) -> &Node {
         unsafe { std::mem::transmute(self) }
     }
 }

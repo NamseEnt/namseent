@@ -29,10 +29,8 @@ use wal::*;
 pub type Id = u128;
 
 enum Request {
-    Insert {
-        id: u128,
-        tx: oneshot::Sender<Result<(), ()>>,
-    },
+    Insert { id: u128, tx: oneshot::Sender<bool> },
+    Delete { id: u128, tx: oneshot::Sender<bool> },
 }
 
 #[cfg(test)]
@@ -57,6 +55,35 @@ mod test {
         for i in 1..=10000 {
             let tree = tree.clone();
             join_set.spawn(async move { tree.insert(i as Id).await });
+        }
+
+        while let Some(result) = join_set.join_next().await {
+            result.unwrap().unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_insert_and_delete() {
+        let path = std::env::temp_dir().join("id_set_test_insert_and_delete");
+        if path.exists() {
+            std::fs::remove_file(&path).unwrap();
+        }
+        let wal_path = path.with_extension("wal");
+        if wal_path.exists() {
+            std::fs::remove_file(&wal_path).unwrap();
+        }
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+
+        let tree = IdSet::new(path).unwrap();
+        let mut join_set = JoinSet::new();
+        for i in 1..=10000 {
+            let tree = tree.clone();
+            join_set.spawn(async move { tree.insert(i as Id).await });
+        }
+
+        for i in 1..=10000 {
+            let tree = tree.clone();
+            join_set.spawn(async move { tree.delete(i as Id).await });
         }
 
         while let Some(result) = join_set.join_next().await {
