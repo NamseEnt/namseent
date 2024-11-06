@@ -328,6 +328,10 @@ impl LeafNode {
 
         self.id_count -= 1;
     }
+
+    pub fn ids(&self) -> &[Id] {
+        &self.ids[..self.id_count as usize]
+    }
 }
 
 impl Debug for LeafNode {
@@ -335,7 +339,7 @@ impl Debug for LeafNode {
         f.debug_struct("LeafNode")
             .field("leaf_type", &self.leaf_type)
             .field("id_count", &self.id_count)
-            .field("ids", &&self.ids[..self.id_count as usize])
+            .field("ids", &self.ids())
             .finish()
     }
 }

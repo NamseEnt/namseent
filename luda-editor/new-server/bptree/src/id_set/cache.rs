@@ -33,7 +33,7 @@ impl PageCache {
     /// This function assume that `tuples` is not in the cache.
     pub fn push(&self, new_pages: BTreeMap<PageOffset, Page>) -> Vec<(PageOffset, Page)> {
         if new_pages.is_empty() || self.limit < 1 {
-            return Vec::new();
+            return new_pages.into_iter().collect();
         }
 
         let mut cache = self.inner.load_full().as_ref().clone();
@@ -52,8 +52,8 @@ impl PageCache {
 
         let mut evicted = Vec::with_capacity(evict_count);
 
-        if cache.len() >= evict_count {
-            let overflowed = cache.len() - evict_count;
+        if cache.len() < evict_count {
+            let evict_from_new_pages = evict_count - cache.len();
 
             evicted.extend(
                 &mut std::mem::take(&mut cache)
@@ -61,9 +61,10 @@ impl PageCache {
                     .map(|(offset, page)| (offset, page.inner)),
             );
 
-            if overflowed > 0 {
+            if evict_from_new_pages > 0 {
                 let mut new_pages_vec = new_pages.into_iter().collect::<Vec<_>>();
-                let mut evicts = new_pages_vec.split_off(new_pages_vec.len() - overflowed);
+                let mut evicts =
+                    new_pages_vec.split_off(new_pages_vec.len() - evict_from_new_pages);
                 evicted.append(&mut evicts);
                 cache = new_pages_vec
                     .into_iter()

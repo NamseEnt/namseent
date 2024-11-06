@@ -81,7 +81,8 @@ impl<'a> Operator<'a> {
     pub fn contains(&mut self, id: u128) -> Result<bool> {
         let leaf_node_offset = self.find_leaf_node_for(id)?;
         let leaf_node = self.page(leaf_node_offset)?.as_leaf_node();
-        Ok(leaf_node.contains(id))
+        let contains = leaf_node.contains(id);
+        Ok(contains)
     }
     pub fn done(self) -> Done {
         Done {

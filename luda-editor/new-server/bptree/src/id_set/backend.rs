@@ -168,6 +168,9 @@ impl Backend {
 
     /// Don't fsync
     async fn write_staled_pages(&mut self, stale_tuples: Vec<(PageOffset, Page)>) {
+        if stale_tuples.is_empty() {
+            return;
+        }
         let mut sleep_time = Duration::from_millis(100);
         for _ in 0..=10 {
             let result: std::io::Result<()> = (|| {
