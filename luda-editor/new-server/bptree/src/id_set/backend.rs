@@ -22,8 +22,6 @@ impl Backend {
     ) -> Result<()> {
         let path = path.as_ref();
 
-        let mut wal = Wal::open(path.with_extension("wal"))?;
-
         let mut file = std::fs::OpenOptions::new()
             .write(true)
             .read(true)
@@ -31,11 +29,11 @@ impl Backend {
             .truncate(false)
             .open(path)?;
 
-        wal.execute(&mut file, true)?;
+        let mut wal = Wal::open(path.with_extension("wal"), &mut file)?;
 
         if file.metadata()?.len() == 0 {
             wal.write_init()?;
-            wal.execute(&mut file, false)?;
+            wal.execute_one(&mut file)?;
         }
 
         let this = Self { file, wal, cache };
@@ -143,24 +141,24 @@ impl Backend {
         let mut sleep_time = Duration::from_millis(100);
         let mut retrial = 0;
 
-        while let Err(flush_error) = self.wal.execute(&mut self.file, false) {
-            let is_corrupted = flush_error.is_corrupted();
+        while let Err(execute_error) = self.wal.execute_one(&mut self.file) {
+            let is_corrupted = execute_error.is_corrupted();
             if is_corrupted {
                 unreachable!(
                     "WAL File did fsync on write but corrupted! error: {:?}",
-                    flush_error
+                    execute_error
                 );
             }
             retrial += 1;
 
             if retrial > 10 {
                 unreachable!(
-                    "Too many retrial on wal flush. last error: {:?}",
-                    flush_error
+                    "Too many retrial on wal execute. last error: {:?}",
+                    execute_error
                 );
             }
 
-            eprintln!("Error on wal flush: {:?}", flush_error);
+            eprintln!("Error on wal execute: {:?}", execute_error);
             tokio::time::sleep(sleep_time).await;
             sleep_time = (sleep_time * 2).max(Duration::from_secs(4));
         }
