@@ -6,6 +6,7 @@ mod network;
 mod new_episode_page;
 mod new_project_page;
 mod new_team_page;
+mod player;
 mod psd_sprite_util;
 mod router;
 mod rpc;

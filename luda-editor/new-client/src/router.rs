@@ -1,4 +1,5 @@
 use super::*;
+use luda_rpc::Scene;
 
 pub struct Router;
 
@@ -21,6 +22,9 @@ pub enum Route {
         team_id: String,
         project_id: String,
         episode_id: String,
+    },
+    Player {
+        scenes: Vec<Scene>,
     },
 }
 
@@ -63,6 +67,9 @@ impl Component for Router {
                     project_id,
                     episode_id,
                 });
+            }
+            Route::Player { scenes } => {
+                ctx.add(player::Player { scenes });
             }
         }
     }
