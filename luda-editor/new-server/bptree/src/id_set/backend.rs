@@ -31,11 +31,11 @@ impl Backend {
             .truncate(false)
             .open(path)?;
 
-        wal.flush(&mut file)?;
+        wal.flush(&mut file, true)?;
 
         if file.metadata()?.len() == 0 {
             wal.write_init()?;
-            wal.flush(&mut file)?;
+            wal.flush(&mut file, false)?;
         }
 
         let this = Self { file, wal, cache };
@@ -110,7 +110,9 @@ impl Backend {
 
                 if result.is_ok() {
                     let done = operator.done();
+
                     result = self.wal.update_pages(&done.updated_pages);
+
                     if result.is_ok() {
                         let mut new_cache = self.cache.clone_inner();
                         for (page_offset, page) in done.pages_read_from_file {
@@ -143,6 +145,33 @@ impl Backend {
                         }
                     }
                 });
+
+                if result.is_err() {
+                    continue;
+                }
+
+                let mut retrial = 0;
+
+                while let Err(flush_error) = self.wal.flush(&mut self.file, false) {
+                    let is_corrupted = flush_error.is_corrupted();
+                    if is_corrupted {
+                        unreachable!(
+                            "WAL File corrupted but fsync on write, error: {:?}",
+                            flush_error
+                        );
+                    }
+                    retrial += 1;
+
+                    if retrial > 100 {
+                        unreachable!(
+                            "Too many retrial on wal flush. last error: {:?}",
+                            flush_error
+                        );
+                    }
+
+                    eprintln!("Error on wal flush: {:?}", flush_error);
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
             }
         });
     }

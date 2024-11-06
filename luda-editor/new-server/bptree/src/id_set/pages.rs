@@ -1,7 +1,7 @@
 use super::*;
 use std::{fmt::Debug, io::SeekFrom};
 
-#[repr(C)]
+#[repr(C, align(1))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PageOffset {
     value: u32,
@@ -36,7 +36,7 @@ pub(crate) trait AsSlice: Sized {
     }
 }
 
-#[repr(C)]
+#[repr(C, align(1))]
 #[derive(Clone)]
 pub(crate) struct Header {
     /// Would be null
@@ -75,7 +75,7 @@ impl Debug for Header {
     }
 }
 
-#[repr(C)]
+#[repr(C, align(1))]
 pub(crate) struct FreePageStackNode {
     pub next_page_offset: PageOffset,
     pub length: u32,
@@ -99,7 +99,7 @@ impl AsSlice for FreePageStackNode {}
 
 const INTERNAL_NODE_ID_LEN: usize = 203;
 
-#[repr(C)]
+#[repr(C, align(1))]
 #[derive(Debug, Clone)]
 /// right side child's id is greater or equal to id.
 pub(crate) struct InternalNode {
@@ -222,7 +222,7 @@ impl InternalNode {
 
 const LEAF_NODE_IDS_LEN: usize = 255;
 
-#[repr(C)]
+#[repr(C, align(1))]
 #[derive(Clone)]
 pub(crate) struct LeafNode {
     leaf_type: u8,
@@ -340,7 +340,7 @@ impl Debug for LeafNode {
     }
 }
 
-#[repr(C)]
+#[repr(C, align(1))]
 #[derive(Clone)]
 pub(crate) struct Node {
     leaf_type: u8,
@@ -368,7 +368,7 @@ impl Debug for Node {
     }
 }
 
-#[repr(C)]
+#[repr(C, align(1))]
 #[derive(Debug, Clone)]
 pub(crate) struct Page {
     data: [u8; 4096],
