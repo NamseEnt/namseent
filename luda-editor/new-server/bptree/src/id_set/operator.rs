@@ -5,26 +5,18 @@ use std::{
 };
 
 pub struct Operator<'a> {
-    pages_cached: &'a HashMap<PageOffset, Page>,
+    cached_pages: CachedPages,
     pages_updated: BTreeMap<PageOffset, Page>,
     pages_read_from_file: HashMap<PageOffset, Page>,
-    updated_header: Option<Header>,
-    original_header: &'a Header,
     file: &'a mut File,
 }
 
 impl<'a> Operator<'a> {
-    pub fn new(
-        header: &'a Header,
-        pages_cached: &'a HashMap<PageOffset, Page>,
-        file: &'a mut File,
-    ) -> Operator<'a> {
+    pub fn new(cached_pages: CachedPages, file: &'a mut File) -> Operator<'a> {
         Operator {
-            pages_cached,
+            cached_pages,
             pages_updated: Default::default(),
             pages_read_from_file: HashMap::new(),
-            updated_header: None,
-            original_header: header,
             file,
         }
     }
@@ -86,9 +78,13 @@ impl<'a> Operator<'a> {
 
         Ok(())
     }
+    pub fn contains(&mut self, id: u128) -> Result<bool> {
+        let leaf_node_offset = self.find_leaf_node_for(id)?;
+        let leaf_node = self.page(leaf_node_offset)?.as_leaf_node();
+        Ok(leaf_node.contains(id))
+    }
     pub fn done(self) -> Done {
         Done {
-            updated_header: self.updated_header,
             pages_read_from_file: self.pages_read_from_file,
             updated_pages: self.pages_updated,
         }
@@ -103,14 +99,14 @@ impl<'a> Operator<'a> {
             if node.is_leaf() {
                 return Ok(route);
             }
-            let internal_node = node.into_internal_node();
+            let internal_node = node.as_internal_node();
             node_offset = internal_node.find_child_offset_for(id);
         }
     }
     fn page(&mut self, page_offset: PageOffset) -> Result<&Page> {
         if let Some(page) = self.pages_updated.get(&page_offset) {
             Ok(page)
-        } else if let Some(page) = self.pages_cached.get(&page_offset) {
+        } else if let Some(page) = self.cached_pages.get(&page_offset) {
             Ok(page)
         } else {
             if let hash_map::Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
@@ -124,7 +120,7 @@ impl<'a> Operator<'a> {
     fn page_mut(&mut self, page_offset: PageOffset) -> Result<&mut Page> {
         if let btree_map::Entry::Vacant(e) = self.pages_updated.entry(page_offset) {
             let page = {
-                if let Some(page) = self.pages_cached.get(&page_offset) {
+                if let Some(page) = self.cached_pages.get(&page_offset) {
                     page.clone()
                 } else {
                     if let hash_map::Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset)
@@ -175,12 +171,12 @@ impl<'a> Operator<'a> {
 
         Ok(page_offset)
     }
-    fn header(&self) -> &Header {
-        self.updated_header.as_ref().unwrap_or(self.original_header)
+    fn header(&mut self) -> &Header {
+        self.page(PageOffset::HEADER).unwrap().as_header()
     }
 
     fn header_mut(&mut self) -> &mut Header {
-        self.updated_header.get_or_insert(*self.original_header)
+        self.page_mut(PageOffset::HEADER).unwrap().as_header_mut()
     }
     fn find_leaf_node_for(&mut self, id: u128) -> Result<PageOffset> {
         let mut node_offset = self.header().root_node_offset;
@@ -190,7 +186,7 @@ impl<'a> Operator<'a> {
             if node.is_leaf() {
                 return Ok(node_offset);
             }
-            let internal_node = node.into_internal_node();
+            let internal_node = node.as_internal_node();
             node_offset = internal_node.find_child_offset_for(id);
         }
     }
@@ -199,6 +195,4 @@ impl<'a> Operator<'a> {
 pub struct Done {
     pub updated_pages: BTreeMap<PageOffset, Page>,
     pub pages_read_from_file: HashMap<PageOffset, Page>,
-    /// If header was updated, `updated_pages` will contain the updated header page too.
-    pub updated_header: Option<Header>,
 }

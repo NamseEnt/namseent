@@ -1,8 +1,7 @@
 use super::*;
 use std::{
-    collections::HashMap,
     fs::File,
-    io::{Read, Seek, SeekFrom},
+    io::{Read, Seek},
     mem::MaybeUninit,
     path::Path,
     time::Duration,
@@ -12,13 +11,15 @@ use tokio::{sync::mpsc::Receiver, time::timeout};
 pub struct Backend {
     file: File,
     wal: Wal,
-    header: Header,
-    // TODO: Remove nodes cache for memory usage.
-    pages: HashMap<PageOffset, Page>,
+    cache: PageCache,
 }
 
 impl Backend {
-    pub fn open(path: impl AsRef<Path>, request_rx: Receiver<Request>) -> Result<()> {
+    pub fn open(
+        path: impl AsRef<Path>,
+        request_rx: Receiver<Request>,
+        cache: PageCache,
+    ) -> Result<()> {
         let path = path.as_ref();
 
         let mut wal = Wal::open(path.with_extension("wal"))?;
@@ -37,28 +38,9 @@ impl Backend {
             wal.flush(&mut file)?;
         }
 
-        let this = Self::read_from_file(file, wal)?;
+        let this = Self { file, wal, cache };
         this.run(request_rx);
         Ok(())
-    }
-
-    fn read_from_file(mut file: File, wal: Wal) -> Result<Self> {
-        let header = unsafe {
-            let mut header = MaybeUninit::<Header>::uninit();
-            file.seek(SeekFrom::Start(0))?;
-            file.read_exact(std::slice::from_raw_parts_mut(
-                header.as_mut_ptr() as *mut u8,
-                std::mem::size_of::<Header>(),
-            ))?;
-            header.assume_init()
-        };
-
-        Ok(Self {
-            file,
-            wal,
-            header,
-            pages: HashMap::new(),
-        })
     }
 
     fn run(mut self, mut request_rx: Receiver<Request>) {
@@ -67,31 +49,50 @@ impl Backend {
                 let Some(mut request) = request_rx.recv().await else {
                     break;
                 };
-                let mut operator = Operator::new(&self.header, &self.pages, &mut self.file);
-                let mut txs = Vec::new();
+                let mut operator = Operator::new(self.cache.load(), &mut self.file);
 
-                // false positive warning
-                #[allow(unused_assignments)]
-                let mut result = None;
+                enum Tx {
+                    Insert {
+                        tx: oneshot::Sender<Result<(), ()>>,
+                    },
+                    Delete {
+                        tx: oneshot::Sender<Result<(), ()>>,
+                    },
+                    Contains {
+                        tx: oneshot::Sender<Result<bool, ()>>,
+                        contains: bool,
+                    },
+                }
+                let mut txs = Vec::<Tx>::new();
+
+                let mut result;
 
                 let start_time = tokio::time::Instant::now();
 
                 loop {
                     match request {
                         Request::Insert { id, tx } => {
-                            txs.push(tx);
-                            result = Some(operator.insert(id));
-                            if result.as_ref().unwrap().is_err() {
-                                break;
-                            }
+                            txs.push(Tx::Insert { tx });
+                            result = operator.insert(id);
                         }
                         Request::Delete { id, tx } => {
-                            txs.push(tx);
-                            result = Some(operator.delete(id));
-                            if result.as_ref().unwrap().is_err() {
-                                break;
-                            }
+                            txs.push(Tx::Delete { tx });
+                            result = operator.delete(id);
                         }
+                        Request::Contains { id, tx } => {
+                            let mut contains = false;
+                            let contains_result = operator.contains(id);
+                            if let Ok(true) = contains_result {
+                                contains = true;
+                            }
+                            let tx = Tx::Contains { tx, contains };
+                            txs.push(tx);
+                            result = contains_result.map(|_| ());
+                        }
+                    }
+
+                    if result.is_err() {
+                        break;
                     }
 
                     if start_time.elapsed() > Duration::from_millis(4) {
@@ -107,21 +108,18 @@ impl Backend {
                     }
                 }
 
-                let mut result = result.unwrap();
-
                 if result.is_ok() {
                     let done = operator.done();
                     result = self.wal.update_pages(&done.updated_pages);
                     if result.is_ok() {
-                        if let Some(updated_header) = done.updated_header {
-                            self.header = updated_header;
-                        }
+                        let mut new_cache = self.cache.clone_inner();
                         for (page_offset, page) in done.pages_read_from_file {
-                            self.pages.insert(page_offset, page);
+                            new_cache.insert(page_offset, page);
                         }
                         for (page_offset, page) in done.updated_pages {
-                            self.pages.insert(page_offset, page);
+                            new_cache.insert(page_offset, page);
                         }
+                        self.cache.store(new_cache);
                     }
                 }
 
@@ -129,9 +127,21 @@ impl Backend {
                     eprintln!("Error: {:?}", result);
                 }
 
-                let result_to_send = result.is_ok();
-                txs.into_iter().for_each(|tx| {
-                    let _ = tx.send(result_to_send);
+                let result_to_send = match result.is_ok() {
+                    true => Ok(()),
+                    false => Err(()),
+                };
+                txs.into_iter().for_each(|tx| match tx {
+                    Tx::Insert { tx } | Tx::Delete { tx } => {
+                        _ = tx.send(result_to_send);
+                    }
+                    Tx::Contains { tx, contains } => {
+                        if result_to_send.is_err() {
+                            _ = tx.send(Err(()));
+                        } else {
+                            _ = tx.send(Ok(contains));
+                        }
+                    }
                 });
             }
         });

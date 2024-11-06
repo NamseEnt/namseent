@@ -11,6 +11,7 @@ use tokio::sync::{mpsc, oneshot};
 pub struct IdSet {
     path: PathBuf,
     request_tx: Arc<mpsc::Sender<Request>>,
+    cache: PageCache,
 }
 
 type OpenedPaths = HashMap<PathBuf, Weak<IdSet>>;
@@ -25,6 +26,7 @@ impl IdSet {
         let this = Arc::new(Self {
             path: path.to_path_buf(),
             request_tx: Arc::new(request_tx),
+            cache: Default::default(),
         });
 
         {
@@ -43,7 +45,7 @@ impl IdSet {
             }
         }
 
-        backend::Backend::open(&this.path, request_rx)?;
+        backend::Backend::open(&this.path, request_rx, this.cache.clone())?;
 
         Ok(this)
     }
@@ -55,13 +57,9 @@ impl IdSet {
             .await
             .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
 
-        match rx
-            .await
+        rx.await
             .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
-        {
-            true => Ok(()),
-            false => Err(anyhow::anyhow!("Failed to insert id: {}", id)),
-        }
+            .map_err(|_| anyhow::anyhow!("Failed to insert id: {}", id))
     }
     pub async fn delete(&self, id: u128) -> Result<()> {
         let (tx, rx) = oneshot::channel();
@@ -71,13 +69,25 @@ impl IdSet {
             .await
             .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
 
-        match rx
-            .await
+        rx.await
             .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
-        {
-            true => Ok(()),
-            false => Err(anyhow::anyhow!("Failed to delete id: {}", id)),
+            .map_err(|_| anyhow::anyhow!("Failed to delete id: {}", id))
+    }
+    pub async fn contains(&self, id: u128) -> Result<bool> {
+        if let Some(cached) = self.cache.contains_id(id) {
+            return Ok(cached);
         }
+
+        let (tx, rx) = oneshot::channel();
+
+        self.request_tx
+            .send(Request::Contains { id, tx })
+            .await
+            .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
+
+        rx.await
+            .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
+            .map_err(|_| anyhow::anyhow!("Failed to check if id exists: {}", id))
     }
 }
 
