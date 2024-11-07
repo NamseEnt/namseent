@@ -1,17 +1,12 @@
 use super::*;
-use std::{
-    fs::File,
-    io::{Read, Seek, Write},
-    mem::MaybeUninit,
-    path::Path,
-    time::Duration,
-};
+use std::{path::Path, time::Duration};
 use tokio::{sync::mpsc::Receiver, time::timeout};
 
 pub struct Backend {
-    file: File,
+    file_read_fd: ReadFd,
     wal: Wal,
     cache: PageCache,
+    request_rx: Receiver<Request>,
 }
 
 impl Backend {
@@ -22,32 +17,35 @@ impl Backend {
     ) -> Result<()> {
         let path = path.as_ref();
 
-        let mut file = std::fs::OpenOptions::new()
+        let file = std::fs::OpenOptions::new()
             .write(true)
             .read(true)
             .create(true)
             .truncate(false)
             .open(path)?;
 
-        let mut wal = Wal::open(path.with_extension("wal"), &mut file)?;
+        let (file_read_fd, file_write_fd) = split_file(file);
 
-        if file.metadata()?.len() == 0 {
-            wal.write_init()?;
-            wal.execute_one(&mut file)?;
-        }
+        let wal = Wal::open(path.with_extension("wal"), file_write_fd)?;
 
-        let this = Self { file, wal, cache };
-        this.run(request_rx);
+        let this = Self {
+            file_read_fd,
+            wal,
+            cache,
+            request_rx,
+        };
+        this.run();
         Ok(())
     }
 
-    fn run(mut self, mut request_rx: Receiver<Request>) {
+    fn run(mut self) {
         tokio::spawn(async move {
             loop {
-                let Some(mut request) = request_rx.recv().await else {
+                let Some(mut request) = self.request_rx.recv().await else {
                     break;
                 };
-                let mut operator = Operator::new(self.cache.load(), &mut self.file);
+
+                let mut operator = Operator::new(self.cache.load(), self.file_read_fd.clone());
 
                 let mut txs = Vec::<Tx>::new();
 
@@ -85,7 +83,7 @@ impl Backend {
                         break;
                     }
 
-                    match timeout(Duration::from_millis(1), request_rx.recv()).await {
+                    match timeout(Duration::from_millis(1), self.request_rx.recv()).await {
                         Ok(Some(_request)) => {
                             request = _request;
                         }
@@ -100,7 +98,16 @@ impl Backend {
                         pages_read_from_file,
                     } = operator.done();
 
-                    result = self.wal.update_pages(&updated_pages);
+                    result = {
+                        let result = self.wal.update_pages(&updated_pages);
+
+                        if let Err(ExecuteError::ExecutorDown) = &result {
+                            eprintln!("Executor down!");
+                            return;
+                        }
+
+                        result.map_err(anyhow::Error::new)
+                    };
 
                     if result.is_ok() {
                         let mut new_pages = pages_read_from_file;
@@ -130,38 +137,8 @@ impl Backend {
                         }
                     }
                 });
-
-                if result.is_err() {
-                    continue;
-                }
             }
         });
-    }
-    async fn execute_wal(&mut self) {
-        let mut sleep_time = Duration::from_millis(100);
-        let mut retrial = 0;
-
-        while let Err(execute_error) = self.wal.execute_one(&mut self.file) {
-            let is_corrupted = execute_error.is_corrupted();
-            if is_corrupted {
-                unreachable!(
-                    "WAL File did fsync on write but corrupted! error: {:?}",
-                    execute_error
-                );
-            }
-            retrial += 1;
-
-            if retrial > 10 {
-                unreachable!(
-                    "Too many retrial on wal execute. last error: {:?}",
-                    execute_error
-                );
-            }
-
-            eprintln!("Error on wal execute: {:?}", execute_error);
-            tokio::time::sleep(sleep_time).await;
-            sleep_time = (sleep_time * 2).max(Duration::from_secs(4));
-        }
     }
 
     /// Don't fsync
@@ -190,20 +167,6 @@ impl Backend {
 
         unreachable!("Too many retrial on writing staled pages");
     }
-}
-
-pub(crate) fn read_page_from_file(file: &mut File, page_offset: PageOffset) -> Result<Page> {
-    file.seek(page_offset.file_pos())?;
-
-    let page = unsafe {
-        let mut page = MaybeUninit::<Page>::uninit();
-        file.read_exact(std::slice::from_raw_parts_mut(
-            page.as_mut_ptr() as *mut u8,
-            std::mem::size_of::<Page>(),
-        ))?;
-        page.assume_init()
-    };
-    Ok(page)
 }
 
 enum Tx {

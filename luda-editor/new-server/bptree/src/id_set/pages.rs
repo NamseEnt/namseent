@@ -17,6 +17,10 @@ impl PageOffset {
         SeekFrom::Start(self.value as u64 * 4096)
     }
 
+    pub fn file_offset(&self) -> usize {
+        self.value as usize * 4096
+    }
+
     pub fn fetch_increase(&mut self) -> Self {
         let next = *self;
         self.value += 1;

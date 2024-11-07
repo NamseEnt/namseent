@@ -1,23 +1,23 @@
 use super::*;
 use std::{
     collections::{btree_map::Entry, BTreeMap},
-    fs::File,
+    mem::MaybeUninit,
 };
 
-pub struct Operator<'a> {
+pub struct Operator {
     cached_pages: CachedPages,
     pages_updated: BTreeMap<PageOffset, Page>,
     pages_read_from_file: BTreeMap<PageOffset, Page>,
-    file: &'a mut File,
+    file_read_fd: ReadFd,
 }
 
-impl<'a> Operator<'a> {
-    pub fn new(cached_pages: CachedPages, file: &'a mut File) -> Operator<'a> {
+impl Operator {
+    pub fn new(cached_pages: CachedPages, file_read_fd: ReadFd) -> Operator {
         Operator {
             cached_pages,
             pages_updated: Default::default(),
             pages_read_from_file: Default::default(),
-            file,
+            file_read_fd,
         }
     }
     pub fn insert(&mut self, id: u128) -> Result<()> {
@@ -111,7 +111,7 @@ impl<'a> Operator<'a> {
             Ok(page)
         } else {
             if let Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
-                let page = read_page_from_file(self.file, page_offset)?;
+                let page = read_page_from_file(&self.file_read_fd, page_offset)?;
                 e.insert(page);
             }
 
@@ -125,7 +125,7 @@ impl<'a> Operator<'a> {
                     page.as_ref().clone()
                 } else {
                     if let Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
-                        let page = read_page_from_file(self.file, page_offset)?;
+                        let page = read_page_from_file(&self.file_read_fd, page_offset)?;
                         e.insert(page);
                     }
 
@@ -190,6 +190,21 @@ impl<'a> Operator<'a> {
             node_offset = internal_node.find_child_offset_for(id);
         }
     }
+}
+
+fn read_page_from_file(read_fd: &ReadFd, page_offset: PageOffset) -> Result<Page> {
+    let page = unsafe {
+        let mut page = MaybeUninit::<Page>::uninit();
+        read_fd.read_exact(
+            std::slice::from_raw_parts_mut(
+                page.as_mut_ptr() as *mut u8,
+                std::mem::size_of::<Page>(),
+            ),
+            page_offset.file_offset(),
+        )?;
+        page.assume_init()
+    };
+    Ok(page)
 }
 
 pub struct Done {

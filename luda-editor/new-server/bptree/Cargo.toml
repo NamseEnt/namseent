@@ -8,4 +8,5 @@ anyhow = { version = "1", features = ["backtrace"] }
 arc-swap = "1.7.1"
 bytes = "1"
 crc = "3"
+nix = { version = "0.29.0", features = ["uio"] }
 tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }

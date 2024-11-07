@@ -14,6 +14,7 @@
 
 mod backend;
 mod cache;
+mod fd;
 mod frontend;
 mod operator;
 mod pages;
@@ -22,6 +23,7 @@ mod wal;
 use anyhow::Result;
 use backend::*;
 use cache::*;
+use fd::*;
 pub use frontend::*;
 use operator::*;
 use pages::*;
