@@ -42,6 +42,7 @@ pub struct Wal {
     write_offset: usize,
     written: usize,
     tx: mpsc::UnboundedSender<ExecutorRequest>,
+    executer_close_rx: oneshot::Receiver<()>,
 }
 
 impl Wal {
@@ -64,6 +65,7 @@ impl Wal {
         let (shadow_read_fd, mut shadow_write_fd) = split_file(shadow_file);
 
         let (tx, rx) = mpsc::unbounded_channel();
+        let (executer_close_tx, executer_close_rx) = oneshot::channel();
 
         let mut this = Self {
             wal_write_fd,
@@ -72,6 +74,7 @@ impl Wal {
             write_offset: 0,
             written: 0,
             tx,
+            executer_close_rx,
         };
 
         if file_write_fd.len()? == 0 {
@@ -109,6 +112,7 @@ impl Wal {
             shadow_write_fd,
             rx,
             read_offset: this.read_offset.clone(),
+            close_tx: executer_close_tx,
         }
         .start();
 
@@ -191,6 +195,11 @@ impl Wal {
 
         Ok(())
     }
+
+    pub(crate) async fn close(self) {
+        _ = self.tx.send(ExecutorRequest::Close);
+        _ = self.executer_close_rx.await;
+    }
 }
 
 /// Use MSB as a flag to indicate the reset version
@@ -237,6 +246,7 @@ struct Executor {
     shadow_write_fd: WriteFd,
     rx: mpsc::UnboundedReceiver<ExecutorRequest>,
     read_offset: ReadOffset,
+    close_tx: oneshot::Sender<()>,
 }
 
 impl Executor {
@@ -249,6 +259,10 @@ impl Executor {
                     }
                     ExecutorRequest::Reset => {
                         self.read_offset.reset();
+                    }
+                    ExecutorRequest::Close => {
+                        let _ = self.close_tx.send(());
+                        return;
                     }
                 }
             }
@@ -373,9 +387,12 @@ fn execute_one(
 #[derive(Debug)]
 enum ExecutorRequest {
     /// Push new wal record
-    Push { written: usize },
+    Push {
+        written: usize,
+    },
     /// Reset wal file
     Reset,
+    Close,
 }
 
 #[derive(Debug)]

@@ -8,6 +8,7 @@ pub struct Backend {
     wal: Wal,
     cache: PageCache,
     request_rx: Receiver<Request>,
+    backend_close_tx: oneshot::Sender<()>,
 }
 
 impl Backend {
@@ -15,6 +16,7 @@ impl Backend {
         path: impl AsRef<Path>,
         request_rx: Receiver<Request>,
         cache: PageCache,
+        backend_close_tx: oneshot::Sender<()>,
     ) -> Result<()> {
         let path = path.as_ref();
 
@@ -35,6 +37,7 @@ impl Backend {
             cache,
             request_rx,
             file_write_fd,
+            backend_close_tx,
         };
         this.run();
         Ok(())
@@ -42,39 +45,52 @@ impl Backend {
 
     fn run(mut self) {
         tokio::spawn(async move {
-            loop {
-                let Some(mut request) = self.request_rx.recv().await else {
-                    break;
+            let mut close_requested = false;
+            'outer: while !close_requested {
+                const LIMIT: usize = 64;
+                let mut requests = Vec::with_capacity(LIMIT);
+
+                if self.request_rx.recv_many(&mut requests, LIMIT).await == 0 {
+                    break 'outer;
                 };
 
                 let mut operator = Operator::new(self.cache.load(), self.file_read_fd.clone());
 
                 let mut txs = Vec::<Tx>::new();
 
-                let mut result;
+                let mut result = Ok(());
 
                 let start_time = tokio::time::Instant::now();
 
                 loop {
-                    match request {
-                        Request::Insert { id, tx } => {
-                            txs.push(Tx::Insert { tx });
-                            result = operator.insert(id);
-                        }
-                        Request::Delete { id, tx } => {
-                            txs.push(Tx::Delete { tx });
-                            result = operator.delete(id);
-                        }
-                        Request::Contains { id, tx } => {
-                            let mut contains = false;
-                            let contains_result = operator.contains(id);
-                            if let Ok(true) = contains_result {
-                                contains = true;
+                    for request in requests.drain(..) {
+                        match request {
+                            Request::Insert { id, tx } => {
+                                txs.push(Tx::Insert { tx });
+                                result = operator.insert(id);
                             }
-                            let tx = Tx::Contains { tx, contains };
-                            txs.push(tx);
-                            result = contains_result.map(|_| ());
+                            Request::Delete { id, tx } => {
+                                txs.push(Tx::Delete { tx });
+                                result = operator.delete(id);
+                            }
+                            Request::Contains { id, tx } => {
+                                let mut contains = false;
+                                let contains_result = operator.contains(id);
+                                if let Ok(true) = contains_result {
+                                    contains = true;
+                                }
+                                let tx = Tx::Contains { tx, contains };
+                                txs.push(tx);
+                                result = contains_result.map(|_| ());
+                            }
+                            Request::Close => {
+                                close_requested = true;
+                            }
                         }
+                    }
+
+                    if close_requested {
+                        break;
                     }
 
                     if result.is_err() {
@@ -85,11 +101,17 @@ impl Backend {
                         break;
                     }
 
-                    match timeout(Duration::from_millis(1), self.request_rx.recv()).await {
-                        Ok(Some(_request)) => {
-                            request = _request;
+                    match timeout(
+                        Duration::from_millis(1),
+                        self.request_rx.recv_many(&mut requests, LIMIT),
+                    )
+                    .await
+                    {
+                        Ok(recv) => {
+                            if recv == 0 {
+                                break;
+                            }
                         }
-                        Ok(None) => break,
                         Err(_) => break,
                     }
                 }
@@ -106,7 +128,7 @@ impl Backend {
                         if let Some(ExecuteError::ExecutorDown) = err.downcast_ref::<ExecuteError>()
                         {
                             eprintln!("Executor down!");
-                            return;
+                            break 'outer;
                         }
                     }
 
@@ -114,7 +136,10 @@ impl Backend {
                         let mut new_pages = pages_read_from_file;
                         new_pages.append(&mut updated_pages);
                         let stale_tuples = self.cache.push(new_pages);
-                        self.write_staled_pages(stale_tuples).await;
+                        if let Err(err) = self.write_staled_pages(stale_tuples).await {
+                            eprintln!("Error on writing staled pages: {:?}", err);
+                            break 'outer;
+                        }
                     }
                 }
 
@@ -139,13 +164,16 @@ impl Backend {
                     }
                 });
             }
+
+            _ = self.wal.close().await;
+            _ = self.backend_close_tx.send(());
         });
     }
 
     /// Don't fsync
-    async fn write_staled_pages(&mut self, stale_tuples: Vec<(PageOffset, Page)>) {
+    async fn write_staled_pages(&mut self, stale_tuples: Vec<(PageOffset, Page)>) -> Result<()> {
         if stale_tuples.is_empty() {
-            return;
+            return Ok(());
         }
         let mut sleep_time = Duration::from_millis(100);
         for _ in 0..=10 {
@@ -158,7 +186,7 @@ impl Backend {
             })();
 
             if result.is_ok() {
-                return;
+                return Ok(());
             }
 
             eprintln!("Error on writing staled pages: {:?}", result);
@@ -166,7 +194,7 @@ impl Backend {
             sleep_time = (sleep_time * 2).max(Duration::from_secs(4));
         }
 
-        unreachable!("Too many retrial on writing staled pages");
+        anyhow::bail!("Too many retrial on writing staled pages");
     }
 }
 

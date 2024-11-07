@@ -45,6 +45,7 @@ enum Request {
         id: u128,
         tx: oneshot::Sender<Result<bool, ()>>,
     },
+    Close,
 }
 
 #[cfg(test)]
@@ -254,6 +255,44 @@ mod test {
                     assert!(contains, "{}", i);
                 } else {
                     assert!(!contains);
+                }
+            });
+        }
+        join_set.join_all().await;
+    }
+
+    #[tokio::test]
+    async fn test_insert_turn_off_contains() {
+        let path = std::env::temp_dir().join("test_insert_turn_off_contains");
+        if path.exists() {
+            std::fs::remove_file(&path).unwrap();
+        }
+        let wal_path = path.with_extension("wal");
+        if wal_path.exists() {
+            std::fs::remove_file(&wal_path).unwrap();
+        }
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+
+        let set = IdSet::new(&path, 5000).unwrap();
+        let mut join_set = JoinSet::new();
+        for i in 1..=10000 {
+            let set = set.clone();
+            join_set.spawn(async move { set.insert(i as Id).await });
+        }
+        join_set.join_all().await;
+
+        assert!(set.try_close().await.is_ok());
+
+        let set = IdSet::new(path, 5000).unwrap();
+        let mut join_set = JoinSet::new();
+        for i in 1..=20000 {
+            let set = set.clone();
+            join_set.spawn(async move {
+                let contains = set.contains(i as Id).await.unwrap();
+                if i <= 10000 {
+                    assert!(contains, "{i}");
+                } else {
+                    assert!(!contains, "{i}");
                 }
             });
         }

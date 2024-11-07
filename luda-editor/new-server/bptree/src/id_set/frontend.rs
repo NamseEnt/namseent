@@ -1,23 +1,22 @@
 use super::*;
 use std::{
-    collections::{hash_map::Entry, HashMap},
     path::{Path, PathBuf},
-    sync::{Arc, Mutex, OnceLock, Weak},
+    sync::Arc,
 };
 use tokio::sync::{mpsc, oneshot};
 
 /// Frontend for the IdSet data structure.
-#[derive(Clone)]
 pub struct IdSet {
     path: PathBuf,
     request_tx: Arc<mpsc::Sender<Request>>,
     cache: PageCache,
+    backend_close_rx: oneshot::Receiver<()>,
 }
 
-type OpenedPaths = HashMap<PathBuf, Weak<IdSet>>;
-static OPENED_PATHS: OnceLock<Arc<Mutex<OpenedPaths>>> = OnceLock::new();
-
 impl IdSet {
+    /// - `path`
+    ///   - The path to the file where the data is stored.
+    ///   - **Make sure no one is using this file.**
     /// - `cache_limit`
     ///   - 1 cache is 4KB. 100 `cache_limit` will be 400KB.
     ///   - Put enough `cache_limit`.
@@ -26,30 +25,16 @@ impl IdSet {
         let path = path.as_ref();
 
         let (request_tx, request_rx) = mpsc::channel(4096);
+        let (backend_close_tx, backend_close_rx) = oneshot::channel();
 
         let this = Arc::new(Self {
             path: path.to_path_buf(),
             request_tx: Arc::new(request_tx),
             cache: PageCache::new(cache_limit),
+            backend_close_rx,
         });
 
-        {
-            match OPENED_PATHS
-                .get_or_init(Default::default)
-                .lock()
-                .unwrap()
-                .entry(this.path.clone())
-            {
-                Entry::Occupied(_) => {
-                    return Err(anyhow::anyhow!("IdSet already opened at path: {:?}", path));
-                }
-                Entry::Vacant(entry) => {
-                    entry.insert(Arc::downgrade(&this));
-                }
-            }
-        }
-
-        Backend::open(&this.path, request_rx, this.cache.clone())?;
+        Backend::open(&this.path, request_rx, this.cache.clone(), backend_close_tx)?;
 
         Ok(this)
     }
@@ -93,15 +78,15 @@ impl IdSet {
             .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
             .map_err(|_| anyhow::anyhow!("Failed to check if id exists: {}", id))
     }
-}
+    pub async fn try_close(self: Arc<Self>) -> Result<(), Arc<Self>> {
+        let inner = Arc::try_unwrap(self)?;
 
-impl Drop for IdSet {
-    fn drop(&mut self) {
-        OPENED_PATHS
-            .get()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .remove(&self.path);
+        if inner.request_tx.send(Request::Close).await.is_err() {
+            return Ok(());
+        }
+
+        _ = inner.backend_close_rx.await;
+
+        Ok(())
     }
 }
