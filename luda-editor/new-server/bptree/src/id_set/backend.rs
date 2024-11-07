@@ -4,6 +4,7 @@ use tokio::{sync::mpsc::Receiver, time::timeout};
 
 pub struct Backend {
     file_read_fd: ReadFd,
+    file_write_fd: WriteFd,
     wal: Wal,
     cache: PageCache,
     request_rx: Receiver<Request>,
@@ -24,15 +25,16 @@ impl Backend {
             .truncate(false)
             .open(path)?;
 
-        let (file_read_fd, file_write_fd) = split_file(file);
+        let (file_read_fd, mut file_write_fd) = split_file(file);
 
-        let wal = Wal::open(path.with_extension("wal"), file_write_fd)?;
+        let wal = Wal::open(path.with_extension("wal"), &mut file_write_fd)?;
 
         let this = Self {
             file_read_fd,
             wal,
             cache,
             request_rx,
+            file_write_fd,
         };
         this.run();
         Ok(())
@@ -98,16 +100,15 @@ impl Backend {
                         pages_read_from_file,
                     } = operator.done();
 
-                    result = {
-                        let result = self.wal.update_pages(&updated_pages);
+                    result = self.wal.update_pages(&updated_pages);
 
-                        if let Err(ExecuteError::ExecutorDown) = &result {
+                    if let Err(err) = &result {
+                        if let Some(ExecuteError::ExecutorDown) = err.downcast_ref::<ExecuteError>()
+                        {
                             eprintln!("Executor down!");
                             return;
                         }
-
-                        result.map_err(anyhow::Error::new)
-                    };
+                    }
 
                     if result.is_ok() {
                         let mut new_pages = pages_read_from_file;
@@ -148,10 +149,10 @@ impl Backend {
         }
         let mut sleep_time = Duration::from_millis(100);
         for _ in 0..=10 {
-            let result: std::io::Result<()> = (|| {
+            let result: Result<()> = (|| {
                 for (offset, page) in &stale_tuples {
-                    self.file.seek(offset.file_pos())?;
-                    self.file.write_all(page.as_slice())?;
+                    self.file_write_fd
+                        .write_exact(page.as_slice(), offset.file_offset())?;
                 }
                 Ok(())
             })();

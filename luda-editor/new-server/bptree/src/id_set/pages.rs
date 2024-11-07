@@ -1,5 +1,5 @@
 use super::*;
-use std::{fmt::Debug, io::SeekFrom};
+use std::fmt::Debug;
 
 #[repr(C, align(1))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -9,12 +9,9 @@ pub(crate) struct PageOffset {
 impl PageOffset {
     pub const NULL: Self = Self { value: 0 };
     pub const HEADER: Self = Self { value: 0 };
+
     pub fn new(value: u32) -> PageOffset {
         Self { value }
-    }
-
-    pub fn file_pos(&self) -> SeekFrom {
-        SeekFrom::Start(self.value as u64 * 4096)
     }
 
     pub fn file_offset(&self) -> usize {

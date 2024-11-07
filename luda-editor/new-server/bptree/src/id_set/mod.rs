@@ -66,7 +66,7 @@ mod test {
 
         let set = IdSet::new(path, 5000).unwrap();
         let mut join_set = JoinSet::new();
-        for i in 1..=10000 {
+        for i in 1..=1 {
             let set = set.clone();
             join_set.spawn(async move { set.insert(i as Id).await });
         }

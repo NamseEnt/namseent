@@ -1,92 +1,154 @@
 //! Custom Fd to manage multiple read/write operations on a file descriptor.
 
-use nix::{
-    libc::{fstat, fsync, ftruncate},
-    sys::uio::{pread, pwrite},
-};
+use libc::*;
 use std::{
     fs::File,
-    os::fd::{AsRawFd, BorrowedFd, RawFd},
+    io::{self, Error},
+    os::fd::{IntoRawFd, RawFd},
 };
 
+type Result<T> = anyhow::Result<T>;
+
 pub fn split_file(file: File) -> (ReadFd, WriteFd) {
-    let fd = file.as_raw_fd();
+    let fd = file.into_raw_fd();
     (ReadFd { fd }, WriteFd { fd })
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ReadFd {
     fd: RawFd,
 }
 
 impl ReadFd {
-    pub fn read_exact(&self, buf: &mut [u8], offset: usize) -> std::io::Result<()> {
+    pub fn read_exact(&self, buf: &mut [u8], offset: usize) -> Result<()> {
         if buf.is_empty() {
             return Ok(());
         }
         let mut buf_offset = 0;
         while buf_offset < buf.len() {
-            let len = pread(
-                unsafe { BorrowedFd::borrow_raw(self.fd) },
-                buf[buf_offset..].as_mut(),
-                (offset + buf_offset) as _,
-            )?;
-            buf_offset += len;
+            let len = unsafe {
+                let buf = &mut buf[buf_offset..];
+                assert!(!buf.is_empty());
+                pread(
+                    self.fd,
+                    buf.as_mut_ptr() as _,
+                    buf.len() as _,
+                    (offset + buf_offset) as i64,
+                )
+            };
+            if len < 0 {
+                return Err(Error::last_os_error().into());
+            }
+            if len == 0 {
+                println!("self.len(): {:?}", self.len()?);
+                println!("offset: {:?}", offset);
+                println!("buf.len(): {:?}", buf.len());
+                return Err(Error::from(io::ErrorKind::UnexpectedEof).into());
+            }
+            buf_offset += len as usize;
         }
 
         Ok(())
     }
 }
 
+#[derive(Debug)]
 pub struct WriteFd {
     fd: RawFd,
 }
 
 impl WriteFd {
-    pub fn write_exact(&mut self, buf: &[u8], offset: usize) -> std::io::Result<()> {
+    pub fn write_exact(&mut self, buf: &[u8], offset: usize) -> Result<()> {
         if buf.is_empty() {
             return Ok(());
         }
         let mut buf_offset = 0;
         while buf_offset < buf.len() {
-            let len = pwrite(
-                unsafe { BorrowedFd::borrow_raw(self.fd) },
-                &buf[buf_offset..],
-                (offset + buf_offset) as i64,
-            )?;
-            buf_offset += len;
+            let len = unsafe {
+                let buf = &buf[buf_offset..];
+                pwrite(
+                    self.fd,
+                    buf.as_ptr() as _,
+                    buf.len() as _,
+                    (offset + buf_offset) as i64,
+                )
+            };
+            if len < 0 {
+                return Err(Error::last_os_error().into());
+            }
+            assert_ne!(len, 0);
+            buf_offset += len as usize;
         }
 
         Ok(())
     }
 
-    pub fn set_len(&mut self, len: usize) -> std::io::Result<()> {
-        let errno = unsafe { ftruncate(self.fd, len as _) };
-        if errno < 0 {
-            Err(std::io::Error::from_raw_os_error(errno))
+    pub fn set_len(&mut self, len: usize) -> Result<()> {
+        if unsafe { ftruncate(self.fd, len as _) } < 0 {
+            Err(Error::last_os_error().into())
         } else {
             Ok(())
         }
     }
 
-    pub fn fsync(&mut self) -> std::io::Result<()> {
-        let errno = unsafe { fsync(self.fd) };
-        if errno < 0 {
-            Err(std::io::Error::from_raw_os_error(errno))
+    pub fn fsync(&mut self) -> Result<()> {
+        if unsafe { fsync(self.fd) } < 0 {
+            Err(Error::last_os_error().into())
         } else {
             Ok(())
         }
     }
+
+    pub(crate) fn copy_from(&mut self, source: &impl BorrowFd) -> Result<()> {
+        let mut offset = 0;
+        let count = source.len()?;
+
+        while (offset as usize) < count {
+            let len =
+                unsafe { sendfile(self.fd, source.fd(), &mut offset, count - offset as usize) };
+
+            if len < 0 {
+                return Err(Error::last_os_error().into());
+            }
+            assert!(offset > 0);
+            offset += len as i64;
+            assert_ne!(len, 0);
+        }
+
+        Ok(())
+    }
+}
+
+pub(crate) trait BorrowFd {
+    fn fd(&self) -> RawFd;
 
     /// Length from metadata
-    pub(crate) fn len(&mut self) -> std::io::Result<usize> {
+    fn len(&self) -> Result<usize> {
         unsafe {
-            let mut stat = std::mem::MaybeUninit::<nix::libc::stat>::uninit();
-            let errno = fstat(self.fd, stat.as_mut_ptr());
-            if errno < 0 {
-                return Err(std::io::Error::from_raw_os_error(errno));
+            let mut stat = std::mem::MaybeUninit::<libc::stat64>::uninit();
+            if fstat64(self.fd(), stat.as_mut_ptr()) < 0 {
+                Err(Error::last_os_error().into())
+            } else {
+                Ok(stat.assume_init().st_size as usize)
             }
-            Ok(stat.assume_init().st_size as usize)
         }
+    }
+}
+
+impl BorrowFd for ReadFd {
+    fn fd(&self) -> RawFd {
+        self.fd
+    }
+}
+
+impl BorrowFd for WriteFd {
+    fn fd(&self) -> RawFd {
+        self.fd
+    }
+}
+
+impl BorrowFd for &mut WriteFd {
+    fn fd(&self) -> RawFd {
+        self.fd
     }
 }

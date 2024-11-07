@@ -2,6 +2,17 @@
 //!
 //! [Header][Body][Header][Body]...
 //!
+//!
+//! # Shadow File
+//!
+//! WAL will be applied to the shadow file first.
+//! If no more WAL records are available, WAL file will be truncated.
+//! That makes WAL file smaller.
+//! On the start, shadow file will be copied to the main file, and apply small WAL file.
+//!
+//! During the system, main file will be updated by cache staled pages.
+//! But for the strong consistency and durability, WAL file will be used every start time.
+//!
 
 use super::*;
 use crate::checksum;
@@ -17,166 +28,91 @@ use std::{
 };
 use tokio::sync::mpsc;
 
-type Result<T> = std::result::Result<T, ExecuteError>;
+type Result<T> = anyhow::Result<T>;
 
 pub struct Wal {
     wal_write_fd: WriteFd,
     read_offset: ReadOffset,
+    /// flag to determined wal reader and writer are in the same context.
+    /// This value will compared to read_offset's flag.
+    ///
+    /// If read_offset == write_offset, but the flags are different,
+    /// that mean reader didn't start read data from the start of file.
+    track_flag: bool,
     write_offset: usize,
     written: usize,
     tx: mpsc::UnboundedSender<ExecutorRequest>,
 }
 
 impl Wal {
-    pub(crate) fn open(path: std::path::PathBuf, mut file_write_fd: WriteFd) -> Result<Self> {
+    pub(crate) fn open(path: std::path::PathBuf, file_write_fd: &mut WriteFd) -> Result<Self> {
         let wal_file = OpenOptions::new()
             .create(true)
             .read(true)
             .write(true)
             .truncate(false)
-            .open(path)?;
+            .open(&path)?;
+
+        let shadow_file = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .truncate(false)
+            .open(path.with_extension("shadow"))?;
 
         let (wal_read_fd, wal_write_fd) = split_file(wal_file);
+        let (shadow_read_fd, mut shadow_write_fd) = split_file(shadow_file);
 
         let (tx, rx) = mpsc::unbounded_channel();
 
         let mut this = Self {
             wal_write_fd,
             read_offset: ReadOffset::new(),
+            track_flag: true,
             write_offset: 0,
             written: 0,
             tx,
         };
 
         if file_write_fd.len()? == 0 {
-            this.write_init()?;
+            this.write_wal(Init)?;
+            this.wal_write_fd.fsync()?;
         }
 
         let wal_file_len = this.wal_write_fd.len()?;
 
         let mut read_offset: usize = 0;
         while read_offset < wal_file_len {
-            match execute_one(&wal_read_fd, read_offset, &mut this.wal_write_fd) {
+            match execute_one(&wal_read_fd, read_offset, &mut shadow_write_fd) {
                 Ok(new_read_offset) => {
                     read_offset = new_read_offset;
                 }
                 Err(err) => {
                     if err.is_corrupted() {
                         break;
-                    } else {
-                        return Err(err);
                     }
+                    return Err(err);
                 }
             };
         }
         if wal_file_len > 0 {
+            file_write_fd.copy_from(&shadow_read_fd)?;
+
             this.wal_write_fd.set_len(0)?;
             this.wal_write_fd.fsync()?;
+            this.write_offset = 0;
+            this.written = 0;
         }
 
         Executor {
             wal_read_fd,
-            file_write_fd,
+            shadow_write_fd,
             rx,
             read_offset: this.read_offset.clone(),
         }
         .start();
 
         Ok(this)
-    }
-    // pub(crate) fn execute_one(&mut self, file: &mut File) -> Result<()> {
-    //     self.reset_if_need()?;
-
-    //     if self.read_offset == self.write_offset {
-    //         return Ok(());
-    //     }
-
-    //     self.reader.seek(SeekFrom::Start(self.read_offset))?;
-
-    //     let header = unsafe {
-    //         let mut header = MaybeUninit::<WalHeader>::uninit();
-    //         self.reader.read_exact(std::slice::from_raw_parts_mut(
-    //             header.as_mut_ptr() as *mut u8,
-    //             size_of::<WalHeader>(),
-    //         ))?;
-
-    //         header.assume_init()
-    //     };
-    //     match header.body_types {
-    //         // Init
-    //         0 => {
-    //             let root_node_offset = PageOffset::new(1);
-
-    //             let header = Header::new(PageOffset::NULL, root_node_offset, PageOffset::new(2));
-
-    //             let root_node = LeafNode::new();
-
-    //             let mut bytes = Vec::with_capacity(size_of::<Header>() + size_of::<LeafNode>());
-    //             bytes.put_slice(header.as_slice());
-    //             bytes.put_slice(root_node.as_slice());
-
-    //             file.set_len(0)?;
-    //             file.write_all(&bytes)?;
-    //             file.sync_all()?;
-    //         }
-    //         // PutPage
-    //         1 => {
-    //             let body = unsafe {
-    //                 let mut body = MaybeUninit::<PutPage>::uninit();
-    //                 self.reader.read_exact(std::slice::from_raw_parts_mut(
-    //                     body.as_mut_ptr() as *mut u8,
-    //                     header.body_length as usize,
-    //                 ))?;
-    //                 body.assume_init()
-    //             };
-
-    //             let body_checksum = checksum(body.as_slice());
-    //             let bad_checksum = body_checksum != header.checksum;
-    //             if bad_checksum {
-    //                 return Err(ExecuteError::Checksum {
-    //                     expected: header.checksum,
-    //                     actual: body_checksum,
-    //                 });
-    //             }
-
-    //             file.seek(body.page_offset.file_pos())?;
-    //             file.write_all(body.page.as_slice())?;
-    //         }
-    //         body_type => {
-    //             return Err(ExecuteError::WrongBodyType { body_type });
-    //         }
-    //     }
-
-    //     self.read_offset += size_of::<WalHeader>() as u64 + header.body_length as u64;
-
-    //     if self.read_offset == self.write_offset {
-    //         self.reset()?;
-    //     }
-
-    //     Ok(())
-    // }
-
-    // fn reset_if_need(&mut self) -> std::io::Result<()> {
-    //     if self.read_offset == self.write_offset && self.read_offset != 0 {
-    //         self.reset()?;
-    //     }
-    //     Ok(())
-    // }
-
-    // fn reset(&mut self) -> std::io::Result<()> {
-    //     self.file().set_len(0)?;
-    //     self.file().sync_all()?;
-
-    //     self.read_offset = 0;
-    //     self.write_offset = 0;
-    //     Ok(())
-    // }
-
-    pub(crate) fn write_init(&mut self) -> Result<()> {
-        self.start_write()?;
-        self.write_wal(Init)?;
-        self.sync_all()?;
-        Ok(())
     }
 
     pub(crate) fn update_pages(&mut self, pages: &BTreeMap<PageOffset, Page>) -> Result<()> {
@@ -240,7 +176,18 @@ impl Wal {
 
     /// This must be called before writing to the file.
     fn start_write(&mut self) -> Result<()> {
-        todo!();
+        let (read_offset, flag) = self.read_offset.get_with_flag();
+
+        let reader_cached_writer = read_offset == self.write_offset && self.track_flag == flag;
+        if reader_cached_writer {
+            self.tx
+                .send(ExecutorRequest::Reset)
+                .map_err(|_| ExecuteError::ExecutorDown)?;
+            self.wal_write_fd.set_len(0)?;
+            self.written = 0;
+            self.write_offset = 0;
+            self.track_flag = !self.track_flag;
+        }
 
         Ok(())
     }
@@ -263,8 +210,11 @@ impl ReadOffset {
         let offset = value & !(1 << 63);
         offset as usize
     }
-    fn flag(&self) -> bool {
-        self.inner.load(std::sync::atomic::Ordering::Relaxed) & (1 << 63) != 0
+    fn get_with_flag(&self) -> (usize, bool) {
+        let value = self.inner.load(std::sync::atomic::Ordering::Relaxed);
+        let offset = value & !(1 << 63);
+        let flag = value & (1 << 63) != 0;
+        (offset as usize, flag)
     }
     fn reset(&self) {
         let flag = self.inner.load(std::sync::atomic::Ordering::Relaxed) & (1 << 63);
@@ -274,15 +224,17 @@ impl ReadOffset {
         self.inner
             .store(toggled, std::sync::atomic::Ordering::Relaxed);
     }
-    fn add(&self, written: usize) {
+    fn set(&self, new_read_offset: usize) {
+        let flag = self.inner.load(std::sync::atomic::Ordering::Relaxed) & (1 << 63);
+        let new_value = new_read_offset as u64 | flag;
         self.inner
-            .fetch_add(written as u64, std::sync::atomic::Ordering::Relaxed);
+            .store(new_value, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
 struct Executor {
     wal_read_fd: ReadFd,
-    file_write_fd: WriteFd,
+    shadow_write_fd: WriteFd,
     rx: mpsc::UnboundedReceiver<ExecutorRequest>,
     read_offset: ReadOffset,
 }
@@ -304,42 +256,45 @@ impl Executor {
     }
     async fn handle_push(&mut self, written: usize) {
         let mut sleep_time = Duration::from_millis(100);
-        for _ in 0..=10 {
-            match execute_one(
-                &self.wal_read_fd,
-                self.read_offset.get(),
-                &mut self.file_write_fd,
-            ) {
-                Ok(new_read_offset) => {
-                    assert_eq!(written, new_read_offset - self.read_offset.get());
-                    self.read_offset.add(written);
-                    break;
-                }
-                Err(err) => {
-                    if err.is_corrupted() {
-                        unreachable!("wal file is corrupted");
-                    }
+        let mut read_count = 0;
 
-                    eprintln!(
-                        "Error on execute wal record. error: {:?} Retry after {:?}",
-                        err, sleep_time
-                    );
-                    tokio::time::sleep(sleep_time).await;
-                    sleep_time = (sleep_time * 2).max(Duration::from_secs(4));
+        while read_count < written {
+            let mut success = false;
+
+            for _ in 0..=10 {
+                match execute_one(
+                    &self.wal_read_fd,
+                    self.read_offset.get(),
+                    &mut self.shadow_write_fd,
+                ) {
+                    Ok(new_read_offset) => {
+                        read_count += new_read_offset - self.read_offset.get();
+                        self.read_offset.set(new_read_offset);
+                        success = true;
+                        break;
+                    }
+                    Err(err) => {
+                        if err.is_corrupted() {
+                            unreachable!("wal file is corrupted: {:?}", err);
+                        }
+
+                        eprintln!(
+                            "Error on execute wal record. error: {:?} Retry after {:?}",
+                            err, sleep_time
+                        );
+                        tokio::time::sleep(sleep_time).await;
+                        sleep_time = (sleep_time * 2).max(Duration::from_secs(4));
+                    }
                 }
+            }
+
+            if !success {
+                unreachable!("Too many retrial on writing staled pages");
             }
         }
 
-        unreachable!("Too many retrial on writing staled pages");
+        assert_eq!(written, read_count);
     }
-}
-
-fn start_executor(
-    wal_read_fd: ReadFd,
-    file_write_fd: WriteFd,
-    rx: mpsc::Receiver<ExecutorRequest>,
-    read_offset: ReadOffset,
-) {
 }
 
 /// # Return
@@ -378,7 +333,6 @@ fn execute_one(
 
             file_write_fd.set_len(0)?;
             file_write_fd.write_exact(&bytes, 0)?;
-            file_write_fd.fsync()?;
         }
         // PutPage
         1 => {
@@ -401,19 +355,22 @@ fn execute_one(
                 return Err(ExecuteError::Checksum {
                     expected: header.checksum,
                     actual: body_checksum,
-                });
+                }
+                .into());
             }
 
             file_write_fd.write_exact(body.page.as_slice(), body.page_offset.file_offset())?;
         }
         body_type => {
-            return Err(ExecuteError::WrongBodyType { body_type });
+            return Err(ExecuteError::WrongBodyType { body_type }.into());
         }
     }
+    file_write_fd.fsync()?;
 
     Ok(wal_read_offset)
 }
 
+#[derive(Debug)]
 enum ExecutorRequest {
     /// Push new wal record
     Push { written: usize },
@@ -423,7 +380,6 @@ enum ExecutorRequest {
 
 #[derive(Debug)]
 pub(crate) enum ExecuteError {
-    Io(std::io::Error),
     #[allow(dead_code)]
     Checksum {
         expected: u64,
@@ -435,19 +391,23 @@ pub(crate) enum ExecuteError {
     },
     ExecutorDown,
 }
-impl ExecuteError {
-    pub(crate) fn is_corrupted(&self) -> bool {
-        match self {
-            ExecuteError::Io(error) => error.kind() == ErrorKind::UnexpectedEof,
-            ExecuteError::Checksum { .. } => true,
-            ExecuteError::WrongBodyType { .. } => true,
-            ExecuteError::ExecutorDown => false,
-        }
-    }
+
+trait CorruptionCheck {
+    fn is_corrupted(&self) -> bool;
 }
-impl From<std::io::Error> for ExecuteError {
-    fn from(err: std::io::Error) -> Self {
-        Self::Io(err)
+impl CorruptionCheck for anyhow::Error {
+    fn is_corrupted(&self) -> bool {
+        if let Some(err) = self.downcast_ref::<ExecuteError>() {
+            match err {
+                ExecuteError::Checksum { .. } => true,
+                ExecuteError::WrongBodyType { .. } => true,
+                ExecuteError::ExecutorDown => false,
+            }
+        } else if let Some(err) = self.downcast_ref::<std::io::Error>() {
+            err.kind() == ErrorKind::UnexpectedEof
+        } else {
+            false
+        }
     }
 }
 impl Display for ExecuteError {
@@ -458,6 +418,7 @@ impl Display for ExecuteError {
 impl std::error::Error for ExecuteError {}
 
 #[repr(C)]
+#[derive(Debug)]
 struct WalHeader {
     checksum: u64,
     body_length: u32,

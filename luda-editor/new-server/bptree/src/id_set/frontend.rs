@@ -49,7 +49,7 @@ impl IdSet {
             }
         }
 
-        backend::Backend::open(&this.path, request_rx, this.cache.clone())?;
+        Backend::open(&this.path, request_rx, this.cache.clone())?;
 
         Ok(this)
     }
