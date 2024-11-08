@@ -339,7 +339,7 @@ fn execute_one(
 
             let header = Header::new(PageOffset::NULL, root_node_offset, PageOffset::new(2));
 
-            let root_node = LeafNode::new();
+            let root_node = LeafNode::new(PageOffset::NULL, PageOffset::NULL);
 
             let mut bytes = Vec::with_capacity(size_of::<Header>() + size_of::<LeafNode>());
             bytes.put_slice(header.as_slice());

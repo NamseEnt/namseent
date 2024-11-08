@@ -5,16 +5,16 @@ use std::{
 };
 
 pub struct Operator {
-    cached_pages: CachedPages,
+    cache: CachedPages,
     pages_updated: BTreeMap<PageOffset, Page>,
     pages_read_from_file: BTreeMap<PageOffset, Page>,
     file_read_fd: ReadFd,
 }
 
 impl Operator {
-    pub fn new(cached_pages: CachedPages, file_read_fd: ReadFd) -> Operator {
+    pub fn new(cache: CachedPages, file_read_fd: ReadFd) -> Operator {
         Operator {
-            cached_pages,
+            cache,
             pages_updated: Default::default(),
             pages_read_from_file: Default::default(),
             file_read_fd,
@@ -25,11 +25,15 @@ impl Operator {
         let leaf_node_offset = route.pop().unwrap();
         let leaf_node = self.page_mut(leaf_node_offset)?.as_leaf_node_mut();
 
-        let Some((right_half, id)) = leaf_node.insert(id) else {
+        if !leaf_node.is_full() {
+            leaf_node.insert(id);
             return Ok(());
-        };
+        }
 
         let right_node_offset = self.new_page()?;
+        // ↓ I know this is duplicated code but I need this to pass mutable borrow check
+        let leaf_node = self.page_mut(leaf_node_offset)?.as_leaf_node_mut();
+        let (right_half, id) = leaf_node.split_and_insert(id, leaf_node_offset, right_node_offset);
         *self.page_mut(right_node_offset)?.as_leaf_node_mut() = right_half;
 
         if route.is_empty() {
@@ -84,6 +88,27 @@ impl Operator {
         let contains = leaf_node.contains(id);
         Ok(contains)
     }
+    pub(crate) fn next(
+        &mut self,
+        exclusive_start_id: Option<u128>,
+    ) -> std::result::Result<Option<Vec<Id>>, anyhow::Error> {
+        let mut leaf_node_offset =
+            self.find_leaf_node_for(exclusive_start_id.unwrap_or_default())?;
+        loop {
+            let leaf_node = self.page(leaf_node_offset)?.as_leaf_node();
+            match leaf_node.next(exclusive_start_id) {
+                NextResult::Found { ids } => {
+                    return Ok(Some(ids));
+                }
+                NextResult::NoMoreIds => {
+                    return Ok(None);
+                }
+                NextResult::CheckRightNode { right_node_offset } => {
+                    leaf_node_offset = right_node_offset;
+                }
+            }
+        }
+    }
     pub fn done(self) -> Done {
         Done {
             pages_read_from_file: self.pages_read_from_file,
@@ -107,7 +132,7 @@ impl Operator {
     fn page(&mut self, page_offset: PageOffset) -> Result<&Page> {
         if let Some(page) = self.pages_updated.get(&page_offset) {
             Ok(page)
-        } else if let Some(page) = self.cached_pages.get(&page_offset) {
+        } else if let Some(page) = self.cache.get(&page_offset) {
             Ok(page)
         } else {
             if let Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {
@@ -121,7 +146,7 @@ impl Operator {
     fn page_mut(&mut self, page_offset: PageOffset) -> Result<&mut Page> {
         if let Entry::Vacant(e) = self.pages_updated.entry(page_offset) {
             let page = {
-                if let Some(page) = self.cached_pages.get(&page_offset) {
+                if let Some(page) = self.cache.get(&page_offset) {
                     page.as_ref().clone()
                 } else {
                     if let Entry::Vacant(e) = self.pages_read_from_file.entry(page_offset) {

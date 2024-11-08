@@ -26,9 +26,6 @@ impl PageCache {
             limit,
         }
     }
-    pub fn load(&self) -> Arc<Pages> {
-        self.inner.load_full()
-    }
     /// Returns the stale pages that were evicted from the cache.
     /// This function assume that `tuples` is not in the cache.
     pub fn push(&self, new_pages: BTreeMap<PageOffset, Page>) -> Vec<(PageOffset, Page)> {
@@ -50,7 +47,7 @@ impl PageCache {
             return Vec::new();
         };
 
-        let mut evicted = Vec::with_capacity(evict_count);
+        let mut evicted: Vec<(PageOffset, Page)> = Vec::with_capacity(evict_count);
 
         if cache.len() < evict_count {
             let evict_from_new_pages = evict_count - cache.len();
@@ -113,6 +110,50 @@ impl PageCache {
             let child_offset = internal_node.find_child_offset_for(id);
             node = guard.get(&child_offset)?.as_node();
         }
+    }
+
+    /// # Return
+    ///
+    ///   - `None` for cache miss.
+    ///   - `Some(None)` if no more ids are available.
+    pub(crate) fn next(&self, exclusive_start_id: Option<u128>) -> Option<Option<Vec<u128>>> {
+        let id = exclusive_start_id.unwrap_or_default();
+        let guard = self.inner.load();
+        let header = guard.get(&PageOffset::HEADER)?.as_header();
+        let mut node = guard.get(&header.root_node_offset)?.as_node();
+
+        loop {
+            if node.is_leaf() {
+                let leaf_node = node.as_leaf_node();
+
+                match leaf_node.next(exclusive_start_id) {
+                    NextResult::Found { ids } => {
+                        return Some(Some(ids));
+                    }
+                    NextResult::NoMoreIds => {
+                        return Some(None);
+                    }
+                    NextResult::CheckRightNode { right_node_offset } => {
+                        node = guard.get(&right_node_offset)?.as_node();
+                        assert!(node.is_leaf());
+                    }
+                }
+            }
+            let internal_node = node.as_internal_node();
+            println!("id: {}", id);
+            let child_offset = internal_node.find_child_offset_for(id);
+            println!("child_offset: {:?}", child_offset);
+            if child_offset == PageOffset::new(57) {
+                let node = guard.get(&child_offset)?.as_node();
+                println!("{:#?}", node.as_internal_node());
+            }
+
+            node = guard.get(&child_offset)?.as_node();
+        }
+    }
+
+    pub(crate) fn load_full(&self) -> CachedPages {
+        self.inner.load_full()
     }
 }
 

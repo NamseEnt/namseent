@@ -54,7 +54,7 @@ impl Backend {
                     break 'outer;
                 };
 
-                let mut operator = Operator::new(self.cache.load(), self.file_read_fd.clone());
+                let mut operator = Operator::new(self.cache.load_full(), self.file_read_fd.clone());
 
                 let mut txs = Vec::<Tx>::new();
 
@@ -74,14 +74,44 @@ impl Backend {
                                 result = operator.delete(id);
                             }
                             Request::Contains { id, tx } => {
-                                let mut contains = false;
                                 let contains_result = operator.contains(id);
-                                if let Ok(true) = contains_result {
-                                    contains = true;
+                                let tx_result;
+                                match contains_result {
+                                    Ok(contains) => {
+                                        tx_result = Ok(contains);
+                                        result = Ok(());
+                                    }
+                                    Err(err) => {
+                                        tx_result = Err(());
+                                        result = Err(err);
+                                    }
                                 }
-                                let tx = Tx::Contains { tx, contains };
-                                txs.push(tx);
-                                result = contains_result.map(|_| ());
+                                txs.push(Tx::Contains {
+                                    tx,
+                                    result: tx_result,
+                                });
+                            }
+                            Request::Next {
+                                exclusive_start_id,
+                                tx,
+                            } => {
+                                let next_result = operator.next(exclusive_start_id);
+                                let tx_result;
+                                match next_result {
+                                    Ok(ids) => {
+                                        tx_result = Ok(ids);
+                                        result = Ok(());
+                                    }
+                                    Err(err) => {
+                                        tx_result = Err(());
+                                        result = Err(err);
+                                    }
+                                };
+
+                                txs.push(Tx::Next {
+                                    tx,
+                                    result: tx_result,
+                                });
                             }
                             Request::Close => {
                                 close_requested = true;
@@ -155,12 +185,13 @@ impl Backend {
                     Tx::Insert { tx } | Tx::Delete { tx } => {
                         _ = tx.send(result_to_send);
                     }
-                    Tx::Contains { tx, contains } => {
-                        if result_to_send.is_err() {
-                            _ = tx.send(Err(()));
-                        } else {
-                            _ = tx.send(Ok(contains));
-                        }
+                    Tx::Contains { tx, result } => {
+                        assert!(result.is_ok());
+                        _ = tx.send(result);
+                    }
+                    Tx::Next { tx, result } => {
+                        assert!(result.is_ok());
+                        _ = tx.send(result);
                     }
                 });
             }
@@ -207,6 +238,10 @@ enum Tx {
     },
     Contains {
         tx: oneshot::Sender<Result<bool, ()>>,
-        contains: bool,
+        result: Result<bool, ()>,
+    },
+    Next {
+        tx: oneshot::Sender<Result<Option<Vec<Id>>, ()>>,
+        result: Result<Option<Vec<Id>>, ()>,
     },
 }

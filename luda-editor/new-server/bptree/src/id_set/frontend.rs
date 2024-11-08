@@ -78,6 +78,40 @@ impl IdSet {
             .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
             .map_err(|_| anyhow::anyhow!("Failed to check if id exists: {}", id))
     }
+    /// # Return
+    /// - `None` if there is no more data.
+    pub async fn next(&self, exclusive_start_id: Option<u128>) -> Result<Option<Vec<u128>>> {
+        if let Some(cached) = self.cache.next(exclusive_start_id) {
+            return Ok(cached);
+        }
+
+        let (tx, rx) = oneshot::channel();
+
+        self.request_tx
+            .send(Request::Next {
+                exclusive_start_id,
+                tx,
+            })
+            .await
+            .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
+
+        rx.await
+            .map_err(|_| {
+                anyhow::anyhow!(
+                    "Failed to received result from rx, exclusive_start_id: {:?}",
+                    exclusive_start_id
+                )
+            })?
+            .map_err(|_| {
+                anyhow::anyhow!(
+                    "Failed to get next of exclusive_start_id exists: {:?}",
+                    exclusive_start_id
+                )
+            })
+    }
+    // pub async fn query(&self, exclude_cursor: Option<i128>) -> Result<Vec<i128>> {
+    //     여기부터해~
+    // }
     pub async fn try_close(self: Arc<Self>) -> Result<(), Arc<Self>> {
         let inner = Arc::try_unwrap(self)?;
 

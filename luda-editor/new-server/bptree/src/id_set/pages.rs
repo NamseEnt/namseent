@@ -186,7 +186,7 @@ impl InternalNode {
 
         let right_id_count = one_plus_ids.len() / 2;
         let left_id_count = one_plus_ids.len() - right_id_count - 1;
-        assert_eq!(left_id_count + right_id_count + 1, one_plus_ids.len());
+        assert_eq!(left_id_count + right_id_count, INTERNAL_NODE_ID_LEN);
         let center_id_index = left_id_count;
 
         /*
@@ -221,7 +221,7 @@ impl InternalNode {
     }
 }
 
-const LEAF_NODE_IDS_LEN: usize = 255;
+const LEAF_NODE_IDS_LEN: usize = 254;
 
 #[repr(C, align(1))]
 #[derive(Clone)]
@@ -230,16 +230,20 @@ pub(crate) struct LeafNode {
     _padding: [u8; 3],
     id_count: u32,
     ids: [Id; LEAF_NODE_IDS_LEN],
+    left_node_offset: PageOffset,
+    right_node_offset: PageOffset,
 }
 impl AsSlice for LeafNode {}
 
 impl LeafNode {
-    pub fn new() -> Self {
+    pub fn new(left_node_offset: PageOffset, right_node_offset: PageOffset) -> Self {
         Self {
             leaf_type: 1,
             _padding: [0; 3],
             id_count: 0,
             ids: [0; LEAF_NODE_IDS_LEN],
+            left_node_offset,
+            right_node_offset,
         }
     }
 
@@ -247,27 +251,41 @@ impl LeafNode {
         self.id_count == self.ids.len() as u32
     }
 
-    /// Return new splitted leaf node and new id if it's full.
-    /// New leaf node will have half of the ids, bigger values.
-    pub fn insert(&mut self, id: Id) -> Option<(LeafNode, Id)> {
-        let index = self
-            .ids
+    fn index_to_insert(&self, id: Id) -> usize {
+        self.ids
             .into_iter()
             .take(self.id_count as usize)
             .enumerate()
             .find(|(_, id_)| id < *id_)
             .map(|(i, _)| i)
-            .unwrap_or(self.id_count as usize);
+            .unwrap_or(self.id_count as usize)
+    }
 
-        if !self.is_full() {
-            if index + 1 < self.id_count as usize {
-                self.ids
-                    .copy_within(index..self.id_count as usize, index + 1);
-            }
-            self.ids[index] = id;
-            self.id_count += 1;
-            return None;
+    /// WARNING: Call this method only if the leaf node is **NOT FULL**.
+    pub fn insert(&mut self, id: Id) {
+        assert!(!self.is_full());
+
+        let index = self.index_to_insert(id);
+
+        if index + 1 < self.id_count as usize {
+            self.ids
+                .copy_within(index..self.id_count as usize, index + 1);
         }
+        self.ids[index] = id;
+        self.id_count += 1;
+    }
+
+    /// WARNING: Call this method only if the leaf node is **FULL".
+    /// Return new splitted leaf node and new id if it's full.
+    /// New leaf node will have half of the ids, bigger values.
+    pub fn split_and_insert(
+        &mut self,
+        id: Id,
+        this_node_offset: PageOffset,
+        right_node_offset: PageOffset,
+    ) -> (LeafNode, Id) {
+        assert!(self.is_full());
+        let index = self.index_to_insert(id);
 
         /*
             Before:
@@ -292,14 +310,16 @@ impl LeafNode {
         self.ids[..left_count].copy_from_slice(&one_plus_ids[..left_count]);
         self.id_count = left_count as u32;
 
-        let mut new_leaf_node = LeafNode::new();
+        let mut right_leaf_node = LeafNode::new(this_node_offset, self.right_node_offset);
 
-        new_leaf_node.ids[..right_count].copy_from_slice(&one_plus_ids[left_count..]);
-        new_leaf_node.id_count = right_count as u32;
+        right_leaf_node.ids[..right_count].copy_from_slice(&one_plus_ids[left_count..]);
+        right_leaf_node.id_count = right_count as u32;
 
-        let center_id = new_leaf_node.ids[0];
+        self.right_node_offset = right_node_offset;
 
-        Some((new_leaf_node, center_id))
+        let center_id = right_leaf_node.ids[0];
+
+        (right_leaf_node, center_id)
     }
 
     pub fn contains(&self, id: u128) -> bool {
@@ -333,6 +353,41 @@ impl LeafNode {
     pub fn ids(&self) -> &[Id] {
         &self.ids[..self.id_count as usize]
     }
+
+    pub(crate) fn next(&self, exclusive_start_id: Option<Id>) -> NextResult {
+        let start_index = exclusive_start_id
+            .map(|id| {
+                self.ids
+                    .iter()
+                    .take(self.id_count as usize)
+                    .position(|&key| key > id)
+                    .unwrap_or(self.id_count as usize)
+            })
+            .unwrap_or_default();
+
+        if start_index == self.id_count as usize {
+            if let Some(right_node_offset) = self.right_node_offset() {
+                return NextResult::CheckRightNode { right_node_offset };
+            } else {
+                return NextResult::NoMoreIds;
+            }
+        }
+
+        println!("start_index: {}, id_count: {}", start_index, self.id_count);
+        let mut ids = Vec::with_capacity(self.id_count as usize - start_index);
+        for id in self.ids[start_index..self.id_count as usize].iter() {
+            ids.push(*id);
+        }
+        NextResult::Found { ids }
+    }
+
+    pub(crate) fn right_node_offset(&self) -> Option<PageOffset> {
+        if self.right_node_offset.is_null() {
+            None
+        } else {
+            Some(self.right_node_offset)
+        }
+    }
 }
 
 impl Debug for LeafNode {
@@ -343,6 +398,12 @@ impl Debug for LeafNode {
             .field("ids", &self.ids())
             .finish()
     }
+}
+
+pub(crate) enum NextResult {
+    Found { ids: Vec<Id> },
+    NoMoreIds,
+    CheckRightNode { right_node_offset: PageOffset },
 }
 
 #[repr(C, align(1))]
@@ -428,28 +489,51 @@ mod tests {
 
     #[test]
     fn leaf_node_move_half() {
-        let mut leaf_node = LeafNode::new();
-        for i in (0..(255 * 2)).step_by(2) {
-            assert!(leaf_node.insert(i).is_none());
+        let mut inserted_ids = Vec::new();
+        let mut leaf_node = LeafNode::new(PageOffset::NULL, PageOffset::NULL);
+        for i in (0..(LEAF_NODE_IDS_LEN * 2)).step_by(2) {
+            leaf_node.insert(i as _);
+            inserted_ids.push(i as _);
         }
 
-        let (new_leaf_node, id) = leaf_node.insert(3).unwrap();
+        assert!(leaf_node.is_full());
+        assert_eq!(leaf_node.id_count, LEAF_NODE_IDS_LEN as u32);
 
-        assert_eq!(leaf_node.id_count, 128);
-        assert_eq!(new_leaf_node.id_count, 128);
-        assert_eq!(id, 254);
+        let (new_leaf_node, id) = leaf_node.split_and_insert(3, PageOffset::NULL, PageOffset::NULL);
+        inserted_ids.push(3);
+
+        assert_eq!(new_leaf_node.id_count, new_leaf_node.ids().len() as u32);
+        assert_eq!(leaf_node.id_count, leaf_node.ids().len() as u32);
+
+        assert_eq!(
+            new_leaf_node.id_count,
+            (LEAF_NODE_IDS_LEN as u32 + 1 - leaf_node.id_count)
+        );
         assert_eq!(id, new_leaf_node.ids[0]);
 
-        let leaf_node_ids = {
-            let mut ids = (0..=253).step_by(2).collect::<Vec<_>>();
-            ids.push(3);
-            ids.sort();
-            ids
-        };
-        assert_eq!(leaf_node.ids[..128], leaf_node_ids);
+        assert!(leaf_node.contains(3));
 
-        let new_leaf_node_ids = (254..510).step_by(2).collect::<Vec<_>>();
-        assert_eq!(new_leaf_node.ids[..128], new_leaf_node_ids);
+        leaf_node
+            .ids()
+            .iter()
+            .zip(leaf_node.ids().iter().skip(1))
+            .for_each(|(a, b)| assert!(a < b, "{:?} < {:?}", a, b));
+
+        new_leaf_node
+            .ids()
+            .iter()
+            .zip(
+                new_leaf_node
+                    .ids()
+                    .iter()
+                    .skip(1)
+                    .take(new_leaf_node.id_count as usize),
+            )
+            .for_each(|(a, b)| assert!(a < b, "{:?} < {:?}", a, b));
+
+        for id in inserted_ids {
+            assert!(leaf_node.contains(id) || new_leaf_node.contains(id));
+        }
     }
 
     #[test]
