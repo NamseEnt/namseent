@@ -40,9 +40,6 @@ impl ReadFd {
                 return Err(Error::last_os_error().into());
             }
             if len == 0 {
-                println!("self.len(): {:?}", self.len()?);
-                println!("offset: {:?}", offset);
-                println!("buf.len(): {:?}", buf.len());
                 return Err(Error::from(io::ErrorKind::UnexpectedEof).into());
             }
             buf_offset += len as usize;

@@ -1,7 +1,9 @@
 use super::*;
 use std::fmt::Debug;
 
-#[repr(C, align(1))]
+pub(crate) const PAGE_LEN: usize = 4096;
+
+#[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PageOffset {
     value: u32,
@@ -15,7 +17,7 @@ impl PageOffset {
     }
 
     pub fn file_offset(&self) -> usize {
-        self.value as usize * 4096
+        self.value as usize * PAGE_LEN
     }
 
     pub fn fetch_increase(&mut self) -> Self {
@@ -37,7 +39,7 @@ pub(crate) trait AsSlice: Sized {
     }
 }
 
-#[repr(C, align(1))]
+#[repr(C, align(64))]
 #[derive(Clone)]
 pub(crate) struct Header {
     /// Would be null
@@ -76,7 +78,7 @@ impl Debug for Header {
     }
 }
 
-#[repr(C, align(1))]
+#[repr(C, align(64))]
 pub(crate) struct FreePageStackNode {
     pub next_page_offset: PageOffset,
     pub length: u32,
@@ -100,8 +102,8 @@ impl AsSlice for FreePageStackNode {}
 
 const INTERNAL_NODE_ID_LEN: usize = 203;
 
-#[repr(C, align(1))]
-#[derive(Debug, Clone)]
+#[repr(C, align(64))]
+#[derive(Clone)]
 /// right side child's id is greater or equal to id.
 pub(crate) struct InternalNode {
     leaf_type: u8,
@@ -112,41 +114,53 @@ pub(crate) struct InternalNode {
     _padding_1: u32,
 }
 impl AsSlice for InternalNode {}
+impl Debug for InternalNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InternalNode")
+            .field("leaf_type", &self.leaf_type)
+            .field("id_count", &self.id_count)
+            .field("ids", &&self.ids[..self.id_count as usize])
+            .field(
+                "child_offsets",
+                &&self.child_offsets[..self.id_count as usize + 1],
+            )
+            .finish()
+    }
+}
 
 impl InternalNode {
-    pub fn new(
-        id: Id,
-        left_side_child_offset: PageOffset,
-        right_side_child_offset: PageOffset,
-    ) -> Self {
-        let mut ids = [0; INTERNAL_NODE_ID_LEN];
-        ids[0] = id;
-
-        let mut child_offsets = [PageOffset::NULL; INTERNAL_NODE_ID_LEN + 1];
-        child_offsets[0] = left_side_child_offset;
-        child_offsets[1] = right_side_child_offset;
+    pub fn new(ids: &[Id], child_offsets: &[PageOffset]) -> Self {
+        assert!(!ids.is_empty());
+        assert_eq!(ids.len() + 1, child_offsets.len());
 
         Self {
             leaf_type: 0,
             _padding: [0; 3],
-            id_count: 1,
-            ids,
-            child_offsets,
+            id_count: ids.len() as u32,
+            ids: {
+                let mut new_ids = [0; INTERNAL_NODE_ID_LEN];
+                new_ids[..ids.len()].copy_from_slice(ids);
+                new_ids
+            },
+            child_offsets: {
+                let mut new_offsets = [PageOffset::NULL; INTERNAL_NODE_ID_LEN + 1];
+                new_offsets[..child_offsets.len()].copy_from_slice(child_offsets);
+                new_offsets
+            },
             _padding_1: 0,
         }
     }
-    fn id_index(&self, id: Id) -> Option<usize> {
+    fn id_index(&self, id: Id) -> usize {
         self.ids
             .into_iter()
             .take(self.id_count as usize)
             .enumerate()
             .find(|(_, id_)| id < *id_)
             .map(|(i, _)| i)
+            .unwrap_or(self.id_count as usize)
     }
     pub fn find_child_offset_for(&self, id: Id) -> PageOffset {
-        self.id_index(id)
-            .map(|i| self.child_offsets[i])
-            .unwrap_or(self.child_offsets[self.id_count as usize])
+        self.child_offsets[self.id_index(id)]
     }
     pub fn is_full(&self) -> bool {
         self.id_count == self.ids.len() as u32
@@ -156,12 +170,14 @@ impl InternalNode {
         id: Id,
         right_side_child_offset: PageOffset,
     ) -> Option<(InternalNode, Id)> {
-        let id_index = self.id_index(id).unwrap_or(self.id_count as usize);
+        let id_index = self.id_index(id);
 
         if !self.is_full() {
             if id_index < self.id_count as usize {
-                self.ids[id_index..].rotate_right(1);
-                self.child_offsets[id_index + 1..].rotate_right(1);
+                self.ids
+                    .copy_within(id_index..self.id_count as usize, id_index + 1);
+                self.child_offsets
+                    .copy_within(id_index + 1..self.id_count as usize + 1, id_index + 2);
             }
             self.ids[id_index] = id;
             self.child_offsets[id_index + 1] = right_side_child_offset;
@@ -204,16 +220,15 @@ impl InternalNode {
         | offset 0 | offset 1 | offset 2 |   | offset 3 | offset 4 |
         */
 
-        let mut right_node = unsafe { std::mem::zeroed::<InternalNode>() };
-        right_node.id_count = right_id_count as u32;
-        right_node.ids[..right_id_count].copy_from_slice(&one_plus_ids[center_id_index + 1..]);
-        right_node.child_offsets[..right_id_count + 1]
-            .copy_from_slice(&one_plus_child_offsets[center_id_index + 1..]);
+        let right_node = InternalNode::new(
+            &one_plus_ids[center_id_index + 1..],
+            &one_plus_child_offsets[center_id_index + 1..],
+        );
 
-        self.id_count = left_id_count as u32;
-        self.ids[..left_id_count].copy_from_slice(&one_plus_ids[..center_id_index]);
-        self.child_offsets[..left_id_count + 1]
-            .copy_from_slice(&one_plus_child_offsets[..center_id_index + 1]);
+        *self = InternalNode::new(
+            &one_plus_ids[..center_id_index],
+            &one_plus_child_offsets[..center_id_index + 1],
+        );
 
         let center_id = one_plus_ids[center_id_index];
 
@@ -221,17 +236,17 @@ impl InternalNode {
     }
 }
 
-const LEAF_NODE_IDS_LEN: usize = 254;
+const LEAF_NODE_IDS_LEN: usize = 255;
 
-#[repr(C, align(1))]
+#[repr(C, align(64))]
 #[derive(Clone)]
 pub(crate) struct LeafNode {
     leaf_type: u8,
     _padding: [u8; 3],
     id_count: u32,
-    ids: [Id; LEAF_NODE_IDS_LEN],
     left_node_offset: PageOffset,
     right_node_offset: PageOffset,
+    ids: [Id; LEAF_NODE_IDS_LEN],
 }
 impl AsSlice for LeafNode {}
 
@@ -241,9 +256,9 @@ impl LeafNode {
             leaf_type: 1,
             _padding: [0; 3],
             id_count: 0,
-            ids: [0; LEAF_NODE_IDS_LEN],
             left_node_offset,
             right_node_offset,
+            ids: [0; LEAF_NODE_IDS_LEN],
         }
     }
 
@@ -267,7 +282,7 @@ impl LeafNode {
 
         let index = self.index_to_insert(id);
 
-        if index + 1 < self.id_count as usize {
+        if index < self.id_count as usize {
             self.ids
                 .copy_within(index..self.id_count as usize, index + 1);
         }
@@ -373,7 +388,6 @@ impl LeafNode {
             }
         }
 
-        println!("start_index: {}, id_count: {}", start_index, self.id_count);
         let mut ids = Vec::with_capacity(self.id_count as usize - start_index);
         for id in self.ids[start_index..self.id_count as usize].iter() {
             ids.push(*id);
@@ -406,7 +420,7 @@ pub(crate) enum NextResult {
     CheckRightNode { right_node_offset: PageOffset },
 }
 
-#[repr(C, align(1))]
+#[repr(C, align(64))]
 #[derive(Clone)]
 pub(crate) struct Node {
     leaf_type: u8,
@@ -417,12 +431,35 @@ impl Node {
     pub fn is_leaf(&self) -> bool {
         self.leaf_type != 0
     }
-    pub(crate) fn as_internal_node(&self) -> &InternalNode {
-        unsafe { std::mem::transmute(self) }
+    pub(crate) fn as_internal_node(&self) -> Option<&InternalNode> {
+        if !self.is_leaf() {
+            Some(unsafe { std::mem::transmute::<&Node, &InternalNode>(self) })
+        } else {
+            None
+        }
     }
-    pub(crate) fn as_leaf_node(&self) -> &LeafNode {
-        unsafe { std::mem::transmute(self) }
+    pub(crate) fn as_leaf_node(&self) -> Option<&LeafNode> {
+        if self.is_leaf() {
+            Some(unsafe { std::mem::transmute::<&Node, &LeafNode>(self) })
+        } else {
+            None
+        }
     }
+    pub(crate) fn as_one_of(&self) -> NodeMatchRef {
+        if self.is_leaf() {
+            NodeMatchRef::Leaf {
+                leaf_node: unsafe { std::mem::transmute::<&Node, &LeafNode>(self) },
+            }
+        } else {
+            NodeMatchRef::Internal {
+                internal_node: unsafe { std::mem::transmute::<&Node, &InternalNode>(self) },
+            }
+        }
+    }
+}
+pub(crate) enum NodeMatchRef<'a> {
+    Internal { internal_node: &'a InternalNode },
+    Leaf { leaf_node: &'a LeafNode },
 }
 impl Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -434,15 +471,17 @@ impl Debug for Node {
     }
 }
 
-#[repr(C, align(1))]
+#[repr(C, align(64))]
 #[derive(Debug, Clone)]
 pub(crate) struct Page {
-    data: [u8; 4096],
+    data: [u8; PAGE_LEN],
 }
 impl AsSlice for Page {}
 impl Page {
     pub fn new() -> Self {
-        Self { data: [0; 4096] }
+        Self {
+            data: [0; PAGE_LEN],
+        }
     }
 
     pub fn as_header(&self) -> &Header {
@@ -480,11 +519,52 @@ mod tests {
 
     #[test]
     fn size() {
-        assert_eq!(std::mem::size_of::<Header>(), 4096);
-        assert_eq!(std::mem::size_of::<FreePageStackNode>(), 4096);
-        assert_eq!(std::mem::size_of::<InternalNode>(), 4096);
-        assert_eq!(std::mem::size_of::<LeafNode>(), 4096);
-        assert_eq!(std::mem::size_of::<Node>(), 4096);
+        assert_eq!(std::mem::size_of::<Header>(), PAGE_LEN);
+        assert_eq!(std::mem::size_of::<FreePageStackNode>(), PAGE_LEN);
+        assert_eq!(std::mem::size_of::<InternalNode>(), PAGE_LEN);
+        assert_eq!(std::mem::size_of::<LeafNode>(), PAGE_LEN);
+        assert_eq!(std::mem::size_of::<Node>(), PAGE_LEN);
+
+        assert_eq!(
+            Header::new(PageOffset::NULL, PageOffset::NULL, PageOffset::NULL)
+                .as_slice()
+                .len(),
+            PAGE_LEN
+        );
+        assert_eq!(
+            FreePageStackNode {
+                next_page_offset: PageOffset::NULL,
+                length: 0,
+                free_page_ids: [0; 1022]
+            }
+            .as_slice()
+            .len(),
+            PAGE_LEN
+        );
+        assert_eq!(
+            InternalNode::new(
+                &[0; INTERNAL_NODE_ID_LEN],
+                &[PageOffset::NULL; INTERNAL_NODE_ID_LEN + 1]
+            )
+            .as_slice()
+            .len(),
+            PAGE_LEN
+        );
+        assert_eq!(
+            LeafNode::new(PageOffset::NULL, PageOffset::NULL)
+                .as_slice()
+                .len(),
+            PAGE_LEN
+        );
+        assert_eq!(
+            Node {
+                leaf_type: 0,
+                _padding: [0; 4095]
+            }
+            .as_slice()
+            .len(),
+            PAGE_LEN
+        );
     }
 
     #[test]
@@ -539,14 +619,15 @@ mod tests {
     #[test]
     fn internal_node_insert() {
         {
-            let mut internal_node = InternalNode::new(3, PageOffset::new(1), PageOffset::new(2));
+            let mut internal_node =
+                InternalNode::new(&[3], &[PageOffset::new(1), PageOffset::new(2)]);
             assert!(internal_node.insert(1, PageOffset::new(3)).is_none());
         }
     }
 
     #[test]
     fn internal_node_insert_split() {
-        let mut internal_node = InternalNode::new(1, PageOffset::new(0), PageOffset::new(1));
+        let mut internal_node = InternalNode::new(&[1], &[PageOffset::new(0), PageOffset::new(1)]);
         for i in 1..INTERNAL_NODE_ID_LEN {
             assert!(internal_node
                 .insert(i as Id + 1, PageOffset::new(i as u32 + 1))

@@ -33,7 +33,9 @@ impl Operator {
         let right_node_offset = self.new_page()?;
         // ↓ I know this is duplicated code but I need this to pass mutable borrow check
         let leaf_node = self.page_mut(leaf_node_offset)?.as_leaf_node_mut();
-        let (right_half, id) = leaf_node.split_and_insert(id, leaf_node_offset, right_node_offset);
+        let (right_half, center_id) =
+            leaf_node.split_and_insert(id, leaf_node_offset, right_node_offset);
+
         *self.page_mut(right_node_offset)?.as_leaf_node_mut() = right_half;
 
         if route.is_empty() {
@@ -42,31 +44,35 @@ impl Operator {
             let internal_node_offset = self.new_page()?;
 
             let internal_node = self.page_mut(internal_node_offset)?.as_internal_node_mut();
-            *internal_node = InternalNode::new(id, leaf_node_offset, right_node_offset);
+            *internal_node =
+                InternalNode::new(&[center_id], &[leaf_node_offset, right_node_offset]);
 
             self.header_mut().root_node_offset = internal_node_offset;
             return Ok(());
         }
 
-        let mut id = id;
+        let mut center_id = center_id;
         let mut right_node_offset = right_node_offset;
 
         while let Some(node_offset) = route.pop() {
             let internal_node = self.page_mut(node_offset)?.as_internal_node_mut();
-            let Some((right_node, center_id)) = internal_node.insert(id, right_node_offset) else {
+            let Some((right_node, next_center_id)) =
+                internal_node.insert(center_id, right_node_offset)
+            else {
                 return Ok(());
             };
             right_node_offset = self.new_page()?;
             *self.page_mut(right_node_offset)?.as_internal_node_mut() = right_node;
 
             if node_offset != self.header().root_node_offset {
-                id = center_id;
+                center_id = next_center_id;
                 continue;
             }
 
             assert!(route.is_empty());
             let new_root_node_offset = self.new_page()?;
-            let new_root_node = InternalNode::new(center_id, node_offset, right_node_offset);
+            let new_root_node =
+                InternalNode::new(&[next_center_id], &[node_offset, right_node_offset]);
             *self.page_mut(new_root_node_offset)?.as_internal_node_mut() = new_root_node;
         }
 
@@ -105,6 +111,7 @@ impl Operator {
                 }
                 NextResult::CheckRightNode { right_node_offset } => {
                     leaf_node_offset = right_node_offset;
+                    continue;
                 }
             }
         }
@@ -121,12 +128,14 @@ impl Operator {
 
         loop {
             route.push(node_offset);
-            let node = self.page(node_offset)?.as_node();
-            if node.is_leaf() {
-                return Ok(route);
+            match self.page(node_offset)?.as_node().as_one_of() {
+                NodeMatchRef::Internal { internal_node } => {
+                    node_offset = internal_node.find_child_offset_for(id);
+                }
+                NodeMatchRef::Leaf { .. } => {
+                    return Ok(route);
+                }
             }
-            let internal_node = node.as_internal_node();
-            node_offset = internal_node.find_child_offset_for(id);
         }
     }
     fn page(&mut self, page_offset: PageOffset) -> Result<&Page> {
@@ -207,12 +216,14 @@ impl Operator {
         let mut node_offset = self.header().root_node_offset;
 
         loop {
-            let node = self.page(node_offset)?.as_node();
-            if node.is_leaf() {
-                return Ok(node_offset);
-            }
-            let internal_node = node.as_internal_node();
-            node_offset = internal_node.find_child_offset_for(id);
+            match self.page(node_offset)?.as_node().as_one_of() {
+                NodeMatchRef::Internal { internal_node } => {
+                    node_offset = internal_node.find_child_offset_for(id);
+                }
+                NodeMatchRef::Leaf { .. } => {
+                    return Ok(node_offset);
+                }
+            };
         }
     }
 }
@@ -221,10 +232,7 @@ fn read_page_from_file(read_fd: &ReadFd, page_offset: PageOffset) -> Result<Page
     let page = unsafe {
         let mut page = MaybeUninit::<Page>::uninit();
         read_fd.read_exact(
-            std::slice::from_raw_parts_mut(
-                page.as_mut_ptr() as *mut u8,
-                std::mem::size_of::<Page>(),
-            ),
+            std::slice::from_raw_parts_mut(page.as_mut_ptr() as *mut u8, PAGE_LEN),
             page_offset.file_offset(),
         )?;
         page.assume_init()

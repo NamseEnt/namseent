@@ -177,21 +177,27 @@ impl Backend {
                     eprintln!("Error: {:?}", result);
                 }
 
-                let result_to_send = match result.is_ok() {
-                    true => Ok(()),
-                    false => Err(()),
-                };
+                let no_error = result.is_ok();
+
                 txs.into_iter().for_each(|tx| match tx {
                     Tx::Insert { tx } | Tx::Delete { tx } => {
-                        _ = tx.send(result_to_send);
+                        _ = tx.send(if no_error { Ok(()) } else { Err(()) });
                     }
                     Tx::Contains { tx, result } => {
-                        assert!(result.is_ok());
-                        _ = tx.send(result);
+                        _ = tx.send(if no_error {
+                            assert!(result.is_ok());
+                            result
+                        } else {
+                            Err(())
+                        });
                     }
                     Tx::Next { tx, result } => {
-                        assert!(result.is_ok());
-                        _ = tx.send(result);
+                        _ = tx.send(if no_error {
+                            assert!(result.is_ok());
+                            result
+                        } else {
+                            Err(())
+                        });
                     }
                 });
             }

@@ -67,6 +67,10 @@ mod test {
         if wal_path.exists() {
             std::fs::remove_file(&wal_path).unwrap();
         }
+        let shadow_path = path.with_extension("shadow");
+        if shadow_path.exists() {
+            std::fs::remove_file(&shadow_path).unwrap();
+        }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
         let set = IdSet::new(path, 5000).unwrap();
@@ -88,6 +92,10 @@ mod test {
         let wal_path = path.with_extension("wal");
         if wal_path.exists() {
             std::fs::remove_file(&wal_path).unwrap();
+        }
+        let shadow_path = path.with_extension("shadow");
+        if shadow_path.exists() {
+            std::fs::remove_file(&shadow_path).unwrap();
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -115,6 +123,10 @@ mod test {
         let wal_path = path.with_extension("wal");
         if wal_path.exists() {
             std::fs::remove_file(&wal_path).unwrap();
+        }
+        let shadow_path = path.with_extension("shadow");
+        if shadow_path.exists() {
+            std::fs::remove_file(&shadow_path).unwrap();
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -148,6 +160,10 @@ mod test {
         let wal_path = path.with_extension("wal");
         if wal_path.exists() {
             std::fs::remove_file(&wal_path).unwrap();
+        }
+        let shadow_path = path.with_extension("shadow");
+        if shadow_path.exists() {
+            std::fs::remove_file(&shadow_path).unwrap();
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -191,6 +207,10 @@ mod test {
         if wal_path.exists() {
             std::fs::remove_file(&wal_path).unwrap();
         }
+        let shadow_path = path.with_extension("shadow");
+        if shadow_path.exists() {
+            std::fs::remove_file(&shadow_path).unwrap();
+        }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
         let set = IdSet::new(path, 0).unwrap();
@@ -232,6 +252,10 @@ mod test {
         let wal_path = path.with_extension("wal");
         if wal_path.exists() {
             std::fs::remove_file(&wal_path).unwrap();
+        }
+        let shadow_path = path.with_extension("shadow");
+        if shadow_path.exists() {
+            std::fs::remove_file(&shadow_path).unwrap();
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -275,6 +299,10 @@ mod test {
         if wal_path.exists() {
             std::fs::remove_file(&wal_path).unwrap();
         }
+        let shadow_path = path.with_extension("shadow");
+        if shadow_path.exists() {
+            std::fs::remove_file(&shadow_path).unwrap();
+        }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
         let set = IdSet::new(&path, 5000).unwrap();
@@ -313,6 +341,10 @@ mod test {
         if wal_path.exists() {
             std::fs::remove_file(&wal_path).unwrap();
         }
+        let shadow_path = path.with_extension("shadow");
+        if shadow_path.exists() {
+            std::fs::remove_file(&shadow_path).unwrap();
+        }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
         let set = IdSet::new(&path, 5000).unwrap();
@@ -333,7 +365,6 @@ mod test {
             for i in 1..ids.len() {
                 assert!(ids[i - 1] < ids[i]);
             }
-            println!("here");
             exclusive_start_id = ids.last().cloned();
             all_ids.extend(ids);
         }
