@@ -20,13 +20,11 @@ use bytes::BufMut;
 use std::{
     collections::BTreeMap,
     fmt::Display,
-    fs::OpenOptions,
     io::ErrorKind,
-    mem::MaybeUninit,
     sync::{atomic::AtomicU64, Arc},
     time::Duration,
 };
-use tokio::sync::mpsc;
+use tokio::{fs::OpenOptions, sync::mpsc};
 
 type Result<T> = anyhow::Result<T>;
 
@@ -46,23 +44,28 @@ pub struct Wal {
 }
 
 impl Wal {
-    pub(crate) fn open(path: std::path::PathBuf, file_write_fd: &mut WriteFd) -> Result<Self> {
+    pub(crate) async fn open(
+        path: std::path::PathBuf,
+        file_write_fd: &mut WriteFd,
+    ) -> Result<Self> {
         let wal_file = OpenOptions::new()
             .create(true)
             .read(true)
             .write(true)
             .truncate(false)
-            .open(&path)?;
+            .open(&path)
+            .await?;
 
         let shadow_file = OpenOptions::new()
             .create(true)
             .read(true)
             .write(true)
             .truncate(false)
-            .open(path.with_extension("shadow"))?;
+            .open(path.with_extension("shadow"))
+            .await?;
 
-        let (wal_read_fd, wal_write_fd) = split_file(wal_file);
-        let (shadow_read_fd, mut shadow_write_fd) = split_file(shadow_file);
+        let (wal_read_fd, wal_write_fd) = split_file(wal_file.into_std().await);
+        let (shadow_read_fd, mut shadow_write_fd) = split_file(shadow_file.into_std().await);
 
         let (tx, rx) = mpsc::unbounded_channel();
         let (executer_close_tx, executer_close_rx) = oneshot::channel();
@@ -86,7 +89,7 @@ impl Wal {
 
         let mut read_offset: usize = 0;
         while read_offset < wal_file_len {
-            match execute_one(&wal_read_fd, read_offset, &mut shadow_write_fd) {
+            match execute_one(&wal_read_fd, read_offset, &mut shadow_write_fd).await {
                 Ok(new_read_offset) => {
                     read_offset = new_read_offset;
                 }
@@ -280,7 +283,9 @@ impl Executor {
                     &self.wal_read_fd,
                     self.read_offset.get(),
                     &mut self.shadow_write_fd,
-                ) {
+                )
+                .await
+                {
                     Ok(new_read_offset) => {
                         read_count += new_read_offset - self.read_offset.get();
                         self.read_offset.set(new_read_offset);
@@ -316,20 +321,16 @@ impl Executor {
 ///
 /// This function returns next read offset on successful execution
 /// because it would be failed in the middle of the execution.
-fn execute_one(
+async fn execute_one(
     wal_read_fd: &ReadFd,
     mut wal_read_offset: usize,
     file_write_fd: &mut WriteFd,
 ) -> Result<usize> {
-    let header = unsafe {
-        let mut header = MaybeUninit::<WalHeader>::uninit();
-        let buf =
-            std::slice::from_raw_parts_mut(header.as_mut_ptr() as *mut u8, size_of::<WalHeader>());
-
-        wal_read_fd.read_exact(buf, wal_read_offset)?;
-        wal_read_offset += buf.len();
-
-        header.assume_init()
+    let header = {
+        let size = size_of::<WalHeader>();
+        let header = wal_read_fd.read_init::<WalHeader>(wal_read_offset).await?;
+        wal_read_offset += size;
+        header
     };
 
     match header.body_types {
@@ -350,17 +351,18 @@ fn execute_one(
         }
         // PutPage
         1 => {
-            let body = unsafe {
-                let mut body = MaybeUninit::<PutPage>::uninit();
-                wal_read_fd.read_exact(
-                    std::slice::from_raw_parts_mut(
-                        body.as_mut_ptr() as *mut u8,
-                        header.body_length as usize,
-                    ),
-                    wal_read_offset,
-                )?;
-                wal_read_offset += header.body_length as usize;
-                body.assume_init()
+            let body = {
+                let body_length = header.body_length as usize;
+                if body_length != size_of::<PutPage>() {
+                    return Err(ExecuteError::WrongBodySize {
+                        expected: size_of::<PutPage>(),
+                        actual: body_length,
+                    }
+                    .into());
+                }
+                let body = wal_read_fd.read_init::<PutPage>(wal_read_offset).await?;
+                wal_read_offset += body_length;
+                body
             };
 
             let body_checksum = checksum(body.as_slice());
@@ -407,6 +409,11 @@ pub(crate) enum ExecuteError {
         body_type: u8,
     },
     ExecutorDown,
+    #[allow(dead_code)]
+    WrongBodySize {
+        expected: usize,
+        actual: usize,
+    },
 }
 
 trait CorruptionCheck {
@@ -419,6 +426,7 @@ impl CorruptionCheck for anyhow::Error {
                 ExecuteError::Checksum { .. } => true,
                 ExecuteError::WrongBodyType { .. } => true,
                 ExecuteError::ExecutorDown => false,
+                ExecuteError::WrongBodySize { .. } => true,
             }
         } else if let Some(err) = self.downcast_ref::<std::io::Error>() {
             err.kind() == ErrorKind::UnexpectedEof

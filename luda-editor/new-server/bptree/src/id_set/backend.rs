@@ -12,7 +12,7 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub fn open(
+    pub async fn open(
         path: impl AsRef<Path>,
         request_rx: Receiver<Request>,
         cache: PageCache,
@@ -20,16 +20,17 @@ impl Backend {
     ) -> Result<()> {
         let path = path.as_ref();
 
-        let file = std::fs::OpenOptions::new()
+        let file = tokio::fs::OpenOptions::new()
             .write(true)
             .read(true)
             .create(true)
             .truncate(false)
-            .open(path)?;
+            .open(path)
+            .await?;
 
-        let (file_read_fd, mut file_write_fd) = split_file(file);
+        let (file_read_fd, mut file_write_fd) = split_file(file.into_std().await);
 
-        let wal = Wal::open(path.with_extension("wal"), &mut file_write_fd)?;
+        let wal = Wal::open(path.with_extension("wal"), &mut file_write_fd).await?;
 
         let this = Self {
             file_read_fd,
@@ -67,14 +68,14 @@ impl Backend {
                         match request {
                             Request::Insert { id, tx } => {
                                 txs.push(Tx::Insert { tx });
-                                result = operator.insert(id);
+                                result = operator.insert(id).await;
                             }
                             Request::Delete { id, tx } => {
                                 txs.push(Tx::Delete { tx });
-                                result = operator.delete(id);
+                                result = operator.delete(id).await;
                             }
                             Request::Contains { id, tx } => {
-                                let contains_result = operator.contains(id);
+                                let contains_result = operator.contains(id).await;
                                 let tx_result;
                                 match contains_result {
                                     Ok(contains) => {
@@ -95,7 +96,7 @@ impl Backend {
                                 exclusive_start_id,
                                 tx,
                             } => {
-                                let next_result = operator.next(exclusive_start_id);
+                                let next_result = operator.next(exclusive_start_id).await;
                                 let tx_result;
                                 match next_result {
                                     Ok(ids) => {

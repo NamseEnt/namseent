@@ -23,7 +23,7 @@ impl IdSet {
     ///   - 1 cache is 4KB. 100 `cache_limit` will be 400KB.
     ///   - Put enough `cache_limit`.
     ///     - If `IdSet` cannot find data from cache, it will read from disk, which is very slow.
-    pub fn new(path: impl AsRef<Path>, cache_limit: usize) -> Result<Arc<Self>> {
+    pub async fn new(path: impl AsRef<Path>, cache_limit: usize) -> Result<Arc<Self>> {
         let path = path.as_ref();
 
         let (request_tx, request_rx) = mpsc::channel(4096);
@@ -36,7 +36,7 @@ impl IdSet {
             backend_close_rx,
         });
 
-        Backend::open(&this.path, request_rx, this.cache.clone(), backend_close_tx)?;
+        Backend::open(&this.path, request_rx, this.cache.clone(), backend_close_tx).await?;
 
         Ok(this)
     }

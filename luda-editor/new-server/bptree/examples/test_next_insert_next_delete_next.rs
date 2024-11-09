@@ -17,7 +17,7 @@ async fn main() {
     }
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-    let set = IdSet::new(&path, 5000).unwrap();
+    let set = IdSet::new(&path, 5000).await.unwrap();
 
     assert!(set.next(None).await.unwrap().is_none());
     assert!(set.next(Some(5)).await.unwrap().is_none());

@@ -74,7 +74,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path, 5000).unwrap();
+        let set = IdSet::new(path, 5000).await.unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=1 {
             let set = set.clone();
@@ -100,7 +100,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path, 5000).unwrap();
+        let set = IdSet::new(path, 5000).await.unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();
@@ -131,7 +131,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path, 5000).unwrap();
+        let set = IdSet::new(path, 5000).await.unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();
@@ -168,7 +168,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path, 5000).unwrap();
+        let set = IdSet::new(path, 5000).await.unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();
@@ -214,7 +214,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path, 0).unwrap();
+        let set = IdSet::new(path, 0).await.unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();
@@ -260,7 +260,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(path, 2).unwrap();
+        let set = IdSet::new(path, 2).await.unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();
@@ -306,7 +306,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(&path, 5000).unwrap();
+        let set = IdSet::new(&path, 5000).await.unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=10000 {
             let set = set.clone();
@@ -316,7 +316,7 @@ mod test {
 
         assert!(set.try_close().await.is_ok());
 
-        let set = IdSet::new(path, 5000).unwrap();
+        let set = IdSet::new(path, 5000).await.unwrap();
         let mut join_set = JoinSet::new();
         for i in 1..=20000 {
             let set = set.clone();
@@ -348,7 +348,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(&path, 5000).unwrap();
+        let set = IdSet::new(&path, 5000).await.unwrap();
 
         assert!(set.next(None).await.unwrap().is_none());
         assert!(set.next(Some(5)).await.unwrap().is_none());
@@ -393,7 +393,7 @@ mod test {
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
-        let set = IdSet::new(&path, 5000).unwrap();
+        let set = IdSet::new(&path, 5000).await.unwrap();
 
         assert!(set.stream().try_next().await.unwrap().is_none());
 

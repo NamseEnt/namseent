@@ -478,10 +478,14 @@ pub(crate) struct Page {
 }
 impl AsSlice for Page {}
 impl Page {
-    pub fn new() -> Self {
+    pub fn empty() -> Self {
         Self {
             data: [0; PAGE_LEN],
         }
+    }
+
+    pub fn new(data: [u8; PAGE_LEN]) -> Self {
+        Self { data }
     }
 
     pub fn as_header(&self) -> &Header {

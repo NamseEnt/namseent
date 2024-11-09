@@ -1,9 +1,11 @@
 //! Custom Fd to manage multiple read/write operations on a file descriptor.
 
+use super::{PageOffset, PAGE_LEN};
 use libc::*;
 use std::{
     fs::File,
     io::{self, Error},
+    mem::MaybeUninit,
     os::fd::{IntoRawFd, RawFd},
 };
 
@@ -20,19 +22,43 @@ pub struct ReadFd {
 }
 
 impl ReadFd {
-    pub fn read_exact(&self, buf: &mut [u8], offset: usize) -> Result<()> {
-        if buf.is_empty() {
-            return Ok(());
+    pub async fn read_init<T: Send + 'static>(&self, offset: usize) -> Result<T> {
+        let size = size_of::<T>();
+        if size == 0 {
+            return Ok(unsafe { std::mem::zeroed() });
         }
+
+        let fd = self.fd;
+        tokio::task::spawn_blocking(move || {
+            let mut t = MaybeUninit::<T>::uninit();
+            Self::read(fd, t.as_mut_ptr() as _, size, offset)?;
+            Ok(unsafe { t.assume_init() })
+        })
+        .await?
+    }
+
+    pub async fn read_page(&self, page_offset: PageOffset) -> Result<[u8; PAGE_LEN]> {
+        let fd = self.fd;
+        tokio::task::spawn_blocking(move || {
+            let mut buf = std::mem::MaybeUninit::<[u8; PAGE_LEN]>::uninit();
+            let buf_ptr = buf.as_mut_ptr();
+
+            Self::read(fd, buf_ptr as _, PAGE_LEN, page_offset.file_offset())?;
+
+            Ok(unsafe { buf.assume_init() })
+        })
+        .await?
+    }
+
+    fn read(fd: i32, buf_ptr: *mut u8, buf_len: usize, offset: usize) -> Result<()> {
         let mut buf_offset = 0;
-        while buf_offset < buf.len() {
+        while buf_offset < buf_len {
             let len = unsafe {
-                let buf = &mut buf[buf_offset..];
-                assert!(!buf.is_empty());
+                let count = buf_len - buf_offset;
                 pread(
-                    self.fd,
-                    buf.as_mut_ptr() as _,
-                    buf.len() as _,
+                    fd,
+                    buf_ptr.add(buf_offset) as _,
+                    count as _,
                     (offset + buf_offset) as i64,
                 )
             };
