@@ -2,7 +2,6 @@ use super::*;
 use std::{
     collections::VecDeque,
     path::{Path, PathBuf},
-    pin::pin,
     sync::Arc,
 };
 use tokio::sync::{mpsc, oneshot};
@@ -112,7 +111,6 @@ impl IdSet {
             })
     }
     pub fn stream(self: &Arc<Self>) -> impl futures::Stream<Item = Result<Id>> + 'static + Unpin {
-        #[pin_project::pin_project]
         struct State {
             exclusive_start_id: Option<Id>,
             ids: VecDeque<Id>,
