@@ -1,6 +1,8 @@
 use super::*;
 use std::{
+    collections::VecDeque,
     path::{Path, PathBuf},
+    pin::pin,
     sync::Arc,
 };
 use tokio::sync::{mpsc, oneshot};
@@ -109,9 +111,42 @@ impl IdSet {
                 )
             })
     }
-    // pub async fn query(&self, exclude_cursor: Option<i128>) -> Result<Vec<i128>> {
-    //     여기부터해~
-    // }
+    pub fn stream(self: &Arc<Self>) -> impl futures::Stream<Item = Result<Id>> + 'static + Unpin {
+        #[pin_project::pin_project]
+        struct State {
+            exclusive_start_id: Option<Id>,
+            ids: VecDeque<Id>,
+        }
+        Box::pin(futures::stream::unfold(
+            State {
+                exclusive_start_id: None,
+                ids: vec![].into(),
+            },
+            {
+                let id_set = self.clone();
+                move |mut state| {
+                    let id_set = id_set.clone();
+                    async move {
+                        if let Some(id) = state.ids.pop_front() {
+                            return Some((Ok(id), state));
+                        }
+                        match id_set.next(state.exclusive_start_id).await {
+                            Ok(ids) => match ids {
+                                Some(ids) => {
+                                    state.exclusive_start_id = ids.last().cloned();
+                                    state.ids.extend(ids);
+                                    let id = state.ids.pop_front().unwrap();
+                                    Some((Ok(id), state))
+                                }
+                                None => None,
+                            },
+                            Err(err) => Some((Err(err), state)),
+                        }
+                    }
+                }
+            },
+        ))
+    }
     pub async fn try_close(self: Arc<Self>) -> Result<(), Arc<Self>> {
         let inner = Arc::try_unwrap(self)?;
 
