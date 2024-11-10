@@ -1,7 +1,7 @@
 mod heap_archived;
 mod transact;
-mod value_buffer;
 
+pub use bytes::Bytes;
 pub use heap_archived::*;
 pub use inventory;
 pub use schema_macro::*;
@@ -9,11 +9,10 @@ pub use serializer;
 pub use serializer::*;
 use std::borrow::Cow;
 pub use transact::*;
-pub use value_buffer::ValueBuffer;
 
 pub trait Document {
     fn name() -> &'static str;
-    fn heap_archived(value_buffer: ValueBuffer) -> HeapArchived<Self>
+    fn heap_archived(bytes: Bytes) -> HeapArchived<Self>
     where
         Self: Sized;
     fn from_bytes(bytes: Vec<u8>) -> Result<Self>

@@ -30,6 +30,8 @@ enum AssetKind {
     Audio,
 }
 
+relation_one_to_many!(team, asset);
+
 #[document]
 struct TeamAssetDoc {
     #[pk]

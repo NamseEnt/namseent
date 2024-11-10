@@ -6,23 +6,27 @@ mod wal;
 use bytes::Bytes;
 use db_thread::*;
 use flush_wals::*;
-use rayon::prelude::*;
-use std::{io::ErrorKind, sync::atomic::AtomicU64, thread};
+use std::{
+    any::Any,
+    io::ErrorKind,
+    sync::{atomic::AtomicU64, Arc},
+    thread,
+};
 use tokio::sync::oneshot;
 use wal::*;
 
-type Result<T> = std::result::Result<T, TransactionError>;
+type Result<T> = std::result::Result<T, NfsStoreError>;
 
 fn crc() -> crc::Crc<u64> {
     crc::Crc::<u64>::new(&crc::CRC_64_REDIS)
 }
 
 #[derive(Clone)]
-pub struct NfsV4DocStore {
-    db_request_tx: std::sync::mpsc::Sender<DbThreadRequest>,
+pub struct NfsV4DocStore<'a> {
+    db_request_tx: std::sync::mpsc::Sender<DbThreadRequest<'a>>,
 }
 
-impl NfsV4DocStore {
+impl<'a> NfsV4DocStore<'a> {
     pub fn new(mount_point: impl AsRef<std::path::Path>) -> Self {
         let mount_point = mount_point.as_ref().to_path_buf();
 
@@ -42,23 +46,23 @@ impl NfsV4DocStore {
         let (tx, rx) = oneshot::channel();
         self.db_request_tx
             .send(DbThreadRequest::Read { key, tx })
-            .map_err(|_| TransactionError::DbThreadDown)?;
-        rx.await.map_err(|_| TransactionError::DbThreadDown)?
+            .map_err(|_| NfsStoreError::DbThreadDown)?;
+        rx.await.map_err(|_| NfsStoreError::DbThreadDown)?
     }
 
-    async fn write(&self, tuples: Vec<TransactionWrite>) -> Result<()> {
+    async fn write(&'a self, tuples: Vec<TransactionWrite<'a>>) -> Result<()> {
         if tuples.is_empty() {
             return Ok(());
         }
         let (tx, rx) = oneshot::channel();
         self.db_request_tx
             .send(DbThreadRequest::Write { writes: tuples, tx })
-            .map_err(|_| TransactionError::DbThreadDown)?;
-        rx.await.map_err(|_| TransactionError::DbThreadDown)?
+            .map_err(|_| NfsStoreError::DbThreadDown)?;
+        rx.await.map_err(|_| NfsStoreError::DbThreadDown)?
     }
 }
 
-pub enum TransactionWrite {
+pub enum TransactionWrite<'a> {
     Put {
         key: String,
         value: Bytes,
@@ -68,15 +72,15 @@ pub enum TransactionWrite {
     },
     Update {
         key: String,
-        tx: DataTx,
-        rx: oneshot::Receiver<Result<Option<Bytes>>>,
+        data_fn: Box<
+            dyn FnOnce(Option<Bytes>) -> std::result::Result<Option<Bytes>, Box<dyn Any>>
+                + Send
+                + 'a,
+        >,
     },
 }
 
-#[derive(Debug, Clone)]
-pub struct TransactionAbort {}
-
-impl TransactionWrite {
+impl TransactionWrite<'_> {
     fn key(&self) -> &str {
         match self {
             Self::Put { key, .. } | Self::Delete { key, .. } | Self::Update { key, .. } => key,
@@ -85,20 +89,20 @@ impl TransactionWrite {
 }
 
 #[derive(Debug, Clone)]
-pub enum TransactionError {
+pub enum NfsStoreError {
     DbThreadDown,
     LockFailed,
     IoError(std::io::ErrorKind),
     TxSendError,
     RxRecvError,
-    Abort(TransactionAbort),
+    UpdateAbort(Arc<dyn Any + Send + Sync>),
 }
-impl std::fmt::Display for TransactionError {
+impl std::fmt::Display for NfsStoreError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-impl std::error::Error for TransactionError {}
+impl std::error::Error for NfsStoreError {}
 
 type DataResult = Result<Option<Bytes>>;
 type DataTx = oneshot::Sender<DataResult>;

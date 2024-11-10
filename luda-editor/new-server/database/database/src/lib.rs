@@ -1,7 +1,9 @@
 mod document_store;
+mod nfs_locker_version;
 
 pub use document::*;
 pub use document_store::DocumentStore;
+use document_store::NfsStoreError;
 pub use migration::schema;
 
 pub async fn init(mount_point: impl AsRef<std::path::Path>) -> anyhow::Result<Database> {
@@ -19,25 +21,20 @@ impl Database {
         &self,
         document_get: impl DocumentGet<Output = T>,
     ) -> Result<Option<HeapArchived<T>>> {
-        let value_buffer = self
-            .store
-            .get(
-                T::name(),
-                &document_get.pk()?,
-                document_get.sk()?.as_deref(),
-            )
-            .await?;
-        Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
+        todo!()
+        // let value_buffer = self.store.get(T::name(), &document_get.pk()?).await?;
+        // Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
     }
     pub async fn query<T: Document>(
         &self,
         document_query: impl DocumentQuery<Output = T>,
     ) -> Result<Vec<HeapArchived<T>>> {
-        let value_buffer = self.store.query(T::name(), &document_query.pk()?).await?;
-        Ok(value_buffer
-            .into_iter()
-            .map(|value_buffer| T::heap_archived(value_buffer))
-            .collect())
+        todo!()
+        // let value_buffer = self.store.query(T::name(), &document_query.pk()?).await?;
+        // Ok(value_buffer
+        //     .into_iter()
+        //     .map(|value_buffer| T::heap_archived(value_buffer))
+        //     .collect())
     }
     pub async fn transact<'a, AbortReason>(
         &'a self,
@@ -50,11 +47,13 @@ impl Database {
 
 #[derive(Debug)]
 pub enum Error {
-    SqliteError(rusqlite::Error),
+    IoError(std::io::Error),
+    DbInternalError(NfsStoreError),
     SerializationError(SerErr),
     AlreadyExistsOnCreate,
     NotExistsOnUpdate,
     BackupAborted(String),
+    Anyhow(anyhow::Error),
 }
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -63,9 +62,19 @@ impl std::fmt::Display for Error {
 }
 impl std::error::Error for Error {}
 
-impl From<rusqlite::Error> for Error {
-    fn from(e: rusqlite::Error) -> Self {
-        Error::SqliteError(e)
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::IoError(e)
+    }
+}
+impl From<anyhow::Error> for Error {
+    fn from(e: anyhow::Error) -> Self {
+        Error::Anyhow(e)
+    }
+}
+impl From<NfsStoreError> for Error {
+    fn from(e: NfsStoreError) -> Self {
+        Error::DbInternalError(e)
     }
 }
 impl From<SerErr> for Error {

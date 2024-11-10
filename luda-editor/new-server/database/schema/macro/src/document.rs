@@ -31,8 +31,8 @@ pub fn document(
                 stringify!(#struct_name)
             }
 
-            fn heap_archived(value_buffer: document::ValueBuffer) -> document::HeapArchived<Self> {
-                document::HeapArchived::new(value_buffer)
+            fn heap_archived(bytes: document::Bytes) -> document::HeapArchived<Self> {
+                document::HeapArchived::new(bytes)
             }
 
             fn from_bytes(bytes: Vec<u8>) -> document::Result<Self> {

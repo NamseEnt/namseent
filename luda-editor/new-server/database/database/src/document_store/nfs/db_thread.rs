@@ -100,7 +100,7 @@ pub(crate) fn db_thread(
                                 value: Some(value),
                             }),
                             TransactionWrite::Delete { key } => Ok(WalWrite { key, value: None }),
-                            TransactionWrite::Update { key, tx, rx } => {
+                            TransactionWrite::Update { key, data_fn } => {
                                 let bytes = {
                                     if let Some(bytes) = cached {
                                         bytes
@@ -108,17 +108,9 @@ pub(crate) fn db_thread(
                                         read_file(doc_dir.join(&key))?
                                     }
                                 };
-                                tx.send(Ok(bytes))
-                                    .map_err(|_| TransactionError::TxSendError)?;
+                                let value = data_fn(bytes)?;
 
-                                let write_bytes = rx
-                                    .blocking_recv()
-                                    .map_err(|_| TransactionError::RxRecvError)?
-                                    .map_err(|_| TransactionError::Abort(TransactionAbort {}))?;
-                                Ok(WalWrite {
-                                    key,
-                                    value: write_bytes,
-                                })
+                                Ok(WalWrite { key, value })
                             }
                         })
                         .collect();
@@ -209,7 +201,7 @@ fn get_last_accessed_secs() -> u64 {
         .as_secs()
 }
 
-pub(crate) enum DbThreadRequest {
+pub(crate) enum DbThreadRequest<'a> {
     Read {
         key: String,
         tx: DataTx,
@@ -219,7 +211,7 @@ pub(crate) enum DbThreadRequest {
         result: DataResult,
     },
     Write {
-        writes: Vec<TransactionWrite>,
+        writes: Vec<TransactionWrite<'a>>,
         tx: oneshot::Sender<Result<()>>,
     },
     WriteResultOk {
@@ -227,7 +219,7 @@ pub(crate) enum DbThreadRequest {
     },
     WriteResultErr {
         keys: Vec<String>,
-        error: TransactionError,
+        error: NfsStoreError,
     },
 }
 
