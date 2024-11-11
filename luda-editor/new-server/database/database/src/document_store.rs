@@ -10,10 +10,10 @@ pub trait DocumentStore {
         &'a self,
         transact_items: &mut TransactItems<'a, AbortReason>,
     ) -> Result<MaybeAborted<AbortReason>>;
-    fn query(
-        &self,
-        from_name: DocName,
-        id: Id,
-        to_name: DocName,
-    ) -> impl futures::Stream<Item = Result<Id>> + 'static + Unpin;
+    // fn query(
+    //     &self,
+    //     from_name: DocName,
+    //     id: Id,
+    //     to_name: DocName,
+    // ) -> impl futures::Stream<Item = Result<Id>> + 'static + Unpin;
 }

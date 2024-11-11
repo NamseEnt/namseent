@@ -1,83 +1,83 @@
 pub use arrayvec::ArrayVec;
 use serializer::*;
-use std::{borrow::Cow, time::Duration};
 
 pub enum TransactItem<'a, AbortReason> {
     Put {
         name: &'static str,
-        pk: Cow<'a, [u8]>,
-        sk: Option<Cow<'a, [u8]>>,
+        id: u128,
         value: Vec<u8>,
-        ttl: Option<Duration>,
     },
     Create {
         name: &'static str,
-        pk: Cow<'a, [u8]>,
-        sk: Option<Cow<'a, [u8]>>,
+        id: u128,
         value_fn: Option<Box<dyn 'a + Send + FnOnce() -> Result<Vec<u8>>>>,
-        ttl: Option<Duration>,
     },
     Update {
         name: &'static str,
-        pk: Cow<'a, [u8]>,
-        sk: Option<Cow<'a, [u8]>>,
+        id: u128,
         update_fn: UpdateFn<'a, AbortReason>,
     },
     Delete {
         name: &'static str,
-        pk: Cow<'a, [u8]>,
-        sk: Option<Cow<'a, [u8]>>,
+        id: u128,
+    },
+    InsertRelation {
+        name: &'static str,
+        id: u128,
+        to_id: u128,
+    },
+    RemoveRelation {
+        name: &'static str,
+        id: u128,
+        to_id: u128,
     },
 }
 
 impl<'a, AbortReason> std::fmt::Debug for TransactItem<'a, AbortReason> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TransactItem::Put {
-                name,
-                pk,
-                sk,
-                value,
-                ttl,
-            } => f
+            TransactItem::Put { name, id, value } => f
                 .debug_struct("Put")
                 .field("name", name)
-                .field("pk", pk)
-                .field("sk", sk)
+                .field("id", id)
                 .field("value", value)
-                .field("ttl", ttl)
                 .finish(),
             TransactItem::Create {
                 name,
-                pk,
-                sk,
+                id,
                 value_fn: _,
-                ttl,
             } => f
                 .debug_struct("Create")
                 .field("name", name)
-                .field("pk", pk)
-                .field("sk", sk)
+                .field("id", id)
                 .field("value_fn", &"...")
-                .field("ttl", ttl)
                 .finish(),
             TransactItem::Update {
                 name,
-                pk,
-                sk,
+                id,
                 update_fn: _,
             } => f
                 .debug_struct("Update")
                 .field("name", name)
-                .field("pk", pk)
-                .field("sk", sk)
+                .field("id", id)
                 .field("update_fn", &"...")
                 .finish(),
-            TransactItem::Delete { name, pk, sk } => f
+            TransactItem::Delete { name, id } => f
                 .debug_struct("Delete")
                 .field("name", name)
-                .field("pk", pk)
-                .field("sk", sk)
+                .field("id", id)
+                .finish(),
+            TransactItem::InsertRelation { name, id, to_id } => f
+                .debug_struct("InsertRelation")
+                .field("name", name)
+                .field("id", id)
+                .field("to_id", to_id)
+                .finish(),
+            TransactItem::RemoveRelation { name, id, to_id } => f
+                .debug_struct("RemoveRelation")
+                .field("name", name)
+                .field("id", id)
+                .field("to_id", to_id)
                 .finish(),
         }
     }
@@ -94,11 +94,6 @@ pub enum WantUpdate<AbortReason> {
         reason: AbortReason,
     },
 }
-// impl<'a> AsRef<TransactItem<'a>> for TransactItem<'a> {
-//     fn as_ref(&self) -> &TransactItem<'a> {
-//         self
-//     }
-// }
 
 pub type TransactItems<'a, AbortReason> = ArrayVec<TransactItem<'a, AbortReason>, 10>;
 

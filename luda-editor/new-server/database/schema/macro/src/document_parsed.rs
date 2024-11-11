@@ -9,8 +9,8 @@ pub struct DocumentParsed<'a> {
     pub fields_without_pksk_attr: Vec<Field>,
     pub ref_struct_name: Ident,
     pub ref_struct_value: TokenStream,
-    pub pk_cow: TokenStream,
-    pub sk_cow: TokenStream,
+    pub pk: TokenStream,
+    pub sk: TokenStream,
     pub ref_fielder: RefFielder,
     pub pk_ref_fielder: RefFielder,
     pub pk_sk_ref_fielder: RefFielder,
@@ -185,8 +185,8 @@ impl<'a> DocumentParsed<'a> {
             fields_without_pksk_attr,
             ref_struct_name,
             ref_struct_value,
-            pk_cow,
-            sk_cow,
+            pk: pk_cow,
+            sk: sk_cow,
         }
     }
 

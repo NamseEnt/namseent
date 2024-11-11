@@ -7,7 +7,6 @@ pub use inventory;
 pub use schema_macro::*;
 pub use serializer;
 pub use serializer::*;
-use std::borrow::Cow;
 pub use transact::*;
 
 pub trait Document {
@@ -24,14 +23,14 @@ pub trait Document {
 pub trait DocumentGet {
     type Output;
 
-    fn pk(&self) -> Result<Cow<'_, [u8]>>;
-    fn sk(&self) -> Result<Option<Cow<'_, [u8]>>>;
+    fn pk(&self) -> Result<u128>;
+    fn sk(&self) -> Result<Option<u128>>;
 }
 
 pub trait DocumentQuery {
     type Output;
 
-    fn pk(&self) -> Result<Cow<'_, [u8]>>;
+    fn pk(&self) -> Result<u128>;
 }
 
 pub struct DocumentLogPlugin {

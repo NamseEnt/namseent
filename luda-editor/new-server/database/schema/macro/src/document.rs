@@ -62,8 +62,8 @@ pub fn document(
 fn struct_get_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     let DocumentParsed {
         name,
-        pk_cow,
-        sk_cow,
+        pk: pk_cow,
+        sk: sk_cow,
         pk_sk_ref_fielder,
         ..
     } = parsed;
@@ -83,10 +83,10 @@ fn struct_get_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
         impl #generics document::DocumentGet for #get_struct_name #generics_without_bounds {
             type Output = #name;
 
-            fn pk<'b>(&'b self) -> document::Result<std::borrow::Cow<'b, [u8]>> {
+            fn pk<'b>(&'b self) -> document::Result<u128> {
                 Ok(#pk_cow)
             }
-            fn sk<'b>(&'b self) -> document::Result<Option<std::borrow::Cow<'b, [u8]>>> {
+            fn sk<'b>(&'b self) -> document::Result<Option<u128>> {
                 Ok(#sk_cow)
             }
         }
@@ -97,8 +97,8 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     let DocumentParsed {
         name,
         ref_struct_value,
-        pk_cow,
-        sk_cow,
+        pk: pk_cow,
+        sk: sk_cow,
         ref_fielder,
         ..
     } = parsed;
@@ -143,8 +143,8 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
 fn struct_create_define(
     DocumentParsed {
         name,
-        pk_cow,
-        sk_cow,
+        pk: pk_cow,
+        sk: sk_cow,
         ref_struct_value,
         ref_fielder,
         ..
@@ -190,8 +190,8 @@ fn struct_create_define(
 fn struct_update_define(
     DocumentParsed {
         name,
-        pk_cow,
-        sk_cow,
+        pk: pk_cow,
+        sk: sk_cow,
         pk_sk_ref_fielder:
             RefFielder {
                 generics,
@@ -264,8 +264,8 @@ fn struct_update_define(
 fn struct_delete_define(
     DocumentParsed {
         name,
-        pk_cow,
-        sk_cow,
+        pk: pk_cow,
+        sk: sk_cow,
         pk_sk_ref_fielder:
             RefFielder {
                 generics,
@@ -305,7 +305,7 @@ fn struct_delete_define(
 fn struct_query_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     let DocumentParsed {
         name,
-        pk_cow,
+        pk: pk_cow,
         pk_ref_fielder:
             RefFielder {
                 generics,
@@ -324,7 +324,7 @@ fn struct_query_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
         impl #generics document::DocumentQuery for #query_struct_name #generics_without_bounds {
             type Output = #name;
 
-            fn pk<'b>(&'b self) -> document::Result<std::borrow::Cow<'b, [u8]>> {
+            fn pk<'b>(&'b self) -> document::Result<u128> {
                 Ok(#pk_cow)
             }
         }

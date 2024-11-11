@@ -14,7 +14,7 @@ pub struct SimpleDocFile {
 }
 
 impl SimpleDocFile {
-    pub fn open(dir_path: impl AsRef<Path>, filename: String) -> Result<Self> {
+    pub fn open(dir_path: impl AsRef<Path>, filename: impl AsRef<Path>) -> Result<Self> {
         let mut main_file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
@@ -57,6 +57,10 @@ impl SimpleDocFile {
         append_to_wal(&mut self.wal_file, &bytes, trx_id)?;
         self.memory = bytes;
         Ok(())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.memory.is_empty()
     }
 }
 

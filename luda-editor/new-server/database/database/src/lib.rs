@@ -1,20 +1,21 @@
 mod document_store;
-mod nfs_locker_version;
+mod fs_locker_version;
 
 pub use document::*;
 pub use document_store::DocumentStore;
-use document_store::NfsStoreError;
-pub use migration::schema;
+use fs_locker_version::FsLockerVersionDocStore;
+use std::sync::Arc;
 
 pub async fn init(mount_point: impl AsRef<std::path::Path>) -> anyhow::Result<Database> {
-    Ok(Database {
-        store: document_store::NfsV4DocStore::new(mount_point),
-    })
+    todo!()
+    // Ok(Database {
+    //     store: document_store::NfsV4DocStore::new(mount_point),
+    // })
 }
 
 #[derive(Clone)]
 pub struct Database {
-    store: document_store::NfsV4DocStore,
+    store: Arc<FsLockerVersionDocStore>,
 }
 impl Database {
     pub async fn get<T: Document>(
@@ -48,7 +49,6 @@ impl Database {
 #[derive(Debug)]
 pub enum Error {
     IoError(std::io::Error),
-    DbInternalError(NfsStoreError),
     SerializationError(SerErr),
     AlreadyExistsOnCreate,
     NotExistsOnUpdate,
@@ -70,11 +70,6 @@ impl From<std::io::Error> for Error {
 impl From<anyhow::Error> for Error {
     fn from(e: anyhow::Error) -> Self {
         Error::Anyhow(e)
-    }
-}
-impl From<NfsStoreError> for Error {
-    fn from(e: NfsStoreError) -> Self {
-        Error::DbInternalError(e)
     }
 }
 impl From<SerErr> for Error {
