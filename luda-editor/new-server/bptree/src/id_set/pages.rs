@@ -154,9 +154,7 @@ impl InternalNode {
         self.ids
             .into_iter()
             .take(self.id_count as usize)
-            .enumerate()
-            .find(|(_, id_)| id < *id_)
-            .map(|(i, _)| i)
+            .position(|id_| id < id_)
             .unwrap_or(self.id_count as usize)
     }
     pub fn find_child_offset_for(&self, id: Id) -> PageOffset {
@@ -270,9 +268,7 @@ impl LeafNode {
         self.ids
             .into_iter()
             .take(self.id_count as usize)
-            .enumerate()
-            .find(|(_, id_)| id < *id_)
-            .map(|(i, _)| i)
+            .position(|id_| id < id_)
             .unwrap_or(self.id_count as usize)
     }
 
@@ -352,9 +348,7 @@ impl LeafNode {
             .ids
             .into_iter()
             .take(self.id_count as usize)
-            .enumerate()
-            .find(|(_, key_id)| id == *key_id)
-            .map(|(i, _)| i)
+            .position(|key_id| id == key_id)
             .unwrap();
 
         if index + 1 < self.id_count as usize {
