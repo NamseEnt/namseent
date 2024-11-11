@@ -20,34 +20,45 @@ mod operator;
 mod pages;
 mod wal;
 
-use anyhow::Result;
 use backend::*;
 use cache::*;
 use fd::*;
 pub use frontend::*;
 use operator::*;
 use pages::*;
+use thiserror::Error;
 use tokio::sync::oneshot;
 use wal::*;
 
 pub type Id = u128;
 
-enum Request {
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Something broken, please close and reopen the IdSet")]
+    Broken,
+    #[error("Temporary error")]
+    Temporary,
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+}
+type Result<T> = std::result::Result<T, Error>;
+
+enum FeBeRequest {
     Insert {
         id: Id,
-        tx: oneshot::Sender<Result<(), ()>>,
+        tx: oneshot::Sender<std::result::Result<(), ()>>,
     },
     Delete {
         id: Id,
-        tx: oneshot::Sender<Result<(), ()>>,
+        tx: oneshot::Sender<std::result::Result<(), ()>>,
     },
     Contains {
         id: Id,
-        tx: oneshot::Sender<Result<bool, ()>>,
+        tx: oneshot::Sender<std::result::Result<bool, ()>>,
     },
     Next {
         exclusive_start_id: Option<Id>,
-        tx: oneshot::Sender<Result<Option<Vec<Id>>, ()>>,
+        tx: oneshot::Sender<std::result::Result<Option<Vec<Id>>, ()>>,
     },
     Close,
 }

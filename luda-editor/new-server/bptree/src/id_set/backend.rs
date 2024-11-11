@@ -2,22 +2,24 @@ use super::*;
 use std::{path::Path, time::Duration};
 use tokio::{sync::mpsc::Receiver, time::timeout};
 
+type Result<T> = std::result::Result<T, BackendError>;
+
 pub struct Backend {
     file_read_fd: ReadFd,
     file_write_fd: WriteFd,
     wal: Wal,
     cache: PageCache,
-    request_rx: Receiver<Request>,
+    request_rx: Receiver<FeBeRequest>,
     backend_close_tx: oneshot::Sender<()>,
 }
 
 impl Backend {
     pub async fn open(
         path: impl AsRef<Path>,
-        request_rx: Receiver<Request>,
+        request_rx: Receiver<FeBeRequest>,
         cache: PageCache,
         backend_close_tx: oneshot::Sender<()>,
-    ) -> Result<()> {
+    ) -> std::io::Result<()> {
         let path = path.as_ref();
 
         let file = tokio::fs::OpenOptions::new()
@@ -59,22 +61,22 @@ impl Backend {
 
                 let mut txs = Vec::<Tx>::new();
 
-                let mut result = Ok(());
+                let mut result: Result<()> = Ok(());
 
                 let start_time = tokio::time::Instant::now();
 
                 loop {
                     for request in requests.drain(..) {
                         match request {
-                            Request::Insert { id, tx } => {
+                            FeBeRequest::Insert { id, tx } => {
                                 txs.push(Tx::Insert { tx });
-                                result = operator.insert(id).await;
+                                result = operator.insert(id).await.map_err(BackendError::from);
                             }
-                            Request::Delete { id, tx } => {
+                            FeBeRequest::Delete { id, tx } => {
                                 txs.push(Tx::Delete { tx });
-                                result = operator.delete(id).await;
+                                result = operator.delete(id).await.map_err(BackendError::from);
                             }
-                            Request::Contains { id, tx } => {
+                            FeBeRequest::Contains { id, tx } => {
                                 let contains_result = operator.contains(id).await;
                                 let tx_result;
                                 match contains_result {
@@ -84,7 +86,7 @@ impl Backend {
                                     }
                                     Err(err) => {
                                         tx_result = Err(());
-                                        result = Err(err);
+                                        result = Err(err.into());
                                     }
                                 }
                                 txs.push(Tx::Contains {
@@ -92,7 +94,7 @@ impl Backend {
                                     result: tx_result,
                                 });
                             }
-                            Request::Next {
+                            FeBeRequest::Next {
                                 exclusive_start_id,
                                 tx,
                             } => {
@@ -105,7 +107,7 @@ impl Backend {
                                     }
                                     Err(err) => {
                                         tx_result = Err(());
-                                        result = Err(err);
+                                        result = Err(err.into());
                                     }
                                 };
 
@@ -114,7 +116,7 @@ impl Backend {
                                     result: tx_result,
                                 });
                             }
-                            Request::Close => {
+                            FeBeRequest::Close => {
                                 close_requested = true;
                             }
                         }
@@ -153,22 +155,21 @@ impl Backend {
                         pages_read_from_file,
                     } = operator.done();
 
-                    result = self.wal.update_pages(&updated_pages);
+                    result = self
+                        .wal
+                        .update_pages(&updated_pages)
+                        .map_err(BackendError::from);
 
-                    if let Err(err) = &result {
-                        if let Some(ExecuteError::ExecutorDown) = err.downcast_ref::<ExecuteError>()
-                        {
-                            eprintln!("Executor down!");
-                            break 'outer;
-                        }
+                    if let Err(BackendError::Wal(WalError::ExecutorDown)) = &result {
+                        eprintln!("Executor down!");
+                        break 'outer;
                     }
 
                     if result.is_ok() {
                         let mut new_pages = pages_read_from_file;
                         new_pages.append(&mut updated_pages);
                         let stale_tuples = self.cache.push(new_pages);
-                        if let Err(err) = self.write_staled_pages(stale_tuples).await {
-                            eprintln!("Error on writing staled pages: {:?}", err);
+                        if self.write_staled_pages(stale_tuples).await.is_err() {
                             break 'outer;
                         }
                     }
@@ -208,14 +209,17 @@ impl Backend {
         });
     }
 
-    /// Don't fsync
-    async fn write_staled_pages(&mut self, stale_tuples: Vec<(PageOffset, Page)>) -> Result<()> {
+    /// NOTE: Don't fsync here.
+    async fn write_staled_pages(
+        &mut self,
+        stale_tuples: Vec<(PageOffset, Page)>,
+    ) -> std::result::Result<(), ()> {
         if stale_tuples.is_empty() {
             return Ok(());
         }
         let mut sleep_time = Duration::from_millis(100);
         for _ in 0..=10 {
-            let result: Result<()> = (|| {
+            let result: std::io::Result<()> = (|| {
                 for (offset, page) in &stale_tuples {
                     self.file_write_fd
                         .write_exact(page.as_slice(), offset.file_offset())?;
@@ -232,23 +236,31 @@ impl Backend {
             sleep_time = (sleep_time * 2).max(Duration::from_secs(4));
         }
 
-        anyhow::bail!("Too many retrial on writing staled pages");
+        Err(())
     }
+}
+
+#[derive(Debug, Error)]
+enum BackendError {
+    #[error("Error on wal: {0}")]
+    Wal(#[from] WalError),
+    #[error("io: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 enum Tx {
     Insert {
-        tx: oneshot::Sender<Result<(), ()>>,
+        tx: oneshot::Sender<std::result::Result<(), ()>>,
     },
     Delete {
-        tx: oneshot::Sender<Result<(), ()>>,
+        tx: oneshot::Sender<std::result::Result<(), ()>>,
     },
     Contains {
-        tx: oneshot::Sender<Result<bool, ()>>,
-        result: Result<bool, ()>,
+        tx: oneshot::Sender<std::result::Result<bool, ()>>,
+        result: std::result::Result<bool, ()>,
     },
     Next {
-        tx: oneshot::Sender<Result<Option<Vec<Id>>, ()>>,
-        result: Result<Option<Vec<Id>>, ()>,
+        tx: oneshot::Sender<std::result::Result<Option<Vec<Id>>, ()>>,
+        result: std::result::Result<Option<Vec<Id>>, ()>,
     },
 }
