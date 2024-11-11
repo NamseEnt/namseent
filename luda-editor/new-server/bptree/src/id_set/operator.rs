@@ -1,6 +1,8 @@
 use super::*;
 use std::collections::{btree_map::Entry, BTreeMap};
 
+type Result<T> = std::io::Result<T>;
+
 pub struct Operator {
     cache: CachedPages,
     pages_updated: BTreeMap<PageOffset, Page>,
@@ -100,10 +102,7 @@ impl Operator {
         let contains = leaf_node.contains(id);
         Ok(contains)
     }
-    pub async fn next(
-        &mut self,
-        exclusive_start_id: Option<u128>,
-    ) -> std::result::Result<Option<Vec<Id>>, anyhow::Error> {
+    pub async fn next(&mut self, exclusive_start_id: Option<u128>) -> Result<Option<Vec<Id>>> {
         let mut leaf_node_offset = self
             .find_leaf_node_for(exclusive_start_id.unwrap_or_default())
             .await?;

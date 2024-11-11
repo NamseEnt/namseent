@@ -9,7 +9,7 @@ use std::{
     os::fd::{IntoRawFd, RawFd},
 };
 
-type Result<T> = anyhow::Result<T>;
+type Result<T> = std::io::Result<T>;
 
 pub fn split_file(file: File) -> (ReadFd, WriteFd) {
     let fd = file.into_raw_fd();
@@ -63,10 +63,10 @@ impl ReadFd {
                 )
             };
             if len < 0 {
-                return Err(Error::last_os_error().into());
+                return Err(Error::last_os_error());
             }
             if len == 0 {
-                return Err(Error::from(io::ErrorKind::UnexpectedEof).into());
+                return Err(Error::from(io::ErrorKind::UnexpectedEof));
             }
             buf_offset += len as usize;
         }
@@ -97,7 +97,7 @@ impl WriteFd {
                 )
             };
             if len < 0 {
-                return Err(Error::last_os_error().into());
+                return Err(Error::last_os_error());
             }
             assert_ne!(len, 0);
             buf_offset += len as usize;
@@ -108,7 +108,7 @@ impl WriteFd {
 
     pub fn set_len(&mut self, len: usize) -> Result<()> {
         if unsafe { ftruncate(self.fd, len as _) } < 0 {
-            Err(Error::last_os_error().into())
+            Err(Error::last_os_error())
         } else {
             Ok(())
         }
@@ -116,7 +116,7 @@ impl WriteFd {
 
     pub fn fsync(&mut self) -> Result<()> {
         if unsafe { fsync(self.fd) } < 0 {
-            Err(Error::last_os_error().into())
+            Err(Error::last_os_error())
         } else {
             Ok(())
         }
@@ -131,7 +131,7 @@ impl WriteFd {
                 unsafe { sendfile(self.fd, source.fd(), &mut offset, count - offset as usize) };
 
             if len < 0 {
-                return Err(Error::last_os_error().into());
+                return Err(Error::last_os_error());
             }
             assert!(offset > 0);
             offset += len as i64;
@@ -150,7 +150,7 @@ pub(crate) trait BorrowFd {
         unsafe {
             let mut stat = std::mem::MaybeUninit::<libc::stat64>::uninit();
             if fstat64(self.fd(), stat.as_mut_ptr()) < 0 {
-                Err(Error::last_os_error().into())
+                Err(Error::last_os_error())
             } else {
                 Ok(stat.assume_init().st_size as usize)
             }

@@ -1,17 +1,25 @@
 use super::*;
 use std::{
     collections::VecDeque,
+    fmt::Debug,
     path::{Path, PathBuf},
     sync::Arc,
 };
 use tokio::sync::{mpsc, oneshot};
 
 /// Frontend for the IdSet data structure.
+#[derive(Clone)]
 pub struct IdSet {
     path: PathBuf,
-    request_tx: Arc<mpsc::Sender<Request>>,
     cache: PageCache,
-    backend_close_rx: oneshot::Receiver<()>,
+    request_tx: Arc<mpsc::Sender<FeBeRequest>>,
+    backend_close_rx: Arc<oneshot::Receiver<()>>,
+}
+
+impl Debug for IdSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IdSet").field("path", &self.path).finish()
+    }
 }
 
 impl IdSet {
@@ -22,18 +30,18 @@ impl IdSet {
     ///   - 1 cache is 4KB. 100 `cache_limit` will be 400KB.
     ///   - Put enough `cache_limit`.
     ///     - If `IdSet` cannot find data from cache, it will read from disk, which is very slow.
-    pub async fn new(path: impl AsRef<Path>, cache_limit: usize) -> Result<Arc<Self>> {
+    pub async fn new(path: impl AsRef<Path>, cache_limit: usize) -> Result<Self> {
         let path = path.as_ref();
 
         let (request_tx, request_rx) = mpsc::channel(4096);
         let (backend_close_tx, backend_close_rx) = oneshot::channel();
 
-        let this = Arc::new(Self {
+        let this = Self {
             path: path.to_path_buf(),
             request_tx: Arc::new(request_tx),
             cache: PageCache::new(cache_limit),
-            backend_close_rx,
-        });
+            backend_close_rx: Arc::new(backend_close_rx),
+        };
 
         Backend::open(&this.path, request_rx, this.cache.clone(), backend_close_tx).await?;
 
@@ -41,27 +49,11 @@ impl IdSet {
     }
     pub async fn insert(&self, id: u128) -> Result<()> {
         let (tx, rx) = oneshot::channel();
-
-        self.request_tx
-            .send(Request::Insert { id, tx })
-            .await
-            .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
-
-        rx.await
-            .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
-            .map_err(|_| anyhow::anyhow!("Failed to insert id: {}", id))
+        self.send_request(FeBeRequest::Insert { id, tx }, rx).await
     }
     pub async fn delete(&self, id: u128) -> Result<()> {
         let (tx, rx) = oneshot::channel();
-
-        self.request_tx
-            .send(Request::Delete { id, tx })
-            .await
-            .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
-
-        rx.await
-            .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
-            .map_err(|_| anyhow::anyhow!("Failed to delete id: {}", id))
+        self.send_request(FeBeRequest::Delete { id, tx }, rx).await
     }
     pub async fn contains(&self, id: u128) -> Result<bool> {
         if let Some(cached) = self.cache.contains_id(id) {
@@ -69,15 +61,8 @@ impl IdSet {
         }
 
         let (tx, rx) = oneshot::channel();
-
-        self.request_tx
-            .send(Request::Contains { id, tx })
+        self.send_request(FeBeRequest::Contains { id, tx }, rx)
             .await
-            .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
-
-        rx.await
-            .map_err(|_| anyhow::anyhow!("Failed to received result from rx, id: {}", id))?
-            .map_err(|_| anyhow::anyhow!("Failed to check if id exists: {}", id))
     }
     /// # Return
     /// - `None` if there is no more data.
@@ -87,30 +72,16 @@ impl IdSet {
         }
 
         let (tx, rx) = oneshot::channel();
-
-        self.request_tx
-            .send(Request::Next {
+        self.send_request(
+            FeBeRequest::Next {
                 exclusive_start_id,
                 tx,
-            })
-            .await
-            .map_err(|_| anyhow::anyhow!("IdSet backend is down"))?;
-
-        rx.await
-            .map_err(|_| {
-                anyhow::anyhow!(
-                    "Failed to received result from rx, exclusive_start_id: {:?}",
-                    exclusive_start_id
-                )
-            })?
-            .map_err(|_| {
-                anyhow::anyhow!(
-                    "Failed to get next of exclusive_start_id exists: {:?}",
-                    exclusive_start_id
-                )
-            })
+            },
+            rx,
+        )
+        .await
     }
-    pub fn stream(self: &Arc<Self>) -> impl futures::Stream<Item = Result<Id>> + 'static + Unpin {
+    pub fn stream(&self) -> impl futures::Stream<Item = Result<Id>> + 'static + Unpin {
         struct State {
             exclusive_start_id: Option<Id>,
             ids: VecDeque<Id>,
@@ -145,15 +116,42 @@ impl IdSet {
             },
         ))
     }
-    pub async fn try_close(self: Arc<Self>) -> Result<(), Arc<Self>> {
-        let inner = Arc::try_unwrap(self)?;
+    pub async fn try_close(self) -> std::result::Result<(), Self> {
+        let Self {
+            path,
+            cache,
+            request_tx,
+            backend_close_rx,
+        } = self;
+        match Arc::try_unwrap(backend_close_rx) {
+            Ok(backend_close_rx) => {
+                if request_tx.send(FeBeRequest::Close).await.is_err() {
+                    return Ok(());
+                }
 
-        if inner.request_tx.send(Request::Close).await.is_err() {
-            return Ok(());
+                _ = backend_close_rx.await;
+                Ok(())
+            }
+            Err(backend_close_rx) => Err(Self {
+                path,
+                cache,
+                request_tx,
+                backend_close_rx,
+            }),
         }
+    }
+    async fn send_request<T>(
+        &self,
+        request: FeBeRequest,
+        rx: oneshot::Receiver<std::result::Result<T, ()>>,
+    ) -> Result<T> {
+        self.request_tx
+            .send(request)
+            .await
+            .map_err(|_| Error::Broken)?;
 
-        _ = inner.backend_close_rx.await;
-
-        Ok(())
+        rx.await
+            .map_err(|_| Error::Broken)?
+            .map_err(|_| Error::Temporary)
     }
 }

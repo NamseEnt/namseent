@@ -7,12 +7,12 @@ edition = "2021"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-anyhow = { version = "1", features = ["backtrace"] }
 arc-swap = "1"
 bytes = "1"
 crc = "3"
 futures = "0.3.31"
 libc = "0.2"
+thiserror = "2"
 tokio = { version = "1", features = ["fs", "macros", "rt", "sync", "time"] }
 
 [dev-dependencies]
