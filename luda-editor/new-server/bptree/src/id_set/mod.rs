@@ -38,8 +38,6 @@ pub enum Error {
     Broken,
     #[error("Temporary error")]
     Temporary,
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
 }
 type Result<T> = std::result::Result<T, Error>;
 
