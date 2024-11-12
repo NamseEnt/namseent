@@ -194,6 +194,8 @@ impl Wal {
 
     /// This must be called before writing to the file.
     fn start_write(&mut self) -> Result<()> {
+        self.written = 0;
+
         let (read_offset, flag) = self.read_offset.get_with_flag();
 
         let reader_cached_writer = read_offset == self.write_offset && self.track_flag == flag;
