@@ -6,6 +6,7 @@
 //! - Memory cache for fast reads
 //!
 
+pub mod bp_map;
 mod checksum;
 pub mod id_set;
 
