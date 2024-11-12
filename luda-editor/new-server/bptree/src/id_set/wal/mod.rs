@@ -204,7 +204,6 @@ impl Wal {
                 .send(ExecutorRequest::Reset)
                 .map_err(|_| WalError::ExecutorDown)?;
             self.wal_write_fd.set_len(0)?;
-            self.written = 0;
             self.write_offset = 0;
             self.track_flag = !self.track_flag;
         }
