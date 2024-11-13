@@ -10,7 +10,7 @@ use std::{
     time::Instant,
 };
 
-pub(crate) type PagesMap = BTreeMap<PageRange, WithLastRefTime<PageBlockShared>>;
+pub(crate) type PagesMap = BTreeMap<PageRange, WithLastRefTime<PageBlock>>;
 pub(crate) type CachedPages = Arc<PagesMap>;
 
 #[derive(Debug, Clone)]
@@ -39,7 +39,7 @@ impl PageCache {
             cache.append(
                 &mut new_pages
                     .into_iter()
-                    .map(|(offset, page)| (offset, WithLastRefTime::new(page.into())))
+                    .map(|(offset, page)| (offset, WithLastRefTime::new(page)))
                     .collect::<BTreeMap<_, _>>(),
             );
             self.inner.store(Arc::new(cache));
@@ -55,7 +55,7 @@ impl PageCache {
             evicted.extend(
                 &mut std::mem::take(&mut cache)
                     .into_iter()
-                    .map(|(offset, page)| (offset, page.inner.into())),
+                    .map(|(offset, page)| (offset, page.inner)),
             );
 
             if evict_from_new_pages > 0 {
@@ -65,7 +65,7 @@ impl PageCache {
                 evicted.append(&mut evicts);
                 cache = new_pages_vec
                     .into_iter()
-                    .map(|(offset, page)| (offset, WithLastRefTime::new(page.into())))
+                    .map(|(offset, page)| (offset, WithLastRefTime::new(page)))
                     .collect();
             }
         } else {
@@ -79,14 +79,14 @@ impl PageCache {
             evicted.extend(
                 evicts
                     .into_iter()
-                    .map(|(offset, page)| (offset, page.inner.into())),
+                    .map(|(offset, page)| (offset, page.inner)),
             );
 
             cache = cache_vec.into_iter().collect();
             cache.append(
                 &mut new_pages
                     .into_iter()
-                    .map(|(offset, page)| (offset, WithLastRefTime::new(page.into())))
+                    .map(|(offset, page)| (offset, WithLastRefTime::new(page)))
                     .collect(),
             );
         }
@@ -97,41 +97,43 @@ impl PageCache {
     }
     pub fn contains_key(&self, key: Key) -> Option<bool> {
         let guard = self.inner.load();
-        let header = guard.get(&PageRange::HEADER)?.as_header();
+        let header = guard.get(&PageRange::HEADER)?.as_page().as_header();
         let mut node = guard
             .get(&PageRange::page(header.root_node_offset))?
-            .as_node();
+            .as_page();
 
         loop {
-            match node.as_one_of() {
-                NodeMatchRef::Internal { internal_node } => {
+            match node {
+                Page::InternalNode(internal_node) => {
                     let child_offset = internal_node.find_child_offset_for(key);
-                    node = guard.get(&PageRange::page(child_offset))?.as_node();
+                    node = guard.get(&PageRange::page(child_offset))?.as_page();
                 }
-                NodeMatchRef::Leaf { leaf_node } => return Some(leaf_node.contains(key)),
+                Page::LeafNode(leaf_node) => return Some(leaf_node.contains(key)),
+                x => panic!("Unexpected page type: {:?}", x),
             }
         }
     }
     pub fn get(&self, key: Key) -> Option<Option<Bytes>> {
         let guard = self.inner.load();
-        let header = guard.get(&PageRange::HEADER)?.as_header();
+        let header = guard.get(&PageRange::HEADER)?.as_page().as_header();
         let mut node = guard
             .get(&PageRange::page(header.root_node_offset))?
-            .as_node();
+            .as_page();
 
         loop {
-            match node.as_one_of() {
-                NodeMatchRef::Internal { internal_node } => {
+            match node {
+                Page::InternalNode(internal_node) => {
                     let child_offset = internal_node.find_child_offset_for(key);
-                    node = guard.get(&PageRange::page(child_offset))?.as_node();
+                    node = guard.get(&PageRange::page(child_offset))?.as_page();
                 }
-                NodeMatchRef::Leaf { leaf_node } => {
+                Page::LeafNode(leaf_node) => {
                     let Some(record_page_range) = leaf_node.get_record_page_range(key) else {
                         return Some(None);
                     };
-                    let bytes = guard.get(&record_page_range)?.as_record();
+                    let bytes = guard.get(&record_page_range)?.as_record().content();
                     return Some(Some(bytes));
                 }
+                x => panic!("Unexpected page type: {:?}", x),
             }
         }
     }
@@ -143,27 +145,30 @@ impl PageCache {
     pub(crate) fn next(&self, exclusive_start_key: Option<Key>) -> Option<Option<Vec<Entry>>> {
         let key = exclusive_start_key.unwrap_or_default();
         let guard = self.inner.load();
-        let header = guard.get(&PageRange::page(PageOffset::HEADER))?.as_header();
+        let header = guard
+            .get(&PageRange::page(PageOffset::HEADER))?
+            .as_page()
+            .as_header();
         let mut node = guard
             .get(&PageRange::page(header.root_node_offset))?
-            .as_node();
+            .as_page();
 
         loop {
-            match node.as_one_of() {
-                NodeMatchRef::Internal { internal_node } => {
+            match node {
+                Page::InternalNode(internal_node) => {
                     let child_offset = internal_node.find_child_offset_for(key);
                     assert_ne!(child_offset, PageOffset::NULL);
 
-                    node = guard.get(&PageRange::page(child_offset))?.as_node();
+                    node = guard.get(&PageRange::page(child_offset))?.as_page();
                 }
-                NodeMatchRef::Leaf { leaf_node } => match leaf_node.next(exclusive_start_key) {
+                Page::LeafNode(leaf_node) => match leaf_node.next(exclusive_start_key) {
                     NextResult::Found { key_ranges } => {
                         let entries = key_ranges
                             .into_iter()
                             .map(|(key, record_page_page_range)| {
                                 guard
                                     .get(&record_page_page_range)
-                                    .map(|x| x.as_record())
+                                    .map(|x| x.as_record().content())
                                     .map(|bytes| Entry { key, value: bytes })
                             })
                             .collect::<Option<Vec<_>>>()?;
@@ -174,11 +179,12 @@ impl PageCache {
                     }
                     NextResult::CheckRightNode { right_node_offset } => {
                         assert_ne!(right_node_offset, PageOffset::NULL);
-                        node = guard.get(&PageRange::page(right_node_offset))?.as_node();
-                        assert!(node.is_leaf());
+                        node = guard.get(&PageRange::page(right_node_offset))?.as_page();
+                        assert!(matches!(node, Page::LeafNode(_)));
                         continue;
                     }
                 },
+                x => panic!("Unexpected page type: {:?}", x),
             }
         }
     }

@@ -1,7 +1,6 @@
 use super::*;
 use bytes::Bytes;
 use std::{
-    collections::VecDeque,
     fmt::Debug,
     path::{Path, PathBuf},
     sync::Arc,

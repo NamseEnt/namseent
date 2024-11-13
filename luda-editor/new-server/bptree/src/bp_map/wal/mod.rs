@@ -18,7 +18,7 @@ mod executor;
 
 use super::*;
 use crate::checksum;
-use bytes::BufMut;
+use bytes::{Buf, BufMut};
 use executor::*;
 use std::{
     collections::BTreeMap,
@@ -96,18 +96,21 @@ impl Wal {
                 }
                 Err(err) => {
                     if err.is_corrupted() {
+                        if file_write_fd.len()? == 0 {
+                            match err {
+                                WalError::Io(error) => {
+                                    return Err(error);
+                                }
+                                x => unreachable!("{:?}", x),
+                            }
+                        }
                         break;
                     }
                     match err {
-                        WalError::Executor(execute_error) => match execute_error {
-                            ExecuteError::Checksum { .. } => unreachable!(),
-                            ExecuteError::WrongBodyType { .. } => unreachable!(),
-                            ExecuteError::WrongBodyLength { .. } => unreachable!(),
-                        },
                         WalError::Io(error) => {
                             return Err(error);
                         }
-                        WalError::ExecutorDown => unreachable!(),
+                        x => unreachable!("{:?}", x),
                     }
                 }
             };
@@ -150,16 +153,16 @@ impl Wal {
     }
 
     fn write_wal<Body: WalBody>(&mut self, body: Body) -> std::io::Result<()> {
-        let body_bytes = body.as_slice();
+        let body_bytes = body.to_vec();
         let header = WalHeader {
-            checksum: checksum(body_bytes),
+            checksum: checksum(&body_bytes),
             body_length: body_bytes.len() as u32,
             body_types: Body::body_types(),
         };
 
         let mut bytes = Vec::with_capacity(size_of::<WalHeader>() + body_bytes.len());
-        bytes.put_slice(header.as_slice());
-        bytes.put_slice(body_bytes);
+        bytes.put_slice(&header.to_vec());
+        bytes.put_slice(&body_bytes);
 
         self.write(&bytes)?;
 
@@ -283,11 +286,41 @@ struct WalHeader {
     body_length: u32,
     body_types: u8,
 }
-impl AsSlice for WalHeader {}
+const WAL_HEADER_SIZE: usize = 8 + 4 + 1;
+
+impl Serialize for WalHeader {
+    fn to_vec(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(size_of::<Self>());
+        bytes.put_u64_le(self.checksum);
+        bytes.put_u32_le(self.body_length);
+        bytes.put_u8(self.body_types);
+        bytes
+    }
+}
+impl Deserialize for WalHeader {
+    fn from_slice(slice: &[u8]) -> Self {
+        let mut cursor = std::io::Cursor::new(slice);
+        Self {
+            checksum: cursor.get_u64_le(),
+            body_length: cursor.get_u32_le(),
+            body_types: cursor.get_u8(),
+        }
+    }
+}
 
 #[repr(C)]
 struct Init;
-impl AsSlice for Init {}
+impl Serialize for Init {
+    fn to_vec(&self) -> Vec<u8> {
+        vec![]
+    }
+}
+impl Deserialize for Init {
+    fn from_slice(slice: &[u8]) -> Self {
+        assert!(slice.is_empty());
+        Self
+    }
+}
 impl WalBody for Init {
     fn body_types() -> u8 {
         0
@@ -307,27 +340,33 @@ impl PutPageBlocks {
         for (range, block) in page_blocks {
             bytes.put_u32_le(range.page_offset().as_u32());
             bytes.put_u8(range.page_count());
-            assert_eq!(
-                range.page_count() as usize * PAGE_LEN,
-                block.as_slice().len()
-            );
-            bytes.put_slice(block.as_slice());
+            let block_bytes = block.to_vec();
+            assert_eq!(range.page_count() as usize * PAGE_LEN, block_bytes.len());
+            bytes.put_slice(&block_bytes);
         }
         assert_eq!(bytes.len() % Self::CHUNK_SIZE, 0);
         Self { bytes }
     }
 }
-impl AsSlice for PutPageBlocks {
-    fn as_slice(&self) -> &[u8] {
-        &self.bytes
+impl Serialize for PutPageBlocks {
+    fn to_vec(&self) -> Vec<u8> {
+        self.bytes.clone()
     }
 }
+impl Deserialize for PutPageBlocks {
+    fn from_slice(slice: &[u8]) -> Self {
+        Self {
+            bytes: slice.to_vec(),
+        }
+    }
+}
+
 impl WalBody for PutPageBlocks {
     fn body_types() -> u8 {
         1
     }
 }
 
-trait WalBody: AsSlice {
+trait WalBody: Serialize + Deserialize {
     fn body_types() -> u8;
 }

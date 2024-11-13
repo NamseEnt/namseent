@@ -1,11 +1,9 @@
 //! Custom Fd to manage multiple read/write operations on a file descriptor.
 
-use super::{PageBlock, PageRange};
 use libc::*;
 use std::{
     fs::File,
-    io::{self, Error},
-    mem::MaybeUninit,
+    io::Error,
     os::fd::{IntoRawFd, RawFd},
 };
 
@@ -22,53 +20,11 @@ pub struct ReadFd {
 }
 
 impl ReadFd {
-    pub async fn read_type<T: Send + 'static>(&self, offset: usize) -> Result<T> {
-        let size = size_of::<T>();
-        if size == 0 {
-            return Ok(unsafe { std::mem::zeroed() });
-        }
-
-        let fd = self.fd;
-        tokio::task::spawn_blocking(move || {
-            let mut t = MaybeUninit::<T>::uninit();
-            Self::read(fd, t.as_mut_ptr() as _, size, offset)?;
-            Ok(unsafe { t.assume_init() })
-        })
-        .await?
-    }
-
-    pub async fn read_block(&self, block_page_range: PageRange) -> Result<PageBlock> {
-        let fd = self.fd;
-        tokio::task::spawn_blocking(move || {
-            let mut buf = Vec::with_capacity(block_page_range.byte_len());
-            buf.spare_capacity_mut();
-            unsafe {
-                buf.set_len(block_page_range.byte_len());
-            }
-
-            Self::read(
-                fd,
-                buf.as_mut_ptr() as _,
-                buf.len(),
-                block_page_range.file_offset(),
-            )?;
-
-            Ok(PageBlock::from_vec(buf, block_page_range.page_count()))
-        })
-        .await?
-    }
-
     pub async fn read_exact(&self, file_offset: usize, length: usize) -> Result<Vec<u8>> {
         let fd = self.fd;
         tokio::task::spawn_blocking(move || {
-            let mut buf = Vec::with_capacity(length);
-            buf.spare_capacity_mut();
-            unsafe {
-                buf.set_len(length);
-            }
-
+            let mut buf = vec![0; length];
             Self::read(fd, buf.as_mut_ptr() as _, buf.len(), file_offset)?;
-
             Ok(buf)
         })
         .await?
@@ -90,7 +46,12 @@ impl ReadFd {
                 return Err(Error::last_os_error());
             }
             if len == 0 {
-                return Err(Error::from(io::ErrorKind::UnexpectedEof));
+                println!("buf_offset: {}", buf_offset);
+                println!("buf_len: {}", buf_len);
+                println!("offset: {}", offset);
+                println!("file_len: {}", file_len(fd).unwrap());
+                eprintln!("read_exact: Unexpected EOF");
+                return Err(Error::from(std::io::ErrorKind::UnexpectedEof));
             }
             buf_offset += len as usize;
         }
@@ -171,13 +132,17 @@ pub(crate) trait BorrowFd {
 
     /// Length from metadata
     fn len(&self) -> Result<usize> {
-        unsafe {
-            let mut stat = std::mem::MaybeUninit::<libc::stat64>::uninit();
-            if fstat64(self.fd(), stat.as_mut_ptr()) < 0 {
-                Err(Error::last_os_error())
-            } else {
-                Ok(stat.assume_init().st_size as usize)
-            }
+        file_len(self.fd())
+    }
+}
+
+fn file_len(fd: i32) -> Result<usize> {
+    unsafe {
+        let mut stat = std::mem::MaybeUninit::<libc::stat64>::uninit();
+        if fstat64(fd, stat.as_mut_ptr()) < 0 {
+            Err(Error::last_os_error())
+        } else {
+            Ok(stat.assume_init().st_size as usize)
         }
     }
 }

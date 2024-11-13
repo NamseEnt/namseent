@@ -3,6 +3,8 @@ use std::collections::{btree_map, BTreeMap};
 
 type Result<T> = std::io::Result<T>;
 
+/// Assume that operator will be used while before making error.
+/// If error occurs, state would be corrupted, so don't use that.
 pub struct Operator {
     cache: CachedPages,
     blocks_updated: BTreeMap<PageRange, PageBlock>,
@@ -24,32 +26,37 @@ impl Operator {
 
         let mut route = self.find_route_for_insertion(key).await?;
         let leaf_node_offset = route.pop().unwrap();
-        let leaf_node = self.page_mut(leaf_node_offset).await?.as_leaf_node_mut();
+
+        let right_node_offset = self.reserve_page_offset().await;
+
+        let leaf_node = self
+            .page_mut(leaf_node_offset, PageBlockTypeHint::Node)
+            .await?
+            .as_leaf_node_mut();
 
         if !leaf_node.is_full() {
             leaf_node.insert(key, record_page_range);
+            self.rollback_reserve_page_offset(right_node_offset).await;
             return Ok(());
         }
 
-        let right_node_offset = self.new_page().await?;
-        // ↓ I know this is duplicated code but I need this to pass mutable borrow check
-        let leaf_node = self.page_mut(leaf_node_offset).await?.as_leaf_node_mut();
         let (right_half, center_key) =
             leaf_node.split_and_insert(key, record_page_range, leaf_node_offset, right_node_offset);
-
-        *self.page_mut(right_node_offset).await?.as_leaf_node_mut() = right_half;
+        self.blocks_updated.insert(
+            PageRange::page(right_node_offset),
+            PageBlock::Page(Page::LeafNode(right_half)),
+        );
 
         if route.is_empty() {
             assert_eq!(leaf_node_offset, self.header().await.root_node_offset);
 
-            let internal_node_offset = self.new_page().await?;
-
-            let internal_node = self
-                .page_mut(internal_node_offset)
-                .await?
-                .as_internal_node_mut();
-            *internal_node =
+            let internal_node =
                 InternalNode::new(&[center_key], &[leaf_node_offset, right_node_offset]);
+            let internal_node_offset = self.reserve_page_offset().await;
+            self.blocks_updated.insert(
+                PageRange::page(internal_node_offset),
+                PageBlock::Page(Page::InternalNode(internal_node)),
+            );
 
             self.header_mut().await.root_node_offset = internal_node_offset;
             return Ok(());
@@ -59,17 +66,20 @@ impl Operator {
         let mut right_node_offset = right_node_offset;
 
         while let Some(node_offset) = route.pop() {
-            let internal_node = self.page_mut(node_offset).await?.as_internal_node_mut();
+            let internal_node = self
+                .page_mut(node_offset, PageBlockTypeHint::Node)
+                .await?
+                .as_internal_node_mut();
             let Some((right_node, next_center_key)) =
                 internal_node.insert(center_key, right_node_offset)
             else {
                 return Ok(());
             };
-            right_node_offset = self.new_page().await?;
-            *self
-                .page_mut(right_node_offset)
-                .await?
-                .as_internal_node_mut() = right_node;
+            right_node_offset = self.reserve_page_offset().await;
+            self.blocks_updated.insert(
+                PageRange::page(right_node_offset),
+                PageBlock::Page(Page::InternalNode(right_node)),
+            );
 
             if node_offset != self.header().await.root_node_offset {
                 center_key = next_center_key;
@@ -77,22 +87,28 @@ impl Operator {
             }
 
             assert!(route.is_empty());
-            let new_root_node_offset = self.new_page().await?;
+            let new_root_node_offset = self.reserve_page_offset().await;
             let new_root_node =
                 InternalNode::new(&[next_center_key], &[node_offset, right_node_offset]);
-            *self
-                .page_mut(new_root_node_offset)
-                .await?
-                .as_internal_node_mut() = new_root_node;
+            self.blocks_updated.insert(
+                PageRange::page(new_root_node_offset),
+                PageBlock::Page(Page::InternalNode(new_root_node)),
+            );
         }
 
         Ok(())
     }
     pub async fn delete(&mut self, key: Key) -> Result<()> {
         let leaf_node_offset = self.find_leaf_node_for(key).await?;
-        let leaf_node = self.page(leaf_node_offset).await?.as_leaf_node();
+        let leaf_node = self
+            .page(leaf_node_offset, PageBlockTypeHint::Node)
+            .await?
+            .as_leaf_node();
         if leaf_node.contains(key) {
-            let leaf_node = self.page_mut(leaf_node_offset).await?.as_leaf_node_mut();
+            let leaf_node = self
+                .page_mut(leaf_node_offset, PageBlockTypeHint::Node)
+                .await?
+                .as_leaf_node_mut();
             leaf_node.delete(key);
         }
 
@@ -100,13 +116,19 @@ impl Operator {
     }
     pub async fn contains(&mut self, key: Key) -> Result<bool> {
         let leaf_node_offset = self.find_leaf_node_for(key).await?;
-        let leaf_node = self.page(leaf_node_offset).await?.as_leaf_node();
+        let leaf_node = self
+            .page(leaf_node_offset, PageBlockTypeHint::Node)
+            .await?
+            .as_leaf_node();
         let contains = leaf_node.contains(key);
         Ok(contains)
     }
     pub async fn get(&mut self, key: Key) -> Result<Option<Bytes>> {
         let leaf_node_offset = self.find_leaf_node_for(key).await?;
-        let leaf_node = self.page(leaf_node_offset).await?.as_leaf_node();
+        let leaf_node = self
+            .page(leaf_node_offset, PageBlockTypeHint::Node)
+            .await?
+            .as_leaf_node();
         let Some(record_page_range) = leaf_node.get_record_page_range(key) else {
             return Ok(None);
         };
@@ -118,7 +140,10 @@ impl Operator {
             .find_leaf_node_for(exclusive_start_key.unwrap_or_default())
             .await?;
         loop {
-            let leaf_node = self.page(leaf_node_offset).await?.as_leaf_node();
+            let leaf_node = self
+                .page(leaf_node_offset, PageBlockTypeHint::Node)
+                .await?
+                .as_leaf_node();
             match leaf_node.next(exclusive_start_key) {
                 NextResult::Found { key_ranges } => {
                     let mut entries = vec![];
@@ -152,30 +177,38 @@ impl Operator {
 
         loop {
             route.push(node_offset);
-            let page_block = self.page_block(PageRange::page(node_offset)).await?;
-            match page_block.into_page().as_node().as_one_of() {
-                NodeMatchRef::Internal { internal_node } => {
+            let page_block = self
+                .page_block(PageRange::page(node_offset), PageBlockTypeHint::Node)
+                .await?;
+            match page_block.as_page() {
+                Page::InternalNode(internal_node) => {
                     node_offset = internal_node.find_child_offset_for(key);
                 }
-                NodeMatchRef::Leaf { .. } => {
+                Page::LeafNode(..) => {
                     return Ok(route);
                 }
+                x => unreachable!("{:?}", x),
             }
         }
     }
-    async fn page_mut(&mut self, page_offset: PageOffset) -> Result<&mut Page> {
+    async fn page_mut(
+        &mut self,
+        page_offset: PageOffset,
+        hint: PageBlockTypeHint,
+    ) -> Result<&mut Page> {
         let block_page_range = PageRange::page(page_offset);
 
         if let btree_map::Entry::Vacant(e) = self.blocks_updated.entry(block_page_range) {
             let page_block = {
                 if let Some(page) = self.cache.get(&block_page_range) {
-                    page.as_ref().clone().into()
+                    page.as_ref().clone()
                 } else {
                     if let btree_map::Entry::Vacant(e) =
                         self.blocks_read_from_file.entry(block_page_range)
                     {
                         let page_block =
-                            read_block_from_file(&self.file_read_fd, block_page_range).await?;
+                            read_block_from_file(&self.file_read_fd, block_page_range, hint)
+                                .await?;
                         e.insert(page_block);
                     }
 
@@ -194,39 +227,38 @@ impl Operator {
             .unwrap()
             .as_page_mut())
     }
-    async fn new_page(&mut self) -> Result<PageOffset> {
-        if let Some(page_offset) = self.pop_free_page().await? {
-            Ok(page_offset)
-        } else {
-            self.allocate_page().await
-        }
+    async fn reserve_page_offset(&mut self) -> PageOffset {
+        self.header_mut().await.next_page_offset.fetch_increase(1)
     }
-    async fn pop_free_page(&mut self) -> Result<Option<PageOffset>> {
-        let free_page_stack_top_page_offset = self.header().await.free_page_stack_top_page_offset;
-        if free_page_stack_top_page_offset.is_null() {
-            return Ok(None);
-        }
+    // async fn pop_free_page(&mut self) -> Result<Option<PageOffset>> {
+    //     let free_page_stack_top_page_offset = self.header().await.free_page_stack_top_page_offset;
+    //     if free_page_stack_top_page_offset.is_null() {
+    //         return Ok(None);
+    //     }
 
-        let stack_node = self
-            .page_mut(free_page_stack_top_page_offset)
-            .await?
-            .as_free_page_stack_node_mut();
+    //     let stack_node = self
+    //         .page_mut(free_page_stack_top_page_offset)
+    //         .await?
+    //         .as_free_page_stack_node_mut();
 
-        let page_offset = stack_node.pop();
-        let next_page_offset = stack_node.next_page_offset;
+    //     let page_offset = stack_node.pop();
+    //     let next_page_offset = stack_node.next_page_offset;
 
-        if stack_node.is_empty() {
-            self.header_mut().await.free_page_stack_top_page_offset = next_page_offset;
-        }
+    //     if stack_node.is_empty() {
+    //         self.header_mut().await.free_page_stack_top_page_offset = next_page_offset;
+    //     }
 
-        Ok(Some(page_offset))
-    }
+    //     Ok(Some(page_offset))
+    // }
     async fn header(&mut self) -> &Header {
-        self.page(PageOffset::HEADER).await.unwrap().as_header()
+        self.page(PageOffset::HEADER, PageBlockTypeHint::Header)
+            .await
+            .unwrap()
+            .as_header()
     }
 
     async fn header_mut(&mut self) -> &mut Header {
-        self.page_mut(PageOffset::HEADER)
+        self.page_mut(PageOffset::HEADER, PageBlockTypeHint::Header)
             .await
             .unwrap()
             .as_header_mut()
@@ -235,57 +267,57 @@ impl Operator {
         let mut node_offset = self.header().await.root_node_offset;
 
         loop {
-            let page_block = self.page_block(PageRange::page(node_offset)).await?;
-            match page_block.into_page().as_node().as_one_of() {
-                NodeMatchRef::Internal { internal_node } => {
+            let page_block = self
+                .page_block(PageRange::page(node_offset), PageBlockTypeHint::Node)
+                .await?;
+            match page_block.as_page() {
+                Page::InternalNode(internal_node) => {
                     node_offset = internal_node.find_child_offset_for(key);
                 }
-                NodeMatchRef::Leaf { .. } => {
+                Page::LeafNode(..) => {
                     return Ok(node_offset);
                 }
+                x => unreachable!("{:?}", x),
             };
         }
     }
     async fn record(&mut self, page_range: PageRange) -> Result<Bytes> {
-        Ok(self.page_block(page_range).await?.into_record())
-    }
-    async fn page(&mut self, page_offset: PageOffset) -> Result<&Page> {
         Ok(self
-            .page_block(PageRange::page(page_offset))
+            .page_block(page_range, PageBlockTypeHint::Record)
             .await?
-            .into_page())
+            .as_record()
+            .content())
     }
-    async fn page_block(&mut self, page_range: PageRange) -> Result<PageBlockRef> {
+    async fn page(&mut self, page_offset: PageOffset, hint: PageBlockTypeHint) -> Result<&Page> {
+        Ok(self
+            .page_block(PageRange::page(page_offset), hint)
+            .await?
+            .as_page())
+    }
+    async fn page_block(
+        &mut self,
+        page_range: PageRange,
+        hint: PageBlockTypeHint,
+    ) -> Result<&PageBlock> {
         if let Some(page_block) = self.blocks_updated.get(&page_range) {
-            Ok(page_block.into())
+            Ok(page_block)
         } else if let Some(page_block) = self.cache.get(&page_range) {
-            Ok(page_block.as_ref().into())
+            Ok(page_block.as_ref())
         } else {
             if let btree_map::Entry::Vacant(e) = self.blocks_read_from_file.entry(page_range) {
-                let block = read_block_from_file(&self.file_read_fd, page_range).await?;
+                let block = read_block_from_file(&self.file_read_fd, page_range, hint).await?;
                 e.insert(block);
             }
 
-            Ok(self.blocks_read_from_file.get(&page_range).unwrap().into())
+            Ok(self.blocks_read_from_file.get(&page_range).unwrap())
         }
-    }
-    async fn allocate_page(&mut self) -> Result<PageOffset> {
-        let page_offset = self.header_mut().await.next_page_offset.fetch_increase(1);
-        let page = Page::empty();
-
-        let block = PageBlock::from_page(page);
-
-        let block_page_range = PageRange::data(page_offset, 1);
-        self.blocks_updated.insert(block_page_range, block);
-
-        Ok(page_offset)
     }
     async fn allocate_record_pages(&mut self, value: Bytes) -> Result<PageRange> {
         // TODO: Get contiguous pages from free page stack
 
-        let record_block = PageBlock::record(value);
+        let record = Record::new(value);
 
-        let page_count = record_block.page_count();
+        let page_count = record.page_count();
 
         let page_offset = self
             .header_mut()
@@ -295,18 +327,62 @@ impl Operator {
 
         let block_page_range = PageRange::data(page_offset, page_count);
 
-        self.blocks_updated.insert(block_page_range, record_block);
+        self.blocks_updated
+            .insert(block_page_range, PageBlock::Record(record));
 
         Ok(block_page_range)
     }
+
+    async fn rollback_reserve_page_offset(&mut self, right_node_offset: PageOffset) {
+        assert_eq!(
+            self.header().await.next_page_offset.as_u32(),
+            right_node_offset.as_u32() + 1
+        );
+        self.header_mut().await.next_page_offset.decrease();
+    }
 }
 
-async fn read_block_from_file(read_fd: &ReadFd, block_page_range: PageRange) -> Result<PageBlock> {
-    let block = read_fd.read_block(block_page_range).await?;
-    Ok(block)
+async fn read_block_from_file(
+    read_fd: &ReadFd,
+    block_page_range: PageRange,
+    hint: PageBlockTypeHint,
+) -> Result<PageBlock> {
+    let bytes = read_fd
+        .read_exact(block_page_range.file_offset(), block_page_range.byte_len())
+        .await?;
+
+    match hint {
+        PageBlockTypeHint::Header => {
+            assert_eq!(block_page_range.page_count(), 1);
+            assert_eq!(bytes.len(), PAGE_LEN);
+            let header = Header::from_slice(&bytes);
+            Ok(PageBlock::Page(Page::Header(header)))
+        }
+        PageBlockTypeHint::Record => {
+            let record = Record::from_slice(&bytes);
+            Ok(PageBlock::Record(record))
+        }
+        PageBlockTypeHint::Node => {
+            assert_eq!(bytes.len(), PAGE_LEN);
+            assert_eq!(block_page_range.page_count(), 1);
+            let node = Node::from_slice(&bytes);
+            Ok(PageBlock::Page(match node {
+                Node::Internal(internal_node) => Page::InternalNode(internal_node),
+                Node::Leaf(leaf_node) => Page::LeafNode(leaf_node),
+            }))
+        }
+    }
 }
 
 pub struct Done {
     pub updated_pages: BTreeMap<PageRange, PageBlock>,
     pub pages_read_from_file: BTreeMap<PageRange, PageBlock>,
+}
+
+// TODO: Wrap this hint by functions, not passing every time, because code is too verbose
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum PageBlockTypeHint {
+    Header,
+    Record,
+    Node,
 }

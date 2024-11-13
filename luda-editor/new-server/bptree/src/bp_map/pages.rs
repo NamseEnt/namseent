@@ -1,5 +1,5 @@
 use super::*;
-use bytes::Buf;
+use bytes::{Buf, BufMut};
 use std::fmt::Debug;
 
 pub(crate) const PAGE_LEN: usize = 4096;
@@ -34,18 +34,20 @@ impl PageOffset {
     pub fn as_u32(&self) -> u32 {
         self.value
     }
-}
 
-pub(crate) trait AsSlice: Sized {
-    fn as_slice(&self) -> &[u8] {
-        unsafe {
-            std::slice::from_raw_parts(self as *const _ as *const u8, std::mem::size_of::<Self>())
-        }
+    pub fn decrease(&mut self) {
+        self.value -= 1;
     }
 }
 
-#[repr(C, align(64))]
-#[derive(Clone)]
+pub(crate) trait Serialize {
+    fn to_vec(&self) -> Vec<u8>;
+}
+pub(crate) trait Deserialize {
+    fn from_slice(slice: &[u8]) -> Self;
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct Header {
     /// Would be null
     pub free_page_stack_top_page_offset: PageOffset,
@@ -53,7 +55,6 @@ pub(crate) struct Header {
     pub root_node_offset: PageOffset,
     /// Use this value to allocate new page.
     pub next_page_offset: PageOffset,
-    _padding: [u32; 1021],
 }
 impl Header {
     pub fn new(
@@ -65,25 +66,39 @@ impl Header {
             free_page_stack_top_page_offset,
             root_node_offset,
             next_page_offset,
-            _padding: [0; 1021],
         }
     }
 }
-impl AsSlice for Header {}
-impl Debug for Header {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Header")
-            .field(
-                "free_page_stack_top_page_offset",
-                &self.free_page_stack_top_page_offset,
-            )
-            .field("root_node_offset", &self.root_node_offset)
-            .field("next_page_offset", &self.next_page_offset)
-            .finish()
+impl Serialize for Header {
+    fn to_vec(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(PAGE_LEN);
+
+        bytes.put_u32_le(self.free_page_stack_top_page_offset.as_u32());
+        bytes.put_u32_le(self.root_node_offset.as_u32());
+        bytes.put_u32_le(self.next_page_offset.as_u32());
+
+        bytes.put_bytes(0, PAGE_LEN - bytes.len());
+
+        assert_eq!(bytes.len(), PAGE_LEN);
+        bytes
+    }
+}
+impl Deserialize for Header {
+    fn from_slice(mut slice: &[u8]) -> Self {
+        assert_eq!(slice.len(), PAGE_LEN);
+
+        let free_page_stack_top_page_offset = PageOffset::new(slice.get_u32_le());
+        let root_node_offset = PageOffset::new(slice.get_u32_le());
+        let next_page_offset = PageOffset::new(slice.get_u32_le());
+        Self {
+            free_page_stack_top_page_offset,
+            root_node_offset,
+            next_page_offset,
+        }
     }
 }
 
-#[repr(C, align(64))]
+#[derive(Debug, Clone)]
 pub(crate) struct FreePageStackNode {
     pub next_page_offset: PageOffset,
     pub length: u32,
@@ -103,22 +118,92 @@ impl FreePageStackNode {
         self.length == 0
     }
 }
-impl AsSlice for FreePageStackNode {}
+impl Serialize for FreePageStackNode {
+    fn to_vec(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(PAGE_LEN);
 
-const INTERNAL_NODE_KEY_LEN: usize = 203;
+        bytes.put_u32_le(self.next_page_offset.as_u32());
+        bytes.put_u32_le(self.length);
+        for key in self.free_page_keys {
+            bytes.put_u32_le(key);
+        }
+        assert_eq!(bytes.len(), PAGE_LEN);
+        bytes
+    }
+}
+impl Deserialize for FreePageStackNode {
+    fn from_slice(mut slice: &[u8]) -> Self {
+        assert_eq!(slice.len(), PAGE_LEN);
 
-#[repr(C, align(64))]
+        let next_page_offset = PageOffset::new(slice.get_u32_le());
+        let length = slice.get_u32_le();
+        let mut free_page_keys = [0; 1022];
+        for key in free_page_keys.iter_mut() {
+            *key = slice.get_u32_le();
+        }
+        Self {
+            next_page_offset,
+            length,
+            free_page_keys,
+        }
+    }
+}
+
+const INTERNAL_NODE_KEY_LEN: usize = 204;
+
 #[derive(Clone)]
-/// right skeye child's key is greater or equal to key.
+/// right child's key is greater or equal to key.
 pub(crate) struct InternalNode {
     leaf_type: u8,
-    _padding: [u8; 3],
     key_count: u32,
     keys: [Key; INTERNAL_NODE_KEY_LEN],
     child_offsets: [PageOffset; INTERNAL_NODE_KEY_LEN + 1],
-    _padding_1: u32,
 }
-impl AsSlice for InternalNode {}
+impl Serialize for InternalNode {
+    fn to_vec(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(PAGE_LEN);
+
+        bytes.put_u8(self.leaf_type);
+        bytes.put_bytes(0, 3);
+
+        bytes.put_u32_le(self.key_count);
+        for key in self.keys {
+            bytes.put_u128_le(key);
+        }
+        for offset in self.child_offsets {
+            bytes.put_u32_le(offset.as_u32());
+        }
+        bytes.put_u32_le(0);
+
+        assert_eq!(bytes.len(), PAGE_LEN);
+        bytes
+    }
+}
+impl Deserialize for InternalNode {
+    fn from_slice(mut slice: &[u8]) -> Self {
+        assert_eq!(slice.len(), PAGE_LEN);
+
+        let leaf_type = slice.get_u8();
+        slice.advance(3);
+
+        let key_count = slice.get_u32_le();
+        let mut keys = [0; INTERNAL_NODE_KEY_LEN];
+        for key in keys.iter_mut() {
+            *key = slice.get_u128_le();
+        }
+        let mut child_offsets = [PageOffset::NULL; INTERNAL_NODE_KEY_LEN + 1];
+        for offset in child_offsets.iter_mut() {
+            *offset = PageOffset::new(slice.get_u32_le());
+        }
+
+        Self {
+            leaf_type,
+            key_count,
+            keys,
+            child_offsets,
+        }
+    }
+}
 impl Debug for InternalNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("InternalNode")
@@ -140,7 +225,6 @@ impl InternalNode {
 
         Self {
             leaf_type: 0,
-            _padding: [0; 3],
             key_count: keys.len() as u32,
             keys: {
                 let mut new_keys = [0; INTERNAL_NODE_KEY_LEN];
@@ -152,7 +236,6 @@ impl InternalNode {
                 new_offsets[..child_offsets.len()].copy_from_slice(child_offsets);
                 new_offsets
             },
-            _padding_1: 0,
         }
     }
     fn key_index(&self, key: Key) -> usize {
@@ -173,7 +256,7 @@ impl InternalNode {
     pub fn insert(
         &mut self,
         key: Key,
-        right_skeye_child_offset: PageOffset,
+        right_child_offset: PageOffset,
     ) -> Option<(InternalNode, Key)> {
         let key_index = self.key_index(key);
 
@@ -185,7 +268,7 @@ impl InternalNode {
                     .copy_within(key_index + 1..self.key_count as usize + 1, key_index + 2);
             }
             self.keys[key_index] = key;
-            self.child_offsets[key_index + 1] = right_skeye_child_offset;
+            self.child_offsets[key_index + 1] = right_child_offset;
             self.key_count += 1;
             return None;
         }
@@ -200,7 +283,7 @@ impl InternalNode {
         let one_plus_child_offsets = {
             let mut offsets = [PageOffset::NULL; INTERNAL_NODE_KEY_LEN + 2];
             offsets[..key_index + 1].copy_from_slice(&self.child_offsets[..key_index + 1]);
-            offsets[key_index + 1] = right_skeye_child_offset;
+            offsets[key_index + 1] = right_child_offset;
             offsets[key_index + 2..].copy_from_slice(&self.child_offsets[key_index + 1..]);
             offsets
         };
@@ -243,11 +326,9 @@ impl InternalNode {
 
 const LEAF_NODE_KEY_LEN: usize = 194;
 
-#[repr(C, align(64))]
 #[derive(Clone)]
 pub(crate) struct LeafNode {
     leaf_type: u8,
-    _padding: [u8; 3],
     key_count: u32,
     left_node_offset: PageOffset,
     right_node_offset: PageOffset,
@@ -256,13 +337,75 @@ pub(crate) struct LeafNode {
     /// This size makes the limit of data size to 4KB * 2^8 = 1MB.
     record_page_count: [u8; LEAF_NODE_KEY_LEN],
 }
-impl AsSlice for LeafNode {}
+impl Serialize for LeafNode {
+    fn to_vec(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(PAGE_LEN);
+
+        bytes.put_u8(self.leaf_type);
+        bytes.put_bytes(0, 3);
+
+        bytes.put_u32_le(self.key_count);
+        bytes.put_u32_le(self.left_node_offset.as_u32());
+        bytes.put_u32_le(self.right_node_offset.as_u32());
+        for key in self.keys.iter().take(self.key_count as usize) {
+            bytes.put_u128_le(*key);
+        }
+        for offset in self
+            .record_page_offsets
+            .iter()
+            .take(self.key_count as usize)
+        {
+            bytes.put_u32_le(offset.as_u32());
+        }
+        for count in self.record_page_count.iter().take(self.key_count as usize) {
+            bytes.put_u8(*count);
+        }
+
+        bytes.put_bytes(0, PAGE_LEN - bytes.len());
+
+        assert_eq!(bytes.len(), PAGE_LEN);
+        bytes
+    }
+}
+impl Deserialize for LeafNode {
+    fn from_slice(mut slice: &[u8]) -> Self {
+        assert_eq!(slice.len(), PAGE_LEN);
+
+        let leaf_type = slice.get_u8();
+        slice.advance(3);
+
+        let key_count = slice.get_u32_le();
+        let left_node_offset = PageOffset::new(slice.get_u32_le());
+        let right_node_offset = PageOffset::new(slice.get_u32_le());
+        let mut keys = [0; LEAF_NODE_KEY_LEN];
+        for key in keys.iter_mut() {
+            *key = slice.get_u128_le();
+        }
+        let mut record_page_offsets = [PageOffset::NULL; LEAF_NODE_KEY_LEN];
+        for offset in record_page_offsets.iter_mut() {
+            *offset = PageOffset::new(slice.get_u32_le());
+        }
+        let mut record_page_count = [0; LEAF_NODE_KEY_LEN];
+        for count in record_page_count.iter_mut() {
+            *count = slice.get_u8();
+        }
+
+        Self {
+            leaf_type,
+            key_count,
+            left_node_offset,
+            right_node_offset,
+            keys,
+            record_page_offsets,
+            record_page_count,
+        }
+    }
+}
 
 impl LeafNode {
     pub fn new(left_node_offset: PageOffset, right_node_offset: PageOffset) -> Self {
         Self {
             leaf_type: 1,
-            _padding: [0; 3],
             key_count: 0,
             left_node_offset,
             right_node_offset,
@@ -483,98 +626,55 @@ pub(crate) enum NextResult {
     CheckRightNode { right_node_offset: PageOffset },
 }
 
-#[repr(C, align(64))]
-#[derive(Clone)]
-pub(crate) struct Node {
-    leaf_type: u8,
-    _padding: [u8; 4095],
-}
-impl AsSlice for Node {}
-impl Node {
-    pub fn is_leaf(&self) -> bool {
-        self.leaf_type != 0
-    }
-    pub fn as_internal_node(&self) -> Option<&InternalNode> {
-        if !self.is_leaf() {
-            Some(unsafe { std::mem::transmute::<&Node, &InternalNode>(self) })
-        } else {
-            None
-        }
-    }
-    pub fn as_leaf_node(&self) -> Option<&LeafNode> {
-        if self.is_leaf() {
-            Some(unsafe { std::mem::transmute::<&Node, &LeafNode>(self) })
-        } else {
-            None
-        }
-    }
-    pub fn as_one_of(&self) -> NodeMatchRef {
-        if self.is_leaf() {
-            NodeMatchRef::Leaf {
-                leaf_node: unsafe { std::mem::transmute::<&Node, &LeafNode>(self) },
-            }
-        } else {
-            NodeMatchRef::Internal {
-                internal_node: unsafe { std::mem::transmute::<&Node, &InternalNode>(self) },
-            }
-        }
-    }
-}
-pub(crate) enum NodeMatchRef<'a> {
-    Internal { internal_node: &'a InternalNode },
-    Leaf { leaf_node: &'a LeafNode },
-}
-impl Debug for Node {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.is_leaf() {
-            self.as_leaf_node().fmt(f)
-        } else {
-            self.as_internal_node().fmt(f)
-        }
-    }
-}
-
-#[repr(C, align(64))]
 #[derive(Debug, Clone)]
-pub(crate) struct Page {
-    data: [u8; PAGE_LEN],
+pub(crate) enum Node {
+    Internal(InternalNode),
+    Leaf(LeafNode),
 }
-impl AsSlice for Page {}
-impl Page {
-    pub fn empty() -> Self {
-        Self {
-            data: [0; PAGE_LEN],
+impl Serialize for Node {
+    fn to_vec(&self) -> Vec<u8> {
+        match self {
+            Self::Internal(internal_node) => internal_node.to_vec(),
+            Self::Leaf(leaf_node) => leaf_node.to_vec(),
         }
     }
-
-    pub fn as_header(&self) -> &Header {
-        unsafe { std::mem::transmute(self) }
-    }
-
-    pub fn as_free_page_stack_node_mut(&mut self) -> &mut FreePageStackNode {
-        unsafe { std::mem::transmute(self) }
-    }
-
-    pub fn as_leaf_node_mut(&mut self) -> &mut LeafNode {
-        unsafe { std::mem::transmute(self) }
-    }
-
-    pub fn as_leaf_node(&self) -> &LeafNode {
-        unsafe { std::mem::transmute(self) }
-    }
-
-    pub fn as_internal_node_mut(&mut self) -> &mut InternalNode {
-        unsafe { std::mem::transmute(self) }
-    }
-
-    pub fn as_node(&self) -> &Node {
-        unsafe { std::mem::transmute(self) }
-    }
-
-    pub fn as_header_mut(&mut self) -> &mut Header {
-        unsafe { std::mem::transmute(self) }
+}
+impl Deserialize for Node {
+    fn from_slice(slice: &[u8]) -> Self {
+        if slice[0] == 0 {
+            Self::Internal(InternalNode::from_slice(slice))
+        } else {
+            Self::Leaf(LeafNode::from_slice(slice))
+        }
     }
 }
+// impl Node {
+//     pub fn as_internal_node(&self) -> Option<&InternalNode> {
+//         if !self.is_leaf() {
+//             Some(unsafe { std::mem::transmute::<&Node, &InternalNode>(self) })
+//         } else {
+//             None
+//         }
+//     }
+//     pub fn as_leaf_node(&self) -> Option<&LeafNode> {
+//         if self.is_leaf() {
+//             Some(unsafe { std::mem::transmute::<&Node, &LeafNode>(self) })
+//         } else {
+//             None
+//         }
+//     }
+//     pub fn as_one_of(&self) -> NodeMatchRef {
+//         if self.is_leaf() {
+//             NodeMatchRef::Leaf {
+//                 leaf_node: unsafe { std::mem::transmute::<&Node, &LeafNode>(self) },
+//             }
+//         } else {
+//             NodeMatchRef::Internal {
+//                 internal_node: unsafe { std::mem::transmute::<&Node, &InternalNode>(self) },
+//             }
+//         }
+//     }
+// }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PageRange {
@@ -619,150 +719,172 @@ impl PageRange {
     }
 }
 
-pub(crate) enum PageBlockRef<'a> {
-    Owned { page_block: &'a PageBlock },
-    Shared { page_block: &'a PageBlockShared },
-}
-
-impl<'a> PageBlockRef<'a> {
-    pub fn into_page(self) -> &'a Page {
-        match self {
-            Self::Owned { page_block } => page_block.as_page(),
-            Self::Shared { page_block } => page_block.as_page(),
-        }
-    }
-
-    pub fn into_record(self) -> Bytes {
-        match self {
-            Self::Owned { page_block } => page_block.as_record(),
-            Self::Shared { page_block } => page_block.as_record(),
-        }
-    }
-}
-
-impl<'a> From<&'a PageBlock> for PageBlockRef<'a> {
-    fn from(page_block: &'a PageBlock) -> Self {
-        Self::Owned { page_block }
-    }
-}
-impl<'a> From<&'a PageBlockShared> for PageBlockRef<'a> {
-    fn from(page_block: &'a PageBlockShared) -> Self {
-        Self::Shared { page_block }
-    }
-}
-
-/// Page Block = contiguous pages
 #[derive(Debug, Clone)]
-pub(crate) struct PageBlock {
-    page_count: u8,
-    bytes: Vec<u8>,
+pub(crate) enum Page {
+    Header(Header),
+    FreePageStackNode(FreePageStackNode),
+    InternalNode(InternalNode),
+    LeafNode(LeafNode),
 }
 
-impl PageBlock {
-    pub fn new(page_count: u8) -> Self {
+impl Page {
+    pub fn as_header(&self) -> &Header {
+        match self {
+            Self::Header(header) => header,
+            _ => panic!("Not a header"),
+        }
+    }
+    pub fn as_header_mut(&mut self) -> &mut Header {
+        match self {
+            Self::Header(header) => header,
+            _ => panic!("Not a header"),
+        }
+    }
+    pub fn as_free_page_stack_node_mut(&mut self) -> &mut FreePageStackNode {
+        match self {
+            Self::FreePageStackNode(free_page_stack_node) => free_page_stack_node,
+            _ => panic!("Not a free page stack node"),
+        }
+    }
+    pub fn as_leaf_node(&self) -> &LeafNode {
+        match self {
+            Self::LeafNode(leaf_node) => leaf_node,
+            _ => panic!("Not a leaf node"),
+        }
+    }
+    pub fn as_leaf_node_mut(&mut self) -> &mut LeafNode {
+        match self {
+            Self::LeafNode(leaf_node) => leaf_node,
+            _ => panic!("Not a leaf node"),
+        }
+    }
+    pub fn as_internal_node(&self) -> &InternalNode {
+        match self {
+            Self::InternalNode(internal_node) => internal_node,
+            _ => panic!("Not an internal node"),
+        }
+    }
+    pub fn as_internal_node_mut(&mut self) -> &mut InternalNode {
+        match self {
+            Self::InternalNode(internal_node) => internal_node,
+            _ => panic!("Not an internal node"),
+        }
+    }
+}
+
+impl Serialize for Page {
+    fn to_vec(&self) -> Vec<u8> {
+        match self {
+            Self::Header(header) => header.to_vec(),
+            Self::FreePageStackNode(free_page_stack_node) => free_page_stack_node.to_vec(),
+            Self::InternalNode(internal_node) => internal_node.to_vec(),
+            Self::LeafNode(leaf_node) => leaf_node.to_vec(),
+        }
+    }
+}
+impl Deserialize for Page {
+    fn from_slice(slice: &[u8]) -> Self {
+        if slice.len() == PAGE_LEN {
+            Self::Header(Header::from_slice(slice))
+        } else {
+            match slice[0] {
+                0 => Self::FreePageStackNode(FreePageStackNode::from_slice(slice)),
+                1 => Self::LeafNode(LeafNode::from_slice(slice)),
+                _ => Self::InternalNode(InternalNode::from_slice(slice)),
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Record {
+    page_count: u8,
+    content: Bytes,
+}
+
+impl Record {
+    pub fn new(content: Bytes) -> Self {
+        let page_count = (content.len() + size_of::<u32>()).div_ceil(PAGE_LEN) as u8;
+
         Self {
             page_count,
-            bytes: unsafe {
-                let mut bytes = Vec::with_capacity(page_count as usize * PAGE_LEN);
-                bytes.spare_capacity_mut();
-                bytes.set_len(page_count as usize * PAGE_LEN);
-                bytes
-            },
+            content,
         }
     }
 
-    pub fn from_page(page: Page) -> PageBlock {
-        Self {
-            page_count: 1,
-            bytes: page.as_slice().to_vec(),
-        }
-    }
-
-    pub fn from_vec(buf: Vec<u8>, page_count: u8) -> PageBlock {
-        Self {
-            page_count,
-            bytes: buf,
-        }
-    }
-
-    pub fn as_page_mut(&mut self) -> &mut Page {
-        unsafe { &mut *(self.bytes.as_mut_ptr() as *mut _) }
-    }
-
-    pub fn record(value: Bytes) -> Self {
-        let record_byte_len = value.len() + size_of::<u32>();
-        let page_count = (record_byte_len).div_ceil(PAGE_LEN);
-        let mut page_block = Self::new(page_count as u8);
-
-        page_block.bytes[0..4].copy_from_slice(&(value.len() as u32).to_le_bytes());
-        page_block.bytes[4..(4 + value.len())].copy_from_slice(value.as_ref());
-
-        page_block
-    }
-
-    pub fn as_slice(&self) -> &[u8] {
-        &self.bytes[..self.page_count as usize * PAGE_LEN]
+    pub fn content(&self) -> Bytes {
+        self.content.clone()
     }
 
     pub fn page_count(&self) -> u8 {
         self.page_count
     }
-
-    fn as_page(&self) -> &Page {
-        unsafe { &*(self.bytes.as_ptr() as *const _) }
-    }
-
-    fn as_record(&self) -> Bytes {
-        let mut bytes = Bytes::from(self.bytes.clone());
-        let byte_len = bytes.get_u32_le();
-        bytes.slice(..byte_len as usize)
-    }
 }
 
-impl From<PageBlock> for PageBlockShared {
-    fn from(val: PageBlock) -> Self {
-        PageBlockShared {
-            page_count: val.page_count,
-            bytes: Bytes::from(val.bytes),
+impl Serialize for Record {
+    fn to_vec(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(PAGE_LEN * self.page_count as usize);
+
+        bytes.put_u32_le(self.content.len() as u32);
+        bytes.put_slice(self.content.as_ref());
+        bytes.put_bytes(0, PAGE_LEN - (self.content.len() + 4) % PAGE_LEN);
+
+        assert_eq!(bytes.len(), self.page_count as usize * PAGE_LEN);
+
+        bytes
+    }
+}
+impl Deserialize for Record {
+    fn from_slice(mut slice: &[u8]) -> Self {
+        assert_eq!(slice.len() % PAGE_LEN, 0);
+
+        let page_count = (slice.len() / PAGE_LEN) as u8;
+
+        let content_len = slice.get_u32_le() as usize;
+        let content = Bytes::from(slice[..content_len].to_vec());
+
+        Self {
+            page_count,
+            content,
         }
     }
 }
 
+/// Page Block = contiguous pages
 #[derive(Debug, Clone)]
-pub(crate) struct PageBlockShared {
-    page_count: u8,
-    bytes: Bytes,
+pub(crate) enum PageBlock {
+    Page(Page),
+    Record(Record),
 }
 
-impl PageBlockShared {
-    pub fn as_header(&self) -> &Header {
-        unsafe { &*(self.as_slice().as_ptr() as *const _) }
+impl PageBlock {
+    pub fn as_page_mut(&mut self) -> &mut Page {
+        match self {
+            Self::Page(page) => page,
+            _ => panic!("Not a page"),
+        }
     }
 
-    pub fn as_node(&self) -> &Node {
-        unsafe { &*(self.as_slice().as_ptr() as *const _) }
+    pub fn as_page(&self) -> &Page {
+        match self {
+            Self::Page(page) => page,
+            _ => panic!("Not a page"),
+        }
     }
 
-    pub fn as_record(&self) -> Bytes {
-        let mut bytes = self.bytes.clone();
-        let byte_len = bytes.get_u32_le();
-        bytes.slice(..byte_len as usize)
-    }
-
-    pub fn as_slice(&self) -> &[u8] {
-        self.bytes[..self.page_count as usize * PAGE_LEN].as_ref()
-    }
-
-    fn as_page(&self) -> &Page {
-        unsafe { &*(self.as_slice().as_ptr() as *const _) }
+    pub fn as_record(&self) -> &Record {
+        match self {
+            Self::Record(record) => record,
+            _ => panic!("Not a record"),
+        }
     }
 }
 
-impl From<PageBlockShared> for PageBlock {
-    fn from(val: PageBlockShared) -> Self {
-        PageBlock {
-            page_count: val.page_count,
-            bytes: val.bytes.to_vec(),
+impl Serialize for PageBlock {
+    fn to_vec(&self) -> Vec<u8> {
+        match self {
+            Self::Page(page) => page.to_vec(),
+            Self::Record(record) => record.to_vec(),
         }
     }
 }
@@ -773,15 +895,9 @@ mod tests {
 
     #[test]
     fn size() {
-        assert_eq!(std::mem::size_of::<Header>(), PAGE_LEN);
-        assert_eq!(std::mem::size_of::<FreePageStackNode>(), PAGE_LEN);
-        assert_eq!(std::mem::size_of::<InternalNode>(), PAGE_LEN);
-        assert_eq!(std::mem::size_of::<LeafNode>(), PAGE_LEN);
-        assert_eq!(std::mem::size_of::<Node>(), PAGE_LEN);
-
         assert_eq!(
             Header::new(PageOffset::NULL, PageOffset::NULL, PageOffset::NULL)
-                .as_slice()
+                .to_vec()
                 .len(),
             PAGE_LEN
         );
@@ -791,7 +907,7 @@ mod tests {
                 length: 0,
                 free_page_keys: [0; 1022]
             }
-            .as_slice()
+            .to_vec()
             .len(),
             PAGE_LEN
         );
@@ -800,23 +916,14 @@ mod tests {
                 &[0; INTERNAL_NODE_KEY_LEN],
                 &[PageOffset::NULL; INTERNAL_NODE_KEY_LEN + 1]
             )
-            .as_slice()
+            .to_vec()
             .len(),
             PAGE_LEN
         );
         assert_eq!(
             LeafNode::new(PageOffset::NULL, PageOffset::NULL)
-                .as_slice()
+                .to_vec()
                 .len(),
-            PAGE_LEN
-        );
-        assert_eq!(
-            Node {
-                leaf_type: 0,
-                _padding: [0; 4095]
-            }
-            .as_slice()
-            .len(),
             PAGE_LEN
         );
     }
@@ -898,8 +1005,6 @@ mod tests {
                 PageOffset::new(INTERNAL_NODE_KEY_LEN as u32 + 2),
             )
             .unwrap();
-
-        assert_eq!(center_key, ((INTERNAL_NODE_KEY_LEN + 1) / 2) as Key);
 
         assert_eq!(
             internal_node.key_count + right_node.key_count,

@@ -100,9 +100,11 @@ pub(crate) async fn execute_one(
     file_write_fd: &mut WriteFd,
 ) -> Result<usize> {
     let header = {
-        let size = size_of::<WalHeader>();
-        let header = wal_read_fd.read_type::<WalHeader>(wal_read_offset).await?;
-        wal_read_offset += size;
+        let bytes = wal_read_fd
+            .read_exact(wal_read_offset, WAL_HEADER_SIZE)
+            .await?;
+        let header = WalHeader::from_slice(&bytes);
+        wal_read_offset += bytes.len();
         header
     };
 
@@ -116,8 +118,8 @@ pub(crate) async fn execute_one(
             let root_node = LeafNode::new(PageOffset::NULL, PageOffset::NULL);
 
             let mut bytes = Vec::with_capacity(size_of::<Header>() + size_of::<LeafNode>());
-            bytes.put_slice(header.as_slice());
-            bytes.put_slice(root_node.as_slice());
+            bytes.put_slice(&header.to_vec());
+            bytes.put_slice(&root_node.to_vec());
 
             file_write_fd.set_len(0)?;
             file_write_fd.write_exact(&bytes, 0)?;

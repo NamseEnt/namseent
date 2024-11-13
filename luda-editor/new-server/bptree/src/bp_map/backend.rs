@@ -251,7 +251,7 @@ impl Backend {
             let result: std::io::Result<()> = (|| {
                 for (range, block) in &stale_tuples {
                     self.file_write_fd
-                        .write_exact(block.as_slice(), range.file_offset())?;
+                        .write_exact(&block.to_vec(), range.file_offset())?;
                 }
                 Ok(())
             })();
