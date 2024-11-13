@@ -102,6 +102,7 @@ impl Wal {
                         WalError::Executor(execute_error) => match execute_error {
                             ExecuteError::Checksum { .. } => unreachable!(),
                             ExecuteError::WrongBodyType { .. } => unreachable!(),
+                            ExecuteError::WrongBodyLength { .. } => unreachable!(),
                         },
                         WalError::Io(error) => {
                             return Err(error);
@@ -228,6 +229,7 @@ impl WalError {
             WalError::Executor(execute_error) => match execute_error {
                 ExecuteError::Checksum { .. } => true,
                 ExecuteError::WrongBodyType { .. } => true,
+                ExecuteError::WrongBodyLength { .. } => true,
             },
             WalError::Io(error) => error.kind() == ErrorKind::UnexpectedEof,
             WalError::ExecutorDown => false,
@@ -296,6 +298,8 @@ struct PutPageBlocks {
     bytes: Vec<u8>,
 }
 impl PutPageBlocks {
+    const CHUNK_SIZE: usize = 4101;
+
     /// WARNING: Too many page blocks would occur out of memory.
     /// Maybe writing directly and update header would be one of the optimized way.
     fn new<'a>(page_blocks: impl Iterator<Item = (&'a PageRange, &'a PageBlock)>) -> Self {
@@ -309,6 +313,7 @@ impl PutPageBlocks {
             );
             bytes.put_slice(block.as_slice());
         }
+        assert_eq!(bytes.len() % Self::CHUNK_SIZE, 0);
         Self { bytes }
     }
 }

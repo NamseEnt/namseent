@@ -122,10 +122,14 @@ pub(crate) async fn execute_one(
             file_write_fd.set_len(0)?;
             file_write_fd.write_exact(&bytes, 0)?;
         }
-        // PutPage
+        // PutPageBlocks
         1 => {
             let body = {
                 let body_length: usize = header.body_length as usize;
+
+                if body_length % PutPageBlocks::CHUNK_SIZE != 0 {
+                    return Err(ExecuteError::WrongBodyLength { body_length }.into());
+                }
                 let body = wal_read_fd.read_exact(wal_read_offset, body_length).await?;
                 wal_read_offset += body.len();
                 body
@@ -183,4 +187,6 @@ pub(crate) enum ExecuteError {
     Checksum { expected: u64, actual: u64 },
     #[error("wrong body type: {body_type}")]
     WrongBodyType { body_type: u8 },
+    #[error("wrong body length: {body_length}")]
+    WrongBodyLength { body_length: usize },
 }
