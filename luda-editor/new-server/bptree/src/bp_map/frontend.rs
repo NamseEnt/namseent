@@ -74,23 +74,23 @@ impl BpMap {
         let (tx, rx) = oneshot::channel();
         self.send_request(FeBeRequest::Get { key, tx }, rx).await
     }
-    // /// # Return
-    // /// - `None` if there is no more data.
-    // pub async fn next(&self, exclusive_start_key: Option<Key>) -> Result<Option<Vec<Entry>>> {
-    //     if let Some(cached) = self.cache.next(exclusive_start_key) {
-    //         return Ok(cached);
-    //     }
+    /// # Return
+    /// - `None` if there is no more data.
+    pub async fn next(&self, exclusive_start_key: Option<Key>) -> Result<Option<Vec<Entry>>> {
+        if let Some(cached) = self.cache.next(exclusive_start_key) {
+            return Ok(cached);
+        }
 
-    //     let (tx, rx) = oneshot::channel();
-    //     self.send_request(
-    //         FeBeRequest::Next {
-    //             exclusive_start_key,
-    //             tx,
-    //         },
-    //         rx,
-    //     )
-    //     .await
-    // }
+        let (tx, rx) = oneshot::channel();
+        self.send_request(
+            FeBeRequest::Next {
+                exclusive_start_key,
+                tx,
+            },
+            rx,
+        )
+        .await
+    }
     // pub fn stream(&self) -> impl futures::Stream<Item = Result<Entry>> + 'static + Unpin {
     //     struct State {
     //         exclusive_start_key: Option<Key>,

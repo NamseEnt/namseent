@@ -432,12 +432,17 @@ impl LeafNode {
             }
         }
 
-        let mut keys = Vec::with_capacity(self.key_count as usize - start_index);
-        for key in self.keys[start_index..self.key_count as usize].iter() {
-            keys.push(*key);
+        let mut key_ranges = Vec::with_capacity(self.key_count as usize - start_index);
+        for index in start_index..self.key_count as usize {
+            key_ranges.push((
+                self.keys[index],
+                PageRange::new(
+                    self.record_page_offsets[index],
+                    self.record_page_count[index],
+                ),
+            ));
         }
-        // NextResult::Found { keys }
-        todo!()
+        NextResult::Found { key_ranges }
     }
 
     pub fn right_node_offset(&self) -> Option<PageOffset> {
@@ -473,7 +478,7 @@ impl Debug for LeafNode {
 }
 
 pub(crate) enum NextResult {
-    Found { entries: Vec<(Key, PageRange)> },
+    Found { key_ranges: Vec<(Key, PageRange)> },
     NoMoreEntries,
     CheckRightNode { right_node_offset: PageOffset },
 }

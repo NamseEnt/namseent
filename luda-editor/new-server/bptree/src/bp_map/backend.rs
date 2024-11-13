@@ -115,28 +115,28 @@ impl Backend {
                                     result: tx_result,
                                 });
                             }
-                            // FeBeRequest::Next {
-                            //     exclusive_start_key,
-                            //     tx,
-                            // } => {
-                            //     let next_result = operator.next(exclusive_start_key).await;
-                            //     let tx_result;
-                            //     match next_result {
-                            //         Ok(keys) => {
-                            //             tx_result = Ok(keys);
-                            //             result = Ok(());
-                            //         }
-                            //         Err(err) => {
-                            //             tx_result = Err(());
-                            //             result = Err(err.into());
-                            //         }
-                            //     };
+                            FeBeRequest::Next {
+                                exclusive_start_key,
+                                tx,
+                            } => {
+                                let next_result = operator.next(exclusive_start_key).await;
+                                let tx_result;
+                                match next_result {
+                                    Ok(keys) => {
+                                        tx_result = Ok(keys);
+                                        result = Ok(());
+                                    }
+                                    Err(err) => {
+                                        tx_result = Err(());
+                                        result = Err(err.into());
+                                    }
+                                };
 
-                            //     txs.push(Tx::Next {
-                            //         tx,
-                            //         result: tx_result,
-                            //     });
-                            // }
+                                txs.push(Tx::Next {
+                                    tx,
+                                    result: tx_result,
+                                });
+                            }
                             FeBeRequest::Close => {
                                 close_requested = true;
                             }
@@ -221,14 +221,15 @@ impl Backend {
                         } else {
                             Err(())
                         });
-                    } // Tx::Next { tx, result } => {
-                      //     _ = tx.send(if no_error {
-                      //         assert!(result.is_ok());
-                      //         result
-                      //     } else {
-                      //         Err(())
-                      //     });
-                      // }
+                    }
+                    Tx::Next { tx, result } => {
+                        _ = tx.send(if no_error {
+                            assert!(result.is_ok());
+                            result
+                        } else {
+                            Err(())
+                        });
+                    }
                 });
             }
 
@@ -290,8 +291,9 @@ enum Tx {
     Get {
         tx: oneshot::Sender<std::result::Result<Option<Bytes>, ()>>,
         result: std::result::Result<Option<Bytes>, ()>,
-    }, // Next {
-       //     tx: oneshot::Sender<std::result::Result<Option<Vec<Key>>, ()>>,
-       //     result: std::result::Result<Option<Vec<Key>>, ()>,
-       // },
+    },
+    Next {
+        tx: oneshot::Sender<std::result::Result<Option<Vec<Entry>>, ()>>,
+        result: std::result::Result<Option<Vec<Entry>>, ()>,
+    },
 }

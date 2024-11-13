@@ -70,16 +70,22 @@ mod test {
     #[tokio::test]
     async fn test_insert() {
         let path = std::env::temp_dir().join("id_set_test_insert");
-        if path.exists() {
-            std::fs::remove_file(&path).unwrap();
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let wal_path = path.with_extension("wal");
-        if wal_path.exists() {
-            std::fs::remove_file(&wal_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let shadow_path = path.with_extension("shadow");
-        if shadow_path.exists() {
-            std::fs::remove_file(&shadow_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -96,16 +102,22 @@ mod test {
     #[tokio::test]
     async fn test_insert_and_delete() {
         let path = std::env::temp_dir().join("id_set_test_insert_and_delete");
-        if path.exists() {
-            std::fs::remove_file(&path).unwrap();
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let wal_path = path.with_extension("wal");
-        if wal_path.exists() {
-            std::fs::remove_file(&wal_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let shadow_path = path.with_extension("shadow");
-        if shadow_path.exists() {
-            std::fs::remove_file(&shadow_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -127,16 +139,22 @@ mod test {
     #[tokio::test]
     async fn test_insert_contains() {
         let path = std::env::temp_dir().join("id_set_test_insert_contains");
-        if path.exists() {
-            std::fs::remove_file(&path).unwrap();
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let wal_path = path.with_extension("wal");
-        if wal_path.exists() {
-            std::fs::remove_file(&wal_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let shadow_path = path.with_extension("shadow");
-        if shadow_path.exists() {
-            std::fs::remove_file(&shadow_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -164,16 +182,22 @@ mod test {
     #[tokio::test]
     async fn test_insert_delete_contains() {
         let path = std::env::temp_dir().join("id_set_test_insert_delete_contains");
-        if path.exists() {
-            std::fs::remove_file(&path).unwrap();
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let wal_path = path.with_extension("wal");
-        if wal_path.exists() {
-            std::fs::remove_file(&wal_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let shadow_path = path.with_extension("shadow");
-        if shadow_path.exists() {
-            std::fs::remove_file(&shadow_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -210,16 +234,22 @@ mod test {
     #[tokio::test]
     async fn test_insert_delete_contains_without_cache() {
         let path = std::env::temp_dir().join("test_insert_delete_contains_without_cache");
-        if path.exists() {
-            std::fs::remove_file(&path).unwrap();
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let wal_path = path.with_extension("wal");
-        if wal_path.exists() {
-            std::fs::remove_file(&wal_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let shadow_path = path.with_extension("shadow");
-        if shadow_path.exists() {
-            std::fs::remove_file(&shadow_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -256,16 +286,22 @@ mod test {
     #[tokio::test]
     async fn test_insert_delete_contains_small_cache() {
         let path = std::env::temp_dir().join("test_insert_delete_contains_small_cache");
-        if path.exists() {
-            std::fs::remove_file(&path).unwrap();
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let wal_path = path.with_extension("wal");
-        if wal_path.exists() {
-            std::fs::remove_file(&wal_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let shadow_path = path.with_extension("shadow");
-        if shadow_path.exists() {
-            std::fs::remove_file(&shadow_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -302,16 +338,22 @@ mod test {
     #[tokio::test]
     async fn test_insert_turn_off_contains() {
         let path = std::env::temp_dir().join("test_insert_turn_off_contains");
-        if path.exists() {
-            std::fs::remove_file(&path).unwrap();
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let wal_path = path.with_extension("wal");
-        if wal_path.exists() {
-            std::fs::remove_file(&wal_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let shadow_path = path.with_extension("shadow");
-        if shadow_path.exists() {
-            std::fs::remove_file(&shadow_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -344,16 +386,22 @@ mod test {
     #[tokio::test]
     async fn test_next_insert_next_delete_next() {
         let path = std::env::temp_dir().join("test_next_insert_next_delete_next");
-        if path.exists() {
-            std::fs::remove_file(&path).unwrap();
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let wal_path = path.with_extension("wal");
-        if wal_path.exists() {
-            std::fs::remove_file(&wal_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let shadow_path = path.with_extension("shadow");
-        if shadow_path.exists() {
-            std::fs::remove_file(&shadow_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 
@@ -389,16 +437,22 @@ mod test {
     #[tokio::test]
     async fn test_stream() {
         let path = std::env::temp_dir().join("test_stream");
-        if path.exists() {
-            std::fs::remove_file(&path).unwrap();
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let wal_path = path.with_extension("wal");
-        if wal_path.exists() {
-            std::fs::remove_file(&wal_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         let shadow_path = path.with_extension("shadow");
-        if shadow_path.exists() {
-            std::fs::remove_file(&shadow_path).unwrap();
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
         }
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
 

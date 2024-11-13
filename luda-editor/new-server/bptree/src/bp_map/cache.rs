@@ -136,56 +136,52 @@ impl PageCache {
         }
     }
 
-    // /// # Return
-    // ///
-    // ///   - `None` for cache miss.
-    // ///   - `Some(None)` if no more keys are available.
-    // pub(crate) fn next(&self, exclusive_start_key: Option<Key>) -> Option<Option<Vec<Entry>>> {
-    //     let key = exclusive_start_key.unwrap_or_default();
-    //     let guard = self.inner.load();
-    //     let header = guard.get(&PageRange::page(PageOffset::HEADER))?.as_header();
-    //     let mut node = guard
-    //         .get(&PageRange::page(header.root_node_offset))?
-    //         .as_node();
+    /// # Return
+    ///
+    ///   - `None` for cache miss.
+    ///   - `Some(None)` if no more keys are available.
+    pub(crate) fn next(&self, exclusive_start_key: Option<Key>) -> Option<Option<Vec<Entry>>> {
+        let key = exclusive_start_key.unwrap_or_default();
+        let guard = self.inner.load();
+        let header = guard.get(&PageRange::page(PageOffset::HEADER))?.as_header();
+        let mut node = guard
+            .get(&PageRange::page(header.root_node_offset))?
+            .as_node();
 
-    //     loop {
-    //         match node.as_one_of() {
-    //             NodeMatchRef::Internal { internal_node } => {
-    //                 let child_offset = internal_node.find_child_offset_for(key);
-    //                 assert_ne!(child_offset, PageOffset::NULL);
+        loop {
+            match node.as_one_of() {
+                NodeMatchRef::Internal { internal_node } => {
+                    let child_offset = internal_node.find_child_offset_for(key);
+                    assert_ne!(child_offset, PageOffset::NULL);
 
-    //                 node = guard.get(&PageRange::page(child_offset))?.as_node();
-    //             }
-    //             NodeMatchRef::Leaf { leaf_node } => match leaf_node.next(exclusive_start_key) {
-    //                 NextResult::Found { entries } => {
-    //                     // let a = entries
-    //                     //     .into_iter()
-    //                     //     .map(|(key, record_page_page_range)| {
-    //                     //         (
-    //                     //             key,
-    //                     //             guard
-    //                     //                 .get(&record_page_page_range)
-    //                     //                 .map(|x| x.as_record_page().bytes()),
-    //                     //         )
-    //                     //     })
-    //                     //     .collect::<Option<Vec<_>>>()?;
-    //                     // return Some(Some(entries));
-
-    //                     todo!()
-    //                 }
-    //                 NextResult::NoMoreEntries => {
-    //                     return Some(None);
-    //                 }
-    //                 NextResult::CheckRightNode { right_node_offset } => {
-    //                     assert_ne!(right_node_offset, PageOffset::NULL);
-    //                     node = guard.get(&PageRange::page(right_node_offset))?.as_node();
-    //                     assert!(node.is_leaf());
-    //                     continue;
-    //                 }
-    //             },
-    //         }
-    //     }
-    // }
+                    node = guard.get(&PageRange::page(child_offset))?.as_node();
+                }
+                NodeMatchRef::Leaf { leaf_node } => match leaf_node.next(exclusive_start_key) {
+                    NextResult::Found { key_ranges } => {
+                        let entries = key_ranges
+                            .into_iter()
+                            .map(|(key, record_page_page_range)| {
+                                guard
+                                    .get(&record_page_page_range)
+                                    .map(|x| x.as_record())
+                                    .map(|bytes| Entry { key, value: bytes })
+                            })
+                            .collect::<Option<Vec<_>>>()?;
+                        return Some(Some(entries));
+                    }
+                    NextResult::NoMoreEntries => {
+                        return Some(None);
+                    }
+                    NextResult::CheckRightNode { right_node_offset } => {
+                        assert_ne!(right_node_offset, PageOffset::NULL);
+                        node = guard.get(&PageRange::page(right_node_offset))?.as_node();
+                        assert!(node.is_leaf());
+                        continue;
+                    }
+                },
+            }
+        }
+    }
 
     pub(crate) fn load_full(&self) -> CachedPages {
         self.inner.load_full()

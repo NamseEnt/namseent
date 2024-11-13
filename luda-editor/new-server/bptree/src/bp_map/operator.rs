@@ -1,5 +1,5 @@
 use super::*;
-use std::collections::{btree_map::Entry, BTreeMap};
+use std::collections::{btree_map, BTreeMap};
 
 type Result<T> = std::io::Result<T>;
 
@@ -113,26 +113,32 @@ impl Operator {
         let bytes = self.record(record_page_range).await?;
         Ok(Some(bytes))
     }
-    pub async fn next(&mut self, exclusive_start_key: Option<Key>) -> Result<Option<Vec<Key>>> {
-        todo!()
-        // let mut leaf_node_offset = self
-        //     .find_leaf_node_for(exclusive_start_key.unwrap_or_default())
-        //     .await?;
-        // loop {
-        //     let leaf_node = self.page(leaf_node_offset).await?.as_leaf_node();
-        //     match leaf_node.next(exclusive_start_key) {
-        //         NextResult::Found { keys } => {
-        //             return Ok(Some(keys));
-        //         }
-        //         NextResult::NoMoreKeys => {
-        //             return Ok(None);
-        //         }
-        //         NextResult::CheckRightNode { right_node_offset } => {
-        //             leaf_node_offset = right_node_offset;
-        //             continue;
-        //         }
-        //     }
-        // }
+    pub async fn next(&mut self, exclusive_start_key: Option<Key>) -> Result<Option<Vec<Entry>>> {
+        let mut leaf_node_offset = self
+            .find_leaf_node_for(exclusive_start_key.unwrap_or_default())
+            .await?;
+        loop {
+            let leaf_node = self.page(leaf_node_offset).await?.as_leaf_node();
+            match leaf_node.next(exclusive_start_key) {
+                NextResult::Found { key_ranges } => {
+                    let mut entries = vec![];
+
+                    for (key, page_range) in key_ranges {
+                        let bytes = self.record(page_range).await?;
+                        entries.push(Entry { key, value: bytes });
+                    }
+
+                    return Ok(Some(entries));
+                }
+                NextResult::NoMoreEntries => {
+                    return Ok(None);
+                }
+                NextResult::CheckRightNode { right_node_offset } => {
+                    leaf_node_offset = right_node_offset;
+                    continue;
+                }
+            }
+        }
     }
     pub fn done(self) -> Done {
         Done {
@@ -160,12 +166,14 @@ impl Operator {
     async fn page_mut(&mut self, page_offset: PageOffset) -> Result<&mut Page> {
         let block_page_range = PageRange::page(page_offset);
 
-        if let Entry::Vacant(e) = self.blocks_updated.entry(block_page_range) {
+        if let btree_map::Entry::Vacant(e) = self.blocks_updated.entry(block_page_range) {
             let page_block = {
                 if let Some(page) = self.cache.get(&block_page_range) {
                     page.as_ref().clone().into()
                 } else {
-                    if let Entry::Vacant(e) = self.blocks_read_from_file.entry(block_page_range) {
+                    if let btree_map::Entry::Vacant(e) =
+                        self.blocks_read_from_file.entry(block_page_range)
+                    {
                         let page_block =
                             read_block_from_file(&self.file_read_fd, block_page_range).await?;
                         e.insert(page_block);
@@ -253,7 +261,7 @@ impl Operator {
         } else if let Some(page_block) = self.cache.get(&page_range) {
             Ok(page_block.as_ref().into())
         } else {
-            if let Entry::Vacant(e) = self.blocks_read_from_file.entry(page_range) {
+            if let btree_map::Entry::Vacant(e) = self.blocks_read_from_file.entry(page_range) {
                 let block = read_block_from_file(&self.file_read_fd, page_range).await?;
                 e.insert(block);
             }
