@@ -177,12 +177,11 @@ impl Deserialize for FreeStackNode {
 
 const INTERNAL_NODE_KEY_LEN: usize = 204;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 /// right child's key is greater or equal to key.
 pub(crate) struct InternalNode {
-    key_count: u32,
-    keys: [Key; INTERNAL_NODE_KEY_LEN],
-    child_offsets: [PageOffset; INTERNAL_NODE_KEY_LEN + 1],
+    keys: Vec<Key>,
+    child_offsets: Vec<PageOffset>,
 }
 impl Serialize for InternalNode {
     fn to_vec(&self) -> Vec<u8> {
@@ -190,13 +189,17 @@ impl Serialize for InternalNode {
 
         bytes.put_u8(NodeType::INTERNAL);
 
-        bytes.put_u32_le(self.key_count);
-        for key in self.keys {
-            bytes.put_u128_le(key);
+        bytes.put_u32_le(self.keys.len() as u32);
+
+        if !self.keys.is_empty() {
+            bytes.put_u32_le(self.child_offsets[0].as_u32());
         }
-        for offset in self.child_offsets {
-            bytes.put_u32_le(offset.as_u32());
+
+        for i in 0..self.keys.len() {
+            bytes.put_u128_le(self.keys[i]);
+            bytes.put_u32_le(self.child_offsets[i + 1].as_u32());
         }
+
         bytes.put_bytes(0, PAGE_LEN - bytes.len());
 
         assert_eq!(bytes.len(), PAGE_LEN);
@@ -211,32 +214,21 @@ impl Deserialize for InternalNode {
         assert_eq!(node_type, NodeType::INTERNAL);
 
         let key_count = slice.get_u32_le();
-        let mut keys = [0; INTERNAL_NODE_KEY_LEN];
-        for key in keys.iter_mut() {
-            *key = slice.get_u128_le();
+        let mut keys = Vec::with_capacity(key_count as usize);
+        let mut child_offsets = Vec::with_capacity(key_count as usize + 1);
+        if key_count > 0 {
+            child_offsets.push(PageOffset::new(slice.get_u32_le()));
         }
-        let mut child_offsets = [PageOffset::NULL; INTERNAL_NODE_KEY_LEN + 1];
-        for offset in child_offsets.iter_mut() {
-            *offset = PageOffset::new(slice.get_u32_le());
+
+        for _ in 0..key_count {
+            keys.push(slice.get_u128_le());
+            child_offsets.push(PageOffset::new(slice.get_u32_le()));
         }
 
         Self {
-            key_count,
             keys,
             child_offsets,
         }
-    }
-}
-impl Debug for InternalNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("InternalNode")
-            .field("key_count", &self.key_count)
-            .field("keys", &&self.keys[..self.key_count as usize])
-            .field(
-                "child_offsets",
-                &&self.child_offsets[..self.key_count as usize + 1],
-            )
-            .finish()
     }
 }
 
@@ -246,73 +238,36 @@ impl InternalNode {
         assert_eq!(keys.len() + 1, child_offsets.len());
 
         Self {
-            key_count: keys.len() as u32,
-            keys: {
-                let mut new_keys = [0; INTERNAL_NODE_KEY_LEN];
-                new_keys[..keys.len()].copy_from_slice(keys);
-                new_keys
-            },
-            child_offsets: {
-                let mut new_offsets = [PageOffset::NULL; INTERNAL_NODE_KEY_LEN + 1];
-                new_offsets[..child_offsets.len()].copy_from_slice(child_offsets);
-                new_offsets
-            },
+            keys: keys.to_vec(),
+            child_offsets: child_offsets.to_vec(),
         }
     }
     fn key_index(&self, key: Key) -> usize {
         self.keys
-            .into_iter()
-            .take(self.key_count as usize)
-            .enumerate()
-            .find(|(_, key_)| key < *key_)
-            .map(|(i, _)| i)
-            .unwrap_or(self.key_count as usize)
+            .iter()
+            .position(|&key_| key < key_)
+            .unwrap_or(self.keys.len())
     }
     pub fn find_child_offset_for(&self, key: Key) -> PageOffset {
         self.child_offsets[self.key_index(key)]
     }
     pub fn is_full(&self) -> bool {
-        self.key_count == self.keys.len() as u32
+        self.keys.len() == INTERNAL_NODE_KEY_LEN
     }
     pub fn insert(
         &mut self,
         key: Key,
         right_child_offset: PageOffset,
     ) -> Option<(InternalNode, Key)> {
-        let key_index = self.key_index(key);
+        let index = self.key_index(key);
+        let was_full = self.is_full();
 
-        if !self.is_full() {
-            if key_index < self.key_count as usize {
-                self.keys
-                    .copy_within(key_index..self.key_count as usize, key_index + 1);
-                self.child_offsets
-                    .copy_within(key_index + 1..self.key_count as usize + 1, key_index + 2);
-            }
-            self.keys[key_index] = key;
-            self.child_offsets[key_index + 1] = right_child_offset;
-            self.key_count += 1;
+        self.keys.insert(index, key);
+        self.child_offsets.insert(index + 1, right_child_offset);
+
+        if !was_full {
             return None;
         }
-
-        let one_plus_keys = {
-            let mut keys = [0; INTERNAL_NODE_KEY_LEN + 1];
-            keys[..key_index].copy_from_slice(&self.keys[..key_index]);
-            keys[key_index] = key;
-            keys[key_index + 1..].copy_from_slice(&self.keys[key_index..]);
-            keys
-        };
-        let one_plus_child_offsets = {
-            let mut offsets = [PageOffset::NULL; INTERNAL_NODE_KEY_LEN + 2];
-            offsets[..key_index + 1].copy_from_slice(&self.child_offsets[..key_index + 1]);
-            offsets[key_index + 1] = right_child_offset;
-            offsets[key_index + 2..].copy_from_slice(&self.child_offsets[key_index + 1..]);
-            offsets
-        };
-
-        let right_key_count = one_plus_keys.len() / 2;
-        let left_key_count = one_plus_keys.len() - right_key_count - 1;
-        assert_eq!(left_key_count + right_key_count, INTERNAL_NODE_KEY_LEN);
-        let center_key_index = left_key_count;
 
         /*
             Before:
@@ -329,17 +284,11 @@ impl InternalNode {
         | offset 0 | offset 1 | offset 2 |   | offset 3 | offset 4 |
         */
 
-        let right_node = InternalNode::new(
-            &one_plus_keys[center_key_index + 1..],
-            &one_plus_child_offsets[center_key_index + 1..],
-        );
+        let right_keys = self.keys.split_off(INTERNAL_NODE_KEY_LEN / 2);
+        let center_key = self.keys.pop().unwrap();
+        let right_child_offsets = self.child_offsets.split_off(INTERNAL_NODE_KEY_LEN / 2);
 
-        *self = InternalNode::new(
-            &one_plus_keys[..center_key_index],
-            &one_plus_child_offsets[..center_key_index + 1],
-        );
-
-        let center_key = one_plus_keys[center_key_index];
+        let right_node = InternalNode::new(&right_keys, &right_child_offsets);
 
         Some((right_node, center_key))
     }
@@ -559,7 +508,6 @@ pub(crate) enum NextResult {
 }
 
 #[derive(Debug, Clone)]
-#[allow(clippy::large_enum_variant)]
 pub(crate) enum Node {
     Internal(InternalNode),
     Leaf(LeafNode),
@@ -658,22 +606,10 @@ impl Page {
             x => unreachable!("expect leaf_node but {:?}", x),
         }
     }
-    pub fn as_internal_node(&self) -> &InternalNode {
-        match self {
-            Self::InternalNode(internal_node) => internal_node,
-            x => unreachable!("expect internal_node but {:?}", x),
-        }
-    }
     pub fn as_internal_node_mut(&mut self) -> &mut InternalNode {
         match self {
             Self::InternalNode(internal_node) => internal_node,
             x => unreachable!("expect internal_node but {:?}", x),
-        }
-    }
-    pub fn as_free_stack(&self) -> &FreeStackNode {
-        match self {
-            Self::FreeStackNode(free_page_stack_node) => free_page_stack_node,
-            x => unreachable!("expect free_stack but {:?}", x),
         }
     }
     pub fn as_free_stack_mut(&mut self) -> &mut FreeStackNode {
@@ -764,7 +700,6 @@ impl Deserialize for Record {
 
 /// Page Block = contiguous pages
 #[derive(Debug, Clone)]
-#[allow(clippy::large_enum_variant)]
 pub(crate) enum PageBlock {
     Page(Page),
     Record(Record),
@@ -906,16 +841,16 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            internal_node.key_count + right_node.key_count,
-            INTERNAL_NODE_KEY_LEN as u32
+            internal_node.keys.len() + right_node.keys.len(),
+            INTERNAL_NODE_KEY_LEN
         );
 
-        for i in 0..internal_node.key_count as usize {
+        for i in 0..internal_node.keys.len() {
             assert_eq!(internal_node.keys[i], i as Key + 1);
             assert_eq!(internal_node.child_offsets[i].value, i as u32);
         }
 
-        for i in 0..right_node.key_count as usize {
+        for i in 0..right_node.keys.len() {
             assert_eq!(right_node.keys[i], i as Key + 1 + center_key as Key);
             assert_eq!(
                 right_node.child_offsets[i].value,
