@@ -46,11 +46,6 @@ impl ReadFd {
                 return Err(Error::last_os_error());
             }
             if len == 0 {
-                println!("buf_offset: {}", buf_offset);
-                println!("buf_len: {}", buf_len);
-                println!("offset: {}", offset);
-                println!("file_len: {}", file_len(fd).unwrap());
-                eprintln!("read_exact: Unexpected EOF");
                 return Err(Error::from(std::io::ErrorKind::UnexpectedEof));
             }
             buf_offset += len as usize;

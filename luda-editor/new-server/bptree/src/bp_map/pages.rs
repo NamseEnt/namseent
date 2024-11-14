@@ -50,7 +50,7 @@ pub(crate) trait Deserialize {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Header {
     /// Would be null
-    pub free_page_stack_top_page_offset: PageOffset,
+    pub free_stack_top_page_offset: PageOffset,
     /// Root node would be a leaf node or an internal node.
     pub root_node_offset: PageOffset,
     /// Use this value to allocate new page.
@@ -58,12 +58,12 @@ pub(crate) struct Header {
 }
 impl Header {
     pub fn new(
-        free_page_stack_top_page_offset: PageOffset,
+        free_stack_top_page_offset: PageOffset,
         root_node_offset: PageOffset,
         next_page_offset: PageOffset,
     ) -> Self {
         Self {
-            free_page_stack_top_page_offset,
+            free_stack_top_page_offset,
             root_node_offset,
             next_page_offset,
         }
@@ -77,7 +77,7 @@ impl Serialize for Header {
     fn to_vec(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(PAGE_LEN);
 
-        bytes.put_u32_le(self.free_page_stack_top_page_offset.as_u32());
+        bytes.put_u32_le(self.free_stack_top_page_offset.as_u32());
         bytes.put_u32_le(self.root_node_offset.as_u32());
         bytes.put_u32_le(self.next_page_offset.as_u32());
 
@@ -91,64 +91,86 @@ impl Deserialize for Header {
     fn from_slice(mut slice: &[u8]) -> Self {
         assert_eq!(slice.len(), PAGE_LEN);
 
-        let free_page_stack_top_page_offset = PageOffset::new(slice.get_u32_le());
+        let free_stack_top_page_offset = PageOffset::new(slice.get_u32_le());
         let root_node_offset = PageOffset::new(slice.get_u32_le());
         let next_page_offset = PageOffset::new(slice.get_u32_le());
         Self {
-            free_page_stack_top_page_offset,
+            free_stack_top_page_offset,
             root_node_offset,
             next_page_offset,
         }
     }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct FreePageStackNode {
-    pub next_page_offset: PageOffset,
-    pub length: u32,
-    /// would have dirty data.
-    pub free_page_keys: [u32; 1022],
-}
-impl FreePageStackNode {
-    pub fn pop(&mut self) -> PageOffset {
-        assert_ne!(self.length, 0);
-        self.length -= 1;
-        let offset = self.free_page_keys[self.length as usize];
-        assert_ne!(offset, 0);
-        PageOffset::new(offset)
-    }
+const FREE_STACK_MAX_PAGE_RANGE_COUNT: usize = 818;
 
+#[derive(Debug, Clone)]
+pub(crate) struct FreeStackNode {
+    pub next_page_offset: PageOffset,
+    page_ranges: Vec<PageRange>,
+}
+impl FreeStackNode {
+    pub fn new() -> Self {
+        Self {
+            next_page_offset: PageOffset::NULL,
+            page_ranges: Vec::new(),
+        }
+    }
     pub fn is_empty(&self) -> bool {
-        self.length == 0
+        self.page_ranges.is_empty()
+    }
+    pub fn is_full(&self) -> bool {
+        self.page_ranges.len() == FREE_STACK_MAX_PAGE_RANGE_COUNT
+    }
+    pub fn try_pop(&mut self, page_count: u8) -> Option<PageRange> {
+        if self.page_ranges.is_empty() {
+            return None;
+        }
+        for index in 0..self.page_ranges.len() {
+            let page_range = &self.page_ranges[index];
+            if page_count <= page_range.page_count {
+                return Some(self.page_ranges.remove(index));
+            }
+        }
+        None
+    }
+    pub fn push(&mut self, page_range: PageRange) {
+        assert!(self.page_ranges.len() < FREE_STACK_MAX_PAGE_RANGE_COUNT);
+        self.page_ranges.push(page_range);
     }
 }
-impl Serialize for FreePageStackNode {
+impl Serialize for FreeStackNode {
     fn to_vec(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(PAGE_LEN);
 
         bytes.put_u32_le(self.next_page_offset.as_u32());
-        bytes.put_u32_le(self.length);
-        for key in self.free_page_keys {
-            bytes.put_u32_le(key);
+        bytes.put_u16_le(self.page_ranges.len() as u16);
+        for key in &self.page_ranges {
+            bytes.put_u32_le(key.page_offset.as_u32());
+            bytes.put_u8(key.page_count);
         }
+        bytes.put_bytes(0, PAGE_LEN - bytes.len());
+
         assert_eq!(bytes.len(), PAGE_LEN);
         bytes
     }
 }
-impl Deserialize for FreePageStackNode {
+impl Deserialize for FreeStackNode {
     fn from_slice(mut slice: &[u8]) -> Self {
         assert_eq!(slice.len(), PAGE_LEN);
 
         let next_page_offset = PageOffset::new(slice.get_u32_le());
-        let length = slice.get_u32_le();
-        let mut free_page_keys = [0; 1022];
-        for key in free_page_keys.iter_mut() {
-            *key = slice.get_u32_le();
+        let page_range_count = slice.get_u16_le() as usize;
+        let mut page_ranges = Vec::with_capacity(page_range_count);
+        for _ in 0..page_range_count {
+            let page_offset = PageOffset::new(slice.get_u32_le());
+            let page_count = slice.get_u8();
+            page_ranges.push(PageRange::new(page_offset, page_count));
         }
+
         Self {
             next_page_offset,
-            length,
-            free_page_keys,
+            page_ranges,
         }
     }
 }
@@ -475,9 +497,9 @@ impl LeafNode {
     /// # Panics
     ///
     /// Panics if key is not in the leaf node.
-    pub fn delete(&mut self, key: u128) {
+    pub fn delete(&mut self, key: u128) -> LeafNodeEntry {
         let index = self.keys().position(|key_| key == key_).unwrap();
-        self.entries.remove(index);
+        self.entries.remove(index)
     }
 
     pub fn keys(&self) -> impl ExactSizeIterator<Item = Key> + '_ {
@@ -525,9 +547,9 @@ impl LeafNode {
 }
 
 #[derive(Debug, Clone)]
-struct LeafNodeEntry {
-    key: Key,
-    record_page_range: PageRange,
+pub struct LeafNodeEntry {
+    pub key: Key,
+    pub record_page_range: PageRange,
 }
 
 pub(crate) enum NextResult {
@@ -606,7 +628,7 @@ impl PageRange {
 #[derive(Debug, Clone)]
 pub(crate) enum Page {
     Header(Header),
-    FreePageStackNode(FreePageStackNode),
+    FreeStackNode(FreeStackNode),
     InternalNode(InternalNode),
     LeafNode(LeafNode),
 }
@@ -615,43 +637,49 @@ impl Page {
     pub fn as_header(&self) -> &Header {
         match self {
             Self::Header(header) => header,
-            _ => panic!("Not a header"),
+            x => unreachable!("expect header but {:?}", x),
         }
     }
     pub fn as_header_mut(&mut self) -> &mut Header {
         match self {
             Self::Header(header) => header,
-            _ => panic!("Not a header"),
-        }
-    }
-    pub fn as_free_page_stack_node_mut(&mut self) -> &mut FreePageStackNode {
-        match self {
-            Self::FreePageStackNode(free_page_stack_node) => free_page_stack_node,
-            _ => panic!("Not a free page stack node"),
+            x => unreachable!("expect header but {:?}", x),
         }
     }
     pub fn as_leaf_node(&self) -> &LeafNode {
         match self {
             Self::LeafNode(leaf_node) => leaf_node,
-            _ => panic!("Not a leaf node"),
+            x => unreachable!("expect leaf_node but {:?}", x),
         }
     }
     pub fn as_leaf_node_mut(&mut self) -> &mut LeafNode {
         match self {
             Self::LeafNode(leaf_node) => leaf_node,
-            _ => panic!("Not a leaf node"),
+            x => unreachable!("expect leaf_node but {:?}", x),
         }
     }
     pub fn as_internal_node(&self) -> &InternalNode {
         match self {
             Self::InternalNode(internal_node) => internal_node,
-            _ => panic!("Not an internal node"),
+            x => unreachable!("expect internal_node but {:?}", x),
         }
     }
     pub fn as_internal_node_mut(&mut self) -> &mut InternalNode {
         match self {
             Self::InternalNode(internal_node) => internal_node,
-            _ => panic!("Not an internal node"),
+            x => unreachable!("expect internal_node but {:?}", x),
+        }
+    }
+    pub fn as_free_stack(&self) -> &FreeStackNode {
+        match self {
+            Self::FreeStackNode(free_page_stack_node) => free_page_stack_node,
+            x => unreachable!("expect free_stack but {:?}", x),
+        }
+    }
+    pub fn as_free_stack_mut(&mut self) -> &mut FreeStackNode {
+        match self {
+            Self::FreeStackNode(free_page_stack_node) => free_page_stack_node,
+            x => unreachable!("expect free_stack but {:?}", x),
         }
     }
 }
@@ -660,7 +688,7 @@ impl Serialize for Page {
     fn to_vec(&self) -> Vec<u8> {
         match self {
             Self::Header(header) => header.to_vec(),
-            Self::FreePageStackNode(free_page_stack_node) => free_page_stack_node.to_vec(),
+            Self::FreeStackNode(free_page_stack_node) => free_page_stack_node.to_vec(),
             Self::InternalNode(internal_node) => internal_node.to_vec(),
             Self::LeafNode(leaf_node) => leaf_node.to_vec(),
         }
@@ -672,7 +700,7 @@ impl Deserialize for Page {
             Self::Header(Header::from_slice(slice))
         } else {
             match slice[0] {
-                0 => Self::FreePageStackNode(FreePageStackNode::from_slice(slice)),
+                0 => Self::FreeStackNode(FreeStackNode::from_slice(slice)),
                 1 => Self::LeafNode(LeafNode::from_slice(slice)),
                 _ => Self::InternalNode(InternalNode::from_slice(slice)),
             }
@@ -786,16 +814,7 @@ mod tests {
                 .len(),
             PAGE_LEN
         );
-        assert_eq!(
-            FreePageStackNode {
-                next_page_offset: PageOffset::NULL,
-                length: 0,
-                free_page_keys: [0; 1022]
-            }
-            .to_vec()
-            .len(),
-            PAGE_LEN
-        );
+        assert_eq!(FreeStackNode::new().to_vec().len(), PAGE_LEN);
         assert_eq!(
             InternalNode::new(
                 &[0; INTERNAL_NODE_KEY_LEN],
@@ -810,6 +829,12 @@ mod tests {
         let mut node = LeafNode::new(PageOffset::NULL);
         for i in 0..LEAF_NODE_KEY_LEN {
             node.insert(i as _, PageRange::new(PageOffset::NULL, 0));
+        }
+        assert_eq!(node.to_vec().len(), PAGE_LEN);
+
+        let mut node = FreeStackNode::new();
+        for _ in 0..FREE_STACK_MAX_PAGE_RANGE_COUNT {
+            node.push(PageRange::new(PageOffset::NULL, 0));
         }
         assert_eq!(node.to_vec().len(), PAGE_LEN);
     }
