@@ -555,33 +555,6 @@ impl Deserialize for Node {
         }
     }
 }
-// impl Node {
-//     pub fn as_internal_node(&self) -> Option<&InternalNode> {
-//         if !self.is_leaf() {
-//             Some(unsafe { std::mem::transmute::<&Node, &InternalNode>(self) })
-//         } else {
-//             None
-//         }
-//     }
-//     pub fn as_leaf_node(&self) -> Option<&LeafNode> {
-//         if self.is_leaf() {
-//             Some(unsafe { std::mem::transmute::<&Node, &LeafNode>(self) })
-//         } else {
-//             None
-//         }
-//     }
-//     pub fn as_one_of(&self) -> NodeMatchRef {
-//         if self.is_leaf() {
-//             NodeMatchRef::Leaf {
-//                 leaf_node: unsafe { std::mem::transmute::<&Node, &LeafNode>(self) },
-//             }
-//         } else {
-//             NodeMatchRef::Internal {
-//                 internal_node: unsafe { std::mem::transmute::<&Node, &InternalNode>(self) },
-//             }
-//         }
-//     }
-// }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PageRange {

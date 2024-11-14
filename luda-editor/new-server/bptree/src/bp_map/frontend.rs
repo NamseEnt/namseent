@@ -1,6 +1,7 @@
 use super::*;
 use bytes::Bytes;
 use std::{
+    collections::VecDeque,
     fmt::Debug,
     path::{Path, PathBuf},
     sync::Arc,
@@ -90,42 +91,41 @@ impl BpMap {
         )
         .await
     }
-    // pub fn stream(&self) -> impl futures::Stream<Item = Result<Entry>> + 'static + Unpin {
-    //     struct State {
-    //         exclusive_start_key: Option<Key>,
-    //         entries: VecDeque<Entry>,
-    //     }
-    //     Box::pin(futures::stream::unfold(
-    //         State {
-    //             exclusive_start_key: None,
-    //             entries: vec![].into(),
-    //         },
-    //         {
-    //             let key_set = self.clone();
-    //             move |mut state| {
-    //                 let key_set = key_set.clone();
-    //                 async move {
-    //                     if let Some(key) = state.entries.pop_front() {
-    //                         return Some((Ok(key), state));
-    //                     }
-    //                     match key_set.next(state.exclusive_start_key).await {
-    //                         Ok(entries) => match entries {
-    //                             Some(entries) => {
-    //                                 state.exclusive_start_key =
-    //                                     entries.last().map(|x| x.key.clone());
-    //                                 state.entries.extend(entries);
-    //                                 let key = state.entries.pop_front().unwrap();
-    //                                 Some((Ok(key), state))
-    //                             }
-    //                             None => None,
-    //                         },
-    //                         Err(err) => Some((Err(err), state)),
-    //                     }
-    //                 }
-    //             }
-    //         },
-    //     ))
-    // }
+    pub fn stream(&self) -> impl futures::Stream<Item = Result<Entry>> + 'static + Unpin {
+        struct State {
+            exclusive_start_key: Option<Key>,
+            entries: VecDeque<Entry>,
+        }
+        Box::pin(futures::stream::unfold(
+            State {
+                exclusive_start_key: None,
+                entries: vec![].into(),
+            },
+            {
+                let key_set = self.clone();
+                move |mut state| {
+                    let key_set = key_set.clone();
+                    async move {
+                        if let Some(key) = state.entries.pop_front() {
+                            return Some((Ok(key), state));
+                        }
+                        match key_set.next(state.exclusive_start_key).await {
+                            Ok(entries) => match entries {
+                                Some(entries) => {
+                                    state.exclusive_start_key = entries.last().map(|x| x.key);
+                                    state.entries.extend(entries);
+                                    let key = state.entries.pop_front().unwrap();
+                                    Some((Ok(key), state))
+                                }
+                                None => None,
+                            },
+                            Err(err) => Some((Err(err), state)),
+                        }
+                    }
+                }
+            },
+        ))
+    }
     pub async fn try_close(self) -> std::result::Result<(), Self> {
         let Self {
             path,

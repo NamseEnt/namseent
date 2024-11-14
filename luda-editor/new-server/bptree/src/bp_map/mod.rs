@@ -512,52 +512,55 @@ mod test {
         }
     }
 
-    // #[tokio::test]
-    // async fn test_stream() {
-    //     let path = std::env::temp_dir().join("bp_map::test_stream");
-    //     if let Err(err) = std::fs::remove_file(&path) {
-    //         if err.kind() != std::io::ErrorKind::NotFound {
-    //             panic!("{:?}", err);
-    //         }
-    //     }
-    //     let wal_path = path.with_extension("wal");
-    //     if let Err(err) = std::fs::remove_file(&wal_path) {
-    //         if err.kind() != std::io::ErrorKind::NotFound {
-    //             panic!("{:?}", err);
-    //         }
-    //     }
-    //     let shadow_path = path.with_extension("shadow");
-    //     if let Err(err) = std::fs::remove_file(&shadow_path) {
-    //         if err.kind() != std::io::ErrorKind::NotFound {
-    //             panic!("{:?}", err);
-    //         }
-    //     }
+    #[tokio::test]
+    async fn test_stream() {
+        let path = std::env::temp_dir().join("bp_map::test_stream");
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
+        }
+        let wal_path = path.with_extension("wal");
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
+        }
+        let shadow_path = path.with_extension("shadow");
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
+        }
 
-    //     let map = BpMap::new(&path, TEST_COUNT as usize / 2).await.unwrap();
+        let map = BpMap::new(&path, TEST_COUNT as usize / 2).await.unwrap();
 
-    //     assert!(map.stream().try_next().await.unwrap().is_none());
+        assert!(map.stream().try_next().await.unwrap().is_none());
 
-    //     let mut join_set = JoinSet::new();
-    //     for i in 1..=TEST_COUNT {
-    //         let map = map.clone();
-    //         join_set
-    //             .spawn(async move { map.insert(i as Key, i.to_le_bytes().to_vec().into()).await });
-    //     }
-    //     join_set.join_all().await;
+        let mut join_set = JoinSet::new();
+        for i in 1..=TEST_COUNT {
+            let map = map.clone();
+            join_set
+                .spawn(async move { map.insert(i as Key, i.to_le_bytes().to_vec().into()).await });
+        }
+        join_set.join_all().await;
 
-    //     let mut stream = map.stream();
-    //     let mut all_keys = vec![];
-    //     let mut index = 0;
-    //     while let Some(key) = stream.try_next().await.unwrap() {
-    //         assert_eq!(key, index as Key + 1);
-    //         all_keys.push(key);
-    //         index += 1;
-    //     }
+        let mut stream = map.stream();
+        let mut all_entries = vec![];
+        let mut index: u32 = 0;
+        while let Some(entry) = stream.try_next().await.unwrap() {
+            assert_eq!(entry.key, index as Key + 1);
+            assert_eq!(entry.value.as_ref(), (index + 1).to_le_bytes());
+            all_entries.push(entry);
+            index += 1;
+        }
 
-    //     assert_eq!(all_keys.len(), 10000);
+        assert_eq!(all_entries.len(), 10000);
 
-    //     for i in 1..=TEST_COUNT {
-    //         assert_eq!(all_keys[i - 1], i as Key);
-    //     }
-    // }
+        for i in 1..=TEST_COUNT {
+            let entry = &all_entries[i as usize - 1];
+            assert_eq!(entry.key, i as Key);
+            assert_eq!(entry.value.as_ref(), i.to_le_bytes());
+        }
+    }
 }
