@@ -69,7 +69,7 @@ mod test {
 
     #[tokio::test]
     async fn test_insert() {
-        let path = std::env::temp_dir().join("id_set_test_insert");
+        let path = std::env::temp_dir().join("id_map::id_set_test_insert");
         if let Err(err) = std::fs::remove_file(&path) {
             if err.kind() != std::io::ErrorKind::NotFound {
                 panic!("{:?}", err);
@@ -101,7 +101,7 @@ mod test {
 
     #[tokio::test]
     async fn test_insert_and_delete() {
-        let path = std::env::temp_dir().join("id_set_test_insert_and_delete");
+        let path = std::env::temp_dir().join("id_map::id_set_test_insert_and_delete");
         if let Err(err) = std::fs::remove_file(&path) {
             if err.kind() != std::io::ErrorKind::NotFound {
                 panic!("{:?}", err);
@@ -138,7 +138,7 @@ mod test {
 
     #[tokio::test]
     async fn test_insert_contains() {
-        let path = std::env::temp_dir().join("id_set_test_insert_contains");
+        let path = std::env::temp_dir().join("id_map::id_set_test_insert_contains");
         if let Err(err) = std::fs::remove_file(&path) {
             if err.kind() != std::io::ErrorKind::NotFound {
                 panic!("{:?}", err);
@@ -181,7 +181,7 @@ mod test {
 
     #[tokio::test]
     async fn test_insert_delete_contains() {
-        let path = std::env::temp_dir().join("id_set_test_insert_delete_contains");
+        let path = std::env::temp_dir().join("id_map::id_set_test_insert_delete_contains");
         if let Err(err) = std::fs::remove_file(&path) {
             if err.kind() != std::io::ErrorKind::NotFound {
                 panic!("{:?}", err);
@@ -233,7 +233,7 @@ mod test {
 
     #[tokio::test]
     async fn test_insert_delete_contains_without_cache() {
-        let path = std::env::temp_dir().join("test_insert_delete_contains_without_cache");
+        let path = std::env::temp_dir().join("id_map::test_insert_delete_contains_without_cache");
         if let Err(err) = std::fs::remove_file(&path) {
             if err.kind() != std::io::ErrorKind::NotFound {
                 panic!("{:?}", err);
@@ -285,7 +285,7 @@ mod test {
 
     #[tokio::test]
     async fn test_insert_delete_contains_small_cache() {
-        let path = std::env::temp_dir().join("test_insert_delete_contains_small_cache");
+        let path = std::env::temp_dir().join("id_map::test_insert_delete_contains_small_cache");
         if let Err(err) = std::fs::remove_file(&path) {
             if err.kind() != std::io::ErrorKind::NotFound {
                 panic!("{:?}", err);
@@ -337,7 +337,7 @@ mod test {
 
     #[tokio::test]
     async fn test_insert_turn_off_contains() {
-        let path = std::env::temp_dir().join("test_insert_turn_off_contains");
+        let path = std::env::temp_dir().join("id_map::test_insert_turn_off_contains");
         if let Err(err) = std::fs::remove_file(&path) {
             if err.kind() != std::io::ErrorKind::NotFound {
                 panic!("{:?}", err);
@@ -385,7 +385,7 @@ mod test {
 
     #[tokio::test]
     async fn test_next_insert_next_delete_next() {
-        let path = std::env::temp_dir().join("test_next_insert_next_delete_next");
+        let path = std::env::temp_dir().join("id_map::test_next_insert_next_delete_next");
         if let Err(err) = std::fs::remove_file(&path) {
             if err.kind() != std::io::ErrorKind::NotFound {
                 panic!("{:?}", err);
@@ -436,7 +436,7 @@ mod test {
 
     #[tokio::test]
     async fn test_stream() {
-        let path = std::env::temp_dir().join("test_stream");
+        let path = std::env::temp_dir().join("id_map::test_stream");
         if let Err(err) = std::fs::remove_file(&path) {
             if err.kind() != std::io::ErrorKind::NotFound {
                 panic!("{:?}", err);

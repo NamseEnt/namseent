@@ -41,7 +41,7 @@ impl Operator {
         }
 
         let (right_half, center_key) =
-            leaf_node.split_and_insert(key, record_page_range, leaf_node_offset, right_node_offset);
+            leaf_node.split_and_insert(key, record_page_range, right_node_offset);
         self.blocks_updated.insert(
             PageRange::page(right_node_offset),
             PageBlock::Page(Page::LeafNode(right_half)),
@@ -110,6 +110,7 @@ impl Operator {
                 .await?
                 .as_leaf_node_mut();
             leaf_node.delete(key);
+            assert!(!leaf_node.contains(key));
         }
 
         Ok(())
@@ -124,14 +125,17 @@ impl Operator {
         Ok(contains)
     }
     pub async fn get(&mut self, key: Key) -> Result<Option<Bytes>> {
+        println!("key: {:?}", key);
         let leaf_node_offset = self.find_leaf_node_for(key).await?;
         let leaf_node = self
             .page(leaf_node_offset, PageBlockTypeHint::Node)
             .await?
             .as_leaf_node();
         let Some(record_page_range) = leaf_node.get_record_page_range(key) else {
+            println!("not exists: {:?}", key);
             return Ok(None);
         };
+        println!("record_page_range: {:?}", record_page_range);
         let bytes = self.record(record_page_range).await?;
         Ok(Some(bytes))
     }

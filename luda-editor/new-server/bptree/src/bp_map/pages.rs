@@ -154,7 +154,6 @@ const INTERNAL_NODE_KEY_LEN: usize = 204;
 #[derive(Clone)]
 /// right child's key is greater or equal to key.
 pub(crate) struct InternalNode {
-    leaf_type: u8,
     key_count: u32,
     keys: [Key; INTERNAL_NODE_KEY_LEN],
     child_offsets: [PageOffset; INTERNAL_NODE_KEY_LEN + 1],
@@ -163,8 +162,7 @@ impl Serialize for InternalNode {
     fn to_vec(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(PAGE_LEN);
 
-        bytes.put_u8(self.leaf_type);
-        bytes.put_bytes(0, 3);
+        bytes.put_u8(NodeType::INTERNAL);
 
         bytes.put_u32_le(self.key_count);
         for key in self.keys {
@@ -173,7 +171,7 @@ impl Serialize for InternalNode {
         for offset in self.child_offsets {
             bytes.put_u32_le(offset.as_u32());
         }
-        bytes.put_u32_le(0);
+        bytes.put_bytes(0, PAGE_LEN - bytes.len());
 
         assert_eq!(bytes.len(), PAGE_LEN);
         bytes
@@ -183,8 +181,8 @@ impl Deserialize for InternalNode {
     fn from_slice(mut slice: &[u8]) -> Self {
         assert_eq!(slice.len(), PAGE_LEN);
 
-        let leaf_type = slice.get_u8();
-        slice.advance(3);
+        let node_type = slice.get_u8();
+        assert_eq!(node_type, NodeType::INTERNAL);
 
         let key_count = slice.get_u32_le();
         let mut keys = [0; INTERNAL_NODE_KEY_LEN];
@@ -197,7 +195,6 @@ impl Deserialize for InternalNode {
         }
 
         Self {
-            leaf_type,
             key_count,
             keys,
             child_offsets,
@@ -207,7 +204,6 @@ impl Deserialize for InternalNode {
 impl Debug for InternalNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("InternalNode")
-            .field("leaf_type", &self.leaf_type)
             .field("key_count", &self.key_count)
             .field("keys", &&self.keys[..self.key_count as usize])
             .field(
@@ -224,7 +220,6 @@ impl InternalNode {
         assert_eq!(keys.len() + 1, child_offsets.len());
 
         Self {
-            leaf_type: 0,
             key_count: keys.len() as u32,
             keys: {
                 let mut new_keys = [0; INTERNAL_NODE_KEY_LEN];
@@ -324,41 +319,33 @@ impl InternalNode {
     }
 }
 
+struct NodeType;
+impl NodeType {
+    const INTERNAL: u8 = 0;
+    const LEAF: u8 = 1;
+}
+
 const LEAF_NODE_KEY_LEN: usize = 194;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct LeafNode {
-    leaf_type: u8,
-    key_count: u32,
-    left_node_offset: PageOffset,
     right_node_offset: PageOffset,
-    keys: [Key; LEAF_NODE_KEY_LEN],
-    record_page_offsets: [PageOffset; LEAF_NODE_KEY_LEN],
-    /// This size makes the limit of data size to 4KB * 2^8 = 1MB.
-    record_page_count: [u8; LEAF_NODE_KEY_LEN],
+    entries: Vec<LeafNodeEntry>,
 }
 impl Serialize for LeafNode {
     fn to_vec(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(PAGE_LEN);
 
-        bytes.put_u8(self.leaf_type);
-        bytes.put_bytes(0, 3);
-
-        bytes.put_u32_le(self.key_count);
-        bytes.put_u32_le(self.left_node_offset.as_u32());
+        bytes.put_u8(NodeType::LEAF);
         bytes.put_u32_le(self.right_node_offset.as_u32());
-        for key in self.keys.iter().take(self.key_count as usize) {
-            bytes.put_u128_le(*key);
-        }
-        for offset in self
-            .record_page_offsets
-            .iter()
-            .take(self.key_count as usize)
-        {
-            bytes.put_u32_le(offset.as_u32());
-        }
-        for count in self.record_page_count.iter().take(self.key_count as usize) {
-            bytes.put_u8(*count);
+
+        assert!(self.entries.len() <= u8::MAX as usize);
+        bytes.put_u8(self.entries.len() as u8);
+
+        for entry in &self.entries {
+            bytes.put_u128_le(entry.key);
+            bytes.put_u32_le(entry.record_page_range.page_offset.as_u32());
+            bytes.put_u8(entry.record_page_range.page_count);
         }
 
         bytes.put_bytes(0, PAGE_LEN - bytes.len());
@@ -371,62 +358,55 @@ impl Deserialize for LeafNode {
     fn from_slice(mut slice: &[u8]) -> Self {
         assert_eq!(slice.len(), PAGE_LEN);
 
-        let leaf_type = slice.get_u8();
-        slice.advance(3);
+        let node_type = slice.get_u8();
+        assert_eq!(node_type, NodeType::LEAF);
 
-        let key_count = slice.get_u32_le();
-        let left_node_offset = PageOffset::new(slice.get_u32_le());
         let right_node_offset = PageOffset::new(slice.get_u32_le());
-        let mut keys = [0; LEAF_NODE_KEY_LEN];
-        for key in keys.iter_mut() {
-            *key = slice.get_u128_le();
-        }
-        let mut record_page_offsets = [PageOffset::NULL; LEAF_NODE_KEY_LEN];
-        for offset in record_page_offsets.iter_mut() {
-            *offset = PageOffset::new(slice.get_u32_le());
-        }
-        let mut record_page_count = [0; LEAF_NODE_KEY_LEN];
-        for count in record_page_count.iter_mut() {
-            *count = slice.get_u8();
+
+        let key_count = slice.get_u8();
+        let mut entries = Vec::with_capacity(key_count as usize);
+
+        for _ in 0..key_count {
+            let key = slice.get_u128_le();
+            let page_offset = PageOffset::new(slice.get_u32_le());
+            let page_count = slice.get_u8();
+            entries.push(LeafNodeEntry {
+                key,
+                record_page_range: PageRange::new(page_offset, page_count),
+            });
         }
 
         Self {
-            leaf_type,
-            key_count,
-            left_node_offset,
             right_node_offset,
-            keys,
-            record_page_offsets,
-            record_page_count,
+            entries,
         }
     }
 }
 
 impl LeafNode {
-    pub fn new(left_node_offset: PageOffset, right_node_offset: PageOffset) -> Self {
+    pub fn new(right_node_offset: PageOffset) -> Self {
         Self {
-            leaf_type: 1,
-            key_count: 0,
-            left_node_offset,
             right_node_offset,
-            keys: [0; LEAF_NODE_KEY_LEN],
-            record_page_offsets: [PageOffset::NULL; LEAF_NODE_KEY_LEN],
-            record_page_count: [0; LEAF_NODE_KEY_LEN],
+            entries: Vec::new(),
+        }
+    }
+
+    fn new_with_entries(right_node_offset: PageOffset, entries: Vec<LeafNodeEntry>) -> LeafNode {
+        assert!(entries.len() <= LEAF_NODE_KEY_LEN);
+        Self {
+            right_node_offset,
+            entries,
         }
     }
 
     pub fn is_full(&self) -> bool {
-        self.key_count == self.keys.len() as u32
+        self.entries.len() == LEAF_NODE_KEY_LEN
     }
 
     fn index_to_insert(&self, key: Key) -> usize {
-        self.keys
-            .into_iter()
-            .take(self.key_count as usize)
-            .enumerate()
-            .find(|(_, key_)| key < *key_)
-            .map(|(i, _)| i)
-            .unwrap_or(self.key_count as usize)
+        self.keys()
+            .position(|key_| key < key_)
+            .unwrap_or(self.entries.len())
     }
 
     /// WARNING: Call this method only if the leaf node is **NOT FULL**.
@@ -435,18 +415,13 @@ impl LeafNode {
 
         let index = self.index_to_insert(key);
 
-        if index < self.key_count as usize {
-            self.keys
-                .copy_within(index..self.key_count as usize, index + 1);
-            self.record_page_offsets
-                .copy_within(index..self.key_count as usize, index + 1);
-            self.record_page_count
-                .copy_within(index..self.key_count as usize, index + 1);
-        }
-        self.keys[index] = key;
-        self.record_page_offsets[index] = record_page_range.page_offset;
-        self.record_page_count[index] = record_page_range.page_count;
-        self.key_count += 1;
+        self.entries.insert(
+            index,
+            LeafNodeEntry {
+                key,
+                record_page_range,
+            },
+        );
     }
 
     /// WARNING: Call this method only if the leaf node is **FULL".
@@ -455,8 +430,7 @@ impl LeafNode {
     pub fn split_and_insert(
         &mut self,
         key: Key,
-        record_page: PageRange,
-        this_node_offset: PageOffset,
+        record_page_range: PageRange,
         right_node_offset: PageOffset,
     ) -> (LeafNode, Key) {
         assert!(self.is_full());
@@ -471,103 +445,51 @@ impl LeafNode {
             |   key 0   |   key 1   |           |   key 2   |   key 3   |
         */
 
-        let one_plus_keys = {
-            let mut one_plus_keys = [0; LEAF_NODE_KEY_LEN + 1];
-            one_plus_keys[..index].copy_from_slice(&self.keys[..index]);
-            one_plus_keys[index] = key;
-            one_plus_keys[index + 1..].copy_from_slice(&self.keys[index..]);
-            one_plus_keys
-        };
+        self.entries.insert(
+            index,
+            LeafNodeEntry {
+                key,
+                record_page_range,
+            },
+        );
 
-        let one_plus_record_page_offsets = {
-            let mut one_plus_record_page_offsets = [PageOffset::NULL; LEAF_NODE_KEY_LEN + 1];
-            one_plus_record_page_offsets[..index]
-                .copy_from_slice(&self.record_page_offsets[..index]);
-            one_plus_record_page_offsets[index] = record_page.page_offset;
-            one_plus_record_page_offsets[index + 1..]
-                .copy_from_slice(&self.record_page_offsets[index..]);
-            one_plus_record_page_offsets
-        };
+        let left_count = self.entries.len() / 2;
+        let right_entries = self.entries.split_off(left_count);
 
-        let one_plus_record_page_count = {
-            let mut one_plus_record_page_count = [0; LEAF_NODE_KEY_LEN + 1];
-            one_plus_record_page_count[..index].copy_from_slice(&self.record_page_count[..index]);
-            one_plus_record_page_count[index] = record_page.page_count;
-            one_plus_record_page_count[index + 1..]
-                .copy_from_slice(&self.record_page_count[index..]);
-            one_plus_record_page_count
-        };
-
-        let right_count = one_plus_keys.len() / 2;
-        let left_count = one_plus_keys.len() - right_count;
-
-        self.keys[..left_count].copy_from_slice(&one_plus_keys[..left_count]);
-        self.record_page_offsets[..left_count]
-            .copy_from_slice(&one_plus_record_page_offsets[..left_count]);
-        self.record_page_count[..left_count]
-            .copy_from_slice(&one_plus_record_page_count[..left_count]);
-        self.key_count = left_count as u32;
-
-        let mut right_leaf_node = LeafNode::new(this_node_offset, self.right_node_offset);
-
-        right_leaf_node.keys[..right_count].copy_from_slice(&one_plus_keys[left_count..]);
-        right_leaf_node.record_page_offsets[..right_count]
-            .copy_from_slice(&one_plus_record_page_offsets[left_count..]);
-        right_leaf_node.record_page_count[..right_count]
-            .copy_from_slice(&one_plus_record_page_count[left_count..]);
-        right_leaf_node.key_count = right_count as u32;
-
+        let right_leaf_node = LeafNode::new_with_entries(self.right_node_offset, right_entries);
         self.right_node_offset = right_node_offset;
 
-        let center_key = right_leaf_node.keys[0];
+        let center_key = right_leaf_node.keys().next().unwrap();
 
         (right_leaf_node, center_key)
     }
 
     pub fn contains(&self, key: u128) -> bool {
-        self.keys
-            .into_iter()
-            .take(self.key_count as usize)
-            .any(|key_| key_ == key)
+        self.keys().any(|key_| key == key_)
     }
 
     /// # Panics
     ///
     /// Panics if key is not in the leaf node.
     pub fn delete(&mut self, key: u128) {
-        let index = self
-            .keys
-            .into_iter()
-            .take(self.key_count as usize)
-            .enumerate()
-            .find(|(_, key_key)| key == *key_key)
-            .map(|(i, _)| i)
-            .unwrap();
-
-        if index + 1 < self.key_count as usize {
-            self.keys
-                .copy_within(index + 1..self.key_count as usize, index);
-        }
-
-        self.key_count -= 1;
+        let index = self.keys().position(|key_| key == key_).unwrap();
+        self.entries.remove(index);
     }
 
-    pub fn keys(&self) -> &[Key] {
-        &self.keys[..self.key_count as usize]
+    pub fn keys(&self) -> impl ExactSizeIterator<Item = Key> + '_ {
+        self.entries.iter().map(|entry| entry.key)
     }
 
     pub fn next(&self, exclusive_start_key: Option<Key>) -> NextResult {
         let start_index = exclusive_start_key
             .map(|key| {
-                self.keys
-                    .iter()
-                    .take(self.key_count as usize)
-                    .position(|&key_| key < key_)
-                    .unwrap_or(self.key_count as usize)
+                self.keys()
+                    .position(|key_| key < key_)
+                    .unwrap_or(self.entries.len())
             })
             .unwrap_or_default();
 
-        if start_index == self.key_count as usize {
+        if start_index == self.entries.len() {
             if let Some(right_node_offset) = self.right_node_offset() {
                 return NextResult::CheckRightNode { right_node_offset };
             } else {
@@ -575,15 +497,10 @@ impl LeafNode {
             }
         }
 
-        let mut key_ranges = Vec::with_capacity(self.key_count as usize - start_index);
-        for index in start_index..self.key_count as usize {
-            key_ranges.push((
-                self.keys[index],
-                PageRange::new(
-                    self.record_page_offsets[index],
-                    self.record_page_count[index],
-                ),
-            ));
+        let mut key_ranges = Vec::with_capacity(self.entries.len() - start_index);
+        for index in start_index..self.entries.len() {
+            let entry = &self.entries[index];
+            key_ranges.push((entry.key, entry.record_page_range));
         }
         NextResult::Found { key_ranges }
     }
@@ -597,27 +514,16 @@ impl LeafNode {
     }
 
     pub fn get_record_page_range(&self, key: Key) -> Option<PageRange> {
-        let index = self
-            .keys
-            .iter()
-            .take(self.key_count as usize)
-            .position(|&key_| key == key_)?;
+        let index = self.keys().position(|key_| key == key_)?;
 
-        Some(PageRange::new(
-            self.record_page_offsets[index],
-            self.record_page_count[index],
-        ))
+        Some(self.entries[index].record_page_range)
     }
 }
 
-impl Debug for LeafNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LeafNode")
-            .field("leaf_type", &self.leaf_type)
-            .field("key_count", &self.key_count)
-            .field("keys", &self.keys())
-            .finish()
-    }
+#[derive(Debug, Clone)]
+struct LeafNodeEntry {
+    key: Key,
+    record_page_range: PageRange,
 }
 
 pub(crate) enum NextResult {
@@ -627,6 +533,7 @@ pub(crate) enum NextResult {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Node {
     Internal(InternalNode),
     Leaf(LeafNode),
@@ -852,6 +759,7 @@ impl Deserialize for Record {
 
 /// Page Block = contiguous pages
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum PageBlock {
     Page(Page),
     Record(Record),
@@ -920,61 +828,50 @@ mod tests {
             .len(),
             PAGE_LEN
         );
-        assert_eq!(
-            LeafNode::new(PageOffset::NULL, PageOffset::NULL)
-                .to_vec()
-                .len(),
-            PAGE_LEN
-        );
+        assert_eq!(LeafNode::new(PageOffset::NULL).to_vec().len(), PAGE_LEN);
+
+        let mut node = LeafNode::new(PageOffset::NULL);
+        for i in 0..LEAF_NODE_KEY_LEN {
+            node.insert(i as _, PageRange::new(PageOffset::NULL, 0));
+        }
+        assert_eq!(node.to_vec().len(), PAGE_LEN);
     }
 
     #[test]
     fn leaf_node_move_half() {
         let mut inserted_keys = Vec::new();
-        let mut leaf_node = LeafNode::new(PageOffset::NULL, PageOffset::NULL);
+        let mut leaf_node = LeafNode::new(PageOffset::NULL);
         for i in (0..(LEAF_NODE_KEY_LEN * 2)).step_by(2) {
             leaf_node.insert(i as _, PageRange::new(PageOffset::NULL, 0));
             inserted_keys.push(i as _);
         }
 
         assert!(leaf_node.is_full());
-        assert_eq!(leaf_node.key_count, LEAF_NODE_KEY_LEN as u32);
+        assert_eq!(leaf_node.entries.len(), LEAF_NODE_KEY_LEN);
 
-        let (new_leaf_node, key) = leaf_node.split_and_insert(
-            3,
-            PageRange::new(PageOffset::NULL, 0),
-            PageOffset::NULL,
-            PageOffset::NULL,
-        );
+        let (new_leaf_node, key) =
+            leaf_node.split_and_insert(3, PageRange::new(PageOffset::NULL, 0), PageOffset::NULL);
         inserted_keys.push(3);
 
-        assert_eq!(new_leaf_node.key_count, new_leaf_node.keys().len() as u32);
-        assert_eq!(leaf_node.key_count, leaf_node.keys().len() as u32);
+        assert_eq!(new_leaf_node.entries.len(), new_leaf_node.keys().len());
+        assert_eq!(leaf_node.entries.len(), leaf_node.keys().len());
 
         assert_eq!(
-            new_leaf_node.key_count,
-            (LEAF_NODE_KEY_LEN as u32 + 1 - leaf_node.key_count)
+            new_leaf_node.entries.len(),
+            (LEAF_NODE_KEY_LEN + 1 - leaf_node.entries.len())
         );
-        assert_eq!(key, new_leaf_node.keys[0]);
+        assert_eq!(key, new_leaf_node.keys().next().unwrap());
 
         assert!(leaf_node.contains(3));
 
         leaf_node
             .keys()
-            .iter()
-            .zip(leaf_node.keys().iter().skip(1))
+            .zip(leaf_node.keys().skip(1))
             .for_each(|(a, b)| assert!(a < b, "{:?} < {:?}", a, b));
 
         new_leaf_node
             .keys()
-            .iter()
-            .zip(
-                new_leaf_node
-                    .keys()
-                    .iter()
-                    .skip(1)
-                    .take(new_leaf_node.key_count as usize),
-            )
+            .zip(new_leaf_node.keys().skip(1))
             .for_each(|(a, b)| assert!(a < b, "{:?} < {:?}", a, b));
 
         for key in inserted_keys {
