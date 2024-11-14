@@ -71,6 +71,9 @@ enum FeBeRequest {
         exclusive_start_key: Option<u128>,
         tx: oneshot::Sender<std::result::Result<Option<Vec<Entry>>, ()>>,
     },
+    FileSize {
+        tx: oneshot::Sender<std::result::Result<usize, ()>>,
+    },
 }
 
 #[cfg(test)]
@@ -562,5 +565,61 @@ mod test {
             assert_eq!(entry.key, i as Key);
             assert_eq!(entry.value.as_ref(), i.to_le_bytes());
         }
+    }
+
+    #[tokio::test]
+    async fn test_insert_delete_insert() {
+        let path = std::env::temp_dir().join("bp_map::bp_map_test_insert_delete_insert");
+        if let Err(err) = std::fs::remove_file(&path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
+        }
+        let wal_path = path.with_extension("wal");
+        if let Err(err) = std::fs::remove_file(&wal_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
+        }
+        let shadow_path = path.with_extension("shadow");
+        if let Err(err) = std::fs::remove_file(&shadow_path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                panic!("{:?}", err);
+            }
+        }
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+
+        let map = BpMap::new(path, TEST_COUNT as usize / 2).await.unwrap();
+        let mut join_set = JoinSet::new();
+        for i in 1..=TEST_COUNT {
+            let map = map.clone();
+            join_set
+                .spawn(async move { map.insert(i as Key, i.to_le_bytes().to_vec().into()).await });
+        }
+
+        join_set.join_all().await;
+
+        let size = map.file_size().await.unwrap();
+
+        let mut join_set = JoinSet::new();
+        for i in 1..=TEST_COUNT {
+            let map = map.clone();
+            join_set.spawn(async move { map.delete(i as Key).await });
+        }
+
+        join_set.join_all().await;
+
+        let mut join_set = JoinSet::new();
+        for i in 1..=TEST_COUNT {
+            let map = map.clone();
+            join_set
+                .spawn(async move { map.insert(i as Key, i.to_le_bytes().to_vec().into()).await });
+        }
+
+        join_set.join_all().await;
+
+        let new_size = map.file_size().await.unwrap();
+
+        assert_eq!(size, new_size);
     }
 }

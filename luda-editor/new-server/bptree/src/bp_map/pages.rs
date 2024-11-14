@@ -47,7 +47,7 @@ pub(crate) trait Deserialize {
     fn from_slice(slice: &[u8]) -> Self;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct Header {
     /// Would be null
     pub free_page_stack_top_page_offset: PageOffset,
@@ -67,6 +67,10 @@ impl Header {
             root_node_offset,
             next_page_offset,
         }
+    }
+
+    pub fn file_size(&self) -> usize {
+        self.next_page_offset.file_offset()
     }
 }
 impl Serialize for Header {

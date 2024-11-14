@@ -140,6 +140,24 @@ impl Backend {
                             FeBeRequest::Close => {
                                 close_requested = true;
                             }
+                            FeBeRequest::FileSize { tx } => {
+                                let file_size = operator.file_size().await;
+                                let tx_result;
+                                match file_size {
+                                    Ok(file_size) => {
+                                        tx_result = Ok(file_size);
+                                        result = Ok(());
+                                    }
+                                    Err(err) => {
+                                        tx_result = Err(());
+                                        result = Err(err.into());
+                                    }
+                                }
+                                txs.push(Tx::FileSize {
+                                    tx,
+                                    result: tx_result,
+                                });
+                            }
                         }
                     }
 
@@ -230,6 +248,14 @@ impl Backend {
                             Err(())
                         });
                     }
+                    Tx::FileSize { tx, result } => {
+                        _ = tx.send(if no_error {
+                            assert!(result.is_ok());
+                            result
+                        } else {
+                            Err(())
+                        });
+                    }
                 });
             }
 
@@ -295,5 +321,9 @@ enum Tx {
     Next {
         tx: oneshot::Sender<std::result::Result<Option<Vec<Entry>>, ()>>,
         result: std::result::Result<Option<Vec<Entry>>, ()>,
+    },
+    FileSize {
+        tx: oneshot::Sender<std::result::Result<usize, ()>>,
+        result: std::result::Result<usize, ()>,
     },
 }

@@ -27,7 +27,7 @@ impl Operator {
         let mut route = self.find_route_for_insertion(key).await?;
         let leaf_node_offset = route.pop().unwrap();
 
-        let right_node_offset = self.reserve_page_offset().await;
+        let right_node_offset = self.reserve_page_offset().await?;
 
         let leaf_node = self
             .page_mut(leaf_node_offset, PageBlockTypeHint::Node)
@@ -36,7 +36,7 @@ impl Operator {
 
         if !leaf_node.is_full() {
             leaf_node.insert(key, record_page_range);
-            self.rollback_reserve_page_offset(right_node_offset).await;
+            self.rollback_reserve_page_offset(right_node_offset).await?;
             return Ok(());
         }
 
@@ -48,17 +48,17 @@ impl Operator {
         );
 
         if route.is_empty() {
-            assert_eq!(leaf_node_offset, self.header().await.root_node_offset);
+            assert_eq!(leaf_node_offset, self.header().await?.root_node_offset);
 
             let internal_node =
                 InternalNode::new(&[center_key], &[leaf_node_offset, right_node_offset]);
-            let internal_node_offset = self.reserve_page_offset().await;
+            let internal_node_offset = self.reserve_page_offset().await?;
             self.blocks_updated.insert(
                 PageRange::page(internal_node_offset),
                 PageBlock::Page(Page::InternalNode(internal_node)),
             );
 
-            self.header_mut().await.root_node_offset = internal_node_offset;
+            self.header_mut().await?.root_node_offset = internal_node_offset;
             return Ok(());
         }
 
@@ -75,19 +75,19 @@ impl Operator {
             else {
                 return Ok(());
             };
-            right_node_offset = self.reserve_page_offset().await;
+            right_node_offset = self.reserve_page_offset().await?;
             self.blocks_updated.insert(
                 PageRange::page(right_node_offset),
                 PageBlock::Page(Page::InternalNode(right_node)),
             );
 
-            if node_offset != self.header().await.root_node_offset {
+            if node_offset != self.header().await?.root_node_offset {
                 center_key = next_center_key;
                 continue;
             }
 
             assert!(route.is_empty());
-            let new_root_node_offset = self.reserve_page_offset().await;
+            let new_root_node_offset = self.reserve_page_offset().await?;
             let new_root_node =
                 InternalNode::new(&[next_center_key], &[node_offset, right_node_offset]);
             self.blocks_updated.insert(
@@ -169,6 +169,9 @@ impl Operator {
             }
         }
     }
+    pub async fn file_size(&mut self) -> Result<usize> {
+        Ok(self.header().await?.file_size())
+    }
     pub fn done(self) -> Done {
         Done {
             pages_read_from_file: self.blocks_read_from_file,
@@ -176,7 +179,7 @@ impl Operator {
         }
     }
     async fn find_route_for_insertion(&mut self, key: Key) -> Result<Vec<PageOffset>> {
-        let mut node_offset = self.header().await.root_node_offset;
+        let mut node_offset = self.header().await?.root_node_offset;
         let mut route = vec![];
 
         loop {
@@ -231,11 +234,11 @@ impl Operator {
             .unwrap()
             .as_page_mut())
     }
-    async fn reserve_page_offset(&mut self) -> PageOffset {
-        self.header_mut().await.next_page_offset.fetch_increase(1)
+    async fn reserve_page_offset(&mut self) -> Result<PageOffset> {
+        Ok(self.header_mut().await?.next_page_offset.fetch_increase(1))
     }
     // async fn pop_free_page(&mut self) -> Result<Option<PageOffset>> {
-    //     let free_page_stack_top_page_offset = self.header().await.free_page_stack_top_page_offset;
+    //     let free_page_stack_top_page_offset = self.header().await?.free_page_stack_top_page_offset;
     //     if free_page_stack_top_page_offset.is_null() {
     //         return Ok(None);
     //     }
@@ -249,26 +252,26 @@ impl Operator {
     //     let next_page_offset = stack_node.next_page_offset;
 
     //     if stack_node.is_empty() {
-    //         self.header_mut().await.free_page_stack_top_page_offset = next_page_offset;
+    //         self.header_mut().await?.free_page_stack_top_page_offset = next_page_offset;
     //     }
 
     //     Ok(Some(page_offset))
     // }
-    async fn header(&mut self) -> &Header {
-        self.page(PageOffset::HEADER, PageBlockTypeHint::Header)
-            .await
-            .unwrap()
-            .as_header()
+    async fn header(&mut self) -> Result<&Header> {
+        Ok(self
+            .page(PageOffset::HEADER, PageBlockTypeHint::Header)
+            .await?
+            .as_header())
     }
 
-    async fn header_mut(&mut self) -> &mut Header {
-        self.page_mut(PageOffset::HEADER, PageBlockTypeHint::Header)
-            .await
-            .unwrap()
-            .as_header_mut()
+    async fn header_mut(&mut self) -> Result<&mut Header> {
+        Ok(self
+            .page_mut(PageOffset::HEADER, PageBlockTypeHint::Header)
+            .await?
+            .as_header_mut())
     }
     async fn find_leaf_node_for(&mut self, key: Key) -> Result<PageOffset> {
-        let mut node_offset = self.header().await.root_node_offset;
+        let mut node_offset = self.header().await?.root_node_offset;
 
         loop {
             let page_block = self
@@ -325,7 +328,7 @@ impl Operator {
 
         let page_offset = self
             .header_mut()
-            .await
+            .await?
             .next_page_offset
             .fetch_increase(page_count as usize);
 
@@ -337,12 +340,13 @@ impl Operator {
         Ok(block_page_range)
     }
 
-    async fn rollback_reserve_page_offset(&mut self, right_node_offset: PageOffset) {
+    async fn rollback_reserve_page_offset(&mut self, right_node_offset: PageOffset) -> Result<()> {
         assert_eq!(
-            self.header().await.next_page_offset.as_u32(),
+            self.header().await?.next_page_offset.as_u32(),
             right_node_offset.as_u32() + 1
         );
-        self.header_mut().await.next_page_offset.decrease();
+        self.header_mut().await?.next_page_offset.decrease();
+        Ok(())
     }
 }
 

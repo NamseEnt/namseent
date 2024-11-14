@@ -150,6 +150,14 @@ impl BpMap {
             }),
         }
     }
+    pub async fn file_size(&self) -> Result<usize> {
+        if let Some(header) = self.cache.header() {
+            return Ok(header.file_size());
+        }
+
+        let (tx, rx) = oneshot::channel();
+        self.send_request(FeBeRequest::FileSize { tx }, rx).await
+    }
     async fn send_request<T>(
         &self,
         request: FeBeRequest,

@@ -192,6 +192,11 @@ impl PageCache {
     pub(crate) fn load_full(&self) -> CachedPages {
         self.inner.load_full()
     }
+
+    pub(crate) fn header(&self) -> Option<Header> {
+        let guard = self.inner.load();
+        Some(*guard.get(&PageRange::HEADER)?.as_page().as_header())
+    }
 }
 
 #[derive(Debug)]
