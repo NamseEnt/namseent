@@ -1,22 +1,20 @@
+mod relation_file;
 mod simple_doc_file;
+mod trx_id_map;
 
 use crate::*;
-use bptree::id_set::{Id, IdSet};
 use document_store::*;
+use relation_file::RelationFile;
 use simple_doc_file::*;
-use std::{
-    collections::HashMap,
-    ops::DerefMut,
-    path::PathBuf,
-    sync::atomic::{AtomicU64, Ordering},
-    time::Instant,
-};
+use std::{collections::HashMap, ops::DerefMut, path::PathBuf, time::Instant};
+use trx_id_map::TrxIdMap;
+
+type Id = u128;
 
 pub struct FsLockerVersionDocStore {
     mount_point: std::path::PathBuf,
     files: tokio::sync::Mutex<HashMap<FileKey, (Instant, DocFile)>>,
-    trx_id_tree: IdSet,
-    next_trx_id: AtomicU64,
+    trx_id_map: TrxIdMap,
 }
 
 impl DocumentStore for FsLockerVersionDocStore {
@@ -28,7 +26,8 @@ impl DocumentStore for FsLockerVersionDocStore {
         };
         let mut files = self.files.lock().await;
 
-        self.make_sure_files(&mut files, &[&key]).await?;
+        self.make_sure_files(&mut files, &[key], &self.trx_id_map)
+            .await?;
         let (_, file) = files.get(&key).unwrap();
 
         let DocFile::Simple(file) = file else {
@@ -42,7 +41,7 @@ impl DocumentStore for FsLockerVersionDocStore {
 
     async fn transact<'a, AbortReason>(
         &'a self,
-        transact_items: &mut TransactItems<'a, AbortReason>,
+        transact_items: TransactItems<'a, AbortReason>,
     ) -> Result<MaybeAborted<AbortReason>> {
         // 1. Create a WAL (Write-Ahead Log) for each file,
         // 2. Generate a transaction ID,
@@ -55,42 +54,30 @@ impl DocumentStore for FsLockerVersionDocStore {
 
         let mut files = self.files.lock().await;
 
-        let trx_id = self.next_trx_id.fetch_add(1, Ordering::Relaxed);
+        let trx_id = uuid::Uuid::now_v7().as_u128();
 
-        let keys = vec![];
-        self.make_sure_files(&mut files, &keys).await?;
+        let keys = extract_file_keys(&transact_items);
+        self.make_sure_files(&mut files, &keys, &self.trx_id_map)
+            .await?;
 
         let mut maybe_aborted = MaybeAborted::No;
 
-        for transact_item in transact_items {
-            match *transact_item {
-                TransactItem::Put {
-                    name,
-                    id,
-                    ref value,
-                } => {
-                    let key = FileKey {
-                        name,
-                        id,
-                        file_type: FileType::Simple,
-                    };
-                    let (_, file) = files.get_mut(&key).unwrap();
+        keys.iter().for_each(|key| {
+            let (_, file) = files.get_mut(key).unwrap();
+            file.rollback();
+        });
+
+        for (transact_item, key) in transact_items.into_iter().zip(&keys) {
+            match transact_item {
+                TransactItem::Put { value, .. } => {
+                    let (_, file) = files.get_mut(key).unwrap();
                     let DocFile::Simple(simple_doc_file) = file else {
                         unreachable!()
                     };
                     simple_doc_file.put(Bytes::from(value.to_vec()), trx_id)?;
                 }
-                TransactItem::Create {
-                    name,
-                    id,
-                    ref mut value_fn,
-                } => {
-                    let key = FileKey {
-                        name,
-                        id,
-                        file_type: FileType::Simple,
-                    };
-                    let (_, file) = files.get_mut(&key).unwrap();
+                TransactItem::Create { mut value_fn, .. } => {
+                    let (_, file) = files.get_mut(key).unwrap();
                     let DocFile::Simple(simple_doc_file) = file else {
                         unreachable!()
                     };
@@ -101,17 +88,8 @@ impl DocumentStore for FsLockerVersionDocStore {
                     let value = value_fn.take().unwrap()()?;
                     simple_doc_file.put(Bytes::from(value), trx_id)?;
                 }
-                TransactItem::Update {
-                    name,
-                    id,
-                    ref mut update_fn,
-                } => {
-                    let key = FileKey {
-                        name,
-                        id,
-                        file_type: FileType::Simple,
-                    };
-                    let (_, file) = files.get_mut(&key).unwrap();
+                TransactItem::Update { mut update_fn, .. } => {
+                    let (_, file) = files.get_mut(key).unwrap();
                     let DocFile::Simple(simple_doc_file) = file else {
                         unreachable!()
                     };
@@ -130,13 +108,8 @@ impl DocumentStore for FsLockerVersionDocStore {
                         }
                     }
                 }
-                TransactItem::Delete { name, id } => {
-                    let key = FileKey {
-                        name,
-                        id,
-                        file_type: FileType::Simple,
-                    };
-                    let (_, file) = files.get_mut(&key).unwrap();
+                TransactItem::Delete { .. } => {
+                    let (_, file) = files.get_mut(key).unwrap();
                     let DocFile::Simple(simple_doc_file) = file else {
                         unreachable!()
                     };
@@ -146,36 +119,35 @@ impl DocumentStore for FsLockerVersionDocStore {
                     }
                     simple_doc_file.put(Bytes::new(), trx_id)?;
                 }
-                TransactItem::InsertRelation { name, id, to_id } => {
-                    let key = FileKey {
-                        name,
-                        id,
-                        file_type: FileType::IdSet,
-                    };
-                    let (_, file) = files.get_mut(&key).unwrap();
-                    let DocFile::IdSet(id_set) = file else {
+                TransactItem::InsertRelation { to_id, .. } => {
+                    let (_, file) = files.get_mut(key).unwrap();
+                    let DocFile::RelationFile(file) = file else {
                         unreachable!()
                     };
 
-                    if let Err(err) = id_set.insert(to_id).await {
-                        match err {
-                            bptree::id_set::Error::Broken => todo!(),
-                            bptree::id_set::Error::Temporary => todo!(),
-                        }
-                    }
+                    file.insert(to_id, trx_id)?;
                 }
-                TransactItem::RemoveRelation { name, id } => {}
+                TransactItem::RemoveRelation { to_id, .. } => {
+                    let (_, file) = files.get_mut(key).unwrap();
+                    let DocFile::RelationFile(file) = file else {
+                        unreachable!()
+                    };
+
+                    file.remove(to_id, trx_id)?;
+                }
             };
         }
 
         if let MaybeAborted::No = &maybe_aborted {
-            if let Err(err) = self.trx_id_tree.insert(trx_id as u128).await {
-                match err {
-                    bptree::id_set::Error::Broken => todo!(),
-                    bptree::id_set::Error::Temporary => todo!(),
-                }
-            }
+            let file_ids = keys.iter().map(|key| key.id).collect::<Vec<_>>();
+
+            self.trx_id_map.insert(trx_id, file_ids).await;
         };
+
+        for key in keys {
+            let (_, file) = files.get_mut(&key).unwrap();
+            file.commit();
+        }
 
         Ok(maybe_aborted)
     }
@@ -191,7 +163,7 @@ impl DocumentStore for FsLockerVersionDocStore {
 }
 
 impl FsLockerVersionDocStore {
-    async fn close_old_files(&self, except_keys: &[&FileKey]) {
+    async fn close_old_files(&self, except_keys: &[FileKey]) {
         const SOFT_MAX_FILES_LIMIT: usize = 20000;
         let mut files = self.files.lock().await;
 
@@ -207,10 +179,8 @@ impl FsLockerVersionDocStore {
         let mut survived = vec.split_off(overflow);
 
         for entry in vec {
-            if except_keys.contains(&&entry.0) {
+            if except_keys.contains(&entry.0) {
                 survived.push(entry);
-            } else {
-                entry.1 .1.close().await;
             }
         }
 
@@ -220,24 +190,26 @@ impl FsLockerVersionDocStore {
     async fn make_sure_files(
         &self,
         files: &mut impl DerefMut<Target = HashMap<FileKey, (Instant, DocFile)>>,
-        keys: &[&FileKey],
+        keys: &[FileKey],
+        trx_id_map: &TrxIdMap,
     ) -> std::io::Result<()> {
-        self.close_old_files(keys);
+        self.close_old_files(keys).await;
 
         let now = Instant::now();
-        for &&key in keys {
-            if !files.contains_key(&key) {
+        for key in keys {
+            if !files.contains_key(key) {
                 let doc_file = match key.file_type {
-                    FileType::Simple => {
-                        DocFile::Simple(SimpleDocFile::open(&self.mount_point, key.path())?)
-                    }
-                    FileType::IdSet => {
-                        DocFile::IdSet(IdSet::new(self.mount_point.join(key.path()), 8).await?)
+                    FileType::Simple => DocFile::Simple(
+                        SimpleDocFile::open(&self.mount_point, key.path(), key.id, trx_id_map)
+                            .await?,
+                    ),
+                    FileType::RelationFile => {
+                        DocFile::RelationFile(RelationFile::open(&self.mount_point, key.path())?)
                     }
                 };
-                files.insert(key, (Instant::now(), doc_file));
+                files.insert(*key, (Instant::now(), doc_file));
             } else {
-                let (last_access, _) = files.get_mut(&key).unwrap();
+                let (last_access, _) = files.get_mut(key).unwrap();
                 *last_access = now;
             }
         }
@@ -248,14 +220,21 @@ impl FsLockerVersionDocStore {
 
 enum DocFile {
     Simple(SimpleDocFile),
-    IdSet(IdSet),
+    RelationFile(RelationFile),
 }
 
 impl DocFile {
-    async fn close(self) {
+    fn commit(&mut self) {
         match self {
-            DocFile::Simple(_) => {}
-            DocFile::IdSet(file) => file.try_close().await.unwrap(),
+            DocFile::Simple(file) => file.commit(),
+            DocFile::RelationFile(file) => file.commit(),
+        }
+    }
+
+    fn rollback(&mut self) {
+        match self {
+            DocFile::Simple(file) => file.rollback(),
+            DocFile::RelationFile(file) => file.rollback(),
         }
     }
 }
@@ -276,5 +255,27 @@ impl FileKey {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum FileType {
     Simple,
-    IdSet,
+    RelationFile,
+}
+
+fn extract_file_keys<T>(items: &TransactItems<'_, T>) -> Vec<FileKey> {
+    items
+        .iter()
+        .map(|item| match item {
+            TransactItem::Put { name, id, .. }
+            | TransactItem::Create { name, id, .. }
+            | TransactItem::Update { name, id, .. }
+            | TransactItem::Delete { name, id } => FileKey {
+                name,
+                id: *id,
+                file_type: FileType::Simple,
+            },
+            TransactItem::InsertRelation { name, id, .. }
+            | TransactItem::RemoveRelation { name, id, .. } => FileKey {
+                name,
+                id: *id,
+                file_type: FileType::RelationFile,
+            },
+        })
+        .collect()
 }

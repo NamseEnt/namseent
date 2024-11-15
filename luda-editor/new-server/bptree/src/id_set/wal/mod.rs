@@ -112,9 +112,9 @@ impl Wal {
                 }
             };
         }
-        if wal_file_len > 0 {
-            file_write_fd.copy_from(&shadow_read_fd)?;
+        file_write_fd.copy_from(&shadow_read_fd)?;
 
+        if wal_file_len > 0 {
             this.wal_write_fd.set_len(0)?;
             this.wal_write_fd.fsync()?;
             this.write_offset = 0;

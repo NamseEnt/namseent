@@ -8,7 +8,7 @@ pub trait DocumentStore {
     async fn get(&self, name: DocName, id: Id) -> Result<Option<Bytes>>;
     async fn transact<'a, AbortReason>(
         &'a self,
-        transact_items: &mut TransactItems<'a, AbortReason>,
+        transact_items: TransactItems<'a, AbortReason>,
     ) -> Result<MaybeAborted<AbortReason>>;
     // fn query(
     //     &self,

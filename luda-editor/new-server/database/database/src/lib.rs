@@ -41,8 +41,8 @@ impl Database {
         &'a self,
         transact: impl Transact<'a, AbortReason> + 'a + Send,
     ) -> Result<MaybeAborted<AbortReason>> {
-        let mut transact_items = transact.try_into_transact_items()?;
-        self.store.transact(&mut transact_items).await
+        let transact_items = transact.try_into_transact_items()?;
+        self.store.transact(transact_items).await
     }
 }
 
