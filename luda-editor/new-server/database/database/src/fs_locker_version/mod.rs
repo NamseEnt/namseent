@@ -7,6 +7,7 @@ use document_store::*;
 use relation_file::RelationFile;
 use simple_doc_file::*;
 use std::{collections::HashMap, ops::DerefMut, path::PathBuf, time::Instant};
+use tokio::task::JoinSet;
 use trx_id_map::TrxIdMap;
 
 type Id = u128;
@@ -54,7 +55,7 @@ impl DocumentStore for FsLockerVersionDocStore {
 
         let mut files = self.files.lock().await;
 
-        let trx_id = uuid::Uuid::now_v7().as_u128();
+        let trx_id = uuid::Uuid::new_v4().as_u128();
 
         let keys = extract_file_keys(&transact_items);
         self.make_sure_files(&mut files, &keys, &self.trx_id_map)
@@ -62,10 +63,18 @@ impl DocumentStore for FsLockerVersionDocStore {
 
         let mut maybe_aborted = MaybeAborted::No;
 
-        keys.iter().for_each(|key| {
-            let (_, file) = files.get_mut(key).unwrap();
-            file.rollback();
-        });
+        let mut join_set = JoinSet::new();
+        for &key in &keys {
+            let (instant, mut file) = files.remove(&key).unwrap();
+            join_set.spawn(async move {
+                file.rollback(trx_id).await;
+                (key, (instant, file))
+            });
+        }
+        while let Some(entry) = join_set.join_next().await {
+            let (key, value) = entry.unwrap();
+            files.insert(key, value);
+        }
 
         for (transact_item, key) in transact_items.into_iter().zip(&keys) {
             match transact_item {
@@ -74,7 +83,9 @@ impl DocumentStore for FsLockerVersionDocStore {
                     let DocFile::Simple(simple_doc_file) = file else {
                         unreachable!()
                     };
-                    simple_doc_file.put(Bytes::from(value.to_vec()), trx_id)?;
+                    simple_doc_file
+                        .put(Bytes::from(value.to_vec()), trx_id)
+                        .await?;
                 }
                 TransactItem::Create { mut value_fn, .. } => {
                     let (_, file) = files.get_mut(key).unwrap();
@@ -86,7 +97,7 @@ impl DocumentStore for FsLockerVersionDocStore {
                         continue;
                     }
                     let value = value_fn.take().unwrap()()?;
-                    simple_doc_file.put(Bytes::from(value), trx_id)?;
+                    simple_doc_file.put(Bytes::from(value), trx_id).await?;
                 }
                 TransactItem::Update { mut update_fn, .. } => {
                     let (_, file) = files.get_mut(key).unwrap();
@@ -101,7 +112,7 @@ impl DocumentStore for FsLockerVersionDocStore {
 
                     match update_fn.take().unwrap()(&mut vec)? {
                         WantUpdate::No => continue,
-                        WantUpdate::Yes => simple_doc_file.put(vec.into(), trx_id)?,
+                        WantUpdate::Yes => simple_doc_file.put(vec.into(), trx_id).await?,
                         WantUpdate::Abort { reason } => {
                             maybe_aborted = MaybeAborted::Aborted { reason };
                             break;
@@ -117,7 +128,7 @@ impl DocumentStore for FsLockerVersionDocStore {
                     if simple_doc_file.is_empty() {
                         continue;
                     }
-                    simple_doc_file.put(Bytes::new(), trx_id)?;
+                    simple_doc_file.put(Bytes::new(), trx_id).await?;
                 }
                 TransactItem::InsertRelation { to_id, .. } => {
                     let (_, file) = files.get_mut(key).unwrap();
@@ -144,9 +155,17 @@ impl DocumentStore for FsLockerVersionDocStore {
             self.trx_id_map.insert(trx_id, file_ids).await;
         };
 
-        for key in keys {
-            let (_, file) = files.get_mut(&key).unwrap();
-            file.commit();
+        let mut join_set = JoinSet::new();
+        for &key in &keys {
+            let (instant, mut file) = files.remove(&key).unwrap();
+            join_set.spawn(async move {
+                file.commit(trx_id).await;
+                (key, (instant, file))
+            });
+        }
+        while let Some(entry) = join_set.join_next().await {
+            let (key, value) = entry.unwrap();
+            files.insert(key, value);
         }
 
         Ok(maybe_aborted)
@@ -200,8 +219,13 @@ impl FsLockerVersionDocStore {
             if !files.contains_key(key) {
                 let doc_file = match key.file_type {
                     FileType::Simple => DocFile::Simple(
-                        SimpleDocFile::open(&self.mount_point, key.path(), key.id, trx_id_map)
-                            .await?,
+                        SimpleDocFile::open(
+                            &self.mount_point,
+                            key.path(),
+                            key.id,
+                            trx_id_map.clone(),
+                        )
+                        .await?,
                     ),
                     FileType::RelationFile => {
                         DocFile::RelationFile(RelationFile::open(&self.mount_point, key.path())?)
@@ -224,17 +248,17 @@ enum DocFile {
 }
 
 impl DocFile {
-    fn commit(&mut self) {
+    async fn commit(&mut self, trx_id: u128) {
         match self {
-            DocFile::Simple(file) => file.commit(),
-            DocFile::RelationFile(file) => file.commit(),
+            DocFile::Simple(file) => file.commit(trx_id).await,
+            DocFile::RelationFile(file) => file.commit().await,
         }
     }
 
-    fn rollback(&mut self) {
+    async fn rollback(&mut self, trx_id: u128) {
         match self {
-            DocFile::Simple(file) => file.rollback(),
-            DocFile::RelationFile(file) => file.rollback(),
+            DocFile::Simple(file) => file.rollback(trx_id).await,
+            DocFile::RelationFile(file) => file.rollback().await,
         }
     }
 }

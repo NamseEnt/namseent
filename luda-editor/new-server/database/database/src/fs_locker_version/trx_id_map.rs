@@ -3,6 +3,7 @@ use bytes::Bytes;
 use std::time::Duration;
 
 // TODO: Add flag which key is checked, to clean up old trx_id
+#[derive(Clone)]
 pub struct TrxIdMap {
     inner: BpMap,
 }
@@ -31,7 +32,7 @@ impl TrxIdMap {
         panic!("BpMap insert failed");
     }
 
-    pub(crate) async fn check_trx_id(&self, trx_id: u128, file_id: u128) -> bool {
+    pub async fn check_trx_id(&self, trx_id: u128, file_id: u128) -> bool {
         let bytes = 'outer: {
             let mut sleep = Duration::from_millis(10);
             for _ in 0..10 {

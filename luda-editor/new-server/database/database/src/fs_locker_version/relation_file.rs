@@ -61,11 +61,11 @@ impl RelationFile {
         Ok(())
     }
 
-    pub fn commit(&mut self) {
+    pub async fn commit(&mut self) {
         self.set = self.set_before_commit.clone();
     }
 
-    pub fn rollback(&mut self) {
+    pub async fn rollback(&mut self) {
         self.set_before_commit = self.set.clone();
     }
 }
