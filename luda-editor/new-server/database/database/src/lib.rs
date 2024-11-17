@@ -54,6 +54,7 @@ pub enum Error {
     NotExistsOnUpdate,
     BackupAborted(String),
     Anyhow(anyhow::Error),
+    TooManyFileOpened,
 }
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

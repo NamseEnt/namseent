@@ -1,6 +1,10 @@
 use super::*;
 use bytes::{Buf, BufMut, Bytes};
-use std::{os::fd::AsRawFd, path::Path};
+use futures::future::try_join3;
+use std::{
+    os::fd::{AsRawFd, RawFd},
+    path::Path,
+};
 use tokio::fs::{File, OpenOptions};
 
 type Result<T> = std::io::Result<T>;
@@ -19,14 +23,96 @@ type Result<T> = std::io::Result<T>;
  * Data 1, 2 may not be right next to the header part.
  */
 
+pub struct FileWriter {
+    ref_check: Arc<()>,
+    fd: RawFd,
+    header1: Header,
+    header2: Header,
+    trx_id_map: TrxIdMap,
+    file_id: u128,
+    memory: Option<Bytes>,
+}
+
+impl FileWriter {
+    pub async fn put(&mut self, bytes: Bytes, trx_id: u128) -> Result<()> {
+        let fd = self.fd;
+        let (header, other_side_header) = self.get_writable_header().await?;
+        let offset = {
+            if other_side_header.empty()
+                || bytes.len() <= other_side_header.offset - Header::VALUE_START_OFFSET
+            {
+                Header::VALUE_START_OFFSET
+            } else {
+                other_side_header.offset + other_side_header.len
+            }
+        };
+
+        header.offset = offset;
+        header.len = bytes.len();
+        header.checksum = checksum(&bytes);
+        header.written_timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        header.trx_id = trx_id;
+        header.trx_commit_checked = false;
+
+        let header_file_offset = header.file_offset();
+        let header_bytes = Bytes::from(header.to_vec());
+
+        try_join3(
+            pwrite(&fd, header_file_offset, header_bytes),
+            pwrite(&fd, offset, bytes.clone()),
+            async {
+                if other_side_header.offset < header.offset {
+                    file_set_len(&fd, (offset + bytes.len()) as u64).await?;
+                }
+                Ok(())
+            },
+        )
+        .await?;
+        fsync(&self.fd).await?;
+
+        Ok(())
+    }
+    async fn get_writable_header(&mut self) -> Result<(&mut Header, &Header)> {
+        if self.header1.empty() {
+            return Ok((&mut self.header1, &self.header2));
+        } else if self.header2.empty() {
+            return Ok((&mut self.header2, &self.header1));
+        }
+
+        let (early, later) = if self.header1.written_timestamp < self.header2.written_timestamp {
+            (&mut self.header1, &mut self.header2)
+        } else {
+            (&mut self.header2, &mut self.header1)
+        };
+
+        if later.trx_commit_checked {
+            Ok((early, later))
+        } else if self
+            .trx_id_map
+            .check_trx_id(later.trx_id, self.file_id)
+            .await
+        {
+            later.update_trx_commit_checked(&self.fd).await?;
+            Ok((early, later))
+        } else {
+            later.reset(&self.fd).await?;
+            Ok((later, early))
+        }
+    }
+}
+
 pub struct SimpleDocFile {
     file: File,
     file_id: u128,
     header1: Header,
     header2: Header,
-    memory: Bytes,
-    memory_before_commit: Bytes,
+    memory: Option<Bytes>,
+    memory_before_commit: Option<Bytes>,
     trx_id_map: TrxIdMap,
+    writer_ref_check: Arc<()>,
 }
 
 impl SimpleDocFile {
@@ -36,6 +122,8 @@ impl SimpleDocFile {
         file_id: u128,
         trx_id_map: TrxIdMap,
     ) -> Result<Self> {
+        tokio::fs::create_dir_all(dir_path.as_ref()).await?;
+
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -67,9 +155,8 @@ impl SimpleDocFile {
             )
         };
 
-        let memory = read_last_value(&file, &mut header1, &mut header2, &trx_id_map, file_id)
-            .await?
-            .unwrap_or_else(Bytes::new);
+        let memory =
+            read_last_value(&file, &mut header1, &mut header2, &trx_id_map, file_id).await?;
 
         Ok(Self {
             file,
@@ -77,50 +164,18 @@ impl SimpleDocFile {
             header1,
             header2,
             memory,
-            memory_before_commit: Bytes::new(),
+            memory_before_commit: Default::default(),
             trx_id_map,
+            writer_ref_check: Arc::new(()),
         })
     }
 
-    pub fn get(&self) -> Bytes {
+    pub fn get(&self) -> Option<Bytes> {
         self.memory.clone()
     }
 
-    pub async fn put(&mut self, bytes: Bytes, trx_id: u128) -> Result<()> {
-        let (header, other_side_header) = self.get_writable_header().await?;
-        let offset = {
-            if other_side_header.empty()
-                || bytes.len() <= other_side_header.offset - Header::VALUE_START_OFFSET
-            {
-                Header::VALUE_START_OFFSET
-            } else {
-                other_side_header.offset + other_side_header.len
-            }
-        };
-
-        header.offset = offset;
-        header.len = bytes.len();
-        header.checksum = checksum(&bytes);
-        header.written_timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        header.trx_id = trx_id;
-        header.trx_commit_checked = false;
-
-        let header_file_offset = header.file_offset();
-        let header_bytes = Bytes::from(header.to_vec());
-        pwrite(&self.file, header_file_offset, header_bytes).await?;
-        pwrite(&self.file, offset, bytes.clone()).await?;
-        self.file.set_len((offset + bytes.len()) as u64).await?;
-        fsync(&self.file).await?;
-
-        self.memory_before_commit = bytes;
-        Ok(())
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.memory.is_empty()
+    pub fn null(&self) -> bool {
+        self.memory.is_none()
     }
 
     pub async fn commit(&mut self, trx_id: u128) {
@@ -135,7 +190,7 @@ impl SimpleDocFile {
     }
 
     pub async fn rollback(&mut self, trx_id: u128) {
-        self.memory_before_commit = Bytes::new();
+        self.memory_before_commit = Default::default();
         let header = if self.header1.trx_id == trx_id {
             &mut self.header1
         } else {
@@ -145,38 +200,25 @@ impl SimpleDocFile {
         _ = header.reset(&self.file).await;
     }
 
-    async fn get_writable_header(&mut self) -> Result<(&mut Header, &Header)> {
-        if self.header1.empty() {
-            return Ok((&mut self.header1, &self.header2));
-        } else if self.header2.empty() {
-            return Ok((&mut self.header2, &self.header1));
-        }
+    pub(crate) fn get_writer(&self) -> FileWriter {
+        let ref_check = self.writer_ref_check.clone();
+        assert_eq!(Arc::strong_count(&ref_check), 2);
 
-        let (early, later) = if self.header1.written_timestamp < self.header2.written_timestamp {
-            (&mut self.header1, &mut self.header2)
-        } else {
-            (&mut self.header2, &mut self.header1)
-        };
-
-        if later.trx_commit_checked {
-            Ok((early, later))
-        } else if self
-            .trx_id_map
-            .check_trx_id(later.trx_id, self.file_id)
-            .await
-        {
-            later.update_trx_commit_checked(&self.file).await?;
-            Ok((early, later))
-        } else {
-            later.reset(&self.file).await?;
-            Ok((later, early))
+        FileWriter {
+            ref_check,
+            fd: self.file.as_raw_fd(),
+            header1: self.header1.clone(),
+            header2: self.header2.clone(),
+            trx_id_map: self.trx_id_map.clone(),
+            file_id: self.file_id,
+            memory: self.memory.clone(),
         }
     }
 }
 
 /// Returned Bytes may not be the same length as len.
-async fn pread(file: &File, offset: usize, len: usize) -> Result<Bytes> {
-    let fd = file.as_raw_fd();
+async fn pread(fd: &impl AsRawFd, offset: usize, len: usize) -> Result<Bytes> {
+    let fd = fd.as_raw_fd();
     tokio::task::spawn_blocking(move || {
         let mut buf = vec![0; len];
         let mut read_offset = 0;
@@ -202,8 +244,8 @@ async fn pread(file: &File, offset: usize, len: usize) -> Result<Bytes> {
     .await?
 }
 
-async fn pwrite(file: &File, offset: usize, bytes: Bytes) -> Result<()> {
-    let fd = file.as_raw_fd();
+async fn pwrite(fd: &impl AsRawFd, offset: usize, bytes: Bytes) -> Result<()> {
+    let fd = fd.as_raw_fd();
     tokio::task::spawn_blocking(move || {
         let mut write_offset = 0;
         while write_offset < bytes.len() {
@@ -228,10 +270,22 @@ async fn pwrite(file: &File, offset: usize, bytes: Bytes) -> Result<()> {
     .await?
 }
 
-async fn fsync(file: &File) -> Result<()> {
+async fn fsync(file: &impl AsRawFd) -> Result<()> {
     let fd = file.as_raw_fd();
     tokio::task::spawn_blocking(move || {
         let ret = unsafe { libc::fsync(fd) };
+        if ret == -1 {
+            return Err(std::io::Error::last_os_error());
+        }
+        Ok(())
+    })
+    .await?
+}
+
+async fn file_set_len(file: &impl AsRawFd, len: u64) -> Result<()> {
+    let fd = file.as_raw_fd();
+    tokio::task::spawn_blocking(move || {
+        let ret = unsafe { libc::ftruncate(fd, len as i64) };
         if ret == -1 {
             return Err(std::io::Error::last_os_error());
         }
@@ -291,7 +345,7 @@ async fn read_last_value(
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Header {
     header_index: HeaderIndex,
     offset: usize, // u64,
@@ -339,9 +393,9 @@ impl Header {
             HeaderIndex::Second => Self::HEADER_SIZE,
         }
     }
-    async fn update_trx_commit_checked(&mut self, file: &File) -> Result<()> {
+    async fn update_trx_commit_checked(&mut self, fd: &impl AsRawFd) -> Result<()> {
         pwrite(
-            file,
+            fd,
             self.file_offset() + Header::TRX_COMMIT_CHECKED_OFFSET,
             Bytes::from_static(&[1]),
         )
@@ -349,18 +403,18 @@ impl Header {
         self.trx_commit_checked = true;
         Ok(())
     }
-    async fn read_value(&self, file: &File) -> Result<Bytes> {
-        pread(file, self.offset, self.len).await
+    async fn read_value(&self, fd: &impl AsRawFd) -> Result<Bytes> {
+        pread(fd, self.offset, self.len).await
     }
 
-    async fn reset(&mut self, file: &File) -> Result<()> {
-        pwrite(file, self.file_offset(), Header::NULL_HEADER_BYTES).await?;
+    async fn reset(&mut self, fd: &impl AsRawFd) -> Result<()> {
+        pwrite(fd, self.file_offset(), Header::NULL_HEADER_BYTES).await?;
         self.offset = 0;
         Ok(())
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 enum HeaderIndex {
     First,
     Second,

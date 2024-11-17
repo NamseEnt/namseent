@@ -21,16 +21,16 @@ pub enum TransactItem<'a, AbortReason> {
         name: &'static str,
         id: u128,
     },
-    InsertRelation {
-        name: &'static str,
-        id: u128,
-        to_id: u128,
-    },
-    RemoveRelation {
-        name: &'static str,
-        id: u128,
-        to_id: u128,
-    },
+    // InsertRelation {
+    //     name: &'static str,
+    //     id: u128,
+    //     to_id: u128,
+    // },
+    // RemoveRelation {
+    //     name: &'static str,
+    //     id: u128,
+    //     to_id: u128,
+    // },
 }
 
 impl<'a, AbortReason> std::fmt::Debug for TransactItem<'a, AbortReason> {
@@ -67,18 +67,18 @@ impl<'a, AbortReason> std::fmt::Debug for TransactItem<'a, AbortReason> {
                 .field("name", name)
                 .field("id", id)
                 .finish(),
-            TransactItem::InsertRelation { name, id, to_id } => f
-                .debug_struct("InsertRelation")
-                .field("name", name)
-                .field("id", id)
-                .field("to_id", to_id)
-                .finish(),
-            TransactItem::RemoveRelation { name, id, to_id } => f
-                .debug_struct("RemoveRelation")
-                .field("name", name)
-                .field("id", id)
-                .field("to_id", to_id)
-                .finish(),
+            // TransactItem::InsertRelation { name, id, to_id } => f
+            //     .debug_struct("InsertRelation")
+            //     .field("name", name)
+            //     .field("id", id)
+            //     .field("to_id", to_id)
+            //     .finish(),
+            // TransactItem::RemoveRelation { name, id, to_id } => f
+            //     .debug_struct("RemoveRelation")
+            //     .field("name", name)
+            //     .field("id", id)
+            //     .field("to_id", to_id)
+            //     .finish(),
         }
     }
 }
