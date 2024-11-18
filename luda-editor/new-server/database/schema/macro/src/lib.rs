@@ -2,7 +2,7 @@ mod doc_part;
 mod doc_part_parsed;
 mod document;
 mod document_parsed;
-mod relation;
+mod to_snake_case;
 
 #[proc_macro_attribute]
 pub fn document(
@@ -19,19 +19,4 @@ pub fn doc_part(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     doc_part::doc_part(attribute_input, input)
-}
-
-#[proc_macro]
-pub fn relation_one_to_one(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    relation::relation(input, relation::RelationType::OneToOne)
-}
-
-#[proc_macro]
-pub fn relation_one_to_many(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    relation::relation(input, relation::RelationType::OneToMany)
-}
-
-#[proc_macro]
-pub fn relation_many_to_many(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    relation::relation(input, relation::RelationType::ManyToMany)
 }
