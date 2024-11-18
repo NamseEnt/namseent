@@ -214,6 +214,14 @@ impl SimpleDocFile {
             memory: self.memory.clone(),
         }
     }
+
+    pub(crate) async fn put(&self, value: Vec<u8>) -> Result<()> {
+        todo!()
+    }
+
+    pub(crate) async fn delete(&self) -> Result<()> {
+        todo!()
+    }
 }
 
 /// Returned Bytes may not be the same length as len.
