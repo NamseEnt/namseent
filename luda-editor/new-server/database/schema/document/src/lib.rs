@@ -23,14 +23,13 @@ pub trait Document {
 pub trait DocumentGet {
     type Output;
 
-    fn pk(&self) -> Result<u128>;
-    fn sk(&self) -> Result<Option<u128>>;
+    fn id(&self) -> u128;
 }
 
 pub trait DocumentQuery {
     type Output;
 
-    fn pk(&self) -> Result<u128>;
+    fn pk(&self) -> u128;
 }
 
 pub struct DocumentLogPlugin {

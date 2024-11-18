@@ -17,7 +17,7 @@ use trx_id_map::TrxIdMap;
 type Id = u128;
 type KeyQueue = Arc<Mutex<HashMap<Key, KeyUsage>>>;
 
-pub struct FsLockerVersionDocStore {
+pub struct FsStore {
     mount_point: std::path::PathBuf,
     trx_id_map: TrxIdMap,
     cache: Cache,
@@ -37,7 +37,7 @@ struct Key {
     id: Id,
 }
 
-impl DocumentStore for FsLockerVersionDocStore {
+impl DocumentStore for FsStore {
     async fn get(&self, name: DocName, id: Id) -> Result<Option<Bytes>> {
         let key = Key { name, id };
         if let Some(cached) = self.cache.get(key) {
@@ -86,7 +86,7 @@ impl DocumentStore for FsLockerVersionDocStore {
         let result = try_join_all(key_lockers.iter_mut().zip(transact_items).map(
             |(key_locker, trx_item)| async move {
                 let file = key_locker.file_mut().unwrap();
-                handle_trx_item(trx_item, file).await
+                handle_trx_item(trx_item, file, trx_id).await
             },
         ))
         .await;
@@ -109,6 +109,10 @@ impl DocumentStore for FsLockerVersionDocStore {
             .insert(trx_id, key_lockers.iter().map(|x| x.key.id).collect())
             .await;
 
+        key_lockers
+            .iter_mut()
+            .for_each(|x| x.file_mut().unwrap().commit(trx_id));
+
         self.cache
             .push(key_lockers.iter().map(|x| (x.key, x.file().unwrap().get())));
 
@@ -116,7 +120,16 @@ impl DocumentStore for FsLockerVersionDocStore {
     }
 }
 
-impl FsLockerVersionDocStore {
+impl FsStore {
+    pub async fn new(mount_point: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
+        let mount_point = mount_point.as_ref();
+        Ok(Self {
+            mount_point: mount_point.to_path_buf(),
+            trx_id_map: TrxIdMap::new(mount_point).await?,
+            cache: Cache::new(512 * 1024 * 1024),
+            key_queue: Default::default(),
+        })
+    }
     async fn open_doc_file(&self, key: Key) -> std::io::Result<SimpleDocFile> {
         SimpleDocFile::open(
             &self.mount_point,
@@ -240,10 +253,11 @@ impl<AbortReason> From<SerErr> for TrxError<AbortReason> {
 async fn handle_trx_item<'a, AbortReason>(
     trx_item: TransactItem<'a, AbortReason>,
     file: &mut SimpleDocFile,
+    trx_id: u128,
 ) -> std::result::Result<(), TrxError<AbortReason>> {
     match trx_item {
         TransactItem::Put { value, .. } => {
-            file.put(value).await?;
+            file.put(value, trx_id).await?;
             Ok(())
         }
         TransactItem::Create { mut value_fn, .. } => {
@@ -251,7 +265,7 @@ async fn handle_trx_item<'a, AbortReason>(
                 return Err(TrxError::AlreadyExistsOnCreate);
             }
             let value = value_fn.take().unwrap()()?;
-            file.put(value).await?;
+            file.put(value, trx_id).await?;
             Ok(())
         }
         TransactItem::Update { mut update_fn, .. } => {
@@ -263,14 +277,14 @@ async fn handle_trx_item<'a, AbortReason>(
             match result {
                 WantUpdate::No => Ok(()),
                 WantUpdate::Yes => {
-                    file.put(vec).await?;
+                    file.put(vec, trx_id).await?;
                     Ok(())
                 }
                 WantUpdate::Abort { reason } => Err(TrxError::Abort(reason)),
             }
         }
         TransactItem::Delete { .. } => {
-            file.delete().await?;
+            file.delete(trx_id).await?;
             Ok(())
         }
     }

@@ -1,6 +1,6 @@
 use bptree::bp_map::BpMap;
 use bytes::Bytes;
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 
 // TODO: Add flag which key is checked, to clean up old trx_id
 #[derive(Clone)]
@@ -8,6 +8,10 @@ pub struct TrxIdMap {
     inner: BpMap,
 }
 impl TrxIdMap {
+    pub async fn new(dir_path: impl AsRef<Path>) -> std::io::Result<Self> {
+        let inner = BpMap::new(dir_path.as_ref().join(".trx_id_map"), 32 * 1024).await?;
+        Ok(Self { inner })
+    }
     pub async fn insert(&self, trx_id: u128, file_ids: Vec<u128>) {
         let file_ids_bytes = file_ids
             .iter()

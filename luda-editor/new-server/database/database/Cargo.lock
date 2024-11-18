@@ -240,7 +240,6 @@ dependencies = [
  "arc-swap",
  "bptree",
  "bytes",
- "crc",
  "document",
  "futures",
  "libc",

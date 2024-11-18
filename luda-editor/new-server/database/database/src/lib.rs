@@ -1,30 +1,35 @@
 mod document_store;
-mod fs_locker_version;
+mod fs_store;
 
 pub use document::*;
 pub use document_store::DocumentStore;
-use fs_locker_version::FsLockerVersionDocStore;
+use fs_store::FsStore;
 use std::sync::Arc;
 
-pub async fn init(mount_point: impl AsRef<std::path::Path>) -> anyhow::Result<Database> {
-    todo!()
-    // Ok(Database {
-    //     store: document_store::NfsV4DocStore::new(mount_point),
-    // })
+pub async fn init(mount_point: impl AsRef<std::path::Path>) -> std::io::Result<Database> {
+    Ok(Database {
+        store: Arc::new(FsStore::new(mount_point).await?),
+    })
 }
 
 #[derive(Clone)]
 pub struct Database {
-    store: Arc<FsLockerVersionDocStore>,
+    store: Arc<FsStore>,
 }
 impl Database {
     pub async fn get<T: Document>(
         &self,
         document_get: impl DocumentGet<Output = T>,
     ) -> Result<Option<HeapArchived<T>>> {
-        todo!()
-        // let value_buffer = self.store.get(T::name(), &document_get.pk()?).await?;
-        // Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
+        let value_buffer = self.store.get(T::name(), document_get.id()).await?;
+        Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
+    }
+    pub async fn transact<'a, AbortReason>(
+        &'a self,
+        transact: impl Transact<'a, AbortReason> + 'a + Send,
+    ) -> Result<MaybeAborted<AbortReason>> {
+        let transact_items = transact.try_into_transact_items()?;
+        self.store.transact(transact_items).await
     }
     pub async fn query<T: Document>(
         &self,
@@ -36,13 +41,6 @@ impl Database {
         //     .into_iter()
         //     .map(|value_buffer| T::heap_archived(value_buffer))
         //     .collect())
-    }
-    pub async fn transact<'a, AbortReason>(
-        &'a self,
-        transact: impl Transact<'a, AbortReason> + 'a + Send,
-    ) -> Result<MaybeAborted<AbortReason>> {
-        let transact_items = transact.try_into_transact_items()?;
-        self.store.transact(transact_items).await
     }
 }
 
@@ -87,10 +85,6 @@ pub enum MaybeAborted<AbortReason> {
 }
 
 impl<AbortReason> MaybeAborted<AbortReason> {
-    fn is_aborted(&self) -> bool {
-        matches!(self, MaybeAborted::Aborted { .. })
-    }
-
     pub fn err_if_aborted<Err>(
         self,
         func: impl FnOnce(AbortReason) -> Err,
