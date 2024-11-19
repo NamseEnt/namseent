@@ -2,22 +2,13 @@ use crate::*;
 
 #[document]
 struct TeamDoc {
-    #[pk]
-    id: String,
     name: String,
+    member_ids: Vec<u128>,
 }
 
 #[document]
-struct UserToTeamDoc {
-    #[pk]
-    user_id: String,
-    #[sk]
-    team_id: String,
-}
-
-#[document]
-struct TeamNameToTeamIdDoc {
-    #[pk]
+struct TeamNameDoc {
+    #[id]
     team_name: String,
-    team_id: String,
+    team_id: u128,
 }

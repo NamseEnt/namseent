@@ -10,32 +10,57 @@ pub struct DocumentParsed<'a> {
     pub ref_struct_name: Ident,
     pub ref_struct_value: TokenStream,
     pub ref_fielder: RefFielder,
+    pub id_fields: Vec<Field>,
+    pub id_field_idents: Vec<Ident>,
+    pub id_ref_fielder: RefFielder,
 }
 
 impl<'a> DocumentParsed<'a> {
     pub fn new(input: &'a DeriveInput) -> Self {
         let name = &input.ident;
 
-        let fields = {
+        let (fields, id_fields) = {
             let struct_input = match &input.data {
                 Data::Struct(data) => data,
                 _ => unreachable!(),
             };
 
-            let mut fields = vec![];
-            struct_input
-                .fields
-                .clone()
-                .into_iter()
-                .for_each(|mut field| {
-                    field.vis = Visibility::Public(token::Pub(field.vis.span()));
+            let mut fields = match &struct_input.fields {
+                Fields::Named(fields_named) => {
+                    fields_named.named.clone().into_iter().collect::<Vec<_>>()
+                }
+                Fields::Unnamed(..) | Fields::Unit => unimplemented!(),
+            };
 
-                    fields.push(field);
+            fields.iter_mut().for_each(|field| {
+                field.vis = Visibility::Public(token::Pub(field.vis.span()));
+            });
+
+            let mut id_attr_fields = fields
+                .iter_mut()
+                .filter(|field| field.attrs.iter().any(|attr| attr.path().is_ident("id")))
+                .collect::<Vec<_>>();
+
+            let id_fields = if id_attr_fields.is_empty() {
+                fields.insert(
+                    0,
+                    parse_quote! {
+                        pub id: u128
+                    },
+                );
+                vec![fields.first().unwrap().clone()]
+            } else {
+                id_attr_fields.iter_mut().for_each(|field| {
+                    field.attrs.retain(|attr| !attr.path().is_ident("id"));
                 });
-            fields
+
+                id_attr_fields.into_iter().map(|x| x.clone()).collect()
+            };
+
+            (fields, id_fields)
         };
 
-        let input_redefine = input_redefine(input);
+        let input_redefine = input_redefine(input, &fields);
         let ref_struct_name = Ident::new(&format!("{}Ref", name), name.span());
         let field_names = fields
             .iter()
@@ -51,14 +76,18 @@ impl<'a> DocumentParsed<'a> {
                 })?
             }
         };
+        let id_field_idents = id_fields.iter().map(|x| x.ident.clone().unwrap()).collect();
 
         Self {
             ref_fielder: RefFielder::new(&fields),
+            id_ref_fielder: RefFielder::new(&id_fields),
             name,
             input_redefine,
             fields,
             ref_struct_name,
             ref_struct_value,
+            id_fields,
+            id_field_idents,
         }
     }
 
@@ -80,23 +109,15 @@ impl<'a> DocumentParsed<'a> {
     }
 }
 
-fn input_redefine(input: &DeriveInput) -> TokenStream {
-    let mut input = input.clone();
-    input.vis = Visibility::Public(token::Pub(input.vis.span()));
-
-    let struct_input = match &mut input.data {
-        Data::Struct(data) => data,
-        _ => unreachable!(),
-    };
-
-    struct_input.fields.iter_mut().for_each(|field| {
-        field.vis = Visibility::Public(token::Pub(field.vis.span()));
-    });
+fn input_redefine(input: &DeriveInput, fields: &[Field]) -> TokenStream {
+    let ident = &input.ident;
 
     quote! {
         #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
         #[archive_attr(derive(Debug))]
         #[archive(check_bytes)]
-        #input
+        pub struct #ident {
+            #(#fields,)*
+        }
     }
 }

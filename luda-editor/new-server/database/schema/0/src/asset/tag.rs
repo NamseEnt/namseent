@@ -17,8 +17,6 @@ enum AssetSystemTag {
 
 #[document]
 struct AssetCustomTagDoc {
-    #[pk]
-    id: String,
     names: Translations,
 }
 

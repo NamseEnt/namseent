@@ -1,17 +1,9 @@
 use crate::*;
 
 #[document]
+#[belongs_to(Team)]
 struct TeamInviteCodeDoc {
-    #[pk]
-    team_id: String,
-    #[sk]
+    #[id]
     code: String,
     expiration_time: SystemTime,
-}
-
-#[document]
-struct TeamInviteCodeToTeamDoc {
-    #[pk]
-    code: String,
-    team_id: String,
 }

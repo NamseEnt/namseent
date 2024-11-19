@@ -2,21 +2,19 @@ use crate::*;
 
 #[document]
 struct UserDoc {
-    #[pk]
-    id: String,
     name: String,
 }
 
 #[document]
 struct GoogleIdentityDoc {
-    #[pk]
+    #[id]
     sub: String,
-    user_id: String,
+    user_id: u128,
 }
 
 #[document]
 struct SessionTokenDoc {
-    #[pk]
+    #[id]
     session_token: String,
-    user_id: String,
+    user_id: u128,
 }

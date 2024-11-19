@@ -17,16 +17,10 @@ pub fn document(
         unimplemented!()
     };
 
-    fields_named.named.insert(
-        0,
-        parse_quote! {
-            id: u128
-        },
-    );
-
-    if let Some(attr) = input.attrs.iter().find(|attr| {
-        matches!(attr.style, AttrStyle::Outer) && attr.meta.path().is_ident("belongs_to")
-    }) {
+    input.attrs.retain(|attr| {
+        if !(matches!(attr.style, AttrStyle::Outer) && attr.meta.path().is_ident("belongs_to")) {
+            return true;
+        }
         let meta_list = attr.meta.require_list().unwrap();
         let owner = meta_list.parse_args::<Ident>().unwrap();
 
@@ -40,7 +34,8 @@ pub fn document(
                 #owner_id: u128
             },
         );
-    }
+        false
+    });
 
     let parsed = DocumentParsed::new(&input);
     let struct_name = &input.ident;
@@ -84,7 +79,7 @@ pub fn document(
         #struct_create_define
         #struct_update_define
         #struct_delete_define
-        #struct_query_define
+        // #struct_query_define
 
         #debug_define
     };
@@ -93,18 +88,23 @@ pub fn document(
 }
 
 fn struct_get_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
-    let DocumentParsed { name, .. } = parsed;
+    let DocumentParsed {
+        name,
+        id_fields,
+        id_field_idents,
+        ..
+    } = parsed;
     let get_struct_name = Ident::new(&format!("{}Get", name), name.span());
 
     quote! {
         pub struct #get_struct_name {
-            pub id: u128,
+            #(#id_fields,)*
         }
         impl document::DocumentGet for #get_struct_name {
             type Output = #name;
 
             fn id(&self) -> u128 {
-                self.id
+                document::id_to_u128(&(#(self.#id_field_idents),*))
             }
         }
     }
@@ -114,6 +114,7 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     let DocumentParsed {
         name,
         ref_struct_value,
+        id_field_idents,
         ref_fielder:
             RefFielder {
                 generics,
@@ -153,7 +154,7 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
             fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Put {
                     name: stringify!(#name),
-                    id: self.id,
+                    id: document::id_to_u128(&(#(self.#id_field_idents),*)),
                     value: #ref_struct_value,
                 })
             }
@@ -172,6 +173,7 @@ fn struct_create_define(
                 fields_without_attr,
                 ..
             },
+        id_field_idents,
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
@@ -203,7 +205,7 @@ fn struct_create_define(
             fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Create {
                     name: stringify!(#name),
-                    id: self.id,
+                    id: document::id_to_u128(&(#(self.#id_field_idents),*)),
                     value_fn: Some(Box::new(move || Ok(#ref_struct_value))),
                 })
             }
@@ -214,49 +216,54 @@ fn struct_create_define(
 fn struct_update_define(
     DocumentParsed {
         name,
-        ref_fielder: RefFielder { generics, .. },
+        id_fields,
+        id_field_idents,
+        id_ref_fielder:
+            RefFielder {
+                generics,
+                generics_without_bounds,
+                fields,
+                fields_without_attr,
+            },
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
     let update_struct_name = Ident::new(&format!("{}Update", name), name.span());
 
-    let have_lifetime = generics
+    let has_lifetime = generics
         .params
         .iter()
         .any(|param| matches!(param, GenericParam::Lifetime(_)));
 
     let generics = {
         let mut generics = generics.clone();
+
         generics.params.push(parse_quote!(AbortReason));
+        generics.params.push(parse_quote!(WantUpdateFn: Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate<AbortReason>));
+        generics
+            .params
+            .push(parse_quote!(UpdateFn: Send + FnOnce(&mut #name)));
 
-        if have_lifetime {
-            generics.params.push(parse_quote!('a));
+        if has_lifetime {
+            generics.type_params_mut().for_each(|param| {
+                if param.ident == "WantUpdateFn" || param.ident == "UpdateFn" {
+                    param.bounds.insert(0, parse_quote! { 'a });
+                }
+            });
         }
-
-        let mut param: TypeParam = parse_quote!(WantUpdateFn: Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate<AbortReason>);
-        if have_lifetime {
-            param.bounds.insert(0, parse_quote!('a));
-        }
-        generics.params.push(GenericParam::Type(param));
-
-        let mut param: TypeParam = parse_quote!(UpdateFn: Send + FnOnce(&mut #name));
-        if have_lifetime {
-            param.bounds.insert(0, parse_quote!('a));
-        }
-        generics.params.push(GenericParam::Type(param));
         generics
     };
 
     let try_into_generics = {
         let mut generics = generics.clone();
-        if !have_lifetime {
+        if !has_lifetime {
             generics.params.insert(0, parse_quote! { 'a });
+            generics.type_params_mut().for_each(|param| {
+                if param.ident == "WantUpdateFn" || param.ident == "UpdateFn" {
+                    param.bounds.insert(0, parse_quote! { 'a });
+                }
+            });
         }
-        generics.type_params_mut().for_each(|param| {
-            if param.ident == "WantUpdateFn" || param.ident == "UpdateFn" {
-                param.bounds.insert(0, parse_quote! { 'a });
-            }
-        });
         generics
     };
 
@@ -277,7 +284,7 @@ fn struct_update_define(
     quote! {
         pub struct #update_struct_name #generics
         {
-            pub id: u128,
+            #(#fields_without_attr,)*
             pub want_update: WantUpdateFn,
             pub update: UpdateFn,
         }
@@ -291,7 +298,7 @@ fn struct_update_define(
             fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Update {
                     name: stringify!(#name),
-                    id: self.id,
+                    id: document::id_to_u128(&(#(self.#id_field_idents),*)),
                     update_fn: Some(Box::new(|vec| {
                         let want_update =
                             (self.want_update)(unsafe { rkyv::archived_root::<#name>(vec) });
@@ -310,12 +317,19 @@ fn struct_update_define(
     }
 }
 
-fn struct_delete_define(DocumentParsed { name, .. }: &DocumentParsed) -> impl quote::ToTokens {
+fn struct_delete_define(
+    DocumentParsed {
+        name,
+        id_fields,
+        id_field_idents,
+        ..
+    }: &DocumentParsed,
+) -> impl quote::ToTokens {
     let delete_struct_name = Ident::new(&format!("{}Delete", name), name.span());
 
     quote! {
         pub struct #delete_struct_name {
-            pub id: u128,
+            #(#id_fields,)*
         }
         impl<'a, AbortReason>
             TryInto<document::TransactItem<'a, AbortReason>>
@@ -325,7 +339,7 @@ fn struct_delete_define(DocumentParsed { name, .. }: &DocumentParsed) -> impl qu
             fn try_into(self) -> document::Result<document::TransactItem<'a, AbortReason>> {
                 Ok(document::TransactItem::Delete {
                     name: stringify!(#name),
-                    id: self.id,
+                    id: document::id_to_u128(&(#(self.#id_field_idents),*)),
                 })
             }
         }

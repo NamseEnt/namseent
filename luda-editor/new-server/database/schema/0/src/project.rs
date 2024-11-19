@@ -1,48 +1,15 @@
 use crate::*;
+use std::collections::HashMap;
 
 #[document]
+#[belongs_to(Team)]
 struct ProjectDoc {
-    #[pk]
-    id: String,
     name: String,
 }
 
 #[document]
-struct TeamToProjectDoc {
-    #[pk]
-    team_id: String,
-    #[sk]
-    project_id: String,
-}
-
-#[document]
-struct ProjectToTeamDoc {
-    #[pk]
-    project_id: String,
-    team_id: String,
-}
-
-#[document]
-struct ProjectNameDoc {
-    #[pk]
-    team_id: String,
-    #[pk]
-    project_name: String,
-}
-
-#[document]
+#[belongs_to(Project)]
 struct SpeakerDoc {
-    #[pk]
-    project_id: String,
-    #[sk]
-    speaker_id: String,
+    name_l10n: HashMap<LanguageCode, String>,
 }
-
-#[document]
-struct SpeakerNameL10nDoc {
-    #[pk]
-    speaker_id: String,
-    #[sk]
-    language_code: String,
-    text: String,
-}
+type LanguageCode = String;

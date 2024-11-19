@@ -1,8 +1,10 @@
 mod heap_archived;
+mod id_hash;
 mod transact;
 
 pub use bytes::Bytes;
 pub use heap_archived::*;
+pub use id_hash::*;
 pub use inventory;
 pub use schema_macro::*;
 pub use serializer;

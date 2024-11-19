@@ -2,9 +2,9 @@ use crate::*;
 
 #[document]
 struct EpisodeSpeakerSlotDoc {
-    #[pk]
-    user_id: String,
-    #[pk]
-    episode_id: String,
+    #[id]
+    user_id: u128,
+    #[id]
+    episode_id: u128,
     speaker_ids: Vec<String>,
 }
