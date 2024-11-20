@@ -3,8 +3,8 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{spanned::Spanned, *};
 
-pub struct DocumentParsed<'a> {
-    pub name: &'a Ident,
+pub struct DocumentParsed {
+    pub name: Ident,
     pub input_redefine: TokenStream,
     pub fields: Vec<Field>,
     pub ref_struct_name: Ident,
@@ -15,9 +15,9 @@ pub struct DocumentParsed<'a> {
     pub id_ref_fielder: RefFielder,
 }
 
-impl<'a> DocumentParsed<'a> {
-    pub fn new(input: &'a DeriveInput) -> Self {
-        let name = &input.ident;
+impl DocumentParsed {
+    pub fn new(input: DeriveInput) -> Self {
+        let name = input.ident.clone();
 
         let (fields, id_fields) = {
             let struct_input = match &input.data {
@@ -41,21 +41,15 @@ impl<'a> DocumentParsed<'a> {
                 .filter(|field| field.attrs.iter().any(|attr| attr.path().is_ident("id")))
                 .collect::<Vec<_>>();
 
-            let id_fields = if id_attr_fields.is_empty() {
-                fields.insert(
-                    0,
-                    parse_quote! {
-                        pub id: u128
-                    },
-                );
-                vec![fields.first().unwrap().clone()]
-            } else {
-                id_attr_fields.iter_mut().for_each(|field| {
-                    field.attrs.retain(|attr| !attr.path().is_ident("id"));
-                });
+            if id_attr_fields.is_empty() {
+                panic!("No id field found");
+            }
 
-                id_attr_fields.into_iter().map(|x| x.clone()).collect()
-            };
+            id_attr_fields.iter_mut().for_each(|field| {
+                field.attrs.retain(|attr| !attr.path().is_ident("id"));
+            });
+
+            let id_fields: Vec<_> = id_attr_fields.into_iter().map(|x| x.clone()).collect();
 
             (fields, id_fields)
         };
@@ -109,13 +103,15 @@ impl<'a> DocumentParsed<'a> {
     }
 }
 
-fn input_redefine(input: &DeriveInput, fields: &[Field]) -> TokenStream {
+fn input_redefine(input: DeriveInput, fields: &[Field]) -> TokenStream {
     let ident = &input.ident;
+    let attr = &input.attrs;
 
     quote! {
         #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
         #[archive_attr(derive(Debug))]
         #[archive(check_bytes)]
+        #(#attr)*
         pub struct #ident {
             #(#fields,)*
         }

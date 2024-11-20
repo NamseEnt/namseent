@@ -13,9 +13,11 @@ use std::collections::HashSet;
 pub use tag::*;
 
 #[document]
-#[belongs_to(Team)]
 struct AssetDoc {
+    #[id]
+    id: u128,
     name: String,
+    team_id: u128,
     shared: bool,
     asset_kind: AssetKind,
     byte_size: u64,
@@ -27,12 +29,4 @@ struct AssetDoc {
 enum AssetKind {
     Sprite,
     Audio,
-}
-
-#[document]
-struct TeamAssetTotalBytesDoc {
-    #[id]
-    team_id: u128,
-    limit_bytes: u64,
-    used_bytes: u64,
 }

@@ -2,7 +2,6 @@ mod doc_part;
 mod doc_part_parsed;
 mod document;
 mod document_parsed;
-mod to_snake_case;
 
 #[proc_macro_attribute]
 pub fn document(

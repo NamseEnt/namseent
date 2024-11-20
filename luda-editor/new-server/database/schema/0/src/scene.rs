@@ -1,9 +1,10 @@
 use crate::*;
 use std::collections::{HashMap, HashSet};
 
-#[document]
-struct SceneDoc {
-    speaker_id: Option<String>,
+#[doc_part]
+struct Scene {
+    id: u128,
+    speaker_id: Option<u128>,
     scene_sprites: Vec<SceneSprite>,
     /// `None` means the background should be black.
     background_sprite: Option<SceneSprite>,
@@ -15,7 +16,7 @@ type LanguageCode = String;
 
 #[doc_part]
 struct SceneSprite {
-    sprite_id: Option<String>,
+    sprite_id: Option<u128>,
     circumcircle: Circumcircle,
     /// - key: part id
     /// - value: part option ids

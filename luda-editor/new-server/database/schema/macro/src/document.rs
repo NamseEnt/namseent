@@ -1,44 +1,17 @@
 use crate::document_parsed::*;
-use crate::to_snake_case::ToSnakeCase;
 use macro_common_lib::*;
 use quote::quote;
-use spanned::Spanned;
 use syn::*;
 
 pub fn document(
     _attribute_input: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let mut input: syn::DeriveInput = parse_macro_input!(input as syn::DeriveInput);
-    let Data::Struct(data_struct) = &mut input.data else {
-        unimplemented!()
-    };
-    let Fields::Named(fields_named) = &mut data_struct.fields else {
-        unimplemented!()
-    };
+    let input: syn::DeriveInput = parse_macro_input!(input as syn::DeriveInput);
+    let struct_name = input.ident.clone();
 
-    input.attrs.retain(|attr| {
-        if !(matches!(attr.style, AttrStyle::Outer) && attr.meta.path().is_ident("belongs_to")) {
-            return true;
-        }
-        let meta_list = attr.meta.require_list().unwrap();
-        let owner = meta_list.parse_args::<Ident>().unwrap();
+    let parsed = DocumentParsed::new(input);
 
-        let owner_snake = owner.to_string().to_snake_case();
-
-        let owner_id = Ident::new(&format!("{}_id", owner_snake), owner.span());
-
-        fields_named.named.insert(
-            1,
-            parse_quote! {
-                #owner_id: u128
-            },
-        );
-        false
-    });
-
-    let parsed = DocumentParsed::new(&input);
-    let struct_name = &input.ident;
     let input_redefine = &parsed.input_redefine;
 
     let ref_struct = parsed.ref_struct();
@@ -48,7 +21,6 @@ pub fn document(
     let struct_create_define = struct_create_define(&parsed);
     let struct_update_define = struct_update_define(&parsed);
     let struct_delete_define = struct_delete_define(&parsed);
-    let struct_query_define = struct_query_define(&parsed);
     let debug_define = debug_define(&parsed);
 
     let output = quote! {
@@ -79,7 +51,6 @@ pub fn document(
         #struct_create_define
         #struct_update_define
         #struct_delete_define
-        // #struct_query_define
 
         #debug_define
     };
@@ -216,14 +187,12 @@ fn struct_create_define(
 fn struct_update_define(
     DocumentParsed {
         name,
-        id_fields,
         id_field_idents,
         id_ref_fielder:
             RefFielder {
                 generics,
-                generics_without_bounds,
-                fields,
                 fields_without_attr,
+                ..
             },
         ..
     }: &DocumentParsed,
@@ -343,25 +312,6 @@ fn struct_delete_define(
                 })
             }
         }
-    }
-}
-
-fn struct_query_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
-    let DocumentParsed { name, .. } = parsed;
-    let query_struct_name = Ident::new(&format!("{}Query", name), name.span());
-    // todo
-
-    quote! {
-        // pub struct #query_struct_name #generics {
-        //     #(#fields_without_attr,)*
-        // }
-        // impl #generics document::DocumentQuery for #query_struct_name #generics_without_bounds {
-        //     type Output = #name;
-
-        //     fn pk<'b>(&'b self) -> document::Result<u128> {
-        //         Ok(#pk_cow)
-        //     }
-        // }
     }
 }
 

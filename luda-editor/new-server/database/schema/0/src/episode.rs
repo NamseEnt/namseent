@@ -1,19 +1,21 @@
 use crate::*;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 #[document]
-#[belongs_to(Project)]
 struct EpisodeDoc {
+    #[id]
+    id: u128,
     name: String,
+    project_id: u128,
     created_at: SystemTime,
-    scene_ids: Vec<String>,
+    scenes: BTreeMap<SceneId, Scene>,
+    editing_user: Option<EditingUser>,
+    speaker_slots: HashMap<UserId, HashSet<SpeakerId>>,
 }
 
-#[document]
-struct EpisodeEditingUserDoc {
-    #[id]
-    episode_id: u128,
-    editing_user: Option<EditingUser>,
-}
+type UserId = u128;
+type SpeakerId = u128;
+type SceneId = u128;
 
 #[doc_part]
 struct EditingUser {

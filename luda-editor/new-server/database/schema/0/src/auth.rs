@@ -2,6 +2,8 @@ use crate::*;
 
 #[document]
 struct UserDoc {
+    #[id]
+    id: u128,
     name: String,
 }
 
