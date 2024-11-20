@@ -1,4 +1,5 @@
-pub mod audio;
+// https://github.com/NamseEnt/namseent/issues/981
+// pub mod audio;
 pub mod cache;
 pub mod file;
 pub mod font;
@@ -32,7 +33,7 @@ pub(super) async fn init_system() -> InitResult {
     wasi::init().await?;
 
     futures::try_join!(
-        audio::init(),
+        // audio::init(),
         cache::init(),
         file::init(),
         font::init(),
