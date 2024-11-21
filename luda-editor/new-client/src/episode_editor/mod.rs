@@ -356,6 +356,8 @@ impl Component for LoadedEpisodeEditor<'_> {
                     ctx.add(simple_button(wh, "Open In Player", |_| {
                         router::route(Route::Player {
                             scenes: scenes.clone_inner(),
+                            texts: texts.clone_inner(),
+                            language_code: "kor".to_string(),
                         });
                     }));
                 }),
