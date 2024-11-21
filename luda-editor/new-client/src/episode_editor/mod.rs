@@ -340,14 +340,26 @@ impl Component for LoadedEpisodeEditor<'_> {
 
         let top_bar = table::fixed(24.px(), |wh, ctx| {
             let button_wh = Wh::new(128.px(), wh.height);
-            ctx.add(simple_button(button_wh, "back", |_| {
-                router::route(Route::Home {
-                    initial_selection: home::Selection::Project {
-                        team_id: team_id.to_string(),
-                        project_id: project_id.to_string(),
-                    },
-                });
-            }));
+            table::horizontal([
+                table::fixed(button_wh.width, |wh: Wh<Px>, ctx| {
+                    ctx.add(simple_button(wh, "back", |_| {
+                        router::route(Route::Home {
+                            initial_selection: home::Selection::Project {
+                                team_id: team_id.to_string(),
+                                project_id: project_id.to_string(),
+                            },
+                        });
+                    }));
+                }),
+                table::ratio(1, |_, _| {}),
+                table::fixed(128.px(), |wh, ctx| {
+                    ctx.add(simple_button(wh, "Open In Player", |_| {
+                        router::route(Route::Player {
+                            scenes: scenes.clone_inner(),
+                        });
+                    }));
+                }),
+            ])(wh, ctx);
         });
 
         ctx.compose(|ctx| {
