@@ -73,7 +73,7 @@ async fn get_scenes(
     .collect())
 }
 
-async fn try_lock_editor(db: &Database, episode_id: &str, user_id: &str) -> Result<()> {
+async fn try_lock_editor(db: &Database, episode_id: u128, user_id: u128) -> Result<()> {
     enum AbortReason {
         OtherUserEditing,
     }

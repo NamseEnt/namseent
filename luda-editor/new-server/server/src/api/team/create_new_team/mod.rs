@@ -16,7 +16,7 @@ pub async fn create_new_team(
         bail!(Error::TooManyTeams)
     }
 
-    let team_id = randum::rand();
+    let team_id = randum::uuid();
 
     db.transact::<()>((
         TeamNameToTeamIdDocCreate {

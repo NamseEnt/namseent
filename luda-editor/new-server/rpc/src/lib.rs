@@ -59,7 +59,7 @@ rpc_macro::define_rpc! {
                 name: String,
             }
             struct Response {
-                team_id: String,
+                team_id: u128,
             }
             enum Error {
                 NeedLogin,
@@ -82,7 +82,7 @@ rpc_macro::define_rpc! {
         },
         create_team_invite_code: {
             struct Request {
-                team_id: String,
+                team_id: u128,
             }
             struct Response {
                 code: TeamInviteCode,
@@ -95,7 +95,7 @@ rpc_macro::define_rpc! {
         },
         list_team_invite_codes: {
             struct Request {
-                team_id: String,
+                team_id: u128,
             }
             struct Response {
                 codes: Vec<TeamInviteCode>,
@@ -107,7 +107,7 @@ rpc_macro::define_rpc! {
         },
         invalidate_team_invite_code: {
             struct Request {
-                team_id: String,
+                team_id: u128,
                 code: String,
             }
             struct Response {
@@ -121,11 +121,11 @@ rpc_macro::define_rpc! {
     Project: {
         create_new_project: {
             struct Request {
-                team_id: String,
+                team_id: u128,
                 name: String,
             }
             struct Response {
-                project_id: String,
+                project_id: u128,
             }
             enum Error {
                 NeedLogin,
@@ -136,7 +136,7 @@ rpc_macro::define_rpc! {
         },
         get_projects: {
             struct Request {
-                team_id: String,
+                team_id: u128,
             }
             struct Response {
                 projects: Vec<Project>,
@@ -150,7 +150,7 @@ rpc_macro::define_rpc! {
     Episode: {
         create_new_episode: {
             struct Request {
-                project_id: String,
+                project_id: u128,
                 name: String,
             }
             struct Response {
@@ -163,7 +163,7 @@ rpc_macro::define_rpc! {
         },
         get_episodes: {
             struct Request {
-                project_id: String,
+                project_id: u128,
             }
             struct Response {
                 episodes: Vec<Episode>,
@@ -178,7 +178,7 @@ rpc_macro::define_rpc! {
     EpisodeEditor: {
         join_episode_editor: {
             struct Request {
-                episode_id: String,
+                episode_id: u128,
             }
             struct Response {
                 scenes: Vec<Scene>,
@@ -194,7 +194,7 @@ rpc_macro::define_rpc! {
         },
         exit_episode_editor: {
             struct Request {
-                episode_id: String,
+                episode_id: u128,
             }
             struct Response {
             }
@@ -206,7 +206,7 @@ rpc_macro::define_rpc! {
         },
         try_edit_episode: {
             struct Request {
-                episode_id: String,
+                episode_id: u128,
                 action: EpisodeEditAction,
             }
             struct Response {
@@ -222,7 +222,7 @@ rpc_macro::define_rpc! {
         },
         load_speaker_slots: {
             struct Request {
-                episode_id: String,
+                episode_id: u128,
             }
             struct Response {
                 speaker_ids: Vec<String>,
@@ -235,7 +235,7 @@ rpc_macro::define_rpc! {
         },
         save_speaker_slots: {
             struct Request {
-                episode_id: String,
+                episode_id: u128,
                 speaker_ids: Vec<String>,
             }
             struct Response {
@@ -247,7 +247,7 @@ rpc_macro::define_rpc! {
         },
         get_speaker_names: {
             struct Request {
-                project_id: String,
+                project_id: u128,
                 speaker_ids: Vec<String>,
                 language_code: String,
             }
@@ -263,14 +263,14 @@ rpc_macro::define_rpc! {
     Asset: {
         reserve_team_asset_upload: {
             struct Request {
-                team_id: String,
+                team_id: u128,
                 asset_name: String,
                 byte_size: u64,
                 asset_kind: AssetKind,
                 tags: Vec<AssetTag>,
             }
             struct Response {
-                asset_id: String,
+                asset_id: u128,
                 presigned_put_uri: String,
                 headers: Vec<(String, String)>,
             }
@@ -282,7 +282,7 @@ rpc_macro::define_rpc! {
         },
         get_team_asset_docs: {
             struct Request {
-                team_id: String,
+                team_id: u128,
             }
             struct Response {
                 asset_docs: Vec<AssetDoc>,
@@ -294,7 +294,7 @@ rpc_macro::define_rpc! {
         },
         update_asset_tags_for_asset: {
             struct Request {
-                asset_id: String,
+                asset_id: u128,
                 tags: Vec<AssetTag>,
             }
             struct Response {

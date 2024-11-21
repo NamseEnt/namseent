@@ -87,6 +87,14 @@ impl<'a, AbortReason, T: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>>
         Ok(ArrayVec::from_iter([self.try_into()?]))
     }
 }
+impl<'a, AbortReason, T: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>>
+    Transact<'a, AbortReason> for (T,)
+{
+    fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
+        let (t1,) = self;
+        Ok(ArrayVec::from_iter([t1.try_into()?]))
+    }
+}
 impl<
         'a,
         AbortReason,

@@ -24,7 +24,7 @@ pub async fn create_team_invite_code(
         bail!(Error::TooManyCodes)
     }
 
-    let code = randum::rand();
+    let code = randum::uuid();
     let expiration_time = SystemTime::now() + SEVEN_DAYS;
 
     db.transact::<()>((

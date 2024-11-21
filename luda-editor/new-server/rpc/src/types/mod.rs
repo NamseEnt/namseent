@@ -1,7 +1,4 @@
-mod scene;
-
 use namui_type::*;
-pub use scene::*;
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
@@ -43,7 +40,7 @@ pub enum EpisodeEditAction {
         id: String,
     },
     EditText {
-        scene_id: String,
+        scene_id: u128,
         language_code: String,
         text: String,
     },
@@ -53,11 +50,11 @@ pub enum EpisodeEditAction {
 }
 
 pub use migration::schema::{
-    AssetDoc, AssetKind, AssetSystemTag, AssetTag, Circumcircle, SceneSprite,
+    AssetDoc, AssetKind, AssetSystemTag, AssetTag, Circumcircle, Scene, SceneSprite,
 };
 
 /// Use this on the client side to get the S3 URL of an asset.
-pub fn asset_s3_get_key(asset_id: &str, asset_kind: AssetKind) -> String {
+pub fn asset_s3_get_key(asset_id: u128, asset_kind: AssetKind) -> String {
     match asset_kind {
         AssetKind::Sprite => format!("sprite/{asset_id}"),
         AssetKind::Audio => format!("audio/after-transcode/{asset_id}"),
@@ -65,7 +62,7 @@ pub fn asset_s3_get_key(asset_id: &str, asset_kind: AssetKind) -> String {
 }
 
 /// I guess you don't need to use this on the client side.
-pub fn asset_s3_put_key(asset_id: &str, asset_kind: AssetKind) -> String {
+pub fn asset_s3_put_key(asset_id: u128, asset_kind: AssetKind) -> String {
     match asset_kind {
         AssetKind::Sprite => format!("sprite/{asset_id}"),
         AssetKind::Audio => format!("audio/before-transcode/{asset_id}"),

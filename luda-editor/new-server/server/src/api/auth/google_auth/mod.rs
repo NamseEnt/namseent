@@ -34,7 +34,7 @@ pub async fn google_auth(
         return done(db, session, &google_identity.user_id).await;
     }
 
-    let user_id = randum::rand();
+    let user_id = randum::uuid();
 
     db.transact::<()>((
         UserDocCreate {
@@ -53,7 +53,7 @@ pub async fn google_auth(
     done(db, session, &user_id).await
 }
 
-async fn done(db: &Database, session: Session, user_id: &str) -> Result<Response> {
+async fn done(db: &Database, session: Session, user_id: u128) -> Result<Response> {
     session.login(user_id).await;
     let session_token = generate_session_token(db, user_id).await?;
     Ok(Response { session_token })

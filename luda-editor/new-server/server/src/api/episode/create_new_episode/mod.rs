@@ -14,7 +14,7 @@ pub async fn create_new_episode(
         bail!(Error::PermissionDenied)
     }
 
-    let episode_id = randum::rand();
+    let episode_id = randum::uuid();
 
     db.transact::<()>((
         EpisodeDocPut {

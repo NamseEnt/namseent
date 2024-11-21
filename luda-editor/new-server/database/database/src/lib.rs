@@ -4,6 +4,7 @@ mod fs_store;
 pub use document::*;
 pub use document_store::DocumentStore;
 use fs_store::FsStore;
+pub use migration::schema;
 use std::sync::Arc;
 
 pub async fn init(mount_point: impl AsRef<std::path::Path>) -> std::io::Result<Database> {
@@ -30,17 +31,6 @@ impl Database {
     ) -> Result<MaybeAborted<AbortReason>> {
         let transact_items = transact.try_into_transact_items()?;
         self.store.transact(transact_items).await
-    }
-    pub async fn query<T: Document>(
-        &self,
-        document_query: impl DocumentQuery<Output = T>,
-    ) -> Result<Vec<HeapArchived<T>>> {
-        todo!()
-        // let value_buffer = self.store.query(T::name(), &document_query.pk()?).await?;
-        // Ok(value_buffer
-        //     .into_iter()
-        //     .map(|value_buffer| T::heap_archived(value_buffer))
-        //     .collect())
     }
 }
 

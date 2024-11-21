@@ -15,7 +15,7 @@ pub async fn exit_episode_editor(
     Ok(Response {})
 }
 
-async fn try_unlock_editor(db: &Database, episode_id: &str, user_id: &str) -> Result<()> {
+async fn try_unlock_editor(db: &Database, episode_id: u128, user_id: u128) -> Result<()> {
     db.transact::<()>(EpisodeEditingUserDocUpdate {
         episode_id,
         want_update: |doc| {

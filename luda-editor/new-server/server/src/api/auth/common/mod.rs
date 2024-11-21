@@ -7,8 +7,8 @@ use std::time::Duration;
 
 const SEVEN_DAYS: Duration = Duration::from_secs(3600 * 24 * 7);
 
-pub async fn generate_session_token(db: &Database, user_id: &str) -> database::Result<String> {
-    let session_token = randum::rand();
+pub async fn generate_session_token(db: &Database, user_id: u128) -> database::Result<String> {
+    let session_token = randum::uuid();
     db.transact::<()>(SessionTokenDocPut {
         session_token: &session_token,
         user_id,

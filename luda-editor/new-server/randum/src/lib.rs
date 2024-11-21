@@ -1,14 +1,11 @@
 use rand::Rng;
 
-/// random, 8 length of string in base62. it's about 47 bits.
-pub fn rand() -> String {
+/// v4
+pub fn uuid() -> u128 {
     let mut rng = rand::thread_rng();
-    let base62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    let base62_len = base62.len();
-    let mut result = String::with_capacity(8);
-    for _ in 0..8 {
-        let idx = rng.gen_range(0..base62_len);
-        result.push(base62.chars().nth(idx).unwrap());
-    }
-    result
+    let mut bytes = [0u8; 16];
+    rng.fill(&mut bytes);
+    bytes[6] = (bytes[6] & 0x0F) | 0x40;
+    bytes[8] = (bytes[8] & 0x3F) | 0x80;
+    u128::from_le_bytes(bytes)
 }

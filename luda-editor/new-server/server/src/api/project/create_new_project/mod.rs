@@ -14,7 +14,7 @@ pub async fn create_new_project(
         bail!(Error::PermissionDenied)
     }
 
-    let project_id = randum::rand();
+    let project_id = randum::uuid();
 
     db.transact::<()>((
         ProjectDocPut {
