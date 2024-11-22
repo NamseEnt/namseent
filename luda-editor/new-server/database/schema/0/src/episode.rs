@@ -1,14 +1,15 @@
 use crate::*;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 #[document]
 struct EpisodeDoc {
     #[id]
     id: u128,
     name: String,
+    team_id: u128,
     project_id: u128,
     created_at: SystemTime,
-    scenes: BTreeMap<SceneId, Scene>,
+    scenes: InsertOrderedMap<SceneId, Scene>,
     editing_user: Option<EditingUser>,
     speaker_slots: HashMap<UserId, HashSet<SpeakerId>>,
 }

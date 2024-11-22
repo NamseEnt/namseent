@@ -5,7 +5,6 @@ mod types;
 
 use macro_common_lib::*;
 pub use rkyv;
-use std::collections::HashMap;
 pub use types::*;
 
 rpc_macro::define_rpc! {
@@ -15,7 +14,7 @@ rpc_macro::define_rpc! {
                 jwt: String,
             }
             struct Response {
-                session_token: String,
+                session_token: u128,
             }
             enum Error {
                 AlreadyLoggedIn,
@@ -23,7 +22,7 @@ rpc_macro::define_rpc! {
         },
         session_token_auth: {
             struct Request {
-                session_token: String,
+                session_token: u128,
             }
             struct Response {
             }
@@ -34,7 +33,7 @@ rpc_macro::define_rpc! {
         },
         revoke_session_token: {
             struct Request {
-                session_token: String,
+                session_token: u128,
             }
             struct Response {
             }
@@ -52,6 +51,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
+                UserNotExist,
             }
         },
         create_new_team: {
@@ -71,13 +71,14 @@ rpc_macro::define_rpc! {
     TeamInvite: {
         join_team: {
             struct Request {
-                code: String,
+                code: u128,
             }
             struct Response {
             }
             enum Error {
                 NeedLogin,
                 InvalidCode,
+                AlreadyJoined,
             }
         },
         create_team_invite_code: {
@@ -108,7 +109,7 @@ rpc_macro::define_rpc! {
         invalidate_team_invite_code: {
             struct Request {
                 team_id: u128,
-                code: String,
+                code: u128,
             }
             struct Response {
             }
@@ -131,7 +132,6 @@ rpc_macro::define_rpc! {
                 NeedLogin,
                 PermissionDenied,
                 TooManyProjects,
-                DuplicatedName,
             }
         },
         get_projects: {
@@ -182,8 +182,6 @@ rpc_macro::define_rpc! {
             }
             struct Response {
                 scenes: Vec<Scene>,
-                /// key: (scene_id, language_code)
-                texts: HashMap<String, HashMap<String, String>>,
             }
             enum Error {
                 NeedLogin,
@@ -218,6 +216,7 @@ rpc_macro::define_rpc! {
                 ImpossibleAction,
                 YouDoNotHaveEditorLock,
                 InvalidSceneIndex,
+                SceneNotExist,
             }
         },
         load_speaker_slots: {
@@ -225,7 +224,7 @@ rpc_macro::define_rpc! {
                 episode_id: u128,
             }
             struct Response {
-                speaker_ids: Vec<String>,
+                speaker_ids: Vec<u128>,
             }
             enum Error {
                 NeedLogin,
@@ -236,19 +235,20 @@ rpc_macro::define_rpc! {
         save_speaker_slots: {
             struct Request {
                 episode_id: u128,
-                speaker_ids: Vec<String>,
+                speaker_ids: Vec<u128>,
             }
             struct Response {
             }
             enum Error {
                 NeedLogin,
                 PermissionDenied,
+                EpisodeNotExist,
             }
         },
         get_speaker_names: {
             struct Request {
                 project_id: u128,
-                speaker_ids: Vec<String>,
+                speaker_ids: Vec<u128>,
                 language_code: String,
             }
             struct Response {
@@ -257,6 +257,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
+                ProjectNotExist,
             }
         },
     },

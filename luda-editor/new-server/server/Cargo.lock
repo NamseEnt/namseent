@@ -2168,13 +2168,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "randum"
-version = "0.1.0"
-dependencies = [
- "rand 0.8.5",
-]
-
-[[package]]
 name = "raw-cpuid"
 version = "11.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2611,6 +2604,7 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "arc-swap",
  "aws-config",
  "aws-sdk-s3",
  "axum",
@@ -2621,7 +2615,7 @@ dependencies = [
  "luda-rpc",
  "moka",
  "namui-type",
- "randum",
+ "rand 0.8.5",
  "reqwest",
  "rkyv",
  "serde",

@@ -1,5 +1,5 @@
 use crate::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[document]
 struct TeamDoc {
@@ -7,14 +7,12 @@ struct TeamDoc {
     id: u128,
     name: String,
     member_ids: HashSet<u128>,
-    projects: HashMap<ProjectId, Project>,
-    invite_codes: HashSet<String>,
+    project_ids: HashSet<u128>,
+    invite_codes: HashSet<u128>,
     asset_ids: HashSet<u128>,
     asset_bytes_limit: u64,
     asset_bytes_used: u64,
 }
-
-type ProjectId = u128;
 
 #[document]
 struct TeamNameAssignDoc {
@@ -23,12 +21,14 @@ struct TeamNameAssignDoc {
     team_id: u128,
 }
 
-#[doc_part]
-struct Project {
+#[document]
+struct ProjectDoc {
+    #[id]
     id: u128,
     name: String,
     team_id: u128,
     speakers: HashMap<SpeakerId, Speaker>,
+    episode_ids: BTreeSet<u128>,
 }
 
 type SpeakerId = u128;

@@ -3,21 +3,21 @@ use namui_type::*;
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct Team {
-    pub id: String,
+    pub id: u128,
     pub name: String,
 }
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct Project {
-    pub id: String,
+    pub id: u128,
     pub name: String,
 }
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct Episode {
-    pub id: String,
+    pub id: u128,
     pub name: String,
     pub created_at: SystemTime,
 }
@@ -25,7 +25,7 @@ pub struct Episode {
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
 pub struct TeamInviteCode {
-    pub code: String,
+    pub code: u128,
     pub expiration_time: SystemTime,
 }
 
@@ -37,7 +37,7 @@ pub enum EpisodeEditAction {
         scene: Scene,
     },
     RemoveScene {
-        id: String,
+        id: u128,
     },
     EditText {
         scene_id: u128,

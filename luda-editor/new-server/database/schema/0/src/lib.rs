@@ -13,6 +13,7 @@
 mod asset;
 mod auth;
 mod episode;
+mod insert_ordered_map;
 mod scene;
 mod team;
 mod team_invite;
@@ -21,6 +22,7 @@ mod translation;
 pub use asset::*;
 pub use auth::*;
 pub use episode::*;
+pub use insert_ordered_map::*;
 pub use namui_type::*;
 pub use scene::*;
 pub use team::*;
