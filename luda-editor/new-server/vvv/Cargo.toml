@@ -1,8 +1,0 @@
-[package]
-name = "nsd"
-description = "No-Ser/De, Zero-Copy Data Format"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-bytes = "1.8.0"
