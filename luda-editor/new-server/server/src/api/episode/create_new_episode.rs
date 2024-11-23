@@ -34,7 +34,7 @@ pub async fn create_new_episode(
     db.transact::<()>((
         EpisodeDocPut {
             id: episode_id,
-            name: &name,
+            name,
             created_at: SystemTime::now(),
             team_id: project_doc.team_id,
             project_id,

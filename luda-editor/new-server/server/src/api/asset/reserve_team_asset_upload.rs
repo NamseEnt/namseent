@@ -7,10 +7,10 @@ use luda_rpc::{asset::reserve_team_asset_upload::*, asset_s3_put_key};
 pub async fn reserve_team_asset_upload(
     &ArchivedRequest {
         team_id,
-        asset_name,
+        ref asset_name,
         byte_size,
-        asset_kind,
-        tags,
+        ref asset_kind,
+        ref tags,
     }: &ArchivedRequest,
     db: &Database,
     session: Session,
@@ -50,7 +50,7 @@ pub async fn reserve_team_asset_upload(
         },
         AssetDocPut {
             id: asset_id,
-            name: &asset_name,
+            name: asset_name,
             shared: false,
             asset_kind: &asset_kind.deserialize(),
             byte_size,

@@ -44,7 +44,7 @@ pub async fn create_new_project(
         },
         ProjectDocPut {
             id: project_id,
-            name: &name,
+            name,
             team_id,
             speakers: &Default::default(),
             episode_ids: &Default::default(),

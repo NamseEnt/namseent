@@ -4,7 +4,7 @@ use database::{schema::*, DeserializeInfallible, WantUpdate};
 use luda_rpc::asset::update_asset_tags_for_asset::*;
 
 pub async fn update_asset_tags_for_asset(
-    &ArchivedRequest { asset_id, tags }: &ArchivedRequest,
+    &ArchivedRequest { asset_id, ref tags }: &ArchivedRequest,
     db: &Database,
     session: Session,
 ) -> Result<Response> {

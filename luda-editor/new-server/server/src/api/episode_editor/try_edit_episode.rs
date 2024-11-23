@@ -59,8 +59,8 @@ pub async fn try_edit_episode(
         WantUpdate::Yes
     };
 
-    match action {
-        &luda_rpc::ArchivedEpisodeEditAction::AddScene { index, ref scene } => {
+    match *action {
+        luda_rpc::ArchivedEpisodeEditAction::AddScene { index, ref scene } => {
             let index = index as usize;
 
             db.transact::<AbortReason>((EpisodeDocUpdate {
@@ -80,7 +80,7 @@ pub async fn try_edit_episode(
             },))
                 .await
         }
-        &luda_rpc::ArchivedEpisodeEditAction::RemoveScene { id } => {
+        luda_rpc::ArchivedEpisodeEditAction::RemoveScene { id } => {
             db.transact::<AbortReason>((EpisodeDocUpdate {
                 id: episode_id,
                 want_update: |doc| {
@@ -96,7 +96,7 @@ pub async fn try_edit_episode(
             },))
                 .await
         }
-        &luda_rpc::ArchivedEpisodeEditAction::EditText {
+        luda_rpc::ArchivedEpisodeEditAction::EditText {
             scene_id,
             ref language_code,
             ref text,
@@ -122,7 +122,7 @@ pub async fn try_edit_episode(
             },))
                 .await
         }
-        &luda_rpc::ArchivedEpisodeEditAction::UpdateScene { ref scene } => {
+        luda_rpc::ArchivedEpisodeEditAction::UpdateScene { ref scene } => {
             // TODO: Use scene directly without deserialization
 
             db.transact::<AbortReason>((EpisodeDocUpdate {

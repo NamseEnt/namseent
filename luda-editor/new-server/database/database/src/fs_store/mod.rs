@@ -70,17 +70,21 @@ impl DocumentStore for FsStore {
 
         let trx_id = uuid::Uuid::new_v4().as_u128();
 
-        let mut key_lockers = try_join_all(transact_items.iter().map(|trx_item| async move {
-            let key = get_trx_item_key(trx_item);
-            let mut key_locker = KeyLocker::new(self.key_queue.clone(), key);
-            let file = key_locker.wait_turn().await;
+        let mut key_lockers = try_join_all(
+            transact_items
+                .iter()
+                .map(|trx_item| get_trx_item_key(trx_item))
+                .map(|key| async move {
+                    let mut key_locker = KeyLocker::new(self.key_queue.clone(), key);
+                    let file = key_locker.wait_turn().await;
 
-            if file.is_none() {
-                *file = Some(self.open_doc_file(key).await?);
-            }
+                    if file.is_none() {
+                        *file = Some(self.open_doc_file(key).await?);
+                    }
 
-            std::io::Result::Ok(key_locker)
-        }))
+                    std::io::Result::Ok(key_locker)
+                }),
+        )
         .await?;
 
         let result = try_join_all(key_lockers.iter_mut().zip(transact_items).map(

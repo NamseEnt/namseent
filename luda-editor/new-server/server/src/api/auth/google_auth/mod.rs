@@ -8,7 +8,7 @@ use std::sync::OnceLock;
 use verify_jwt::*;
 
 pub async fn google_auth(
-    &ArchivedRequest { ref jwt }: &ArchivedRequest,
+    ArchivedRequest { jwt }: &ArchivedRequest,
     db: &Database,
     session: Session,
 ) -> Result<Response> {

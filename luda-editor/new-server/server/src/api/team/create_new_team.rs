@@ -5,7 +5,7 @@ use luda_rpc::team::create_new_team::*;
 const MAX_TEAM_COUNT: usize = 20;
 
 pub async fn create_new_team(
-    &ArchivedRequest { ref name }: &ArchivedRequest,
+    ArchivedRequest { name }: &ArchivedRequest,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -34,7 +34,7 @@ pub async fn create_new_team(
         },
         TeamDocPut {
             id: team_id,
-            name: &name,
+            name,
             member_ids: &[user_id].into_iter().collect(),
             project_ids: &Default::default(),
             invite_codes: &Default::default(),
@@ -43,7 +43,7 @@ pub async fn create_new_team(
             asset_bytes_used: 0,
         },
         TeamNameAssignDocCreate {
-            team_name: &name,
+            team_name: name,
             team_id,
         },
     ))

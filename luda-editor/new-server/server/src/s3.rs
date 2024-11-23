@@ -23,11 +23,6 @@ pub async fn init_s3() -> Result<()> {
     Ok(())
 }
 
-pub fn database_bucket_name() -> &'static str {
-    static DATABASE_BUCKET_NAME: OnceLock<String> = OnceLock::new();
-    DATABASE_BUCKET_NAME.get_or_init(|| std::env::var("DATABASE_BUCKET_NAME").unwrap())
-}
-
 pub fn asset_bucket_name() -> &'static str {
     static ASSET_BUCKET_NAME: OnceLock<String> = OnceLock::new();
     ASSET_BUCKET_NAME.get_or_init(|| std::env::var("ASSET_BUCKET_NAME").unwrap())
