@@ -47,7 +47,7 @@ hyper = "1.4.1"
 http-body-util = "0.1.2"
 ogg = { version = "0.9.1" }
 pin-project = "1"
-opusic-sys = "0.5.1"
+opusic-sys = "0.5.2"
 
 [target.'cfg(not(target_os="wasi"))'.dependencies]
 hyper-rustls = { version = "0.27.2", default-features = false, features = [
