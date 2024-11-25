@@ -20,7 +20,7 @@ pub async fn list_speakers(
             id: project_doc.team_id,
         })
         .await?
-        .ok_or(Error::ProjectNotExist)?;
+        .ok_or(Error::TeamNotExist)?;
 
     if !team_doc.is_team_member(user_id) {
         bail!(Error::PermissionDenied)

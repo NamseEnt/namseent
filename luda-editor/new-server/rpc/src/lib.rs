@@ -157,6 +157,7 @@ rpc_macro::define_rpc! {
                 NeedLogin,
                 PermissionDenied,
                 ProjectNotExist,
+                TeamNotExist,
             }
         },
         list_speakers: {
@@ -170,6 +171,7 @@ rpc_macro::define_rpc! {
                 NeedLogin,
                 PermissionDenied,
                 ProjectNotExist,
+                TeamNotExist,
             }
         },
         delete_speaker: {
@@ -183,6 +185,7 @@ rpc_macro::define_rpc! {
                 NeedLogin,
                 PermissionDenied,
                 ProjectNotExist,
+                TeamNotExist,
             }
         },
     },
