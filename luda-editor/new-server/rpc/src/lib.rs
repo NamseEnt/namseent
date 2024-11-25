@@ -146,6 +146,45 @@ rpc_macro::define_rpc! {
                 PermissionDenied,
             }
         },
+        put_speaker: {
+            struct Request {
+                project_id: u128,
+                speaker: Speaker,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                ProjectNotExist,
+            }
+        },
+        list_speakers: {
+            struct Request {
+                project_id: u128,
+            }
+            struct Response {
+                speakers: Vec<Speaker>,
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                ProjectNotExist,
+            }
+        },
+        delete_speaker: {
+            struct Request {
+                project_id: u128,
+                speaker_id: u128,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                ProjectNotExist,
+            }
+        },
     },
     Episode: {
         create_new_episode: {
