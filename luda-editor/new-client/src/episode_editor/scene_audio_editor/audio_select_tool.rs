@@ -173,7 +173,7 @@ impl Component for AudioListItem<'_> {
 
         let audio = audio_id.clone().map(get_or_load_audio);
         let (hovering, set_hovering) = ctx.state::<Option<Hovering>>(|| None);
-        // let (play_handle, set_play_handle) = ctx.state(|| None);
+        let (play_handle, set_play_handle) = ctx.state(|| None);
 
         ctx.interval("play audio if hovering", 1.sec(), |_| {
             let Some((Hovering { started_at }, audio)) =
@@ -181,17 +181,17 @@ impl Component for AudioListItem<'_> {
             else {
                 return;
             };
-            // if play_handle.is_some() {
-            //     return;
-            // }
+            if play_handle.is_some() {
+                return;
+            }
             if now() - started_at < 1.sec() {
                 return;
             }
-            // let AudioLoadState::Loaded { audio } = audio.as_ref() else {
-            //     return;
-            // };
-            // let play_handle = audio.play_repeat();
-            // set_play_handle.set(Some(play_handle));
+            let AudioLoadState::Loaded { audio } = audio.as_ref() else {
+                return;
+            };
+            let play_handle = audio.play_repeat();
+            set_play_handle.set(Some(play_handle));
         });
 
         ctx.add(
@@ -208,7 +208,7 @@ impl Component for AudioListItem<'_> {
                             return;
                         }
                         set_hovering.set(None);
-                        // set_play_handle.set(None);
+                        set_play_handle.set(None);
                     }
                     false => {
                         if !event.is_local_xy_in() {

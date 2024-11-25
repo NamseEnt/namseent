@@ -36,12 +36,12 @@ pub fn get_or_load_audio(audio_id: String) -> Arc<AudioLoadState> {
                     return;
                 }
             };
-            // let load_state = match Audio::from_ogg_opus_bytes(bytes) {
-            //     Ok(audio) => AudioLoadState::Loaded { audio },
-            //     Err(error) => AudioLoadState::Error(error.into()),
-            // };
+            let load_state = match Audio::from_ogg_opus_bytes(bytes) {
+                Ok(audio) => AudioLoadState::Loaded { audio },
+                Err(error) => AudioLoadState::Error(error.into()),
+            };
 
-            // AUDIO_STORAGE.set(audio_id, load_state);
+            AUDIO_STORAGE.set(audio_id, load_state);
         });
         return loading;
     };
@@ -51,7 +51,7 @@ pub fn get_or_load_audio(audio_id: String) -> Arc<AudioLoadState> {
 pub enum AudioLoadState {
     Loading,
     Loaded {
-        // audio: Audio,
+        audio: Audio,
     },
     #[allow(unused)]
     Error(Box<dyn Error + Send + Sync>),
