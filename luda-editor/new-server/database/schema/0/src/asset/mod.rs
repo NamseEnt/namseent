@@ -14,9 +14,10 @@ pub use tag::*;
 
 #[document]
 struct AssetDoc {
-    #[pk]
-    id: String,
+    #[id]
+    id: u128,
     name: String,
+    team_id: u128,
     shared: bool,
     asset_kind: AssetKind,
     byte_size: u64,
@@ -28,27 +29,4 @@ struct AssetDoc {
 enum AssetKind {
     Sprite,
     Audio,
-}
-
-#[document]
-struct TeamAssetDoc {
-    #[pk]
-    team_id: String,
-    #[sk]
-    asset_id: String,
-}
-
-#[document]
-struct AssetTeamDoc {
-    #[pk]
-    asset_id: String,
-    team_id: String,
-}
-
-#[document]
-struct TeamAssetTotalBytesDoc {
-    #[pk]
-    team_id: String,
-    limit_bytes: u64,
-    used_bytes: u64,
 }

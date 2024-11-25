@@ -1,21 +1,22 @@
 use crate::*;
 use std::collections::{HashMap, HashSet};
 
-#[document]
-struct SceneDoc {
-    #[pk]
-    id: String,
-    speaker_id: Option<String>,
+#[doc_part]
+struct Scene {
+    id: u128,
+    speaker_id: Option<u128>,
     scene_sprites: Vec<SceneSprite>,
     /// `None` means the background should be black.
     background_sprite: Option<SceneSprite>,
     /// `None` means previous bgm should be continued.
     bgm: Option<SceneSound>,
+    text_l10n: HashMap<LanguageCode, String>,
 }
+type LanguageCode = String;
 
 #[doc_part]
 struct SceneSprite {
-    sprite_id: Option<String>,
+    sprite_id: Option<u128>,
     circumcircle: Circumcircle,
     /// - key: part id
     /// - value: part option ids
@@ -26,7 +27,7 @@ struct SceneSprite {
 
 #[doc_part]
 struct SceneSound {
-    sound_id: String,
+    sound_id: u128,
     volume: Percent,
 }
 
@@ -36,13 +37,4 @@ struct Circumcircle {
     xy: Xy<Percent>,
     /// If radius is 100%, the diagonal length of image will be the same with screen's diagonal length.
     radius: Percent,
-}
-
-#[document]
-struct SceneTextL10nDoc {
-    #[pk]
-    scene_id: String,
-    #[sk]
-    language_code: String,
-    text: String,
 }

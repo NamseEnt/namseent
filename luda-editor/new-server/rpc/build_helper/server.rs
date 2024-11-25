@@ -65,24 +65,22 @@ fn generate_api_files(rpc: &Rpc) {
         }
 
         for api in &service.apis {
-            let api_dir = service_path.join(format!("{}", api.name));
-            if !api_dir.exists() {
-                std::fs::create_dir_all(&api_dir).unwrap();
-            }
-            let api_mod_rs = api_dir.join("mod.rs");
-            if api_mod_rs.exists() {
+            let api_rs = service_path
+                .join(format!("{}", api.name))
+                .with_extension("rs");
+            if api_rs.exists() || api_rs.with_extension("").exists() {
                 continue;
             }
             let api_name = &api.name;
             write_if_changed(
-                &api_mod_rs,
+                &api_rs,
                 format!(
                     "use crate::*;
 use database::schema::*;
 use luda_rpc::{service_snake_name}::{api_name}::*;
 
 pub async fn {api_name}(
-    ArchivedRequest {{ }}: &ArchivedRequest,
+    &ArchivedRequest {{ }}: &ArchivedRequest,
     db: &Database,
     session: Session,
 ) -> Result<Response> {{
