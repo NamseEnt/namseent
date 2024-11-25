@@ -16,14 +16,14 @@ pub async fn put_speaker(
     let project_doc = db
         .get(ProjectDocGet { id: project_id })
         .await?
-        .ok_or(Error::ProjectNotExist)?;
+        .ok_or(Error::ProjectNotExists)?;
 
     let team_doc = db
         .get(TeamDocGet {
             id: project_doc.team_id,
         })
         .await?
-        .ok_or(Error::TeamNotExist)?;
+        .ok_or(Error::TeamNotExists)?;
 
     if !team_doc.is_team_member(user_id) {
         bail!(Error::PermissionDenied)

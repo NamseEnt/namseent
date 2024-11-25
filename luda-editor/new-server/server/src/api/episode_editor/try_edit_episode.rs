@@ -16,7 +16,7 @@ pub async fn try_edit_episode(
     let episode_doc = db
         .get(EpisodeDocGet { id: episode_id })
         .await?
-        .ok_or(Error::EpisodeNotExist)?;
+        .ok_or(Error::EpisodeNotExists)?;
 
     let team_doc = db
         .get(TeamDocGet {
@@ -32,7 +32,7 @@ pub async fn try_edit_episode(
     enum AbortReason {
         YouDoNotHaveEditorLock,
         InvalidSceneIndex,
-        SceneNotExist,
+        SceneNotExists,
     }
 
     let editor_lock_check = |doc: &ArchivedEpisodeDoc| {
@@ -106,7 +106,7 @@ pub async fn try_edit_episode(
                 want_update: |doc| {
                     if !doc.scenes.contains_key(&scene_id) {
                         return WantUpdate::Abort {
-                            reason: AbortReason::SceneNotExist,
+                            reason: AbortReason::SceneNotExists,
                         };
                     }
 
@@ -130,7 +130,7 @@ pub async fn try_edit_episode(
                 want_update: |doc| {
                     if !doc.scenes.contains_key(&scene.id) {
                         return WantUpdate::Abort {
-                            reason: AbortReason::SceneNotExist,
+                            reason: AbortReason::SceneNotExists,
                         };
                     }
 
@@ -146,13 +146,13 @@ pub async fn try_edit_episode(
         }
     }
     .map_err(|err| match err {
-        database::Error::NotExistsOnUpdate => anyhow!(Error::EpisodeNotExist),
+        database::Error::NotExistsOnUpdate => anyhow!(Error::EpisodeNotExists),
         _ => anyhow!(err),
     })?
     .err_if_aborted(|reason| match reason {
         AbortReason::YouDoNotHaveEditorLock => Error::YouDoNotHaveEditorLock,
         AbortReason::InvalidSceneIndex => Error::InvalidSceneIndex,
-        AbortReason::SceneNotExist => Error::SceneNotExist,
+        AbortReason::SceneNotExists => Error::SceneNotExists,
     })?;
 
     todo!()

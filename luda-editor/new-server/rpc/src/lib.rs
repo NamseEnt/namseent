@@ -28,7 +28,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 AlreadyLoggedIn,
-                SessionTokenNotExist,
+                SessionTokenNotExists,
             }
         },
         revoke_session_token: {
@@ -51,7 +51,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
-                UserNotExist,
+                UserNotExists,
             }
         },
         create_new_team: {
@@ -156,8 +156,8 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                ProjectNotExist,
-                TeamNotExist,
+                ProjectNotExists,
+                TeamNotExists,
             }
         },
         list_speakers: {
@@ -170,8 +170,8 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                ProjectNotExist,
-                TeamNotExist,
+                ProjectNotExists,
+                TeamNotExists,
             }
         },
         delete_speaker: {
@@ -184,8 +184,8 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                ProjectNotExist,
-                TeamNotExist,
+                ProjectNotExists,
+                TeamNotExists,
             }
         },
     },
@@ -200,7 +200,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                ProjectNotExist,
+                ProjectNotExists,
             }
         },
         get_episodes: {
@@ -213,7 +213,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                ProjectNotExist,
+                ProjectNotExists,
             }
         },
     },
@@ -228,7 +228,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
                 OtherUserEditing,
             }
         },
@@ -241,7 +241,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
             }
         },
         try_edit_episode: {
@@ -254,11 +254,11 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
                 ImpossibleAction,
                 YouDoNotHaveEditorLock,
                 InvalidSceneIndex,
-                SceneNotExist,
+                SceneNotExists,
             }
         },
         load_speaker_slots: {
@@ -271,7 +271,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
             }
         },
         save_speaker_slots: {
@@ -284,7 +284,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
             }
         },
         get_speaker_names: {
@@ -299,7 +299,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                ProjectNotExist,
+                ProjectNotExists,
             }
         },
     },
@@ -344,7 +344,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
-                AssetNotExist,
+                AssetNotExists,
                 PermissionDenied,
             }
         },

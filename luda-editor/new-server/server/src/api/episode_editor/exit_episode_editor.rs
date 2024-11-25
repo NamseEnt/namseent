@@ -40,7 +40,7 @@ async fn try_unlock_editor(db: &Database, episode_id: u128, user_id: u128) -> Re
     })
     .await
     .map_err(|err| match &err {
-        database::Error::NotExistsOnUpdate => anyhow!(Error::EpisodeNotExist),
+        database::Error::NotExistsOnUpdate => anyhow!(Error::EpisodeNotExists),
         _ => anyhow!(err),
     })?;
 

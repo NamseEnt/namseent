@@ -14,7 +14,7 @@ pub async fn join_episode_editor(
     let episode_doc = db
         .get(EpisodeDocGet { id: episode_id })
         .await?
-        .ok_or(Error::EpisodeNotExist)?;
+        .ok_or(Error::EpisodeNotExists)?;
 
     let team_doc = db
         .get(TeamDocGet {
@@ -32,7 +32,7 @@ pub async fn join_episode_editor(
     let episode = db
         .get(EpisodeDocGet { id: episode_id })
         .await?
-        .ok_or(Error::EpisodeNotExist)?
+        .ok_or(Error::EpisodeNotExists)?
         .deserialize();
 
     Ok(Response {
@@ -79,7 +79,7 @@ async fn try_lock_editor(db: &Database, episode_id: u128, user_id: u128) -> Resu
     })
     .await
     .map_err(|err| match err {
-        database::Error::NotExistsOnUpdate => anyhow!(Error::EpisodeNotExist),
+        database::Error::NotExistsOnUpdate => anyhow!(Error::EpisodeNotExists),
         _ => anyhow!(err),
     })?
     .err_if_aborted(|reason| match reason {

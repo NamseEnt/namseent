@@ -17,7 +17,7 @@ pub async fn get_speaker_names(
     let project_doc = db
         .get(ProjectDocGet { id: project_id })
         .await?
-        .ok_or(Error::ProjectNotExist)?;
+        .ok_or(Error::ProjectNotExists)?;
 
     let team_doc = db
         .get(TeamDocGet {
