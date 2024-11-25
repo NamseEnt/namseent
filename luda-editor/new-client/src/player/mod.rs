@@ -106,7 +106,6 @@ impl Component for TextBox<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, text } = self;
 
-        ctx.add(typography::title::left(32.px(), text, Color::WHITE));
         ctx.compose(|ctx| {
             vertical([
                 ratio(1, |_, _| {}),
