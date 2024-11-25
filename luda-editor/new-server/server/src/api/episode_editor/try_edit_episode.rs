@@ -155,5 +155,5 @@ pub async fn try_edit_episode(
         AbortReason::SceneNotExist => Error::SceneNotExist,
     })?;
 
-    todo!()
+    Ok(Response {})
 }
