@@ -327,7 +327,7 @@ impl Component for InternalSlice<'_> {
                     }
                 }
                 ctx.compose(|ctx| {
-                    let rendering_tree = ctx.ghost_compose(0, |mut ctx| {
+                    let rendering_tree = ctx.ghost_compose(0_usize, |mut ctx| {
                         if need_clip {
                             ctx = ctx.clip(
                                 Path::new().add_rect(Rect::Xywh {

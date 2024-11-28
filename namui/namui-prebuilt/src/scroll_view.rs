@@ -89,7 +89,7 @@ impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                     namui::ClipOp::Intersect,
                 )
                 .translate((0.px(), -scroll_y.floor()))
-                .ghost_compose(0, content);
+                .ghost_compose(0_usize, content);
             let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
                 return;
             };

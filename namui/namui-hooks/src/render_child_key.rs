@@ -78,3 +78,9 @@ impl From<usize> for AddKey {
         AddKey::Usize(key)
     }
 }
+
+impl From<u128> for AddKey {
+    fn from(key: u128) -> Self {
+        AddKey::U128(key)
+    }
+}
