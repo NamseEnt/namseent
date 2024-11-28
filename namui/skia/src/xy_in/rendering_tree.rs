@@ -683,7 +683,7 @@ mod tests {
 
         let mut with_ancestors_call_count = 0;
 
-        fn get_ancestor_ids(ancestors: &[&RenderingTree]) -> Vec<Uuid> {
+        fn get_ancestor_ids(ancestors: &[&RenderingTree]) -> Vec<u128> {
             ancestors
                 .iter()
                 .filter_map(|node| {
@@ -705,7 +705,7 @@ mod tests {
                             utils.with_ancestors(|ancestors| {
                                 let ancestors_ids = get_ancestor_ids(ancestors);
                                 with_ancestors_call_count += 1;
-                                assert_eq!(ancestors_ids, Vec::<Uuid>::new());
+                                assert_eq!(ancestors_ids, Vec::<u128>::new());
                             });
                         }
                         id if id == id_1 => utils.with_ancestors(|ancestors| {
