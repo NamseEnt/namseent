@@ -1,10 +1,8 @@
-use namui_type::Uuid;
-
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub(crate) enum ChildKey {
     Usize(usize),
     String(smol_str::SmolStr),
-    Uuid(Uuid),
+    U128(u128),
     IncrementalComponent {
         index: usize,
         type_name: &'static str,
@@ -38,22 +36,22 @@ impl From<usize> for ChildKey {
     }
 }
 
-impl From<Uuid> for ChildKey {
-    fn from(value: Uuid) -> Self {
-        ChildKey::Uuid(value)
+impl From<u128> for ChildKey {
+    fn from(value: u128) -> Self {
+        ChildKey::U128(value)
     }
 }
 
-impl From<&Uuid> for ChildKey {
-    fn from(value: &Uuid) -> Self {
-        ChildKey::Uuid(*value)
+impl From<&u128> for ChildKey {
+    fn from(value: &u128) -> Self {
+        ChildKey::U128(*value)
     }
 }
 
 pub enum AddKey {
     Usize(usize),
     String(smol_str::SmolStr),
-    Uuid(Uuid),
+    U128(u128),
     Incremental,
 }
 

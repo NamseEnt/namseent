@@ -29,7 +29,6 @@ uuid = { version = "1.1", features = [
     "macro-diagnostics",
     "serde",
 ] }
-siphasher = "0.3"
 url = { version = "2.4.0", features = ["serde"] }
 derive-macro = { path = "./derive-macro" }
 postcard = { version = "1.0.6", features = ["use-std"] }
@@ -38,6 +37,8 @@ anyhow = { version = "1.0.77", features = ["backtrace"] }
 derivative = "2.2.0"
 skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", optional = true }
 rkyv = { version = "0.7.44" }
+rand = "0.8"
+sha2 = "0.10"
 
 [dev-dependencies]
 float-cmp = "0.9"
