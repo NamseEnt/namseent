@@ -2,7 +2,10 @@
 
 mod common;
 pub mod create_new_project;
+pub mod delete_speaker;
 pub mod get_projects;
+pub mod list_speakers;
+pub mod put_speaker;
 
 #[allow(unused_imports)]
 pub use common::*;

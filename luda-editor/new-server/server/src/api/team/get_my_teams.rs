@@ -13,7 +13,7 @@ pub async fn get_my_teams(
     let user_doc = db
         .get(UserDocGet { id: user_id })
         .await?
-        .ok_or(Error::UserNotExist)?;
+        .ok_or(Error::UserNotExists)?;
 
     let team_docs = try_join_all(
         user_doc

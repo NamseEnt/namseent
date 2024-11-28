@@ -1,13 +1,12 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::schema::*;
-use luda_rpc::episode_editor::get_speaker_names::*;
+use database::{schema::*, WantUpdate};
+use luda_rpc::project::delete_speaker::*;
 
-pub async fn get_speaker_names(
+pub async fn delete_speaker(
     &ArchivedRequest {
         project_id,
-        ref speaker_ids,
-        ref language_code,
+        speaker_id,
     }: &ArchivedRequest,
     db: &Database,
     session: Session,
@@ -24,21 +23,26 @@ pub async fn get_speaker_names(
             id: project_doc.team_id,
         })
         .await?
-        .ok_or(Error::PermissionDenied)?;
+        .ok_or(Error::TeamNotExists)?;
 
     if !team_doc.is_team_member(user_id) {
         bail!(Error::PermissionDenied)
     }
 
-    Ok(Response {
-        speaker_names: speaker_ids
-            .iter()
-            .map(|speaker_id| {
-                project_doc
-                    .speakers
-                    .get(speaker_id)
-                    .and_then(|x| x.name_l10n.get(language_code).map(|x| x.to_string()))
-            })
-            .collect(),
+    db.transact::<()>(ProjectDocUpdate {
+        id: project_id,
+        want_update: |doc| {
+            if doc.speakers.contains_key(&speaker_id) {
+                WantUpdate::Yes
+            } else {
+                WantUpdate::No
+            }
+        },
+        update: |doc| {
+            doc.speakers.remove(&speaker_id);
+        },
     })
+    .await?;
+
+    Ok(Response {})
 }
