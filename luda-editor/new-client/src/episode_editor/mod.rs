@@ -73,13 +73,12 @@ impl Component for EpisodeEditor {
         };
 
         match (join_result, asset_result) {
-            (Ok((join_episode_editor::Response { scenes, texts }, _)), Ok(_)) => {
+            (Ok((join_episode_editor::Response { scenes }, _)), Ok(_)) => {
                 ctx.add(LoadedEpisodeEditor {
                     team_id,
                     project_id,
                     episode_id,
                     initial_scenes: scenes,
-                    initial_texts: texts,
                     asset_docs,
                 });
             }
@@ -111,7 +110,6 @@ impl Component for LoadedEpisodeEditor<'_> {
             project_id,
             episode_id,
             initial_scenes,
-            initial_texts,
             asset_docs,
         } = self;
         let (scenes, set_scenes) = ctx.state(|| initial_scenes.clone());
@@ -146,7 +144,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                 return;
             };
             let action_to_server_queue_tx = action_to_server_queue_tx.clone();
-            (set_action_history, set_scenes, set_texts).mutate(move |(history, scenes, texts)| {
+            (set_action_history, set_scenes).mutate(move |(history, scenes)| {
                 let Some(action) = history.pop() else { return };
 
                 let action_for_server = match action.clone() {
@@ -259,6 +257,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                     scene_sprites: vec![],
                     background_sprite: None,
                     bgm: None,
+                    text_l10n: HashMap::new(),
                 },
             });
         };
