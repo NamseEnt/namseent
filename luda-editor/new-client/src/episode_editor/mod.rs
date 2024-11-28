@@ -10,7 +10,6 @@ use super::*;
 use crate::rpc::asset::get_team_asset_docs;
 use crate::rpc::episode_editor::join_episode_editor;
 use luda_rpc::{AssetDoc, EpisodeEditAction, Scene};
-use new_id::new_id;
 use properties_panel::PropertiesPanel;
 use router::Route;
 use std::{collections::HashMap, sync::Arc};

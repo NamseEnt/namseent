@@ -4,7 +4,6 @@ mod episode_editor;
 mod home;
 mod network;
 mod new_episode_page;
-mod new_id;
 mod new_project_page;
 mod new_team_page;
 mod psd_sprite_util;
