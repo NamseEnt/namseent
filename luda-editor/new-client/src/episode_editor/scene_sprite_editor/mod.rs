@@ -14,7 +14,7 @@ pub struct SceneSpriteEditor<'a> {
     pub wh: Wh<Px>,
     pub scene: &'a Scene,
     pub update_scene: &'a dyn Fn(Scene),
-    pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
+    pub asset_docs: Sig<'a, HashMap<u128, AssetDoc>>,
 }
 
 impl Component for SceneSpriteEditor<'_> {
@@ -70,7 +70,7 @@ impl Component for SceneSpriteEditor<'_> {
             set_selected_scene_sprite_index.set(Some(index));
         };
 
-        let select_sprite = &|sprite_id: &str| {
+        let select_sprite = &|sprite_id: u128| {
             let Some(index) = *selected_scene_sprite_index else {
                 return;
             };
@@ -78,7 +78,7 @@ impl Component for SceneSpriteEditor<'_> {
             let Some(scene_sprite) = scene.scene_sprites.get_mut(index) else {
                 return;
             };
-            scene_sprite.sprite_id = Some(sprite_id.to_string());
+            scene_sprite.sprite_id = Some(sprite_id);
             update_scene(scene);
         };
 
@@ -130,7 +130,7 @@ impl Component for SceneSpriteEditor<'_> {
             };
             if is_dragging {
                 set_size_tool_dragging.set(Some(size_tool::SizeToolDragging {
-                    scene_id: scene.id.clone(),
+                    scene_id: scene.id,
                     sprite_index: index,
                     radius: size_radius,
                 }));

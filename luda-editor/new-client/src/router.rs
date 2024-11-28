@@ -8,19 +8,19 @@ pub enum Route {
     },
     NewTeam,
     NewProject {
-        team_id: String,
+        team_id: u128,
     },
     NewEpisode {
-        team_id: String,
-        project_id: String,
+        team_id: u128,
+        project_id: u128,
     },
     AssetManage {
-        team_id: String,
+        team_id: u128,
     },
     EpisodeEditor {
-        team_id: String,
-        project_id: String,
-        episode_id: String,
+        team_id: u128,
+        project_id: u128,
+        episode_id: u128,
     },
 }
 
@@ -39,19 +39,19 @@ impl Component for Router {
                 ctx.add(new_team_page::NewTeamPage);
             }
             Route::NewProject { team_id } => {
-                ctx.add(new_project_page::NewProjectPage { team_id });
+                ctx.add(new_project_page::NewProjectPage { team_id: *team_id });
             }
             Route::NewEpisode {
                 team_id,
                 project_id,
             } => {
                 ctx.add(new_episode_page::NewEpisodePage {
-                    team_id,
-                    project_id,
+                    team_id: *team_id,
+                    project_id: *project_id,
                 });
             }
             Route::AssetManage { team_id } => {
-                ctx.add(asset_manage_page::AssetManagePage { team_id });
+                ctx.add(asset_manage_page::AssetManagePage { team_id: *team_id });
             }
             Route::EpisodeEditor {
                 team_id,
@@ -59,9 +59,9 @@ impl Component for Router {
                 episode_id,
             } => {
                 ctx.add(episode_editor::EpisodeEditor {
-                    team_id,
-                    project_id,
-                    episode_id,
+                    team_id: *team_id,
+                    project_id: *project_id,
+                    episode_id: *episode_id,
                 });
             }
         }

@@ -7,9 +7,9 @@ use std::collections::BTreeMap;
 pub struct SpeakerSelector<'a> {
     pub wh: Wh<Px>,
     pub scene: &'a Scene,
-    pub project_id: &'a String,
-    pub episode_id: &'a String,
-    pub select_speaker: &'a dyn Fn(&String),
+    pub project_id: u128,
+    pub episode_id: u128,
+    pub select_speaker: &'a dyn Fn(u128),
 }
 
 impl Component for SpeakerSelector<'_> {
@@ -21,20 +21,17 @@ impl Component for SpeakerSelector<'_> {
             episode_id,
             select_speaker,
         } = self;
-        let (speaker_ids, set_speaker_ids) = ctx.state::<Option<Vec<String>>>(|| None);
-        let (speakers, set_speakers) =
-            ctx.state::<Option<BTreeMap<String, Option<String>>>>(|| None);
+        let (speaker_ids, set_speaker_ids) = ctx.state::<Option<Vec<u128>>>(|| None);
+        let (speakers, set_speakers) = ctx.state::<Option<BTreeMap<u128, Option<String>>>>(|| None);
         let (error_msg, set_error_msg) = ctx.state::<Option<String>>(|| None);
 
         ctx.async_effect(
             "load speaker ids",
-            episode_id,
+            &episode_id,
             move |episode_id| async move {
                 use crate::rpc::episode_editor::load_speaker_slots::*;
                 match server_connection()
-                    .load_speaker_slots(RefRequest {
-                        episode_id: &episode_id,
-                    })
+                    .load_speaker_slots(RefRequest { episode_id })
                     .await
                 {
                     Ok(response) => {
@@ -49,7 +46,7 @@ impl Component for SpeakerSelector<'_> {
 
         ctx.async_effect(
             "load speaker names",
-            (speaker_ids, project_id),
+            (speaker_ids, &project_id),
             move |(speaker_ids, project_id)| async move {
                 set_speakers.set(None);
                 let Some(speaker_ids) = speaker_ids else {
@@ -59,7 +56,7 @@ impl Component for SpeakerSelector<'_> {
                 match server_connection()
                     .get_speaker_names(RefRequest {
                         language_code: "kor",
-                        project_id: &project_id,
+                        project_id,
                         speaker_ids: &speaker_ids,
                     })
                     .await

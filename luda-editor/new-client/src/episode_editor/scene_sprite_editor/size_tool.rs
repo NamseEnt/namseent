@@ -104,7 +104,7 @@ impl Component for SizeTool<'_> {
 }
 
 pub struct SizeToolDragging {
-    pub scene_id: String,
+    pub scene_id: u128,
     pub sprite_index: usize,
     pub radius: Percent,
 }

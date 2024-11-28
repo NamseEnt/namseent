@@ -2,12 +2,12 @@ use super::*;
 use router::Route;
 use rpc::episode::create_new_episode::*;
 
-pub struct NewEpisodePage<'a> {
-    pub team_id: &'a str,
-    pub project_id: &'a str,
+pub struct NewEpisodePage {
+    pub team_id: u128,
+    pub project_id: u128,
 }
 
-impl Component for NewEpisodePage<'_> {
+impl Component for NewEpisodePage {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             team_id,
@@ -37,7 +37,7 @@ impl Component for NewEpisodePage<'_> {
                         project_id,
                         name: &episode_name,
                     },
-                    (team_id, project_id),
+                    (&team_id, &project_id),
                 ))
             },
             move |result| match result {
@@ -64,8 +64,8 @@ impl Component for NewEpisodePage<'_> {
                     ctx.add(simple_button(wh, "X", |_| {
                         router::route(Route::Home {
                             initial_selection: home::Selection::Project {
-                                team_id: team_id.to_string(),
-                                project_id: project_id.to_string(),
+                                team_id,
+                                project_id,
                             },
                         });
                     }));
@@ -167,7 +167,7 @@ impl Component for NewEpisodePage<'_> {
                     let text = match err {
                         Error::NeedLogin => "로그인이 필요합니다".to_string(),
                         Error::PermissionDenied => "권한이 없습니다".to_string(),
-                        Error::ProjectNotExist => "프로젝트가 존재하지 않습니다".to_string(),
+                        Error::ProjectNotExists => "프로젝트가 존재하지 않습니다".to_string(),
                         Error::InternalServerError { err } => format!("서버 오류: {}", err),
                     };
                     fixed(16.px(), |wh, ctx| {
