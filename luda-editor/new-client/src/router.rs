@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use super::*;
+use luda_rpc::Scene;
 
 pub struct Router;
 
@@ -21,6 +24,11 @@ pub enum Route {
         team_id: String,
         project_id: String,
         episode_id: String,
+    },
+    Player {
+        scenes: Vec<Scene>,
+        texts: HashMap<String, HashMap<String, String>>,
+        language_code: String,
     },
 }
 
@@ -62,6 +70,17 @@ impl Component for Router {
                     team_id,
                     project_id,
                     episode_id,
+                });
+            }
+            Route::Player {
+                scenes,
+                texts,
+                language_code,
+            } => {
+                ctx.add(player::Player {
+                    scenes,
+                    texts,
+                    language_code,
                 });
             }
         }
