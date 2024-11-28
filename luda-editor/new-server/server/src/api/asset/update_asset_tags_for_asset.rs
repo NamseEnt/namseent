@@ -13,7 +13,7 @@ pub async fn update_asset_tags_for_asset(
     let asset_doc = db
         .get(AssetDocGet { id: asset_id })
         .await?
-        .ok_or(Error::AssetNotExist)?;
+        .ok_or(Error::AssetNotExists)?;
 
     let team_doc = db
         .get(TeamDocGet {

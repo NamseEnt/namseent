@@ -28,7 +28,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 AlreadyLoggedIn,
-                SessionTokenNotExist,
+                SessionTokenNotExists,
             }
         },
         revoke_session_token: {
@@ -51,7 +51,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
-                UserNotExist,
+                UserNotExists,
             }
         },
         create_new_team: {
@@ -146,6 +146,48 @@ rpc_macro::define_rpc! {
                 PermissionDenied,
             }
         },
+        put_speaker: {
+            struct Request {
+                project_id: u128,
+                speaker: Speaker,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                ProjectNotExists,
+                TeamNotExists,
+            }
+        },
+        list_speakers: {
+            struct Request {
+                project_id: u128,
+            }
+            struct Response {
+                speakers: Vec<Speaker>,
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                ProjectNotExists,
+                TeamNotExists,
+            }
+        },
+        delete_speaker: {
+            struct Request {
+                project_id: u128,
+                speaker_id: u128,
+            }
+            struct Response {
+            }
+            enum Error {
+                NeedLogin,
+                PermissionDenied,
+                ProjectNotExists,
+                TeamNotExists,
+            }
+        },
     },
     Episode: {
         create_new_episode: {
@@ -158,7 +200,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                ProjectNotExist,
+                ProjectNotExists,
             }
         },
         get_episodes: {
@@ -171,7 +213,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                ProjectNotExist,
+                ProjectNotExists,
             }
         },
     },
@@ -186,7 +228,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
                 OtherUserEditing,
             }
         },
@@ -199,7 +241,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
             }
         },
         try_edit_episode: {
@@ -212,11 +254,11 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
                 ImpossibleAction,
                 YouDoNotHaveEditorLock,
                 InvalidSceneIndex,
-                SceneNotExist,
+                SceneNotExists,
             }
         },
         load_speaker_slots: {
@@ -229,7 +271,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
             }
         },
         save_speaker_slots: {
@@ -242,7 +284,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                EpisodeNotExist,
+                EpisodeNotExists,
             }
         },
         get_speaker_names: {
@@ -257,7 +299,7 @@ rpc_macro::define_rpc! {
             enum Error {
                 NeedLogin,
                 PermissionDenied,
-                ProjectNotExist,
+                ProjectNotExists,
             }
         },
     },
@@ -302,7 +344,7 @@ rpc_macro::define_rpc! {
             }
             enum Error {
                 NeedLogin,
-                AssetNotExist,
+                AssetNotExists,
                 PermissionDenied,
             }
         },

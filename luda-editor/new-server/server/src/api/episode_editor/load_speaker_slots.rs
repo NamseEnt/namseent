@@ -13,7 +13,7 @@ pub async fn load_speaker_slots(
     let episode_doc = db
         .get(EpisodeDocGet { id: episode_id })
         .await?
-        .ok_or(Error::EpisodeNotExist)?;
+        .ok_or(Error::EpisodeNotExists)?;
 
     let team_doc = db
         .get(TeamDocGet {

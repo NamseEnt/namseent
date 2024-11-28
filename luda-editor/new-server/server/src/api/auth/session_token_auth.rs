@@ -13,7 +13,7 @@ pub async fn session_token_auth(
     };
 
     let Some(doc) = db.get(SessionTokenDocGet { session_token }).await? else {
-        bail!(Error::SessionTokenNotExist)
+        bail!(Error::SessionTokenNotExists)
     };
 
     session.login(doc.user_id);
