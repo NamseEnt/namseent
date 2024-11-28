@@ -113,7 +113,7 @@ impl Component for SpeakerSelector<'_> {
                                 fill_color: Color::BLACK,
                                 mouse_buttons: vec![MouseButton::Left],
                                 on_mouse_up_in: |_event| {
-                                    select_speaker(speaker_id);
+                                    select_speaker(*speaker_id);
                                 },
                             });
                         }));
@@ -145,7 +145,7 @@ impl Component for SpeakerSelector<'_> {
 }
 
 struct EditSpeakerModal<'a> {
-    speakers: &'a Option<BTreeMap<String, Option<String>>>,
+    speakers: &'a Option<BTreeMap<u128, Option<String>>>,
     add_speaker: &'a dyn Fn(&str),
     close: &'a dyn Fn(),
 }
@@ -163,12 +163,12 @@ impl Component for EditSpeakerModal<'_> {
         let (left_selected_speaker_id, set_left_selected_speaker_id) = ctx.state(|| None);
         let (right_selected_speaker_id, set_right_selected_speaker_id) = ctx.state(|| None);
 
-        let select_left_speaker = |speaker_id: &str| {
-            set_left_selected_speaker_id.set(Some(speaker_id.to_string()));
+        let select_left_speaker = |speaker_id: u128| {
+            set_left_selected_speaker_id.set(Some(speaker_id));
         };
 
-        let select_right_speaker = |speaker_id: &str| {
-            set_right_selected_speaker_id.set(Some(speaker_id.to_string()));
+        let select_right_speaker = |speaker_id: u128| {
+            set_right_selected_speaker_id.set(Some(speaker_id));
         };
 
         ctx.compose(move |ctx| {
@@ -353,9 +353,9 @@ impl Component for EditSpeakerModal<'_> {
 
 struct SpeakerList<'a> {
     wh: Wh<Px>,
-    speakers: &'a Option<BTreeMap<String, Option<String>>>,
-    select_speaker: &'a dyn Fn(&str),
-    selected_speaker_id: &'a Option<String>,
+    speakers: &'a Option<BTreeMap<u128, Option<String>>>,
+    select_speaker: &'a dyn Fn(u128),
+    selected_speaker_id: &'a Option<u128>,
 }
 impl Component for SpeakerList<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -390,7 +390,7 @@ impl Component for SpeakerList<'_> {
                             name.clone().unwrap_or_default(),
                             is_on,
                             |_event| {
-                                select_speaker(speaker_id);
+                                select_speaker(*speaker_id);
                             },
                         ),
                     )
