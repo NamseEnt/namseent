@@ -127,6 +127,7 @@ impl DocumentStore for FsStore {
 impl FsStore {
     pub async fn new(mount_point: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
         let mount_point = mount_point.as_ref();
+        tokio::fs::create_dir_all(mount_point).await?;
         Ok(Self {
             mount_point: mount_point.to_path_buf(),
             trx_id_map: TrxIdMap::new(mount_point).await?,
