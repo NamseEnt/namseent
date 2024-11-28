@@ -47,7 +47,7 @@ impl Component for AudioSelectTool<'_> {
                         AssetTag::Custom { .. } => false,
                     })
                 })
-                .map(|(id, audio)| (id.clone(), audio.clone()))
+                .map(|(id, audio)| (*id, audio.clone()))
                 .collect::<HashMap<u128, AssetDoc>>()
         });
 
@@ -123,7 +123,7 @@ impl Component for AudioList<'_> {
                 .eq(&audio_id.as_ref());
 
             (
-                audio_id.clone().unwrap_or_default(),
+                audio_id.unwrap_or_default(),
                 AudioListItem {
                     wh: item_wh,
                     audio_id,
@@ -168,7 +168,7 @@ impl Component for AudioListItem<'_> {
             on_select,
         } = self;
 
-        let audio = audio_id.clone().map(get_or_load_audio);
+        let audio = audio_id.map(get_or_load_audio);
         let (hovering, set_hovering) = ctx.state::<Option<Hovering>>(|| None);
         let (play_handle, set_play_handle) = ctx.state(|| None);
 

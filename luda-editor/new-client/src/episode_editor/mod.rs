@@ -120,7 +120,6 @@ impl Component for LoadedEpisodeEditor<'_> {
             .memo(|| {
                 let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-                let episode_id = episode_id.clone();
                 ctx.spawn(async move {
                     while let Some(action) = rx.recv().await {
                         use rpc::episode_editor::try_edit_episode::*;
@@ -206,7 +205,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                 EpisodeEditAction::AddScene { index, scene } => (set_scenes, set_action_history)
                     .mutate({
                         move |(scenes, history)| {
-                            let id = scene.id.clone();
+                            let id = scene.id;
                             scenes.insert(index, scene);
                             history.push(EditActionForUndo::AddScene { id });
                         }

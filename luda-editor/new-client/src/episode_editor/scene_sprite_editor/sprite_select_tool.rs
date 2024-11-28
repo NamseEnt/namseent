@@ -50,7 +50,7 @@ impl Component for SpriteSelectTool<'_> {
                         AssetTag::Custom { .. } => false,
                     })
                 })
-                .map(|(id, sprite)| (id.clone(), sprite.clone()))
+                .map(|(id, sprite)| (*id, sprite.clone()))
                 .collect::<HashMap<u128, AssetDoc>>()
         });
 
