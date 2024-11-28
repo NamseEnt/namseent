@@ -248,7 +248,7 @@ impl Component for LoadedEpisodeEditor<'_> {
             edit_episode(EpisodeEditAction::AddScene {
                 index: scenes.len(),
                 scene: Scene {
-                    id: randum::rand(),
+                    id: namui::uuid(),
                     speaker_id: None,
                     scene_sprites: vec![],
                     background_sprite: None,
