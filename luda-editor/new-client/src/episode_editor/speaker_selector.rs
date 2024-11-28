@@ -96,7 +96,7 @@ impl Component for SpeakerSelector<'_> {
                             side_padding: 8.px(),
                             mouse_buttons: vec![MouseButton::Left],
                             on_mouse_up_in: &|_event| {
-                                select_speaker(speaker_id);
+                                select_speaker(*speaker_id);
                             },
                         });
                     }));

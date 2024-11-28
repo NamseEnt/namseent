@@ -11,10 +11,8 @@ lazy_static! {
 
 pub fn get_or_load_audio(audio_id: u128) -> Arc<AudioLoadState> {
     let Some(load_state) = AUDIO_STORAGE.get(audio_id) else {
-        let loading = AUDIO_STORAGE.set(audio_id.clone(), AudioLoadState::Loading);
+        let loading = AUDIO_STORAGE.set(audio_id, AudioLoadState::Loading);
         spawn(async move {
-            let audio_id = audio_id.clone();
-
             let request = match network::http::Request::get(audio_url(audio_id)).body(()) {
                 Ok(response) => response,
                 Err(error) => {
