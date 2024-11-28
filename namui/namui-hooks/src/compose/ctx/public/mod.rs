@@ -34,7 +34,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
         let child_key = match key.into() {
             AddKey::Usize(index) => ChildKey::Usize(index),
             AddKey::String(key) => ChildKey::String(key),
-            AddKey::Uuid(uuid) => ChildKey::Uuid(uuid),
+            AddKey::U128(uuid) => ChildKey::U128(uuid),
             AddKey::Incremental => ChildKey::IncrementalCompose {
                 index: self.composer.get_next_compose_index(),
             },
@@ -73,7 +73,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
         let child_key = match key.into() {
             AddKey::Usize(index) => ChildKey::Usize(index),
             AddKey::String(key) => ChildKey::String(key),
-            AddKey::Uuid(uuid) => ChildKey::Uuid(uuid),
+            AddKey::U128(uuid) => ChildKey::U128(uuid),
             AddKey::Incremental => ChildKey::IncrementalComponent {
                 index: self.composer.get_next_component_index(),
                 type_name: std::any::type_name_of_val(&component),

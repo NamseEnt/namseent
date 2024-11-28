@@ -50,7 +50,7 @@ extern "C" {
 
 #[derive(Default, Debug)]
 struct FocusCtx {
-    id: Uuid,
+    id: u128,
     mouse_dragging: bool,
     selection: Selection,
     editing_text: String,
@@ -59,7 +59,7 @@ struct FocusCtx {
 static FOCUS_CTX_ATOM: crate::Atom<Mutex<Option<FocusCtx>>> = crate::Atom::uninitialized();
 
 impl FocusCtx {
-    fn get_selection_of_text_input(&self, id: Uuid) -> Selection {
+    fn get_selection_of_text_input(&self, id: u128) -> Selection {
         if self.id != id {
             return Selection::None;
         }

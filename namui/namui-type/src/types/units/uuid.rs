@@ -1,29 +1,18 @@
-use siphasher::sip128::{Hasher128, SipHasher};
-pub use uuid::{uuid, Uuid};
+use rand::*;
+use sha2::{Digest, Sha256};
 
-pub fn uuid() -> Uuid {
-    Uuid::new_v4()
+/// v4
+pub fn uuid() -> u128 {
+    let mut rng = rand::thread_rng();
+    let mut bits: u128 = rng.gen();
+    bits |= 0b010;
+    bits &= !(0b110 << 62);
+    bits
 }
 
-pub fn uuid_from_hash(hash: impl std::hash::Hash) -> Uuid {
-    let mut hasher = SipHasher::new();
-    hash.hash(&mut hasher);
-    Uuid::from_u128(hasher.finish128().into())
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn serde_should_work_with_uuid() {
-        use super::uuid;
-
-        assert_eq!(
-            "\"67e55044-10b1-426f-9247-bb680e5fe0c8\"",
-            serde_json::to_string(&uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8")).unwrap()
-        );
-        assert_eq!(
-            uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8"),
-            serde_json::from_str("\"67e55044-10b1-426f-9247-bb680e5fe0c8\"").unwrap()
-        );
-    }
+pub fn to_hashed_id(data: impl AsRef<[u8]>) -> u128 {
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    let hash = hasher.finalize();
+    u128::from_le_bytes(hash[..16].try_into().unwrap())
 }
