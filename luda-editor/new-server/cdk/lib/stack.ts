@@ -21,45 +21,10 @@ export class VisualNovelStack extends cdk.Stack {
             ],
         });
 
-        const fleetRole = new cdk.aws_iam.Role(this, "FleetRole", {
-            assumedBy: new cdk.aws_iam.ServicePrincipal("ec2.amazonaws.com"),
-            inlinePolicies: {
-                FleetPolicy: new cdk.aws_iam.PolicyDocument({
-                    statements: [
-                        new cdk.aws_iam.PolicyStatement({
-                            effect: cdk.aws_iam.Effect.ALLOW,
-                            actions: [
-                                "ec2:RunInstances",
-                                "ec2:CreateTags",
-                                "ec2:RequestSpotFleet",
-                                "ec2:ModifySpotFleetRequest",
-                                "ec2:CancelSpotFleetRequests",
-                                "ec2:DescribeSpotFleetRequests",
-                                "ec2:DescribeSpotFleetInstances",
-                                "ec2:DescribeSpotFleetRequestHistory",
-                            ],
-                            resources: ["*"],
-                        }),
-                        new cdk.aws_iam.PolicyStatement({
-                            effect: cdk.aws_iam.Effect.ALLOW,
-                            actions: ["iam:PassRole"],
-                            resources: [
-                                "arn:aws:iam::*:role/aws-ec2-spot-fleet-tagging-role",
-                            ],
-                        }),
-                        new cdk.aws_iam.PolicyStatement({
-                            effect: cdk.aws_iam.Effect.ALLOW,
-                            actions: [
-                                "iam:CreateServiceLinkedRole",
-                                "iam:ListRoles",
-                                "iam:ListInstanceProfiles",
-                            ],
-                            resources: ["*"],
-                        }),
-                    ],
-                }),
-            },
+        const elasticIp = new cdk.aws_ec2.CfnEIP(this, "ElasticIp", {
+            domain: "vpc",
         });
+        elasticIp.addDependency(vpc.node.defaultChild as cdk.CfnResource);
 
         const instanceRole = new cdk.aws_iam.Role(this, "InstanceRole", {
             assumedBy: new cdk.aws_iam.ServicePrincipal("ec2.amazonaws.com"),
@@ -81,6 +46,11 @@ export class VisualNovelStack extends cdk.Stack {
                 }),
             },
         });
+        instanceRole.addManagedPolicy(
+            cdk.aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
+                "CloudWatchAgentServerPolicy",
+            ),
+        );
 
         const instanceProfile = new cdk.aws_iam.CfnInstanceProfile(
             this,
@@ -101,121 +71,158 @@ export class VisualNovelStack extends cdk.Stack {
         );
 
         securityGroup.addIngressRule(
-            cdk.aws_ec2.Peer.ipv4("13.209.1.56/29"),
+            cdk.aws_ec2.Peer.prefixList("pl-00ec8fd779e5b4175"),
             cdk.aws_ec2.Port.tcp(22),
             "Allow SSH access for ec2 connect",
         );
-
         securityGroup.addIngressRule(
-            cdk.aws_ec2.Peer.anyIpv4(),
-            cdk.aws_ec2.Port.tcpRange(8000, 8999),
-        );
-        securityGroup.addIngressRule(
-            cdk.aws_ec2.Peer.anyIpv6(),
-            cdk.aws_ec2.Port.tcpRange(8000, 8999),
+            cdk.aws_ec2.Peer.prefixList("pl-075e2b43f16f625b8"),
+            cdk.aws_ec2.Port.tcp(22),
+            "Allow SSH access for ec2 connect via ipv6",
         );
 
-        [443].forEach((port) => {
+        // https://www.cloudflare.com/ips-v4
+        const cloudflareIpv4Range = [
+            "173.245.48.0/20",
+            "103.21.244.0/22",
+            "103.22.200.0/22",
+            "103.31.4.0/22",
+            "141.101.64.0/18",
+            "108.162.192.0/18",
+            "190.93.240.0/20",
+            "188.114.96.0/20",
+            "197.234.240.0/22",
+            "198.41.128.0/17",
+            "162.158.0.0/15",
+            "104.16.0.0/13",
+            "104.24.0.0/14",
+            "172.64.0.0/13",
+            "131.0.72.0/22",
+        ];
+        for (const ipv4 of cloudflareIpv4Range) {
             securityGroup.addIngressRule(
-                cdk.aws_ec2.Peer.anyIpv4(),
-                cdk.aws_ec2.Port.tcp(port),
+                cdk.aws_ec2.Peer.ipv4(ipv4),
+                cdk.aws_ec2.Port.tcp(8080),
+                "Allow Cloudfront",
             );
+        }
+
+        // https://www.cloudflare.com/ips-v6
+        const cloudflareIpv6Range = [
+            "2400:cb00::/32",
+            "2606:4700::/32",
+            "2803:f800::/32",
+            "2405:b500::/32",
+            "2405:8100::/32",
+            "2a06:98c0::/29",
+            "2c0f:f248::/32",
+        ];
+
+        for (const ipv6 of cloudflareIpv6Range) {
             securityGroup.addIngressRule(
-                cdk.aws_ec2.Peer.anyIpv6(),
-                cdk.aws_ec2.Port.tcp(port),
+                cdk.aws_ec2.Peer.ipv6(ipv6),
+                cdk.aws_ec2.Port.tcp(8080),
+                "Allow Cloudfront",
             );
-        });
+        }
 
-        const cfnSpotFleet = new cdk.aws_ec2.CfnSpotFleet(this, "SpotFleet", {
-            spotFleetRequestConfigData: {
-                iamFleetRole: fleetRole.roleArn,
-                targetCapacity: 1,
+        const userDataScript = `#!/bin/bash
+set -e
 
-                // the properties below are optional
-                allocationStrategy: "priceCapacityOptimized",
-                instanceInterruptionBehavior: "stop",
-                launchSpecifications: [
-                    {
-                        imageId: cdk.aws_ec2.MachineImage.latestAmazonLinux2023(
-                            {
-                                cpuType: cdk.aws_ec2.AmazonLinuxCpuType.ARM_64,
-                            },
-                        ).getImage(this).imageId,
+echo export BUCKET_NAME=${s3Bucket.bucketName} >> /etc/profile
+echo export ELASTIC_IP_ALLOCATION_ID=${
+            elasticIp.attrAllocationId
+        } >> /etc/profile
 
-                        // the properties below are optional
-                        blockDeviceMappings: [
-                            {
-                                deviceName: "/dev/sdh",
-                                ebs: {
-                                    deleteOnTermination: true,
-                                    iops: 3000,
-                                    volumeSize: 30,
-                                    volumeType: "gp3",
-                                },
-                            },
-                        ],
-                        iamInstanceProfile: {
-                            arn: instanceProfile.attrArn,
-                        },
-                        instanceType: "t4g.nano",
-                        securityGroups: [
-                            {
-                                groupId: securityGroup.securityGroupId,
-                            },
-                        ],
-                        subnetId: `${vpc.publicSubnets[0].subnetId},${vpc.publicSubnets[1].subnetId},${vpc.publicSubnets[2].subnetId}`,
-                        userData: `#!/bin/bash
+yum install amazon-cloudwatch-agent
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+    -a fetch-config \
+    -m ec2 \
+    -s
+
 dnf install -y \\
     cronie \\
     cronie-anacron \\
-    git \\
     curl
 
 systemctl enable crond
 systemctl start crond
 
-# create 4G swap memory
-fallocate -l 4G /swapfile
-chmod 600 /swapfile
-mkswap /swapfile
-swapon /swapfile
+BINARY_PULL_SCRIPT=$(echo "${atob(binaryPullScript)}" | base64 -w 0)
+(crontab -l 2>/dev/null; echo "*/1 * * * * echo $BINARY_PULL_SCRIPT | base64 -d | bash") | crontab -
 
-# set environment variables
-echo export BUCKET_NAME=${s3Bucket.bucketName} >> /etc/profile
+EIP_ASSOCIATE_SCRIPT=$(echo "${atob(elasticIpAssociateScript)}" | base64 -w 0)
+(crontab -l 2>/dev/null; echo "*/1 * * * * echo $EIP_ASSOCIATE_SCRIPT | base64 -d | bash") | crontab -
+`;
 
-# sync certs from s3
-aws s3 sync s3://$BUCKET_NAME/certs /etc/letsencrypt/live/visual-novel.namseent.com
-(crontab -l 2>/dev/null; echo "0 0 * * * aws s3 sync s3://$BUCKET_NAME/certs /etc/letsencrypt/live/visual-novel.namseent.com") | crontab -
-
-# git setup
-mkdir -p /namseent
-cd /namseent
-git clone --filter=blob:none --no-checkout https://github.com/namseent/namseent.git /namseent
-git sparse-checkout set /luda-editor/new-server/
-git checkout master
-
-# install rust
-curl https://sh.rustup.rs -sSf | sh -s -- -y
-. "$HOME/.cargo/env"
-
-# run manager
-echo export RUST_BACKTRACE=1 >> /etc/profile
-echo export IS_ON_AWS=true >> /etc/profile
-
-cd /namseent/luda-editor/new-server/manager
-nohup cargo run --release > /dev/null 2>&1 &
-echo export MANAGER_PID=$! >> /etc/profile
-
-# shutdown instance when the manager process is not running
-(crontab -l 2>/dev/null; echo "1 0 * * * if ! ps -p $MANAGER_PID > /dev/null; then shutdown -h now; fi") | crontab -
-`,
+        const autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
+            this,
+            "AutoScalingGroup",
+            {
+                vpc,
+                allowAllOutbound: true,
+                // Free until 2024-12-31 - https://aws.amazon.com/ec2/faqs/#t4g-instances
+                instanceType: cdk.aws_ec2.InstanceType.of(
+                    cdk.aws_ec2.InstanceClass.T4G,
+                    cdk.aws_ec2.InstanceSize.SMALL,
+                ),
+                machineImage: cdk.aws_ec2.MachineImage.latestAmazonLinux2023({
+                    cpuType: cdk.aws_ec2.AmazonLinuxCpuType.ARM_64,
+                }),
+                minCapacity: 1,
+                maxCapacity: 1,
+                role: instanceRole,
+                blockDevices: [
+                    {
+                        deviceName: "/dev/sdh",
+                        volume: cdk.aws_autoscaling.BlockDeviceVolume.ebs(12, {
+                            volumeType:
+                                cdk.aws_autoscaling.EbsDeviceVolumeType.GP3,
+                        }),
                     },
                 ],
-                replaceUnhealthyInstances: true,
-                targetCapacityUnitType: "units",
-                terminateInstancesWithExpiration: true,
-                type: "maintain",
+                securityGroup,
+                vpcSubnets: { subnetType: cdk.aws_ec2.SubnetType.PUBLIC },
+                userData: cdk.aws_ec2.UserData.custom(userDataScript),
             },
-        });
+        );
     }
 }
+
+const elasticIpAssociateScript = `#!/bin/bash
+set -e
+
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $ELASTIC_IP_ALLOCATION_ID --allow-reassociation
+
+`;
+
+const binaryPullScript = `#!/bin/bash
+set -e
+
+LAST_MODIFIED="Thu, 01 Jan 1970 00:00:00 GMT"
+if [ -f /tmp/last_modified ]; then
+    LAST_MODIFIED=$(cat /tmp/last_modified)
+fi
+
+RESPONSE=$(curl -s -w "%{http_code}" \
+    -o /tmp/binary \
+    -D /tmp/headers \
+    --header "If-Modified-Since: $LAST_MODIFIED" \
+    https://$BUCKET_NAME.s3.amazonaws.com/binary)
+
+if [ "$RESPONSE" -eq 200 ]; then
+    # Update the last modified date from the response headers
+    LAST_MODIFIED=$(grep -i "Last-Modified" /tmp/headers | awk '{print substr($0, index($0,$2))}')
+    echo $LAST_MODIFIED > /tmp/last_modified
+
+    # Stop the running binary
+    pkill -f ~/binary
+
+    # Replace the old binary with the new one
+    mv /tmp/binary ~/binary
+    chmod +x ~/binary
+
+    # Start the new binary
+    nohup ~/binary
+fi`;
