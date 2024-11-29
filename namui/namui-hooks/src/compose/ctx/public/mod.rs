@@ -5,7 +5,7 @@ use super::*;
 use crate::*;
 use std::sync::atomic::Ordering;
 
-impl<'a, 'rt> ComposeCtx<'a, 'rt> {
+impl ComposeCtx<'_, '_> {
     pub fn compose(&self, compose: impl FnOnce(ComposeCtx)) -> &Self {
         self.compose_with_key(None, compose)
     }
