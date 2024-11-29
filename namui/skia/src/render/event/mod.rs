@@ -1,9 +1,9 @@
 mod raw;
 
 use crate::*;
-use derivative::Derivative;
+use derive_more::Debug;
 pub use raw::*;
-use std::{collections::HashSet, fmt::Debug, sync::atomic::AtomicBool};
+use std::{collections::HashSet, sync::atomic::AtomicBool};
 
 #[derive(Debug)]
 pub enum Event<'a> {
@@ -26,12 +26,11 @@ pub trait EventExt {
     fn stop_propagation(&self);
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct MouseEvent<'a> {
-    #[derivative(Debug = "ignore")]
+    #[debug(ignore)]
     pub local_xy: &'a dyn Fn() -> Xy<Px>,
-    #[derivative(Debug = "ignore")]
+    #[debug(ignore)]
     pub is_local_xy_in: &'a dyn Fn() -> bool,
     pub global_xy: Xy<Px>,
     pub pressing_buttons: &'a HashSet<MouseButton>,
@@ -59,14 +58,13 @@ pub enum MouseEventType {
     Up,
     Move,
 }
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct WheelEvent<'a> {
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
-    #[derivative(Debug = "ignore")]
+    #[debug(ignore)]
     pub is_local_xy_in: &'a dyn Fn() -> bool,
-    #[derivative(Debug = "ignore")]
+    #[debug(ignore)]
     pub local_xy: &'a dyn Fn() -> Xy<Px>,
     pub is_stop_event_propagation: &'a AtomicBool,
 }
@@ -85,8 +83,7 @@ impl WheelEvent<'_> {
     }
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct KeyboardEvent<'a> {
     pub code: Code,
     pub pressing_codes: &'a HashSet<Code>,
