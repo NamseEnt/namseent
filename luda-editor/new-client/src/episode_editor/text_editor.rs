@@ -3,8 +3,8 @@ use namui::*;
 pub struct TextEditor<'a> {
     pub wh: Wh<Px>,
     pub text: &'a String,
-    pub scene_id: &'a String,
-    pub on_edit_done: &'a dyn Fn(String, String),
+    pub scene_id: u128,
+    pub on_edit_done: &'a dyn Fn(u128, String),
 }
 
 impl Component for TextEditor<'_> {
@@ -16,7 +16,7 @@ impl Component for TextEditor<'_> {
             on_edit_done,
         } = self;
 
-        let scene_id = ctx.track_eq(scene_id);
+        let scene_id = ctx.track_eq(&scene_id);
 
         let (last_updated, set_last_updated) = ctx.state(|| text.clone());
         let (delayed_update, set_delayed_update) = ctx.state::<Option<DelayedUpdate>>(|| None);
@@ -32,7 +32,7 @@ impl Component for TextEditor<'_> {
                 if last_updated == text {
                     return;
                 }
-                on_edit_done(scene_id.to_string(), text.to_string());
+                on_edit_done(*scene_id, text.to_string());
                 set_delayed_update.set(None);
             }
         });
@@ -56,7 +56,7 @@ impl Component for TextEditor<'_> {
             if time::now() - updated_at < 1.sec() {
                 return;
             }
-            on_edit_done(scene_id.to_string(), text.to_string());
+            on_edit_done(*scene_id, text.to_string());
             set_last_updated.set(text.to_string());
             set_delayed_update.set(None);
         });
@@ -96,7 +96,7 @@ impl Component for TextEditor<'_> {
                     on_edit_done: &|text| {
                         set_delayed_update.set(Some(DelayedUpdate {
                             updated_at: time::now(),
-                            scene_id: scene_id.to_string(),
+                            scene_id: *scene_id,
                             text,
                         }));
                     },
@@ -108,6 +108,6 @@ impl Component for TextEditor<'_> {
 
 struct DelayedUpdate {
     updated_at: Instant,
-    scene_id: String,
+    scene_id: u128,
     text: String,
 }

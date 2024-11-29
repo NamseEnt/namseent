@@ -10,7 +10,7 @@ pub struct SceneAudioEditor<'a> {
     pub wh: Wh<Px>,
     pub scene: &'a Scene,
     pub update_scene: &'a dyn Fn(Scene),
-    pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
+    pub asset_docs: Sig<'a, HashMap<u128, AssetDoc>>,
 }
 
 impl Component for SceneAudioEditor<'_> {

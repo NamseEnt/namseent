@@ -14,13 +14,13 @@ use properties_panel::PropertiesPanel;
 use router::Route;
 use std::{collections::HashMap, sync::Arc};
 
-pub struct EpisodeEditor<'a> {
-    pub team_id: &'a String,
-    pub project_id: &'a String,
-    pub episode_id: &'a String,
+pub struct EpisodeEditor {
+    pub team_id: u128,
+    pub project_id: u128,
+    pub episode_id: u128,
 }
 
-impl Component for EpisodeEditor<'_> {
+impl Component for EpisodeEditor {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             team_id,
@@ -32,13 +32,20 @@ impl Component for EpisodeEditor<'_> {
 
         let join_result = join_episode_editor::join_episode_editor(
             ctx,
-            |episode_id| Some((join_episode_editor::RefRequest { episode_id }, ())),
-            episode_id,
+            |episode_id| {
+                Some((
+                    join_episode_editor::RefRequest {
+                        episode_id: *episode_id,
+                    },
+                    (),
+                ))
+            },
+            &episode_id,
         );
         let asset_result = get_team_asset_docs::get_team_asset_docs(
             ctx,
-            |team_id| Some((get_team_asset_docs::RefRequest { team_id }, ())),
-            team_id,
+            |team_id| Some((get_team_asset_docs::RefRequest { team_id: *team_id }, ())),
+            &team_id,
         );
         let asset_docs = ctx.memo({
             || {
@@ -49,7 +56,7 @@ impl Component for EpisodeEditor<'_> {
                 };
                 asset_docs
                     .iter()
-                    .map(|asset_doc| (asset_doc.name.clone(), asset_doc.clone()))
+                    .map(|asset_doc| (asset_doc.id, asset_doc.clone()))
                     .collect()
             }
         });
@@ -66,13 +73,12 @@ impl Component for EpisodeEditor<'_> {
         };
 
         match (join_result, asset_result) {
-            (Ok((join_episode_editor::Response { scenes, texts }, _)), Ok(_)) => {
+            (Ok((join_episode_editor::Response { scenes }, _)), Ok(_)) => {
                 ctx.add(LoadedEpisodeEditor {
                     team_id,
                     project_id,
                     episode_id,
                     initial_scenes: scenes,
-                    initial_texts: texts,
                     asset_docs,
                 });
             }
@@ -90,12 +96,11 @@ impl Component for EpisodeEditor<'_> {
 }
 
 struct LoadedEpisodeEditor<'a> {
-    team_id: &'a String,
-    project_id: &'a String,
-    episode_id: &'a String,
+    team_id: u128,
+    project_id: u128,
+    episode_id: u128,
     initial_scenes: &'a Vec<Scene>,
-    initial_texts: &'a HashMap<String, HashMap<String, String>>,
-    asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
+    asset_docs: Sig<'a, HashMap<u128, AssetDoc>>,
 }
 
 impl Component for LoadedEpisodeEditor<'_> {
@@ -105,25 +110,22 @@ impl Component for LoadedEpisodeEditor<'_> {
             project_id,
             episode_id,
             initial_scenes,
-            initial_texts,
             asset_docs,
         } = self;
         let (scenes, set_scenes) = ctx.state(|| initial_scenes.clone());
-        let (texts, set_texts) = ctx.state(|| initial_texts.clone());
-        let (selected_scene_id, set_selected_scene_id) = ctx.state(|| Option::<String>::None);
+        let (selected_scene_id, set_selected_scene_id) = ctx.state(|| Option::<u128>::None);
         let (action_history, set_action_history) = ctx.state(Vec::<EditActionForUndo>::new);
 
         let action_to_server_queue_tx = ctx
             .memo(|| {
                 let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-                let episode_id = episode_id.clone();
                 ctx.spawn(async move {
                     while let Some(action) = rx.recv().await {
                         use rpc::episode_editor::try_edit_episode::*;
                         let result = server_connection()
                             .try_edit_episode(RefRequest {
-                                episode_id: &episode_id,
+                                episode_id,
                                 action: &action,
                             })
                             .await;
@@ -141,7 +143,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                 return;
             };
             let action_to_server_queue_tx = action_to_server_queue_tx.clone();
-            (set_action_history, set_scenes, set_texts).mutate(move |(history, scenes, texts)| {
+            (set_action_history, set_scenes).mutate(move |(history, scenes)| {
                 let Some(action) = history.pop() else { return };
 
                 let action_for_server = match action.clone() {
@@ -177,10 +179,11 @@ impl Component for LoadedEpisodeEditor<'_> {
                         language_code,
                         text,
                     } => {
-                        texts
-                            .get_mut(&scene_id)
-                            .unwrap()
-                            .insert(language_code, text);
+                        let Some(scene_index) = scenes.iter().position(|x| x.id == scene_id) else {
+                            eprintln!("Undo failed: scene not found");
+                            return;
+                        };
+                        scenes[scene_index].text_l10n.insert(language_code, text);
                     }
                     EditActionForUndo::UpdateScene { scene } => {
                         let Some(scene_index) = scenes.iter().position(|x| x.id == scene.id) else {
@@ -202,7 +205,7 @@ impl Component for LoadedEpisodeEditor<'_> {
                 EpisodeEditAction::AddScene { index, scene } => (set_scenes, set_action_history)
                     .mutate({
                         move |(scenes, history)| {
-                            let id = scene.id.clone();
+                            let id = scene.id;
                             scenes.insert(index, scene);
                             history.push(EditActionForUndo::AddScene { id });
                         }
@@ -221,12 +224,12 @@ impl Component for LoadedEpisodeEditor<'_> {
                     language_code,
                     text,
                 } => {
-                    (set_texts, set_action_history).mutate(move |(texts, history)| {
-                        let text = texts
-                            .entry(scene_id.clone())
-                            .or_insert_with(HashMap::new)
+                    (set_scenes, set_action_history).mutate(move |(scenes, history)| {
+                        let scene = scenes.iter_mut().find(|x| x.id == scene_id).unwrap();
+                        let text = scene
+                            .text_l10n
                             .insert(language_code.clone(), text.clone())
-                            .unwrap_or("".to_string());
+                            .unwrap_or_default();
                         history.push(EditActionForUndo::EditText {
                             scene_id,
                             language_code,
@@ -248,11 +251,12 @@ impl Component for LoadedEpisodeEditor<'_> {
             edit_episode(EpisodeEditAction::AddScene {
                 index: scenes.len(),
                 scene: Scene {
-                    id: randum::rand(),
+                    id: namui::uuid(),
                     speaker_id: None,
                     scene_sprites: vec![],
                     background_sprite: None,
                     bgm: None,
+                    text_l10n: HashMap::new(),
                 },
             });
         };
@@ -262,18 +266,18 @@ impl Component for LoadedEpisodeEditor<'_> {
             .as_ref()
             .and_then(|id| scenes.iter().find(|x| &x.id == id));
 
-        let select_speaker = &|speaker_id: &String| {
+        let select_speaker = &|speaker_id: u128| {
             let Some(scene) = scene else { return };
             edit_episode(EpisodeEditAction::UpdateScene {
                 scene: {
                     let mut scene = scene.clone();
-                    scene.speaker_id = Some(speaker_id.clone());
+                    scene.speaker_id = Some(speaker_id);
                     scene
                 },
             });
         };
 
-        let on_text_edit_done = &|scene_id: String, text: String| {
+        let on_text_edit_done = &|scene_id: u128, text: String| {
             edit_episode(EpisodeEditAction::EditText {
                 scene_id,
                 language_code: "kor".to_string(),
@@ -281,8 +285,8 @@ impl Component for LoadedEpisodeEditor<'_> {
             });
         };
 
-        let select_scene = &|scene_id: &str| {
-            set_selected_scene_id.set(Some(scene_id.to_string()));
+        let select_scene = &|scene_id: u128| {
+            set_selected_scene_id.set(Some(scene_id));
         };
 
         let wh = namui::screen::size().map(|x| x.into_px());
@@ -314,14 +318,11 @@ impl Component for LoadedEpisodeEditor<'_> {
                     }),
                     table::fixed(320.px(), |wh, ctx| {
                         let empty_text = "".to_string();
-                        let text = texts
-                            .get(&scene.id)
-                            .and_then(|x| x.get("kor"))
-                            .unwrap_or(&empty_text);
+                        let text = scene.text_l10n.get("kor").unwrap_or(&empty_text);
                         ctx.add(text_editor::TextEditor {
                             wh,
                             text,
-                            scene_id: &scene.id,
+                            scene_id: scene.id,
                             on_edit_done: on_text_edit_done,
                         });
                     }),
@@ -343,8 +344,8 @@ impl Component for LoadedEpisodeEditor<'_> {
             ctx.add(simple_button(button_wh, "back", |_| {
                 router::route(Route::Home {
                     initial_selection: home::Selection::Project {
-                        team_id: team_id.to_string(),
-                        project_id: project_id.to_string(),
+                        team_id,
+                        project_id,
                     },
                 });
             }));
@@ -362,14 +363,14 @@ impl Component for LoadedEpisodeEditor<'_> {
 #[derive(Debug, Clone)]
 enum EditActionForUndo {
     AddScene {
-        id: String,
+        id: u128,
     },
     RemoveNewScene {
         index: usize,
         scene: Scene,
     },
     EditText {
-        scene_id: String,
+        scene_id: u128,
         language_code: String,
         text: String,
     },

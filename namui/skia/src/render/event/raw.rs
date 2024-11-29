@@ -1,4 +1,5 @@
 use super::*;
+use derive_more::Debug;
 
 #[derive(Debug)]
 pub enum RawEvent {

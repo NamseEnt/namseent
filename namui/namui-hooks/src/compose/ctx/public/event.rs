@@ -1,7 +1,7 @@
 use super::*;
 use crate::*;
 
-impl<'a, 'rt> ComposeCtx<'a, 'rt> {
+impl ComposeCtx<'_, '_> {
     pub fn on_raw_event(&self, on_event: impl FnOnce(&RawEvent)) -> &Self {
         if self.world.is_stop_event_propagation() {
             return self;

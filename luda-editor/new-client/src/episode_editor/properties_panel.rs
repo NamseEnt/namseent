@@ -10,7 +10,7 @@ pub struct PropertiesPanel<'a> {
     pub wh: Wh<Px>,
     pub scene: &'a Scene,
     pub edit_episode: &'a dyn Fn(EpisodeEditAction),
-    pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
+    pub asset_docs: Sig<'a, HashMap<u128, AssetDoc>>,
 }
 impl Component for PropertiesPanel<'_> {
     fn render(self, ctx: &RenderCtx) {

@@ -2,11 +2,11 @@ use super::*;
 use router::Route;
 use rpc::project::create_new_project::*;
 
-pub struct NewProjectPage<'a> {
-    pub team_id: &'a String,
+pub struct NewProjectPage {
+    pub team_id: u128,
 }
 
-impl Component for NewProjectPage<'_> {
+impl Component for NewProjectPage {
     fn render(self, ctx: &RenderCtx) {
         let Self { team_id } = self;
         let screen_wh = namui::screen::size().map(|x| x.into_px());
@@ -32,7 +32,7 @@ impl Component for NewProjectPage<'_> {
                         team_id,
                         name: &project_name,
                     },
-                    team_id,
+                    &team_id,
                 ))
             },
             move |result| match result {
@@ -58,9 +58,7 @@ impl Component for NewProjectPage<'_> {
                 fixed(24.px(), |wh, ctx| {
                     ctx.add(simple_button(wh, "X", |_| {
                         router::route(Route::Home {
-                            initial_selection: home::Selection::Team {
-                                team_id: team_id.to_string(),
-                            },
+                            initial_selection: home::Selection::Team { team_id },
                         });
                     }));
                 }),
@@ -161,7 +159,6 @@ impl Component for NewProjectPage<'_> {
                     let text = match err {
                         Error::NeedLogin => "로그인이 필요합니다".to_string(),
                         Error::TooManyProjects => "프로젝트를 더 이상 만들 수 없습니다".to_string(),
-                        Error::DuplicatedName => "이미 존재하는 프로젝트 이름입니다".to_string(),
                         Error::InternalServerError { err } => format!("서버 오류: {}", err),
                         Error::PermissionDenied => "팀에 대한 권한이 없습니다".to_string(),
                     };

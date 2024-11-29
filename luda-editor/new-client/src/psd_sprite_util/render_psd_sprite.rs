@@ -8,7 +8,7 @@ pub fn render_psd_sprite(ctx: &RenderCtx, scene_sprite: &SceneSprite, screen_wh:
         return;
     };
 
-    let load_state = get_or_load_psd_sprite(sprite_id.clone());
+    let load_state = get_or_load_psd_sprite(*sprite_id);
 
     let PsdSpriteLoadState::Loaded {
         psd_sprite,

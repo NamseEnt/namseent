@@ -57,14 +57,14 @@ impl Looper {
 
         let elapsed = crate::time::now() - now;
         if elapsed > 33.ms() {
-            crate::log!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
+            println!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
         }
 
         self.render_time_sum += elapsed;
         self.render_time_worst = self.render_time_worst.max(elapsed);
 
         if self.one_sec_timer.elapsed() > std::time::Duration::from_secs(1) {
-            crate::log!(
+            println!(
                 r#"Render count: {}/sec
                 Render avg time: {:?}
                 Worst render time: {:?}"#,
@@ -74,7 +74,7 @@ impl Looper {
             );
             for (event_type, count) in &mut self.event_type_count {
                 if *count > 0 {
-                    crate::log!("- {:?}: {}", event_type, count);
+                    println!("- {:?}: {}", event_type, count);
                     *count = 0;
                 }
             }

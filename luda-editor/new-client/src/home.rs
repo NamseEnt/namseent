@@ -8,8 +8,8 @@ pub struct Home<'a> {
 #[derive(Clone)]
 pub enum Selection {
     Nothing,
-    Team { team_id: String },
-    Project { team_id: String, project_id: String },
+    Team { team_id: u128 },
+    Project { team_id: u128, project_id: u128 },
 }
 
 impl Component for Home<'_> {
@@ -25,9 +25,7 @@ impl Component for Home<'_> {
                     ctx.add(TeamList {
                         wh,
                         on_select_team: &|team| {
-                            set_selection.set(Selection::Team {
-                                team_id: team.id.clone(),
-                            });
+                            set_selection.set(Selection::Team { team_id: team.id });
                         },
                     });
                 }),
@@ -35,19 +33,19 @@ impl Component for Home<'_> {
                     ctx.add(Team {
                         wh,
                         team_id: match selection.as_ref() {
-                            Selection::Team { team_id } => Some(team_id),
-                            Selection::Project { team_id, .. } => Some(team_id),
+                            Selection::Team { team_id } => Some(*team_id),
+                            Selection::Project { team_id, .. } => Some(*team_id),
                             _ => None,
                         },
                         on_select_project: &|project| {
                             let team_id = match selection.as_ref() {
-                                Selection::Team { team_id } => team_id.clone(),
-                                Selection::Project { team_id, .. } => team_id.clone(),
+                                Selection::Team { team_id } => *team_id,
+                                Selection::Project { team_id, .. } => *team_id,
                                 _ => unreachable!(),
                             };
                             set_selection.set(Selection::Project {
                                 team_id,
-                                project_id: project.id.clone(),
+                                project_id: project.id,
                             });
                         },
                     });
@@ -56,28 +54,28 @@ impl Component for Home<'_> {
                     ctx.add(EpisodeList {
                         wh,
                         team_id: match selection.as_ref() {
-                            Selection::Team { team_id } => Some(team_id),
-                            Selection::Project { team_id, .. } => Some(team_id),
+                            Selection::Team { team_id } => Some(*team_id),
+                            Selection::Project { team_id, .. } => Some(*team_id),
                             _ => None,
                         },
                         project_id: match selection.as_ref() {
-                            Selection::Project { project_id, .. } => Some(project_id),
+                            Selection::Project { project_id, .. } => Some(*project_id),
                             _ => None,
                         },
                         on_select_episode: &|episode| {
                             let team_id = match selection.as_ref() {
-                                Selection::Team { team_id } => team_id.clone(),
-                                Selection::Project { team_id, .. } => team_id.clone(),
+                                Selection::Team { team_id } => *team_id,
+                                Selection::Project { team_id, .. } => *team_id,
                                 _ => unreachable!(),
                             };
                             let project_id = match selection.as_ref() {
-                                Selection::Project { project_id, .. } => project_id.clone(),
+                                Selection::Project { project_id, .. } => *project_id,
                                 _ => unreachable!(),
                             };
                             router::route(router::Route::EpisodeEditor {
                                 team_id,
                                 project_id,
-                                episode_id: episode.id.clone(),
+                                episode_id: episode.id,
                             });
                         },
                     });
@@ -168,7 +166,7 @@ impl Component for TeamList<'_> {
 
 struct Team<'a> {
     wh: Wh<Px>,
-    team_id: Option<&'a String>,
+    team_id: Option<u128>,
     on_select_project: &'a dyn Fn(&Project),
 }
 impl Component for Team<'_> {
@@ -196,11 +194,11 @@ impl Component for Team<'_> {
     }
 }
 
-struct AssetManageOpenButton<'a> {
+struct AssetManageOpenButton {
     wh: Wh<Px>,
-    team_id: Option<&'a String>,
+    team_id: Option<u128>,
 }
-impl Component for AssetManageOpenButton<'_> {
+impl Component for AssetManageOpenButton {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, team_id } = self;
 
@@ -209,16 +207,14 @@ impl Component for AssetManageOpenButton<'_> {
                 toast::negative("팀을 먼저 선택해주세요");
                 return;
             };
-            router::route(router::Route::AssetManage {
-                team_id: team_id.clone(),
-            });
+            router::route(router::Route::AssetManage { team_id });
         }));
     }
 }
 
 struct ProjectList<'a> {
     wh: Wh<Px>,
-    team_id: Option<&'a String>,
+    team_id: Option<u128>,
     on_select_project: &'a dyn Fn(&Project),
 }
 
@@ -246,9 +242,9 @@ impl Component for ProjectList<'_> {
             ctx,
             |team_id| {
                 let team_id = team_id.as_ref()?;
-                Some((RefRequest { team_id }, *team_id))
+                Some((RefRequest { team_id: *team_id }, team_id))
             },
-            team_id,
+            &team_id,
             || {
                 ctx.compose(|ctx| vertical(title())(wh, ctx));
             },
@@ -290,9 +286,7 @@ impl Component for ProjectList<'_> {
                             }))
                             .chain([fixed(24.px(), |wh, ctx| {
                                 ctx.add(simple_button(wh, "새 프로젝트", |_event| {
-                                    router::route(router::Route::NewProject {
-                                        team_id: team_id.clone(),
-                                    });
+                                    router::route(router::Route::NewProject { team_id: *team_id });
                                 }));
                             })]),
                     )(wh, ctx)
@@ -304,8 +298,8 @@ impl Component for ProjectList<'_> {
 
 struct EpisodeList<'a> {
     wh: Wh<Px>,
-    team_id: Option<&'a String>,
-    project_id: Option<&'a String>,
+    team_id: Option<u128>,
+    project_id: Option<u128>,
     on_select_episode: &'a dyn Fn(&Episode),
 }
 
@@ -335,12 +329,12 @@ impl Component for EpisodeList<'_> {
             |project_id| {
                 Some((
                     RefRequest {
-                        project_id: project_id?,
+                        project_id: *project_id?,
                     },
                     (),
                 ))
             },
-            project_id,
+            project_id.as_ref(),
             || {
                 ctx.compose(|ctx| vertical(title())(wh, ctx));
             },
@@ -390,8 +384,8 @@ impl Component for EpisodeList<'_> {
                                         return;
                                     };
                                     router::route(router::Route::NewEpisode {
-                                        team_id: team_id.clone(),
-                                        project_id: project_id.clone(),
+                                        team_id,
+                                        project_id,
                                     });
                                 }));
                             })]),

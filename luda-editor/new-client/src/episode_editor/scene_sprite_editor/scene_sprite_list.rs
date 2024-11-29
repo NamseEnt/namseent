@@ -7,7 +7,7 @@ use std::collections::HashMap;
 pub struct SceneSpriteList<'a> {
     pub wh: Wh<Px>,
     pub scene_sprites: &'a [SceneSprite],
-    pub asset_docs: &'a HashMap<String, AssetDoc>,
+    pub asset_docs: &'a HashMap<u128, AssetDoc>,
     pub remove_scene_sprite: &'a dyn Fn(usize),
     pub add_new_scene_sprite: &'a dyn Fn(),
     /// true for up, false for down

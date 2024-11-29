@@ -156,7 +156,7 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
     let paint = get_text_paint(param.style.color);
 
     let Some(font_metrics) = system::font::font_metrics(font) else {
-        crate::log!("Font metrics not found for font: {:?}", font);
+        println!("Font metrics not found for font: {:?}", font);
         return RenderingTree::Empty;
     };
 

@@ -9,13 +9,11 @@ lazy_static! {
     static ref AUDIO_STORAGE: AudioStorage = AudioStorage::new();
 }
 
-pub fn get_or_load_audio(audio_id: String) -> Arc<AudioLoadState> {
-    let Some(load_state) = AUDIO_STORAGE.get(&audio_id) else {
-        let loading = AUDIO_STORAGE.set(audio_id.clone(), AudioLoadState::Loading);
+pub fn get_or_load_audio(audio_id: u128) -> Arc<AudioLoadState> {
+    let Some(load_state) = AUDIO_STORAGE.get(audio_id) else {
+        let loading = AUDIO_STORAGE.set(audio_id, AudioLoadState::Loading);
         spawn(async move {
-            let audio_id = audio_id.clone();
-
-            let request = match network::http::Request::get(audio_url(&audio_id)).body(()) {
+            let request = match network::http::Request::get(audio_url(audio_id)).body(()) {
                 Ok(response) => response,
                 Err(error) => {
                     AUDIO_STORAGE.set(audio_id, AudioLoadState::Error(error.into()));
@@ -57,7 +55,7 @@ pub enum AudioLoadState {
     Error(Box<dyn Error + Send + Sync>),
 }
 struct AudioStorage {
-    storage: RwLock<HashMap<String, Arc<AudioLoadState>>>,
+    storage: RwLock<HashMap<u128, Arc<AudioLoadState>>>,
 }
 impl AudioStorage {
     fn new() -> Self {
@@ -65,10 +63,10 @@ impl AudioStorage {
             storage: RwLock::new(HashMap::new()),
         }
     }
-    fn get(&self, sprite_id: &str) -> Option<Arc<AudioLoadState>> {
-        self.storage.read().unwrap().get(sprite_id).cloned()
+    fn get(&self, sprite_id: u128) -> Option<Arc<AudioLoadState>> {
+        self.storage.read().unwrap().get(&sprite_id).cloned()
     }
-    fn set(&self, sprite_id: String, load_state: AudioLoadState) -> Arc<AudioLoadState> {
+    fn set(&self, sprite_id: u128, load_state: AudioLoadState) -> Arc<AudioLoadState> {
         let load_state = Arc::new(load_state);
         self.storage
             .write()
@@ -78,7 +76,7 @@ impl AudioStorage {
     }
 }
 
-fn audio_url(audio_id: &str) -> String {
+fn audio_url(audio_id: u128) -> String {
     const PREFIX: &str = "http://localhost:4566/visual-novel-asset/audio/after-transcode";
     format!("{PREFIX}/{audio_id}")
 }

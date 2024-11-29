@@ -1,6 +1,5 @@
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub(crate) enum ChildKey {
-    Usize(usize),
     String(smol_str::SmolStr),
     U128(u128),
     IncrementalComponent {
@@ -32,7 +31,7 @@ impl<'a> From<&'a str> for ChildKey {
 
 impl From<usize> for ChildKey {
     fn from(value: usize) -> Self {
-        ChildKey::Usize(value)
+        ChildKey::U128(value as u128)
     }
 }
 
@@ -49,7 +48,6 @@ impl From<&u128> for ChildKey {
 }
 
 pub enum AddKey {
-    Usize(usize),
     String(smol_str::SmolStr),
     U128(u128),
     Incremental,
@@ -75,6 +73,12 @@ impl From<&str> for AddKey {
 
 impl From<usize> for AddKey {
     fn from(key: usize) -> Self {
-        AddKey::Usize(key)
+        AddKey::U128(key as u128)
+    }
+}
+
+impl From<u128> for AddKey {
+    fn from(key: u128) -> Self {
+        AddKey::U128(key)
     }
 }
