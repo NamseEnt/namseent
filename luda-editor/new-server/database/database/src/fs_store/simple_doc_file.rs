@@ -18,7 +18,6 @@ type Result<T> = std::io::Result<T>;
  *
  * Data 1, 2 may not be right next to the header part.
  */
-
 pub struct SimpleDocFile {
     file: File,
     file_id: u128,

@@ -94,3 +94,52 @@ impl MaybeAborted<()> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    struct Doc {}
+    impl Document for Doc {
+        fn name() -> &'static str {
+            "Doc"
+        }
+
+        fn heap_archived(_bytes: Bytes) -> HeapArchived<Self>
+        where
+            Self: Sized,
+        {
+            todo!()
+        }
+
+        fn from_bytes(_bytes: Vec<u8>) -> document::Result<Self>
+        where
+            Self: Sized,
+        {
+            todo!()
+        }
+
+        fn to_bytes(&self) -> document::Result<Vec<u8>> {
+            todo!()
+        }
+    }
+    struct DocGet {
+        id: u128,
+    }
+    impl DocumentGet for DocGet {
+        type Output = Doc;
+
+        fn id(&self) -> u128 {
+            self.id
+        }
+    }
+    #[tokio::test]
+    async fn get_not_exists() {
+        let path = "/tmp/test_get_not_exists";
+        _ = std::fs::remove_dir_all(path);
+        let db = super::init(path).await.unwrap();
+
+        let doc = db.get(DocGet { id: 0 }).await.unwrap();
+        assert!(doc.is_none());
+    }
+}
