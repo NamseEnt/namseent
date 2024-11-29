@@ -94,3 +94,83 @@ impl MaybeAborted<()> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+    struct Doc {
+        id: u128,
+    }
+    impl Document for Doc {
+        fn name() -> &'static str {
+            "Doc"
+        }
+
+        fn heap_archived(bytes: Bytes) -> HeapArchived<Self>
+        where
+            Self: Sized,
+        {
+            document::HeapArchived::new(bytes)
+        }
+
+        fn from_bytes(bytes: Vec<u8>) -> document::Result<Self>
+        where
+            Self: Sized,
+        {
+            document::deserialize(&bytes)
+        }
+
+        fn to_bytes(&self) -> document::Result<Vec<u8>> {
+            document::serialize(self)
+        }
+    }
+    struct DocGet {
+        id: u128,
+    }
+    impl DocumentGet for DocGet {
+        type Output = Doc;
+
+        fn id(&self) -> u128 {
+            self.id
+        }
+    }
+
+    #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+    struct DocPut {
+        id: u128,
+    }
+    impl<'a, AbortReason> TryInto<TransactItem<'a, AbortReason>> for DocPut {
+        type Error = document::SerErr;
+
+        fn try_into(self) -> std::result::Result<TransactItem<'a, AbortReason>, Self::Error> {
+            Ok(TransactItem::Put {
+                name: Doc::name(),
+                id: self.id,
+                value: rkyv::to_bytes::<_, 10>(&self).unwrap().to_vec(),
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn get_not_exists() {
+        let path = "/tmp/test_get_not_exists";
+        _ = std::fs::remove_dir_all(path);
+        let db = super::init(path).await.unwrap();
+
+        let doc = db.get(DocGet { id: 0 }).await.unwrap();
+        assert!(doc.is_none());
+    }
+
+    #[tokio::test]
+    async fn set_and_get() {
+        let path = "/tmp/set_and_get";
+        _ = std::fs::remove_dir_all(path);
+        let db = super::init(path).await.unwrap();
+
+        db.transact::<()>(DocPut { id: 0 }).await.unwrap().unwrap();
+        let doc = db.get(DocGet { id: 0 }).await.unwrap().unwrap();
+        assert_eq!(doc.id, 0);
+    }
+}

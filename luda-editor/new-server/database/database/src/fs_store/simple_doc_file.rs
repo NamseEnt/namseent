@@ -18,7 +18,6 @@ type Result<T> = std::io::Result<T>;
  *
  * Data 1, 2 may not be right next to the header part.
  */
-
 pub struct SimpleDocFile {
     file: File,
     file_id: u128,
@@ -36,14 +35,17 @@ impl SimpleDocFile {
         file_id: u128,
         trx_id_map: TrxIdMap,
     ) -> Result<Self> {
-        tokio::fs::create_dir_all(dir_path.as_ref()).await?;
+        let dir_path = dir_path.as_ref();
+        let file_name = filename.as_ref();
+        let file_path = dir_path.join(file_name);
+        tokio::fs::create_dir_all(&file_path.parent().unwrap()).await?;
 
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
             .truncate(false)
-            .open(dir_path.as_ref().join(&filename))
+            .open(file_path)
             .await?;
 
         let mut header1 = {

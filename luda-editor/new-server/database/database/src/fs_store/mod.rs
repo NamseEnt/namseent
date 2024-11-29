@@ -55,8 +55,7 @@ impl DocumentStore for FsStore {
         if file.is_none() {
             *file = Some(self.open_doc_file(key).await?);
         }
-
-        let bytes = file.as_mut().unwrap().get();
+        let bytes = file.as_ref().unwrap().get();
         self.cache.push([(key, bytes.clone())]);
 
         Ok(bytes)
