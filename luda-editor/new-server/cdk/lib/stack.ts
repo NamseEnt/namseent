@@ -1,5 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
+import { CloudfrontVpcOriginRemover } from "./CloudfrontVpcOrigin";
 
 export class VisualNovelStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -12,6 +13,11 @@ export class VisualNovelStack extends cdk.Stack {
         const vpc = new cdk.aws_ec2.Vpc(this, "VPC", {
             ipProtocol: cdk.aws_ec2.IpProtocol.DUAL_STACK,
             natGateways: 0,
+            // apne2-az1 not support vpc origin
+            // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-vpc-origins.html#vpc-origins-supported-regions
+            availabilityZones: ["b", "c", "d"].map(
+                (az) => `ap-northeast-2${az}`,
+            ),
             subnetConfiguration: [
                 {
                     name: "public",
@@ -52,14 +58,6 @@ export class VisualNovelStack extends cdk.Stack {
             ),
         );
 
-        const instanceProfile = new cdk.aws_iam.CfnInstanceProfile(
-            this,
-            "InstanceProfile",
-            {
-                roles: [instanceRole.roleName],
-            },
-        );
-
         const securityGroup = new cdk.aws_ec2.SecurityGroup(
             this,
             "SecurityGroup",
@@ -81,58 +79,72 @@ export class VisualNovelStack extends cdk.Stack {
             "Allow SSH access for ec2 connect via ipv6",
         );
 
-        // https://www.cloudflare.com/ips-v4
-        const cloudflareIpv4Range = [
-            "173.245.48.0/20",
-            "103.21.244.0/22",
-            "103.22.200.0/22",
-            "103.31.4.0/22",
-            "141.101.64.0/18",
-            "108.162.192.0/18",
-            "190.93.240.0/20",
-            "188.114.96.0/20",
-            "197.234.240.0/22",
-            "198.41.128.0/17",
-            "162.158.0.0/15",
-            "104.16.0.0/13",
-            "104.24.0.0/14",
-            "172.64.0.0/13",
-            "131.0.72.0/22",
-        ];
-        for (const ipv4 of cloudflareIpv4Range) {
-            securityGroup.addIngressRule(
-                cdk.aws_ec2.Peer.ipv4(ipv4),
-                cdk.aws_ec2.Port.tcp(8080),
-                "Allow Cloudfront",
-            );
-        }
+        const frontendDomain = "visual-novel.namseent.com";
 
-        // https://www.cloudflare.com/ips-v6
-        const cloudflareIpv6Range = [
-            "2400:cb00::/32",
-            "2606:4700::/32",
-            "2803:f800::/32",
-            "2405:b500::/32",
-            "2405:8100::/32",
-            "2a06:98c0::/29",
-            "2c0f:f248::/32",
-        ];
-
-        for (const ipv6 of cloudflareIpv6Range) {
-            securityGroup.addIngressRule(
-                cdk.aws_ec2.Peer.ipv6(ipv6),
-                cdk.aws_ec2.Port.tcp(8080),
-                "Allow Cloudfront",
+        const responseHeadersPolicy =
+            new cdk.aws_cloudfront.ResponseHeadersPolicy(
+                this,
+                "ResponseHeadersPolicy",
+                {
+                    corsBehavior: {
+                        accessControlAllowOrigins: [frontendDomain],
+                        accessControlAllowMethods: ["GET", "HEAD", "OPTIONS"],
+                        accessControlAllowCredentials: true,
+                        accessControlAllowHeaders: ["*"],
+                        originOverride: false,
+                    },
+                },
             );
-        }
+
+        const cloudfrontDistribution = new cdk.aws_cloudfront.Distribution(
+            this,
+            "CloudfrontDistribution",
+            {
+                defaultBehavior: {
+                    origin: new cdk.aws_cloudfront_origins.HttpOrigin(
+                        "namseent.com",
+                    ),
+                    allowedMethods:
+                        cdk.aws_cloudfront.AllowedMethods
+                            .ALLOW_GET_HEAD_OPTIONS,
+                    cachePolicy:
+                        cdk.aws_cloudfront.CachePolicy.CACHING_DISABLED,
+                    originRequestPolicy:
+                        cdk.aws_cloudfront.OriginRequestPolicy.ALL_VIEWER,
+                    responseHeadersPolicy,
+                    viewerProtocolPolicy:
+                        cdk.aws_cloudfront.ViewerProtocolPolicy
+                            .REDIRECT_TO_HTTPS,
+                },
+            },
+        );
+
+        const domainName = "vn-api.namseent.com";
+
+        new cdk.aws_route53.ARecord(this, "Route53Record", {
+            zone: cdk.aws_route53.HostedZone.fromLookup(this, "HostedZone", {
+                domainName: "namseent.com",
+            }),
+            target: cdk.aws_route53.RecordTarget.fromAlias(
+                new cdk.aws_route53_targets.CloudFrontTarget(
+                    cloudfrontDistribution,
+                ),
+            ),
+            recordName: domainName,
+        });
+
+        // make stack unique name
+        const vpcOriginName = this.stackName;
 
         const userDataScript = `#!/bin/bash
 set -e
 
 echo export BUCKET_NAME=${s3Bucket.bucketName} >> /etc/profile
-echo export ELASTIC_IP_ALLOCATION_ID=${
-            elasticIp.attrAllocationId
+echo export VPC_ORIGIN_NAME=${vpcOriginName} >> /etc/profile
+echo export CLOUDFRONT_DISTRIBUTION_ID=${
+            cloudfrontDistribution.distributionId
         } >> /etc/profile
+echo export DOMAIN_NAME=${domainName} >> /etc/profile
 
 yum install amazon-cloudwatch-agent
 /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
@@ -151,8 +163,8 @@ systemctl start crond
 BINARY_PULL_SCRIPT=$(echo "${atob(binaryPullScript)}" | base64 -w 0)
 (crontab -l 2>/dev/null; echo "*/1 * * * * echo $BINARY_PULL_SCRIPT | base64 -d | bash") | crontab -
 
-EIP_ASSOCIATE_SCRIPT=$(echo "${atob(elasticIpAssociateScript)}" | base64 -w 0)
-(crontab -l 2>/dev/null; echo "*/1 * * * * echo $EIP_ASSOCIATE_SCRIPT | base64 -d | bash") | crontab -
+VPC_ORIGIN_UPDATE_SCRIPT=$(echo "${atob(vpcOriginUpdateScript)}" | base64 -w 0)
+(crontab -l 2>/dev/null; echo "*/1 * * * * echo $VPC_ORIGIN_UPDATE_SCRIPT | base64 -d | bash") | crontab -
 `;
 
         const autoScalingGroup = new cdk.aws_autoscaling.AutoScalingGroup(
@@ -186,14 +198,66 @@ EIP_ASSOCIATE_SCRIPT=$(echo "${atob(elasticIpAssociateScript)}" | base64 -w 0)
                 userData: cdk.aws_ec2.UserData.custom(userDataScript),
             },
         );
+
+        new CloudfrontVpcOriginRemover(this, "CloudfrontVpcOriginRemover", {
+            vpcOriginName,
+        });
     }
 }
 
-const elasticIpAssociateScript = `#!/bin/bash
+const vpcOriginUpdateScript = `#!/bin/bash
 set -e
 
 INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $ELASTIC_IP_ALLOCATION_ID --allow-reassociation
+INSTANCE_ARN=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].IamInstanceProfile.Arn" --output text)
+CONFIG="Name=$VPC_ORIGIN_NAME,Arn=$INSTANCE_ARN,HTTPPort=8080,OriginProtocolPolicy=http-only"
+
+if [ ! -f /tmp/vpc_origin_id ]; then
+    VPC_ORIGIN_ID=$(aws cloudfront list-vpc-origins --output json \
+        | jq -r '.Items[] | select(.Name == $VPC_ORIGIN_NAME) | .Id')
+
+    if [ -z "$VPC_ORIGIN_ID" ]; then
+        VPC_ORIGIN_ID=$(aws cloudfront create-vpc-origin \
+            --vpc-origin-endpoint-config $CONFIG \
+            --name $VPC_ORIGIN_NAME \
+            --output json | jq -r '.Id')
+    fi
+    echo $VPC_ORIGIN_ID > /tmp/vpc_origin_id
+else
+    VPC_ORIGIN_ID=$(cat /tmp/vpc_origin_id)
+fi
+
+JSON=$(aws cloudfront get-vpc-origin --id $VPC_ORIGIN_ID \
+    --output json)
+
+Arn=$(echo $JSON | jq -r '.VpcOriginEndpointConfig.Arn')
+if [ "$Arn" != "$INSTANCE_ARN" ]; then
+    aws cloudfront update-vpc-origin \
+        --id $VPC_ORIGIN_ID \
+        --if-match $(echo $JSON | jq -r '.ETag') \
+        --vpc-origin-endpoint-config $CONFIG
+fi
+
+JSON=$(aws cloudfront get-distribution --id $CLOUDFRONT_DISTRIBUTION_ID \
+    --output json)
+# .DistributionConfig.Origins.Items[].VpcOriginConfig.VpcOriginId 중에 $VPC_ORIGIN_ID 가 있는지 확인하자.
+VPC_ORIGIN_CONFIG=$(echo $JSON \
+    | jq -r '.DistributionConfig.Origins.Items[] | select(.VpcOriginConfig.VpcOriginId == $VPC_ORIGIN_ID)')
+
+if [ -z "$VPC_ORIGIN_CONFIG" ]; then
+    JSON=$(echo $JSON \
+        | jq '.DistributionConfig.Origins.Items += [{
+            "Id": $VPC_ORIGIN_ID,
+            "DomainName": $DOMAIN_NAME,
+            "OriginPath": "",
+            "CustomHeaders": { "Quantity": 0 },
+            "VpcOriginConfig": { "VpcOriginId": $VPC_ORIGIN_ID }
+        }]')
+    aws cloudfront update-distribution \
+        --id $CLOUDFRONT_DISTRIBUTION_ID \
+        --if-match $(echo $JSON | jq -r '.ETag') \
+        --distribution-config $JSON
+fi
 
 `;
 
