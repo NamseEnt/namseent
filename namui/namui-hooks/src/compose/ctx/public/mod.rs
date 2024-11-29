@@ -32,7 +32,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
     }
     fn ghost_impl(&self, key: impl Into<AddKey>, compose: impl FnOnce(ComposeCtx)) -> RtContainer {
         let child_key = match key.into() {
-            AddKey::Usize(index) => ChildKey::Usize(index),
             AddKey::String(key) => ChildKey::String(key),
             AddKey::U128(uuid) => ChildKey::U128(uuid),
             AddKey::Incremental => ChildKey::IncrementalCompose {
@@ -71,7 +70,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
         };
 
         let child_key = match key.into() {
-            AddKey::Usize(index) => ChildKey::Usize(index),
             AddKey::String(key) => ChildKey::String(key),
             AddKey::U128(uuid) => ChildKey::U128(uuid),
             AddKey::Incremental => ChildKey::IncrementalComponent {

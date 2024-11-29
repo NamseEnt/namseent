@@ -32,13 +32,13 @@ pub(crate) fn take_main_thread(component: impl 'static + Fn(&RenderCtx) + Send) 
     let window = winit_window_builder.build(&event_loop).unwrap();
     WINDOW.set(window).unwrap();
 
-    crate::log!("Window created");
+    println!("Window created");
 
     while !system::SYSTEM_INITIALIZED.load(std::sync::atomic::Ordering::SeqCst) {
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
 
-    crate::log!("Start event loop");
+    println!("Start event loop");
 
     let mut looper = Looper::new(component);
 
@@ -117,5 +117,5 @@ pub(crate) fn take_main_thread(component: impl 'static + Fn(&RenderCtx) + Send) 
             looper.tick(raw_event);
         })
         .unwrap();
-    crate::log!("Event loop finished");
+    println!("Event loop finished");
 }
