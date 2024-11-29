@@ -39,13 +39,13 @@ impl Component for Home<'_> {
                         },
                         on_select_project: &|project| {
                             let team_id = match selection.as_ref() {
-                                Selection::Team { team_id } => team_id.clone(),
-                                Selection::Project { team_id, .. } => team_id.clone(),
+                                Selection::Team { team_id } => *team_id,
+                                Selection::Project { team_id, .. } => *team_id,
                                 _ => unreachable!(),
                             };
                             set_selection.set(Selection::Project {
                                 team_id,
-                                project_id: project.id.clone(),
+                                project_id: project.id,
                             });
                         },
                     });
@@ -384,8 +384,8 @@ impl Component for EpisodeList<'_> {
                                         return;
                                     };
                                     router::route(router::Route::NewEpisode {
-                                        team_id: team_id.clone(),
-                                        project_id: project_id.clone(),
+                                        team_id,
+                                        project_id,
                                     });
                                 }));
                             })]),
