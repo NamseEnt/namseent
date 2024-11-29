@@ -52,24 +52,10 @@ impl DocumentStore for FsStore {
             return Ok(cached);
         }
 
-        let bytes = if let Some(file) = file {
-            file.get()
-        } else {
-            match self.open_doc_file(key).await {
-                Ok(opened_file) => {
-                    let bytes = opened_file.get();
-                    *file = Some(opened_file);
-                    bytes
-                }
-                Err(err) => {
-                    if let std::io::ErrorKind::NotFound = err.kind() {
-                        None
-                    } else {
-                        return Err(Error::IoError(err));
-                    }
-                }
-            }
-        };
+        if file.is_none() {
+            *file = Some(self.open_doc_file(key).await?);
+        }
+        let bytes = file.as_ref().unwrap().get();
         self.cache.push([(key, bytes.clone())]);
 
         Ok(bytes)

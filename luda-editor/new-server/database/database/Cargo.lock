@@ -273,6 +273,7 @@ dependencies = [
  "libc",
  "migration",
  "rayon",
+ "rkyv",
  "tokio",
  "uuid",
 ]
