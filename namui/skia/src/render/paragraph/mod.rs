@@ -186,7 +186,7 @@ pub struct NamuiWord<'a> {
     penalty_width: Px,
 }
 
-impl<'a> Fragment for NamuiWord<'a> {
+impl Fragment for NamuiWord<'_> {
     fn width(&self) -> f64 {
         self.width.as_f32() as f64
     }

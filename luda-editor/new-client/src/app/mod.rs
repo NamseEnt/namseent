@@ -18,7 +18,7 @@ enum LoadingState {
 }
 
 impl Component for App {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let (loading_state, set_loading_state) = ctx.state(|| LoadingState::Loading);
 
         ctx.effect("Try login", || {
@@ -34,7 +34,7 @@ impl Component for App {
                     *x = match result {
                         Ok(_) => LoadingState::Loaded,
                         Err(err) => {
-                            crate::log!("Login error: {}", err);
+                            println!("Login error: {}", err);
                             LoadingState::Error(err.to_string())
                         }
                     }
@@ -59,7 +59,5 @@ impl Component for App {
             }
         });
         ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
-
-        
     }
 }

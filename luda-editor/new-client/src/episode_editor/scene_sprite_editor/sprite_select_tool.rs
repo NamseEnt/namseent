@@ -9,8 +9,8 @@ use std::{
 
 pub struct SpriteSelectTool<'a> {
     pub wh: Wh<Px>,
-    pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
-    pub select_sprite: &'a dyn Fn(&str),
+    pub asset_docs: Sig<'a, HashMap<u128, AssetDoc>>,
+    pub select_sprite: &'a dyn Fn(u128),
     pub select_part_option: &'a dyn Fn(&str, &str, bool),
 }
 
@@ -23,7 +23,7 @@ impl Component for SpriteSelectTool<'_> {
             select_part_option,
         } = self;
 
-        let (selected_sprite_id, set_selected_sprite_id) = ctx.state::<Option<String>>(|| None);
+        let (selected_sprite_id, set_selected_sprite_id) = ctx.state::<Option<u128>>(|| None);
         let (selected_part_name, set_selected_part_name) = ctx.state::<Option<String>>(|| None);
         let (selected_tags, set_selected_tags) =
             ctx.state::<HashSet<AssetSystemTag>>(Default::default);
@@ -31,7 +31,7 @@ impl Component for SpriteSelectTool<'_> {
             let Some(selected_sprite_id) = selected_sprite_id.deref() else {
                 return Default::default();
             };
-            let psd_load_state = get_or_load_psd_sprite(selected_sprite_id.clone());
+            let psd_load_state = get_or_load_psd_sprite(*selected_sprite_id);
             let PsdSpriteLoadState::Loaded { psd_sprite, .. } = psd_load_state.as_ref() else {
                 return Default::default();
             };
@@ -50,8 +50,8 @@ impl Component for SpriteSelectTool<'_> {
                         AssetTag::Custom { .. } => false,
                     })
                 })
-                .map(|(id, sprite)| (id.clone(), sprite.clone()))
-                .collect::<HashMap<String, AssetDoc>>()
+                .map(|(id, sprite)| (*id, sprite.clone()))
+                .collect::<HashMap<u128, AssetDoc>>()
         });
 
         let tag_toggle_button = |tag: AssetSystemTag| {
@@ -98,10 +98,10 @@ impl Component for SpriteSelectTool<'_> {
                                 wh,
                                 items: tag_filtered_asset_docs.iter().map(|(id, sprite)| {
                                     let on_select = || {
-                                        set_selected_sprite_id.set(Some(id.clone()));
-                                        select_sprite(id);
+                                        set_selected_sprite_id.set(Some(*id));
+                                        select_sprite(*id);
                                     };
-                                    (sprite.id.as_str(), sprite.name.to_string(), on_select)
+                                    (sprite.id, sprite.name.to_string(), on_select)
                                 }),
                             };
                             ctx.add(sprite_column);

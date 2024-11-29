@@ -18,7 +18,7 @@ impl<'a, 'rt> Deref for RenderCtx<'a, 'rt> {
 }
 
 // Compose
-impl<'a, 'rt> RenderCtx<'a, 'rt> {
+impl RenderCtx<'_, '_> {
     #[deprecated(since = "0.2.0", note = "Use `add` instead")]
     pub fn component(&self, component: impl Component) {
         self.compose_ctx.add(component);
@@ -26,7 +26,7 @@ impl<'a, 'rt> RenderCtx<'a, 'rt> {
 }
 
 // Component
-impl<'a, 'rt> RenderCtx<'a, 'rt> {
+impl RenderCtx<'_, '_> {
     pub fn state<T: 'static + Send>(&self, init: impl FnOnce() -> T) -> (Sig<T>, SetState<T>) {
         self.component_ctx.state(init)
     }

@@ -31,7 +31,7 @@ impl StopWatch {
     pub fn lap_and_print(&mut self) {
         let now = Instant::now();
         let elapsed = now - self.last;
-        crate::log!("StopWatch - {:?}({}): {elapsed:?}", self.key, self.index);
+        println!("StopWatch - {:?}({}): {elapsed:?}", self.key, self.index);
 
         self.index += 1;
         self.last = Instant::now();

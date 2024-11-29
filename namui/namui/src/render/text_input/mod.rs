@@ -18,7 +18,6 @@ use std::{fmt::Debug, ops::Range, sync::Mutex};
  *   - If the user tries to focus on multiple text inputs at the same time, the last focused text input will be focused.
  *  - User can disable the default behavior of the text input by providing the codes that should be prevented.
  */
-
 pub struct TextInput<'a> {
     pub rect: Rect<Px>,
     pub start_text: &'a str,

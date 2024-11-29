@@ -6,7 +6,7 @@ use namui_prebuilt::*;
 pub struct SceneList<'a> {
     pub wh: Wh<Px>,
     pub scenes: &'a [Scene],
-    pub select_scene: &'a dyn Fn(&str),
+    pub select_scene: &'a dyn Fn(u128),
     pub add_new_scene: &'a dyn Fn(),
 }
 
@@ -56,7 +56,7 @@ impl Component for SceneList<'_> {
                         item_wh,
                         items: scenes.iter().enumerate().map(|(index, scene)| {
                             (
-                                scene.id.as_str(),
+                                scene.id,
                                 SceneListCell {
                                     index,
                                     scene,
@@ -76,7 +76,7 @@ struct SceneListCell<'a> {
     index: usize,
     scene: &'a Scene,
     wh: Wh<Px>,
-    select_scene: &'a dyn Fn(&str),
+    select_scene: &'a dyn Fn(u128),
 }
 
 impl Component for SceneListCell<'_> {
@@ -115,7 +115,7 @@ impl Component for SceneListCell<'_> {
                     return;
                 }
                 event.stop_propagation();
-                select_scene(&scene.id);
+                select_scene(scene.id);
             }),
         );
     }

@@ -23,12 +23,6 @@ ordered-float = { version = "4.2.0", features = [
     "rkyv_ck",
 ] }
 auto_ops = "0.3"
-uuid = { version = "1.1", features = [
-    "v4",
-    "js",
-    "macro-diagnostics",
-    "serde",
-] }
 url = { version = "2.4.0", features = ["serde"] }
 derive-macro = { path = "./derive-macro" }
 postcard = { version = "1.0.6", features = ["use-std"] }

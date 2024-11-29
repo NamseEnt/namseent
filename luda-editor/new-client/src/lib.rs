@@ -61,12 +61,11 @@ impl Component for Login {
 
                     if let Some(session_token) = session_token {
                         let session_token_string = String::from_utf8(session_token).unwrap();
+                        let session_token = session_token_string.parse::<u128>()?;
 
                         use rpc::auth::session_token_auth::*;
                         match server_connection()
-                            .session_token_auth(RefRequest {
-                                session_token: &session_token_string,
-                            })
+                            .session_token_auth(RefRequest { session_token })
                             .await
                         {
                             Ok(_) => {
@@ -76,7 +75,7 @@ impl Component for Login {
                                 Error::AlreadyLoggedIn => {
                                     return Ok(());
                                 }
-                                Error::SessionTokenNotExist => {
+                                Error::SessionTokenNotExists => {
                                     // ok, let's continue below.
                                 }
                                 Error::InternalServerError { err } => {
@@ -98,7 +97,7 @@ impl Component for Login {
                             Ok(response) => {
                                 namui::system::file::kv_store::set(
                                     KV_STORE_SESSION_TOKEN_KEY,
-                                    response.session_token.as_bytes(),
+                                    response.session_token.to_string().as_bytes(),
                                 )?;
                                 Ok(())
                             }

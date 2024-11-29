@@ -87,7 +87,7 @@ impl std::ops::Neg for Angle {
     }
 }
 
-impl<'a> std::ops::Neg for &'a Angle {
+impl std::ops::Neg for &Angle {
     type Output = Angle;
 
     fn neg(self) -> Self::Output {
@@ -151,7 +151,7 @@ where
     }
 }
 
-impl<'a, Rhs> std::ops::Mul<Rhs> for &'a Angle
+impl<Rhs> std::ops::Mul<Rhs> for &Angle
 where
     Rhs: Ratio + Clone,
 {

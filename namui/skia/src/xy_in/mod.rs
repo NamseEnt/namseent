@@ -14,7 +14,7 @@ impl XyIn for Path {
     }
 }
 
-impl<'a, T> XyIn for &'a T
+impl<T> XyIn for &T
 where
     T: XyIn,
 {

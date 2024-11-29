@@ -1,7 +1,7 @@
 use super::*;
 use crate::*;
 
-impl<'a, 'rt> ComposeCtx<'a, 'rt> {
+impl ComposeCtx<'_, '_> {
     fn push(&self, command: ComposeCommand) -> Self {
         Self {
             composer: self.composer,

@@ -32,8 +32,6 @@ pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
 
 pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
-    namui_type::set_log(|x| log::log(x));
-
     let tokio_runtime: tokio::runtime::Runtime =
         tokio_runtime().expect("Failed to create tokio runtime");
     tokio_runtime.spawn(async move {
@@ -41,7 +39,7 @@ pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
             .await
             .expect("Failed to initialize namui system");
 
-        crate::log!("Namui system initialized");
+        println!("Namui system initialized");
 
         #[cfg(target_os = "wasi")]
         {
@@ -72,6 +70,6 @@ fn tokio_runtime() -> Result<tokio::runtime::Runtime> {
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => {{
-        $crate::log::log(format!($($arg)*));
+        $println!::log(format!($($arg)*));
     }}
 }

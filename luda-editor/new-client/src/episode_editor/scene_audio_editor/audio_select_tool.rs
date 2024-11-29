@@ -7,7 +7,7 @@ use time::now;
 
 pub struct AudioSelectTool<'a> {
     pub wh: Wh<Px>,
-    pub asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
+    pub asset_docs: Sig<'a, HashMap<u128, AssetDoc>>,
     pub selected_audio: &'a Option<SceneSound>,
     pub set_audio: &'a dyn Fn(Option<SceneSound>),
 }
@@ -24,7 +24,7 @@ impl Component for AudioSelectTool<'_> {
         let (selected_tags, set_selected_tags) =
             ctx.state::<HashSet<AssetSystemTag>>(Default::default);
 
-        let on_select = |audio_id: Option<String>| {
+        let on_select = |audio_id: Option<u128>| {
             let audio = audio_id.map(|audio_id| SceneSound {
                 sound_id: audio_id,
                 volume: selected_audio
@@ -47,8 +47,8 @@ impl Component for AudioSelectTool<'_> {
                         AssetTag::Custom { .. } => false,
                     })
                 })
-                .map(|(id, audio)| (id.clone(), audio.clone()))
-                .collect::<HashMap<String, AssetDoc>>()
+                .map(|(id, audio)| (*id, audio.clone()))
+                .collect::<HashMap<u128, AssetDoc>>()
         });
 
         let tag_toggle_button = |tag: AssetSystemTag| {
@@ -102,9 +102,9 @@ impl Component for AudioSelectTool<'_> {
 
 struct AudioList<'a> {
     wh: Wh<Px>,
-    asset_docs: Sig<'a, HashMap<String, AssetDoc>>,
+    asset_docs: Sig<'a, HashMap<u128, AssetDoc>>,
     selected_audio: &'a Option<SceneSound>,
-    on_select: &'a dyn Fn(Option<String>),
+    on_select: &'a dyn Fn(Option<u128>),
 }
 impl Component for AudioList<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -116,14 +116,14 @@ impl Component for AudioList<'_> {
         } = self;
 
         let item_wh = Wh::new(wh.width, 48.px());
-        let render_item = |text: String, audio_id: Option<String>| {
+        let render_item = |text: String, audio_id: Option<u128>| {
             let is_on = selected_audio
                 .as_ref()
                 .map(|selected_audio| &selected_audio.sound_id)
                 .eq(&audio_id.as_ref());
 
             (
-                audio_id.clone().unwrap_or_default(),
+                audio_id.unwrap_or_default(),
                 AudioListItem {
                     wh: item_wh,
                     audio_id,
@@ -139,10 +139,7 @@ impl Component for AudioList<'_> {
             let AssetKind::Audio = asset_doc.asset_kind else {
                 return None;
             };
-            Some(render_item(
-                asset_doc.name.to_string(),
-                Some(asset_doc.id.clone()),
-            ))
+            Some(render_item(asset_doc.name.to_string(), Some(asset_doc.id)))
         }));
 
         ctx.add(AutoListView {
@@ -156,10 +153,10 @@ impl Component for AudioList<'_> {
 
 struct AudioListItem<'a> {
     wh: Wh<Px>,
-    audio_id: Option<String>,
+    audio_id: Option<u128>,
     text: String,
     is_on: bool,
-    on_select: &'a dyn Fn(Option<String>),
+    on_select: &'a dyn Fn(Option<u128>),
 }
 impl Component for AudioListItem<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -171,7 +168,7 @@ impl Component for AudioListItem<'_> {
             on_select,
         } = self;
 
-        let audio = audio_id.clone().map(get_or_load_audio);
+        let audio = audio_id.map(get_or_load_audio);
         let (hovering, set_hovering) = ctx.state::<Option<Hovering>>(|| None);
         let (play_handle, set_play_handle) = ctx.state(|| None);
 

@@ -10,11 +10,11 @@ use network::http;
 use psd_sprite::encode_psd_sprite;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-pub struct AssetManagePage<'a> {
-    pub team_id: &'a String,
+pub struct AssetManagePage {
+    pub team_id: u128,
 }
 
-impl Component for AssetManagePage<'_> {
+impl Component for AssetManagePage {
     fn render(self, ctx: &RenderCtx) {
         let Self { team_id } = self;
 
@@ -25,7 +25,6 @@ impl Component for AssetManagePage<'_> {
             use reserve_team_asset_upload::*;
 
             ctx.spawn({
-                let team_id = team_id.clone();
                 let asset_tag = *asset_tag;
                 async move {
                     let asset_kind = match asset_tag {
@@ -55,7 +54,7 @@ impl Component for AssetManagePage<'_> {
 
                     match server_connection()
                         .reserve_team_asset_upload(RefRequest {
-                            team_id: &team_id,
+                            team_id,
                             asset_name: &name,
                             byte_size: bytes.len() as u64,
                             asset_kind: &asset_kind,
@@ -83,9 +82,7 @@ impl Component for AssetManagePage<'_> {
             let button_wh = Wh::new(128.px(), wh.height);
             ctx.add(simple_button(button_wh, "back", |_| {
                 router::route(Route::Home {
-                    initial_selection: home::Selection::Team {
-                        team_id: team_id.to_string(),
-                    },
+                    initial_selection: home::Selection::Team { team_id },
                 });
             }));
         });
