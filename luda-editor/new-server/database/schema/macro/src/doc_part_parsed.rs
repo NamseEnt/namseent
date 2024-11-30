@@ -31,7 +31,7 @@ fn input_redefine(input: &DeriveInput) -> TokenStream {
                 #[omit_bounds]
             });
             field.attrs.push(parse_quote! {
-                #[archive_attr(omit_bounds)]
+                #[rkyv(omit_bounds)]
             });
         }
     }
@@ -56,12 +56,7 @@ fn input_redefine(input: &DeriveInput) -> TokenStream {
 
     quote! {
         #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-        #[archive_attr(derive(Debug))]
-        #[archive(check_bytes)]
-        #[archive(bound(serialize = "__S: rkyv::ser::ScratchSpace + rkyv::ser::Serializer"))]
-        #[archive_attr(check_bytes(
-            bound = "__C: rkyv::validation::ArchiveContext, <__C as rkyv::Fallible>::Error: std::error::Error"
-        ))]
+        #[rkyv(derive(Debug))]
         #input
     }
 }

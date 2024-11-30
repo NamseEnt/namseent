@@ -36,21 +36,21 @@ pub fn document(
             }
 
             fn from_bytes(bytes: Vec<u8>) -> document::Result<Self> {
-                document::deserialize(&bytes)
+                rkyv::from_bytes(&bytes)
             }
 
             fn to_bytes(&self) -> document::Result<Vec<u8>> {
-                document::serialize(self)
+                rkyv::to_bytes(self)
             }
         }
 
         #ref_struct
 
-        #struct_get_define
-        #struct_put_define
-        #struct_create_define
-        #struct_update_define
-        #struct_delete_define
+        // #struct_get_define
+        // #struct_put_define
+        // #struct_create_define
+        // #struct_update_define
+        // #struct_delete_define
 
         #debug_define
     };
@@ -321,7 +321,7 @@ fn debug_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     quote! {
         document::inventory::submit! {
             document::DocumentLogPlugin::new(stringify!(#name), |value| {
-                let Ok(deserialized) = rkyv::validation::validators::check_archived_root::<
+                let Ok(deserialized) = rkyv::access::<
                     #name
                 >(value) else {
                     println!("Validation failed");

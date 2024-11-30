@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 tokio = { version = "1", features = ["full"] }
-rkyv = { version = "0.7.44", features = ["validation"] }
+rkyv = "0.8.8"
 rusqlite = { version = "0.32.1", features = ["bundled"] }
 migration = { path = "../schema/migration" }
 document = { path = "../schema/document" }

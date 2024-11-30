@@ -109,8 +109,7 @@ fn input_redefine(input: DeriveInput, fields: &[Field]) -> TokenStream {
 
     quote! {
         #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-        #[archive_attr(derive(Debug))]
-        #[archive(check_bytes)]
+        #[rkyv(derive(Debug))]
         #(#attr)*
         pub struct #ident {
             #(#fields,)*

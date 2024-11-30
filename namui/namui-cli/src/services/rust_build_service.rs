@@ -133,6 +133,10 @@ fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
         envs.push(("NAMUI_CFG_WATCH_RELOAD", ""));
     }
 
+    if !build_option.release {
+        envs.push(("RUST_BACKTRACE", "1"));
+    }
+
     envs
 }
 

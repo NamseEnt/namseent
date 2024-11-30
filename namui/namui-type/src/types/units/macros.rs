@@ -8,7 +8,7 @@ macro_rules! common_for_f32_type {
         $crate::common_for_f32_type!($your_type, |lhs: $your_type| -> f32 {
             *lhs.0
         }, |rhs: f32| -> $your_type {
-            $your_type(ordered_float::OrderedFloat(rhs))
+            $your_type(OrderedFloat::new(rhs))
         }, $short_term, $short_term_ext, not_ratio);
     };
     ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident, ratio) => {
@@ -24,7 +24,8 @@ macro_rules! common_for_f32_type {
         use $crate::*;
 
         #[type_derives(Default, PartialOrd, Copy, Eq, Hash, -Debug)]
-        pub struct $your_type(ordered_float::OrderedFloat<f32>);
+        #[rkyv(derive(Debug))]
+        pub struct $your_type(OrderedFloat);
 
         impl std::fmt::Debug for $your_type {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -169,7 +170,7 @@ macro_rules! common_for_f32_type {
         });
 
         pub const fn $short_term(value: f32) -> $your_type {
-            $your_type(ordered_float::OrderedFloat(value))
+            $your_type(OrderedFloat::new(value))
         }
 
         pub trait $short_term_ext {
@@ -178,13 +179,13 @@ macro_rules! common_for_f32_type {
 
         impl $short_term_ext for f32 {
             fn $short_term(self) -> $your_type {
-                $your_type(ordered_float::OrderedFloat(self))
+                $your_type(OrderedFloat::new(self))
             }
         }
 
         impl $short_term_ext for i32 {
             fn $short_term(self) -> $your_type {
-                $your_type(ordered_float::OrderedFloat(self as f32))
+                $your_type(OrderedFloat::new(self as f32))
             }
         }
 

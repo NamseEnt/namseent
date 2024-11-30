@@ -47,21 +47,30 @@ pub fn type_derives(attr: TokenStream, item: TokenStream) -> TokenStream {
         type_derives.push(include.path.clone());
     }
 
+    let derive_includes = |derive| {
+        type_derives.iter().any(|x| {
+            x.to_token_stream().to_string()
+                == syn::parse_str::<syn::Path>(derive)
+                    .unwrap()
+                    .to_token_stream()
+                    .to_string()
+        })
+    };
+
     let mut extra_attrs: Vec<syn::Attribute> = Vec::new();
 
-    if type_derives.iter().any(|x| {
-        x.to_token_stream().to_string()
-            == syn::parse_str::<syn::Path>("rkyv::Archive")
-                .unwrap()
-                .to_token_stream()
-                .to_string()
-    }) {
-        extra_attrs.push(parse_quote! {#[archive_attr(derive(Debug))]});
-        extra_attrs.push(parse_quote! {#[archive(check_bytes)]});
-        extra_attrs.push(parse_quote! {#[archive(bound(serialize = "__S: rkyv::ser::ScratchSpace + rkyv::ser::Serializer"))]});
-        extra_attrs.push(parse_quote! {#[archive_attr(check_bytes(
-            bound = "__C: rkyv::validation::ArchiveContext, <__C as rkyv::Fallible>::Error: std::error::Error"
-        ))]});
+    if derive_includes("rkyv::Archive") {
+        if derive_includes("Debug") {
+            extra_attrs.push(parse_quote! {#[rkyv(
+                derive(Debug)
+            )]});
+        }
+        // https://github.com/rkyv/rkyv/issues/571
+        // if derive_includes("PartialEq") {
+        //     extra_attrs.push(parse_quote! {#[rkyv(
+        //         compare(PartialEq)
+        //     )]});
+        // }
     }
 
     let expanded = quote! {

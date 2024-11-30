@@ -1,5 +1,5 @@
 use crate::*;
-use rkyv::{de::deserializers::SharedDeserializeMap, Archived, Deserialize};
+use rkyv::Archived;
 use std::{
     fmt::{Debug, Pointer},
     ops::Deref,
@@ -17,21 +17,13 @@ impl<T> HeapArchived<T> {
             _phantom: std::marker::PhantomData,
         }
     }
-    #[allow(dead_code)]
-    pub fn deserialize(&self) -> T
-    where
-        T: rkyv::Archive,
-        T::Archived: Deserialize<T, SharedDeserializeMap>,
-    {
-        unsafe { rkyv::from_bytes_unchecked(self.bytes.as_ref()).unwrap() }
-    }
 }
 
 impl<T: rkyv::Archive> Deref for HeapArchived<T> {
     type Target = Archived<T>;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { rkyv::archived_root::<T>(self.bytes.as_ref()) }
+        unsafe { rkyv::access_unchecked(self.bytes.as_ref()) }
     }
 }
 

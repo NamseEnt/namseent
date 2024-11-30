@@ -1,10 +1,10 @@
 use crate::*;
-use rkyv::{Deserialize, Infallible};
+use rkyv::with::AsUnixTime;
 use std::fmt::Debug;
 
 #[type_derives(-Debug, Copy, PartialOrd, Eq, Ord)]
 pub struct SystemTime {
-    #[with(rkyv::with::UnixTimestamp)]
+    #[rkyv(with = AsUnixTime)]
     inner: std::time::SystemTime,
 }
 impl Clone for ArchivedSystemTime {
@@ -15,7 +15,7 @@ impl Clone for ArchivedSystemTime {
 impl Copy for ArchivedSystemTime {}
 impl From<ArchivedSystemTime> for SystemTime {
     fn from(value: ArchivedSystemTime) -> Self {
-        value.deserialize(&mut Infallible).unwrap()
+        rkyv::deserialize::<_, rkyv::rancor::Error>(&value).unwrap()
     }
 }
 

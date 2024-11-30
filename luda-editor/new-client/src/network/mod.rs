@@ -215,6 +215,11 @@ impl ServerConnection {
             .request(packet_id, request_packet_bytes)
             .await;
         assert!(response_packet_bytes.len() >= 5);
+        println!(
+            "response_packet_bytes.len(): {}",
+            response_packet_bytes.len()
+        );
+        println!("response_packet_bytes: {:?}", response_packet_bytes);
 
         let (response_payload, header) = {
             let mut response_packet_bytes = response_packet_bytes;

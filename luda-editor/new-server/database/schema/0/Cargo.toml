@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 document = { path = "../document" }
 schema-macro = { path = "../macro" }
-rkyv = { version = "0.7.44" }
+rkyv = { version = "0.8.8" }
 namui-type = { path = "../../../../../namui/namui-type" }

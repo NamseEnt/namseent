@@ -17,4 +17,4 @@ libc = "0.2.162"
 arc-swap = "1.7.1"
 
 [dev-dependencies]
-rkyv = { version = "0.7.44" }
+rkyv = { version = "0.8.8" }

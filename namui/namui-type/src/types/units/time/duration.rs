@@ -3,6 +3,7 @@ use anyhow::Result;
 use std::fmt::Debug;
 
 #[type_derives(-Debug, Copy, PartialOrd, Eq, Ord)]
+#[rkyv(derive(Debug))]
 pub struct Duration {
     pub(crate) sign: bool,
     pub(crate) inner: std::time::Duration,

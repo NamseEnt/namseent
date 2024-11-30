@@ -13,7 +13,7 @@ tokio = { version = "1", features = ["full"] }
 axum = { version = "0.7.5", features = ["ws"] }
 anyhow = { version = "1.0.83", features = ["backtrace"] }
 axum-server = "0.6.0"
-rkyv = { version = "0.7.44", features = ["validation"] }
+rkyv = "0.8.8"
 moka = { version = "0.12.7", features = ["sync"] }
 aws-sdk-s3 = "1.28.0"
 aws-config = "1.4.0"

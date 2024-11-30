@@ -2,6 +2,7 @@ use crate::*;
 use std::fmt::Debug;
 
 #[type_derives(-Debug, -PartialEq, Copy)]
+#[rkyv(derive(Debug))]
 pub struct Per<TNumerator, TDenominator>
 where
     TNumerator: Debug + rkyv::Archive,

@@ -10,7 +10,7 @@ client = []
 [dependencies]
 macro-common-lib = { path = "../macro-common-lib" }
 rpc-macro = { path = "./macro" }
-rkyv = { version = "0.7.44", features = ["validation"] }
+rkyv = "0.8.8"
 database = { path = "../database/database", optional = true }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 migration = { path = "../database/schema/migration" }
@@ -21,7 +21,7 @@ serializer = { path = "../serializer" }
 macro-common-lib = { path = "../macro-common-lib" }
 walkdir = "2"
 rpc-macro = { path = "./macro" }
-rkyv = { version = "0.7.44", features = ["validation"] }
+rkyv = "0.8.8"
 database = { path = "../database/database", optional = true }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 migration = { path = "../database/schema/migration" }
