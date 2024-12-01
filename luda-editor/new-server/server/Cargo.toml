@@ -13,13 +13,12 @@ tokio = { version = "1", features = ["full"] }
 axum = { version = "0.7.5", features = ["ws"] }
 anyhow = { version = "1.0.83", features = ["backtrace"] }
 axum-server = "0.6.0"
-rkyv = "0.8.8"
 moka = { version = "0.12.7", features = ["sync"] }
 aws-sdk-s3 = "1.28.0"
 aws-config = "1.4.0"
 tracing-subscriber = "0.3.18"
 reqwest = { version = "0.12.4", features = ["json"] }
-serde = { version = "1.0.202", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
 jsonwebtoken = "9.3.0"
 futures = "0.3.30"
 arc-swap = "1.7.1"

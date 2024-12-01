@@ -1,6 +1,5 @@
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::parse_quote;
 
 ///
 /// #[type_derives]
@@ -21,15 +20,12 @@ pub fn type_derives(attr: TokenStream, item: TokenStream) -> TokenStream {
         .iter()
         .partition::<Vec<_>, _>(|derive| !derive.is_excluded());
 
-    let default_derives: [syn::Path; 8] = [
+    let default_derives: [syn::Path; 5] = [
         syn::parse_str("Debug").unwrap(),
         syn::parse_str("Clone").unwrap(),
         syn::parse_str("PartialEq").unwrap(),
         syn::parse_str("serde::Serialize").unwrap(),
         syn::parse_str("serde::Deserialize").unwrap(),
-        syn::parse_str("rkyv::Archive").unwrap(),
-        syn::parse_str("rkyv::Serialize").unwrap(),
-        syn::parse_str("rkyv::Deserialize").unwrap(),
     ];
 
     let mut type_derives = Vec::new();
@@ -47,35 +43,8 @@ pub fn type_derives(attr: TokenStream, item: TokenStream) -> TokenStream {
         type_derives.push(include.path.clone());
     }
 
-    let derive_includes = |derive| {
-        type_derives.iter().any(|x| {
-            x.to_token_stream().to_string()
-                == syn::parse_str::<syn::Path>(derive)
-                    .unwrap()
-                    .to_token_stream()
-                    .to_string()
-        })
-    };
-
-    let mut extra_attrs: Vec<syn::Attribute> = Vec::new();
-
-    if derive_includes("rkyv::Archive") {
-        if derive_includes("Debug") {
-            extra_attrs.push(parse_quote! {#[rkyv(
-                derive(Debug)
-            )]});
-        }
-        // https://github.com/rkyv/rkyv/issues/571
-        // if derive_includes("PartialEq") {
-        //     extra_attrs.push(parse_quote! {#[rkyv(
-        //         compare(PartialEq)
-        //     )]});
-        // }
-    }
-
     let expanded = quote! {
         #[derive(#( #type_derives ),*)]
-        #( #extra_attrs )*
         #item
     };
 

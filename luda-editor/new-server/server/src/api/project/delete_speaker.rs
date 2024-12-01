@@ -4,10 +4,10 @@ use database::{schema::*, WantUpdate};
 use luda_rpc::project::delete_speaker::*;
 
 pub async fn delete_speaker(
-    &ArchivedRequest {
+    Request {
         project_id,
         speaker_id,
-    }: &ArchivedRequest,
+    }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {

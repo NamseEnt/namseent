@@ -1,10 +1,10 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{schema::*, DeserializeInfallible};
+use database::schema::*;
 use luda_rpc::project::list_speakers::*;
 
 pub async fn list_speakers(
-    &ArchivedRequest { project_id }: &ArchivedRequest,
+    Request { project_id }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -27,10 +27,6 @@ pub async fn list_speakers(
     }
 
     Ok(Response {
-        speakers: project_doc
-            .speakers
-            .values()
-            .map(|speaker| speaker.deserialize())
-            .collect(),
+        speakers: project_doc.speakers.into_values().collect(),
     })
 }

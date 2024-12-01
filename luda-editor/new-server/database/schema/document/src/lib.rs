@@ -1,9 +1,7 @@
-mod heap_archived;
 mod id_hash;
 mod transact;
 
 pub use bytes::Bytes;
-pub use heap_archived::*;
 pub use id_hash::*;
 pub use inventory;
 pub use schema_macro::*;
@@ -13,10 +11,7 @@ pub use transact::*;
 
 pub trait Document {
     fn name() -> &'static str;
-    fn heap_archived(bytes: Bytes) -> HeapArchived<Self>
-    where
-        Self: Sized;
-    fn from_bytes(bytes: Vec<u8>) -> Result<Self>
+    fn from_slice(bytes: &[u8]) -> Result<Self>
     where
         Self: Sized;
     fn to_bytes(&self) -> Result<Vec<u8>>;

@@ -4,11 +4,11 @@ use database::schema::*;
 use luda_rpc::episode_editor::get_speaker_names::*;
 
 pub async fn get_speaker_names(
-    &ArchivedRequest {
+    Request {
         project_id,
-        ref speaker_ids,
-        ref language_code,
-    }: &ArchivedRequest,
+        speaker_ids,
+        language_code,
+    }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -37,7 +37,7 @@ pub async fn get_speaker_names(
                 project_doc
                     .speakers
                     .get(speaker_id)
-                    .and_then(|x| x.name_l10n.get(language_code).map(|x| x.to_string()))
+                    .and_then(|x| x.name_l10n.get(&language_code).map(|x| x.to_string()))
             })
             .collect(),
     })

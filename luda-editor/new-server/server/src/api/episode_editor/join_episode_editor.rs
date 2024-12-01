@@ -5,7 +5,7 @@ use database::{schema::*, WantUpdate};
 use luda_rpc::episode_editor::join_episode_editor::*;
 
 pub async fn join_episode_editor(
-    &ArchivedRequest { episode_id }: &ArchivedRequest,
+    Request { episode_id }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -32,8 +32,7 @@ pub async fn join_episode_editor(
     let episode = db
         .get(EpisodeDocGet { id: episode_id })
         .await?
-        .ok_or(Error::EpisodeNotExists)?
-        .deserialize();
+        .ok_or(Error::EpisodeNotExists)?;
 
     Ok(Response {
         scenes: episode.scenes.into_values().collect(),

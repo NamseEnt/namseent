@@ -167,9 +167,7 @@ fn generate_rpc_files(rpc: &Rpc) {
                     ) -> Result<Response, Error> {
                         self.request(
                             #api_index,
-                            luda_rpc::rkyv::to_bytes::<_, 1024>(&request)
-                                .unwrap()
-                                .to_vec()
+                            serializer::serialize(&request).unwrap(),
                         )
                         .await
                     }
@@ -199,9 +197,7 @@ fn generate_rpc_files(rpc: &Rpc) {
                                 return;
                             };
 
-                            let bytes = luda_rpc::rkyv::to_bytes::<_, 1024>(&request)
-                                .unwrap()
-                                .to_vec();
+                            let bytes = serializer::serialize(&request).unwrap();
 
                             let owned_artifacts = artifacts.to_owned();
 

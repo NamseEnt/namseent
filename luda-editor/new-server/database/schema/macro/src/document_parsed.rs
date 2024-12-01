@@ -63,7 +63,7 @@ impl DocumentParsed {
 
         let ref_struct_value = quote! {
             {
-                document::serialize(&#ref_struct_name{
+                serializer::serialize(&#ref_struct_name{
                     #(
                         #field_names: self.#field_names,
                     )*
@@ -95,7 +95,7 @@ impl DocumentParsed {
             fields, generics, ..
         } = RefFielder::new(fields);
         quote! {
-            #[derive(rkyv::Archive, rkyv::Serialize)]
+            #[derive(serde::Serialize)]
             struct #ref_struct_name #generics {
                 #(#fields,)*
             }
@@ -108,8 +108,7 @@ fn input_redefine(input: DeriveInput, fields: &[Field]) -> TokenStream {
     let attr = &input.attrs;
 
     quote! {
-        #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-        #[rkyv(derive(Debug))]
+        #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
         #(#attr)*
         pub struct #ident {
             #(#fields,)*

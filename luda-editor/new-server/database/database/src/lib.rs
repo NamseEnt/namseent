@@ -21,9 +21,12 @@ impl Database {
     pub async fn get<T: Document>(
         &self,
         document_get: impl DocumentGet<Output = T>,
-    ) -> Result<Option<HeapArchived<T>>> {
-        let value_buffer = self.store.get(T::name(), document_get.id()).await?;
-        Ok(value_buffer.map(|value_buffer| T::heap_archived(value_buffer)))
+    ) -> Result<Option<T>> {
+        let Some(value_buffer) = self.store.get(T::name(), document_get.id()).await? else {
+            return Ok(None);
+        };
+        let deserialized = T::from_slice(&value_buffer)?;
+        Ok(Some(deserialized))
     }
     pub async fn transact<'a, AbortReason>(
         &'a self,
@@ -99,7 +102,7 @@ impl MaybeAborted<()> {
 mod test {
     use super::*;
 
-    #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+    #[derive(serde::Serialize, serde::Deserialize)]
     struct Doc {
         id: u128,
     }
@@ -108,22 +111,15 @@ mod test {
             "Doc"
         }
 
-        fn heap_archived(bytes: Bytes) -> HeapArchived<Self>
+        fn from_slice(bytes: &[u8]) -> document::Result<Self>
         where
             Self: Sized,
         {
-            document::HeapArchived::new(bytes)
-        }
-
-        fn from_bytes(bytes: Vec<u8>) -> document::Result<Self>
-        where
-            Self: Sized,
-        {
-            document::deserialize(&bytes)
+            serde_json::from_slice(&bytes)
         }
 
         fn to_bytes(&self) -> document::Result<Vec<u8>> {
-            document::serialize(self)
+            serde_json::to_vec(self)
         }
     }
     struct DocGet {
@@ -137,7 +133,7 @@ mod test {
         }
     }
 
-    #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+    #[derive(serde::Serialize, serde::Deserialize)]
     struct DocPut {
         id: u128,
     }
@@ -148,7 +144,7 @@ mod test {
             Ok(TransactItem::Put {
                 name: Doc::name(),
                 id: self.id,
-                value: rkyv::to_bytes::<_, 10>(&self).unwrap().to_vec(),
+                value: serde_json::to_vec(&self).unwrap(),
             })
         }
     }

@@ -1,10 +1,10 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{schema::*, DeserializeInfallible, WantUpdate};
+use database::{schema::*, WantUpdate};
 use luda_rpc::asset::update_asset_tags_for_asset::*;
 
 pub async fn update_asset_tags_for_asset(
-    &ArchivedRequest { asset_id, ref tags }: &ArchivedRequest,
+    Request { asset_id, tags }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -30,7 +30,7 @@ pub async fn update_asset_tags_for_asset(
         id: asset_id,
         want_update: |_| WantUpdate::Yes,
         update: |doc| {
-            doc.tags = tags.iter().map(|x| x.deserialize()).collect();
+            doc.tags = tags.into_iter().collect();
         },
     })
     .await?

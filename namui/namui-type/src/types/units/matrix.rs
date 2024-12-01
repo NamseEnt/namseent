@@ -77,8 +77,7 @@ impl TransformMatrix {
     pub fn transform_xy<T>(&self, xy: crate::Xy<T>) -> crate::Xy<T>
     where
         T: Into<f32> + From<f32>,
-        T: std::fmt::Debug + rkyv::Archive,
-        <T as rkyv::Archive>::Archived: std::fmt::Debug,
+        T: std::fmt::Debug,
     {
         let x: f32 = xy.x.into();
         let y: f32 = xy.y.into();
@@ -95,8 +94,7 @@ impl TransformMatrix {
     pub fn transform_rect<T>(&self, rect: Rect<T>) -> Rect<T>
     where
         T: std::ops::Add<Output = T> + Copy + std::ops::Mul<f32, Output = T> + From<f32>,
-        T: Debug + rkyv::Archive,
-        <T as rkyv::Archive>::Archived: Debug,
+        T: Debug,
     {
         let Ltrb {
             left,

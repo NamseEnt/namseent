@@ -1,17 +1,17 @@
 use crate::*;
 use api::team::IsTeamMember;
 use aws_sdk_s3::presigning::PresigningConfig;
-use database::{schema::*, DeserializeInfallible, WantUpdate};
+use database::{schema::*, WantUpdate};
 use luda_rpc::{asset::reserve_team_asset_upload::*, asset_s3_put_key};
 
 pub async fn reserve_team_asset_upload(
-    &ArchivedRequest {
+    Request {
         team_id,
-        ref asset_name,
+        asset_name,
         byte_size,
-        ref asset_kind,
-        ref tags,
-    }: &ArchivedRequest,
+        asset_kind,
+        tags,
+    }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -50,11 +50,11 @@ pub async fn reserve_team_asset_upload(
         },
         AssetDocPut {
             id: asset_id,
-            name: asset_name,
+            name: &asset_name,
             shared: false,
-            asset_kind: &asset_kind.deserialize(),
+            asset_kind: &asset_kind,
             byte_size,
-            tags: &tags.iter().map(|x| x.deserialize()).collect(),
+            tags: &tags.into_iter().collect(),
             team_id,
         },
     ))
@@ -66,7 +66,7 @@ pub async fn reserve_team_asset_upload(
     let presigned = s3::s3()
         .put_object()
         .bucket(s3::asset_bucket_name())
-        .key(asset_s3_put_key(asset_id, asset_kind.deserialize()))
+        .key(asset_s3_put_key(asset_id, asset_kind))
         .content_length(byte_size as i64)
         .presigned(PresigningConfig::expires_in(
             std::time::Duration::from_secs(180),

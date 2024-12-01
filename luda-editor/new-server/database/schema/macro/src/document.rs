@@ -31,26 +31,22 @@ pub fn document(
                 stringify!(#struct_name)
             }
 
-            fn heap_archived(bytes: document::Bytes) -> document::HeapArchived<Self> {
-                document::HeapArchived::new(bytes)
-            }
-
-            fn from_bytes(bytes: Vec<u8>) -> document::Result<Self> {
-                rkyv::from_bytes(&bytes)
+            fn from_slice(bytes: &[u8]) -> document::Result<Self> {
+                serializer::deserialize(bytes)
             }
 
             fn to_bytes(&self) -> document::Result<Vec<u8>> {
-                rkyv::to_bytes(self)
+                serializer::serialize(self)
             }
         }
 
         #ref_struct
 
-        // #struct_get_define
-        // #struct_put_define
-        // #struct_create_define
-        // #struct_update_define
-        // #struct_delete_define
+        #struct_get_define
+        #struct_put_define
+        #struct_create_define
+        #struct_update_define
+        #struct_delete_define
 
         #debug_define
     };
@@ -90,7 +86,7 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
             RefFielder {
                 generics,
                 generics_without_bounds,
-                fields_without_attr,
+                fields,
                 ..
             },
         ..
@@ -113,7 +109,7 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
 
     quote! {
         pub struct #put_struct_name #generics {
-            #(#fields_without_attr,)*
+            #(#fields,)*
         }
 
         impl #try_into_generics
@@ -141,7 +137,7 @@ fn struct_create_define(
             RefFielder {
                 generics,
                 generics_without_bounds,
-                fields_without_attr,
+                fields,
                 ..
             },
         id_field_idents,
@@ -165,7 +161,7 @@ fn struct_create_define(
 
     quote! {
         pub struct #create_struct_name #generics {
-            #(#fields_without_attr,)*
+            #(#fields,)*
         }
         impl #try_into_generics
             TryInto<document::TransactItem<'a, AbortReason>>
@@ -188,12 +184,9 @@ fn struct_update_define(
     DocumentParsed {
         name,
         id_field_idents,
-        id_ref_fielder:
-            RefFielder {
-                generics,
-                fields_without_attr,
-                ..
-            },
+        id_ref_fielder: RefFielder {
+            generics, fields, ..
+        },
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
@@ -208,7 +201,9 @@ fn struct_update_define(
         let mut generics = generics.clone();
 
         generics.params.push(parse_quote!(AbortReason));
-        generics.params.push(parse_quote!(WantUpdateFn: Send + FnOnce(&rkyv::Archived<#name>) -> WantUpdate<AbortReason>));
+        generics
+            .params
+            .push(parse_quote!(WantUpdateFn: Send + FnOnce(&#name) -> WantUpdate<AbortReason>));
         generics
             .params
             .push(parse_quote!(UpdateFn: Send + FnOnce(&mut #name)));
@@ -253,7 +248,7 @@ fn struct_update_define(
     quote! {
         pub struct #update_struct_name #generics
         {
-            #(#fields_without_attr,)*
+            #(#fields,)*
             pub want_update: WantUpdateFn,
             pub update: UpdateFn,
         }
@@ -269,13 +264,12 @@ fn struct_update_define(
                     name: stringify!(#name),
                     id: document::id_to_u128(&(#(self.#id_field_idents),*)),
                     update_fn: Some(Box::new(|vec| {
-                        let want_update =
-                            (self.want_update)(unsafe { rkyv::archived_root::<#name>(vec) });
+                        let mut doc = serializer::deserialize(&vec)?;
+                        let want_update = (self.want_update)(&doc);
 
                         if let WantUpdate::Yes = want_update {
-                            let mut doc = deserialize::<#name>(vec)?;
                             (self.update)(&mut doc);
-                            *vec = serialize(&doc)?;
+                            *vec = serializer::serialize(&doc)?;
                         }
 
                         Ok(want_update)
@@ -321,7 +315,7 @@ fn debug_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
     quote! {
         document::inventory::submit! {
             document::DocumentLogPlugin::new(stringify!(#name), |value| {
-                let Ok(deserialized) = rkyv::access::<
+                let Ok(deserialized) = serializer::deserialize::<
                     #name
                 >(value) else {
                     println!("Validation failed");

@@ -3,7 +3,6 @@ use std::collections::HashMap;
 
 #[doc_part]
 #[derive(Copy, PartialEq, Eq, Hash)]
-#[rkyv(derive(PartialEq, Eq, Hash))]
 #[repr(u8)]
 enum SystemLanguage {
     Korean,

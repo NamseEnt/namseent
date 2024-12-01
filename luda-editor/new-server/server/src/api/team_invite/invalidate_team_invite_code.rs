@@ -4,7 +4,7 @@ use database::{schema::*, WantUpdate};
 use luda_rpc::team_invite::invalidate_team_invite_code::*;
 
 pub async fn invalidate_team_invite_code(
-    &ArchivedRequest { team_id, code }: &ArchivedRequest,
+    Request { team_id, code }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {

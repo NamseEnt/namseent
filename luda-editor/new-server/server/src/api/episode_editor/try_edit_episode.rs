@@ -1,13 +1,10 @@
 use crate::*;
 use api::{episode_editor::EPISODE_EDITOR_LOCK_TIMEOUT, team::IsTeamMember};
-use database::{schema::*, DeserializeInfallible, WantUpdate};
+use database::{schema::*, WantUpdate};
 use luda_rpc::episode_editor::try_edit_episode::*;
 
 pub async fn try_edit_episode(
-    &ArchivedRequest {
-        episode_id,
-        ref action,
-    }: &ArchivedRequest,
+    Request { episode_id, action }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -35,7 +32,7 @@ pub async fn try_edit_episode(
         SceneNotExists,
     }
 
-    let editor_lock_check = |doc: &ArchivedEpisodeDoc| {
+    let editor_lock_check = |doc: &EpisodeDoc| {
         let Some(editing_user) = doc.editing_user.as_ref() else {
             return WantUpdate::Abort {
                 reason: AbortReason::YouDoNotHaveEditorLock,
@@ -59,10 +56,8 @@ pub async fn try_edit_episode(
         WantUpdate::Yes
     };
 
-    match *action {
-        luda_rpc::ArchivedEpisodeEditAction::AddScene { index, ref scene } => {
-            let index = index as usize;
-
+    match action {
+        luda_rpc::EpisodeEditAction::AddScene { index, scene } => {
             db.transact::<AbortReason>((EpisodeDocUpdate {
                 id: episode_id,
                 want_update: |doc| {
@@ -75,12 +70,12 @@ pub async fn try_edit_episode(
                     editor_lock_check(doc)
                 },
                 update: |doc| {
-                    doc.scenes.insert(index, scene.id, scene.deserialize());
+                    doc.scenes.insert(index, scene.id, scene);
                 },
             },))
                 .await
         }
-        luda_rpc::ArchivedEpisodeEditAction::RemoveScene { id } => {
+        luda_rpc::EpisodeEditAction::RemoveScene { id } => {
             db.transact::<AbortReason>((EpisodeDocUpdate {
                 id: episode_id,
                 want_update: |doc| {
@@ -96,10 +91,10 @@ pub async fn try_edit_episode(
             },))
                 .await
         }
-        luda_rpc::ArchivedEpisodeEditAction::EditText {
+        luda_rpc::EpisodeEditAction::EditText {
             scene_id,
-            ref language_code,
-            ref text,
+            language_code,
+            text,
         } => {
             db.transact::<AbortReason>((EpisodeDocUpdate {
                 id: episode_id,
@@ -122,13 +117,14 @@ pub async fn try_edit_episode(
             },))
                 .await
         }
-        luda_rpc::ArchivedEpisodeEditAction::UpdateScene { ref scene } => {
+        luda_rpc::EpisodeEditAction::UpdateScene { scene } => {
             // TODO: Use scene directly without deserialization
 
+            let scene_id = scene.id;
             db.transact::<AbortReason>((EpisodeDocUpdate {
                 id: episode_id,
                 want_update: |doc| {
-                    if !doc.scenes.contains_key(&scene.id) {
+                    if !doc.scenes.contains_key(&scene_id) {
                         return WantUpdate::Abort {
                             reason: AbortReason::SceneNotExists,
                         };
@@ -136,10 +132,8 @@ pub async fn try_edit_episode(
 
                     editor_lock_check(doc)
                 },
-                update: |doc| {
-                    doc.scenes
-                        .update_by_key(scene.id, scene.deserialize())
-                        .unwrap();
+                update: move |doc| {
+                    doc.scenes.update_by_key(scene.id, scene).unwrap();
                 },
             },))
                 .await

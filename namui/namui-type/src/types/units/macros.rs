@@ -24,7 +24,7 @@ macro_rules! common_for_f32_type {
         use $crate::*;
 
         #[type_derives(Default, PartialOrd, Copy, Eq, Hash, -Debug)]
-        #[rkyv(derive(Debug))]
+
         pub struct $your_type(OrderedFloat);
 
         impl std::fmt::Debug for $your_type {

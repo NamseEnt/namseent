@@ -4,7 +4,7 @@ use futures::future::try_join_all;
 use luda_rpc::{team::get_my_teams::*, *};
 
 pub async fn get_my_teams(
-    &ArchivedRequest {}: &ArchivedRequest,
+    Request {}: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -23,8 +23,7 @@ pub async fn get_my_teams(
     )
     .await?
     .into_iter()
-    .flatten()
-    .map(|x| x.deserialize());
+    .flatten();
 
     Ok(Response {
         teams: team_docs

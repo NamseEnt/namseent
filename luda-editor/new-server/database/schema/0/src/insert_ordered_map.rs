@@ -1,16 +1,11 @@
 use crate::*;
-use rkyv::Archive;
 use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 #[doc_part]
 struct InsertOrderedMap<K, V>
 where
-    K: Debug + Archive + Eq + Hash + Clone,
-    <K as Archive>::Archived: Debug + Eq + Hash,
-    V: Debug + Archive,
-    <V as Archive>::Archived: Debug,
-    <HashMap<K, V> as Archive>::Archived: Debug,
-    <Vec<K> as Archive>::Archived: Debug,
+    K: Debug + Eq + Hash + Clone,
+    V: Debug,
 {
     map: HashMap<K, V>,
     order: Vec<K>,
@@ -18,12 +13,8 @@ where
 
 impl<K, V> InsertOrderedMap<K, V>
 where
-    K: Debug + Archive + Eq + Hash + Clone,
-    <K as Archive>::Archived: Debug + Eq + Hash,
-    V: Debug + Archive,
-    <V as Archive>::Archived: Debug,
-    <HashMap<K, V> as Archive>::Archived: Debug,
-    <Vec<K> as Archive>::Archived: Debug,
+    K: Debug + Eq + Hash + Clone,
+    V: Debug,
 {
     pub fn into_values(self) -> impl Iterator<Item = V> {
         let mut map = self.map;
@@ -51,36 +42,15 @@ where
     pub fn get_mut_by_key(&mut self, key: &K) -> Option<&mut V> {
         self.map.get_mut(key)
     }
-}
-
-impl<K, V> ArchivedInsertOrderedMap<K, V>
-where
-    K: Debug + Archive + Eq + Hash + Clone,
-    <K as Archive>::Archived: Debug + Eq + Hash,
-    V: Debug + Archive,
-    <V as Archive>::Archived: Debug,
-    <HashMap<K, V> as Archive>::Archived: Debug,
-    <Vec<K> as Archive>::Archived: Debug,
-{
-    pub fn len(&self) -> usize {
-        self.order.len()
-    }
-    pub fn is_empty(&self) -> bool {
-        self.order.is_empty()
-    }
-    pub fn contains_key(&self, key: &K::Archived) -> bool {
+    pub fn contains_key(&self, key: &K) -> bool {
         self.map.contains_key(key)
     }
 }
 
 impl<K, V> Default for InsertOrderedMap<K, V>
 where
-    K: Debug + Archive + Eq + Hash + Clone,
-    <K as Archive>::Archived: Debug + Eq + Hash,
-    V: Debug + Archive,
-    <V as Archive>::Archived: Debug,
-    <HashMap<K, V> as Archive>::Archived: Debug,
-    <Vec<K> as Archive>::Archived: Debug,
+    K: Debug + Eq + Hash + Clone,
+    V: Debug,
 {
     fn default() -> Self {
         Self {

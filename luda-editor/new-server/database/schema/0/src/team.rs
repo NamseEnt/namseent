@@ -35,7 +35,6 @@ type SpeakerId = u128;
 
 #[doc_part]
 #[derive(PartialEq)]
-#[rkyv(derive(PartialEq))]
 struct Speaker {
     id: u128,
     name_l10n: HashMap<LanguageCode, String>,

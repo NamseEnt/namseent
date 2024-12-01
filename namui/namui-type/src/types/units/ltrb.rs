@@ -4,8 +4,7 @@ use std::fmt::Debug;
 #[type_derives(Copy)]
 pub struct Ltrb<T>
 where
-    T: Debug + rkyv::Archive,
-    <T as rkyv::Archive>::Archived: Debug,
+    T: Debug,
 {
     pub left: T,
     pub top: T,
@@ -16,8 +15,7 @@ where
 impl<T> Ltrb<T>
 where
     T: Clone,
-    T: Debug + rkyv::Archive,
-    <T as rkyv::Archive>::Archived: Debug,
+    T: Debug,
 {
     pub fn all(value: T) -> Self
     where
@@ -35,8 +33,7 @@ where
 impl<T: Default> Default for Ltrb<T>
 where
     T: Default,
-    T: Debug + rkyv::Archive,
-    <T as rkyv::Archive>::Archived: Debug,
+    T: Debug,
 {
     fn default() -> Self {
         Self {

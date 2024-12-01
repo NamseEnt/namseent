@@ -4,7 +4,7 @@ use database::schema::*;
 use luda_rpc::auth::session_token_auth::*;
 
 pub async fn session_token_auth(
-    &ArchivedRequest { session_token }: &ArchivedRequest,
+    Request { session_token }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {

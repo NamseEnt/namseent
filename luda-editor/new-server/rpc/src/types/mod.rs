@@ -1,36 +1,31 @@
 use namui_type::*;
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-#[archive(check_bytes)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Team {
     pub id: u128,
     pub name: String,
 }
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-#[archive(check_bytes)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Project {
     pub id: u128,
     pub name: String,
 }
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-#[archive(check_bytes)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Episode {
     pub id: u128,
     pub name: String,
     pub created_at: SystemTime,
 }
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-#[archive(check_bytes)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TeamInviteCode {
     pub code: u128,
     pub expiration_time: SystemTime,
 }
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-#[archive(check_bytes)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum EpisodeEditAction {
     AddScene {
         index: usize,

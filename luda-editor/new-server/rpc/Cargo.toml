@@ -10,20 +10,20 @@ client = []
 [dependencies]
 macro-common-lib = { path = "../macro-common-lib" }
 rpc-macro = { path = "./macro" }
-rkyv = "0.8.8"
 database = { path = "../database/database", optional = true }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 migration = { path = "../database/schema/migration" }
 namui-type = { path = "../../../namui/namui-type" }
 serializer = { path = "../serializer" }
+serde = { version = "1.0", features = ["derive"] }
 
 [build-dependencies]
 macro-common-lib = { path = "../macro-common-lib" }
 walkdir = "2"
 rpc-macro = { path = "./macro" }
-rkyv = "0.8.8"
 database = { path = "../database/database", optional = true }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 migration = { path = "../database/schema/migration" }
 namui-type = { path = "../../../namui/namui-type" }
 serializer = { path = "../serializer" }
+serde = { version = "1.0", features = ["derive"] }

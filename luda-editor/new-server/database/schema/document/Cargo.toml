@@ -8,7 +8,6 @@ namui-type = { path = "../../../../../namui/namui-type" }
 schema-macro = { path = "../macro" }
 serializer = { path = "../../../serializer" }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
-rkyv = "0.8.8"
 arrayvec = "0.7.4"
 inventory = "0.3.15"
 bytes = "1"

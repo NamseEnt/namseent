@@ -3,7 +3,7 @@ use database::schema::*;
 use luda_rpc::auth::revoke_session_token::*;
 
 pub async fn revoke_session_token(
-    &ArchivedRequest { session_token }: &ArchivedRequest,
+    Request { session_token }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
