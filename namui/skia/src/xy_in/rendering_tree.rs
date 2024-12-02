@@ -88,8 +88,8 @@ impl Visit for RenderingTree {
                         result_xy = rotate.get_counter_wise_matrix().transform_xy(result_xy);
                     }
                     SpecialRenderingNode::Scale(scale) => {
-                        result_xy.x /= scale.x;
-                        result_xy.y /= scale.y;
+                        result_xy.x /= *scale.x;
+                        result_xy.y /= *scale.y;
                     }
                     SpecialRenderingNode::Transform(transform) => {
                         result_xy = transform.matrix.inverse().unwrap().transform_xy(result_xy);
@@ -148,8 +148,8 @@ impl Visit for RenderingTree {
                         xy = matrix.transform_xy(xy);
                     }
                     SpecialRenderingNode::Scale(scale) => {
-                        xy.x *= scale.x;
-                        xy.y *= scale.y;
+                        xy.x *= *scale.x;
+                        xy.y *= *scale.y;
                     }
                     SpecialRenderingNode::Transform(transform) => {
                         xy = transform.matrix.transform_xy(xy);

@@ -251,12 +251,12 @@ impl From<skia_safe::Matrix> for TransformMatrix {
 impl Into<skia_safe::Matrix> for TransformMatrix {
     fn into(self) -> skia_safe::Matrix {
         skia_safe::Matrix::new_all(
-            self.values[0][0].into(),
-            self.values[0][1].into(),
-            self.values[0][2].into(),
-            self.values[1][0].into(),
-            self.values[1][1].into(),
-            self.values[1][2].into(),
+            self.values[0][0].as_f32(),
+            self.values[0][1].as_f32(),
+            self.values[0][2].as_f32(),
+            self.values[1][0].as_f32(),
+            self.values[1][1].as_f32(),
+            self.values[1][2].as_f32(),
             0.0,
             0.0,
             1.0,

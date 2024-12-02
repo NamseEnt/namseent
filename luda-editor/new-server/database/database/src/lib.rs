@@ -115,7 +115,7 @@ mod test {
         where
             Self: Sized,
         {
-            serde_json::from_slice(&bytes)
+            serde_json::from_slice(bytes)
         }
 
         fn to_bytes(&self) -> document::Result<Vec<u8>> {

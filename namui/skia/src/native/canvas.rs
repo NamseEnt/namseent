@@ -93,12 +93,12 @@ impl SkCanvas for skia_safe::Canvas {
 
 fn namui_matrix_to_skia_matrix(matrix: TransformMatrix) -> skia_safe::M44 {
     skia_safe::Matrix::new_all(
-        matrix[0][0].into(),
-        matrix[0][1].into(),
-        matrix[0][2].into(),
-        matrix[1][0].into(),
-        matrix[1][1].into(),
-        matrix[1][2].into(),
+        matrix[0][0].as_f32(),
+        matrix[0][1].as_f32(),
+        matrix[0][2].as_f32(),
+        matrix[1][0].as_f32(),
+        matrix[1][1].as_f32(),
+        matrix[1][2].as_f32(),
         0.0,
         0.0,
         1.0,

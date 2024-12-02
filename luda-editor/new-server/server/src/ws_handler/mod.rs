@@ -119,9 +119,7 @@ async fn handle_msg(
 
     let packet_id = u32::from_le_bytes(header[0..4].try_into()?);
     let api_index = u16::from_le_bytes(header[4..6].try_into()?);
-
     let result = handle::handle(api_index, in_payload, &db, session).await?;
-
     /*
         out packet = [payload][1byte status][4byte packet_id]
         The reason to put metadata at the end is to reduce heap allocation and copying.

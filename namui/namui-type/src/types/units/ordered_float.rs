@@ -138,6 +138,11 @@ impl Mul<OrderedFloat> for OrderedFloat {
         OrderedFloat::new(self.inner * rhs.inner)
     }
 }
+impl MulAssign<OrderedFloat> for OrderedFloat {
+    fn mul_assign(&mut self, rhs: OrderedFloat) {
+        self.inner *= rhs.inner;
+    }
+}
 impl Add<f32> for OrderedFloat {
     type Output = Self;
 

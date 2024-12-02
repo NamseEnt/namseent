@@ -1,5 +1,4 @@
 use crate::*;
-use luda_rpc::rkyv::{self, de::deserializers::SharedDeserializeMap, *};
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -12,8 +11,6 @@ use tokio::{
 
 type OptionResult<T, E> = Option<Result<T, E>>;
 
-type Serializer = rkyv::ser::serializers::AllocSerializer<1024>;
-
 pub fn server_rpc<'ctx, Req, Deps, Artifacts, Response, Error, RequestFn>(
     ctx: &'ctx RenderCtx,
     request: RequestFn,
@@ -25,11 +22,9 @@ where
     // <Deps as Dependencies>::Owned: Send + 'static,
     Artifacts: Dependencies,
     <Artifacts as Dependencies>::Owned: Send + 'static,
-    Response: rkyv::Archive + Send + 'static + Debug,
-    <Response as Archive>::Archived: Deserialize<Response, SharedDeserializeMap>,
-    Error: rkyv::Archive + Send + 'static + Debug,
-    <Error as Archive>::Archived: Deserialize<Error, SharedDeserializeMap>,
-    Req: rkyv::Serialize<Serializer> + Send + 'ctx,
+    Response: serde::de::DeserializeOwned + Send + 'static + Debug,
+    Error: serde::de::DeserializeOwned + Send + 'static + Debug,
+    Req: serde::Serialize + Send + 'ctx,
     RequestFn: FnOnce(Deps) -> Option<(Req, Artifacts)>,
 {
     let (response, set_response) = ctx.state(|| None);
@@ -42,7 +37,7 @@ where
         return response;
     };
     println!("request api: {api_index}");
-    let bytes = rkyv::to_bytes(&req).unwrap().to_vec();
+    let bytes = serializer::serialize(&req).unwrap();
     let owned_artifacts = artifacts.to_owned();
 
     ctx.spawn(async move {
@@ -110,7 +105,6 @@ impl ConnectionKeeper {
                                 match response {
                                     Some(response) => {
                                         let packet_id = u32::from_le_bytes(response[response.len() - 4..].try_into().unwrap());
-                                        println!("packet_id: {packet_id}");
                                         let request = requests.remove(&packet_id).unwrap();
                                         request.response_tx.send(response.into_vec()).unwrap();
                                     },
@@ -171,18 +165,13 @@ impl ServerConnection {
     }
 
     pub async fn request<
-        Response: rkyv::Archive + Send + 'static + Debug,
-        Error: rkyv::Archive + Send + 'static + Debug,
+        Response: serde::de::DeserializeOwned + Send + 'static + Debug,
+        Error: serde::de::DeserializeOwned + Send + 'static + Debug,
     >(
         &self,
         api_index: u16,
         request_bytes: Vec<u8>,
-    ) -> Result<Response, Error>
-    where
-        <Response as Archive>::Archived:
-            Deserialize<Response, de::deserializers::SharedDeserializeMap>,
-        <Error as Archive>::Archived: Deserialize<Error, de::deserializers::SharedDeserializeMap>,
-    {
+    ) -> Result<Response, Error> {
         println!("NETWORK-LOG: request: {:?}", api_index);
         let request_packet = RequestPacket::new(api_index, request_bytes);
 
@@ -190,16 +179,10 @@ impl ServerConnection {
 
         let response = match response_packet.status {
             ResponseStatus::Response => {
-                let response = unsafe {
-                    rkyv::from_bytes_unchecked(&response_packet.response_payload).unwrap()
-                };
-                Ok(response)
+                Ok(serializer::deserialize(&response_packet.response_payload).unwrap())
             }
             ResponseStatus::Error => {
-                let error = unsafe {
-                    rkyv::from_bytes_unchecked(&response_packet.response_payload).unwrap()
-                };
-                Err(error)
+                Err(serializer::deserialize(&response_packet.response_payload).unwrap())
             }
         };
         println!("NETWORK-LOG: response: {:?}", response);
@@ -215,11 +198,6 @@ impl ServerConnection {
             .request(packet_id, request_packet_bytes)
             .await;
         assert!(response_packet_bytes.len() >= 5);
-        println!(
-            "response_packet_bytes.len(): {}",
-            response_packet_bytes.len()
-        );
-        println!("response_packet_bytes: {:?}", response_packet_bytes);
 
         let (response_payload, header) = {
             let mut response_packet_bytes = response_packet_bytes;
