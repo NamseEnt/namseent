@@ -42,6 +42,15 @@ pub enum EpisodeEditAction {
     UpdateScene {
         scene: Scene,
     },
+    PutSpeaker {
+        speaker: Speaker,
+    },
+    DeleteSpeaker {
+        speaker_id: u128,
+    },
+    SaveSpeakerSlots {
+        speaker_slots: Vec<u128>,
+    },
 }
 
 pub use migration::schema::{
