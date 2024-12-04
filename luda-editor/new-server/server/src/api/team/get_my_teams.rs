@@ -4,7 +4,7 @@ use futures::future::try_join_all;
 use luda_rpc::{team::get_my_teams::*, *};
 
 pub async fn get_my_teams(
-    &ArchivedRequest {}: &ArchivedRequest,
+    Request {}: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -23,8 +23,7 @@ pub async fn get_my_teams(
     )
     .await?
     .into_iter()
-    .flatten()
-    .map(|x| x.deserialize());
+    .flatten();
 
     Ok(Response {
         teams: team_docs
@@ -34,4 +33,35 @@ pub async fn get_my_teams(
             })
             .collect(),
     })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn two_team_serialized() {
+        let response = Response {
+            teams: vec![
+                Team {
+                    id: 1,
+                    name: "123".to_string(),
+                },
+                Team {
+                    id: 2,
+                    name: "1234".to_string(),
+                },
+            ],
+        };
+
+        let bytes = serializer::serialize(&response).unwrap();
+
+        let response2: Response = serializer::deserialize(&bytes).unwrap();
+
+        assert_eq!(response2.teams.len(), 2);
+        assert_eq!(response2.teams[0].id, 1);
+        assert_eq!(response2.teams[0].name, "123");
+        assert_eq!(response2.teams[1].id, 2);
+        assert_eq!(response2.teams[1].name, "1234");
+    }
 }

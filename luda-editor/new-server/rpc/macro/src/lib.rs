@@ -103,8 +103,7 @@ fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
                             generics, fields, ..
                         } = RefFielder::new(&item_struct.fields);
                         quote! {
-                            #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-                            #[archive(check_bytes)]
+                            #[derive(Debug, serde::Serialize)]
                             pub struct #ident #generics {
                                 #(#fields,)*
                             }
@@ -113,8 +112,7 @@ fn define_rpc_structs_and_mods(rpc: &parser::Rpc) -> proc_macro2::TokenStream {
                     _ => quote! {},
                 };
                 quote! {
-                    #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-                    #[archive(check_bytes)]
+                    #[derive(Debug, serde::Serialize, serde::Deserialize)]
                     #item
                     #extra
 

@@ -4,7 +4,6 @@
 mod types;
 
 use macro_common_lib::*;
-pub use rkyv;
 pub use types::*;
 
 rpc_macro::define_rpc! {

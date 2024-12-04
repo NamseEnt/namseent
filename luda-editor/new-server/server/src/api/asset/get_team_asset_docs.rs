@@ -5,7 +5,7 @@ use futures::future::try_join_all;
 use luda_rpc::asset::get_team_asset_docs::*;
 
 pub async fn get_team_asset_docs(
-    &ArchivedRequest { team_id }: &ArchivedRequest,
+    Request { team_id }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -29,7 +29,6 @@ pub async fn get_team_asset_docs(
     .await?
     .into_iter()
     .flatten()
-    .map(|x| x.deserialize())
     .collect();
 
     Ok(Response { asset_docs })

@@ -5,7 +5,7 @@ use futures::future::try_join_all;
 use luda_rpc::{episode::get_episodes::*, Episode};
 
 pub async fn get_episodes(
-    &ArchivedRequest { project_id }: &ArchivedRequest,
+    Request { project_id }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -35,8 +35,7 @@ pub async fn get_episodes(
     )
     .await?
     .into_iter()
-    .flatten()
-    .map(|x| x.deserialize());
+    .flatten();
 
     Ok(Response {
         episodes: episode_docs

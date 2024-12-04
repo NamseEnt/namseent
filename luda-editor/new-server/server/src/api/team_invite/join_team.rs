@@ -3,7 +3,7 @@ use database::{schema::*, WantUpdate};
 use luda_rpc::team_invite::join_team::*;
 
 pub async fn join_team(
-    &ArchivedRequest { code }: &ArchivedRequest,
+    Request { code }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -12,8 +12,6 @@ pub async fn join_team(
     let Some(team_invite_code_doc) = db.get(TeamInviteCodeDocGet { code }).await? else {
         bail!(Error::InvalidCode)
     };
-
-    let team_invite_code_doc = team_invite_code_doc.deserialize();
 
     if team_invite_code_doc.expiration_time < SystemTime::now() {
         bail!(Error::InvalidCode)

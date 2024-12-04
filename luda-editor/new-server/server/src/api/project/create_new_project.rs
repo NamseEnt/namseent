@@ -6,7 +6,7 @@ use luda_rpc::project::create_new_project::*;
 const MAX_PROJECTS_PER_TEAM: usize = 100;
 
 pub async fn create_new_project(
-    &ArchivedRequest { team_id, ref name }: &ArchivedRequest,
+    Request { team_id, name }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -44,7 +44,7 @@ pub async fn create_new_project(
         },
         ProjectDocPut {
             id: project_id,
-            name,
+            name: &name,
             team_id,
             speakers: &Default::default(),
             episode_ids: &Default::default(),

@@ -5,7 +5,7 @@ use database::{schema::*, WantUpdate};
 use luda_rpc::episode_editor::exit_episode_editor::*;
 
 pub async fn exit_episode_editor(
-    &ArchivedRequest { episode_id }: &ArchivedRequest,
+    Request { episode_id }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {

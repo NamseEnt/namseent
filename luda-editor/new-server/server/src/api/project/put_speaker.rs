@@ -1,13 +1,13 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{schema::*, DeserializeInfallible, WantUpdate};
+use database::{schema::*, WantUpdate};
 use luda_rpc::project::put_speaker::*;
 
 pub async fn put_speaker(
-    &ArchivedRequest {
+    Request {
         project_id,
-        ref speaker,
-    }: &ArchivedRequest,
+        speaker,
+    }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -33,14 +33,14 @@ pub async fn put_speaker(
         id: project_id,
         want_update: |doc| {
             if let Some(value) = doc.speakers.get(&speaker.id) {
-                if value == speaker {
+                if value == &speaker {
                     return WantUpdate::No;
                 }
             }
             WantUpdate::Yes
         },
         update: |doc| {
-            doc.speakers.insert(speaker.id, speaker.deserialize());
+            doc.speakers.insert(speaker.id, speaker.clone());
         },
     })
     .await?;

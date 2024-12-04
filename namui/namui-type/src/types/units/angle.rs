@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 #[type_derives(Copy, Eq, Hash)]
 pub struct Angle {
-    radians: ordered_float::OrderedFloat<f32>,
+    radians: OrderedFloat,
 }
 
 pub trait AngleExt {
@@ -55,7 +55,7 @@ impl Angle {
     }
 
     pub fn atan2(y: impl AsPrimitive<f32>, x: impl AsPrimitive<f32>) -> Self {
-        OrderedFloat(y.as_().atan2(x.as_())).rad()
+        OrderedFloat::new(y.as_().atan2(x.as_())).rad()
     }
 }
 

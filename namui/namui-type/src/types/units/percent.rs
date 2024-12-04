@@ -4,7 +4,7 @@ use std::fmt::Display;
 common_for_f32_type!(
     Percent,
     |lhs: Percent| -> f32 { *lhs.0 / 100.0 },
-    |lhs: f32| -> Percent { Percent(ordered_float::OrderedFloat(lhs * 100.0)) },
+    |lhs: f32| -> Percent { Percent(OrderedFloat::new(lhs * 100.0)) },
     percent,
     PercentExt,
     ratio
@@ -21,15 +21,13 @@ impl Percent {
     where
         T: num::Float,
     {
-        Percent(ordered_float::OrderedFloat(
-            decimal.to_f32().unwrap() * 100.0,
-        ))
+        Percent(OrderedFloat::new(decimal.to_f32().unwrap() * 100.0))
     }
     pub fn from_percent<T>(percent: T) -> Percent
     where
         T: num::cast::AsPrimitive<f32>,
     {
-        Percent(ordered_float::OrderedFloat(percent.as_()))
+        Percent(OrderedFloat::new(percent.as_()))
     }
 }
 

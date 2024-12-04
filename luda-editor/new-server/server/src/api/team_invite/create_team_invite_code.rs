@@ -8,7 +8,7 @@ const MAX_TEAM_INVITE_CODE_COUNT: usize = 20;
 const SEVEN_DAYS: Duration = Duration::from_secs(3600 * 24 * 7);
 
 pub async fn create_team_invite_code(
-    &ArchivedRequest { team_id }: &ArchivedRequest,
+    Request { team_id }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {

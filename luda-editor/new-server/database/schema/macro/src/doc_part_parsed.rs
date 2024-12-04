@@ -18,50 +18,14 @@ fn input_redefine(input: &DeriveInput) -> TokenStream {
     let mut input = input.clone();
     input.vis = Visibility::Public(token::Pub(input.vis.span()));
 
-    fn replace_recursive(field: &mut Field) {
-        if field
-            .attrs
-            .iter()
-            .any(|attr| attr.path().is_ident("recursive"))
-        {
-            field
-                .attrs
-                .retain(|attr| !attr.path().is_ident("recursive"));
-            field.attrs.push(parse_quote! {
-                #[omit_bounds]
-            });
-            field.attrs.push(parse_quote! {
-                #[archive_attr(omit_bounds)]
-            });
-        }
+    if let Data::Struct(data) = &mut input.data {
+        data.fields.iter_mut().for_each(|field| {
+            field.vis = Visibility::Public(token::Pub(field.vis.span()));
+        });
     }
 
-    match &mut input.data {
-        Data::Struct(struct_input) => {
-            struct_input.fields.iter_mut().for_each(|field| {
-                field.vis = Visibility::Public(token::Pub(field.vis.span()));
-
-                replace_recursive(field);
-            });
-        }
-        Data::Enum(enum_input) => {
-            enum_input.variants.iter_mut().for_each(|variant| {
-                variant.fields.iter_mut().for_each(|field| {
-                    replace_recursive(field);
-                });
-            });
-        }
-        _ => unreachable!(),
-    };
-
     quote! {
-        #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-        #[archive_attr(derive(Debug))]
-        #[archive(check_bytes)]
-        #[archive(bound(serialize = "__S: rkyv::ser::ScratchSpace + rkyv::ser::Serializer"))]
-        #[archive_attr(check_bytes(
-            bound = "__C: rkyv::validation::ArchiveContext, <__C as rkyv::Fallible>::Error: std::error::Error"
-        ))]
+        #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
         #input
     }
 }

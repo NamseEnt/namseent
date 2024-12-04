@@ -4,10 +4,7 @@ use database::{schema::*, WantUpdate};
 use luda_rpc::episode::create_new_episode::*;
 
 pub async fn create_new_episode(
-    &ArchivedRequest {
-        project_id,
-        ref name,
-    }: &ArchivedRequest,
+    Request { project_id, name }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -34,7 +31,7 @@ pub async fn create_new_episode(
     db.transact::<()>((
         EpisodeDocPut {
             id: episode_id,
-            name,
+            name: &name,
             created_at: SystemTime::now(),
             team_id: project_doc.team_id,
             project_id,

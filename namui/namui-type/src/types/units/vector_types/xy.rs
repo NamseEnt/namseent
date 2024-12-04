@@ -5,8 +5,7 @@ crate::vector_types!(Xy, { x, y });
 impl<T> Xy<T>
 where
     T: Into<f32> + From<f32> + Copy,
-    T: std::fmt::Debug + rkyv::Archive,
-    <T as rkyv::Archive>::Archived: std::fmt::Debug,
+    T: std::fmt::Debug,
 {
     pub fn angle_to(&self, rhs: Xy<T>) -> Angle {
         let x: f32 = self.x.into();
@@ -22,8 +21,7 @@ where
 
 impl<T> Xy<T>
 where
-    T: std::fmt::Debug + rkyv::Archive,
-    <T as rkyv::Archive>::Archived: std::fmt::Debug,
+    T: std::fmt::Debug,
 {
     pub fn as_wh(&self) -> Wh<T>
     where
@@ -40,8 +38,7 @@ where
 impl<T, T2> From<Xy<T>> for (T2, T2)
 where
     T: Into<T2>,
-    T: std::fmt::Debug + rkyv::Archive,
-    <T as rkyv::Archive>::Archived: std::fmt::Debug,
+    T: std::fmt::Debug,
 {
     fn from(val: Xy<T>) -> Self {
         (val.x.into(), val.y.into())
@@ -50,8 +47,7 @@ where
 // TODO: Implement this on vector_types! macro.
 impl<T> From<(T, T)> for Xy<T>
 where
-    T: std::fmt::Debug + rkyv::Archive,
-    <T as rkyv::Archive>::Archived: std::fmt::Debug,
+    T: std::fmt::Debug,
 {
     fn from(val: (T, T)) -> Self {
         Xy { x: val.0, y: val.1 }

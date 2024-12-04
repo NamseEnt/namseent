@@ -1,6 +1,5 @@
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::parse_quote;
 
 ///
 /// #[type_derives]
@@ -21,15 +20,12 @@ pub fn type_derives(attr: TokenStream, item: TokenStream) -> TokenStream {
         .iter()
         .partition::<Vec<_>, _>(|derive| !derive.is_excluded());
 
-    let default_derives: [syn::Path; 8] = [
+    let default_derives: [syn::Path; 5] = [
         syn::parse_str("Debug").unwrap(),
         syn::parse_str("Clone").unwrap(),
         syn::parse_str("PartialEq").unwrap(),
         syn::parse_str("serde::Serialize").unwrap(),
         syn::parse_str("serde::Deserialize").unwrap(),
-        syn::parse_str("rkyv::Archive").unwrap(),
-        syn::parse_str("rkyv::Serialize").unwrap(),
-        syn::parse_str("rkyv::Deserialize").unwrap(),
     ];
 
     let mut type_derives = Vec::new();
@@ -47,26 +43,8 @@ pub fn type_derives(attr: TokenStream, item: TokenStream) -> TokenStream {
         type_derives.push(include.path.clone());
     }
 
-    let mut extra_attrs: Vec<syn::Attribute> = Vec::new();
-
-    if type_derives.iter().any(|x| {
-        x.to_token_stream().to_string()
-            == syn::parse_str::<syn::Path>("rkyv::Archive")
-                .unwrap()
-                .to_token_stream()
-                .to_string()
-    }) {
-        extra_attrs.push(parse_quote! {#[archive_attr(derive(Debug))]});
-        extra_attrs.push(parse_quote! {#[archive(check_bytes)]});
-        extra_attrs.push(parse_quote! {#[archive(bound(serialize = "__S: rkyv::ser::ScratchSpace + rkyv::ser::Serializer"))]});
-        extra_attrs.push(parse_quote! {#[archive_attr(check_bytes(
-            bound = "__C: rkyv::validation::ArchiveContext, <__C as rkyv::Fallible>::Error: std::error::Error"
-        ))]});
-    }
-
     let expanded = quote! {
         #[derive(#( #type_derives ),*)]
-        #( #extra_attrs )*
         #item
     };
 

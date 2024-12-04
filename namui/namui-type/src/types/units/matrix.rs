@@ -3,15 +3,23 @@ use std::fmt::Debug;
 
 #[type_derives(Copy, Eq, Hash)]
 pub struct TransformMatrix {
-    values: [[OrderedFloat<f32>; 3]; 2],
+    values: [[OrderedFloat; 3]; 2],
 }
 
 impl Default for TransformMatrix {
     fn default() -> Self {
         TransformMatrix {
             values: [
-                [OrderedFloat(1.0), OrderedFloat(0.0), OrderedFloat(0.0)],
-                [OrderedFloat(0.0), OrderedFloat(1.0), OrderedFloat(0.0)],
+                [
+                    OrderedFloat::new(1.0),
+                    OrderedFloat::new(0.0),
+                    OrderedFloat::new(0.0),
+                ],
+                [
+                    OrderedFloat::new(0.0),
+                    OrderedFloat::new(1.0),
+                    OrderedFloat::new(0.0),
+                ],
             ],
         }
     }
@@ -22,14 +30,14 @@ impl TransformMatrix {
         TransformMatrix {
             values: [
                 [
-                    OrderedFloat(values[0][0]),
-                    OrderedFloat(values[0][1]),
-                    OrderedFloat(values[0][2]),
+                    OrderedFloat::new(values[0][0]),
+                    OrderedFloat::new(values[0][1]),
+                    OrderedFloat::new(values[0][2]),
                 ],
                 [
-                    OrderedFloat(values[1][0]),
-                    OrderedFloat(values[1][1]),
-                    OrderedFloat(values[1][2]),
+                    OrderedFloat::new(values[1][0]),
+                    OrderedFloat::new(values[1][1]),
+                    OrderedFloat::new(values[1][2]),
                 ],
             ],
         }
@@ -69,8 +77,7 @@ impl TransformMatrix {
     pub fn transform_xy<T>(&self, xy: crate::Xy<T>) -> crate::Xy<T>
     where
         T: Into<f32> + From<f32>,
-        T: std::fmt::Debug + rkyv::Archive,
-        <T as rkyv::Archive>::Archived: std::fmt::Debug,
+        T: std::fmt::Debug,
     {
         let x: f32 = xy.x.into();
         let y: f32 = xy.y.into();
@@ -87,8 +94,7 @@ impl TransformMatrix {
     pub fn transform_rect<T>(&self, rect: Rect<T>) -> Rect<T>
     where
         T: std::ops::Add<Output = T> + Copy + std::ops::Mul<f32, Output = T> + From<f32>,
-        T: Debug + rkyv::Archive,
-        <T as rkyv::Archive>::Archived: Debug,
+        T: Debug,
     {
         let Ltrb {
             left,
@@ -99,16 +105,16 @@ impl TransformMatrix {
         Rect::Ltrb {
             left: left * *self.values[0][0]
                 + top * *self.values[0][1]
-                + self.values[0][2].into_inner().into(),
+                + self.values[0][2].as_f32().into(),
             top: left * *self.values[1][0]
                 + top * *self.values[1][1]
-                + self.values[1][2].into_inner().into(),
+                + self.values[1][2].as_f32().into(),
             right: right * *self.values[0][0]
                 + bottom * *self.values[0][1]
-                + self.values[0][2].into_inner().into(),
+                + self.values[0][2].as_f32().into(),
             bottom: right * *self.values[1][0]
                 + bottom * *self.values[1][1]
-                + self.values[1][2].into_inner().into(),
+                + self.values[1][2].as_f32().into(),
         }
     }
     pub fn x(&self) -> f32 {
@@ -126,7 +132,7 @@ impl TransformMatrix {
     pub fn inverse(&self) -> Option<Self> {
         let det = self.values[0][0] * self.values[1][1] - self.values[0][1] * self.values[1][0];
 
-        if det == 0.0 {
+        if *det == 0.0 {
             return None;
         }
 
@@ -148,35 +154,35 @@ impl TransformMatrix {
         ]))
     }
     pub fn translate(&mut self, x: f32, y: f32) {
-        self.values[0][2] += x;
-        self.values[1][2] += y;
+        *self.values[0][2] += x;
+        *self.values[1][2] += y;
     }
     pub fn set_translate(&mut self, x: f32, y: f32) {
-        self.values[0][2] = x.into();
-        self.values[1][2] = y.into();
+        *self.values[0][2] = x;
+        *self.values[1][2] = y;
     }
     pub fn scale(&mut self, x: f32, y: f32) {
-        self.values[0][0] *= x;
-        self.values[1][1] *= y;
+        *self.values[0][0] *= x;
+        *self.values[1][1] *= y;
     }
     pub fn rotate(&mut self, angle: Angle) {
         let sin = angle.sin();
         let cos = angle.cos();
 
-        let m00 = self.values[0][0];
-        let m01 = self.values[0][1];
-        let m10 = self.values[1][0];
-        let m11 = self.values[1][1];
+        let m00 = *self.values[0][0];
+        let m01 = *self.values[0][1];
+        let m10 = *self.values[1][0];
+        let m11 = *self.values[1][1];
 
-        self.values[0][0] = m00 * cos + m01 * sin;
-        self.values[0][1] = m00 * -sin + m01 * cos;
-        self.values[1][0] = m10 * cos + m11 * sin;
-        self.values[1][1] = m10 * -sin + m11 * cos;
+        *self.values[0][0] = m00 * cos + m01 * sin;
+        *self.values[0][1] = m00 * -sin + m01 * cos;
+        *self.values[1][0] = m10 * cos + m11 * sin;
+        *self.values[1][1] = m10 * -sin + m11 * cos;
     }
 }
 
 impl std::ops::Index<usize> for TransformMatrix {
-    type Output = [OrderedFloat<f32>; 3];
+    type Output = [OrderedFloat; 3];
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.values[index]
@@ -245,12 +251,12 @@ impl From<skia_safe::Matrix> for TransformMatrix {
 impl Into<skia_safe::Matrix> for TransformMatrix {
     fn into(self) -> skia_safe::Matrix {
         skia_safe::Matrix::new_all(
-            self.values[0][0].into(),
-            self.values[0][1].into(),
-            self.values[0][2].into(),
-            self.values[1][0].into(),
-            self.values[1][1].into(),
-            self.values[1][2].into(),
+            self.values[0][0].as_f32(),
+            self.values[0][1].as_f32(),
+            self.values[0][2].as_f32(),
+            self.values[1][0].as_f32(),
+            self.values[1][1].as_f32(),
+            self.values[1][2].as_f32(),
             0.0,
             0.0,
             1.0,

@@ -80,7 +80,7 @@ use database::schema::*;
 use luda_rpc::{service_snake_name}::{api_name}::*;
 
 pub async fn {api_name}(
-    &ArchivedRequest {{ }}: &ArchivedRequest,
+    Request {{ }}: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {{
@@ -105,7 +105,7 @@ fn generate_api_wire_up_file(rpc: &Rpc) {
             api_index += 1;
             quote! {
                 #this_api_index => {
-                    let Ok(request) = rkyv::validation::validators::check_archived_root::<
+                    let Ok(request) = serializer::deserialize::<
                         luda_rpc::#service_name::#api_name::Request,
                     >(in_payload) else {
                         return Err(anyhow::anyhow!("Failed to validate packet"));

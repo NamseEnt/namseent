@@ -5,7 +5,7 @@ use futures::future::try_join_all;
 use luda_rpc::{project::get_projects::*, Project};
 
 pub async fn get_projects(
-    &ArchivedRequest { team_id }: &ArchivedRequest,
+    Request { team_id }: Request,
     db: &Database,
     session: Session,
 ) -> Result<Response> {
@@ -28,8 +28,7 @@ pub async fn get_projects(
     )
     .await?
     .into_iter()
-    .flatten()
-    .map(|x| x.deserialize());
+    .flatten();
 
     Ok(Response {
         projects: project_docs

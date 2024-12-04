@@ -23,7 +23,7 @@ pub enum TransactItem<'a, AbortReason> {
     },
 }
 
-impl<'a, AbortReason> std::fmt::Debug for TransactItem<'a, AbortReason> {
+impl<AbortReason> std::fmt::Debug for TransactItem<'_, AbortReason> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TransactItem::Put { name, id, value } => f
