@@ -79,6 +79,9 @@ impl Component for Login {
                                     // ok, let's continue below.
                                 }
                                 Error::InternalServerError { err } => {
+                                    namui::system::file::kv_store::delete(
+                                        KV_STORE_SESSION_TOKEN_KEY,
+                                    )?;
                                     return Err(anyhow!(
                                         "session_token_auth | Internal server error: {err}"
                                     ));

@@ -176,19 +176,55 @@ impl Component for LoadedEpisodeEditor<'_> {
 
         let action_to_server_queue_tx = ctx
             .memo(|| {
-                let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+                let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<EditActionForServer>();
 
                 ctx.spawn(async move {
                     while let Some(action) = rx.recv().await {
-                        use rpc::episode_editor::try_edit_episode::*;
-                        let result = server_connection()
-                            .try_edit_episode(RefRequest {
-                                episode_id,
-                                action: &action,
-                            })
-                            .await;
+                        match action {
+                            EditActionForServer::Project { action } => match action {
+                                ProjectEditAction::PutSpeaker { speaker } => {
+                                    use rpc::project::put_speaker::*;
+                                    let result = server_connection()
+                                        .put_speaker(RefRequest {
+                                            project_id,
+                                            speaker: &speaker,
+                                        })
+                                        .await;
+                                    todo!();
+                                }
+                                ProjectEditAction::DeleteSpeaker { speaker_id } => {
+                                    use rpc::project::delete_speaker::*;
+                                    let result = server_connection()
+                                        .delete_speaker(RefRequest {
+                                            project_id,
+                                            speaker_id,
+                                        })
+                                        .await;
+                                    todo!();
+                                }
+                                ProjectEditAction::SaveSpeakerSlots { speaker_slots } => {
+                                    use rpc::episode_editor::save_speaker_slots::*;
+                                    let result = server_connection()
+                                        .save_speaker_slots(RefRequest {
+                                            episode_id,
+                                            speaker_ids: &speaker_slots,
+                                        })
+                                        .await;
+                                    todo!();
+                                }
+                            },
+                            EditActionForServer::Episode { action } => {
+                                use rpc::episode_editor::try_edit_episode::*;
+                                let result = server_connection()
+                                    .try_edit_episode(RefRequest {
+                                        episode_id,
+                                        action: &action,
+                                    })
+                                    .await;
 
-                        todo!()
+                                todo!();
+                            }
+                        }
                     }
                 });
 
@@ -211,30 +247,42 @@ impl Component for LoadedEpisodeEditor<'_> {
                     let Some(action) = history.pop() else { return };
 
                     let action_for_server = match action.clone() {
-                        EditActionForUndo::AddScene { id } => EpisodeEditAction::RemoveScene { id },
+                        EditActionForUndo::AddScene { id } => EditActionForServer::Episode {
+                            action: EpisodeEditAction::RemoveScene { id },
+                        },
                         EditActionForUndo::EditText {
                             scene_id,
                             language_code,
                             text,
-                        } => EpisodeEditAction::EditText {
-                            scene_id,
-                            language_code,
-                            text,
+                        } => EditActionForServer::Episode {
+                            action: EpisodeEditAction::EditText {
+                                scene_id,
+                                language_code,
+                                text,
+                            },
                         },
-                        EditActionForUndo::UpdateScene { scene } => {
-                            EpisodeEditAction::UpdateScene { scene }
-                        }
+                        EditActionForUndo::UpdateScene { scene } => EditActionForServer::Episode {
+                            action: EpisodeEditAction::UpdateScene { scene },
+                        },
                         EditActionForUndo::RemoveNewScene { index, scene } => {
-                            EpisodeEditAction::AddScene { index, scene }
+                            EditActionForServer::Episode {
+                                action: EpisodeEditAction::AddScene { index, scene },
+                            }
                         }
                         EditActionForUndo::PutSpeaker { speaker_id } => {
-                            EpisodeEditAction::DeleteSpeaker { speaker_id }
+                            EditActionForServer::Project {
+                                action: ProjectEditAction::DeleteSpeaker { speaker_id },
+                            }
                         }
                         EditActionForUndo::DeleteSpeaker { speaker } => {
-                            EpisodeEditAction::PutSpeaker { speaker }
+                            EditActionForServer::Project {
+                                action: ProjectEditAction::PutSpeaker { speaker },
+                            }
                         }
                         EditActionForUndo::SaveSpeakerSlots { speaker_slots } => {
-                            EpisodeEditAction::SaveSpeakerSlots { speaker_slots }
+                            EditActionForServer::Project {
+                                action: ProjectEditAction::SaveSpeakerSlots { speaker_slots },
+                            }
                         }
                     };
                     action_to_server_queue_tx.send(action_for_server).unwrap();
@@ -289,7 +337,12 @@ impl Component for LoadedEpisodeEditor<'_> {
         };
 
         let edit_episode = |action: EpisodeEditAction| {
-            if action_to_server_queue_tx.send(action.clone()).is_err() {
+            if action_to_server_queue_tx
+                .send(EditActionForServer::Episode {
+                    action: action.clone(),
+                })
+                .is_err()
+            {
                 return;
             }
 
@@ -336,32 +389,34 @@ impl Component for LoadedEpisodeEditor<'_> {
                         history.push(EditActionForUndo::UpdateScene { scene });
                     });
                 }
-                EpisodeEditAction::PutSpeaker { speaker } => {
-                    (set_speakers, set_action_history).mutate(move |(speakers, history)| {
-                        if speakers.iter().any(|x| x.id == speaker.id) {
-                            return;
-                        }
-                        let speaker_id = speaker.id;
-                        speakers.push(speaker);
-                        history.push(EditActionForUndo::PutSpeaker { speaker_id });
+            }
+        };
+
+        let edit_project = |action: ProjectEditAction| match action {
+            ProjectEditAction::PutSpeaker { speaker } => {
+                (set_speakers, set_action_history).mutate(move |(speakers, history)| {
+                    if speakers.iter().any(|x| x.id == speaker.id) {
+                        return;
+                    }
+                    let speaker_id = speaker.id;
+                    speakers.push(speaker);
+                    history.push(EditActionForUndo::PutSpeaker { speaker_id });
+                });
+            }
+            ProjectEditAction::DeleteSpeaker { speaker_id } => {
+                (set_speakers, set_action_history).mutate(move |(speakers, history)| {
+                    let speaker_index = speakers.iter().position(|x| x.id == speaker_id).unwrap();
+                    let speaker = speakers.remove(speaker_index);
+                    history.push(EditActionForUndo::DeleteSpeaker { speaker });
+                });
+            }
+            ProjectEditAction::SaveSpeakerSlots { speaker_slots } => {
+                (set_speaker_slots, set_action_history).mutate(move |(slots, history)| {
+                    let slots = std::mem::replace(slots, speaker_slots);
+                    history.push(EditActionForUndo::SaveSpeakerSlots {
+                        speaker_slots: slots,
                     });
-                }
-                EpisodeEditAction::DeleteSpeaker { speaker_id } => {
-                    (set_speakers, set_action_history).mutate(move |(speakers, history)| {
-                        let speaker_index =
-                            speakers.iter().position(|x| x.id == speaker_id).unwrap();
-                        let speaker = speakers.remove(speaker_index);
-                        history.push(EditActionForUndo::DeleteSpeaker { speaker });
-                    });
-                }
-                EpisodeEditAction::SaveSpeakerSlots { speaker_slots } => {
-                    (set_speaker_slots, set_action_history).mutate(move |(slots, history)| {
-                        let slots = std::mem::replace(slots, speaker_slots);
-                        history.push(EditActionForUndo::SaveSpeakerSlots {
-                            speaker_slots: slots,
-                        });
-                    });
-                }
+                });
             }
         };
 
@@ -400,11 +455,11 @@ impl Component for LoadedEpisodeEditor<'_> {
                 id: uuid(),
                 name_l10n: HashMap::from_iter([("kor".to_string(), speaker_name)]),
             };
-            edit_episode(EpisodeEditAction::PutSpeaker { speaker });
+            edit_project(ProjectEditAction::PutSpeaker { speaker });
         };
 
         let save_speaker_slots = &|speaker_slots: Vec<u128>| {
-            edit_episode(EpisodeEditAction::SaveSpeakerSlots { speaker_slots });
+            edit_project(ProjectEditAction::SaveSpeakerSlots { speaker_slots });
         };
 
         let on_text_edit_done = &|scene_id: u128, text: String| {
@@ -517,4 +572,17 @@ enum EditActionForUndo {
     SaveSpeakerSlots {
         speaker_slots: Vec<u128>,
     },
+}
+
+#[derive(Debug, Clone)]
+enum EditActionForServer {
+    Project { action: ProjectEditAction },
+    Episode { action: EpisodeEditAction },
+}
+
+#[derive(Debug, Clone)]
+enum ProjectEditAction {
+    PutSpeaker { speaker: Speaker },
+    DeleteSpeaker { speaker_id: u128 },
+    SaveSpeakerSlots { speaker_slots: Vec<u128> },
 }
