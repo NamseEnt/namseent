@@ -7,10 +7,8 @@ use namui_prebuilt::*;
 pub struct SpeakerSelector<'a> {
     pub wh: Wh<Px>,
     pub select_speaker: &'a dyn Fn(u128),
-    pub add_speaker: &'a dyn Fn(String),
-    pub save_speaker_slots: &'a dyn Fn(Vec<u128>),
-    pub speakers: Sig<'a, Vec<Speaker>>,
-    pub speaker_slots: Sig<'a, Vec<u128>>,
+    pub speakers_in_slot: Sig<'a, Vec<Speaker>>,
+    pub open_edit_speaker_modal: &'a dyn Fn(),
 }
 
 impl Component for SpeakerSelector<'_> {
@@ -18,37 +16,9 @@ impl Component for SpeakerSelector<'_> {
         let Self {
             wh,
             select_speaker,
-            add_speaker,
-            save_speaker_slots,
-            speakers,
-            speaker_slots,
+            speakers_in_slot,
+            open_edit_speaker_modal,
         } = self;
-        let (show_edit_speaker_modal, set_show_edit_speaker_modal) = ctx.state(|| false);
-
-        let speakers_in_slot = ctx.memo(|| {
-            speakers
-                .iter()
-                .filter(|x| speaker_slots.contains(&x.id))
-                .cloned()
-                .collect::<Vec<_>>()
-        });
-
-        let close_modal = move || {
-            set_show_edit_speaker_modal.set(false);
-        };
-
-        ctx.compose(|ctx| {
-            if !*show_edit_speaker_modal {
-                return;
-            }
-            ctx.add(EditSpeakerModal {
-                speakers,
-                speaker_slots,
-                add_speaker,
-                save_speaker_slots,
-                close: &close_modal,
-            });
-        });
 
         ctx.compose(|ctx| {
             let items = {
@@ -83,7 +53,7 @@ impl Component for SpeakerSelector<'_> {
                         fill_color: Color::BLACK,
                         mouse_buttons: vec![MouseButton::Left],
                         on_mouse_up_in: |_event| {
-                            set_show_edit_speaker_modal.set(true);
+                            open_edit_speaker_modal();
                         },
                     });
                 }));
@@ -95,12 +65,12 @@ impl Component for SpeakerSelector<'_> {
     }
 }
 
-struct EditSpeakerModal<'a> {
-    speakers: Sig<'a, Vec<Speaker>>,
-    speaker_slots: Sig<'a, Vec<u128>>,
-    add_speaker: &'a dyn Fn(String),
-    save_speaker_slots: &'a dyn Fn(Vec<u128>),
-    close: &'a dyn Fn(),
+pub struct EditSpeakerModal<'a> {
+    pub speakers: Sig<'a, Vec<Speaker>>,
+    pub speaker_slots: Sig<'a, Vec<u128>>,
+    pub add_speaker: &'a dyn Fn(String),
+    pub save_speaker_slots: &'a dyn Fn(Vec<u128>),
+    pub close: &'a dyn Fn(),
 }
 impl Component for EditSpeakerModal<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -141,7 +111,7 @@ impl Component for EditSpeakerModal<'_> {
         };
 
         ctx.compose(move |ctx| {
-            let ctx = ctx.on_top().absolute((0.px(), 0.px()));
+            let ctx = ctx.absolute((0.px(), 0.px()));
 
             let left_top = (screen_wh / 2.0) - MODAL_WH / 2.0;
             ctx.translate(left_top.as_xy()).compose(|ctx| {
@@ -149,6 +119,24 @@ impl Component for EditSpeakerModal<'_> {
                     table::padding(
                         8.px(),
                         vertical([
+                            table::fixed(36.px(), table::horizontal([
+                                ratio(1, |_, _ | {}),
+                                table::fixed(36.px(), |wh, ctx| {
+                                    ctx.add(button::TextButton {
+                                        rect: wh.to_rect(),
+                                        text: "X",
+                                        text_color: Color::WHITE,
+                                        stroke_color: Color::BLACK,
+                                        stroke_width: 1.px(),
+                                        fill_color: Color::RED,
+                                        mouse_buttons: vec![MouseButton::Left],
+                                        on_mouse_up_in: |_event| {
+                                            close();
+                                        },
+                                    });
+                                })
+                            ])),
+                            table::fixed(8.px(), |_wh, _ctx| {}),
                             table::ratio(
                                 1,
                                 horizontal([

@@ -13,6 +13,7 @@ use luda_rpc::{AssetDoc, EpisodeEditAction, Scene, Speaker};
 use properties_panel::PropertiesPanel;
 use router::Route;
 use rpc::{episode_editor::load_speaker_slots, project::list_speakers};
+use speaker_selector::EditSpeakerModal;
 use std::{collections::HashMap, sync::Arc};
 
 pub struct EpisodeEditor {
@@ -173,6 +174,15 @@ impl Component for LoadedEpisodeEditor<'_> {
         let (speaker_slots, set_speaker_slots) = ctx.state(|| initial_speaker_slots.clone());
         let (selected_scene_id, set_selected_scene_id) = ctx.state(|| Option::<u128>::None);
         let (action_history, set_action_history) = ctx.state(Vec::<EditActionForUndo>::new);
+        let (show_edit_speaker_modal, set_show_edit_speaker_modal) = ctx.state(|| false);
+
+        let speakers_in_slot = ctx.memo(|| {
+            speakers
+                .iter()
+                .filter(|x| speaker_slots.contains(&x.id))
+                .cloned()
+                .collect::<Vec<_>>()
+        });
 
         let action_to_server_queue_tx = ctx
             .memo(|| {
@@ -496,10 +506,8 @@ impl Component for LoadedEpisodeEditor<'_> {
                         ctx.add(speaker_selector::SpeakerSelector {
                             wh,
                             select_speaker,
-                            add_speaker,
-                            save_speaker_slots,
-                            speakers,
-                            speaker_slots,
+                            speakers_in_slot,
+                            open_edit_speaker_modal: &|| set_show_edit_speaker_modal.set(true),
                         });
                     }),
                     table::fixed(320.px(), |wh, ctx| {
@@ -535,6 +543,19 @@ impl Component for LoadedEpisodeEditor<'_> {
                     },
                 });
             }));
+        });
+
+        ctx.compose(|ctx| {
+            if !*show_edit_speaker_modal {
+                return;
+            }
+            ctx.add(EditSpeakerModal {
+                speakers,
+                speaker_slots,
+                add_speaker,
+                save_speaker_slots,
+                close: &|| set_show_edit_speaker_modal.set(false),
+            });
         });
 
         ctx.compose(|ctx| {
