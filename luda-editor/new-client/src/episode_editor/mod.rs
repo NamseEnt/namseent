@@ -200,7 +200,9 @@ impl Component for LoadedEpisodeEditor<'_> {
                                             speaker: &speaker,
                                         })
                                         .await;
-                                    todo!();
+                                    if let Err(err) = result {
+                                        toast::negative(format!("인물 추가 실패: {:#?}", err));
+                                    }
                                 }
                                 ProjectEditAction::DeleteSpeaker { speaker_id } => {
                                     use rpc::project::delete_speaker::*;
@@ -210,7 +212,9 @@ impl Component for LoadedEpisodeEditor<'_> {
                                             speaker_id,
                                         })
                                         .await;
-                                    todo!();
+                                    if let Err(err) = result {
+                                        toast::negative(format!("인물 삭제 실패: {:#?}", err));
+                                    }
                                 }
                                 ProjectEditAction::SaveSpeakerSlots { speaker_slots } => {
                                     use rpc::episode_editor::save_speaker_slots::*;
@@ -220,7 +224,9 @@ impl Component for LoadedEpisodeEditor<'_> {
                                             speaker_ids: &speaker_slots,
                                         })
                                         .await;
-                                    todo!();
+                                    if let Err(err) = result {
+                                        toast::negative(format!("인물 슬롯 저장 실패: {:#?}", err));
+                                    }
                                 }
                             },
                             EditActionForServer::Episode { action } => {
