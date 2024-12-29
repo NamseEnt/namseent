@@ -408,32 +408,44 @@ impl Component for LoadedEpisodeEditor<'_> {
             }
         };
 
-        let edit_project = |action: ProjectEditAction| match action {
-            ProjectEditAction::PutSpeaker { speaker } => {
-                (set_speakers, set_action_history).mutate(move |(speakers, history)| {
-                    if speakers.iter().any(|x| x.id == speaker.id) {
-                        return;
-                    }
-                    let speaker_id = speaker.id;
-                    speakers.push(speaker);
-                    history.push(EditActionForUndo::PutSpeaker { speaker_id });
-                });
+        let edit_project = |action: ProjectEditAction| {
+            if action_to_server_queue_tx
+                .send(EditActionForServer::Project {
+                    action: action.clone(),
+                })
+                .is_err()
+            {
+                return;
             }
-            ProjectEditAction::DeleteSpeaker { speaker_id } => {
-                (set_speakers, set_action_history).mutate(move |(speakers, history)| {
-                    let speaker_index = speakers.iter().position(|x| x.id == speaker_id).unwrap();
-                    let speaker = speakers.remove(speaker_index);
-                    history.push(EditActionForUndo::DeleteSpeaker { speaker });
-                });
-            }
-            ProjectEditAction::SaveSpeakerSlots { speaker_slots } => {
-                (set_speaker_slots, set_action_history).mutate(move |(slots, history)| {
-                    let slots = std::mem::replace(slots, speaker_slots);
-                    history.push(EditActionForUndo::SaveSpeakerSlots {
-                        speaker_slots: slots,
+
+            match action {
+                ProjectEditAction::PutSpeaker { speaker } => {
+                    (set_speakers, set_action_history).mutate(move |(speakers, history)| {
+                        if speakers.iter().any(|x| x.id == speaker.id) {
+                            return;
+                        }
+                        let speaker_id = speaker.id;
+                        speakers.push(speaker.clone());
+                        history.push(EditActionForUndo::PutSpeaker { speaker_id });
                     });
-                });
-            }
+                }
+                ProjectEditAction::DeleteSpeaker { speaker_id } => {
+                    (set_speakers, set_action_history).mutate(move |(speakers, history)| {
+                        let speaker_index =
+                            speakers.iter().position(|x| x.id == speaker_id).unwrap();
+                        let speaker = speakers.remove(speaker_index);
+                        history.push(EditActionForUndo::DeleteSpeaker { speaker });
+                    });
+                }
+                ProjectEditAction::SaveSpeakerSlots { speaker_slots } => {
+                    (set_speaker_slots, set_action_history).mutate(move |(slots, history)| {
+                        let slots = std::mem::replace(slots, speaker_slots.clone());
+                        history.push(EditActionForUndo::SaveSpeakerSlots {
+                            speaker_slots: slots,
+                        });
+                    });
+                }
+            };
         };
 
         let add_new_scene = || {
