@@ -25,7 +25,6 @@ impl Component for SpeakerSelector<'_> {
                 let mut items = vec![];
 
                 for speaker in speakers_in_slot.iter() {
-                    items.push(table::fixed(16.px(), |_wh, _ctx| {}));
                     items.push(table::ratio(1, |wh, ctx| {
                         ctx.add(button::TextButton {
                             rect: wh.to_rect(),
@@ -40,6 +39,7 @@ impl Component for SpeakerSelector<'_> {
                             },
                         });
                     }));
+                    items.push(table::fixed(16.px(), |_wh, _ctx| {}));
                 }
                 items.push(table::ratio(1, |_wh, _ctx| {}));
                 // TODO: Fix table::fit
@@ -119,23 +119,26 @@ impl Component for EditSpeakerModal<'_> {
                     table::padding(
                         8.px(),
                         vertical([
-                            table::fixed(36.px(), table::horizontal([
-                                ratio(1, |_, _ | {}),
-                                table::fixed(36.px(), |wh, ctx| {
-                                    ctx.add(button::TextButton {
-                                        rect: wh.to_rect(),
-                                        text: "X",
-                                        text_color: Color::WHITE,
-                                        stroke_color: Color::BLACK,
-                                        stroke_width: 1.px(),
-                                        fill_color: Color::RED,
-                                        mouse_buttons: vec![MouseButton::Left],
-                                        on_mouse_up_in: |_event| {
-                                            close();
-                                        },
-                                    });
-                                })
-                            ])),
+                            table::fixed(
+                                36.px(),
+                                table::horizontal([
+                                    ratio(1, |_, _| {}),
+                                    table::fixed(36.px(), |wh, ctx| {
+                                        ctx.add(button::TextButton {
+                                            rect: wh.to_rect(),
+                                            text: "X",
+                                            text_color: Color::WHITE,
+                                            stroke_color: Color::BLACK,
+                                            stroke_width: 1.px(),
+                                            fill_color: Color::RED,
+                                            mouse_buttons: vec![MouseButton::Left],
+                                            on_mouse_up_in: |_event| {
+                                                close();
+                                            },
+                                        });
+                                    }),
+                                ]),
+                            ),
                             table::fixed(8.px(), |_wh, _ctx| {}),
                             table::ratio(
                                 1,
