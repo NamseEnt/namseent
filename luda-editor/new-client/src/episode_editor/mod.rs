@@ -285,21 +285,6 @@ impl Component for LoadedEpisodeEditor<'_> {
                                 action: EpisodeEditAction::AddScene { index, scene },
                             }
                         }
-                        EditActionForUndo::PutSpeaker { speaker_id } => {
-                            EditActionForServer::Project {
-                                action: ProjectEditAction::DeleteSpeaker { speaker_id },
-                            }
-                        }
-                        EditActionForUndo::DeleteSpeaker { speaker } => {
-                            EditActionForServer::Project {
-                                action: ProjectEditAction::PutSpeaker { speaker },
-                            }
-                        }
-                        EditActionForUndo::SaveSpeakerSlots { speaker_slots } => {
-                            EditActionForServer::Project {
-                                action: ProjectEditAction::SaveSpeakerSlots { speaker_slots },
-                            }
-                        }
                     };
                     action_to_server_queue_tx.send(action_for_server).unwrap();
 
@@ -330,23 +315,6 @@ impl Component for LoadedEpisodeEditor<'_> {
                                 return;
                             };
                             scenes[scene_index] = scene;
-                        }
-                        EditActionForUndo::PutSpeaker { speaker_id } => {
-                            let Some(speaker_index) =
-                                speakers.iter().position(|x| x.id == speaker_id)
-                            else {
-                                eprintln!("Undo failed: speaker not found");
-                                return;
-                            };
-                            speakers.remove(speaker_index);
-                        }
-                        EditActionForUndo::DeleteSpeaker { speaker } => {
-                            speakers.push(speaker);
-                        }
-                        EditActionForUndo::SaveSpeakerSlots {
-                            speaker_slots: prev_speaker_slots,
-                        } => {
-                            *speaker_slots = prev_speaker_slots;
                         }
                     }
                 });
@@ -420,29 +388,23 @@ impl Component for LoadedEpisodeEditor<'_> {
 
             match action {
                 ProjectEditAction::PutSpeaker { speaker } => {
-                    (set_speakers, set_action_history).mutate(move |(speakers, history)| {
+                    set_speakers.mutate(move |speakers| {
                         if speakers.iter().any(|x| x.id == speaker.id) {
                             return;
                         }
-                        let speaker_id = speaker.id;
                         speakers.push(speaker.clone());
-                        history.push(EditActionForUndo::PutSpeaker { speaker_id });
                     });
                 }
                 ProjectEditAction::DeleteSpeaker { speaker_id } => {
-                    (set_speakers, set_action_history).mutate(move |(speakers, history)| {
+                    set_speakers.mutate(move |speakers| {
                         let speaker_index =
                             speakers.iter().position(|x| x.id == speaker_id).unwrap();
-                        let speaker = speakers.remove(speaker_index);
-                        history.push(EditActionForUndo::DeleteSpeaker { speaker });
+                        speakers.remove(speaker_index);
                     });
                 }
                 ProjectEditAction::SaveSpeakerSlots { speaker_slots } => {
-                    (set_speaker_slots, set_action_history).mutate(move |(slots, history)| {
-                        let slots = std::mem::replace(slots, speaker_slots.clone());
-                        history.push(EditActionForUndo::SaveSpeakerSlots {
-                            speaker_slots: slots,
-                        });
+                    set_speaker_slots.mutate(move |slots| {
+                        let _ = std::mem::replace(slots, speaker_slots.clone());
                     });
                 }
             };
@@ -601,15 +563,6 @@ enum EditActionForUndo {
     },
     UpdateScene {
         scene: Scene,
-    },
-    PutSpeaker {
-        speaker_id: u128,
-    },
-    DeleteSpeaker {
-        speaker: Speaker,
-    },
-    SaveSpeakerSlots {
-        speaker_slots: Vec<u128>,
     },
 }
 
