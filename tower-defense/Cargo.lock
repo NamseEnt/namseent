@@ -2722,6 +2722,7 @@ version = "0.1.0"
 dependencies = [
  "namui",
  "namui-prebuilt",
+ "rand",
 ]
 
 [[package]]

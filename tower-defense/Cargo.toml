@@ -9,3 +9,4 @@ namui = true
 [dependencies]
 namui = { path = "../namui/namui" }
 namui-prebuilt = { path = "../namui/namui-prebuilt" }
+rand = "0.8.5"
