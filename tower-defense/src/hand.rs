@@ -1,6 +1,6 @@
 use crate::{card::Card, palette, tower::get_highest_tower};
 use namui::*;
-use namui_prebuilt::{table, typography};
+use namui_prebuilt::{button, table, typography};
 use std::iter::once;
 
 const HAND_HEIGHT: Px = px(160.);
@@ -17,6 +17,7 @@ impl Component for Hand {
         let (cards, set_cards) =
             ctx.state(|| (0..5).map(|_| Card::new_random()).collect::<Vec<_>>());
         let (selected, set_selected) = ctx.state(|| [false, false, false, false, false]);
+        let some_selected = ctx.memo(|| selected.iter().any(|selected| *selected));
         let using_cards = ctx.memo(|| {
             let selected_cards = cards
                 .iter()
@@ -39,13 +40,16 @@ impl Component for Hand {
                 return;
             }
             let selected = selected.clone_inner();
-            set_cards.mutate(move |cards| {
+            (set_selected, set_cards).mutate(move |(set_selected, cards)| {
                 for (index, selected) in selected.iter().enumerate() {
                     if !selected {
                         continue;
                     }
                     cards[index] = Card::new_random();
                 }
+                set_selected
+                    .iter_mut()
+                    .for_each(|selected| *selected = false);
             });
         };
 
@@ -91,7 +95,11 @@ impl Component for Hand {
                             .chain(once(table::fixed(
                                 HAND_HEIGHT,
                                 table::padding(PADDING, |wh, ctx| {
-                                    ctx.add(InteractionArea { wh });
+                                    ctx.add(InteractionArea {
+                                        wh,
+                                        some_selected: *some_selected,
+                                        reroll_selected: &reroll_selected,
+                                    });
                                 }),
                             )))
                             .chain(once(table::ratio(1, |_, _| {}))),
@@ -235,12 +243,47 @@ impl Component for TowerPreview<'_> {
     }
 }
 
-struct InteractionArea {
+struct InteractionArea<'a> {
     wh: Wh<Px>,
+    some_selected: bool,
+    reroll_selected: &'a dyn Fn(),
 }
-impl Component for InteractionArea {
+impl Component for InteractionArea<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh } = self;
+        let Self {
+            wh,
+            some_selected,
+            reroll_selected,
+        } = self;
+
+        ctx.compose(|ctx| {
+            table::padding(
+                PADDING,
+                table::vertical([
+                    table::fixed(32.px(), |wh, ctx| {
+                        ctx.add(button::TextButton {
+                            rect: wh.to_rect(),
+                            text: "Reroll",
+                            text_color: match some_selected {
+                                true => palette::ON_PRIMARY,
+                                false => palette::ON_SURFACE,
+                            },
+                            stroke_color: palette::OUTLINE,
+                            stroke_width: 1.px(),
+                            fill_color: match some_selected {
+                                true => palette::PRIMARY,
+                                false => palette::SURFACE_CONTAINER_HIGH,
+                            },
+                            mouse_buttons: vec![MouseButton::Left],
+                            on_mouse_up_in: |_| {
+                                reroll_selected();
+                            },
+                        });
+                    }),
+                    table::ratio(1, |_, _| {}),
+                ]),
+            )(wh, ctx);
+        });
 
         ctx.add(rect(RectParam {
             rect: wh.to_rect(),
