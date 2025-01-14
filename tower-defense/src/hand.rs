@@ -1,4 +1,4 @@
-use crate::{card::Card, palette};
+use crate::{card::Card, palette, tower::get_highest_tower};
 use namui::*;
 use namui_prebuilt::{table, typography};
 use std::iter::once;
@@ -24,6 +24,15 @@ impl Component for Hand {
                     HAND_HEIGHT,
                     table::horizontal(
                         once(table::ratio(1, |_, _| {}))
+                            .chain(once(table::fixed(
+                                HAND_HEIGHT,
+                                table::padding(PADDING, |wh, ctx| {
+                                    ctx.add(TowerPreview {
+                                        wh,
+                                        cards: cards.clone(),
+                                    });
+                                }),
+                            )))
                             .chain(cards.iter().map(|card| {
                                 table::fixed(
                                     CARD_WIDTH,
@@ -32,6 +41,12 @@ impl Component for Hand {
                                     }),
                                 )
                             }))
+                            .chain(once(table::fixed(
+                                HAND_HEIGHT,
+                                table::padding(PADDING, |wh, ctx| {
+                                    ctx.add(InteractionArea { wh });
+                                }),
+                            )))
                             .chain(once(table::ratio(1, |_, _| {}))),
                     ),
                 ),
@@ -79,6 +94,96 @@ impl Component for RenderCard {
                 }),
                 fill: Some(RectFill {
                     color: palette::SURFACE_CONTAINER_HIGH,
+                }),
+                round: Some(RectRound {
+                    radius: palette::ROUND,
+                }),
+            },
+        }));
+    }
+}
+
+struct TowerPreview<'a> {
+    wh: Wh<Px>,
+    cards: Sig<'a, Vec<Card>>,
+}
+impl Component for TowerPreview<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { wh, cards } = self;
+
+        let tower_blueprint = ctx.memo(|| get_highest_tower(&cards));
+
+        ctx.compose(|ctx| {
+            table::padding(
+                PADDING,
+                table::vertical([
+                    table::fixed(typography::title::FONT_SIZE.into_px(), |wh, ctx| {
+                        ctx.add(typography::title::left(
+                            wh.height,
+                            format!("{:?}", tower_blueprint.kind),
+                            palette::ON_SURFACE,
+                        ));
+                    }),
+                    table::fixed(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                        let Some(rank) = tower_blueprint.rank else {
+                            return;
+                        };
+                        ctx.add(typography::body::left(
+                            wh.height,
+                            format!("{}", rank),
+                            palette::ON_SURFACE_VARIANT,
+                        ));
+                    }),
+                    table::fixed(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                        let Some(suit) = tower_blueprint.suit else {
+                            return;
+                        };
+                        ctx.add(typography::body::left(
+                            wh.height,
+                            format!("{}", suit),
+                            palette::ON_SURFACE_VARIANT,
+                        ));
+                    }),
+                ]),
+            )(wh, ctx);
+        });
+
+        ctx.add(rect(RectParam {
+            rect: wh.to_rect(),
+            style: RectStyle {
+                stroke: Some(RectStroke {
+                    color: palette::OUTLINE,
+                    width: 1.px(),
+                    border_position: BorderPosition::Inside,
+                }),
+                fill: Some(RectFill {
+                    color: palette::SURFACE,
+                }),
+                round: Some(RectRound {
+                    radius: palette::ROUND,
+                }),
+            },
+        }));
+    }
+}
+
+struct InteractionArea {
+    wh: Wh<Px>,
+}
+impl Component for InteractionArea {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { wh } = self;
+
+        ctx.add(rect(RectParam {
+            rect: wh.to_rect(),
+            style: RectStyle {
+                stroke: Some(RectStroke {
+                    color: palette::OUTLINE,
+                    width: 1.px(),
+                    border_position: BorderPosition::Inside,
+                }),
+                fill: Some(RectFill {
+                    color: palette::SURFACE,
                 }),
                 round: Some(RectRound {
                     radius: palette::ROUND,

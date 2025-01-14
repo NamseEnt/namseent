@@ -1,6 +1,7 @@
 mod card;
 mod hand;
 mod palette;
+mod tower;
 
 use hand::Hand;
 use namui::*;

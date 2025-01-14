@@ -1,6 +1,11 @@
 #![allow(dead_code)]
 use namui::*;
 
+pub const PRIMARY: Color = Color::from_u8(208, 188, 254, 255);
+pub const ON_PRIMARY: Color = Color::from_u8(56, 30, 114, 255);
+pub const SECONDARY: Color = Color::from_u8(204, 194, 220, 255);
+pub const ON_SECONDARY: Color = Color::from_u8(51, 45, 65, 255);
+
 pub const SURFACE: Color = Color::from_u8(20, 18, 24, 255);
 pub const SURFACE_CONTAINER_LOWEST: Color = Color::from_u8(15, 13, 19, 255);
 pub const SURFACE_CONTAINER_LOW: Color = Color::from_u8(29, 27, 32, 255);

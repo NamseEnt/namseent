@@ -22,7 +22,6 @@ impl Display for Suit {
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy)]
 pub enum Rank {
-    Ace,
     Seven,
     Eight,
     Nine,
@@ -30,6 +29,7 @@ pub enum Rank {
     Jack,
     Queen,
     King,
+    Ace,
 }
 impl Display for Rank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -46,11 +46,35 @@ impl Display for Rank {
         write!(f, "{}", s)
     }
 }
+pub const REVERSED_RANKS: [Rank; 8] = [
+    Rank::Ace,
+    Rank::King,
+    Rank::Queen,
+    Rank::Jack,
+    Rank::Ten,
+    Rank::Nine,
+    Rank::Eight,
+    Rank::Seven,
+];
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy)]
 pub struct Card {
     pub suit: Suit,
     pub rank: Rank,
+}
+impl PartialOrd for Card {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let rank_cmp = (self.rank as usize).cmp(&(other.rank as usize));
+        if let std::cmp::Ordering::Equal = rank_cmp {
+            return Some((self.suit as usize).cmp(&(other.suit as usize)));
+        }
+        Some(rank_cmp)
+    }
+}
+impl Ord for Card {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
 }
 
 impl Card {
