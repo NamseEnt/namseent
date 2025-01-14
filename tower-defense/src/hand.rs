@@ -14,8 +14,46 @@ impl Component for Hand {
     fn render(self, ctx: &RenderCtx) {
         let Self { screen_wh } = self;
 
-        let (cards, _set_cards) =
+        let (cards, set_cards) =
             ctx.state(|| (0..5).map(|_| Card::new_random()).collect::<Vec<_>>());
+        let (selected, set_selected) = ctx.state(|| [false, false, false, false, false]);
+        let using_cards = ctx.memo(|| {
+            let selected_cards = cards
+                .iter()
+                .zip(selected.iter())
+                .filter_map(|(card, selected)| {
+                    if *selected {
+                        return Some(*card);
+                    }
+                    None
+                })
+                .collect::<Vec<_>>();
+            if !selected_cards.is_empty() {
+                return selected_cards;
+            }
+            cards.clone_inner()
+        });
+
+        let reroll_selected = || {
+            if selected.len() == 0 {
+                return;
+            }
+            let selected = selected.clone_inner();
+            set_cards.mutate(move |cards| {
+                for (index, selected) in selected.iter().enumerate() {
+                    if !selected {
+                        continue;
+                    }
+                    cards[index] = Card::new_random();
+                }
+            });
+        };
+
+        let toggle_selected = |index: usize| {
+            set_selected.mutate(move |selected| {
+                selected[index] = !selected[index];
+            });
+        };
 
         ctx.compose(|ctx| {
             table::vertical([
@@ -29,18 +67,27 @@ impl Component for Hand {
                                 table::padding(PADDING, |wh, ctx| {
                                     ctx.add(TowerPreview {
                                         wh,
-                                        cards: cards.clone(),
+                                        cards: using_cards.clone(),
                                     });
                                 }),
                             )))
-                            .chain(cards.iter().map(|card| {
-                                table::fixed(
-                                    CARD_WIDTH,
-                                    table::padding(PADDING, |wh, ctx| {
-                                        ctx.add(RenderCard { card: *card, wh });
-                                    }),
-                                )
-                            }))
+                            .chain(cards.iter().zip(selected.iter()).enumerate().map(
+                                |(index, (card, selected))| {
+                                    table::fixed(
+                                        CARD_WIDTH,
+                                        table::padding(PADDING, move |wh, ctx| {
+                                            ctx.add(RenderCard {
+                                                card: *card,
+                                                wh,
+                                                selected: *selected,
+                                                on_click: &|| {
+                                                    toggle_selected(index);
+                                                },
+                                            });
+                                        }),
+                                    )
+                                },
+                            ))
                             .chain(once(table::fixed(
                                 HAND_HEIGHT,
                                 table::padding(PADDING, |wh, ctx| {
@@ -55,13 +102,20 @@ impl Component for Hand {
     }
 }
 
-struct RenderCard {
+struct RenderCard<'a> {
     card: Card,
     wh: Wh<Px>,
+    selected: bool,
+    on_click: &'a dyn Fn(),
 }
-impl Component for RenderCard {
+impl Component for RenderCard<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { card, wh } = self;
+        let Self {
+            card,
+            wh,
+            selected,
+            on_click,
+        } = self;
 
         ctx.compose(|ctx| {
             ctx.translate(Xy::single(PADDING * 3.))
@@ -84,22 +138,36 @@ impl Component for RenderCard {
             },
         }));
 
-        ctx.add(rect(RectParam {
-            rect: wh.to_rect(),
-            style: RectStyle {
-                stroke: Some(RectStroke {
-                    color: palette::OUTLINE,
-                    width: 1.px(),
-                    border_position: BorderPosition::Inside,
-                }),
-                fill: Some(RectFill {
-                    color: palette::SURFACE_CONTAINER_HIGH,
-                }),
-                round: Some(RectRound {
-                    radius: palette::ROUND,
-                }),
-            },
-        }));
+        ctx.add(
+            rect(RectParam {
+                rect: wh.to_rect(),
+                style: RectStyle {
+                    stroke: Some(RectStroke {
+                        color: palette::OUTLINE,
+                        width: 1.px(),
+                        border_position: BorderPosition::Inside,
+                    }),
+                    fill: Some(RectFill {
+                        color: match selected {
+                            true => palette::PRIMARY,
+                            false => palette::SURFACE_CONTAINER_HIGH,
+                        },
+                    }),
+                    round: Some(RectRound {
+                        radius: palette::ROUND,
+                    }),
+                },
+            })
+            .attach_event(|event| {
+                let Event::MouseDown { event } = event else {
+                    return;
+                };
+                if !event.is_local_xy_in() {
+                    return;
+                }
+                on_click();
+            }),
+        );
     }
 }
 
