@@ -11,6 +11,7 @@ export class AudioTranscodingStack extends cdk.Stack {
 
         const assetBucket = new cdk.aws_s3.Bucket(this, "AssetBucket", {
             bucketName: isLocalstack ? localstackAssetBucketName : undefined,
+            blockPublicAccess: cdk.aws_s3.BlockPublicAccess.BLOCK_ACLS,
             publicReadAccess: true,
             cors: [
                 ...(isLocalstack

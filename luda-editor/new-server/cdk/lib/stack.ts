@@ -89,7 +89,7 @@ export class VisualNovelStack extends cdk.Stack {
                     corsBehavior: {
                         accessControlAllowOrigins: [frontendDomain],
                         accessControlAllowMethods: ["GET", "HEAD", "OPTIONS"],
-                        accessControlAllowCredentials: true,
+                        accessControlAllowCredentials: false,
                         accessControlAllowHeaders: ["*"],
                         originOverride: false,
                     },
@@ -119,11 +119,11 @@ export class VisualNovelStack extends cdk.Stack {
             },
         );
 
-        const domainName = "vn-api.namseent.com";
+        const domainName = "api.vn.namseent.com";
 
         new cdk.aws_route53.ARecord(this, "Route53Record", {
             zone: cdk.aws_route53.HostedZone.fromLookup(this, "HostedZone", {
-                domainName: "namseent.com",
+                domainName: "vn.namseent.com",
             }),
             target: cdk.aws_route53.RecordTarget.fromAlias(
                 new cdk.aws_route53_targets.CloudFrontTarget(
@@ -160,10 +160,10 @@ dnf install -y \\
 systemctl enable crond
 systemctl start crond
 
-BINARY_PULL_SCRIPT=$(echo "${atob(binaryPullScript)}" | base64 -w 0)
+BINARY_PULL_SCRIPT=$(echo "${Buffer.from(binaryPullScript).toString("base64")}" | base64 -w 0)
 (crontab -l 2>/dev/null; echo "*/1 * * * * echo $BINARY_PULL_SCRIPT | base64 -d | bash") | crontab -
 
-VPC_ORIGIN_UPDATE_SCRIPT=$(echo "${atob(vpcOriginUpdateScript)}" | base64 -w 0)
+VPC_ORIGIN_UPDATE_SCRIPT=$(echo "${Buffer.from(vpcOriginUpdateScript).toString("base64")}" | base64 -w 0)
 (crontab -l 2>/dev/null; echo "*/1 * * * * echo $VPC_ORIGIN_UPDATE_SCRIPT | base64 -d | bash") | crontab -
 `;
 
