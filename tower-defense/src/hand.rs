@@ -1,4 +1,9 @@
-use crate::{card::Card, palette, tower::get_highest_tower};
+use crate::{
+    card::Card,
+    palette,
+    status::{Flow, FLOW_ATOM},
+    tower::{get_highest_tower, TowerBlueprint},
+};
 use namui::*;
 use namui_prebuilt::{button, table, typography};
 use std::iter::once;
@@ -14,6 +19,7 @@ impl Component for Hand {
     fn render(self, ctx: &RenderCtx) {
         let Self { screen_wh } = self;
 
+        let (flow, set_flow) = ctx.atom(&FLOW_ATOM);
         let (cards, set_cards) =
             ctx.state(|| (0..5).map(|_| Card::new_random()).collect::<Vec<_>>());
         let (selected, set_selected) = ctx.state(|| [false, false, false, false, false]);
@@ -34,6 +40,7 @@ impl Component for Hand {
             }
             cards.clone_inner()
         });
+        let tower_blueprint = ctx.memo(|| get_highest_tower(&using_cards));
 
         let reroll_selected = || {
             if selected.len() == 0 {
@@ -59,6 +66,12 @@ impl Component for Hand {
             });
         };
 
+        let use_tower = || {
+            set_flow.set(Flow::PlacingTower {
+                tower: tower_blueprint.clone_inner(),
+            });
+        };
+
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
@@ -71,7 +84,7 @@ impl Component for Hand {
                                 table::padding(PADDING, |wh, ctx| {
                                     ctx.add(TowerPreview {
                                         wh,
-                                        cards: using_cards.clone(),
+                                        tower_blueprint: &tower_blueprint,
                                     });
                                 }),
                             )))
@@ -99,6 +112,7 @@ impl Component for Hand {
                                         wh,
                                         some_selected: *some_selected,
                                         reroll_selected: &reroll_selected,
+                                        use_tower: &use_tower,
                                     });
                                 }),
                             )))
@@ -181,13 +195,14 @@ impl Component for RenderCard<'_> {
 
 struct TowerPreview<'a> {
     wh: Wh<Px>,
-    cards: Sig<'a, Vec<Card>>,
+    tower_blueprint: &'a TowerBlueprint,
 }
 impl Component for TowerPreview<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, cards } = self;
-
-        let tower_blueprint = ctx.memo(|| get_highest_tower(&cards));
+        let Self {
+            wh,
+            tower_blueprint,
+        } = self;
 
         ctx.compose(|ctx| {
             table::padding(
@@ -247,6 +262,7 @@ struct InteractionArea<'a> {
     wh: Wh<Px>,
     some_selected: bool,
     reroll_selected: &'a dyn Fn(),
+    use_tower: &'a dyn Fn(),
 }
 impl Component for InteractionArea<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -254,6 +270,7 @@ impl Component for InteractionArea<'_> {
             wh,
             some_selected,
             reroll_selected,
+            use_tower,
         } = self;
 
         ctx.compose(|ctx| {
@@ -281,6 +298,20 @@ impl Component for InteractionArea<'_> {
                         });
                     }),
                     table::ratio(1, |_, _| {}),
+                    table::fixed(32.px(), |wh, ctx| {
+                        ctx.add(button::TextButton {
+                            rect: wh.to_rect(),
+                            text: "Use Tower",
+                            text_color: palette::ON_PRIMARY,
+                            stroke_color: palette::OUTLINE,
+                            stroke_width: 1.px(),
+                            fill_color: palette::PRIMARY,
+                            mouse_buttons: vec![MouseButton::Left],
+                            on_mouse_up_in: |_| {
+                                use_tower();
+                            },
+                        });
+                    }),
                 ]),
             )(wh, ctx);
         });

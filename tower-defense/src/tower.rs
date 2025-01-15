@@ -15,6 +15,7 @@ pub enum TowerKind {
     RoyalFlush,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TowerBlueprint {
     pub kind: TowerKind,
     pub suit: Option<Suit>,

@@ -1,7 +1,7 @@
 use rand::Rng;
 use std::fmt::Display;
 
-#[derive(Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub enum Suit {
     Spades,
     Hearts,
@@ -20,7 +20,7 @@ impl Display for Suit {
     }
 }
 
-#[derive(Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub enum Rank {
     Seven,
     Eight,
