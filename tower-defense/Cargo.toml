@@ -1,0 +1,12 @@
+[package]
+name = "tower-defense"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata]
+namui = true
+
+[dependencies]
+namui = { path = "../namui/namui" }
+namui-prebuilt = { path = "../namui/namui-prebuilt" }
+rand = "0.8.5"

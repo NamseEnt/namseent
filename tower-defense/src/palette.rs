@@ -1,0 +1,24 @@
+#![allow(dead_code)]
+use namui::*;
+
+pub const PRIMARY: Color = Color::from_u8(208, 188, 254, 255);
+pub const ON_PRIMARY: Color = Color::from_u8(56, 30, 114, 255);
+pub const SECONDARY: Color = Color::from_u8(204, 194, 220, 255);
+pub const ON_SECONDARY: Color = Color::from_u8(51, 45, 65, 255);
+
+pub const SURFACE: Color = Color::from_u8(20, 18, 24, 255);
+pub const SURFACE_CONTAINER_LOWEST: Color = Color::from_u8(15, 13, 19, 255);
+pub const SURFACE_CONTAINER_LOW: Color = Color::from_u8(29, 27, 32, 255);
+pub const SURFACE_CONTAINER: Color = Color::from_u8(33, 31, 38, 255);
+pub const SURFACE_CONTAINER_HIGH: Color = Color::from_u8(43, 41, 48, 255);
+pub const SURFACE_CONTAINER_HIGHEST: Color = Color::from_u8(54, 52, 59, 255);
+pub const ON_SURFACE: Color = Color::from_u8(230, 224, 233, 255);
+pub const ON_SURFACE_VARIANT: Color = Color::from_u8(202, 196, 208, 255);
+pub const OUTLINE: Color = Color::from_u8(147, 143, 153, 255);
+
+pub const COMMON: Color = Color::from_u8(234, 242, 215, 255);
+pub const RARE: Color = Color::from_u8(3, 138, 255, 255);
+pub const EPIC: Color = Color::from_u8(191, 85, 236, 255);
+pub const LEGENDARY: Color = Color::from_u8(216, 250, 8, 255);
+
+pub const ROUND: Px = px(8.);
