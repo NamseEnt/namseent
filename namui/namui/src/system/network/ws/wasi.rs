@@ -9,11 +9,9 @@ pub async fn connect(url: impl ToString) -> Result<(WsSender, WsReceiver)> {
 
     let id = {
         let url = url.to_string();
-        tokio::task::spawn_blocking(move || unsafe {
-            _new_web_socket(url.as_ptr(), url.as_bytes().len())
-        })
-        .await
-        .unwrap()
+        tokio::task::spawn_blocking(move || unsafe { _new_web_socket(url.as_ptr(), url.len()) })
+            .await
+            .unwrap()
     };
 
     let (event_tx, mut event_rx) = tokio::sync::mpsc::unbounded_channel();
