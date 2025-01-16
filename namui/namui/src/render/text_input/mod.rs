@@ -96,7 +96,7 @@ impl Component for TextInput<'_> {
             }
         }
 
-        let is_focused = focus_ctx.as_ref().map_or(false, |x| x.id == id);
+        let is_focused = focus_ctx.as_ref().is_some_and(|x| x.id == id);
 
         let text = {
             if is_focused {
