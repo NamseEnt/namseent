@@ -1,12 +1,15 @@
+mod tower_preview;
+
 use crate::{
     card::Card,
     palette,
     status::{Flow, FLOW_ATOM},
-    tower::{get_highest_tower, TowerBlueprint},
+    tower::get_highest_tower,
 };
 use namui::*;
 use namui_prebuilt::{button, table, typography};
 use std::iter::once;
+use tower_preview::TowerPreview;
 
 const HAND_HEIGHT: Px = px(160.);
 const CARD_WIDTH: Px = px(120.);
@@ -74,14 +77,14 @@ impl Component for Hand {
 
         ctx.compose(|ctx| {
             table::vertical([
-                table::ratio(1, |_, _| {}),
-                table::fixed(
+                table::ratio_no_clip(1, |_, _| {}),
+                table::fixed_no_clip(
                     HAND_HEIGHT,
                     table::horizontal(
-                        once(table::ratio(1, |_, _| {}))
-                            .chain(once(table::fixed(
+                        once(table::ratio_no_clip(1, |_, _| {}))
+                            .chain(once(table::fixed_no_clip(
                                 HAND_HEIGHT,
-                                table::padding(PADDING, |wh, ctx| {
+                                table::padding_no_clip(PADDING, |wh, ctx| {
                                     ctx.add(TowerPreview {
                                         wh,
                                         tower_blueprint: &tower_blueprint,
@@ -190,71 +193,6 @@ impl Component for RenderCard<'_> {
                 on_click();
             }),
         );
-    }
-}
-
-struct TowerPreview<'a> {
-    wh: Wh<Px>,
-    tower_blueprint: &'a TowerBlueprint,
-}
-impl Component for TowerPreview<'_> {
-    fn render(self, ctx: &RenderCtx) {
-        let Self {
-            wh,
-            tower_blueprint,
-        } = self;
-
-        ctx.compose(|ctx| {
-            table::padding(
-                PADDING,
-                table::vertical([
-                    table::fixed(typography::title::FONT_SIZE.into_px(), |wh, ctx| {
-                        ctx.add(typography::title::left(
-                            wh.height,
-                            format!("{:?}", tower_blueprint.kind),
-                            palette::ON_SURFACE,
-                        ));
-                    }),
-                    table::fixed(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
-                        let Some(rank) = tower_blueprint.rank else {
-                            return;
-                        };
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            format!("{}", rank),
-                            palette::ON_SURFACE_VARIANT,
-                        ));
-                    }),
-                    table::fixed(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
-                        let Some(suit) = tower_blueprint.suit else {
-                            return;
-                        };
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            format!("{}", suit),
-                            palette::ON_SURFACE_VARIANT,
-                        ));
-                    }),
-                ]),
-            )(wh, ctx);
-        });
-
-        ctx.add(rect(RectParam {
-            rect: wh.to_rect(),
-            style: RectStyle {
-                stroke: Some(RectStroke {
-                    color: palette::OUTLINE,
-                    width: 1.px(),
-                    border_position: BorderPosition::Inside,
-                }),
-                fill: Some(RectFill {
-                    color: palette::SURFACE,
-                }),
-                round: Some(RectRound {
-                    radius: palette::ROUND,
-                }),
-            },
-        }));
     }
 }
 
