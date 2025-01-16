@@ -78,7 +78,7 @@ impl Command {
             Command::Test => run.command.test,
         }
     }
-    async fn as_str<'a, 'b>(&'a self, cargo_project_dir: &'b Path) -> Result<String> {
+    async fn as_str(&self, cargo_project_dir: &Path) -> Result<String> {
         Ok(match self {
             Command::Clean => "cargo clean".to_string(),
             Command::Update => "cargo update".to_string(),
