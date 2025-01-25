@@ -1,10 +1,9 @@
-use std::sync::Arc;
-
+use crate::route::*;
+use crate::*;
 use namui::*;
+use std::{collections::BTreeMap, fmt::Debug, sync::Arc};
 
-use crate::route_find;
-
-const MAP_SIZE: Wh<usize> = Wh::new(10, 10);
+const MAP_SIZE: Wh<BlockUnit> = Wh::new(10, 10);
 
 /// ```text
 /// ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■
@@ -18,37 +17,111 @@ const MAP_SIZE: Wh<usize> = Wh::new(10, 10);
 /// ■ ■ ■ ■ ■ ↓ ■ ■ ■ ■ ■ ■
 /// ■ ■ ■ ■ ■ 6 → → → → 7 ■
 /// ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■
-const TRAVEL_POINTS: [Xy<usize>; 8] = [
-    Xy::new(1, 1),
-    Xy::new(1, 5),
-    Xy::new(5, 9),
-    Xy::new(9, 9),
-    Xy::new(9, 5),
-    Xy::new(5, 1),
-    Xy::new(5, 5),
-    Xy::new(9, 5),
+const TRAVEL_POINTS: [MapCoord; 8] = [
+    MapCoord::new(1, 1),
+    MapCoord::new(1, 5),
+    MapCoord::new(5, 9),
+    MapCoord::new(9, 9),
+    MapCoord::new(9, 5),
+    MapCoord::new(5, 1),
+    MapCoord::new(5, 5),
+    MapCoord::new(9, 5),
 ];
 
 pub struct GameState {
     pub monsters: Vec<Monster>,
-    pub towers: Vec<Tower>,
+    pub towers: BTreeMap<MapCoord, Tower>,
     pub camera: Camera,
     pub route: Arc<Route>,
+    pub floor_tiles: BTreeMap<MapCoord, FloorTile>,
 }
 
+impl Component for &GameState {
+    fn render(self, ctx: &RenderCtx) {
+        ctx.scale(self.camera.zoom_scale()).compose(|ctx| {
+            self.render_monsters(&ctx);
+            self.render_towers(&ctx);
+            self.render_floor_tiles(&ctx);
+        });
+    }
+}
+
+// ASSUME: NO EFFECT AND STATE IN INNER RENDER
+// Render in the 1:1 scale, without thinking about the camera zoom level.
+impl GameState {
+    fn render_floor_tiles(&self, ctx: &ComposeCtx) {
+        self.render_stuffs(ctx, self.floor_tiles.iter());
+    }
+
+    fn render_towers(&self, ctx: &ComposeCtx) {
+        self.render_stuffs(ctx, self.towers.iter());
+    }
+
+    fn render_monsters(&self, ctx: &ComposeCtx) {
+        self.render_stuffs(
+            ctx,
+            self.monsters
+                .iter()
+                .map(|monster| (monster.move_on_route.xy(), monster)),
+        );
+    }
+
+    fn render_stuffs<'a, C, MapCoord, MapAxis>(
+        &self,
+        ctx: &ComposeCtx,
+        stuffs: impl Iterator<Item = (MapCoord, &'a C)>,
+    ) where
+        C: 'a,
+        &'a C: Component,
+        MapCoord: AsRef<Xy<MapAxis>>,
+        MapAxis: Ratio + Debug + Clone,
+    {
+        for (xy, stuff) in stuffs {
+            let px_xy = xy
+                .as_ref()
+                .clone()
+                .map(|t| self.camera.map_coord_to_screen_px_ratio() * t);
+            ctx.translate(px_xy).add(stuff);
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum FloorTile {}
+impl Component for &FloorTile {
+    fn render(self, ctx: &RenderCtx) {}
+}
 pub struct Monster {
     pub move_on_route: MoveOnRoute,
     pub kind: MonsterKind,
 }
+impl Component for &Monster {
+    fn render(self, ctx: &RenderCtx) {}
+}
+#[derive(Clone, Copy)]
 pub enum MonsterKind {}
+
+#[derive(Clone, Copy)]
 pub struct Tower {
-    pub position: Xy<usize>,
     pub kind: TowerKind,
 }
+impl Component for &Tower {
+    fn render(self, ctx: &RenderCtx) {}
+}
+#[derive(Clone, Copy)]
 pub enum TowerKind {}
 pub struct Camera {
-    pub left_top: Xy<f32>,
+    pub left_top: MapCoordF32,
     pub zoom_level: ZoomLevel,
+}
+impl Camera {
+    fn map_coord_to_screen_px_ratio(&self) -> Px {
+        todo!()
+    }
+
+    fn zoom_scale(&self) -> Xy<f32> {
+        todo!()
+    }
 }
 pub enum ZoomLevel {
     Default,
@@ -57,19 +130,16 @@ pub enum ZoomLevel {
 
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
-pub struct GameSetting {
-    pub map_size: Xy<usize>,
-}
-
 pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
     ctx.init_atom(&GAME_STATE_ATOM, || GameState {
-        monsters: vec![],
-        towers: vec![],
+        monsters: Default::default(),
+        towers: Default::default(),
         camera: Camera {
             left_top: Xy::new(0.0, 0.0),
             zoom_level: ZoomLevel::Default,
         },
-        route: calculate_routes(&[]).unwrap(),
+        route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
+        floor_tiles: Default::default(),
     })
     .0
 }
@@ -80,144 +150,4 @@ pub fn use_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
 
 pub fn mutate_game_state<F>(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
     GAME_STATE_ATOM.mutate(f);
-}
-
-pub struct Route {
-    xys: Vec<Xy<usize>>,
-}
-
-fn calculate_routes(blockers: &[Xy<usize>]) -> Option<Arc<Route>> {
-    let mut xys = vec![];
-
-    for i in 0..TRAVEL_POINTS.len() - 1 {
-        let start_xy = TRAVEL_POINTS[i];
-        let end_xy = TRAVEL_POINTS[i + 1];
-        let Some(route) = route_find::find_shortest_route(MAP_SIZE, start_xy, end_xy, blockers)
-        else {
-            return None;
-        };
-        xys.extend(route);
-    }
-
-    Some(Arc::new(Route { xys }))
-}
-
-pub struct MoveOnRoute {
-    route: Arc<Route>,
-    route_index: usize,
-    route_progress: f32,
-    xy: Xy<f32>,
-}
-
-impl MoveOnRoute {
-    fn new(route: Arc<Route>) -> Self {
-        Self {
-            xy: route.xys[0].map(|x| x as f32),
-            route,
-            route_index: 0,
-            route_progress: 0.0,
-        }
-    }
-    fn is_finished(&self) -> bool {
-        self.route_index >= self.route.xys.len() - 1
-    }
-    fn tick(&mut self, velocity: f32, dt: f32) {
-        let mut movable_distance = velocity * dt;
-
-        while movable_distance > 0.0 {
-            let Some(next_route_xy) = self
-                .route
-                .xys
-                .get(self.route_index + 1)
-                .map(|x| x.map(|x| x as f32))
-            else {
-                return;
-            };
-            let last_route_xy = self.route.xys[self.route_index].map(|x| x as f32);
-            let left_distance_to_next_route_xy = (next_route_xy - self.xy).length();
-
-            if movable_distance < left_distance_to_next_route_xy {
-                let distance_between_route_xy = (next_route_xy - last_route_xy).length();
-                self.route_progress += movable_distance / distance_between_route_xy;
-                // protect from floating point error... gpt recommendation
-                self.route_progress = self.route_progress.clamp(0.0, 1.0);
-                self.xy = last_route_xy + (next_route_xy - last_route_xy) * self.route_progress;
-                return;
-            }
-            movable_distance -= left_distance_to_next_route_xy;
-            self.route_index += 1;
-            self.route_progress = 0.0;
-            self.xy = next_route_xy;
-        }
-    }
-    pub fn xy(&self) -> Xy<f32> {
-        self.xy
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_tick_moves_monster_forward() {
-        let route = Arc::new(Route {
-            xys: vec![Xy::new(0, 0), Xy::new(10, 0)],
-        });
-        let mut move_on_route = MoveOnRoute::new(route);
-        move_on_route.tick(1.0, 2.5);
-        move_on_route.tick(1.0, 2.5);
-        assert_eq!(move_on_route.route_index, 0);
-        assert!(move_on_route.route_progress > 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(5.0, 0.0));
-    }
-
-    #[test]
-    fn test_tick_reaches_next_point() {
-        let route = Arc::new(Route {
-            xys: vec![Xy::new(0, 0), Xy::new(10, 0)],
-        });
-        let mut move_on_route = MoveOnRoute::new(route);
-        move_on_route.tick(1.0, 5.0);
-        move_on_route.tick(1.0, 5.0);
-        assert_eq!(move_on_route.route_index, 1);
-        assert_eq!(move_on_route.route_progress, 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 0.0));
-    }
-
-    #[test]
-    fn test_tick_finishes_route() {
-        let route = Arc::new(Route {
-            xys: vec![Xy::new(0, 0), Xy::new(10, 0)],
-        });
-        let mut move_on_route = MoveOnRoute::new(route);
-        move_on_route.tick(1.0, 10.0);
-        move_on_route.tick(1.0, 10.0);
-        assert!(move_on_route.is_finished());
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 0.0));
-    }
-
-    #[test]
-    fn test_tick_multiple_points() {
-        let route = Arc::new(Route {
-            xys: vec![Xy::new(0, 0), Xy::new(10, 0), Xy::new(10, 10)],
-        });
-        let mut move_on_route = MoveOnRoute::new(route);
-        move_on_route.tick(1.0, 5.0);
-        assert_eq!(move_on_route.route_index, 0);
-        assert!(move_on_route.route_progress > 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(5.0, 0.0));
-        move_on_route.tick(1.0, 5.0);
-        assert_eq!(move_on_route.route_index, 1);
-        assert_eq!(move_on_route.route_progress, 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 0.0));
-        move_on_route.tick(1.0, 5.0);
-        assert_eq!(move_on_route.route_index, 1);
-        assert!(move_on_route.route_progress > 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 5.0));
-        move_on_route.tick(1.0, 5.0);
-        assert_eq!(move_on_route.route_index, 2);
-        assert_eq!(move_on_route.route_progress, 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 10.0));
-    }
 }
