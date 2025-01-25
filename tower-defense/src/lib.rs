@@ -3,6 +3,7 @@ mod hand;
 mod palette;
 mod status;
 mod tower;
+mod route_find;
 
 use hand::Hand;
 use namui::*;
