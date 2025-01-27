@@ -1,5 +1,5 @@
-mod big_state;
 mod card;
+mod game_state;
 mod hand;
 mod palette;
 mod status;
