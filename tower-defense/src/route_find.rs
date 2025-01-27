@@ -25,7 +25,7 @@ pub fn find_shortest_route(
     wh: Wh<usize>,
     start_xy: Xy<usize>,
     end_xy: Xy<usize>,
-    blockers: Vec<Xy<usize>>,
+    blockers: &[Xy<usize>],
 ) -> Option<Vec<Xy<usize>>> {
     if start_xy == end_xy {
         return Some(vec![start_xy]);
@@ -90,10 +90,10 @@ struct Map {
 }
 
 impl Map {
-    fn new(wh: Wh<usize>, blockers: Vec<Xy<usize>>) -> Self {
+    fn new(wh: Wh<usize>, blockers: &[Xy<usize>]) -> Self {
         let blocks = vec![Block::Empty; wh.width * wh.height];
         let mut this = Self { wh, blocks };
-        for blocker in blockers {
+        for &blocker in blockers {
             *this.block_mut(blocker) = Block::Blocker;
         }
         this
@@ -176,7 +176,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(0, 0);
         let end = Xy::new(4, 4);
-        let blockers = vec![];
+        let blockers = &vec![];
         let route = find_shortest_route(wh, start, end, blockers).unwrap();
         assert_eq!(
             route,
@@ -189,7 +189,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(0, 0);
         let end = Xy::new(4, 4);
-        let blockers = vec![Xy::new(1, 1), Xy::new(2, 2), Xy::new(3, 3)];
+        let blockers = &vec![Xy::new(1, 1), Xy::new(2, 2), Xy::new(3, 3)];
         let route = find_shortest_route(wh, start, end, blockers).unwrap();
         assert_eq!(
             route,
@@ -209,7 +209,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(0, 0);
         let end = Xy::new(4, 4);
-        let blockers = vec![
+        let blockers = &vec![
             Xy::new(1, 0),
             Xy::new(1, 1),
             Xy::new(0, 1),
@@ -226,7 +226,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(2, 2);
         let end = Xy::new(2, 2);
-        let blockers = vec![];
+        let blockers = &vec![];
         let route = find_shortest_route(wh, start, end, blockers).unwrap();
         assert_eq!(route, vec![start]);
     }
@@ -236,7 +236,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(0, 0);
         let end = Xy::new(2, 2);
-        let blockers = vec![Xy::new(1, 0), Xy::new(0, 1)];
+        let blockers = &vec![Xy::new(1, 0), Xy::new(0, 1)];
         let route = find_shortest_route(wh, start, end, blockers);
         assert!(route.is_none());
     }
@@ -246,7 +246,7 @@ mod tests {
         let wh = Wh::new(7, 7);
         let start = Xy::new(0, 0);
         let end = Xy::new(6, 6);
-        let blockers = vec![
+        let blockers = &vec![
             Xy::new(1, 1),
             Xy::new(2, 2),
             Xy::new(3, 3),
@@ -279,7 +279,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(0, 4);
         let end = Xy::new(4, 0);
-        let blockers = vec![Xy::new(2, 2)];
+        let blockers = &vec![Xy::new(2, 2)];
         let route = find_shortest_route(wh, start, end, blockers).unwrap();
         assert_eq!(
             route,
@@ -299,7 +299,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(2, 2);
         let end = Xy::new(4, 4);
-        let blockers = vec![Xy::new(1, 2), Xy::new(2, 1), Xy::new(3, 2), Xy::new(2, 3)];
+        let blockers = &vec![Xy::new(1, 2), Xy::new(2, 1), Xy::new(3, 2), Xy::new(2, 3)];
         let route = find_shortest_route(wh, start, end, blockers);
         assert!(route.is_none());
     }
@@ -309,7 +309,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(0, 0);
         let end = Xy::new(2, 2);
-        let blockers = vec![Xy::new(1, 2), Xy::new(2, 1), Xy::new(3, 2), Xy::new(2, 3)];
+        let blockers = &vec![Xy::new(1, 2), Xy::new(2, 1), Xy::new(3, 2), Xy::new(2, 3)];
         let route = find_shortest_route(wh, start, end, blockers);
         assert!(route.is_none());
     }
@@ -319,7 +319,7 @@ mod tests {
         let wh = Wh::new(100, 100);
         let start = Xy::new(0, 0);
         let end = Xy::new(99, 99);
-        let blockers = vec![
+        let blockers = &vec![
             Xy::new(50, 50),
             Xy::new(51, 51),
             Xy::new(52, 52),
@@ -334,7 +334,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(2, 2);
         let end = Xy::new(3, 3);
-        let blockers = vec![];
+        let blockers = &vec![];
         let route = find_shortest_route(wh, start, end, blockers).unwrap();
         assert_eq!(route, vec![start, end]);
     }
@@ -344,7 +344,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(2, 2);
         let end = Xy::new(3, 3);
-        let blockers = vec![Xy::new(2, 3)];
+        let blockers = &vec![Xy::new(2, 3)];
         let route = find_shortest_route(wh, start, end, blockers).unwrap();
         assert_eq!(route, vec![start, end]);
     }
@@ -354,7 +354,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(2, 2);
         let end = Xy::new(3, 3);
-        let blockers = vec![Xy::new(2, 3), Xy::new(3, 2), Xy::new(3, 3)];
+        let blockers = &vec![Xy::new(2, 3), Xy::new(3, 2), Xy::new(3, 3)];
         let route = find_shortest_route(wh, start, end, blockers);
         assert!(route.is_none());
     }
@@ -364,7 +364,7 @@ mod tests {
         let wh = Wh::new(5, 5);
         let start = Xy::new(2, 2);
         let end = Xy::new(4, 4);
-        let blockers = vec![Xy::new(3, 2), Xy::new(2, 3)];
+        let blockers = &vec![Xy::new(3, 2), Xy::new(2, 3)];
         let route = find_shortest_route(wh, start, end, blockers).unwrap();
         assert_eq!(
             route,
@@ -377,7 +377,7 @@ mod tests {
         let wh = Wh::new(7, 7);
         let start = Xy::new(2, 2);
         let end = Xy::new(5, 5);
-        let blockers = vec![Xy::new(3, 3), Xy::new(4, 4), Xy::new(3, 4), Xy::new(4, 5)];
+        let blockers = &vec![Xy::new(3, 3), Xy::new(4, 4), Xy::new(3, 4), Xy::new(4, 5)];
 
         // map
         // start: s, end: e, blocker: #, empty: .
