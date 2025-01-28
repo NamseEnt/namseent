@@ -61,7 +61,7 @@ pub struct GameSetting {
     pub map_size: Xy<usize>,
 }
 
-pub fn init_gate_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
+pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
     ctx.init_atom(&GAME_STATE_ATOM, || GameState {
         monsters: vec![],
         towers: vec![],
