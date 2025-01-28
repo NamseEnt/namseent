@@ -249,6 +249,15 @@ macro_rules! vector_types {
                 sum
             }
         }
+
+        impl<T> AsRef<$type_name<T>> for $type_name<T>
+        where
+            T: std::fmt::Debug,
+        {
+            fn as_ref(&self) -> &$type_name<T> {
+                self
+            }
+        }
     };
 }
 
