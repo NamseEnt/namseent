@@ -5,7 +5,6 @@ mod palette;
 mod route;
 mod status;
 mod tower;
-mod route_find;
 
 use hand::Hand;
 use namui::*;
