@@ -82,12 +82,6 @@ pub fn mutate_game_state<F>(f: impl FnOnce(&mut GameState) + Send + Sync + 'stat
     GAME_STATE_ATOM.mutate(f);
 }
 
-pub fn main() {
-    namui::start(|ctx| {
-        return;
-    });
-}
-
 pub struct Route {
     xys: Vec<Xy<usize>>,
 }
@@ -143,7 +137,6 @@ impl MoveOnRoute {
             let left_distance_to_next_route_xy = (next_route_xy - self.xy).length();
 
             if movable_distance < left_distance_to_next_route_xy {
-                println!("1");
                 let distance_between_route_xy = (next_route_xy - last_route_xy).length();
                 self.route_progress += movable_distance / distance_between_route_xy;
                 // protect from floating point error... gpt recommendation
@@ -151,7 +144,6 @@ impl MoveOnRoute {
                 self.xy = last_route_xy + (next_route_xy - last_route_xy) * self.route_progress;
                 return;
             }
-            println!("2");
             movable_distance -= left_distance_to_next_route_xy;
             self.route_index += 1;
             self.route_progress = 0.0;
