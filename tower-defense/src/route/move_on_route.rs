@@ -11,7 +11,7 @@ pub struct MoveOnRoute {
 }
 
 impl MoveOnRoute {
-    fn new(route: Arc<Route>) -> Self {
+    pub fn new(route: Arc<Route>) -> Self {
         Self {
             map_coord: route.map_coords[0].map(|x| x as f32),
             route,

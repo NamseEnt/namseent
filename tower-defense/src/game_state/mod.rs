@@ -1,10 +1,12 @@
 mod can_place_tower;
+mod monster_spawn;
 mod render;
 
 use crate::route::*;
 use crate::*;
+use monster_spawn::*;
 use namui::*;
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, num::NonZeroUsize, sync::Arc};
 
 const MAP_SIZE: Wh<BlockUnit> = Wh::new(10, 10);
 
@@ -20,15 +22,14 @@ const MAP_SIZE: Wh<BlockUnit> = Wh::new(10, 10);
 /// ■ ■ ■ ■ ■ ↓ ■ ■ ■ ■ ■ ■
 /// ■ ■ ■ ■ ■ 6 → → → → 7 ■
 /// ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■
-const TRAVEL_POINTS: [MapCoord; 8] = [
+const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(1, 1),
     MapCoord::new(1, 5),
-    MapCoord::new(5, 9),
-    MapCoord::new(9, 9),
-    MapCoord::new(9, 5),
-    MapCoord::new(5, 1),
-    MapCoord::new(5, 5),
-    MapCoord::new(9, 5),
+    MapCoord::new(8, 5),
+    MapCoord::new(8, 1),
+    MapCoord::new(4, 1),
+    MapCoord::new(4, 8),
+    MapCoord::new(8, 8),
 ];
 
 pub struct GameState {
@@ -37,10 +38,13 @@ pub struct GameState {
     pub camera: Camera,
     pub route: Arc<Route>,
     pub floor_tiles: BTreeMap<MapCoord, FloorTile>,
+    monster_spawn_state: MonsterSpawnState,
 }
 
 impl Component for &GameState {
     fn render(self, ctx: &RenderCtx) {
+        ctx.add(&self.monster_spawn_state);
+
         ctx.scale(self.camera.zoom_scale()).compose(|ctx| {
             self.render_monsters(&ctx);
             self.render_towers(&ctx);
@@ -103,6 +107,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         },
         route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
         floor_tiles: Default::default(),
+        monster_spawn_state: MonsterSpawnState::Idle,
     })
     .0
 }
@@ -111,7 +116,7 @@ pub fn use_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
     ctx.atom(&GAME_STATE_ATOM).0
 }
 
-pub fn mutate_game_state<F>(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
+pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
     GAME_STATE_ATOM.mutate(f);
 }
 
