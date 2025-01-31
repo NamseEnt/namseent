@@ -10,6 +10,12 @@ pub struct Route {
     map_coords: Vec<MapCoord>,
 }
 
+impl Route {
+    pub fn iter_coords(&self) -> &[MapCoord] {
+        &self.map_coords
+    }
+}
+
 pub fn calculate_routes(
     blockers: &[MapCoord],
     travel_points: &[MapCoord],
