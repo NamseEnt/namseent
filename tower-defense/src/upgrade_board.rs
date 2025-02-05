@@ -1,4 +1,4 @@
-use crate::{palette, status::UPGRADES_ATOM, upgrade::Upgrade};
+use crate::{game_state::use_game_state, palette, upgrade::Upgrade};
 use namui::*;
 use namui_prebuilt::{
     list_view, simple_rect,
@@ -53,7 +53,8 @@ impl Component for UpgradeBoardModal {
 pub struct UpgradeBoard {}
 impl Component for UpgradeBoard {
     fn render(self, ctx: &namui::RenderCtx) {
-        let (upgrades, _set_upgrades) = ctx.atom(&UPGRADES_ATOM);
+        let game_state = use_game_state(ctx);
+        let upgrades = &game_state.upgrades;
 
         ctx.compose(|ctx| {
             table::padding(

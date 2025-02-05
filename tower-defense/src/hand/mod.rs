@@ -2,8 +2,8 @@ mod tower_preview;
 
 use crate::{
     card::Card,
+    game_state::{flow::GameFlow, mutate_game_state},
     palette,
-    status::{Flow, FLOW_ATOM},
     tower::get_highest_tower,
 };
 use namui::*;
@@ -22,7 +22,6 @@ impl Component for Hand {
     fn render(self, ctx: &RenderCtx) {
         let Self { screen_wh } = self;
 
-        let (flow, set_flow) = ctx.atom(&FLOW_ATOM);
         let (cards, set_cards) =
             ctx.state(|| (0..5).map(|_| Card::new_random()).collect::<Vec<_>>());
         let (selected, set_selected) = ctx.state(|| [false, false, false, false, false]);
@@ -70,8 +69,11 @@ impl Component for Hand {
         };
 
         let use_tower = || {
-            set_flow.set(Flow::PlacingTower {
-                tower: tower_blueprint.clone_inner(),
+            let tower_blueprint = tower_blueprint.clone_inner();
+            mutate_game_state(|state| {
+                state.flow = GameFlow::PlacingTower {
+                    tower: tower_blueprint,
+                };
             });
         };
 

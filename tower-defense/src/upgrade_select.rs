@@ -1,6 +1,6 @@
 use crate::{
+    game_state::{flow::GameFlow, mutate_game_state},
     palette,
-    status::{go_to_selecting_tower, UPGRADES_ATOM},
     upgrade::{merge_or_append_upgrade, Upgrade},
 };
 use namui::*;
@@ -31,7 +31,6 @@ impl Component for UpgradeSelectModal<'_> {
             upgrades,
         } = self;
 
-        let (_, set_upgrades) = ctx.atom(&UPGRADES_ATOM);
         let (opened, set_opened) = ctx.state(|| true);
 
         let toggle_open = || {
@@ -40,10 +39,10 @@ impl Component for UpgradeSelectModal<'_> {
 
         let on_upgrade_select = |upgrade: &Upgrade| {
             let upgrade = upgrade.clone();
-            set_upgrades.mutate(move |upgrades| {
-                merge_or_append_upgrade(upgrades, upgrade.clone());
+            mutate_game_state(|state| {
+                merge_or_append_upgrade(&mut state.upgrades, upgrade);
+                state.flow = GameFlow::SelectingTower;
             });
-            go_to_selecting_tower();
         };
 
         let offset = ((screen_wh - UPGRADE_SELECT_WH) * 0.5).as_xy();
