@@ -46,7 +46,8 @@ impl Component for TowerPreview<'_> {
                 return;
             };
 
-            ctx.absolute(*offset).add(TowerEffectDescription { effect });
+            ctx.absolute(*offset)
+                .add(TowerEffectDescription { effect: &effect });
         });
 
         ctx.compose(|ctx| {
