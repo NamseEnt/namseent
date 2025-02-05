@@ -1,5 +1,6 @@
 use crate::card::{Rank, Suit};
 
+#[derive(Debug, Clone)]
 pub enum Upgrade {
     Tower {
         target: TowerUpgradeTarget,
@@ -143,12 +144,64 @@ pub fn merge_or_append_upgrade(upgrades: &mut Vec<Upgrade>, upgrade: Upgrade) {
 
     upgrades.push(upgrade);
 }
+impl Upgrade {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Upgrade::Tower { .. } => "타워 업그레이드",
+            Upgrade::ShopSlot { .. } => "상점 슬롯 확장",
+            Upgrade::QuestSlot { .. } => "퀘스트 슬롯 확장",
+            Upgrade::QuestBoardSlot { .. } => "퀘스트 게시판 슬롯 확장",
+            Upgrade::Reroll { .. } => "리롤 횟수 증가가",
+        }
+    }
+    pub fn description(&self) -> String {
+        match self {
+            Upgrade::Tower { target, upgrade } => {
+                let mut description = String::new();
+                match target {
+                    TowerUpgradeTarget::Rank { rank } => {
+                        description.push_str(&format!("{}", rank));
+                    }
+                    TowerUpgradeTarget::Suit { suit } => {
+                        description.push_str(&format!("{}", suit));
+                    }
+                }
+                description.push_str("타워의 ");
+                match upgrade {
+                    TowerUpgrade::DamagePlus { damage } => {
+                        description.push_str(&format!("공격력을 {}만큼 증가시킵니다.", damage));
+                    }
+                    TowerUpgrade::DamageMultiplier { multiplier } => {
+                        description
+                            .push_str(&format!("공격력을 {}배 만큼 증가시킵니다.", multiplier));
+                    }
+                    TowerUpgrade::SpeedPlus { speed } => {
+                        description.push_str(&format!("공격 속도를 {}만큼 증가시킵니다.", speed));
+                    }
+                    TowerUpgrade::SpeedMultiplier { multiplier } => {
+                        description
+                            .push_str(&format!("공격 속도를 {}배 만큼 증가시킵니다.", multiplier));
+                    }
+                    TowerUpgrade::RangePlus { range } => {
+                        description.push_str(&format!("공격 범위를 {}만큼 증가시킵니다.", range));
+                    }
+                }
+                description
+            }
+            Upgrade::ShopSlot { .. } => "상점 슬롯을 확장합니다.".to_string(),
+            Upgrade::QuestSlot { .. } => "퀘스트 슬롯을 확장합니다.".to_string(),
+            Upgrade::QuestBoardSlot { .. } => "퀘스트 게시판 슬롯을 확장합니다.".to_string(),
+            Upgrade::Reroll { .. } => "리롤 횟수를 증가시킵니다.".to_string(),
+        }
+    }
+}
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum TowerUpgradeTarget {
     Rank { rank: Rank },
     Suit { suit: Suit },
 }
+#[derive(Debug, Clone)]
 pub enum TowerUpgrade {
     DamagePlus { damage: f32 },
     DamageMultiplier { multiplier: f32 },
