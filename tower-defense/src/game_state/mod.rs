@@ -1,9 +1,11 @@
 mod can_place_tower;
+pub mod flow;
 mod monster_spawn;
 mod render;
 
-use crate::route::*;
 use crate::*;
+use crate::{route::*, upgrade::Upgrade};
+use flow::GameFlow;
 use monster_spawn::*;
 use namui::*;
 use std::{collections::BTreeMap, num::NonZeroUsize, sync::Arc};
@@ -38,6 +40,8 @@ pub struct GameState {
     pub camera: Camera,
     pub route: Arc<Route>,
     pub floor_tiles: BTreeMap<MapCoord, FloorTile>,
+    pub upgrades: Vec<Upgrade>,
+    pub flow: GameFlow,
     monster_spawn_state: MonsterSpawnState,
 }
 
@@ -107,6 +111,8 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         },
         route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
         floor_tiles: Default::default(),
+        upgrades: Default::default(),
+        flow: GameFlow::SelectingTower,
         monster_spawn_state: MonsterSpawnState::Idle,
     })
     .0
