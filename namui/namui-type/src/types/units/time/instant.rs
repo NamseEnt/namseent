@@ -56,6 +56,9 @@ auto_ops::impl_op!(-|lhs: &mut Instant, rhs: &mut Duration| -> Instant {
     add_duration(*lhs, -*rhs)
 });
 
+auto_ops::impl_op!(+= |lhs: &mut Instant, rhs: Duration| { *lhs = *lhs + rhs });
+auto_ops::impl_op!(+= |lhs: &mut Instant, rhs: &Duration| { *lhs = *lhs + rhs });
+
 fn sub_instant(lhs: Instant, rhs: Instant) -> Duration {
     lhs.inner - rhs.inner
 }

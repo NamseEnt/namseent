@@ -8,22 +8,30 @@ pub struct MoveOnRoute {
     /// must be in [0.0, 1.0]
     route_progress: f32,
     map_coord: MapCoordF32,
+    velocity: Velocity,
 }
 
+pub type Velocity = Per<f32, Duration>;
+
 impl MoveOnRoute {
-    pub fn new(route: Arc<Route>) -> Self {
+    pub fn new(route: Arc<Route>, velocity: Velocity) -> Self {
         Self {
             map_coord: route.map_coords[0].map(|x| x as f32),
             route,
             route_index: 0,
             route_progress: 0.0,
+            velocity,
         }
     }
-    fn is_finished(&self) -> bool {
+    pub fn is_finished(&self) -> bool {
         self.route_index >= self.route.map_coords.len() - 1
     }
-    fn tick(&mut self, velocity: f32, dt: f32) {
-        let mut movable_distance = velocity * dt;
+    pub fn xy(&self) -> Xy<f32> {
+        self.map_coord
+    }
+
+    pub(crate) fn move_by(&mut self, dt: Duration) {
+        let mut movable_distance = self.velocity * dt;
 
         while movable_distance > 0.0 {
             let Some(next_route_xy) = self
@@ -52,23 +60,22 @@ impl MoveOnRoute {
             self.map_coord = next_route_xy;
         }
     }
-    pub fn xy(&self) -> Xy<f32> {
-        self.map_coord
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const ONE_VELOCITY: Velocity = Per::new(1.0, Duration::from_secs(1));
+
     #[test]
     fn test_tick_moves_monster_forward() {
         let route = Arc::new(Route {
             map_coords: vec![Xy::new(0, 0), Xy::new(10, 0)],
         });
-        let mut move_on_route = MoveOnRoute::new(route);
-        move_on_route.tick(1.0, 2.5);
-        move_on_route.tick(1.0, 2.5);
+        let mut move_on_route = MoveOnRoute::new(route, ONE_VELOCITY);
+        move_on_route.move_by(Duration::from_secs_f32(2.5));
+        move_on_route.move_by(Duration::from_secs_f32(2.5));
         assert_eq!(move_on_route.route_index, 0);
         assert!(move_on_route.route_progress > 0.0);
         assert_eq!(move_on_route.xy(), Xy::new(5.0, 0.0));
@@ -79,9 +86,9 @@ mod tests {
         let route = Arc::new(Route {
             map_coords: vec![Xy::new(0, 0), Xy::new(10, 0)],
         });
-        let mut move_on_route = MoveOnRoute::new(route);
-        move_on_route.tick(1.0, 5.0);
-        move_on_route.tick(1.0, 5.0);
+        let mut move_on_route = MoveOnRoute::new(route, ONE_VELOCITY);
+        move_on_route.move_by(Duration::from_secs_f32(5.0));
+        move_on_route.move_by(Duration::from_secs_f32(5.0));
         assert_eq!(move_on_route.route_index, 1);
         assert_eq!(move_on_route.route_progress, 0.0);
         assert_eq!(move_on_route.xy(), Xy::new(10.0, 0.0));
@@ -92,9 +99,9 @@ mod tests {
         let route = Arc::new(Route {
             map_coords: vec![Xy::new(0, 0), Xy::new(10, 0)],
         });
-        let mut move_on_route = MoveOnRoute::new(route);
-        move_on_route.tick(1.0, 10.0);
-        move_on_route.tick(1.0, 10.0);
+        let mut move_on_route = MoveOnRoute::new(route, ONE_VELOCITY);
+        move_on_route.move_by(Duration::from_secs_f32(10.0));
+        move_on_route.move_by(Duration::from_secs_f32(10.0));
         assert!(move_on_route.is_finished());
         assert_eq!(move_on_route.xy(), Xy::new(10.0, 0.0));
     }
@@ -104,20 +111,20 @@ mod tests {
         let route = Arc::new(Route {
             map_coords: vec![Xy::new(0, 0), Xy::new(10, 0), Xy::new(10, 10)],
         });
-        let mut move_on_route = MoveOnRoute::new(route);
-        move_on_route.tick(1.0, 5.0);
+        let mut move_on_route = MoveOnRoute::new(route, ONE_VELOCITY);
+        move_on_route.move_by(Duration::from_secs_f32(5.0));
         assert_eq!(move_on_route.route_index, 0);
         assert!(move_on_route.route_progress > 0.0);
         assert_eq!(move_on_route.xy(), Xy::new(5.0, 0.0));
-        move_on_route.tick(1.0, 5.0);
+        move_on_route.move_by(Duration::from_secs_f32(5.0));
         assert_eq!(move_on_route.route_index, 1);
         assert_eq!(move_on_route.route_progress, 0.0);
         assert_eq!(move_on_route.xy(), Xy::new(10.0, 0.0));
-        move_on_route.tick(1.0, 5.0);
+        move_on_route.move_by(Duration::from_secs_f32(5.0));
         assert_eq!(move_on_route.route_index, 1);
         assert!(move_on_route.route_progress > 0.0);
         assert_eq!(move_on_route.xy(), Xy::new(10.0, 5.0));
-        move_on_route.tick(1.0, 5.0);
+        move_on_route.move_by(Duration::from_secs_f32(5.0));
         assert_eq!(move_on_route.route_index, 2);
         assert_eq!(move_on_route.route_progress, 0.0);
         assert_eq!(move_on_route.xy(), Xy::new(10.0, 10.0));

@@ -125,10 +125,10 @@ impl std::ops::Neg for &Duration {
 }
 
 impl std::ops::Div<Duration> for Duration {
-    type Output = f64;
+    type Output = f32;
     fn div(self, rhs: Self) -> Self::Output {
-        let lhs_secs = self.inner.as_secs_f64();
-        let rhs_secs = rhs.inner.as_secs_f64();
+        let lhs_secs = self.inner.as_secs_f32();
+        let rhs_secs = rhs.inner.as_secs_f32();
         if rhs_secs == 0.0 {
             panic!("divide by zero")
         }
@@ -182,6 +182,9 @@ auto_ops::impl_op!(/|lhs: &Duration, rhs: &usize| -> Duration { div_usize(*lhs, 
 
 auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: Duration| { *lhs = add(*lhs, rhs) });
 auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: &Duration| { *lhs = add(*lhs, * rhs) });
+
+auto_ops::impl_op!(-=|lhs: &mut Duration, rhs: Duration| { *lhs = add(*lhs, -rhs) });
+auto_ops::impl_op!(-=|lhs: &mut Duration, rhs: &Duration| { *lhs = add(*lhs, -*rhs) });
 
 //
 

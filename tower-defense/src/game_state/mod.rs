@@ -2,6 +2,7 @@ mod can_place_tower;
 pub mod flow;
 mod monster_spawn;
 mod render;
+mod tick;
 
 use crate::*;
 use crate::{route::*, upgrade::Upgrade};
@@ -47,12 +48,10 @@ pub struct GameState {
 
 impl Component for &GameState {
     fn render(self, ctx: &RenderCtx) {
-        ctx.add(&self.monster_spawn_state);
+        ctx.add(tick::Ticker {});
 
         ctx.scale(self.camera.zoom_scale()).compose(|ctx| {
-            self.render_monsters(&ctx);
-            self.render_towers(&ctx);
-            self.render_floor_tiles(&ctx);
+            render::render(self, ctx);
         });
     }
 }
