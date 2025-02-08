@@ -1,5 +1,11 @@
 use super::*;
 
+pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
+    game_state.render_monsters(&ctx);
+    game_state.render_towers(&ctx);
+    game_state.render_floor_tiles(&ctx);
+}
+
 // ASSUME: NO EFFECT AND STATE IN INNER RENDER
 // Render in the 1:1 scale, without thinking about the camera zoom level.
 impl GameState {

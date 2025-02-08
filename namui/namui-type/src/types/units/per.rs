@@ -16,7 +16,7 @@ where
     TNumerator: Debug,
     TDenominator: Debug,
 {
-    pub fn new(numerator: TNumerator, denominator: TDenominator) -> Self {
+    pub const fn new(numerator: TNumerator, denominator: TDenominator) -> Self {
         Self {
             numerator,
             denominator,
@@ -33,10 +33,8 @@ where
 
 impl<TNumerator, TDenominator, T> std::ops::Mul<TDenominator> for Per<TNumerator, TDenominator>
 where
-    TNumerator: std::ops::Mul<T, Output = TNumerator>,
-    TDenominator: std::ops::Div<TDenominator, Output = T>,
-    TNumerator: Debug,
-    TDenominator: Debug,
+    TNumerator: std::ops::Mul<T, Output = TNumerator> + Debug,
+    TDenominator: std::ops::Div<TDenominator, Output = T> + Debug,
 {
     type Output = TNumerator;
 
@@ -47,8 +45,6 @@ where
 
 impl<TNumerator, TDenominator> std::fmt::Debug for Per<TNumerator, TDenominator>
 where
-    TNumerator: std::fmt::Debug,
-    TDenominator: std::fmt::Debug,
     TNumerator: Debug,
     TDenominator: Debug,
 {
@@ -62,10 +58,8 @@ where
 
 impl<TNumerator, TDenominator> Ord for Per<TNumerator, TDenominator>
 where
-    TNumerator: std::ops::Mul<f32, Output = TNumerator> + Ord + Copy,
-    TDenominator: std::ops::Div<Output = f32> + Copy,
-    TNumerator: Debug,
-    TDenominator: Debug,
+    TNumerator: std::ops::Mul<f32, Output = TNumerator> + Ord + Copy + Debug,
+    TDenominator: std::ops::Div<Output = f32> + Copy + Debug,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         let denominator_ratio = self.denominator / other.denominator;
@@ -75,18 +69,14 @@ where
 }
 impl<TNumerator, TDenominator> Eq for Per<TNumerator, TDenominator>
 where
-    TNumerator: std::ops::Mul<f32, Output = TNumerator> + PartialOrd + PartialEq + Copy,
-    TDenominator: std::ops::Div<Output = f32> + Copy,
-    TNumerator: Debug,
-    TDenominator: Debug,
+    TNumerator: std::ops::Mul<f32, Output = TNumerator> + PartialOrd + PartialEq + Copy + Debug,
+    TDenominator: std::ops::Div<Output = f32> + Copy + Debug,
 {
 }
 impl<TNumerator, TDenominator> PartialOrd for Per<TNumerator, TDenominator>
 where
-    TNumerator: std::ops::Mul<f32, Output = TNumerator> + PartialOrd + Copy,
-    TDenominator: std::ops::Div<Output = f32> + Copy,
-    TNumerator: Debug,
-    TDenominator: Debug,
+    TNumerator: std::ops::Mul<f32, Output = TNumerator> + PartialOrd + Copy + Debug,
+    TDenominator: std::ops::Div<Output = f32> + Copy + Debug,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         let denominator_ratio = self.denominator / other.denominator;
@@ -96,10 +86,8 @@ where
 }
 impl<TNumerator, TDenominator> PartialEq for Per<TNumerator, TDenominator>
 where
-    TNumerator: std::ops::Mul<f32, Output = TNumerator> + PartialEq + Copy,
-    TDenominator: std::ops::Div<Output = f32> + Copy,
-    TNumerator: Debug,
-    TDenominator: Debug,
+    TNumerator: std::ops::Mul<f32, Output = TNumerator> + PartialEq + Copy + Debug,
+    TDenominator: std::ops::Div<Output = f32> + Copy + Debug,
 {
     fn eq(&self, other: &Self) -> bool {
         let denominator_ratio = self.denominator / other.denominator;
@@ -110,10 +98,8 @@ where
 
 impl<TNumerator, TDenominator> std::fmt::Display for Per<TNumerator, TDenominator>
 where
-    TNumerator: std::fmt::Display,
-    TDenominator: std::fmt::Display,
-    TNumerator: Debug,
-    TDenominator: Debug,
+    TNumerator: std::fmt::Display + Debug,
+    TDenominator: std::fmt::Display + Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}/{}", self.numerator, self.denominator)
@@ -122,10 +108,8 @@ where
 
 impl<TNumerator, TDenominator> crate::SimpleSigned for Per<TNumerator, TDenominator>
 where
-    TNumerator: crate::SimpleSigned,
-    TDenominator: crate::SimpleSigned,
-    TNumerator: Debug,
-    TDenominator: Debug,
+    TNumerator: crate::SimpleSigned + Debug,
+    TDenominator: crate::SimpleSigned + Debug,
 {
     fn is_sign_positive(&self) -> bool {
         !self.is_sign_negative()
