@@ -34,14 +34,40 @@ impl GameState {
         C: 'a,
         &'a C: Component,
         MapCoord: AsRef<Xy<MapAxis>>,
-        MapAxis: Ratio + std::fmt::Debug + Clone,
+        MapAxis: Ratio + std::fmt::Debug + Clone + Copy,
     {
+        let camera = &self.camera;
+
+        let screen_rect = Rect::from_xy_wh(
+            camera.left_top,
+            namui::screen::size().map(|t| t.into_px() / camera.map_coord_to_screen_px_ratio()),
+        );
+
         for (xy, stuff) in stuffs {
-            let px_xy = xy
-                .as_ref()
-                .clone()
-                .map(|t| self.camera.map_coord_to_screen_px_ratio() * t);
-            ctx.translate(px_xy).add(stuff);
+            let xy = *xy.as_ref();
+            if screen_rect.right() < xy.x.as_f32() || screen_rect.bottom() < xy.y.as_f32() {
+                continue;
+            }
+
+            let px_xy = xy.map(|t| self.camera.map_coord_to_screen_px_ratio() * t);
+            ctx.translate(px_xy).compose(move |ctx| {
+                let rendering_tree = ctx.ghost_add("", stuff);
+                let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
+                    return;
+                };
+
+                let local_right = bounding_box.right() / self.camera.map_coord_to_screen_px_ratio();
+                let local_bottom =
+                    bounding_box.bottom() / self.camera.map_coord_to_screen_px_ratio();
+
+                if xy.x.as_f32() + local_right < screen_rect.left()
+                    || xy.y.as_f32() + local_bottom < screen_rect.top()
+                {
+                    return;
+                }
+
+                ctx.add(rendering_tree);
+            });
         }
     }
 }
