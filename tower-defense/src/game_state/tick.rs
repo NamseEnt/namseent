@@ -51,13 +51,10 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
 
-        let Some(monster_index) = monsters.iter().enumerate().find_map(|(i, monster)| {
-            if monster.projectile_target_indicator == projectile.target_indicator {
-                Some(i)
-            } else {
-                None
-            }
-        }) else {
+        let Some(monster_index) = monsters
+            .iter()
+            .position(|monster| monster.projectile_target_indicator == projectile.target_indicator)
+        else {
             return false;
         };
 
@@ -84,13 +81,13 @@ fn shoot_projectiles(game_state: &mut GameState, now: Instant) {
     let projectiles = game_state
         .towers
         .iter_mut()
-        .map(|(tower_xy, tower)| {
+        .map(|tower| {
             if tower.in_cooltime(now) {
                 return None;
             }
 
             let Some(target) = game_state.monsters.iter().find(|monster| {
-                (monster.move_on_route.xy() - tower_xy.map(|t| t as f32)).length()
+                (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
                     < tower.attack_range_radius
             }) else {
                 return None;

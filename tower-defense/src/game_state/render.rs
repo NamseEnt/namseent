@@ -14,7 +14,7 @@ impl GameState {
     }
 
     pub fn render_towers(&self, ctx: &ComposeCtx) {
-        self.render_stuffs(ctx, self.towers.iter());
+        self.render_stuffs(ctx, self.towers.iter().map(|tower| (tower.left_top, tower)));
     }
 
     pub fn render_monsters(&self, ctx: &ComposeCtx) {
