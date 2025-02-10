@@ -230,6 +230,14 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T>
         where
+            T: From<f32> + Into<f32> + Copy + std::fmt::Debug + std::ops::Sub<Output = T>,
+        {
+            pub fn distance(&self, rhs: $type_name<T>) -> T {
+                (self - rhs).length()
+            }
+        }
+        impl<T> $type_name<T>
+        where
             T: std::ops::Div<f32, Output = T>
                 + $crate::Ratio
                 + Clone
