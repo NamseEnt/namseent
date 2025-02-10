@@ -13,28 +13,16 @@ use namui::*;
 use projectile::*;
 use std::{collections::BTreeMap, num::NonZeroUsize, sync::Arc};
 
-const MAP_SIZE: Wh<BlockUnit> = Wh::new(10, 10);
+const MAP_SIZE: Wh<BlockUnit> = Wh::new(49, 43);
 
-/// ```text
-/// ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■
-/// ■ 1 ■ ■ ■ 5 ← ← ← ← 4 ■
-/// ■ ↓ ■ ■ ■ ↓ ■ ■ ■ ■ ↑ ■
-/// ■ ↓ ■ ■ ■ ↓ ■ ■ ■ ■ ↑ ■
-/// ■ ↓ ■ ■ ■ ↓ ■ ■ ■ ■ ↑ ■
-/// ■ 2 → → → ┼ → → → → 3 ■
-/// ■ ■ ■ ■ ■ ↓ ■ ■ ■ ■ ■ ■
-/// ■ ■ ■ ■ ■ ↓ ■ ■ ■ ■ ■ ■
-/// ■ ■ ■ ■ ■ ↓ ■ ■ ■ ■ ■ ■
-/// ■ ■ ■ ■ ■ 6 → → → → 7 ■
-/// ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■
 const TRAVEL_POINTS: [MapCoord; 7] = [
-    MapCoord::new(1, 1),
-    MapCoord::new(1, 5),
-    MapCoord::new(8, 5),
-    MapCoord::new(8, 1),
-    MapCoord::new(4, 1),
-    MapCoord::new(4, 8),
-    MapCoord::new(8, 8),
+    MapCoord::new(7, 1),
+    MapCoord::new(7, 24),
+    MapCoord::new(42, 24),
+    MapCoord::new(42, 7),
+    MapCoord::new(25, 7),
+    MapCoord::new(25, 42),
+    MapCoord::new(48, 42),
 ];
 
 pub struct GameState {
@@ -72,7 +60,7 @@ pub struct Monster {
 }
 impl Monster {
     fn get_damage(&mut self, damage: usize) {
-        self.hp.saturating_sub(damage);
+        self.hp = self.hp.saturating_sub(damage);
     }
 
     fn dead(&self) -> bool {
@@ -84,6 +72,12 @@ impl Component for &Monster {
 }
 #[derive(Clone, Copy)]
 pub enum MonsterKind {}
+
+impl MonsterKind {
+    fn max_hp(&self) -> usize {
+        todo!()
+    }
+}
 
 #[derive(Clone)]
 pub struct Tower {
