@@ -13,28 +13,16 @@ use namui::*;
 use projectile::*;
 use std::{collections::BTreeMap, num::NonZeroUsize, sync::Arc};
 
-const MAP_SIZE: Wh<BlockUnit> = Wh::new(10, 10);
+const MAP_SIZE: Wh<BlockUnit> = Wh::new(49, 43);
 
-/// ```text
-/// ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■
-/// ■ 1 ■ ■ ■ 5 ← ← ← ← 4 ■
-/// ■ ↓ ■ ■ ■ ↓ ■ ■ ■ ■ ↑ ■
-/// ■ ↓ ■ ■ ■ ↓ ■ ■ ■ ■ ↑ ■
-/// ■ ↓ ■ ■ ■ ↓ ■ ■ ■ ■ ↑ ■
-/// ■ 2 → → → ┼ → → → → 3 ■
-/// ■ ■ ■ ■ ■ ↓ ■ ■ ■ ■ ■ ■
-/// ■ ■ ■ ■ ■ ↓ ■ ■ ■ ■ ■ ■
-/// ■ ■ ■ ■ ■ ↓ ■ ■ ■ ■ ■ ■
-/// ■ ■ ■ ■ ■ 6 → → → → 7 ■
-/// ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■
 const TRAVEL_POINTS: [MapCoord; 7] = [
-    MapCoord::new(1, 1),
-    MapCoord::new(1, 5),
-    MapCoord::new(8, 5),
-    MapCoord::new(8, 1),
-    MapCoord::new(4, 1),
-    MapCoord::new(4, 8),
-    MapCoord::new(8, 8),
+    MapCoord::new(7, 1),
+    MapCoord::new(7, 24),
+    MapCoord::new(42, 24),
+    MapCoord::new(42, 7),
+    MapCoord::new(25, 7),
+    MapCoord::new(25, 42),
+    MapCoord::new(48, 42),
 ];
 
 pub struct GameState {
@@ -99,7 +87,7 @@ impl MonsterKind {
 
 #[derive(Clone)]
 pub struct Tower {
-    pub xy: MapCoord,
+    pub left_top: MapCoord,
     pub kind: TowerKind,
     pub last_shoot_time: Instant,
     pub shoot_interval: Duration,
@@ -118,7 +106,7 @@ impl Tower {
 
         Projectile {
             kind: self.projectile_kind,
-            xy: self.xy.map(|t| t as f32 + 0.5),
+            xy: self.left_top.map(|t| t as f32 + 0.5),
             velocity: self.projectile_speed,
             target_indicator,
             damage: self.damage,
@@ -182,24 +170,25 @@ pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static)
 }
 
 /// Assume that the tower's size is 2x2.
+/// All iteration in this struct will be in the order of left-top, right-top, left-bottom, right-bottom.
 #[derive(Default)]
 pub struct PlacedTowers {
     /// key is the left-top coord of the tower.
-    inner: BTreeMap<MapCoord, Tower>,
+    inner: Vec<Tower>,
 }
 
 impl PlacedTowers {
-    pub fn iter(&self) -> impl Iterator<Item = (&MapCoord, &Tower)> {
+    pub fn iter(&self) -> impl Iterator<Item = &Tower> {
         self.inner.iter()
     }
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&MapCoord, &mut Tower)> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Tower> {
         self.inner.iter_mut()
     }
 
     pub fn coords(&self) -> Vec<MapCoord> {
-        self.inner
-            .keys()
-            .flat_map(|&left_top| {
+        self.iter()
+            .flat_map(|tower| {
+                let left_top = tower.left_top;
                 let right_top = left_top + MapCoord::new(1, 0);
                 let left_bottom = left_top + MapCoord::new(0, 1);
                 let right_bottom = left_top + MapCoord::new(1, 1);
@@ -207,4 +196,24 @@ impl PlacedTowers {
             })
             .collect()
     }
+
+    pub fn place_tower(&mut self, tower: Tower) {
+        // let's find the right place of tower and insert it
+
+        let Some(index) = self.inner.iter().position(|placed_tower| {
+            tower.left_top.y < placed_tower.left_top.y || tower.left_top.x < placed_tower.left_top.x
+        }) else {
+            self.inner.push(tower);
+            return;
+        };
+
+        self.inner.insert(index, tower);
+    }
+}
+
+/// Make sure that the tower can be placed at the given coord.
+pub fn place_tower(tower: Tower) {
+    crate::game_state::mutate_game_state(move |game_state| {
+        game_state.towers.place_tower(tower);
+    });
 }
