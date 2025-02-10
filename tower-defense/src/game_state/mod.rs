@@ -1,5 +1,6 @@
 mod can_place_tower;
 pub mod flow;
+mod monster;
 mod monster_spawn;
 mod projectile;
 mod render;
@@ -8,6 +9,7 @@ mod tick;
 use crate::*;
 use crate::{route::*, upgrade::Upgrade};
 use flow::GameFlow;
+use monster::*;
 use monster_spawn::*;
 use namui::*;
 use projectile::*;
@@ -57,32 +59,6 @@ impl Component for &GameState {
 pub enum FloorTile {}
 impl Component for &FloorTile {
     fn render(self, ctx: &RenderCtx) {}
-}
-pub struct Monster {
-    pub move_on_route: MoveOnRoute,
-    pub kind: MonsterKind,
-    pub projectile_target_indicator: ProjectileTargetIndicator,
-    pub hp: usize,
-}
-impl Monster {
-    fn get_damage(&mut self, damage: usize) {
-        self.hp = self.hp.saturating_sub(damage);
-    }
-
-    fn dead(&self) -> bool {
-        self.hp == 0
-    }
-}
-impl Component for &Monster {
-    fn render(self, ctx: &RenderCtx) {}
-}
-#[derive(Clone, Copy)]
-pub enum MonsterKind {}
-
-impl MonsterKind {
-    fn max_hp(&self) -> usize {
-        todo!()
-    }
 }
 
 #[derive(Clone)]

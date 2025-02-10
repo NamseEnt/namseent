@@ -24,7 +24,8 @@ impl Component for Ticker {
 }
 
 fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
-    crate::game_state::spawn_tick(game_state, now);
+    crate::game_state::monster_spawn::tick(game_state, now);
+    crate::game_state::monster::activate_monster_skills(game_state, now);
     move_monsters(game_state, dt);
     move_projectiles(game_state, dt);
     shoot_projectiles(game_state, now);
