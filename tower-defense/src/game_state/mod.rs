@@ -72,7 +72,7 @@ pub struct Monster {
 }
 impl Monster {
     fn get_damage(&mut self, damage: usize) {
-        self.hp.saturating_sub(damage);
+        self.hp = self.hp.saturating_sub(damage);
     }
 
     fn dead(&self) -> bool {
