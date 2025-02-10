@@ -19,6 +19,7 @@ impl Display for Suit {
         write!(f, "{}", s)
     }
 }
+pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub enum Rank {
