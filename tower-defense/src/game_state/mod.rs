@@ -1,5 +1,6 @@
 mod can_place_tower;
 pub mod flow;
+mod item;
 mod monster;
 mod monster_spawn;
 mod projectile;
@@ -43,6 +44,7 @@ pub struct GameState {
     pub reroll: usize,
     monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
+    pub items: Vec<item::Item>,
 }
 
 impl Component for &GameState {
@@ -133,6 +135,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         reroll: 1,
         monster_spawn_state: MonsterSpawnState::Idle,
         projectiles: Default::default(),
+        items: Default::default(),
     })
     .0
 }
