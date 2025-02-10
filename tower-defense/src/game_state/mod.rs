@@ -85,6 +85,12 @@ impl Component for &Monster {
 #[derive(Clone, Copy)]
 pub enum MonsterKind {}
 
+impl MonsterKind {
+    fn max_hp(&self) -> usize {
+        todo!()
+    }
+}
+
 #[derive(Clone)]
 pub struct Tower {
     pub xy: MapCoord,
