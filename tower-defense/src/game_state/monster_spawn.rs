@@ -6,19 +6,13 @@ pub enum MonsterSpawnState {
         left_spawn_count: NonZeroUsize,
         next_spawn_time: Instant,
         spawn_interval: Duration,
-        monster_kind: MonsterKind,
-        velocity: Velocity,
+        template: MonsterTemplate,
     },
 }
 
 /// This won't immediately spawn a monster or update game_state,
 /// but it just requests to start spawning a monster.
-pub fn start_spawn(
-    monster_kind: MonsterKind,
-    monster_velocity: Velocity,
-    spawn_count: NonZeroUsize,
-    spawn_interval: Duration,
-) {
+pub fn start_spawn(template: MonsterTemplate, spawn_count: NonZeroUsize, spawn_interval: Duration) {
     crate::game_state::mutate_game_state(move |game_state| {
         if !matches!(game_state.monster_spawn_state, MonsterSpawnState::Idle) {
             return;
@@ -28,19 +22,17 @@ pub fn start_spawn(
             left_spawn_count: spawn_count,
             next_spawn_time: Instant::now(),
             spawn_interval,
-            monster_kind,
-            velocity: monster_velocity,
+            template,
         };
     });
 }
 
-pub fn spawn_tick(game_state: &mut GameState, now: Instant) {
+pub fn tick(game_state: &mut GameState, now: Instant) {
     let MonsterSpawnState::Spawning {
         left_spawn_count,
         next_spawn_time,
         spawn_interval,
-        monster_kind,
-        velocity,
+        template,
     } = &mut game_state.monster_spawn_state
     else {
         return;
@@ -50,12 +42,9 @@ pub fn spawn_tick(game_state: &mut GameState, now: Instant) {
         return;
     }
 
-    game_state.monsters.push(Monster {
-        move_on_route: MoveOnRoute::new(game_state.route.clone(), *velocity),
-        kind: *monster_kind,
-        projectile_target_indicator: ProjectileTargetIndicator::new(),
-        hp: monster_kind.max_hp(),
-    });
+    game_state
+        .monsters
+        .push(Monster::new(template, game_state.route.clone()));
 
     if left_spawn_count.get() == 1 {
         game_state.monster_spawn_state = MonsterSpawnState::Idle;
