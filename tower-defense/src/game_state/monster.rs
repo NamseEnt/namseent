@@ -106,6 +106,12 @@ pub enum MonsterSkillKind {
     SelfImmuneToSlow,
 }
 
+pub fn remove_finished_status_effects(game_state: &mut GameState, now: Instant) {
+    for monster in game_state.monsters.iter_mut() {
+        monster.status_effects.retain(|e| now < e.end_at);
+    }
+}
+
 pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
     let mut activated_skills = vec![];
 
@@ -160,4 +166,15 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
             }
         }
     }
+}
+
+pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
+    for monster in &mut game_state.monsters {
+        monster.move_on_route.move_by(dt);
+    }
+
+    // todo: deal damage to user
+    game_state
+        .monsters
+        .retain(|monster| !monster.move_on_route.is_finished());
 }

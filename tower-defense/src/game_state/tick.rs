@@ -25,21 +25,13 @@ impl Component for Ticker {
 
 fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     crate::game_state::monster_spawn::tick(game_state, now);
+
+    crate::game_state::monster::remove_finished_status_effects(game_state, now);
     crate::game_state::monster::activate_monster_skills(game_state, now);
-    move_monsters(game_state, dt);
+    crate::game_state::monster::move_monsters(game_state, dt);
+
     move_projectiles(game_state, dt);
     shoot_projectiles(game_state, now);
-}
-
-fn move_monsters(game_state: &mut GameState, dt: Duration) {
-    for monster in &mut game_state.monsters {
-        monster.move_on_route.move_by(dt);
-    }
-
-    // todo: deal damage to user
-    game_state
-        .monsters
-        .retain(|monster| !monster.move_on_route.is_finished());
 }
 
 fn move_projectiles(game_state: &mut GameState, dt: Duration) {
