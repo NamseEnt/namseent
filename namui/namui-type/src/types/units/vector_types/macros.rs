@@ -37,8 +37,7 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T>
         where
-            T: Clone,
-            T: std::fmt::Debug,
+            T: Clone + std::fmt::Debug,
         {
             pub fn single(value: T) -> $type_name<T> {
                 $type_name {
@@ -163,8 +162,7 @@ macro_rules! vector_types {
 
         impl<T> std::ops::AddAssign<$type_name<T>> for $type_name<T>
         where
-            T: std::ops::AddAssign + Clone,
-            T: std::fmt::Debug,
+            T: std::ops::AddAssign + Clone + std::fmt::Debug,
         {
             fn add_assign(&mut self, rhs: $type_name<T>) {
                 $( self.$field_ident.add_assign(rhs.$field_ident.clone()); )*
@@ -173,8 +171,7 @@ macro_rules! vector_types {
 
         impl<'a, T> std::ops::AddAssign<&'a $type_name<T>> for $type_name<T>
         where
-            T: std::ops::AddAssign + Clone,
-            T: std::fmt::Debug,
+            T: std::ops::AddAssign + Clone + std::fmt::Debug,
         {
             fn add_assign(&mut self, rhs: &$type_name<T>) {
                 $( self.$field_ident.add_assign(rhs.$field_ident.clone()); )*
@@ -183,8 +180,7 @@ macro_rules! vector_types {
 
         impl<T> std::ops::SubAssign<$type_name<T>> for $type_name<T>
         where
-            T: std::ops::SubAssign + Clone,
-            T: std::fmt::Debug,
+            T: std::ops::SubAssign + Clone + std::fmt::Debug,
         {
             fn sub_assign(&mut self, rhs: $type_name<T>) {
                 $( self.$field_ident.sub_assign(rhs.$field_ident.clone()); )*
@@ -193,8 +189,7 @@ macro_rules! vector_types {
 
         impl<'a, T> std::ops::SubAssign<&'a $type_name<T>> for $type_name<T>
         where
-            T: std::ops::SubAssign + Clone,
-            T: std::fmt::Debug,
+            T: std::ops::SubAssign + Clone + std::fmt::Debug,
         {
             fn sub_assign(&mut self, rhs: &$type_name<T>) {
                 $( self.$field_ident.sub_assign(rhs.$field_ident.clone()); )*
@@ -204,8 +199,7 @@ macro_rules! vector_types {
 
         impl<T> $type_name<T>
         where
-            T: From<f32>,
-            T: std::fmt::Debug,
+            T: From<f32> + std::fmt::Debug,
         {
             #[inline(always)]
             pub fn zero() -> $type_name<T> {
@@ -221,8 +215,7 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T>
         where
-            T: From<f32> + Into<f32> + Copy,
-            T: std::fmt::Debug,
+            T: From<f32> + Into<f32> + Copy + std::fmt::Debug,
         {
             pub fn length(&self) -> T {
                 let length_in_f32 = {
@@ -235,11 +228,28 @@ macro_rules! vector_types {
                 T::from(length_in_f32)
             }
         }
+        impl<T> $type_name<T>
+        where
+            T: std::ops::Div<f32, Output = T>
+                + $crate::Ratio
+                + Clone
+                + std::fmt::Debug
+                + From<f32> + Into<f32> + Copy + std::fmt::Debug,
+        {
+            pub fn normalize(&self) -> $type_name<T> {
+                let length: f32 = self.length().into();
+                if length == 0.0 {
+                    return $type_name::zero();
+                }
+                $type_name {
+                    $( $field_ident: self.$field_ident.clone() / length ),*
+                }
+            }
+        }
 
         impl<T> $type_name<T>
         where
-            T: std::ops::Mul<Output = T> + std::ops::AddAssign + Clone + Default,
-            T: std::fmt::Debug,
+            T: std::ops::Mul<Output = T> + std::ops::AddAssign + Clone + Default + std::fmt::Debug,
         {
             pub fn dot(&self, rhs: &$type_name<T>) -> T {
                 let mut sum = T::default();
