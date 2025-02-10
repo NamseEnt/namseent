@@ -45,6 +45,12 @@ pub struct GameState {
     pub floor_tiles: BTreeMap<MapCoord, FloorTile>,
     pub upgrades: Vec<Upgrade>,
     pub flow: GameFlow,
+    /// one-based
+    pub stage: usize,
+    pub shop_slot: usize,
+    pub quest_slot: usize,
+    pub quest_board_slot: usize,
+    pub reroll: usize,
     monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
 }
@@ -156,6 +162,11 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         floor_tiles: Default::default(),
         upgrades: Default::default(),
         flow: GameFlow::SelectingTower,
+        stage: 1,
+        shop_slot: 3,
+        quest_slot: 3,
+        quest_board_slot: 1,
+        reroll: 1,
         monster_spawn_state: MonsterSpawnState::Idle,
         projectiles: Default::default(),
     })

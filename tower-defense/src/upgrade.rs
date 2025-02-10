@@ -1,4 +1,14 @@
-use crate::card::{Rank, Suit};
+use crate::{
+    card::{Rank, Suit, REVERSED_RANKS, SUITS},
+    game_state::GameState,
+    rarity::{self, Rarity},
+};
+use rand::{seq::SliceRandom, thread_rng, Rng};
+
+const MAX_QUEST_SLOT_UPGRADE: usize = 5;
+const MAX_QUEST_BOARD_SLOT_UPGRADE: usize = 3;
+const MAX_SHOP_SLOT_UPGRADE: usize = 5;
+const MAX_REROLL_UPGRADE: usize = 2;
 
 #[derive(Debug, Clone)]
 pub enum Upgrade {
@@ -209,3 +219,249 @@ pub enum TowerUpgrade {
     SpeedMultiplier { multiplier: f32 },
     RangePlus { range: f32 },
 }
+
+//TODO: Call this function on clear boss stage
+pub fn generate_upgrades_for_boss_reward(game_state: &GameState, amount: usize) -> Vec<Upgrade> {
+    let rarity_table = generate_rarity_table_for_boss_reward(game_state.stage);
+    let rarities = {
+        let mut rarities = Vec::with_capacity(amount);
+        for _ in 0..amount {
+            let rarity = &rarity_table
+                .choose_weighted(&mut rand::thread_rng(), |x| x.1)
+                .unwrap()
+                .0;
+            rarities.push(*rarity);
+        }
+        rarities
+    };
+
+    let mut upgrades = Vec::with_capacity(rarities.len());
+    for rarity in rarities {
+        let upgrade = generate_upgrade(game_state, rarity);
+        upgrades.push(upgrade);
+    }
+    upgrades
+}
+fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
+    let upgrade_candidates = generate_upgrade_candidate_table(game_state, rarity);
+    let upgrade_candidate = &upgrade_candidates
+        .choose_weighted(&mut rand::thread_rng(), |x| x.1)
+        .unwrap()
+        .0;
+
+    match upgrade_candidate {
+        UpgradeCandidate::Tower => {
+            let target = {
+                let target_is_rank = [true, false]
+                    .choose_weighted(&mut thread_rng(), |x| match x {
+                        true => 1,
+                        false => 3,
+                    })
+                    .unwrap();
+                match target_is_rank {
+                    true => {
+                        let rank = *REVERSED_RANKS.choose(&mut thread_rng()).unwrap();
+                        TowerUpgradeTarget::Rank { rank }
+                    }
+                    false => {
+                        let suit = *SUITS.choose(&mut thread_rng()).unwrap();
+                        TowerUpgradeTarget::Suit { suit }
+                    }
+                }
+            };
+            let upgrade = {
+                // DamagePlus, DamageMultiplier, SpeedPlus, SpeedMultiplier, RangePlus
+                let weight = match rarity {
+                    Rarity::Common => [1.0, 0.1, 1.0, 0.1, 0.5],
+                    Rarity::Rare => [1.0, 0.3, 1.0, 0.3, 0.5],
+                    Rarity::Epic => [1.0, 0.5, 1.0, 0.5, 0.5],
+                    Rarity::Legendary => [0.5, 1.0, 0.5, 1.0, 0.5],
+                };
+                let upgrade_candidates = TARGET_UPGRADE_CANDIDATES
+                    .iter()
+                    .zip(weight)
+                    .collect::<Vec<_>>();
+                let upgrade_candidate = upgrade_candidates
+                    .choose_weighted(&mut thread_rng(), |x| x.1)
+                    .unwrap();
+                match upgrade_candidate.0 {
+                    TargetUpgradeCandidate::DamagePlus => {
+                        let mut rng = thread_rng();
+                        let damage = match rarity {
+                            Rarity::Common => rng.gen_range(1.0..5.0),
+                            Rarity::Rare => rng.gen_range(5.0..10.0),
+                            Rarity::Epic => rng.gen_range(15.0..40.0),
+                            Rarity::Legendary => rng.gen_range(50.0..100.0),
+                        };
+                        TowerUpgrade::DamagePlus { damage }
+                    }
+                    TargetUpgradeCandidate::DamageMultiplier => {
+                        let mut rng = thread_rng();
+                        let multiplier = match rarity {
+                            Rarity::Common => rng.gen_range(1.1..1.2),
+                            Rarity::Rare => rng.gen_range(1.2..1.5),
+                            Rarity::Epic => rng.gen_range(1.5..1.75),
+                            Rarity::Legendary => rng.gen_range(1.75..2.0),
+                        };
+                        TowerUpgrade::DamageMultiplier { multiplier }
+                    }
+                    TargetUpgradeCandidate::SpeedPlus => {
+                        let mut rng = thread_rng();
+                        let speed = match rarity {
+                            Rarity::Common => rng.gen_range(0.1..0.25),
+                            Rarity::Rare => rng.gen_range(0.25..0.5),
+                            Rarity::Epic => rng.gen_range(0.5..0.75),
+                            Rarity::Legendary => rng.gen_range(0.75..1.0),
+                        };
+                        TowerUpgrade::SpeedPlus { speed }
+                    }
+                    TargetUpgradeCandidate::SpeedMultiplier => {
+                        let mut rng = thread_rng();
+                        let multiplier = match rarity {
+                            Rarity::Common => rng.gen_range(1.1..1.2),
+                            Rarity::Rare => rng.gen_range(1.2..1.5),
+                            Rarity::Epic => rng.gen_range(1.5..1.75),
+                            Rarity::Legendary => rng.gen_range(1.75..2.0),
+                        };
+                        TowerUpgrade::SpeedMultiplier { multiplier }
+                    }
+                    TargetUpgradeCandidate::RangePlus => {
+                        let mut rng = thread_rng();
+                        let range = match rarity {
+                            Rarity::Common => rng.gen_range(0.5..1.0),
+                            Rarity::Rare => rng.gen_range(1.0..2.0),
+                            Rarity::Epic => rng.gen_range(2.0..3.0),
+                            Rarity::Legendary => rng.gen_range(3.0..5.0),
+                        };
+                        TowerUpgrade::RangePlus { range }
+                    }
+                }
+            };
+            Upgrade::Tower { target, upgrade }
+        }
+        UpgradeCandidate::ShopSlot => Upgrade::ShopSlot { extra_slot: 1 },
+        UpgradeCandidate::QuestSlot => Upgrade::QuestSlot { extra_slot: 1 },
+        UpgradeCandidate::QuestBoardSlot => Upgrade::QuestBoardSlot { extra_slot: 1 },
+        UpgradeCandidate::Reroll => Upgrade::Reroll { extra_reroll: 1 },
+    }
+}
+fn generate_rarity_table_for_boss_reward(stage: usize) -> Vec<(Rarity, f32)> {
+    let rarity_weight = match stage {
+        15 => [0.85, 0.15, 0.00],
+        25 => [0.78, 0.2, 0.02],
+        30 => [0.7, 0.25, 0.1],
+        35 => [0.48, 0.4, 0.22],
+        40 => [0.35, 0.25, 0.3],
+        45 => [0.15, 0.2, 0.4],
+        46 => [0.15, 0.2, 0.4],
+        47 => [0.15, 0.2, 0.4],
+        48 => [0.15, 0.2, 0.4],
+        49 => [0.15, 0.2, 0.4],
+        _ => panic!("Invalid stage: {}", stage),
+    };
+    let rarity_table = vec![
+        (Rarity::Rare, rarity_weight[0]),
+        (Rarity::Epic, rarity_weight[1]),
+        (Rarity::Legendary, rarity_weight[2]),
+    ];
+    rarity_table
+}
+fn generate_upgrade_candidate_table(
+    game_state: &GameState,
+    rarity: Rarity,
+) -> Vec<(UpgradeCandidate, f32)> {
+    let mut upgrade_candidate_table = Vec::with_capacity(5);
+    upgrade_candidate_table.push((UpgradeCandidate::Tower, 1.0));
+
+    let shop_slot_upgrade = {
+        let remaining_upgrade = MAX_SHOP_SLOT_UPGRADE - game_state.shop_slot;
+        let weight = match rarity {
+            Rarity::Common => [0.0, 0.0, 0.1],
+            Rarity::Rare => [0.0, 0.0, 0.2],
+            Rarity::Epic => [0.0, 0.1, 0.3],
+            Rarity::Legendary => [0.0, 0.2, 0.4],
+        };
+        (
+            UpgradeCandidate::ShopSlot,
+            *weight
+                .get(remaining_upgrade)
+                .expect("Too many shop slot upgrades are available"),
+        )
+    };
+    upgrade_candidate_table.push(shop_slot_upgrade);
+
+    let quest_slot_upgrade = {
+        let remaining_upgrade = MAX_QUEST_SLOT_UPGRADE - game_state.quest_slot;
+        let weight = match rarity {
+            Rarity::Common => [0.0, 0.0, 0.1],
+            Rarity::Rare => [0.0, 0.0, 0.2],
+            Rarity::Epic => [0.0, 0.1, 0.3],
+            Rarity::Legendary => [0.0, 0.2, 0.4],
+        };
+        (
+            UpgradeCandidate::QuestSlot,
+            *weight
+                .get(remaining_upgrade)
+                .expect("Too many quest slot upgrades are available"),
+        )
+    };
+    upgrade_candidate_table.push(quest_slot_upgrade);
+
+    let quest_board_slot_upgrade = {
+        let remaining_upgrade = MAX_QUEST_BOARD_SLOT_UPGRADE - game_state.quest_board_slot;
+        let weight = match rarity {
+            Rarity::Common => [0.0, 0.0, 0.1],
+            Rarity::Rare => [0.0, 0.0, 0.2],
+            Rarity::Epic => [0.0, 0.1, 0.3],
+            Rarity::Legendary => [0.0, 0.2, 0.4],
+        };
+        (
+            UpgradeCandidate::QuestBoardSlot,
+            *weight
+                .get(remaining_upgrade)
+                .expect("Too many quest board slot upgrades are available"),
+        )
+    };
+    upgrade_candidate_table.push(quest_board_slot_upgrade);
+
+    let reroll_upgrade = {
+        let remaining_upgrade = MAX_REROLL_UPGRADE - game_state.reroll;
+        let weight = match rarity {
+            Rarity::Common => [0.0, 0.0, 0.0],
+            Rarity::Rare => [0.0, 0.0, 0.1],
+            Rarity::Epic => [0.0, 0.1, 0.2],
+            Rarity::Legendary => [0.0, 0.4, 0.6],
+        };
+        (
+            UpgradeCandidate::Reroll,
+            *weight
+                .get(remaining_upgrade)
+                .expect("Too many reroll upgrades are available"),
+        )
+    };
+    upgrade_candidate_table.push(reroll_upgrade);
+
+    upgrade_candidate_table
+}
+enum UpgradeCandidate {
+    Tower,
+    ShopSlot,
+    QuestSlot,
+    QuestBoardSlot,
+    Reroll,
+}
+#[derive(Debug, Clone, Copy)]
+enum TargetUpgradeCandidate {
+    DamagePlus,
+    DamageMultiplier,
+    SpeedPlus,
+    SpeedMultiplier,
+    RangePlus,
+}
+const TARGET_UPGRADE_CANDIDATES: [TargetUpgradeCandidate; 5] = [
+    TargetUpgradeCandidate::DamagePlus,
+    TargetUpgradeCandidate::DamageMultiplier,
+    TargetUpgradeCandidate::SpeedPlus,
+    TargetUpgradeCandidate::SpeedMultiplier,
+    TargetUpgradeCandidate::RangePlus,
+];
