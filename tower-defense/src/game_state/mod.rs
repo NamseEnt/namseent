@@ -1,6 +1,7 @@
 mod can_place_tower;
 pub mod flow;
 mod monster_spawn;
+mod projectile;
 mod render;
 mod tick;
 
@@ -9,6 +10,7 @@ use crate::{route::*, upgrade::Upgrade};
 use flow::GameFlow;
 use monster_spawn::*;
 use namui::*;
+use projectile::*;
 use std::{collections::BTreeMap, num::NonZeroUsize, sync::Arc};
 
 const MAP_SIZE: Wh<BlockUnit> = Wh::new(10, 10);
@@ -44,6 +46,7 @@ pub struct GameState {
     pub upgrades: Vec<Upgrade>,
     pub flow: GameFlow,
     monster_spawn_state: MonsterSpawnState,
+    pub projectiles: Vec<Projectile>,
 }
 
 impl Component for &GameState {
@@ -64,6 +67,17 @@ impl Component for &FloorTile {
 pub struct Monster {
     pub move_on_route: MoveOnRoute,
     pub kind: MonsterKind,
+    pub projectile_target_indicator: ProjectileTargetIndicator,
+    pub hp: usize,
+}
+impl Monster {
+    fn get_damage(&mut self, damage: usize) {
+        self.hp.saturating_sub(damage);
+    }
+
+    fn dead(&self) -> bool {
+        self.hp == 0
+    }
 }
 impl Component for &Monster {
     fn render(self, ctx: &RenderCtx) {}
@@ -71,9 +85,33 @@ impl Component for &Monster {
 #[derive(Clone, Copy)]
 pub enum MonsterKind {}
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Tower {
+    pub xy: MapCoord,
     pub kind: TowerKind,
+    pub last_shoot_time: Instant,
+    pub shoot_interval: Duration,
+    pub attack_range_radius: f32,
+    pub projectile_kind: ProjectileKind,
+    pub projectile_speed: Velocity,
+    pub damage: usize,
+}
+impl Tower {
+    fn in_cooltime(&self, now: Instant) -> bool {
+        now < self.last_shoot_time + self.shoot_interval
+    }
+
+    fn shoot(&mut self, target_indicator: ProjectileTargetIndicator, now: Instant) -> Projectile {
+        self.last_shoot_time = now;
+
+        Projectile {
+            kind: self.projectile_kind,
+            xy: self.xy.map(|t| t as f32 + 0.5),
+            velocity: self.projectile_speed,
+            target_indicator,
+            damage: self.damage,
+        }
+    }
 }
 impl Component for &Tower {
     fn render(self, ctx: &RenderCtx) {}
@@ -113,6 +151,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         upgrades: Default::default(),
         flow: GameFlow::SelectingTower,
         monster_spawn_state: MonsterSpawnState::Idle,
+        projectiles: Default::default(),
     })
     .0
 }
@@ -135,6 +174,9 @@ pub struct PlacedTowers {
 impl PlacedTowers {
     pub fn iter(&self) -> impl Iterator<Item = (&MapCoord, &Tower)> {
         self.inner.iter()
+    }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&MapCoord, &mut Tower)> {
+        self.inner.iter_mut()
     }
 
     pub fn coords(&self) -> Vec<MapCoord> {

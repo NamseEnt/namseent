@@ -53,6 +53,7 @@ pub fn spawn_tick(game_state: &mut GameState, now: Instant) {
     game_state.monsters.push(Monster {
         move_on_route: MoveOnRoute::new(game_state.route.clone(), *velocity),
         kind: *monster_kind,
+        projectile_target_indicator: ProjectileTargetIndicator::new(),
     });
 
     if left_spawn_count.get() == 1 {
