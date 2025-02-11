@@ -7,7 +7,7 @@ pub struct Projectile {
     pub kind: ProjectileKind,
     pub velocity: Velocity,
     pub target_indicator: ProjectileTargetIndicator,
-    pub damage: usize,
+    pub damage: f32,
 }
 impl Projectile {
     pub(crate) fn move_by(&mut self, dt: Duration, dest_xy: MapCoordF32) {

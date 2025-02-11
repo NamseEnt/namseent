@@ -11,7 +11,7 @@ use std::{
 pub struct Tower {
     id: usize,
     pub left_top: MapCoord,
-    pub last_shoot_time: Instant,
+    cooldown: Duration,
     template: TowerTemplate,
     pub status_effects: Vec<TowerStatusEffect>,
     pub skills: Vec<TowerSkill>,
@@ -22,29 +22,25 @@ impl Tower {
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
             left_top,
-            last_shoot_time: Instant::now(),
+            cooldown: Duration::from_secs(0),
             template: template.clone(),
             status_effects: vec![],
             skills: vec![],
         }
     }
-    pub fn in_cooltime(&self, now: Instant) -> bool {
-        now < self.last_shoot_time + self.shoot_interval
+    pub fn in_cooltime(&self) -> bool {
+        self.cooldown > Duration::from_secs(0)
     }
 
-    pub fn shoot(
-        &mut self,
-        target_indicator: ProjectileTargetIndicator,
-        now: Instant,
-    ) -> Projectile {
-        self.last_shoot_time = now;
+    pub fn shoot(&mut self, target_indicator: ProjectileTargetIndicator) -> Projectile {
+        self.cooldown = self.shoot_interval;
 
         Projectile {
             kind: self.projectile_kind,
             xy: self.left_top.map(|t| t as f32 + 0.5),
             velocity: self.projectile_speed,
             target_indicator,
-            damage: self.damage,
+            damage: self.calculate_projectile_damage(),
         }
     }
 
@@ -53,6 +49,41 @@ impl Tower {
     }
     fn center_xy_f32(&self) -> MapCoordF32 {
         self.center_xy().map(|t| t as f32)
+    }
+
+    fn calculate_projectile_damage(&self) -> f32 {
+        let mut damage = self.default_damage as f32;
+
+        self.status_effects.iter().for_each(|status_effect| {
+            if let TowerStatusEffectKind::DamageAdd { add } = status_effect.kind {
+                damage += add;
+            }
+        });
+
+        if damage < 0.0 {
+            return 0.0;
+        }
+
+        self.status_effects.iter().for_each(|status_effect| {
+            if let TowerStatusEffectKind::DamageMul { mul } = status_effect.kind {
+                damage *= mul;
+            }
+        });
+
+        damage
+    }
+
+    pub(crate) fn attack_range_radius(&self) -> f32 {
+        self.status_effects.iter().fold(
+            self.default_attack_range_radius,
+            |attack_range_radius, status_effect| {
+                if let TowerStatusEffectKind::AttackRangeAdd { add } = status_effect.kind {
+                    attack_range_radius + add
+                } else {
+                    attack_range_radius
+                }
+            },
+        )
     }
 }
 impl Component for &Tower {
@@ -70,11 +101,37 @@ impl Deref for Tower {
 pub struct TowerTemplate {
     pub kind: TowerKind,
     pub shoot_interval: Duration,
-    pub attack_range_radius: f32,
+    pub default_attack_range_radius: f32,
     pub projectile_kind: ProjectileKind,
     pub projectile_speed: Velocity,
-    pub damage: usize,
+    pub default_damage: usize,
 }
 
 #[derive(Clone, Copy)]
 pub enum TowerKind {}
+
+pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
+    game_state.towers.iter_mut().for_each(|tower| {
+        if tower.cooldown == Duration::from_secs(0) {
+            return;
+        }
+
+        let mut cooldown_sub = dt;
+        tower.status_effects.iter().for_each(|status_effect| {
+            if let TowerStatusEffectKind::AttackSpeedAdd { add } = status_effect.kind {
+                cooldown_sub += Duration::from_secs_f32(add);
+            }
+        });
+        tower.status_effects.iter().for_each(|status_effect| {
+            if let TowerStatusEffectKind::AttackSpeedMul { mul } = status_effect.kind {
+                cooldown_sub *= mul;
+            }
+        });
+
+        if tower.cooldown < cooldown_sub {
+            tower.cooldown = Duration::from_secs(0);
+        } else {
+            tower.cooldown -= cooldown_sub;
+        }
+    });
+}

@@ -25,6 +25,7 @@ impl Component for Ticker {
 
 fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     crate::game_state::monster_spawn::tick(game_state, now);
+    crate::game_state::tower::tower_cooldown_tick(game_state, dt);
 
     crate::game_state::monster::remove_monster_finished_status_effects(game_state, now);
     crate::game_state::tower::remove_tower_finished_status_effects(game_state, now);
@@ -35,7 +36,7 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     crate::game_state::monster::move_monsters(game_state, dt);
 
     move_projectiles(game_state, dt);
-    shoot_projectiles(game_state, now);
+    shoot_projectiles(game_state);
 }
 
 fn move_projectiles(game_state: &mut GameState, dt: Duration) {
@@ -74,23 +75,25 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
     });
 }
 
-fn shoot_projectiles(game_state: &mut GameState, now: Instant) {
+fn shoot_projectiles(game_state: &mut GameState) {
     let projectiles = game_state
         .towers
         .iter_mut()
         .map(|tower| {
-            if tower.in_cooltime(now) {
+            if tower.in_cooltime() {
                 return None;
             }
 
+            let attack_range_radius = tower.attack_range_radius();
+
             let Some(target) = game_state.monsters.iter().find(|monster| {
                 (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
-                    < tower.attack_range_radius
+                    < attack_range_radius
             }) else {
                 return None;
             };
 
-            Some(tower.shoot(target.projectile_target_indicator, now))
+            Some(tower.shoot(target.projectile_target_indicator))
         })
         .flatten();
 
