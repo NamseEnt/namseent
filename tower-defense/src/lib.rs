@@ -1,9 +1,11 @@
 mod card;
 mod game_state;
 mod hand;
+mod inventory;
 mod palette;
 mod rarity;
 mod route;
+mod shop;
 mod tower;
 mod upgrade;
 mod upgrade_board;
@@ -13,6 +15,7 @@ use game_state::flow::GameFlow;
 use hand::Hand;
 use namui::*;
 use namui_prebuilt::simple_rect;
+use shop::ShopModal;
 use upgrade_board::UpgradeBoardModal;
 use upgrade_select::UpgradeSelectModal;
 
@@ -54,6 +57,16 @@ impl Component for Game {
                 screen_wh,
                 upgrades,
             });
+        });
+
+        ctx.compose(|ctx| {
+            let GameFlow::SelectingTower = &game_state.flow else {
+                return;
+            };
+            if game_state.stage % 2 != 0 {
+                return;
+            }
+            ctx.add(ShopModal { screen_wh });
         });
 
         ctx.add(Hand { screen_wh });
