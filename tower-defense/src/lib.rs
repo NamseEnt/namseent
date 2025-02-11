@@ -1,6 +1,7 @@
 mod card;
 mod game_state;
 mod hand;
+mod inventory;
 mod palette;
 mod rarity;
 mod route;

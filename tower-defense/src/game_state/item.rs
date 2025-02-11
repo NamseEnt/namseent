@@ -92,3 +92,7 @@ impl Item {
         }
     }
 }
+
+pub fn use_item(item_index: usize) -> &'static Item {
+    todo!()
+}
