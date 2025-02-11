@@ -1,74 +1,5 @@
-use std::{
-    ops::Deref,
-    sync::atomic::{AtomicUsize, Ordering},
-};
-
 use super::*;
-use namui::*;
-
-pub struct Monster {
-    id: usize,
-    pub move_on_route: MoveOnRoute,
-    pub kind: MonsterKind,
-    pub projectile_target_indicator: ProjectileTargetIndicator,
-    pub hp: usize,
-    pub skills: Vec<MonsterSkill>,
-    pub status_effects: Vec<MonsterStatusEffect>,
-}
-impl Monster {
-    pub fn new(template: &MonsterTemplate, route: Arc<Route>) -> Self {
-        const ID: AtomicUsize = AtomicUsize::new(0);
-        Self {
-            id: ID.fetch_add(1, Ordering::Relaxed),
-            move_on_route: MoveOnRoute::new(route, template.velocity),
-            kind: template.kind,
-            projectile_target_indicator: ProjectileTargetIndicator::new(),
-            hp: template.max_hp,
-            skills: template
-                .skills
-                .iter()
-                .map(|&t| MonsterSkill::new(t))
-                .collect(),
-            status_effects: vec![],
-        }
-    }
-    pub fn get_damage(&mut self, damage: usize) {
-        self.hp = self.hp.saturating_sub(damage);
-    }
-
-    pub fn dead(&self) -> bool {
-        self.hp == 0
-    }
-
-    fn xy(&self) -> MapCoordF32 {
-        self.move_on_route.xy()
-    }
-}
-impl Component for &Monster {
-    fn render(self, ctx: &RenderCtx) {}
-}
-
-pub struct MonsterTemplate {
-    pub kind: MonsterKind,
-    pub max_hp: usize,
-    pub skills: Vec<MonsterSkillTemplate>,
-    pub velocity: Velocity,
-}
-
-#[derive(Clone, Copy)]
-pub enum MonsterKind {}
-
-pub struct MonsterStatusEffect {
-    pub kind: MonsterStatusEffectKind,
-    pub end_at: Instant,
-}
-
-pub enum MonsterStatusEffectKind {
-    SpeedMul { mul: f32 },
-    SpeedAdd { add: f32 },
-    Invincible,
-    ImmuneToSlow,
-}
+use std::ops::Deref;
 
 #[derive(Clone, Copy)]
 pub struct MonsterSkillTemplate {
@@ -79,7 +10,7 @@ pub struct MonsterSkillTemplate {
 
 pub struct MonsterSkill {
     pub last_used_at: Instant,
-    template: MonsterSkillTemplate,
+    pub template: MonsterSkillTemplate,
 }
 
 impl MonsterSkill {
@@ -106,7 +37,21 @@ pub enum MonsterSkillKind {
     SelfImmuneToSlow,
 }
 
-pub fn remove_finished_status_effects(game_state: &mut GameState, now: Instant) {
+#[derive(Clone)]
+pub struct MonsterStatusEffect {
+    pub kind: MonsterStatusEffectKind,
+    pub end_at: Instant,
+}
+
+#[derive(Clone, Copy)]
+pub enum MonsterStatusEffectKind {
+    SpeedMul { mul: f32 },
+    SpeedAdd { add: f32 },
+    Invincible,
+    ImmuneToSlow,
+}
+
+pub fn remove_monster_finished_status_effects(game_state: &mut GameState, now: Instant) {
     for monster in game_state.monsters.iter_mut() {
         monster.status_effects.retain(|e| now < e.end_at);
     }
@@ -166,15 +111,4 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
             }
         }
     }
-}
-
-pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
-    for monster in &mut game_state.monsters {
-        monster.move_on_route.move_by(dt);
-    }
-
-    // todo: deal damage to user
-    game_state
-        .monsters
-        .retain(|monster| !monster.move_on_route.is_finished());
 }

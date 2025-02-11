@@ -5,6 +5,7 @@ mod monster_spawn;
 mod projectile;
 mod render;
 mod tick;
+mod tower;
 
 use crate::*;
 use crate::{route::*, upgrade::Upgrade};
@@ -14,6 +15,7 @@ use monster_spawn::*;
 use namui::*;
 use projectile::*;
 use std::{collections::BTreeMap, num::NonZeroUsize, sync::Arc};
+use tower::*;
 
 const MAP_SIZE: Wh<BlockUnit> = Wh::new(49, 43);
 
@@ -61,39 +63,6 @@ impl Component for &FloorTile {
     fn render(self, ctx: &RenderCtx) {}
 }
 
-#[derive(Clone)]
-pub struct Tower {
-    pub left_top: MapCoord,
-    pub kind: TowerKind,
-    pub last_shoot_time: Instant,
-    pub shoot_interval: Duration,
-    pub attack_range_radius: f32,
-    pub projectile_kind: ProjectileKind,
-    pub projectile_speed: Velocity,
-    pub damage: usize,
-}
-impl Tower {
-    fn in_cooltime(&self, now: Instant) -> bool {
-        now < self.last_shoot_time + self.shoot_interval
-    }
-
-    fn shoot(&mut self, target_indicator: ProjectileTargetIndicator, now: Instant) -> Projectile {
-        self.last_shoot_time = now;
-
-        Projectile {
-            kind: self.projectile_kind,
-            xy: self.left_top.map(|t| t as f32 + 0.5),
-            velocity: self.projectile_speed,
-            target_indicator,
-            damage: self.damage,
-        }
-    }
-}
-impl Component for &Tower {
-    fn render(self, ctx: &RenderCtx) {}
-}
-#[derive(Clone, Copy)]
-pub enum TowerKind {}
 pub struct Camera {
     pub left_top: MapCoordF32,
     pub zoom_level: ZoomLevel,
