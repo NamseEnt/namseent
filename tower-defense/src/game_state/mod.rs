@@ -1,12 +1,13 @@
 mod can_place_tower;
 pub mod flow;
-mod item;
+pub mod item;
 mod monster;
 mod monster_spawn;
 mod projectile;
 mod render;
 mod tick;
 
+use crate::shop::ShopSlot;
 use crate::*;
 use crate::{route::*, upgrade::Upgrade};
 use flow::GameFlow;
@@ -45,6 +46,8 @@ pub struct GameState {
     monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
     pub items: Vec<item::Item>,
+    pub money: u32,
+    pub shop_slots: [ShopSlot; 5],
 }
 
 impl Component for &GameState {
@@ -136,6 +139,8 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         monster_spawn_state: MonsterSpawnState::Idle,
         projectiles: Default::default(),
         items: Default::default(),
+        money: 10,
+        shop_slots: Default::default(),
     })
     .0
 }
