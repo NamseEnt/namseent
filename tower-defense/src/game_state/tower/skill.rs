@@ -33,12 +33,10 @@ impl Deref for TowerSkill {
 pub enum TowerSkillKind {
     NearbyTowerDamageMul { mul: f32, range_radius: f32 },
     NearbyTowerDamageAdd { add: f32, range_radius: f32 },
-    NearbyTowerAttackSpeedMul { mul: f32, range_radius: f32 },
     NearbyTowerAttackSpeedAdd { add: f32, range_radius: f32 },
     NearbyTowerAttackRangeMul { mul: f32, range_radius: f32 },
     NearbyTowerAttackRangeAdd { add: f32, range_radius: f32 },
     NearbyMonsterSpeedMul { mul: f32, range_radius: f32 },
-    NearbyMonsterSpeedAdd { add: f32, range_radius: f32 },
 }
 
 #[derive(Clone)]
@@ -119,15 +117,6 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     },
                 );
             }
-            TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => {
-                on_nearby_towers(
-                    range_radius,
-                    TowerStatusEffect {
-                        kind: TowerStatusEffectKind::AttackSpeedMul { mul },
-                        end_at: now + skill.duration,
-                    },
-                );
-            }
             TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => {
                 on_nearby_towers(
                     range_radius,
@@ -160,15 +149,6 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     range_radius,
                     MonsterStatusEffect {
                         kind: MonsterStatusEffectKind::SpeedMul { mul },
-                        end_at: now + skill.duration,
-                    },
-                );
-            }
-            TowerSkillKind::NearbyMonsterSpeedAdd { add, range_radius } => {
-                on_nearby_monsters(
-                    range_radius,
-                    MonsterStatusEffect {
-                        kind: MonsterStatusEffectKind::SpeedAdd { add },
                         end_at: now + skill.duration,
                     },
                 );

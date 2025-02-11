@@ -46,7 +46,6 @@ pub struct MonsterStatusEffect {
 #[derive(Clone, Copy)]
 pub enum MonsterStatusEffectKind {
     SpeedMul { mul: f32 },
-    SpeedAdd { add: f32 },
     Invincible,
     ImmuneToSlow,
 }

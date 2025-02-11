@@ -59,6 +59,23 @@ pub enum MonsterKind {}
 
 pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
     for monster in &mut game_state.monsters {
+        let is_immune_to_slow = monster.status_effects.iter().any(|status_effect| {
+            matches!(status_effect.kind, MonsterStatusEffectKind::ImmuneToSlow)
+        });
+        let mut dt = dt;
+
+        for status_effect in &monster.status_effects {
+            match status_effect.kind {
+                MonsterStatusEffectKind::SpeedMul { mul } => {
+                    if is_immune_to_slow && mul < 1.0 {
+                        continue;
+                    }
+                    dt *= mul;
+                }
+                MonsterStatusEffectKind::Invincible | MonsterStatusEffectKind::ImmuneToSlow => {}
+            }
+        }
+
         monster.move_on_route.move_by(dt);
     }
 
