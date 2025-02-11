@@ -5,10 +5,10 @@ use crate::{
 };
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
-const MAX_QUEST_SLOT_UPGRADE: usize = 5;
-const MAX_QUEST_BOARD_SLOT_UPGRADE: usize = 3;
-const MAX_SHOP_SLOT_UPGRADE: usize = 5;
-const MAX_REROLL_UPGRADE: usize = 2;
+pub const MAX_QUEST_SLOT_UPGRADE: usize = 5;
+pub const MAX_QUEST_BOARD_SLOT_UPGRADE: usize = 3;
+pub const MAX_SHOP_SLOT_UPGRADE: usize = 5;
+pub const MAX_REROLL_UPGRADE: usize = 2;
 
 #[derive(Debug, Clone)]
 pub enum Upgrade {
