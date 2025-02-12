@@ -1,3 +1,4 @@
+mod camera;
 mod can_place_tower;
 pub mod flow;
 pub mod item;
@@ -11,6 +12,7 @@ mod tower;
 use crate::shop::ShopSlot;
 use crate::*;
 use crate::{route::*, upgrade::Upgrade};
+use camera::*;
 use flow::GameFlow;
 use monster::*;
 use monster_spawn::*;
@@ -19,8 +21,9 @@ use projectile::*;
 use std::{collections::BTreeMap, num::NonZeroUsize, sync::Arc};
 use tower::*;
 
+/// The size of a tile in pixels, with zoom level 1.0.
+const TILE_PX_SIZE: Wh<Px> = Wh::new(px(16.0), px(16.0));
 const MAP_SIZE: Wh<BlockUnit> = Wh::new(49, 43);
-
 const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(7, 1),
     MapCoord::new(7, 24),
@@ -56,9 +59,10 @@ impl Component for &GameState {
     fn render(self, ctx: &RenderCtx) {
         ctx.add(tick::Ticker {});
 
-        ctx.scale(self.camera.zoom_scale()).compose(|ctx| {
-            render::render(self, ctx);
-        });
+        ctx.scale(Xy::single(self.camera.zoom_level))
+            .compose(|ctx| {
+                render::render(self, ctx);
+            });
     }
 }
 
@@ -68,34 +72,13 @@ impl Component for &FloorTile {
     fn render(self, ctx: &RenderCtx) {}
 }
 
-pub struct Camera {
-    pub left_top: MapCoordF32,
-    pub zoom_level: ZoomLevel,
-}
-impl Camera {
-    fn map_coord_to_screen_px_ratio(&self) -> Px {
-        todo!()
-    }
-
-    fn zoom_scale(&self) -> Xy<f32> {
-        todo!()
-    }
-}
-pub enum ZoomLevel {
-    Default,
-    ZoomOut,
-}
-
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
 pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
     ctx.init_atom(&GAME_STATE_ATOM, || GameState {
         monsters: Default::default(),
         towers: Default::default(),
-        camera: Camera {
-            left_top: Xy::new(0.0, 0.0),
-            zoom_level: ZoomLevel::Default,
-        },
+        camera: Camera::new(),
         route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
         floor_tiles: Default::default(),
         upgrades: Default::default(),
