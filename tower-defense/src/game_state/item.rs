@@ -1,11 +1,10 @@
+use super::GameState;
 use crate::{
     card::{Rank, Suit, REVERSED_RANKS, SUITS},
     rarity::Rarity,
 };
 use namui::*;
 use rand::{seq::SliceRandom, thread_rng, Rng};
-
-use super::GameState;
 
 #[derive(Debug, Clone)]
 pub enum Item {
