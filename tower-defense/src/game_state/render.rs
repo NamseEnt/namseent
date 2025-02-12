@@ -38,10 +38,13 @@ impl GameState {
     {
         let camera = &self.camera;
 
-        let screen_rect = Rect::from_xy_wh(
-            camera.left_top,
-            namui::screen::size().map(|t| t.into_px() / camera.map_coord_to_screen_px_ratio()),
-        );
+        let screen_rect = Rect::from_xy_wh(camera.left_top, {
+            let screen_size = namui::screen::size();
+            Wh::new(
+                screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
+                screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
+            )
+        });
 
         for (xy, stuff) in stuffs {
             let xy = *xy.as_ref();
@@ -49,16 +52,15 @@ impl GameState {
                 continue;
             }
 
-            let px_xy = xy.map(|t| self.camera.map_coord_to_screen_px_ratio() * t);
+            let px_xy = TILE_PX_SIZE.as_xy() * xy.map(|t| t.as_f32());
             ctx.translate(px_xy).compose(move |ctx| {
                 let rendering_tree = ctx.ghost_add("", stuff);
                 let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
                     return;
                 };
 
-                let local_right = bounding_box.right() / self.camera.map_coord_to_screen_px_ratio();
-                let local_bottom =
-                    bounding_box.bottom() / self.camera.map_coord_to_screen_px_ratio();
+                let local_right = bounding_box.right() / TILE_PX_SIZE.width;
+                let local_bottom = bounding_box.bottom() / TILE_PX_SIZE.height;
 
                 if xy.x.as_f32() + local_right < screen_rect.left()
                     || xy.y.as_f32() + local_bottom < screen_rect.top()
