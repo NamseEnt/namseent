@@ -10,7 +10,7 @@ pub struct Monster {
     pub move_on_route: MoveOnRoute,
     pub kind: MonsterKind,
     pub projectile_target_indicator: ProjectileTargetIndicator,
-    pub hp: usize,
+    pub hp: f32,
     pub skills: Vec<MonsterSkill>,
     pub status_effects: Vec<MonsterStatusEffect>,
 }
@@ -31,12 +31,20 @@ impl Monster {
             status_effects: vec![],
         }
     }
-    pub fn get_damage(&mut self, damage: usize) {
-        self.hp = self.hp.saturating_sub(damage);
+    pub fn get_damage(&mut self, damage: f32) {
+        if self.dead()
+            || self.status_effects.iter().any(|status_effect| {
+                matches!(status_effect.kind, MonsterStatusEffectKind::Invincible)
+            })
+        {
+            return;
+        }
+
+        self.hp -= damage;
     }
 
     pub fn dead(&self) -> bool {
-        self.hp == 0
+        self.hp <= 0.0
     }
 
     pub fn xy(&self) -> MapCoordF32 {
@@ -49,7 +57,7 @@ impl Component for &Monster {
 
 pub struct MonsterTemplate {
     pub kind: MonsterKind,
-    pub max_hp: usize,
+    pub max_hp: f32,
     pub skills: Vec<MonsterSkillTemplate>,
     pub velocity: Velocity,
 }
@@ -59,6 +67,23 @@ pub enum MonsterKind {}
 
 pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
     for monster in &mut game_state.monsters {
+        let is_immune_to_slow = monster.status_effects.iter().any(|status_effect| {
+            matches!(status_effect.kind, MonsterStatusEffectKind::ImmuneToSlow)
+        });
+        let mut dt = dt;
+
+        for status_effect in &monster.status_effects {
+            match status_effect.kind {
+                MonsterStatusEffectKind::SpeedMul { mul } => {
+                    if is_immune_to_slow && mul < 1.0 {
+                        continue;
+                    }
+                    dt *= mul;
+                }
+                MonsterStatusEffectKind::Invincible | MonsterStatusEffectKind::ImmuneToSlow => {}
+            }
+        }
+
         monster.move_on_route.move_by(dt);
     }
 
