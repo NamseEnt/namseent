@@ -116,17 +116,24 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             return;
         }
 
-        let mut cooldown_sub = dt;
+        let mut time_multiple = 1.0;
+
         tower.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::AttackSpeedAdd { add } = status_effect.kind {
-                cooldown_sub += Duration::from_secs_f32(add);
+                time_multiple += add;
             }
         });
+        if time_multiple == 0.0 {
+            return;
+        }
+
         tower.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::AttackSpeedMul { mul } = status_effect.kind {
-                cooldown_sub *= mul;
+                time_multiple *= mul;
             }
         });
+
+        let cooldown_sub = dt * time_multiple;
 
         if tower.cooldown < cooldown_sub {
             tower.cooldown = Duration::from_secs(0);
