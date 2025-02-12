@@ -133,29 +133,27 @@ fn generate_item(rarity: Rarity) -> Item {
 
     match candidate {
         ItemCandidate::Heal => {
-            let mut rng = thread_rng();
-            let amount = match rarity {
-                Rarity::Common => rng.gen_range(5.0..9.0),
-                Rarity::Rare => rng.gen_range(10.0..14.0),
-                Rarity::Epic => rng.gen_range(15.0..19.0),
-                Rarity::Legendary => rng.gen_range(20.0..25.0),
-            };
+            let amount = thread_rng().gen_range(match rarity {
+                Rarity::Common => 5.0..9.0,
+                Rarity::Rare => 10.0..14.0,
+                Rarity::Epic => 15.0..19.0,
+                Rarity::Legendary => 20.0..25.0,
+            });
             Item::Heal { amount }
         }
         ItemCandidate::TowerDamagePlus => {
-            let mut rng = thread_rng();
-            let amount = match rarity {
-                Rarity::Common => rng.gen_range(1.0..5.0),
-                Rarity::Rare => rng.gen_range(5.0..10.0),
-                Rarity::Epic => rng.gen_range(15.0..40.0),
-                Rarity::Legendary => rng.gen_range(50.0..100.0),
-            };
-            let duration = match rarity {
-                Rarity::Common => Duration::from_secs(2),
-                Rarity::Rare => Duration::from_secs(4),
-                Rarity::Epic => Duration::from_secs(6),
-                Rarity::Legendary => Duration::from_secs(10),
-            };
+            let amount = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.0..5.0,
+                Rarity::Rare => 5.0..10.0,
+                Rarity::Epic => 15.0..40.0,
+                Rarity::Legendary => 50.0..100.0,
+            });
+            let duration = Duration::from_secs(match rarity {
+                Rarity::Common => 2,
+                Rarity::Rare => 4,
+                Rarity::Epic => 6,
+                Rarity::Legendary => 10,
+            });
             let radius = match rarity {
                 Rarity::Common => 5.0,
                 Rarity::Rare => 7.0,
@@ -169,19 +167,18 @@ fn generate_item(rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::TowerDamageMultiply => {
-            let mut rng = thread_rng();
-            let amount = match rarity {
-                Rarity::Common => rng.gen_range(1.1..1.2),
-                Rarity::Rare => rng.gen_range(1.2..1.5),
-                Rarity::Epic => rng.gen_range(1.5..1.75),
-                Rarity::Legendary => rng.gen_range(1.75..2.0),
-            };
-            let duration = match rarity {
-                Rarity::Common => Duration::from_secs(2),
-                Rarity::Rare => Duration::from_secs(4),
-                Rarity::Epic => Duration::from_secs(6),
-                Rarity::Legendary => Duration::from_secs(10),
-            };
+            let amount = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.2,
+                Rarity::Rare => 1.2..1.5,
+                Rarity::Epic => 1.5..1.75,
+                Rarity::Legendary => 1.75..2.0,
+            });
+            let duration = Duration::from_secs(match rarity {
+                Rarity::Common => 2,
+                Rarity::Rare => 4,
+                Rarity::Epic => 6,
+                Rarity::Legendary => 10,
+            });
             let radius = match rarity {
                 Rarity::Common => 5.0,
                 Rarity::Rare => 7.0,
@@ -195,19 +192,18 @@ fn generate_item(rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::TowerSpeedPlus => {
-            let mut rng = thread_rng();
-            let amount = match rarity {
-                Rarity::Common => rng.gen_range(0.1..0.25),
-                Rarity::Rare => rng.gen_range(0.25..0.5),
-                Rarity::Epic => rng.gen_range(0.5..0.75),
-                Rarity::Legendary => rng.gen_range(0.75..1.0),
-            };
-            let duration = match rarity {
-                Rarity::Common => Duration::from_secs(2),
-                Rarity::Rare => Duration::from_secs(4),
-                Rarity::Epic => Duration::from_secs(6),
-                Rarity::Legendary => Duration::from_secs(10),
-            };
+            let amount = thread_rng().gen_range(match rarity {
+                Rarity::Common => 0.1..0.25,
+                Rarity::Rare => 0.25..0.5,
+                Rarity::Epic => 0.5..0.75,
+                Rarity::Legendary => 0.75..1.0,
+            });
+            let duration = Duration::from_secs(match rarity {
+                Rarity::Common => 2,
+                Rarity::Rare => 4,
+                Rarity::Epic => 6,
+                Rarity::Legendary => 10,
+            });
             let radius = match rarity {
                 Rarity::Common => 5.0,
                 Rarity::Rare => 7.0,
@@ -221,19 +217,18 @@ fn generate_item(rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::TowerSpeedMultiply => {
-            let mut rng = thread_rng();
-            let amount = match rarity {
-                Rarity::Common => rng.gen_range(1.1..1.2),
-                Rarity::Rare => rng.gen_range(1.2..1.5),
-                Rarity::Epic => rng.gen_range(1.5..1.75),
-                Rarity::Legendary => rng.gen_range(1.75..2.0),
-            };
-            let duration = match rarity {
-                Rarity::Common => Duration::from_secs(2),
-                Rarity::Rare => Duration::from_secs(4),
-                Rarity::Epic => Duration::from_secs(6),
-                Rarity::Legendary => Duration::from_secs(10),
-            };
+            let amount = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.2,
+                Rarity::Rare => 1.2..1.5,
+                Rarity::Epic => 1.5..1.75,
+                Rarity::Legendary => 1.75..2.0,
+            });
+            let duration = Duration::from_secs(match rarity {
+                Rarity::Common => 2,
+                Rarity::Rare => 4,
+                Rarity::Epic => 6,
+                Rarity::Legendary => 10,
+            });
             let radius = match rarity {
                 Rarity::Common => 5.0,
                 Rarity::Rare => 7.0,
@@ -247,19 +242,18 @@ fn generate_item(rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::TowerRangePlus => {
-            let mut rng = thread_rng();
-            let amount = match rarity {
-                Rarity::Common => rng.gen_range(0.5..1.0),
-                Rarity::Rare => rng.gen_range(1.0..2.0),
-                Rarity::Epic => rng.gen_range(2.0..3.0),
-                Rarity::Legendary => rng.gen_range(3.0..5.0),
-            };
-            let duration = match rarity {
-                Rarity::Common => Duration::from_secs(2),
-                Rarity::Rare => Duration::from_secs(4),
-                Rarity::Epic => Duration::from_secs(6),
-                Rarity::Legendary => Duration::from_secs(10),
-            };
+            let amount = thread_rng().gen_range(match rarity {
+                Rarity::Common => 0.5..1.0,
+                Rarity::Rare => 1.0..2.0,
+                Rarity::Epic => 2.0..3.0,
+                Rarity::Legendary => 3.0..5.0,
+            });
+            let duration = Duration::from_secs(match rarity {
+                Rarity::Common => 2,
+                Rarity::Rare => 4,
+                Rarity::Epic => 6,
+                Rarity::Legendary => 10,
+            });
             let radius = match rarity {
                 Rarity::Common => 5.0,
                 Rarity::Rare => 7.0,
@@ -279,12 +273,12 @@ fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 0.6,
                 Rarity::Legendary => 0.4,
             };
-            let duration = match rarity {
-                Rarity::Common => Duration::from_secs(2),
-                Rarity::Rare => Duration::from_secs(4),
-                Rarity::Epic => Duration::from_secs(6),
-                Rarity::Legendary => Duration::from_secs(10),
-            };
+            let duration = Duration::from_secs(match rarity {
+                Rarity::Common => 2,
+                Rarity::Rare => 4,
+                Rarity::Epic => 6,
+                Rarity::Legendary => 10,
+            });
             let radius = match rarity {
                 Rarity::Common => 5.0,
                 Rarity::Rare => 7.0,
@@ -304,12 +298,12 @@ fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 0.6,
                 Rarity::Legendary => 0.4,
             };
-            let duration = match rarity {
-                Rarity::Common => Duration::from_secs(2),
-                Rarity::Rare => Duration::from_secs(4),
-                Rarity::Epic => Duration::from_secs(6),
-                Rarity::Legendary => Duration::from_secs(10),
-            };
+            let duration = Duration::from_secs(match rarity {
+                Rarity::Common => 2,
+                Rarity::Rare => 4,
+                Rarity::Epic => 6,
+                Rarity::Legendary => 10,
+            });
             let radius = match rarity {
                 Rarity::Common => 5.0,
                 Rarity::Rare => 7.0,
