@@ -286,53 +286,48 @@ fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
                     .unwrap();
                 match upgrade_candidate.0 {
                     TargetUpgradeCandidate::DamagePlus => {
-                        let mut rng = thread_rng();
-                        let damage = match rarity {
-                            Rarity::Common => rng.gen_range(1.0..5.0),
-                            Rarity::Rare => rng.gen_range(5.0..10.0),
-                            Rarity::Epic => rng.gen_range(15.0..40.0),
-                            Rarity::Legendary => rng.gen_range(50.0..100.0),
-                        };
+                        let damage = thread_rng().gen_range(match rarity {
+                            Rarity::Common => 1.0..5.0,
+                            Rarity::Rare => 5.0..10.0,
+                            Rarity::Epic => 15.0..40.0,
+                            Rarity::Legendary => 50.0..100.0,
+                        });
                         TowerUpgrade::DamagePlus { damage }
                     }
                     TargetUpgradeCandidate::DamageMultiplier => {
-                        let mut rng = thread_rng();
-                        let multiplier = match rarity {
-                            Rarity::Common => rng.gen_range(1.1..1.2),
-                            Rarity::Rare => rng.gen_range(1.2..1.5),
-                            Rarity::Epic => rng.gen_range(1.5..1.75),
-                            Rarity::Legendary => rng.gen_range(1.75..2.0),
-                        };
+                        let multiplier = thread_rng().gen_range(match rarity {
+                            Rarity::Common => 1.1..1.2,
+                            Rarity::Rare => 1.2..1.5,
+                            Rarity::Epic => 1.5..1.75,
+                            Rarity::Legendary => 1.75..2.0,
+                        });
                         TowerUpgrade::DamageMultiplier { multiplier }
                     }
                     TargetUpgradeCandidate::SpeedPlus => {
-                        let mut rng = thread_rng();
-                        let speed = match rarity {
-                            Rarity::Common => rng.gen_range(0.1..0.25),
-                            Rarity::Rare => rng.gen_range(0.25..0.5),
-                            Rarity::Epic => rng.gen_range(0.5..0.75),
-                            Rarity::Legendary => rng.gen_range(0.75..1.0),
-                        };
+                        let speed = thread_rng().gen_range(match rarity {
+                            Rarity::Common => 0.1..0.25,
+                            Rarity::Rare => 0.25..0.5,
+                            Rarity::Epic => 0.5..0.75,
+                            Rarity::Legendary => 0.75..1.0,
+                        });
                         TowerUpgrade::SpeedPlus { speed }
                     }
                     TargetUpgradeCandidate::SpeedMultiplier => {
-                        let mut rng = thread_rng();
-                        let multiplier = match rarity {
-                            Rarity::Common => rng.gen_range(1.1..1.2),
-                            Rarity::Rare => rng.gen_range(1.2..1.5),
-                            Rarity::Epic => rng.gen_range(1.5..1.75),
-                            Rarity::Legendary => rng.gen_range(1.75..2.0),
-                        };
+                        let multiplier = thread_rng().gen_range(match rarity {
+                            Rarity::Common => 1.1..1.2,
+                            Rarity::Rare => 1.2..1.5,
+                            Rarity::Epic => 1.5..1.75,
+                            Rarity::Legendary => 1.75..2.0,
+                        });
                         TowerUpgrade::SpeedMultiplier { multiplier }
                     }
                     TargetUpgradeCandidate::RangePlus => {
-                        let mut rng = thread_rng();
-                        let range = match rarity {
-                            Rarity::Common => rng.gen_range(0.5..1.0),
-                            Rarity::Rare => rng.gen_range(1.0..2.0),
-                            Rarity::Epic => rng.gen_range(2.0..3.0),
-                            Rarity::Legendary => rng.gen_range(3.0..5.0),
-                        };
+                        let range = thread_rng().gen_range(match rarity {
+                            Rarity::Common => 0.5..1.0,
+                            Rarity::Rare => 1.0..2.0,
+                            Rarity::Epic => 2.0..3.0,
+                            Rarity::Legendary => 3.0..5.0,
+                        });
                         TowerUpgrade::RangePlus { range }
                     }
                 }
