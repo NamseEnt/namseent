@@ -1,5 +1,11 @@
-use crate::card::{Rank, Suit};
+use crate::{
+    card::{Rank, Suit, REVERSED_RANKS, SUITS},
+    rarity::Rarity,
+};
 use namui::*;
+use rand::{seq::SliceRandom, thread_rng, Rng};
+
+use super::GameState;
 
 #[derive(Debug, Clone)]
 pub enum Item {
@@ -95,4 +101,304 @@ impl Item {
 
 pub fn use_item(item_index: usize) -> &'static Item {
     todo!()
+}
+
+//TODO: Call this function on shop and quest board
+pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {
+    let rarity_table = generate_rarity_table(game_state.stage);
+    let rarities = {
+        let mut rarities = Vec::with_capacity(amount);
+        for _ in 0..amount {
+            let rarity = &rarity_table
+                .choose_weighted(&mut rand::thread_rng(), |x| x.1)
+                .unwrap()
+                .0;
+            rarities.push(*rarity);
+        }
+        rarities
+    };
+
+    let mut items = Vec::with_capacity(rarities.len());
+    for rarity in rarities {
+        let item = generate_item(game_state, rarity);
+        items.push(item);
+    }
+    items
+}
+fn generate_item(game_state: &GameState, rarity: Rarity) -> Item {
+    let candidates = generate_item_candidate_table(rarity);
+    let candidate = &candidates
+        .choose_weighted(&mut rand::thread_rng(), |x| x.1)
+        .unwrap()
+        .0;
+
+    match candidate {
+        ItemCandidate::Heal => {
+            let mut rng = thread_rng();
+            let amount = match rarity {
+                Rarity::Common => rng.gen_range(5.0..9.0),
+                Rarity::Rare => rng.gen_range(10.0..14.0),
+                Rarity::Epic => rng.gen_range(15.0..19.0),
+                Rarity::Legendary => rng.gen_range(20.0..25.0),
+            };
+            Item::Heal { amount }
+        }
+        ItemCandidate::TowerDamagePlus => {
+            let mut rng = thread_rng();
+            let amount = match rarity {
+                Rarity::Common => rng.gen_range(1.0..5.0),
+                Rarity::Rare => rng.gen_range(5.0..10.0),
+                Rarity::Epic => rng.gen_range(15.0..40.0),
+                Rarity::Legendary => rng.gen_range(50.0..100.0),
+            };
+            let duration = match rarity {
+                Rarity::Common => Duration::from_secs(2),
+                Rarity::Rare => Duration::from_secs(4),
+                Rarity::Epic => Duration::from_secs(6),
+                Rarity::Legendary => Duration::from_secs(10),
+            };
+            let radius = match rarity {
+                Rarity::Common => 5.0,
+                Rarity::Rare => 7.0,
+                Rarity::Epic => 10.0,
+                Rarity::Legendary => 15.0,
+            };
+            Item::TowerDamagePlus {
+                amount,
+                duration,
+                radius,
+            }
+        }
+        ItemCandidate::TowerDamageMultiply => {
+            let mut rng = thread_rng();
+            let amount = match rarity {
+                Rarity::Common => rng.gen_range(1.1..1.2),
+                Rarity::Rare => rng.gen_range(1.2..1.5),
+                Rarity::Epic => rng.gen_range(1.5..1.75),
+                Rarity::Legendary => rng.gen_range(1.75..2.0),
+            };
+            let duration = match rarity {
+                Rarity::Common => Duration::from_secs(2),
+                Rarity::Rare => Duration::from_secs(4),
+                Rarity::Epic => Duration::from_secs(6),
+                Rarity::Legendary => Duration::from_secs(10),
+            };
+            let radius = match rarity {
+                Rarity::Common => 5.0,
+                Rarity::Rare => 7.0,
+                Rarity::Epic => 10.0,
+                Rarity::Legendary => 15.0,
+            };
+            Item::TowerDamageMultiply {
+                amount,
+                duration,
+                radius,
+            }
+        }
+        ItemCandidate::TowerSpeedPlus => {
+            let mut rng = thread_rng();
+            let amount = match rarity {
+                Rarity::Common => rng.gen_range(0.1..0.25),
+                Rarity::Rare => rng.gen_range(0.25..0.5),
+                Rarity::Epic => rng.gen_range(0.5..0.75),
+                Rarity::Legendary => rng.gen_range(0.75..1.0),
+            };
+            let duration = match rarity {
+                Rarity::Common => Duration::from_secs(2),
+                Rarity::Rare => Duration::from_secs(4),
+                Rarity::Epic => Duration::from_secs(6),
+                Rarity::Legendary => Duration::from_secs(10),
+            };
+            let radius = match rarity {
+                Rarity::Common => 5.0,
+                Rarity::Rare => 7.0,
+                Rarity::Epic => 10.0,
+                Rarity::Legendary => 15.0,
+            };
+            Item::TowerSpeedPlus {
+                amount,
+                duration,
+                radius,
+            }
+        }
+        ItemCandidate::TowerSpeedMultiply => {
+            let mut rng = thread_rng();
+            let amount = match rarity {
+                Rarity::Common => rng.gen_range(1.1..1.2),
+                Rarity::Rare => rng.gen_range(1.2..1.5),
+                Rarity::Epic => rng.gen_range(1.5..1.75),
+                Rarity::Legendary => rng.gen_range(1.75..2.0),
+            };
+            let duration = match rarity {
+                Rarity::Common => Duration::from_secs(2),
+                Rarity::Rare => Duration::from_secs(4),
+                Rarity::Epic => Duration::from_secs(6),
+                Rarity::Legendary => Duration::from_secs(10),
+            };
+            let radius = match rarity {
+                Rarity::Common => 5.0,
+                Rarity::Rare => 7.0,
+                Rarity::Epic => 10.0,
+                Rarity::Legendary => 15.0,
+            };
+            Item::TowerSpeedMultiply {
+                amount,
+                duration,
+                radius,
+            }
+        }
+        ItemCandidate::TowerRangePlus => {
+            let mut rng = thread_rng();
+            let amount = match rarity {
+                Rarity::Common => rng.gen_range(0.5..1.0),
+                Rarity::Rare => rng.gen_range(1.0..2.0),
+                Rarity::Epic => rng.gen_range(2.0..3.0),
+                Rarity::Legendary => rng.gen_range(3.0..5.0),
+            };
+            let duration = match rarity {
+                Rarity::Common => Duration::from_secs(2),
+                Rarity::Rare => Duration::from_secs(4),
+                Rarity::Epic => Duration::from_secs(6),
+                Rarity::Legendary => Duration::from_secs(10),
+            };
+            let radius = match rarity {
+                Rarity::Common => 5.0,
+                Rarity::Rare => 7.0,
+                Rarity::Epic => 10.0,
+                Rarity::Legendary => 15.0,
+            };
+            Item::TowerRangePlus {
+                amount,
+                duration,
+                radius,
+            }
+        }
+        ItemCandidate::WeakenMultiply => {
+            let mut rng = thread_rng();
+            let amount = match rarity {
+                Rarity::Common => 0.9,
+                Rarity::Rare => 0.8,
+                Rarity::Epic => 0.6,
+                Rarity::Legendary => 0.4,
+            };
+            let duration = match rarity {
+                Rarity::Common => Duration::from_secs(2),
+                Rarity::Rare => Duration::from_secs(4),
+                Rarity::Epic => Duration::from_secs(6),
+                Rarity::Legendary => Duration::from_secs(10),
+            };
+            let radius = match rarity {
+                Rarity::Common => 5.0,
+                Rarity::Rare => 7.0,
+                Rarity::Epic => 10.0,
+                Rarity::Legendary => 15.0,
+            };
+            Item::WeakenMultiply {
+                amount,
+                duration,
+                radius,
+            }
+        }
+        ItemCandidate::SlowdownMultiply => {
+            let mut rng = thread_rng();
+            let amount = match rarity {
+                Rarity::Common => 0.9,
+                Rarity::Rare => 0.8,
+                Rarity::Epic => 0.6,
+                Rarity::Legendary => 0.4,
+            };
+            let duration = match rarity {
+                Rarity::Common => Duration::from_secs(2),
+                Rarity::Rare => Duration::from_secs(4),
+                Rarity::Epic => Duration::from_secs(6),
+                Rarity::Legendary => Duration::from_secs(10),
+            };
+            let radius = match rarity {
+                Rarity::Common => 5.0,
+                Rarity::Rare => 7.0,
+                Rarity::Epic => 10.0,
+                Rarity::Legendary => 15.0,
+            };
+            Item::SlowdownMultiply {
+                amount,
+                duration,
+                radius,
+            }
+        }
+        ItemCandidate::Attack => {
+            let mut rng = thread_rng();
+            let rank = REVERSED_RANKS.choose(&mut rng).unwrap().clone();
+            let suit = SUITS.choose(&mut rng).unwrap().clone();
+            let damage = match rarity {
+                Rarity::Common => 25.0,
+                Rarity::Rare => 500.0,
+                Rarity::Epic => 2500.0,
+                Rarity::Legendary => 5000.0,
+            };
+            let radius = match rarity {
+                Rarity::Common => 5.0,
+                Rarity::Rare => 7.0,
+                Rarity::Epic => 10.0,
+                Rarity::Legendary => 15.0,
+            };
+            Item::Attack {
+                rank,
+                suit,
+                damage,
+                radius,
+            }
+        }
+    }
+}
+fn generate_rarity_table(stage: usize) -> Vec<(Rarity, f32)> {
+    let rarity_weight = match stage {
+        1..=4 => [0.9, 0.1, 0.0, 0.0],
+        5..=9 => [0.75, 0.25, 0.0, 0.0],
+        10..=14 => [0.55, 0.3, 0.15, 0.0],
+        15..=19 => [0.45, 0.33, 0.2, 0.02],
+        20..=24 => [0.25, 0.4, 0.3, 0.05],
+        25..=29 => [0.19, 0.3, 0.35, 0.15],
+        30..=34 => [0.16, 0.2, 0.35, 0.25],
+        35..=39 => [0.09, 0.15, 0.3, 0.3],
+        40..=50 => [0.05, 0.1, 0.3, 0.4],
+        _ => panic!("Invalid stage: {}", stage),
+    };
+    let rarity_table = vec![
+        (Rarity::Common, rarity_weight[0]),
+        (Rarity::Rare, rarity_weight[1]),
+        (Rarity::Epic, rarity_weight[2]),
+        (Rarity::Legendary, rarity_weight[3]),
+    ];
+    rarity_table
+}
+fn generate_item_candidate_table(rarity: Rarity) -> Vec<(ItemCandidate, f32)> {
+    let candidate_weight = match rarity {
+        Rarity::Common => [0.5, 0.3, 0.1, 0.3, 0.1, 0.2, 0.5, 0.5, 0.5],
+        Rarity::Rare => [0.25, 0.2, 0.2, 0.2, 0.2, 0.2, 0.5, 0.5, 0.5],
+        Rarity::Epic => [0.1, 0.1, 0.2, 0.1, 0.2, 0.2, 0.1, 0.3, 0.3],
+        Rarity::Legendary => [0.1, 0.1, 0.3, 0.1, 0.3, 0.2, 0.1, 0.2, 0.2],
+    };
+    let candidate_table = vec![
+        (ItemCandidate::Heal, candidate_weight[0]),
+        (ItemCandidate::TowerDamagePlus, candidate_weight[1]),
+        (ItemCandidate::TowerDamageMultiply, candidate_weight[2]),
+        (ItemCandidate::TowerSpeedPlus, candidate_weight[3]),
+        (ItemCandidate::TowerSpeedMultiply, candidate_weight[4]),
+        (ItemCandidate::TowerRangePlus, candidate_weight[5]),
+        (ItemCandidate::WeakenMultiply, candidate_weight[6]),
+        (ItemCandidate::SlowdownMultiply, candidate_weight[7]),
+        (ItemCandidate::Attack, candidate_weight[8]),
+    ];
+    candidate_table
+}
+enum ItemCandidate {
+    Heal,
+    TowerDamagePlus,
+    TowerDamageMultiply,
+    TowerSpeedPlus,
+    TowerSpeedMultiply,
+    TowerRangePlus,
+    WeakenMultiply,
+    SlowdownMultiply,
+    Attack,
 }
