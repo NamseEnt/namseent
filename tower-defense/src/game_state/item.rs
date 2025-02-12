@@ -119,12 +119,12 @@ pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {
 
     let mut items = Vec::with_capacity(rarities.len());
     for rarity in rarities {
-        let item = generate_item(game_state, rarity);
+        let item = generate_item(rarity);
         items.push(item);
     }
     items
 }
-fn generate_item(game_state: &GameState, rarity: Rarity) -> Item {
+fn generate_item(rarity: Rarity) -> Item {
     let candidates = generate_item_candidate_table(rarity);
     let candidate = &candidates
         .choose_weighted(&mut rand::thread_rng(), |x| x.1)
@@ -273,7 +273,6 @@ fn generate_item(game_state: &GameState, rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::WeakenMultiply => {
-            let mut rng = thread_rng();
             let amount = match rarity {
                 Rarity::Common => 0.9,
                 Rarity::Rare => 0.8,
@@ -299,7 +298,6 @@ fn generate_item(game_state: &GameState, rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::SlowdownMultiply => {
-            let mut rng = thread_rng();
             let amount = match rarity {
                 Rarity::Common => 0.9,
                 Rarity::Rare => 0.8,
