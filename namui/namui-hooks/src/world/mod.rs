@@ -47,38 +47,37 @@ impl World {
         }
     }
 
-    pub(crate) fn get_or_create_instance(&self, composer: &Composer, child_key: ChildKey)
-    //  -> (&Composer, &Instance)
-    {
+    pub(crate) fn get_or_create_instance(
+        &self,
+        composer: &Composer,
+        child_key: ChildKey,
+    ) -> (&Composer, &Instance) {
         let child_instance = self.get_or_create_instance_only_internal(composer, &child_key);
-        // let child_composer = self.get_or_create_composer(composer, child_key);
+        let child_composer = self.get_or_create_composer(composer, child_key);
 
-        // (child_composer, child_instance)
+        (child_composer, child_instance)
     }
 
     fn get_or_create_instance_only_internal(
         &self,
         parent_composer: &Composer,
         child_key: &ChildKey,
-    )
-    //  -> &Instance
-    {
+    ) -> &Instance {
         match parent_composer.instance_id_map.get(child_key) {
-            Some(child_instance_id) => {}
-            // self.instances.get(child_instance_id).unwrap(),
+            Some(child_instance_id) => self.instances.get(child_instance_id).unwrap(),
             None => {
-                // let child_instance_id = InstanceId::generate();
+                let child_instance_id = InstanceId::generate();
 
-                // parent_composer
-                //     .instance_id_map
-                //     .insert(child_key.clone(), child_instance_id.into());
+                parent_composer
+                    .instance_id_map
+                    .insert(child_key.clone(), child_instance_id.into());
 
-                // let child_instance = self.instances.insert(
-                //     child_instance_id,
-                //     Box::new(Instance::new(child_instance_id)),
-                // );
+                let child_instance = self.instances.insert(
+                    child_instance_id,
+                    Box::new(Instance::new(child_instance_id)),
+                );
 
-                // child_instance
+                child_instance
             }
         }
     }
