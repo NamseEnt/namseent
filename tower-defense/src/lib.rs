@@ -11,7 +11,7 @@ mod upgrade;
 mod upgrade_board;
 mod upgrade_select;
 
-use game_state::flow::GameFlow;
+use game_state::{flow::GameFlow, mutate_game_state};
 use hand::Hand;
 use namui::*;
 use namui_prebuilt::simple_rect;
@@ -88,6 +88,12 @@ impl Component for Game {
                     }
                     _ => {}
                 },
+                Event::Wheel { event } => {
+                    let delta = -event.delta_xy.y / 2048.0;
+                    mutate_game_state(move |game_state| {
+                        game_state.camera.zoom(delta);
+                    });
+                }
                 _ => {}
             };
         });

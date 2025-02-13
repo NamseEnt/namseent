@@ -69,7 +69,7 @@ impl GameState {
             Wh::new(
                 screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
                 screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
-            )
+            ) / camera.zoom_level
         });
 
         for (xy, stuff) in stuffs {
