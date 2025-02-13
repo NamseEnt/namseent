@@ -62,143 +62,175 @@ enum EventType {
 }
 
 extern "C" {
-    fn poll_event(ptr: *const u8) -> u8;
+    fn poll_event(ptr: *const u8, wait: bool) -> u8;
     fn initial_window_wh() -> u32;
 }
 
 pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Send) {
-    tokio::task::spawn_blocking(|| unsafe {
+    tokio::task::spawn_blocking(|| {
         let mut looper = Looper::new(component);
         let buffer = [0u8; 8096];
+        let mut next_raw_event = None;
         loop {
-            let length = poll_event(buffer.as_ptr());
-            let packet = &buffer[0..(length as usize)];
+            let mut raw_event = next_raw_event
+                .take()
+                .unwrap_or_else(|| get_event(&buffer, true).unwrap());
 
-            let event_type: EventType = std::mem::transmute(packet[0]);
-
-            let raw_event: RawEvent = match event_type {
-                EventType::OnAnimationFrame => RawEvent::ScreenRedraw,
-                EventType::ScreenResize => {
-                    let width =
-                        u16::from_be_bytes(packet[1..3].try_into().expect("invalid width bytes"));
-                    let height =
-                        u16::from_be_bytes(packet[3..5].try_into().expect("invalid height bytes"));
-
-                    on_resize(width, height);
-
-                    let wh = crate::Wh {
-                        width: (width as i32).int_px(),
-                        height: (height as i32).int_px(),
-                    };
-                    RawEvent::ScreenResize { wh }
-                }
-                EventType::KeyDown | EventType::KeyUp => {
-                    let code_number = packet[1];
-                    let code = Code::try_from(code_number).unwrap();
-                    let func = match event_type {
-                        EventType::KeyDown => crate::keyboard::on_key_down,
-                        EventType::KeyUp => crate::keyboard::on_key_up,
-                        _ => unreachable!(),
-                    };
-                    func(code)
-                }
-                EventType::MouseDown | EventType::MouseMove | EventType::MouseUp => {
-                    let button: u8 = packet[1];
-                    let buttons: u8 = packet[2];
-                    let x = u16::from_be_bytes(packet[3..5].try_into().expect("invalid x bytes"));
-                    let y = u16::from_be_bytes(packet[5..7].try_into().expect("invalid y bytes"));
-
-                    let func = match event_type {
-                        EventType::MouseDown => crate::mouse::on_mouse_down,
-                        EventType::MouseMove => crate::mouse::on_mouse_move,
-                        EventType::MouseUp => crate::mouse::on_mouse_up,
-                        _ => unreachable!(),
-                    };
-
-                    func(x, y, button, buttons)
-                }
-                EventType::Wheel => {
-                    let delta_x =
-                        f32::from_be_bytes(packet[1..5].try_into().expect("invalid x bytes"));
-                    let delta_y =
-                        f32::from_be_bytes(packet[5..9].try_into().expect("invalid y bytes"));
-                    let x = u16::from_be_bytes(packet[9..11].try_into().expect("invalid x bytes"));
-                    let y = u16::from_be_bytes(packet[11..13].try_into().expect("invalid y bytes"));
-
-                    crate::mouse::on_mouse_wheel(delta_x, delta_y, x, y)
-                }
-                EventType::Blur => {
-                    crate::keyboard::on_blur();
-                    RawEvent::Blur
-                }
-                EventType::VisibilityChange => {
-                    crate::keyboard::on_visibility_change();
-                    RawEvent::VisibilityChange
-                }
-                EventType::TextInput
-                | EventType::TextInputKeyDown
-                | EventType::TextInputSelectionChange => {
-                    let text_length = u16::from_be_bytes(
-                        packet[1..3].try_into().expect("invalid text length bytes"),
-                    ) as usize;
-                    let text = std::str::from_utf8(&packet[3..(3 + text_length)])
-                        .expect("invalid text bytes")
-                        .to_string();
-                    let selection_direction = match packet[3 + text_length] {
-                        0 => SelectionDirection::None,
-                        1 => SelectionDirection::Forward,
-                        2 => SelectionDirection::Backward,
-                        _ => unreachable!(),
-                    };
-                    let selection_start = u16::from_be_bytes(
-                        packet[(4 + text_length)..(6 + text_length)]
-                            .try_into()
-                            .expect("invalid selection start bytes"),
-                    ) as usize;
-                    let selection_end = u16::from_be_bytes(
-                        packet[(6 + text_length)..(8 + text_length)]
-                            .try_into()
-                            .expect("invalid selection end bytes"),
-                    ) as usize;
-                    match event_type {
-                        EventType::TextInput => RawEvent::TextInput {
-                            event: RawTextInputEvent {
-                                text,
-                                selection_direction,
-                                selection_start,
-                                selection_end,
-                            },
-                        },
-                        EventType::TextInputSelectionChange => RawEvent::TextInputSelectionChange {
-                            event: RawTextInputEvent {
-                                text,
-                                selection_direction,
-                                selection_start,
-                                selection_end,
-                            },
-                        },
-                        EventType::TextInputKeyDown => {
-                            let code_number = packet[8 + text_length];
-                            let code = Code::try_from(code_number).unwrap();
-
-                            RawEvent::TextInputKeyDown {
-                                event: RawTextInputKeyDownEvent {
-                                    text,
-                                    selection_direction,
-                                    selection_start,
-                                    selection_end,
-                                    code,
-                                },
-                            }
-                        }
-                        _ => unreachable!(),
+            while let Some(peek_raw_event) = get_event(&buffer, false) {
+                match (&mut raw_event, &peek_raw_event) {
+                    (RawEvent::Wheel { event }, RawEvent::Wheel { event: peek_event }) => {
+                        event.delta_xy += peek_event.delta_xy;
+                        event.mouse_xy = peek_event.mouse_xy;
+                    }
+                    (RawEvent::MouseMove { .. }, RawEvent::MouseMove { .. })
+                    | (RawEvent::ScreenResize { .. }, RawEvent::ScreenResize { .. })
+                    | (RawEvent::ScreenRedraw, RawEvent::ScreenRedraw)
+                    | (
+                        RawEvent::TextInputSelectionChange { .. },
+                        RawEvent::TextInputSelectionChange { .. },
+                    ) => {
+                        raw_event = peek_raw_event;
+                    }
+                    _ => {
+                        next_raw_event = Some(peek_raw_event);
+                        break;
                     }
                 }
-            };
+            }
 
             looper.tick(raw_event);
         }
     });
+}
+
+fn get_event(buffer: &[u8], wait: bool) -> Option<RawEvent> {
+    unsafe {
+        let length = poll_event(buffer.as_ptr(), wait);
+        if length == 0 {
+            return None;
+        }
+        let packet = &buffer[0..(length as usize)];
+        let event_type: EventType = std::mem::transmute(packet[0]);
+        Some(parse_event(event_type, packet, on_resize))
+    }
+}
+
+fn parse_event(event_type: EventType, packet: &[u8], on_resize: impl Fn(u16, u16)) -> RawEvent {
+    match event_type {
+        EventType::OnAnimationFrame => RawEvent::ScreenRedraw,
+        EventType::ScreenResize => {
+            let width = u16::from_be_bytes(packet[1..3].try_into().expect("invalid width bytes"));
+            let height = u16::from_be_bytes(packet[3..5].try_into().expect("invalid height bytes"));
+
+            on_resize(width, height);
+
+            let wh = crate::Wh {
+                width: (width as i32).int_px(),
+                height: (height as i32).int_px(),
+            };
+            RawEvent::ScreenResize { wh }
+        }
+        EventType::KeyDown | EventType::KeyUp => {
+            let code_number = packet[1];
+            let code = Code::try_from(code_number).unwrap();
+            let func = match event_type {
+                EventType::KeyDown => crate::keyboard::on_key_down,
+                EventType::KeyUp => crate::keyboard::on_key_up,
+                _ => unreachable!(),
+            };
+            func(code)
+        }
+        EventType::MouseDown | EventType::MouseMove | EventType::MouseUp => {
+            let button: u8 = packet[1];
+            let buttons: u8 = packet[2];
+            let x = u16::from_be_bytes(packet[3..5].try_into().expect("invalid x bytes"));
+            let y = u16::from_be_bytes(packet[5..7].try_into().expect("invalid y bytes"));
+
+            let func = match event_type {
+                EventType::MouseDown => crate::mouse::on_mouse_down,
+                EventType::MouseMove => crate::mouse::on_mouse_move,
+                EventType::MouseUp => crate::mouse::on_mouse_up,
+                _ => unreachable!(),
+            };
+
+            func(x, y, button, buttons)
+        }
+        EventType::Wheel => {
+            let delta_x = f32::from_be_bytes(packet[1..5].try_into().expect("invalid x bytes"));
+            let delta_y = f32::from_be_bytes(packet[5..9].try_into().expect("invalid y bytes"));
+            let x = u16::from_be_bytes(packet[9..11].try_into().expect("invalid x bytes"));
+            let y = u16::from_be_bytes(packet[11..13].try_into().expect("invalid y bytes"));
+
+            crate::mouse::on_mouse_wheel(delta_x, delta_y, x, y)
+        }
+        EventType::Blur => {
+            crate::keyboard::on_blur();
+            RawEvent::Blur
+        }
+        EventType::VisibilityChange => {
+            crate::keyboard::on_visibility_change();
+            RawEvent::VisibilityChange
+        }
+        EventType::TextInput
+        | EventType::TextInputKeyDown
+        | EventType::TextInputSelectionChange => {
+            let text_length =
+                u16::from_be_bytes(packet[1..3].try_into().expect("invalid text length bytes"))
+                    as usize;
+            let text = std::str::from_utf8(&packet[3..(3 + text_length)])
+                .expect("invalid text bytes")
+                .to_string();
+            let selection_direction = match packet[3 + text_length] {
+                0 => SelectionDirection::None,
+                1 => SelectionDirection::Forward,
+                2 => SelectionDirection::Backward,
+                _ => unreachable!(),
+            };
+            let selection_start = u16::from_be_bytes(
+                packet[(4 + text_length)..(6 + text_length)]
+                    .try_into()
+                    .expect("invalid selection start bytes"),
+            ) as usize;
+            let selection_end = u16::from_be_bytes(
+                packet[(6 + text_length)..(8 + text_length)]
+                    .try_into()
+                    .expect("invalid selection end bytes"),
+            ) as usize;
+            match event_type {
+                EventType::TextInput => RawEvent::TextInput {
+                    event: RawTextInputEvent {
+                        text,
+                        selection_direction,
+                        selection_start,
+                        selection_end,
+                    },
+                },
+                EventType::TextInputSelectionChange => RawEvent::TextInputSelectionChange {
+                    event: RawTextInputEvent {
+                        text,
+                        selection_direction,
+                        selection_start,
+                        selection_end,
+                    },
+                },
+                EventType::TextInputKeyDown => {
+                    let code_number = packet[8 + text_length];
+                    let code = Code::try_from(code_number).unwrap();
+
+                    RawEvent::TextInputKeyDown {
+                        event: RawTextInputKeyDownEvent {
+                            text,
+                            selection_direction,
+                            selection_start,
+                            selection_end,
+                            code,
+                        },
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
 }
 
 /*
