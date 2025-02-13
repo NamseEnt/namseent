@@ -91,8 +91,9 @@ impl Component for Game {
                 },
                 Event::Wheel { event } => {
                     let delta = -event.delta_xy.y / 2048.0;
+                    let origin = event.local_xy();
                     mutate_game_state(move |game_state| {
-                        game_state.camera.zoom(delta);
+                        game_state.camera.zoom(delta, origin);
                     });
                 }
 

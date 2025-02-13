@@ -11,9 +11,16 @@ impl Camera {
             zoom_level: 1.0,
         }
     }
-    pub fn zoom(&mut self, delta: f32) {
-        self.zoom_level += delta;
-        self.zoom_level = self.zoom_level.clamp(max_zoom_out_level(), 1.0);
+    pub fn zoom(&mut self, delta: f32, origin_screen_xy: Xy<Px>) {
+        let screen_wh = screen::size().into_type::<Px>();
+        let prev_zoom_level = self.zoom_level;
+        let next_zoom_level = (self.zoom_level + delta).clamp(max_zoom_out_level(), 1.0);
+        let tile_delta = ((screen_wh / TILE_PX_SIZE) * (prev_zoom_level - next_zoom_level)
+            / (prev_zoom_level * next_zoom_level))
+            .as_xy();
+        let ratio = origin_screen_xy / screen_wh.as_xy();
+        self.left_top += tile_delta * ratio;
+        self.zoom_level = next_zoom_level;
     }
     pub fn move_by(&mut self, screen_px_xy: Xy<Px>) {
         let px_xy_on_1_0 = screen_px_xy / self.zoom_level;
