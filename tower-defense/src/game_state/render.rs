@@ -2,6 +2,7 @@ use super::*;
 
 pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
     game_state.render_monsters(&ctx);
+    game_state.render_route_guide(&ctx);
     game_state.render_towers(&ctx);
     game_state.render_floor_tiles(&ctx);
 }
@@ -9,21 +10,48 @@ pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
 // ASSUME: NO EFFECT AND STATE IN INNER RENDER
 // Render in the 1:1 scale, without thinking about the camera zoom level.
 impl GameState {
-    pub fn render_floor_tiles(&self, ctx: &ComposeCtx) {
-        self.render_stuffs(ctx, self.floor_tiles.iter());
+    fn render_floor_tiles(&self, ctx: &ComposeCtx) {
+        self.render_stuffs(
+            ctx,
+            self.floor_tiles
+                .iter()
+                .map(|floor_tile| (floor_tile.coord, floor_tile)),
+        );
     }
 
-    pub fn render_towers(&self, ctx: &ComposeCtx) {
+    fn render_towers(&self, ctx: &ComposeCtx) {
         self.render_stuffs(ctx, self.towers.iter().map(|tower| (tower.left_top, tower)));
     }
 
-    pub fn render_monsters(&self, ctx: &ComposeCtx) {
+    fn render_monsters(&self, ctx: &ComposeCtx) {
         self.render_stuffs(
             ctx,
             self.monsters
                 .iter()
                 .map(|monster| (monster.move_on_route.xy(), monster)),
         );
+    }
+
+    fn render_route_guide(&self, ctx: &ComposeCtx) {
+        let mut path = Path::new();
+        for coord in self.route.iter_coords() {
+            let xy = Xy::new(
+                coord.x.as_f32() * TILE_PX_SIZE.width.as_f32(),
+                coord.y.as_f32() * TILE_PX_SIZE.height.as_f32(),
+            )
+            .map(px);
+            if path.commands().is_empty() {
+                path = path.move_to(xy.x, xy.y);
+            } else {
+                path = path.line_to(xy.x, xy.y);
+            }
+        }
+
+        let paint = Paint::new(Color::RED)
+            .set_style(PaintStyle::Stroke)
+            .set_stroke_cap(StrokeCap::Round);
+
+        ctx.add(namui::path(path, paint));
     }
 
     fn render_stuffs<'a, C, MapCoord, MapAxis>(
@@ -43,7 +71,7 @@ impl GameState {
             Wh::new(
                 screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
                 screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
-            )
+            ) / camera.zoom_level
         });
 
         for (xy, stuff) in stuffs {

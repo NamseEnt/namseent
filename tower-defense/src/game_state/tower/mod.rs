@@ -15,6 +15,7 @@ pub struct Tower {
     template: TowerTemplate,
     pub status_effects: Vec<TowerStatusEffect>,
     pub skills: Vec<TowerSkill>,
+    animation: Animation,
 }
 impl Tower {
     pub fn new(template: &TowerTemplate, left_top: MapCoord) -> Self {
@@ -26,6 +27,7 @@ impl Tower {
             template: template.clone(),
             status_effects: vec![],
             skills: vec![],
+            animation: Animation::new(),
         }
     }
     pub fn in_cooltime(&self) -> bool {
@@ -34,6 +36,7 @@ impl Tower {
 
     pub fn shoot(&mut self, target_indicator: ProjectileTargetIndicator) -> Projectile {
         self.cooldown = self.shoot_interval;
+        self.animation.transition(AnimationKind::Attack);
 
         Projectile {
             kind: self.projectile_kind,
@@ -87,7 +90,28 @@ impl Tower {
     }
 }
 impl Component for &Tower {
-    fn render(self, ctx: &RenderCtx) {}
+    fn render(self, ctx: &RenderCtx) {
+        let animation_name = match self.animation.kind {
+            AnimationKind::Idle1 => "idle1",
+            AnimationKind::Idle2 => "idle2",
+            AnimationKind::Attack => "attack",
+        };
+        let image = ctx.image(ResourceLocation::bundle(format!(
+            "tower/{}/{animation_name}.jpg",
+            self.kind.asset_id(),
+        )));
+
+        if let Some(Ok(image)) = image.as_ref() {
+            ctx.add(namui::image(ImageParam {
+                rect: Rect::from_xy_wh(Xy::zero(), image.info.wh()),
+                image: image.clone(),
+                style: ImageStyle {
+                    fit: ImageFit::None,
+                    paint: None,
+                },
+            }));
+        }
+    }
 }
 impl Deref for Tower {
     type Target = TowerTemplate;
@@ -108,7 +132,15 @@ pub struct TowerTemplate {
 }
 
 #[derive(Clone, Copy)]
-pub enum TowerKind {}
+pub enum TowerKind {
+    // TODO: Add tower kinds
+}
+
+impl TowerKind {
+    fn asset_id(&self) -> &'static str {
+        todo!()
+    }
+}
 
 pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
     game_state.towers.iter_mut().for_each(|tower| {
@@ -141,4 +173,59 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             tower.cooldown -= cooldown_sub;
         }
     });
+}
+
+pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
+    game_state.towers.iter_mut().for_each(|tower| {
+        let animation = &mut tower.animation;
+
+        if now - animation.start_at < animation.duration() {
+            return;
+        }
+
+        animation.transition(match animation.kind {
+            AnimationKind::Idle1 => AnimationKind::Idle2,
+            AnimationKind::Idle2 => AnimationKind::Idle1,
+            AnimationKind::Attack => AnimationKind::Idle1,
+        });
+    });
+}
+
+struct Animation {
+    kind: AnimationKind,
+    start_at: Instant,
+}
+
+impl Animation {
+    fn new() -> Self {
+        Self {
+            kind: AnimationKind::Idle1,
+            start_at: Instant::now(),
+        }
+    }
+
+    fn transition(&mut self, kind: AnimationKind) {
+        self.kind = kind;
+        self.start_at = Instant::now();
+    }
+
+    fn duration(&self) -> Duration {
+        self.kind.duration()
+    }
+}
+
+enum AnimationKind {
+    Idle1,
+    Idle2,
+    Attack,
+}
+
+impl AnimationKind {
+    fn duration(&self) -> Duration {
+        match self {
+            Self::Idle1 => Duration::from_secs(1),
+            Self::Idle2 => Duration::from_secs(1),
+            Self::Attack => Duration::from_secs(1),
+        }
+    }
 }
