@@ -11,7 +11,12 @@ pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
 // Render in the 1:1 scale, without thinking about the camera zoom level.
 impl GameState {
     fn render_floor_tiles(&self, ctx: &ComposeCtx) {
-        self.render_stuffs(ctx, self.floor_tiles.iter());
+        self.render_stuffs(
+            ctx,
+            self.floor_tiles
+                .iter()
+                .map(|floor_tile| (floor_tile.coord, floor_tile)),
+        );
     }
 
     fn render_towers(&self, ctx: &ComposeCtx) {
@@ -42,7 +47,9 @@ impl GameState {
             }
         }
 
-        let paint = Paint::new(Color::RED);
+        let paint = Paint::new(Color::RED)
+            .set_style(PaintStyle::Stroke)
+            .set_stroke_cap(StrokeCap::Round);
 
         ctx.add(namui::path(path, paint));
     }
@@ -64,7 +71,7 @@ impl GameState {
             Wh::new(
                 screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
                 screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
-            )
+            ) / camera.zoom_level
         });
 
         for (xy, stuff) in stuffs {
