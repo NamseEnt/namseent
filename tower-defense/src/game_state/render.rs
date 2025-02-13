@@ -47,7 +47,9 @@ impl GameState {
             }
         }
 
-        let paint = Paint::new(Color::RED);
+        let paint = Paint::new(Color::RED)
+            .set_style(PaintStyle::Stroke)
+            .set_stroke_cap(StrokeCap::Round);
 
         ctx.add(namui::path(path, paint));
     }
