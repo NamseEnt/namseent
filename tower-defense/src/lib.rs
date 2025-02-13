@@ -71,14 +71,14 @@ impl Component for Game {
 
         ctx.add(Hand { screen_wh });
 
+        ctx.add(game_state.as_ref());
+
         ctx.add(simple_rect(
             screen_wh,
             Color::TRANSPARENT,
             0.px(),
             palette::SURFACE_CONTAINER_LOWEST,
         ));
-
-        ctx.add(game_state.as_ref());
 
         ctx.attach_event(|event| {
             match event {

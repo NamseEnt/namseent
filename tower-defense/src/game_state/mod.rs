@@ -18,20 +18,20 @@ use monster::*;
 use monster_spawn::*;
 use namui::*;
 use projectile::*;
-use std::{collections::BTreeMap, num::NonZeroUsize, sync::Arc};
+use std::{num::NonZeroUsize, sync::Arc};
 use tower::*;
 
 /// The size of a tile in pixels, with zoom level 1.0.
-const TILE_PX_SIZE: Wh<Px> = Wh::new(px(16.0), px(16.0));
-const MAP_SIZE: Wh<BlockUnit> = Wh::new(49, 43);
+const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
+const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
 const TRAVEL_POINTS: [MapCoord; 7] = [
-    MapCoord::new(7, 1),
-    MapCoord::new(7, 24),
-    MapCoord::new(42, 24),
-    MapCoord::new(42, 7),
-    MapCoord::new(25, 7),
-    MapCoord::new(25, 42),
-    MapCoord::new(48, 42),
+    MapCoord::new(6, 0),
+    MapCoord::new(6, 23),
+    MapCoord::new(41, 23),
+    MapCoord::new(41, 6),
+    MapCoord::new(24, 6),
+    MapCoord::new(24, 41),
+    MapCoord::new(47, 41),
 ];
 
 pub struct GameState {
@@ -39,7 +39,7 @@ pub struct GameState {
     pub towers: PlacedTowers,
     pub camera: Camera,
     pub route: Arc<Route>,
-    pub floor_tiles: BTreeMap<MapCoord, FloorTile>,
+    pub floor_tiles: Vec<FloorTile>,
     pub upgrades: Vec<Upgrade>,
     pub flow: GameFlow,
     /// one-based
@@ -67,9 +67,18 @@ impl Component for &GameState {
 }
 
 #[derive(Clone, Copy)]
-pub enum FloorTile {}
+pub struct FloorTile {
+    pub coord: MapCoord,
+}
 impl Component for &FloorTile {
-    fn render(self, ctx: &RenderCtx) {}
+    fn render(self, ctx: &RenderCtx) {
+        ctx.add(simple_rect(
+            TILE_PX_SIZE,
+            palette::OUTLINE,
+            1.px(),
+            Color::TRANSPARENT,
+        ));
+    }
 }
 
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
@@ -80,7 +89,11 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         towers: Default::default(),
         camera: Camera::new(),
         route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
-        floor_tiles: Default::default(),
+        floor_tiles: Vec::from_iter((0..MAP_SIZE.width).flat_map(|x| {
+            (0..MAP_SIZE.height).map(move |y| FloorTile {
+                coord: MapCoord::new(x, y),
+            })
+        })),
         upgrades: Default::default(),
         flow: GameFlow::SelectingTower,
         stage: 1,

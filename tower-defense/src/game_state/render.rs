@@ -11,7 +11,12 @@ pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
 // Render in the 1:1 scale, without thinking about the camera zoom level.
 impl GameState {
     fn render_floor_tiles(&self, ctx: &ComposeCtx) {
-        self.render_stuffs(ctx, self.floor_tiles.iter());
+        self.render_stuffs(
+            ctx,
+            self.floor_tiles
+                .iter()
+                .map(|floor_tile| (floor_tile.coord, floor_tile)),
+        );
     }
 
     fn render_towers(&self, ctx: &ComposeCtx) {
