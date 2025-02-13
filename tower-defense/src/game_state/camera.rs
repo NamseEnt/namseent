@@ -19,7 +19,7 @@ impl Camera {
             / (prev_zoom_level * next_zoom_level))
             .as_xy();
         let ratio = origin_screen_xy / screen_wh.as_xy();
-        self.left_top += tile_delta * ratio;
+        self.left_top -= tile_delta * ratio;
         self.zoom_level = next_zoom_level;
     }
     pub fn move_by(&mut self, screen_px_xy: Xy<Px>) {
