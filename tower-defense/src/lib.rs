@@ -35,6 +35,7 @@ impl Component for Game {
     fn render(self, ctx: &RenderCtx) {
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = game_state::init_game_state(ctx);
+        let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
 
         let (open_upgrade_board, set_open_upgrade_board) = ctx.state(|| false);
 
@@ -94,8 +95,59 @@ impl Component for Game {
                         game_state.camera.zoom(delta);
                     });
                 }
+
+                Event::MouseDown { event } => {
+                    let Some(button) = event.button else {
+                        return;
+                    };
+                    match button {
+                        MouseButton::Middle => {
+                            set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
+                                last_global_xy: event.global_xy,
+                            }));
+                        }
+                        _ => {}
+                    };
+                }
+                Event::MouseMove { event } => {
+                    if event.pressing_buttons.contains(&MouseButton::Middle) {
+                        if let Some(middle_mouse_button_dragging) =
+                            middle_mouse_button_dragging.as_ref()
+                        {
+                            let global_xy = event.global_xy;
+                            let delta = global_xy - middle_mouse_button_dragging.last_global_xy;
+                            mutate_game_state(move |game_state| {
+                                game_state.camera.move_by(delta);
+                            });
+                            set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
+                                last_global_xy: global_xy,
+                            }));
+                        }
+                    }
+                }
+                Event::MouseUp { event } => {
+                    let Some(button) = event.button else {
+                        return;
+                    };
+
+                    match button {
+                        MouseButton::Middle => {
+                            set_middle_mouse_button_dragging.set(None);
+                        }
+                        _ => {}
+                    }
+                }
+                Event::VisibilityChange => {
+                    if middle_mouse_button_dragging.is_some() {
+                        set_middle_mouse_button_dragging.set(None);
+                    }
+                }
                 _ => {}
             };
         });
     }
+}
+
+struct MiddleMouseButtonDragging {
+    last_global_xy: Xy<Px>,
 }
