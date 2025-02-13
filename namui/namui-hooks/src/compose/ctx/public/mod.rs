@@ -57,7 +57,7 @@ impl ComposeCtx<'_, '_> {
     }
     pub fn add_with_key(&self, key: impl Into<AddKey>, component: impl Component) -> &Self {
         let rendering_tree = self.ghost_add(key, component);
-        self.add_rendering_tree(rendering_tree);
+        // self.add_rendering_tree(rendering_tree);
 
         self
     }
@@ -78,16 +78,17 @@ impl ComposeCtx<'_, '_> {
             },
         };
 
-        let (child_composer, child_instance) =
-            self.world.get_or_create_instance(self.composer, child_key);
+        // let (child_composer, child_instance) =
+        self.world.get_or_create_instance(self.composer, child_key);
 
-        render_ctx::run(
-            self.world,
-            component,
-            child_composer,
-            child_instance,
-            Cow::Borrowed(self.full_stack.as_ref()),
-        )
+        // render_ctx::run(
+        //     self.world,
+        //     component,
+        //     child_composer,
+        //     child_instance,
+        //     Cow::Borrowed(self.full_stack.as_ref()),
+        // )
+        RenderingTree::Empty
     }
     pub fn set_event_propagation(&self, propagate: bool) -> bool {
         self.world

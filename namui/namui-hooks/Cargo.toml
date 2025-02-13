@@ -26,3 +26,8 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "rt-multi-thread",
     "sync",
 ] }
+criterion = "0.5"
+
+[[bench]]
+name = "translate_benchmark"
+harness = false
