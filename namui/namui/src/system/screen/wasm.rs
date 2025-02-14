@@ -84,7 +84,7 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
                     }
                     (RawEvent::MouseMove { .. }, RawEvent::MouseMove { .. })
                     | (RawEvent::ScreenResize { .. }, RawEvent::ScreenResize { .. })
-                    | (RawEvent::ScreenRedraw, RawEvent::ScreenRedraw)
+                    | (RawEvent::ScreenRedraw, _)
                     | (
                         RawEvent::TextInputSelectionChange { .. },
                         RawEvent::TextInputSelectionChange { .. },
