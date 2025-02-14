@@ -83,6 +83,8 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
                         event.mouse_xy = peek_event.mouse_xy;
                     }
                     (RawEvent::MouseMove { .. }, RawEvent::MouseMove { .. })
+                    | (RawEvent::MouseMove { .. }, RawEvent::MouseDown { .. })
+                    | (RawEvent::MouseMove { .. }, RawEvent::MouseUp { .. })
                     | (RawEvent::ScreenResize { .. }, RawEvent::ScreenResize { .. })
                     | (RawEvent::ScreenRedraw, _)
                     | (
