@@ -63,28 +63,27 @@ export const EVENT_TYPE = {
 
 export class EventSystemOnWorker {
     private eventBufferIndex: number = 4;
-    private lastEventTime: DOMHighResTimeStamp | undefined;
     constructor(
         private readonly eventBuffer: SharedArrayBuffer,
         private readonly memory: WebAssembly.Memory,
     ) {}
 
     /**
-     * @return {number} the byte length of event.
+     * @return {number} the byte length of event. 0 if no event.
      */
-    public pollEvent(wasmBufferPtr: number): number {
-        if (this.lastEventTime) {
-            const now = performance.now();
-            this.lastEventTime = now;
-        } else {
-            this.lastEventTime = performance.now();
-        }
-
+    public pollEvent(wasmBufferPtr: number, wait: boolean): number {
         const eventBufferView = new DataView(this.eventBuffer);
         const eventBufferI32Array = new Int32Array(this.eventBuffer);
         const wasmBuffer = new DataView(this.memory.buffer, wasmBufferPtr, 32);
 
-        Atomics.wait(eventBufferI32Array, 0, 0);
+        if (wait) {
+            Atomics.wait(eventBufferI32Array, 0, 0);
+        } else {
+            if (Atomics.load(eventBufferI32Array, 0) === 0) {
+                return 0;
+            }
+        }
+
         Atomics.sub(eventBufferI32Array, 0, 1);
         // TODO: Monitor how many event are in queue.
 
@@ -94,7 +93,7 @@ export class EventSystemOnWorker {
         switch (eventType) {
             case EVENT_TYPE.END_OF_BUFFER: {
                 this.eventBufferIndex = 4;
-                return this.pollEvent(wasmBufferPtr);
+                return this.pollEvent(wasmBufferPtr, wait);
             }
             case EVENT_TYPE.ANIMATION_FRAME:
                 packetSize = 1;
