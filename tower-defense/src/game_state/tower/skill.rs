@@ -1,7 +1,7 @@
 use super::*;
 use std::ops::Deref;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct TowerSkillTemplate {
     pub kind: TowerSkillKind,
     pub cooldown: Duration,
@@ -29,7 +29,7 @@ impl Deref for TowerSkill {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum TowerSkillKind {
     NearbyTowerDamageMul { mul: f32, range_radius: f32 },
     NearbyTowerDamageAdd { add: f32, range_radius: f32 },
@@ -37,6 +37,8 @@ pub enum TowerSkillKind {
     NearbyTowerAttackSpeedMul { mul: f32, range_radius: f32 },
     NearbyTowerAttackRangeAdd { add: f32, range_radius: f32 },
     NearbyMonsterSpeedMul { mul: f32, range_radius: f32 },
+    MoneyIncomeAdd { add: u32 },
+    TopCardBonus { rank: Rank, bonus_damage: usize },
 }
 
 #[derive(Clone)]
@@ -152,6 +154,8 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     },
                 );
             }
+            TowerSkillKind::MoneyIncomeAdd { .. } => {}
+            TowerSkillKind::TopCardBonus { .. } => {}
         }
     }
 }

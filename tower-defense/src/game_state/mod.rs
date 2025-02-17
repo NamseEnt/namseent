@@ -4,10 +4,10 @@ pub mod flow;
 pub mod item;
 mod monster;
 mod monster_spawn;
-mod projectile;
+pub mod projectile;
 mod render;
 mod tick;
-mod tower;
+pub mod tower;
 
 use crate::shop::ShopSlot;
 use crate::*;

@@ -1,8 +1,8 @@
 use super::PADDING;
 use crate::{
     card::Rank,
+    game_state::tower::{TowerKind, TowerSkillKind, TowerSkillTemplate, TowerTemplate},
     palette,
-    tower::{TowerBlueprint, TowerEffectBlueprint},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table, typography};
@@ -12,42 +12,42 @@ const TOWER_EFFECT_DESCRIPTION_WIDTH: Px = px(256.);
 
 pub(super) struct TowerPreview<'a> {
     pub(super) wh: Wh<Px>,
-    pub(super) tower_blueprint: &'a TowerBlueprint,
+    pub(super) tower_template: &'a TowerTemplate,
 }
 impl Component for TowerPreview<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self {
-            wh,
-            tower_blueprint,
-        } = self;
+        let Self { wh, tower_template } = self;
 
         let (mouse_hovering_effect, set_mouse_hovering_effect) =
-            ctx.state::<Option<MouseHoveringEffect>>(|| None);
+            ctx.state::<Option<MouseHoveringSkill>>(|| None);
 
-        let on_mouse_move_in_effect_icon = |effect: &TowerEffectBlueprint, offset| {
-            set_mouse_hovering_effect.set(Some(MouseHoveringEffect {
-                effect: *effect,
+        let on_mouse_move_in_effect_icon = |effect: &TowerSkillTemplate, offset| {
+            set_mouse_hovering_effect.set(Some(MouseHoveringSkill {
+                skill: *effect,
                 offset,
             }));
         };
-        let on_mouse_move_out_effect_icon = |effect: &TowerEffectBlueprint| {
+        let on_mouse_move_out_effect_icon = |effect: &TowerSkillTemplate| {
             let Some(mouse_hovering_effect) = mouse_hovering_effect.as_ref() else {
                 return;
             };
-            if &mouse_hovering_effect.effect != effect {
+            if &mouse_hovering_effect.skill != effect {
                 return;
             }
             set_mouse_hovering_effect.set(None);
         };
 
         ctx.compose(|ctx| {
-            let Some(MouseHoveringEffect { effect, offset }) = mouse_hovering_effect.as_ref()
+            let Some(MouseHoveringSkill {
+                skill: effect,
+                offset,
+            }) = mouse_hovering_effect.as_ref()
             else {
                 return;
             };
 
             ctx.absolute(*offset)
-                .add(TowerEffectDescription { effect: &effect });
+                .add(TowerEffectDescription { skill: &effect });
         });
 
         ctx.compose(|ctx| {
@@ -56,13 +56,9 @@ impl Component for TowerPreview<'_> {
                 table::vertical([
                     table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
                         let mut tower_name = String::new();
-                        if let Some(suit) = tower_blueprint.suit {
-                            tower_name.push_str(&format!("{}", suit));
-                        }
-                        if let Some(rank) = tower_blueprint.rank {
-                            tower_name.push_str(&format!("{}", rank));
-                        }
-                        tower_name.push_str(&format!(" {:?}", tower_blueprint.kind));
+                        tower_name.push_str(&format!("{}", tower_template.suit));
+                        tower_name.push_str(&format!("{}", tower_template.rank));
+                        tower_name.push_str(&format!(" {:?}", tower_template.kind));
 
                         ctx.add(typography::body::left(
                             wh.height,
@@ -71,7 +67,8 @@ impl Component for TowerPreview<'_> {
                         ));
                     }),
                     table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
-                        let damage = tower_blueprint.calculate_damage();
+                        let damage = tower_template.kind.default_damage()
+                            + tower_template.rank.bonus_damage();
 
                         ctx.add(typography::body::left(
                             wh.height,
@@ -85,17 +82,17 @@ impl Component for TowerPreview<'_> {
                         ));
                     }),
                     table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
-                        let range = match tower_blueprint.kind {
-                            crate::tower::TowerKind::High => "normal",
-                            crate::tower::TowerKind::OnePair => "normal",
-                            crate::tower::TowerKind::TwoPair => "normal",
-                            crate::tower::TowerKind::ThreeOfAKind => "normal",
-                            crate::tower::TowerKind::Straight => "long",
-                            crate::tower::TowerKind::Flush => "normal",
-                            crate::tower::TowerKind::FullHouse => "normal",
-                            crate::tower::TowerKind::FourOfAKind => "normal",
-                            crate::tower::TowerKind::StraightFlush => "long",
-                            crate::tower::TowerKind::RoyalFlush => "very long",
+                        let range = match tower_template.kind {
+                            TowerKind::High => "normal",
+                            TowerKind::OnePair => "normal",
+                            TowerKind::TwoPair => "normal",
+                            TowerKind::ThreeOfAKind => "normal",
+                            TowerKind::Straight => "long",
+                            TowerKind::Flush => "normal",
+                            TowerKind::FullHouse => "normal",
+                            TowerKind::FourOfAKind => "normal",
+                            TowerKind::StraightFlush => "long",
+                            TowerKind::RoyalFlush => "very long",
                         };
 
                         ctx.add(typography::body::left(
@@ -106,17 +103,17 @@ impl Component for TowerPreview<'_> {
                         ctx.add(typography::body::right(wh, range, palette::ON_SURFACE));
                     }),
                     table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
-                        let speed = match tower_blueprint.kind {
-                            crate::tower::TowerKind::High => "normal",
-                            crate::tower::TowerKind::OnePair => "normal",
-                            crate::tower::TowerKind::TwoPair => "normal",
-                            crate::tower::TowerKind::ThreeOfAKind => "normal",
-                            crate::tower::TowerKind::Straight => "normal",
-                            crate::tower::TowerKind::Flush => "fast",
-                            crate::tower::TowerKind::FullHouse => "normal",
-                            crate::tower::TowerKind::FourOfAKind => "normal",
-                            crate::tower::TowerKind::StraightFlush => "fast",
-                            crate::tower::TowerKind::RoyalFlush => "very fast",
+                        let speed = match tower_template.kind {
+                            TowerKind::High => "normal",
+                            TowerKind::OnePair => "normal",
+                            TowerKind::TwoPair => "normal",
+                            TowerKind::ThreeOfAKind => "normal",
+                            TowerKind::Straight => "normal",
+                            TowerKind::Flush => "fast",
+                            TowerKind::FullHouse => "normal",
+                            TowerKind::FourOfAKind => "normal",
+                            TowerKind::StraightFlush => "fast",
+                            TowerKind::RoyalFlush => "very fast",
                         };
 
                         ctx.add(typography::body::left(
@@ -128,12 +125,12 @@ impl Component for TowerPreview<'_> {
                     }),
                     table::fixed_no_clip(
                         PREVIEW_ICON_SIZE,
-                        table::horizontal(tower_blueprint.effects.iter().map(|effect| {
+                        table::horizontal(tower_template.skill_templates.iter().map(|effect| {
                             table::fixed_no_clip(
                                 PREVIEW_ICON_SIZE,
                                 table::padding_no_clip(PADDING, |wh, ctx| {
-                                    ctx.add(TowerEffectBlueprintIcon {
-                                        effect,
+                                    ctx.add(TowerSkillTemplateIcon {
+                                        skill: effect,
                                         wh,
                                         on_mouse_move_in_effect_icon: &on_mouse_move_in_effect_icon,
                                         on_mouse_move_out_effect_icon:
@@ -166,22 +163,29 @@ impl Component for TowerPreview<'_> {
     }
 }
 
-pub struct TowerEffectBlueprintIcon<'a> {
+pub struct TowerSkillTemplateIcon<'a> {
     wh: Wh<Px>,
-    effect: &'a TowerEffectBlueprint,
-    on_mouse_move_in_effect_icon: &'a dyn Fn(&TowerEffectBlueprint, Xy<Px>),
-    on_mouse_move_out_effect_icon: &'a dyn Fn(&TowerEffectBlueprint),
+    skill: &'a TowerSkillTemplate,
+    on_mouse_move_in_effect_icon: &'a dyn Fn(&TowerSkillTemplate, Xy<Px>),
+    on_mouse_move_out_effect_icon: &'a dyn Fn(&TowerSkillTemplate),
 }
-impl Component for TowerEffectBlueprintIcon<'_> {
+impl Component for TowerSkillTemplateIcon<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            effect,
+            skill,
             on_mouse_move_in_effect_icon,
             on_mouse_move_out_effect_icon,
         } = self;
-        let symbol = match effect {
-            TowerEffectBlueprint::TopCardBonus { rank, .. } => match rank {
+        let symbol = match skill.kind {
+            TowerSkillKind::NearbyTowerDamageMul { .. } => "E",
+            TowerSkillKind::NearbyTowerDamageAdd { .. } => "E",
+            TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => "H",
+            TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => "H",
+            TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => "R",
+            TowerSkillKind::NearbyMonsterSpeedMul { .. } => "D",
+            TowerSkillKind::MoneyIncomeAdd { .. } => "B",
+            TowerSkillKind::TopCardBonus { rank, .. } => match rank {
                 Rank::Seven => "7",
                 Rank::Eight => "8",
                 Rank::Nine => "9",
@@ -191,10 +195,6 @@ impl Component for TowerEffectBlueprintIcon<'_> {
                 Rank::King => "K",
                 Rank::Ace => "A",
             },
-            TowerEffectBlueprint::Bounty { .. } => "B",
-            TowerEffectBlueprint::Drag { .. } => "D",
-            TowerEffectBlueprint::Haste { .. } => "H",
-            TowerEffectBlueprint::Empower { .. } => "E",
         };
         ctx.add(typography::body::center(wh, symbol, palette::ON_SURFACE));
         ctx.add(simple_rect(
@@ -207,12 +207,12 @@ impl Component for TowerEffectBlueprintIcon<'_> {
             match event {
                 Event::MouseMove { event } => {
                     match event.is_local_xy_in() {
-                        true => on_mouse_move_in_effect_icon(effect, event.global_xy),
-                        false => on_mouse_move_out_effect_icon(effect),
+                        true => on_mouse_move_in_effect_icon(skill, event.global_xy),
+                        false => on_mouse_move_out_effect_icon(skill),
                     };
                 }
                 Event::VisibilityChange => {
-                    on_mouse_move_out_effect_icon(effect);
+                    on_mouse_move_out_effect_icon(skill);
                 }
                 _ => {}
             };
@@ -221,34 +221,73 @@ impl Component for TowerEffectBlueprintIcon<'_> {
 }
 
 pub struct TowerEffectDescription<'a> {
-    effect: &'a TowerEffectBlueprint,
+    skill: &'a TowerSkillTemplate,
 }
 impl Component for TowerEffectDescription<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { effect } = self;
+        let Self { skill } = self;
 
-        let title = match effect {
-            TowerEffectBlueprint::TopCardBonus { rank, .. } => format!("Top Card Bonus {rank}"),
-            TowerEffectBlueprint::Bounty { .. } => "Bounty".to_string(),
-            TowerEffectBlueprint::Drag { .. } => "Drag".to_string(),
-            TowerEffectBlueprint::Haste { .. } => "Haste".to_string(),
-            TowerEffectBlueprint::Empower { .. } => "Empower".to_string(),
+        let title = match skill.kind {
+            TowerSkillKind::NearbyTowerDamageMul { .. } => "주변 타워 공격력 증가".to_string(),
+            TowerSkillKind::NearbyTowerDamageAdd { .. } => "주변 타워 공격력 추가".to_string(),
+            TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => {
+                "주변 타워 공격 속도 추가".to_string()
+            }
+            TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => {
+                "주변 타워 공격 속도 증가".to_string()
+            }
+            TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => {
+                "주변 타워 공격 범위 추가".to_string()
+            }
+            TowerSkillKind::NearbyMonsterSpeedMul { .. } => "주변 몬스터 속도 감소".to_string(),
+            TowerSkillKind::MoneyIncomeAdd { .. } => "돈 수입 증가".to_string(),
+            TowerSkillKind::TopCardBonus { .. } => "탑 카드 보너스".to_string(),
         };
-        let description = match effect {
-            TowerEffectBlueprint::TopCardBonus { bonus_damage, .. } => {
-                format!("공격력 +{bonus_damage}")
+        let description = match skill.kind {
+            TowerSkillKind::NearbyTowerDamageMul { mul, range_radius } => {
+                format!(
+                    "주변 타워의 공격력을 {}% 증가시킵니다 (반경 {} 타일)",
+                    mul * 100.0,
+                    range_radius
+                )
             }
-            TowerEffectBlueprint::Bounty { bonus_gold } => {
-                format!("적을 처치할 때 보너스 골드 {bonus_gold}를 획득합니다")
+            TowerSkillKind::NearbyTowerDamageAdd { add, range_radius } => {
+                format!(
+                    "주변 타워의 공격력을 {}만큼 증가시킵니다 (반경 {} 타일)",
+                    add, range_radius
+                )
             }
-            TowerEffectBlueprint::Drag { range, drag } => {
-                format!("주변 {range} 타일 내 적의 이동속도를 {drag}배 둔화시킵니다")
+            TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => {
+                format!(
+                    "주변 타워의 공격 속도를 {}% 증가시킵니다 (반경 {} 타일)",
+                    add * 100.0,
+                    range_radius
+                )
             }
-            TowerEffectBlueprint::Haste { range, haste } => {
-                format!("주변 {range} 타일 내 타워의 공격속도를 {haste}배 증가시킵니다")
+            TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => {
+                format!(
+                    "주변 타워의 공격 속도를 {}배 증가시킵니다 (반경 {} 타일)",
+                    mul, range_radius
+                )
             }
-            TowerEffectBlueprint::Empower { range, empower } => {
-                format!("주변 {range} 타일 내 타워의 공격력을 {empower}배 증가시킵니다")
+            TowerSkillKind::NearbyTowerAttackRangeAdd { add, range_radius } => {
+                format!(
+                    "주변 타워의 공격 범위를 {} 타일 증가시킵니다 (반경 {} 타일)",
+                    add, range_radius
+                )
+            }
+            TowerSkillKind::NearbyMonsterSpeedMul { mul, range_radius } => {
+                format!(
+                    "주변 몬스터의 속도를 {}% 감소시킵니다 (반경 {} 타일)",
+                    mul * 100.0,
+                    range_radius
+                )
+            }
+            TowerSkillKind::MoneyIncomeAdd { add } => {
+                format!("적 처치시 {} 골드를 추가로 획득합니다", add)
+            }
+            TowerSkillKind::TopCardBonus { rank, bonus_damage } => {
+                format!("탑 카드 보너스: {} (공격력 +{})", rank, bonus_damage)
             }
         };
 
@@ -296,7 +335,7 @@ impl Component for TowerEffectDescription<'_> {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-struct MouseHoveringEffect {
-    effect: TowerEffectBlueprint,
+struct MouseHoveringSkill {
+    skill: TowerSkillTemplate,
     offset: Xy<Px>,
 }

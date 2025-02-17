@@ -1,5 +1,7 @@
 mod skill;
 
+use crate::card::{Rank, Suit};
+
 use super::*;
 use namui::*;
 pub use skill::*;
@@ -128,17 +130,43 @@ pub struct TowerTemplate {
     pub default_attack_range_radius: f32,
     pub projectile_kind: ProjectileKind,
     pub projectile_speed: Velocity,
-    pub default_damage: usize,
+    pub default_damage: f32,
+    pub suit: Suit,
+    pub rank: Rank,
+    pub skill_templates: Vec<TowerSkillTemplate>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TowerKind {
-    // TODO: Add tower kinds
+    High,
+    OnePair,
+    TwoPair,
+    ThreeOfAKind,
+    Straight,
+    Flush,
+    FullHouse,
+    FourOfAKind,
+    StraightFlush,
+    RoyalFlush,
 }
 
 impl TowerKind {
     fn asset_id(&self) -> &'static str {
         todo!()
+    }
+    pub fn default_damage(&self) -> usize {
+        match self {
+            Self::High => 5,
+            Self::OnePair => 25,
+            Self::TwoPair => 50,
+            Self::ThreeOfAKind => 125,
+            Self::Straight => 250,
+            Self::Flush => 375,
+            Self::FullHouse => 1000,
+            Self::FourOfAKind => 1250,
+            Self::StraightFlush => 7500,
+            Self::RoyalFlush => 15000,
+        }
     }
 }
 

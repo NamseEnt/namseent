@@ -1,11 +1,12 @@
+mod get_highest_tower;
 mod tower_preview;
 
 use crate::{
     card::Card,
     game_state::{flow::GameFlow, mutate_game_state},
     palette,
-    tower::get_highest_tower,
 };
+use get_highest_tower::get_highest_tower_template;
 use namui::*;
 use namui_prebuilt::{button, table, typography};
 use std::iter::once;
@@ -42,7 +43,7 @@ impl Component for Hand {
             }
             cards.clone_inner()
         });
-        let tower_blueprint = ctx.memo(|| get_highest_tower(&using_cards));
+        let tower_template = ctx.memo(|| get_highest_tower_template(&using_cards));
 
         let reroll_selected = || {
             if selected.len() == 0 {
@@ -69,10 +70,10 @@ impl Component for Hand {
         };
 
         let use_tower = || {
-            let tower_blueprint = tower_blueprint.clone_inner();
-            mutate_game_state(|state| {
+            let tower_template = tower_template.clone_inner();
+            mutate_game_state(move |state| {
                 state.flow = GameFlow::PlacingTower {
-                    tower: tower_blueprint,
+                    tower: tower_template,
                 };
             });
         };
@@ -89,7 +90,7 @@ impl Component for Hand {
                                 table::padding_no_clip(PADDING, |wh, ctx| {
                                     ctx.add(TowerPreview {
                                         wh,
-                                        tower_blueprint: &tower_blueprint,
+                                        tower_template: &tower_template,
                                     });
                                 }),
                             )))

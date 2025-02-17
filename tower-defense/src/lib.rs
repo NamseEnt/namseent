@@ -6,7 +6,6 @@ mod palette;
 mod rarity;
 mod route;
 mod shop;
-mod tower;
 mod upgrade;
 mod upgrade_board;
 mod upgrade_select;
