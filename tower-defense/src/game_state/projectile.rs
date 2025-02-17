@@ -16,7 +16,9 @@ impl Projectile {
 }
 
 #[derive(Clone, Copy)]
-pub enum ProjectileKind {}
+pub enum ProjectileKind {
+    Ball,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct ProjectileTargetIndicator {

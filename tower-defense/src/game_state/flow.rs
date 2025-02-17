@@ -1,8 +1,9 @@
-use crate::{tower::TowerBlueprint, upgrade::Upgrade};
+use super::tower::TowerTemplate;
+use crate::upgrade::Upgrade;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum GameFlow {
     SelectingTower,
-    PlacingTower { tower: TowerBlueprint },
+    PlacingTower { tower: TowerTemplate },
     SelectingUpgrade { upgrades: [Upgrade; 3] },
 }

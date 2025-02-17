@@ -32,6 +32,20 @@ pub enum Rank {
     King,
     Ace,
 }
+impl Rank {
+    pub fn bonus_damage(&self) -> usize {
+        match self {
+            Rank::Seven => 1,
+            Rank::Eight => 2,
+            Rank::Nine => 3,
+            Rank::Ten => 4,
+            Rank::Jack => 6,
+            Rank::Queen => 8,
+            Rank::King => 10,
+            Rank::Ace => 15,
+        }
+    }
+}
 impl Display for Rank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
