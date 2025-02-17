@@ -5,6 +5,7 @@ pub mod item;
 mod monster;
 mod monster_spawn;
 pub mod projectile;
+mod quest;
 mod render;
 mod tick;
 pub mod tower;

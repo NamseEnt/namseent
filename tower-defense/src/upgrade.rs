@@ -1,7 +1,7 @@
 use crate::{
     card::{Rank, Suit, REVERSED_RANKS, SUITS},
     game_state::GameState,
-    rarity::{self, Rarity},
+    rarity::Rarity,
 };
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
@@ -242,7 +242,7 @@ pub fn generate_upgrades_for_boss_reward(game_state: &GameState, amount: usize) 
     }
     upgrades
 }
-fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
+pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
     let upgrade_candidates = generate_upgrade_candidate_table(game_state, rarity);
     let upgrade_candidate = &upgrade_candidates
         .choose_weighted(&mut rand::thread_rng(), |x| x.1)
