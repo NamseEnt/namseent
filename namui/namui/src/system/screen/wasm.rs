@@ -102,6 +102,7 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
                     ) => {
                         raw_event = peek_raw_event;
                     }
+                    (_, RawEvent::ScreenRedraw) => {}
                     _ => {
                         next_raw_event = Some(peek_raw_event);
                         break;
