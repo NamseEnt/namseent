@@ -1,7 +1,7 @@
 use crate::{
     card::{Rank, Suit, REVERSED_RANKS, SUITS},
     game_state::GameState,
-    rarity::{self, Rarity},
+    rarity::Rarity,
 };
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
@@ -242,7 +242,7 @@ pub fn generate_upgrades_for_boss_reward(game_state: &GameState, amount: usize) 
     }
     upgrades
 }
-fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
+pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
     let upgrade_candidates = generate_upgrade_candidate_table(game_state, rarity);
     let upgrade_candidate = &upgrade_candidates
         .choose_weighted(&mut rand::thread_rng(), |x| x.1)
@@ -369,7 +369,7 @@ fn generate_upgrade_candidate_table(
     upgrade_candidate_table.push((UpgradeCandidate::Tower, 1.0));
 
     let shop_slot_upgrade = {
-        let remaining_upgrade = MAX_SHOP_SLOT_UPGRADE - game_state.shop_slot;
+        let remaining_upgrade = MAX_SHOP_SLOT_UPGRADE - game_state.max_shop_slot;
         let weight = match rarity {
             Rarity::Common => [0.0, 0.0, 0.1],
             Rarity::Rare => [0.0, 0.0, 0.2],
@@ -386,7 +386,7 @@ fn generate_upgrade_candidate_table(
     upgrade_candidate_table.push(shop_slot_upgrade);
 
     let quest_slot_upgrade = {
-        let remaining_upgrade = MAX_QUEST_SLOT_UPGRADE - game_state.quest_slot;
+        let remaining_upgrade = MAX_QUEST_SLOT_UPGRADE - game_state.max_quests;
         let weight = match rarity {
             Rarity::Common => [0.0, 0.0, 0.1],
             Rarity::Rare => [0.0, 0.0, 0.2],
@@ -403,7 +403,7 @@ fn generate_upgrade_candidate_table(
     upgrade_candidate_table.push(quest_slot_upgrade);
 
     let quest_board_slot_upgrade = {
-        let remaining_upgrade = MAX_QUEST_BOARD_SLOT_UPGRADE - game_state.quest_board_slot;
+        let remaining_upgrade = MAX_QUEST_BOARD_SLOT_UPGRADE - game_state.max_quest_board_slot;
         let weight = match rarity {
             Rarity::Common => [0.0, 0.0, 0.1],
             Rarity::Rare => [0.0, 0.0, 0.2],

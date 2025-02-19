@@ -124,7 +124,7 @@ pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {
     }
     items
 }
-fn generate_item(rarity: Rarity) -> Item {
+pub fn generate_item(rarity: Rarity) -> Item {
     let candidates = generate_item_candidate_table(rarity);
     let candidate = &candidates
         .choose_weighted(&mut rand::thread_rng(), |x| x.1)

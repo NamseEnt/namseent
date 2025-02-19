@@ -1,78 +1,69 @@
 use crate::{
-    game_state::{item::Item, mutate_game_state, use_game_state},
+    game_state::{mutate_game_state, quest::Quest, use_game_state},
     palette,
 };
 use namui::*;
 use namui_prebuilt::{
     button::{self, TextButton},
     simple_rect,
-    table::{self, ratio},
+    table::{self},
     typography,
 };
 
 const PADDING: Px = px(4.0);
-const SHOP_WH: Wh<Px> = Wh {
+const QUEST_BOARD_WH: Wh<Px> = Wh {
     width: px(640.0),
     height: px(480.0),
 };
-const SHOP_BUTTON_WH: Wh<Px> = Wh {
+const QUEST_BOARD_BUTTON_WH: Wh<Px> = Wh {
     width: px(64.0),
     height: px(36.0),
 };
-const SOLD_OUT_HEIGHT: Px = px(36.0);
+const ACCEPTED_LABEL_HEIGHT: Px = px(24.0);
 
 #[derive(Default, Clone)]
-pub enum ShopSlot {
+pub enum QuestBoardSlot {
     #[default]
     Locked,
-    Item {
-        item: Item,
-        cost: u32,
-        purchased: bool,
+    Quest {
+        quest: Quest,
+        accepted: bool,
     },
 }
 
-pub struct ShopModal {
+pub struct QuestBoardModal {
     pub screen_wh: Wh<Px>,
 }
-impl Component for ShopModal {
-    fn render(self, ctx: &RenderCtx) {
+impl Component for QuestBoardModal {
+    fn render(self, ctx: &namui::RenderCtx) {
         let Self { screen_wh } = self;
         let game_state = use_game_state(ctx);
-
         let (opened, set_opened) = ctx.state(|| true);
 
         let toggle_open = || {
             set_opened.mutate(|opened| *opened = !*opened);
         };
-        let shop_slots = &game_state.shop_slots;
 
-        let purchase_item = |slot_index: usize| {
+        let accept_quest = |slot_index: usize| {
             mutate_game_state(move |state| {
-                let slot = &mut state.shop_slots[slot_index];
-                let ShopSlot::Item {
-                    item,
-                    cost,
-                    purchased,
-                } = slot
-                else {
+                let slot = &mut state.quest_board_slots[slot_index];
+                let QuestBoardSlot::Quest { quest, accepted } = slot else {
                     panic!("Invalid shop slot");
                 };
 
                 assert!(state.items.len() <= state.max_shop_slot);
-                assert!(state.money >= *cost);
-                assert!(!*purchased);
+                assert!(!*accepted);
 
-                state.items.push(item.clone());
-                state.money -= *cost;
-                *purchased = true;
+                state.quests.push(quest.clone());
+                *accepted = true;
             });
         };
 
-        let offset = ((screen_wh - SHOP_WH) * 0.5).as_xy();
+        let quest_board_slots = &game_state.quest_board_slots;
+        let offset = ((screen_wh - QUEST_BOARD_WH) * 0.5).as_xy();
 
         ctx.compose(|ctx| {
-            ctx.translate(offset).add(ShopOpenButton {
+            ctx.translate(offset).add(QuestBoardOpenButton {
                 opened: *opened,
                 toggle_open: &toggle_open,
             });
@@ -82,19 +73,19 @@ impl Component for ShopModal {
             if !*opened {
                 return;
             }
-            ctx.translate(offset).add(Shop {
-                shop_slots,
-                purchase_item: &purchase_item,
+            ctx.translate(offset).add(QuestBoard {
+                quest_board_slots,
+                accept_quest: &accept_quest,
             });
         });
     }
 }
 
-struct ShopOpenButton<'a> {
+struct QuestBoardOpenButton<'a> {
     opened: bool,
     toggle_open: &'a dyn Fn(),
 }
-impl Component for ShopOpenButton<'_> {
+impl Component for QuestBoardOpenButton<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             opened,
@@ -102,10 +93,10 @@ impl Component for ShopOpenButton<'_> {
         } = self;
 
         ctx.compose(|ctx| {
-            ctx.translate((0.px(), SHOP_BUTTON_WH.height))
+            ctx.translate((0.px(), QUEST_BOARD_BUTTON_WH.height))
                 .add(TextButton {
-                    rect: SHOP_BUTTON_WH.to_rect(),
-                    text: format!("상점 {}", if opened { "🔼" } else { "🔽" }),
+                    rect: QUEST_BOARD_BUTTON_WH.to_rect(),
+                    text: format!("퀘스트 {}", if opened { "🔼" } else { "🔽" }),
                     text_color: palette::ON_SURFACE,
                     stroke_color: palette::OUTLINE,
                     stroke_width: 1.px(),
@@ -119,73 +110,66 @@ impl Component for ShopOpenButton<'_> {
     }
 }
 
-struct Shop<'a> {
-    shop_slots: &'a [ShopSlot],
-    purchase_item: &'a dyn Fn(usize),
+pub struct QuestBoard<'a> {
+    quest_board_slots: &'a [QuestBoardSlot],
+    accept_quest: &'a dyn Fn(usize),
 }
-impl Component for Shop<'_> {
-    fn render(self, ctx: &RenderCtx) {
+impl Component for QuestBoard<'_> {
+    fn render(self, ctx: &namui::RenderCtx) {
         let Self {
-            shop_slots,
-            purchase_item,
+            quest_board_slots,
+            accept_quest,
         } = self;
 
         ctx.compose(|ctx| {
             table::padding(
                 PADDING,
-                table::horizontal(shop_slots.iter().enumerate().map(
+                table::horizontal(quest_board_slots.iter().enumerate().map(
                     |(shop_slot_index, shop_slot)| {
-                        ratio(1, move |wh, ctx| {
-                            ctx.add(ShopItem {
+                        table::ratio(1, move |wh, ctx| {
+                            ctx.add(QuestBoardItem {
                                 wh,
-                                shop_slot,
-                                shop_slot_index,
-                                purchase_item,
+                                quest_board_slot: shop_slot,
+                                quest_board_slot_index: shop_slot_index,
+                                accept_quest,
                             });
                         })
                     },
                 )),
-            )(SHOP_WH, ctx);
+            )(QUEST_BOARD_WH, ctx);
         });
     }
 }
 
-struct ShopItem<'a> {
+struct QuestBoardItem<'a> {
     wh: Wh<Px>,
-    shop_slot: &'a ShopSlot,
-    shop_slot_index: usize,
-    purchase_item: &'a dyn Fn(usize),
+    quest_board_slot: &'a QuestBoardSlot,
+    quest_board_slot_index: usize,
+    accept_quest: &'a dyn Fn(usize),
 }
-impl Component for ShopItem<'_> {
+impl Component for QuestBoardItem<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            shop_slot,
-            shop_slot_index,
-            purchase_item,
+            quest_board_slot,
+            quest_board_slot_index,
+            accept_quest,
         } = self;
 
-        let money = use_game_state(ctx).money;
-        let purchase_item = || purchase_item(shop_slot_index);
+        let accept_quest = || accept_quest(quest_board_slot_index);
 
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
-                match shop_slot {
-                    ShopSlot::Locked => {
-                        ctx.add(ShopItemLocked { wh });
+                match quest_board_slot {
+                    QuestBoardSlot::Locked => {
+                        ctx.add(QuestBoardItemLocked { wh });
                     }
-                    ShopSlot::Item {
-                        item,
-                        cost,
-                        purchased,
-                    } => {
-                        ctx.add(ShopItemContent {
+                    QuestBoardSlot::Quest { quest, accepted } => {
+                        ctx.add(QuestBoardItemContent {
                             wh,
-                            item,
-                            purchase_item: &purchase_item,
-                            cost: *cost,
-                            purchased: *purchased,
-                            not_enough_money: money < *cost,
+                            quest,
+                            accept_quest: &accept_quest,
+                            accepted: *accepted,
                         });
                     }
                 }
@@ -211,17 +195,17 @@ impl Component for ShopItem<'_> {
     }
 }
 
-struct ShopItemLocked {
+struct QuestBoardItemLocked {
     wh: Wh<Px>,
 }
-impl Component for ShopItemLocked {
+impl Component for QuestBoardItemLocked {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
 
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
-                table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
+                table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
                     ctx.add(typography::title::center(wh, "🔒", palette::ON_SURFACE));
                 }),
                 table::ratio(1, |_, _| {}),
@@ -230,32 +214,30 @@ impl Component for ShopItemLocked {
     }
 }
 
-struct ShopItemContent<'a> {
+struct QuestBoardItemContent<'a> {
     wh: Wh<Px>,
-    item: &'a Item,
-    purchase_item: &'a dyn Fn(),
-    cost: u32,
-    purchased: bool,
-    not_enough_money: bool,
+    quest: &'a Quest,
+    accept_quest: &'a dyn Fn(),
+    accepted: bool,
 }
-impl Component for ShopItemContent<'_> {
+impl Component for QuestBoardItemContent<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            item,
-            purchase_item,
-            cost,
-            purchased,
-            not_enough_money,
+            quest,
+            accept_quest,
+            accepted,
         } = self;
 
-        let available = !purchased && !not_enough_money;
+        let game_state = use_game_state(ctx);
+
+        let available = !accepted;
 
         ctx.compose(|ctx| {
-            if !purchased {
+            if !accepted {
                 return;
             }
-            ctx.add(ShopItemSoldOut { wh });
+            ctx.add(QuestBoardItemSoldOut { wh });
         });
 
         ctx.compose(|ctx| {
@@ -275,14 +257,14 @@ impl Component for ShopItemContent<'_> {
                                 table::vertical([
                                     table::fixed(36.px(), |_wh, ctx| {
                                         ctx.add(typography::body::left_top(
-                                            item.name(),
+                                            quest.requirement.description(&game_state),
                                             palette::ON_SURFACE,
                                         ));
                                     }),
                                     table::fixed(PADDING, |_, _| {}),
                                     table::ratio(1, |_wh, ctx| {
                                         ctx.add(typography::body::left_top(
-                                            item.description(),
+                                            quest.reward.description(),
                                             palette::ON_SURFACE_VARIANT,
                                         ));
                                     }),
@@ -290,7 +272,7 @@ impl Component for ShopItemContent<'_> {
                                     table::fixed(48.px(), |wh, ctx| {
                                         ctx.add(button::TextButton {
                                             rect: wh.to_rect(),
-                                            text: format!("${}", cost),
+                                            text: "수락",
                                             text_color: match available {
                                                 true => palette::ON_PRIMARY,
                                                 false => palette::ON_SURFACE,
@@ -306,7 +288,7 @@ impl Component for ShopItemContent<'_> {
                                                 if !available {
                                                     return;
                                                 }
-                                                purchase_item();
+                                                accept_quest();
                                             },
                                         });
                                     }),
@@ -337,17 +319,17 @@ impl Component for ShopItemContent<'_> {
     }
 }
 
-struct ShopItemSoldOut {
+struct QuestBoardItemSoldOut {
     wh: Wh<Px>,
 }
-impl Component for ShopItemSoldOut {
+impl Component for QuestBoardItemSoldOut {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
 
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
-                table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
+                table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
                     ctx.add(typography::title::center(
                         wh,
                         "Sold Out",
