@@ -19,6 +19,10 @@ impl Instant {
                 .into(),
         }
     }
+
+    pub fn elapsed(&self) -> Duration {
+        Self::now() - *self
+    }
 }
 
 impl Debug for Instant {

@@ -101,11 +101,14 @@ export function createImportObject({
             ...newEventSystemImports({ memory }),
             ...httpFetchImports({ memory }),
             ...audioImports({ memory }),
-            poll_event: (wasmBufferPtr: number, wait: boolean): number => {
+            poll_event: (
+                wasmBufferPtr: number,
+                waitTimeoutMs: number,
+            ): number => {
                 if (!eventSystem) {
                     eventSystem = new EventSystemOnWorker(eventBuffer, memory);
                 }
-                return eventSystem.pollEvent(wasmBufferPtr, wait);
+                return eventSystem.pollEvent(wasmBufferPtr, waitTimeoutMs);
             },
             initial_window_wh: (): number => {
                 return initialWindowWh;

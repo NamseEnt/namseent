@@ -71,13 +71,13 @@ export class EventSystemOnWorker {
     /**
      * @return {number} the byte length of event. 0 if no event.
      */
-    public pollEvent(wasmBufferPtr: number, wait: boolean): number {
+    public pollEvent(wasmBufferPtr: number, waitTimeoutMs: number): number {
         const eventBufferView = new DataView(this.eventBuffer);
         const eventBufferI32Array = new Int32Array(this.eventBuffer);
         const wasmBuffer = new DataView(this.memory.buffer, wasmBufferPtr, 32);
 
-        if (wait) {
-            Atomics.wait(eventBufferI32Array, 0, 0);
+        if (waitTimeoutMs) {
+            Atomics.wait(eventBufferI32Array, 0, 0, waitTimeoutMs);
         } else {
             if (Atomics.load(eventBufferI32Array, 0) === 0) {
                 return 0;
@@ -93,7 +93,7 @@ export class EventSystemOnWorker {
         switch (eventType) {
             case EVENT_TYPE.END_OF_BUFFER: {
                 this.eventBufferIndex = 4;
-                return this.pollEvent(wasmBufferPtr, wait);
+                return this.pollEvent(wasmBufferPtr, waitTimeoutMs);
             }
             case EVENT_TYPE.ANIMATION_FRAME:
                 packetSize = 1;
