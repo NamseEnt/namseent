@@ -386,7 +386,7 @@ fn generate_upgrade_candidate_table(
     upgrade_candidate_table.push(shop_slot_upgrade);
 
     let quest_slot_upgrade = {
-        let remaining_upgrade = MAX_QUEST_SLOT_UPGRADE - game_state.max_quest_slot;
+        let remaining_upgrade = MAX_QUEST_SLOT_UPGRADE - game_state.max_quests;
         let weight = match rarity {
             Rarity::Common => [0.0, 0.0, 0.1],
             Rarity::Rare => [0.0, 0.0, 0.2],

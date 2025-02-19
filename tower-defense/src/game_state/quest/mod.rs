@@ -1,7 +1,7 @@
 pub mod requirement;
 pub mod reward;
 
-use super::GameState;
+use super::{mutate_game_state, GameState};
 use crate::rarity::Rarity;
 use rand::seq::SliceRandom;
 use requirement::{generate_quest_requirement, QuestRequirement};
@@ -62,4 +62,10 @@ fn generate_rarity_table(stage: usize) -> Vec<(Rarity, f32)> {
         (Rarity::Legendary, rarity_weight[3]),
     ];
     rarity_table
+}
+
+pub fn cancel_quest(quest_index: usize) {
+    mutate_game_state(move |game_state| {
+        game_state.quests.remove(quest_index);
+    });
 }

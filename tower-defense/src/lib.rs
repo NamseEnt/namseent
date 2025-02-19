@@ -4,6 +4,7 @@ mod hand;
 mod inventory;
 mod palette;
 mod quest_board;
+mod quests;
 mod rarity;
 mod route;
 mod shop;

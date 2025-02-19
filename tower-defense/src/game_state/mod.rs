@@ -48,7 +48,7 @@ pub struct GameState {
     /// one-based
     pub stage: usize,
     pub max_shop_slot: usize,
-    pub max_quest_slot: usize,
+    pub max_quests: usize,
     pub max_quest_board_slot: usize,
     pub reroll: usize,
     monster_spawn_state: MonsterSpawnState,
@@ -104,7 +104,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         flow: GameFlow::SelectingTower,
         stage: 1,
         max_shop_slot: 3,
-        max_quest_slot: 3,
+        max_quests: 3,
         max_quest_board_slot: 1,
         reroll: 1,
         monster_spawn_state: MonsterSpawnState::Idle,
