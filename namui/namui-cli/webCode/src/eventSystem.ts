@@ -69,6 +69,7 @@ export class EventSystemOnWorker {
     ) {}
 
     /**
+     * @param {number} waitTimeoutMs < 0 for wait indefinitely.
      * @return {number} the byte length of event. 0 if no event.
      */
     public pollEvent(wasmBufferPtr: number, waitTimeoutMs: number): number {
@@ -77,17 +78,15 @@ export class EventSystemOnWorker {
         const wasmBuffer = new DataView(this.memory.buffer, wasmBufferPtr, 32);
 
         if (waitTimeoutMs) {
-            switch (Atomics.wait(eventBufferI32Array, 0, 0, waitTimeoutMs)) {
-                case "ok":
-                case "not-equal":
-                    break;
-                case "timed-out":
-                    return 0;
-            }
-        } else {
-            if (Atomics.load(eventBufferI32Array, 0) === 0) {
-                return 0;
-            }
+            Atomics.wait(
+                eventBufferI32Array,
+                0,
+                0,
+                waitTimeoutMs < 0 ? NaN : waitTimeoutMs,
+            );
+        }
+        if (Atomics.load(eventBufferI32Array, 0) === 0) {
+            return 0;
         }
 
         Atomics.sub(eventBufferI32Array, 0, 1);

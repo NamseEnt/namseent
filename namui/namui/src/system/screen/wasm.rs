@@ -62,7 +62,7 @@ enum EventType {
 }
 
 extern "C" {
-    fn poll_event(ptr: *const u8, wait_timeout_ms: usize) -> u8;
+    fn poll_event(ptr: *const u8, wait_timeout_ms: i32) -> u8;
     fn initial_window_wh() -> u32;
 }
 
@@ -74,7 +74,7 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
         loop {
             let mut raw_event = next_raw_event
                 .take()
-                .unwrap_or_else(|| get_event(&buffer, usize::MAX).unwrap());
+                .unwrap_or_else(|| get_event(&buffer, -1).unwrap());
 
             let start_instant = Instant::now();
             let max_wait_timeout = Duration::from_millis(16);
@@ -82,7 +82,7 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
             let get_wait_timeout_ms = || {
                 (max_wait_timeout - start_instant.elapsed())
                     .as_millis()
-                    .max(0) as usize
+                    .max(0) as i32
             };
 
             while let Some(peek_raw_event) = get_event(&buffer, get_wait_timeout_ms()) {
@@ -114,7 +114,7 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
     });
 }
 
-fn get_event(buffer: &[u8], wait_timeout_ms: usize) -> Option<RawEvent> {
+fn get_event(buffer: &[u8], wait_timeout_ms: i32) -> Option<RawEvent> {
     unsafe {
         let length = poll_event(buffer.as_ptr(), wait_timeout_ms);
         if length == 0 {
