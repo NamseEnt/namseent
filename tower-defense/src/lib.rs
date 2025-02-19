@@ -3,6 +3,7 @@ mod game_state;
 mod hand;
 mod inventory;
 mod palette;
+mod quest_board;
 mod rarity;
 mod route;
 mod shop;

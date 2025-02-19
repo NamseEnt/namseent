@@ -6,6 +6,7 @@ use super::*;
 use namui::*;
 pub use skill::*;
 use std::{
+    fmt::Display,
     ops::Deref,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -167,6 +168,26 @@ impl TowerKind {
             Self::StraightFlush => 7500,
             Self::RoyalFlush => 15000,
         }
+    }
+}
+impl Display for TowerKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::High => "High",
+                Self::OnePair => "One Pair",
+                Self::TwoPair => "Two Pair",
+                Self::ThreeOfAKind => "Three of a Kind",
+                Self::Straight => "Straight",
+                Self::Flush => "Flush",
+                Self::FullHouse => "Full House",
+                Self::FourOfAKind => "Four of a Kind",
+                Self::StraightFlush => "Straight Flush",
+                Self::RoyalFlush => "Royal Flush",
+            }
+        )
     }
 }
 

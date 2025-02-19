@@ -5,11 +5,12 @@ pub mod item;
 mod monster;
 mod monster_spawn;
 pub mod projectile;
-mod quest;
+pub mod quest;
 mod render;
 mod tick;
 pub mod tower;
 
+use crate::quest_board::QuestBoardSlot;
 use crate::shop::ShopSlot;
 use crate::*;
 use crate::{route::*, upgrade::Upgrade};
@@ -19,6 +20,7 @@ use monster::*;
 use monster_spawn::*;
 use namui::*;
 use projectile::*;
+use quest::Quest;
 use std::{num::NonZeroUsize, sync::Arc};
 use tower::*;
 
@@ -45,15 +47,17 @@ pub struct GameState {
     pub flow: GameFlow,
     /// one-based
     pub stage: usize,
-    pub shop_slot: usize,
-    pub quest_slot: usize,
-    pub quest_board_slot: usize,
+    pub max_shop_slot: usize,
+    pub max_quest_slot: usize,
+    pub max_quest_board_slot: usize,
     pub reroll: usize,
     monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
     pub items: Vec<item::Item>,
+    pub quests: Vec<Quest>,
     pub money: u32,
     pub shop_slots: [ShopSlot; 5],
+    pub quest_board_slots: [QuestBoardSlot; 3],
 }
 
 impl Component for &GameState {
@@ -99,15 +103,17 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         upgrades: Default::default(),
         flow: GameFlow::SelectingTower,
         stage: 1,
-        shop_slot: 3,
-        quest_slot: 3,
-        quest_board_slot: 1,
+        max_shop_slot: 3,
+        max_quest_slot: 3,
+        max_quest_board_slot: 1,
         reroll: 1,
         monster_spawn_state: MonsterSpawnState::Idle,
         projectiles: Default::default(),
         items: Default::default(),
+        quests: Default::default(),
         money: 10,
         shop_slots: Default::default(),
+        quest_board_slots: Default::default(),
     })
     .0
 }
