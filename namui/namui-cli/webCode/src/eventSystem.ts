@@ -77,7 +77,13 @@ export class EventSystemOnWorker {
         const wasmBuffer = new DataView(this.memory.buffer, wasmBufferPtr, 32);
 
         if (waitTimeoutMs) {
-            Atomics.wait(eventBufferI32Array, 0, 0, waitTimeoutMs);
+            switch (Atomics.wait(eventBufferI32Array, 0, 0, waitTimeoutMs)) {
+                case "ok":
+                case "not-equal":
+                    break;
+                case "timed-out":
+                    return 0;
+            }
         } else {
             if (Atomics.load(eventBufferI32Array, 0) === 0) {
                 return 0;
