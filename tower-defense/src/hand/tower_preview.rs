@@ -83,6 +83,7 @@ impl Component for TowerPreview<'_> {
                     }),
                     table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
                         let range = match tower_template.kind {
+                            TowerKind::Barricade => "none",
                             TowerKind::High => "normal",
                             TowerKind::OnePair => "normal",
                             TowerKind::TwoPair => "normal",
@@ -104,6 +105,7 @@ impl Component for TowerPreview<'_> {
                     }),
                     table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
                         let speed = match tower_template.kind {
+                            TowerKind::Barricade => "none",
                             TowerKind::High => "normal",
                             TowerKind::OnePair => "normal",
                             TowerKind::TwoPair => "normal",
