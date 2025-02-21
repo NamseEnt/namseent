@@ -7,6 +7,16 @@ pub struct TowerSkillTemplate {
     pub cooldown: Duration,
     pub duration: Duration,
 }
+impl TowerSkillTemplate {
+    pub fn new_passive(kind: TowerSkillKind) -> Self {
+        Self {
+            kind,
+            cooldown: Duration::from_secs(1),
+            duration: Duration::from_secs(1),
+        }
+    }
+}
+
 pub struct TowerSkill {
     pub last_used_at: Instant,
     pub template: TowerSkillTemplate,

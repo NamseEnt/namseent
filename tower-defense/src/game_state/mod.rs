@@ -1,5 +1,6 @@
 mod camera;
 mod can_place_tower;
+pub mod cursor_preview;
 pub mod flow;
 pub mod item;
 mod monster;
@@ -15,6 +16,7 @@ use crate::shop::ShopSlot;
 use crate::*;
 use crate::{route::*, upgrade::Upgrade};
 use camera::*;
+use cursor_preview::CursorPreview;
 use flow::GameFlow;
 use monster::*;
 use monster_spawn::*;
@@ -58,6 +60,7 @@ pub struct GameState {
     pub money: u32,
     pub shop_slots: [ShopSlot; 5],
     pub quest_board_slots: [QuestBoardSlot; 3],
+    pub cursor_preview: CursorPreview,
 }
 
 impl Component for &GameState {
@@ -114,6 +117,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
         money: 10,
         shop_slots: Default::default(),
         quest_board_slots: Default::default(),
+        cursor_preview: Default::default(),
     })
     .0
 }

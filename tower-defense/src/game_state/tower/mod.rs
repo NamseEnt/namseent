@@ -4,8 +4,8 @@ mod skill;
 use super::*;
 use crate::card::{Rank, Suit};
 use namui::*;
-pub use render::tower_animation_tick;
-use render::{Animation, AnimationKind};
+use render::Animation;
+pub use render::{tower_animation_tick, tower_image_resource_location, AnimationKind};
 pub use skill::*;
 use std::{
     fmt::Display,
@@ -114,6 +114,21 @@ pub struct TowerTemplate {
     pub rank: Rank,
     pub skill_templates: Vec<TowerSkillTemplate>,
 }
+impl TowerTemplate {
+    pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
+        Self {
+            kind,
+            shoot_interval: kind.shoot_interval(),
+            default_attack_range_radius: kind.default_attack_range_radius(),
+            projectile_kind: ProjectileKind::Ball,
+            projectile_speed: Per::new(48.0, 1.sec()),
+            default_damage: kind.default_damage() as f32,
+            suit,
+            rank,
+            skill_templates: kind.skill_templates(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TowerKind {
@@ -131,7 +146,7 @@ pub enum TowerKind {
 }
 
 impl TowerKind {
-    fn asset_id(&self) -> &'static str {
+    pub fn asset_id(&self) -> &'static str {
         match self {
             TowerKind::Barricade => "barricade",
             TowerKind::High => "high",
@@ -144,6 +159,36 @@ impl TowerKind {
             TowerKind::FourOfAKind => "four_of_a_kind",
             TowerKind::StraightFlush => "straight_flush",
             TowerKind::RoyalFlush => "royal_flush",
+        }
+    }
+    pub fn shoot_interval(&self) -> Duration {
+        match self {
+            Self::Barricade => 1.sec(),
+            Self::High => 1.sec(),
+            Self::OnePair => 1.sec(),
+            Self::TwoPair => 1.sec(),
+            Self::ThreeOfAKind => 1.sec(),
+            Self::Straight => 1.sec(),
+            Self::Flush => 0.5.sec(),
+            Self::FullHouse => 1.sec(),
+            Self::FourOfAKind => 1.sec(),
+            Self::StraightFlush => 0.5.sec(),
+            Self::RoyalFlush => 0.33.sec(),
+        }
+    }
+    pub fn default_attack_range_radius(&self) -> f32 {
+        match self {
+            Self::Barricade => 5.0,
+            Self::High => 5.0,
+            Self::OnePair => 5.0,
+            Self::TwoPair => 5.0,
+            Self::ThreeOfAKind => 5.0,
+            Self::Straight => 10.0,
+            Self::Flush => 5.0,
+            Self::FullHouse => 5.0,
+            Self::FourOfAKind => 5.0,
+            Self::StraightFlush => 10.0,
+            Self::RoyalFlush => 15.0,
         }
     }
     pub fn default_damage(&self) -> usize {
@@ -159,6 +204,45 @@ impl TowerKind {
             Self::FourOfAKind => 1250,
             Self::StraightFlush => 7500,
             Self::RoyalFlush => 15000,
+        }
+    }
+    pub fn skill_templates(&self) -> Vec<TowerSkillTemplate> {
+        match self {
+            Self::Barricade => vec![],
+            Self::High => vec![],
+            Self::OnePair => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::MoneyIncomeAdd { add: 1 },
+            )],
+            Self::TwoPair => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::MoneyIncomeAdd { add: 2 },
+            )],
+            Self::ThreeOfAKind => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::NearbyMonsterSpeedMul {
+                    mul: 0.9,
+                    range_radius: 5.0,
+                },
+            )],
+            Self::Straight => vec![],
+            Self::Flush => vec![],
+            Self::FullHouse => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::NearbyTowerAttackSpeedMul {
+                    mul: 2.0,
+                    range_radius: 2.0,
+                },
+            )],
+            Self::FourOfAKind => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::NearbyMonsterSpeedMul {
+                    mul: 0.75,
+                    range_radius: 4.0,
+                },
+            )],
+            Self::StraightFlush => vec![],
+            Self::RoyalFlush => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::NearbyTowerDamageMul {
+                    mul: 2.0,
+                    range_radius: 6.0,
+                },
+            )],
         }
     }
 }

@@ -1,24 +1,25 @@
 mod card;
 mod game_state;
-mod hand;
 mod inventory;
 mod palette;
-mod placing_tower;
 mod quest_board;
 mod quests;
 mod rarity;
 mod route;
 mod shop;
+mod tower_placing_hand;
+mod tower_selecting_hand;
 mod upgrade;
 mod upgrade_board;
 mod upgrade_select;
 
 use game_state::{flow::GameFlow, mutate_game_state};
-use hand::Hand;
 use namui::*;
 use namui_prebuilt::simple_rect;
 use quest_board::QuestBoardModal;
 use shop::ShopModal;
+use tower_placing_hand::TowerPlacingHand;
+use tower_selecting_hand::TowerSelectingHand;
 use upgrade_board::UpgradeBoardModal;
 use upgrade_select::UpgradeSelectModal;
 
@@ -67,7 +68,7 @@ impl Component for Game {
             let GameFlow::SelectingTower = &game_state.flow else {
                 return;
             };
-            ctx.add(Hand { screen_wh });
+            ctx.add(TowerSelectingHand { screen_wh });
 
             let even_stage = match game_state.stage % 2 {
                 0 => true,
@@ -86,6 +87,19 @@ impl Component for Game {
                     return;
                 }
                 ctx.add(QuestBoardModal { screen_wh });
+            });
+        });
+
+        ctx.compose(|ctx| {
+            let GameFlow::PlacingTower {
+                placing_tower_slots,
+            } = &game_state.flow
+            else {
+                return;
+            };
+            ctx.add(TowerPlacingHand {
+                screen_wh,
+                placing_tower_slots,
             });
         });
 
