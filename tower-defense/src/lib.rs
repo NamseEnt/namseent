@@ -114,11 +114,8 @@ impl Component for Game {
 
         ctx.attach_event(|event| {
             match event {
-                Event::KeyDown { event } => match event.code {
-                    Code::Tab => {
-                        toggle_upgrade_board();
-                    }
-                    _ => {}
+                Event::KeyDown { event } => if event.code == Code::Tab {
+                    toggle_upgrade_board();
                 },
                 Event::Wheel { event } => {
                     let delta = -event.delta_xy.y / 2048.0;
@@ -132,13 +129,10 @@ impl Component for Game {
                     let Some(button) = event.button else {
                         return;
                     };
-                    match button {
-                        MouseButton::Middle => {
-                            set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
-                                last_global_xy: event.global_xy,
-                            }));
-                        }
-                        _ => {}
+                    if button == MouseButton::Middle {
+                        set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
+                            last_global_xy: event.global_xy,
+                        }));
                     };
                 }
                 Event::MouseMove { event } => {
@@ -170,11 +164,8 @@ impl Component for Game {
                         return;
                     };
 
-                    match button {
-                        MouseButton::Middle => {
-                            set_middle_mouse_button_dragging.set(None);
-                        }
-                        _ => {}
+                    if button == MouseButton::Middle {
+                        set_middle_mouse_button_dragging.set(None);
                     }
                 }
                 Event::VisibilityChange => {

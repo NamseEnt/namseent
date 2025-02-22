@@ -19,7 +19,7 @@ impl CursorPreview {
     pub fn update_position(&mut self, map_coord: MapCoordF32) {
         self.map_coord = map_coord;
     }
-    pub fn render<'a>(&'a self) -> impl Component + 'a {
+    pub fn render(&self) -> impl Component + '_ {
         RenderCursorPreview { inner: self }
     }
 }

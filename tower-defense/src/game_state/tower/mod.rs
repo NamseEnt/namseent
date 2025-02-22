@@ -60,7 +60,7 @@ impl Tower {
     }
 
     fn calculate_projectile_damage(&self) -> f32 {
-        let mut damage = self.default_damage as f32;
+        let mut damage = self.default_damage;
 
         self.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::DamageAdd { add } = status_effect.kind {

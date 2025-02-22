@@ -112,7 +112,7 @@ fn action_to_create_block_and_put_clone(
         closure_span: Option<proc_macro2::Span>,
     }
 
-    impl<'ast> syn::visit::Visit<'ast> for FindClosureSpan {
+    impl syn::visit::Visit<'_> for FindClosureSpan {
         fn visit_expr(&mut self, node: &syn::Expr) {
             if let syn::Expr::Closure(closure) = &node {
                 if let Some(capture) = closure.capture {

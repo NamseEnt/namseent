@@ -4,6 +4,12 @@ pub struct Camera {
     pub left_top: MapCoordF32,
     pub zoom_level: f32,
 }
+impl Default for Camera {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Camera {
     pub fn new() -> Self {
         Self {

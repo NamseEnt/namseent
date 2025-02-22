@@ -46,8 +46,8 @@ impl Component for TowerCursorPreview<'_> {
                 *rounded_center_xy - Xy::single(1),
                 Wh::single(2),
                 &TRAVEL_POINTS,
-                &placed_tower_coords,
-                &route_coords,
+                placed_tower_coords,
+                route_coords,
                 MAP_SIZE,
             )
         });
@@ -97,12 +97,9 @@ impl Component for TowerCursorPreview<'_> {
                 }
                 _ => {}
             },
-            Event::KeyDown { event } => match event.code {
-                Code::Escape => {
-                    cancel_placing_tower_selection();
-                    event.stop_propagation();
-                }
-                _ => {}
+            Event::KeyDown { event } => if event.code == Code::Escape {
+                cancel_placing_tower_selection();
+                event.stop_propagation();
             },
             _ => {}
         });

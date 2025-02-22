@@ -47,7 +47,7 @@ impl Component for TowerPreview<'_> {
             };
 
             ctx.absolute(*offset)
-                .add(TowerEffectDescription { skill: &effect });
+                .add(TowerEffectDescription { skill: effect });
         });
 
         ctx.compose(|ctx| {
