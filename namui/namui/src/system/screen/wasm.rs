@@ -213,7 +213,7 @@ static SIZE: OnceLock<AtomicU32> = OnceLock::new();
 fn on_resize(width: u16, height: u16) {
     SIZE.get_or_init(|| AtomicU32::new(unsafe { initial_window_wh() }))
         .store(
-            (width as u32) << 16 | height as u32,
+            ((width as u32) << 16) | height as u32,
             std::sync::atomic::Ordering::Relaxed,
         );
 
