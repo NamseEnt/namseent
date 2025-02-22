@@ -1,13 +1,13 @@
 mod tower;
 
 use super::tower::TowerTemplate;
-use crate::MapCoord;
+use crate::MapCoordF32;
 use namui::*;
 use tower::TowerCursorPreview;
 
 pub struct CursorPreview {
     pub kind: PreviewKind,
-    pub map_coord: MapCoord,
+    pub map_coord: MapCoordF32,
 }
 impl CursorPreview {
     pub fn should_update_position(&self) -> bool {
@@ -16,7 +16,7 @@ impl CursorPreview {
             PreviewKind::PlacingTower { .. } => true,
         }
     }
-    pub fn update_position(&mut self, map_coord: MapCoord) {
+    pub fn update_position(&mut self, map_coord: MapCoordF32) {
         self.map_coord = map_coord;
     }
     pub fn render<'a>(&'a self) -> impl Component + 'a {
@@ -27,7 +27,7 @@ impl Default for CursorPreview {
     fn default() -> Self {
         Self {
             kind: Default::default(),
-            map_coord: MapCoord::new(0, 0),
+            map_coord: MapCoordF32::new(0., 0.),
         }
     }
 }
@@ -41,10 +41,14 @@ impl Component for RenderCursorPreview<'_> {
 
         match kind {
             PreviewKind::None => {}
-            PreviewKind::PlacingTower { tower_template, .. } => {
+            PreviewKind::PlacingTower {
+                tower_template,
+                placing_tower_slot_index,
+            } => {
                 ctx.add(TowerCursorPreview {
                     tower_template,
                     map_coord: *map_coord,
+                    placing_tower_slot_index: *placing_tower_slot_index,
                 });
             }
         }

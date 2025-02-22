@@ -27,7 +27,7 @@ use std::{num::NonZeroUsize, sync::Arc};
 use tower::*;
 
 /// The size of a tile in pixels, with zoom level 1.0.
-const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
+pub const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
 const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
 const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(6, 0),

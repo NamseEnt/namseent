@@ -13,7 +13,7 @@ mod upgrade;
 mod upgrade_board;
 mod upgrade_select;
 
-use game_state::{flow::GameFlow, mutate_game_state};
+use game_state::{flow::GameFlow, mutate_game_state, TILE_PX_SIZE};
 use namui::*;
 use namui_prebuilt::simple_rect;
 use quest_board::QuestBoardModal;
@@ -155,6 +155,14 @@ impl Component for Game {
                                 last_global_xy: global_xy,
                             }));
                         }
+                    }
+                    if game_state.cursor_preview.should_update_position() {
+                        let local_xy_tile =
+                            (event.global_xy / game_state.camera.zoom_level) / TILE_PX_SIZE.as_xy();
+                        let map_coord = game_state.camera.left_top + local_xy_tile;
+                        mutate_game_state(move |game_state| {
+                            game_state.cursor_preview.update_position(map_coord);
+                        });
                     }
                 }
                 Event::MouseUp { event } => {
