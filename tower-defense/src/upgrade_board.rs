@@ -139,7 +139,7 @@ impl Component for UpgradeItem<'_> {
                             table::padding(PADDING, |wh, ctx| {
                                 ctx.add(typography::body::left(
                                     wh.height,
-                                    &upgrade_description_text(upgrade),
+                                    upgrade_description_text(upgrade),
                                     palette::ON_SURFACE,
                                 ));
                             }),

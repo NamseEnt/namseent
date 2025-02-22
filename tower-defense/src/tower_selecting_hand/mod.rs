@@ -5,6 +5,7 @@ use crate::{
     card::Card,
     game_state::{flow::GameFlow, mutate_game_state},
     palette,
+    tower_placing_hand::PlacingTowerSlot,
 };
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
@@ -16,10 +17,10 @@ const HAND_HEIGHT: Px = px(160.);
 const CARD_WIDTH: Px = px(120.);
 const PADDING: Px = px(4.);
 
-pub struct Hand {
+pub struct TowerSelectingHand {
     pub screen_wh: Wh<Px>,
 }
-impl Component for Hand {
+impl Component for TowerSelectingHand {
     fn render(self, ctx: &RenderCtx) {
         let Self { screen_wh } = self;
 
@@ -73,11 +74,16 @@ impl Component for Hand {
             let tower_template = tower_template.clone_inner();
             mutate_game_state(move |state| {
                 state.flow = GameFlow::PlacingTower {
-                    tower: tower_template,
+                    placing_tower_slots: [
+                        PlacingTowerSlot::Tower { tower_template },
+                        PlacingTowerSlot::barricade(),
+                        PlacingTowerSlot::barricade(),
+                        PlacingTowerSlot::barricade(),
+                        PlacingTowerSlot::barricade(),
+                    ],
                 };
             });
         };
-
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio_no_clip(1, |_, _| {}),

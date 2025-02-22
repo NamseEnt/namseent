@@ -318,8 +318,8 @@ pub fn generate_item(rarity: Rarity) -> Item {
         }
         ItemCandidate::Attack => {
             let mut rng = thread_rng();
-            let rank = REVERSED_RANKS.choose(&mut rng).unwrap().clone();
-            let suit = SUITS.choose(&mut rng).unwrap().clone();
+            let rank = *REVERSED_RANKS.choose(&mut rng).unwrap();
+            let suit = *SUITS.choose(&mut rng).unwrap();
             let damage = match rarity {
                 Rarity::Common => 25.0,
                 Rarity::Rare => 500.0,

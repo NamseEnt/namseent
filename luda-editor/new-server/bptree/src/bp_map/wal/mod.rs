@@ -267,7 +267,7 @@ impl ReadOffset {
         let flag = self.inner.load(std::sync::atomic::Ordering::Relaxed) & (1 << 63);
         // 1xxxx -> 0xxxx
         // 0xxxx -> 1xxxx
-        let toggled = flag ^ 1 << 63;
+        let toggled = flag ^ (1 << 63);
         self.inner
             .store(toggled, std::sync::atomic::Ordering::Relaxed);
     }

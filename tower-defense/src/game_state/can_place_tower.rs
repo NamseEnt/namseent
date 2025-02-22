@@ -37,7 +37,7 @@ pub fn can_place_tower(
 
     let splitted_routes_by_travel_point = {
         let mut routes = vec![];
-        let mut full_route_coords = route_coords.into_iter().copied().collect::<VecDeque<_>>();
+        let mut full_route_coords = route_coords.iter().copied().collect::<VecDeque<_>>();
         for i in 0..travel_points.len() - 1 {
             let start = travel_points[i];
             assert_eq!(*full_route_coords.front().unwrap(), start);
@@ -60,7 +60,7 @@ pub fn can_place_tower(
     };
 
     for splitted_route_coords in splitted_routes_by_travel_point {
-        let disrupts = find_all_disrupts(&new_tower_coords, &placed_tower_coords);
+        let disrupts = find_all_disrupts(&new_tower_coords, placed_tower_coords);
 
         let Some(start_side_disrupt_point_index) =
             find_disrupted_route_point_index(splitted_route_coords.iter(), &disrupts)

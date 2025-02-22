@@ -1,9 +1,11 @@
+mod render;
 mod skill;
 
-use crate::card::{Rank, Suit};
-
 use super::*;
+use crate::card::{Rank, Suit};
 use namui::*;
+use render::Animation;
+pub use render::{tower_animation_tick, tower_image_resource_location, AnimationKind};
 pub use skill::*;
 use std::{
     fmt::Display,
@@ -18,7 +20,7 @@ pub struct Tower {
     template: TowerTemplate,
     pub status_effects: Vec<TowerStatusEffect>,
     pub skills: Vec<TowerSkill>,
-    animation: Animation,
+    pub(self) animation: Animation,
 }
 impl Tower {
     pub fn new(template: &TowerTemplate, left_top: MapCoord) -> Self {
@@ -58,7 +60,7 @@ impl Tower {
     }
 
     fn calculate_projectile_damage(&self) -> f32 {
-        let mut damage = self.default_damage as f32;
+        let mut damage = self.default_damage;
 
         self.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::DamageAdd { add } = status_effect.kind {
@@ -92,30 +94,6 @@ impl Tower {
         )
     }
 }
-impl Component for &Tower {
-    fn render(self, ctx: &RenderCtx) {
-        let animation_name = match self.animation.kind {
-            AnimationKind::Idle1 => "idle1",
-            AnimationKind::Idle2 => "idle2",
-            AnimationKind::Attack => "attack",
-        };
-        let image = ctx.image(ResourceLocation::bundle(format!(
-            "tower/{}/{animation_name}.jpg",
-            self.kind.asset_id(),
-        )));
-
-        if let Some(Ok(image)) = image.as_ref() {
-            ctx.add(namui::image(ImageParam {
-                rect: Rect::from_xy_wh(Xy::zero(), image.info.wh()),
-                image: image.clone(),
-                style: ImageStyle {
-                    fit: ImageFit::None,
-                    paint: None,
-                },
-            }));
-        }
-    }
-}
 impl Deref for Tower {
     type Target = TowerTemplate;
 
@@ -136,9 +114,25 @@ pub struct TowerTemplate {
     pub rank: Rank,
     pub skill_templates: Vec<TowerSkillTemplate>,
 }
+impl TowerTemplate {
+    pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
+        Self {
+            kind,
+            shoot_interval: kind.shoot_interval(),
+            default_attack_range_radius: kind.default_attack_range_radius(),
+            projectile_kind: ProjectileKind::Ball,
+            projectile_speed: Per::new(48.0, 1.sec()),
+            default_damage: kind.default_damage() as f32,
+            suit,
+            rank,
+            skill_templates: kind.skill_templates(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TowerKind {
+    Barricade,
     High,
     OnePair,
     TwoPair,
@@ -152,11 +146,54 @@ pub enum TowerKind {
 }
 
 impl TowerKind {
-    fn asset_id(&self) -> &'static str {
-        todo!()
+    pub fn asset_id(&self) -> &'static str {
+        match self {
+            TowerKind::Barricade => "barricade",
+            TowerKind::High => "high",
+            TowerKind::OnePair => "one_pair",
+            TowerKind::TwoPair => "two_pair",
+            TowerKind::ThreeOfAKind => "three_of_a_kind",
+            TowerKind::Straight => "straight",
+            TowerKind::Flush => "flush",
+            TowerKind::FullHouse => "full_house",
+            TowerKind::FourOfAKind => "four_of_a_kind",
+            TowerKind::StraightFlush => "straight_flush",
+            TowerKind::RoyalFlush => "royal_flush",
+        }
+    }
+    pub fn shoot_interval(&self) -> Duration {
+        match self {
+            Self::Barricade => 1.sec(),
+            Self::High => 1.sec(),
+            Self::OnePair => 1.sec(),
+            Self::TwoPair => 1.sec(),
+            Self::ThreeOfAKind => 1.sec(),
+            Self::Straight => 1.sec(),
+            Self::Flush => 0.5.sec(),
+            Self::FullHouse => 1.sec(),
+            Self::FourOfAKind => 1.sec(),
+            Self::StraightFlush => 0.5.sec(),
+            Self::RoyalFlush => 0.33.sec(),
+        }
+    }
+    pub fn default_attack_range_radius(&self) -> f32 {
+        match self {
+            Self::Barricade => 5.0,
+            Self::High => 5.0,
+            Self::OnePair => 5.0,
+            Self::TwoPair => 5.0,
+            Self::ThreeOfAKind => 5.0,
+            Self::Straight => 10.0,
+            Self::Flush => 5.0,
+            Self::FullHouse => 5.0,
+            Self::FourOfAKind => 5.0,
+            Self::StraightFlush => 10.0,
+            Self::RoyalFlush => 15.0,
+        }
     }
     pub fn default_damage(&self) -> usize {
         match self {
+            Self::Barricade => 0,
             Self::High => 5,
             Self::OnePair => 25,
             Self::TwoPair => 50,
@@ -169,6 +206,45 @@ impl TowerKind {
             Self::RoyalFlush => 15000,
         }
     }
+    pub fn skill_templates(&self) -> Vec<TowerSkillTemplate> {
+        match self {
+            Self::Barricade => vec![],
+            Self::High => vec![],
+            Self::OnePair => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::MoneyIncomeAdd { add: 1 },
+            )],
+            Self::TwoPair => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::MoneyIncomeAdd { add: 2 },
+            )],
+            Self::ThreeOfAKind => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::NearbyMonsterSpeedMul {
+                    mul: 0.9,
+                    range_radius: 5.0,
+                },
+            )],
+            Self::Straight => vec![],
+            Self::Flush => vec![],
+            Self::FullHouse => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::NearbyTowerAttackSpeedMul {
+                    mul: 2.0,
+                    range_radius: 2.0,
+                },
+            )],
+            Self::FourOfAKind => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::NearbyMonsterSpeedMul {
+                    mul: 0.75,
+                    range_radius: 4.0,
+                },
+            )],
+            Self::StraightFlush => vec![],
+            Self::RoyalFlush => vec![TowerSkillTemplate::new_passive(
+                TowerSkillKind::NearbyTowerDamageMul {
+                    mul: 2.0,
+                    range_radius: 6.0,
+                },
+            )],
+        }
+    }
 }
 impl Display for TowerKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -176,6 +252,7 @@ impl Display for TowerKind {
             f,
             "{}",
             match self {
+                Self::Barricade => "Barricade",
                 Self::High => "High",
                 Self::OnePair => "One Pair",
                 Self::TwoPair => "Two Pair",
@@ -222,59 +299,4 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             tower.cooldown -= cooldown_sub;
         }
     });
-}
-
-pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
-    game_state.towers.iter_mut().for_each(|tower| {
-        let animation = &mut tower.animation;
-
-        if now - animation.start_at < animation.duration() {
-            return;
-        }
-
-        animation.transition(match animation.kind {
-            AnimationKind::Idle1 => AnimationKind::Idle2,
-            AnimationKind::Idle2 => AnimationKind::Idle1,
-            AnimationKind::Attack => AnimationKind::Idle1,
-        });
-    });
-}
-
-struct Animation {
-    kind: AnimationKind,
-    start_at: Instant,
-}
-
-impl Animation {
-    fn new() -> Self {
-        Self {
-            kind: AnimationKind::Idle1,
-            start_at: Instant::now(),
-        }
-    }
-
-    fn transition(&mut self, kind: AnimationKind) {
-        self.kind = kind;
-        self.start_at = Instant::now();
-    }
-
-    fn duration(&self) -> Duration {
-        self.kind.duration()
-    }
-}
-
-enum AnimationKind {
-    Idle1,
-    Idle2,
-    Attack,
-}
-
-impl AnimationKind {
-    fn duration(&self) -> Duration {
-        match self {
-            Self::Idle1 => Duration::from_secs(1),
-            Self::Idle2 => Duration::from_secs(1),
-            Self::Attack => Duration::from_secs(1),
-        }
-    }
 }

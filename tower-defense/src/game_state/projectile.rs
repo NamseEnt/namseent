@@ -25,6 +25,12 @@ pub struct ProjectileTargetIndicator {
     id: usize,
 }
 
+impl Default for ProjectileTargetIndicator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProjectileTargetIndicator {
     pub fn new() -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);

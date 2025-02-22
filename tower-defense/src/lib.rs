@@ -1,6 +1,5 @@
 mod card;
 mod game_state;
-mod hand;
 mod inventory;
 mod palette;
 mod quest_board;
@@ -8,15 +7,19 @@ mod quests;
 mod rarity;
 mod route;
 mod shop;
+mod tower_placing_hand;
+mod tower_selecting_hand;
 mod upgrade;
 mod upgrade_board;
 mod upgrade_select;
 
-use game_state::{flow::GameFlow, mutate_game_state};
-use hand::Hand;
+use game_state::{flow::GameFlow, mutate_game_state, TILE_PX_SIZE};
 use namui::*;
 use namui_prebuilt::simple_rect;
+use quest_board::QuestBoardModal;
 use shop::ShopModal;
+use tower_placing_hand::TowerPlacingHand;
+use tower_selecting_hand::TowerSelectingHand;
 use upgrade_board::UpgradeBoardModal;
 use upgrade_select::UpgradeSelectModal;
 
@@ -65,13 +68,40 @@ impl Component for Game {
             let GameFlow::SelectingTower = &game_state.flow else {
                 return;
             };
-            if game_state.stage % 2 != 0 {
-                return;
-            }
-            ctx.add(ShopModal { screen_wh });
+            ctx.add(TowerSelectingHand { screen_wh });
+
+            let even_stage = match game_state.stage % 2 {
+                0 => true,
+                _ => false,
+            };
+
+            ctx.compose(|ctx| {
+                if even_stage {
+                    return;
+                }
+                ctx.add(ShopModal { screen_wh });
+            });
+
+            ctx.compose(|ctx| {
+                if !even_stage {
+                    return;
+                }
+                ctx.add(QuestBoardModal { screen_wh });
+            });
         });
 
-        ctx.add(Hand { screen_wh });
+        ctx.compose(|ctx| {
+            let GameFlow::PlacingTower {
+                placing_tower_slots,
+            } = &game_state.flow
+            else {
+                return;
+            };
+            ctx.add(TowerPlacingHand {
+                screen_wh,
+                placing_tower_slots,
+            });
+        });
 
         ctx.add(game_state.as_ref());
 
@@ -84,11 +114,8 @@ impl Component for Game {
 
         ctx.attach_event(|event| {
             match event {
-                Event::KeyDown { event } => match event.code {
-                    Code::Tab => {
-                        toggle_upgrade_board();
-                    }
-                    _ => {}
+                Event::KeyDown { event } => if event.code == Code::Tab {
+                    toggle_upgrade_board();
                 },
                 Event::Wheel { event } => {
                     let delta = -event.delta_xy.y / 2048.0;
@@ -102,13 +129,10 @@ impl Component for Game {
                     let Some(button) = event.button else {
                         return;
                     };
-                    match button {
-                        MouseButton::Middle => {
-                            set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
-                                last_global_xy: event.global_xy,
-                            }));
-                        }
-                        _ => {}
+                    if button == MouseButton::Middle {
+                        set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
+                            last_global_xy: event.global_xy,
+                        }));
                     };
                 }
                 Event::MouseMove { event } => {
@@ -126,17 +150,22 @@ impl Component for Game {
                             }));
                         }
                     }
+                    if game_state.cursor_preview.should_update_position() {
+                        let local_xy_tile =
+                            (event.global_xy / game_state.camera.zoom_level) / TILE_PX_SIZE.as_xy();
+                        let map_coord = game_state.camera.left_top + local_xy_tile;
+                        mutate_game_state(move |game_state| {
+                            game_state.cursor_preview.update_position(map_coord);
+                        });
+                    }
                 }
                 Event::MouseUp { event } => {
                     let Some(button) = event.button else {
                         return;
                     };
 
-                    match button {
-                        MouseButton::Middle => {
-                            set_middle_mouse_button_dragging.set(None);
-                        }
-                        _ => {}
+                    if button == MouseButton::Middle {
+                        set_middle_mouse_button_dragging.set(None);
                     }
                 }
                 Event::VisibilityChange => {

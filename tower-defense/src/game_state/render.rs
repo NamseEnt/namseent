@@ -1,6 +1,7 @@
 use super::*;
 
 pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
+    game_state.render_cursor_preview(&ctx);
     game_state.render_monsters(&ctx);
     game_state.render_route_guide(&ctx);
     game_state.render_towers(&ctx);
@@ -99,5 +100,9 @@ impl GameState {
                 ctx.add(rendering_tree);
             });
         }
+    }
+
+    fn render_cursor_preview(&self, ctx: &ComposeCtx) {
+        ctx.add(self.cursor_preview.render());
     }
 }

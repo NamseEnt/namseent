@@ -89,7 +89,7 @@ pub(super) fn generate_quest_requirement(
 ) -> QuestRequirement {
     match thread_rng().gen_range(0..6) {
         0 => {
-            let rank = REVERSED_RANKS.choose(&mut thread_rng()).unwrap().clone();
+            let rank = *REVERSED_RANKS.choose(&mut thread_rng()).unwrap();
             let offset = game_state
                 .towers
                 .iter()
@@ -107,7 +107,7 @@ pub(super) fn generate_quest_requirement(
             }
         }
         1 => QuestRequirement::OwnTowerRank {
-            rank: REVERSED_RANKS.choose(&mut thread_rng()).unwrap().clone(),
+            rank: *REVERSED_RANKS.choose(&mut thread_rng()).unwrap(),
             count: thread_rng().gen_range(match rarity {
                 Rarity::Common => 3..=4,
                 Rarity::Rare => 5..=6,
@@ -116,7 +116,7 @@ pub(super) fn generate_quest_requirement(
             }),
         },
         2 => {
-            let suit = SUITS.choose(&mut thread_rng()).unwrap().clone();
+            let suit = *SUITS.choose(&mut thread_rng()).unwrap();
             let offset = game_state
                 .towers
                 .iter()
@@ -134,7 +134,7 @@ pub(super) fn generate_quest_requirement(
             }
         }
         3 => QuestRequirement::OwnTowerSuit {
-            suit: SUITS.choose(&mut thread_rng()).unwrap().clone(),
+            suit: *SUITS.choose(&mut thread_rng()).unwrap(),
             count: thread_rng().gen_range(match rarity {
                 Rarity::Common => 5..=8,
                 Rarity::Rare => 9..=11,

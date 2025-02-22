@@ -15,8 +15,8 @@ pub fn get_highest_tower_template(cards: &[Card]) -> TowerTemplate {
 }
 
 fn highest_tower(cards: &[Card]) -> TowerTemplate {
-    let straight_result = check_straight(&cards);
-    let flush_result = check_flush(&cards);
+    let straight_result = check_straight(cards);
+    let flush_result = check_flush(cards);
 
     if let (Some(straight_result), Some(flush_result)) = (&straight_result, &flush_result) {
         if straight_result.royal {
@@ -29,7 +29,7 @@ fn highest_tower(cards: &[Card]) -> TowerTemplate {
         );
     }
 
-    let rank_map = count_rank(&cards);
+    let rank_map = count_rank(cards);
     let mut triple_cards = None;
     let mut pair_high_cards = None;
     let mut pair_low_cards = None;
@@ -58,7 +58,7 @@ fn highest_tower(cards: &[Card]) -> TowerTemplate {
 
     if let (Some(triple_cards), Some(pair_high_cards)) = (&triple_cards, &pair_high_cards) {
         let mut cards = triple_cards
-            .into_iter()
+            .iter()
             .chain(pair_high_cards)
             .collect::<Vec<_>>();
         cards.sort();
@@ -89,7 +89,7 @@ fn highest_tower(cards: &[Card]) -> TowerTemplate {
 
     if let (Some(pair_high_cards), Some(pair_low_cards)) = (&pair_high_cards, &pair_low_cards) {
         let mut cards = pair_high_cards
-            .into_iter()
+            .iter()
             .chain(pair_low_cards)
             .collect::<Vec<_>>();
         cards.sort();
@@ -112,6 +112,7 @@ fn highest_tower(cards: &[Card]) -> TowerTemplate {
 
 fn inject_effects(tower: &mut TowerTemplate) {
     let hand_ranking_skill = match tower.kind {
+        TowerKind::Barricade => None,
         TowerKind::High => None,
         TowerKind::OnePair => Some(TowerSkillTemplate {
             kind: TowerSkillKind::MoneyIncomeAdd { add: 1 },
@@ -256,6 +257,7 @@ fn count_rank(cards: &[Card]) -> HashMap<Rank, Vec<Card>> {
 
 fn create_tower_template(kind: TowerKind, suit: Suit, rank: Rank) -> TowerTemplate {
     let shoot_interval = match kind {
+        TowerKind::Barricade => 8192.0,
         TowerKind::High => 1.0,
         TowerKind::OnePair => 1.0,
         TowerKind::TwoPair => 1.0,
@@ -270,6 +272,7 @@ fn create_tower_template(kind: TowerKind, suit: Suit, rank: Rank) -> TowerTempla
     .sec();
 
     let default_attack_range_radius = match kind {
+        TowerKind::Barricade => 0.0,
         TowerKind::High => 5.0,
         TowerKind::OnePair => 5.0,
         TowerKind::TwoPair => 5.0,
@@ -283,6 +286,7 @@ fn create_tower_template(kind: TowerKind, suit: Suit, rank: Rank) -> TowerTempla
     };
 
     let default_damage = match kind {
+        TowerKind::Barricade => 0.0,
         TowerKind::High => 1.0,
         TowerKind::OnePair => 5.0,
         TowerKind::TwoPair => 10.0,

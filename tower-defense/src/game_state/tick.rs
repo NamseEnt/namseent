@@ -72,7 +72,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
             monsters.swap_remove(monster_index);
         }
 
-        return false;
+        false
     });
 }
 
@@ -80,7 +80,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
     let projectiles = game_state
         .towers
         .iter_mut()
-        .map(|tower| {
+        .filter_map(|tower| {
             if tower.in_cooltime() {
                 return None;
             }
@@ -95,8 +95,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
             };
 
             Some(tower.shoot(target.projectile_target_indicator))
-        })
-        .flatten();
+        });
 
     game_state.projectiles.extend(projectiles);
 }
