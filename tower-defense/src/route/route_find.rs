@@ -41,7 +41,11 @@ pub fn bfs(
         return Some(vec![start_xy]);
     }
 
-    if blockers.contains(&start_xy) || blockers.iter().any(|&end_xy| end_xys.contains(&end_xy)) {
+    if blockers.contains(&start_xy)
+        || end_xys
+            .last()
+            .is_some_and(|end_xy| blockers.contains(end_xy))
+    {
         return None;
     }
 
