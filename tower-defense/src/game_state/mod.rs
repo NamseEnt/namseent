@@ -104,7 +104,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             })
         })),
         upgrades: Default::default(),
-        flow: GameFlow::SelectingTower,
+        flow: GameFlow::new_selecting_tower(),
         stage: 1,
         max_shop_slot: 3,
         max_quests: 3,

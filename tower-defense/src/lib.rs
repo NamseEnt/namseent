@@ -65,10 +65,10 @@ impl Component for Game {
         });
 
         ctx.compose(|ctx| {
-            let GameFlow::SelectingTower = &game_state.flow else {
+            let GameFlow::SelectingTower { cards } = &game_state.flow else {
                 return;
             };
-            ctx.add(TowerSelectingHand { screen_wh });
+            ctx.add(TowerSelectingHand { screen_wh, cards });
 
             let even_stage = match game_state.stage % 2 {
                 0 => true,
@@ -114,9 +114,11 @@ impl Component for Game {
 
         ctx.attach_event(|event| {
             match event {
-                Event::KeyDown { event } => if event.code == Code::Tab {
-                    toggle_upgrade_board();
-                },
+                Event::KeyDown { event } => {
+                    if event.code == Code::Tab {
+                        toggle_upgrade_board();
+                    }
+                }
                 Event::Wheel { event } => {
                     let delta = -event.delta_xy.y / 2048.0;
                     let origin = event.local_xy();

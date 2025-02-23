@@ -17,15 +17,14 @@ const HAND_HEIGHT: Px = px(160.);
 const CARD_WIDTH: Px = px(120.);
 const PADDING: Px = px(4.);
 
-pub struct TowerSelectingHand {
+pub struct TowerSelectingHand<'a> {
     pub screen_wh: Wh<Px>,
+    pub cards: &'a [Card],
 }
-impl Component for TowerSelectingHand {
+impl Component for TowerSelectingHand<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { screen_wh } = self;
+        let Self { screen_wh, cards } = self;
 
-        let (cards, set_cards) =
-            ctx.state(|| (0..5).map(|_| Card::new_random()).collect::<Vec<_>>());
         let (selected, set_selected) = ctx.state(|| [false, false, false, false, false]);
         let some_selected = ctx.memo(|| selected.iter().any(|selected| *selected));
         let using_cards = ctx.memo(|| {
@@ -42,7 +41,7 @@ impl Component for TowerSelectingHand {
             if !selected_cards.is_empty() {
                 return selected_cards;
             }
-            cards.clone_inner()
+            cards.to_vec()
         });
         let tower_template = ctx.memo(|| get_highest_tower_template(&using_cards));
 
@@ -51,13 +50,18 @@ impl Component for TowerSelectingHand {
                 return;
             }
             let selected = selected.clone_inner();
-            (set_selected, set_cards).mutate(move |(set_selected, cards)| {
+            mutate_game_state(move |game_state| {
+                let GameFlow::SelectingTower { cards } = &mut game_state.flow else {
+                    return;
+                };
                 for (index, selected) in selected.iter().enumerate() {
                     if !selected {
                         continue;
                     }
                     cards[index] = Card::new_random();
                 }
+            });
+            set_selected.mutate(move |set_selected| {
                 set_selected
                     .iter_mut()
                     .for_each(|selected| *selected = false);

@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{flow::GameFlow, mutate_game_state},
+    game_state::mutate_game_state,
     palette,
     upgrade::{merge_or_append_upgrade, Upgrade},
 };
@@ -41,7 +41,7 @@ impl Component for UpgradeSelectModal<'_> {
             let upgrade = upgrade.clone();
             mutate_game_state(|state| {
                 merge_or_append_upgrade(&mut state.upgrades, upgrade);
-                state.flow = GameFlow::SelectingTower;
+                state.goto_selecting_tower();
             });
         };
 
