@@ -275,14 +275,14 @@ impl Component for ShopItemContent<'_> {
                                 table::vertical([
                                     table::fixed(36.px(), |_wh, ctx| {
                                         ctx.add(typography::body::left_top(
-                                            item.name(),
+                                            item.kind.name(),
                                             palette::ON_SURFACE,
                                         ));
                                     }),
                                     table::fixed(PADDING, |_, _| {}),
                                     table::ratio(1, |_wh, ctx| {
                                         ctx.add(typography::body::left_top(
-                                            item.description(),
+                                            item.kind.description(),
                                             palette::ON_SURFACE_VARIANT,
                                         ));
                                     }),

@@ -107,7 +107,7 @@ impl Component for InventoryItem<'_> {
                 table::ratio(1, |wh, ctx| {
                     ctx.add(typography::body::center(
                         wh,
-                        item.name(),
+                        item.kind.name(),
                         palette::ON_SURFACE,
                     ));
                 }),

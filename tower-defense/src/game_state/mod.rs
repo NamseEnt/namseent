@@ -93,31 +93,36 @@ impl Component for &FloorTile {
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
 pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
-    ctx.init_atom(&GAME_STATE_ATOM, || GameState {
-        monsters: Default::default(),
-        towers: Default::default(),
-        camera: Camera::new(),
-        route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
-        floor_tiles: Vec::from_iter((0..MAP_SIZE.width).flat_map(|x| {
-            (0..MAP_SIZE.height).map(move |y| FloorTile {
-                coord: MapCoord::new(x, y),
-            })
-        })),
-        upgrades: Default::default(),
-        flow: GameFlow::new_selecting_tower(),
-        stage: 1,
-        max_shop_slot: 3,
-        max_quests: 3,
-        max_quest_board_slot: 1,
-        reroll: 1,
-        monster_spawn_state: MonsterSpawnState::Idle,
-        projectiles: Default::default(),
-        items: Default::default(),
-        quests: Default::default(),
-        money: 10,
-        shop_slots: Default::default(),
-        quest_board_slots: Default::default(),
-        cursor_preview: Default::default(),
+    ctx.init_atom(&GAME_STATE_ATOM, || {
+        let mut game_state = GameState {
+            monsters: Default::default(),
+            towers: Default::default(),
+            camera: Camera::new(),
+            route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
+            floor_tiles: Vec::from_iter((0..MAP_SIZE.width).flat_map(|x| {
+                (0..MAP_SIZE.height).map(move |y| FloorTile {
+                    coord: MapCoord::new(x, y),
+                })
+            })),
+            upgrades: Default::default(),
+            flow: GameFlow::new_selecting_tower(),
+            stage: 1,
+            max_shop_slot: 3,
+            max_quests: 3,
+            max_quest_board_slot: 1,
+            reroll: 1,
+            monster_spawn_state: MonsterSpawnState::Idle,
+            projectiles: Default::default(),
+            items: Default::default(),
+            quests: Default::default(),
+            money: 10,
+            shop_slots: Default::default(),
+            quest_board_slots: Default::default(),
+            cursor_preview: Default::default(),
+        };
+
+        game_state.goto_selecting_tower();
+        game_state
     })
     .0
 }
