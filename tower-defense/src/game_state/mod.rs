@@ -62,6 +62,14 @@ pub struct GameState {
     pub quest_board_slots: [QuestBoardSlot; 3],
     pub cursor_preview: CursorPreview,
 }
+impl GameState {
+    pub fn in_even_stage(&self) -> bool {
+        match self.stage % 2 {
+            0 => true,
+            _ => false,
+        }
+    }
+}
 
 impl Component for &GameState {
     fn render(self, ctx: &RenderCtx) {

@@ -1,7 +1,7 @@
-use super::{item::generate_items, GameState};
+use super::{item::generate_items, quest::generate_quests, GameState};
 use crate::{
-    card::Card, rarity::Rarity, shop::ShopSlot, tower_placing_hand::PlacingTowerSlot,
-    upgrade::Upgrade,
+    card::Card, quest_board::QuestBoardSlot, rarity::Rarity, shop::ShopSlot,
+    tower_placing_hand::PlacingTowerSlot, upgrade::Upgrade,
 };
 
 #[derive(Clone)]
@@ -34,6 +34,16 @@ impl GameState {
     pub fn goto_selecting_tower(&mut self) {
         self.flow = GameFlow::new_selecting_tower();
 
+        match self.in_even_stage() {
+            true => {
+                self.renew_shop();
+            }
+            false => {
+                self.renew_quest_board();
+            }
+        }
+    }
+    fn renew_shop(&mut self) {
         let items = generate_items(self, self.max_shop_slot);
         for slot in self.shop_slots.iter_mut() {
             *slot = ShopSlot::Locked;
@@ -49,6 +59,18 @@ impl GameState {
                 item,
                 cost,
                 purchased: false,
+            }
+        }
+    }
+    fn renew_quest_board(&mut self) {
+        let quests = generate_quests(self, self.max_quest_board_slot);
+        for slot in self.quest_board_slots.iter_mut() {
+            *slot = QuestBoardSlot::Locked;
+        }
+        for (slot, quest) in self.quest_board_slots.iter_mut().zip(quests.into_iter()) {
+            *slot = QuestBoardSlot::Quest {
+                quest,
+                accepted: false,
             }
         }
     }

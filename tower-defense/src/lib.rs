@@ -70,20 +70,17 @@ impl Component for Game {
             };
             ctx.add(TowerSelectingHand { screen_wh, cards });
 
-            let even_stage = match game_state.stage % 2 {
-                0 => true,
-                _ => false,
-            };
+            let in_even_stage = game_state.in_even_stage();
 
             ctx.compose(|ctx| {
-                if even_stage {
+                if !in_even_stage {
                     return;
                 }
                 ctx.add(ShopModal { screen_wh });
             });
 
             ctx.compose(|ctx| {
-                if !even_stage {
+                if in_even_stage {
                     return;
                 }
                 ctx.add(QuestBoardModal { screen_wh });
