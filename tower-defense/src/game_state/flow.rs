@@ -23,6 +23,7 @@ pub enum GameFlow {
     SelectingUpgrade {
         upgrades: Vec<Upgrade>,
     },
+    Result,
 }
 impl GameFlow {
     pub fn new_selecting_tower() -> Self {
@@ -103,5 +104,9 @@ impl GameState {
     pub fn goto_selecting_upgrade(&mut self) {
         let upgrades = generate_upgrades_for_boss_reward(self, 3);
         self.flow = GameFlow::SelectingUpgrade { upgrades };
+    }
+
+    pub fn goto_result(&mut self) {
+        self.flow = GameFlow::Result;
     }
 }

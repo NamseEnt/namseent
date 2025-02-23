@@ -16,6 +16,7 @@ pub struct Monster {
     pub max_hp: f32,
     pub skills: Vec<MonsterSkill>,
     pub status_effects: Vec<MonsterStatusEffect>,
+    pub damage: f32,
 }
 impl Monster {
     pub fn new(template: &MonsterTemplate, route: Arc<Route>) -> Self {
@@ -33,6 +34,7 @@ impl Monster {
                 .map(|&t| MonsterSkill::new(t))
                 .collect(),
             status_effects: vec![],
+            damage: template.damage,
         }
     }
     pub fn get_damage(&mut self, damage: f32) {
@@ -45,6 +47,11 @@ impl Monster {
         }
 
         self.hp -= damage;
+    }
+    pub fn get_damage_to_user(&self) -> f32 {
+        let damage = self.damage;
+        // weaken or strengthen the damage
+        damage
     }
 
     pub fn dead(&self) -> bool {
@@ -205,8 +212,17 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
         monster.move_on_route.move_by(dt);
     }
 
-    // todo: deal damage to user
-    game_state
-        .monsters
-        .retain(|monster| !monster.move_on_route.is_finished());
+    let mut damage = 0.0;
+    game_state.monsters.retain(|monster| {
+        if monster.move_on_route.is_finished() {
+            damage += monster.get_damage_to_user();
+            return false;
+        }
+        true
+    });
+
+    game_state.hp -= damage;
+    if game_state.hp <= 0.0 {
+        game_state.goto_result();
+    }
 }
