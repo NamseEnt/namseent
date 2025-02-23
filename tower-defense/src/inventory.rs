@@ -67,7 +67,7 @@ impl Component for Inventory {
                         });
 
                         ctx.add(rect(RectParam {
-                            rect: wh.to_rect(),
+                            rect: Rect::zero_wh(Wh::new(wh.width, height)),
                             style: RectStyle {
                                 stroke: None,
                                 fill: Some(RectFill {

@@ -14,9 +14,11 @@ mod upgrade_board;
 mod upgrade_select;
 
 use game_state::{flow::GameFlow, mutate_game_state, TILE_PX_SIZE};
+use inventory::Inventory;
 use namui::*;
 use namui_prebuilt::simple_rect;
 use quest_board::QuestBoardModal;
+use quests::Quests;
 use shop::ShopModal;
 use tower_placing_hand::TowerPlacingHand;
 use tower_selecting_hand::TowerSelectingHand;
@@ -99,6 +101,10 @@ impl Component for Game {
                 placing_tower_slots,
             });
         });
+
+        ctx.add(Inventory { screen_wh });
+
+        ctx.add(Quests { screen_wh });
 
         ctx.add(game_state.as_ref());
 
