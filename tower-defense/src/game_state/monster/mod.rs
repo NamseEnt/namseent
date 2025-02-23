@@ -52,7 +52,16 @@ impl Monster {
     }
 }
 impl Component for &Monster {
-    fn render(self, ctx: &RenderCtx) {}
+    fn render(self, ctx: &RenderCtx) {
+        let monster_wh = TILE_PX_SIZE
+            * match self.kind {
+                MonsterKind::Ball => 0.6,
+                MonsterKind::BigBall => 0.8,
+            };
+        let path = Path::new().add_oval(Rect::from_xy_wh(monster_wh.as_xy() * -0.5, monster_wh));
+        let paint = Paint::new(Color::RED);
+        ctx.add(namui::path(path, paint));
+    }
 }
 
 pub struct MonsterTemplate {
@@ -60,10 +69,68 @@ pub struct MonsterTemplate {
     pub max_hp: f32,
     pub skills: Vec<MonsterSkillTemplate>,
     pub velocity: Velocity,
+    pub damage: f32,
+    pub bounty: u32,
+}
+impl MonsterTemplate {
+    fn velocity(mul: f32) -> Velocity {
+        Per::new(2.0 * mul, Duration::from_secs(1))
+    }
+    fn damage(mul: f32) -> f32 {
+        mul
+    }
+    fn bounty(mul: u32) -> u32 {
+        mul
+    }
+    pub fn new_mob_01() -> Self {
+        Self {
+            kind: MonsterKind::Ball,
+            max_hp: 10.0,
+            skills: vec![],
+            velocity: Self::velocity(0.5),
+            damage: Self::damage(1.0),
+            bounty: Self::bounty(1),
+        }
+    }
+    pub fn new_mob_02() -> Self {
+        Self {
+            kind: MonsterKind::Ball,
+            max_hp: 15.0,
+            skills: vec![],
+            velocity: Self::velocity(0.5),
+            damage: Self::damage(1.0),
+            bounty: Self::bounty(1),
+        }
+    }
+
+    pub fn new_named_01() -> Self {
+        Self {
+            kind: MonsterKind::BigBall,
+            max_hp: 100.0,
+            skills: vec![],
+            velocity: Self::velocity(1.0),
+            damage: Self::damage(10.0),
+            bounty: Self::bounty(10),
+        }
+    }
+
+    pub fn new_boss_01() -> Self {
+        Self {
+            kind: MonsterKind::BigBall,
+            max_hp: 1000.0,
+            skills: vec![],
+            velocity: Self::velocity(1.0),
+            damage: Self::damage(25.0),
+            bounty: Self::bounty(100),
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
-pub enum MonsterKind {}
+pub enum MonsterKind {
+    Ball,
+    BigBall,
+}
 
 pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
     for monster in &mut game_state.monsters {

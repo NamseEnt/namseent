@@ -23,7 +23,7 @@ use monster_spawn::*;
 use namui::*;
 use projectile::*;
 use quest::Quest;
-use std::{num::NonZeroUsize, sync::Arc};
+use std::sync::Arc;
 use tower::*;
 
 /// The size of a tile in pixels, with zoom level 1.0.

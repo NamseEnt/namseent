@@ -70,6 +70,13 @@ impl Component for TowerCursorPreview<'_> {
                 };
                 placing_tower_slots[placing_tower_slot_index] = PlacingTowerSlot::Empty;
                 game_state.cursor_preview.kind = PreviewKind::None;
+
+                if placing_tower_slots
+                    .iter()
+                    .all(|slot| matches!(slot, PlacingTowerSlot::Empty))
+                {
+                    game_state.goto_defense();
+                }
             });
         };
 
@@ -97,10 +104,12 @@ impl Component for TowerCursorPreview<'_> {
                 }
                 _ => {}
             },
-            Event::KeyDown { event } => if event.code == Code::Escape {
-                cancel_placing_tower_selection();
-                event.stop_propagation();
-            },
+            Event::KeyDown { event } => {
+                if event.code == Code::Escape {
+                    cancel_placing_tower_selection();
+                    event.stop_propagation();
+                }
+            }
             _ => {}
         });
     }

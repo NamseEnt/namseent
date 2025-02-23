@@ -1,4 +1,7 @@
-use super::{item::generate_items, quest::generate_quests, tower::TowerTemplate, GameState};
+use super::{
+    item::generate_items, monster_spawn::start_spawn, quest::generate_quests, tower::TowerTemplate,
+    GameState,
+};
 use crate::{
     card::Card, quest_board::QuestBoardSlot, rarity::Rarity, shop::ShopSlot,
     tower_placing_hand::PlacingTowerSlot, upgrade::Upgrade,
@@ -12,6 +15,7 @@ pub enum GameFlow {
     PlacingTower {
         placing_tower_slots: [PlacingTowerSlot; 5],
     },
+    Defense,
     SelectingUpgrade {
         upgrades: [Upgrade; 3],
     },
@@ -85,5 +89,10 @@ impl GameState {
                 PlacingTowerSlot::barricade(),
             ],
         };
+    }
+
+    pub fn goto_defense(&mut self) {
+        self.flow = GameFlow::Defense;
+        start_spawn(self);
     }
 }
