@@ -117,10 +117,10 @@ fn check_defense_end(game_state: &mut GameState) {
 
     match game_state.stage {
         15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50 => {
-            game_state.goto_selecting_tower();
+            game_state.goto_selecting_upgrade();
         }
         _ => {
-            game_state.goto_selecting_upgrade();
+            game_state.goto_selecting_tower();
         }
     }
 }
