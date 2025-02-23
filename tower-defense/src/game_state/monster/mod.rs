@@ -5,12 +5,15 @@ use namui::*;
 pub use skill::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+const MONSTER_HP_BAR_HEIGHT: Px = px(4.);
+
 pub struct Monster {
     id: usize,
     pub move_on_route: MoveOnRoute,
     pub kind: MonsterKind,
     pub projectile_target_indicator: ProjectileTargetIndicator,
     pub hp: f32,
+    pub max_hp: f32,
     pub skills: Vec<MonsterSkill>,
     pub status_effects: Vec<MonsterStatusEffect>,
 }
@@ -23,6 +26,7 @@ impl Monster {
             kind: template.kind,
             projectile_target_indicator: ProjectileTargetIndicator::new(),
             hp: template.max_hp,
+            max_hp: template.max_hp,
             skills: template
                 .skills
                 .iter()
@@ -60,7 +64,54 @@ impl Component for &Monster {
             };
         let path = Path::new().add_oval(Rect::from_xy_wh(monster_wh.as_xy() * -0.5, monster_wh));
         let paint = Paint::new(Color::RED);
-        ctx.add(namui::path(path, paint));
+        ctx.translate(TILE_PX_SIZE.as_xy() * 0.5)
+            .add(namui::path(path, paint));
+
+        let hp_bar_wh = Wh::new(monster_wh.width, MONSTER_HP_BAR_HEIGHT);
+        ctx.translate(Xy::new(
+            TILE_PX_SIZE.width * 0.5,
+            TILE_PX_SIZE.width * 0.5 + monster_wh.height * 0.6,
+        ))
+        .add(MonsterHpBar {
+            wh: hp_bar_wh,
+            progress: self.hp / self.max_hp,
+        });
+    }
+}
+
+struct MonsterHpBar {
+    wh: Wh<Px>,
+    progress: f32,
+}
+impl Component for MonsterHpBar {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { wh, progress } = self;
+
+        let container_rect = Rect::from_xy_wh(wh.as_xy() * -0.5, wh);
+
+        ctx.add(rect(RectParam {
+            rect: Rect::from_xy_wh(container_rect.xy(), Wh::new(wh.width * progress, wh.height)),
+            style: RectStyle {
+                stroke: None,
+                fill: Some(RectFill { color: Color::RED }),
+                round: None,
+            },
+        }));
+
+        ctx.add(rect(RectParam {
+            rect: container_rect,
+            style: RectStyle {
+                stroke: Some(RectStroke {
+                    color: palette::OUTLINE,
+                    width: 1.px(),
+                    border_position: BorderPosition::Outside,
+                }),
+                fill: Some(RectFill {
+                    color: palette::SURFACE_CONTAINER,
+                }),
+                round: None,
+            },
+        }));
     }
 }
 
@@ -74,7 +125,7 @@ pub struct MonsterTemplate {
 }
 impl MonsterTemplate {
     fn velocity(mul: f32) -> Velocity {
-        Per::new(2.0 * mul, Duration::from_secs(1))
+        Per::new(10.0 * mul, Duration::from_secs(1))
     }
     fn damage(mul: f32) -> f32 {
         mul
