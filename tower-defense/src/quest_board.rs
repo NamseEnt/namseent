@@ -16,7 +16,7 @@ const QUEST_BOARD_WH: Wh<Px> = Wh {
     height: px(480.0),
 };
 const QUEST_BOARD_BUTTON_WH: Wh<Px> = Wh {
-    width: px(64.0),
+    width: px(128.0),
     height: px(36.0),
 };
 const ACCEPTED_LABEL_HEIGHT: Px = px(24.0);
@@ -93,10 +93,10 @@ impl Component for QuestBoardOpenButton<'_> {
         } = self;
 
         ctx.compose(|ctx| {
-            ctx.translate((0.px(), QUEST_BOARD_BUTTON_WH.height))
+            ctx.translate((0.px(), -QUEST_BOARD_BUTTON_WH.height))
                 .add(TextButton {
                     rect: QUEST_BOARD_BUTTON_WH.to_rect(),
-                    text: format!("퀘스트 {}", if opened { "🔼" } else { "🔽" }),
+                    text: format!("퀘스트 {}", if opened { "^" } else { "v" }),
                     text_color: palette::ON_SURFACE,
                     stroke_color: palette::OUTLINE,
                     stroke_width: 1.px(),

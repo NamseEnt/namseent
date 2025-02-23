@@ -9,7 +9,7 @@ use namui::*;
 use namui_prebuilt::{button::TextButton, table, typography};
 use std::iter;
 
-const QUESTS_WIDTH: Px = px(160.);
+const QUESTS_WIDTH: Px = px(240.);
 const PADDING: Px = px(4.);
 const ITEM_HEIGHT: Px = px(36.);
 

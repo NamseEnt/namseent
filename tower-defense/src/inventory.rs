@@ -11,7 +11,7 @@ use crate::{
 use namui::*;
 use namui_prebuilt::{table, typography};
 
-const INVENTORY_WIDTH: Px = px(160.);
+const INVENTORY_WIDTH: Px = px(240.);
 const PADDING: Px = px(4.);
 const ITEM_HEIGHT: Px = px(36.);
 
