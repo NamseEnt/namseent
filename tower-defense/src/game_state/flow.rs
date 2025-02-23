@@ -1,4 +1,4 @@
-use super::{item::generate_items, quest::generate_quests, GameState};
+use super::{item::generate_items, quest::generate_quests, tower::TowerTemplate, GameState};
 use crate::{
     card::Card, quest_board::QuestBoardSlot, rarity::Rarity, shop::ShopSlot,
     tower_placing_hand::PlacingTowerSlot, upgrade::Upgrade,
@@ -73,5 +73,17 @@ impl GameState {
                 accepted: false,
             }
         }
+    }
+
+    pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
+        self.flow = GameFlow::PlacingTower {
+            placing_tower_slots: [
+                PlacingTowerSlot::Tower { tower_template },
+                PlacingTowerSlot::barricade(),
+                PlacingTowerSlot::barricade(),
+                PlacingTowerSlot::barricade(),
+                PlacingTowerSlot::barricade(),
+            ],
+        };
     }
 }

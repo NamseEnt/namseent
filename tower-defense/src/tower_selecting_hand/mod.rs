@@ -5,7 +5,6 @@ use crate::{
     card::Card,
     game_state::{flow::GameFlow, mutate_game_state},
     palette,
-    tower_placing_hand::PlacingTowerSlot,
 };
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
@@ -77,15 +76,7 @@ impl Component for TowerSelectingHand<'_> {
         let use_tower = || {
             let tower_template = tower_template.clone_inner();
             mutate_game_state(move |state| {
-                state.flow = GameFlow::PlacingTower {
-                    placing_tower_slots: [
-                        PlacingTowerSlot::Tower { tower_template },
-                        PlacingTowerSlot::barricade(),
-                        PlacingTowerSlot::barricade(),
-                        PlacingTowerSlot::barricade(),
-                        PlacingTowerSlot::barricade(),
-                    ],
-                };
+                state.goto_placing_tower(tower_template);
             });
         };
         ctx.compose(|ctx| {
