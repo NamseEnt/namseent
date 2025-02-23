@@ -38,6 +38,7 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
 
     move_projectiles(game_state, dt);
     shoot_projectiles(game_state);
+    check_defense_end(game_state);
 }
 
 fn move_projectiles(game_state: &mut GameState, dt: Duration) {
@@ -77,25 +78,49 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 }
 
 fn shoot_projectiles(game_state: &mut GameState) {
-    let projectiles = game_state
-        .towers
-        .iter_mut()
-        .filter_map(|tower| {
-            if tower.in_cooltime() {
-                return None;
-            }
+    let projectiles = game_state.towers.iter_mut().filter_map(|tower| {
+        if tower.in_cooltime() {
+            return None;
+        }
 
-            let attack_range_radius = tower.attack_range_radius();
+        let attack_range_radius = tower.attack_range_radius();
 
-            let Some(target) = game_state.monsters.iter().find(|monster| {
-                (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
-                    < attack_range_radius
-            }) else {
-                return None;
-            };
+        let Some(target) = game_state.monsters.iter().find(|monster| {
+            (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
+                < attack_range_radius
+        }) else {
+            return None;
+        };
 
-            Some(tower.shoot(target.projectile_target_indicator))
-        });
+        Some(tower.shoot(target.projectile_target_indicator))
+    });
 
     game_state.projectiles.extend(projectiles);
+}
+
+fn check_defense_end(game_state: &mut GameState) {
+    let GameFlow::Defense = game_state.flow else {
+        return;
+    };
+    let MonsterSpawnState::Idle = game_state.monster_spawn_state else {
+        return;
+    };
+    if !game_state.monsters.is_empty() {
+        return;
+    }
+
+    game_state.stage += 1;
+    if game_state.stage > 50 {
+        // Game clear
+        return;
+    }
+
+    match game_state.stage {
+        15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50 => {
+            game_state.goto_selecting_tower();
+        }
+        _ => {
+            game_state.goto_selecting_upgrade();
+        }
+    }
 }

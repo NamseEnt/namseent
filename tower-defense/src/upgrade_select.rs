@@ -22,7 +22,7 @@ const UPGRADE_SELECT_BUTTON_WH: Wh<Px> = Wh {
 
 pub struct UpgradeSelectModal<'a> {
     pub screen_wh: Wh<Px>,
-    pub upgrades: &'a [Upgrade; 3],
+    pub upgrades: &'a [Upgrade],
 }
 impl Component for UpgradeSelectModal<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -96,7 +96,7 @@ impl Component for UpgradeSelectOpenButton<'_> {
 }
 
 struct UpgradeSelect<'a> {
-    upgrades: &'a [Upgrade; 3],
+    upgrades: &'a [Upgrade],
     on_upgrade_select: &'a dyn Fn(&Upgrade),
 }
 impl Component for UpgradeSelect<'_> {

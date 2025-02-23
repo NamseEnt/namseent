@@ -62,7 +62,7 @@ impl Component for Game {
             };
             ctx.add(UpgradeSelectModal {
                 screen_wh,
-                upgrades,
+                upgrades: &upgrades,
             });
         });
 

@@ -3,8 +3,12 @@ use super::{
     GameState,
 };
 use crate::{
-    card::Card, quest_board::QuestBoardSlot, rarity::Rarity, shop::ShopSlot,
-    tower_placing_hand::PlacingTowerSlot, upgrade::Upgrade,
+    card::Card,
+    quest_board::QuestBoardSlot,
+    rarity::Rarity,
+    shop::ShopSlot,
+    tower_placing_hand::PlacingTowerSlot,
+    upgrade::{generate_upgrades_for_boss_reward, Upgrade},
 };
 
 #[derive(Clone)]
@@ -17,7 +21,7 @@ pub enum GameFlow {
     },
     Defense,
     SelectingUpgrade {
-        upgrades: [Upgrade; 3],
+        upgrades: Vec<Upgrade>,
     },
 }
 impl GameFlow {
@@ -94,5 +98,10 @@ impl GameState {
     pub fn goto_defense(&mut self) {
         self.flow = GameFlow::Defense;
         start_spawn(self);
+    }
+
+    pub fn goto_selecting_upgrade(&mut self) {
+        let upgrades = generate_upgrades_for_boss_reward(self, 3);
+        self.flow = GameFlow::SelectingUpgrade { upgrades };
     }
 }
