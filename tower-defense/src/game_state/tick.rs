@@ -45,6 +45,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
     let GameState {
         projectiles,
         monsters,
+        money,
         ..
     } = game_state;
 
@@ -70,6 +71,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
         monster.get_damage(projectile.damage);
 
         if monster.dead() {
+            *money += monster.reward;
             monsters.swap_remove(monster_index);
         }
 

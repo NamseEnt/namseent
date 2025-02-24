@@ -17,6 +17,7 @@ pub struct Monster {
     pub skills: Vec<MonsterSkill>,
     pub status_effects: Vec<MonsterStatusEffect>,
     pub damage: f32,
+    pub reward: u32,
 }
 impl Monster {
     pub fn new(template: &MonsterTemplate, route: Arc<Route>) -> Self {
@@ -35,6 +36,7 @@ impl Monster {
                 .collect(),
             status_effects: vec![],
             damage: template.damage,
+            reward: template.reward,
         }
     }
     pub fn get_damage(&mut self, damage: f32) {
@@ -128,7 +130,7 @@ pub struct MonsterTemplate {
     pub skills: Vec<MonsterSkillTemplate>,
     pub velocity: Velocity,
     pub damage: f32,
-    pub bounty: u32,
+    pub reward: u32,
 }
 impl MonsterTemplate {
     fn velocity(mul: f32) -> Velocity {
@@ -137,7 +139,7 @@ impl MonsterTemplate {
     fn damage(mul: f32) -> f32 {
         mul
     }
-    fn bounty(mul: u32) -> u32 {
+    fn reward(mul: u32) -> u32 {
         mul
     }
     pub fn new_mob_01() -> Self {
@@ -147,7 +149,7 @@ impl MonsterTemplate {
             skills: vec![],
             velocity: Self::velocity(0.5),
             damage: Self::damage(1.0),
-            bounty: Self::bounty(1),
+            reward: Self::reward(1),
         }
     }
     pub fn new_mob_02() -> Self {
@@ -157,7 +159,7 @@ impl MonsterTemplate {
             skills: vec![],
             velocity: Self::velocity(0.5),
             damage: Self::damage(1.0),
-            bounty: Self::bounty(1),
+            reward: Self::reward(1),
         }
     }
 
@@ -168,7 +170,7 @@ impl MonsterTemplate {
             skills: vec![],
             velocity: Self::velocity(1.0),
             damage: Self::damage(10.0),
-            bounty: Self::bounty(10),
+            reward: Self::reward(10),
         }
     }
 
@@ -179,7 +181,7 @@ impl MonsterTemplate {
             skills: vec![],
             velocity: Self::velocity(1.0),
             damage: Self::damage(25.0),
-            bounty: Self::bounty(100),
+            reward: Self::reward(100),
         }
     }
 }
