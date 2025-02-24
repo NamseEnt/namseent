@@ -20,6 +20,10 @@ jobs:
         with:
           submodules: true
 
+      - name: Set up cargo
+        run: |
+          rustup update
+
       - name: Output list of project directories
         id: project-dirs
         run: cargo run --manifest-path ./github-actions-tools/matrix-output/Cargo.toml x86_64-unknown-linux-gnu $GITHUB_OUTPUT dirs

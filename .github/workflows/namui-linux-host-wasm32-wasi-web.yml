@@ -20,6 +20,10 @@ jobs:
         with:
           submodules: true
 
+      - name: Set up cargo
+        run: |
+          rustup update
+
       - name: Output list of project directories
         id: project-dirs
         run: cargo run --manifest-path ./github-actions-tools/matrix-output/Cargo.toml wasm32-wasi-web $GITHUB_OUTPUT dirs
@@ -55,7 +59,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-wasm32-wasi-web-${{ matrix.dir }}-
             ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-wasm32-wasi-web-
-    
+
       - uses: actions/cache@v3
         with:
           path: |
@@ -65,7 +69,7 @@ jobs:
           key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-wasm32-wasi-web-namui-cli-${{ hashFiles('namui/namui-cli/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-wasm32-wasi-web-namui-cli-
-      
+
       - name: Install wasi-sdk
         run: |
           cd namui/namui-cli

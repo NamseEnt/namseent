@@ -22,6 +22,10 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/build-for-all-projects
 
+      - name: Set up cargo
+        run: |
+          rustup update
+
       - name: Output list of project directories
         id: project-dirs
         run: echo "dirs=$(for-all-projects list | jq -c -s -R 'split("\n")[:-1]')" >> "$GITHUB_OUTPUT"
