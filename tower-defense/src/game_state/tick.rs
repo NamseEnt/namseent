@@ -123,18 +123,15 @@ fn check_defense_end(game_state: &mut GameState) {
         return;
     }
 
+    let is_boss_stage = is_boss_stage(game_state.stage);
     game_state.stage += 1;
     if game_state.stage > 50 {
         // Game clear
         return;
     }
 
-    match game_state.stage {
-        15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50 => {
-            game_state.goto_selecting_upgrade();
-        }
-        _ => {
-            game_state.goto_selecting_tower();
-        }
+    match is_boss_stage {
+        true => game_state.goto_selecting_upgrade(),
+        false => game_state.goto_selecting_tower(),
     }
 }
