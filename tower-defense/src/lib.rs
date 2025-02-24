@@ -7,6 +7,7 @@ mod quests;
 mod rarity;
 mod route;
 mod shop;
+mod top_bar;
 mod tower_placing_hand;
 mod tower_selecting_hand;
 mod upgrade;
@@ -20,6 +21,7 @@ use namui_prebuilt::simple_rect;
 use quest_board::QuestBoardModal;
 use quests::Quests;
 use shop::ShopModal;
+use top_bar::TopBar;
 use tower_placing_hand::TowerPlacingHand;
 use tower_selecting_hand::TowerSelectingHand;
 use upgrade_board::UpgradeBoardModal;
@@ -105,6 +107,8 @@ impl Component for Game {
         ctx.add(Inventory { screen_wh });
 
         ctx.add(Quests { screen_wh });
+
+        ctx.add(TopBar { screen_wh });
 
         ctx.add(game_state.as_ref());
 

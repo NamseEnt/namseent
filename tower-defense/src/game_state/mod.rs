@@ -193,3 +193,10 @@ pub fn place_tower(tower: Tower) {
         game_state.towers.place_tower(tower);
     });
 }
+
+pub fn is_boss_stage(stage: usize) -> bool {
+    match stage {
+        15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50 => true,
+        _ => false,
+    }
+}
