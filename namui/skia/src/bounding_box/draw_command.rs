@@ -82,10 +82,11 @@ impl BoundingBox for &TextDrawCommand {
 
 impl BoundingBox for &ImageDrawCommand {
     fn bounding_box(self, calculator: &dyn SkCalculate) -> Option<Rect<Px>> {
-        if let Some(paint) = &self.paint {
-            calculator.path_bounding_box(&Path::new().add_rect(self.rect), Some(paint))
-        } else {
-            Some(self.rect)
+        match &self.paint {
+            Some(paint) => {
+                calculator.path_bounding_box(&Path::new().add_rect(self.rect), Some(paint))
+            }
+            _ => Some(self.rect),
         }
     }
 }

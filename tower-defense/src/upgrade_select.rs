@@ -1,7 +1,7 @@
 use crate::{
     game_state::mutate_game_state,
     palette,
-    upgrade::{merge_or_append_upgrade, Upgrade},
+    upgrade::{Upgrade, merge_or_append_upgrade},
 };
 use namui::*;
 use namui_prebuilt::{

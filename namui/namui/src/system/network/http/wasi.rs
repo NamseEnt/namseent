@@ -187,8 +187,8 @@ impl ResponseBody for ResBody {
     fn stream(
         self,
     ) -> impl futures::Stream<Item = std::result::Result<bytes::Bytes, HttpError>>
-           + std::marker::Send
-           + Unpin {
+    + std::marker::Send
+    + Unpin {
         ResStreamBody {
             _instance: self.instance,
             stream: tokio_stream::wrappers::UnboundedReceiverStream::new(self.rx),

@@ -1,14 +1,14 @@
 use super::InterleavedAllSamples;
 use crate::system::InitResult;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use cpal::{traits::*, *};
 use dashmap::DashMap;
 use rubato::Resampler;
 use std::{
     fmt::Debug,
     sync::{
-        atomic::{AtomicU32, AtomicUsize},
         Arc, OnceLock, Weak,
+        atomic::{AtomicU32, AtomicUsize},
     },
 };
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};

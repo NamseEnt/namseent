@@ -1,12 +1,12 @@
 use crate::{
     game_state::{
-        item::{generate_item, ItemKind},
         GameState,
+        item::{ItemKind, generate_item},
     },
     rarity::Rarity,
-    upgrade::{generate_upgrade, Upgrade},
+    upgrade::{Upgrade, generate_upgrade},
 };
-use rand::{seq::SliceRandom, thread_rng, Rng};
+use rand::{Rng, seq::SliceRandom, thread_rng};
 
 #[derive(Debug, Clone)]
 pub enum QuestReward {

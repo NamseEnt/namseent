@@ -28,7 +28,7 @@ impl IncludeOperation {
                 PathElement::DoubleAsterisk => {
                     return Err(anyhow!(
                         "join_dest_path_under_dest_root_path: No wildcard allowed to dest_path"
-                    ))
+                    ));
                 }
                 PathElement::CurrentDirectory => continue,
                 PathElement::ParentDirectory => {

@@ -3,23 +3,23 @@ use anyhow::Result;
 use namui_type::*;
 use skia_safe::gpu::d3d::{ID3D12CommandQueue, ID3D12Device, ID3D12Resource};
 use windows::{
-    core::*,
     Win32::{
         Foundation::{HANDLE, HWND},
         Graphics::{
             Direct3D12::{
-                ID3D12DescriptorHeap, ID3D12Fence, D3D12_CPU_DESCRIPTOR_HANDLE,
-                D3D12_DESCRIPTOR_HEAP_DESC, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_FENCE_FLAG_NONE,
-                D3D12_RESOURCE_STATE_PRESENT,
+                D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_DESCRIPTOR_HEAP_DESC,
+                D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_FENCE_FLAG_NONE,
+                D3D12_RESOURCE_STATE_PRESENT, ID3D12DescriptorHeap, ID3D12Fence,
             },
             Dxgi::{
                 Common::{DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SAMPLE_DESC},
-                CreateDXGIFactory1, IDXGIFactory4, IDXGISwapChain3, DXGI_SWAP_CHAIN_DESC1,
-                DXGI_SWAP_EFFECT_FLIP_DISCARD, DXGI_USAGE_RENDER_TARGET_OUTPUT,
+                CreateDXGIFactory1, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_EFFECT_FLIP_DISCARD,
+                DXGI_USAGE_RENDER_TARGET_OUTPUT, IDXGIFactory4, IDXGISwapChain3,
             },
         },
-        System::Threading::{CreateEventA, WaitForSingleObjectEx, INFINITE},
+        System::Threading::{CreateEventA, INFINITE, WaitForSingleObjectEx},
     },
+    core::*,
 };
 
 const FRAME_COUNT: u32 = 2;

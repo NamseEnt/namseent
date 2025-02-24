@@ -1,7 +1,7 @@
 use crate::RingBuffer;
 use anyhow::Result;
 use dashmap::DashMap;
-use std::sync::{atomic::AtomicBool, Arc, OnceLock};
+use std::sync::{Arc, OnceLock, atomic::AtomicBool};
 
 pub async fn connect(url: impl ToString) -> Result<(WsSender, WsReceiver)> {
     let ws_thread = WS_THREAD.get_or_init(WsThread::new);
@@ -16,10 +16,12 @@ pub async fn connect(url: impl ToString) -> Result<(WsSender, WsReceiver)> {
 
     let (event_tx, mut event_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    assert!(WS_EVENT_TX
-        .get_or_init(Default::default)
-        .insert(id, event_tx)
-        .is_none());
+    assert!(
+        WS_EVENT_TX
+            .get_or_init(Default::default)
+            .insert(id, event_tx)
+            .is_none()
+    );
 
     let event = event_rx.recv().await.unwrap();
     match event {

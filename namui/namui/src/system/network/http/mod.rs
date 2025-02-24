@@ -9,8 +9,8 @@ use non_wasi as inner;
 use wasi as inner;
 
 use crate::simple_error_impl;
-use http::{header::CONTENT_LENGTH, StatusCode};
 pub use http::{Request, Response};
+use http::{StatusCode, header::CONTENT_LENGTH};
 
 #[allow(async_fn_in_trait)]
 pub trait RequestExt {
@@ -102,8 +102,8 @@ pub trait ResponseBody {
     fn stream(
         self,
     ) -> impl futures::Stream<Item = std::result::Result<bytes::Bytes, HttpError>>
-           + std::marker::Send
-           + Unpin;
+    + std::marker::Send
+    + Unpin;
 }
 
 #[derive(Debug)]

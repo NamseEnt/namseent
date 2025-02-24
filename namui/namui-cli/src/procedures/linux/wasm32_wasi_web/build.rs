@@ -1,8 +1,8 @@
-use super::vite_config::{update_vite_config, ViteConfig};
+use super::vite_config::{ViteConfig, update_vite_config};
 use crate::cli::Target;
 use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
-use services::runtime_project::{wasm::generate_runtime_project, GenerateRuntimeProjectArgs};
+use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runtime_project};
 use services::rust_build_service::{self, BuildOption};
 use util::get_cli_root_path;
 

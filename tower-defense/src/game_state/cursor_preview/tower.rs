@@ -1,15 +1,16 @@
 use super::PreviewKind;
 use crate::{
+    MapCoordF32,
     game_state::{
+        MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
         can_place_tower::can_place_tower,
         flow::GameFlow,
         mutate_game_state, place_tower,
-        tower::{tower_image_resource_location, AnimationKind, Tower, TowerTemplate},
-        use_game_state, MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
+        tower::{AnimationKind, Tower, TowerTemplate, tower_image_resource_location},
+        use_game_state,
     },
     palette,
     tower_placing_hand::PlacingTowerSlot,
-    MapCoordF32,
 };
 use namui::*;
 use std::ops::Deref;

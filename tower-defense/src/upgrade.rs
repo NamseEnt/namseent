@@ -1,9 +1,9 @@
 use crate::{
-    card::{Rank, Suit, REVERSED_RANKS, SUITS},
+    card::{REVERSED_RANKS, Rank, SUITS, Suit},
     game_state::GameState,
     rarity::Rarity,
 };
-use rand::{seq::SliceRandom, thread_rng, Rng};
+use rand::{Rng, seq::SliceRandom, thread_rng};
 
 pub const MAX_QUEST_SLOT_UPGRADE: usize = 5;
 pub const MAX_QUEST_BOARD_SLOT_UPGRADE: usize = 3;

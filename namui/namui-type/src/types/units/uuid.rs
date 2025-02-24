@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 /// v4
 pub fn uuid() -> u128 {
     let mut rng = rand::thread_rng();
-    let mut bits: u128 = rng.gen();
+    let mut bits: u128 = rng.r#gen();
     bits |= 0b010;
     bits &= !(0b110 << 62);
     bits

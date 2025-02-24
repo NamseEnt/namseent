@@ -46,7 +46,7 @@ impl Visit for RenderingTree {
         next_ancestors.push(self);
 
         match self {
-            RenderingTree::Children(ref children) => {
+            RenderingTree::Children(children) => {
                 for child in children.iter().rev() {
                     if let ControlFlow::Break(_) = child.try_visit_rln(callback, &next_ancestors) {
                         return ControlFlow::Break(());

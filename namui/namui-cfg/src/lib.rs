@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use namui_user_config::get_namui_user_config;
 use proc_macro::TokenStream;
-use rust_cfg_parser::{parse, CfgValue};
+use rust_cfg_parser::{CfgValue, parse};
 use std::{collections::HashMap, env};
 
 static NAMUI_CFG_ENV_PREFIX: &str = "NAMUI_CFG_";

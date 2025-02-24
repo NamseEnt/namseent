@@ -29,10 +29,9 @@ impl SkCanvas for skia_safe::Canvas {
         let mut paint = paint.clone().unwrap_or(Paint::new(Color::WHITE));
         let image_shader = image.get_default_shader();
 
-        let next_shader = if let Some(super_shader) = &paint.shader {
-            super_shader.blend(BlendMode::Plus, &image_shader)
-        } else {
-            image_shader
+        let next_shader = match &paint.shader {
+            Some(super_shader) => super_shader.blend(BlendMode::Plus, &image_shader),
+            _ => image_shader,
         };
 
         paint = paint.set_shader(next_shader);

@@ -1,7 +1,7 @@
 use crate::*;
 use std::{
     fmt::Debug,
-    sync::{mpsc, OnceLock},
+    sync::{OnceLock, mpsc},
 };
 
 #[derive(Debug)]

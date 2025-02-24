@@ -1,6 +1,6 @@
 use crate::{container_config::PortMapping, docker_cli, envs::*};
 use anyhow::Result;
-use bollard::{container::ListContainersOptions, Docker};
+use bollard::{Docker, container::ListContainersOptions};
 
 pub(crate) struct DockerEngine {
     docker: Docker,

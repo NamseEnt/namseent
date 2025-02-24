@@ -11,13 +11,9 @@ impl Default for NamuiUserConfig {
         Self {
             cfg_map: HashMap::new(),
             target: if cfg!(target_os = "linux") {
-                {
-                    Target::X86_64PcWindowsMsvc
-                }
+                { Target::X86_64PcWindowsMsvc }
             } else if cfg!(target_os = "windows") {
-                {
-                    Target::X86_64PcWindowsMsvc
-                }
+                { Target::X86_64PcWindowsMsvc }
             } else {
                 panic!("{} is unsupported os", std::env::consts::OS)
             },
