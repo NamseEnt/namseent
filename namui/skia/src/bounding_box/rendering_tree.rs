@@ -41,7 +41,7 @@ impl BoundingBox for &RenderingTree {
             }
 
             match rendering_tree {
-                RenderingTree::Children(ref children) => {
+                RenderingTree::Children(children) => {
                     get_bounding_box_with_matrix_of_rendering_trees(
                         children,
                         matrix,

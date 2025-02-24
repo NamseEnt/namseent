@@ -1,6 +1,6 @@
 use super::*;
 use crate::simple_rect;
-use std::sync::{atomic::AtomicBool, Arc, Mutex};
+use std::sync::{Arc, Mutex, atomic::AtomicBool};
 
 struct MockSkCalculate;
 impl SkCalculate for MockSkCalculate {

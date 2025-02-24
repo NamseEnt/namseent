@@ -10,7 +10,7 @@ pub(crate) struct NativeSurface {
 unsafe impl Send for NativeSurface {}
 unsafe impl Sync for NativeSurface {}
 
-extern "C" {
+unsafe extern "C" {
     fn update_canvas_wh(width: i32, height: i32);
 }
 

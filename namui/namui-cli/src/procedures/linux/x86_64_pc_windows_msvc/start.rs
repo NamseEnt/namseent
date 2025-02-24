@@ -1,7 +1,7 @@
 use crate::cli::Target;
 use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
-use services::runtime_project::{wasm::generate_runtime_project, GenerateRuntimeProjectArgs};
+use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runtime_project};
 use services::rust_build_service::{self, BuildOption};
 use services::rust_project_watch_service::RustProjectWatchService;
 
@@ -46,7 +46,9 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
     build_status_service
         .build_finished(BuildStatusCategory::Namui, result.error_messages, vec![])
         .await;
-    println!("In this environment, namui does not run built binary. It works like `build --watch`. Run the binary yourself");
+    println!(
+        "In this environment, namui does not run built binary. It works like `build --watch`. Run the binary yourself"
+    );
 
     let mut rust_project_watch = RustProjectWatchService::new(manifest_path)?;
 

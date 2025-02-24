@@ -1,7 +1,7 @@
 use crate::system::InitResult;
 use crate::*;
-use std::sync::atomic::AtomicU32;
 use std::sync::OnceLock;
+use std::sync::atomic::AtomicU32;
 
 pub(crate) async fn init() -> InitResult {
     let window_wh = unsafe { initial_window_wh() };
@@ -61,7 +61,7 @@ enum EventType {
     TextInputKeyDown,
 }
 
-extern "C" {
+unsafe extern "C" {
     fn poll_event(ptr: *const u8, wait_timeout_ms: i32) -> u8;
     fn initial_window_wh() -> u32;
 }

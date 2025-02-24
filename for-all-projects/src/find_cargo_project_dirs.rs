@@ -1,5 +1,5 @@
 use anyhow::Result;
-use futures::{future::BoxFuture, FutureExt};
+use futures::{FutureExt, future::BoxFuture};
 use ignore::gitignore::*;
 use std::path::{Path, PathBuf};
 use tokio::fs;

@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use namui_hooks::*;
 use namui_skia::*;
 use namui_type::*;
@@ -7,9 +7,9 @@ use std::sync::Arc;
 fn my_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("translate_benchmark");
     group.sample_size(10);
-    group.bench_function("bench_translate", |b| b.iter(|| bench_translate()));
+    group.bench_function("bench_translate", |b| b.iter(bench_translate));
     group.bench_function("bench_translate_run_twice", |b| {
-        b.iter(|| bench_translate_run_twice())
+        b.iter(bench_translate_run_twice)
     });
     group.finish();
 }

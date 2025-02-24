@@ -8,7 +8,7 @@ mod services;
 mod types;
 mod util;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use clap::Parser;
 use cli::{Cli, Commands};
 use namui_user_config::set_user_config;

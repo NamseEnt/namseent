@@ -1,4 +1,4 @@
-use super::{get_project_name, GenerateRuntimeProjectArgs};
+use super::{GenerateRuntimeProjectArgs, get_project_name};
 use crate::{util::recreate_dir_all, *};
 
 pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
@@ -15,7 +15,7 @@ pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> 
             r#"[package]
 name = "namui-runtime-x86_64-pc-windows-msvc"
 version = "0.0.1"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 {project_name} = {{ path = "{project_path}" }}

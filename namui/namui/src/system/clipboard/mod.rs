@@ -7,7 +7,7 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use web_sys::{Blob, BlobPropertyBag};
 
 #[wasm_bindgen]
-extern "C" {
+unsafe extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"])]
     fn writeText(text: &str) -> Promise;
     #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"], js_name = "write")]

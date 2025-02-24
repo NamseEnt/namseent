@@ -18,7 +18,7 @@ pub(crate) fn get_caret(selection_index: usize, paragraph: &Paragraph) -> Caret<
                     line_index,
                     caret_index_in_line: left_index,
                     paragraph,
-                }
+                };
             }
             std::cmp::Ordering::Equal => match line.new_line_by {
                 Some(new_line_by) => match new_line_by {
@@ -27,14 +27,14 @@ pub(crate) fn get_caret(selection_index: usize, paragraph: &Paragraph) -> Caret<
                             line_index: line_index + 1,
                             caret_index_in_line: 0,
                             paragraph,
-                        }
+                        };
                     }
                     NewLineBy::LineFeed => {
                         return Caret {
                             line_index,
                             caret_index_in_line: left_index,
                             paragraph,
-                        }
+                        };
                     }
                 },
                 None => {
@@ -42,7 +42,7 @@ pub(crate) fn get_caret(selection_index: usize, paragraph: &Paragraph) -> Caret<
                         line_index,
                         caret_index_in_line: left_index,
                         paragraph,
-                    }
+                    };
                 }
             },
             std::cmp::Ordering::Greater => {

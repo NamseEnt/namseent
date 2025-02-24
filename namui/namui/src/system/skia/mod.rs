@@ -10,7 +10,7 @@ use winit as inner;
 
 use super::InitResult;
 use crate::*;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use namui_skia::*;
 use namui_type::*;
 use std::sync::*;

@@ -1,8 +1,8 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use opusic_sys::*;
 use std::{
     borrow::Cow,
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
 };
 
 pub struct Decoder {

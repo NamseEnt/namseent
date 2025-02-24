@@ -19,7 +19,7 @@ pub struct Run {
     pub command: Command,
 }
 
-#[derive(Args, Clone, Copy)]
+#[derive(Args, Clone)]
 pub struct Command {
     #[arg(long)]
     pub clean: bool,
@@ -55,4 +55,7 @@ pub struct Command {
     /// To run custom test script, you need to set `test = "YOUR_CUSTOM_SCRIPT"` in [package.metadata] table of Cargo.toml.
     /// For namui project, you need to set `namui = true` in [package.metadata] table of Cargo.toml.
     pub test: bool,
+
+    #[arg(long)]
+    pub custom: Option<String>,
 }

@@ -36,7 +36,7 @@ impl SkCalculate for MockSkCalculate {
 
 #[test]
 fn memo_should_work() {
-    use std::sync::{atomic::AtomicUsize, Arc};
+    use std::sync::{Arc, atomic::AtomicUsize};
 
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
@@ -116,7 +116,7 @@ fn memo_should_work() {
 
 #[test]
 fn effect_by_set_state_should_work() {
-    use std::sync::{atomic::AtomicUsize, Arc};
+    use std::sync::{Arc, atomic::AtomicUsize};
 
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
@@ -196,7 +196,7 @@ fn effect_by_set_state_should_work() {
 
 #[test]
 fn effect_by_memo_should_work() {
-    use std::sync::{atomic::AtomicUsize, Arc};
+    use std::sync::{Arc, atomic::AtomicUsize};
 
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
@@ -277,7 +277,7 @@ fn effect_by_memo_should_work() {
 
 #[test]
 fn effect_clean_up_should_work() {
-    use std::sync::{atomic::AtomicUsize, Arc};
+    use std::sync::{Arc, atomic::AtomicUsize};
 
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
@@ -378,7 +378,7 @@ fn effect_clean_up_should_work() {
 
 #[test]
 fn interval_should_work() {
-    use std::sync::{atomic::AtomicUsize, Arc};
+    use std::sync::{Arc, atomic::AtomicUsize};
 
     let now_container = Arc::new(Mutex::new(Instant::new(Duration::from_secs(0))));
 
@@ -492,7 +492,7 @@ fn interval_should_work() {
 
 #[test]
 fn controlled_memo_should_work() {
-    use std::sync::{atomic::AtomicUsize, Arc};
+    use std::sync::{Arc, atomic::AtomicUsize};
 
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
@@ -587,7 +587,7 @@ fn controlled_memo_should_work() {
 
 #[test]
 fn atom_should_work() {
-    use std::sync::{atomic::AtomicUsize, Arc};
+    use std::sync::{Arc, atomic::AtomicUsize};
 
     let mut world = World::init(Instant::now, &MockSkCalculate);
 
@@ -768,7 +768,7 @@ fn set_state_should_be_copied_into_async_effect() {
 
 #[test]
 fn tuple_set_state_should_work() {
-    use std::sync::{atomic::AtomicUsize, Arc};
+    use std::sync::{Arc, atomic::AtomicUsize};
 
     let mut world = World::init(Instant::now, &MockSkCalculate);
 

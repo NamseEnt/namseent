@@ -25,6 +25,6 @@ pub(crate) fn take_buffer_from_js(ptr: *const u8) -> Bytes {
 
 // # data callback protocol
 // [data byte length: u16][message data: ...]
-extern "C" {
+unsafe extern "C" {
     fn _buffer_pool_new_buffer(buffer_ptr: *const u8, buffer_len: usize);
 }

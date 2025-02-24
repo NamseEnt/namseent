@@ -20,6 +20,10 @@ jobs:
         with:
           submodules: true
 
+      - name: Set up cargo
+        run: |
+          rustup update
+
       - name: Output list of project directories
         id: project-dirs
         run: cargo run --manifest-path ./github-actions-tools/matrix-output/Cargo.toml x86_64-pc-windows-msvc $GITHUB_OUTPUT dirs
@@ -53,7 +57,7 @@ jobs:
           sudo apt update
 
           sudo apt install -y --install-recommends winehq-stable
-      
+
       - name: Install dependencies
         run: |
           sudo apt-get update

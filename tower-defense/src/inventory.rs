@@ -2,7 +2,7 @@ use std::iter;
 
 use crate::{
     game_state::{
-        item::{use_item, Item},
+        item::{Item, use_item},
         use_game_state,
     },
     palette,

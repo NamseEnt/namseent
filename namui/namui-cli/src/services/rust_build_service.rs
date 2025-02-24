@@ -1,6 +1,6 @@
 use crate::*;
 use crate::{cli::Target, types::ErrorMessage};
-use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
+use cargo_metadata::{CompilerMessage, Message, diagnostic::DiagnosticLevel};
 use std::path::PathBuf;
 use std::process::Output;
 use tokio::process::Command;

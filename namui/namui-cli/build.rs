@@ -131,38 +131,46 @@ async fn download_emsdk() -> Result<()> {
 
     println!("DOWNLOADING EMSCRIPTEN");
 
-    assert!(Command::new("git")
-        .current_dir(&root)
-        .args([
-            "clone",
-            "--filter=blob:none",
-            "--no-checkout",
-            "https://github.com/emscripten-core/emscripten",
-        ])
-        .output()?
-        .status
-        .success());
+    assert!(
+        Command::new("git")
+            .current_dir(&root)
+            .args([
+                "clone",
+                "--filter=blob:none",
+                "--no-checkout",
+                "https://github.com/emscripten-core/emscripten",
+            ])
+            .output()?
+            .status
+            .success()
+    );
 
-    assert!(Command::new("git")
-        .current_dir(&dist)
-        .args(["sparse-checkout", "set", "--cone"])
-        .output()?
-        .status
-        .success());
+    assert!(
+        Command::new("git")
+            .current_dir(&dist)
+            .args(["sparse-checkout", "set", "--cone"])
+            .output()?
+            .status
+            .success()
+    );
 
-    assert!(Command::new("git")
-        .current_dir(&dist)
-        .args(["checkout", "3.1.61"])
-        .output()?
-        .status
-        .success());
+    assert!(
+        Command::new("git")
+            .current_dir(&dist)
+            .args(["checkout", "3.1.61"])
+            .output()?
+            .status
+            .success()
+    );
 
-    assert!(Command::new("git")
-        .current_dir(&dist)
-        .args(["sparse-checkout", "set", "system/include"])
-        .output()?
-        .status
-        .success());
+    assert!(
+        Command::new("git")
+            .current_dir(&dist)
+            .args(["sparse-checkout", "set", "system/include"])
+            .output()?
+            .status
+            .success()
+    );
 
     Ok(())
 }
@@ -190,7 +198,9 @@ async fn download_binaryen() -> Result<()> {
     }
 
     println!("DOWNLOADING BINARYEN {VERSION}");
-    let url = format!("https://github.com/WebAssembly/binaryen/releases/download/version_{VERSION}/binaryen-version_{VERSION}-x86_64-linux.tar.gz");
+    let url = format!(
+        "https://github.com/WebAssembly/binaryen/releases/download/version_{VERSION}/binaryen-version_{VERSION}-x86_64-linux.tar.gz"
+    );
 
     let response = reqwest::get(url).await?.error_for_status()?;
     let bytes = response.bytes().await?;

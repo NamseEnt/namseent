@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn pass_sig_to_child_should_work() {
-    use std::sync::{atomic::AtomicUsize, Arc};
+    use std::sync::{Arc, atomic::AtomicUsize};
 
     let mut world = World::init(Instant::now, &MockSkCalculate);
 

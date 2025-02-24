@@ -3,7 +3,7 @@ use namui_cfg::namui_cfg;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
-extern "C" {
+unsafe extern "C" {
     #[namui_cfg(target_env = "electron")]
     #[wasm_bindgen(js_namespace = ["window", "namuiApi", "deepLink"], js_name = getRecentlyOpenedUrl)]
     fn get_recently_opened_url_() -> Option<String>;

@@ -1,5 +1,5 @@
 use crate::system::InitResult;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use rusqlite::{Connection, OptionalExtension};
 use std::path::PathBuf;
 
