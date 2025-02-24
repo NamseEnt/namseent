@@ -68,8 +68,8 @@ fn filter_requested_commands(run: Run) -> Vec<Command> {
     if run.command.test {
         commands.push(Command::Test);
     }
-    if let Some(command) = run.command.command {
-        commands.push(Command::Command { command });
+    if let Some(command) = run.command.custom {
+        commands.push(Command::Custom { command });
     }
     commands
 }
@@ -85,7 +85,7 @@ enum Command {
     Clippy,
     ClippyFix,
     Test,
-    Command { command: String },
+    Custom { command: String },
 }
 
 impl Command {
@@ -100,7 +100,7 @@ impl Command {
             Command::Clippy => "cargo clippy".to_string(),
             Command::ClippyFix => "cargo clippy --fix --allow-dirty --allow-staged".to_string(),
             Command::Test => get_test_command(cargo_project_dir).await?,
-            Command::Command { command } => command.clone(),
+            Command::Custom { command } => command.clone(),
         })
     }
 }

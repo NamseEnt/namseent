@@ -57,5 +57,5 @@ pub struct Command {
     pub test: bool,
 
     #[arg(long)]
-    pub command: Option<String>,
+    pub custom: Option<String>,
 }
