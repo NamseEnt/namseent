@@ -80,7 +80,7 @@ enum WsEvent {
 static WS_EVENT_TX: OnceLock<DashMap<u32, tokio::sync::mpsc::UnboundedSender<WsEvent>>> =
     OnceLock::new();
 
-extern "C" {
+unsafe extern "C" {
     fn _init_web_socket_thread(event_buffer_ptr: *const u8, event_buffer_len: usize);
     fn _web_socket_event_poll() -> usize;
     fn _web_socket_event_commit(byte_length: usize);

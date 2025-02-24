@@ -122,7 +122,7 @@ pub(crate) fn volume() -> f32 {
     volume_setting.volume
 }
 
-extern "C" {
+unsafe extern "C" {
     fn _audio_init(audio_id: usize, buffer_ptr: *const u8, buffer_len: usize);
     fn _audio_drop(audio_id: usize);
     fn _audio_play(audio_id: usize, playback_id: usize, repeat: bool);

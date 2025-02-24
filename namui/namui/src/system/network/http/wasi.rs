@@ -103,7 +103,7 @@ where
     }
 }
 
-extern "C" {
+unsafe extern "C" {
     fn _http_fetch_init(
         url_ptr: *const u8,
         url_len: usize,

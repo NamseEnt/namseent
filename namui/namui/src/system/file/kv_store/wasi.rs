@@ -48,7 +48,7 @@ fn open_write(key: impl AsRef<str>) -> Result<StorageWrite> {
     Ok(StorageWrite { fd })
 }
 
-extern "C" {
+unsafe extern "C" {
     /// # Returns
     /// 0: not found
     /// non-zero: file descriptor
