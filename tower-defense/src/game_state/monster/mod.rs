@@ -5,14 +5,18 @@ use namui::*;
 pub use skill::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+const MONSTER_HP_BAR_HEIGHT: Px = px(4.);
+
 pub struct Monster {
     id: usize,
     pub move_on_route: MoveOnRoute,
     pub kind: MonsterKind,
     pub projectile_target_indicator: ProjectileTargetIndicator,
     pub hp: f32,
+    pub max_hp: f32,
     pub skills: Vec<MonsterSkill>,
     pub status_effects: Vec<MonsterStatusEffect>,
+    pub damage: f32,
 }
 impl Monster {
     pub fn new(template: &MonsterTemplate, route: Arc<Route>) -> Self {
@@ -23,12 +27,14 @@ impl Monster {
             kind: template.kind,
             projectile_target_indicator: ProjectileTargetIndicator::new(),
             hp: template.max_hp,
+            max_hp: template.max_hp,
             skills: template
                 .skills
                 .iter()
                 .map(|&t| MonsterSkill::new(t))
                 .collect(),
             status_effects: vec![],
+            damage: template.damage,
         }
     }
     pub fn get_damage(&mut self, damage: f32) {
@@ -42,6 +48,11 @@ impl Monster {
 
         self.hp -= damage;
     }
+    pub fn get_damage_to_user(&self) -> f32 {
+        let damage = self.damage;
+        // weaken or strengthen the damage
+        damage
+    }
 
     pub fn dead(&self) -> bool {
         self.hp <= 0.0
@@ -52,7 +63,63 @@ impl Monster {
     }
 }
 impl Component for &Monster {
-    fn render(self, ctx: &RenderCtx) {}
+    fn render(self, ctx: &RenderCtx) {
+        let monster_wh = TILE_PX_SIZE
+            * match self.kind {
+                MonsterKind::Ball => 0.6,
+                MonsterKind::BigBall => 0.8,
+            };
+        let path = Path::new().add_oval(Rect::from_xy_wh(monster_wh.as_xy() * -0.5, monster_wh));
+        let paint = Paint::new(Color::RED);
+        ctx.translate(TILE_PX_SIZE.as_xy() * 0.5)
+            .add(namui::path(path, paint));
+
+        let hp_bar_wh = Wh::new(monster_wh.width, MONSTER_HP_BAR_HEIGHT);
+        ctx.translate(Xy::new(
+            TILE_PX_SIZE.width * 0.5,
+            TILE_PX_SIZE.width * 0.5 + monster_wh.height * 0.6,
+        ))
+        .add(MonsterHpBar {
+            wh: hp_bar_wh,
+            progress: self.hp / self.max_hp,
+        });
+    }
+}
+
+struct MonsterHpBar {
+    wh: Wh<Px>,
+    progress: f32,
+}
+impl Component for MonsterHpBar {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { wh, progress } = self;
+
+        let container_rect = Rect::from_xy_wh(wh.as_xy() * -0.5, wh);
+
+        ctx.add(rect(RectParam {
+            rect: Rect::from_xy_wh(container_rect.xy(), Wh::new(wh.width * progress, wh.height)),
+            style: RectStyle {
+                stroke: None,
+                fill: Some(RectFill { color: Color::RED }),
+                round: None,
+            },
+        }));
+
+        ctx.add(rect(RectParam {
+            rect: container_rect,
+            style: RectStyle {
+                stroke: Some(RectStroke {
+                    color: palette::OUTLINE,
+                    width: 1.px(),
+                    border_position: BorderPosition::Outside,
+                }),
+                fill: Some(RectFill {
+                    color: palette::SURFACE_CONTAINER,
+                }),
+                round: None,
+            },
+        }));
+    }
 }
 
 pub struct MonsterTemplate {
@@ -60,10 +127,68 @@ pub struct MonsterTemplate {
     pub max_hp: f32,
     pub skills: Vec<MonsterSkillTemplate>,
     pub velocity: Velocity,
+    pub damage: f32,
+    pub bounty: u32,
+}
+impl MonsterTemplate {
+    fn velocity(mul: f32) -> Velocity {
+        Per::new(10.0 * mul, Duration::from_secs(1))
+    }
+    fn damage(mul: f32) -> f32 {
+        mul
+    }
+    fn bounty(mul: u32) -> u32 {
+        mul
+    }
+    pub fn new_mob_01() -> Self {
+        Self {
+            kind: MonsterKind::Ball,
+            max_hp: 10.0,
+            skills: vec![],
+            velocity: Self::velocity(0.5),
+            damage: Self::damage(1.0),
+            bounty: Self::bounty(1),
+        }
+    }
+    pub fn new_mob_02() -> Self {
+        Self {
+            kind: MonsterKind::Ball,
+            max_hp: 15.0,
+            skills: vec![],
+            velocity: Self::velocity(0.5),
+            damage: Self::damage(1.0),
+            bounty: Self::bounty(1),
+        }
+    }
+
+    pub fn new_named_01() -> Self {
+        Self {
+            kind: MonsterKind::BigBall,
+            max_hp: 100.0,
+            skills: vec![],
+            velocity: Self::velocity(1.0),
+            damage: Self::damage(10.0),
+            bounty: Self::bounty(10),
+        }
+    }
+
+    pub fn new_boss_01() -> Self {
+        Self {
+            kind: MonsterKind::BigBall,
+            max_hp: 1000.0,
+            skills: vec![],
+            velocity: Self::velocity(1.0),
+            damage: Self::damage(25.0),
+            bounty: Self::bounty(100),
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
-pub enum MonsterKind {}
+pub enum MonsterKind {
+    Ball,
+    BigBall,
+}
 
 pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
     for monster in &mut game_state.monsters {
@@ -87,8 +212,17 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
         monster.move_on_route.move_by(dt);
     }
 
-    // todo: deal damage to user
-    game_state
-        .monsters
-        .retain(|monster| !monster.move_on_route.is_finished());
+    let mut damage = 0.0;
+    game_state.monsters.retain(|monster| {
+        if monster.move_on_route.is_finished() {
+            damage += monster.get_damage_to_user();
+            return false;
+        }
+        true
+    });
+
+    game_state.hp -= damage;
+    if game_state.hp <= 0.0 {
+        game_state.goto_result();
+    }
 }

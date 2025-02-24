@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{flow::GameFlow, mutate_game_state},
+    game_state::mutate_game_state,
     palette,
     upgrade::{merge_or_append_upgrade, Upgrade},
 };
@@ -22,7 +22,7 @@ const UPGRADE_SELECT_BUTTON_WH: Wh<Px> = Wh {
 
 pub struct UpgradeSelectModal<'a> {
     pub screen_wh: Wh<Px>,
-    pub upgrades: &'a [Upgrade; 3],
+    pub upgrades: &'a [Upgrade],
 }
 impl Component for UpgradeSelectModal<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -41,7 +41,7 @@ impl Component for UpgradeSelectModal<'_> {
             let upgrade = upgrade.clone();
             mutate_game_state(|state| {
                 merge_or_append_upgrade(&mut state.upgrades, upgrade);
-                state.flow = GameFlow::SelectingTower;
+                state.goto_selecting_tower();
             });
         };
 
@@ -96,7 +96,7 @@ impl Component for UpgradeSelectOpenButton<'_> {
 }
 
 struct UpgradeSelect<'a> {
-    upgrades: &'a [Upgrade; 3],
+    upgrades: &'a [Upgrade],
     on_upgrade_select: &'a dyn Fn(&Upgrade),
 }
 impl Component for UpgradeSelect<'_> {

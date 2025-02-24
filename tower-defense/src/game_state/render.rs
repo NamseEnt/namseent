@@ -37,8 +37,8 @@ impl GameState {
         let mut path = Path::new();
         for coord in self.route.iter_coords() {
             let xy = Xy::new(
-                coord.x.as_f32() * TILE_PX_SIZE.width.as_f32(),
-                coord.y.as_f32() * TILE_PX_SIZE.height.as_f32(),
+                (coord.x.as_f32() + 0.5) * TILE_PX_SIZE.width.as_f32(),
+                (coord.y.as_f32() + 0.5) * TILE_PX_SIZE.height.as_f32(),
             )
             .map(px);
             if path.commands().is_empty() {

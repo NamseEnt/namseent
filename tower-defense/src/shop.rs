@@ -12,7 +12,7 @@ use namui_prebuilt::{
 
 const PADDING: Px = px(4.0);
 const SHOP_WH: Wh<Px> = Wh {
-    width: px(640.0),
+    width: px(960.0),
     height: px(480.0),
 };
 const SHOP_BUTTON_WH: Wh<Px> = Wh {
@@ -102,10 +102,10 @@ impl Component for ShopOpenButton<'_> {
         } = self;
 
         ctx.compose(|ctx| {
-            ctx.translate((0.px(), SHOP_BUTTON_WH.height))
+            ctx.translate((0.px(), -SHOP_BUTTON_WH.height))
                 .add(TextButton {
                     rect: SHOP_BUTTON_WH.to_rect(),
-                    text: format!("상점 {}", if opened { "🔼" } else { "🔽" }),
+                    text: format!("상점 {}", if opened { "^" } else { "v" }),
                     text_color: palette::ON_SURFACE,
                     stroke_color: palette::OUTLINE,
                     stroke_width: 1.px(),
@@ -275,14 +275,14 @@ impl Component for ShopItemContent<'_> {
                                 table::vertical([
                                     table::fixed(36.px(), |_wh, ctx| {
                                         ctx.add(typography::body::left_top(
-                                            item.name(),
+                                            item.kind.name(),
                                             palette::ON_SURFACE,
                                         ));
                                     }),
                                     table::fixed(PADDING, |_, _| {}),
                                     table::ratio(1, |_wh, ctx| {
                                         ctx.add(typography::body::left_top(
-                                            item.description(),
+                                            item.kind.description(),
                                             palette::ON_SURFACE_VARIANT,
                                         ));
                                     }),

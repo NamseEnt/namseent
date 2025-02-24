@@ -14,9 +14,11 @@ mod upgrade_board;
 mod upgrade_select;
 
 use game_state::{flow::GameFlow, mutate_game_state, TILE_PX_SIZE};
+use inventory::Inventory;
 use namui::*;
 use namui_prebuilt::simple_rect;
 use quest_board::QuestBoardModal;
+use quests::Quests;
 use shop::ShopModal;
 use tower_placing_hand::TowerPlacingHand;
 use tower_selecting_hand::TowerSelectingHand;
@@ -60,30 +62,27 @@ impl Component for Game {
             };
             ctx.add(UpgradeSelectModal {
                 screen_wh,
-                upgrades,
+                upgrades: &upgrades,
             });
         });
 
         ctx.compose(|ctx| {
-            let GameFlow::SelectingTower = &game_state.flow else {
+            let GameFlow::SelectingTower { cards } = &game_state.flow else {
                 return;
             };
-            ctx.add(TowerSelectingHand { screen_wh });
+            ctx.add(TowerSelectingHand { screen_wh, cards });
 
-            let even_stage = match game_state.stage % 2 {
-                0 => true,
-                _ => false,
-            };
+            let in_even_stage = game_state.in_even_stage();
 
             ctx.compose(|ctx| {
-                if even_stage {
+                if !in_even_stage {
                     return;
                 }
                 ctx.add(ShopModal { screen_wh });
             });
 
             ctx.compose(|ctx| {
-                if !even_stage {
+                if in_even_stage {
                     return;
                 }
                 ctx.add(QuestBoardModal { screen_wh });
@@ -103,6 +102,10 @@ impl Component for Game {
             });
         });
 
+        ctx.add(Inventory { screen_wh });
+
+        ctx.add(Quests { screen_wh });
+
         ctx.add(game_state.as_ref());
 
         ctx.add(simple_rect(
@@ -114,9 +117,11 @@ impl Component for Game {
 
         ctx.attach_event(|event| {
             match event {
-                Event::KeyDown { event } => if event.code == Code::Tab {
-                    toggle_upgrade_board();
-                },
+                Event::KeyDown { event } => {
+                    if event.code == Code::Tab {
+                        toggle_upgrade_board();
+                    }
+                }
                 Event::Wheel { event } => {
                     let delta = -event.delta_xy.y / 2048.0;
                     let origin = event.local_xy();

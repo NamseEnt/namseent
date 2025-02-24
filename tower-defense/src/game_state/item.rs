@@ -7,7 +7,13 @@ use namui::*;
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
 #[derive(Debug, Clone)]
-pub enum Item {
+pub struct Item {
+    pub kind: ItemKind,
+    pub rarity: Rarity,
+}
+
+#[derive(Debug, Clone)]
+pub enum ItemKind {
     Heal {
         amount: f32,
     },
@@ -53,56 +59,56 @@ pub enum Item {
         radius: f32,
     },
 }
-impl Item {
+
+impl ItemKind {
     pub fn name(&self) -> &'static str {
         match self {
-            Item::Heal { .. } => "회복",
-            Item::TowerDamagePlus { .. } => "타워 공격력 증가",
-            Item::TowerDamageMultiply { .. } => "타워 공격력 증가",
-            Item::TowerSpeedPlus { .. } => "타워 공격 속도 증가",
-            Item::TowerSpeedMultiply { .. } => "타워 공격 속도 증가",
-            Item::TowerRangePlus { .. } => "타워 사거리 증가",
-            Item::WeakenMultiply { .. } => "적 공격력 약화",
-            Item::SlowdownMultiply { .. } => "적 슬로우",
-            Item::Attack { .. } => "범위공격",
+            ItemKind::Heal { .. } => "회복",
+            ItemKind::TowerDamagePlus { .. } => "타워 공격력 증가",
+            ItemKind::TowerDamageMultiply { .. } => "타워 공격력 증가",
+            ItemKind::TowerSpeedPlus { .. } => "타워 공격 속도 증가",
+            ItemKind::TowerSpeedMultiply { .. } => "타워 공격 속도 증가",
+            ItemKind::TowerRangePlus { .. } => "타워 사거리 증가",
+            ItemKind::WeakenMultiply { .. } => "적 공격력 약화",
+            ItemKind::SlowdownMultiply { .. } => "적 슬로우",
+            ItemKind::Attack { .. } => "범위공격",
         }
     }
     pub fn description(&self) -> String {
         match self {
-            Item::Heal { amount } => format!("체력을 {amount} 회복합니다"),
-            Item::TowerDamagePlus { amount, duration, radius } => format!(
+            ItemKind::Heal { amount } => format!("체력을 {amount} 회복합니다"),
+            ItemKind::TowerDamagePlus { amount, duration, radius } => format!(
                 "{radius} 범위 내 타워들의 공격력을 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            Item::TowerDamageMultiply { amount, duration, radius } => format!(
+            ItemKind::TowerDamageMultiply { amount, duration, radius } => format!(
                 "{radius} 범위 내 타워들의 공격력을 {amount}배 만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            Item::TowerSpeedPlus { amount, duration, radius } => format!(
+            ItemKind::TowerSpeedPlus { amount, duration, radius } => format!(
                 "{radius} 범위 내 타워들의 공격 속도를 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            Item::TowerSpeedMultiply { amount, duration, radius } => format!(
+            ItemKind::TowerSpeedMultiply { amount, duration, radius } => format!(
                 "{radius} 범위 내 타워들의 공격 속도를 {amount}배 만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            Item::TowerRangePlus { amount, duration, radius } => format!(
+            ItemKind::TowerRangePlus { amount, duration, radius } => format!(
                 "{radius} 범위 내 타워들의 사거리를 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            Item::WeakenMultiply { amount, duration, radius } => format!(
+            ItemKind::WeakenMultiply { amount, duration, radius } => format!(
                 "{radius} 범위 내 적들의 공격력을 {amount}배 만큼 약화시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            Item::SlowdownMultiply { amount, duration, radius } => format!(
+            ItemKind::SlowdownMultiply { amount, duration, radius } => format!(
                 "{radius} 범위 내 적들의 이동 속도를 {amount}배 만큼 느리게 합니다. {duration:?} 동안 지속됩니다"
             ),
-            Item::Attack { rank, suit, damage, radius } => format!(
+            ItemKind::Attack { rank, suit, damage, radius } => format!(
                 "{radius} 범위 내 적들에게 {damage}만큼의 {suit}{rank} 피해를 입힙니다."
             ),
         }
     }
 }
 
-pub fn use_item(item_index: usize) -> &'static Item {
+pub fn use_item(item_index: usize) -> &'static ItemKind {
     todo!()
 }
 
-//TODO: Call this function on shop and quest board
 pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {
     let rarity_table = generate_rarity_table(game_state.stage);
     let rarities = {
@@ -117,14 +123,15 @@ pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {
         rarities
     };
 
-    let mut items = Vec::with_capacity(rarities.len());
-    for rarity in rarities {
-        let item = generate_item(rarity);
-        items.push(item);
-    }
-    items
+    rarities
+        .into_iter()
+        .map(|rarity| Item {
+            kind: generate_item(rarity),
+            rarity,
+        })
+        .collect()
 }
-pub fn generate_item(rarity: Rarity) -> Item {
+pub fn generate_item(rarity: Rarity) -> ItemKind {
     let candidates = generate_item_candidate_table(rarity);
     let candidate = &candidates
         .choose_weighted(&mut rand::thread_rng(), |x| x.1)
@@ -139,7 +146,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 15.0..19.0,
                 Rarity::Legendary => 20.0..25.0,
             });
-            Item::Heal { amount }
+            ItemKind::Heal { amount }
         }
         ItemCandidate::TowerDamagePlus => {
             let amount = thread_rng().gen_range(match rarity {
@@ -160,7 +167,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 10.0,
                 Rarity::Legendary => 15.0,
             };
-            Item::TowerDamagePlus {
+            ItemKind::TowerDamagePlus {
                 amount,
                 duration,
                 radius,
@@ -185,7 +192,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 10.0,
                 Rarity::Legendary => 15.0,
             };
-            Item::TowerDamageMultiply {
+            ItemKind::TowerDamageMultiply {
                 amount,
                 duration,
                 radius,
@@ -210,7 +217,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 10.0,
                 Rarity::Legendary => 15.0,
             };
-            Item::TowerSpeedPlus {
+            ItemKind::TowerSpeedPlus {
                 amount,
                 duration,
                 radius,
@@ -235,7 +242,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 10.0,
                 Rarity::Legendary => 15.0,
             };
-            Item::TowerSpeedMultiply {
+            ItemKind::TowerSpeedMultiply {
                 amount,
                 duration,
                 radius,
@@ -260,7 +267,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 10.0,
                 Rarity::Legendary => 15.0,
             };
-            Item::TowerRangePlus {
+            ItemKind::TowerRangePlus {
                 amount,
                 duration,
                 radius,
@@ -285,7 +292,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 10.0,
                 Rarity::Legendary => 15.0,
             };
-            Item::WeakenMultiply {
+            ItemKind::WeakenMultiply {
                 amount,
                 duration,
                 radius,
@@ -310,7 +317,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 10.0,
                 Rarity::Legendary => 15.0,
             };
-            Item::SlowdownMultiply {
+            ItemKind::SlowdownMultiply {
                 amount,
                 duration,
                 radius,
@@ -332,7 +339,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 10.0,
                 Rarity::Legendary => 15.0,
             };
-            Item::Attack {
+            ItemKind::Attack {
                 rank,
                 suit,
                 damage,

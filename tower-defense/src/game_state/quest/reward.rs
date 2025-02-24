@@ -1,6 +1,6 @@
 use crate::{
     game_state::{
-        item::{generate_item, Item},
+        item::{generate_item, ItemKind},
         GameState,
     },
     rarity::Rarity,
@@ -11,7 +11,7 @@ use rand::{seq::SliceRandom, thread_rng, Rng};
 #[derive(Debug, Clone)]
 pub enum QuestReward {
     Money { amount: usize },
-    Item { item: Item },
+    Item { item: ItemKind },
     Upgrade { upgrade: Upgrade },
 }
 impl QuestReward {

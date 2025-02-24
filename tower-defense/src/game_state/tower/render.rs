@@ -24,12 +24,21 @@ impl Component for &Tower {
 
 pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
     game_state.towers.iter_mut().for_each(|tower| {
-        let animation = &mut tower.animation;
+        let Tower {
+            animation,
+            template,
+            ..
+        } = tower;
+        let kind = template.kind;
 
         if now - animation.start_at < animation.duration() {
             return;
         }
 
+        if let TowerKind::Barricade = kind {
+            animation.transition(AnimationKind::Idle1);
+            return;
+        }
         animation.transition(match animation.kind {
             AnimationKind::Idle1 => AnimationKind::Idle2,
             AnimationKind::Idle2 => AnimationKind::Idle1,

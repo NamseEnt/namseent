@@ -1,38 +1,36 @@
 use super::*;
+use std::{array, collections::VecDeque};
 
 pub enum MonsterSpawnState {
     Idle,
     Spawning {
-        left_spawn_count: NonZeroUsize,
+        monster_queue: VecDeque<MonsterTemplate>,
         next_spawn_time: Instant,
         spawn_interval: Duration,
-        template: MonsterTemplate,
     },
 }
 
 /// This won't immediately spawn a monster or update game_state,
 /// but it just requests to start spawning a monster.
-pub fn start_spawn(template: MonsterTemplate, spawn_count: NonZeroUsize, spawn_interval: Duration) {
-    crate::game_state::mutate_game_state(move |game_state| {
-        if !matches!(game_state.monster_spawn_state, MonsterSpawnState::Idle) {
-            return;
-        }
+pub fn start_spawn(game_state: &mut GameState) {
+    if !matches!(game_state.monster_spawn_state, MonsterSpawnState::Idle) {
+        return;
+    }
 
-        game_state.monster_spawn_state = MonsterSpawnState::Spawning {
-            left_spawn_count: spawn_count,
-            next_spawn_time: Instant::now(),
-            spawn_interval,
-            template,
-        };
-    });
+    let (monster_queue, spawn_interval) = monster_queue_table(game_state.stage);
+
+    game_state.monster_spawn_state = MonsterSpawnState::Spawning {
+        monster_queue,
+        next_spawn_time: Instant::now(),
+        spawn_interval,
+    };
 }
 
 pub fn tick(game_state: &mut GameState, now: Instant) {
     let MonsterSpawnState::Spawning {
-        left_spawn_count,
+        monster_queue,
         next_spawn_time,
         spawn_interval,
-        template,
     } = &mut game_state.monster_spawn_state
     else {
         return;
@@ -42,15 +40,36 @@ pub fn tick(game_state: &mut GameState, now: Instant) {
         return;
     }
 
-    game_state
-        .monsters
-        .push(Monster::new(template, game_state.route.clone()));
-
-    if left_spawn_count.get() == 1 {
+    let Some(next_monster_template) = monster_queue.pop_front() else {
         game_state.monster_spawn_state = MonsterSpawnState::Idle;
         return;
-    }
+    };
 
-    *left_spawn_count = NonZeroUsize::new(left_spawn_count.get() - 1).unwrap();
+    game_state.monsters.push(Monster::new(
+        &next_monster_template,
+        game_state.route.clone(),
+    ));
+
     *next_spawn_time = now + *spawn_interval;
+}
+
+fn monster_queue_table(stage: usize) -> (VecDeque<MonsterTemplate>, Duration) {
+    let spawn_interval = Duration::from_millis(match stage {
+        0..5 => 2000,
+        5..15 => 1500,
+        15..35 => 1000,
+        _ => 750,
+    });
+
+    let monster_queue = match stage {
+        1 => VecDeque::from_iter(
+            array::from_fn::<_, 5, _>(|_| MonsterTemplate::new_mob_01()).into_iter(),
+        ),
+        2 => VecDeque::from_iter(
+            array::from_fn::<_, 10, _>(|_| MonsterTemplate::new_mob_01()).into_iter(),
+        ),
+        _ => unimplemented!(),
+    };
+
+    (monster_queue, spawn_interval)
 }

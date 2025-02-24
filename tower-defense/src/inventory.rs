@@ -11,7 +11,7 @@ use crate::{
 use namui::*;
 use namui_prebuilt::{table, typography};
 
-const INVENTORY_WIDTH: Px = px(160.);
+const INVENTORY_WIDTH: Px = px(240.);
 const PADDING: Px = px(4.);
 const ITEM_HEIGHT: Px = px(36.);
 
@@ -67,7 +67,7 @@ impl Component for Inventory {
                         });
 
                         ctx.add(rect(RectParam {
-                            rect: wh.to_rect(),
+                            rect: Rect::zero_wh(Wh::new(wh.width, height)),
                             style: RectStyle {
                                 stroke: None,
                                 fill: Some(RectFill {
@@ -107,7 +107,7 @@ impl Component for InventoryItem<'_> {
                 table::ratio(1, |wh, ctx| {
                     ctx.add(typography::body::center(
                         wh,
-                        item.name(),
+                        item.kind.name(),
                         palette::ON_SURFACE,
                     ));
                 }),
