@@ -72,7 +72,7 @@ pub fn can_place_tower(
             - find_disrupted_route_point_index(splitted_route_coords.iter().rev(), &disrupts)
                 .unwrap();
 
-        let start_side_disrupt_point = route_coords[start_side_disrupt_point_index - 1];
+        let start_side_disrupt_point = route_coords[start_side_disrupt_point_index];
 
         let tower_coords_with_new = placed_tower_coords
             .iter()
