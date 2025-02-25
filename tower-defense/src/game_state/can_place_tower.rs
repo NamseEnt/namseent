@@ -59,20 +59,22 @@ pub fn can_place_tower(
         routes
     };
 
-    for splitted_route_coords in splitted_routes_by_travel_point {
-        let disrupts = find_all_disrupts(&new_tower_coords, placed_tower_coords);
+    let disrupts = find_all_disrupts(&new_tower_coords, placed_tower_coords);
 
+    for splitted_route_coords in splitted_routes_by_travel_point {
         let Some(start_side_disrupt_point_index) =
             find_disrupted_route_point_index(splitted_route_coords.iter(), &disrupts)
         else {
             continue;
         };
-        let end_side_disrupt_point_index = splitted_route_coords.len()
-            - 1
+        if start_side_disrupt_point_index == 0 {
+            continue; // NOTE: I'm not sure this is correct. Remove this comment if you can confirm it.
+        }
+        let end_side_disrupt_after_point_index = splitted_route_coords.len()
             - find_disrupted_route_point_index(splitted_route_coords.iter().rev(), &disrupts)
                 .unwrap();
 
-        let start_side_disrupt_point = route_coords[start_side_disrupt_point_index];
+        let start_side_disrupt_before_point = route_coords[start_side_disrupt_point_index - 1];
 
         let tower_coords_with_new = placed_tower_coords
             .iter()
@@ -82,8 +84,8 @@ pub fn can_place_tower(
 
         if crate::route::bfs(
             crate::game_state::MAP_SIZE,
-            start_side_disrupt_point,
-            &splitted_route_coords[end_side_disrupt_point_index..],
+            start_side_disrupt_before_point,
+            &splitted_route_coords[end_side_disrupt_after_point_index..],
             &tower_coords_with_new,
         )
         .is_none()
@@ -128,6 +130,7 @@ fn find_disrupted_route_point_index<'a>(
     None
 }
 
+#[derive(Debug)]
 enum Disrupt {
     One { coord: MapCoord },
     Path { coord1: MapCoord, coord2: MapCoord },
@@ -168,8 +171,6 @@ fn find_all_disrupts(
 
     disrupt
 }
-
-// 적당히 아무런 위치에 뿌려놓고 find_shortest_route와 비교하는 샘플링 테스트.
 
 #[cfg(test)]
 mod tests {
@@ -337,29 +338,107 @@ tower_left_top_history: {tower_left_top_history:?}",
 
         assert!(tower_placed);
     }
-}
 
-fn debug_print_map(
-    map_wh: Wh<usize>,
-    placed_tower_coords: &[MapCoord],
-    travel_points: &[MapCoord],
-    route_coords: &[MapCoord],
-) -> String {
-    let mut output = String::new();
-    for y in 0..map_wh.height {
-        for x in 0..map_wh.width {
-            let coord = MapCoord::new(x, y);
-            if placed_tower_coords.contains(&coord) {
-                output.push('T');
-            } else if travel_points.contains(&coord) {
-                output.push('⊙');
-            } else if route_coords.contains(&coord) {
-                output.push('→');
-            } else {
-                output.push(' ');
-            }
-        }
-        output.push('\n');
+    #[test]
+    /// https://github.com/NamseEnt/namseent/issues/1034
+    fn issue_1034() {
+        const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
+        const TRAVEL_POINTS: [MapCoord; 7] = [
+            MapCoord::new(6, 0),
+            MapCoord::new(6, 23),
+            MapCoord::new(41, 23),
+            MapCoord::new(41, 6),
+            MapCoord::new(24, 6),
+            MapCoord::new(24, 41),
+            MapCoord::new(47, 41),
+        ];
+
+        let tower_size = Wh::new(2, 2);
+
+        let placed_tower_coords = vec![];
+        let route =
+            crate::route::calculate_routes(&placed_tower_coords, &TRAVEL_POINTS, MAP_SIZE).unwrap();
+
+        assert!(can_place_tower(
+            MapCoord::new(4, 2),
+            tower_size,
+            &TRAVEL_POINTS,
+            &placed_tower_coords,
+            route.iter_coords(),
+            MAP_SIZE,
+        ));
+
+        assert!(can_place_tower(
+            MapCoord::new(5, 2),
+            tower_size,
+            &TRAVEL_POINTS,
+            &placed_tower_coords,
+            route.iter_coords(),
+            MAP_SIZE,
+        ));
     }
-    output
+
+    #[test]
+    /// https://private-user-images.githubusercontent.com/38313680/416219582-8ddd40ea-d919-4cff-90f1-d3758290a315.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDA0NTk1MjEsIm5iZiI6MTc0MDQ1OTIyMSwicGF0aCI6Ii8zODMxMzY4MC80MTYyMTk1ODItOGRkZDQwZWEtZDkxOS00Y2ZmLTkwZjEtZDM3NTgyOTBhMzE1LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTAyMjUlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMjI1VDA0NTM0MVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWYzNTc5OTNhYjVlYmUzZDUxYTAwZTA2MzY2OThjMjJlYTM3YTE0ZjhlNjE0ZTgxOTMzYTk3OGU5M2JiZTUwYzgmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.UvTwIOPwvH-NOmbsYXWXpXE423lIH_dMLDhZ-1KAIxE
+    fn blocking_start_point_should_not_be_allowed() {
+        const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
+        const TRAVEL_POINTS: [MapCoord; 7] = [
+            MapCoord::new(6, 0),
+            MapCoord::new(6, 23),
+            MapCoord::new(41, 23),
+            MapCoord::new(41, 6),
+            MapCoord::new(24, 6),
+            MapCoord::new(24, 41),
+            MapCoord::new(47, 41),
+        ];
+
+        let tower_size = Wh::new(2, 2);
+
+        let placed_tower_coords = vec![
+            MapCoord::new(4, 0),
+            MapCoord::new(4, 1),
+            MapCoord::new(5, 0),
+            MapCoord::new(5, 1),
+            MapCoord::new(8, 0),
+            MapCoord::new(8, 1),
+            MapCoord::new(9, 0),
+            MapCoord::new(9, 1),
+        ];
+        let route =
+            crate::route::calculate_routes(&placed_tower_coords, &TRAVEL_POINTS, MAP_SIZE).unwrap();
+
+        assert!(!can_place_tower(
+            MapCoord::new(6, 1),
+            tower_size,
+            &TRAVEL_POINTS,
+            &placed_tower_coords,
+            route.iter_coords(),
+            MAP_SIZE,
+        ));
+    }
+
+    fn debug_print_map(
+        map_wh: Wh<usize>,
+        placed_tower_coords: &[MapCoord],
+        travel_points: &[MapCoord],
+        route_coords: &[MapCoord],
+    ) -> String {
+        let mut output = String::new();
+        for y in 0..map_wh.height {
+            for x in 0..map_wh.width {
+                let coord = MapCoord::new(x, y);
+                if placed_tower_coords.contains(&coord) {
+                    output.push('T');
+                } else if travel_points.contains(&coord) {
+                    output.push('⊙');
+                } else if route_coords.contains(&coord) {
+                    output.push('→');
+                } else {
+                    output.push(' ');
+                }
+            }
+            output.push('\n');
+        }
+        output
+    }
 }
