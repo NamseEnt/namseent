@@ -191,5 +191,7 @@ impl PlacedTowers {
 pub fn place_tower(tower: Tower) {
     crate::game_state::mutate_game_state(move |game_state| {
         game_state.towers.place_tower(tower);
+        game_state.route =
+            calculate_routes(&game_state.towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
     });
 }

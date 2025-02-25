@@ -378,6 +378,45 @@ tower_left_top_history: {tower_left_top_history:?}",
         ));
     }
 
+    #[test]
+    /// https://private-user-images.githubusercontent.com/38313680/416219582-8ddd40ea-d919-4cff-90f1-d3758290a315.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDA0NTk1MjEsIm5iZiI6MTc0MDQ1OTIyMSwicGF0aCI6Ii8zODMxMzY4MC80MTYyMTk1ODItOGRkZDQwZWEtZDkxOS00Y2ZmLTkwZjEtZDM3NTgyOTBhMzE1LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTAyMjUlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMjI1VDA0NTM0MVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWYzNTc5OTNhYjVlYmUzZDUxYTAwZTA2MzY2OThjMjJlYTM3YTE0ZjhlNjE0ZTgxOTMzYTk3OGU5M2JiZTUwYzgmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.UvTwIOPwvH-NOmbsYXWXpXE423lIH_dMLDhZ-1KAIxE
+    fn blocking_start_point_should_not_be_allowed() {
+        const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
+        const TRAVEL_POINTS: [MapCoord; 7] = [
+            MapCoord::new(6, 0),
+            MapCoord::new(6, 23),
+            MapCoord::new(41, 23),
+            MapCoord::new(41, 6),
+            MapCoord::new(24, 6),
+            MapCoord::new(24, 41),
+            MapCoord::new(47, 41),
+        ];
+
+        let tower_size = Wh::new(2, 2);
+
+        let placed_tower_coords = vec![
+            MapCoord::new(4, 0),
+            MapCoord::new(4, 1),
+            MapCoord::new(5, 0),
+            MapCoord::new(5, 1),
+            MapCoord::new(8, 0),
+            MapCoord::new(8, 1),
+            MapCoord::new(9, 0),
+            MapCoord::new(9, 1),
+        ];
+        let route =
+            crate::route::calculate_routes(&placed_tower_coords, &TRAVEL_POINTS, MAP_SIZE).unwrap();
+
+        assert!(!can_place_tower(
+            MapCoord::new(6, 1),
+            tower_size,
+            &TRAVEL_POINTS,
+            &placed_tower_coords,
+            route.iter_coords(),
+            MAP_SIZE,
+        ));
+    }
+
     fn debug_print_map(
         map_wh: Wh<usize>,
         placed_tower_coords: &[MapCoord],
