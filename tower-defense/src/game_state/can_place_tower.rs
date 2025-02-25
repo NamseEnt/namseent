@@ -417,6 +417,32 @@ tower_left_top_history: {tower_left_top_history:?}",
         ));
     }
 
+    #[test]
+    fn test_find_disrupted_route_point_index() {
+        let disrupts = vec![
+            Disrupt::One {
+                coord: MapCoord::new(1, 1),
+            },
+            Disrupt::Path {
+                coord1: MapCoord::new(2, 2),
+                coord2: MapCoord::new(3, 3),
+            },
+        ];
+
+        let route_coords = vec![
+            MapCoord::new(0, 0),
+            MapCoord::new(1, 1),
+            MapCoord::new(2, 2),
+            MapCoord::new(3, 3),
+            MapCoord::new(4, 4),
+        ];
+
+        assert_eq!(
+            find_disrupted_route_point_index(route_coords.iter(), &disrupts),
+            Some(1)
+        );
+    }
+
     fn debug_print_map(
         map_wh: Wh<usize>,
         placed_tower_coords: &[MapCoord],
