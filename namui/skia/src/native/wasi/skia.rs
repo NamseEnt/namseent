@@ -9,7 +9,7 @@ pub struct NativeSkia {
 unsafe impl Send for NativeSkia {}
 unsafe impl Sync for NativeSkia {}
 
-extern "C" {
+unsafe extern "C" {
     // GL_API const GLubyte *GL_APIENTRY glGetString (GLenum name);
     fn glGetString(name: u32) -> *const u8;
     // WEBGL_APICALL const GLubyte *GL_APIENTRY emscripten_glGetStringi (GLenum name, GLuint index);

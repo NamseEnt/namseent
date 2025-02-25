@@ -3,7 +3,7 @@ use futures::StreamExt;
 use http::{Request, Response};
 use hyper_rustls::HttpsConnector;
 use hyper_util::{
-    client::legacy::{connect::HttpConnector, Client},
+    client::legacy::{Client, connect::HttpConnector},
     rt::TokioExecutor,
 };
 use std::sync::OnceLock;
@@ -65,8 +65,8 @@ impl ResponseBody for http_body_util::BodyStream<hyper::body::Incoming> {
     fn stream(
         self,
     ) -> impl futures::Stream<Item = std::result::Result<bytes::Bytes, HttpError>>
-           + std::marker::Send
-           + Unpin {
+    + std::marker::Send
+    + Unpin {
         self.map(|result| {
             let frame = result?;
             if frame.is_trailers() {

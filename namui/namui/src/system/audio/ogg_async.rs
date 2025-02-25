@@ -2,8 +2,8 @@
 
 use super::*;
 use bytes::BytesMut;
-use futures::{ready, Stream};
-use ogg::{reading::*, Packet};
+use futures::{Stream, ready};
+use ogg::{Packet, reading::*};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 

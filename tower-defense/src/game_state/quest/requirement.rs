@@ -1,9 +1,9 @@
 use crate::{
-    card::{Rank, Suit, REVERSED_RANKS, SUITS},
-    game_state::{tower::TowerKind, GameState},
+    card::{REVERSED_RANKS, Rank, SUITS, Suit},
+    game_state::{GameState, tower::TowerKind},
     rarity::Rarity,
 };
-use rand::{seq::SliceRandom, thread_rng, Rng};
+use rand::{Rng, seq::SliceRandom, thread_rng};
 
 #[derive(Debug, Clone)]
 pub enum QuestRequirement {

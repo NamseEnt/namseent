@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use dashmap::DashMap;
-use std::sync::{atomic::AtomicUsize, OnceLock};
+use std::sync::{OnceLock, atomic::AtomicUsize};
 use tokio::sync::mpsc::UnboundedSender;
 
 type JsId = usize;
@@ -82,7 +82,7 @@ impl Drop for JsHandle {
     }
 }
 
-extern "C" {
+unsafe extern "C" {
     fn _insert_js(js_ptr: *const u8, js_len: usize, js_id: usize) -> usize;
     fn _insert_js_drop(js_id: usize);
     fn _insert_js_data_buffer(js_id: usize, request_id: usize, buffer_ptr: *const u8);

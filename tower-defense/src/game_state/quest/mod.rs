@@ -1,11 +1,11 @@
 pub mod requirement;
 pub mod reward;
 
-use super::{mutate_game_state, GameState};
+use super::{GameState, mutate_game_state};
 use crate::rarity::Rarity;
 use rand::seq::SliceRandom;
-use requirement::{generate_quest_requirement, QuestRequirement};
-use reward::{generate_quest_reward, QuestReward};
+use requirement::{QuestRequirement, generate_quest_requirement};
+use reward::{QuestReward, generate_quest_reward};
 
 #[derive(Debug, Clone)]
 pub struct Quest {

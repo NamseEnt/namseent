@@ -13,7 +13,7 @@ mod upgrade;
 mod upgrade_board;
 mod upgrade_select;
 
-use game_state::{flow::GameFlow, mutate_game_state, TILE_PX_SIZE};
+use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
 use namui_prebuilt::simple_rect;

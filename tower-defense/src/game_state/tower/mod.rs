@@ -5,7 +5,7 @@ use super::*;
 use crate::card::{Rank, Suit};
 use namui::*;
 use render::Animation;
-pub use render::{tower_animation_tick, tower_image_resource_location, AnimationKind};
+pub use render::{AnimationKind, tower_animation_tick, tower_image_resource_location};
 pub use skill::*;
 use std::{
     fmt::Display,

@@ -13,7 +13,7 @@ pub fn glow(
     glow_thick: Px,
     glow_color: Color,
 ) -> RenderingTree {
-    let gen = |paint: Paint| DrawCommand::Text {
+    let r#gen = |paint: Paint| DrawCommand::Text {
         command: TextDrawCommand {
             text: text.as_ref().to_string(),
             font: font.clone(),
@@ -28,17 +28,21 @@ pub fn glow(
         }
         .into(),
     };
-    let front = gen(paint.clone().set_blend_mode(BlendMode::HardLight));
-    let back_stroke = gen(paint
-        .clone()
-        .set_style(PaintStyle::Stroke)
-        .set_stroke_width(glow_thick)
-        .set_color(glow_color)
-        .set_mask_filter(MaskFilter::Blur { blur_style, sigma }));
-    let back_fill = gen(paint
-        .clone()
-        .set_style(PaintStyle::Fill)
-        .set_color(glow_color)
-        .set_mask_filter(MaskFilter::Blur { blur_style, sigma }));
+    let front = r#gen(paint.clone().set_blend_mode(BlendMode::HardLight));
+    let back_stroke = r#gen(
+        paint
+            .clone()
+            .set_style(PaintStyle::Stroke)
+            .set_stroke_width(glow_thick)
+            .set_color(glow_color)
+            .set_mask_filter(MaskFilter::Blur { blur_style, sigma }),
+    );
+    let back_fill = r#gen(
+        paint
+            .clone()
+            .set_style(PaintStyle::Fill)
+            .set_color(glow_color)
+            .set_mask_filter(MaskFilter::Blur { blur_style, sigma }),
+    );
     namui::render([back_fill, back_stroke, front].map(RenderingTree::Node))
 }

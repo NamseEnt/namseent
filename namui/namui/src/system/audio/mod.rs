@@ -6,7 +6,7 @@ mod opus;
 mod wasi;
 
 use super::InitResult;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 #[cfg(not(target_os = "wasi"))]
 use cpal as inner;
 use futures::TryStreamExt;

@@ -11,16 +11,16 @@ macro_rules! common_for_f32_type {
             $your_type(OrderedFloat::new(rhs))
         }, $short_term, $short_term_ext, not_ratio);
     };
-    ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident, ratio) => {
+    ($your_type: tt, $to_f32: expr_2021, $from: expr_2021, $short_term: ident, $short_term_ext: ident, ratio) => {
         $crate::common_for_f32_type!($your_type, $to_f32, $from, $short_term, $short_term_ext);
     };
-    ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident, not_ratio) => {
+    ($your_type: tt, $to_f32: expr_2021, $from: expr_2021, $short_term: ident, $short_term_ext: ident, not_ratio) => {
         $crate::common_for_f32_type!($your_type, $to_f32, $from, $short_term, $short_term_ext);
         $crate::impl_op_forward_ref!(/|x: $your_type, y: $your_type| -> f32 {
             *x.0 / *y.0
         });
     };
-    ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident) => {
+    ($your_type: tt, $to_f32: expr_2021, $from: expr_2021, $short_term: ident, $short_term_ext: ident) => {
         use $crate::*;
 
         #[type_derives(Default, PartialOrd, Copy, Eq, Hash, -Debug)]

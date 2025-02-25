@@ -15,6 +15,6 @@ pub(crate) fn hardware_concurrency() -> u32 {
     unsafe { _hardware_concurrency() }
 }
 
-extern "C" {
+unsafe extern "C" {
     fn _hardware_concurrency() -> u32;
 }

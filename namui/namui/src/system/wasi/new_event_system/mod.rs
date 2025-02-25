@@ -12,7 +12,7 @@ pub(crate) async fn init() -> InitResult {
 
 // # data callback protocol
 // [data byte length: u16][message data: ...]
-extern "C" {
+unsafe extern "C" {
     fn _new_event_system_init_thread(event_buffer_ptr: *const u8, event_buffer_len: usize);
     fn _new_event_system_event_poll() -> usize;
     fn _new_event_system_event_commit(byte_length: usize);

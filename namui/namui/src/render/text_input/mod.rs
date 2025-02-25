@@ -32,7 +32,7 @@ pub struct TextInput<'a> {
     pub on_edit_done: &'a dyn Fn(String),
 }
 
-extern "C" {
+unsafe extern "C" {
     fn text_input_set_selection_range(start: u16, end: u16, direction: u8);
     fn text_input_focus(
         width: u16,

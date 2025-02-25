@@ -1,6 +1,6 @@
 use crate::{
     game_state::{
-        quest::{cancel_quest, Quest},
+        quest::{Quest, cancel_quest},
         use_game_state,
     },
     palette,

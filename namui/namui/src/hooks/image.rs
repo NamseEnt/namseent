@@ -1,4 +1,4 @@
-use crate::{skia::load_image_from_resource_location, ResourceLocation};
+use crate::{ResourceLocation, skia::load_image_from_resource_location};
 use anyhow::Result;
 use namui_hooks::*;
 use namui_skia::*;

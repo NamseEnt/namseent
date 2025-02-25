@@ -14,7 +14,7 @@ pub(super) fn init_skia() -> Result<NativeSkia> {
     Ok(skia)
 }
 
-extern "C" {
+unsafe extern "C" {
     fn take_bitmap();
 }
 

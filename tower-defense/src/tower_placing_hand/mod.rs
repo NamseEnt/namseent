@@ -3,7 +3,7 @@ use crate::{
     game_state::{
         cursor_preview::PreviewKind,
         mutate_game_state,
-        tower::{tower_image_resource_location, AnimationKind, TowerKind, TowerTemplate},
+        tower::{AnimationKind, TowerKind, TowerTemplate, tower_image_resource_location},
         use_game_state,
     },
     palette,

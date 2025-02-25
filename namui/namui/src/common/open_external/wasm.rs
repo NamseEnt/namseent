@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-extern "C" {
+unsafe extern "C" {
     fn _open_external(url_ptr: *const u8, url_len: usize);
 }
 pub fn open_external(url: &str) -> Result<()> {

@@ -1,7 +1,7 @@
-use crate::{action_to_create_block, span_contains_lc, EditAction, LineColumn};
+use crate::{EditAction, LineColumn, action_to_create_block, span_contains_lc};
 use anyhow::Result;
 use syn::{spanned::Spanned, visit::Visit};
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
 
 #[wasm_bindgen]
 pub fn position_is_in_async_block(file_text: &str, position: LineColumn) -> Result<bool, JsValue> {
@@ -97,9 +97,9 @@ impl ExprType {
 #[cfg(test)]
 mod test {
     use crate::{
-        position_is_in_async_block, position_is_in_closure,
-        wrap_code_with_block::{wrap_code_in_block_internal, ExprType},
-        EditAction, EditInsertAction, LineColumn,
+        EditAction, EditInsertAction, LineColumn, position_is_in_async_block,
+        position_is_in_closure,
+        wrap_code_with_block::{ExprType, wrap_code_in_block_internal},
     };
 
     const FILE_TEXT: &str = r#"

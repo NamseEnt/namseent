@@ -1,10 +1,10 @@
 use super::GameState;
 use crate::{
-    card::{Rank, Suit, REVERSED_RANKS, SUITS},
+    card::{REVERSED_RANKS, Rank, SUITS, Suit},
     rarity::Rarity,
 };
 use namui::*;
-use rand::{seq::SliceRandom, thread_rng, Rng};
+use rand::{Rng, seq::SliceRandom, thread_rng};
 
 #[derive(Debug, Clone)]
 pub struct Item {
@@ -77,30 +77,61 @@ impl ItemKind {
     pub fn description(&self) -> String {
         match self {
             ItemKind::Heal { amount } => format!("체력을 {amount} 회복합니다"),
-            ItemKind::TowerDamagePlus { amount, duration, radius } => format!(
+            ItemKind::TowerDamagePlus {
+                amount,
+                duration,
+                radius,
+            } => format!(
                 "{radius} 범위 내 타워들의 공격력을 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            ItemKind::TowerDamageMultiply { amount, duration, radius } => format!(
+            ItemKind::TowerDamageMultiply {
+                amount,
+                duration,
+                radius,
+            } => format!(
                 "{radius} 범위 내 타워들의 공격력을 {amount}배 만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            ItemKind::TowerSpeedPlus { amount, duration, radius } => format!(
+            ItemKind::TowerSpeedPlus {
+                amount,
+                duration,
+                radius,
+            } => format!(
                 "{radius} 범위 내 타워들의 공격 속도를 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            ItemKind::TowerSpeedMultiply { amount, duration, radius } => format!(
+            ItemKind::TowerSpeedMultiply {
+                amount,
+                duration,
+                radius,
+            } => format!(
                 "{radius} 범위 내 타워들의 공격 속도를 {amount}배 만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            ItemKind::TowerRangePlus { amount, duration, radius } => format!(
+            ItemKind::TowerRangePlus {
+                amount,
+                duration,
+                radius,
+            } => format!(
                 "{radius} 범위 내 타워들의 사거리를 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            ItemKind::WeakenMultiply { amount, duration, radius } => format!(
+            ItemKind::WeakenMultiply {
+                amount,
+                duration,
+                radius,
+            } => format!(
                 "{radius} 범위 내 적들의 공격력을 {amount}배 만큼 약화시킵니다. {duration:?} 동안 지속됩니다"
             ),
-            ItemKind::SlowdownMultiply { amount, duration, radius } => format!(
+            ItemKind::SlowdownMultiply {
+                amount,
+                duration,
+                radius,
+            } => format!(
                 "{radius} 범위 내 적들의 이동 속도를 {amount}배 만큼 느리게 합니다. {duration:?} 동안 지속됩니다"
             ),
-            ItemKind::Attack { rank, suit, damage, radius } => format!(
-                "{radius} 범위 내 적들에게 {damage}만큼의 {suit}{rank} 피해를 입힙니다."
-            ),
+            ItemKind::Attack {
+                rank,
+                suit,
+                damage,
+                radius,
+            } => format!("{radius} 범위 내 적들에게 {damage}만큼의 {suit}{rank} 피해를 입힙니다."),
         }
     }
 }

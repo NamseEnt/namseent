@@ -1,5 +1,5 @@
 use crate::{
-    card::{Card, Rank, Suit, REVERSED_RANKS},
+    card::{Card, REVERSED_RANKS, Rank, Suit},
     game_state::{
         projectile::ProjectileKind,
         tower::{TowerKind, TowerSkillKind, TowerSkillTemplate, TowerTemplate},

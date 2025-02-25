@@ -9,11 +9,11 @@ pub mod utils;
 
 pub use self::random::*;
 pub use ::url::Url;
-pub use anyhow::{anyhow, bail, Result};
+pub use anyhow::{Result, anyhow, bail};
 pub use auto_ops;
 pub use bounding_box::*;
 pub use common::*;
-pub use futures::{future::join_all, future::try_join_all, join, try_join, StreamExt};
+pub use futures::{StreamExt, future::join_all, future::try_join_all, join, try_join};
 pub use hooks::*;
 pub use lazy_static::lazy_static;
 pub use namui_cfg::*;
