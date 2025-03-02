@@ -12,9 +12,10 @@ mod tick;
 pub mod tower;
 
 use crate::quest_board::QuestBoardSlot;
+use crate::route::*;
 use crate::shop::ShopSlot;
+use crate::upgrade::UpgradeState;
 use crate::*;
-use crate::{route::*, upgrade::Upgrade};
 use camera::*;
 use cursor_preview::CursorPreview;
 use flow::GameFlow;
@@ -45,7 +46,7 @@ pub struct GameState {
     pub camera: Camera,
     pub route: Arc<Route>,
     pub floor_tiles: Vec<FloorTile>,
-    pub upgrades: Vec<Upgrade>,
+    pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
     /// one-based
     pub stage: usize,
@@ -113,7 +114,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                     coord: MapCoord::new(x, y),
                 })
             })),
-            upgrades: Default::default(),
+            upgrade_state: Default::default(),
             flow: GameFlow::new_selecting_tower(),
             stage: 1,
             max_shop_slot: 3,

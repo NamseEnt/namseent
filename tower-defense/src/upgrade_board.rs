@@ -1,4 +1,4 @@
-use crate::{game_state::use_game_state, palette, upgrade::Upgrade};
+use crate::{game_state::use_game_state, palette, upgrade::UpgradeState};
 use namui::*;
 use namui_prebuilt::{
     list_view, simple_rect,
@@ -54,7 +54,7 @@ pub struct UpgradeBoard {}
 impl Component for UpgradeBoard {
     fn render(self, ctx: &namui::RenderCtx) {
         let game_state = use_game_state(ctx);
-        let upgrades = &game_state.upgrades;
+        let upgrade_description_texts = get_upgrade_description_texts(&game_state.upgrade_state);
 
         ctx.compose(|ctx| {
             table::padding(
@@ -76,15 +76,17 @@ impl Component for UpgradeBoard {
                             height: wh.height,
                             scroll_bar_width: SCROLL_BAR_WIDTH,
                             item_wh,
-                            items: upgrades.iter().enumerate().map(|(index, upgrade)| {
-                                (
-                                    index,
-                                    UpgradeItem {
-                                        wh: item_wh,
-                                        upgrade,
-                                    },
-                                )
-                            }),
+                            items: upgrade_description_texts.into_iter().enumerate().map(
+                                |(index, upgrade_description_text)| {
+                                    (
+                                        index,
+                                        UpgradeItem {
+                                            wh: item_wh,
+                                            upgrade_description_text,
+                                        },
+                                    )
+                                },
+                            ),
                         });
                     }),
                 ]),
@@ -110,13 +112,16 @@ impl Component for UpgradeBoard {
     }
 }
 
-struct UpgradeItem<'a> {
+struct UpgradeItem {
     wh: Wh<Px>,
-    upgrade: &'a Upgrade,
+    upgrade_description_text: String,
 }
-impl Component for UpgradeItem<'_> {
+impl Component for UpgradeItem {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, upgrade } = self;
+        let Self {
+            wh,
+            upgrade_description_text,
+        } = self;
 
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
@@ -139,7 +144,7 @@ impl Component for UpgradeItem<'_> {
                             table::padding(PADDING, |wh, ctx| {
                                 ctx.add(typography::body::left(
                                     wh.height,
-                                    upgrade_description_text(upgrade),
+                                    upgrade_description_text,
                                     palette::ON_SURFACE,
                                 ));
                             }),
@@ -157,50 +162,63 @@ impl Component for UpgradeItem<'_> {
     }
 }
 
-fn upgrade_description_text(upgrade: &Upgrade) -> String {
-    match upgrade {
-        Upgrade::Tower {
-            target,
-            upgrade: tower_upgrade,
-        } => {
-            let target_text = match target {
-                crate::upgrade::TowerUpgradeTarget::Rank { rank } => {
-                    format!("랭크가 {}인 타워의", rank)
-                }
-                crate::upgrade::TowerUpgradeTarget::Suit { suit } => {
-                    format!("문양이 {}인 타워의", suit)
-                }
-            };
-            let upgrade_text = match tower_upgrade {
-                crate::upgrade::TowerUpgrade::DamagePlus { damage } => {
-                    format!("공격력이 {}만큼 증가합니다", damage)
-                }
-                crate::upgrade::TowerUpgrade::DamageMultiplier { multiplier } => {
-                    format!("공격력이 {}배 증가합니다", multiplier)
-                }
-                crate::upgrade::TowerUpgrade::SpeedPlus { speed } => {
-                    format!("공격 속도가 {}만큼 증가합니다", speed)
-                }
-                crate::upgrade::TowerUpgrade::SpeedMultiplier { multiplier } => {
-                    format!("공격 속도가 {}배 증가합니다", multiplier)
-                }
-                crate::upgrade::TowerUpgrade::RangePlus { range } => {
-                    format!("사정거리가 {}만큼 증가합니다", range)
-                }
-            };
-            format!("{} {}", target_text, upgrade_text)
+fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
+    let mut texts = vec![];
+    if state.shop_slot != 0 {
+        texts.push(format!("상점 슬롯이 {}개 증가합니다", state.shop_slot));
+    }
+    if state.quest_slot != 0 {
+        texts.push(format!("퀘스트 슬롯이 {}개 증가합니다", state.quest_slot));
+    }
+    if state.quest_board_slot != 0 {
+        texts.push(format!(
+            "퀘스트 게시판 슬롯이 {}개 증가합니다",
+            state.quest_board_slot
+        ));
+    }
+    if state.reroll != 0 {
+        texts.push(format!("리롤 기회가 {}개 증가합니다", state.reroll));
+    }
+    for (target, tower_upgrade_state) in &state.tower_upgrade_states {
+        let target_text = match target {
+            crate::upgrade::TowerUpgradeTarget::Rank { rank } => {
+                format!("랭크가 {}인 타워의", rank)
+            }
+            crate::upgrade::TowerUpgradeTarget::Suit { suit } => {
+                format!("문양이 {}인 타워의", suit)
+            }
+        };
+        if tower_upgrade_state.damage_plus != 0.0 {
+            texts.push(format!(
+                "{target_text} 공격력이 {}만큼 증가합니다",
+                tower_upgrade_state.damage_plus
+            ));
         }
-        Upgrade::ShopSlot { extra_slot } => {
-            format!("상점에 {}개의 추가슬롯을 제공합니다", extra_slot)
+        if tower_upgrade_state.damage_multiplier != 1.0 {
+            texts.push(format!(
+                "{target_text} 공격력이 {}배 증가합니다",
+                tower_upgrade_state.damage_multiplier
+            ));
         }
-        Upgrade::QuestSlot { extra_slot } => {
-            format!("퀘스트 슬롯에 {}개의 추가슬롯을 제공합니다", extra_slot)
+        if tower_upgrade_state.speed_plus != 0.0 {
+            texts.push(format!(
+                "{target_text} 공격 속도가 {}만큼 증가합니다",
+                tower_upgrade_state.speed_plus
+            ));
         }
-        Upgrade::QuestBoardSlot { extra_slot } => {
-            format!("퀘스트 게시판에 {}개의 추가슬롯을 제공합니다", extra_slot)
+        if tower_upgrade_state.speed_multiplier != 1.0 {
+            texts.push(format!(
+                "{target_text} 공격 속도가 {}배 증가합니다",
+                tower_upgrade_state.speed_multiplier
+            ));
         }
-        Upgrade::Reroll { extra_reroll } => {
-            format!("{}개의 리롤 기회를 얻습니다", extra_reroll)
+        if tower_upgrade_state.range_plus != 0.0 {
+            texts.push(format!(
+                "{target_text} 사정거리가 {}만큼 증가합니다",
+                tower_upgrade_state.range_plus
+            ));
         }
     }
+
+    texts
 }

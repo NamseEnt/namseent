@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::{
     card::{REVERSED_RANKS, Rank, SUITS, Suit},
     game_state::GameState,
@@ -10,158 +12,80 @@ pub const MAX_QUEST_BOARD_SLOT_UPGRADE: usize = 3;
 pub const MAX_SHOP_SLOT_UPGRADE: usize = 5;
 pub const MAX_REROLL_UPGRADE: usize = 2;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
+pub struct UpgradeState {
+    pub gold_earn_plus: usize,
+    pub shop_slot: usize,
+    pub quest_slot: usize,
+    pub quest_board_slot: usize,
+    pub reroll: usize,
+    pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum Upgrade {
+    GoldEarnPlus,
+    ShopSlot,
+    QuestSlot,
+    QuestBoardSlot,
+    Reroll,
     Tower {
         target: TowerUpgradeTarget,
         upgrade: TowerUpgrade,
     },
-    ShopSlot {
-        extra_slot: usize,
-    },
-    QuestSlot {
-        extra_slot: usize,
-    },
-    QuestBoardSlot {
-        extra_slot: usize,
-    },
-    Reroll {
-        extra_reroll: usize,
-    },
 }
-pub fn merge_or_append_upgrade(upgrades: &mut Vec<Upgrade>, upgrade: Upgrade) {
-    match &upgrade {
-        Upgrade::Tower {
-            target,
-            upgrade: tower_upgrade,
-        } => {
-            for existing_upgrade in upgrades.iter_mut() {
-                let Upgrade::Tower {
-                    target: existing_target,
-                    upgrade: existing_upgrade,
-                } = existing_upgrade
-                else {
-                    continue;
-                };
 
-                if target != existing_target {
-                    continue;
-                }
-
-                match (tower_upgrade, existing_upgrade) {
-                    (
-                        TowerUpgrade::DamagePlus { damage },
-                        TowerUpgrade::DamagePlus {
-                            damage: existing_damage,
-                        },
-                    ) => {
-                        *existing_damage += damage;
-                        return;
-                    }
-                    (
-                        TowerUpgrade::DamageMultiplier { multiplier },
-                        TowerUpgrade::DamageMultiplier {
-                            multiplier: existing_multiplier,
-                        },
-                    ) => {
-                        *existing_multiplier *= multiplier;
-                        return;
-                    }
-                    (
-                        TowerUpgrade::SpeedPlus { speed },
-                        TowerUpgrade::SpeedPlus {
-                            speed: existing_speed,
-                        },
-                    ) => {
-                        *existing_speed += speed;
-                        return;
-                    }
-                    (
-                        TowerUpgrade::SpeedMultiplier { multiplier },
-                        TowerUpgrade::SpeedMultiplier {
-                            multiplier: existing_multiplier,
-                        },
-                    ) => {
-                        *existing_multiplier *= multiplier;
-                        return;
-                    }
-                    (
-                        TowerUpgrade::RangePlus { range },
-                        TowerUpgrade::RangePlus {
-                            range: existing_range,
-                        },
-                    ) => {
-                        *existing_range += range;
-                        return;
-                    }
-                    _ => {}
-                }
-            }
-        }
-        Upgrade::ShopSlot { extra_slot } => {
-            for existing_upgrade in upgrades.iter_mut() {
-                let Upgrade::ShopSlot {
-                    extra_slot: existing_extra_slot,
-                } = existing_upgrade
-                else {
-                    continue;
-                };
-
-                *existing_extra_slot += extra_slot;
-                return;
-            }
-        }
-        Upgrade::QuestSlot { extra_slot } => {
-            for existing_upgrade in upgrades.iter_mut() {
-                let Upgrade::QuestSlot {
-                    extra_slot: existing_extra_slot,
-                } = existing_upgrade
-                else {
-                    continue;
-                };
-
-                *existing_extra_slot += extra_slot;
-                return;
-            }
-        }
-        Upgrade::QuestBoardSlot { extra_slot } => {
-            for existing_upgrade in upgrades.iter_mut() {
-                let Upgrade::QuestBoardSlot {
-                    extra_slot: existing_extra_slot,
-                } = existing_upgrade
-                else {
-                    continue;
-                };
-
-                *existing_extra_slot += extra_slot;
-                return;
-            }
-        }
-        Upgrade::Reroll { extra_reroll } => {
-            for existing_upgrade in upgrades.iter_mut() {
-                let Upgrade::Reroll {
-                    extra_reroll: existing_extra_reroll,
-                } = existing_upgrade
-                else {
-                    continue;
-                };
-
-                *existing_extra_reroll += extra_reroll;
-                return;
+impl UpgradeState {
+    pub fn upgrade(&mut self, upgrade: Upgrade) {
+        match upgrade {
+            Upgrade::GoldEarnPlus => match self.gold_earn_plus {
+                0 => self.gold_earn_plus = 1,
+                1 => self.gold_earn_plus = 2,
+                2 => self.gold_earn_plus = 4,
+                4 => self.gold_earn_plus = 8,
+                8 => self.gold_earn_plus = 16,
+                _ => unreachable!("Invalid gold earn plus upgrade: {}", self.gold_earn_plus),
+            },
+            Upgrade::ShopSlot => match self.shop_slot {
+                0 => self.shop_slot = 1,
+                1 => self.shop_slot = 2,
+                _ => unreachable!("Invalid shop slot upgrade: {}", self.shop_slot),
+            },
+            Upgrade::QuestSlot => match self.quest_slot {
+                0 => self.quest_slot = 1,
+                1 => self.quest_slot = 2,
+                _ => unreachable!("Invalid quest slot upgrade: {}", self.quest_slot),
+            },
+            Upgrade::QuestBoardSlot => match self.quest_board_slot {
+                0 => self.quest_board_slot = 1,
+                1 => self.quest_board_slot = 2,
+                _ => unreachable!(
+                    "Invalid quest board slot upgrade: {}",
+                    self.quest_board_slot
+                ),
+            },
+            Upgrade::Reroll => match self.reroll {
+                0 => self.reroll = 1,
+                1 => self.reroll = 2,
+                _ => unreachable!("Invalid reroll upgrade: {}", self.reroll),
+            },
+            Upgrade::Tower { target, upgrade } => {
+                let tower_upgrade_state = self.tower_upgrade_states.entry(target).or_default();
+                tower_upgrade_state.apply_upgrade(upgrade);
             }
         }
     }
-
-    upgrades.push(upgrade);
 }
+
 impl Upgrade {
     pub fn name(&self) -> &'static str {
         match self {
             Upgrade::Tower { .. } => "타워 업그레이드",
-            Upgrade::ShopSlot { .. } => "상점 슬롯 확장",
-            Upgrade::QuestSlot { .. } => "퀘스트 슬롯 확장",
-            Upgrade::QuestBoardSlot { .. } => "퀘스트 게시판 슬롯 확장",
-            Upgrade::Reroll { .. } => "리롤 횟수 증가가",
+            Upgrade::ShopSlot => "상점 슬롯 확장",
+            Upgrade::QuestSlot => "퀘스트 슬롯 확장",
+            Upgrade::QuestBoardSlot => "퀘스트 게시판 슬롯 확장",
+            Upgrade::Reroll => "리롤 횟수 증가가",
+            Upgrade::GoldEarnPlus => "골드 획득량 증가",
         }
     }
     pub fn description(&self) -> String {
@@ -198,26 +122,76 @@ impl Upgrade {
                 }
                 description
             }
-            Upgrade::ShopSlot { .. } => "상점 슬롯을 확장합니다.".to_string(),
-            Upgrade::QuestSlot { .. } => "퀘스트 슬롯을 확장합니다.".to_string(),
-            Upgrade::QuestBoardSlot { .. } => "퀘스트 게시판 슬롯을 확장합니다.".to_string(),
-            Upgrade::Reroll { .. } => "리롤 횟수를 증가시킵니다.".to_string(),
+            Upgrade::ShopSlot => "상점 슬롯을 확장합니다.".to_string(),
+            Upgrade::QuestSlot => "퀘스트 슬롯을 확장합니다.".to_string(),
+            Upgrade::QuestBoardSlot => "퀘스트 게시판 슬롯을 확장합니다.".to_string(),
+            Upgrade::Reroll => "리롤 횟수가 증가합니다.".to_string(),
+            Upgrade::GoldEarnPlus => "골드 획득량이 증가합니다.".to_string(),
         }
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord)]
 pub enum TowerUpgradeTarget {
     Rank { rank: Rank },
     Suit { suit: Suit },
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum TowerUpgrade {
     DamagePlus { damage: f32 },
     DamageMultiplier { multiplier: f32 },
     SpeedPlus { speed: f32 },
     SpeedMultiplier { multiplier: f32 },
     RangePlus { range: f32 },
+}
+#[derive(Debug, Clone, Copy)]
+pub struct TowerUpgradeState {
+    pub damage_plus: f32,
+    pub damage_multiplier: f32,
+    pub speed_plus: f32,
+    pub speed_multiplier: f32,
+    pub range_plus: f32,
+}
+impl TowerUpgradeState {
+    fn apply_upgrade(&mut self, upgrade: TowerUpgrade) {
+        match upgrade {
+            TowerUpgrade::DamagePlus { damage } => self.damage_plus += damage,
+            TowerUpgrade::DamageMultiplier { multiplier } => self.damage_multiplier *= multiplier,
+            TowerUpgrade::SpeedPlus { speed } => self.speed_plus += speed,
+            TowerUpgrade::SpeedMultiplier { multiplier } => self.speed_multiplier *= multiplier,
+            TowerUpgrade::RangePlus { range } => self.range_plus += range,
+        }
+    }
+}
+impl Default for TowerUpgradeState {
+    fn default() -> Self {
+        TowerUpgradeState {
+            damage_plus: 0.0,
+            damage_multiplier: 1.0,
+            speed_plus: 0.0,
+            speed_multiplier: 1.0,
+            range_plus: 0.0,
+        }
+    }
+}
+impl TowerUpgrade {
+    pub fn kind(&self) -> TowerUpgradeKind {
+        match self {
+            TowerUpgrade::DamagePlus { .. } => TowerUpgradeKind::DamagePlus,
+            TowerUpgrade::DamageMultiplier { .. } => TowerUpgradeKind::DamageMultiplier,
+            TowerUpgrade::SpeedPlus { .. } => TowerUpgradeKind::SpeedPlus,
+            TowerUpgrade::SpeedMultiplier { .. } => TowerUpgradeKind::SpeedMultiplier,
+            TowerUpgrade::RangePlus { .. } => TowerUpgradeKind::RangePlus,
+        }
+    }
+}
+#[derive(Debug, Clone, Copy)]
+pub enum TowerUpgradeKind {
+    DamagePlus,
+    DamageMultiplier,
+    SpeedPlus,
+    SpeedMultiplier,
+    RangePlus,
 }
 
 //TODO: Call this function on clear boss stage
@@ -334,10 +308,11 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
             };
             Upgrade::Tower { target, upgrade }
         }
-        UpgradeCandidate::ShopSlot => Upgrade::ShopSlot { extra_slot: 1 },
-        UpgradeCandidate::QuestSlot => Upgrade::QuestSlot { extra_slot: 1 },
-        UpgradeCandidate::QuestBoardSlot => Upgrade::QuestBoardSlot { extra_slot: 1 },
-        UpgradeCandidate::Reroll => Upgrade::Reroll { extra_reroll: 1 },
+        UpgradeCandidate::ShopSlot => Upgrade::ShopSlot,
+        UpgradeCandidate::QuestSlot => Upgrade::QuestSlot,
+        UpgradeCandidate::QuestBoardSlot => Upgrade::QuestBoardSlot,
+        UpgradeCandidate::Reroll => Upgrade::Reroll,
+        UpgradeCandidate::GoldEarnPlus => Upgrade::GoldEarnPlus,
     }
 }
 fn generate_rarity_table_for_boss_reward(stage: usize) -> Vec<(Rarity, f32)> {
@@ -444,6 +419,7 @@ enum UpgradeCandidate {
     QuestSlot,
     QuestBoardSlot,
     Reroll,
+    GoldEarnPlus,
 }
 #[derive(Debug, Clone, Copy)]
 enum TargetUpgradeCandidate {

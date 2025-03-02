@@ -1,8 +1,4 @@
-use crate::{
-    game_state::mutate_game_state,
-    palette,
-    upgrade::{Upgrade, merge_or_append_upgrade},
-};
+use crate::{game_state::mutate_game_state, palette, upgrade::Upgrade};
 use namui::*;
 use namui_prebuilt::{
     button::TextButton,
@@ -37,10 +33,9 @@ impl Component for UpgradeSelectModal<'_> {
             set_opened.mutate(|opened| *opened = !*opened);
         };
 
-        let on_upgrade_select = |upgrade: &Upgrade| {
-            let upgrade = upgrade.clone();
-            mutate_game_state(|state| {
-                merge_or_append_upgrade(&mut state.upgrades, upgrade);
+        let on_upgrade_select = |upgrade: Upgrade| {
+            mutate_game_state(move |state| {
+                state.upgrade_state.upgrade(upgrade);
                 state.goto_selecting_tower();
             });
         };
@@ -97,7 +92,7 @@ impl Component for UpgradeSelectOpenButton<'_> {
 
 struct UpgradeSelect<'a> {
     upgrades: &'a [Upgrade],
-    on_upgrade_select: &'a dyn Fn(&Upgrade),
+    on_upgrade_select: &'a dyn Fn(Upgrade),
 }
 impl Component for UpgradeSelect<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -109,8 +104,8 @@ impl Component for UpgradeSelect<'_> {
         ctx.compose(|ctx| {
             table::padding(
                 PADDING,
-                table::horizontal(upgrades.iter().map(|upgrade| {
-                    ratio(1, |wh, ctx| {
+                table::horizontal(upgrades.iter().map(|&upgrade| {
+                    ratio(1, move |wh, ctx| {
                         ctx.add(UpgradeSelectItem {
                             wh,
                             upgrade,
@@ -125,8 +120,8 @@ impl Component for UpgradeSelect<'_> {
 
 struct UpgradeSelectItem<'a> {
     wh: Wh<Px>,
-    upgrade: &'a Upgrade,
-    on_upgrade_select: &'a dyn Fn(&Upgrade),
+    upgrade: Upgrade,
+    on_upgrade_select: &'a dyn Fn(Upgrade),
 }
 impl Component for UpgradeSelectItem<'_> {
     fn render(self, ctx: &RenderCtx) {
