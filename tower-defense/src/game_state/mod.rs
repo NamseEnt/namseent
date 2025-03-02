@@ -58,7 +58,7 @@ pub struct GameState {
     pub projectiles: Vec<Projectile>,
     pub items: Vec<item::Item>,
     pub quests: Vec<Quest>,
-    pub money: u32,
+    pub gold: usize,
     pub shop_slots: [ShopSlot; 5],
     pub quest_board_slots: [QuestBoardSlot; 3],
     pub cursor_preview: CursorPreview,
@@ -70,6 +70,10 @@ impl GameState {
             0 => true,
             _ => false,
         }
+    }
+
+    fn earn_gold_by_kill_monsters(&mut self, monster_count: usize) {
+        self.gold += (1 + self.upgrade_state.gold_earn_plus) * monster_count;
     }
 }
 
@@ -125,7 +129,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             projectiles: Default::default(),
             items: Default::default(),
             quests: Default::default(),
-            money: 10,
+            gold: 10,
             shop_slots: Default::default(),
             quest_board_slots: Default::default(),
             cursor_preview: Default::default(),

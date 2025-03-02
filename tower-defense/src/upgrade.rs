@@ -411,6 +411,9 @@ fn generate_upgrade_candidate_table(
     };
     upgrade_candidate_table.push(reroll_upgrade);
 
+    let gold_earn_plus_upgrade = { todo!() };
+    upgrade_candidate_table.push(gold_earn_plus_upgrade);
+
     upgrade_candidate_table
 }
 enum UpgradeCandidate {

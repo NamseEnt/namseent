@@ -48,6 +48,8 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
         ..
     } = game_state;
 
+    let mut killed_monster_count = 0;
+
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
 
@@ -70,11 +72,16 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
         monster.get_damage(projectile.damage);
 
         if monster.dead() {
+            killed_monster_count += 1;
             monsters.swap_remove(monster_index);
         }
 
         false
     });
+
+    if killed_monster_count > 0 {
+        game_state.earn_gold_by_kill_monsters(killed_monster_count);
+    }
 }
 
 fn shoot_projectiles(game_state: &mut GameState) {
