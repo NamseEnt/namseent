@@ -1,7 +1,7 @@
 use rand::Rng;
 use std::fmt::Display;
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord)]
 pub enum Suit {
     Spades,
     Hearts,
@@ -21,7 +21,7 @@ impl Display for Suit {
 }
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord)]
 pub enum Rank {
     Seven,
     Eight,

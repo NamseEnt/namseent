@@ -43,13 +43,17 @@ impl Component for TowerSelectingHand<'_> {
             cards.to_vec()
         });
         let tower_template = ctx.memo(|| get_highest_tower_template(&using_cards));
+        let game_state = crate::game_state::use_game_state(ctx);
 
         let reroll_selected = || {
-            if selected.len() == 0 {
+            if game_state.left_reroll_chance == 0 || selected.len() == 0 {
                 return;
             }
             let selected = selected.clone_inner();
             mutate_game_state(move |game_state| {
+                if game_state.left_reroll_chance == 0 {
+                    return;
+                }
                 let GameFlow::SelectingTower { cards } = &mut game_state.flow else {
                     return;
                 };
@@ -59,6 +63,7 @@ impl Component for TowerSelectingHand<'_> {
                     }
                     cards[index] = Card::new_random();
                 }
+                game_state.left_reroll_chance -= 1;
             });
             set_selected.mutate(move |set_selected| {
                 set_selected

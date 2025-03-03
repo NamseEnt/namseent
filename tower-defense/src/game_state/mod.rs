@@ -12,9 +12,10 @@ mod tick;
 pub mod tower;
 
 use crate::quest_board::QuestBoardSlot;
+use crate::route::*;
 use crate::shop::ShopSlot;
+use crate::upgrade::UpgradeState;
 use crate::*;
-use crate::{route::*, upgrade::Upgrade};
 use camera::*;
 use cursor_preview::CursorPreview;
 use flow::GameFlow;
@@ -45,19 +46,19 @@ pub struct GameState {
     pub camera: Camera,
     pub route: Arc<Route>,
     pub floor_tiles: Vec<FloorTile>,
-    pub upgrades: Vec<Upgrade>,
+    pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
     /// one-based
     pub stage: usize,
     pub max_shop_slot: usize,
     pub max_quests: usize,
     pub max_quest_board_slot: usize,
-    pub reroll: usize,
+    pub left_reroll_chance: usize,
     monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
     pub items: Vec<item::Item>,
     pub quests: Vec<Quest>,
-    pub money: u32,
+    pub gold: usize,
     pub shop_slots: [ShopSlot; 5],
     pub quest_board_slots: [QuestBoardSlot; 3],
     pub cursor_preview: CursorPreview,
@@ -69,6 +70,10 @@ impl GameState {
             0 => true,
             _ => false,
         }
+    }
+
+    fn earn_gold_by_kill_monsters(&mut self, monster_count: usize) {
+        self.gold += (1 + self.upgrade_state.gold_earn_plus) * monster_count;
     }
 }
 
@@ -113,18 +118,18 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                     coord: MapCoord::new(x, y),
                 })
             })),
-            upgrades: Default::default(),
+            upgrade_state: Default::default(),
             flow: GameFlow::new_selecting_tower(),
             stage: 1,
             max_shop_slot: 3,
             max_quests: 3,
             max_quest_board_slot: 1,
-            reroll: 1,
+            left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::Idle,
             projectiles: Default::default(),
             items: Default::default(),
             quests: Default::default(),
-            money: 10,
+            gold: 10,
             shop_slots: Default::default(),
             quest_board_slots: Default::default(),
             cursor_preview: Default::default(),

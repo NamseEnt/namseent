@@ -27,7 +27,7 @@ pub enum ShopSlot {
     Locked,
     Item {
         item: Item,
-        cost: u32,
+        cost: usize,
         purchased: bool,
     },
 }
@@ -60,11 +60,11 @@ impl Component for ShopModal {
                 };
 
                 assert!(state.items.len() <= state.max_shop_slot);
-                assert!(state.money >= *cost);
+                assert!(state.gold >= *cost);
                 assert!(!*purchased);
 
                 state.items.push(item.clone());
-                state.money -= *cost;
+                state.gold -= *cost;
                 *purchased = true;
             });
         };
@@ -165,7 +165,7 @@ impl Component for ShopItem<'_> {
             purchase_item,
         } = self;
 
-        let money = use_game_state(ctx).money;
+        let money = use_game_state(ctx).gold;
         let purchase_item = || purchase_item(shop_slot_index);
 
         ctx.compose(|ctx| {
@@ -234,7 +234,7 @@ struct ShopItemContent<'a> {
     wh: Wh<Px>,
     item: &'a Item,
     purchase_item: &'a dyn Fn(),
-    cost: u32,
+    cost: usize,
     purchased: bool,
     not_enough_money: bool,
 }
