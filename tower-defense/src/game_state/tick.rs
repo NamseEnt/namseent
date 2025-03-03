@@ -85,12 +85,19 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 }
 
 fn shoot_projectiles(game_state: &mut GameState) {
-    let projectiles = game_state.towers.iter_mut().filter_map(|tower| {
+    let GameState {
+        towers,
+        upgrade_state,
+        ..
+    } = game_state;
+    let projectiles = towers.iter_mut().filter_map(|tower| {
         if tower.in_cooltime() {
             return None;
         }
 
-        let attack_range_radius = tower.attack_range_radius();
+        let tower_upgrades = upgrade_state.tower_upgrades(&tower);
+
+        let attack_range_radius = tower.attack_range_radius(&tower_upgrades);
 
         let Some(target) = game_state.monsters.iter().find(|monster| {
             (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
@@ -99,7 +106,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
             return None;
         };
 
-        Some(tower.shoot(target.projectile_target_indicator))
+        Some(tower.shoot(target.projectile_target_indicator, &tower_upgrades))
     });
 
     game_state.projectiles.extend(projectiles);

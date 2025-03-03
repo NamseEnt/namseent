@@ -2,7 +2,10 @@ mod render;
 mod skill;
 
 use super::*;
-use crate::card::{Rank, Suit};
+use crate::{
+    card::{Rank, Suit},
+    upgrade::TowerUpgradeState,
+};
 use namui::*;
 use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick, tower_image_resource_location};
@@ -39,7 +42,11 @@ impl Tower {
         self.cooldown > Duration::from_secs(0)
     }
 
-    pub fn shoot(&mut self, target_indicator: ProjectileTargetIndicator) -> Projectile {
+    pub fn shoot(
+        &mut self,
+        target_indicator: ProjectileTargetIndicator,
+        tower_upgrade_states: &[TowerUpgradeState],
+    ) -> Projectile {
         self.cooldown = self.shoot_interval;
         self.animation.transition(AnimationKind::Attack);
 
@@ -48,7 +55,7 @@ impl Tower {
             xy: self.left_top.map(|t| t as f32 + 0.5),
             velocity: self.projectile_speed,
             target_indicator,
-            damage: self.calculate_projectile_damage(),
+            damage: self.calculate_projectile_damage(tower_upgrade_states),
         }
     }
 
@@ -59,13 +66,17 @@ impl Tower {
         self.center_xy().map(|t| t as f32)
     }
 
-    fn calculate_projectile_damage(&self) -> f32 {
+    fn calculate_projectile_damage(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
         let mut damage = self.default_damage;
 
         self.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::DamageAdd { add } = status_effect.kind {
                 damage += add;
             }
+        });
+
+        tower_upgrade_states.iter().for_each(|tower_upgrade_state| {
+            damage += tower_upgrade_state.damage_plus;
         });
 
         if damage < 0.0 {
@@ -78,10 +89,14 @@ impl Tower {
             }
         });
 
+        tower_upgrade_states.iter().for_each(|tower_upgrade_state| {
+            damage *= tower_upgrade_state.damage_multiplier;
+        });
+
         damage
     }
 
-    pub(crate) fn attack_range_radius(&self) -> f32 {
+    pub(crate) fn attack_range_radius(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
         self.status_effects.iter().fold(
             self.default_attack_range_radius,
             |attack_range_radius, status_effect| {
@@ -91,7 +106,11 @@ impl Tower {
                     attack_range_radius
                 }
             },
-        )
+        ) + tower_upgrade_states
+            .iter()
+            .fold(0.0, |r, tower_upgrade_state| {
+                r + tower_upgrade_state.range_plus
+            })
     }
 }
 impl Deref for Tower {
@@ -274,12 +293,17 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             return;
         }
 
+        let tower_upgrades = game_state.upgrade_state.tower_upgrades(&tower);
+
         let mut time_multiple = 1.0;
 
         tower.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::AttackSpeedAdd { add } = status_effect.kind {
                 time_multiple += add;
             }
+        });
+        tower_upgrades.iter().for_each(|tower_upgrade_state| {
+            time_multiple += tower_upgrade_state.speed_plus;
         });
         if time_multiple == 0.0 {
             return;
@@ -289,6 +313,9 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             if let TowerStatusEffectKind::AttackSpeedMul { mul } = status_effect.kind {
                 time_multiple *= mul;
             }
+        });
+        tower_upgrades.iter().for_each(|tower_upgrade_state| {
+            time_multiple += tower_upgrade_state.speed_multiplier;
         });
 
         let cooldown_sub = dt * time_multiple;

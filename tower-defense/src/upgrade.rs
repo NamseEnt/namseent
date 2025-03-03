@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     card::{REVERSED_RANKS, Rank, SUITS, Suit},
-    game_state::GameState,
+    game_state::{GameState, tower::Tower},
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -74,6 +74,20 @@ impl UpgradeState {
                 tower_upgrade_state.apply_upgrade(upgrade);
             }
         }
+    }
+    pub fn tower_upgrades(&self, tower: &Tower) -> Vec<TowerUpgradeState> {
+        [
+            TowerUpgradeTarget::Rank { rank: tower.rank },
+            TowerUpgradeTarget::Suit { suit: tower.suit },
+        ]
+        .iter()
+        .map(|target| {
+            self.tower_upgrade_states
+                .get(target)
+                .map(|x| *x)
+                .unwrap_or_default()
+        })
+        .collect::<Vec<_>>()
     }
 }
 
@@ -341,7 +355,6 @@ fn generate_upgrade_candidate_table(
     rarity: Rarity,
 ) -> Vec<(UpgradeCandidate, f32)> {
     let mut upgrade_candidate_table = Vec::with_capacity(5);
-    upgrade_candidate_table.push((UpgradeCandidate::Tower, 1.0));
 
     let shop_slot_upgrade = {
         let remaining_upgrade = MAX_SHOP_SLOT_UPGRADE - game_state.max_shop_slot;
@@ -416,6 +429,15 @@ fn generate_upgrade_candidate_table(
     };
 
     candidate_table_push(
+        UpgradeCandidate::Tower,
+        usize::MIN,
+        usize::MAX,
+        50,
+        100,
+        100,
+        100,
+    );
+    candidate_table_push(
         UpgradeCandidate::RerollCountPlus,
         game_state.upgrade_state.reroll_count_plus,
         MAX_REROLL_UPGRADE,
@@ -424,7 +446,6 @@ fn generate_upgrade_candidate_table(
         50,
         100,
     );
-
     candidate_table_push(
         UpgradeCandidate::GoldEarnPlus,
         game_state.upgrade_state.gold_earn_plus,
