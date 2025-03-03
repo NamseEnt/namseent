@@ -18,7 +18,7 @@ pub struct UpgradeState {
     pub shop_slot: usize,
     pub quest_slot: usize,
     pub quest_board_slot: usize,
-    pub reroll: usize,
+    pub reroll_count_plus: usize,
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
 }
 
@@ -64,10 +64,10 @@ impl UpgradeState {
                     self.quest_board_slot
                 ),
             },
-            Upgrade::Reroll => match self.reroll {
-                0 => self.reroll = 1,
-                1 => self.reroll = 2,
-                _ => unreachable!("Invalid reroll upgrade: {}", self.reroll),
+            Upgrade::Reroll => match self.reroll_count_plus {
+                0 => self.reroll_count_plus = 1,
+                1 => self.reroll_count_plus = 2,
+                _ => unreachable!("Invalid reroll upgrade: {}", self.reroll_count_plus),
             },
             Upgrade::Tower { target, upgrade } => {
                 let tower_upgrade_state = self.tower_upgrade_states.entry(target).or_default();
@@ -311,7 +311,7 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::ShopSlot => Upgrade::ShopSlot,
         UpgradeCandidate::QuestSlot => Upgrade::QuestSlot,
         UpgradeCandidate::QuestBoardSlot => Upgrade::QuestBoardSlot,
-        UpgradeCandidate::Reroll => Upgrade::Reroll,
+        UpgradeCandidate::RerollCountPlus => Upgrade::Reroll,
         UpgradeCandidate::GoldEarnPlus => Upgrade::GoldEarnPlus,
     }
 }
@@ -394,36 +394,59 @@ fn generate_upgrade_candidate_table(
     };
     upgrade_candidate_table.push(quest_board_slot_upgrade);
 
-    let reroll_upgrade = {
-        let remaining_upgrade = MAX_REROLL_UPGRADE - game_state.reroll;
-        let weight = match rarity {
-            Rarity::Common => [0.0, 0.0, 0.0],
-            Rarity::Rare => [0.0, 0.0, 0.1],
-            Rarity::Epic => [0.0, 0.1, 0.2],
-            Rarity::Legendary => [0.0, 0.4, 0.6],
-        };
-        (
-            UpgradeCandidate::Reroll,
-            *weight
-                .get(remaining_upgrade)
-                .expect("Too many reroll upgrades are available"),
-        )
+    let mut candidate_table_push = |candidate: UpgradeCandidate,
+                                    current: usize,
+                                    max: usize,
+                                    common_weight: usize,
+                                    rare_weight: usize,
+                                    epic_weight: usize,
+                                    legendary_weight: usize| {
+        upgrade_candidate_table.push((candidate, {
+            if current >= max {
+                0.0
+            } else {
+                match rarity {
+                    Rarity::Common => common_weight as f32 / 100.0,
+                    Rarity::Rare => rare_weight as f32 / 100.0,
+                    Rarity::Epic => epic_weight as f32 / 100.0,
+                    Rarity::Legendary => legendary_weight as f32 / 100.0,
+                }
+            }
+        }));
     };
-    upgrade_candidate_table.push(reroll_upgrade);
 
-    let gold_earn_plus_upgrade = { todo!() };
-    upgrade_candidate_table.push(gold_earn_plus_upgrade);
+    candidate_table_push(
+        UpgradeCandidate::RerollCountPlus,
+        game_state.upgrade_state.reroll_count_plus,
+        MAX_REROLL_UPGRADE,
+        5,
+        10,
+        50,
+        100,
+    );
+
+    candidate_table_push(
+        UpgradeCandidate::GoldEarnPlus,
+        game_state.upgrade_state.gold_earn_plus,
+        5,
+        10,
+        50,
+        50,
+        100,
+    );
 
     upgrade_candidate_table
 }
+
 enum UpgradeCandidate {
     Tower,
     ShopSlot,
     QuestSlot,
     QuestBoardSlot,
-    Reroll,
+    RerollCountPlus,
     GoldEarnPlus,
 }
+
 #[derive(Debug, Clone, Copy)]
 enum TargetUpgradeCandidate {
     DamagePlus,

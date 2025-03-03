@@ -176,8 +176,17 @@ fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
             state.quest_board_slot
         ));
     }
-    if state.reroll != 0 {
-        texts.push(format!("리롤 기회가 {}개 증가합니다", state.reroll));
+    if state.reroll_count_plus != 0 {
+        texts.push(format!(
+            "리롤 기회가 {}개 증가합니다",
+            state.reroll_count_plus
+        ));
+    }
+    if state.gold_earn_plus != 0 {
+        texts.push(format!(
+            "몬스터 처치 시 {}골드를 추가로 얻습니다",
+            state.gold_earn_plus
+        ));
     }
     for (target, tower_upgrade_state) in &state.tower_upgrade_states {
         let target_text = match target {
