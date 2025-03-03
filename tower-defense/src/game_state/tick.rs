@@ -92,15 +92,6 @@ fn shoot_projectiles(game_state: &mut GameState) {
             return None;
         }
 
-        let attack_range_radius = tower.attack_range_radius();
-
-        let Some(target) = game_state.monsters.iter().find(|monster| {
-            (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
-                < attack_range_radius
-        }) else {
-            return None;
-        };
-
         let tower_upgrades = [
             TowerUpgradeTarget::Rank { rank: tower.rank },
             TowerUpgradeTarget::Suit { suit: tower.suit },
@@ -115,6 +106,15 @@ fn shoot_projectiles(game_state: &mut GameState) {
                 .unwrap_or_default()
         })
         .collect::<Vec<_>>();
+
+        let attack_range_radius = tower.attack_range_radius(&tower_upgrades);
+
+        let Some(target) = game_state.monsters.iter().find(|monster| {
+            (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
+                < attack_range_radius
+        }) else {
+            return None;
+        };
 
         Some(tower.shoot(target.projectile_target_indicator, &tower_upgrades))
     });

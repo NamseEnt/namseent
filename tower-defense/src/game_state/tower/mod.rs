@@ -96,7 +96,7 @@ impl Tower {
         damage
     }
 
-    pub(crate) fn attack_range_radius(&self) -> f32 {
+    pub(crate) fn attack_range_radius(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
         self.status_effects.iter().fold(
             self.default_attack_range_radius,
             |attack_range_radius, status_effect| {
@@ -106,7 +106,11 @@ impl Tower {
                     attack_range_radius
                 }
             },
-        )
+        ) + tower_upgrade_states
+            .iter()
+            .fold(0.0, |r, tower_upgrade_state| {
+                r + tower_upgrade_state.range_plus
+            })
     }
 }
 impl Deref for Tower {
