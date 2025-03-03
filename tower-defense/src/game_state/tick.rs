@@ -1,5 +1,3 @@
-use crate::upgrade::TowerUpgradeTarget;
-
 use super::*;
 
 const TICK_MAX_DURATION: Duration = Duration::from_millis(16);
@@ -87,25 +85,17 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 }
 
 fn shoot_projectiles(game_state: &mut GameState) {
-    let projectiles = game_state.towers.iter_mut().filter_map(|tower| {
+    let GameState {
+        towers,
+        upgrade_state,
+        ..
+    } = game_state;
+    let projectiles = towers.iter_mut().filter_map(|tower| {
         if tower.in_cooltime() {
             return None;
         }
 
-        let tower_upgrades = [
-            TowerUpgradeTarget::Rank { rank: tower.rank },
-            TowerUpgradeTarget::Suit { suit: tower.suit },
-        ]
-        .iter()
-        .map(|target| {
-            game_state
-                .upgrade_state
-                .tower_upgrade_states
-                .get(target)
-                .map(|x| *x)
-                .unwrap_or_default()
-        })
-        .collect::<Vec<_>>();
+        let tower_upgrades = upgrade_state.tower_upgrades(&tower);
 
         let attack_range_radius = tower.attack_range_radius(&tower_upgrades);
 

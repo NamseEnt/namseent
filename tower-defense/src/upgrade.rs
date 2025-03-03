@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     card::{REVERSED_RANKS, Rank, SUITS, Suit},
-    game_state::GameState,
+    game_state::{GameState, tower::Tower},
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -74,6 +74,20 @@ impl UpgradeState {
                 tower_upgrade_state.apply_upgrade(upgrade);
             }
         }
+    }
+    pub fn tower_upgrades(&self, tower: &Tower) -> Vec<TowerUpgradeState> {
+        [
+            TowerUpgradeTarget::Rank { rank: tower.rank },
+            TowerUpgradeTarget::Suit { suit: tower.suit },
+        ]
+        .iter()
+        .map(|target| {
+            self.tower_upgrade_states
+                .get(target)
+                .map(|x| *x)
+                .unwrap_or_default()
+        })
+        .collect::<Vec<_>>()
     }
 }
 

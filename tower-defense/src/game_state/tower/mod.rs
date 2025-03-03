@@ -293,12 +293,17 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             return;
         }
 
+        let tower_upgrades = game_state.upgrade_state.tower_upgrades(&tower);
+
         let mut time_multiple = 1.0;
 
         tower.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::AttackSpeedAdd { add } = status_effect.kind {
                 time_multiple += add;
             }
+        });
+        tower_upgrades.iter().for_each(|tower_upgrade_state| {
+            time_multiple += tower_upgrade_state.speed_plus;
         });
         if time_multiple == 0.0 {
             return;
@@ -308,6 +313,9 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             if let TowerStatusEffectKind::AttackSpeedMul { mul } = status_effect.kind {
                 time_multiple *= mul;
             }
+        });
+        tower_upgrades.iter().for_each(|tower_upgrade_state| {
+            time_multiple += tower_upgrade_state.speed_multiplier;
         });
 
         let cooldown_sub = dt * time_multiple;
