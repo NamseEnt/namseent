@@ -1,15 +1,15 @@
-use std::iter;
-
 use crate::{
     game_state::{
         item::{Item, use_item},
         use_game_state,
     },
     palette,
+    theme::typography::{FontSize, Headline, TextAlign},
     upgrade::MAX_SHOP_SLOT_UPGRADE,
 };
 use namui::*;
 use namui_prebuilt::{table, typography};
+use std::iter;
 
 const INVENTORY_WIDTH: Px = px(240.);
 const PADDING: Px = px(4.);
@@ -37,14 +37,15 @@ impl Component for Inventory {
                                 iter::once(table::fixed(
                                     ITEM_HEIGHT,
                                     table::padding(PADDING, |wh, ctx| {
-                                        ctx.add(typography::body::center(
-                                            wh,
-                                            format!(
+                                        ctx.add(Headline {
+                                            text: format!(
                                                 "인벤토리 {}/{MAX_SHOP_SLOT_UPGRADE}",
                                                 game_state.items.len()
                                             ),
-                                            palette::ON_SURFACE,
-                                        ));
+                                            font_size: FontSize::Large,
+                                            text_align: TextAlign::Center { wh },
+                                            max_width: None,
+                                        });
                                     }),
                                 ))
                                 .chain(

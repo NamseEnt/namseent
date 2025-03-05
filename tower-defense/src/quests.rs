@@ -4,9 +4,14 @@ use crate::{
         use_game_state,
     },
     palette,
+    theme::typography::{FontSize, Headline, TextAlign},
 };
 use namui::*;
-use namui_prebuilt::{button::TextButton, table, typography};
+use namui_prebuilt::{
+    button::TextButton,
+    table,
+    typography::{self},
+};
 use std::iter;
 
 const QUESTS_WIDTH: Px = px(240.);
@@ -33,15 +38,16 @@ impl Component for Quests {
                             iter::once(table::fixed(
                                 ITEM_HEIGHT,
                                 table::padding(PADDING, |wh, ctx| {
-                                    ctx.add(typography::body::center(
-                                        wh,
-                                        format!(
+                                    ctx.add(Headline {
+                                        text: format!(
                                             "퀘스트 {}/{}",
                                             game_state.items.len(),
                                             game_state.max_quests
                                         ),
-                                        palette::ON_SURFACE,
-                                    ));
+                                        font_size: FontSize::Large,
+                                        text_align: TextAlign::Center { wh },
+                                        max_width: None,
+                                    });
                                 }),
                             ))
                             .chain(

@@ -1,9 +1,13 @@
-use crate::{game_state::use_game_state, palette, upgrade::UpgradeState};
+use crate::{
+    game_state::use_game_state,
+    palette,
+    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    upgrade::UpgradeState,
+};
 use namui::*;
 use namui_prebuilt::{
     list_view, simple_rect,
     table::{self, horizontal},
-    typography,
 };
 
 const SCROLL_BAR_WIDTH: Px = px(4.0);
@@ -61,11 +65,12 @@ impl Component for UpgradeBoard {
                 PADDING,
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            "강화 정보",
-                            palette::ON_SURFACE,
-                        ));
+                        ctx.add(Headline {
+                            text: "강화 정보".to_string(),
+                            font_size: FontSize::Large,
+                            text_align: TextAlign::Center { wh },
+                            max_width: None,
+                        });
                     }),
                     table::ratio(1, |wh, ctx| {
                         let item_wh = Wh {
@@ -142,11 +147,12 @@ impl Component for UpgradeItem {
                         table::ratio(
                             1,
                             table::padding(PADDING, |wh, ctx| {
-                                ctx.add(typography::body::left(
-                                    wh.height,
-                                    upgrade_description_text,
-                                    palette::ON_SURFACE,
-                                ));
+                                ctx.add(Paragraph {
+                                    text: upgrade_description_text,
+                                    font_size: FontSize::Medium,
+                                    text_align: TextAlign::LeftTop,
+                                    max_width: Some(wh.width),
+                                });
                             }),
                         ),
                     ])(wh, ctx);

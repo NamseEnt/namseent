@@ -3,6 +3,7 @@ use crate::{
     card::Rank,
     game_state::tower::{TowerKind, TowerSkillKind, TowerSkillTemplate, TowerTemplate},
     palette,
+    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table, typography};
@@ -51,37 +52,39 @@ impl Component for TowerPreview<'_> {
         });
 
         ctx.compose(|ctx| {
-            table::padding_no_clip(
-                PADDING,
+            table::padding_no_clip(PADDING, |wh, ctx| {
                 table::vertical([
-                    table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
                         let mut tower_name = String::new();
                         tower_name.push_str(&format!("{}", tower_template.suit));
                         tower_name.push_str(&format!("{}", tower_template.rank));
                         tower_name.push_str(&format!(" {:?}", tower_template.kind));
 
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            tower_name,
-                            palette::ON_SURFACE,
-                        ));
+                        ctx.add(Headline {
+                            text: tower_name,
+                            font_size: FontSize::Small,
+                            text_align: TextAlign::LeftTop,
+                            max_width: Some(wh.width),
+                        });
                     }),
-                    table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
                         let damage = tower_template.kind.default_damage()
                             + tower_template.rank.bonus_damage();
 
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            "Damage: ",
-                            palette::ON_SURFACE_VARIANT,
-                        ));
-                        ctx.add(typography::body::right(
-                            wh,
-                            format!("{damage}"),
-                            palette::ON_SURFACE,
-                        ));
+                        ctx.add(Paragraph {
+                            text: "Damage: ".to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: None,
+                        });
+                        ctx.add(Paragraph {
+                            text: format!("{damage}"),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::RightTop { width: wh.width },
+                            max_width: None,
+                        });
                     }),
-                    table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
                         let range = match tower_template.kind {
                             TowerKind::Barricade => "none",
                             TowerKind::High => "normal",
@@ -96,14 +99,20 @@ impl Component for TowerPreview<'_> {
                             TowerKind::RoyalFlush => "very long",
                         };
 
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            "Range: ",
-                            palette::ON_SURFACE_VARIANT,
-                        ));
-                        ctx.add(typography::body::right(wh, range, palette::ON_SURFACE));
+                        ctx.add(Paragraph {
+                            text: "Range: ".to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: None,
+                        });
+                        ctx.add(Paragraph {
+                            text: range.to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::RightTop { width: wh.width },
+                            max_width: None,
+                        });
                     }),
-                    table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
                         let speed = match tower_template.kind {
                             TowerKind::Barricade => "none",
                             TowerKind::High => "normal",
@@ -118,12 +127,18 @@ impl Component for TowerPreview<'_> {
                             TowerKind::RoyalFlush => "very fast",
                         };
 
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            "Speed: ",
-                            palette::ON_SURFACE_VARIANT,
-                        ));
-                        ctx.add(typography::body::right(wh, speed, palette::ON_SURFACE));
+                        ctx.add(Paragraph {
+                            text: "Speed: ".to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: None,
+                        });
+                        ctx.add(Paragraph {
+                            text: speed.to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::RightTop { width: wh.width },
+                            max_width: None,
+                        });
                     }),
                     table::fixed_no_clip(
                         PREVIEW_ICON_SIZE,
@@ -142,8 +157,8 @@ impl Component for TowerPreview<'_> {
                             )
                         })),
                     ),
-                ]),
-            )(wh, ctx);
+                ])(wh, ctx);
+            })(wh, ctx);
         });
 
         ctx.add(rect(RectParam {
