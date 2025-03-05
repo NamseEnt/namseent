@@ -8,7 +8,7 @@ use crate::{
 };
 use namui::*;
 use render::Animation;
-pub use render::{AnimationKind, tower_animation_tick, tower_image_resource_location};
+pub use render::{AnimationKind, tower_animation_tick};
 pub use skill::*;
 use std::{
     fmt::Display,
@@ -97,6 +97,9 @@ impl Tower {
     }
 
     pub(crate) fn attack_range_radius(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
+        if self.kind == TowerKind::Barricade {
+            return 0.0;
+        }
         self.status_effects.iter().fold(
             self.default_attack_range_radius,
             |attack_range_radius, status_effect| {

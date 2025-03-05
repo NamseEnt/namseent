@@ -1,3 +1,4 @@
+mod asset_loader;
 mod card;
 mod game_state;
 mod inventory;
@@ -13,6 +14,7 @@ mod upgrade;
 mod upgrade_board;
 mod upgrade_select;
 
+use asset_loader::AssetLoader;
 use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
@@ -49,6 +51,8 @@ impl Component for Game {
             set_open_upgrade_board
                 .mutate(|open_upgrade_board| *open_upgrade_board = !*open_upgrade_board);
         };
+
+        ctx.add(AssetLoader {});
 
         ctx.compose(|ctx| {
             if *open_upgrade_board {

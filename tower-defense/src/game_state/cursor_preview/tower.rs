@@ -1,19 +1,19 @@
 use super::PreviewKind;
 use crate::{
     MapCoordF32,
+    asset_loader::TOWER_ASSET_LOADER_ATOM,
     game_state::{
         MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
         can_place_tower::can_place_tower,
         flow::GameFlow,
         mutate_game_state, place_tower,
-        tower::{AnimationKind, Tower, TowerTemplate, tower_image_resource_location},
+        tower::{AnimationKind, Tower, TowerTemplate},
         use_game_state,
     },
     palette,
     tower_placing_hand::PlacingTowerSlot,
 };
 use namui::*;
-use std::ops::Deref;
 
 pub(super) struct TowerCursorPreview<'a> {
     pub tower_template: &'a TowerTemplate,
@@ -123,12 +123,10 @@ impl Component for TowerImage<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { tower_template } = self;
 
-        let tower_image = ctx.image(tower_image_resource_location(
-            tower_template.kind,
-            AnimationKind::Idle1,
-        ));
+        let (tower_asset_loader_atom, _) = ctx.atom(&TOWER_ASSET_LOADER_ATOM);
+        let tower_image = tower_asset_loader_atom.get(tower_template.kind, AnimationKind::Idle1);
 
-        let Some(Ok(tower_image)) = tower_image.deref() else {
+        let Some(tower_image) = tower_image else {
             return;
         };
 

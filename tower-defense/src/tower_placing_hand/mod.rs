@@ -1,9 +1,10 @@
 use crate::{
+    asset_loader::TOWER_ASSET_LOADER_ATOM,
     card::{Rank, Suit},
     game_state::{
         cursor_preview::PreviewKind,
         mutate_game_state,
-        tower::{AnimationKind, TowerKind, TowerTemplate, tower_image_resource_location},
+        tower::{AnimationKind, TowerKind, TowerTemplate},
         use_game_state,
     },
     palette,
@@ -184,10 +185,8 @@ impl Component for RenderPlacingTowerSlotContent<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { tower_template, wh } = self;
 
-        let tower_image = ctx.image(tower_image_resource_location(
-            tower_template.kind,
-            AnimationKind::Idle1,
-        ));
+        let (tower_asset_loader_atom, _) = ctx.atom(&TOWER_ASSET_LOADER_ATOM);
+        let tower_image = tower_asset_loader_atom.get(tower_template.kind, AnimationKind::Idle1);
 
         ctx.add(typography::body::left_top(
             format!("{}", tower_template.kind),
@@ -195,7 +194,7 @@ impl Component for RenderPlacingTowerSlotContent<'_> {
         ));
 
         ctx.compose(|ctx| {
-            let Some(Ok(tower_image)) = tower_image.as_ref() else {
+            let Some(tower_image) = tower_image else {
                 return;
             };
 
