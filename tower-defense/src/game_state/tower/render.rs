@@ -1,18 +1,16 @@
 use super::{Tower, TowerKind};
-use crate::game_state::GameState;
+use crate::{asset_loader::TOWER_ASSET_LOADER_ATOM, game_state::GameState};
 use namui::*;
 
 impl Component for &Tower {
     fn render(self, ctx: &RenderCtx) {
-        let image = ctx.image(tower_image_resource_location(
-            self.kind,
-            self.animation.kind,
-        ));
+        let (tower_asset_loader, _) = ctx.atom(&TOWER_ASSET_LOADER_ATOM);
+        let image = tower_asset_loader.get(self.kind, self.animation.kind);
 
-        if let Some(Ok(image)) = image.as_ref() {
+        if let Some(image) = image {
             ctx.add(namui::image(ImageParam {
                 rect: Rect::from_xy_wh(Xy::zero(), image.info.wh()),
-                image: image.clone(),
+                image,
                 style: ImageStyle {
                     fit: ImageFit::None,
                     paint: None,
@@ -76,7 +74,7 @@ pub enum AnimationKind {
     Attack,
 }
 impl AnimationKind {
-    fn asset_id(&self) -> &str {
+    pub fn asset_id(&self) -> &str {
         match self {
             Self::Idle1 => "idle1",
             Self::Idle2 => "idle2",
@@ -90,15 +88,4 @@ impl AnimationKind {
             Self::Attack => Duration::from_millis(333),
         }
     }
-}
-
-pub fn tower_image_resource_location(
-    tower_kind: TowerKind,
-    animation_kind: AnimationKind,
-) -> ResourceLocation {
-    ResourceLocation::bundle(format!(
-        "asset/image/tower/{}/{}.png",
-        tower_kind.asset_id(),
-        animation_kind.asset_id()
-    ))
 }

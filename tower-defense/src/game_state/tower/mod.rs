@@ -8,7 +8,7 @@ use crate::{
 };
 use namui::*;
 use render::Animation;
-pub use render::{AnimationKind, tower_animation_tick, tower_image_resource_location};
+pub use render::{AnimationKind, tower_animation_tick};
 pub use skill::*;
 use std::{
     fmt::Display,
