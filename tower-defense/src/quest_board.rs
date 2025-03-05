@@ -242,7 +242,7 @@ impl Component for QuestBoardItemContent<'_> {
             if !accepted {
                 return;
             }
-            ctx.add(QuestBoardItemSoldOut { wh });
+            ctx.add(QuestBoardItemAccepted { wh });
         });
 
         ctx.compose(|ctx| {
@@ -327,10 +327,10 @@ impl Component for QuestBoardItemContent<'_> {
     }
 }
 
-struct QuestBoardItemSoldOut {
+struct QuestBoardItemAccepted {
     wh: Wh<Px>,
 }
-impl Component for QuestBoardItemSoldOut {
+impl Component for QuestBoardItemAccepted {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
 
@@ -339,7 +339,7 @@ impl Component for QuestBoardItemSoldOut {
                 table::ratio(1, |_, _| {}),
                 table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: "Sold Out".to_string(),
+                        text: "Accepted".to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,
