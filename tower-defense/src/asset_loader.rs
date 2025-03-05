@@ -12,7 +12,7 @@ impl Component for AssetLoader {
 
         ctx.effect("Load tower assets", || {
             namui::spawn(async move {
-                let futures = [
+                let _futures = [
                     TowerKind::Barricade,
                     TowerKind::High,
                     TowerKind::OnePair,
@@ -50,8 +50,6 @@ impl Component for AssetLoader {
                         }
                     })
                 });
-
-                join_all(futures).await;
             });
         });
     }
