@@ -97,6 +97,9 @@ impl Tower {
     }
 
     pub(crate) fn attack_range_radius(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
+        if self.kind == TowerKind::Barricade {
+            return 0.0;
+        }
         self.status_effects.iter().fold(
             self.default_attack_range_radius,
             |attack_range_radius, status_effect| {
