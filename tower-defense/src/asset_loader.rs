@@ -11,45 +11,42 @@ impl Component for AssetLoader {
             ctx.init_atom(&TOWER_ASSET_LOADER_ATOM, TowerAssetLoader::new);
 
         ctx.effect("Load tower assets", || {
-            namui::spawn(async move {
-                let _futures = [
-                    TowerKind::Barricade,
-                    TowerKind::High,
-                    TowerKind::OnePair,
-                    TowerKind::TwoPair,
-                    TowerKind::ThreeOfAKind,
-                    TowerKind::Straight,
-                    TowerKind::Flush,
-                    TowerKind::FullHouse,
-                    TowerKind::FourOfAKind,
-                    TowerKind::StraightFlush,
-                    TowerKind::RoyalFlush,
+            [
+                TowerKind::Barricade,
+                TowerKind::High,
+                TowerKind::OnePair,
+                TowerKind::TwoPair,
+                TowerKind::ThreeOfAKind,
+                TowerKind::Straight,
+                TowerKind::Flush,
+                TowerKind::FullHouse,
+                TowerKind::FourOfAKind,
+                TowerKind::StraightFlush,
+                TowerKind::RoyalFlush,
+            ]
+            .into_iter()
+            .for_each(|tower_kind| {
+                [
+                    AnimationKind::Idle1,
+                    AnimationKind::Idle2,
+                    AnimationKind::Attack,
                 ]
                 .into_iter()
-                .flat_map(|tower_kind| {
-                    [
-                        AnimationKind::Idle1,
-                        AnimationKind::Idle2,
-                        AnimationKind::Attack,
-                    ]
-                    .into_iter()
-                    .map({
-                        let set_tower_asset_loader = set_tower_asset_loader.clone();
-                        move |animation_kind| async move {
-                            let resource_location =
-                                tower_image_resource_location(tower_kind, animation_kind);
+                .for_each(|animation_kind| {
+                    let set_tower_asset_loader = set_tower_asset_loader.clone();
+                    ctx.spawn(async move {
+                        let resource_location =
+                            tower_image_resource_location(tower_kind, animation_kind);
 
-                            let Ok(image) =
-                                load_image_from_resource_location(resource_location).await
-                            else {
-                                return;
-                            };
-                            set_tower_asset_loader.mutate(move |tower_asset_loader| {
-                                tower_asset_loader.set_asset(tower_kind, animation_kind, image);
-                            });
-                        }
-                    })
-                });
+                        let Ok(image) = load_image_from_resource_location(resource_location).await
+                        else {
+                            return;
+                        };
+                        set_tower_asset_loader.mutate(move |tower_asset_loader| {
+                            tower_asset_loader.set_asset(tower_kind, animation_kind, image);
+                        });
+                    });
+                })
             });
         });
     }
