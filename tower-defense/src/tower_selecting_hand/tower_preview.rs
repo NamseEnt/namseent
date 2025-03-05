@@ -9,7 +9,7 @@ use namui::*;
 use namui_prebuilt::{simple_rect, table, typography};
 
 const PREVIEW_ICON_SIZE: Px = px(24.);
-const TOWER_EFFECT_DESCRIPTION_WIDTH: Px = px(256.);
+const TOWER_EFFECT_DESCRIPTION_MAXWIDTH: Px = px(192.);
 
 pub(super) struct TowerPreview<'a> {
     pub(super) wh: Wh<Px>,
@@ -186,6 +186,7 @@ pub struct TowerSkillTemplateIcon<'a> {
     on_mouse_move_in_effect_icon: &'a dyn Fn(&TowerSkillTemplate, Xy<Px>),
     on_mouse_move_out_effect_icon: &'a dyn Fn(&TowerSkillTemplate),
 }
+// TODO: Use image instead of text
 impl Component for TowerSkillTemplateIcon<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
@@ -309,40 +310,44 @@ impl Component for TowerEffectDescription<'_> {
         };
 
         ctx.compose(|ctx| {
-            let height = PADDING * 3. + typography::body::FONT_SIZE.into_px() * 2.;
-            let ctx = ctx.translate((0.px(), -height));
-            ctx.compose(|ctx| {
-                table::padding(
-                    PADDING,
-                    table::vertical([
-                        table::fixed_no_clip(
-                            typography::body::FONT_SIZE.into_px(),
-                            |_wh: Wh<Px>, ctx| {
-                                ctx.add(typography::body::left_top(title, palette::ON_SURFACE));
-                            },
-                        ),
-                        table::ratio(1, |_, _| {}),
-                        table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |_wh, ctx| {
-                            ctx.add(typography::body::left_top(
-                                description,
-                                palette::ON_SURFACE_VARIANT,
-                            ));
-                        }),
-                    ]),
-                )(
+            let text_content = ctx.ghost_compose("TowerEffect description tooltip", |ctx| {
+                table::vertical([
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                        ctx.add(Headline {
+                            text: title,
+                            font_size: FontSize::Small,
+                            text_align: TextAlign::LeftTop,
+                            max_width: Some(TOWER_EFFECT_DESCRIPTION_MAXWIDTH),
+                        });
+                    }),
+                    table::fixed(PADDING, |_, _| {}),
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                        ctx.add(Paragraph {
+                            text: description,
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: Some(TOWER_EFFECT_DESCRIPTION_MAXWIDTH),
+                        });
+                    }),
+                ])(
                     Wh {
-                        width: TOWER_EFFECT_DESCRIPTION_WIDTH,
-                        height,
+                        width: TOWER_EFFECT_DESCRIPTION_MAXWIDTH,
+                        height: f32::MAX.px(),
                     },
                     ctx,
                 );
             });
 
+            let Some(text_content_wh) = bounding_box(&text_content).map(|rect| rect.wh()) else {
+                return;
+            };
+
+            let ctx = ctx.translate((0.px(), -text_content_wh.height - PADDING * 2.0));
+
+            ctx.translate(Xy::single(PADDING)).add(text_content);
+
             ctx.add(simple_rect(
-                Wh {
-                    width: TOWER_EFFECT_DESCRIPTION_WIDTH,
-                    height,
-                },
+                text_content_wh + Wh::single(PADDING * 2.0),
                 palette::OUTLINE,
                 1.px(),
                 palette::SURFACE_CONTAINER_HIGH,
