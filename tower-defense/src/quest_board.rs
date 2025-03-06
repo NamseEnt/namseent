@@ -10,7 +10,7 @@ use namui_prebuilt::{
     table::{self},
 };
 
-const PADDING: Px = px(4.0);
+const PADDING: Px = px(8.0);
 const QUEST_BOARD_WH: Wh<Px> = Wh {
     width: px(640.0),
     height: px(480.0),
