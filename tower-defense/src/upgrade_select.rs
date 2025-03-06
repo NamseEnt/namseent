@@ -1,9 +1,13 @@
-use crate::{game_state::mutate_game_state, palette, upgrade::Upgrade};
+use crate::{
+    game_state::mutate_game_state,
+    palette,
+    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    upgrade::Upgrade,
+};
 use namui::*;
 use namui_prebuilt::{
     button::TextButton,
     table::{self, ratio},
-    typography,
 };
 
 const PADDING: Px = px(4.0);
@@ -145,24 +149,27 @@ impl Component for UpgradeSelectItem<'_> {
                             1,
                             table::padding(PADDING, |wh, ctx| {
                                 ctx.compose(|ctx| {
-                                    table::padding(
-                                        PADDING,
+                                    table::padding(PADDING, |wh, ctx| {
                                         table::vertical([
-                                            table::fixed(36.px(), |_wh, ctx| {
-                                                ctx.add(typography::body::left_top(
-                                                    upgrade.name(),
-                                                    palette::ON_SURFACE,
-                                                ));
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(Headline {
+                                                    text: upgrade.name().to_string(),
+                                                    font_size: FontSize::Small,
+                                                    text_align: TextAlign::LeftTop,
+                                                    max_width: Some(wh.width),
+                                                });
                                             }),
                                             table::fixed(PADDING, |_, _| {}),
                                             table::ratio(1, |_wh, ctx| {
-                                                ctx.add(typography::body::left_top(
-                                                    upgrade.description(),
-                                                    palette::ON_SURFACE_VARIANT,
-                                                ));
+                                                ctx.add(Paragraph {
+                                                    text: upgrade.description(),
+                                                    font_size: FontSize::Medium,
+                                                    text_align: TextAlign::LeftTop,
+                                                    max_width: Some(wh.width),
+                                                });
                                             }),
-                                        ]),
-                                    )(wh, ctx);
+                                        ])(wh, ctx);
+                                    })(wh, ctx);
                                 });
 
                                 ctx.add(rect(RectParam {

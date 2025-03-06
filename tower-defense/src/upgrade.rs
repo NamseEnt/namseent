@@ -11,6 +11,7 @@ pub const MAX_QUEST_SLOT_UPGRADE: usize = 5;
 pub const MAX_QUEST_BOARD_SLOT_UPGRADE: usize = 3;
 pub const MAX_SHOP_SLOT_UPGRADE: usize = 5;
 pub const MAX_REROLL_UPGRADE: usize = 2;
+pub const MAX_INVENTORY_SLOT_UPGRADE: usize = 9;
 
 #[derive(Debug, Clone, Default)]
 pub struct UpgradeState {

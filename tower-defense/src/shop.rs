@@ -1,13 +1,13 @@
 use crate::{
     game_state::{item::Item, mutate_game_state, use_game_state},
     palette,
+    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
 use namui::*;
 use namui_prebuilt::{
     button::{self, TextButton},
     simple_rect,
     table::{self, ratio},
-    typography,
 };
 
 const PADDING: Px = px(4.0);
@@ -222,7 +222,12 @@ impl Component for ShopItemLocked {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(typography::title::center(wh, "🔒", palette::ON_SURFACE));
+                    ctx.add(Headline {
+                        text: "Locked".to_string(),
+                        font_size: FontSize::Medium,
+                        text_align: TextAlign::Center { wh },
+                        max_width: None,
+                    });
                 }),
                 table::ratio(1, |_, _| {}),
             ])(wh, ctx);
@@ -270,21 +275,24 @@ impl Component for ShopItemContent<'_> {
                     1,
                     table::padding(PADDING, |wh, ctx| {
                         ctx.compose(|ctx| {
-                            table::padding(
-                                PADDING,
+                            table::padding(PADDING, |wh, ctx| {
                                 table::vertical([
-                                    table::fixed(36.px(), |_wh, ctx| {
-                                        ctx.add(typography::body::left_top(
-                                            item.kind.name(),
-                                            palette::ON_SURFACE,
-                                        ));
+                                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                                        ctx.add(Headline {
+                                            text: item.kind.name().to_string(),
+                                            font_size: FontSize::Small,
+                                            text_align: TextAlign::LeftTop,
+                                            max_width: Some(wh.width),
+                                        });
                                     }),
                                     table::fixed(PADDING, |_, _| {}),
-                                    table::ratio(1, |_wh, ctx| {
-                                        ctx.add(typography::body::left_top(
-                                            item.kind.description(),
-                                            palette::ON_SURFACE_VARIANT,
-                                        ));
+                                    table::ratio(1, |wh, ctx| {
+                                        ctx.add(Paragraph {
+                                            text: item.kind.description(),
+                                            font_size: FontSize::Medium,
+                                            text_align: TextAlign::LeftTop,
+                                            max_width: Some(wh.width),
+                                        });
                                     }),
                                     table::fixed(PADDING, |_, _| {}),
                                     table::fixed(48.px(), |wh, ctx| {
@@ -310,8 +318,8 @@ impl Component for ShopItemContent<'_> {
                                             },
                                         });
                                     }),
-                                ]),
-                            )(wh, ctx);
+                                ])(wh, ctx);
+                            })(wh, ctx);
                         });
 
                         ctx.add(rect(RectParam {
@@ -348,11 +356,12 @@ impl Component for ShopItemSoldOut {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(typography::title::center(
-                        wh,
-                        "Sold Out",
-                        palette::ON_SECONDARY,
-                    ));
+                    ctx.add(Headline {
+                        text: "Sold Out".to_string(),
+                        font_size: FontSize::Medium,
+                        text_align: TextAlign::Center { wh },
+                        max_width: None,
+                    });
                     ctx.add(simple_rect(
                         wh,
                         Color::TRANSPARENT,

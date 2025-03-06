@@ -1,19 +1,15 @@
-use std::iter;
-
 use crate::{
-    game_state::{
-        item::{Item, use_item},
-        use_game_state,
-    },
+    game_state::{item::Item, use_game_state},
     palette,
-    upgrade::MAX_SHOP_SLOT_UPGRADE,
+    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
+    upgrade::MAX_INVENTORY_SLOT_UPGRADE,
 };
 use namui::*;
-use namui_prebuilt::{table, typography};
+use namui_prebuilt::{button::TextButton, table, vh_list_view::AutoVHListView};
 
 const INVENTORY_WIDTH: Px = px(240.);
 const PADDING: Px = px(4.);
-const ITEM_HEIGHT: Px = px(36.);
+const TITLE_HEIGHT: Px = px(36.);
 
 pub struct Inventory {
     pub screen_wh: Wh<Px>,
@@ -29,117 +25,187 @@ impl Component for Inventory {
                 table::ratio_no_clip(1, |_, _| {}),
                 table::fixed_no_clip(
                     INVENTORY_WIDTH,
-                    table::padding(PADDING, |wh, ctx| {
-                        let height = ITEM_HEIGHT * (game_state.items.len() + 1) as f32;
-
-                        ctx.compose(|ctx| {
-                            table::vertical(
-                                iter::once(table::fixed(
-                                    ITEM_HEIGHT,
-                                    table::padding(PADDING, |wh, ctx| {
-                                        ctx.add(typography::body::center(
-                                            wh,
-                                            format!(
-                                                "인벤토리 {}/{MAX_SHOP_SLOT_UPGRADE}",
-                                                game_state.items.len()
-                                            ),
-                                            palette::ON_SURFACE,
-                                        ));
+                    table::padding(
+                        PADDING,
+                        table::vertical([
+                            table::fixed(TITLE_HEIGHT, |wh, ctx| {
+                                ctx.add(Headline {
+                                    text: format!(
+                                        "인벤토리 {}/{MAX_INVENTORY_SLOT_UPGRADE}",
+                                        game_state.items.len(),
+                                    ),
+                                    font_size: FontSize::Medium,
+                                    text_align: TextAlign::Center { wh },
+                                    max_width: wh.width.into(),
+                                });
+                                ctx.add(rect(RectParam {
+                                    rect: wh.to_rect(),
+                                    style: RectStyle {
+                                        stroke: Some(RectStroke {
+                                            color: palette::OUTLINE,
+                                            width: 1.px(),
+                                            border_position: BorderPosition::Inside,
+                                        }),
+                                        fill: Some(RectFill {
+                                            color: palette::SURFACE_CONTAINER,
+                                        }),
+                                        round: Some(RectRound {
+                                            radius: palette::ROUND,
+                                        }),
+                                    },
+                                }));
+                            }),
+                            table::fixed_no_clip(PADDING, |_, _| {}),
+                            table::ratio(1, |wh, ctx| {
+                                let inventory_items =
+                                    render_inventory_items(&ctx, wh.width, &game_state.items);
+                                ctx.add(AutoVHListView {
+                                    wh,
+                                    scroll_bar_width: PADDING,
+                                    items: inventory_items,
+                                    item_height: Box::new(|inventory_item| {
+                                        namui::bounding_box(inventory_item)
+                                            .map(|rect| rect.height())
+                                            .unwrap_or(0.px())
+                                            + PADDING
                                     }),
-                                ))
-                                .chain(
-                                    game_state.items.iter().enumerate().map(
-                                        |(item_index, item)| {
-                                            table::fixed(
-                                                ITEM_HEIGHT,
-                                                table::padding(PADDING, move |wh, ctx| {
-                                                    ctx.add(InventoryItem {
-                                                        wh,
-                                                        item,
-                                                        item_index,
-                                                    });
-                                                }),
-                                            )
+                                    item_render: Box::new(
+                                        |_wh, inventory_item, ctx: ComposeCtx| {
+                                            ctx.add(inventory_item.clone());
                                         },
                                     ),
-                                ),
-                            )(Wh::new(wh.width, height), ctx);
-                        });
-
-                        ctx.add(rect(RectParam {
-                            rect: Rect::zero_wh(Wh::new(wh.width, height)),
-                            style: RectStyle {
-                                stroke: None,
-                                fill: Some(RectFill {
-                                    color: palette::SURFACE_CONTAINER,
-                                }),
-                                round: Some(RectRound {
-                                    radius: palette::ROUND,
-                                }),
-                            },
-                        }));
-                    }),
+                                });
+                            }),
+                        ]),
+                    ),
                 ),
             ])(screen_wh, ctx);
         });
     }
 }
 
-struct InventoryItem<'a> {
-    wh: Wh<Px>,
-    item: &'a Item,
-    item_index: usize,
-}
-impl Component for InventoryItem<'_> {
-    fn render(self, ctx: &RenderCtx) {
-        let Self {
-            wh,
-            item,
-            item_index,
-        } = self;
+fn render_inventory_items<'a>(ctx: &ComposeCtx, width: Px, item: &'a [Item]) -> Vec<RenderingTree> {
+    let content_width = width - PADDING * 2.;
 
-        ctx.compose(|ctx| {
-            table::horizontal([
-                table::fixed(wh.height, |_, _| {
-                    // TODO: Icons
-                }),
-                table::fixed(PADDING, |_, _| {}),
-                table::ratio(1, |wh, ctx| {
-                    ctx.add(typography::body::center(
-                        wh,
-                        item.kind.name(),
-                        palette::ON_SURFACE,
-                    ));
-                }),
-            ])(wh, ctx);
-        });
+    let mut inventory_items = vec![];
+    for (item_index, item) in item.iter().enumerate() {
+        let inventory_item = ctx.ghost_compose(format!("InventoryItem {item_index}"), |ctx| {
+            let content = ctx.ghost_compose(format!("InventoryItemContent {item_index}"), |ctx| {
+                table::vertical([
+                    table::fixed(
+                        HEADLINE_FONT_SIZE_LARGE.into_px(),
+                        table::horizontal([
+                            table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px(), |_, _| {
+                                // TODO: Icons
+                            }),
+                            table::ratio(1, |_, _| {}),
+                            table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 3.0, |wh, ctx| {
+                                ctx.add(TextButton {
+                                    rect: wh.to_rect(),
+                                    text: "사용",
+                                    text_color: palette::ON_SURFACE,
+                                    stroke_color: palette::OUTLINE,
+                                    stroke_width: 1.px(),
+                                    fill_color: palette::SURFACE,
+                                    mouse_buttons: vec![MouseButton::Left],
+                                    on_mouse_up_in: |_| {
+                                        // TODO: Use item
+                                    },
+                                });
+                            }),
+                            table::fixed(PADDING, |_, _| {}),
+                            table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
+                                ctx.add(TextButton {
+                                    rect: wh.to_rect(),
+                                    text: "X",
+                                    text_color: palette::ON_SURFACE,
+                                    stroke_color: palette::OUTLINE,
+                                    stroke_width: 1.px(),
+                                    fill_color: palette::SURFACE,
+                                    mouse_buttons: vec![MouseButton::Left],
+                                    on_mouse_up_in: |_| {
+                                        // TODO: Remove item
+                                    },
+                                });
+                            }),
+                        ]),
+                    ),
+                    table::fixed(PADDING * 2.0, |_, _| {}),
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                        ctx.add(Headline {
+                            text: item.kind.name().to_string(),
+                            font_size: FontSize::Small,
+                            text_align: TextAlign::LeftTop,
+                            max_width: content_width.into(),
+                        });
+                    }),
+                    table::fixed(PADDING, |_, _| {}),
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                        ctx.add(Paragraph {
+                            text: item.kind.description(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: content_width.into(),
+                        });
+                    }),
+                ])(Wh::new(content_width, f32::MAX.px()), ctx);
+            });
 
-        ctx.add(
-            rect(RectParam {
-                rect: wh.to_rect(),
+            let Some(content_wh) = bounding_box(&content).map(|rect| rect.wh()) else {
+                return;
+            };
+            let container_wh = content_wh + Wh::single(PADDING * 2.);
+
+            ctx.translate(Xy::single(PADDING)).add(content);
+
+            ctx.add(rect(RectParam {
+                rect: container_wh.to_rect(),
                 style: RectStyle {
                     stroke: Some(RectStroke {
                         color: palette::OUTLINE,
                         width: 1.px(),
                         border_position: BorderPosition::Inside,
                     }),
+                    fill: None,
+                    round: Some(RectRound {
+                        radius: palette::ROUND,
+                    }),
+                },
+            }));
+
+            ctx.add(rect(RectParam {
+                rect: Wh::new(
+                    container_wh.width,
+                    HEADLINE_FONT_SIZE_LARGE.into_px() + PADDING * 2.0,
+                )
+                .to_rect(),
+                style: RectStyle {
+                    stroke: None,
                     fill: Some(RectFill {
-                        color: palette::PRIMARY,
+                        color: palette::SURFACE_CONTAINER,
                     }),
                     round: Some(RectRound {
                         radius: palette::ROUND,
                     }),
                 },
-            })
-            .attach_event(|event| {
-                let Event::MouseDown { event } = event else {
-                    return;
-                };
-                if !event.is_local_xy_in() {
-                    return;
-                }
-                use_item(item_index);
-            }),
-        );
+            }));
+
+            ctx.add(rect(RectParam {
+                rect: container_wh.to_rect(),
+                style: RectStyle {
+                    stroke: None,
+                    fill: Some(RectFill {
+                        color: palette::SURFACE,
+                    }),
+                    round: Some(RectRound {
+                        radius: palette::ROUND,
+                    }),
+                },
+            }));
+        });
+
+        inventory_items.push(inventory_item);
     }
+
+    inventory_items
 }

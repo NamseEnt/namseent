@@ -3,12 +3,13 @@ use crate::{
     card::Rank,
     game_state::tower::{TowerKind, TowerSkillKind, TowerSkillTemplate, TowerTemplate},
     palette,
+    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table, typography};
 
 const PREVIEW_ICON_SIZE: Px = px(24.);
-const TOWER_EFFECT_DESCRIPTION_WIDTH: Px = px(256.);
+const TOWER_EFFECT_DESCRIPTION_MAXWIDTH: Px = px(192.);
 
 pub(super) struct TowerPreview<'a> {
     pub(super) wh: Wh<Px>,
@@ -51,37 +52,39 @@ impl Component for TowerPreview<'_> {
         });
 
         ctx.compose(|ctx| {
-            table::padding_no_clip(
-                PADDING,
+            table::padding_no_clip(PADDING, |wh, ctx| {
                 table::vertical([
-                    table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
                         let mut tower_name = String::new();
                         tower_name.push_str(&format!("{}", tower_template.suit));
                         tower_name.push_str(&format!("{}", tower_template.rank));
                         tower_name.push_str(&format!(" {:?}", tower_template.kind));
 
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            tower_name,
-                            palette::ON_SURFACE,
-                        ));
+                        ctx.add(Headline {
+                            text: tower_name,
+                            font_size: FontSize::Small,
+                            text_align: TextAlign::LeftTop,
+                            max_width: Some(wh.width),
+                        });
                     }),
-                    table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
                         let damage = tower_template.kind.default_damage()
                             + tower_template.rank.bonus_damage();
 
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            "Damage: ",
-                            palette::ON_SURFACE_VARIANT,
-                        ));
-                        ctx.add(typography::body::right(
-                            wh,
-                            format!("{damage}"),
-                            palette::ON_SURFACE,
-                        ));
+                        ctx.add(Paragraph {
+                            text: "Damage: ".to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: None,
+                        });
+                        ctx.add(Paragraph {
+                            text: format!("{damage}"),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::RightTop { width: wh.width },
+                            max_width: None,
+                        });
                     }),
-                    table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
                         let range = match tower_template.kind {
                             TowerKind::Barricade => "none",
                             TowerKind::High => "normal",
@@ -96,14 +99,20 @@ impl Component for TowerPreview<'_> {
                             TowerKind::RoyalFlush => "very long",
                         };
 
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            "Range: ",
-                            palette::ON_SURFACE_VARIANT,
-                        ));
-                        ctx.add(typography::body::right(wh, range, palette::ON_SURFACE));
+                        ctx.add(Paragraph {
+                            text: "Range: ".to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: None,
+                        });
+                        ctx.add(Paragraph {
+                            text: range.to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::RightTop { width: wh.width },
+                            max_width: None,
+                        });
                     }),
-                    table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |wh, ctx| {
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
                         let speed = match tower_template.kind {
                             TowerKind::Barricade => "none",
                             TowerKind::High => "normal",
@@ -118,12 +127,18 @@ impl Component for TowerPreview<'_> {
                             TowerKind::RoyalFlush => "very fast",
                         };
 
-                        ctx.add(typography::body::left(
-                            wh.height,
-                            "Speed: ",
-                            palette::ON_SURFACE_VARIANT,
-                        ));
-                        ctx.add(typography::body::right(wh, speed, palette::ON_SURFACE));
+                        ctx.add(Paragraph {
+                            text: "Speed: ".to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: None,
+                        });
+                        ctx.add(Paragraph {
+                            text: speed.to_string(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::RightTop { width: wh.width },
+                            max_width: None,
+                        });
                     }),
                     table::fixed_no_clip(
                         PREVIEW_ICON_SIZE,
@@ -142,8 +157,8 @@ impl Component for TowerPreview<'_> {
                             )
                         })),
                     ),
-                ]),
-            )(wh, ctx);
+                ])(wh, ctx);
+            })(wh, ctx);
         });
 
         ctx.add(rect(RectParam {
@@ -171,6 +186,7 @@ pub struct TowerSkillTemplateIcon<'a> {
     on_mouse_move_in_effect_icon: &'a dyn Fn(&TowerSkillTemplate, Xy<Px>),
     on_mouse_move_out_effect_icon: &'a dyn Fn(&TowerSkillTemplate),
 }
+// TODO: Use image instead of text
 impl Component for TowerSkillTemplateIcon<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
@@ -294,40 +310,44 @@ impl Component for TowerEffectDescription<'_> {
         };
 
         ctx.compose(|ctx| {
-            let height = PADDING * 3. + typography::body::FONT_SIZE.into_px() * 2.;
-            let ctx = ctx.translate((0.px(), -height));
-            ctx.compose(|ctx| {
-                table::padding(
-                    PADDING,
-                    table::vertical([
-                        table::fixed_no_clip(
-                            typography::body::FONT_SIZE.into_px(),
-                            |_wh: Wh<Px>, ctx| {
-                                ctx.add(typography::body::left_top(title, palette::ON_SURFACE));
-                            },
-                        ),
-                        table::ratio(1, |_, _| {}),
-                        table::fixed_no_clip(typography::body::FONT_SIZE.into_px(), |_wh, ctx| {
-                            ctx.add(typography::body::left_top(
-                                description,
-                                palette::ON_SURFACE_VARIANT,
-                            ));
-                        }),
-                    ]),
-                )(
+            let text_content = ctx.ghost_compose("TowerEffect description tooltip", |ctx| {
+                table::vertical([
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                        ctx.add(Headline {
+                            text: title,
+                            font_size: FontSize::Small,
+                            text_align: TextAlign::LeftTop,
+                            max_width: Some(TOWER_EFFECT_DESCRIPTION_MAXWIDTH),
+                        });
+                    }),
+                    table::fixed(PADDING, |_, _| {}),
+                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                        ctx.add(Paragraph {
+                            text: description,
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: Some(TOWER_EFFECT_DESCRIPTION_MAXWIDTH),
+                        });
+                    }),
+                ])(
                     Wh {
-                        width: TOWER_EFFECT_DESCRIPTION_WIDTH,
-                        height,
+                        width: TOWER_EFFECT_DESCRIPTION_MAXWIDTH,
+                        height: f32::MAX.px(),
                     },
                     ctx,
                 );
             });
 
+            let Some(text_content_wh) = bounding_box(&text_content).map(|rect| rect.wh()) else {
+                return;
+            };
+
+            let ctx = ctx.translate((0.px(), -text_content_wh.height - PADDING * 2.0));
+
+            ctx.translate(Xy::single(PADDING)).add(text_content);
+
             ctx.add(simple_rect(
-                Wh {
-                    width: TOWER_EFFECT_DESCRIPTION_WIDTH,
-                    height,
-                },
+                text_content_wh + Wh::single(PADDING * 2.0),
                 palette::OUTLINE,
                 1.px(),
                 palette::SURFACE_CONTAINER_HIGH,
