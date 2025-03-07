@@ -14,6 +14,21 @@ impl Projectile {
         self.xy += (dest_xy - self.xy).normalize() * (self.velocity * dt);
     }
 }
+impl Component for &Projectile {
+    fn render(self, ctx: &RenderCtx) {
+        let projectile_wh = TILE_PX_SIZE
+            * match self.kind {
+                ProjectileKind::Ball => Wh::new(0.1, 0.1),
+            };
+        let path = Path::new().add_oval(Rect::from_xy_wh(
+            projectile_wh.as_xy() * -0.5,
+            projectile_wh,
+        ));
+        let paint = Paint::new(Color::GREEN);
+        ctx.translate(TILE_PX_SIZE.as_xy() * 0.5)
+            .add(namui::path(path, paint));
+    }
+}
 
 #[derive(Clone, Copy)]
 pub enum ProjectileKind {
