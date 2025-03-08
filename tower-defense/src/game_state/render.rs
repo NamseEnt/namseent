@@ -2,6 +2,7 @@ use super::*;
 
 pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
     game_state.render_cursor_preview(&ctx);
+    game_state.render_projectiles(&ctx);
     game_state.render_monsters(&ctx);
     game_state.render_route_guide(&ctx);
     game_state.render_towers(&ctx);
@@ -17,6 +18,15 @@ impl GameState {
             self.floor_tiles
                 .iter()
                 .map(|floor_tile| (floor_tile.coord, floor_tile)),
+        );
+    }
+
+    fn render_projectiles(&self, ctx: &ComposeCtx) {
+        self.render_stuffs(
+            ctx,
+            self.projectiles
+                .iter()
+                .map(|projectile| (projectile.xy, projectile)),
         );
     }
 
