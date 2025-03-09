@@ -1,5 +1,6 @@
 use crate::{
     game_state::{
+        cursor_preview::PreviewKind,
         item::{Item, ItemUsage, use_item},
         mutate_game_state, use_game_state,
     },
@@ -118,8 +119,14 @@ fn render_inventory_items<'a>(ctx: &ComposeCtx, width: Px, item: &'a [Item]) -> 
                                                 use_item(game_state, &item, None);
                                             });
                                         }
-                                        ItemUsage::CircularArea { radius } => todo!(),
-                                        ItemUsage::LinearArea { thickness } => todo!(),
+                                        ItemUsage::CircularArea { .. }
+                                        | ItemUsage::LinearArea { .. } => {
+                                            let item = item.clone();
+                                            mutate_game_state(move |game_state| {
+                                                game_state.cursor_preview.kind =
+                                                    PreviewKind::Item { item, item_index };
+                                            });
+                                        }
                                     },
                                 });
                             }),
