@@ -62,7 +62,7 @@ impl Tower {
     fn center_xy(&self) -> MapCoord {
         self.left_top + MapCoord::new(1, 1)
     }
-    fn center_xy_f32(&self) -> MapCoordF32 {
+    pub fn center_xy_f32(&self) -> MapCoordF32 {
         self.center_xy().map(|t| t as f32)
     }
 
