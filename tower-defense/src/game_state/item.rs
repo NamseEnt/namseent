@@ -1,5 +1,6 @@
 use super::{
     GameState, MAX_HP,
+    tower::{TowerStatusEffect, TowerStatusEffectKind},
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
 use crate::{
@@ -243,27 +244,82 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             amount,
             duration,
             radius,
-        } => todo!(),
+        } => {
+            let xy = xy.expect("xy must be provided for AttackPowerPlusBuff item usage");
+            add_tower_status_effect_in_round_area(
+                game_state,
+                xy,
+                radius,
+                TowerStatusEffect {
+                    kind: TowerStatusEffectKind::DamageAdd { add: amount },
+                    end_at: Instant::now() + duration,
+                },
+            );
+        }
         ItemKind::AttackPowerMultiplyBuff {
             amount,
             duration,
             radius,
-        } => todo!(),
+        } => {
+            let xy = xy.expect("xy must be provided for AttackPowerMultiplyBuff item usage");
+            add_tower_status_effect_in_round_area(
+                game_state,
+                xy,
+                radius,
+                TowerStatusEffect {
+                    kind: TowerStatusEffectKind::DamageMul { mul: amount },
+                    end_at: Instant::now() + duration,
+                },
+            );
+        }
         ItemKind::AttackSpeedPlusBuff {
             amount,
             duration,
             radius,
-        } => todo!(),
+        } => {
+            let xy = xy.expect("xy must be provided for AttackSpeedPlusBuff item usage");
+            add_tower_status_effect_in_round_area(
+                game_state,
+                xy,
+                radius,
+                TowerStatusEffect {
+                    kind: TowerStatusEffectKind::AttackSpeedAdd { add: amount },
+                    end_at: Instant::now() + duration,
+                },
+            );
+        }
         ItemKind::AttackSpeedMultiplyBuff {
             amount,
             duration,
             radius,
-        } => todo!(),
+        } => {
+            let xy = xy.expect("xy must be provided for AttackSpeedMultiplyBuff item usage");
+            add_tower_status_effect_in_round_area(
+                game_state,
+                xy,
+                radius,
+                TowerStatusEffect {
+                    kind: TowerStatusEffectKind::AttackSpeedMul { mul: amount },
+                    end_at: Instant::now() + duration,
+                },
+            );
+        }
         ItemKind::AttackRangePlus {
             amount,
             duration,
             radius,
-        } => todo!(),
+        } => {
+            let xy = xy.expect("xy must be provided for AttackRangePlus item usage");
+            add_tower_status_effect_in_round_area(
+                game_state,
+                xy,
+                radius,
+                TowerStatusEffect {
+                    kind: TowerStatusEffectKind::AttackRangeAdd { add: amount },
+                    end_at: Instant::now() + duration,
+                },
+            );
+        }
         ItemKind::MovementSpeedDebuff {
             amount,
             duration,
@@ -320,6 +376,19 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                 kind: UserStatusEffectKind::DamageReduction { damage_multiply },
                 end_at: Instant::now() + duration,
             });
+        }
+    }
+}
+
+fn add_tower_status_effect_in_round_area(
+    game_state: &mut GameState,
+    xy: MapCoordF32,
+    radius: f32,
+    status_effect: TowerStatusEffect,
+) {
+    for tower in game_state.towers.iter_mut() {
+        if xy.distance(tower.center_xy_f32()) <= radius {
+            tower.status_effects.push(status_effect.clone());
         }
     }
 }
