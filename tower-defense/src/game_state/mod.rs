@@ -64,6 +64,7 @@ pub struct GameState {
     pub quest_board_slots: [QuestBoardSlot; 3],
     pub cursor_preview: CursorPreview,
     pub hp: f32,
+    pub shield: f32,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -131,6 +132,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             quest_board_slots: Default::default(),
             cursor_preview: Default::default(),
             hp: 100.0,
+            shield: 0.0,
         };
 
         game_state.goto_selecting_tower();
