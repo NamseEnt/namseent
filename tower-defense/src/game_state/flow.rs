@@ -43,6 +43,7 @@ impl GameState {
     pub fn goto_selecting_tower(&mut self) {
         self.flow = GameFlow::new_selecting_tower();
         self.left_reroll_chance = 1 + self.upgrade_state.reroll_count_plus;
+        self.shield = 0.0;
 
         match self.in_even_stage() {
             true => {

@@ -303,7 +303,9 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
         ItemKind::ExtraReroll => {
             game_state.left_reroll_chance += 1;
         }
-        ItemKind::Shield { amount } => todo!(),
+        ItemKind::Shield { amount } => {
+            game_state.shield += amount;
+        }
         ItemKind::DamageReduction { amount, duration } => todo!(),
     }
 }
