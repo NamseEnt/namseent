@@ -134,7 +134,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             projectiles: Default::default(),
             items: Default::default(),
             quests: Default::default(),
-            gold: 10,
+            gold: 1000,
             shop_slots: Default::default(),
             quest_board_slots: Default::default(),
             cursor_preview: Default::default(),
