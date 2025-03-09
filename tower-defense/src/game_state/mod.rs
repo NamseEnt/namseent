@@ -71,10 +71,6 @@ impl GameState {
             _ => false,
         }
     }
-
-    fn earn_gold_by_kill_monsters(&mut self, monster_count: usize) {
-        self.gold += (1 + self.upgrade_state.gold_earn_plus) * monster_count;
-    }
 }
 
 impl Component for &GameState {

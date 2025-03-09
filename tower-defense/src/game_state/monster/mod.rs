@@ -17,7 +17,7 @@ pub struct Monster {
     pub skills: Vec<MonsterSkill>,
     pub status_effects: Vec<MonsterStatusEffect>,
     pub damage: f32,
-    pub reward: u32,
+    pub reward: usize,
 }
 impl Monster {
     pub fn new(template: &MonsterTemplate, route: Arc<Route>) -> Self {
@@ -130,7 +130,7 @@ pub struct MonsterTemplate {
     pub skills: Vec<MonsterSkillTemplate>,
     pub velocity: Velocity,
     pub damage: f32,
-    pub reward: u32,
+    pub reward: usize,
 }
 impl MonsterTemplate {
     fn velocity(mul: f32) -> Velocity {
@@ -139,7 +139,7 @@ impl MonsterTemplate {
     fn damage(mul: f32) -> f32 {
         mul
     }
-    fn reward(mul: u32) -> u32 {
+    fn reward(mul: usize) -> usize {
         mul
     }
     pub fn new_mob_01() -> Self {
