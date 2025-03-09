@@ -1,5 +1,6 @@
-use super::GameState;
+use super::{GameState, MAX_HP};
 use crate::{
+    MapCoordF32,
     card::{REVERSED_RANKS, Rank, SUITS, Suit},
     rarity::Rarity,
 };
@@ -197,10 +198,114 @@ impl ItemKind {
             }
         }
     }
+    pub fn usage(&self) -> ItemUsage {
+        match self {
+            ItemKind::Heal { .. } => ItemUsage::Instant,
+            ItemKind::AttackPowerPlusBuff { radius, .. }
+            | ItemKind::AttackPowerMultiplyBuff { radius, .. }
+            | ItemKind::AttackSpeedPlusBuff { radius, .. }
+            | ItemKind::AttackSpeedMultiplyBuff { radius, .. }
+            | ItemKind::AttackRangePlus { radius, .. }
+            | ItemKind::MovementSpeedDebuff { radius, .. }
+            | ItemKind::RoundDamage { radius, .. }
+            | ItemKind::RoundDamageOverTime { radius, .. } => {
+                ItemUsage::CircularArea { radius: *radius }
+            }
+            ItemKind::Lottery { .. } => ItemUsage::Instant,
+            ItemKind::LinearDamage { thickness, .. }
+            | ItemKind::LinearDamageOverTime { thickness, .. } => ItemUsage::LinearArea {
+                thickness: *thickness,
+            },
+            ItemKind::ExtraReroll => ItemUsage::Instant,
+            ItemKind::Shield { .. } => ItemUsage::Instant,
+            ItemKind::DamageReduction { .. } => ItemUsage::Instant,
+        }
+    }
 }
 
-pub fn use_item(item_index: usize) -> &'static ItemKind {
-    todo!()
+#[derive(Debug, Clone)]
+pub enum ItemUsage {
+    Instant,
+    CircularArea { radius: f32 },
+    LinearArea { thickness: f32 },
+}
+
+pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>) {
+    match item.kind {
+        ItemKind::Heal { amount } => game_state.hp = (game_state.hp + amount).min(MAX_HP),
+        ItemKind::AttackPowerPlusBuff {
+            amount,
+            duration,
+            radius,
+        } => todo!(),
+        ItemKind::AttackPowerMultiplyBuff {
+            amount,
+            duration,
+            radius,
+        } => todo!(),
+        ItemKind::AttackSpeedPlusBuff {
+            amount,
+            duration,
+            radius,
+        } => todo!(),
+        ItemKind::AttackSpeedMultiplyBuff {
+            amount,
+            duration,
+            radius,
+        } => todo!(),
+        ItemKind::AttackRangePlus {
+            amount,
+            duration,
+            radius,
+        } => todo!(),
+        ItemKind::MovementSpeedDebuff {
+            amount,
+            duration,
+            radius,
+        } => todo!(),
+        ItemKind::RoundDamage {
+            rank,
+            suit,
+            damage,
+            radius,
+        } => todo!(),
+        ItemKind::RoundDamageOverTime {
+            rank,
+            suit,
+            damage,
+            radius,
+            duration,
+        } => todo!(),
+        ItemKind::Lottery {
+            amount,
+            probability,
+        } => {
+            let is_winner = thread_rng().gen_bool(probability as f64);
+            if !is_winner {
+                return;
+            }
+            game_state.gold += amount as usize;
+            // TODO: Show effect on win
+        }
+        ItemKind::LinearDamage {
+            rank,
+            suit,
+            damage,
+            thickness,
+        } => todo!(),
+        ItemKind::LinearDamageOverTime {
+            rank,
+            suit,
+            damage,
+            thickness,
+            duration,
+        } => todo!(),
+        ItemKind::ExtraReroll => {
+            game_state.left_reroll_chance += 1;
+        }
+        ItemKind::Shield { amount } => todo!(),
+        ItemKind::DamageReduction { amount, duration } => todo!(),
+    }
 }
 
 pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {

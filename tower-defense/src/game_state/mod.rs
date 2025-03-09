@@ -39,6 +39,7 @@ const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(24, 41),
     MapCoord::new(47, 41),
 ];
+pub const MAX_HP: f32 = 100.0;
 
 pub struct GameState {
     pub monsters: Vec<Monster>,

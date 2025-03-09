@@ -1,5 +1,8 @@
 use crate::{
-    game_state::{item::Item, use_game_state},
+    game_state::{
+        item::{Item, ItemUsage, use_item},
+        mutate_game_state, use_game_state,
+    },
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
     upgrade::MAX_INVENTORY_SLOT_UPGRADE,
@@ -108,8 +111,15 @@ fn render_inventory_items<'a>(ctx: &ComposeCtx, width: Px, item: &'a [Item]) -> 
                                     stroke_width: 1.px(),
                                     fill_color: palette::SURFACE,
                                     mouse_buttons: vec![MouseButton::Left],
-                                    on_mouse_up_in: |_| {
-                                        // TODO: Use item
+                                    on_mouse_up_in: |_| match item.kind.usage() {
+                                        ItemUsage::Instant => {
+                                            mutate_game_state(move |game_state| {
+                                                let item = game_state.items.remove(item_index);
+                                                use_item(game_state, &item, None);
+                                            });
+                                        }
+                                        ItemUsage::CircularArea { radius } => todo!(),
+                                        ItemUsage::LinearArea { thickness } => todo!(),
                                     },
                                 });
                             }),
