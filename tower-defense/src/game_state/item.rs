@@ -1,4 +1,7 @@
-use super::{GameState, MAX_HP};
+use super::{
+    GameState, MAX_HP,
+    user_status_effect::{UserStatusEffect, UserStatusEffectKind},
+};
 use crate::{
     MapCoordF32,
     card::{REVERSED_RANKS, Rank, SUITS, Suit},
@@ -83,7 +86,7 @@ pub enum ItemKind {
         amount: f32,
     },
     DamageReduction {
-        amount: f32,
+        damage_multiply: f32,
         duration: Duration,
     },
 }
@@ -193,7 +196,10 @@ impl ItemKind {
             ItemKind::Shield { amount } => {
                 format!("이번 라운드에 피해를 {amount}흡수하는 방어막을 획득합니다.")
             }
-            ItemKind::DamageReduction { amount, duration } => {
+            ItemKind::DamageReduction {
+                damage_multiply: amount,
+                duration,
+            } => {
                 format!("{duration:?} 동안 받는 피해를 {amount}만큼 감소시킵니다")
             }
         }
@@ -306,7 +312,15 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
         ItemKind::Shield { amount } => {
             game_state.shield += amount;
         }
-        ItemKind::DamageReduction { amount, duration } => todo!(),
+        ItemKind::DamageReduction {
+            damage_multiply,
+            duration,
+        } => {
+            game_state.user_status_effects.push(UserStatusEffect {
+                kind: UserStatusEffectKind::DamageReduction { damage_multiply },
+                end_at: Instant::now() + duration,
+            });
+        }
     }
 }
 
@@ -636,7 +650,10 @@ pub fn generate_item(rarity: Rarity) -> ItemKind {
                 Rarity::Epic => 6,
                 Rarity::Legendary => 8,
             });
-            ItemKind::DamageReduction { amount, duration }
+            ItemKind::DamageReduction {
+                damage_multiply: amount,
+                duration,
+            }
         }
     }
 }

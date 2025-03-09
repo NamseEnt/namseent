@@ -1,6 +1,6 @@
 mod skill;
 
-use super::*;
+use super::{user_status_effect::UserStatusEffectKind, *};
 use namui::*;
 pub use skill::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -222,6 +222,14 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
         }
         true
     });
+
+    for user_status_effect in &game_state.user_status_effects {
+        match user_status_effect.kind {
+            UserStatusEffectKind::DamageReduction { damage_multiply } => {
+                damage *= damage_multiply;
+            }
+        }
+    }
 
     if game_state.shield > 0.0 {
         let min = damage.min(game_state.shield);

@@ -10,6 +10,7 @@ pub mod quest;
 mod render;
 mod tick;
 pub mod tower;
+mod user_status_effect;
 
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
@@ -26,6 +27,7 @@ use projectile::*;
 use quest::Quest;
 use std::sync::Arc;
 use tower::*;
+use user_status_effect::UserStatusEffect;
 
 /// The size of a tile in pixels, with zoom level 1.0.
 pub const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
@@ -65,6 +67,7 @@ pub struct GameState {
     pub cursor_preview: CursorPreview,
     pub hp: f32,
     pub shield: f32,
+    pub user_status_effects: Vec<UserStatusEffect>,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -133,6 +136,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             cursor_preview: Default::default(),
             hp: 100.0,
             shield: 0.0,
+            user_status_effects: Default::default(),
         };
 
         game_state.goto_selecting_tower();
