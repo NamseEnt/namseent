@@ -41,9 +41,9 @@ impl Component for TopBar {
                 }),
                 table::fixed(PADDING, |_, _| {}),
                 table::fixed(ITEM_WIDTH, |wh, ctx| {
-                    ctx.add(MoneyIndicator {
+                    ctx.add(GoldIndicator {
                         wh,
-                        money: game_state.money,
+                        gold: game_state.gold,
                     });
                 }),
                 table::ratio(1, |_, _| {}),
@@ -141,13 +141,13 @@ impl Component for StageIndicator {
     }
 }
 
-struct MoneyIndicator {
+struct GoldIndicator {
     wh: Wh<Px>,
-    money: u32,
+    gold: usize,
 }
-impl Component for MoneyIndicator {
+impl Component for GoldIndicator {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, money } = self;
+        let Self { wh, gold } = self;
 
         ctx.compose(|ctx| {
             table::horizontal([
@@ -163,7 +163,7 @@ impl Component for MoneyIndicator {
                     table::padding(PADDING, |wh, ctx| {
                         ctx.add(typography::body::right(
                             wh,
-                            format!("{}", money),
+                            format!("{}", gold),
                             palette::ON_SURFACE,
                         ));
                     }),
