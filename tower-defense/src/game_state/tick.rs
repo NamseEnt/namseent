@@ -45,6 +45,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
     let GameState {
         projectiles,
         monsters,
+        gold,
         ..
     } = game_state;
 
@@ -72,16 +73,12 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
         monster.get_damage(projectile.damage);
 
         if monster.dead() {
-            killed_monster_count += 1;
+            game_state.gold += monster.reward + game_state.upgrade_state.gold_earn_plus;
             monsters.swap_remove(monster_index);
         }
 
         false
     });
-
-    if killed_monster_count > 0 {
-        game_state.earn_gold_by_kill_monsters(killed_monster_count);
-    }
 }
 
 fn shoot_projectiles(game_state: &mut GameState) {
@@ -123,18 +120,15 @@ fn check_defense_end(game_state: &mut GameState) {
         return;
     }
 
+    let is_boss_stage = is_boss_stage(game_state.stage);
     game_state.stage += 1;
     if game_state.stage > 50 {
         // Game clear
         return;
     }
 
-    match game_state.stage {
-        15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50 => {
-            game_state.goto_selecting_upgrade();
-        }
-        _ => {
-            game_state.goto_selecting_tower();
-        }
+    match is_boss_stage {
+        true => game_state.goto_selecting_upgrade(),
+        false => game_state.goto_selecting_tower(),
     }
 }

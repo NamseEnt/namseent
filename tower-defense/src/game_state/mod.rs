@@ -71,10 +71,6 @@ impl GameState {
             _ => false,
         }
     }
-
-    fn earn_gold_by_kill_monsters(&mut self, monster_count: usize) {
-        self.gold += (1 + self.upgrade_state.gold_earn_plus) * monster_count;
-    }
 }
 
 impl Component for &GameState {
@@ -129,7 +125,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             projectiles: Default::default(),
             items: Default::default(),
             quests: Default::default(),
-            gold: 10,
+            gold: 100,
             shop_slots: Default::default(),
             quest_board_slots: Default::default(),
             cursor_preview: Default::default(),
@@ -199,4 +195,11 @@ pub fn place_tower(tower: Tower) {
         game_state.route =
             calculate_routes(&game_state.towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
     });
+}
+
+pub fn is_boss_stage(stage: usize) -> bool {
+    match stage {
+        15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50 => true,
+        _ => false,
+    }
 }
