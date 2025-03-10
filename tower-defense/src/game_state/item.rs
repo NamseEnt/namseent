@@ -1,5 +1,6 @@
 use super::{
     GameState, MAX_HP,
+    monster::{MonsterStatusEffect, MonsterStatusEffectKind},
     tower::{TowerStatusEffect, TowerStatusEffectKind},
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
@@ -324,7 +325,18 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             amount,
             duration,
             radius,
-        } => todo!(),
+        } => {
+            let xy = xy.expect("xy must be provided for MovementSpeedDebuff item usage");
+            add_monster_status_effect_in_round_area(
+                game_state,
+                xy,
+                radius,
+                MonsterStatusEffect {
+                    kind: MonsterStatusEffectKind::SpeedMul { mul: amount },
+                    end_at: Instant::now() + duration,
+                },
+            );
+        }
         ItemKind::RoundDamage {
             rank,
             suit,
@@ -389,6 +401,19 @@ fn add_tower_status_effect_in_round_area(
     for tower in game_state.towers.iter_mut() {
         if xy.distance(tower.center_xy_f32()) <= radius {
             tower.status_effects.push(status_effect.clone());
+        }
+    }
+}
+
+fn add_monster_status_effect_in_round_area(
+    game_state: &mut GameState,
+    xy: MapCoordF32,
+    radius: f32,
+    status_effect: MonsterStatusEffect,
+) {
+    for monster in game_state.monsters.iter_mut() {
+        if xy.distance(monster.xy()) <= radius {
+            monster.status_effects.push(status_effect.clone());
         }
     }
 }
