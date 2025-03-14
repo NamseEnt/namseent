@@ -4,7 +4,7 @@ use crate::{
     game_state::{
         TILE_PX_SIZE, TRAVEL_POINTS,
         item::{Item, ItemUsage, linear_area_rect_points, use_item},
-        mutate_game_state, use_game_state,
+        mutate_game_state,
     },
 };
 use namui::*;
@@ -21,8 +21,6 @@ impl Component for ItemCursorPreview<'_> {
             item_index,
             map_coord,
         } = self;
-
-        let game_state = use_game_state(ctx);
 
         let cancel_using_item = || {
             mutate_game_state(|game_state| {
