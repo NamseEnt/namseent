@@ -2,7 +2,7 @@ use super::{Item, ItemKind};
 use crate::{
     MapCoordF32,
     game_state::{
-        GameState, MAP_SIZE, MAX_HP,
+        GameState, MAP_SIZE, MAX_HP, TRAVEL_POINTS,
         field_area_effect::{FieldAreaEffect, FieldAreaEffectEnd, FieldAreaEffectKind},
         monster::{MonsterStatusEffect, MonsterStatusEffectKind},
         tower::{TowerStatusEffect, TowerStatusEffectKind},
@@ -201,14 +201,44 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             suit,
             damage,
             thickness,
-        } => todo!(),
+        } => {
+            let xy = xy.expect("xy must be provided for LinearDamage item usage");
+            game_state.field_area_effects.push(FieldAreaEffect::new(
+                FieldAreaEffectKind::LinearDamage {
+                    rank,
+                    suit,
+                    damage,
+                    center_xy: TRAVEL_POINTS.last().unwrap().map(|x| x as f32),
+                    target_xy: xy,
+                    thickness,
+                },
+                FieldAreaEffectEnd::Once { fired: false },
+            ));
+        }
         ItemKind::LinearDamageOverTime {
             rank,
             suit,
             damage,
             thickness,
             duration,
-        } => todo!(),
+        } => {
+            const TICK_INTERVAL: Duration = Duration::from_millis(500);
+            let xy = xy.expect("xy must be provided for LinearDamageOverTime item usage");
+            let damage_per_tick = damage / (duration / TICK_INTERVAL);
+            game_state.field_area_effects.push(FieldAreaEffect::new(
+                FieldAreaEffectKind::LinearDamageOverTime {
+                    rank,
+                    suit,
+                    damage_per_tick,
+                    center_xy: TRAVEL_POINTS.last().unwrap().map(|x| x as f32),
+                    target_xy: xy,
+                    thickness,
+                    tick_interval: TICK_INTERVAL,
+                    next_tick_at: now(),
+                },
+                FieldAreaEffectEnd::Once { fired: false },
+            ));
+        }
         ItemKind::ExtraReroll => {
             game_state.left_reroll_chance += 1;
         }
@@ -283,4 +313,23 @@ fn rotate_around_origin(point: MapCoordF32, cos: f32, sin: f32) -> MapCoordF32 {
     let x = point.x * cos - point.y * sin;
     let y = point.x * sin + point.y * cos;
     MapCoordF32::new(x, y)
+}
+
+pub fn check_point_is_in_linear_area(points: &[MapCoordF32; 4], point: MapCoordF32) -> bool {
+    let mut count = 0;
+    for i in 0..4 {
+        let p1 = points[i];
+        let p2 = points[(i + 1) % 4];
+        if p1.y == p2.y {
+            continue;
+        }
+        if point.y < p1.y.min(p2.y) || point.y >= p1.y.max(p2.y) {
+            continue;
+        }
+        let x = (point.y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y) + p1.x;
+        if x > point.x {
+            count += 1;
+        }
+    }
+    count % 2 == 1
 }

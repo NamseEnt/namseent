@@ -136,7 +136,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                 kind: ItemKind::LinearDamage {
                     rank: card::Rank::Ace,
                     suit: card::Suit::Clubs,
-                    damage: 1.0,
+                    damage: 1000.0,
                     thickness: 2.0,
                 },
                 rarity: rarity::Rarity::Common,

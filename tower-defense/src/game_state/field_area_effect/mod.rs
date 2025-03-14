@@ -1,8 +1,11 @@
-use super::GameState;
+use super::{
+    GameState,
+    item::{check_point_is_in_linear_area, linear_area_rect_points},
+};
 use crate::{
     MapCoordF32,
     card::{Rank, Suit},
-    upgrade::TowerUpgradeTarget,
+    upgrade::{TowerUpgradeTarget, UpgradeState},
 };
 use namui::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -40,6 +43,24 @@ pub enum FieldAreaEffectKind {
         tick_interval: Duration,
         next_tick_at: Instant,
     },
+    LinearDamage {
+        rank: Rank,
+        suit: Suit,
+        damage: f32,
+        center_xy: MapCoordF32,
+        target_xy: MapCoordF32,
+        thickness: f32,
+    },
+    LinearDamageOverTime {
+        rank: Rank,
+        suit: Suit,
+        damage_per_tick: f32,
+        center_xy: MapCoordF32,
+        target_xy: MapCoordF32,
+        thickness: f32,
+        tick_interval: Duration,
+        next_tick_at: Instant,
+    },
 }
 
 pub enum FieldAreaEffectEnd {
@@ -58,22 +79,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 radius,
             } => {
                 let mut damage = damage;
-
-                let rank_upgrades = game_state
-                    .upgrade_state
-                    .tower_upgrade_states
-                    .get(&TowerUpgradeTarget::Rank { rank });
-                let suit_upgrades = game_state
-                    .upgrade_state
-                    .tower_upgrade_states
-                    .get(&TowerUpgradeTarget::Suit { suit });
-
-                for upgrade in rank_upgrades.iter().chain(suit_upgrades.iter()) {
-                    damage += upgrade.damage_plus;
-                }
-                for upgrade in rank_upgrades.iter().chain(suit_upgrades.iter()) {
-                    damage *= upgrade.damage_multiplier;
-                }
+                apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
 
                 for monster in game_state.monsters.iter_mut() {
                     if monster.xy().distance(xy) > radius {
@@ -98,28 +104,58 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 next_tick_at += tick_interval;
 
                 let mut damage = damage_per_tick;
-
-                let rank_upgrades = game_state
-                    .upgrade_state
-                    .tower_upgrade_states
-                    .get(&TowerUpgradeTarget::Rank { rank });
-                let suit_upgrades = game_state
-                    .upgrade_state
-                    .tower_upgrade_states
-                    .get(&TowerUpgradeTarget::Suit { suit });
-
-                for upgrade in rank_upgrades.iter().chain(suit_upgrades.iter()) {
-                    damage += upgrade.damage_plus;
-                }
-                for upgrade in rank_upgrades.iter().chain(suit_upgrades.iter()) {
-                    damage *= upgrade.damage_multiplier;
-                }
+                apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
 
                 for monster in game_state.monsters.iter_mut() {
                     if monster.xy().distance(xy) > radius {
                         return;
                     }
 
+                    monster.get_damage(damage);
+                }
+            }
+            FieldAreaEffectKind::LinearDamage {
+                rank,
+                suit,
+                damage,
+                center_xy,
+                target_xy,
+                thickness,
+            } => {
+                let mut damage = damage;
+                apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
+
+                let points = linear_area_rect_points(center_xy, target_xy, thickness);
+                for monster in game_state.monsters.iter_mut() {
+                    if !check_point_is_in_linear_area(&points, monster.xy()) {
+                        return;
+                    }
+                    monster.get_damage(damage);
+                }
+            }
+            FieldAreaEffectKind::LinearDamageOverTime {
+                rank,
+                suit,
+                damage_per_tick,
+                center_xy,
+                target_xy,
+                thickness,
+                tick_interval,
+                mut next_tick_at,
+            } => {
+                if now < next_tick_at {
+                    return;
+                }
+                next_tick_at += tick_interval;
+
+                let mut damage = damage_per_tick;
+                apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
+
+                let points = linear_area_rect_points(center_xy, target_xy, thickness);
+                for monster in game_state.monsters.iter_mut() {
+                    if !check_point_is_in_linear_area(&points, monster.xy()) {
+                        return;
+                    }
                     monster.get_damage(damage);
                 }
             }
@@ -130,6 +166,27 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 effect.end_at = FieldAreaEffectEnd::Once { fired: true };
             }
         }
+    }
+}
+
+fn apply_rank_and_suit_upgrades(
+    upgrade_state: &UpgradeState,
+    rank: Rank,
+    suit: Suit,
+    damage: &mut f32,
+) {
+    let rank_upgrades = upgrade_state
+        .tower_upgrade_states
+        .get(&TowerUpgradeTarget::Rank { rank });
+    let suit_upgrades = upgrade_state
+        .tower_upgrade_states
+        .get(&TowerUpgradeTarget::Suit { suit });
+
+    for upgrade in rank_upgrades.iter().chain(suit_upgrades.iter()) {
+        *damage += upgrade.damage_plus;
+    }
+    for upgrade in rank_upgrades.iter().chain(suit_upgrades.iter()) {
+        *damage *= upgrade.damage_multiplier;
     }
 }
 
