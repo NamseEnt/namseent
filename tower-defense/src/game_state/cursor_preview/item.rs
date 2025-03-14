@@ -33,6 +33,7 @@ impl Component for ItemCursorPreview<'_> {
             mutate_game_state(move |game_state| {
                 use_item(game_state, &item, Some(map_coord));
                 game_state.items.remove(item_index);
+                game_state.cursor_preview.kind = PreviewKind::None;
             });
         };
 
