@@ -1,5 +1,6 @@
 use super::{
     GameState, MAX_HP,
+    field_area_effect::{FieldAreaEffect, FieldAreaEffectEnd, FieldAreaEffectKind},
     monster::{MonsterStatusEffect, MonsterStatusEffectKind},
     tower::{TowerStatusEffect, TowerStatusEffectKind},
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
@@ -9,7 +10,7 @@ use crate::{
     card::{REVERSED_RANKS, Rank, SUITS, Suit},
     rarity::Rarity,
 };
-use namui::*;
+use namui::{time::now, *};
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
 #[derive(Debug, Clone)]
@@ -342,14 +343,42 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             suit,
             damage,
             radius,
-        } => todo!(),
+        } => {
+            let xy = xy.expect("xy must be provided for RoundDamage item usage");
+            game_state.field_area_effects.push(FieldAreaEffect::new(
+                FieldAreaEffectKind::RoundDamage {
+                    rank,
+                    suit,
+                    damage,
+                    xy,
+                    radius,
+                },
+                FieldAreaEffectEnd::Once { fired: false },
+            ));
+        }
         ItemKind::RoundDamageOverTime {
             rank,
             suit,
             damage,
             radius,
             duration,
-        } => todo!(),
+        } => {
+            const TICK_INTERVAL: Duration = Duration::from_millis(500);
+            let xy = xy.expect("xy must be provided for RoundDamageOverTime item usage");
+            let damage_per_tick = damage / (duration / TICK_INTERVAL);
+            game_state.field_area_effects.push(FieldAreaEffect::new(
+                FieldAreaEffectKind::RoundDamageOverTime {
+                    rank,
+                    suit,
+                    damage_per_tick,
+                    xy,
+                    radius,
+                    tick_interval: TICK_INTERVAL,
+                    next_tick_at: now(),
+                },
+                FieldAreaEffectEnd::Once { fired: false },
+            ));
+        }
         ItemKind::Lottery {
             amount,
             probability,
