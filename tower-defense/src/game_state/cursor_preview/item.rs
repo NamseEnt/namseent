@@ -2,8 +2,8 @@ use super::PreviewKind;
 use crate::{
     MapCoordF32,
     game_state::{
-        TILE_PX_SIZE,
-        item::{Item, ItemUsage, use_item},
+        TILE_PX_SIZE, TRAVEL_POINTS,
+        item::{Item, ItemUsage, linear_area_rect_points, use_item},
         mutate_game_state, use_game_state,
     },
 };
@@ -53,7 +53,20 @@ impl Component for ItemCursorPreview<'_> {
                 ctx.add(namui::path(path, fill_paint));
             }
             ItemUsage::LinearArea { thickness } => {
-                todo!()
+                let points = linear_area_rect_points(
+                    TRAVEL_POINTS.last().unwrap().map(|u| u as f32 + 0.5),
+                    map_coord,
+                    thickness,
+                )
+                .map(|tile| TILE_PX_SIZE.as_xy() * (tile - map_coord));
+
+                let path = Path::new().add_poly(&points, true);
+                let fill_paint = Paint::new(Color::RED.with_alpha(128));
+                let stroke_paint =
+                    Paint::new(Color::RED.brighter(0.5)).set_style(PaintStyle::Stroke);
+
+                ctx.add(namui::path(path.clone(), stroke_paint));
+                ctx.add(namui::path(path, fill_paint));
             }
         }
 

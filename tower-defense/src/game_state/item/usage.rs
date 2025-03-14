@@ -2,7 +2,7 @@ use super::{Item, ItemKind};
 use crate::{
     MapCoordF32,
     game_state::{
-        GameState, MAX_HP,
+        GameState, MAP_SIZE, MAX_HP,
         field_area_effect::{FieldAreaEffect, FieldAreaEffectEnd, FieldAreaEffectKind},
         monster::{MonsterStatusEffect, MonsterStatusEffectKind},
         tower::{TowerStatusEffect, TowerStatusEffectKind},
@@ -251,4 +251,36 @@ fn add_monster_status_effect_in_round_area(
             monster.status_effects.push(status_effect.clone());
         }
     }
+}
+
+pub fn linear_area_rect_points(
+    center: MapCoordF32,
+    target: MapCoordF32,
+    thickness: f32,
+) -> [MapCoordF32; 4] {
+    let half_thickness = thickness / 2.0;
+    let long_value = MAP_SIZE.width as f32 * 2.0;
+    let horizontal_rect = [
+        MapCoordF32::new(-long_value, half_thickness),
+        MapCoordF32::new(long_value, half_thickness),
+        MapCoordF32::new(long_value, -half_thickness),
+        MapCoordF32::new(-long_value, -half_thickness),
+    ];
+
+    let distance = center.distance(target);
+    let dx = target.x - center.x;
+    let dy = target.y - center.y;
+    let cos = dx / distance;
+    let sin = dy / distance;
+    [
+        rotate_around_origin(horizontal_rect[0], cos, sin) + center,
+        rotate_around_origin(horizontal_rect[1], cos, sin) + center,
+        rotate_around_origin(horizontal_rect[2], cos, sin) + center,
+        rotate_around_origin(horizontal_rect[3], cos, sin) + center,
+    ]
+}
+fn rotate_around_origin(point: MapCoordF32, cos: f32, sin: f32) -> MapCoordF32 {
+    let x = point.x * cos - point.y * sin;
+    let y = point.x * sin + point.y * cos;
+    MapCoordF32::new(x, y)
 }
