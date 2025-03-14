@@ -69,6 +69,7 @@ pub enum FieldAreaEffectEnd {
 }
 
 pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
+    let mut killed_monster_count = 0;
     for effect in game_state.field_area_effects.iter_mut() {
         match effect.kind {
             FieldAreaEffectKind::RoundDamage {
@@ -81,13 +82,20 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 let mut damage = damage;
                 apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
 
-                for monster in game_state.monsters.iter_mut() {
+                game_state.monsters.retain_mut(|monster| {
                     if monster.xy().distance(xy) > radius {
-                        return;
+                        return true;
                     }
 
                     monster.get_damage(damage);
-                }
+
+                    if monster.dead() {
+                        killed_monster_count += 1;
+                        return false;
+                    }
+
+                    true
+                });
             }
             FieldAreaEffectKind::RoundDamageOverTime {
                 rank,
@@ -99,20 +107,27 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 mut next_tick_at,
             } => {
                 if now < next_tick_at {
-                    return;
+                    continue;
                 }
                 next_tick_at += tick_interval;
 
                 let mut damage = damage_per_tick;
                 apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
 
-                for monster in game_state.monsters.iter_mut() {
+                game_state.monsters.retain_mut(|monster| {
                     if monster.xy().distance(xy) > radius {
-                        return;
+                        return true;
                     }
 
                     monster.get_damage(damage);
-                }
+
+                    if monster.dead() {
+                        killed_monster_count += 1;
+                        return false;
+                    }
+
+                    true
+                });
             }
             FieldAreaEffectKind::LinearDamage {
                 rank,
@@ -126,12 +141,20 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
 
                 let points = linear_area_rect_points(center_xy, target_xy, thickness);
-                for monster in game_state.monsters.iter_mut() {
+                game_state.monsters.retain_mut(|monster| {
                     if !check_point_is_in_linear_area(&points, monster.xy()) {
-                        return;
+                        return true;
                     }
+
                     monster.get_damage(damage);
-                }
+
+                    if monster.dead() {
+                        killed_monster_count += 1;
+                        return false;
+                    }
+
+                    true
+                });
             }
             FieldAreaEffectKind::LinearDamageOverTime {
                 rank,
@@ -144,7 +167,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 mut next_tick_at,
             } => {
                 if now < next_tick_at {
-                    return;
+                    continue;
                 }
                 next_tick_at += tick_interval;
 
@@ -152,12 +175,20 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
 
                 let points = linear_area_rect_points(center_xy, target_xy, thickness);
-                for monster in game_state.monsters.iter_mut() {
+                game_state.monsters.retain_mut(|monster| {
                     if !check_point_is_in_linear_area(&points, monster.xy()) {
-                        return;
+                        return true;
                     }
+
                     monster.get_damage(damage);
-                }
+
+                    if monster.dead() {
+                        killed_monster_count += 1;
+                        return false;
+                    }
+
+                    true
+                });
             }
         }
 
@@ -166,6 +197,10 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 effect.end_at = FieldAreaEffectEnd::Once { fired: true };
             }
         }
+    }
+
+    if killed_monster_count > 0 {
+        game_state.earn_gold_by_kill_monsters(killed_monster_count);
     }
 }
 
