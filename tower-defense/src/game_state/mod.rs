@@ -22,7 +22,6 @@ use camera::*;
 use cursor_preview::CursorPreview;
 use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
-use item::{Item, ItemKind};
 use monster::*;
 use monster_spawn::*;
 use namui::*;
@@ -132,15 +131,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::Idle,
             projectiles: Default::default(),
-            items: vec![Item {
-                kind: ItemKind::LinearDamage {
-                    rank: card::Rank::Ace,
-                    suit: card::Suit::Clubs,
-                    damage: 1000.0,
-                    thickness: 2.0,
-                },
-                rarity: rarity::Rarity::Common,
-            }],
+            items: Default::default(),
             quests: Default::default(),
             gold: 100,
             shop_slots: Default::default(),
