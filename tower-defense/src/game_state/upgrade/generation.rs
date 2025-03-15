@@ -1,6 +1,6 @@
 use super::{
     MAX_QUEST_BOARD_SLOT_UPGRADE, MAX_QUEST_SLOT_UPGRADE, MAX_REROLL_UPGRADE,
-    MAX_SHOP_SLOT_UPGRADE, TowerUpgrade, TowerUpgradeTarget, Upgrade,
+    MAX_SHOP_SLOT_UPGRADE, TowerUpgrade, TowerUpgradeTarget, Upgrade, UpgradeKind,
 };
 use crate::{
     card::{REVERSED_RANKS, SUITS},
@@ -121,13 +121,31 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
                     }
                 }
             };
-            Upgrade::Tower { target, upgrade }
+            Upgrade {
+                kind: UpgradeKind::Tower { target, upgrade },
+                rarity,
+            }
         }
-        UpgradeCandidate::ShopSlot => Upgrade::ShopSlot,
-        UpgradeCandidate::QuestSlot => Upgrade::QuestSlot,
-        UpgradeCandidate::QuestBoardSlot => Upgrade::QuestBoardSlot,
-        UpgradeCandidate::RerollCountPlus => Upgrade::Reroll,
-        UpgradeCandidate::GoldEarnPlus => Upgrade::GoldEarnPlus,
+        UpgradeCandidate::ShopSlot => Upgrade {
+            kind: UpgradeKind::ShopSlot,
+            rarity,
+        },
+        UpgradeCandidate::QuestSlot => Upgrade {
+            kind: UpgradeKind::QuestSlot,
+            rarity,
+        },
+        UpgradeCandidate::QuestBoardSlot => Upgrade {
+            kind: UpgradeKind::QuestBoardSlot,
+            rarity,
+        },
+        UpgradeCandidate::RerollCountPlus => Upgrade {
+            kind: UpgradeKind::Reroll,
+            rarity,
+        },
+        UpgradeCandidate::GoldEarnPlus => Upgrade {
+            kind: UpgradeKind::GoldEarnPlus,
+            rarity,
+        },
     }
 }
 fn generate_rarity_table_for_boss_reward(stage: usize) -> Vec<(Rarity, f32)> {
