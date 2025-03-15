@@ -1,3 +1,4 @@
+mod display;
 mod generation;
 
 use crate::{
@@ -41,17 +42,106 @@ impl UpgradeState {
                 8 => self.gold_earn_plus = 16,
                 _ => unreachable!("Invalid gold earn plus upgrade: {}", self.gold_earn_plus),
             },
-            UpgradeKind::ShopSlot => match self.shop_slot {
+            UpgradeKind::RankAttackDamagePlus { rank, damage_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Rank { rank },
+                    TowerUpgrade::DamagePlus {
+                        damage: damage_plus,
+                    },
+                );
+            }
+            UpgradeKind::RankAttackDamageMultiply {
+                rank,
+                damage_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Rank { rank },
+                    TowerUpgrade::DamageMultiplier {
+                        multiplier: damage_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::RankAttackSpeedPlus { rank, speed_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Rank { rank },
+                    TowerUpgrade::SpeedPlus { speed: speed_plus },
+                );
+            }
+            UpgradeKind::RankAttackSpeedMultiply {
+                rank,
+                speed_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Rank { rank },
+                    TowerUpgrade::SpeedMultiplier {
+                        multiplier: speed_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::RankAttackRangePlus { rank, range_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Rank { rank },
+                    TowerUpgrade::RangePlus { range: range_plus },
+                );
+            }
+            UpgradeKind::SuitAttackDamagePlus { suit, damage_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Suit { suit },
+                    TowerUpgrade::DamagePlus {
+                        damage: damage_plus,
+                    },
+                );
+            }
+            UpgradeKind::SuitAttackDamageMultiply {
+                suit,
+                damage_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Suit { suit },
+                    TowerUpgrade::DamageMultiplier {
+                        multiplier: damage_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::SuitAttackSpeedPlus { suit, speed_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Suit { suit },
+                    TowerUpgrade::SpeedPlus { speed: speed_plus },
+                );
+            }
+            UpgradeKind::SuitAttackSpeedMultiply {
+                suit,
+                speed_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Suit { suit },
+                    TowerUpgrade::SpeedMultiplier {
+                        multiplier: speed_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::SuitAttackRangePlus { suit, range_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::Suit { suit },
+                    TowerUpgrade::RangePlus { range: range_plus },
+                );
+            }
+            UpgradeKind::HandAttackDamagePlus { .. } => todo!(),
+            UpgradeKind::HandAttackDamageMultiply { .. } => todo!(),
+            UpgradeKind::HandAttackSpeedPlus { .. } => todo!(),
+            UpgradeKind::HandAttackSpeedMultiply { .. } => todo!(),
+            UpgradeKind::HandAttackRangePlus { .. } => todo!(),
+            UpgradeKind::ShopSlotExpansion => match self.shop_slot {
                 0 => self.shop_slot = 1,
                 1 => self.shop_slot = 2,
                 _ => unreachable!("Invalid shop slot upgrade: {}", self.shop_slot),
             },
-            UpgradeKind::QuestSlot => match self.quest_slot {
+            UpgradeKind::QuestSlotExpansion => match self.quest_slot {
                 0 => self.quest_slot = 1,
                 1 => self.quest_slot = 2,
                 _ => unreachable!("Invalid quest slot upgrade: {}", self.quest_slot),
             },
-            UpgradeKind::QuestBoardSlot => match self.quest_board_slot {
+            UpgradeKind::QuestBoardExpansion => match self.quest_board_slot {
                 0 => self.quest_board_slot = 1,
                 1 => self.quest_board_slot = 2,
                 _ => unreachable!(
@@ -59,15 +149,42 @@ impl UpgradeState {
                     self.quest_board_slot
                 ),
             },
-            UpgradeKind::Reroll => match self.reroll_count_plus {
+            UpgradeKind::RerollCountPlus => match self.reroll_count_plus {
                 0 => self.reroll_count_plus = 1,
                 1 => self.reroll_count_plus = 2,
                 _ => unreachable!("Invalid reroll upgrade: {}", self.reroll_count_plus),
             },
-            UpgradeKind::Tower { target, upgrade } => {
-                let tower_upgrade_state = self.tower_upgrade_states.entry(target).or_default();
-                tower_upgrade_state.apply_upgrade(upgrade);
-            }
+            UpgradeKind::LowCardTowerDamagePlus { .. } => todo!(),
+            UpgradeKind::LowCardTowerDamageMultiply { .. } => todo!(),
+            UpgradeKind::LowCardTowerAttackSpeedPlus { .. } => todo!(),
+            UpgradeKind::LowCardTowerAttackSpeedMultiply { .. } => todo!(),
+            UpgradeKind::LowCardTowerAttackRangePlus { .. } => todo!(),
+            UpgradeKind::ShopItemPriceMinus => todo!(),
+            UpgradeKind::ShopRefreshPlus => todo!(),
+            UpgradeKind::QuestBoardRefreshPlus => todo!(),
+            UpgradeKind::NoRerollTowerAttackDamagePlus { .. } => todo!(),
+            UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => todo!(),
+            UpgradeKind::NoRerollTowerAttackSpeedPlus { .. } => todo!(),
+            UpgradeKind::NoRerollTowerAttackSpeedMultiply { .. } => todo!(),
+            UpgradeKind::NoRerollTowerAttackRangePlus { .. } => todo!(),
+            UpgradeKind::EvenOddTowerAttackDamagePlus { .. } => todo!(),
+            UpgradeKind::EvenOddTowerAttackDamageMultiply { .. } => todo!(),
+            UpgradeKind::EvenOddTowerAttackSpeedPlus { .. } => todo!(),
+            UpgradeKind::EvenOddTowerAttackSpeedMultiply { .. } => todo!(),
+            UpgradeKind::EvenOddTowerAttackRangePlus { .. } => todo!(),
+            UpgradeKind::FaceNumberCardTowerAttackDamagePlus { .. } => todo!(),
+            UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { .. } => todo!(),
+            UpgradeKind::FaceNumberCardTowerAttackSpeedPlus { .. } => todo!(),
+            UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply { .. } => todo!(),
+            UpgradeKind::FaceNumberCardTowerAttackRangePlus { .. } => todo!(),
+            UpgradeKind::ShortenStraightFlushTo4Cards => todo!(),
+            UpgradeKind::SkipRankForStraight => todo!(),
+            UpgradeKind::TreatSuitsAsSame => todo!(),
+            UpgradeKind::RerollTowerAttackDamagePlus { .. } => todo!(),
+            UpgradeKind::RerollTowerAttackDamageMultiply { .. } => todo!(),
+            UpgradeKind::RerollTowerAttackSpeedPlus { .. } => todo!(),
+            UpgradeKind::RerollTowerAttackSpeedMultiply { .. } => todo!(),
+            UpgradeKind::RerollTowerAttackRangePlus { .. } => todo!(),
         }
     }
     pub fn tower_upgrades(&self, tower: &Tower) -> Vec<TowerUpgradeState> {
@@ -84,72 +201,67 @@ impl UpgradeState {
         })
         .collect::<Vec<_>>()
     }
+    fn apply_tower_upgrade(&mut self, target: TowerUpgradeTarget, upgrade: TowerUpgrade) {
+        self.tower_upgrade_states
+            .entry(target)
+            .or_default()
+            .apply_upgrade(upgrade);
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum UpgradeKind {
-    Tower {
-        target: TowerUpgradeTarget,
-        upgrade: TowerUpgrade,
-    },
-    ShopSlot,
-    QuestSlot,
-    QuestBoardSlot,
-    Reroll,
     GoldEarnPlus,
-}
-impl UpgradeKind {
-    pub fn name(&self) -> &'static str {
-        match self {
-            UpgradeKind::Tower { .. } => "타워 업그레이드",
-            UpgradeKind::ShopSlot => "상점 슬롯 확장",
-            UpgradeKind::QuestSlot => "퀘스트 슬롯 확장",
-            UpgradeKind::QuestBoardSlot => "퀘스트 게시판 슬롯 확장",
-            UpgradeKind::Reroll => "리롤 횟수 증가가",
-            UpgradeKind::GoldEarnPlus => "골드 획득량 증가",
-        }
-    }
-    pub fn description(&self) -> String {
-        match self {
-            UpgradeKind::Tower { target, upgrade } => {
-                let mut description = String::new();
-                match target {
-                    TowerUpgradeTarget::Rank { rank } => {
-                        description.push_str(&format!("{}", rank));
-                    }
-                    TowerUpgradeTarget::Suit { suit } => {
-                        description.push_str(&format!("{}", suit));
-                    }
-                }
-                description.push_str("타워의 ");
-                match upgrade {
-                    TowerUpgrade::DamagePlus { damage } => {
-                        description.push_str(&format!("공격력을 {}만큼 증가시킵니다.", damage));
-                    }
-                    TowerUpgrade::DamageMultiplier { multiplier } => {
-                        description
-                            .push_str(&format!("공격력을 {}배 만큼 증가시킵니다.", multiplier));
-                    }
-                    TowerUpgrade::SpeedPlus { speed } => {
-                        description.push_str(&format!("공격 속도를 {}만큼 증가시킵니다.", speed));
-                    }
-                    TowerUpgrade::SpeedMultiplier { multiplier } => {
-                        description
-                            .push_str(&format!("공격 속도를 {}배 만큼 증가시킵니다.", multiplier));
-                    }
-                    TowerUpgrade::RangePlus { range } => {
-                        description.push_str(&format!("공격 범위를 {}만큼 증가시킵니다.", range));
-                    }
-                }
-                description
-            }
-            UpgradeKind::ShopSlot => "상점 슬롯을 확장합니다.".to_string(),
-            UpgradeKind::QuestSlot => "퀘스트 슬롯을 확장합니다.".to_string(),
-            UpgradeKind::QuestBoardSlot => "퀘스트 게시판 슬롯을 확장합니다.".to_string(),
-            UpgradeKind::Reroll => "리롤 횟수가 증가합니다.".to_string(),
-            UpgradeKind::GoldEarnPlus => "골드 획득량이 증가합니다.".to_string(),
-        }
-    }
+    RankAttackDamagePlus { rank: Rank, damage_plus: f32 },
+    RankAttackDamageMultiply { rank: Rank, damage_multiplier: f32 },
+    RankAttackSpeedPlus { rank: Rank, speed_plus: f32 },
+    RankAttackSpeedMultiply { rank: Rank, speed_multiplier: f32 },
+    RankAttackRangePlus { rank: Rank, range_plus: f32 },
+    SuitAttackDamagePlus { suit: Suit, damage_plus: f32 },
+    SuitAttackDamageMultiply { suit: Suit, damage_multiplier: f32 },
+    SuitAttackSpeedPlus { suit: Suit, speed_plus: f32 },
+    SuitAttackSpeedMultiply { suit: Suit, speed_multiplier: f32 },
+    SuitAttackRangePlus { suit: Suit, range_plus: f32 },
+    HandAttackDamagePlus { damage_plus: f32 },
+    HandAttackDamageMultiply { damage_multiplier: f32 },
+    HandAttackSpeedPlus { speed_plus: f32 },
+    HandAttackSpeedMultiply { speed_multiplier: f32 },
+    HandAttackRangePlus { range_plus: f32 },
+    ShopSlotExpansion,
+    QuestSlotExpansion,
+    QuestBoardExpansion,
+    RerollCountPlus,
+    LowCardTowerDamagePlus { damage_plus: f32 },
+    LowCardTowerDamageMultiply { damage_multiplier: f32 },
+    LowCardTowerAttackSpeedPlus { speed_plus: f32 },
+    LowCardTowerAttackSpeedMultiply { speed_multiplier: f32 },
+    LowCardTowerAttackRangePlus { range_plus: f32 },
+    ShopItemPriceMinus,
+    ShopRefreshPlus,
+    QuestBoardRefreshPlus,
+    NoRerollTowerAttackDamagePlus { damage_plus: f32 },
+    NoRerollTowerAttackDamageMultiply { damage_multiplier: f32 },
+    NoRerollTowerAttackSpeedPlus { speed_plus: f32 },
+    NoRerollTowerAttackSpeedMultiply { speed_multiplier: f32 },
+    NoRerollTowerAttackRangePlus { range_plus: f32 },
+    EvenOddTowerAttackDamagePlus { damage_plus: f32 },
+    EvenOddTowerAttackDamageMultiply { damage_multiplier: f32 },
+    EvenOddTowerAttackSpeedPlus { speed_plus: f32 },
+    EvenOddTowerAttackSpeedMultiply { speed_multiplier: f32 },
+    EvenOddTowerAttackRangePlus { range_plus: f32 },
+    FaceNumberCardTowerAttackDamagePlus { damage_plus: f32 },
+    FaceNumberCardTowerAttackDamageMultiply { damage_multiplier: f32 },
+    FaceNumberCardTowerAttackSpeedPlus { speed_plus: f32 },
+    FaceNumberCardTowerAttackSpeedMultiply { speed_multiplier: f32 },
+    FaceNumberCardTowerAttackRangePlus { range_plus: f32 },
+    ShortenStraightFlushTo4Cards,
+    SkipRankForStraight,
+    TreatSuitsAsSame,
+    RerollTowerAttackDamagePlus { damage_plus: f32 },
+    RerollTowerAttackDamageMultiply { damage_multiplier: f32 },
+    RerollTowerAttackSpeedPlus { speed_plus: f32 },
+    RerollTowerAttackSpeedMultiply { speed_multiplier: f32 },
+    RerollTowerAttackRangePlus { range_plus: f32 },
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord)]
@@ -194,23 +306,4 @@ impl Default for TowerUpgradeState {
             range_plus: 0.0,
         }
     }
-}
-impl TowerUpgrade {
-    pub fn kind(&self) -> TowerUpgradeKind {
-        match self {
-            TowerUpgrade::DamagePlus { .. } => TowerUpgradeKind::DamagePlus,
-            TowerUpgrade::DamageMultiplier { .. } => TowerUpgradeKind::DamageMultiplier,
-            TowerUpgrade::SpeedPlus { .. } => TowerUpgradeKind::SpeedPlus,
-            TowerUpgrade::SpeedMultiplier { .. } => TowerUpgradeKind::SpeedMultiplier,
-            TowerUpgrade::RangePlus { .. } => TowerUpgradeKind::RangePlus,
-        }
-    }
-}
-#[derive(Debug, Clone, Copy)]
-pub enum TowerUpgradeKind {
-    DamagePlus,
-    DamageMultiplier,
-    SpeedPlus,
-    SpeedMultiplier,
-    RangePlus,
 }
