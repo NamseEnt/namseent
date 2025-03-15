@@ -1,6 +1,6 @@
 use super::{
     MAX_QUEST_BOARD_SLOT_UPGRADE, MAX_QUEST_SLOT_UPGRADE, MAX_REROLL_UPGRADE,
-    MAX_SHOP_SLOT_UPGRADE, Upgrade, UpgradeKind,
+    MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE, MAX_SHOP_SLOT_UPGRADE, Upgrade, UpgradeKind,
 };
 use crate::{
     card::{REVERSED_RANKS, SUITS},
@@ -232,7 +232,7 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::LowCardTowerAttackSpeedPlus => todo!(),
         UpgradeCandidate::LowCardTowerAttackSpeedMultiply => todo!(),
         UpgradeCandidate::LowCardTowerAttackRangePlus => todo!(),
-        UpgradeCandidate::ShopItemPriceMinus => todo!(),
+        UpgradeCandidate::ShopItemPriceMinus => UpgradeKind::ShopItemPriceMinus,
         UpgradeCandidate::ShopRefreshPlus => todo!(),
         UpgradeCandidate::QuestBoardRefreshPlus => todo!(),
         UpgradeCandidate::NoRerollTowerAttackDamagePlus => todo!(),
@@ -540,6 +540,15 @@ fn generate_upgrade_candidate_table(
     // LowCardTowerAttackRangePlus
 
     // ShopItemPriceMinus
+    candidate_table_push(
+        UpgradeCandidate::ShopItemPriceMinus,
+        game_state.upgrade_state.shop_item_price_minus,
+        MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
+        10,
+        50,
+        50,
+        100,
+    );
 
     // ShopRefreshPlus
 
