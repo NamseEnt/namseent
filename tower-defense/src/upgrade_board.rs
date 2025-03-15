@@ -1,8 +1,10 @@
 use crate::{
-    game_state::use_game_state,
+    game_state::{
+        upgrade::{TowerUpgradeTarget, UpgradeState},
+        use_game_state,
+    },
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
-    upgrade::UpgradeState,
 };
 use namui::*;
 use namui_prebuilt::{
@@ -196,10 +198,10 @@ fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
     }
     for (target, tower_upgrade_state) in &state.tower_upgrade_states {
         let target_text = match target {
-            crate::upgrade::TowerUpgradeTarget::Rank { rank } => {
+            TowerUpgradeTarget::Rank { rank } => {
                 format!("랭크가 {}인 타워의", rank)
             }
-            crate::upgrade::TowerUpgradeTarget::Suit { suit } => {
+            TowerUpgradeTarget::Suit { suit } => {
                 format!("문양이 {}인 타워의", suit)
             }
         };

@@ -1,11 +1,11 @@
 use super::{
     GameState,
     item::{check_point_is_in_linear_area, linear_area_rect_points},
+    upgrade::{TowerUpgradeTarget, UpgradeState},
 };
 use crate::{
     MapCoordF32,
     card::{Rank, Suit},
-    upgrade::{TowerUpgradeTarget, UpgradeState},
 };
 use namui::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -200,7 +200,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
     }
 
     if killed_monster_count > 0 {
-        game_state.earn_gold_by_kill_monsters(killed_monster_count);
+        game_state.gold += killed_monster_count;
     }
 }
 

@@ -11,12 +11,12 @@ pub mod quest;
 mod render;
 mod tick;
 pub mod tower;
+pub mod upgrade;
 mod user_status_effect;
 
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
 use crate::shop::ShopSlot;
-use crate::upgrade::UpgradeState;
 use crate::*;
 use camera::*;
 use cursor_preview::CursorPreview;
@@ -29,6 +29,7 @@ use projectile::*;
 use quest::Quest;
 use std::sync::Arc;
 use tower::*;
+use upgrade::UpgradeState;
 use user_status_effect::UserStatusEffect;
 
 /// The size of a tile in pixels, with zoom level 1.0.
