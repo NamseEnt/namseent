@@ -1,6 +1,7 @@
 mod display;
 mod generation;
 
+use super::tower::TowerKind;
 use crate::{
     card::{Rank, Suit},
     game_state::tower::Tower,
@@ -126,11 +127,57 @@ impl UpgradeState {
                     TowerUpgrade::RangePlus { range: range_plus },
                 );
             }
-            UpgradeKind::HandAttackDamagePlus { .. } => todo!(),
-            UpgradeKind::HandAttackDamageMultiply { .. } => todo!(),
-            UpgradeKind::HandAttackSpeedPlus { .. } => todo!(),
-            UpgradeKind::HandAttackSpeedMultiply { .. } => todo!(),
-            UpgradeKind::HandAttackRangePlus { .. } => todo!(),
+            UpgradeKind::HandAttackDamagePlus {
+                tower_kind,
+                damage_plus,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::TowerKind { tower_kind },
+                    TowerUpgrade::DamagePlus {
+                        damage: damage_plus,
+                    },
+                );
+            }
+            UpgradeKind::HandAttackDamageMultiply {
+                tower_kind,
+                damage_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::TowerKind { tower_kind },
+                    TowerUpgrade::DamageMultiplier {
+                        multiplier: damage_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::HandAttackSpeedPlus {
+                tower_kind,
+                speed_plus,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::TowerKind { tower_kind },
+                    TowerUpgrade::SpeedPlus { speed: speed_plus },
+                );
+            }
+            UpgradeKind::HandAttackSpeedMultiply {
+                tower_kind,
+                speed_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::TowerKind { tower_kind },
+                    TowerUpgrade::SpeedMultiplier {
+                        multiplier: speed_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::HandAttackRangePlus {
+                tower_kind,
+                range_plus,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::TowerKind { tower_kind },
+                    TowerUpgrade::RangePlus { range: range_plus },
+                );
+            }
             UpgradeKind::ShopSlotExpansion => match self.shop_slot {
                 0 => self.shop_slot = 1,
                 1 => self.shop_slot = 2,
@@ -212,62 +259,158 @@ impl UpgradeState {
 #[derive(Debug, Clone, Copy)]
 pub enum UpgradeKind {
     GoldEarnPlus,
-    RankAttackDamagePlus { rank: Rank, damage_plus: f32 },
-    RankAttackDamageMultiply { rank: Rank, damage_multiplier: f32 },
-    RankAttackSpeedPlus { rank: Rank, speed_plus: f32 },
-    RankAttackSpeedMultiply { rank: Rank, speed_multiplier: f32 },
-    RankAttackRangePlus { rank: Rank, range_plus: f32 },
-    SuitAttackDamagePlus { suit: Suit, damage_plus: f32 },
-    SuitAttackDamageMultiply { suit: Suit, damage_multiplier: f32 },
-    SuitAttackSpeedPlus { suit: Suit, speed_plus: f32 },
-    SuitAttackSpeedMultiply { suit: Suit, speed_multiplier: f32 },
-    SuitAttackRangePlus { suit: Suit, range_plus: f32 },
-    HandAttackDamagePlus { damage_plus: f32 },
-    HandAttackDamageMultiply { damage_multiplier: f32 },
-    HandAttackSpeedPlus { speed_plus: f32 },
-    HandAttackSpeedMultiply { speed_multiplier: f32 },
-    HandAttackRangePlus { range_plus: f32 },
+    RankAttackDamagePlus {
+        rank: Rank,
+        damage_plus: f32,
+    },
+    RankAttackDamageMultiply {
+        rank: Rank,
+        damage_multiplier: f32,
+    },
+    RankAttackSpeedPlus {
+        rank: Rank,
+        speed_plus: f32,
+    },
+    RankAttackSpeedMultiply {
+        rank: Rank,
+        speed_multiplier: f32,
+    },
+    RankAttackRangePlus {
+        rank: Rank,
+        range_plus: f32,
+    },
+    SuitAttackDamagePlus {
+        suit: Suit,
+        damage_plus: f32,
+    },
+    SuitAttackDamageMultiply {
+        suit: Suit,
+        damage_multiplier: f32,
+    },
+    SuitAttackSpeedPlus {
+        suit: Suit,
+        speed_plus: f32,
+    },
+    SuitAttackSpeedMultiply {
+        suit: Suit,
+        speed_multiplier: f32,
+    },
+    SuitAttackRangePlus {
+        suit: Suit,
+        range_plus: f32,
+    },
+    HandAttackDamagePlus {
+        tower_kind: TowerKind,
+        damage_plus: f32,
+    },
+    HandAttackDamageMultiply {
+        tower_kind: TowerKind,
+        damage_multiplier: f32,
+    },
+    HandAttackSpeedPlus {
+        tower_kind: TowerKind,
+        speed_plus: f32,
+    },
+    HandAttackSpeedMultiply {
+        tower_kind: TowerKind,
+        speed_multiplier: f32,
+    },
+    HandAttackRangePlus {
+        tower_kind: TowerKind,
+        range_plus: f32,
+    },
     ShopSlotExpansion,
     QuestSlotExpansion,
     QuestBoardExpansion,
     RerollCountPlus,
-    LowCardTowerDamagePlus { damage_plus: f32 },
-    LowCardTowerDamageMultiply { damage_multiplier: f32 },
-    LowCardTowerAttackSpeedPlus { speed_plus: f32 },
-    LowCardTowerAttackSpeedMultiply { speed_multiplier: f32 },
-    LowCardTowerAttackRangePlus { range_plus: f32 },
+    LowCardTowerDamagePlus {
+        damage_plus: f32,
+    },
+    LowCardTowerDamageMultiply {
+        damage_multiplier: f32,
+    },
+    LowCardTowerAttackSpeedPlus {
+        speed_plus: f32,
+    },
+    LowCardTowerAttackSpeedMultiply {
+        speed_multiplier: f32,
+    },
+    LowCardTowerAttackRangePlus {
+        range_plus: f32,
+    },
     ShopItemPriceMinus,
     ShopRefreshPlus,
     QuestBoardRefreshPlus,
-    NoRerollTowerAttackDamagePlus { damage_plus: f32 },
-    NoRerollTowerAttackDamageMultiply { damage_multiplier: f32 },
-    NoRerollTowerAttackSpeedPlus { speed_plus: f32 },
-    NoRerollTowerAttackSpeedMultiply { speed_multiplier: f32 },
-    NoRerollTowerAttackRangePlus { range_plus: f32 },
-    EvenOddTowerAttackDamagePlus { damage_plus: f32 },
-    EvenOddTowerAttackDamageMultiply { damage_multiplier: f32 },
-    EvenOddTowerAttackSpeedPlus { speed_plus: f32 },
-    EvenOddTowerAttackSpeedMultiply { speed_multiplier: f32 },
-    EvenOddTowerAttackRangePlus { range_plus: f32 },
-    FaceNumberCardTowerAttackDamagePlus { damage_plus: f32 },
-    FaceNumberCardTowerAttackDamageMultiply { damage_multiplier: f32 },
-    FaceNumberCardTowerAttackSpeedPlus { speed_plus: f32 },
-    FaceNumberCardTowerAttackSpeedMultiply { speed_multiplier: f32 },
-    FaceNumberCardTowerAttackRangePlus { range_plus: f32 },
+    NoRerollTowerAttackDamagePlus {
+        damage_plus: f32,
+    },
+    NoRerollTowerAttackDamageMultiply {
+        damage_multiplier: f32,
+    },
+    NoRerollTowerAttackSpeedPlus {
+        speed_plus: f32,
+    },
+    NoRerollTowerAttackSpeedMultiply {
+        speed_multiplier: f32,
+    },
+    NoRerollTowerAttackRangePlus {
+        range_plus: f32,
+    },
+    EvenOddTowerAttackDamagePlus {
+        damage_plus: f32,
+    },
+    EvenOddTowerAttackDamageMultiply {
+        damage_multiplier: f32,
+    },
+    EvenOddTowerAttackSpeedPlus {
+        speed_plus: f32,
+    },
+    EvenOddTowerAttackSpeedMultiply {
+        speed_multiplier: f32,
+    },
+    EvenOddTowerAttackRangePlus {
+        range_plus: f32,
+    },
+    FaceNumberCardTowerAttackDamagePlus {
+        damage_plus: f32,
+    },
+    FaceNumberCardTowerAttackDamageMultiply {
+        damage_multiplier: f32,
+    },
+    FaceNumberCardTowerAttackSpeedPlus {
+        speed_plus: f32,
+    },
+    FaceNumberCardTowerAttackSpeedMultiply {
+        speed_multiplier: f32,
+    },
+    FaceNumberCardTowerAttackRangePlus {
+        range_plus: f32,
+    },
     ShortenStraightFlushTo4Cards,
     SkipRankForStraight,
     TreatSuitsAsSame,
-    RerollTowerAttackDamagePlus { damage_plus: f32 },
-    RerollTowerAttackDamageMultiply { damage_multiplier: f32 },
-    RerollTowerAttackSpeedPlus { speed_plus: f32 },
-    RerollTowerAttackSpeedMultiply { speed_multiplier: f32 },
-    RerollTowerAttackRangePlus { range_plus: f32 },
+    RerollTowerAttackDamagePlus {
+        damage_plus: f32,
+    },
+    RerollTowerAttackDamageMultiply {
+        damage_multiplier: f32,
+    },
+    RerollTowerAttackSpeedPlus {
+        speed_plus: f32,
+    },
+    RerollTowerAttackSpeedMultiply {
+        speed_multiplier: f32,
+    },
+    RerollTowerAttackRangePlus {
+        range_plus: f32,
+    },
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord)]
 pub enum TowerUpgradeTarget {
     Rank { rank: Rank },
     Suit { suit: Suit },
+    TowerKind { tower_kind: TowerKind },
 }
 #[derive(Debug, Clone, Copy)]
 pub enum TowerUpgrade {

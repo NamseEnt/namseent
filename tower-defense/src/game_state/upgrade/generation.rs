@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     card::{REVERSED_RANKS, SUITS},
-    game_state::GameState,
+    game_state::{GameState, tower::TowerKind},
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -153,11 +153,76 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
             });
             UpgradeKind::SuitAttackRangePlus { suit, range_plus }
         }
-        UpgradeCandidate::HandAttackDamagePlus => todo!(),
-        UpgradeCandidate::HandAttackDamageMultiply => todo!(),
-        UpgradeCandidate::HandAttackSpeedPlus => todo!(),
-        UpgradeCandidate::HandAttackSpeedMultiply => todo!(),
-        UpgradeCandidate::HandAttackRangePlus => todo!(),
+        UpgradeCandidate::HandAttackDamagePlus => {
+            let tower_kind =
+                get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
+            let damage_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 5.0..10.0,
+                Rarity::Rare => 10.0..25.0,
+                Rarity::Epic => 25.0..50.0,
+                Rarity::Legendary => 50.0..125.0,
+            });
+            UpgradeKind::HandAttackDamagePlus {
+                tower_kind,
+                damage_plus,
+            }
+        }
+        UpgradeCandidate::HandAttackDamageMultiply => {
+            let tower_kind =
+                get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
+            let damage_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.2..1.4,
+                Rarity::Rare => 1.4..1.6,
+                Rarity::Epic => 1.6..1.85,
+                Rarity::Legendary => 1.85..2.5,
+            });
+            UpgradeKind::HandAttackDamageMultiply {
+                tower_kind,
+                damage_multiplier,
+            }
+        }
+        UpgradeCandidate::HandAttackSpeedPlus => {
+            let tower_kind =
+                get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
+            let speed_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 0.2..0.4,
+                Rarity::Rare => 0.4..0.6,
+                Rarity::Epic => 0.6..0.85,
+                Rarity::Legendary => 0.85..1.25,
+            });
+            UpgradeKind::HandAttackSpeedPlus {
+                tower_kind,
+                speed_plus,
+            }
+        }
+        UpgradeCandidate::HandAttackSpeedMultiply => {
+            let tower_kind =
+                get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
+            let speed_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.2..1.25,
+                Rarity::Rare => 1.25..1.5,
+                Rarity::Epic => 1.5..1.8,
+                Rarity::Legendary => 1.8..2.1,
+            });
+            UpgradeKind::HandAttackSpeedMultiply {
+                tower_kind,
+                speed_multiplier,
+            }
+        }
+        UpgradeCandidate::HandAttackRangePlus => {
+            let tower_kind =
+                get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
+            let range_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.25,
+                Rarity::Rare => 1.25..1.6,
+                Rarity::Epic => 1.6..1.85,
+                Rarity::Legendary => 1.85..2.15,
+            });
+            UpgradeKind::HandAttackRangePlus {
+                tower_kind,
+                range_plus,
+            }
+        }
         UpgradeCandidate::ShopSlotExpansion => UpgradeKind::ShopSlotExpansion,
         UpgradeCandidate::QuestSlotExpansion => UpgradeKind::QuestSlotExpansion,
         UpgradeCandidate::QuestBoardExpansion => UpgradeKind::QuestBoardExpansion,
@@ -366,14 +431,59 @@ fn generate_upgrade_candidate_table(
     );
 
     // HandAttackDamagePlus
+    candidate_table_push(
+        UpgradeCandidate::HandAttackDamagePlus,
+        usize::MIN,
+        usize::MAX,
+        50,
+        100,
+        100,
+        50,
+    );
 
     // HandAttackDamageMultiply
+    candidate_table_push(
+        UpgradeCandidate::HandAttackDamageMultiply,
+        usize::MIN,
+        usize::MAX,
+        25,
+        50,
+        50,
+        25,
+    );
 
     // HandAttackSpeedPlus
+    candidate_table_push(
+        UpgradeCandidate::HandAttackSpeedPlus,
+        usize::MIN,
+        usize::MAX,
+        40,
+        80,
+        80,
+        40,
+    );
 
     // HandAttackSpeedMultiply
+    candidate_table_push(
+        UpgradeCandidate::HandAttackSpeedMultiply,
+        usize::MIN,
+        usize::MAX,
+        20,
+        40,
+        40,
+        20,
+    );
 
     // HandAttackRangePlus
+    candidate_table_push(
+        UpgradeCandidate::HandAttackRangePlus,
+        usize::MIN,
+        usize::MAX,
+        10,
+        20,
+        20,
+        10,
+    );
 
     // ShopSlotExpansion
     candidate_table_push(
@@ -537,4 +647,28 @@ enum UpgradeCandidate {
     RerollTowerAttackSpeedPlus,
     RerollTowerAttackSpeedMultiply,
     RerollTowerAttackRangePlus,
+}
+
+fn get_tower_kind_with_weight(weights: &[f32; 10]) -> TowerKind {
+    const TOWER_KINDS: [TowerKind; 10] = [
+        TowerKind::High,
+        TowerKind::OnePair,
+        TowerKind::TwoPair,
+        TowerKind::ThreeOfAKind,
+        TowerKind::Straight,
+        TowerKind::Flush,
+        TowerKind::FullHouse,
+        TowerKind::FourOfAKind,
+        TowerKind::StraightFlush,
+        TowerKind::RoyalFlush,
+    ];
+
+    TOWER_KINDS
+        .iter()
+        .zip(weights)
+        .collect::<Vec<_>>()
+        .choose_weighted(&mut thread_rng(), |x| x.1)
+        .unwrap()
+        .0
+        .clone()
 }

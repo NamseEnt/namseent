@@ -204,6 +204,9 @@ fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
             TowerUpgradeTarget::Suit { suit } => {
                 format!("문양이 {}인 타워의", suit)
             }
+            TowerUpgradeTarget::TowerKind { tower_kind } => {
+                format!("{} 타워의", tower_kind)
+            }
         };
         if tower_upgrade_state.damage_plus != 0.0 {
             texts.push(format!(
