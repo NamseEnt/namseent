@@ -2,9 +2,9 @@ use crate::{
     game_state::{
         GameState,
         item::{ItemKind, generate_item},
+        upgrade::{Upgrade, generate_upgrade},
     },
     rarity::Rarity,
-    upgrade::{Upgrade, generate_upgrade},
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
 

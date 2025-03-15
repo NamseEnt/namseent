@@ -1,11 +1,8 @@
 mod render;
 mod skill;
 
-use super::*;
-use crate::{
-    card::{Rank, Suit},
-    upgrade::TowerUpgradeState,
-};
+use super::{upgrade::TowerUpgradeState, *};
+use crate::card::{Rank, Suit};
 use namui::*;
 use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick};

@@ -1,8 +1,7 @@
 use crate::{
-    game_state::{item::Item, use_game_state},
+    game_state::{item::Item, upgrade::MAX_INVENTORY_SLOT_UPGRADE, use_game_state},
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
-    upgrade::MAX_INVENTORY_SLOT_UPGRADE,
 };
 use namui::*;
 use namui_prebuilt::{button::TextButton, table, vh_list_view::AutoVHListView};

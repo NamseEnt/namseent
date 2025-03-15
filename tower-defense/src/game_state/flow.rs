@@ -1,14 +1,14 @@
 use super::{
-    GameState, item::generate_items, monster_spawn::start_spawn, quest::generate_quests,
+    GameState,
+    item::generate_items,
+    monster_spawn::start_spawn,
+    quest::generate_quests,
     tower::TowerTemplate,
+    upgrade::{Upgrade, generate_upgrades_for_boss_reward},
 };
 use crate::{
-    card::Card,
-    quest_board::QuestBoardSlot,
-    rarity::Rarity,
-    shop::ShopSlot,
+    card::Card, quest_board::QuestBoardSlot, rarity::Rarity, shop::ShopSlot,
     tower_placing_hand::PlacingTowerSlot,
-    upgrade::{Upgrade, generate_upgrades_for_boss_reward},
 };
 
 #[derive(Clone)]

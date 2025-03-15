@@ -1,8 +1,7 @@
 use crate::{
-    game_state::mutate_game_state,
+    game_state::{mutate_game_state, upgrade::Upgrade},
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
-    upgrade::Upgrade,
 };
 use namui::*;
 use namui_prebuilt::{

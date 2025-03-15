@@ -11,7 +11,6 @@ mod theme;
 mod top_bar;
 mod tower_placing_hand;
 mod tower_selecting_hand;
-mod upgrade;
 mod upgrade_board;
 mod upgrade_select;
 
