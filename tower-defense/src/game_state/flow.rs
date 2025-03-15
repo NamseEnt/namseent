@@ -65,7 +65,7 @@ impl GameState {
                 Rarity::Rare => 50,
                 Rarity::Epic => 100,
                 Rarity::Legendary => 250,
-            };
+            } - self.upgrade_state.shop_item_price_minus;
             *slot = ShopSlot::Item {
                 item,
                 cost,

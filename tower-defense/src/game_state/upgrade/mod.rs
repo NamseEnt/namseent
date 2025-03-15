@@ -15,6 +15,7 @@ pub const MAX_QUEST_BOARD_SLOT_UPGRADE: usize = 3;
 pub const MAX_SHOP_SLOT_UPGRADE: usize = 5;
 pub const MAX_REROLL_UPGRADE: usize = 2;
 pub const MAX_INVENTORY_SLOT_UPGRADE: usize = 9;
+pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
 
 #[derive(Debug, Clone, Default)]
 pub struct UpgradeState {
@@ -24,6 +25,7 @@ pub struct UpgradeState {
     pub quest_board_slot: usize,
     pub reroll_count_plus: usize,
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
+    pub shop_item_price_minus: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -206,7 +208,15 @@ impl UpgradeState {
             UpgradeKind::LowCardTowerAttackSpeedPlus { .. } => todo!(),
             UpgradeKind::LowCardTowerAttackSpeedMultiply { .. } => todo!(),
             UpgradeKind::LowCardTowerAttackRangePlus { .. } => todo!(),
-            UpgradeKind::ShopItemPriceMinus => todo!(),
+            UpgradeKind::ShopItemPriceMinus => match self.shop_item_price_minus {
+                0 => self.shop_item_price_minus = 5,
+                5 => self.shop_item_price_minus = 10,
+                10 => self.shop_item_price_minus = 15,
+                _ => unreachable!(
+                    "Invalid shop item price minus upgrade: {}",
+                    self.shop_item_price_minus
+                ),
+            },
             UpgradeKind::ShopRefreshPlus => todo!(),
             UpgradeKind::QuestBoardRefreshPlus => todo!(),
             UpgradeKind::NoRerollTowerAttackDamagePlus { .. } => todo!(),
