@@ -1,6 +1,7 @@
 mod camera;
 mod can_place_tower;
 pub mod cursor_preview;
+mod field_area_effect;
 pub mod flow;
 pub mod item;
 mod monster;
@@ -10,6 +11,7 @@ pub mod quest;
 mod render;
 mod tick;
 pub mod tower;
+mod user_status_effect;
 
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
@@ -18,6 +20,7 @@ use crate::upgrade::UpgradeState;
 use crate::*;
 use camera::*;
 use cursor_preview::CursorPreview;
+use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
 use monster::*;
 use monster_spawn::*;
@@ -26,6 +29,7 @@ use projectile::*;
 use quest::Quest;
 use std::sync::Arc;
 use tower::*;
+use user_status_effect::UserStatusEffect;
 
 /// The size of a tile in pixels, with zoom level 1.0.
 pub const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
@@ -39,6 +43,7 @@ const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(24, 41),
     MapCoord::new(47, 41),
 ];
+pub const MAX_HP: f32 = 100.0;
 
 pub struct GameState {
     pub monsters: Vec<Monster>,
@@ -63,6 +68,9 @@ pub struct GameState {
     pub quest_board_slots: [QuestBoardSlot; 3],
     pub cursor_preview: CursorPreview,
     pub hp: f32,
+    pub shield: f32,
+    pub user_status_effects: Vec<UserStatusEffect>,
+    pub field_area_effects: Vec<FieldAreaEffect>,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -130,6 +138,9 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             quest_board_slots: Default::default(),
             cursor_preview: Default::default(),
             hp: 100.0,
+            shield: 0.0,
+            user_status_effects: Default::default(),
+            field_area_effects: Default::default(),
         };
 
         game_state.goto_selecting_tower();

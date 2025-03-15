@@ -1,7 +1,9 @@
+mod item;
 mod tower;
 
-use super::tower::TowerTemplate;
+use super::{item::Item, tower::TowerTemplate};
 use crate::MapCoordF32;
+use item::ItemCursorPreview;
 use namui::*;
 use tower::TowerCursorPreview;
 
@@ -14,6 +16,7 @@ impl CursorPreview {
         match self.kind {
             PreviewKind::None => false,
             PreviewKind::PlacingTower { .. } => true,
+            PreviewKind::Item { .. } => true,
         }
     }
     pub fn update_position(&mut self, map_coord: MapCoordF32) {
@@ -51,6 +54,13 @@ impl Component for RenderCursorPreview<'_> {
                     placing_tower_slot_index: *placing_tower_slot_index,
                 });
             }
+            PreviewKind::Item { item, item_index } => {
+                ctx.add(ItemCursorPreview {
+                    item,
+                    item_index: *item_index,
+                    map_coord: *map_coord,
+                });
+            }
         }
     }
 }
@@ -62,5 +72,9 @@ pub enum PreviewKind {
     PlacingTower {
         tower_template: TowerTemplate,
         placing_tower_slot_index: usize,
+    },
+    Item {
+        item: Item,
+        item_index: usize,
     },
 }

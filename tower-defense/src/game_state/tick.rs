@@ -27,9 +27,12 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     crate::game_state::monster_spawn::tick(game_state, now);
     crate::game_state::tower::tower_cooldown_tick(game_state, dt);
     crate::game_state::tower::tower_animation_tick(game_state, now);
+    crate::game_state::field_area_effect::field_area_effect_tick(game_state, now);
 
     crate::game_state::monster::remove_monster_finished_status_effects(game_state, now);
     crate::game_state::tower::remove_tower_finished_status_effects(game_state, now);
+    crate::game_state::user_status_effect::remove_user_finished_status_effects(game_state, now);
+    crate::game_state::field_area_effect::remove_finished_field_area_effects(game_state, now);
 
     crate::game_state::monster::activate_monster_skills(game_state, now);
     crate::game_state::tower::activate_tower_skills(game_state, now);
