@@ -19,7 +19,7 @@ impl QuestReward {
         match self {
             Self::Money { amount } => format!("${} 골드", amount),
             Self::Item { item } => format!("Item: {}", item.description()),
-            Self::Upgrade { upgrade } => format!("Upgrade: {}", upgrade.description()),
+            Self::Upgrade { upgrade } => format!("Upgrade: {}", upgrade.kind.description()),
         }
     }
 }

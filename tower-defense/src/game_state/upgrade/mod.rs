@@ -3,6 +3,7 @@ mod generation;
 use crate::{
     card::{Rank, Suit},
     game_state::tower::Tower,
+    rarity::Rarity,
 };
 pub use generation::*;
 use std::collections::BTreeMap;
@@ -24,22 +25,15 @@ pub struct UpgradeState {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum Upgrade {
-    GoldEarnPlus,
-    ShopSlot,
-    QuestSlot,
-    QuestBoardSlot,
-    Reroll,
-    Tower {
-        target: TowerUpgradeTarget,
-        upgrade: TowerUpgrade,
-    },
+pub struct Upgrade {
+    pub kind: UpgradeKind,
+    pub rarity: Rarity,
 }
 
 impl UpgradeState {
     pub fn upgrade(&mut self, upgrade: Upgrade) {
-        match upgrade {
-            Upgrade::GoldEarnPlus => match self.gold_earn_plus {
+        match upgrade.kind {
+            UpgradeKind::GoldEarnPlus => match self.gold_earn_plus {
                 0 => self.gold_earn_plus = 1,
                 1 => self.gold_earn_plus = 2,
                 2 => self.gold_earn_plus = 4,
@@ -47,17 +41,17 @@ impl UpgradeState {
                 8 => self.gold_earn_plus = 16,
                 _ => unreachable!("Invalid gold earn plus upgrade: {}", self.gold_earn_plus),
             },
-            Upgrade::ShopSlot => match self.shop_slot {
+            UpgradeKind::ShopSlot => match self.shop_slot {
                 0 => self.shop_slot = 1,
                 1 => self.shop_slot = 2,
                 _ => unreachable!("Invalid shop slot upgrade: {}", self.shop_slot),
             },
-            Upgrade::QuestSlot => match self.quest_slot {
+            UpgradeKind::QuestSlot => match self.quest_slot {
                 0 => self.quest_slot = 1,
                 1 => self.quest_slot = 2,
                 _ => unreachable!("Invalid quest slot upgrade: {}", self.quest_slot),
             },
-            Upgrade::QuestBoardSlot => match self.quest_board_slot {
+            UpgradeKind::QuestBoardSlot => match self.quest_board_slot {
                 0 => self.quest_board_slot = 1,
                 1 => self.quest_board_slot = 2,
                 _ => unreachable!(
@@ -65,12 +59,12 @@ impl UpgradeState {
                     self.quest_board_slot
                 ),
             },
-            Upgrade::Reroll => match self.reroll_count_plus {
+            UpgradeKind::Reroll => match self.reroll_count_plus {
                 0 => self.reroll_count_plus = 1,
                 1 => self.reroll_count_plus = 2,
                 _ => unreachable!("Invalid reroll upgrade: {}", self.reroll_count_plus),
             },
-            Upgrade::Tower { target, upgrade } => {
+            UpgradeKind::Tower { target, upgrade } => {
                 let tower_upgrade_state = self.tower_upgrade_states.entry(target).or_default();
                 tower_upgrade_state.apply_upgrade(upgrade);
             }
@@ -92,20 +86,32 @@ impl UpgradeState {
     }
 }
 
-impl Upgrade {
+#[derive(Debug, Clone, Copy)]
+pub enum UpgradeKind {
+    Tower {
+        target: TowerUpgradeTarget,
+        upgrade: TowerUpgrade,
+    },
+    ShopSlot,
+    QuestSlot,
+    QuestBoardSlot,
+    Reroll,
+    GoldEarnPlus,
+}
+impl UpgradeKind {
     pub fn name(&self) -> &'static str {
         match self {
-            Upgrade::Tower { .. } => "타워 업그레이드",
-            Upgrade::ShopSlot => "상점 슬롯 확장",
-            Upgrade::QuestSlot => "퀘스트 슬롯 확장",
-            Upgrade::QuestBoardSlot => "퀘스트 게시판 슬롯 확장",
-            Upgrade::Reroll => "리롤 횟수 증가가",
-            Upgrade::GoldEarnPlus => "골드 획득량 증가",
+            UpgradeKind::Tower { .. } => "타워 업그레이드",
+            UpgradeKind::ShopSlot => "상점 슬롯 확장",
+            UpgradeKind::QuestSlot => "퀘스트 슬롯 확장",
+            UpgradeKind::QuestBoardSlot => "퀘스트 게시판 슬롯 확장",
+            UpgradeKind::Reroll => "리롤 횟수 증가가",
+            UpgradeKind::GoldEarnPlus => "골드 획득량 증가",
         }
     }
     pub fn description(&self) -> String {
         match self {
-            Upgrade::Tower { target, upgrade } => {
+            UpgradeKind::Tower { target, upgrade } => {
                 let mut description = String::new();
                 match target {
                     TowerUpgradeTarget::Rank { rank } => {
@@ -137,11 +143,11 @@ impl Upgrade {
                 }
                 description
             }
-            Upgrade::ShopSlot => "상점 슬롯을 확장합니다.".to_string(),
-            Upgrade::QuestSlot => "퀘스트 슬롯을 확장합니다.".to_string(),
-            Upgrade::QuestBoardSlot => "퀘스트 게시판 슬롯을 확장합니다.".to_string(),
-            Upgrade::Reroll => "리롤 횟수가 증가합니다.".to_string(),
-            Upgrade::GoldEarnPlus => "골드 획득량이 증가합니다.".to_string(),
+            UpgradeKind::ShopSlot => "상점 슬롯을 확장합니다.".to_string(),
+            UpgradeKind::QuestSlot => "퀘스트 슬롯을 확장합니다.".to_string(),
+            UpgradeKind::QuestBoardSlot => "퀘스트 게시판 슬롯을 확장합니다.".to_string(),
+            UpgradeKind::Reroll => "리롤 횟수가 증가합니다.".to_string(),
+            UpgradeKind::GoldEarnPlus => "골드 획득량이 증가합니다.".to_string(),
         }
     }
 }

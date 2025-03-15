@@ -152,7 +152,7 @@ impl Component for UpgradeSelectItem<'_> {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(Headline {
-                                                    text: upgrade.name().to_string(),
+                                                    text: upgrade.kind.name().to_string(),
                                                     font_size: FontSize::Small,
                                                     text_align: TextAlign::LeftTop,
                                                     max_width: Some(wh.width),
@@ -161,7 +161,7 @@ impl Component for UpgradeSelectItem<'_> {
                                             table::fixed(PADDING, |_, _| {}),
                                             table::ratio(1, |_wh, ctx| {
                                                 ctx.add(Paragraph {
-                                                    text: upgrade.description(),
+                                                    text: upgrade.kind.description(),
                                                     font_size: FontSize::Medium,
                                                     text_align: TextAlign::LeftTop,
                                                     max_width: Some(wh.width),
