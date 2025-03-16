@@ -434,7 +434,7 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         }
         UpgradeCandidate::ShortenStraightFlushTo4Cards => UpgradeKind::ShortenStraightFlushTo4Cards,
         UpgradeCandidate::SkipRankForStraight => UpgradeKind::SkipRankForStraight,
-        UpgradeCandidate::TreatSuitsAsSame => todo!(),
+        UpgradeCandidate::TreatSuitsAsSame => UpgradeKind::TreatSuitsAsSame,
         UpgradeCandidate::RerollTowerAttackDamagePlus => todo!(),
         UpgradeCandidate::RerollTowerAttackDamageMultiply => todo!(),
         UpgradeCandidate::RerollTowerAttackSpeedPlus => todo!(),
@@ -987,6 +987,15 @@ fn generate_upgrade_candidate_table(
     );
 
     // TreatSuitsAsSame
+    candidate_table_push(
+        UpgradeCandidate::TreatSuitsAsSame,
+        game_state.upgrade_state.treat_suits_as_same as usize,
+        1,
+        0,
+        5,
+        15,
+        25,
+    );
 
     // RerollTowerAttackDamagePlus
 

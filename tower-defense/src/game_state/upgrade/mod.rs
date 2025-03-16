@@ -31,6 +31,7 @@ pub struct UpgradeState {
     pub max_quest_board_refresh: usize,
     pub shorten_straight_flush_to_4_cards: bool,
     pub skip_rank_for_straight: bool,
+    pub treat_suits_as_same: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -394,7 +395,9 @@ impl UpgradeState {
             UpgradeKind::SkipRankForStraight => {
                 self.skip_rank_for_straight = true;
             }
-            UpgradeKind::TreatSuitsAsSame => todo!(),
+            UpgradeKind::TreatSuitsAsSame => {
+                self.treat_suits_as_same = true;
+            }
             UpgradeKind::RerollTowerAttackDamagePlus { .. } => todo!(),
             UpgradeKind::RerollTowerAttackDamageMultiply { .. } => todo!(),
             UpgradeKind::RerollTowerAttackSpeedPlus { .. } => todo!(),

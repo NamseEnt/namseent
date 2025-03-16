@@ -346,6 +346,7 @@ fn check_flush(cards: &[Card], game_state: &GameState) -> Option<FlushResult> {
         true => 4,
         false => 5,
     };
+    let treat_suits_as_same = game_state.upgrade_state.treat_suits_as_same;
 
     if cards.len() < flush_card_count {
         return None;
@@ -353,10 +354,15 @@ fn check_flush(cards: &[Card], game_state: &GameState) -> Option<FlushResult> {
 
     let mut suit_map = HashMap::new();
     for card in cards {
-        suit_map
-            .entry(card.suit)
-            .or_insert_with(Vec::new)
-            .push(card);
+        let suit = if treat_suits_as_same {
+            match card.suit {
+                Suit::Clubs | Suit::Spades => Suit::Spades,
+                Suit::Hearts | Suit::Diamonds => Suit::Hearts,
+            }
+        } else {
+            card.suit
+        };
+        suit_map.entry(suit).or_insert_with(Vec::new).push(card);
     }
     for (suit, cards) in suit_map {
         if cards.len() >= flush_card_count {
