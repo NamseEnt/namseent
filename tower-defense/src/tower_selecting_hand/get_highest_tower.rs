@@ -267,6 +267,7 @@ fn check_straight(cards: &[Card], game_state: &GameState) -> Option<StraightResu
         true => 4,
         false => 5,
     };
+    let skip_rank_for_straight = game_state.upgrade_state.skip_rank_for_straight;
 
     if cards.len() < straight_card_count {
         return None;
@@ -283,7 +284,11 @@ fn check_straight(cards: &[Card], game_state: &GameState) -> Option<StraightResu
         })
         .collect::<Vec<_>>();
     cards_ace_as_high.sort_by(|a, b| a.0.cmp(&b.0));
-    let straight = check_rank(&cards_ace_as_high, straight_card_count);
+    let straight = check_rank(
+        &cards_ace_as_high,
+        straight_card_count,
+        skip_rank_for_straight,
+    );
     if straight {
         return Some(StraightResult {
             royal: cards_ace_as_high
@@ -298,7 +303,11 @@ fn check_straight(cards: &[Card], game_state: &GameState) -> Option<StraightResu
         .map(|card| (card.rank as usize, card))
         .collect::<Vec<_>>();
     cards_ace_as_low.sort_by(|a, b| a.0.cmp(&b.0));
-    let straight = check_rank(&cards_ace_as_low, straight_card_count);
+    let straight = check_rank(
+        &cards_ace_as_low,
+        straight_card_count,
+        skip_rank_for_straight,
+    );
     if straight {
         return Some(StraightResult {
             royal: false,
@@ -308,16 +317,21 @@ fn check_straight(cards: &[Card], game_state: &GameState) -> Option<StraightResu
 
     return None;
 
-    fn check_rank(cards: &[(usize, &Card)], straight_card_count: usize) -> bool {
+    fn check_rank(cards: &[(usize, &Card)], straight_card_count: usize, skip_rank: bool) -> bool {
         let mut count = 1;
+        let mut skips = 0;
         for i in 1..cards.len() {
             if cards[i].0 == cards[i - 1].0 + 1 {
                 count += 1;
-                if count == straight_card_count {
-                    return true;
-                }
+            } else if skip_rank && cards[i].0 == cards[i - 1].0 + 2 && skips == 0 {
+                count += 1;
+                skips += 1;
             } else {
                 count = 1;
+                skips = 0;
+            }
+            if count == straight_card_count {
+                return true;
             }
         }
         false

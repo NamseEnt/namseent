@@ -30,6 +30,7 @@ pub struct UpgradeState {
     pub max_shop_refresh: usize,
     pub max_quest_board_refresh: usize,
     pub shorten_straight_flush_to_4_cards: bool,
+    pub skip_rank_for_straight: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -387,8 +388,12 @@ impl UpgradeState {
                     TowerUpgrade::RangePlus { range: range_plus },
                 );
             }
-            UpgradeKind::ShortenStraightFlushTo4Cards => todo!(),
-            UpgradeKind::SkipRankForStraight => todo!(),
+            UpgradeKind::ShortenStraightFlushTo4Cards => {
+                self.shorten_straight_flush_to_4_cards = true;
+            }
+            UpgradeKind::SkipRankForStraight => {
+                self.skip_rank_for_straight = true;
+            }
             UpgradeKind::TreatSuitsAsSame => todo!(),
             UpgradeKind::RerollTowerAttackDamagePlus { .. } => todo!(),
             UpgradeKind::RerollTowerAttackDamageMultiply { .. } => todo!(),
