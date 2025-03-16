@@ -1,8 +1,10 @@
 use crate::{
-    game_state::use_game_state,
+    game_state::{
+        upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget, UpgradeState},
+        use_game_state,
+    },
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
-    upgrade::UpgradeState,
 };
 use namui::*;
 use namui_prebuilt::{
@@ -170,70 +172,138 @@ impl Component for UpgradeItem {
 
 fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
     let mut texts = vec![];
-    if state.shop_slot != 0 {
-        texts.push(format!("상점 슬롯이 {}개 증가합니다", state.shop_slot));
-    }
-    if state.quest_slot != 0 {
-        texts.push(format!("퀘스트 슬롯이 {}개 증가합니다", state.quest_slot));
-    }
-    if state.quest_board_slot != 0 {
-        texts.push(format!(
-            "퀘스트 게시판 슬롯이 {}개 증가합니다",
-            state.quest_board_slot
-        ));
-    }
-    if state.reroll_count_plus != 0 {
-        texts.push(format!(
-            "리롤 기회가 {}개 증가합니다",
-            state.reroll_count_plus
-        ));
-    }
+
     if state.gold_earn_plus != 0 {
         texts.push(format!(
             "몬스터 처치 시 {}골드를 추가로 얻습니다",
             state.gold_earn_plus
         ));
     }
-    for (target, tower_upgrade_state) in &state.tower_upgrade_states {
-        let target_text = match target {
-            crate::upgrade::TowerUpgradeTarget::Rank { rank } => {
-                format!("랭크가 {}인 타워의", rank)
-            }
-            crate::upgrade::TowerUpgradeTarget::Suit { suit } => {
-                format!("문양이 {}인 타워의", suit)
-            }
-        };
-        if tower_upgrade_state.damage_plus != 0.0 {
-            texts.push(format!(
-                "{target_text} 공격력이 {}만큼 증가합니다",
-                tower_upgrade_state.damage_plus
-            ));
-        }
-        if tower_upgrade_state.damage_multiplier != 1.0 {
-            texts.push(format!(
-                "{target_text} 공격력이 {}배 증가합니다",
-                tower_upgrade_state.damage_multiplier
-            ));
-        }
-        if tower_upgrade_state.speed_plus != 0.0 {
-            texts.push(format!(
-                "{target_text} 공격 속도가 {}만큼 증가합니다",
-                tower_upgrade_state.speed_plus
-            ));
-        }
-        if tower_upgrade_state.speed_multiplier != 1.0 {
-            texts.push(format!(
-                "{target_text} 공격 속도가 {}배 증가합니다",
-                tower_upgrade_state.speed_multiplier
-            ));
-        }
-        if tower_upgrade_state.range_plus != 0.0 {
-            texts.push(format!(
-                "{target_text} 사정거리가 {}만큼 증가합니다",
-                tower_upgrade_state.range_plus
-            ));
-        }
+    if state.shop_slot_expand != 0 {
+        texts.push(format!(
+            "상점 슬롯이 {}개 증가합니다",
+            state.shop_slot_expand
+        ));
+    }
+    if state.quest_slot_expand != 0 {
+        texts.push(format!(
+            "퀘스트 슬롯이 {}개 증가합니다",
+            state.quest_slot_expand
+        ));
+    }
+    if state.quest_board_slot_expand != 0 {
+        texts.push(format!(
+            "퀘스트 게시판 슬롯이 {}개 증가합니다",
+            state.quest_board_slot_expand
+        ));
+    }
+    if state.reroll_chance_plus != 0 {
+        texts.push(format!(
+            "리롤 기회가 {}개 증가합니다",
+            state.reroll_chance_plus
+        ));
+    }
+    if state.shop_item_price_minus != 0 {
+        texts.push(format!(
+            "상점 아이템 가격이 {} 감소합니다",
+            state.shop_item_price_minus
+        ));
+    }
+    if state.shop_refresh_chance_plus != 0 {
+        texts.push(format!(
+            "상점 새로고침 기회가 {}개 증가합니다",
+            state.shop_refresh_chance_plus
+        ));
+    }
+    if state.quest_board_refresh_chance_plus != 0 {
+        texts.push(format!(
+            "퀘스트 게시판 새로고침 기회가 {}개 증가합니다",
+            state.quest_board_refresh_chance_plus
+        ));
+    }
+    if state.shorten_straight_flush_to_4_cards {
+        texts.push("스트레이트와 플러시를 4장으로 줄입니다".to_string());
+    }
+    if state.skip_rank_for_straight {
+        texts.push("스트레이트를 만들 때 랭크 하나를 건너뛸 수 있습니다".to_string());
+    }
+    if state.treat_suits_as_same {
+        texts.push("색이 같으면 같은 문양으로 취급합니다".to_string());
     }
 
+    for (target, tower_upgrade_state) in &state.tower_select_upgrade_states {
+        let target_text = match target {
+            TowerSelectUpgradeTarget::LowCard => "카드 3개 이하로 타워를 만들 때 타워의",
+            TowerSelectUpgradeTarget::NoReroll => "리롤을 하지 않고 타워를 만들 때 타워의",
+            TowerSelectUpgradeTarget::Reroll => "리롤을 할 때 마다 타워의",
+        };
+        texts.extend(tower_upgrade_state_description_texts(
+            &target_text,
+            tower_upgrade_state,
+        ));
+    }
+
+    for (target, tower_upgrade_state) in &state.tower_upgrade_states {
+        let target_text = match target {
+            TowerUpgradeTarget::Rank { rank } => {
+                format!("랭크가 {}인 타워의", rank)
+            }
+            TowerUpgradeTarget::Suit { suit } => {
+                format!("문양이 {}인 타워의", suit)
+            }
+            TowerUpgradeTarget::TowerKind { tower_kind } => {
+                format!("{} 타워의", tower_kind)
+            }
+            TowerUpgradeTarget::EvenOdd { even } => {
+                format!("{} 타워의", if *even { "짝수" } else { "홀수" })
+            }
+            TowerUpgradeTarget::FaceNumber { face } => {
+                format!("{} 타워의", if *face { "그림" } else { "숫자" })
+            }
+        };
+        texts.extend(tower_upgrade_state_description_texts(
+            &target_text,
+            tower_upgrade_state,
+        ));
+    }
+
+    texts
+}
+
+fn tower_upgrade_state_description_texts(
+    target_text: &str,
+    tower_upgrade_state: &TowerUpgradeState,
+) -> Vec<String> {
+    let mut texts = vec![];
+    if tower_upgrade_state.damage_plus != 0.0 {
+        texts.push(format!(
+            "{target_text} 공격력이 {}만큼 증가합니다",
+            tower_upgrade_state.damage_plus
+        ));
+    }
+    if tower_upgrade_state.damage_multiplier != 1.0 {
+        texts.push(format!(
+            "{target_text} 공격력이 {}배 증가합니다",
+            tower_upgrade_state.damage_multiplier
+        ));
+    }
+    if tower_upgrade_state.speed_plus != 0.0 {
+        texts.push(format!(
+            "{target_text} 공격 속도가 {}만큼 증가합니다",
+            tower_upgrade_state.speed_plus
+        ));
+    }
+    if tower_upgrade_state.speed_multiplier != 1.0 {
+        texts.push(format!(
+            "{target_text} 공격 속도가 {}배 증가합니다",
+            tower_upgrade_state.speed_multiplier
+        ));
+    }
+    if tower_upgrade_state.range_plus != 0.0 {
+        texts.push(format!(
+            "{target_text} 사정거리가 {}만큼 증가합니다",
+            tower_upgrade_state.range_plus
+        ));
+    }
     texts
 }

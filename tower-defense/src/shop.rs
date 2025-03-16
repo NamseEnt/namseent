@@ -1,5 +1,8 @@
 use crate::{
-    game_state::{item::Item, mutate_game_state, use_game_state},
+    game_state::{
+        item::{Item, generate_items, item_cost},
+        mutate_game_state, use_game_state,
+    },
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -17,6 +20,10 @@ const SHOP_WH: Wh<Px> = Wh {
 };
 const SHOP_BUTTON_WH: Wh<Px> = Wh {
     width: px(64.0),
+    height: px(36.0),
+};
+const SHOP_REFRESH_BUTTON_WH: Wh<Px> = Wh {
+    width: px(192.0),
     height: px(36.0),
 };
 const SOLD_OUT_HEIGHT: Px = px(36.0);
@@ -49,6 +56,8 @@ impl Component for ShopModal {
 
         let purchase_item = |slot_index: usize| {
             mutate_game_state(move |state| {
+                assert!(state.items.len() <= state.max_shop_slot());
+
                 let slot = &mut state.shop_slots[slot_index];
                 let ShopSlot::Item {
                     item,
@@ -59,7 +68,6 @@ impl Component for ShopModal {
                     panic!("Invalid shop slot");
                 };
 
-                assert!(state.items.len() <= state.max_shop_slot);
                 assert!(state.gold >= *cost);
                 assert!(!*purchased);
 
@@ -130,21 +138,82 @@ impl Component for Shop<'_> {
             purchase_item,
         } = self;
 
+        let game_state = use_game_state(ctx);
+        let disabled = game_state.left_shop_refresh_chance == 0;
+
+        let refresh_shop = || {
+            mutate_game_state(|game_state| {
+                game_state.left_shop_refresh_chance -= 1;
+                let items = generate_items(&game_state, game_state.max_shop_slot());
+                for (slot, item) in game_state.shop_slots.iter_mut().zip(items.into_iter()) {
+                    if let ShopSlot::Item {
+                        item: item_of_slot,
+                        cost: cost_of_slot,
+                        purchased,
+                    } = slot
+                    {
+                        if *purchased {
+                            continue;
+                        }
+                        let cost =
+                            item_cost(&item.rarity, game_state.upgrade_state.shop_item_price_minus);
+                        *cost_of_slot = cost;
+                        *item_of_slot = item.clone();
+                    }
+                }
+            });
+        };
+
         ctx.compose(|ctx| {
             table::padding(
                 PADDING,
-                table::horizontal(shop_slots.iter().enumerate().map(
-                    |(shop_slot_index, shop_slot)| {
-                        ratio(1, move |wh, ctx| {
-                            ctx.add(ShopItem {
-                                wh,
-                                shop_slot,
-                                shop_slot_index,
-                                purchase_item,
-                            });
-                        })
-                    },
-                )),
+                table::vertical([
+                    table::ratio(
+                        1,
+                        table::horizontal(shop_slots.iter().enumerate().map(
+                            |(shop_slot_index, shop_slot)| {
+                                ratio(1, move |wh, ctx| {
+                                    ctx.add(ShopItem {
+                                        wh,
+                                        shop_slot,
+                                        shop_slot_index,
+                                        purchase_item,
+                                    });
+                                })
+                            },
+                        )),
+                    ),
+                    table::fixed(
+                        SHOP_REFRESH_BUTTON_WH.height,
+                        table::horizontal([
+                            ratio(1, |_, _| {}),
+                            table::fixed(SHOP_REFRESH_BUTTON_WH.width, |wh, ctx| {
+                                ctx.add(TextButton {
+                                    rect: wh.to_rect(),
+                                    text: format!(
+                                        "새로고침-{}",
+                                        game_state.left_shop_refresh_chance
+                                    ),
+                                    text_color: match disabled {
+                                        true => palette::ON_SURFACE_VARIANT,
+                                        false => palette::ON_SURFACE,
+                                    },
+                                    stroke_color: palette::OUTLINE,
+                                    stroke_width: 1.px(),
+                                    fill_color: palette::SURFACE_CONTAINER,
+                                    mouse_buttons: vec![MouseButton::Left],
+                                    on_mouse_up_in: |_| {
+                                        if disabled {
+                                            return;
+                                        }
+                                        refresh_shop();
+                                    },
+                                });
+                            }),
+                            ratio(1, |_, _| {}),
+                        ]),
+                    ),
+                ]),
             )(SHOP_WH, ctx);
         });
     }

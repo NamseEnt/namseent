@@ -1,14 +1,13 @@
 use super::{
-    GameState, item::generate_items, monster_spawn::start_spawn, quest::generate_quests,
+    GameState,
+    item::{generate_items, item_cost},
+    monster_spawn::start_spawn,
+    quest::generate_quests,
     tower::TowerTemplate,
+    upgrade::{Upgrade, generate_upgrades_for_boss_reward},
 };
 use crate::{
-    card::Card,
-    quest_board::QuestBoardSlot,
-    rarity::Rarity,
-    shop::ShopSlot,
-    tower_placing_hand::PlacingTowerSlot,
-    upgrade::{Upgrade, generate_upgrades_for_boss_reward},
+    card::Card, quest_board::QuestBoardSlot, shop::ShopSlot, tower_placing_hand::PlacingTowerSlot,
 };
 
 #[derive(Clone)]
@@ -42,7 +41,7 @@ impl GameFlow {
 impl GameState {
     pub fn goto_selecting_tower(&mut self) {
         self.flow = GameFlow::new_selecting_tower();
-        self.left_reroll_chance = 1 + self.upgrade_state.reroll_count_plus;
+        self.left_reroll_chance = self.max_reroll_chance();
         self.shield = 0.0;
 
         match self.in_even_stage() {
@@ -55,17 +54,13 @@ impl GameState {
         }
     }
     fn renew_shop(&mut self) {
-        let items = generate_items(self, self.max_shop_slot);
+        self.left_shop_refresh_chance = self.max_shop_refresh_chance();
+        let items = generate_items(self, self.max_shop_slot());
         for slot in self.shop_slots.iter_mut() {
             *slot = ShopSlot::Locked;
         }
         for (slot, item) in self.shop_slots.iter_mut().zip(items.into_iter()) {
-            let cost = match item.rarity {
-                Rarity::Common => 25,
-                Rarity::Rare => 50,
-                Rarity::Epic => 100,
-                Rarity::Legendary => 250,
-            };
+            let cost = item_cost(&item.rarity, self.upgrade_state.shop_item_price_minus);
             *slot = ShopSlot::Item {
                 item,
                 cost,
@@ -74,7 +69,8 @@ impl GameState {
         }
     }
     fn renew_quest_board(&mut self) {
-        let quests = generate_quests(self, self.max_quest_board_slot);
+        self.left_quest_board_refresh_chance = self.max_quest_board_refresh_chance();
+        let quests = generate_quests(self, self.max_quest_board_slot());
         for slot in self.quest_board_slots.iter_mut() {
             *slot = QuestBoardSlot::Locked;
         }

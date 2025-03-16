@@ -38,7 +38,7 @@ impl Component for Quests {
                                 text: format!(
                                     "퀘스트 {}/{}",
                                     game_state.quests.len(),
-                                    game_state.max_quests
+                                    game_state.max_quest_slot()
                                 ),
                                 font_size: FontSize::Medium,
                                 text_align: TextAlign::Center { wh },

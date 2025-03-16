@@ -11,12 +11,12 @@ pub mod quest;
 mod render;
 mod tick;
 pub mod tower;
+pub mod upgrade;
 mod user_status_effect;
 
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
 use crate::shop::ShopSlot;
-use crate::upgrade::UpgradeState;
 use crate::*;
 use camera::*;
 use cursor_preview::CursorPreview;
@@ -29,6 +29,7 @@ use projectile::*;
 use quest::Quest;
 use std::sync::Arc;
 use tower::*;
+use upgrade::UpgradeState;
 use user_status_effect::UserStatusEffect;
 
 /// The size of a tile in pixels, with zoom level 1.0.
@@ -44,6 +45,7 @@ const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(47, 41),
 ];
 pub const MAX_HP: f32 = 100.0;
+pub const MAX_INVENTORY_SLOT: usize = 9;
 
 pub struct GameState {
     pub monsters: Vec<Monster>,
@@ -55,9 +57,6 @@ pub struct GameState {
     pub flow: GameFlow,
     /// one-based
     pub stage: usize,
-    pub max_shop_slot: usize,
-    pub max_quests: usize,
-    pub max_quest_board_slot: usize,
     pub left_reroll_chance: usize,
     monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
@@ -71,6 +70,8 @@ pub struct GameState {
     pub shield: f32,
     pub user_status_effects: Vec<UserStatusEffect>,
     pub field_area_effects: Vec<FieldAreaEffect>,
+    pub left_shop_refresh_chance: usize,
+    pub left_quest_board_refresh_chance: usize,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -78,6 +79,25 @@ impl GameState {
             0 => true,
             _ => false,
         }
+    }
+
+    pub fn max_shop_slot(&self) -> usize {
+        self.upgrade_state.shop_slot_expand + 3
+    }
+    pub fn max_quest_slot(&self) -> usize {
+        self.upgrade_state.quest_slot_expand + 3
+    }
+    pub fn max_quest_board_slot(&self) -> usize {
+        self.upgrade_state.quest_board_slot_expand + 1
+    }
+    pub fn max_shop_refresh_chance(&self) -> usize {
+        self.upgrade_state.shop_refresh_chance_plus + 1
+    }
+    pub fn max_quest_board_refresh_chance(&self) -> usize {
+        self.upgrade_state.quest_board_refresh_chance_plus + 1
+    }
+    pub fn max_reroll_chance(&self) -> usize {
+        self.upgrade_state.reroll_chance_plus + 1
     }
 }
 
@@ -125,9 +145,6 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             upgrade_state: Default::default(),
             flow: GameFlow::new_selecting_tower(),
             stage: 1,
-            max_shop_slot: 3,
-            max_quests: 3,
-            max_quest_board_slot: 1,
             left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::Idle,
             projectiles: Default::default(),
@@ -141,6 +158,8 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             shield: 0.0,
             user_status_effects: Default::default(),
             field_area_effects: Default::default(),
+            left_shop_refresh_chance: 0,
+            left_quest_board_refresh_chance: 0,
         };
 
         game_state.goto_selecting_tower();

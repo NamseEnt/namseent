@@ -1,22 +1,28 @@
 use crate::{
     card::{Card, REVERSED_RANKS, Rank, Suit},
     game_state::{
+        GameState,
         projectile::ProjectileKind,
-        tower::{TowerKind, TowerSkillKind, TowerSkillTemplate, TowerTemplate},
+        tower::{
+            TowerKind, TowerSkillKind, TowerSkillTemplate, TowerStatusEffect, TowerStatusEffectEnd,
+            TowerStatusEffectKind, TowerTemplate,
+        },
+        upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState},
     },
 };
 use namui::{DurationExt, Per};
 use std::collections::HashMap;
 
-pub fn get_highest_tower_template(cards: &[Card]) -> TowerTemplate {
-    let mut highest_tower = highest_tower(cards);
-    inject_effects(&mut highest_tower);
+pub fn get_highest_tower_template(cards: &[Card], game_state: &GameState) -> TowerTemplate {
+    let mut highest_tower = highest_tower(cards, game_state);
+    inject_skills(&mut highest_tower);
+    inject_status_effects(&mut highest_tower, game_state);
     highest_tower
 }
 
-fn highest_tower(cards: &[Card]) -> TowerTemplate {
-    let straight_result = check_straight(cards);
-    let flush_result = check_flush(cards);
+fn highest_tower(cards: &[Card], game_state: &GameState) -> TowerTemplate {
+    let straight_result = check_straight(cards, game_state);
+    let flush_result = check_flush(cards, game_state);
 
     if let (Some(straight_result), Some(flush_result)) = (&straight_result, &flush_result) {
         if straight_result.royal {
@@ -110,7 +116,7 @@ fn highest_tower(cards: &[Card]) -> TowerTemplate {
     create_tower_template(TowerKind::High, top.suit, top.rank)
 }
 
-fn inject_effects(tower: &mut TowerTemplate) {
+fn inject_skills(tower: &mut TowerTemplate) {
     let hand_ranking_skill = match tower.kind {
         TowerKind::Barricade => None,
         TowerKind::High => None,
@@ -173,15 +179,107 @@ fn inject_effects(tower: &mut TowerTemplate) {
         duration: 1.sec(),
     };
     tower.skill_templates.push(top_card_effect);
+
     // TODO: Inject effects from upgrades
+}
+
+fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
+    let mut inject_tower_upgrades = |upgrade: &TowerUpgradeState| {
+        if upgrade.damage_plus > 0.0 {
+            let upgrade_effect = TowerStatusEffect {
+                kind: TowerStatusEffectKind::DamageAdd {
+                    add: upgrade.damage_plus as f32,
+                },
+                end_at: TowerStatusEffectEnd::NeverEnd,
+            };
+            tower.default_status_effects.push(upgrade_effect);
+        }
+
+        if upgrade.damage_multiplier > 1.0 {
+            let upgrade_effect = TowerStatusEffect {
+                kind: TowerStatusEffectKind::DamageMul {
+                    mul: upgrade.damage_multiplier as f32,
+                },
+                end_at: TowerStatusEffectEnd::NeverEnd,
+            };
+            tower.default_status_effects.push(upgrade_effect);
+        }
+
+        if upgrade.speed_plus > 0.0 {
+            let upgrade_effect = TowerStatusEffect {
+                kind: TowerStatusEffectKind::AttackSpeedAdd {
+                    add: upgrade.speed_plus as f32,
+                },
+                end_at: TowerStatusEffectEnd::NeverEnd,
+            };
+            tower.default_status_effects.push(upgrade_effect);
+        }
+
+        if upgrade.speed_multiplier > 1.0 {
+            let upgrade_effect = TowerStatusEffect {
+                kind: TowerStatusEffectKind::AttackSpeedMul {
+                    mul: upgrade.speed_multiplier as f32,
+                },
+                end_at: TowerStatusEffectEnd::NeverEnd,
+            };
+            tower.default_status_effects.push(upgrade_effect);
+        }
+
+        if upgrade.range_plus > 0.0 {
+            let upgrade_effect = TowerStatusEffect {
+                kind: TowerStatusEffectKind::AttackRangeAdd {
+                    add: upgrade.range_plus as f32,
+                },
+                end_at: TowerStatusEffectEnd::NeverEnd,
+            };
+            tower.default_status_effects.push(upgrade_effect);
+        }
+    };
+
+    if tower.kind.is_low_card_tower() {
+        if let Some(upgrade) = game_state
+            .upgrade_state
+            .tower_select_upgrade_states
+            .get(&TowerSelectUpgradeTarget::LowCard)
+        {
+            inject_tower_upgrades(upgrade);
+        }
+    }
+
+    let reroll_count = game_state.max_reroll_chance() - game_state.left_reroll_chance;
+    if reroll_count == 0 {
+        if let Some(upgrade) = game_state
+            .upgrade_state
+            .tower_select_upgrade_states
+            .get(&TowerSelectUpgradeTarget::NoReroll)
+        {
+            inject_tower_upgrades(upgrade);
+        }
+    } else {
+        for _ in 0..reroll_count {
+            if let Some(upgrade) = game_state
+                .upgrade_state
+                .tower_select_upgrade_states
+                .get(&TowerSelectUpgradeTarget::Reroll)
+            {
+                inject_tower_upgrades(upgrade);
+            }
+        }
+    }
 }
 
 struct StraightResult {
     royal: bool,
     top: Card,
 }
-fn check_straight(cards: &[Card]) -> Option<StraightResult> {
-    if cards.len() != 5 {
+fn check_straight(cards: &[Card], game_state: &GameState) -> Option<StraightResult> {
+    let straight_card_count = match game_state.upgrade_state.shorten_straight_flush_to_4_cards {
+        true => 4,
+        false => 5,
+    };
+    let skip_rank_for_straight = game_state.upgrade_state.skip_rank_for_straight;
+
+    if cards.len() < straight_card_count {
         return None;
     }
 
@@ -196,10 +294,16 @@ fn check_straight(cards: &[Card]) -> Option<StraightResult> {
         })
         .collect::<Vec<_>>();
     cards_ace_as_high.sort_by(|a, b| a.0.cmp(&b.0));
-    let straight = check_rank(&cards_ace_as_high);
+    let straight = check_rank(
+        &cards_ace_as_high,
+        straight_card_count,
+        skip_rank_for_straight,
+    );
     if straight {
         return Some(StraightResult {
-            royal: true,
+            royal: cards_ace_as_high
+                .iter()
+                .any(|(rank, _)| *rank == Rank::Ace as usize),
             top: *cards_ace_as_high.last().unwrap().1,
         });
     }
@@ -209,7 +313,11 @@ fn check_straight(cards: &[Card]) -> Option<StraightResult> {
         .map(|card| (card.rank as usize, card))
         .collect::<Vec<_>>();
     cards_ace_as_low.sort_by(|a, b| a.0.cmp(&b.0));
-    let straight = check_rank(&cards_ace_as_low);
+    let straight = check_rank(
+        &cards_ace_as_low,
+        straight_card_count,
+        skip_rank_for_straight,
+    );
     if straight {
         return Some(StraightResult {
             royal: false,
@@ -219,32 +327,59 @@ fn check_straight(cards: &[Card]) -> Option<StraightResult> {
 
     return None;
 
-    fn check_rank(cards: &[(usize, &Card)]) -> bool {
-        let mut prev = cards[0];
-        for (rank, card) in cards.iter().skip(1) {
-            if *rank != prev.0 + 1 {
-                return false;
+    fn check_rank(cards: &[(usize, &Card)], straight_card_count: usize, skip_rank: bool) -> bool {
+        let mut count = 1;
+        let mut skips = 0;
+        for i in 1..cards.len() {
+            if cards[i].0 == cards[i - 1].0 + 1 {
+                count += 1;
+            } else if skip_rank && cards[i].0 == cards[i - 1].0 + 2 && skips == 0 {
+                count += 1;
+                skips += 1;
+            } else {
+                count = 1;
+                skips = 0;
             }
-            prev = (*rank, card);
+            if count == straight_card_count {
+                return true;
+            }
         }
-        true
+        false
     }
 }
 
 struct FlushResult {
     suit: Suit,
 }
-fn check_flush(cards: &[Card]) -> Option<FlushResult> {
-    if cards.len() != 5 {
+fn check_flush(cards: &[Card], game_state: &GameState) -> Option<FlushResult> {
+    let flush_card_count = match game_state.upgrade_state.shorten_straight_flush_to_4_cards {
+        true => 4,
+        false => 5,
+    };
+    let treat_suits_as_same = game_state.upgrade_state.treat_suits_as_same;
+
+    if cards.len() < flush_card_count {
         return None;
     }
-    let suit = cards[0].suit;
-    for card in cards.iter().skip(1) {
-        if card.suit != suit {
-            return None;
+
+    let mut suit_map = HashMap::new();
+    for card in cards {
+        let suit = if treat_suits_as_same {
+            match card.suit {
+                Suit::Clubs | Suit::Spades => Suit::Spades,
+                Suit::Hearts | Suit::Diamonds => Suit::Hearts,
+            }
+        } else {
+            card.suit
+        };
+        suit_map.entry(suit).or_insert_with(Vec::new).push(card);
+    }
+    for (suit, cards) in suit_map {
+        if cards.len() >= flush_card_count {
+            return Some(FlushResult { suit });
         }
     }
-    Some(FlushResult { suit })
+    None
 }
 
 fn count_rank(cards: &[Card]) -> HashMap<Rank, Vec<Card>> {
@@ -309,5 +444,6 @@ fn create_tower_template(kind: TowerKind, suit: Suit, rank: Rank) -> TowerTempla
         suit,
         rank,
         skill_templates: vec![],
+        default_status_effects: vec![],
     }
 }

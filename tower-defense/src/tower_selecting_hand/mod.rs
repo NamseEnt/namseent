@@ -24,6 +24,7 @@ impl Component for TowerSelectingHand<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { screen_wh, cards } = self;
 
+        let game_state = crate::game_state::use_game_state(ctx);
         let (selected, set_selected) = ctx.state(|| [false, false, false, false, false]);
         let some_selected = ctx.memo(|| selected.iter().any(|selected| *selected));
         let using_cards = ctx.memo(|| {
@@ -42,8 +43,7 @@ impl Component for TowerSelectingHand<'_> {
             }
             cards.to_vec()
         });
-        let tower_template = ctx.memo(|| get_highest_tower_template(&using_cards));
-        let game_state = crate::game_state::use_game_state(ctx);
+        let tower_template = ctx.memo(|| get_highest_tower_template(&using_cards, &game_state));
 
         let reroll_selected = || {
             if game_state.left_reroll_chance == 0 || selected.len() == 0 {

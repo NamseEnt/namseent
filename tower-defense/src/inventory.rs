@@ -1,12 +1,12 @@
 use crate::{
     game_state::{
+        MAX_INVENTORY_SLOT,
         cursor_preview::PreviewKind,
         item::{Item, ItemUsage, use_item},
         mutate_game_state, use_game_state,
     },
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
-    upgrade::MAX_INVENTORY_SLOT_UPGRADE,
 };
 use namui::*;
 use namui_prebuilt::{button::TextButton, table, vh_list_view::AutoVHListView};
@@ -35,7 +35,7 @@ impl Component for Inventory {
                             table::fixed(TITLE_HEIGHT, |wh, ctx| {
                                 ctx.add(Headline {
                                     text: format!(
-                                        "인벤토리 {}/{MAX_INVENTORY_SLOT_UPGRADE}",
+                                        "인벤토리 {}/{MAX_INVENTORY_SLOT}",
                                         game_state.items.len(),
                                     ),
                                     font_size: FontSize::Medium,

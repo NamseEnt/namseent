@@ -2,9 +2,9 @@ use crate::{
     game_state::{
         GameState,
         item::{ItemKind, generate_item},
+        upgrade::{Upgrade, generate_upgrade},
     },
     rarity::Rarity,
-    upgrade::{Upgrade, generate_upgrade},
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
@@ -19,7 +19,7 @@ impl QuestReward {
         match self {
             Self::Money { amount } => format!("${} 골드", amount),
             Self::Item { item } => format!("Item: {}", item.description()),
-            Self::Upgrade { upgrade } => format!("Upgrade: {}", upgrade.description()),
+            Self::Upgrade { upgrade } => format!("Upgrade: {}", upgrade.kind.description()),
         }
     }
 }

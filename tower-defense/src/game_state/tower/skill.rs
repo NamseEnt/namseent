@@ -54,7 +54,7 @@ pub enum TowerSkillKind {
 #[derive(Clone)]
 pub struct TowerStatusEffect {
     pub kind: TowerStatusEffectKind,
-    pub end_at: Instant,
+    pub end_at: TowerStatusEffectEnd,
 }
 
 #[derive(Clone, Copy)]
@@ -66,9 +66,18 @@ pub enum TowerStatusEffectKind {
     AttackRangeAdd { add: f32 },
 }
 
+#[derive(Clone)]
+pub enum TowerStatusEffectEnd {
+    Time { end_at: Instant },
+    NeverEnd,
+}
+
 pub fn remove_tower_finished_status_effects(game_state: &mut GameState, now: Instant) {
     for tower in game_state.towers.iter_mut() {
-        tower.status_effects.retain(|e| now < e.end_at);
+        tower.status_effects.retain(|e| match e.end_at {
+            TowerStatusEffectEnd::Time { end_at } => now < end_at,
+            TowerStatusEffectEnd::NeverEnd => true,
+        });
     }
 }
 
@@ -115,7 +124,9 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     range_radius,
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageMul { mul },
-                        end_at: now + skill.duration,
+                        end_at: TowerStatusEffectEnd::Time {
+                            end_at: now + skill.duration,
+                        },
                     },
                 );
             }
@@ -124,7 +135,9 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     range_radius,
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageAdd { add },
-                        end_at: now + skill.duration,
+                        end_at: TowerStatusEffectEnd::Time {
+                            end_at: now + skill.duration,
+                        },
                     },
                 );
             }
@@ -133,7 +146,9 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     range_radius,
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::AttackSpeedAdd { add },
-                        end_at: now + skill.duration,
+                        end_at: TowerStatusEffectEnd::Time {
+                            end_at: now + skill.duration,
+                        },
                     },
                 );
             }
@@ -142,7 +157,9 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     range_radius,
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::AttackSpeedMul { mul },
-                        end_at: now + skill.duration,
+                        end_at: TowerStatusEffectEnd::Time {
+                            end_at: now + skill.duration,
+                        },
                     },
                 );
             }
@@ -151,7 +168,9 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     range_radius,
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::AttackRangeAdd { add },
-                        end_at: now + skill.duration,
+                        end_at: TowerStatusEffectEnd::Time {
+                            end_at: now + skill.duration,
+                        },
                     },
                 );
             }

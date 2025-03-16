@@ -5,7 +5,7 @@ use crate::{
         GameState, MAP_SIZE, MAX_HP, TRAVEL_POINTS,
         field_area_effect::{FieldAreaEffect, FieldAreaEffectEnd, FieldAreaEffectKind},
         monster::{MonsterStatusEffect, MonsterStatusEffectKind},
-        tower::{TowerStatusEffect, TowerStatusEffectKind},
+        tower::{TowerStatusEffect, TowerStatusEffectEnd, TowerStatusEffectKind},
         user_status_effect::{UserStatusEffect, UserStatusEffectKind},
     },
 };
@@ -60,7 +60,9 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                 radius,
                 TowerStatusEffect {
                     kind: TowerStatusEffectKind::DamageAdd { add: amount },
-                    end_at: Instant::now() + duration,
+                    end_at: TowerStatusEffectEnd::Time {
+                        end_at: Instant::now() + duration,
+                    },
                 },
             );
         }
@@ -76,7 +78,9 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                 radius,
                 TowerStatusEffect {
                     kind: TowerStatusEffectKind::DamageMul { mul: amount },
-                    end_at: Instant::now() + duration,
+                    end_at: TowerStatusEffectEnd::Time {
+                        end_at: Instant::now() + duration,
+                    },
                 },
             );
         }
@@ -92,7 +96,9 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                 radius,
                 TowerStatusEffect {
                     kind: TowerStatusEffectKind::AttackSpeedAdd { add: amount },
-                    end_at: Instant::now() + duration,
+                    end_at: TowerStatusEffectEnd::Time {
+                        end_at: Instant::now() + duration,
+                    },
                 },
             );
         }
@@ -108,7 +114,9 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                 radius,
                 TowerStatusEffect {
                     kind: TowerStatusEffectKind::AttackSpeedMul { mul: amount },
-                    end_at: Instant::now() + duration,
+                    end_at: TowerStatusEffectEnd::Time {
+                        end_at: Instant::now() + duration,
+                    },
                 },
             );
         }
@@ -124,7 +132,9 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                 radius,
                 TowerStatusEffect {
                     kind: TowerStatusEffectKind::AttackRangeAdd { add: amount },
-                    end_at: Instant::now() + duration,
+                    end_at: TowerStatusEffectEnd::Time {
+                        end_at: Instant::now() + duration,
+                    },
                 },
             );
         }

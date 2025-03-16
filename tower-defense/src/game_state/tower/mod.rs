@@ -1,11 +1,8 @@
 mod render;
 mod skill;
 
-use super::*;
-use crate::{
-    card::{Rank, Suit},
-    upgrade::TowerUpgradeState,
-};
+use super::{upgrade::TowerUpgradeState, *};
+use crate::card::{Rank, Suit};
 use namui::*;
 use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick};
@@ -135,6 +132,7 @@ pub struct TowerTemplate {
     pub suit: Suit,
     pub rank: Rank,
     pub skill_templates: Vec<TowerSkillTemplate>,
+    pub default_status_effects: Vec<TowerStatusEffect>,
 }
 impl TowerTemplate {
     pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
@@ -148,11 +146,12 @@ impl TowerTemplate {
             suit,
             rank,
             skill_templates: kind.skill_templates(),
+            default_status_effects: vec![],
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TowerKind {
     Barricade,
     High,
@@ -265,6 +264,12 @@ impl TowerKind {
                     range_radius: 6.0,
                 },
             )],
+        }
+    }
+    pub fn is_low_card_tower(&self) -> bool {
+        match self {
+            Self::High | Self::OnePair | Self::ThreeOfAKind => true,
+            _ => false,
         }
     }
 }
