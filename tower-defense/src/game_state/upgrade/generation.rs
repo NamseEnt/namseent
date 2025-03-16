@@ -320,11 +320,62 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
             });
             UpgradeKind::NoRerollTowerAttackRangePlus { range_plus }
         }
-        UpgradeCandidate::EvenOddTowerAttackDamagePlus => todo!(),
-        UpgradeCandidate::EvenOddTowerAttackDamageMultiply => todo!(),
-        UpgradeCandidate::EvenOddTowerAttackSpeedPlus => todo!(),
-        UpgradeCandidate::EvenOddTowerAttackSpeedMultiply => todo!(),
-        UpgradeCandidate::EvenOddTowerAttackRangePlus => todo!(),
+        UpgradeCandidate::EvenOddTowerAttackDamagePlus => {
+            let even = thread_rng().gen_bool(0.5);
+            let damage_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.0..3.0,
+                Rarity::Rare => 3.0..6.0,
+                Rarity::Epic => 6.0..10.0,
+                Rarity::Legendary => 10.0..20.0,
+            });
+            UpgradeKind::EvenOddTowerAttackDamagePlus { even, damage_plus }
+        }
+        UpgradeCandidate::EvenOddTowerAttackDamageMultiply => {
+            let even = thread_rng().gen_bool(0.5);
+            let damage_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.2,
+                Rarity::Rare => 1.2..1.4,
+                Rarity::Epic => 1.4..1.5,
+                Rarity::Legendary => 1.5..1.6,
+            });
+            UpgradeKind::EvenOddTowerAttackDamageMultiply {
+                even,
+                damage_multiplier,
+            }
+        }
+        UpgradeCandidate::EvenOddTowerAttackSpeedPlus => {
+            let even = thread_rng().gen_bool(0.5);
+            let speed_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 0.1..0.15,
+                Rarity::Rare => 0.15..0.2,
+                Rarity::Epic => 0.2..0.25,
+                Rarity::Legendary => 0.25..0.3,
+            });
+            UpgradeKind::EvenOddTowerAttackSpeedPlus { even, speed_plus }
+        }
+        UpgradeCandidate::EvenOddTowerAttackSpeedMultiply => {
+            let even = thread_rng().gen_bool(0.5);
+            let speed_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.15,
+                Rarity::Rare => 1.15..1.2,
+                Rarity::Epic => 1.2..1.25,
+                Rarity::Legendary => 1.25..1.3,
+            });
+            UpgradeKind::EvenOddTowerAttackSpeedMultiply {
+                even,
+                speed_multiplier,
+            }
+        }
+        UpgradeCandidate::EvenOddTowerAttackRangePlus => {
+            let even = thread_rng().gen_bool(0.5);
+            let range_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.15,
+                Rarity::Rare => 1.15..1.2,
+                Rarity::Epic => 1.2..1.25,
+                Rarity::Legendary => 1.25..1.3,
+            });
+            UpgradeKind::EvenOddTowerAttackRangePlus { even, range_plus }
+        }
         UpgradeCandidate::FaceNumberCardTowerAttackDamagePlus => todo!(),
         UpgradeCandidate::FaceNumberCardTowerAttackDamageMultiply => todo!(),
         UpgradeCandidate::FaceNumberCardTowerAttackSpeedPlus => todo!(),
@@ -753,14 +804,59 @@ fn generate_upgrade_candidate_table(
     );
 
     // EvenOddTowerAttackDamagePlus
+    candidate_table_push(
+        UpgradeCandidate::EvenOddTowerAttackDamagePlus,
+        usize::MIN,
+        usize::MAX,
+        30,
+        40,
+        50,
+        100,
+    );
 
     // EvenOddTowerAttackDamageMultiply
+    candidate_table_push(
+        UpgradeCandidate::EvenOddTowerAttackDamageMultiply,
+        usize::MIN,
+        usize::MAX,
+        15,
+        20,
+        25,
+        50,
+    );
 
     // EvenOddTowerAttackSpeedPlus
+    candidate_table_push(
+        UpgradeCandidate::EvenOddTowerAttackSpeedPlus,
+        usize::MIN,
+        usize::MAX,
+        20,
+        30,
+        40,
+        80,
+    );
 
     // EvenOddTowerAttackSpeedMultiply
+    candidate_table_push(
+        UpgradeCandidate::EvenOddTowerAttackSpeedMultiply,
+        usize::MIN,
+        usize::MAX,
+        10,
+        15,
+        20,
+        40,
+    );
 
     // EvenOddTowerAttackRangePlus
+    candidate_table_push(
+        UpgradeCandidate::EvenOddTowerAttackRangePlus,
+        usize::MIN,
+        usize::MAX,
+        1,
+        5,
+        10,
+        20,
+    );
 
     // FaceNumberCardTowerAttackDamagePlus
 

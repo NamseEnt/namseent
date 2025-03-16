@@ -302,11 +302,48 @@ impl UpgradeState {
                     TowerUpgrade::RangePlus { range: range_plus },
                 );
             }
-            UpgradeKind::EvenOddTowerAttackDamagePlus { .. } => todo!(),
-            UpgradeKind::EvenOddTowerAttackDamageMultiply { .. } => todo!(),
-            UpgradeKind::EvenOddTowerAttackSpeedPlus { .. } => todo!(),
-            UpgradeKind::EvenOddTowerAttackSpeedMultiply { .. } => todo!(),
-            UpgradeKind::EvenOddTowerAttackRangePlus { .. } => todo!(),
+            UpgradeKind::EvenOddTowerAttackDamagePlus { even, damage_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::EvenOdd { even },
+                    TowerUpgrade::DamagePlus {
+                        damage: damage_plus,
+                    },
+                );
+            }
+            UpgradeKind::EvenOddTowerAttackDamageMultiply {
+                even,
+                damage_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::EvenOdd { even },
+                    TowerUpgrade::DamageMultiplier {
+                        multiplier: damage_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::EvenOddTowerAttackSpeedPlus { even, speed_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::EvenOdd { even },
+                    TowerUpgrade::SpeedPlus { speed: speed_plus },
+                );
+            }
+            UpgradeKind::EvenOddTowerAttackSpeedMultiply {
+                even,
+                speed_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::EvenOdd { even },
+                    TowerUpgrade::SpeedMultiplier {
+                        multiplier: speed_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::EvenOddTowerAttackRangePlus { even, range_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::EvenOdd { even },
+                    TowerUpgrade::RangePlus { range: range_plus },
+                );
+            }
             UpgradeKind::FaceNumberCardTowerAttackDamagePlus { .. } => todo!(),
             UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { .. } => todo!(),
             UpgradeKind::FaceNumberCardTowerAttackSpeedPlus { .. } => todo!(),
@@ -326,6 +363,12 @@ impl UpgradeState {
         [
             TowerUpgradeTarget::Rank { rank: tower.rank },
             TowerUpgradeTarget::Suit { suit: tower.suit },
+            TowerUpgradeTarget::TowerKind {
+                tower_kind: tower.kind,
+            },
+            TowerUpgradeTarget::EvenOdd {
+                even: tower.rank.is_even(),
+            },
         ]
         .iter()
         .map(|target| {
@@ -455,18 +498,23 @@ pub enum UpgradeKind {
         range_plus: f32,
     },
     EvenOddTowerAttackDamagePlus {
+        even: bool,
         damage_plus: f32,
     },
     EvenOddTowerAttackDamageMultiply {
+        even: bool,
         damage_multiplier: f32,
     },
     EvenOddTowerAttackSpeedPlus {
+        even: bool,
         speed_plus: f32,
     },
     EvenOddTowerAttackSpeedMultiply {
+        even: bool,
         speed_multiplier: f32,
     },
     EvenOddTowerAttackRangePlus {
+        even: bool,
         range_plus: f32,
     },
     FaceNumberCardTowerAttackDamagePlus {
@@ -509,6 +557,7 @@ pub enum TowerUpgradeTarget {
     Rank { rank: Rank },
     Suit { suit: Suit },
     TowerKind { tower_kind: TowerKind },
+    EvenOdd { even: bool },
 }
 #[derive(Debug, Clone, Copy)]
 pub enum TowerUpgrade {

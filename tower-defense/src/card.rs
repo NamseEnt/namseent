@@ -45,6 +45,12 @@ impl Rank {
             Rank::Ace => 15,
         }
     }
+    pub fn is_even(&self) -> bool {
+        match self {
+            Rank::Ace | Rank::Seven | Rank::Nine | Rank::Jack | Rank::King => false,
+            Rank::Eight | Rank::Ten | Rank::Queen => true,
+        }
+    }
 }
 impl Display for Rank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
