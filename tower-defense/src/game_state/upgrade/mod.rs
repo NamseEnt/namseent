@@ -27,6 +27,7 @@ pub struct UpgradeState {
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
     pub tower_select_upgrade_states: BTreeMap<TowerSelectUpgradeTarget, TowerUpgradeState>,
     pub shop_item_price_minus: usize,
+    pub max_shop_refresh: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -249,7 +250,12 @@ impl UpgradeState {
                     self.shop_item_price_minus
                 ),
             },
-            UpgradeKind::ShopRefreshPlus => todo!(),
+            UpgradeKind::ShopRefreshPlus => match self.max_shop_refresh {
+                0 => self.max_shop_refresh = 1,
+                1 => self.max_shop_refresh = 2,
+                2 => self.max_shop_refresh = 3,
+                _ => unreachable!("Invalid shop refresh upgrade: {}", self.max_shop_refresh),
+            },
             UpgradeKind::QuestBoardRefreshPlus => todo!(),
             UpgradeKind::NoRerollTowerAttackDamagePlus { .. } => todo!(),
             UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => todo!(),

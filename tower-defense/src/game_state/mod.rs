@@ -72,6 +72,7 @@ pub struct GameState {
     pub shield: f32,
     pub user_status_effects: Vec<UserStatusEffect>,
     pub field_area_effects: Vec<FieldAreaEffect>,
+    pub left_shop_refresh_chance: usize,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -142,6 +143,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             shield: 0.0,
             user_status_effects: Default::default(),
             field_area_effects: Default::default(),
+            left_shop_refresh_chance: 0,
         };
 
         game_state.goto_selecting_tower();

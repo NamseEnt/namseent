@@ -1,14 +1,13 @@
 use super::{
     GameState,
-    item::generate_items,
+    item::{generate_items, item_cost},
     monster_spawn::start_spawn,
     quest::generate_quests,
     tower::TowerTemplate,
     upgrade::{Upgrade, generate_upgrades_for_boss_reward},
 };
 use crate::{
-    card::Card, quest_board::QuestBoardSlot, rarity::Rarity, shop::ShopSlot,
-    tower_placing_hand::PlacingTowerSlot,
+    card::Card, quest_board::QuestBoardSlot, shop::ShopSlot, tower_placing_hand::PlacingTowerSlot,
 };
 
 #[derive(Clone)]
@@ -55,17 +54,13 @@ impl GameState {
         }
     }
     fn renew_shop(&mut self) {
+        self.left_shop_refresh_chance = self.upgrade_state.max_shop_refresh;
         let items = generate_items(self, self.max_shop_slot);
         for slot in self.shop_slots.iter_mut() {
             *slot = ShopSlot::Locked;
         }
         for (slot, item) in self.shop_slots.iter_mut().zip(items.into_iter()) {
-            let cost = match item.rarity {
-                Rarity::Common => 25,
-                Rarity::Rare => 50,
-                Rarity::Epic => 100,
-                Rarity::Legendary => 250,
-            } - self.upgrade_state.shop_item_price_minus;
+            let cost = item_cost(&item.rarity, self.upgrade_state.shop_item_price_minus);
             *slot = ShopSlot::Item {
                 item,
                 cost,
