@@ -210,6 +210,9 @@ fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
             TowerUpgradeTarget::EvenOdd { even } => {
                 format!("{} 타워의", if *even { "짝수" } else { "홀수" })
             }
+            TowerUpgradeTarget::FaceNumber { face } => {
+                format!("{} 타워의", if *face { "그림" } else { "숫자" })
+            }
         };
         if tower_upgrade_state.damage_plus != 0.0 {
             texts.push(format!(

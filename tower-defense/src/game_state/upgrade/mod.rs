@@ -344,11 +344,48 @@ impl UpgradeState {
                     TowerUpgrade::RangePlus { range: range_plus },
                 );
             }
-            UpgradeKind::FaceNumberCardTowerAttackDamagePlus { .. } => todo!(),
-            UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { .. } => todo!(),
-            UpgradeKind::FaceNumberCardTowerAttackSpeedPlus { .. } => todo!(),
-            UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply { .. } => todo!(),
-            UpgradeKind::FaceNumberCardTowerAttackRangePlus { .. } => todo!(),
+            UpgradeKind::FaceNumberCardTowerAttackDamagePlus { face, damage_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::FaceNumber { face },
+                    TowerUpgrade::DamagePlus {
+                        damage: damage_plus,
+                    },
+                );
+            }
+            UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
+                face,
+                damage_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::FaceNumber { face },
+                    TowerUpgrade::DamageMultiplier {
+                        multiplier: damage_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::FaceNumberCardTowerAttackSpeedPlus { face, speed_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::FaceNumber { face },
+                    TowerUpgrade::SpeedPlus { speed: speed_plus },
+                );
+            }
+            UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply {
+                face,
+                speed_multiplier,
+            } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::FaceNumber { face },
+                    TowerUpgrade::SpeedMultiplier {
+                        multiplier: speed_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::FaceNumberCardTowerAttackRangePlus { face, range_plus } => {
+                self.apply_tower_upgrade(
+                    TowerUpgradeTarget::FaceNumber { face },
+                    TowerUpgrade::RangePlus { range: range_plus },
+                );
+            }
             UpgradeKind::ShortenStraightFlushTo4Cards => todo!(),
             UpgradeKind::SkipRankForStraight => todo!(),
             UpgradeKind::TreatSuitsAsSame => todo!(),
@@ -368,6 +405,9 @@ impl UpgradeState {
             },
             TowerUpgradeTarget::EvenOdd {
                 even: tower.rank.is_even(),
+            },
+            TowerUpgradeTarget::FaceNumber {
+                face: tower.rank.is_face(),
             },
         ]
         .iter()
@@ -518,18 +558,23 @@ pub enum UpgradeKind {
         range_plus: f32,
     },
     FaceNumberCardTowerAttackDamagePlus {
+        face: bool,
         damage_plus: f32,
     },
     FaceNumberCardTowerAttackDamageMultiply {
+        face: bool,
         damage_multiplier: f32,
     },
     FaceNumberCardTowerAttackSpeedPlus {
+        face: bool,
         speed_plus: f32,
     },
     FaceNumberCardTowerAttackSpeedMultiply {
+        face: bool,
         speed_multiplier: f32,
     },
     FaceNumberCardTowerAttackRangePlus {
+        face: bool,
         range_plus: f32,
     },
     ShortenStraightFlushTo4Cards,
@@ -558,6 +603,7 @@ pub enum TowerUpgradeTarget {
     Suit { suit: Suit },
     TowerKind { tower_kind: TowerKind },
     EvenOdd { even: bool },
+    FaceNumber { face: bool },
 }
 #[derive(Debug, Clone, Copy)]
 pub enum TowerUpgrade {

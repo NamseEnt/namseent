@@ -376,11 +376,62 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
             });
             UpgradeKind::EvenOddTowerAttackRangePlus { even, range_plus }
         }
-        UpgradeCandidate::FaceNumberCardTowerAttackDamagePlus => todo!(),
-        UpgradeCandidate::FaceNumberCardTowerAttackDamageMultiply => todo!(),
-        UpgradeCandidate::FaceNumberCardTowerAttackSpeedPlus => todo!(),
-        UpgradeCandidate::FaceNumberCardTowerAttackSpeedMultiply => todo!(),
-        UpgradeCandidate::FaceNumberCardTowerAttackRangePlus => todo!(),
+        UpgradeCandidate::FaceNumberCardTowerAttackDamagePlus => {
+            let face = thread_rng().gen_bool(0.5);
+            let damage_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.0..3.0,
+                Rarity::Rare => 3.0..6.0,
+                Rarity::Epic => 6.0..10.0,
+                Rarity::Legendary => 10.0..20.0,
+            });
+            UpgradeKind::FaceNumberCardTowerAttackDamagePlus { face, damage_plus }
+        }
+        UpgradeCandidate::FaceNumberCardTowerAttackDamageMultiply => {
+            let face = thread_rng().gen_bool(0.5);
+            let damage_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.2,
+                Rarity::Rare => 1.2..1.4,
+                Rarity::Epic => 1.4..1.5,
+                Rarity::Legendary => 1.5..1.6,
+            });
+            UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
+                face,
+                damage_multiplier,
+            }
+        }
+        UpgradeCandidate::FaceNumberCardTowerAttackSpeedPlus => {
+            let face = thread_rng().gen_bool(0.5);
+            let speed_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 0.1..0.15,
+                Rarity::Rare => 0.15..0.2,
+                Rarity::Epic => 0.2..0.25,
+                Rarity::Legendary => 0.25..0.3,
+            });
+            UpgradeKind::FaceNumberCardTowerAttackSpeedPlus { face, speed_plus }
+        }
+        UpgradeCandidate::FaceNumberCardTowerAttackSpeedMultiply => {
+            let face = thread_rng().gen_bool(0.5);
+            let speed_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.15,
+                Rarity::Rare => 1.15..1.2,
+                Rarity::Epic => 1.2..1.25,
+                Rarity::Legendary => 1.25..1.3,
+            });
+            UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply {
+                face,
+                speed_multiplier,
+            }
+        }
+        UpgradeCandidate::FaceNumberCardTowerAttackRangePlus => {
+            let face = thread_rng().gen_bool(0.5);
+            let range_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.15,
+                Rarity::Rare => 1.15..1.2,
+                Rarity::Epic => 1.2..1.25,
+                Rarity::Legendary => 1.25..1.3,
+            });
+            UpgradeKind::FaceNumberCardTowerAttackRangePlus { face, range_plus }
+        }
         UpgradeCandidate::ShortenStraightFlushTo4Cards => todo!(),
         UpgradeCandidate::SkipRankForStraight => todo!(),
         UpgradeCandidate::TreatSuitsAsSame => todo!(),
@@ -859,14 +910,59 @@ fn generate_upgrade_candidate_table(
     );
 
     // FaceNumberCardTowerAttackDamagePlus
+    candidate_table_push(
+        UpgradeCandidate::FaceNumberCardTowerAttackDamagePlus,
+        usize::MIN,
+        usize::MAX,
+        30,
+        40,
+        50,
+        100,
+    );
 
     // FaceNumberCardTowerAttackDamageMultiply
+    candidate_table_push(
+        UpgradeCandidate::FaceNumberCardTowerAttackDamageMultiply,
+        usize::MIN,
+        usize::MAX,
+        15,
+        20,
+        25,
+        50,
+    );
 
     // FaceNumberCardTowerAttackSpeedPlus
+    candidate_table_push(
+        UpgradeCandidate::FaceNumberCardTowerAttackSpeedPlus,
+        usize::MIN,
+        usize::MAX,
+        20,
+        30,
+        40,
+        80,
+    );
 
     // FaceNumberCardTowerAttackSpeedMultiply
+    candidate_table_push(
+        UpgradeCandidate::FaceNumberCardTowerAttackSpeedMultiply,
+        usize::MIN,
+        usize::MAX,
+        10,
+        15,
+        20,
+        40,
+    );
 
     // FaceNumberCardTowerAttackRangePlus
+    candidate_table_push(
+        UpgradeCandidate::FaceNumberCardTowerAttackRangePlus,
+        usize::MIN,
+        usize::MAX,
+        1,
+        5,
+        10,
+        20,
+    );
 
     // ShortenStraightFlushTo4Cards
 

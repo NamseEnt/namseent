@@ -51,6 +51,12 @@ impl Rank {
             Rank::Eight | Rank::Ten | Rank::Queen => true,
         }
     }
+    pub fn is_face(&self) -> bool {
+        match self {
+            Rank::Jack | Rank::Queen | Rank::King => true,
+            _ => false,
+        }
+    }
 }
 impl Display for Rank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
