@@ -200,7 +200,7 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
                 tower.default_status_effects.push(upgrade_effect);
             }
 
-            if upgrade.damage_multiplier > 0.0 {
+            if upgrade.damage_multiplier > 1.0 {
                 let upgrade_effect = TowerStatusEffect {
                     kind: TowerStatusEffectKind::DamageMul {
                         mul: upgrade.damage_multiplier as f32,
@@ -220,7 +220,7 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
                 tower.default_status_effects.push(upgrade_effect);
             }
 
-            if upgrade.speed_multiplier > 0.0 {
+            if upgrade.speed_multiplier > 1.0 {
                 let upgrade_effect = TowerStatusEffect {
                     kind: TowerStatusEffectKind::AttackSpeedMul {
                         mul: upgrade.speed_multiplier as f32,
