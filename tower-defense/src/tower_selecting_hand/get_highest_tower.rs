@@ -14,15 +14,15 @@ use namui::{DurationExt, Per};
 use std::collections::HashMap;
 
 pub fn get_highest_tower_template(cards: &[Card], game_state: &GameState) -> TowerTemplate {
-    let mut highest_tower = highest_tower(cards);
+    let mut highest_tower = highest_tower(cards, game_state);
     inject_skills(&mut highest_tower);
     inject_status_effects(&mut highest_tower, game_state);
     highest_tower
 }
 
-fn highest_tower(cards: &[Card]) -> TowerTemplate {
-    let straight_result = check_straight(cards);
-    let flush_result = check_flush(cards);
+fn highest_tower(cards: &[Card], game_state: &GameState) -> TowerTemplate {
+    let straight_result = check_straight(cards, game_state);
+    let flush_result = check_flush(cards, game_state);
 
     if let (Some(straight_result), Some(flush_result)) = (&straight_result, &flush_result) {
         if straight_result.royal {
@@ -262,8 +262,13 @@ struct StraightResult {
     royal: bool,
     top: Card,
 }
-fn check_straight(cards: &[Card]) -> Option<StraightResult> {
-    if cards.len() != 5 {
+fn check_straight(cards: &[Card], game_state: &GameState) -> Option<StraightResult> {
+    let straight_card_count = match game_state.upgrade_state.shorten_straight_flush_to_4_cards {
+        true => 4,
+        false => 5,
+    };
+
+    if cards.len() < straight_card_count {
         return None;
     }
 
@@ -278,10 +283,12 @@ fn check_straight(cards: &[Card]) -> Option<StraightResult> {
         })
         .collect::<Vec<_>>();
     cards_ace_as_high.sort_by(|a, b| a.0.cmp(&b.0));
-    let straight = check_rank(&cards_ace_as_high);
+    let straight = check_rank(&cards_ace_as_high, straight_card_count);
     if straight {
         return Some(StraightResult {
-            royal: true,
+            royal: cards_ace_as_high
+                .iter()
+                .any(|(rank, _)| *rank == Rank::Ace as usize),
             top: *cards_ace_as_high.last().unwrap().1,
         });
     }
@@ -291,7 +298,7 @@ fn check_straight(cards: &[Card]) -> Option<StraightResult> {
         .map(|card| (card.rank as usize, card))
         .collect::<Vec<_>>();
     cards_ace_as_low.sort_by(|a, b| a.0.cmp(&b.0));
-    let straight = check_rank(&cards_ace_as_low);
+    let straight = check_rank(&cards_ace_as_low, straight_card_count);
     if straight {
         return Some(StraightResult {
             royal: false,
@@ -301,32 +308,48 @@ fn check_straight(cards: &[Card]) -> Option<StraightResult> {
 
     return None;
 
-    fn check_rank(cards: &[(usize, &Card)]) -> bool {
-        let mut prev = cards[0];
-        for (rank, card) in cards.iter().skip(1) {
-            if *rank != prev.0 + 1 {
-                return false;
+    fn check_rank(cards: &[(usize, &Card)], straight_card_count: usize) -> bool {
+        let mut count = 1;
+        for i in 1..cards.len() {
+            if cards[i].0 == cards[i - 1].0 + 1 {
+                count += 1;
+                if count == straight_card_count {
+                    return true;
+                }
+            } else {
+                count = 1;
             }
-            prev = (*rank, card);
         }
-        true
+        false
     }
 }
 
 struct FlushResult {
     suit: Suit,
 }
-fn check_flush(cards: &[Card]) -> Option<FlushResult> {
-    if cards.len() != 5 {
+fn check_flush(cards: &[Card], game_state: &GameState) -> Option<FlushResult> {
+    let flush_card_count = match game_state.upgrade_state.shorten_straight_flush_to_4_cards {
+        true => 4,
+        false => 5,
+    };
+
+    if cards.len() < flush_card_count {
         return None;
     }
-    let suit = cards[0].suit;
-    for card in cards.iter().skip(1) {
-        if card.suit != suit {
-            return None;
+
+    let mut suit_map = HashMap::new();
+    for card in cards {
+        suit_map
+            .entry(card.suit)
+            .or_insert_with(Vec::new)
+            .push(card);
+    }
+    for (suit, cards) in suit_map {
+        if cards.len() >= flush_card_count {
+            return Some(FlushResult { suit });
         }
     }
-    Some(FlushResult { suit })
+    None
 }
 
 fn count_rank(cards: &[Card]) -> HashMap<Rank, Vec<Card>> {

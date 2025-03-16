@@ -432,7 +432,7 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
             });
             UpgradeKind::FaceNumberCardTowerAttackRangePlus { face, range_plus }
         }
-        UpgradeCandidate::ShortenStraightFlushTo4Cards => todo!(),
+        UpgradeCandidate::ShortenStraightFlushTo4Cards => UpgradeKind::ShortenStraightFlushTo4Cards,
         UpgradeCandidate::SkipRankForStraight => todo!(),
         UpgradeCandidate::TreatSuitsAsSame => todo!(),
         UpgradeCandidate::RerollTowerAttackDamagePlus => todo!(),
@@ -965,6 +965,15 @@ fn generate_upgrade_candidate_table(
     );
 
     // ShortenStraightFlushTo4Cards
+    candidate_table_push(
+        UpgradeCandidate::ShortenStraightFlushTo4Cards,
+        game_state.upgrade_state.shorten_straight_flush_to_4_cards as usize,
+        1,
+        0,
+        5,
+        15,
+        25,
+    );
 
     // SkipRankForStraight
 

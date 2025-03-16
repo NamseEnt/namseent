@@ -29,6 +29,7 @@ pub struct UpgradeState {
     pub shop_item_price_minus: usize,
     pub max_shop_refresh: usize,
     pub max_quest_board_refresh: usize,
+    pub shorten_straight_flush_to_4_cards: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
