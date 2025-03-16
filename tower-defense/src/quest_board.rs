@@ -1,6 +1,6 @@
 use crate::{
     game_state::{
-        mutate_game_state,
+        MAX_INVENTORY_SLOT, mutate_game_state,
         quest::{Quest, generate_quests},
         use_game_state,
     },
@@ -59,7 +59,7 @@ impl Component for QuestBoardModal {
                     panic!("Invalid shop slot");
                 };
 
-                assert!(state.items.len() <= state.max_shop_slot);
+                assert!(state.items.len() <= MAX_INVENTORY_SLOT);
                 assert!(!*accepted);
 
                 state.quests.push(quest.clone());
@@ -135,7 +135,7 @@ impl Component for QuestBoard<'_> {
         let refresh_quest_board = || {
             mutate_game_state(|game_state| {
                 game_state.left_quest_board_refresh_chance -= 1;
-                let quests = generate_quests(game_state, game_state.max_quest_board_slot);
+                let quests = generate_quests(game_state, game_state.max_quest_board_slot());
                 for (slot, quest) in game_state
                     .quest_board_slots
                     .iter_mut()

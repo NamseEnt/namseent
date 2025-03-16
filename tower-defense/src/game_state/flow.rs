@@ -41,7 +41,7 @@ impl GameFlow {
 impl GameState {
     pub fn goto_selecting_tower(&mut self) {
         self.flow = GameFlow::new_selecting_tower();
-        self.left_reroll_chance = 1 + self.upgrade_state.reroll_count_plus;
+        self.left_reroll_chance = self.max_reroll_chance();
         self.shield = 0.0;
 
         match self.in_even_stage() {
@@ -54,8 +54,8 @@ impl GameState {
         }
     }
     fn renew_shop(&mut self) {
-        self.left_shop_refresh_chance = self.upgrade_state.max_shop_refresh;
-        let items = generate_items(self, self.max_shop_slot);
+        self.left_shop_refresh_chance = self.max_shop_refresh_chance();
+        let items = generate_items(self, self.max_shop_slot());
         for slot in self.shop_slots.iter_mut() {
             *slot = ShopSlot::Locked;
         }
@@ -69,8 +69,8 @@ impl GameState {
         }
     }
     fn renew_quest_board(&mut self) {
-        self.left_quest_board_refresh_chance = self.upgrade_state.max_quest_board_refresh;
-        let quests = generate_quests(self, self.max_quest_board_slot);
+        self.left_quest_board_refresh_chance = self.max_quest_board_refresh_chance();
+        let quests = generate_quests(self, self.max_quest_board_slot());
         for slot in self.quest_board_slots.iter_mut() {
             *slot = QuestBoardSlot::Locked;
         }

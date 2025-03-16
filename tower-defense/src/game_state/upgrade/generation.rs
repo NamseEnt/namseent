@@ -1,6 +1,7 @@
 use super::{
-    MAX_QUEST_BOARD_SLOT_UPGRADE, MAX_QUEST_SLOT_UPGRADE, MAX_REROLL_UPGRADE,
-    MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE, MAX_SHOP_SLOT_UPGRADE, Upgrade, UpgradeKind,
+    MAX_GOLD_EARN_PLUS, MAX_QUEST_BOARD_REFRESH_CHANCE_PLUS, MAX_QUEST_BOARD_SLOT_EXPAND,
+    MAX_QUEST_SLOT_EXPAND, MAX_REROLL_CHANCE_PLUS, MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
+    MAX_SHOP_REFRESH_CHANCE_PLUS, MAX_SHOP_SLOT_EXPAND, Upgrade, UpgradeKind,
 };
 use crate::{
     card::{REVERSED_RANKS, SUITS},
@@ -535,7 +536,7 @@ fn generate_upgrade_candidate_table(
     candidate_table_push(
         UpgradeCandidate::GoldEarnPlus,
         game_state.upgrade_state.gold_earn_plus,
-        5,
+        MAX_GOLD_EARN_PLUS,
         10,
         50,
         50,
@@ -710,8 +711,8 @@ fn generate_upgrade_candidate_table(
     // ShopSlotExpansion
     candidate_table_push(
         UpgradeCandidate::ShopSlotExpansion,
-        game_state.upgrade_state.shop_slot,
-        MAX_SHOP_SLOT_UPGRADE,
+        game_state.upgrade_state.shop_slot_expand,
+        MAX_SHOP_SLOT_EXPAND,
         10,
         50,
         50,
@@ -721,8 +722,8 @@ fn generate_upgrade_candidate_table(
     // QuestSlotExpansion
     candidate_table_push(
         UpgradeCandidate::QuestSlotExpansion,
-        game_state.upgrade_state.quest_slot,
-        MAX_QUEST_SLOT_UPGRADE,
+        game_state.upgrade_state.quest_slot_expand,
+        MAX_QUEST_SLOT_EXPAND,
         10,
         50,
         50,
@@ -732,8 +733,8 @@ fn generate_upgrade_candidate_table(
     // QuestBoardExpansion
     candidate_table_push(
         UpgradeCandidate::QuestBoardExpansion,
-        game_state.upgrade_state.quest_board_slot,
-        MAX_QUEST_BOARD_SLOT_UPGRADE,
+        game_state.upgrade_state.quest_board_slot_expand,
+        MAX_QUEST_BOARD_SLOT_EXPAND,
         10,
         50,
         50,
@@ -743,8 +744,8 @@ fn generate_upgrade_candidate_table(
     // RerollCountPlus
     candidate_table_push(
         UpgradeCandidate::RerollCountPlus,
-        game_state.upgrade_state.reroll_count_plus,
-        MAX_REROLL_UPGRADE,
+        game_state.upgrade_state.reroll_chance_plus,
+        MAX_REROLL_CHANCE_PLUS,
         5,
         10,
         50,
@@ -820,8 +821,8 @@ fn generate_upgrade_candidate_table(
     // ShopRefreshPlus
     candidate_table_push(
         UpgradeCandidate::ShopRefreshPlus,
-        game_state.upgrade_state.max_shop_refresh,
-        3,
+        game_state.upgrade_state.shop_refresh_chance_plus,
+        MAX_SHOP_REFRESH_CHANCE_PLUS,
         10,
         50,
         50,
@@ -831,8 +832,8 @@ fn generate_upgrade_candidate_table(
     // QuestBoardRefreshPlus
     candidate_table_push(
         UpgradeCandidate::QuestBoardRefreshPlus,
-        game_state.upgrade_state.max_quest_board_refresh,
-        3,
+        game_state.upgrade_state.quest_board_refresh_chance_plus,
+        MAX_QUEST_BOARD_REFRESH_CHANCE_PLUS,
         10,
         50,
         50,

@@ -246,8 +246,7 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
         }
     }
 
-    let reroll_count =
-        (game_state.upgrade_state.reroll_count_plus + 1) - game_state.left_reroll_chance;
+    let reroll_count = game_state.max_reroll_chance() - game_state.left_reroll_chance;
     if reroll_count == 0 {
         if let Some(upgrade) = game_state
             .upgrade_state
