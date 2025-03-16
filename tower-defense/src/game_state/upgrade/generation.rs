@@ -275,11 +275,51 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::ShopItemPriceMinus => UpgradeKind::ShopItemPriceMinus,
         UpgradeCandidate::ShopRefreshPlus => UpgradeKind::ShopRefreshPlus,
         UpgradeCandidate::QuestBoardRefreshPlus => UpgradeKind::QuestBoardRefreshPlus,
-        UpgradeCandidate::NoRerollTowerAttackDamagePlus => todo!(),
-        UpgradeCandidate::NoRerollTowerAttackDamageMultiply => todo!(),
-        UpgradeCandidate::NoRerollTowerAttackSpeedPlus => todo!(),
-        UpgradeCandidate::NoRerollTowerAttackSpeedMultiply => todo!(),
-        UpgradeCandidate::NoRerollTowerAttackRangePlus => todo!(),
+        UpgradeCandidate::NoRerollTowerAttackDamagePlus => {
+            let damage_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.0..5.0,
+                Rarity::Rare => 5.0..10.0,
+                Rarity::Epic => 15.0..30.0,
+                Rarity::Legendary => 30.0..75.0,
+            });
+            UpgradeKind::NoRerollTowerAttackDamagePlus { damage_plus }
+        }
+        UpgradeCandidate::NoRerollTowerAttackDamageMultiply => {
+            let damage_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.2,
+                Rarity::Rare => 1.2..1.4,
+                Rarity::Epic => 1.4..1.55,
+                Rarity::Legendary => 1.55..1.8,
+            });
+            UpgradeKind::NoRerollTowerAttackDamageMultiply { damage_multiplier }
+        }
+        UpgradeCandidate::NoRerollTowerAttackSpeedPlus => {
+            let speed_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 0.1..0.2,
+                Rarity::Rare => 0.2..0.45,
+                Rarity::Epic => 0.45..0.7,
+                Rarity::Legendary => 0.7..0.85,
+            });
+            UpgradeKind::NoRerollTowerAttackSpeedPlus { speed_plus }
+        }
+        UpgradeCandidate::NoRerollTowerAttackSpeedMultiply => {
+            let speed_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.2,
+                Rarity::Rare => 1.2..1.45,
+                Rarity::Epic => 1.45..1.7,
+                Rarity::Legendary => 1.7..1.85,
+            });
+            UpgradeKind::NoRerollTowerAttackSpeedMultiply { speed_multiplier }
+        }
+        UpgradeCandidate::NoRerollTowerAttackRangePlus => {
+            let range_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.2,
+                Rarity::Rare => 1.2..1.45,
+                Rarity::Epic => 1.45..1.7,
+                Rarity::Legendary => 1.7..1.85,
+            });
+            UpgradeKind::NoRerollTowerAttackRangePlus { range_plus }
+        }
         UpgradeCandidate::EvenOddTowerAttackDamagePlus => todo!(),
         UpgradeCandidate::EvenOddTowerAttackDamageMultiply => todo!(),
         UpgradeCandidate::EvenOddTowerAttackSpeedPlus => todo!(),
@@ -658,14 +698,59 @@ fn generate_upgrade_candidate_table(
     );
 
     // NoRerollTowerAttackDamagePlus
+    candidate_table_push(
+        UpgradeCandidate::NoRerollTowerAttackDamagePlus,
+        usize::MIN,
+        usize::MAX,
+        40,
+        50,
+        100,
+        100,
+    );
 
     // NoRerollTowerAttackDamageMultiply
+    candidate_table_push(
+        UpgradeCandidate::NoRerollTowerAttackDamageMultiply,
+        usize::MIN,
+        usize::MAX,
+        20,
+        25,
+        50,
+        50,
+    );
 
     // NoRerollTowerAttackSpeedPlus
+    candidate_table_push(
+        UpgradeCandidate::NoRerollTowerAttackSpeedPlus,
+        usize::MIN,
+        usize::MAX,
+        30,
+        40,
+        80,
+        80,
+    );
 
     // NoRerollTowerAttackSpeedMultiply
+    candidate_table_push(
+        UpgradeCandidate::NoRerollTowerAttackSpeedMultiply,
+        usize::MIN,
+        usize::MAX,
+        15,
+        20,
+        40,
+        40,
+    );
 
     // NoRerollTowerAttackRangePlus
+    candidate_table_push(
+        UpgradeCandidate::NoRerollTowerAttackRangePlus,
+        usize::MIN,
+        usize::MAX,
+        5,
+        10,
+        20,
+        20,
+    );
 
     // EvenOddTowerAttackDamagePlus
 

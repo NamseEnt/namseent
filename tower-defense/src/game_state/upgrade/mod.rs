@@ -266,11 +266,42 @@ impl UpgradeState {
                     self.max_quest_board_refresh
                 ),
             },
-            UpgradeKind::NoRerollTowerAttackDamagePlus { .. } => todo!(),
-            UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => todo!(),
-            UpgradeKind::NoRerollTowerAttackSpeedPlus { .. } => todo!(),
-            UpgradeKind::NoRerollTowerAttackSpeedMultiply { .. } => todo!(),
-            UpgradeKind::NoRerollTowerAttackRangePlus { .. } => todo!(),
+            UpgradeKind::NoRerollTowerAttackDamagePlus { damage_plus } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::NoReroll,
+                    TowerUpgrade::DamagePlus {
+                        damage: damage_plus,
+                    },
+                );
+            }
+            UpgradeKind::NoRerollTowerAttackDamageMultiply { damage_multiplier } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::NoReroll,
+                    TowerUpgrade::DamageMultiplier {
+                        multiplier: damage_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::NoRerollTowerAttackSpeedPlus { speed_plus } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::NoReroll,
+                    TowerUpgrade::SpeedPlus { speed: speed_plus },
+                );
+            }
+            UpgradeKind::NoRerollTowerAttackSpeedMultiply { speed_multiplier } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::NoReroll,
+                    TowerUpgrade::SpeedMultiplier {
+                        multiplier: speed_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::NoRerollTowerAttackRangePlus { range_plus } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::NoReroll,
+                    TowerUpgrade::RangePlus { range: range_plus },
+                );
+            }
             UpgradeKind::EvenOddTowerAttackDamagePlus { .. } => todo!(),
             UpgradeKind::EvenOddTowerAttackDamageMultiply { .. } => todo!(),
             UpgradeKind::EvenOddTowerAttackSpeedPlus { .. } => todo!(),
@@ -521,4 +552,5 @@ impl Default for TowerUpgradeState {
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord)]
 pub enum TowerSelectUpgradeTarget {
     LowCard,
+    NoReroll,
 }
