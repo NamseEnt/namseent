@@ -398,11 +398,42 @@ impl UpgradeState {
             UpgradeKind::TreatSuitsAsSame => {
                 self.treat_suits_as_same = true;
             }
-            UpgradeKind::RerollTowerAttackDamagePlus { .. } => todo!(),
-            UpgradeKind::RerollTowerAttackDamageMultiply { .. } => todo!(),
-            UpgradeKind::RerollTowerAttackSpeedPlus { .. } => todo!(),
-            UpgradeKind::RerollTowerAttackSpeedMultiply { .. } => todo!(),
-            UpgradeKind::RerollTowerAttackRangePlus { .. } => todo!(),
+            UpgradeKind::RerollTowerAttackDamagePlus { damage_plus } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::Reroll,
+                    TowerUpgrade::DamagePlus {
+                        damage: damage_plus,
+                    },
+                );
+            }
+            UpgradeKind::RerollTowerAttackDamageMultiply { damage_multiplier } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::Reroll,
+                    TowerUpgrade::DamageMultiplier {
+                        multiplier: damage_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::RerollTowerAttackSpeedPlus { speed_plus } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::Reroll,
+                    TowerUpgrade::SpeedPlus { speed: speed_plus },
+                );
+            }
+            UpgradeKind::RerollTowerAttackSpeedMultiply { speed_multiplier } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::Reroll,
+                    TowerUpgrade::SpeedMultiplier {
+                        multiplier: speed_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::RerollTowerAttackRangePlus { range_plus } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::Reroll,
+                    TowerUpgrade::RangePlus { range: range_plus },
+                );
+            }
         }
     }
     pub fn tower_upgrades(&self, tower: &Tower) -> Vec<TowerUpgradeState> {
@@ -657,4 +688,5 @@ impl Default for TowerUpgradeState {
 pub enum TowerSelectUpgradeTarget {
     LowCard,
     NoReroll,
+    Reroll,
 }

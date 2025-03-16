@@ -435,11 +435,51 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::ShortenStraightFlushTo4Cards => UpgradeKind::ShortenStraightFlushTo4Cards,
         UpgradeCandidate::SkipRankForStraight => UpgradeKind::SkipRankForStraight,
         UpgradeCandidate::TreatSuitsAsSame => UpgradeKind::TreatSuitsAsSame,
-        UpgradeCandidate::RerollTowerAttackDamagePlus => todo!(),
-        UpgradeCandidate::RerollTowerAttackDamageMultiply => todo!(),
-        UpgradeCandidate::RerollTowerAttackSpeedPlus => todo!(),
-        UpgradeCandidate::RerollTowerAttackSpeedMultiply => todo!(),
-        UpgradeCandidate::RerollTowerAttackRangePlus => todo!(),
+        UpgradeCandidate::RerollTowerAttackDamagePlus => {
+            let damage_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.0..3.0,
+                Rarity::Rare => 3.0..7.0,
+                Rarity::Epic => 7.0..25.0,
+                Rarity::Legendary => 25.0..50.0,
+            });
+            UpgradeKind::RerollTowerAttackDamagePlus { damage_plus }
+        }
+        UpgradeCandidate::RerollTowerAttackDamageMultiply => {
+            let damage_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.15,
+                Rarity::Rare => 1.15..1.25,
+                Rarity::Epic => 1.25..1.35,
+                Rarity::Legendary => 1.35..1.5,
+            });
+            UpgradeKind::RerollTowerAttackDamageMultiply { damage_multiplier }
+        }
+        UpgradeCandidate::RerollTowerAttackSpeedPlus => {
+            let speed_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 0.1..0.15,
+                Rarity::Rare => 0.15..0.25,
+                Rarity::Epic => 0.25..0.35,
+                Rarity::Legendary => 0.35..0.5,
+            });
+            UpgradeKind::RerollTowerAttackSpeedPlus { speed_plus }
+        }
+        UpgradeCandidate::RerollTowerAttackSpeedMultiply => {
+            let speed_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.15,
+                Rarity::Rare => 1.15..1.25,
+                Rarity::Epic => 1.25..1.35,
+                Rarity::Legendary => 1.35..1.5,
+            });
+            UpgradeKind::RerollTowerAttackSpeedMultiply { speed_multiplier }
+        }
+        UpgradeCandidate::RerollTowerAttackRangePlus => {
+            let range_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.15,
+                Rarity::Rare => 1.15..1.3,
+                Rarity::Epic => 1.3..1.45,
+                Rarity::Legendary => 1.45..1.7,
+            });
+            UpgradeKind::RerollTowerAttackRangePlus { range_plus }
+        }
     };
 
     Upgrade { kind, rarity }
@@ -998,14 +1038,59 @@ fn generate_upgrade_candidate_table(
     );
 
     // RerollTowerAttackDamagePlus
+    candidate_table_push(
+        UpgradeCandidate::RerollTowerAttackDamagePlus,
+        usize::MIN,
+        usize::MAX,
+        30,
+        40,
+        50,
+        100,
+    );
 
     // RerollTowerAttackDamageMultiply
+    candidate_table_push(
+        UpgradeCandidate::RerollTowerAttackDamageMultiply,
+        usize::MIN,
+        usize::MAX,
+        15,
+        20,
+        25,
+        50,
+    );
 
     // RerollTowerAttackSpeedPlus
+    candidate_table_push(
+        UpgradeCandidate::RerollTowerAttackSpeedPlus,
+        usize::MIN,
+        usize::MAX,
+        20,
+        30,
+        40,
+        80,
+    );
 
     // RerollTowerAttackSpeedMultiply
+    candidate_table_push(
+        UpgradeCandidate::RerollTowerAttackSpeedMultiply,
+        usize::MIN,
+        usize::MAX,
+        10,
+        15,
+        20,
+        40,
+    );
 
     // RerollTowerAttackRangePlus
+    candidate_table_push(
+        UpgradeCandidate::RerollTowerAttackRangePlus,
+        usize::MIN,
+        usize::MAX,
+        1,
+        5,
+        10,
+        20,
+    );
 
     upgrade_candidate_table
 }
