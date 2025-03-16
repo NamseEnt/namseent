@@ -274,7 +274,7 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         }
         UpgradeCandidate::ShopItemPriceMinus => UpgradeKind::ShopItemPriceMinus,
         UpgradeCandidate::ShopRefreshPlus => UpgradeKind::ShopRefreshPlus,
-        UpgradeCandidate::QuestBoardRefreshPlus => todo!(),
+        UpgradeCandidate::QuestBoardRefreshPlus => UpgradeKind::QuestBoardRefreshPlus,
         UpgradeCandidate::NoRerollTowerAttackDamagePlus => todo!(),
         UpgradeCandidate::NoRerollTowerAttackDamageMultiply => todo!(),
         UpgradeCandidate::NoRerollTowerAttackSpeedPlus => todo!(),
@@ -629,10 +629,10 @@ fn generate_upgrade_candidate_table(
         UpgradeCandidate::ShopItemPriceMinus,
         game_state.upgrade_state.shop_item_price_minus,
         MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
-        10,
-        50,
-        50,
-        100,
+        5,
+        5,
+        5,
+        5,
     );
 
     // ShopRefreshPlus
@@ -643,10 +643,19 @@ fn generate_upgrade_candidate_table(
         10,
         50,
         50,
-        100,
+        10,
     );
 
     // QuestBoardRefreshPlus
+    candidate_table_push(
+        UpgradeCandidate::QuestBoardRefreshPlus,
+        game_state.upgrade_state.max_quest_board_refresh,
+        3,
+        10,
+        50,
+        50,
+        10,
+    );
 
     // NoRerollTowerAttackDamagePlus
 

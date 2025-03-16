@@ -140,6 +140,29 @@ impl Component for Shop<'_> {
         let game_state = use_game_state(ctx);
         let disabled = game_state.left_shop_refresh_chance == 0;
 
+        let refresh_shop = || {
+            mutate_game_state(|game_state| {
+                game_state.left_shop_refresh_chance -= 1;
+                let items = generate_items(&game_state, game_state.max_shop_slot);
+                for (slot, item) in game_state.shop_slots.iter_mut().zip(items.into_iter()) {
+                    if let ShopSlot::Item {
+                        item: item_of_slot,
+                        cost: cost_of_slot,
+                        purchased,
+                    } = slot
+                    {
+                        if *purchased {
+                            continue;
+                        }
+                        let cost =
+                            item_cost(&item.rarity, game_state.upgrade_state.shop_item_price_minus);
+                        *cost_of_slot = cost;
+                        *item_of_slot = item.clone();
+                    }
+                }
+            });
+        };
+
         ctx.compose(|ctx| {
             table::padding(
                 PADDING,
@@ -182,36 +205,7 @@ impl Component for Shop<'_> {
                                         if disabled {
                                             return;
                                         }
-                                        mutate_game_state(|game_state| {
-                                            let items = generate_items(
-                                                &game_state,
-                                                game_state.max_shop_slot,
-                                            );
-                                            for (slot, item) in game_state
-                                                .shop_slots
-                                                .iter_mut()
-                                                .zip(items.into_iter())
-                                            {
-                                                if let ShopSlot::Item {
-                                                    item: item_of_slot,
-                                                    cost: cost_of_slot,
-                                                    purchased,
-                                                } = slot
-                                                {
-                                                    if *purchased {
-                                                        continue;
-                                                    }
-                                                    let cost = item_cost(
-                                                        &item.rarity,
-                                                        game_state
-                                                            .upgrade_state
-                                                            .shop_item_price_minus,
-                                                    );
-                                                    *cost_of_slot = cost;
-                                                    *item_of_slot = item.clone();
-                                                }
-                                            }
-                                        });
+                                        refresh_shop();
                                     },
                                 });
                             }),

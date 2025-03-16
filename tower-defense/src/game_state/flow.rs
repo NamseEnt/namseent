@@ -69,6 +69,7 @@ impl GameState {
         }
     }
     fn renew_quest_board(&mut self) {
+        self.left_quest_board_refresh_chance = self.upgrade_state.max_quest_board_refresh;
         let quests = generate_quests(self, self.max_quest_board_slot);
         for slot in self.quest_board_slots.iter_mut() {
             *slot = QuestBoardSlot::Locked;

@@ -1,5 +1,9 @@
 use crate::{
-    game_state::{mutate_game_state, quest::Quest, use_game_state},
+    game_state::{
+        mutate_game_state,
+        quest::{Quest, generate_quests},
+        use_game_state,
+    },
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -17,6 +21,10 @@ const QUEST_BOARD_WH: Wh<Px> = Wh {
 };
 const QUEST_BOARD_BUTTON_WH: Wh<Px> = Wh {
     width: px(128.0),
+    height: px(36.0),
+};
+const QUEST_BOARD_REFRESH_BUTTON_WH: Wh<Px> = Wh {
+    width: px(192.0),
     height: px(36.0),
 };
 const ACCEPTED_LABEL_HEIGHT: Px = px(24.0);
@@ -121,21 +129,79 @@ impl Component for QuestBoard<'_> {
             accept_quest,
         } = self;
 
+        let game_state = use_game_state(ctx);
+        let disabled = game_state.left_quest_board_refresh_chance == 0;
+
+        let refresh_quest_board = || {
+            mutate_game_state(|game_state| {
+                game_state.left_quest_board_refresh_chance -= 1;
+                let quests = generate_quests(game_state, game_state.max_quest_board_slot);
+                for (slot, quest) in game_state
+                    .quest_board_slots
+                    .iter_mut()
+                    .zip(quests.into_iter())
+                {
+                    if let QuestBoardSlot::Quest {
+                        quest: quest_of_slot,
+                        accepted,
+                    } = slot
+                    {
+                        if *accepted {
+                            continue;
+                        }
+                        *quest_of_slot = quest;
+                    }
+                }
+            });
+        };
+
         ctx.compose(|ctx| {
             table::padding(
                 PADDING,
-                table::horizontal(quest_board_slots.iter().enumerate().map(
-                    |(shop_slot_index, shop_slot)| {
-                        table::ratio(1, move |wh, ctx| {
-                            ctx.add(QuestBoardItem {
-                                wh,
-                                quest_board_slot: shop_slot,
-                                quest_board_slot_index: shop_slot_index,
-                                accept_quest,
-                            });
-                        })
-                    },
-                )),
+                table::vertical([
+                    table::ratio(
+                        1,
+                        table::horizontal(quest_board_slots.iter().enumerate().map(
+                            |(shop_slot_index, shop_slot)| {
+                                table::ratio(1, move |wh, ctx| {
+                                    ctx.add(QuestBoardItem {
+                                        wh,
+                                        quest_board_slot: shop_slot,
+                                        quest_board_slot_index: shop_slot_index,
+                                        accept_quest,
+                                    });
+                                })
+                            },
+                        )),
+                    ),
+                    table::fixed(
+                        QUEST_BOARD_REFRESH_BUTTON_WH.height,
+                        table::horizontal([
+                            table::ratio(1, |_, _| {}),
+                            table::fixed(QUEST_BOARD_REFRESH_BUTTON_WH.width, |wh, ctx| {
+                                ctx.add(TextButton {
+                                    rect: wh.to_rect(),
+                                    text: format!(
+                                        "새로고침-{}",
+                                        game_state.left_quest_board_refresh_chance
+                                    ),
+                                    text_color: match disabled {
+                                        true => palette::ON_SURFACE_VARIANT,
+                                        false => palette::ON_SURFACE,
+                                    },
+                                    stroke_color: palette::OUTLINE,
+                                    stroke_width: 1.px(),
+                                    fill_color: palette::SURFACE_CONTAINER,
+                                    mouse_buttons: vec![MouseButton::Left],
+                                    on_mouse_up_in: |_| {
+                                        refresh_quest_board();
+                                    },
+                                });
+                            }),
+                            table::ratio(1, |_, _| {}),
+                        ]),
+                    ),
+                ]),
             )(QUEST_BOARD_WH, ctx);
         });
     }
