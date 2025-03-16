@@ -25,6 +25,7 @@ pub struct UpgradeState {
     pub quest_board_slot: usize,
     pub reroll_count_plus: usize,
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
+    pub tower_select_upgrade_states: BTreeMap<TowerSelectUpgradeTarget, TowerUpgradeState>,
     pub shop_item_price_minus: usize,
 }
 
@@ -203,11 +204,42 @@ impl UpgradeState {
                 1 => self.reroll_count_plus = 2,
                 _ => unreachable!("Invalid reroll upgrade: {}", self.reroll_count_plus),
             },
-            UpgradeKind::LowCardTowerDamagePlus { .. } => todo!(),
-            UpgradeKind::LowCardTowerDamageMultiply { .. } => todo!(),
-            UpgradeKind::LowCardTowerAttackSpeedPlus { .. } => todo!(),
-            UpgradeKind::LowCardTowerAttackSpeedMultiply { .. } => todo!(),
-            UpgradeKind::LowCardTowerAttackRangePlus { .. } => todo!(),
+            UpgradeKind::LowCardTowerDamagePlus { damage_plus } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::LowCard,
+                    TowerUpgrade::DamagePlus {
+                        damage: damage_plus,
+                    },
+                );
+            }
+            UpgradeKind::LowCardTowerDamageMultiply { damage_multiplier } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::LowCard,
+                    TowerUpgrade::DamageMultiplier {
+                        multiplier: damage_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::LowCardTowerAttackSpeedPlus { speed_plus } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::LowCard,
+                    TowerUpgrade::SpeedPlus { speed: speed_plus },
+                );
+            }
+            UpgradeKind::LowCardTowerAttackSpeedMultiply { speed_multiplier } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::LowCard,
+                    TowerUpgrade::SpeedMultiplier {
+                        multiplier: speed_multiplier,
+                    },
+                );
+            }
+            UpgradeKind::LowCardTowerAttackRangePlus { range_plus } => {
+                self.apply_tower_select_upgrade(
+                    TowerSelectUpgradeTarget::LowCard,
+                    TowerUpgrade::RangePlus { range: range_plus },
+                );
+            }
             UpgradeKind::ShopItemPriceMinus => match self.shop_item_price_minus {
                 0 => self.shop_item_price_minus = 5,
                 5 => self.shop_item_price_minus = 10,
@@ -260,6 +292,16 @@ impl UpgradeState {
     }
     fn apply_tower_upgrade(&mut self, target: TowerUpgradeTarget, upgrade: TowerUpgrade) {
         self.tower_upgrade_states
+            .entry(target)
+            .or_default()
+            .apply_upgrade(upgrade);
+    }
+    fn apply_tower_select_upgrade(
+        &mut self,
+        target: TowerSelectUpgradeTarget,
+        upgrade: TowerUpgrade,
+    ) {
+        self.tower_select_upgrade_states
             .entry(target)
             .or_default()
             .apply_upgrade(upgrade);
@@ -459,4 +501,9 @@ impl Default for TowerUpgradeState {
             range_plus: 0.0,
         }
     }
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord)]
+pub enum TowerSelectUpgradeTarget {
+    LowCard,
 }

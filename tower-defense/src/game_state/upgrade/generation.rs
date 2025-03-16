@@ -227,11 +227,51 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::QuestSlotExpansion => UpgradeKind::QuestSlotExpansion,
         UpgradeCandidate::QuestBoardExpansion => UpgradeKind::QuestBoardExpansion,
         UpgradeCandidate::RerollCountPlus => UpgradeKind::RerollCountPlus,
-        UpgradeCandidate::LowCardTowerDamagePlus => todo!(),
-        UpgradeCandidate::LowCardTowerDamageMultiply => todo!(),
-        UpgradeCandidate::LowCardTowerAttackSpeedPlus => todo!(),
-        UpgradeCandidate::LowCardTowerAttackSpeedMultiply => todo!(),
-        UpgradeCandidate::LowCardTowerAttackRangePlus => todo!(),
+        UpgradeCandidate::LowCardTowerDamagePlus => {
+            let damage_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 5.0..15.0,
+                Rarity::Rare => 15.0..25.0,
+                Rarity::Epic => 25.0..75.0,
+                Rarity::Legendary => 75.0..125.0,
+            });
+            UpgradeKind::LowCardTowerDamagePlus { damage_plus }
+        }
+        UpgradeCandidate::LowCardTowerDamageMultiply => {
+            let damage_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.25..1.5,
+                Rarity::Rare => 1.5..1.75,
+                Rarity::Epic => 1.75..2.0,
+                Rarity::Legendary => 2.0..2.5,
+            });
+            UpgradeKind::LowCardTowerDamageMultiply { damage_multiplier }
+        }
+        UpgradeCandidate::LowCardTowerAttackSpeedPlus => {
+            let speed_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 0.15..0.3,
+                Rarity::Rare => 0.3..0.55,
+                Rarity::Epic => 0.55..0.8,
+                Rarity::Legendary => 0.8..1.1,
+            });
+            UpgradeKind::LowCardTowerAttackSpeedPlus { speed_plus }
+        }
+        UpgradeCandidate::LowCardTowerAttackSpeedMultiply => {
+            let speed_multiplier = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.1..1.25,
+                Rarity::Rare => 1.25..1.55,
+                Rarity::Epic => 1.55..1.8,
+                Rarity::Legendary => 1.8..2.1,
+            });
+            UpgradeKind::LowCardTowerAttackSpeedMultiply { speed_multiplier }
+        }
+        UpgradeCandidate::LowCardTowerAttackRangePlus => {
+            let range_plus = thread_rng().gen_range(match rarity {
+                Rarity::Common => 1.15..1.3,
+                Rarity::Rare => 1.3..1.55,
+                Rarity::Epic => 1.55..1.9,
+                Rarity::Legendary => 1.9..2.2,
+            });
+            UpgradeKind::LowCardTowerAttackRangePlus { range_plus }
+        }
         UpgradeCandidate::ShopItemPriceMinus => UpgradeKind::ShopItemPriceMinus,
         UpgradeCandidate::ShopRefreshPlus => todo!(),
         UpgradeCandidate::QuestBoardRefreshPlus => todo!(),
@@ -530,14 +570,59 @@ fn generate_upgrade_candidate_table(
     );
 
     // LowCardTowerDamagePlus
+    candidate_table_push(
+        UpgradeCandidate::LowCardTowerDamagePlus,
+        usize::MIN,
+        usize::MAX,
+        50,
+        100,
+        100,
+        50,
+    );
 
     // LowCardTowerDamageMultiply
+    candidate_table_push(
+        UpgradeCandidate::LowCardTowerDamageMultiply,
+        usize::MIN,
+        usize::MAX,
+        25,
+        50,
+        50,
+        25,
+    );
 
     // LowCardTowerAttackSpeedPlus
+    candidate_table_push(
+        UpgradeCandidate::LowCardTowerAttackSpeedPlus,
+        usize::MIN,
+        usize::MAX,
+        40,
+        80,
+        80,
+        40,
+    );
 
     // LowCardTowerAttackSpeedMultiply
+    candidate_table_push(
+        UpgradeCandidate::LowCardTowerAttackSpeedMultiply,
+        usize::MIN,
+        usize::MAX,
+        20,
+        40,
+        40,
+        20,
+    );
 
     // LowCardTowerAttackRangePlus
+    candidate_table_push(
+        UpgradeCandidate::LowCardTowerAttackRangePlus,
+        usize::MIN,
+        usize::MAX,
+        10,
+        20,
+        20,
+        10,
+    );
 
     // ShopItemPriceMinus
     candidate_table_push(

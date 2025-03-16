@@ -1,16 +1,22 @@
 use crate::{
     card::{Card, REVERSED_RANKS, Rank, Suit},
     game_state::{
+        GameState,
         projectile::ProjectileKind,
-        tower::{TowerKind, TowerSkillKind, TowerSkillTemplate, TowerTemplate},
+        tower::{
+            TowerKind, TowerSkillKind, TowerSkillTemplate, TowerStatusEffect, TowerStatusEffectEnd,
+            TowerStatusEffectKind, TowerTemplate,
+        },
+        upgrade::TowerSelectUpgradeTarget,
     },
 };
 use namui::{DurationExt, Per};
 use std::collections::HashMap;
 
-pub fn get_highest_tower_template(cards: &[Card]) -> TowerTemplate {
+pub fn get_highest_tower_template(cards: &[Card], game_state: &GameState) -> TowerTemplate {
     let mut highest_tower = highest_tower(cards);
-    inject_effects(&mut highest_tower);
+    inject_skills(&mut highest_tower);
+    inject_status_effects(&mut highest_tower, game_state);
     highest_tower
 }
 
@@ -110,7 +116,7 @@ fn highest_tower(cards: &[Card]) -> TowerTemplate {
     create_tower_template(TowerKind::High, top.suit, top.rank)
 }
 
-fn inject_effects(tower: &mut TowerTemplate) {
+fn inject_skills(tower: &mut TowerTemplate) {
     let hand_ranking_skill = match tower.kind {
         TowerKind::Barricade => None,
         TowerKind::High => None,
@@ -173,7 +179,68 @@ fn inject_effects(tower: &mut TowerTemplate) {
         duration: 1.sec(),
     };
     tower.skill_templates.push(top_card_effect);
+
     // TODO: Inject effects from upgrades
+}
+
+fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
+    if tower.kind.is_low_card_tower() {
+        if let Some(upgrade) = game_state
+            .upgrade_state
+            .tower_select_upgrade_states
+            .get(&TowerSelectUpgradeTarget::LowCard)
+        {
+            if upgrade.damage_plus > 0.0 {
+                let upgrade_effect = TowerStatusEffect {
+                    kind: TowerStatusEffectKind::DamageAdd {
+                        add: upgrade.damage_plus as f32,
+                    },
+                    end_at: TowerStatusEffectEnd::NeverEnd,
+                };
+                tower.default_status_effects.push(upgrade_effect);
+            }
+
+            if upgrade.damage_multiplier > 0.0 {
+                let upgrade_effect = TowerStatusEffect {
+                    kind: TowerStatusEffectKind::DamageMul {
+                        mul: upgrade.damage_multiplier as f32,
+                    },
+                    end_at: TowerStatusEffectEnd::NeverEnd,
+                };
+                tower.default_status_effects.push(upgrade_effect);
+            }
+
+            if upgrade.speed_plus > 0.0 {
+                let upgrade_effect = TowerStatusEffect {
+                    kind: TowerStatusEffectKind::AttackSpeedAdd {
+                        add: upgrade.speed_plus as f32,
+                    },
+                    end_at: TowerStatusEffectEnd::NeverEnd,
+                };
+                tower.default_status_effects.push(upgrade_effect);
+            }
+
+            if upgrade.speed_multiplier > 0.0 {
+                let upgrade_effect = TowerStatusEffect {
+                    kind: TowerStatusEffectKind::AttackSpeedMul {
+                        mul: upgrade.speed_multiplier as f32,
+                    },
+                    end_at: TowerStatusEffectEnd::NeverEnd,
+                };
+                tower.default_status_effects.push(upgrade_effect);
+            }
+
+            if upgrade.range_plus > 0.0 {
+                let upgrade_effect = TowerStatusEffect {
+                    kind: TowerStatusEffectKind::AttackRangeAdd {
+                        add: upgrade.range_plus as f32,
+                    },
+                    end_at: TowerStatusEffectEnd::NeverEnd,
+                };
+                tower.default_status_effects.push(upgrade_effect);
+            }
+        }
+    }
 }
 
 struct StraightResult {
@@ -309,5 +376,6 @@ fn create_tower_template(kind: TowerKind, suit: Suit, rank: Rank) -> TowerTempla
         suit,
         rank,
         skill_templates: vec![],
+        default_status_effects: vec![],
     }
 }

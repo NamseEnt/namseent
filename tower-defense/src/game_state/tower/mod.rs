@@ -132,6 +132,7 @@ pub struct TowerTemplate {
     pub suit: Suit,
     pub rank: Rank,
     pub skill_templates: Vec<TowerSkillTemplate>,
+    pub default_status_effects: Vec<TowerStatusEffect>,
 }
 impl TowerTemplate {
     pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
@@ -145,6 +146,7 @@ impl TowerTemplate {
             suit,
             rank,
             skill_templates: kind.skill_templates(),
+            default_status_effects: vec![],
         }
     }
 }
@@ -262,6 +264,12 @@ impl TowerKind {
                     range_radius: 6.0,
                 },
             )],
+        }
+    }
+    pub fn is_low_card_tower(&self) -> bool {
+        match self {
+            Self::High | Self::OnePair | Self::ThreeOfAKind => true,
+            _ => false,
         }
     }
 }
