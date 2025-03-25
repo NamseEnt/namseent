@@ -1,11 +1,13 @@
 pub mod requirement;
 pub mod reward;
+mod tracking;
 
 use super::{GameState, mutate_game_state};
 use crate::rarity::Rarity;
 use rand::seq::SliceRandom;
 use requirement::{QuestRequirement, generate_quest_requirement};
 use reward::{QuestReward, generate_quest_reward};
+pub use tracking::*;
 
 #[derive(Debug, Clone)]
 pub struct Quest {
@@ -66,6 +68,11 @@ fn generate_rarity_table(stage: usize) -> Vec<(Rarity, f32)> {
 
 pub fn cancel_quest(quest_index: usize) {
     mutate_game_state(move |game_state| {
-        game_state.quests.remove(quest_index);
+        game_state.quest_states.remove(quest_index);
     });
+}
+
+pub struct QuestState {
+    max_slots: usize,
+    slots: [Option<QuestTrackingState>; 5],
 }

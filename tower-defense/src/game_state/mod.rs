@@ -26,7 +26,7 @@ use monster::*;
 use monster_spawn::*;
 use namui::*;
 use projectile::*;
-use quest::Quest;
+use quest::QuestTrackingState;
 use std::sync::Arc;
 use tower::*;
 use upgrade::UpgradeState;
@@ -61,7 +61,6 @@ pub struct GameState {
     monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
     pub items: Vec<item::Item>,
-    pub quests: Vec<Quest>,
     pub gold: usize,
     pub shop_slots: [ShopSlot; 5],
     pub quest_board_slots: [QuestBoardSlot; 3],
@@ -72,6 +71,7 @@ pub struct GameState {
     pub field_area_effects: Vec<FieldAreaEffect>,
     pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
+    pub quest_states: Vec<QuestTrackingState>,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -149,7 +149,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             monster_spawn_state: MonsterSpawnState::Idle,
             projectiles: Default::default(),
             items: Default::default(),
-            quests: Default::default(),
+            quest_states: Default::default(),
             gold: 100,
             shop_slots: Default::default(),
             quest_board_slots: Default::default(),
