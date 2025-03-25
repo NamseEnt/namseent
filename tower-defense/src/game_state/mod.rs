@@ -26,7 +26,7 @@ use monster::*;
 use monster_spawn::*;
 use namui::*;
 use projectile::*;
-use quest::QuestTrackingState;
+use quest::{QuestTrackingState, on_quest_trigger_event};
 use std::sync::Arc;
 use tower::*;
 use upgrade::UpgradeState;
@@ -221,9 +221,18 @@ impl PlacedTowers {
 /// Make sure that the tower can be placed at the given coord.
 pub fn place_tower(tower: Tower) {
     crate::game_state::mutate_game_state(move |game_state| {
+        let rank = tower.rank;
+        let suit = tower.suit;
+        let hand = tower.kind;
+
         game_state.towers.place_tower(tower);
         game_state.route =
             calculate_routes(&game_state.towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
+
+        on_quest_trigger_event(
+            game_state,
+            quest::QuestTriggerEvent::BuildTower { rank, suit, hand },
+        );
     });
 }
 

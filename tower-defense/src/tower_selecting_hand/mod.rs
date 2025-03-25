@@ -3,7 +3,11 @@ mod tower_preview;
 
 use crate::{
     card::Card,
-    game_state::{flow::GameFlow, mutate_game_state},
+    game_state::{
+        flow::GameFlow,
+        mutate_game_state,
+        quest::{QuestTriggerEvent, on_quest_trigger_event},
+    },
     palette,
 };
 use get_highest_tower::get_highest_tower_template;
@@ -64,6 +68,8 @@ impl Component for TowerSelectingHand<'_> {
                     cards[index] = Card::new_random();
                 }
                 game_state.left_reroll_chance -= 1;
+
+                on_quest_trigger_event(game_state, QuestTriggerEvent::Reroll);
             });
             set_selected.mutate(move |set_selected| {
                 set_selected

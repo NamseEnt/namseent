@@ -89,230 +89,71 @@ pub enum QuestTriggerEvent {
     },
 }
 
-pub fn on_quest_trigger_event(event: QuestTriggerEvent) {
-    mutate_game_state(move |game_state| {
-        struct RemoveQuest {
-            index: usize,
-            completed: bool,
-        }
-        let mut remove_quests = vec![];
-        for (quest_index, quest_state) in game_state.quest_states.iter_mut().enumerate() {
-            match quest_state {
-                &mut QuestTrackingState::BuildTowerRankNew {
-                    rank,
-                    target_count,
-                    ref mut new_built_count,
-                } => {
-                    let QuestTriggerEvent::BuildTower {
-                        rank: event_rank, ..
-                    } = event
-                    else {
-                        continue;
-                    };
-                    if rank == event_rank {
-                        *new_built_count += 1;
-                        if *new_built_count >= target_count {
-                            remove_quests.push(RemoveQuest {
-                                index: quest_index,
-                                completed: true,
-                            });
-                        }
+pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEvent) {
+    struct RemoveQuest {
+        index: usize,
+        completed: bool,
+    }
+    let mut remove_quests = vec![];
+    for (quest_index, quest_state) in game_state.quest_states.iter_mut().enumerate() {
+        match quest_state {
+            &mut QuestTrackingState::BuildTowerRankNew {
+                rank,
+                target_count,
+                ref mut new_built_count,
+            } => {
+                let QuestTriggerEvent::BuildTower {
+                    rank: event_rank, ..
+                } = event
+                else {
+                    continue;
+                };
+                if rank == event_rank {
+                    *new_built_count += 1;
+                    if *new_built_count >= target_count {
+                        remove_quests.push(RemoveQuest {
+                            index: quest_index,
+                            completed: true,
+                        });
                     }
                 }
-                &mut QuestTrackingState::BuildTowerRank { rank, target_count } => {
-                    let QuestTriggerEvent::BuildTower {
-                        rank: event_rank, ..
-                    } = event
-                    else {
-                        continue;
-                    };
+            }
+            &mut QuestTrackingState::BuildTowerRank { rank, target_count } => {
+                let QuestTriggerEvent::BuildTower {
+                    rank: event_rank, ..
+                } = event
+                else {
+                    continue;
+                };
 
-                    if rank == event_rank
-                        && target_count
-                            == game_state
-                                .towers
-                                .iter()
-                                .filter(|tower| tower.rank == rank)
-                                .count()
-                    {
-                        remove_quests.push(RemoveQuest {
-                            index: quest_index,
-                            completed: true,
-                        });
-                    }
-                }
-                &mut QuestTrackingState::BuildTowerSuitNew {
-                    suit,
-                    target_count,
-                    ref mut new_built_count,
-                } => {
-                    let QuestTriggerEvent::BuildTower {
-                        suit: event_suit, ..
-                    } = event
-                    else {
-                        continue;
-                    };
-                    if suit == event_suit {
-                        *new_built_count += 1;
-                        if *new_built_count >= target_count {
-                            remove_quests.push(RemoveQuest {
-                                index: quest_index,
-                                completed: true,
-                            });
-                        }
-                    }
-                }
-                &mut QuestTrackingState::BuildTowerSuit { suit, target_count } => {
-                    let QuestTriggerEvent::BuildTower {
-                        suit: event_suit, ..
-                    } = event
-                    else {
-                        continue;
-                    };
-                    if suit == event_suit
-                        && target_count
-                            == game_state
-                                .towers
-                                .iter()
-                                .filter(|tower| tower.suit == suit)
-                                .count()
-                    {
-                        remove_quests.push(RemoveQuest {
-                            index: quest_index,
-                            completed: true,
-                        });
-                    }
-                }
-                &mut QuestTrackingState::BuildTowerHandNew {
-                    hand,
-                    target_count,
-                    ref mut new_built_count,
-                } => {
-                    let QuestTriggerEvent::BuildTower {
-                        hand: event_hand, ..
-                    } = event
-                    else {
-                        continue;
-                    };
-                    if hand == event_hand {
-                        *new_built_count += 1;
-                        if *new_built_count >= target_count {
-                            remove_quests.push(RemoveQuest {
-                                index: quest_index,
-                                completed: true,
-                            });
-                        }
-                    }
-                }
-                &mut QuestTrackingState::BuildTowerHand { hand, target_count } => {
-                    let QuestTriggerEvent::BuildTower {
-                        hand: event_hand, ..
-                    } = event
-                    else {
-                        continue;
-                    };
-                    if hand == event_hand
-                        && target_count
-                            == game_state
-                                .towers
-                                .iter()
-                                .filter(|tower| tower.kind == hand)
-                                .count()
-                    {
-                        remove_quests.push(RemoveQuest {
-                            index: quest_index,
-                            completed: true,
-                        });
-                    }
-                }
-                &mut QuestTrackingState::ClearBossRoundWithoutItems => match event {
-                    QuestTriggerEvent::ClearBossRound => remove_quests.push(RemoveQuest {
+                if rank == event_rank
+                    && target_count
+                        == game_state
+                            .towers
+                            .iter()
+                            .filter(|tower| tower.rank == rank)
+                            .count()
+                {
+                    remove_quests.push(RemoveQuest {
                         index: quest_index,
                         completed: true,
-                    }),
-                    QuestTriggerEvent::UseItem => {
-                        remove_quests.push(RemoveQuest {
-                            index: quest_index,
-                            completed: false,
-                        });
-                    }
-                    _ => continue,
-                },
-                &mut QuestTrackingState::DealDamageWithItems {
-                    target_damage,
-                    ref mut dealt_damage,
-                } => {
-                    let QuestTriggerEvent::DealDamageWithItem { damage } = event else {
-                        continue;
-                    };
-                    *dealt_damage += damage;
-                    if *dealt_damage >= target_damage {
-                        remove_quests.push(RemoveQuest {
-                            index: quest_index,
-                            completed: true,
-                        });
-                    }
+                    });
                 }
-                &mut QuestTrackingState::BuildTowersWithoutReroll {
-                    target_count,
-                    ref mut built_count,
-                } => match event {
-                    QuestTriggerEvent::BuildTower { .. } => {
-                        *built_count += 1;
-                        if *built_count >= target_count {
-                            remove_quests.push(RemoveQuest {
-                                index: quest_index,
-                                completed: true,
-                            });
-                        }
-                    }
-                    QuestTriggerEvent::Reroll => {
-                        remove_quests.push(RemoveQuest {
-                            index: quest_index,
-                            completed: false,
-                        });
-                    }
-                    _ => continue,
-                },
-                &mut QuestTrackingState::UseReroll {
-                    target_count,
-                    ref mut rolled_count,
-                } => {
-                    let QuestTriggerEvent::Reroll = event else {
-                        continue;
-                    };
-                    *rolled_count += 1;
-                    if *rolled_count >= target_count {
-                        remove_quests.push(RemoveQuest {
-                            index: quest_index,
-                            completed: true,
-                        });
-                    }
-                }
-                &mut QuestTrackingState::SpendGold {
-                    target_gold,
-                    ref mut spent_gold,
-                } => {
-                    let QuestTriggerEvent::SpendGold { gold } = event else {
-                        continue;
-                    };
-                    *spent_gold += gold;
-                    if *spent_gold >= target_gold {
-                        remove_quests.push(RemoveQuest {
-                            index: quest_index,
-                            completed: true,
-                        });
-                    }
-                }
-                &mut QuestTrackingState::EarnGold {
-                    target_gold,
-                    ref mut earned_gold,
-                } => {
-                    let QuestTriggerEvent::EarnGold { gold } = event else {
-                        continue;
-                    };
-                    *earned_gold += gold;
-                    if *earned_gold >= target_gold {
+            }
+            &mut QuestTrackingState::BuildTowerSuitNew {
+                suit,
+                target_count,
+                ref mut new_built_count,
+            } => {
+                let QuestTriggerEvent::BuildTower {
+                    suit: event_suit, ..
+                } = event
+                else {
+                    continue;
+                };
+                if suit == event_suit {
+                    *new_built_count += 1;
+                    if *new_built_count >= target_count {
                         remove_quests.push(RemoveQuest {
                             index: quest_index,
                             completed: true,
@@ -320,16 +161,173 @@ pub fn on_quest_trigger_event(event: QuestTriggerEvent) {
                     }
                 }
             }
-        }
-        for remove_quest in remove_quests.into_iter().rev() {
-            let quest = game_state.quest_states.remove(remove_quest.index);
-            if remove_quest.completed {
-                on_quest_completed(game_state, quest);
-            } else {
-                on_quest_failed(game_state, quest);
+            &mut QuestTrackingState::BuildTowerSuit { suit, target_count } => {
+                let QuestTriggerEvent::BuildTower {
+                    suit: event_suit, ..
+                } = event
+                else {
+                    continue;
+                };
+                if suit == event_suit
+                    && target_count
+                        == game_state
+                            .towers
+                            .iter()
+                            .filter(|tower| tower.suit == suit)
+                            .count()
+                {
+                    remove_quests.push(RemoveQuest {
+                        index: quest_index,
+                        completed: true,
+                    });
+                }
+            }
+            &mut QuestTrackingState::BuildTowerHandNew {
+                hand,
+                target_count,
+                ref mut new_built_count,
+            } => {
+                let QuestTriggerEvent::BuildTower {
+                    hand: event_hand, ..
+                } = event
+                else {
+                    continue;
+                };
+                if hand == event_hand {
+                    *new_built_count += 1;
+                    if *new_built_count >= target_count {
+                        remove_quests.push(RemoveQuest {
+                            index: quest_index,
+                            completed: true,
+                        });
+                    }
+                }
+            }
+            &mut QuestTrackingState::BuildTowerHand { hand, target_count } => {
+                let QuestTriggerEvent::BuildTower {
+                    hand: event_hand, ..
+                } = event
+                else {
+                    continue;
+                };
+                if hand == event_hand
+                    && target_count
+                        == game_state
+                            .towers
+                            .iter()
+                            .filter(|tower| tower.kind == hand)
+                            .count()
+                {
+                    remove_quests.push(RemoveQuest {
+                        index: quest_index,
+                        completed: true,
+                    });
+                }
+            }
+            &mut QuestTrackingState::ClearBossRoundWithoutItems => match event {
+                QuestTriggerEvent::ClearBossRound => remove_quests.push(RemoveQuest {
+                    index: quest_index,
+                    completed: true,
+                }),
+                QuestTriggerEvent::UseItem => {
+                    remove_quests.push(RemoveQuest {
+                        index: quest_index,
+                        completed: false,
+                    });
+                }
+                _ => continue,
+            },
+            &mut QuestTrackingState::DealDamageWithItems {
+                target_damage,
+                ref mut dealt_damage,
+            } => {
+                let QuestTriggerEvent::DealDamageWithItem { damage } = event else {
+                    continue;
+                };
+                *dealt_damage += damage;
+                if *dealt_damage >= target_damage {
+                    remove_quests.push(RemoveQuest {
+                        index: quest_index,
+                        completed: true,
+                    });
+                }
+            }
+            &mut QuestTrackingState::BuildTowersWithoutReroll {
+                target_count,
+                ref mut built_count,
+            } => match event {
+                QuestTriggerEvent::BuildTower { .. } => {
+                    *built_count += 1;
+                    if *built_count >= target_count {
+                        remove_quests.push(RemoveQuest {
+                            index: quest_index,
+                            completed: true,
+                        });
+                    }
+                }
+                QuestTriggerEvent::Reroll => {
+                    remove_quests.push(RemoveQuest {
+                        index: quest_index,
+                        completed: false,
+                    });
+                }
+                _ => continue,
+            },
+            &mut QuestTrackingState::UseReroll {
+                target_count,
+                ref mut rolled_count,
+            } => {
+                let QuestTriggerEvent::Reroll = event else {
+                    continue;
+                };
+                *rolled_count += 1;
+                if *rolled_count >= target_count {
+                    remove_quests.push(RemoveQuest {
+                        index: quest_index,
+                        completed: true,
+                    });
+                }
+            }
+            &mut QuestTrackingState::SpendGold {
+                target_gold,
+                ref mut spent_gold,
+            } => {
+                let QuestTriggerEvent::SpendGold { gold } = event else {
+                    continue;
+                };
+                *spent_gold += gold;
+                if *spent_gold >= target_gold {
+                    remove_quests.push(RemoveQuest {
+                        index: quest_index,
+                        completed: true,
+                    });
+                }
+            }
+            &mut QuestTrackingState::EarnGold {
+                target_gold,
+                ref mut earned_gold,
+            } => {
+                let QuestTriggerEvent::EarnGold { gold } = event else {
+                    continue;
+                };
+                *earned_gold += gold;
+                if *earned_gold >= target_gold {
+                    remove_quests.push(RemoveQuest {
+                        index: quest_index,
+                        completed: true,
+                    });
+                }
             }
         }
-    });
+    }
+    for remove_quest in remove_quests.into_iter().rev() {
+        let quest = game_state.quest_states.remove(remove_quest.index);
+        if remove_quest.completed {
+            on_quest_completed(game_state, quest);
+        } else {
+            on_quest_failed(game_state, quest);
+        }
+    }
 }
 
 fn on_quest_failed(game_state: &mut GameState, quest: QuestTrackingState) {

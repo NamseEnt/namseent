@@ -1,4 +1,4 @@
-use super::*;
+use super::{quest::QuestTriggerEvent, *};
 
 const TICK_MAX_DURATION: Duration = Duration::from_millis(16);
 
@@ -52,7 +52,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
         ..
     } = game_state;
 
-    let mut killed_monster_count = 0;
+    let mut total_earn_gold = 0;
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -76,12 +76,24 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
         monster.get_damage(projectile.damage);
 
         if monster.dead() {
-            game_state.gold += monster.reward + game_state.upgrade_state.gold_earn_plus;
+            let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
+            *gold += earn;
+            total_earn_gold += earn;
+
             monsters.swap_remove(monster_index);
         }
 
         false
     });
+
+    if total_earn_gold > 0 {
+        on_quest_trigger_event(
+            game_state,
+            QuestTriggerEvent::EarnGold {
+                gold: total_earn_gold,
+            },
+        );
+    }
 }
 
 fn shoot_projectiles(game_state: &mut GameState) {
@@ -130,8 +142,10 @@ fn check_defense_end(game_state: &mut GameState) {
         return;
     }
 
-    match is_boss_stage {
-        true => game_state.goto_selecting_upgrade(),
-        false => game_state.goto_selecting_tower(),
+    if is_boss_stage {
+        game_state.goto_selecting_upgrade();
+        on_quest_trigger_event(game_state, quest::QuestTriggerEvent::ClearBossRound);
+    } else {
+        game_state.goto_selecting_tower();
     }
 }
