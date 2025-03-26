@@ -1,9 +1,5 @@
 use crate::{
-    game_state::{
-        GameState,
-        quest::{Quest, cancel_quest},
-        use_game_state,
-    },
+    game_state::{GameState, quest::*, use_game_state},
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
 };
@@ -37,7 +33,7 @@ impl Component for Quests {
                             ctx.add(Headline {
                                 text: format!(
                                     "퀘스트 {}/{}",
-                                    game_state.quests.len(),
+                                    game_state.quest_states.len(),
                                     game_state.max_quest_slot()
                                 ),
                                 font_size: FontSize::Medium,
@@ -63,8 +59,12 @@ impl Component for Quests {
                         }),
                         table::fixed_no_clip(PADDING, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            let quest_items =
-                                render_quest_items(&ctx, wh.width, &game_state.quests, &game_state);
+                            let quest_items = render_quest_items(
+                                &ctx,
+                                wh.width,
+                                &game_state.quest_states,
+                                &game_state,
+                            );
                             ctx.add(AutoVHListView {
                                 wh,
                                 scroll_bar_width: PADDING,
@@ -90,7 +90,7 @@ impl Component for Quests {
 fn render_quest_items<'a>(
     ctx: &ComposeCtx,
     width: Px,
-    quests: &'a [Quest],
+    quests: &'a [QuestState],
     game_state: &'a GameState,
 ) -> Vec<RenderingTree> {
     let content_width = width - PADDING * 2.;
@@ -126,7 +126,7 @@ fn render_quest_items<'a>(
                     table::fixed(PADDING * 2.0, |_, _| {}),
                     table::fit(table::FitAlign::LeftTop, |ctx| {
                         ctx.add(Headline {
-                            text: quest.requirement.description(&game_state),
+                            text: quest.tracking.description(&game_state),
                             font_size: FontSize::Small,
                             text_align: TextAlign::LeftTop,
                             max_width: content_width.into(),

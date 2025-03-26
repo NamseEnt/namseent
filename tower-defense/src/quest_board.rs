@@ -62,7 +62,7 @@ impl Component for QuestBoardModal {
                 assert!(state.items.len() <= MAX_INVENTORY_SLOT);
                 assert!(!*accepted);
 
-                state.quests.push(quest.clone());
+                state.quest_states.push(quest.to_state());
                 *accepted = true;
             });
         };

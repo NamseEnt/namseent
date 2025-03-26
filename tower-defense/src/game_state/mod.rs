@@ -26,7 +26,7 @@ use monster::*;
 use monster_spawn::*;
 use namui::*;
 use projectile::*;
-use quest::Quest;
+use quest::*;
 use std::sync::Arc;
 use tower::*;
 use upgrade::UpgradeState;
@@ -61,7 +61,6 @@ pub struct GameState {
     monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
     pub items: Vec<item::Item>,
-    pub quests: Vec<Quest>,
     pub gold: usize,
     pub shop_slots: [ShopSlot; 5],
     pub quest_board_slots: [QuestBoardSlot; 3],
@@ -72,6 +71,7 @@ pub struct GameState {
     pub field_area_effects: Vec<FieldAreaEffect>,
     pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
+    pub quest_states: Vec<QuestState>,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -149,7 +149,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             monster_spawn_state: MonsterSpawnState::Idle,
             projectiles: Default::default(),
             items: Default::default(),
-            quests: Default::default(),
+            quest_states: Default::default(),
             gold: 100,
             shop_slots: Default::default(),
             quest_board_slots: Default::default(),
@@ -221,9 +221,18 @@ impl PlacedTowers {
 /// Make sure that the tower can be placed at the given coord.
 pub fn place_tower(tower: Tower) {
     crate::game_state::mutate_game_state(move |game_state| {
+        let rank = tower.rank;
+        let suit = tower.suit;
+        let hand = tower.kind;
+
         game_state.towers.place_tower(tower);
         game_state.route =
             calculate_routes(&game_state.towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
+
+        on_quest_trigger_event(
+            game_state,
+            quest::QuestTriggerEvent::BuildTower { rank, suit, hand },
+        );
     });
 }
 

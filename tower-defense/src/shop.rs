@@ -1,7 +1,9 @@
 use crate::{
     game_state::{
         item::{Item, generate_items, item_cost},
-        mutate_game_state, use_game_state,
+        mutate_game_state,
+        quest::{QuestTriggerEvent, on_quest_trigger_event},
+        use_game_state,
     },
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
@@ -55,25 +57,30 @@ impl Component for ShopModal {
         let shop_slots = &game_state.shop_slots;
 
         let purchase_item = |slot_index: usize| {
-            mutate_game_state(move |state| {
-                assert!(state.items.len() <= state.max_shop_slot());
+            mutate_game_state(move |game_state| {
+                assert!(game_state.items.len() <= game_state.max_shop_slot());
 
-                let slot = &mut state.shop_slots[slot_index];
-                let ShopSlot::Item {
-                    item,
-                    cost,
-                    purchased,
-                } = slot
-                else {
-                    panic!("Invalid shop slot");
+                let cost = {
+                    let slot = &mut game_state.shop_slots[slot_index];
+                    let ShopSlot::Item {
+                        item,
+                        cost,
+                        purchased,
+                    } = slot
+                    else {
+                        panic!("Invalid shop slot");
+                    };
+
+                    assert!(game_state.gold >= *cost);
+                    assert!(!*purchased);
+
+                    game_state.items.push(item.clone());
+                    game_state.gold -= *cost;
+                    *purchased = true;
+                    *cost
                 };
 
-                assert!(state.gold >= *cost);
-                assert!(!*purchased);
-
-                state.items.push(item.clone());
-                state.gold -= *cost;
-                *purchased = true;
+                on_quest_trigger_event(game_state, QuestTriggerEvent::SpendGold { gold: cost });
             });
         };
 

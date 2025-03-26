@@ -5,6 +5,7 @@ use crate::{
         GameState, MAP_SIZE, MAX_HP, TRAVEL_POINTS,
         field_area_effect::{FieldAreaEffect, FieldAreaEffectEnd, FieldAreaEffectKind},
         monster::{MonsterStatusEffect, MonsterStatusEffectKind},
+        quest::{QuestTriggerEvent, on_quest_trigger_event},
         tower::{TowerStatusEffect, TowerStatusEffectEnd, TowerStatusEffectKind},
         user_status_effect::{UserStatusEffect, UserStatusEffectKind},
     },
@@ -265,6 +266,8 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             });
         }
     }
+
+    on_quest_trigger_event(game_state, QuestTriggerEvent::UseItem);
 }
 
 fn add_tower_status_effect_in_round_area(

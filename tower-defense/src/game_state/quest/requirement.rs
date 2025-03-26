@@ -1,113 +1,105 @@
 use crate::{
-    card::{REVERSED_RANKS, Rank, SUITS, Suit},
+    card::{Rank, Suit, random_rank, random_suit},
     game_state::{GameState, tower::TowerKind},
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum QuestRequirement {
-    OwnTowerRank {
-        rank: Rank,
-        count: usize,
-    },
-    OwnTowerSuit {
-        suit: Suit,
-        count: usize,
-    },
-    OwnTowerHand {
-        kind: TowerKind,
-        count: usize,
-    },
-    BuildTowerRank {
-        rank: Rank,
-        count: usize,
-        offset: usize,
-    },
-    BuildTowerSuit {
-        suit: Suit,
-        count: usize,
-        offset: usize,
-    },
-    BuildTowerHand {
-        kind: TowerKind,
-        count: usize,
-        offset: usize,
-    },
+    BuildTowerRankNew { rank: Rank, count: usize },
+    BuildTowerRank { rank: Rank, count: usize },
+    BuildTowerSuitNew { suit: Suit, count: usize },
+    BuildTowerSuit { suit: Suit, count: usize },
+    BuildTowerHandNew { hand: TowerKind, count: usize },
+    BuildTowerHand { hand: TowerKind, count: usize },
+    ClearBossRoundWithoutItems,
+    DealDamageWithItems { damage: usize },
+    BuildTowersWithoutReroll { count: usize },
+    UseReroll { count: usize },
+    SpendGold { gold: usize },
+    EarnGold { gold: usize },
 }
+
 impl QuestRequirement {
-    pub fn description(&self, game_state: &GameState) -> String {
+    pub fn description(self, game_state: &GameState) -> String {
         match self {
-            QuestRequirement::OwnTowerRank { rank, count } => {
+            QuestRequirement::BuildTowerRankNew { rank, count } => {
+                format!("{}타워를 {}개 새로 건설하세요.", rank, count)
+            }
+            QuestRequirement::BuildTowerHand { hand, count } => {
                 let current_count = game_state
                     .towers
                     .iter()
-                    .filter(|tower| tower.rank == *rank)
+                    .filter(|tower| tower.kind == hand)
                     .count();
                 format!(
                     "{}타워를 {}개 소유하세요. ({}/{})",
-                    count, rank, current_count, count
+                    hand, count, current_count, count
                 )
             }
-            QuestRequirement::OwnTowerSuit { suit, count } => {
+            QuestRequirement::BuildTowerHandNew { hand, count } => {
+                format!("{}타워를 {}개 새로 건설하세요.", hand, count)
+            }
+            QuestRequirement::BuildTowerRank { rank, count } => {
                 let current_count = game_state
                     .towers
                     .iter()
-                    .filter(|tower| tower.suit == *suit)
+                    .filter(|tower| tower.rank == rank)
                     .count();
                 format!(
                     "{}타워를 {}개 소유하세요. ({}/{})",
-                    count, suit, current_count, count
+                    rank, count, current_count, count
                 )
             }
-            QuestRequirement::OwnTowerHand { kind, count } => {
+            QuestRequirement::BuildTowerSuitNew { suit, count } => {
+                format!("{}타워를 {}개 새로 건설하세요.", suit, count)
+            }
+            QuestRequirement::BuildTowerSuit { suit, count } => {
                 let current_count = game_state
                     .towers
                     .iter()
-                    .filter(|tower| tower.kind == *kind)
+                    .filter(|tower| tower.suit == suit)
                     .count();
                 format!(
                     "{}타워를 {}개 소유하세요. ({}/{})",
-                    kind, count, current_count, count
+                    suit, count, current_count, count
                 )
             }
-            QuestRequirement::BuildTowerRank { rank, count, .. } => {
-                format!("{}타워를 {}개 건설하세요.", rank, count)
+            QuestRequirement::ClearBossRoundWithoutItems => {
+                "아이템을 사용하지않고 보스라운드 클리어".to_string()
             }
-            QuestRequirement::BuildTowerSuit { suit, count, .. } => {
-                format!("{}타워를 {}개 건설하세요.", suit, count)
+            QuestRequirement::DealDamageWithItems { damage } => {
+                format!("아이템을 사용해 {}피해 입히기", damage)
             }
-            QuestRequirement::BuildTowerHand { kind, count, .. } => {
-                format!("{}타워를 {}개 건설하세요.", kind, count)
+            QuestRequirement::BuildTowersWithoutReroll { count } => {
+                format!("리롤하지않고 타워 {}개 만들기", count)
+            }
+            QuestRequirement::UseReroll { count } => {
+                format!("리롤 {}회 사용하기", count)
+            }
+            QuestRequirement::SpendGold { gold } => {
+                format!("{}골드 사용하기", gold)
+            }
+            QuestRequirement::EarnGold { gold } => {
+                format!("{}골드 획득하기", gold)
             }
         }
     }
 }
-pub(super) fn generate_quest_requirement(
-    game_state: &GameState,
-    rarity: Rarity,
-) -> QuestRequirement {
-    match thread_rng().gen_range(0..6) {
-        0 => {
-            let rank = *REVERSED_RANKS.choose(&mut thread_rng()).unwrap();
-            let offset = game_state
-                .towers
-                .iter()
-                .filter(|tower| tower.rank == rank)
-                .count();
-            QuestRequirement::BuildTowerRank {
-                rank,
-                count: match rarity {
-                    Rarity::Common => 1,
-                    Rarity::Rare => 2,
-                    Rarity::Epic => 3,
-                    Rarity::Legendary => 4,
-                },
-                offset,
-            }
-        }
-        1 => QuestRequirement::OwnTowerRank {
-            rank: *REVERSED_RANKS.choose(&mut thread_rng()).unwrap(),
+pub(super) fn generate_quest_requirement(rarity: Rarity) -> QuestRequirement {
+    match thread_rng().gen_range(0..12) {
+        0 => QuestRequirement::BuildTowerRankNew {
+            rank: random_rank(),
+            count: match rarity {
+                Rarity::Common => 1,
+                Rarity::Rare => 2,
+                Rarity::Epic => 3,
+                Rarity::Legendary => 4,
+            },
+        },
+        1 => QuestRequirement::BuildTowerRank {
+            rank: random_rank(),
             count: thread_rng().gen_range(match rarity {
                 Rarity::Common => 3..=4,
                 Rarity::Rare => 5..=6,
@@ -115,120 +107,94 @@ pub(super) fn generate_quest_requirement(
                 Rarity::Legendary => 9..=10,
             }),
         },
-        2 => {
-            let suit = *SUITS.choose(&mut thread_rng()).unwrap();
-            let offset = game_state
-                .towers
-                .iter()
-                .filter(|tower| tower.suit == suit)
-                .count();
-            QuestRequirement::BuildTowerSuit {
-                suit,
-                count: thread_rng().gen_range(match rarity {
-                    Rarity::Common => 3..=4,
-                    Rarity::Rare => 5..=6,
-                    Rarity::Epic => 7..=8,
-                    Rarity::Legendary => 9..=10,
-                }),
-                offset,
-            }
-        }
-        3 => QuestRequirement::OwnTowerSuit {
-            suit: *SUITS.choose(&mut thread_rng()).unwrap(),
+        2 => QuestRequirement::BuildTowerSuitNew {
+            suit: random_suit(),
+            count: match rarity {
+                Rarity::Common => 1,
+                Rarity::Rare => 2,
+                Rarity::Epic => 3,
+                Rarity::Legendary => 4,
+            },
+        },
+        3 => QuestRequirement::BuildTowerSuit {
+            suit: random_suit(),
             count: thread_rng().gen_range(match rarity {
-                Rarity::Common => 5..=8,
-                Rarity::Rare => 9..=11,
-                Rarity::Epic => 12..=16,
-                Rarity::Legendary => 17..=20,
+                Rarity::Common => 3..=4,
+                Rarity::Rare => 5..=6,
+                Rarity::Epic => 7..=8,
+                Rarity::Legendary => 9..=10,
             }),
         },
         4 => {
-            let kind = get_random_quest_requirement_target_kind(rarity);
-            let offset = game_state
-                .towers
-                .iter()
-                .filter(|tower| tower.kind == kind)
-                .count();
-            QuestRequirement::BuildTowerHand {
-                kind,
-                count: match rarity {
-                    Rarity::Common => match kind {
-                        TowerKind::High => 3,
-                        TowerKind::OnePair => 2,
-                        TowerKind::TwoPair => 2,
-                        TowerKind::ThreeOfAKind => 1,
-                        _ => 0,
-                    },
-                    Rarity::Rare => match kind {
-                        TowerKind::TwoPair => 3,
-                        TowerKind::ThreeOfAKind => 2,
-                        TowerKind::Straight => 2,
-                        TowerKind::Flush => 1,
-                        TowerKind::FullHouse => 1,
-                        _ => 0,
-                    },
-                    Rarity::Epic => match kind {
-                        TowerKind::ThreeOfAKind => 3,
-                        TowerKind::Straight => 3,
-                        TowerKind::Flush => 2,
-                        TowerKind::FullHouse => 2,
-                        TowerKind::FourOfAKind => 2,
-                        _ => 0,
-                    },
-                    Rarity::Legendary => match kind {
-                        TowerKind::Straight => 4,
-                        TowerKind::Flush => 3,
-                        TowerKind::FullHouse => 3,
-                        TowerKind::FourOfAKind => 3,
-                        TowerKind::StraightFlush => 2,
-                        TowerKind::RoyalFlush => 1,
-                        _ => 0,
-                    },
-                },
-                offset,
+            const TABLE: [[usize; 10]; 4] = [
+                // High OnePair TwoPair ThreeOfAKind Straight Flush FullHouse FourOfAKind StraightFlush RoyalFlush
+                [3, 2, 2, 1, 0, 0, 0, 0, 0, 0], // Common
+                [0, 0, 3, 2, 2, 1, 1, 0, 0, 0], // Rare
+                [0, 0, 0, 3, 3, 2, 2, 2, 0, 0], // Epic
+                [0, 0, 0, 0, 4, 3, 3, 3, 2, 1], // Legendary
+            ];
+            let hand = get_random_quest_requirement_target_kind(rarity);
+            QuestRequirement::BuildTowerHandNew {
+                hand,
+                count: TABLE[rarity as usize][hand as usize - 1],
             }
         }
         5 => {
-            let kind = get_random_quest_requirement_target_kind(rarity);
-            QuestRequirement::OwnTowerHand {
-                kind,
-                count: match rarity {
-                    Rarity::Common => match kind {
-                        TowerKind::High => 6,
-                        TowerKind::OnePair => 6,
-                        TowerKind::TwoPair => 4,
-                        TowerKind::ThreeOfAKind => 3,
-                        _ => 0,
-                    },
-                    Rarity::Rare => match kind {
-                        TowerKind::TwoPair => 6,
-                        TowerKind::ThreeOfAKind => 5,
-                        TowerKind::Straight => 4,
-                        TowerKind::Flush => 5,
-                        TowerKind::FullHouse => 5,
-                        _ => 0,
-                    },
-                    Rarity::Epic => match kind {
-                        TowerKind::ThreeOfAKind => 7,
-                        TowerKind::Straight => 6,
-                        TowerKind::Flush => 6,
-                        TowerKind::FullHouse => 6,
-                        TowerKind::FourOfAKind => 5,
-                        _ => 0,
-                    },
-                    Rarity::Legendary => match kind {
-                        TowerKind::Straight => 8,
-                        TowerKind::Flush => 7,
-                        TowerKind::FullHouse => 7,
-                        TowerKind::FourOfAKind => 7,
-                        TowerKind::StraightFlush => 3,
-                        TowerKind::RoyalFlush => 2,
-                        _ => 0,
-                    },
-                },
+            const TABLE: [[usize; 10]; 4] = [
+                // High OnePair TwoPair ThreeOfAKind Straight Flush FullHouse FourOfAKind StraightFlush RoyalFlush
+                [6, 6, 4, 3, 0, 0, 0, 0, 0, 0], // Common
+                [0, 0, 6, 5, 4, 5, 5, 0, 0, 0], // Rare
+                [0, 0, 0, 7, 6, 6, 6, 5, 0, 0], // Epic
+                [0, 0, 0, 0, 8, 7, 7, 7, 3, 2], // Legendary
+            ];
+            let hand = get_random_quest_requirement_target_kind(rarity);
+            QuestRequirement::BuildTowerHand {
+                hand: get_random_quest_requirement_target_kind(rarity),
+                count: TABLE[rarity as usize][hand as usize - 1],
             }
         }
-        _ => panic!("Invalid QuestRequirement"),
+        6 => QuestRequirement::ClearBossRoundWithoutItems,
+        7 => QuestRequirement::DealDamageWithItems {
+            damage: thread_rng().gen_range(match rarity {
+                Rarity::Common => 100..=150,
+                Rarity::Rare => 300..=450,
+                Rarity::Epic => 1000..=1250,
+                Rarity::Legendary => 3000..=3750,
+            }),
+        },
+        8 => QuestRequirement::BuildTowersWithoutReroll {
+            count: match rarity {
+                Rarity::Common => 1,
+                Rarity::Rare => 2,
+                Rarity::Epic => 3,
+                Rarity::Legendary => 4,
+            },
+        },
+        9 => QuestRequirement::UseReroll {
+            count: thread_rng().gen_range(match rarity {
+                Rarity::Common => 2..=3,
+                Rarity::Rare => 3..=5,
+                Rarity::Epic => 5..=8,
+                Rarity::Legendary => 8..=12,
+            }),
+        },
+        10 => QuestRequirement::SpendGold {
+            gold: thread_rng().gen_range(match rarity {
+                Rarity::Common => 25..=50,
+                Rarity::Rare => 50..=150,
+                Rarity::Epic => 150..=500,
+                Rarity::Legendary => 500..=750,
+            }),
+        },
+        11 => QuestRequirement::EarnGold {
+            gold: thread_rng().gen_range(match rarity {
+                Rarity::Common => 50..=100,
+                Rarity::Rare => 100..=250,
+                Rarity::Epic => 250..=750,
+                Rarity::Legendary => 750..=1000,
+            }),
+        },
+        _ => unreachable!("Invalid QuestRequirement"),
     }
 }
 fn get_random_quest_requirement_target_kind(rarity: Rarity) -> TowerKind {
