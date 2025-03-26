@@ -163,20 +163,36 @@ pub(super) fn generate_quest_requirement(rarity: Rarity) -> QuestRequirement {
             }),
         },
         8 => QuestRequirement::BuildTowersWithoutReroll {
-            // todo
-            count: 1,
+            count: match rarity {
+                Rarity::Common => 1,
+                Rarity::Rare => 2,
+                Rarity::Epic => 3,
+                Rarity::Legendary => 4,
+            },
         },
         9 => QuestRequirement::UseReroll {
-            // todo
-            count: 1,
+            count: thread_rng().gen_range(match rarity {
+                Rarity::Common => 2..=3,
+                Rarity::Rare => 3..=5,
+                Rarity::Epic => 5..=8,
+                Rarity::Legendary => 8..=12,
+            }),
         },
         10 => QuestRequirement::SpendGold {
-            // todo
-            gold: 1,
+            gold: thread_rng().gen_range(match rarity {
+                Rarity::Common => 25..=50,
+                Rarity::Rare => 50..=150,
+                Rarity::Epic => 150..=500,
+                Rarity::Legendary => 500..=750,
+            }),
         },
         11 => QuestRequirement::EarnGold {
-            // todo
-            gold: 1,
+            gold: thread_rng().gen_range(match rarity {
+                Rarity::Common => 50..=100,
+                Rarity::Rare => 100..=250,
+                Rarity::Epic => 250..=750,
+                Rarity::Legendary => 750..=1000,
+            }),
         },
         _ => unreachable!("Invalid QuestRequirement"),
     }
