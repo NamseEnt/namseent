@@ -15,7 +15,7 @@ pub struct Item {
     pub rarity: Rarity,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ItemKind {
     Heal {
         amount: f32,

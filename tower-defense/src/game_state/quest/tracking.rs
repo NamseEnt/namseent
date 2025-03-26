@@ -1,69 +1,177 @@
 use crate::{
     card::{Rank, Suit},
-    game_state::{GameState, mutate_game_state, tower::TowerKind},
+    game_state::{GameState, tower::TowerKind},
 };
 
+use super::QuestState;
+
+#[derive(Debug)]
 pub enum QuestTrackingState {
-    // [a-k]타워를 n개 새로 건설하세요
     BuildTowerRankNew {
         rank: Rank,
         target_count: usize,
         new_built_count: usize,
     },
-    // [a-k]타워를 n개 건설하세요. 이미 있는 경우 즉시 완료
     BuildTowerRank {
         rank: Rank,
         target_count: usize,
     },
-    // [하트|스페이드|클로버|다이아몬드]타워를 n개 새로 건설하세요
     BuildTowerSuitNew {
         suit: Suit,
         target_count: usize,
         new_built_count: usize,
     },
-    // [하트|스페이드|클로버|다이아몬드]타워를 n개 건설하세요
     BuildTowerSuit {
         suit: Suit,
         target_count: usize,
     },
-    // [High|OnePair|TwoPair|ThreeOfAKind|Straight|Flush|FullHouse|FourOfAKind|StraightFlush|RoyalFlush|]타워를 n개 새로 건설하세요
     BuildTowerHandNew {
         hand: TowerKind,
         target_count: usize,
         new_built_count: usize,
     },
-    // [High|OnePair|TwoPair|ThreeOfAKind|Straight|Flush|FullHouse|FourOfAKind|StraightFlush|RoyalFlush|]타워를 n개 건설하세요
     BuildTowerHand {
         hand: TowerKind,
         target_count: usize,
     },
-    // 아이템을 사용하지않고 보스라운드 클리어
     ClearBossRoundWithoutItems,
-    // 아이템을 사용해 n피해 입히기
     DealDamageWithItems {
         target_damage: usize,
-        dealt_damage: usize,
+        dealt_damage: f32,
     },
-    // 리롤하지않고 타워 n개 만들기
     BuildTowersWithoutReroll {
         target_count: usize,
         built_count: usize,
     },
-    // 리롤 n회 사용하기
     UseReroll {
         target_count: usize,
         rolled_count: usize,
     },
-    // n골드 사용하기
     SpendGold {
         target_gold: usize,
         spent_gold: usize,
     },
-    // n골드 획득하기
     EarnGold {
         target_gold: usize,
         earned_gold: usize,
     },
+}
+impl QuestTrackingState {
+    pub(crate) fn description(&self, game_state: &GameState) -> String {
+        match self {
+            QuestTrackingState::BuildTowerRankNew {
+                rank,
+                target_count,
+                new_built_count,
+            } => {
+                format!(
+                    "{}타워를 {}개 새로 건설하세요. ({}/{})",
+                    rank, target_count, new_built_count, target_count
+                )
+            }
+            QuestTrackingState::BuildTowerRank { rank, target_count } => {
+                let current_count = game_state
+                    .towers
+                    .iter()
+                    .filter(|tower| tower.rank == *rank)
+                    .count();
+                format!(
+                    "{}타워를 {}개 소유하세요. ({}/{})",
+                    rank, target_count, current_count, target_count
+                )
+            }
+            QuestTrackingState::BuildTowerSuitNew {
+                suit,
+                target_count,
+                new_built_count,
+            } => {
+                format!(
+                    "{}타워를 {}개 새로 건설하세요. ({}/{})",
+                    suit, target_count, new_built_count, target_count
+                )
+            }
+            QuestTrackingState::BuildTowerSuit { suit, target_count } => {
+                let current_count = game_state
+                    .towers
+                    .iter()
+                    .filter(|tower| tower.suit == *suit)
+                    .count();
+                format!(
+                    "{}타워를 {}개 소유하세요. ({}/{})",
+                    suit, target_count, current_count, target_count
+                )
+            }
+            QuestTrackingState::BuildTowerHandNew {
+                hand,
+                target_count,
+                new_built_count,
+            } => {
+                format!(
+                    "{}타워를 {}개 새로 건설하세요. ({}/{})",
+                    hand, target_count, new_built_count, target_count
+                )
+            }
+            QuestTrackingState::BuildTowerHand { hand, target_count } => {
+                let current_count = game_state
+                    .towers
+                    .iter()
+                    .filter(|tower| tower.kind == *hand)
+                    .count();
+                format!(
+                    "{}타워를 {}개 소유하세요. ({}/{})",
+                    hand, target_count, current_count, target_count
+                )
+            }
+            QuestTrackingState::ClearBossRoundWithoutItems => {
+                "아이템을 사용하지않고 보스라운드 클리어".to_string()
+            }
+            QuestTrackingState::DealDamageWithItems {
+                target_damage,
+                dealt_damage,
+            } => {
+                format!(
+                    "아이템을 사용해 {}피해 입히기 ({}/{})",
+                    target_damage, dealt_damage, target_damage
+                )
+            }
+            QuestTrackingState::BuildTowersWithoutReroll {
+                target_count,
+                built_count,
+            } => {
+                format!(
+                    "리롤하지않고 타워 {}개 만들기 ({}/{})",
+                    target_count, built_count, target_count
+                )
+            }
+            QuestTrackingState::UseReroll {
+                target_count,
+                rolled_count,
+            } => {
+                format!(
+                    "리롤 {}회 사용하기 ({}/{})",
+                    target_count, rolled_count, target_count
+                )
+            }
+            QuestTrackingState::SpendGold {
+                target_gold,
+                spent_gold,
+            } => {
+                format!(
+                    "{}골드 사용하기 ({}/{})",
+                    target_gold, spent_gold, target_gold
+                )
+            }
+            QuestTrackingState::EarnGold {
+                target_gold,
+                earned_gold,
+            } => {
+                format!(
+                    "{}골드 획득하기 ({}/{})",
+                    target_gold, earned_gold, target_gold
+                )
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -78,7 +186,7 @@ pub enum QuestTriggerEvent {
     ClearBossRound,
     UseItem,
     DealDamageWithItem {
-        damage: usize,
+        damage: f32,
     },
     Reroll,
     SpendGold {
@@ -96,7 +204,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
     }
     let mut remove_quests = vec![];
     for (quest_index, quest_state) in game_state.quest_states.iter_mut().enumerate() {
-        match quest_state {
+        match &mut quest_state.tracking {
             &mut QuestTrackingState::BuildTowerRankNew {
                 rank,
                 target_count,
@@ -245,7 +353,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     continue;
                 };
                 *dealt_damage += damage;
-                if *dealt_damage >= target_damage {
+                if *dealt_damage as usize >= target_damage {
                     remove_quests.push(RemoveQuest {
                         index: quest_index,
                         completed: true,
@@ -330,9 +438,9 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
     }
 }
 
-fn on_quest_failed(game_state: &mut GameState, quest: QuestTrackingState) {
+fn on_quest_failed(game_state: &mut GameState, quest: QuestState) {
     todo!()
 }
-fn on_quest_completed(game_state: &mut GameState, quest: QuestTrackingState) {
+fn on_quest_completed(game_state: &mut GameState, quest: QuestState) {
     todo!()
 }

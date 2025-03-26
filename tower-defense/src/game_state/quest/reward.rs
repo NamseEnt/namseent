@@ -8,7 +8,7 @@ use crate::{
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum QuestReward {
     Money { amount: usize },
     Item { item: ItemKind },

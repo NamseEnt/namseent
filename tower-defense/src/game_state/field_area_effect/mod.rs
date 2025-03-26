@@ -1,6 +1,7 @@
 use super::{
     GameState,
     item::{check_point_is_in_linear_area, linear_area_rect_points},
+    quest::{QuestTriggerEvent, on_quest_trigger_event},
     upgrade::{TowerUpgradeTarget, UpgradeState},
 };
 use crate::{
@@ -70,6 +71,7 @@ pub enum FieldAreaEffectEnd {
 
 pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
     let mut killed_monster_count = 0;
+    let mut monster_dealt_damage = 0.0;
     for effect in game_state.field_area_effects.iter_mut() {
         match effect.kind {
             FieldAreaEffectKind::RoundDamage {
@@ -88,6 +90,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                     }
 
                     monster.get_damage(damage);
+                    monster_dealt_damage += damage;
 
                     if monster.dead() {
                         killed_monster_count += 1;
@@ -120,6 +123,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                     }
 
                     monster.get_damage(damage);
+                    monster_dealt_damage += damage;
 
                     if monster.dead() {
                         killed_monster_count += 1;
@@ -147,6 +151,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                     }
 
                     monster.get_damage(damage);
+                    monster_dealt_damage += damage;
 
                     if monster.dead() {
                         killed_monster_count += 1;
@@ -181,6 +186,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                     }
 
                     monster.get_damage(damage);
+                    monster_dealt_damage += damage;
 
                     if monster.dead() {
                         killed_monster_count += 1;
@@ -201,6 +207,15 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
 
     if killed_monster_count > 0 {
         game_state.gold += killed_monster_count;
+    }
+
+    if monster_dealt_damage > 0.0 {
+        on_quest_trigger_event(
+            game_state,
+            QuestTriggerEvent::DealDamageWithItem {
+                damage: monster_dealt_damage,
+            },
+        );
     }
 }
 

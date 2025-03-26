@@ -26,7 +26,7 @@ use monster::*;
 use monster_spawn::*;
 use namui::*;
 use projectile::*;
-use quest::{QuestTrackingState, on_quest_trigger_event};
+use quest::*;
 use std::sync::Arc;
 use tower::*;
 use upgrade::UpgradeState;
@@ -71,7 +71,7 @@ pub struct GameState {
     pub field_area_effects: Vec<FieldAreaEffect>,
     pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
-    pub quest_states: Vec<QuestTrackingState>,
+    pub quest_states: Vec<QuestState>,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
