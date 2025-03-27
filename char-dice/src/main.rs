@@ -106,4 +106,6 @@ const 리더십_주도적: 성격_유형 = 성격_유형 {
 
 fn main() {
     println!("Hello, world!");
+    /*
+     */
 }
