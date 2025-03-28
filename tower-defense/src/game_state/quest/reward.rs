@@ -1,24 +1,24 @@
 use crate::{
     game_state::{
         GameState,
-        item::{ItemKind, generate_item},
+        item::{Item, generate_item},
         upgrade::{Upgrade, generate_upgrade},
     },
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum QuestReward {
     Money { amount: usize },
-    Item { item: ItemKind },
+    Item { item: Item },
     Upgrade { upgrade: Upgrade },
 }
 impl QuestReward {
     pub fn description(&self) -> String {
         match self {
             Self::Money { amount } => format!("${} 골드", amount),
-            Self::Item { item } => format!("Item: {}", item.description()),
+            Self::Item { item } => format!("Item: {}", item.kind.description()),
             Self::Upgrade { upgrade } => format!("Upgrade: {}", upgrade.kind.description()),
         }
     }

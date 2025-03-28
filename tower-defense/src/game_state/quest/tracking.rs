@@ -433,5 +433,15 @@ fn on_quest_failed(_game_state: &mut GameState, _quest: QuestState) {
     unimplemented!("All quests are not failable for now")
 }
 fn on_quest_completed(game_state: &mut GameState, quest: QuestState) {
-    todo!()
+    match quest.reward {
+        super::reward::QuestReward::Money { amount } => {
+            game_state.gold += amount;
+        }
+        super::reward::QuestReward::Item { item } => {
+            game_state.items.push(item);
+        }
+        super::reward::QuestReward::Upgrade { upgrade } => {
+            game_state.upgrade_state.upgrade(upgrade);
+        }
+    }
 }
