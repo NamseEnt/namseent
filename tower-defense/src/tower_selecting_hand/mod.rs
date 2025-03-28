@@ -61,6 +61,7 @@ impl Component for TowerSelectingHand<'_> {
                 let GameFlow::SelectingTower { cards } = &mut game_state.flow else {
                     return;
                 };
+                game_state.rerolled = true;
                 for (index, selected) in selected.iter().enumerate() {
                     if !selected {
                         continue;
