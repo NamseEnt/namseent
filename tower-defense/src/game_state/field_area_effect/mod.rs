@@ -70,8 +70,8 @@ pub enum FieldAreaEffectEnd {
 }
 
 pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
-    let mut killed_monster_count = 0;
     let mut monster_dealt_damage = 0.0;
+    let mut total_earn_gold = 0;
     for effect in game_state.field_area_effects.iter_mut() {
         match effect.kind {
             FieldAreaEffectKind::RoundDamage {
@@ -93,7 +93,8 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                     monster_dealt_damage += damage;
 
                     if monster.dead() {
-                        killed_monster_count += 1;
+                        let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
+                        total_earn_gold += earn;
                         return false;
                     }
 
@@ -126,7 +127,8 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                     monster_dealt_damage += damage;
 
                     if monster.dead() {
-                        killed_monster_count += 1;
+                        let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
+                        total_earn_gold += earn;
                         return false;
                     }
 
@@ -154,7 +156,8 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                     monster_dealt_damage += damage;
 
                     if monster.dead() {
-                        killed_monster_count += 1;
+                        let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
+                        total_earn_gold += earn;
                         return false;
                     }
 
@@ -189,7 +192,8 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                     monster_dealt_damage += damage;
 
                     if monster.dead() {
-                        killed_monster_count += 1;
+                        let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
+                        total_earn_gold += earn;
                         return false;
                     }
 
@@ -205,8 +209,8 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
         }
     }
 
-    if killed_monster_count > 0 {
-        game_state.gold += killed_monster_count;
+    if total_earn_gold > 0 {
+        game_state.earn_gold(total_earn_gold);
     }
 
     if monster_dealt_damage > 0.0 {

@@ -1,4 +1,4 @@
-use super::{quest::QuestTriggerEvent, *};
+use super::*;
 
 const TICK_MAX_DURATION: Duration = Duration::from_millis(16);
 
@@ -48,7 +48,6 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
     let GameState {
         projectiles,
         monsters,
-        gold,
         ..
     } = game_state;
 
@@ -77,7 +76,6 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 
         if monster.dead() {
             let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
-            *gold += earn;
             total_earn_gold += earn;
 
             monsters.swap_remove(monster_index);
@@ -87,12 +85,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
     });
 
     if total_earn_gold > 0 {
-        on_quest_trigger_event(
-            game_state,
-            QuestTriggerEvent::EarnGold {
-                gold: total_earn_gold,
-            },
-        );
+        game_state.earn_gold(total_earn_gold);
     }
 }
 

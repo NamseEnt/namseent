@@ -43,6 +43,8 @@ impl GameState {
         self.flow = GameFlow::new_selecting_tower();
         self.left_reroll_chance = self.max_reroll_chance();
         self.shield = 0.0;
+        self.rerolled = false;
+        self.item_used = false;
 
         match self.in_even_stage() {
             true => {

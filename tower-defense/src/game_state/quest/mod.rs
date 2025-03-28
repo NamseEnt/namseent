@@ -86,7 +86,7 @@ impl Quest {
                     earned_gold: 0,
                 },
             },
-            reward: self.reward,
+            reward: self.reward.clone(),
         }
     }
 }

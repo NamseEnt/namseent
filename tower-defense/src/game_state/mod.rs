@@ -72,6 +72,8 @@ pub struct GameState {
     pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
     pub quest_states: Vec<QuestState>,
+    pub rerolled: bool,
+    pub item_used: bool,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -98,6 +100,11 @@ impl GameState {
     }
     pub fn max_reroll_chance(&self) -> usize {
         self.upgrade_state.reroll_chance_plus + 1
+    }
+
+    pub fn earn_gold(&mut self, gold: usize) {
+        self.gold += gold;
+        on_quest_trigger_event(self, quest::QuestTriggerEvent::EarnGold { gold });
     }
 }
 
@@ -160,6 +167,8 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             field_area_effects: Default::default(),
             left_shop_refresh_chance: 0,
             left_quest_board_refresh_chance: 0,
+            rerolled: false,
+            item_used: false,
         };
 
         game_state.goto_selecting_tower();
