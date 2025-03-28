@@ -205,7 +205,7 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             if !is_winner {
                 return;
             }
-            game_state.gold += amount as usize;
+            game_state.earn_gold(amount as usize);
             // TODO: Show effect on win
         }
         ItemKind::LinearDamage {

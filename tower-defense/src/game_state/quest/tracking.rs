@@ -435,7 +435,7 @@ fn on_quest_failed(_game_state: &mut GameState, _quest: QuestState) {
 fn on_quest_completed(game_state: &mut GameState, quest: QuestState) {
     match quest.reward {
         super::reward::QuestReward::Money { amount } => {
-            game_state.gold += amount;
+            game_state.earn_gold(amount);
         }
         super::reward::QuestReward::Item { item } => {
             game_state.items.push(item);

@@ -101,6 +101,11 @@ impl GameState {
     pub fn max_reroll_chance(&self) -> usize {
         self.upgrade_state.reroll_chance_plus + 1
     }
+
+    pub fn earn_gold(&mut self, gold: usize) {
+        self.gold += gold;
+        on_quest_trigger_event(self, quest::QuestTriggerEvent::EarnGold { gold });
+    }
 }
 
 impl Component for &GameState {
