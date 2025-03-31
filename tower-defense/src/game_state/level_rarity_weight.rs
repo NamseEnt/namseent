@@ -14,10 +14,18 @@ pub const LEVEL_RARITY_WEIGHT: [[usize; 4]; 10] = [
     [5, 20, 30, 40],
 ];
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RarityGenerationOption {
+    pub no_common: bool,
+}
+
 impl GameState {
-    pub fn generate_rarity(&self) -> Rarity {
+    pub fn generate_rarity(&self, option: RarityGenerationOption) -> Rarity {
         let level = self.level as usize;
-        let weights = &LEVEL_RARITY_WEIGHT[level];
+        let mut weights = LEVEL_RARITY_WEIGHT[level];
+        if option.no_common {
+            weights[0] = 0;
+        }
         let total_weight: usize = weights.iter().sum();
         let random_value = rand::random::<usize>() % total_weight;
 

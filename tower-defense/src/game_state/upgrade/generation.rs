@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     card::{REVERSED_RANKS, SUITS},
-    game_state::{GameState, tower::TowerKind},
+    game_state::{GameState, level_rarity_weight::RarityGenerationOption, tower::TowerKind},
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -13,25 +13,12 @@ use std::usize;
 
 //TODO: Call this function on clear boss stage
 pub fn generate_upgrades_for_boss_reward(game_state: &GameState, amount: usize) -> Vec<Upgrade> {
-    let rarity_table = generate_rarity_table_for_boss_reward(game_state.stage);
-    let rarities = {
-        let mut rarities = Vec::with_capacity(amount);
-        for _ in 0..amount {
-            let rarity = &rarity_table
-                .choose_weighted(&mut rand::thread_rng(), |x| x.1)
-                .unwrap()
-                .0;
-            rarities.push(*rarity);
-        }
-        rarities
-    };
+    let rarities =
+        (0..amount).map(|_| game_state.generate_rarity(RarityGenerationOption { no_common: true }));
 
-    let mut upgrades = Vec::with_capacity(rarities.len());
-    for rarity in rarities {
-        let upgrade = generate_upgrade(game_state, rarity);
-        upgrades.push(upgrade);
-    }
-    upgrades
+    rarities
+        .map(|rarity| generate_upgrade(game_state, rarity))
+        .collect()
 }
 pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
     let upgrade_candidates = generate_upgrade_candidate_table(game_state, rarity);
@@ -484,27 +471,6 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
     };
 
     Upgrade { kind, rarity }
-}
-fn generate_rarity_table_for_boss_reward(stage: usize) -> Vec<(Rarity, f32)> {
-    let rarity_weight = match stage {
-        15 => [0.85, 0.15, 0.00],
-        25 => [0.78, 0.2, 0.02],
-        30 => [0.7, 0.25, 0.1],
-        35 => [0.48, 0.4, 0.22],
-        40 => [0.35, 0.25, 0.3],
-        45 => [0.15, 0.2, 0.4],
-        46 => [0.15, 0.2, 0.4],
-        47 => [0.15, 0.2, 0.4],
-        48 => [0.15, 0.2, 0.4],
-        49 => [0.15, 0.2, 0.4],
-        _ => panic!("Invalid stage: {}", stage),
-    };
-    let rarity_table = vec![
-        (Rarity::Rare, rarity_weight[0]),
-        (Rarity::Epic, rarity_weight[1]),
-        (Rarity::Legendary, rarity_weight[2]),
-    ];
-    rarity_table
 }
 fn generate_upgrade_candidate_table(
     game_state: &GameState,

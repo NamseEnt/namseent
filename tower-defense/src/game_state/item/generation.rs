@@ -9,7 +9,7 @@ use rand::{Rng, seq::SliceRandom, thread_rng};
 
 pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {
     (0..amount)
-        .map(|_| game_state.generate_rarity())
+        .map(|_| game_state.generate_rarity(Default::default()))
         .map(generate_item)
         .collect()
 }
