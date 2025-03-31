@@ -47,6 +47,7 @@ impl ItemKind {
 }
 
 pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>) {
+    game_state.item_used = true;
     match item.kind {
         ItemKind::Heal { amount } => game_state.hp = (game_state.hp + amount).min(MAX_HP),
         ItemKind::AttackPowerPlusBuff {
@@ -204,7 +205,7 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             if !is_winner {
                 return;
             }
-            game_state.gold += amount as usize;
+            game_state.earn_gold(amount as usize);
             // TODO: Show effect on win
         }
         ItemKind::LinearDamage {

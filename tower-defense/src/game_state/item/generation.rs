@@ -21,22 +21,16 @@ pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {
         rarities
     };
 
-    rarities
-        .into_iter()
-        .map(|rarity| Item {
-            kind: generate_item(rarity),
-            rarity,
-        })
-        .collect()
+    rarities.into_iter().map(generate_item).collect()
 }
-pub fn generate_item(rarity: Rarity) -> ItemKind {
+pub fn generate_item(rarity: Rarity) -> Item {
     let candidates = generate_item_candidate_table(rarity);
     let candidate = &candidates
         .choose_weighted(&mut rand::thread_rng(), |x| x.1)
         .unwrap()
         .0;
 
-    match candidate {
+    let kind = match candidate {
         ItemCandidate::Heal => {
             let amount = thread_rng().gen_range(match rarity {
                 Rarity::Common => 5.0..9.0,
@@ -338,7 +332,9 @@ pub fn generate_item(rarity: Rarity) -> ItemKind {
                 duration,
             }
         }
-    }
+    };
+
+    Item { kind, rarity }
 }
 fn generate_rarity_table(stage: usize) -> Vec<(Rarity, f32)> {
     let rarity_weight = match stage {

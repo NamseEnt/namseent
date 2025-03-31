@@ -337,12 +337,6 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     index: quest_index,
                     completed: true,
                 }),
-                QuestTriggerEvent::UseItem => {
-                    remove_quests.push(RemoveQuest {
-                        index: quest_index,
-                        completed: false,
-                    });
-                }
                 _ => continue,
             },
             &mut QuestTrackingState::DealDamageWithItems {
@@ -365,6 +359,9 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                 ref mut built_count,
             } => match event {
                 QuestTriggerEvent::BuildTower { .. } => {
+                    if game_state.rerolled {
+                        continue;
+                    }
                     *built_count += 1;
                     if *built_count >= target_count {
                         remove_quests.push(RemoveQuest {
@@ -372,12 +369,6 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                             completed: true,
                         });
                     }
-                }
-                QuestTriggerEvent::Reroll => {
-                    remove_quests.push(RemoveQuest {
-                        index: quest_index,
-                        completed: false,
-                    });
                 }
                 _ => continue,
             },
@@ -438,9 +429,19 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
     }
 }
 
-fn on_quest_failed(game_state: &mut GameState, quest: QuestState) {
-    todo!()
+fn on_quest_failed(_game_state: &mut GameState, _quest: QuestState) {
+    unimplemented!("All quests are not failable for now")
 }
 fn on_quest_completed(game_state: &mut GameState, quest: QuestState) {
-    todo!()
+    match quest.reward {
+        super::reward::QuestReward::Money { amount } => {
+            game_state.earn_gold(amount);
+        }
+        super::reward::QuestReward::Item { item } => {
+            game_state.items.push(item);
+        }
+        super::reward::QuestReward::Upgrade { upgrade } => {
+            game_state.upgrade_state.upgrade(upgrade);
+        }
+    }
 }
