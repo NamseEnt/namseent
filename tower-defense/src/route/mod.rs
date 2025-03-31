@@ -6,6 +6,7 @@ pub use move_on_route::*;
 pub use route_find::*;
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct Route {
     map_coords: Vec<MapCoord>,
 }
