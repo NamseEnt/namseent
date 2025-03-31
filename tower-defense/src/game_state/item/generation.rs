@@ -8,20 +8,10 @@ use namui::*;
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
 pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {
-    let rarity_table = generate_rarity_table(game_state.stage);
-    let rarities = {
-        let mut rarities = Vec::with_capacity(amount);
-        for _ in 0..amount {
-            let rarity = &rarity_table
-                .choose_weighted(&mut rand::thread_rng(), |x| x.1)
-                .unwrap()
-                .0;
-            rarities.push(*rarity);
-        }
-        rarities
-    };
-
-    rarities.into_iter().map(generate_item).collect()
+    (0..amount)
+        .map(|_| game_state.generate_rarity())
+        .map(generate_item)
+        .collect()
 }
 pub fn generate_item(rarity: Rarity) -> Item {
     let candidates = generate_item_candidate_table(rarity);
@@ -335,27 +325,6 @@ pub fn generate_item(rarity: Rarity) -> Item {
     };
 
     Item { kind, rarity }
-}
-fn generate_rarity_table(stage: usize) -> Vec<(Rarity, f32)> {
-    let rarity_weight = match stage {
-        1..=4 => [0.9, 0.1, 0.0, 0.0],
-        5..=9 => [0.75, 0.25, 0.0, 0.0],
-        10..=14 => [0.55, 0.3, 0.15, 0.0],
-        15..=19 => [0.45, 0.33, 0.2, 0.02],
-        20..=24 => [0.25, 0.4, 0.3, 0.05],
-        25..=29 => [0.19, 0.3, 0.35, 0.15],
-        30..=34 => [0.16, 0.2, 0.35, 0.25],
-        35..=39 => [0.09, 0.15, 0.3, 0.3],
-        40..=50 => [0.05, 0.1, 0.3, 0.4],
-        _ => panic!("Invalid stage: {}", stage),
-    };
-    let rarity_table = vec![
-        (Rarity::Common, rarity_weight[0]),
-        (Rarity::Rare, rarity_weight[1]),
-        (Rarity::Epic, rarity_weight[2]),
-        (Rarity::Legendary, rarity_weight[3]),
-    ];
-    rarity_table
 }
 fn generate_item_candidate_table(rarity: Rarity) -> Vec<(ItemCandidate, f32)> {
     let candidate_weight = match rarity {

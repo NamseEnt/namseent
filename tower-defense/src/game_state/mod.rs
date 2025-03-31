@@ -4,6 +4,7 @@ pub mod cursor_preview;
 mod field_area_effect;
 pub mod flow;
 pub mod item;
+mod level_rarity_weight;
 mod monster;
 mod monster_spawn;
 pub mod projectile;
@@ -74,6 +75,7 @@ pub struct GameState {
     pub quest_states: Vec<QuestState>,
     pub rerolled: bool,
     pub item_used: bool,
+    pub level: usize,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -169,6 +171,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             left_quest_board_refresh_chance: 0,
             rerolled: false,
             item_used: false,
+            level: 1,
         };
 
         game_state.goto_selecting_tower();
