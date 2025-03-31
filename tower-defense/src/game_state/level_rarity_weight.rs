@@ -21,8 +21,7 @@ pub struct RarityGenerationOption {
 
 impl GameState {
     pub fn generate_rarity(&self, option: RarityGenerationOption) -> Rarity {
-        let level = self.level as usize;
-        let mut weights = LEVEL_RARITY_WEIGHT[level];
+        let mut weights = LEVEL_RARITY_WEIGHT[self.level.get() - 1];
         if option.no_common {
             weights[0] = 0;
         }
