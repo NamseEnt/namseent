@@ -2,7 +2,16 @@ use super::*;
 use anyhow::Result;
 use rayon::prelude::*;
 use rusqlite::{Connection, DatabaseName, OptionalExtension};
-use std::{collections::HashSet, fs::create_dir_all, io, time::UNIX_EPOCH};
+use std::{
+    collections::HashSet,
+    fs::create_dir_all,
+    io,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::UNIX_EPOCH,
+};
 
 pub fn bundle_to_sqlite(
     sqlite_path: impl AsRef<std::path::Path>,
@@ -12,6 +21,7 @@ pub fn bundle_to_sqlite(
     create_dir_all(sqlite_path.parent().unwrap())?;
     let create_conn = || Connection::open(&sqlite_path).unwrap();
     let conn = create_conn();
+    let changed = Arc::new(AtomicBool::new(false));
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS bundle (
@@ -33,6 +43,7 @@ pub fn bundle_to_sqlite(
             let path = path?;
             if !bundle_dest_list.contains(&path) {
                 conn.execute("DELETE FROM bundle WHERE path = ?", [&path])?;
+                changed.store(true, Ordering::Relaxed);
             }
         }
     };
@@ -57,6 +68,8 @@ pub fn bundle_to_sqlite(
                 return Ok(());
             }
 
+            changed.store(true, Ordering::Relaxed);
+
             conn.execute(
                 "INSERT OR REPLACE INTO bundle (path, data, modified) VALUES (?, ZEROBLOB(?), ?)",
                 (
@@ -80,7 +93,9 @@ pub fn bundle_to_sqlite(
         },
     )?;
 
-    conn.execute("VACUUM", ())?;
+    if changed.load(Ordering::Relaxed) {
+        conn.execute("VACUUM", ())?;
+    }
 
     Ok(())
 }
