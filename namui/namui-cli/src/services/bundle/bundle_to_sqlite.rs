@@ -21,7 +21,7 @@ pub fn bundle_to_sqlite(
     create_dir_all(sqlite_path.parent().unwrap())?;
     let create_conn = || Connection::open(&sqlite_path).unwrap();
     let conn = create_conn();
-    let changed = Arc::new(AtomicBool::new(false));
+    let has_changes = Arc::new(AtomicBool::new(false));
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS bundle (
@@ -43,7 +43,7 @@ pub fn bundle_to_sqlite(
             let path = path?;
             if !bundle_dest_list.contains(&path) {
                 conn.execute("DELETE FROM bundle WHERE path = ?", [&path])?;
-                changed.store(true, Ordering::Relaxed);
+                has_changes.store(true, Ordering::Relaxed);
             }
         }
     };
@@ -68,7 +68,7 @@ pub fn bundle_to_sqlite(
                 return Ok(());
             }
 
-            changed.store(true, Ordering::Relaxed);
+            has_changes.store(true, Ordering::Relaxed);
 
             conn.execute(
                 "INSERT OR REPLACE INTO bundle (path, data, modified) VALUES (?, ZEROBLOB(?), ?)",
@@ -93,7 +93,7 @@ pub fn bundle_to_sqlite(
         },
     )?;
 
-    if changed.load(Ordering::Relaxed) {
+    if has_changes.load(Ordering::Relaxed) {
         conn.execute("VACUUM", ())?;
     }
 
