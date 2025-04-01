@@ -1474,6 +1474,7 @@ dependencies = [
  "hyper-rustls",
  "hyper-util",
  "lazy_static",
+ "namui-algorithm",
  "namui-cfg",
  "namui-drawer",
  "namui-hooks",
@@ -1497,6 +1498,13 @@ dependencies = [
  "url",
  "wasapi",
  "winit",
+]
+
+[[package]]
+name = "namui-algorithm"
+version = "0.1.0"
+dependencies = [
+ "namui-type",
 ]
 
 [[package]]

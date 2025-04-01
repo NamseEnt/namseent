@@ -17,6 +17,7 @@ namui-hooks = { path = "../namui-hooks" }
 namui-skia = { path = "../skia" }
 namui-cfg = { path = "../namui-cfg" }
 namui-drawer = { path = "../namui-drawer" }
+namui-algorithm = { path = "../algorithm" }
 lazy_static = "1.4.0"
 url = { version = "2", features = ["serde"] }
 anyhow = { version = "1.0.77", features = ["backtrace"] }

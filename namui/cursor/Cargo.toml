@@ -1,0 +1,17 @@
+[package]
+name = "namui-svg"
+version = "0.1.0"
+authors = ["namse <skatpgusskat@naver.com>"]
+edition = "2024"
+
+[package.metadata.namui]
+targets = [
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+    "wasm32-wasi-web",
+]
+
+[dependencies]
+namui-type = { path = "../namui-type" }
+namui-skia = { path = "../skia" }
+roxmltree = "0.20.0"

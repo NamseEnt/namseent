@@ -1,0 +1,40 @@
+10 9 24 24
+alias 3 1
+all-scroll 11 11
+sw-resize 3 17
+se-resize 19 17
+s-resize 11 17
+cell 11 11
+col-resize 11 11
+color-picker 3 19
+context-menu 3 1
+copy 3 1
+crosshair 11 11
+default 3 1
+move 11 11
+no-drop 11 11
+down-arrow 11 19
+help 3 1
+left-arrow 3 11
+w-resize 3 11
+not-allowed 11 11
+grab 11 11
+pencil 3 3
+pointer 11 5
+progress 3 1 24 30
+right-arrow 19 11
+e-resize 19 11
+row-resize 11 11
+nesw-resize 11 11
+nwse-resize 11 11
+ew-resize 11 11
+ns-resize 11 11
+text 11 11
+nw-resize 3 3
+ne-resize 19 3
+n-resize 11 3
+up-arrow 11 3
+vertical-text 11 11
+wait 11 11 24 30
+zoom-in 11 11
+zoom-out 11 11
