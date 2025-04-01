@@ -156,14 +156,8 @@ fn find_all_disrupts(
                 continue;
             }
 
-            let coord1 = MapCoord::new(
-                placed_tower_coord.x.min(new_tower_coord.x),
-                placed_tower_coord.y.min(new_tower_coord.y),
-            );
-            let coord2 = MapCoord::new(
-                placed_tower_coord.x.max(new_tower_coord.x),
-                placed_tower_coord.y.max(new_tower_coord.y),
-            );
+            let coord1 = MapCoord::new(placed_tower_coord.x, new_tower_coord.y);
+            let coord2 = MapCoord::new(new_tower_coord.x, placed_tower_coord.y);
 
             disrupt.push(Disrupt::Path { coord1, coord2 });
         }
@@ -370,6 +364,49 @@ tower_left_top_history: {tower_left_top_history:?}",
 
         assert!(can_place_tower(
             MapCoord::new(5, 2),
+            tower_size,
+            &TRAVEL_POINTS,
+            &placed_tower_coords,
+            route.iter_coords(),
+            MAP_SIZE,
+        ));
+    }
+
+    #[test]
+    /// https://github.com/NamseEnt/namseent/issues/1048
+    fn issue_1048() {
+        const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
+        const TRAVEL_POINTS: [MapCoord; 7] = [
+            MapCoord::new(6, 0),
+            MapCoord::new(6, 23),
+            MapCoord::new(41, 23),
+            MapCoord::new(41, 6),
+            MapCoord::new(24, 6),
+            MapCoord::new(24, 41),
+            MapCoord::new(47, 41),
+        ];
+
+        let tower_size = Wh::new(2, 2);
+
+        let placed_tower_coords = vec![
+            MapCoord::new(7, 0),
+            MapCoord::new(7, 1),
+            MapCoord::new(8, 0),
+            MapCoord::new(8, 1),
+            MapCoord::new(5, 2),
+            MapCoord::new(5, 3),
+            MapCoord::new(6, 2),
+            MapCoord::new(6, 3),
+            MapCoord::new(3, 4),
+            MapCoord::new(3, 5),
+            MapCoord::new(4, 4),
+            MapCoord::new(4, 5),
+        ];
+        let route =
+            crate::route::calculate_routes(&placed_tower_coords, &TRAVEL_POINTS, MAP_SIZE).unwrap();
+
+        assert!(!can_place_tower(
+            MapCoord::new(3, 0),
             tower_size,
             &TRAVEL_POINTS,
             &placed_tower_coords,
