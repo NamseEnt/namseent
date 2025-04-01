@@ -21,6 +21,7 @@ pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
     generate_runtime_project(services::runtime_project::GenerateRuntimeProjectArgs {
         target_dir: runtime_target_dir.clone(),
         project_path: project_root_path.clone(),
+        strip_debug_info: true,
     })?;
 
     let build_status_service = BuildStatusService::new();

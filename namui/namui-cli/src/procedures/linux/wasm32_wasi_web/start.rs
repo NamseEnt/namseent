@@ -8,7 +8,10 @@ use services::rust_project_watch_service::RustProjectWatchService;
 use tokio::process::Child;
 use util::get_cli_root_path;
 
-pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) -> Result<()> {
+pub async fn start(
+    manifest_path: impl AsRef<std::path::Path>,
+    start_option: StartOption,
+) -> Result<()> {
     let manifest_path = manifest_path.as_ref();
     let target = Target::Wasm32WasiWeb;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
@@ -18,6 +21,7 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
     generate_runtime_project(GenerateRuntimeProjectArgs {
         target_dir: runtime_target_dir.clone(),
         project_path: project_root_path.clone(),
+        strip_debug_info: start_option.strip_debug_info,
     })?;
 
     build_status_service
@@ -27,7 +31,7 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
     let result = rust_build_service::build(BuildOption {
         target,
         project_root_path: runtime_target_dir.clone(),
-        release,
+        release: start_option.release,
         watch: true,
     })
     .await??;
@@ -38,7 +42,8 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
 
     let vite_config = ViteConfig {
         project_root_path: &project_root_path,
-        release,
+        release: start_option.release,
+        host: start_option.host,
     };
 
     build_status_service
@@ -61,7 +66,7 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
         let result = rust_build_service::build(BuildOption {
             target,
             project_root_path: runtime_target_dir.clone(),
-            release,
+            release: start_option.release,
             watch: true,
         })
         .await??;

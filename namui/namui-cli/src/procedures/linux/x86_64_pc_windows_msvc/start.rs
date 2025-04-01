@@ -5,14 +5,17 @@ use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runti
 use services::rust_build_service::{self, BuildOption};
 use services::rust_project_watch_service::RustProjectWatchService;
 
-pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) -> Result<()> {
+pub async fn start(
+    manifest_path: impl AsRef<std::path::Path>,
+    start_option: StartOption,
+) -> Result<()> {
     let manifest_path = manifest_path.as_ref();
     let target = Target::Wasm32WasiWeb;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let build_status_service = BuildStatusService::new();
     let runtime_target_dir = project_root_path.join("target/namui");
     let bundle_path = {
-        let opt_level = match release {
+        let opt_level = match start_option.release {
             true => "release",
             false => "debug",
         };
@@ -28,6 +31,7 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
     generate_runtime_project(GenerateRuntimeProjectArgs {
         target_dir: runtime_target_dir.clone(),
         project_path: project_root_path.clone(),
+        strip_debug_info: start_option.strip_debug_info,
     })?;
 
     build_status_service
@@ -36,7 +40,7 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
     let result = rust_build_service::build(BuildOption {
         target,
         project_root_path: runtime_target_dir.clone(),
-        release,
+        release: start_option.release,
         watch: true,
     })
     .await??;
@@ -59,7 +63,7 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
         let result = rust_build_service::build(BuildOption {
             target,
             project_root_path: runtime_target_dir.clone(),
-            release,
+            release: start_option.release,
             watch: true,
         })
         .await??;

@@ -2,7 +2,11 @@ use crate::cli::Target;
 use crate::*;
 use std::path::PathBuf;
 
-pub async fn start(target: Target, manifest_path: PathBuf, release: bool) -> Result<()> {
+pub async fn start(
+    target: Target,
+    manifest_path: PathBuf,
+    start_option: StartOption,
+) -> Result<()> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
     if cfg!(target_os = "linux") {
@@ -11,10 +15,10 @@ pub async fn start(target: Target, manifest_path: PathBuf, release: bool) -> Res
             use super::linux;
             match target {
                 Target::Wasm32WasiWeb => {
-                    linux::wasm32_wasi_web::start(&manifest_path, release).await?
+                    linux::wasm32_wasi_web::start(&manifest_path, start_option).await?
                 }
                 Target::X86_64PcWindowsMsvc => {
-                    linux::x86_64_pc_windows_msvc::start(&manifest_path, release).await?
+                    linux::x86_64_pc_windows_msvc::start(&manifest_path, start_option).await?
                 }
                 Target::X86_64UnknownLinuxGnu => todo!(),
             }

@@ -10,7 +10,7 @@ mod util;
 
 use anyhow::{Result, anyhow, bail};
 use clap::Parser;
-use cli::{Cli, Commands};
+use cli::{Cli, Commands, StartOption};
 use namui_user_config::set_user_config;
 use std::env::current_dir;
 use util::{get_current_target, print_namui_cfg, print_namui_target};
@@ -41,10 +41,21 @@ async fn main() -> Result<()> {
             target: option_target,
             manifest_path: option_manifest_path,
             release,
+            host,
+            strip_debug_info,
         } => {
             let target = option_target.unwrap_or(current_target);
             let manifest_path = option_manifest_path.unwrap_or(manifest_path);
-            procedures::start(target, manifest_path, release).await?;
+            procedures::start(
+                target,
+                manifest_path,
+                StartOption {
+                    release,
+                    host,
+                    strip_debug_info,
+                },
+            )
+            .await?;
         }
         Commands::Build {
             target: option_target,
