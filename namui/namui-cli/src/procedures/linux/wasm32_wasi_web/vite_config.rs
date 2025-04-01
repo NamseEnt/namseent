@@ -6,6 +6,7 @@ use tokio::fs::{create_dir_all, remove_dir_all};
 pub struct ViteConfig<'a> {
     pub project_root_path: &'a Path,
     pub release: bool,
+    pub host: Option<String>,
 }
 pub async fn update_vite_config(config: &ViteConfig<'_>) -> Result<()> {
     let bundle_manifest = NamuiBundleManifest::parse(config.project_root_path)?;
@@ -43,6 +44,7 @@ export default defineConfig({{
             "{namui_runtime_wasm}",
             "{cli_root}/",
         ],
+        host: "{host}",
     }},
     resolve: {{
         alias: {{
@@ -58,6 +60,7 @@ export default defineConfig({{
             namui_runtime_wasm = namui_runtime_wasm_path.to_string_lossy(),
             cli_root = get_cli_root_path().to_string_lossy(),
             bundle_sqlite = bundle_sqlite_path.to_string_lossy(),
+            host = config.host.as_deref().unwrap_or("localhost"),
         ),
     )
     .await?;

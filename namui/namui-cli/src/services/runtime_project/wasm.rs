@@ -26,11 +26,14 @@ edition = "2024"
 opt-level = 3
 lto = true
 codegen-units = 1 # Reduce number of codegen units to increase optimizations
-strip = true
-debug = false
+strip = {strip}
+debug = {debug}
 
 [profile.dev]
 opt-level = 1
+# opt-level = 3
+strip = {strip}
+debug = {debug}
 "#,
             project_path = project_path_in_relative
                 .to_str()
@@ -38,6 +41,16 @@ opt-level = 1
                 .split('\\')
                 .collect::<Vec<&str>>()
                 .join("/"),
+            strip = if args.strip_debug_info {
+                "true"
+            } else {
+                "false"
+            },
+            debug = if args.strip_debug_info {
+                "false"
+            } else {
+                "true"
+            },
         ),
     )?;
 

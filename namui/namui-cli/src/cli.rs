@@ -9,6 +9,12 @@ pub struct Cli {
     pub command: Commands,
 }
 
+pub struct StartOption {
+    pub release: bool,
+    pub host: Option<String>,
+    pub strip_debug_info: bool,
+}
+
 #[derive(Subcommand)]
 pub enum Commands {
     Start {
@@ -18,6 +24,10 @@ pub enum Commands {
         manifest_path: Option<PathBuf>,
         #[arg(long)]
         release: bool,
+        #[arg(long)]
+        host: Option<String>,
+        #[arg(long)]
+        strip_debug_info: bool,
     },
     Build {
         #[arg(value_enum)]
