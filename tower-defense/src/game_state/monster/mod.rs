@@ -66,11 +66,8 @@ impl Monster {
 }
 impl Component for &Monster {
     fn render(self, ctx: &RenderCtx) {
-        let monster_wh = TILE_PX_SIZE
-            * match self.kind {
-                MonsterKind::Ball => 0.6,
-                MonsterKind::BigBall => 0.8,
-            };
+        // TODO: add monster image
+        let monster_wh = TILE_PX_SIZE * 0.6;
         let path = Path::new().add_oval(Rect::from_xy_wh(monster_wh.as_xy() * -0.5, monster_wh));
         let paint = Paint::new(Color::RED);
         ctx.translate(TILE_PX_SIZE.as_xy() * 0.5)
@@ -142,54 +139,106 @@ impl MonsterTemplate {
     fn reward(mul: usize) -> usize {
         mul
     }
-    pub fn new_mob_01() -> Self {
+    pub fn new(kind: MonsterKind) -> Self {
+        let (max_hp, velocity, damage, reward, skills) = match kind {
+            MonsterKind::Mob01 => (10.0, 0.5, 1.0, 2, vec![]),
+            MonsterKind::Mob02 => (25.0, 0.5, 1.0, 2, vec![]),
+            MonsterKind::Mob03 => (90.0, 0.3, 1.0, 2, vec![]),
+            MonsterKind::Mob04 => (75.0, 1.1, 1.0, 2, vec![]),
+            MonsterKind::Mob05 => (250.0, 1.0, 1.0, 2, vec![]),
+            MonsterKind::Mob06 => (850.0, 0.75, 1.0, 3, vec![]),
+            MonsterKind::Mob07 => (1750.0, 0.75, 1.0, 3, vec![]),
+            MonsterKind::Mob08 => (6000.0, 0.4, 1.0, 3, vec![]),
+            MonsterKind::Mob09 => (3500.0, 1.25, 1.0, 3, vec![]),
+            MonsterKind::Mob10 => (7500.0, 0.75, 1.0, 3, vec![]),
+            MonsterKind::Mob11 => (10000.0, 1.0, 1.0, 3, vec![]),
+            MonsterKind::Mob12 => (15000.0, 1.0, 1.0, 3, vec![]),
+            MonsterKind::Mob13 => (45000.0, 0.5, 1.0, 3, vec![]),
+            MonsterKind::Mob14 => (20000.0, 1.5, 1.0, 3, vec![]),
+            MonsterKind::Mob15 => (45000.0, 1.0, 1.0, 3, vec![]),
+            MonsterKind::Named01 => (100.0, 0.5, 3.0, 10, vec![]),
+            MonsterKind::Named02 => (500.0, 0.75, 3.0, 12, vec![]),
+            MonsterKind::Named03 => (1500.0, 1.0, 3.0, 14, vec![]),
+            MonsterKind::Named04 => (3500.0, 1.25, 3.0, 16, vec![]),
+            MonsterKind::Named05 => (15000.0, 0.5, 5.0, 18, vec![]),
+            MonsterKind::Named06 => (30000.0, 0.75, 5.0, 20, vec![]),
+            MonsterKind::Named07 => (45000.0, 1.0, 5.0, 22, vec![]),
+            MonsterKind::Named08 => (65000.0, 1.25, 5.0, 24, vec![]),
+            MonsterKind::Named09 => (200000.0, 0.5, 7.0, 26, vec![]),
+            MonsterKind::Named10 => (250000.0, 0.75, 7.0, 28, vec![]),
+            MonsterKind::Named11 => (300000.0, 1.0, 7.0, 30, vec![]),
+            MonsterKind::Named12 => (300000.0, 1.25, 7.0, 32, vec![]),
+            MonsterKind::Named13 => (650000.0, 0.5, 10.0, 34, vec![]),
+            MonsterKind::Named14 => (550000.0, 0.75, 10.0, 36, vec![]),
+            MonsterKind::Named15 => (550000.0, 1.0, 10.0, 38, vec![]),
+            MonsterKind::Named16 => (750000.0, 1.25, 10.0, 40, vec![]),
+            MonsterKind::Boss01 => (3500.0, 1.0, 15.0, 50, vec![]),
+            MonsterKind::Boss02 => (10000.0, 1.0, 20.0, 75, vec![]),
+            MonsterKind::Boss03 => (35000.0, 1.0, 20.0, 100, vec![]),
+            MonsterKind::Boss04 => (85000.0, 1.0, 25.0, 100, vec![]),
+            MonsterKind::Boss05 => (200000.0, 1.0, 25.0, 125, vec![]),
+            MonsterKind::Boss06 => (300000.0, 1.0, 25.0, 125, vec![]),
+            MonsterKind::Boss07 => (375000.0, 1.0, 50.0, 125, vec![]),
+            MonsterKind::Boss08 => (500000.0, 1.0, 50.0, 125, vec![]),
+            MonsterKind::Boss09 => (700000.0, 1.0, 50.0, 125, vec![]),
+            MonsterKind::Boss10 => (850000.0, 1.0, 50.0, 125, vec![]),
+            MonsterKind::Boss11 => (1125000.0, 1.0, 50.0, 125, vec![]),
+        };
         Self {
-            kind: MonsterKind::Ball,
-            max_hp: 10.0,
-            skills: vec![],
-            velocity: Self::velocity(0.5),
-            damage: Self::damage(1.0),
-            reward: Self::reward(1),
-        }
-    }
-    pub fn new_mob_02() -> Self {
-        Self {
-            kind: MonsterKind::Ball,
-            max_hp: 15.0,
-            skills: vec![],
-            velocity: Self::velocity(0.5),
-            damage: Self::damage(1.0),
-            reward: Self::reward(1),
-        }
-    }
-
-    pub fn new_named_01() -> Self {
-        Self {
-            kind: MonsterKind::BigBall,
-            max_hp: 100.0,
-            skills: vec![],
-            velocity: Self::velocity(1.0),
-            damage: Self::damage(10.0),
-            reward: Self::reward(10),
-        }
-    }
-
-    pub fn new_boss_01() -> Self {
-        Self {
-            kind: MonsterKind::BigBall,
-            max_hp: 1000.0,
-            skills: vec![],
-            velocity: Self::velocity(1.0),
-            damage: Self::damage(25.0),
-            reward: Self::reward(100),
+            kind,
+            max_hp,
+            skills,
+            velocity: Self::velocity(velocity),
+            damage: Self::damage(damage),
+            reward: Self::reward(reward),
         }
     }
 }
 
 #[derive(Clone, Copy)]
 pub enum MonsterKind {
-    Ball,
-    BigBall,
+    Mob01,
+    Mob02,
+    Mob03,
+    Mob04,
+    Mob05,
+    Mob06,
+    Mob07,
+    Mob08,
+    Mob09,
+    Mob10,
+    Mob11,
+    Mob12,
+    Mob13,
+    Mob14,
+    Mob15,
+    Named01,
+    Named02,
+    Named03,
+    Named04,
+    Named05,
+    Named06,
+    Named07,
+    Named08,
+    Named09,
+    Named10,
+    Named11,
+    Named12,
+    Named13,
+    Named14,
+    Named15,
+    Named16,
+    Boss01,
+    Boss02,
+    Boss03,
+    Boss04,
+    Boss05,
+    Boss06,
+    Boss07,
+    Boss08,
+    Boss09,
+    Boss10,
+    Boss11,
 }
 
 pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
