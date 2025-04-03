@@ -131,7 +131,7 @@ pub struct MonsterTemplate {
 }
 impl MonsterTemplate {
     fn velocity(mul: f32) -> Velocity {
-        Per::new(10.0 * mul, Duration::from_secs(1))
+        Per::new(5.0 * mul, Duration::from_secs(1))
     }
     fn damage(mul: f32) -> f32 {
         mul
