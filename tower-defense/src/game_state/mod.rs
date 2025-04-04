@@ -77,6 +77,8 @@ pub struct GameState {
     pub rerolled: bool,
     pub item_used: bool,
     pub level: NonZeroUsize,
+    game_now: Instant,
+    time_scale: NonZeroUsize,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -108,6 +110,10 @@ impl GameState {
     pub fn earn_gold(&mut self, gold: usize) {
         self.gold += gold;
         on_quest_trigger_event(self, quest::QuestTriggerEvent::EarnGold { gold });
+    }
+
+    fn now(&self) -> Instant {
+        self.game_now
     }
 }
 
@@ -173,6 +179,8 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             rerolled: false,
             item_used: false,
             level: NonZeroUsize::new(1).unwrap(),
+            game_now: Instant::now(),
+            time_scale: NonZeroUsize::new(1).unwrap(),
         };
 
         game_state.goto_selecting_tower();

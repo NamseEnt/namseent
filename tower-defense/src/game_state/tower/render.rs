@@ -34,14 +34,17 @@ pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
         }
 
         if let TowerKind::Barricade = kind {
-            animation.transition(AnimationKind::Idle1);
+            animation.transition(AnimationKind::Idle1, now);
             return;
         }
-        animation.transition(match animation.kind {
-            AnimationKind::Idle1 => AnimationKind::Idle2,
-            AnimationKind::Idle2 => AnimationKind::Idle1,
-            AnimationKind::Attack => AnimationKind::Idle1,
-        });
+        animation.transition(
+            match animation.kind {
+                AnimationKind::Idle1 => AnimationKind::Idle2,
+                AnimationKind::Idle2 => AnimationKind::Idle1,
+                AnimationKind::Attack => AnimationKind::Idle1,
+            },
+            now,
+        );
     });
 }
 pub(super) struct Animation {
@@ -50,16 +53,16 @@ pub(super) struct Animation {
 }
 
 impl Animation {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(now: Instant) -> Self {
         Self {
             kind: AnimationKind::Idle1,
-            start_at: Instant::now(),
+            start_at: now,
         }
     }
 
-    pub(super) fn transition(&mut self, kind: AnimationKind) {
+    pub(super) fn transition(&mut self, kind: AnimationKind, now: Instant) {
         self.kind = kind;
-        self.start_at = Instant::now();
+        self.start_at = now;
     }
 
     fn duration(&self) -> Duration {

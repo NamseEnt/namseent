@@ -6,17 +6,16 @@ pub struct Ticker {}
 
 impl Component for Ticker {
     fn render(self, ctx: &RenderCtx) {
-        ctx.interval("game state tick", TICK_MAX_DURATION, |mut dt| {
+        ctx.interval("game state tick", TICK_MAX_DURATION, |real_dt| {
             crate::game_state::mutate_game_state(move |game_state| {
-                let now = Instant::now();
-                let mut tick_now = now - dt;
-                while dt.is_positive() && dt.as_millis() > 0 {
-                    let tick_dt = dt.min(TICK_MAX_DURATION);
-                    dt -= tick_dt;
+                let mut scaled_dt = real_dt * game_state.time_scale.get() as i32;
+                while scaled_dt.as_millis() > 0 {
+                    let tick_dt = scaled_dt.min(TICK_MAX_DURATION);
+                    scaled_dt -= tick_dt;
 
-                    tick_now += tick_dt;
+                    game_state.game_now += tick_dt;
 
-                    tick(game_state, tick_dt, tick_now);
+                    tick(game_state, tick_dt, game_state.game_now);
                 }
             });
         });
@@ -90,6 +89,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 }
 
 fn shoot_projectiles(game_state: &mut GameState) {
+    let now = game_state.now();
     let GameState {
         towers,
         upgrade_state,
@@ -111,7 +111,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
             return None;
         };
 
-        Some(tower.shoot(target.projectile_target_indicator, &tower_upgrades))
+        Some(tower.shoot(target.projectile_target_indicator, &tower_upgrades, now))
     });
 
     game_state.projectiles.extend(projectiles);
