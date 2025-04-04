@@ -1,9 +1,9 @@
 mod game_state;
-
-use std::{collections::HashMap, num::NonZeroUsize};
+mod ground_grid;
 
 use namui::*;
 use namui_prebuilt::*;
+use std::{collections::HashMap, num::NonZeroUsize};
 
 pub fn main() {
     namui::start(|ctx| {
@@ -15,7 +15,30 @@ struct App {}
 impl Component for App {
     fn render(self, ctx: &RenderCtx) {
         let screen_wh = screen::size().into_type::<Px>();
-        eprintln!("screen size: {:?}", screen_wh);
+
+        // # 목표
+        // 손님을 스폰해서 카운터에 오게 하는 것.
+        /*
+        5초마다 손님을 스폰하자.
+        손님은 카운터 앞에 줄을 선다.
+            다양한 방법으로 줄 세우고 싶은데... 그거는 나중에 생각하자.
+        여기까지 하면 돼!
+
+        손님은 카운터가 어디인지 모르고, 줄이 어떻게 세워져있는진 몰라!
+        손님은 일단 가게를 오는게 목적이야.
+        그리고 난 다음에 줄이 어디인지 탐색해
+
+        주변 사람한테 물어볼 수도 있고, 근데 주변 사람한테 물어보기 부끄러울 수 있어.
+        표지판을 보고 찾아올 수도 있고, 근데 표지판을 못볼 수도 있어. 시야 안에 표지판이 확실하게 들어오면 되겠지.
+
+        뭔갈 사려는 목적을 가진 손님이 있어.
+        그런 목적이 아닌 손님도 있겠지. 아무튼 손님은 목적이 있고, 목적 중에는 뭔가를 사려는게 목적인 경우가 있어.
+
+        물건을 사려는 목적인 경우
+        일단 가게에 와.
+        물건이 있는지 찾아보거나 직원에게 물어봐. 근데 직원에게는 잘 물어보지 않을거야.
+
+        */
     }
 }
 
@@ -25,8 +48,35 @@ struct GameState {
     customers: Vec<Customer>,
 }
 
+impl GameState {
+    fn on_update_tick(&mut self, dt: Duration) {
+        self.customer_spawner_tick();
+    }
+
+    fn customer_spawner_tick(&mut self) {
+        let Self {
+            customer_spawner,
+            customers,
+            ..
+        } = self;
+
+        if customer_spawner.last_spawn_at + customer_spawner.interval < time::now() {
+            return;
+        }
+
+        customer_spawner.last_spawn_at = time::now();
+        customers.push(Customer {
+            destination: Xy::new(0, 0),
+            goods_to_buy: HashMap::new(),
+        });
+    }
+}
+
 #[derive(Debug)]
-struct CustomerSpawner {}
+struct CustomerSpawner {
+    interval: Duration,
+    last_spawn_at: Instant,
+}
 
 #[derive(Debug)]
 struct Customer {
