@@ -23,9 +23,9 @@ pub struct TowerSkill {
 }
 
 impl TowerSkill {
-    pub fn new(template: TowerSkillTemplate) -> Self {
+    pub fn new(template: TowerSkillTemplate, now: Instant) -> Self {
         Self {
-            last_used_at: Instant::now(),
+            last_used_at: now,
             template,
         }
     }

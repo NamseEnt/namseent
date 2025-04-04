@@ -61,7 +61,7 @@ impl Component for TowerCursorPreview<'_> {
 
         let place_tower = || {
             let left_top = *rounded_center_xy - Xy::single(1);
-            place_tower(Tower::new(tower_template, left_top));
+            place_tower(Tower::new(tower_template, left_top, game_state.now()));
             mutate_game_state(move |game_state| {
                 let GameFlow::PlacingTower {
                     placing_tower_slots,

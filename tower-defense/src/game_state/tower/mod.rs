@@ -23,7 +23,7 @@ pub struct Tower {
     pub(self) animation: Animation,
 }
 impl Tower {
-    pub fn new(template: &TowerTemplate, left_top: MapCoord) -> Self {
+    pub fn new(template: &TowerTemplate, left_top: MapCoord, now: Instant) -> Self {
         const ID: AtomicUsize = AtomicUsize::new(0);
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
@@ -32,7 +32,7 @@ impl Tower {
             template: template.clone(),
             status_effects: vec![],
             skills: vec![],
-            animation: Animation::new(),
+            animation: Animation::new(now),
         }
     }
     pub fn in_cooltime(&self) -> bool {
@@ -43,9 +43,10 @@ impl Tower {
         &mut self,
         target_indicator: ProjectileTargetIndicator,
         tower_upgrade_states: &[TowerUpgradeState],
+        now: Instant,
     ) -> Projectile {
         self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack);
+        self.animation.transition(AnimationKind::Attack, now);
 
         Projectile {
             kind: self.projectile_kind,
