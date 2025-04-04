@@ -439,7 +439,7 @@ fn create_tower_template(kind: TowerKind, suit: Suit, rank: Rank) -> TowerTempla
         shoot_interval,
         default_attack_range_radius,
         projectile_kind: ProjectileKind::Ball,
-        projectile_speed: Per::new(32.0, 1.sec()),
+        projectile_speed: Per::new(16.0, 1.sec()),
         default_damage,
         suit,
         rank,
