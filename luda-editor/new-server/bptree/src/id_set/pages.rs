@@ -638,7 +638,7 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(center_id, ((INTERNAL_NODE_ID_LEN + 1) / 2) as Id);
+        assert_eq!(center_id, INTERNAL_NODE_ID_LEN.div_ceil(2) as Id);
 
         assert_eq!(
             internal_node.id_count + right_node.id_count,
