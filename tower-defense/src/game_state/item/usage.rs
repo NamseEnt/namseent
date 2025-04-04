@@ -192,7 +192,7 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                     xy,
                     radius,
                     tick_interval: TICK_INTERVAL,
-                    next_tick_at: now(),
+                    next_tick_at: game_state.now(),
                 },
                 FieldAreaEffectEnd::Once { fired: false },
             ));
@@ -246,7 +246,7 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                     target_xy: xy,
                     thickness,
                     tick_interval: TICK_INTERVAL,
-                    next_tick_at: now(),
+                    next_tick_at: game_state.now(),
                 },
                 FieldAreaEffectEnd::Once { fired: false },
             ));
