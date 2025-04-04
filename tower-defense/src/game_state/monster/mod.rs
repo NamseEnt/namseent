@@ -50,6 +50,16 @@ impl Monster {
 
         self.hp -= damage;
     }
+    pub fn heal(&mut self, amount: f32) {
+        if self.dead() {
+            return;
+        }
+
+        self.hp += amount;
+        if self.hp > self.max_hp {
+            self.hp = self.max_hp;
+        }
+    }
     pub fn get_damage_to_user(&self) -> f32 {
         let damage = self.damage;
         // weaken or strengthen the damage
