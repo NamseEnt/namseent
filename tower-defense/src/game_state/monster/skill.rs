@@ -4,6 +4,7 @@ use std::ops::Deref;
 #[derive(Clone, Copy)]
 pub struct MonsterSkillTemplate {
     pub kind: MonsterSkillKind,
+    pub target: Target,
     pub cooldown: Duration,
     pub duration: Duration,
 }
@@ -32,9 +33,10 @@ impl Deref for MonsterSkill {
 
 #[derive(Clone, Copy)]
 pub enum MonsterSkillKind {
-    SelfInvincible,
-    NearbyMonsterSpeedMul { mul: f32, range_radius: f32 },
-    SelfImmuneToSlow,
+    Invincible,
+    SpeedMul { mul: f32 },
+    ImmuneToSlow,
+    HealByMaxHp { ratio: f32 },
 }
 
 #[derive(Clone)]
@@ -44,10 +46,24 @@ pub struct MonsterStatusEffect {
 }
 
 #[derive(Clone, Copy)]
+pub enum Target {
+    MySelf,
+    MeAndNearby { radius: f32 },
+}
+
+#[derive(Clone, Copy)]
 pub enum MonsterStatusEffectKind {
     SpeedMul { mul: f32 },
     Invincible,
     ImmuneToSlow,
+    // 자신에게 n초 동안 무적 버프 부여
+    // 자신에게 n초 동안 둔화효과 무시 버프 부여
+    // 자신에게 n초 동안 이동속도 m배 버프 부여
+    // 자신에게 최대체력의 m배 회복 버프 부여
+    // 자신과 주변 r 타일의 적에게 n초 동안 무적 버프 부여
+    // 자신과 주변 r 타일의 적에게 n초 동안 둔화효과 무시 버프 부여
+    // 자신과 주변 r 타일의 적에게 n초 동안 이동속도 m배 버프 부여
+    // 자신과 주변 r 타일의 적에게 최대체력의 m배 회복 버프 부여
 }
 
 pub fn remove_monster_finished_status_effects(game_state: &mut GameState, now: Instant) {
@@ -71,43 +87,54 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
     }
 
     for (monster_id, skill) in activated_skills {
-        let mut push_status_effect = |kind| {
-            game_state
-                .monsters
-                .iter_mut()
-                .find(|m| m.id == monster_id)
-                .unwrap()
-                .status_effects
-                .push(MonsterStatusEffect {
-                    kind,
-                    end_at: now + skill.duration,
-                });
-        };
-
-        match skill.kind {
-            MonsterSkillKind::SelfInvincible => {
-                push_status_effect(MonsterStatusEffectKind::Invincible);
+        let target_monsters = match skill.target {
+            Target::MySelf => {
+                vec![
+                    game_state
+                        .monsters
+                        .iter_mut()
+                        .find(|m| m.id == monster_id)
+                        .unwrap(),
+                ]
             }
-            MonsterSkillKind::NearbyMonsterSpeedMul { mul, range_radius } => {
+            Target::MeAndNearby { radius } => {
                 let caster_xy = game_state
                     .monsters
                     .iter()
                     .find(|m| m.id == monster_id)
                     .unwrap()
                     .xy();
+                game_state
+                    .monsters
+                    .iter_mut()
+                    .filter(|monster| {
+                        monster.id != monster_id && caster_xy.distance(monster.xy()) <= radius
+                    })
+                    .collect()
+            }
+        };
 
-                for monster in game_state.monsters.iter_mut() {
-                    if caster_xy.distance(monster.xy()) <= range_radius {
-                        monster.status_effects.push(MonsterStatusEffect {
-                            kind: MonsterStatusEffectKind::SpeedMul { mul },
-                            end_at: now + skill.duration,
-                        });
-                    }
+        target_monsters.into_iter().for_each(|monster| {
+            let mut push_status_effect = |kind| {
+                monster.status_effects.push(MonsterStatusEffect {
+                    kind,
+                    end_at: now + skill.duration,
+                });
+            };
+            match skill.kind {
+                MonsterSkillKind::Invincible => {
+                    push_status_effect(MonsterStatusEffectKind::Invincible);
+                }
+                MonsterSkillKind::SpeedMul { mul } => {
+                    push_status_effect(MonsterStatusEffectKind::SpeedMul { mul });
+                }
+                MonsterSkillKind::ImmuneToSlow => {
+                    push_status_effect(MonsterStatusEffectKind::ImmuneToSlow);
+                }
+                MonsterSkillKind::HealByMaxHp { ratio } => {
+                    monster.heal(monster.max_hp * ratio);
                 }
             }
-            MonsterSkillKind::SelfImmuneToSlow => {
-                push_status_effect(MonsterStatusEffectKind::ImmuneToSlow);
-            }
-        }
+        });
     }
 }
