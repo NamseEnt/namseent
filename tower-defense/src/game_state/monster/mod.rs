@@ -20,7 +20,7 @@ pub struct Monster {
     pub reward: usize,
 }
 impl Monster {
-    pub fn new(template: &MonsterTemplate, route: Arc<Route>) -> Self {
+    pub fn new(template: &MonsterTemplate, route: Arc<Route>, now: Instant) -> Self {
         const ID: AtomicUsize = AtomicUsize::new(0);
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
@@ -32,7 +32,7 @@ impl Monster {
             skills: template
                 .skills
                 .iter()
-                .map(|&t| MonsterSkill::new(t))
+                .map(|&t| MonsterSkill::new(t, now))
                 .collect(),
             status_effects: vec![],
             damage: template.damage,

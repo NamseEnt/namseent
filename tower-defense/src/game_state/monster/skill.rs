@@ -14,9 +14,9 @@ pub struct MonsterSkill {
 }
 
 impl MonsterSkill {
-    pub fn new(template: MonsterSkillTemplate) -> Self {
+    pub fn new(template: MonsterSkillTemplate, now: Instant) -> Self {
         Self {
-            last_used_at: Instant::now(),
+            last_used_at: now,
             template,
         }
     }

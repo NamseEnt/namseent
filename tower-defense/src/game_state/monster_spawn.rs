@@ -21,7 +21,7 @@ pub fn start_spawn(game_state: &mut GameState) {
 
     game_state.monster_spawn_state = MonsterSpawnState::Spawning {
         monster_queue,
-        next_spawn_time: Instant::now(),
+        next_spawn_time: game_state.now(),
         spawn_interval,
     };
 }
@@ -48,6 +48,7 @@ pub fn tick(game_state: &mut GameState, now: Instant) {
     game_state.monsters.push(Monster::new(
         &next_monster_template,
         game_state.route.clone(),
+        now,
     ));
 
     *next_spawn_time = now + *spawn_interval;

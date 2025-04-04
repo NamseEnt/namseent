@@ -9,6 +9,10 @@ pub struct Duration {
     pub(crate) inner: std::time::Duration,
 }
 
+impl Duration {
+    pub const ZERO: Duration = Duration::from_millis(0);
+}
+
 impl Default for Duration {
     fn default() -> Self {
         Self {
