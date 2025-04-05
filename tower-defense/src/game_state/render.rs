@@ -7,6 +7,7 @@ pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
     game_state.render_route_guide(&ctx);
     game_state.render_towers(&ctx);
     game_state.render_floor_tiles(&ctx);
+    game_state.render_backgrounds(&ctx);
 }
 
 // ASSUME: NO EFFECT AND STATE IN INNER RENDER
@@ -18,6 +19,15 @@ impl GameState {
             self.floor_tiles
                 .iter()
                 .map(|floor_tile| (floor_tile.coord, floor_tile)),
+        );
+    }
+
+    fn render_backgrounds(&self, ctx: &ComposeCtx) {
+        self.render_stuffs(
+            ctx,
+            self.backgrounds
+                .iter()
+                .map(|background| (background.coord, background)),
         );
     }
 

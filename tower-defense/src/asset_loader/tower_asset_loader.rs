@@ -1,12 +1,11 @@
+use super::TOWER_ASSET_LOADER_ATOM;
 use crate::game_state::tower::{AnimationKind, TowerKind};
 use namui::{skia::load_image_from_resource_location, *};
 use std::collections::HashMap;
 
-pub static TOWER_ASSET_LOADER_ATOM: Atom<TowerAssetLoader> = namui::Atom::uninitialized();
-
-pub struct AssetLoader {}
-impl Component for AssetLoader {
-    fn render(self, ctx: &namui::RenderCtx) {
+pub struct TowerAssetLoaderInitializer {}
+impl Component for TowerAssetLoaderInitializer {
+    fn render(self, ctx: &RenderCtx) {
         let (_, set_tower_asset_loader) =
             ctx.init_atom(&TOWER_ASSET_LOADER_ATOM, TowerAssetLoader::new);
 
@@ -56,7 +55,7 @@ pub struct TowerAssetLoader {
     pub inner: HashMap<ResourceLocation, namui::Image>,
 }
 impl TowerAssetLoader {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         let inner = HashMap::new();
         Self { inner }
     }

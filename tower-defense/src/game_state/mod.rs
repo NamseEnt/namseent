@@ -1,3 +1,4 @@
+pub mod background;
 mod camera;
 mod can_place_tower;
 pub mod cursor_preview;
@@ -19,6 +20,7 @@ use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
 use crate::shop::ShopSlot;
 use crate::*;
+use background::{Background, generate_backgrounds};
 use camera::*;
 use cursor_preview::CursorPreview;
 use field_area_effect::FieldAreaEffect;
@@ -56,6 +58,7 @@ pub struct GameState {
     pub camera: Camera,
     pub route: Arc<Route>,
     pub floor_tiles: Vec<FloorTile>,
+    pub backgrounds: Vec<Background>,
     pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
     /// one-based
@@ -175,6 +178,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                     coord: MapCoord::new(x, y),
                 })
             })),
+            backgrounds: generate_backgrounds(),
             upgrade_state: Default::default(),
             flow: GameFlow::new_selecting_tower(),
             stage: 1,
