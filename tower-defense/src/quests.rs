@@ -1,14 +1,10 @@
 use crate::{
-    game_state::{GameState, quest::*, use_game_state},
+    game_state::{quest::cancel_quest, use_game_state},
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
 };
 use namui::*;
-use namui_prebuilt::{
-    button::TextButton,
-    table::{self},
-    vh_list_view::AutoVHListView,
-};
+use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, table};
 
 const QUESTS_WIDTH: Px = px(240.);
 const PADDING: Px = px(8.);
@@ -59,146 +55,158 @@ impl Component for Quests {
                         }),
                         table::fixed_no_clip(PADDING, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            let quest_items = render_quest_items(
-                                &ctx,
-                                wh.width,
-                                &game_state.quest_states,
-                                &game_state,
-                            );
-                            ctx.add(AutoVHListView {
-                                wh,
-                                scroll_bar_width: PADDING,
-                                items: quest_items,
-                                item_height: Box::new(|quest_item| {
-                                    namui::bounding_box(quest_item)
-                                        .map(|rect| rect.height())
-                                        .unwrap_or(0.px())
-                                        + PADDING
-                                }),
-                                item_render: Box::new(|_wh, quest_item, ctx: ComposeCtx| {
-                                    ctx.add(quest_item.clone());
-                                }),
-                            });
+                            let content_width = wh.width - PADDING * 2.;
+
+                            ctx.clip(Path::new().add_rect(wh.to_rect()), ClipOp::Intersect)
+                                .add(AutoScrollViewWithCtx {
+                                    wh,
+                                    scroll_bar_width: PADDING,
+                                    content: |mut ctx| {
+                                        for (quest_index, quest) in
+                                            game_state.quest_states.iter().enumerate()
+                                        {
+                                            let content = ctx.ghost_compose(
+                                                format!("QuestItemContent {quest_index}"),
+                                                |ctx| {
+                                                    table::vertical([
+                                                        table::fixed(
+                                                            HEADLINE_FONT_SIZE_LARGE.into_px(),
+                                                            table::horizontal([
+                                                                table::fixed(
+                                                                    HEADLINE_FONT_SIZE_LARGE
+                                                                        .into_px(),
+                                                                    |_, _| {
+                                                                        // TODO: Icons
+                                                                    },
+                                                                ),
+                                                                table::ratio(1, |_, _| {}),
+                                                                table::fixed(
+                                                                    HEADLINE_FONT_SIZE_LARGE
+                                                                        .into_px(),
+                                                                    |wh, ctx| {
+                                                                        ctx.add(TextButton {
+                                                                            rect: wh.to_rect(),
+                                                                            text: "X",
+                                                                            text_color:
+                                                                                palette::ON_SURFACE,
+                                                                            stroke_color:
+                                                                                palette::OUTLINE,
+                                                                            stroke_width: 1.px(),
+                                                                            fill_color:
+                                                                                palette::SURFACE,
+                                                                            mouse_buttons: vec![
+                                                                                MouseButton::Left,
+                                                                            ],
+                                                                            on_mouse_up_in:
+                                                                                move |_| {
+                                                                                    cancel_quest(
+                                                                                        quest_index,
+                                                                                    );
+                                                                                },
+                                                                        });
+                                                                    },
+                                                                ),
+                                                            ]),
+                                                        ),
+                                                        table::fixed(PADDING * 2.0, |_, _| {}),
+                                                        table::fit(
+                                                            table::FitAlign::LeftTop,
+                                                            |ctx| {
+                                                                ctx.add(Headline {
+                                                                    text: quest
+                                                                        .tracking
+                                                                        .description(&game_state),
+                                                                    font_size: FontSize::Small,
+                                                                    text_align: TextAlign::LeftTop,
+                                                                    max_width: content_width.into(),
+                                                                });
+                                                            },
+                                                        ),
+                                                        table::fixed(PADDING, |_, _| {}),
+                                                        table::fit(
+                                                            table::FitAlign::LeftTop,
+                                                            |ctx| {
+                                                                ctx.add(Paragraph {
+                                                                    text: quest
+                                                                        .reward
+                                                                        .description(),
+                                                                    font_size: FontSize::Medium,
+                                                                    text_align: TextAlign::LeftTop,
+                                                                    max_width: content_width.into(),
+                                                                });
+                                                            },
+                                                        ),
+                                                    ])(
+                                                        Wh::new(content_width, f32::MAX.px()), ctx
+                                                    );
+                                                },
+                                            );
+
+                                            let Some(content_wh) =
+                                                bounding_box(&content).map(|rect| rect.wh())
+                                            else {
+                                                return;
+                                            };
+                                            let container_wh =
+                                                content_wh + Wh::single(PADDING * 2.);
+
+                                            ctx.translate(Xy::single(PADDING)).add(content);
+
+                                            ctx.add(rect(RectParam {
+                                                rect: container_wh.to_rect(),
+                                                style: RectStyle {
+                                                    stroke: Some(RectStroke {
+                                                        color: palette::OUTLINE,
+                                                        width: 1.px(),
+                                                        border_position: BorderPosition::Inside,
+                                                    }),
+                                                    fill: None,
+                                                    round: Some(RectRound {
+                                                        radius: palette::ROUND,
+                                                    }),
+                                                },
+                                            }));
+
+                                            ctx.add(rect(RectParam {
+                                                rect: Wh::new(
+                                                    container_wh.width,
+                                                    HEADLINE_FONT_SIZE_LARGE.into_px()
+                                                        + PADDING * 2.0,
+                                                )
+                                                .to_rect(),
+                                                style: RectStyle {
+                                                    stroke: None,
+                                                    fill: Some(RectFill {
+                                                        color: palette::SURFACE_CONTAINER,
+                                                    }),
+                                                    round: Some(RectRound {
+                                                        radius: palette::ROUND,
+                                                    }),
+                                                },
+                                            }));
+
+                                            ctx.add(rect(RectParam {
+                                                rect: container_wh.to_rect(),
+                                                style: RectStyle {
+                                                    stroke: None,
+                                                    fill: Some(RectFill {
+                                                        color: palette::SURFACE,
+                                                    }),
+                                                    round: Some(RectRound {
+                                                        radius: palette::ROUND,
+                                                    }),
+                                                },
+                                            }));
+
+                                            ctx = ctx
+                                                .translate((0.px(), container_wh.height + PADDING));
+                                        }
+                                    },
+                                });
                         }),
                     ]),
                 ),
             )])(screen_wh, ctx);
         });
     }
-}
-
-fn render_quest_items<'a>(
-    ctx: &ComposeCtx,
-    width: Px,
-    quests: &'a [QuestState],
-    game_state: &'a GameState,
-) -> Vec<RenderingTree> {
-    let content_width = width - PADDING * 2.;
-
-    let mut quest_items = vec![];
-    for (quest_index, quest) in quests.iter().enumerate() {
-        let quest_item = ctx.ghost_compose(format!("QuestItem {quest_index}"), |ctx| {
-            let content = ctx.ghost_compose(format!("QuestItemContent {quest_index}"), |ctx| {
-                table::vertical([
-                    table::fixed(
-                        HEADLINE_FONT_SIZE_LARGE.into_px(),
-                        table::horizontal([
-                            table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px(), |_, _| {
-                                // TODO: Icons
-                            }),
-                            table::ratio(1, |_, _| {}),
-                            table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
-                                ctx.add(TextButton {
-                                    rect: wh.to_rect(),
-                                    text: "X",
-                                    text_color: palette::ON_SURFACE,
-                                    stroke_color: palette::OUTLINE,
-                                    stroke_width: 1.px(),
-                                    fill_color: palette::SURFACE,
-                                    mouse_buttons: vec![MouseButton::Left],
-                                    on_mouse_up_in: |_| {
-                                        cancel_quest(quest_index);
-                                    },
-                                });
-                            }),
-                        ]),
-                    ),
-                    table::fixed(PADDING * 2.0, |_, _| {}),
-                    table::fit(table::FitAlign::LeftTop, |ctx| {
-                        ctx.add(Headline {
-                            text: quest.tracking.description(&game_state),
-                            font_size: FontSize::Small,
-                            text_align: TextAlign::LeftTop,
-                            max_width: content_width.into(),
-                        });
-                    }),
-                    table::fixed(PADDING, |_, _| {}),
-                    table::fit(table::FitAlign::LeftTop, |ctx| {
-                        ctx.add(Paragraph {
-                            text: quest.reward.description(),
-                            font_size: FontSize::Medium,
-                            text_align: TextAlign::LeftTop,
-                            max_width: content_width.into(),
-                        });
-                    }),
-                ])(Wh::new(content_width, f32::MAX.px()), ctx);
-            });
-
-            let Some(content_wh) = bounding_box(&content).map(|rect| rect.wh()) else {
-                return;
-            };
-            let container_wh = content_wh + Wh::single(PADDING * 2.);
-
-            ctx.translate(Xy::single(PADDING)).add(content);
-
-            ctx.add(rect(RectParam {
-                rect: container_wh.to_rect(),
-                style: RectStyle {
-                    stroke: Some(RectStroke {
-                        color: palette::OUTLINE,
-                        width: 1.px(),
-                        border_position: BorderPosition::Inside,
-                    }),
-                    fill: None,
-                    round: Some(RectRound {
-                        radius: palette::ROUND,
-                    }),
-                },
-            }));
-
-            ctx.add(rect(RectParam {
-                rect: Wh::new(
-                    container_wh.width,
-                    HEADLINE_FONT_SIZE_LARGE.into_px() + PADDING * 2.0,
-                )
-                .to_rect(),
-                style: RectStyle {
-                    stroke: None,
-                    fill: Some(RectFill {
-                        color: palette::SURFACE_CONTAINER,
-                    }),
-                    round: Some(RectRound {
-                        radius: palette::ROUND,
-                    }),
-                },
-            }));
-
-            ctx.add(rect(RectParam {
-                rect: container_wh.to_rect(),
-                style: RectStyle {
-                    stroke: None,
-                    fill: Some(RectFill {
-                        color: palette::SURFACE,
-                    }),
-                    round: Some(RectRound {
-                        radius: palette::ROUND,
-                    }),
-                },
-            }));
-        });
-
-        quest_items.push(quest_item);
-    }
-
-    quest_items
 }
