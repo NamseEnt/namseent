@@ -1,14 +1,10 @@
 use crate::{
-    game_state::{is_boss_stage, use_game_state},
+    game_state::{is_boss_stage, mutate_game_state, use_game_state},
     palette,
 };
 use namui::*;
-use namui_prebuilt::{
-    simple_rect,
-    table::{self},
-    typography,
-};
-use std::iter::once;
+use namui_prebuilt::{button, simple_rect, table, typography};
+use std::{iter::once, num::NonZero};
 
 const TOP_BAR_HEIGHT: Px = px(48.);
 const ITEM_WIDTH: Px = px(256.);
@@ -27,9 +23,10 @@ impl Component for TopBar {
             table::horizontal([
                 table::ratio(1, |_, _| {}),
                 table::fixed(ITEM_WIDTH, |wh, ctx| {
-                    ctx.add(HPBar {
+                    ctx.add(HPAndGoldIndicator {
                         wh,
                         hp: (game_state.hp / 100.0).clamp(0.0, 1.0),
+                        gold: game_state.gold,
                     });
                 }),
                 table::fixed(PADDING, |_, _| {}),
@@ -41,8 +38,10 @@ impl Component for TopBar {
                 }),
                 table::fixed(PADDING, |_, _| {}),
                 table::fixed(ITEM_WIDTH, |wh, ctx| {
-                    ctx.add(GoldIndicator {
+                    ctx.add(LevelIndicator {
                         wh,
+                        level: game_state.level,
+                        level_up_cost: game_state.level_up_cost(),
                         gold: game_state.gold,
                     });
                 }),
@@ -52,40 +51,66 @@ impl Component for TopBar {
     }
 }
 
-pub struct HPBar {
+pub struct HPAndGoldIndicator {
     wh: Wh<Px>,
     hp: f32,
+    gold: usize,
 }
-impl Component for HPBar {
+impl Component for HPAndGoldIndicator {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, hp } = self;
+        let Self { wh, hp, gold } = self;
 
         ctx.compose(|ctx| {
-            table::horizontal([
-                table::fixed(px(64.), |wh, ctx| {
-                    ctx.add(typography::body::center(
-                        wh,
-                        format!("HP {:.0}", hp * 100.0),
-                        palette::ON_SURFACE,
-                    ));
-                }),
+            table::vertical([
                 table::ratio(
                     1,
-                    table::padding(PADDING, |wh, ctx| {
-                        ctx.add(simple_rect(
-                            Wh::new(wh.width * (hp).clamp(0.0, 1.0), wh.height),
-                            Color::TRANSPARENT,
-                            0.px(),
-                            palette::PRIMARY,
-                        ));
+                    table::horizontal([
+                        table::fixed(px(64.), |wh, ctx| {
+                            ctx.add(typography::body::center(
+                                wh,
+                                format!("HP {:.0}", hp * 100.0),
+                                palette::ON_SURFACE,
+                            ));
+                        }),
+                        table::ratio(
+                            1,
+                            table::padding(PADDING, |wh, ctx| {
+                                ctx.add(simple_rect(
+                                    Wh::new(wh.width * (hp).clamp(0.0, 1.0), wh.height),
+                                    Color::TRANSPARENT,
+                                    0.px(),
+                                    palette::PRIMARY,
+                                ));
 
-                        ctx.add(simple_rect(
-                            wh,
-                            Color::TRANSPARENT,
-                            0.px(),
-                            palette::SURFACE,
-                        ));
-                    }),
+                                ctx.add(simple_rect(
+                                    wh,
+                                    Color::TRANSPARENT,
+                                    0.px(),
+                                    palette::SURFACE,
+                                ));
+                            }),
+                        ),
+                    ]),
+                ),
+                table::ratio(
+                    1,
+                    table::horizontal([
+                        table::fixed(px(64.), |wh, ctx| {
+                            ctx.add(typography::body::center(
+                                wh,
+                                format!("Gold"),
+                                palette::ON_SURFACE,
+                            ));
+                        }),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(typography::body::right(
+                                wh,
+                                format!("{}", gold),
+                                palette::ON_SURFACE,
+                            ));
+                        }),
+                        table::fixed(PADDING, |_, _| {}),
+                    ]),
                 ),
             ])(wh, ctx);
         });
@@ -141,31 +166,64 @@ impl Component for StageIndicator {
     }
 }
 
-struct GoldIndicator {
+struct LevelIndicator {
     wh: Wh<Px>,
+    level: NonZero<usize>,
+    level_up_cost: usize,
     gold: usize,
 }
-impl Component for GoldIndicator {
+impl Component for LevelIndicator {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, gold } = self;
+        let Self {
+            wh,
+            level,
+            level_up_cost,
+            gold,
+        } = self;
+
+        let can_upgrade = level < NonZero::new(10).unwrap() && gold >= level_up_cost;
+
+        let level_up = || {
+            mutate_game_state(move |game_state| {
+                game_state.level = game_state.level.checked_add(1).expect("Level overflow");
+                println!("Level up to {}", game_state.level);
+                game_state.gold -= level_up_cost;
+            });
+        };
 
         ctx.compose(|ctx| {
             table::horizontal([
                 table::fixed(px(64.), |wh, ctx| {
                     ctx.add(typography::body::center(
                         wh,
-                        format!("Gold"),
+                        format!("Level {}", level),
                         palette::ON_SURFACE,
                     ));
                 }),
                 table::ratio(
                     1,
                     table::padding(PADDING, |wh, ctx| {
-                        ctx.add(typography::body::right(
-                            wh,
-                            format!("{}", gold),
-                            palette::ON_SURFACE,
-                        ));
+                        ctx.add(button::TextButton {
+                            rect: wh.to_rect(),
+                            text: format!("레벨업 {}", level_up_cost),
+                            text_color: match can_upgrade {
+                                true => palette::ON_PRIMARY,
+                                false => palette::ON_SURFACE,
+                            },
+                            stroke_color: palette::OUTLINE,
+                            stroke_width: 1.px(),
+                            fill_color: match can_upgrade {
+                                true => palette::PRIMARY,
+                                false => palette::SURFACE_CONTAINER_HIGH,
+                            },
+                            mouse_buttons: vec![MouseButton::Left],
+                            on_mouse_up_in: |_| {
+                                if !can_upgrade {
+                                    return;
+                                }
+                                level_up();
+                            },
+                        });
                     }),
                 ),
             ])(wh, ctx);
