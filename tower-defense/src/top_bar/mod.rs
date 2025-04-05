@@ -1,9 +1,10 @@
 use crate::{
-    game_state::{is_boss_stage, mutate_game_state, use_game_state},
+    game_state::{is_boss_stage, level_rarity_weight, mutate_game_state, use_game_state},
     palette,
+    theme::typography::{self, Headline, Paragraph},
 };
 use namui::*;
-use namui_prebuilt::{button, simple_rect, table, typography};
+use namui_prebuilt::{button, simple_rect, table};
 use std::{iter::once, num::NonZero};
 
 const TOP_BAR_HEIGHT: Px = px(48.);
@@ -40,7 +41,7 @@ impl Component for TopBar {
                 table::fixed(ITEM_WIDTH, |wh, ctx| {
                     ctx.add(LevelIndicator {
                         wh,
-                        level: game_state.level,
+                        level: game_state.level.get(),
                         level_up_cost: game_state.level_up_cost(),
                         gold: game_state.gold,
                     });
@@ -66,11 +67,12 @@ impl Component for HPAndGoldIndicator {
                     1,
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
-                            ctx.add(typography::body::center(
-                                wh,
-                                format!("HP {:.0}", hp * 100.0),
-                                palette::ON_SURFACE,
-                            ));
+                            ctx.add(Headline {
+                                text: format!("HP {:.0}", hp * 100.0),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
                         }),
                         table::ratio(
                             1,
@@ -96,18 +98,20 @@ impl Component for HPAndGoldIndicator {
                     1,
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
-                            ctx.add(typography::body::center(
-                                wh,
-                                format!("Gold"),
-                                palette::ON_SURFACE,
-                            ));
+                            ctx.add(Headline {
+                                text: format!("Gold"),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(typography::body::right(
-                                wh,
-                                format!("{}", gold),
-                                palette::ON_SURFACE,
-                            ));
+                            ctx.add(Headline {
+                                text: format!("{}", gold),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::RightTop { width: wh.width },
+                                max_width: None,
+                            });
                         }),
                         table::fixed(PADDING, |_, _| {}),
                     ]),
@@ -135,11 +139,12 @@ impl Component for StageIndicator {
         ctx.compose(|ctx| {
             table::horizontal(
                 once(table::fixed(px(64.), |wh, ctx| {
-                    ctx.add(typography::body::center(
-                        wh,
-                        format!("Stage {}", stage),
-                        palette::ON_SURFACE,
-                    ));
+                    ctx.add(Headline {
+                        text: format!("Stage {}", stage),
+                        font_size: typography::FontSize::Medium,
+                        text_align: typography::TextAlign::Center { wh },
+                        max_width: None,
+                    });
                 }))
                 .chain((0..5).map(|offset| {
                     table::fixed(
@@ -168,7 +173,7 @@ impl Component for StageIndicator {
 
 struct LevelIndicator {
     wh: Wh<Px>,
-    level: NonZero<usize>,
+    level: usize,
     level_up_cost: usize,
     gold: usize,
 }
@@ -181,7 +186,9 @@ impl Component for LevelIndicator {
             gold,
         } = self;
 
-        let can_upgrade = level < NonZero::new(10).unwrap() && gold >= level_up_cost;
+        let (mouse_hovering, set_mouse_hovering) = ctx.state(|| false);
+
+        let can_upgrade = level < 10 && gold >= level_up_cost;
 
         let level_up = || {
             mutate_game_state(move |game_state| {
@@ -194,11 +201,12 @@ impl Component for LevelIndicator {
         ctx.compose(|ctx| {
             table::horizontal([
                 table::fixed(px(64.), |wh, ctx| {
-                    ctx.add(typography::body::center(
-                        wh,
-                        format!("Level {}", level),
-                        palette::ON_SURFACE,
-                    ));
+                    ctx.add(Headline {
+                        text: format!("Level {}", level),
+                        font_size: typography::FontSize::Medium,
+                        text_align: typography::TextAlign::Center { wh },
+                        max_width: None,
+                    });
                 }),
                 table::ratio(
                     1,
@@ -223,10 +231,246 @@ impl Component for LevelIndicator {
                                 }
                                 level_up();
                             },
+                        })
+                        .attach_event(|event| {
+                            let Event::MouseMove { event } = event else {
+                                return;
+                            };
+
+                            let mouse_move_is_local_xy_in = event.is_local_xy_in();
+                            if *mouse_hovering != mouse_move_is_local_xy_in {
+                                set_mouse_hovering.set(mouse_move_is_local_xy_in);
+                            }
                         });
                     }),
                 ),
             ])(wh, ctx);
+        });
+
+        ctx.compose(|ctx| {
+            if !*mouse_hovering {
+                return;
+            }
+
+            ctx.translate((0.px(), wh.height))
+                .on_top()
+                .add(LevelUpDetails {
+                    width: wh.width,
+                    current_level: level,
+                });
+        });
+
+        ctx.add(simple_rect(
+            wh,
+            Color::TRANSPARENT,
+            0.px(),
+            palette::SURFACE_CONTAINER,
+        ));
+    }
+}
+
+struct LevelUpDetails {
+    width: Px,
+    current_level: usize,
+}
+impl Component for LevelUpDetails {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            width,
+            current_level,
+        } = self;
+
+        const LINE_HEIGHT: Px = px(32.);
+        const CONTAINER_HEIGHT: Px = px(128.);
+        const RARITY_LABEL_WIDTH: Px = px(64.);
+
+        let current_level = ctx.track_eq(&current_level);
+        let weights = ctx.memo(|| {
+            let current_level = NonZero::new(*current_level).expect("Level must be non-zero");
+            let next_level = current_level
+                .checked_add(1)
+                .unwrap()
+                .min(NonZero::new(10).unwrap());
+            let mut current_weights = level_rarity_weight(current_level);
+            let current_total_weight: usize = current_weights.iter().sum();
+            current_weights.iter_mut().for_each(|weight| {
+                *weight = (*weight as f32 / current_total_weight as f32 * 100.0).round() as usize;
+            });
+            let mut next_weights = level_rarity_weight(next_level);
+            let next_total_weight: usize = next_weights.iter().sum();
+            next_weights.iter_mut().for_each(|weight| {
+                *weight = (*weight as f32 / next_total_weight as f32 * 100.0).round() as usize;
+            });
+
+            [
+                [current_weights[0], next_weights[0]],
+                [current_weights[1], next_weights[1]],
+                [current_weights[2], next_weights[2]],
+                [current_weights[3], next_weights[3]],
+            ]
+        });
+
+        let wh = Wh::new(width, CONTAINER_HEIGHT);
+
+        ctx.compose(|ctx| {
+            table::vertical([
+                table::fixed(
+                    LINE_HEIGHT,
+                    table::horizontal([
+                        table::fixed(PADDING, |_, _| {}),
+                        table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
+                            ctx.add(Headline {
+                                text: "Common".to_string(),
+                                font_size: typography::FontSize::Small,
+                                text_align: typography::TextAlign::LeftCenter { height: wh.height },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |_, _| {}),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: format!("{}%", weights[0][0]),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: ">>>".to_string(),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: format!("{}%", weights[0][1]),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                    ]),
+                ),
+                table::fixed(
+                    LINE_HEIGHT,
+                    table::horizontal([
+                        table::fixed(PADDING, |_, _| {}),
+                        table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
+                            ctx.add(Headline {
+                                text: "Rare".to_string(),
+                                font_size: typography::FontSize::Small,
+                                text_align: typography::TextAlign::LeftCenter { height: wh.height },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |_, _| {}),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: format!("{}%", weights[1][0]),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: ">>>".to_string(),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: format!("{}%", weights[1][1]),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                    ]),
+                ),
+                table::fixed(
+                    LINE_HEIGHT,
+                    table::horizontal([
+                        table::fixed(PADDING, |_, _| {}),
+                        table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
+                            ctx.add(Headline {
+                                text: "Epic".to_string(),
+                                font_size: typography::FontSize::Small,
+                                text_align: typography::TextAlign::LeftCenter { height: wh.height },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |_, _| {}),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: format!("{}%", weights[2][0]),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: ">>>".to_string(),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: format!("{}%", weights[2][1]),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                    ]),
+                ),
+                table::fixed(
+                    LINE_HEIGHT,
+                    table::horizontal([
+                        table::fixed(PADDING, |_, _| {}),
+                        table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
+                            ctx.add(Headline {
+                                text: "Legendary".to_string(),
+                                font_size: typography::FontSize::Small,
+                                text_align: typography::TextAlign::LeftCenter { height: wh.height },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |_, _| {}),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: format!("{}%", weights[3][0]),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: ">>>".to_string(),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                        table::ratio(1, |wh, ctx| {
+                            ctx.add(Paragraph {
+                                text: format!("{}%", weights[3][1]),
+                                font_size: typography::FontSize::Medium,
+                                text_align: typography::TextAlign::Center { wh },
+                                max_width: None,
+                            });
+                        }),
+                    ]),
+                ),
+            ])(wh, ctx)
         });
 
         ctx.add(simple_rect(

@@ -28,6 +28,7 @@ pub enum FontSize {
 }
 pub enum TextAlign {
     LeftTop,
+    LeftCenter { height: Px },
     Center { wh: Wh<Px> },
     RightTop { width: Px },
 }
@@ -49,11 +50,13 @@ impl Component for Headline {
 
         let (x, y) = match text_align {
             TextAlign::LeftTop => (0.px(), 0.px()),
+            TextAlign::LeftCenter { height } => (0.px(), height * 0.5),
             TextAlign::Center { wh } => (wh.width * 0.5, wh.height * 0.5),
             TextAlign::RightTop { width } => (width, 0.px()),
         };
         let align = match text_align {
             TextAlign::LeftTop => namui::TextAlign::Left,
+            TextAlign::LeftCenter { .. } => namui::TextAlign::Left,
             TextAlign::Center { .. } => namui::TextAlign::Center,
             TextAlign::RightTop { .. } => namui::TextAlign::Right,
         };
@@ -64,6 +67,7 @@ impl Component for Headline {
         };
         let baseline = match text_align {
             TextAlign::LeftTop => TextBaseline::Top,
+            TextAlign::LeftCenter { .. } => TextBaseline::Middle,
             TextAlign::Center { .. } => TextBaseline::Middle,
             TextAlign::RightTop { .. } => TextBaseline::Top,
         };
@@ -101,11 +105,13 @@ impl Component for Paragraph {
 
         let (x, y) = match text_align {
             TextAlign::LeftTop => (0.px(), 0.px()),
+            TextAlign::LeftCenter { height } => (0.px(), height * 0.5),
             TextAlign::Center { wh } => (wh.width * 0.5, wh.height * 0.5),
             TextAlign::RightTop { width } => (width, 0.px()),
         };
         let align = match text_align {
             TextAlign::LeftTop => namui::TextAlign::Left,
+            TextAlign::LeftCenter { .. } => namui::TextAlign::Left,
             TextAlign::Center { .. } => namui::TextAlign::Center,
             TextAlign::RightTop { .. } => namui::TextAlign::Right,
         };
@@ -116,6 +122,7 @@ impl Component for Paragraph {
         };
         let baseline = match text_align {
             TextAlign::LeftTop => TextBaseline::Top,
+            TextAlign::LeftCenter { .. } => TextBaseline::Middle,
             TextAlign::Center { .. } => TextBaseline::Middle,
             TextAlign::RightTop { .. } => TextBaseline::Top,
         };

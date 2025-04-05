@@ -23,6 +23,7 @@ use camera::*;
 use cursor_preview::CursorPreview;
 use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
+pub use level_rarity_weight::level_rarity_weight;
 use monster::*;
 use monster_spawn::*;
 use namui::*;
