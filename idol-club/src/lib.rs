@@ -1,9 +1,13 @@
 mod game_state;
 mod ground_grid;
+mod shopper;
 
 use namui::*;
 use namui_prebuilt::*;
 use std::{collections::HashMap, num::NonZeroUsize};
+
+type GameCoord = isize;
+type GameXy = Xy<GameCoord>;
 
 pub fn main() {
     namui::start(|ctx| {
@@ -38,6 +42,11 @@ impl Component for App {
         일단 가게에 와.
         물건이 있는지 찾아보거나 직원에게 물어봐. 근데 직원에게는 잘 물어보지 않을거야.
 
+        거대한 상태기계를 만들 수 있을 것 같아.
+
+        <살게 있는 손님>
+        가게를 찾아가는 중 -가게에 도착-> 살려는 물건이 어디에 있는지 찾는 중 -살려는 물건을 찾음 + 기대한 가격 이하임-> 구매하는 중 -구매 완료-> 집으로 돌아감
+                                                                              ㄴ아니라면-> 집으로 돌아감
         */
     }
 }

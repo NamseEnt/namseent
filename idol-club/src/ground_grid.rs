@@ -1,8 +1,5 @@
 use crate::*;
 
-type GameCoord = isize;
-type GameXy = Xy<GameCoord>;
-
 pub struct Grid {
     wh: Wh<usize>,
     cells: Vec<Vec<Cell>>,

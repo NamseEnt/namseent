@@ -356,12 +356,10 @@ impl ComponentCtx<'_> {
 
         let now = self.world.now();
 
-        let dt = {
-            if is_first_run {
-                Duration::from_secs(0)
-            } else {
-                now - interval_last_call_at_list.get(interval_index).unwrap()
-            }
+        let dt = if is_first_run {
+            Duration::from_secs(0)
+        } else {
+            now - interval_last_call_at_list.get(interval_index).unwrap()
         };
 
         if is_first_run || dt >= interval {
