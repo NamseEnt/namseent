@@ -6,6 +6,7 @@ mod quest_board;
 mod quests;
 mod rarity;
 mod route;
+mod settings;
 mod shop;
 mod theme;
 mod top_bar;
@@ -18,9 +19,10 @@ use asset_loader::AssetLoader;
 use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
-use namui_prebuilt::simple_rect;
+use namui_prebuilt::{button::TextButton, simple_rect};
 use quest_board::QuestBoardModal;
 use quests::Quests;
+use settings::SettingsModal;
 use shop::ShopModal;
 use theme::palette;
 use top_bar::TopBar;
@@ -48,18 +50,49 @@ impl Component for Game {
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
 
         let (open_upgrade_board, set_open_upgrade_board) = ctx.state(|| false);
+        let (open_settings, set_open_settings) = ctx.state(|| false);
 
         let toggle_upgrade_board = || {
             set_open_upgrade_board
                 .mutate(|open_upgrade_board| *open_upgrade_board = !*open_upgrade_board);
         };
+        let toggle_settings = || {
+            set_open_settings.mutate(|opened| *opened = !*opened); // 설정 모달 열기/닫기
+        };
 
         ctx.add(AssetLoader {});
+
+        ctx.compose(|ctx| {
+            if *open_settings {
+                ctx.add(SettingsModal {
+                    screen_wh,
+                    close_modal: &|| set_open_settings.set(false),
+                });
+            }
+        });
 
         ctx.compose(|ctx| {
             if *open_upgrade_board {
                 ctx.add(UpgradeBoardModal { screen_wh });
             }
+        });
+
+        ctx.add(TextButton {
+            rect: Rect::Xywh {
+                x: 8.px(),
+                y: screen_wh.height - 48.px(),
+                width: 128.px(),
+                height: 36.px(),
+            },
+            text: "Setting".to_string(),
+            text_color: palette::ON_SURFACE,
+            stroke_color: palette::OUTLINE,
+            stroke_width: 1.px(),
+            fill_color: palette::SURFACE_CONTAINER,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: |_| {
+                toggle_settings();
+            },
         });
 
         ctx.compose(|ctx| {
