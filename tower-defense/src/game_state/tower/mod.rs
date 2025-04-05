@@ -324,7 +324,7 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             }
         });
         tower_upgrades.iter().for_each(|tower_upgrade_state| {
-            time_multiple += tower_upgrade_state.speed_multiplier;
+            time_multiple *= tower_upgrade_state.speed_multiplier;
         });
 
         let cooldown_sub = dt * time_multiple;
