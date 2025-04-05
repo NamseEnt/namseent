@@ -23,6 +23,7 @@ use camera::*;
 use cursor_preview::CursorPreview;
 use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
+pub use level_rarity_weight::level_rarity_weight;
 use monster::*;
 use monster_spawn::*;
 use namui::*;
@@ -114,6 +115,22 @@ impl GameState {
 
     fn now(&self) -> Instant {
         self.game_now
+    }
+
+    pub fn level_up_cost(&self) -> usize {
+        match self.level.get() {
+            1 => 25,
+            2 => 30,
+            3 => 40,
+            4 => 60,
+            5 => 75,
+            6 => 100,
+            7 => 200,
+            8 => 300,
+            9 => 500,
+            10 => 0,
+            _ => unreachable!("Level up cost not defined for level {}", self.level),
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 use super::GameState;
 use crate::rarity::Rarity;
+use std::num::NonZero;
 
 pub const LEVEL_RARITY_WEIGHT: [[usize; 4]; 10] = [
     [90, 10, 1, 0],
@@ -21,7 +22,7 @@ pub struct RarityGenerationOption {
 
 impl GameState {
     pub fn generate_rarity(&self, option: RarityGenerationOption) -> Rarity {
-        let mut weights = LEVEL_RARITY_WEIGHT[self.level.get() - 1];
+        let mut weights = level_rarity_weight(self.level);
         if option.no_common {
             weights[0] = 0;
         }
@@ -43,4 +44,8 @@ impl GameState {
         }
         unreachable!()
     }
+}
+
+pub fn level_rarity_weight(level: NonZero<usize>) -> [usize; 4] {
+    LEVEL_RARITY_WEIGHT[level.get() - 1]
 }
