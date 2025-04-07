@@ -1,10 +1,12 @@
 use crate::*;
 
+#[derive(Clone)]
 pub struct ImageStyle {
     pub fit: ImageFit,
     pub paint: Option<Paint>,
 }
 
+#[derive(Clone)]
 pub struct ImageParam {
     pub rect: Rect<Px>,
     pub image: Image,

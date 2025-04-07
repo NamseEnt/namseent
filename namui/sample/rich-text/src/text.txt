@@ -1,0 +1,1 @@
+Increase |Apple||B|Food|/B| production by +3 and |Smile||B|Happiness|/B| by +1 for each |B|Food Silo|/B| (+5 |Apple| |B|Food|/B| if upgraded).
