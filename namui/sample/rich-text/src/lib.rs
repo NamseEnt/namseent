@@ -6,7 +6,7 @@ use namui_prebuilt::rich_text::*;
 pub fn main() {
     namui::start(|ctx| {
         let Some(Ok(ref apple_image)) =
-            *ctx.image(&ResourceLocation::bundle("resources/apple.png"))
+            *ctx.image(ResourceLocation::bundle("resources/apple.png"))
         else {
             return;
         };
