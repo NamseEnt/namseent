@@ -159,9 +159,24 @@ impl Component for Game {
         ctx.attach_event(|event| {
             match event {
                 Event::KeyDown { event } => {
-                    if event.code == Code::Tab {
-                        toggle_upgrade_board();
-                    }
+                    match event.code {
+                        Code::Tab => {
+                            toggle_upgrade_board();
+                        }
+                        Code::KeyQ => {
+                            mutate_game_state(|game_state| {
+                                game_state.fast_forward_multiplier =
+                                    game_state.fast_forward_multiplier.prev();
+                            });
+                        }
+                        Code::KeyE => {
+                            mutate_game_state(|game_state| {
+                                game_state.fast_forward_multiplier =
+                                    game_state.fast_forward_multiplier.next();
+                            });
+                        }
+                        _ => {}
+                    };
                 }
                 Event::Wheel { event } => {
                     let delta = -event.delta_xy.y / 2048.0;

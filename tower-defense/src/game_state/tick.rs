@@ -8,7 +8,8 @@ impl Component for Ticker {
     fn render(self, ctx: &RenderCtx) {
         ctx.interval("game state tick", TICK_MAX_DURATION, |real_dt| {
             crate::game_state::mutate_game_state(move |game_state| {
-                let mut scaled_dt = real_dt * game_state.time_scale.get() as i32;
+                let mut scaled_dt =
+                    real_dt * game_state.fast_forward_multiplier.time_scale().get() as i32;
                 while scaled_dt.as_millis() > 0 {
                     let tick_dt = scaled_dt.min(TICK_MAX_DURATION);
                     scaled_dt -= tick_dt;

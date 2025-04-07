@@ -2,6 +2,7 @@ pub mod background;
 mod camera;
 mod can_place_tower;
 pub mod cursor_preview;
+pub mod fast_forward;
 mod field_area_effect;
 pub mod flow;
 pub mod item;
@@ -23,6 +24,7 @@ use crate::*;
 use background::{Background, generate_backgrounds};
 use camera::*;
 use cursor_preview::CursorPreview;
+use fast_forward::FastForwardMultiplier;
 use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
 pub use level_rarity_weight::level_rarity_weight;
@@ -81,7 +83,7 @@ pub struct GameState {
     pub item_used: bool,
     pub level: NonZeroUsize,
     game_now: Instant,
-    time_scale: NonZeroUsize,
+    pub fast_forward_multiplier: FastForwardMultiplier,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -195,7 +197,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             item_used: false,
             level: NonZeroUsize::new(1).unwrap(),
             game_now: Instant::now(),
-            time_scale: NonZeroUsize::new(1).unwrap(),
+            fast_forward_multiplier: Default::default(),
         };
 
         game_state.goto_selecting_tower();
