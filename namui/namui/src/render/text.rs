@@ -61,37 +61,7 @@ pub fn text(param: TextParam) -> RenderingTree {
         draw_background(&param, &param.font),
     ])
 }
-// type TextHandleParam = TextParam & {
-//   font: Font;
-// };
 
-// function drawShadow({
-//   x,
-//   y,
-//   align,
-//   baseline,
-//   text,
-//   style: { dropShadow, color },
-//   font,
-// }: TextHandleParam): TextDrawCommand | undefined {
-//   if (!dropShadow) {
-//     return;
-//   }
-//   const shadowPaint = new CanvasKit.Paint();
-//   shadowPaint.setColor(dropShadow.color || color);
-//   shadowPaint.setStyle(CanvasKit.PaintStyle.Fill);
-//   shadowPaint.setAntiAlias(true);
-
-//   return TextDrawCommand({
-//     text,
-//     font,
-//     x: x + dropShadow.x,
-//     y: y + dropShadow.y,
-//     paint: shadowPaint,
-//     align,
-//     baseline,
-//   });
-// }
 pub(crate) fn get_text_paint(color: Color) -> Paint {
     Paint::new(color)
         .set_style(PaintStyle::Fill)
