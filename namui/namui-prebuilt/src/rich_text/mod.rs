@@ -132,7 +132,7 @@ impl Processor {
         let mut high = text.len();
 
         loop {
-            let middle_point = (low + high + 1) / 2;
+            let middle_point = (low + high).div_ceil(2);
 
             let left_text = &text[..middle_point];
             let right_text = &text[middle_point..];
