@@ -1,7 +1,7 @@
 mod display;
 mod generation;
 
-use super::tower::TowerKind;
+use super::tower::{TowerKind, TowerTemplate};
 use crate::{
     card::{Rank, Suit},
     game_state::tower::Tower,
@@ -459,10 +459,40 @@ impl UpgradeState {
         .map(|target| {
             self.tower_upgrade_states
                 .get(target)
-                .map(|x| *x)
+                .copied()
                 .unwrap_or_default()
         })
         .collect::<Vec<_>>()
+    }
+    pub fn tower_upgrade_state_of_template(&self, template: &TowerTemplate) -> TowerUpgradeState {
+        let targets = [
+            TowerUpgradeTarget::Rank {
+                rank: template.rank,
+            },
+            TowerUpgradeTarget::Suit {
+                suit: template.suit,
+            },
+            TowerUpgradeTarget::TowerKind {
+                tower_kind: template.kind,
+            },
+            TowerUpgradeTarget::EvenOdd {
+                even: template.rank.is_even(),
+            },
+            TowerUpgradeTarget::FaceNumber {
+                face: template.rank.is_face(),
+            },
+        ];
+        let mut state = TowerUpgradeState::default();
+        for target in targets {
+            if let Some(upgrade) = self.tower_upgrade_states.get(&target) {
+                state.damage_plus += upgrade.damage_plus;
+                state.damage_multiplier *= upgrade.damage_multiplier;
+                state.speed_plus += upgrade.speed_plus;
+                state.speed_multiplier *= upgrade.speed_multiplier;
+                state.range_plus += upgrade.range_plus;
+            }
+        }
+        state
     }
     fn apply_tower_upgrade(&mut self, target: TowerUpgradeTarget, upgrade: TowerUpgrade) {
         self.tower_upgrade_states

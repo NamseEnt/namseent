@@ -1,7 +1,10 @@
 use super::PADDING;
 use crate::{
     card::Rank,
-    game_state::tower::{TowerKind, TowerSkillKind, TowerSkillTemplate, TowerTemplate},
+    game_state::{
+        self,
+        tower::{TowerKind, TowerSkillKind, TowerSkillTemplate, TowerTemplate},
+    },
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -21,6 +24,12 @@ impl Component for TowerPreview<'_> {
 
         let (mouse_hovering_effect, set_mouse_hovering_effect) =
             ctx.state::<Option<MouseHoveringSkill>>(|| None);
+        let game_state = game_state::use_game_state(ctx);
+        let upgrade_state = ctx.memo(|| {
+            game_state
+                .upgrade_state
+                .tower_upgrade_state_of_template(tower_template)
+        });
 
         let on_mouse_move_in_effect_icon = |effect: &TowerSkillTemplate, offset| {
             set_mouse_hovering_effect.set(Some(MouseHoveringSkill {
@@ -71,6 +80,10 @@ impl Component for TowerPreview<'_> {
                         let damage = tower_template.kind.default_damage()
                             + tower_template.rank.bonus_damage();
 
+                        let damage_with_upgrade = ((damage as f32 + upgrade_state.damage_plus)
+                            * upgrade_state.damage_multiplier)
+                            as usize;
+
                         ctx.add(Paragraph {
                             text: "Damage: ".to_string(),
                             font_size: FontSize::Medium,
@@ -78,26 +91,15 @@ impl Component for TowerPreview<'_> {
                             max_width: None,
                         });
                         ctx.add(Paragraph {
-                            text: format!("{damage}"),
+                            text: format!("{damage}({damage_with_upgrade})"),
                             font_size: FontSize::Medium,
                             text_align: TextAlign::RightTop { width: wh.width },
                             max_width: None,
                         });
                     }),
                     table::fit(table::FitAlign::LeftTop, |ctx| {
-                        let range = match tower_template.kind {
-                            TowerKind::Barricade => "none",
-                            TowerKind::High => "normal",
-                            TowerKind::OnePair => "normal",
-                            TowerKind::TwoPair => "normal",
-                            TowerKind::ThreeOfAKind => "normal",
-                            TowerKind::Straight => "long",
-                            TowerKind::Flush => "normal",
-                            TowerKind::FullHouse => "normal",
-                            TowerKind::FourOfAKind => "normal",
-                            TowerKind::StraightFlush => "long",
-                            TowerKind::RoyalFlush => "very long",
-                        };
+                        let range = tower_template.default_attack_range_radius;
+                        let upgrade_range = range + upgrade_state.range_plus;
 
                         ctx.add(Paragraph {
                             text: "Range: ".to_string(),
@@ -106,7 +108,7 @@ impl Component for TowerPreview<'_> {
                             max_width: None,
                         });
                         ctx.add(Paragraph {
-                            text: range.to_string(),
+                            text: format!("{range}({upgrade_range})"),
                             font_size: FontSize::Medium,
                             text_align: TextAlign::RightTop { width: wh.width },
                             max_width: None,
@@ -126,6 +128,8 @@ impl Component for TowerPreview<'_> {
                             TowerKind::StraightFlush => "fast",
                             TowerKind::RoyalFlush => "very fast",
                         };
+                        let upgrade_speed =
+                            upgrade_state.speed_plus * upgrade_state.speed_multiplier;
 
                         ctx.add(Paragraph {
                             text: "Speed: ".to_string(),
@@ -134,7 +138,11 @@ impl Component for TowerPreview<'_> {
                             max_width: None,
                         });
                         ctx.add(Paragraph {
-                            text: speed.to_string(),
+                            text: if upgrade_speed == 1.0 {
+                                speed.to_string()
+                            } else {
+                                format!("{speed}(x{:.2})", upgrade_speed)
+                            },
                             font_size: FontSize::Medium,
                             text_align: TextAlign::RightTop { width: wh.width },
                             max_width: None,
