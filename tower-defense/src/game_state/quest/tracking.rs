@@ -198,6 +198,7 @@ pub enum QuestTriggerEvent {
 }
 
 pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEvent) {
+    let rerolled = game_state.rerolled();
     struct RemoveQuest {
         index: usize,
         completed: bool,
@@ -359,7 +360,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                 ref mut built_count,
             } => match event {
                 QuestTriggerEvent::BuildTower { .. } => {
-                    if game_state.rerolled {
+                    if rerolled {
                         continue;
                     }
                     *built_count += 1;

@@ -50,7 +50,7 @@ impl Component for TowerSelectingHand<'_> {
         let tower_template = ctx.memo(|| get_highest_tower_template(&using_cards, &game_state));
 
         let reroll_selected = || {
-            if game_state.left_reroll_chance == 0 || selected.len() == 0 {
+            if game_state.left_reroll_chance == 0 || selected.is_empty() {
                 return;
             }
             let selected = selected.clone_inner();
@@ -61,7 +61,6 @@ impl Component for TowerSelectingHand<'_> {
                 let GameFlow::SelectingTower { cards } = &mut game_state.flow else {
                     return;
                 };
-                game_state.rerolled = true;
                 for (index, selected) in selected.iter().enumerate() {
                     if !selected {
                         continue;
