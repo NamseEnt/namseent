@@ -4,9 +4,7 @@ use crate::{
     game_state::{
         self, GameState,
         tower::{TowerSkillKind, TowerSkillTemplate, TowerTemplate},
-        upgrade::{
-            LOW_CARD_COUNT, TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget,
-        },
+        upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
@@ -20,22 +18,16 @@ const TOWER_EFFECT_DESCRIPTION_MAXWIDTH: Px = px(192.);
 pub(super) struct TowerPreview<'a> {
     pub(super) wh: Wh<Px>,
     pub(super) tower_template: &'a TowerTemplate,
-    pub(super) selected_card_count: usize,
 }
 impl Component for TowerPreview<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self {
-            wh,
-            tower_template,
-            selected_card_count,
-        } = self;
+        let Self { wh, tower_template } = self;
 
         let (mouse_hovering_effect, set_mouse_hovering_effect) =
             ctx.state::<Option<MouseHoveringSkill>>(|| None);
         let game_state = game_state::use_game_state(ctx);
-        let upgrade_state = ctx.memo(|| {
-            calculate_upgrade_state(game_state.as_ref(), tower_template, selected_card_count)
-        });
+        let upgrade_state =
+            ctx.memo(|| calculate_upgrade_state(game_state.as_ref(), tower_template));
 
         let on_mouse_move_in_effect_icon = |effect: &TowerSkillTemplate, offset| {
             set_mouse_hovering_effect.set(Some(MouseHoveringSkill {
@@ -179,7 +171,6 @@ impl Component for TowerPreview<'_> {
 fn calculate_upgrade_state(
     game_state: &GameState,
     tower_template: &TowerTemplate,
-    selected_card_count: usize,
 ) -> TowerUpgradeState {
     let mut state = TowerUpgradeState::default();
     let mut apply_upgrade = |upgrade_state: &TowerUpgradeState| {
@@ -227,7 +218,7 @@ fn calculate_upgrade_state(
         apply_upgrade(upgrade_state);
     };
 
-    if selected_card_count <= LOW_CARD_COUNT {
+    if tower_template.kind.is_low_card_tower() {
         apply_tower_select_upgrade_target(TowerSelectUpgradeTarget::LowCard);
     }
 

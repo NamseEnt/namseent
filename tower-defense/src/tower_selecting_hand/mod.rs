@@ -103,7 +103,6 @@ impl Component for TowerSelectingHand<'_> {
                                     ctx.add(TowerPreview {
                                         wh,
                                         tower_template: &tower_template,
-                                        selected_card_count: using_cards.len(),
                                     });
                                 }),
                             )))
