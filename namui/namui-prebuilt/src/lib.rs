@@ -7,6 +7,7 @@ pub mod scroll_view;
 mod simple_rect;
 pub mod table;
 pub mod typography;
+pub mod vfs;
 pub mod vh_list_view;
 
 // TODO
