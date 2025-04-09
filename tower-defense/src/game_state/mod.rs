@@ -79,7 +79,6 @@ pub struct GameState {
     pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
     pub quest_states: Vec<QuestState>,
-    pub rerolled: bool,
     pub item_used: bool,
     pub level: NonZeroUsize,
     game_now: Instant,
@@ -110,6 +109,12 @@ impl GameState {
     }
     pub fn max_reroll_chance(&self) -> usize {
         self.upgrade_state.reroll_chance_plus + 1
+    }
+    pub fn rerolled(&self) -> bool {
+        self.rerolled_count() > 0
+    }
+    pub fn rerolled_count(&self) -> usize {
+        self.max_reroll_chance() - self.left_reroll_chance
     }
 
     pub fn earn_gold(&mut self, gold: usize) {
@@ -193,7 +198,6 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             field_area_effects: Default::default(),
             left_shop_refresh_chance: 0,
             left_quest_board_refresh_chance: 0,
-            rerolled: false,
             item_used: false,
             level: NonZeroUsize::new(1).unwrap(),
             game_now: Instant::now(),

@@ -1,6 +1,9 @@
 use crate::{
     game_state::{
-        upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget, UpgradeState},
+        upgrade::{
+            LOW_CARD_COUNT, TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget,
+            UpgradeState,
+        },
         use_game_state,
     },
     palette,
@@ -233,9 +236,11 @@ fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
 
     for (target, tower_upgrade_state) in &state.tower_select_upgrade_states {
         let target_text = match target {
-            TowerSelectUpgradeTarget::LowCard => "카드 3개 이하로 타워를 만들 때 타워의",
-            TowerSelectUpgradeTarget::NoReroll => "리롤을 하지 않고 타워를 만들 때 타워의",
-            TowerSelectUpgradeTarget::Reroll => "리롤을 할 때 마다 타워의",
+            TowerSelectUpgradeTarget::LowCard => {
+                format!("카드 {LOW_CARD_COUNT}개 이하로 타워를 만들 때 타워의")
+            }
+            TowerSelectUpgradeTarget::NoReroll => format!("리롤을 하지 않고 타워를 만들 때 타워의"),
+            TowerSelectUpgradeTarget::Reroll => format!("리롤을 할 때 마다 타워의"),
         };
         texts.extend(tower_upgrade_state_description_texts(
             &target_text,
