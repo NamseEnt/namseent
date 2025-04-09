@@ -27,13 +27,33 @@ impl Camera {
         let ratio = origin_screen_xy / screen_wh.as_xy();
         self.left_top -= tile_delta * ratio;
         self.zoom_level = next_zoom_level;
+        self.constrain_to_map();
     }
+
     pub fn move_by(&mut self, screen_px_xy: Xy<Px>) {
         let px_xy_on_1_0 = screen_px_xy / self.zoom_level;
         self.left_top += Xy::new(
             px_xy_on_1_0.x / TILE_PX_SIZE.width,
             px_xy_on_1_0.y / TILE_PX_SIZE.height,
-        )
+        );
+        self.constrain_to_map();
+    }
+
+    fn constrain_to_map(&mut self) {
+        let screen_wh = screen::size().into_type::<Px>() / self.zoom_level;
+        let half_screen_tiles = Xy::new(
+            screen_wh.width.as_f32() / (2.0 * TILE_PX_SIZE.width.as_f32()),
+            screen_wh.height.as_f32() / (2.0 * TILE_PX_SIZE.height.as_f32()),
+        );
+
+        self.left_top.x = self.left_top.x.clamp(
+            -half_screen_tiles.x,
+            MAP_SIZE.width as f32 - half_screen_tiles.x,
+        );
+        self.left_top.y = self.left_top.y.clamp(
+            -half_screen_tiles.y,
+            MAP_SIZE.height as f32 - half_screen_tiles.y,
+        );
     }
 }
 
