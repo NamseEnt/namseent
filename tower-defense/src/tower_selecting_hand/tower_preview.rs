@@ -222,7 +222,7 @@ fn calculate_upgrade_state(
         apply_tower_select_upgrade_target(TowerSelectUpgradeTarget::LowCard);
     }
 
-    let rerolled_count = game_state.rerolled_count();
+    let rerolled_count = game_state.rerolled_count;
     if rerolled_count == 0 {
         apply_tower_select_upgrade_target(TowerSelectUpgradeTarget::NoReroll);
     } else if let Some(upgrade_state) = game_state
