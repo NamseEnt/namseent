@@ -68,6 +68,7 @@ impl Component for TowerSelectingHand<'_> {
                     cards[index] = Card::new_random();
                 }
                 game_state.left_reroll_chance -= 1;
+                game_state.rerolled_count += 1;
 
                 on_quest_trigger_event(game_state, QuestTriggerEvent::Reroll);
             });

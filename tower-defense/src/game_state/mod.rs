@@ -83,6 +83,7 @@ pub struct GameState {
     pub level: NonZeroUsize,
     game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
+    pub rerolled_count: usize,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -111,10 +112,7 @@ impl GameState {
         self.upgrade_state.reroll_chance_plus + 1
     }
     pub fn rerolled(&self) -> bool {
-        self.rerolled_count() > 0
-    }
-    pub fn rerolled_count(&self) -> usize {
-        self.max_reroll_chance() - self.left_reroll_chance
+        self.rerolled_count > 0
     }
 
     pub fn earn_gold(&mut self, gold: usize) {
@@ -202,6 +200,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             level: NonZeroUsize::new(1).unwrap(),
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
+            rerolled_count: 0,
         };
 
         game_state.goto_selecting_tower();
