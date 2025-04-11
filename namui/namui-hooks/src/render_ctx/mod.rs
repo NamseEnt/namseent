@@ -50,7 +50,7 @@ impl RenderCtx<'_, '_> {
         &self,
         _title: impl AsRef<str>,
         deps: Deps,
-        future_fn: impl FnOnce(<Deps as Dependencies>::Owned) -> Fut + Send + 'static,
+        future_fn: impl FnOnce(<Deps as Dependencies>::Owned) -> Fut,
     ) where
         Fut: std::future::Future + Send + 'static,
         Fut::Output: Send + 'static,
