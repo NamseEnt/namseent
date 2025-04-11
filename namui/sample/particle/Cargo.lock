@@ -1110,14 +1110,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "image-fit"
-version = "0.1.0"
-dependencies = [
- "namui",
- "namui-prebuilt",
-]
-
-[[package]]
 name = "indexmap"
 version = "2.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1777,6 +1769,14 @@ dependencies = [
  "redox_syscall 0.2.16",
  "smallvec",
  "windows-sys 0.45.0",
+]
+
+[[package]]
+name = "particle"
+version = "0.1.0"
+dependencies = [
+ "namui",
+ "namui-prebuilt",
 ]
 
 [[package]]
