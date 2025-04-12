@@ -32,20 +32,20 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::RankAttackDamagePlus => {
             let rank = *REVERSED_RANKS.choose(&mut thread_rng()).unwrap();
             let damage_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.0..5.0,
-                Rarity::Rare => 5.0..10.0,
-                Rarity::Epic => 15.0..40.0,
-                Rarity::Legendary => 50.0..100.0,
+                Rarity::Common => 10.0..100.0,
+                Rarity::Rare => 50.0..750.0,
+                Rarity::Epic => 500.0..1500.0,
+                Rarity::Legendary => 1250.0..2500.0,
             });
             UpgradeKind::RankAttackDamagePlus { rank, damage_plus }
         }
         UpgradeCandidate::RankAttackDamageMultiply => {
             let rank = *REVERSED_RANKS.choose(&mut thread_rng()).unwrap();
             let damage_multiplier = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.2,
-                Rarity::Rare => 1.2..1.5,
-                Rarity::Epic => 1.5..1.75,
-                Rarity::Legendary => 1.75..2.0,
+                Rarity::Common => 1.2..1.5,
+                Rarity::Rare => 1.3..1.75,
+                Rarity::Epic => 1.5..2.5,
+                Rarity::Legendary => 2.0..3.5,
             });
             UpgradeKind::RankAttackDamageMultiply {
                 rank,
@@ -55,10 +55,10 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::RankAttackSpeedPlus => {
             let rank = *REVERSED_RANKS.choose(&mut thread_rng()).unwrap();
             let speed_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 0.1..0.25,
-                Rarity::Rare => 0.25..0.5,
-                Rarity::Epic => 0.5..0.75,
-                Rarity::Legendary => 0.75..1.0,
+                Rarity::Common => 0.2..0.4,
+                Rarity::Rare => 0.2..0.6,
+                Rarity::Epic => 0.4..1.0,
+                Rarity::Legendary => 0.5..1.5,
             });
             UpgradeKind::RankAttackSpeedPlus { rank, speed_plus }
         }
@@ -78,30 +78,30 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::RankAttackRangePlus => {
             let rank = *REVERSED_RANKS.choose(&mut thread_rng()).unwrap();
             let range_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.2,
-                Rarity::Rare => 1.2..1.5,
-                Rarity::Epic => 1.5..1.75,
-                Rarity::Legendary => 1.75..2.0,
+                Rarity::Common => 1.5..2.5,
+                Rarity::Rare => 2.0..4.0,
+                Rarity::Epic => 3.0..5.0,
+                Rarity::Legendary => 3.0..6.0,
             });
             UpgradeKind::RankAttackRangePlus { rank, range_plus }
         }
         UpgradeCandidate::SuitAttackDamagePlus => {
             let suit = *SUITS.choose(&mut thread_rng()).unwrap();
             let damage_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.0..5.0,
-                Rarity::Rare => 5.0..10.0,
-                Rarity::Epic => 15.0..40.0,
-                Rarity::Legendary => 50.0..100.0,
+                Rarity::Common => 10.0..50.0,
+                Rarity::Rare => 50.0..250.0,
+                Rarity::Epic => 250.0..1000.0,
+                Rarity::Legendary => 1000.0..2500.0,
             });
             UpgradeKind::SuitAttackDamagePlus { suit, damage_plus }
         }
         UpgradeCandidate::SuitAttackDamageMultiply => {
             let suit = *SUITS.choose(&mut thread_rng()).unwrap();
             let damage_multiplier = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.2,
-                Rarity::Rare => 1.2..1.5,
-                Rarity::Epic => 1.5..1.75,
-                Rarity::Legendary => 1.75..2.0,
+                Rarity::Common => 1.1..1.25,
+                Rarity::Rare => 1.15..1.5,
+                Rarity::Epic => 1.25..1.75,
+                Rarity::Legendary => 1.5..3.5,
             });
             UpgradeKind::SuitAttackDamageMultiply {
                 suit,
@@ -134,10 +134,10 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::SuitAttackRangePlus => {
             let suit = *SUITS.choose(&mut thread_rng()).unwrap();
             let range_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.2,
-                Rarity::Rare => 1.2..1.5,
-                Rarity::Epic => 1.5..1.75,
-                Rarity::Legendary => 1.75..2.0,
+                Rarity::Common => 1.5..2.5,
+                Rarity::Rare => 2.0..4.0,
+                Rarity::Epic => 3.0..5.0,
+                Rarity::Legendary => 3.0..6.0,
             });
             UpgradeKind::SuitAttackRangePlus { suit, range_plus }
         }
@@ -145,10 +145,10 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
             let tower_kind =
                 get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
             let damage_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 5.0..10.0,
-                Rarity::Rare => 10.0..25.0,
-                Rarity::Epic => 25.0..50.0,
-                Rarity::Legendary => 50.0..125.0,
+                Rarity::Common => 10.0..100.0,
+                Rarity::Rare => 100.0..500.0,
+                Rarity::Epic => 500.0..2000.0,
+                Rarity::Legendary => 2000.0..5000.0,
             });
             UpgradeKind::HandAttackDamagePlus {
                 tower_kind,
@@ -159,10 +159,10 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
             let tower_kind =
                 get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
             let damage_multiplier = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.2..1.4,
-                Rarity::Rare => 1.4..1.6,
-                Rarity::Epic => 1.6..1.85,
-                Rarity::Legendary => 1.85..2.5,
+                Rarity::Common => 1.2..1.5,
+                Rarity::Rare => 1.3..1.75,
+                Rarity::Epic => 1.5..2.5,
+                Rarity::Legendary => 2.0..4.0,
             });
             UpgradeKind::HandAttackDamageMultiply {
                 tower_kind,
@@ -174,9 +174,9 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
                 get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
             let speed_plus = thread_rng().gen_range(match rarity {
                 Rarity::Common => 0.2..0.4,
-                Rarity::Rare => 0.4..0.6,
-                Rarity::Epic => 0.6..0.85,
-                Rarity::Legendary => 0.85..1.25,
+                Rarity::Rare => 0.2..0.6,
+                Rarity::Epic => 0.4..1.0,
+                Rarity::Legendary => 0.5..1.5,
             });
             UpgradeKind::HandAttackSpeedPlus {
                 tower_kind,
@@ -187,10 +187,10 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
             let tower_kind =
                 get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
             let speed_multiplier = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.2..1.25,
-                Rarity::Rare => 1.25..1.5,
-                Rarity::Epic => 1.5..1.8,
-                Rarity::Legendary => 1.8..2.1,
+                Rarity::Common => 1.2..1.4,
+                Rarity::Rare => 1.2..1.6,
+                Rarity::Epic => 1.4..2.0,
+                Rarity::Legendary => 1.5..2.0,
             });
             UpgradeKind::HandAttackSpeedMultiply {
                 tower_kind,
@@ -201,10 +201,10 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
             let tower_kind =
                 get_tower_kind_with_weight(&[11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0]);
             let range_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.25,
-                Rarity::Rare => 1.25..1.6,
-                Rarity::Epic => 1.6..1.85,
-                Rarity::Legendary => 1.85..2.15,
+                Rarity::Common => 1.5..2.5,
+                Rarity::Rare => 2.0..5.0,
+                Rarity::Epic => 4.0..8.0,
+                Rarity::Legendary => 6.0..10.0,
             });
             UpgradeKind::HandAttackRangePlus {
                 tower_kind,
@@ -217,46 +217,46 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::RerollCountPlus => UpgradeKind::RerollCountPlus,
         UpgradeCandidate::LowCardTowerDamagePlus => {
             let damage_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 5.0..15.0,
-                Rarity::Rare => 15.0..25.0,
-                Rarity::Epic => 25.0..75.0,
-                Rarity::Legendary => 75.0..125.0,
+                Rarity::Common => 10.0..100.0,
+                Rarity::Rare => 100.0..500.0,
+                Rarity::Epic => 500.0..2000.0,
+                Rarity::Legendary => 2000.0..5000.0,
             });
             UpgradeKind::LowCardTowerDamagePlus { damage_plus }
         }
         UpgradeCandidate::LowCardTowerDamageMultiply => {
             let damage_multiplier = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.25..1.5,
-                Rarity::Rare => 1.5..1.75,
-                Rarity::Epic => 1.75..2.0,
-                Rarity::Legendary => 2.0..2.5,
+                Rarity::Common => 1.2..1.5,
+                Rarity::Rare => 1.3..1.75,
+                Rarity::Epic => 1.5..2.5,
+                Rarity::Legendary => 2.0..4.0,
             });
             UpgradeKind::LowCardTowerDamageMultiply { damage_multiplier }
         }
         UpgradeCandidate::LowCardTowerAttackSpeedPlus => {
             let speed_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 0.15..0.3,
-                Rarity::Rare => 0.3..0.55,
-                Rarity::Epic => 0.55..0.8,
-                Rarity::Legendary => 0.8..1.1,
+                Rarity::Common => 0.2..0.4,
+                Rarity::Rare => 0.2..0.6,
+                Rarity::Epic => 0.4..1.0,
+                Rarity::Legendary => 0.5..1.5,
             });
             UpgradeKind::LowCardTowerAttackSpeedPlus { speed_plus }
         }
         UpgradeCandidate::LowCardTowerAttackSpeedMultiply => {
             let speed_multiplier = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.25,
-                Rarity::Rare => 1.25..1.55,
-                Rarity::Epic => 1.55..1.8,
-                Rarity::Legendary => 1.8..2.1,
+                Rarity::Common => 1.2..1.4,
+                Rarity::Rare => 1.2..1.6,
+                Rarity::Epic => 1.4..2.0,
+                Rarity::Legendary => 1.5..2.0,
             });
             UpgradeKind::LowCardTowerAttackSpeedMultiply { speed_multiplier }
         }
         UpgradeCandidate::LowCardTowerAttackRangePlus => {
             let range_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.15..1.3,
-                Rarity::Rare => 1.3..1.55,
-                Rarity::Epic => 1.55..1.9,
-                Rarity::Legendary => 1.9..2.2,
+                Rarity::Common => 1.5..2.5,
+                Rarity::Rare => 2.0..5.0,
+                Rarity::Epic => 4.0..8.0,
+                Rarity::Legendary => 6.0..10.0,
             });
             UpgradeKind::LowCardTowerAttackRangePlus { range_plus }
         }
@@ -265,56 +265,56 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::QuestBoardRefreshPlus => UpgradeKind::QuestBoardRefreshPlus,
         UpgradeCandidate::NoRerollTowerAttackDamagePlus => {
             let damage_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.0..5.0,
-                Rarity::Rare => 5.0..10.0,
-                Rarity::Epic => 15.0..30.0,
-                Rarity::Legendary => 30.0..75.0,
+                Rarity::Common => 10.0..100.0,
+                Rarity::Rare => 100.0..500.0,
+                Rarity::Epic => 500.0..2000.0,
+                Rarity::Legendary => 2000.0..5000.0,
             });
             UpgradeKind::NoRerollTowerAttackDamagePlus { damage_plus }
         }
         UpgradeCandidate::NoRerollTowerAttackDamageMultiply => {
             let damage_multiplier = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.2,
-                Rarity::Rare => 1.2..1.4,
-                Rarity::Epic => 1.4..1.55,
-                Rarity::Legendary => 1.55..1.8,
+                Rarity::Common => 1.2..1.5,
+                Rarity::Rare => 1.3..1.75,
+                Rarity::Epic => 1.5..2.5,
+                Rarity::Legendary => 2.0..4.0,
             });
             UpgradeKind::NoRerollTowerAttackDamageMultiply { damage_multiplier }
         }
         UpgradeCandidate::NoRerollTowerAttackSpeedPlus => {
             let speed_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 0.1..0.2,
-                Rarity::Rare => 0.2..0.45,
-                Rarity::Epic => 0.45..0.7,
-                Rarity::Legendary => 0.7..0.85,
+                Rarity::Common => 0.2..0.4,
+                Rarity::Rare => 0.2..0.6,
+                Rarity::Epic => 0.4..1.0,
+                Rarity::Legendary => 0.5..1.5,
             });
             UpgradeKind::NoRerollTowerAttackSpeedPlus { speed_plus }
         }
         UpgradeCandidate::NoRerollTowerAttackSpeedMultiply => {
             let speed_multiplier = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.2,
-                Rarity::Rare => 1.2..1.45,
-                Rarity::Epic => 1.45..1.7,
-                Rarity::Legendary => 1.7..1.85,
+                Rarity::Common => 1.2..1.4,
+                Rarity::Rare => 1.2..1.6,
+                Rarity::Epic => 1.4..2.0,
+                Rarity::Legendary => 1.5..2.0,
             });
             UpgradeKind::NoRerollTowerAttackSpeedMultiply { speed_multiplier }
         }
         UpgradeCandidate::NoRerollTowerAttackRangePlus => {
             let range_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.2,
-                Rarity::Rare => 1.2..1.45,
-                Rarity::Epic => 1.45..1.7,
-                Rarity::Legendary => 1.7..1.85,
+                Rarity::Common => 1.5..2.5,
+                Rarity::Rare => 2.0..5.0,
+                Rarity::Epic => 4.0..8.0,
+                Rarity::Legendary => 6.0..10.0,
             });
             UpgradeKind::NoRerollTowerAttackRangePlus { range_plus }
         }
         UpgradeCandidate::EvenOddTowerAttackDamagePlus => {
             let even = thread_rng().gen_bool(0.5);
             let damage_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.0..3.0,
-                Rarity::Rare => 3.0..6.0,
-                Rarity::Epic => 6.0..10.0,
-                Rarity::Legendary => 10.0..20.0,
+                Rarity::Common => 5.0..25.0,
+                Rarity::Rare => 25.0..150.0,
+                Rarity::Epic => 100.0..500.0,
+                Rarity::Legendary => 250.0..1500.0,
             });
             UpgradeKind::EvenOddTowerAttackDamagePlus { even, damage_plus }
         }
@@ -357,20 +357,20 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::EvenOddTowerAttackRangePlus => {
             let even = thread_rng().gen_bool(0.5);
             let range_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.15,
-                Rarity::Rare => 1.15..1.2,
-                Rarity::Epic => 1.2..1.25,
-                Rarity::Legendary => 1.25..1.3,
+                Rarity::Common => 0.5..1.5,
+                Rarity::Rare => 1.0..2.0,
+                Rarity::Epic => 1.5..2.5,
+                Rarity::Legendary => 1.5..3.0,
             });
             UpgradeKind::EvenOddTowerAttackRangePlus { even, range_plus }
         }
         UpgradeCandidate::FaceNumberCardTowerAttackDamagePlus => {
             let face = thread_rng().gen_bool(0.5);
             let damage_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.0..3.0,
-                Rarity::Rare => 3.0..6.0,
-                Rarity::Epic => 6.0..10.0,
-                Rarity::Legendary => 10.0..20.0,
+                Rarity::Common => 5.0..25.0,
+                Rarity::Rare => 25.0..150.0,
+                Rarity::Epic => 100.0..500.0,
+                Rarity::Legendary => 250.0..1500.0,
             });
             UpgradeKind::FaceNumberCardTowerAttackDamagePlus { face, damage_plus }
         }
@@ -413,10 +413,10 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::FaceNumberCardTowerAttackRangePlus => {
             let face = thread_rng().gen_bool(0.5);
             let range_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.15,
-                Rarity::Rare => 1.15..1.2,
-                Rarity::Epic => 1.2..1.25,
-                Rarity::Legendary => 1.25..1.3,
+                Rarity::Common => 0.5..1.5,
+                Rarity::Rare => 1.0..2.0,
+                Rarity::Epic => 1.5..2.5,
+                Rarity::Legendary => 1.5..3.0,
             });
             UpgradeKind::FaceNumberCardTowerAttackRangePlus { face, range_plus }
         }
@@ -425,10 +425,10 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::TreatSuitsAsSame => UpgradeKind::TreatSuitsAsSame,
         UpgradeCandidate::RerollTowerAttackDamagePlus => {
             let damage_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.0..3.0,
-                Rarity::Rare => 3.0..7.0,
-                Rarity::Epic => 7.0..25.0,
-                Rarity::Legendary => 25.0..50.0,
+                Rarity::Common => 5.0..15.0,
+                Rarity::Rare => 10.0..100.0,
+                Rarity::Epic => 75.0..250.0,
+                Rarity::Legendary => 200.0..1000.0,
             });
             UpgradeKind::RerollTowerAttackDamagePlus { damage_plus }
         }
@@ -444,27 +444,27 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         UpgradeCandidate::RerollTowerAttackSpeedPlus => {
             let speed_plus = thread_rng().gen_range(match rarity {
                 Rarity::Common => 0.1..0.15,
-                Rarity::Rare => 0.15..0.25,
-                Rarity::Epic => 0.25..0.35,
-                Rarity::Legendary => 0.35..0.5,
+                Rarity::Rare => 0.15..0.2,
+                Rarity::Epic => 0.2..0.25,
+                Rarity::Legendary => 0.25..0.3,
             });
             UpgradeKind::RerollTowerAttackSpeedPlus { speed_plus }
         }
         UpgradeCandidate::RerollTowerAttackSpeedMultiply => {
             let speed_multiplier = thread_rng().gen_range(match rarity {
                 Rarity::Common => 1.1..1.15,
-                Rarity::Rare => 1.15..1.25,
-                Rarity::Epic => 1.25..1.35,
-                Rarity::Legendary => 1.35..1.5,
+                Rarity::Rare => 1.15..1.2,
+                Rarity::Epic => 1.2..1.25,
+                Rarity::Legendary => 1.25..1.3,
             });
             UpgradeKind::RerollTowerAttackSpeedMultiply { speed_multiplier }
         }
         UpgradeCandidate::RerollTowerAttackRangePlus => {
             let range_plus = thread_rng().gen_range(match rarity {
-                Rarity::Common => 1.1..1.15,
-                Rarity::Rare => 1.15..1.3,
-                Rarity::Epic => 1.3..1.45,
-                Rarity::Legendary => 1.45..1.7,
+                Rarity::Common => 0.5..1.5,
+                Rarity::Rare => 1.0..2.0,
+                Rarity::Epic => 1.5..2.5,
+                Rarity::Legendary => 1.5..3.0,
             });
             UpgradeKind::RerollTowerAttackRangePlus { range_plus }
         }
