@@ -1,6 +1,6 @@
+mod stat;
 mod tower_skill;
 
-use super::PADDING;
 use crate::{
     game_state::{
         self, GameState,
@@ -8,11 +8,14 @@ use crate::{
         upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
     palette,
-    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, Headline, PARAGRAPH_FONT_SIZE_MEDIUM, TextAlign},
 };
 use namui::*;
 use namui_prebuilt::table;
+use stat::StatPreview;
 use tower_skill::{MouseHoveringSkill, TowerEffectDescription, TowerSkillTemplateIcon};
+
+use super::PADDING;
 
 const PREVIEW_ICON_SIZE: Px = px(24.);
 
@@ -75,58 +78,57 @@ impl Component for TowerPreview<'_> {
                             max_width: Some(wh.width),
                         });
                     }),
-                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
                         let damage = tower_template.kind.default_damage();
                         let damage_plus =
                             upgrade_state.damage_plus + tower_template.rank.bonus_damage() as f32;
                         let damage_multiplier = upgrade_state.damage_multiplier;
 
-                        ctx.add(Paragraph {
-                            text: "Damage: ".to_string(),
-                            font_size: FontSize::Medium,
-                            text_align: TextAlign::LeftTop,
-                            max_width: None,
-                        });
-                        ctx.add(Paragraph {
-                            text: format_stat(damage as f32, damage_plus, damage_multiplier),
-                            font_size: FontSize::Medium,
-                            text_align: TextAlign::RightTop { width: wh.width },
-                            max_width: None,
+                        ctx.add(StatPreview {
+                            stat_name: "Damage",
+                            default_stat: damage as f32,
+                            plus_stat: damage_plus,
+                            multiplier: damage_multiplier,
+                            wh,
+                            // UpgradeKind::description(), upgrade_board::get_upgrade_description_texts()
+                            upgrade_texts: vec![
+                                "랭크가 10인 타워의 공격력이 2.3배 증가합니다".to_string(),
+                                "짝수 타워의 공격력이 2.3배 증가합니다".to_string(),
+                                "숫자 타워의 공격력이 2.3배 증가합니다".to_string(),
+                                "리롤하지 않고 타워를 만들면 타워의 공격력이 2.3배 증가합니다."
+                                    .to_string(),
+                            ],
                         });
                     }),
-                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
                         let range = tower_template.default_attack_range_radius;
                         let range_plus = upgrade_state.range_plus;
 
-                        ctx.add(Paragraph {
-                            text: "Range: ".to_string(),
-                            font_size: FontSize::Medium,
-                            text_align: TextAlign::LeftTop,
-                            max_width: None,
-                        });
-                        ctx.add(Paragraph {
-                            text: format_stat(range, range_plus, 1.0), // No multiplier for range
-                            font_size: FontSize::Medium,
-                            text_align: TextAlign::RightTop { width: wh.width },
-                            max_width: None,
+                        ctx.add(StatPreview {
+                            stat_name: "Range",
+                            default_stat: range,
+                            plus_stat: range_plus,
+                            multiplier: 1.0, // No multiplier for range
+                            wh,
+                            upgrade_texts: vec![],
                         });
                     }),
-                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
                         let attack_speed = 1.0 / tower_template.kind.shoot_interval().as_secs_f32();
                         let speed_plus = upgrade_state.speed_plus;
                         let speed_multiplier = upgrade_state.speed_multiplier;
 
-                        ctx.add(Paragraph {
-                            text: "Speed: ".to_string(),
-                            font_size: FontSize::Medium,
-                            text_align: TextAlign::LeftTop,
-                            max_width: None,
-                        });
-                        ctx.add(Paragraph {
-                            text: format_stat(attack_speed, speed_plus, speed_multiplier),
-                            font_size: FontSize::Medium,
-                            text_align: TextAlign::RightTop { width: wh.width },
-                            max_width: None,
+                        ctx.add(StatPreview {
+                            stat_name: "Speed",
+                            default_stat: attack_speed,
+                            plus_stat: speed_plus,
+                            multiplier: speed_multiplier,
+                            wh,
+                            upgrade_texts: vec![
+                                "랭크가 10인 타워의 공격속도가가 2.3배 증가합니다".to_string(),
+                                "짝수 타워의 공격속도가가 2.3배 증가합니다".to_string(),
+                                "숫자 타워의 공격속도가가 2.3배 증가합니다".to_string(),
+                            ],
                         });
                     }),
                     table::fixed_no_clip(
@@ -237,22 +239,4 @@ fn calculate_upgrade_state(
     }
 
     state
-}
-
-fn format_stat(base: f32, plus: f32, multiplier: f32) -> String {
-    let has_plus = plus != 0.0;
-    let has_multiplier = multiplier != 1.0;
-
-    match (has_plus, has_multiplier) {
-        (true, true) => format!(
-            "{:.1} (({:.1}+{:.1})*{})",
-            base * multiplier + plus,
-            base,
-            plus,
-            multiplier
-        ),
-        (true, false) => format!("{:.1} ({:.1}+{:.1})", base + plus, base, plus),
-        (false, true) => format!("{:.1} ({:.1}*{:.1})", base * multiplier, base, multiplier),
-        (false, false) => format!("{:.1}", base),
-    }
 }
