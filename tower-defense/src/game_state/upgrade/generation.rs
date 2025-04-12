@@ -778,10 +778,10 @@ fn generate_upgrade_candidate_table(
         UpgradeCandidate::ShopItemPriceMinus,
         game_state.upgrade_state.shop_item_price_minus,
         MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
-        5,
-        5,
-        5,
-        5,
+        10,
+        10,
+        10,
+        10,
     );
 
     // ShopRefreshPlus
@@ -855,10 +855,10 @@ fn generate_upgrade_candidate_table(
         UpgradeCandidate::NoRerollTowerAttackRangePlus,
         usize::MIN,
         usize::MAX,
-        5,
-        10,
-        20,
-        20,
+        15,
+        25,
+        30,
+        30,
     );
 
     // EvenOddTowerAttackDamagePlus
@@ -910,10 +910,10 @@ fn generate_upgrade_candidate_table(
         UpgradeCandidate::EvenOddTowerAttackRangePlus,
         usize::MIN,
         usize::MAX,
-        1,
         5,
         10,
-        20,
+        15,
+        25,
     );
 
     // FaceNumberCardTowerAttackDamagePlus
@@ -965,9 +965,9 @@ fn generate_upgrade_candidate_table(
         UpgradeCandidate::FaceNumberCardTowerAttackRangePlus,
         usize::MIN,
         usize::MAX,
-        1,
         5,
         10,
+        15,
         20,
     );
 
@@ -976,9 +976,9 @@ fn generate_upgrade_candidate_table(
         UpgradeCandidate::ShortenStraightFlushTo4Cards,
         game_state.upgrade_state.shorten_straight_flush_to_4_cards as usize,
         1,
-        0,
         5,
-        15,
+        10,
+        20,
         25,
     );
 
@@ -987,9 +987,9 @@ fn generate_upgrade_candidate_table(
         UpgradeCandidate::SkipRankForStraight,
         game_state.upgrade_state.skip_rank_for_straight as usize,
         1,
-        0,
         5,
-        15,
+        10,
+        20,
         25,
     );
 
@@ -998,9 +998,9 @@ fn generate_upgrade_candidate_table(
         UpgradeCandidate::TreatSuitsAsSame,
         game_state.upgrade_state.treat_suits_as_same as usize,
         1,
-        0,
         5,
-        15,
+        10,
+        20,
         25,
     );
 
@@ -1053,9 +1053,9 @@ fn generate_upgrade_candidate_table(
         UpgradeCandidate::RerollTowerAttackRangePlus,
         usize::MIN,
         usize::MAX,
-        1,
         5,
         10,
+        15,
         20,
     );
 
