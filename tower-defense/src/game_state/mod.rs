@@ -27,6 +27,7 @@ use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
+use item::Item;
 pub use level_rarity_weight::level_rarity_weight;
 use monster::*;
 use monster_spawn::*;
@@ -184,7 +185,16 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::Idle,
             projectiles: Default::default(),
-            items: Default::default(),
+            items: vec![
+                Item {
+                    kind: item::ItemKind::ExtraReroll,
+                    rarity: rarity::Rarity::Epic,
+                },
+                Item {
+                    kind: item::ItemKind::ExtraReroll,
+                    rarity: rarity::Rarity::Epic,
+                },
+            ],
             quest_states: Default::default(),
             gold: 100,
             shop_slots: Default::default(),
