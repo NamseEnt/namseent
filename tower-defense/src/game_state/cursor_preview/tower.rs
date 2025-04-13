@@ -37,8 +37,8 @@ impl Component for TowerCursorPreview<'_> {
         let can_place_tower = ctx.memo(|| {
             let out_of_map = rounded_center_xy.x < 1
                 || rounded_center_xy.y < 1
-                || rounded_center_xy.x >= MAP_SIZE.width - 1
-                || rounded_center_xy.y >= MAP_SIZE.height - 1;
+                || rounded_center_xy.x >= MAP_SIZE.width
+                || rounded_center_xy.y >= MAP_SIZE.height;
 
             if out_of_map {
                 return false;
