@@ -209,7 +209,7 @@ pub fn item_cost(rarity: &Rarity, shop_item_price_minus: usize) -> usize {
     (match rarity {
         Rarity::Common => 25,
         Rarity::Rare => 50,
-        Rarity::Epic => 100,
-        Rarity::Legendary => 250,
+        Rarity::Epic => 75,
+        Rarity::Legendary => 100,
     } - shop_item_price_minus)
 }

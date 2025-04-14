@@ -93,45 +93,45 @@ pub(super) fn generate_quest_requirement(rarity: Rarity) -> QuestRequirement {
             rank: random_rank(),
             count: match rarity {
                 Rarity::Common => 1,
-                Rarity::Rare => 2,
-                Rarity::Epic => 3,
-                Rarity::Legendary => 4,
+                Rarity::Rare => 1,
+                Rarity::Epic => 2,
+                Rarity::Legendary => 3,
             },
         },
         1 => QuestRequirement::BuildTowerRank {
             rank: random_rank(),
             count: thread_rng().gen_range(match rarity {
-                Rarity::Common => 3..=4,
-                Rarity::Rare => 5..=6,
-                Rarity::Epic => 7..=8,
-                Rarity::Legendary => 9..=10,
+                Rarity::Common => 1..=2,
+                Rarity::Rare => 1..=3,
+                Rarity::Epic => 2..=4,
+                Rarity::Legendary => 3..=5,
             }),
         },
         2 => QuestRequirement::BuildTowerSuitNew {
             suit: random_suit(),
-            count: match rarity {
-                Rarity::Common => 1,
-                Rarity::Rare => 2,
-                Rarity::Epic => 3,
-                Rarity::Legendary => 4,
-            },
+            count: thread_rng().gen_range(match rarity {
+                Rarity::Common => 1..=3,
+                Rarity::Rare => 1..=4,
+                Rarity::Epic => 2..=4,
+                Rarity::Legendary => 2..=5,
+            }),
         },
         3 => QuestRequirement::BuildTowerSuit {
             suit: random_suit(),
             count: thread_rng().gen_range(match rarity {
-                Rarity::Common => 3..=4,
-                Rarity::Rare => 5..=6,
-                Rarity::Epic => 7..=8,
-                Rarity::Legendary => 9..=10,
+                Rarity::Common => 1..=4,
+                Rarity::Rare => 2..=6,
+                Rarity::Epic => 4..=8,
+                Rarity::Legendary => 5..=10,
             }),
         },
         4 => {
             const TABLE: [[usize; 10]; 4] = [
                 // High OnePair TwoPair ThreeOfAKind Straight Flush FullHouse FourOfAKind StraightFlush RoyalFlush
-                [3, 2, 2, 1, 0, 0, 0, 0, 0, 0], // Common
-                [0, 0, 3, 2, 2, 1, 1, 0, 0, 0], // Rare
-                [0, 0, 0, 3, 3, 2, 2, 2, 0, 0], // Epic
-                [0, 0, 0, 0, 4, 3, 3, 3, 2, 1], // Legendary
+                [2, 2, 2, 1, 0, 0, 0, 0, 0, 0], // Common
+                [0, 0, 2, 1, 1, 1, 1, 0, 0, 0], // Rare
+                [0, 0, 0, 2, 1, 1, 1, 1, 0, 0], // Epic
+                [0, 0, 0, 0, 1, 1, 1, 1, 1, 1], // Legendary
             ];
             let hand = get_random_quest_requirement_target_kind(rarity);
             QuestRequirement::BuildTowerHandNew {
@@ -142,10 +142,10 @@ pub(super) fn generate_quest_requirement(rarity: Rarity) -> QuestRequirement {
         5 => {
             const TABLE: [[usize; 10]; 4] = [
                 // High OnePair TwoPair ThreeOfAKind Straight Flush FullHouse FourOfAKind StraightFlush RoyalFlush
-                [6, 6, 4, 3, 0, 0, 0, 0, 0, 0], // Common
-                [0, 0, 6, 5, 4, 5, 5, 0, 0, 0], // Rare
-                [0, 0, 0, 7, 6, 6, 6, 5, 0, 0], // Epic
-                [0, 0, 0, 0, 8, 7, 7, 7, 3, 2], // Legendary
+                [3, 3, 3, 1, 0, 0, 0, 0, 0, 0], // Common
+                [0, 0, 4, 3, 2, 2, 1, 0, 0, 0], // Rare
+                [0, 0, 0, 4, 3, 2, 1, 1, 0, 0], // Epic
+                [0, 0, 0, 0, 4, 3, 3, 2, 1, 1], // Legendary
             ];
             let hand = get_random_quest_requirement_target_kind(rarity);
             QuestRequirement::BuildTowerHand {
