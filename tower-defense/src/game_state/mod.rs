@@ -28,6 +28,7 @@ use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
+use item::Item;
 pub use level_rarity_weight::level_rarity_weight;
 use monster::*;
 use monster_spawn::*;
@@ -129,14 +130,14 @@ impl GameState {
     pub fn level_up_cost(&self) -> usize {
         match self.level.get() {
             1 => 25,
-            2 => 30,
-            3 => 40,
-            4 => 60,
-            5 => 75,
-            6 => 100,
-            7 => 200,
-            8 => 300,
-            9 => 500,
+            2 => 50,
+            3 => 75,
+            4 => 100,
+            5 => 150,
+            6 => 200,
+            7 => 300,
+            8 => 500,
+            9 => 750,
             10 => 0,
             _ => unreachable!("Level up cost not defined for level {}", self.level),
         }
@@ -186,7 +187,16 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::Idle,
             projectiles: Default::default(),
-            items: Default::default(),
+            items: vec![
+                Item {
+                    kind: item::ItemKind::ExtraReroll,
+                    rarity: rarity::Rarity::Epic,
+                },
+                Item {
+                    kind: item::ItemKind::ExtraReroll,
+                    rarity: rarity::Rarity::Epic,
+                },
+            ],
             quest_states: Default::default(),
             gold: 100,
             shop_slots: Default::default(),

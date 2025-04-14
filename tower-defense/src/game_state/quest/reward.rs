@@ -24,7 +24,7 @@ impl QuestReward {
     }
 }
 pub(super) fn generate_quest_reward(game_state: &GameState, rarity: Rarity) -> QuestReward {
-    match [(0, 0.2), (1, 0.3), (2, 0.5)]
+    match [(0, 0.2), (1, 0.1), (2, 0.7)]
         .choose_weighted(&mut thread_rng(), |x| x.1)
         .unwrap()
         .0
