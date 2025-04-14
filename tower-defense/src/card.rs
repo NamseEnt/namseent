@@ -55,10 +55,7 @@ impl Rank {
         }
     }
     pub fn is_face(&self) -> bool {
-        match self {
-            Rank::Jack | Rank::Queen | Rank::King => true,
-            _ => false,
-        }
+        matches!(self, Rank::Jack | Rank::Queen | Rank::King)
     }
 }
 impl Display for Rank {

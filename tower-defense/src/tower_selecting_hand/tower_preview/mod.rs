@@ -7,7 +7,7 @@ use crate::{
         tower::{TowerSkillTemplate, TowerTemplate},
         upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
-    palette,
+    l10n, palette,
     theme::typography::{FontSize, Headline, PARAGRAPH_FONT_SIZE_MEDIUM, TextAlign},
 };
 use namui::*;
@@ -30,8 +30,9 @@ impl Component for TowerPreview<'_> {
         let (mouse_hovering_effect, set_mouse_hovering_effect) =
             ctx.state::<Option<MouseHoveringSkill>>(|| None);
         let game_state = game_state::use_game_state(ctx);
-        let upgrade_state =
-            ctx.memo(|| calculate_upgrade_state(game_state.as_ref(), tower_template));
+        let upgrade_state_and_texts =
+            ctx.memo(|| calculate_upgrade_state_and_texts(game_state.as_ref(), tower_template));
+        let (upgrade_state, texts) = upgrade_state_and_texts.as_ref();
 
         let on_mouse_move_in_effect_icon = |effect: &TowerSkillTemplate, offset| {
             set_mouse_hovering_effect.set(Some(MouseHoveringSkill {
@@ -90,14 +91,7 @@ impl Component for TowerPreview<'_> {
                             plus_stat: damage_plus,
                             multiplier: damage_multiplier,
                             wh,
-                            // UpgradeKind::description(), upgrade_board::get_upgrade_description_texts()
-                            upgrade_texts: vec![
-                                "랭크가 10인 타워의 공격력이 2.3배 증가합니다".to_string(),
-                                "짝수 타워의 공격력이 2.3배 증가합니다".to_string(),
-                                "숫자 타워의 공격력이 2.3배 증가합니다".to_string(),
-                                "리롤하지 않고 타워를 만들면 타워의 공격력이 2.3배 증가합니다."
-                                    .to_string(),
-                            ],
+                            upgrade_texts: &texts.damage,
                         });
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
@@ -110,7 +104,7 @@ impl Component for TowerPreview<'_> {
                             plus_stat: range_plus,
                             multiplier: 1.0, // No multiplier for range
                             wh,
-                            upgrade_texts: vec![],
+                            upgrade_texts: &texts.range,
                         });
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
@@ -124,11 +118,7 @@ impl Component for TowerPreview<'_> {
                             plus_stat: speed_plus,
                             multiplier: speed_multiplier,
                             wh,
-                            upgrade_texts: vec![
-                                "랭크가 10인 타워의 공격속도가가 2.3배 증가합니다".to_string(),
-                                "짝수 타워의 공격속도가가 2.3배 증가합니다".to_string(),
-                                "숫자 타워의 공격속도가가 2.3배 증가합니다".to_string(),
-                            ],
+                            upgrade_texts: &texts.speed,
                         });
                     }),
                     table::fixed_no_clip(
@@ -171,24 +161,88 @@ impl Component for TowerPreview<'_> {
     }
 }
 
-fn calculate_upgrade_state(
+struct UpgradeTexts {
+    damage: Vec<String>,
+    speed: Vec<String>,
+    range: Vec<String>,
+}
+
+fn calculate_upgrade_state_and_texts(
     game_state: &GameState,
     tower_template: &TowerTemplate,
-) -> TowerUpgradeState {
+) -> (TowerUpgradeState, UpgradeTexts) {
     let mut state = TowerUpgradeState::default();
-    let mut apply_upgrade = |upgrade_state: &TowerUpgradeState| {
+    let mut texts = UpgradeTexts {
+        damage: vec![],
+        speed: vec![],
+        range: vec![],
+    };
+
+    let mut apply_upgrade = |upgrade_state: &TowerUpgradeState,
+                             target: l10n::TowerUpgradeTarget| {
         state.damage_plus += upgrade_state.damage_plus;
         state.damage_multiplier *= upgrade_state.damage_multiplier;
         state.speed_plus += upgrade_state.speed_plus;
         state.speed_multiplier *= upgrade_state.speed_multiplier;
         state.range_plus += upgrade_state.range_plus;
+
+        if upgrade_state.damage_plus > 0.0 {
+            texts
+                .damage
+                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                    target,
+                    what_upgrade: l10n::WhatUpgrade::Damage,
+                    add_or_multiply: l10n::AddOrMultiply::Add,
+                    how_much: upgrade_state.damage_plus,
+                }));
+        }
+        if upgrade_state.damage_multiplier > 1.0 {
+            texts
+                .damage
+                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                    target,
+                    what_upgrade: l10n::WhatUpgrade::Damage,
+                    add_or_multiply: l10n::AddOrMultiply::Multiply,
+                    how_much: upgrade_state.damage_multiplier,
+                }));
+        }
+        if upgrade_state.speed_plus > 0.0 {
+            texts
+                .speed
+                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                    target,
+                    what_upgrade: l10n::WhatUpgrade::Speed,
+                    add_or_multiply: l10n::AddOrMultiply::Add,
+                    how_much: upgrade_state.speed_plus,
+                }));
+        }
+        if upgrade_state.speed_multiplier > 1.0 {
+            texts
+                .speed
+                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                    target,
+                    what_upgrade: l10n::WhatUpgrade::Speed,
+                    add_or_multiply: l10n::AddOrMultiply::Multiply,
+                    how_much: upgrade_state.speed_multiplier,
+                }));
+        }
+        if upgrade_state.range_plus > 0.0 {
+            texts
+                .range
+                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                    target,
+                    what_upgrade: l10n::WhatUpgrade::Range,
+                    add_or_multiply: l10n::AddOrMultiply::Add,
+                    how_much: upgrade_state.range_plus,
+                }));
+        }
     };
 
     let apply_tower_upgrade_target = |target| {
         let Some(upgrade_state) = game_state.upgrade_state.tower_upgrade_states.get(&target) else {
             return;
         };
-        apply_upgrade(upgrade_state);
+        apply_upgrade(upgrade_state, l10n::TowerUpgradeTarget::Tower(target));
     };
 
     let targets = [
@@ -218,7 +272,7 @@ fn calculate_upgrade_state(
         else {
             return;
         };
-        apply_upgrade(upgrade_state);
+        apply_upgrade(upgrade_state, l10n::TowerUpgradeTarget::TowerSelect(target));
     };
 
     if tower_template.kind.is_low_card_tower() {
@@ -234,9 +288,12 @@ fn calculate_upgrade_state(
         .get(&TowerSelectUpgradeTarget::Reroll)
     {
         for _ in 0..rerolled_count {
-            apply_upgrade(upgrade_state);
+            apply_upgrade(
+                upgrade_state,
+                l10n::TowerUpgradeTarget::TowerSelect(TowerSelectUpgradeTarget::Reroll),
+            );
         }
     }
 
-    state
+    (state, texts)
 }

@@ -9,15 +9,15 @@ const TOOLTIP_MAX_WIDTH: Px = px(256.);
 const PADDING: Px = px(8.);
 
 #[derive(Clone, PartialEq)]
-pub(super) struct StatPreview {
+pub(super) struct StatPreview<'a> {
     pub stat_name: &'static str,
     pub default_stat: f32,
     pub plus_stat: f32,
     pub multiplier: f32,
     pub wh: Wh<Px>,
-    pub upgrade_texts: Vec<String>,
+    pub upgrade_texts: &'a [String],
 }
-impl Component for StatPreview {
+impl Component for StatPreview<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             stat_name,
@@ -99,11 +99,11 @@ fn format_stat(base: f32, plus: f32, multiplier: f32) -> String {
     }
 }
 
-struct Tooltip {
-    upgrade_texts: Vec<String>,
+struct Tooltip<'a> {
+    upgrade_texts: &'a [String],
     max_width: Px,
 }
-impl Component for Tooltip {
+impl Component for Tooltip<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Tooltip {
             upgrade_texts,
@@ -112,11 +112,11 @@ impl Component for Tooltip {
 
         let text_max_width = max_width - (PADDING * 2.0);
         let content = ctx.ghost_compose("tooltip-contents", |mut ctx| {
-            for (index, upgrade_text) in upgrade_texts.into_iter().enumerate() {
+            for (index, upgrade_text) in upgrade_texts.iter().enumerate() {
                 let rendered_text = ctx.ghost_add(
                     format!("tooltip-content-{index}"),
                     Paragraph {
-                        text: upgrade_text,
+                        text: upgrade_text.clone(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::LeftTop,
                         max_width: Some(text_max_width),
