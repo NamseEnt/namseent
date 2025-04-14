@@ -2,6 +2,7 @@ mod asset_loader;
 mod card;
 mod game_state;
 mod inventory;
+mod l10n;
 mod quest_board;
 mod quests;
 mod rarity;
@@ -48,7 +49,6 @@ impl Component for Game {
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = game_state::init_game_state(ctx);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
-
         let (open_upgrade_board, set_open_upgrade_board) = ctx.state(|| false);
         let (open_settings, set_open_settings) = ctx.state(|| false);
 

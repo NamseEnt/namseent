@@ -17,6 +17,7 @@ pub mod tower;
 pub mod upgrade;
 mod user_status_effect;
 
+use crate::l10n::{KoKRLocale, Locales};
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
 use crate::shop::ShopSlot;
@@ -85,6 +86,7 @@ pub struct GameState {
     game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
+    pub locale: Locales,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -211,6 +213,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
+            locale: Locales::KoKR(KoKRLocale),
         };
 
         game_state.goto_selecting_tower();
