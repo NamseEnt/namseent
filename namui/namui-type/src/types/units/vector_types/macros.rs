@@ -230,6 +230,18 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T>
         where
+            T: From<f32> + Into<f32> + Copy + std::fmt::Debug,
+        {
+            pub fn length_squared(&self) -> T {
+                let mut sum = 0.0;
+                $(
+                    sum += self.$field_ident.into().powi(2);
+                )*
+                T::from(sum)
+            }
+        }
+        impl<T> $type_name<T>
+        where
             T: From<f32> + Into<f32> + Copy + std::fmt::Debug + std::ops::Sub<Output = T>,
         {
             pub fn distance(&self, rhs: $type_name<T>) -> T {

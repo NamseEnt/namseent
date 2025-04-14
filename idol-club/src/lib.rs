@@ -7,7 +7,9 @@ use namui_prebuilt::*;
 use std::{collections::HashMap, num::NonZeroUsize};
 
 type GameCoord = isize;
+type GameCoordF = f32;
 type GameXy = Xy<GameCoord>;
+type GameXyF = Xy<GameCoordF>;
 
 pub fn main() {
     namui::start(|ctx| {

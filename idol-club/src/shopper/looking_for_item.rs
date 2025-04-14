@@ -9,7 +9,10 @@ Find Target -Found-> Move to Target -> Check Item -> Next State
 #[derive(Debug)]
 pub struct Flow {
     state: State,
-    searched_targets: Vec<Target>,
+    searched_item_informer_ids: Vec<usize>,
+    view_angle: Angle,
+    view_radius: f32,
+    moving: Moving,
 }
 impl Flow {
     pub fn new(now: Xy<isize>) -> Self {
@@ -17,40 +20,76 @@ impl Flow {
             state: State::LookingAround {
                 moving: Moving::new(vec![now]),
             },
-            searched_targets: vec![],
+            searched_item_informer_ids: vec![],
         }
     }
 
-    pub fn tick(&mut self, dt: Duration) -> Event {
-        match &mut self.state {
+    pub fn tick(&mut self, context: ShopperTickContext) -> Event {
+        self.moving.tick(context.dt);
+
+        match &self.state {
             State::LookingAround { moving } => {
-                moving.tick(dt);
+                if moving.done() {
+                    // choose any point to go around
+                }
 
-                // 시야를 어떻게 정의하고, 그 시야 안에 들어있는 타겟을 찾는 것을 어떻게 계싼할거지?
+                let nowf = moving.nowf();
 
-                if moving.done() {}
+                let closest_informer_in_sight = context
+                    .item_informers
+                    .iter()
+                    .filter(|informer| {
+                        self.in_sight(nowf, moving.heading_unit_vector(), informer.xy)
+                            && !self.searched_item_informer_ids.contains(&informer.id)
+                    })
+                    .map(|informer| {
+                        let to_target_vector = informer.xy.map(|v| v as f32) - nowf;
+                        (to_target_vector.length_squared(), informer)
+                    })
+                    .reduce(|a, b| if a.0 < b.0 { a } else { b })
+                    .map(|(_, informer)| informer);
+
+                if let Some(closest_informer) = closest_informer_in_sight {
+                    self.state = State::GoingToItemInformer {
+                        informer_id: closest_informer.id,
+                    };
+                    self.moving = todo!(); // bfs
+                }
+                Event::None
             }
-            State::GoingToTarget { target } => {}
+            State::GoingToItemInformer { informer_id } => {
+                if !self.moving.done() {
+                    return Event::None;
+                }
+
+                todo!()
+            }
+        }
+    }
+    fn in_sight(&self, my_xy: GameXyF, heading_unit_vector: Xy<f32>, target_xy: GameXy) -> bool {
+        let target_xy = target_xy.map(|v| v as f32);
+        let to_target_vector = target_xy - my_xy;
+        let to_target_length = to_target_vector.length();
+
+        if to_target_length > self.view_radius {
+            return false;
         }
 
-        Event::None
+        let dot_product = heading_unit_vector.dot(&to_target_vector);
+        let cos_theta = dot_product / to_target_length;
+        let theta = cos_theta.acos();
+        let view_angle = self.view_angle.as_radians();
+        theta <= view_angle
     }
 }
 
 #[derive(Debug)]
 enum State {
     LookingAround { moving: Moving },
-    GoingToTarget { target: Target },
+    GoingToItemInformer { informer_id: usize },
 }
 
 #[derive(Debug)]
 pub enum Event {
     None,
-}
-
-#[derive(Debug)]
-enum Target {
-    Staff,
-    CheckoutCounter,
-    DisplayStand,
 }
