@@ -13,48 +13,44 @@ pub struct Flow {
     view_angle: Angle,
     view_radius: f32,
     moving: Moving,
+    item_id: usize,
+    quantity: usize,
+    max_price: usize,
 }
 impl Flow {
     pub fn new(now: Xy<isize>) -> Self {
         Self {
-            state: State::LookingAround {
-                moving: Moving::new(vec![now]),
-            },
+            state: State::LookingAround,
             searched_item_informer_ids: vec![],
+            moving: Moving::new(vec![now]),
+            view_angle: todo!(),
+            view_radius: todo!(),
+            item_id: todo!(),
+            quantity: todo!(),
+            max_price: todo!(),
         }
     }
 
-    pub fn tick(&mut self, context: ShopperTickContext) -> Event {
+    pub fn tick(&mut self, mut context: ShopperTickContext) -> Event {
         self.moving.tick(context.dt);
 
         match &self.state {
-            State::LookingAround { moving } => {
-                if moving.done() {
+            State::LookingAround => {
+                if self.moving.done() {
                     // choose any point to go around
                 }
 
-                let nowf = moving.nowf();
-
-                let closest_informer_in_sight = context
-                    .item_informers
-                    .iter()
-                    .filter(|informer| {
-                        self.in_sight(nowf, moving.heading_unit_vector(), informer.xy)
-                            && !self.searched_item_informer_ids.contains(&informer.id)
-                    })
-                    .map(|informer| {
-                        let to_target_vector = informer.xy.map(|v| v as f32) - nowf;
-                        (to_target_vector.length_squared(), informer)
-                    })
-                    .reduce(|a, b| if a.0 < b.0 { a } else { b })
-                    .map(|(_, informer)| informer);
-
-                if let Some(closest_informer) = closest_informer_in_sight {
-                    self.state = State::GoingToItemInformer {
-                        informer_id: closest_informer.id,
+                for informer in self.informers_in_sight(context.item_informers) {
+                    let Some(path) = context.path_find(self.moving.now(), informer.xy) else {
+                        continue;
                     };
-                    self.moving = todo!(); // bfs
+                    self.state = State::GoingToItemInformer {
+                        informer_id: informer.id,
+                    };
+                    self.moving = Moving::new(path);
+                    break;
                 }
+
                 Event::None
             }
             State::GoingToItemInformer { informer_id } => {
@@ -62,9 +58,42 @@ impl Flow {
                     return Event::None;
                 }
 
+                let answer =
+                    context.ask_for_item(*informer_id, self.item_id, self.quantity, self.max_price);
+
+                match answer {
+                    AskForItemAnswer::Idk => todo!(),
+                    AskForItemAnswer::GotIt { quantity } => todo!(),
+                    AskForItemAnswer::IDontHaveButKnowWhoHasIt { informer_id } => todo!(),
+                    AskForItemAnswer::LetMeCheck => todo!(),
+                    AskForItemAnswer::Expensive => todo!(),
+                }
+
                 todo!()
             }
         }
+    }
+    fn informers_in_sight<'a>(
+        &self,
+        informers: &'a [ItemInformer],
+    ) -> impl Iterator<Item = &'a ItemInformer> + use<'a> {
+        let nowf = self.moving.nowf();
+        let mut informers_with_distance = informers
+            .into_iter()
+            .filter(|informer| {
+                self.in_sight(nowf, self.moving.heading_unit_vector(), informer.xy)
+                    && !self.searched_item_informer_ids.contains(&informer.id)
+            })
+            .map(|informer| {
+                let to_target_vector = informer.xy.map(|v| v as f32) - nowf;
+                (to_target_vector.length_squared(), informer)
+            })
+            .collect::<Vec<_>>();
+
+        informers_with_distance.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        informers_with_distance
+            .into_iter()
+            .map(|(_, informer)| informer)
     }
     fn in_sight(&self, my_xy: GameXyF, heading_unit_vector: Xy<f32>, target_xy: GameXy) -> bool {
         let target_xy = target_xy.map(|v| v as f32);
@@ -85,7 +114,7 @@ impl Flow {
 
 #[derive(Debug)]
 enum State {
-    LookingAround { moving: Moving },
+    LookingAround,
     GoingToItemInformer { informer_id: usize },
 }
 
