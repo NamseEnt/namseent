@@ -30,13 +30,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "algorithm"
-version = "0.1.0"
-dependencies = [
- "namui-type",
-]
-
-[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -372,6 +365,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff70ce3e48ae43fa075863cef62e8b43b71a4f2382229920e0df362592919430"
 dependencies = [
  "adler2",
+]
+
+[[package]]
+name = "namui-algorithm"
+version = "0.1.0"
+dependencies = [
+ "namui-type",
 ]
 
 [[package]]
