@@ -63,7 +63,53 @@ fn display_stand(ctx: &RenderCtx) {
         Color::TRANSPARENT,
     );
 
-    let hole = simple_rect(hole_wh, Color::WHITE, 1.px(), Color::TRANSPARENT);
+    ctx.add(border);
+
+    let keyring_path = {
+        let rect_wh = Wh::new(12.px(), 16.px());
+        let ring_radius = 4.px();
+        let chain_length = 8.px();
+
+        Path::new()
+            .add_oval(Rect::from_xy_wh(
+                Xy::new(rect_wh.width / 2 - ring_radius, 0.px()),
+                Wh::new(ring_radius * 2, ring_radius * 2),
+            ))
+            .move_to(rect_wh.width / 2, ring_radius * 2)
+            .line_to(rect_wh.width / 2, ring_radius * 2 + chain_length)
+            .add_rect(Rect::from_xy_wh(
+                Xy::new(0.px(), ring_radius * 2 + chain_length),
+                rect_wh,
+            ))
+    };
+    let keyring_front_paint = Paint::new(Color::WHITE)
+        .set_style(PaintStyle::Stroke)
+        .set_stroke_width(2.px());
+    let keyring_back_paint = Paint::new(Color::BLACK)
+        .set_style(PaintStyle::Stroke)
+        .set_stroke_width(3.px());
+
+    for x in 0..3 {
+        for y in 0..2 {
+            let x_offset = (hole_wh.width * width_hole) / 3 * (x as f32 + 0.5);
+            let y_offset = (hole_wh.height * height_hole) / 2 * (y as f32 + 0.5);
+            ctx.add(namui::translate(
+                x_offset,
+                y_offset,
+                render([
+                    namui::path(keyring_path.clone(), keyring_front_paint.clone()),
+                    namui::path(keyring_path.clone(), keyring_back_paint.clone()),
+                ]),
+            ));
+        }
+    }
+
+    let hole = simple_rect(
+        hole_wh,
+        Color::grayscale_f01(0.5),
+        1.px(),
+        Color::TRANSPARENT,
+    );
 
     for x in 0..width_hole {
         for y in 0..height_hole {
@@ -72,8 +118,6 @@ fn display_stand(ctx: &RenderCtx) {
             ctx.add(namui::translate(x_offset, y_offset, hole.clone()));
         }
     }
-
-    ctx.add(border);
 }
 
 fn booth_table(ctx: &RenderCtx) {
