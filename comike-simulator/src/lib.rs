@@ -26,6 +26,10 @@ impl Component for App {
             ctx.translate(Xy::new(10.px(), 500.px())).add(booth_table);
         });
 
+        ctx.compose(|ctx| {
+            ctx.translate(Xy::new(210.px(), 350.px())).add(customer);
+        });
+
         ctx.add(simple_rect(
             screen_wh,
             Color::TRANSPARENT,
@@ -33,6 +37,60 @@ impl Component for App {
             Color::BLACK,
         ));
     }
+}
+
+fn customer(ctx: &RenderCtx) {
+    let head_radius = 40.px();
+    let neck_length = 20.px();
+    let body_length = 100.px();
+    let arm_length = 60.px();
+    let leg_length = 60.px();
+
+    /*
+         O
+         |
+        /|\
+         |
+        / \
+    */
+
+    let path = Path::new()
+        // Head
+        .add_oval(Rect::from_xy_wh(
+            Xy::zero(),
+            Wh::new(head_radius * 2, head_radius * 2),
+        ))
+        // Neck + Body
+        .move_to(head_radius, head_radius * 2) // Top of neck
+        .line_to(head_radius, head_radius * 2 + neck_length + body_length) // Bottom of body (Leg joint)
+        // Arms
+        .move_to(head_radius, head_radius * 2 + neck_length) // Arm joint (Bottom of neck)
+        .line_to(
+            head_radius - arm_length,      // x coordinate for left hand (horizontal)
+            head_radius * 2 + neck_length, // y coordinate for left hand (same as joint)
+        ) // Left hand (90 deg)
+        .move_to(head_radius, head_radius * 2 + neck_length) // Arm joint
+        .line_to(
+            head_radius + arm_length,      // x coordinate for right hand (horizontal)
+            head_radius * 2 + neck_length, // y coordinate for right hand (same as joint)
+        ) // Right hand (90 deg)
+        // Legs
+        .move_to(head_radius, head_radius * 2 + neck_length + body_length) // Leg joint
+        .line_to(
+            head_radius - leg_length,
+            head_radius * 2 + neck_length + body_length + leg_length,
+        ) // Left foot (approx 45 deg)
+        .move_to(head_radius, head_radius * 2 + neck_length + body_length) // Leg joint
+        .line_to(
+            head_radius + leg_length,
+            head_radius * 2 + neck_length + body_length + leg_length,
+        ); // Right foot (approx 45 deg)
+
+    let paint = Paint::new(Color::WHITE)
+        .set_style(PaintStyle::Stroke)
+        .set_stroke_width(2.px());
+
+    ctx.add(namui::path(path, paint));
 }
 
 fn goods_stock_box(ctx: &RenderCtx) {
