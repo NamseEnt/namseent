@@ -16,6 +16,7 @@ pub use common::*;
 pub use futures::{StreamExt, future::join_all, future::try_join_all, join, try_join};
 pub use hooks::*;
 pub use lazy_static::lazy_static;
+pub use namui_algorithm as algorithm;
 pub use namui_cfg::*;
 pub use namui_skia::*;
 pub use namui_type as types;

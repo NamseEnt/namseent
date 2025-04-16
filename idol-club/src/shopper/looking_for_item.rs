@@ -18,11 +18,11 @@ pub struct Flow {
     max_price: usize,
 }
 impl Flow {
-    pub fn new(now: Xy<isize>) -> Self {
+    pub fn new(xy: GameXy) -> Self {
         Self {
             state: State::LookingAround,
             searched_item_informer_ids: vec![],
-            moving: Moving::new(vec![now]),
+            moving: Moving::new(vec![xy]),
             view_angle: todo!(),
             view_radius: todo!(),
             item_id: todo!(),

@@ -6,11 +6,7 @@ use std::collections::VecDeque;
 ///
 /// # Returns
 /// * `None` if no path found.
-pub fn bfs(
-    blocks: Vec<Vec<bool>>,
-    start_xy: Xy<usize>,
-    end_xy: Xy<usize>,
-) -> Option<Vec<Xy<usize>>> {
+pub fn bfs(blocks: &[Vec<bool>], start_xy: Xy<usize>, end_xy: Xy<usize>) -> Option<Vec<Xy<usize>>> {
     let height = blocks.len();
     if height == 0 {
         return None;
@@ -112,7 +108,7 @@ mod tests {
         let start_xy = Xy::new(0, 0);
         let end_xy = Xy::new(4, 4);
 
-        let path = bfs(blocks, start_xy, end_xy).unwrap();
+        let path = bfs(&blocks, start_xy, end_xy).unwrap();
 
         assert_eq!(path[0], start_xy);
         assert_eq!(path[path.len() - 1], end_xy);
@@ -136,7 +132,7 @@ mod tests {
 
         let xy = Xy::new(0, 0);
 
-        let path = bfs(blocks, xy, xy).unwrap();
+        let path = bfs(&blocks, xy, xy).unwrap();
 
         assert_eq!(path.len(), 1);
         assert_eq!(path[0], xy);
@@ -153,7 +149,7 @@ mod tests {
         let start_xy = Xy::new(0, 0);
         let end_xy = Xy::new(2, 2);
 
-        assert!(bfs(blocks, start_xy, end_xy).is_none());
+        assert!(bfs(&blocks, start_xy, end_xy).is_none());
     }
 
     #[test]
@@ -163,7 +159,7 @@ mod tests {
         let start_xy = Xy::new(0, 0);
         let end_xy = Xy::new(1, 1);
 
-        assert!(bfs(empty_blocks, start_xy, end_xy).is_none());
+        assert!(bfs(&empty_blocks, start_xy, end_xy).is_none());
     }
 
     #[test]
@@ -173,7 +169,7 @@ mod tests {
         let start_xy = Xy::new(0, 0);
         let end_xy = Xy::new(2, 2); // Out of bounds
 
-        assert!(bfs(blocks, start_xy, end_xy).is_none());
+        assert!(bfs(&blocks, start_xy, end_xy).is_none());
     }
 
     #[test]
@@ -183,14 +179,14 @@ mod tests {
         let start_xy = Xy::new(0, 0); // Start point is blocked
         let end_xy = Xy::new(1, 1);
 
-        assert!(bfs(blocks, start_xy, end_xy).is_none());
+        assert!(bfs(&blocks, start_xy, end_xy).is_none());
 
         let blocks = vec![vec![false, false], vec![false, true]];
 
         let start_xy = Xy::new(0, 0);
         let end_xy = Xy::new(1, 1); // End point is blocked
 
-        assert!(bfs(blocks, start_xy, end_xy).is_none());
+        assert!(bfs(&blocks, start_xy, end_xy).is_none());
     }
 
     #[test]
@@ -209,7 +205,7 @@ mod tests {
             Xy::new(1, 2),
             Xy::new(2, 2),
         ]);
-        assert_eq!(bfs(blocks, start, end), expected);
+        assert_eq!(bfs(&blocks, start, end), expected);
     }
 
     #[test]
@@ -221,21 +217,21 @@ mod tests {
         ];
         let start = Xy::new(0, 0);
         let end = Xy::new(2, 2);
-        assert_eq!(bfs(blocks, start, end), None);
+        assert_eq!(bfs(&blocks, start, end), None);
     }
 
     #[test]
     fn test_start_equals_end_open() {
         let blocks = vec![vec![false]];
         let start_end = Xy::new(0, 0);
-        assert_eq!(bfs(blocks, start_end, start_end), Some(vec![start_end]));
+        assert_eq!(bfs(&blocks, start_end, start_end), Some(vec![start_end]));
     }
 
     #[test]
     fn test_start_equals_end_blocked() {
         let blocks = vec![vec![true]];
         let start_end = Xy::new(0, 0);
-        assert_eq!(bfs(blocks, start_end, start_end), None);
+        assert_eq!(bfs(&blocks, start_end, start_end), None);
     }
 
     #[test]
@@ -243,7 +239,7 @@ mod tests {
         let blocks = vec![vec![true, false], vec![false, false]];
         let start = Xy::new(0, 0);
         let end = Xy::new(1, 1);
-        assert_eq!(bfs(blocks, start, end), None);
+        assert_eq!(bfs(&blocks, start, end), None);
     }
 
     #[test]
@@ -251,7 +247,7 @@ mod tests {
         let blocks = vec![vec![false, false], vec![false, true]];
         let start = Xy::new(0, 0);
         let end = Xy::new(1, 1);
-        assert_eq!(bfs(blocks, start, end), None);
+        assert_eq!(bfs(&blocks, start, end), None);
     }
 
     #[test]
@@ -259,7 +255,7 @@ mod tests {
         let blocks = vec![vec![false]];
         let start = Xy::new(1, 0); // Out of bounds
         let end = Xy::new(0, 0);
-        assert_eq!(bfs(blocks, start, end), None);
+        assert_eq!(bfs(&blocks, start, end), None);
     }
 
     #[test]
@@ -267,7 +263,7 @@ mod tests {
         let blocks = vec![vec![false]];
         let start = Xy::new(0, 0);
         let end = Xy::new(0, 1); // Out of bounds
-        assert_eq!(bfs(blocks, start, end), None);
+        assert_eq!(bfs(&blocks, start, end), None);
     }
 
     #[test]
@@ -275,7 +271,7 @@ mod tests {
         let blocks: Vec<Vec<bool>> = vec![vec![]];
         let start = Xy::new(0, 0);
         let end = Xy::new(0, 0);
-        assert_eq!(bfs(blocks, start, end), None);
+        assert_eq!(bfs(&blocks, start, end), None);
     }
 
     #[test]
@@ -300,6 +296,6 @@ mod tests {
             Xy::new(4, 3),
             Xy::new(4, 4),
         ]);
-        assert_eq!(bfs(blocks, start, end), expected);
+        assert_eq!(bfs(&blocks, start, end), expected);
     }
 }

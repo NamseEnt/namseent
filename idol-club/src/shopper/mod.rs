@@ -1,5 +1,4 @@
 mod looking_for_item;
-mod moving;
 
 use std::collections::BTreeMap;
 

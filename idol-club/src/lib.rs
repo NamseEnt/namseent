@@ -1,15 +1,22 @@
+mod customer;
 mod game_state;
 mod ground_grid;
+mod moving;
 mod shopper;
 
+use customer::*;
+use game_state::*;
+use moving::*;
 use namui::*;
 use namui_prebuilt::*;
 use std::{collections::HashMap, num::NonZeroUsize};
 
-type GameCoord = isize;
+type GameCoord = usize;
 type GameCoordF = f32;
+type GameCoordS = isize;
 type GameXy = Xy<GameCoord>;
 type GameXyF = Xy<GameCoordF>;
+type GameXyS = Xy<GameCoordS>;
 
 pub fn main() {
     namui::start(|ctx| {
@@ -21,6 +28,32 @@ struct App {}
 impl Component for App {
     fn render(self, ctx: &RenderCtx) {
         let screen_wh = screen::size().into_type::<Px>();
+        let game_state = use_game_state(ctx);
+
+        ctx.interval("game tick", 33.ms(), |dt| {
+            mutate_game_state(move |game_state| {
+                game_state.on_update_tick(dt);
+            });
+        });
+
+        ctx.attach_event(|event| {
+            if let Event::KeyUp { event } = event {
+                if event.code == Code::Space {
+                    mutate_game_state(|game_state| {
+                        game_state.flush_checkout_counter();
+                    });
+                }
+            }
+        });
+
+        ctx.add(game_state.as_ref());
+
+        ctx.add(simple_rect(
+            screen_wh,
+            Color::TRANSPARENT,
+            0.px(),
+            Color::BLACK,
+        ));
 
         // # 목표
         // 손님을 스폰해서 카운터에 오게 하는 것.
@@ -51,48 +84,6 @@ impl Component for App {
                                                                               ㄴ아니라면-> 집으로 돌아감
         */
     }
-}
-
-#[derive(Debug)]
-struct GameState {
-    customer_spawner: CustomerSpawner,
-    customers: Vec<Customer>,
-}
-
-impl GameState {
-    fn on_update_tick(&mut self, dt: Duration) {
-        self.customer_spawner_tick();
-    }
-
-    fn customer_spawner_tick(&mut self) {
-        let Self {
-            customer_spawner,
-            customers,
-            ..
-        } = self;
-
-        if customer_spawner.last_spawn_at + customer_spawner.interval < time::now() {
-            return;
-        }
-
-        customer_spawner.last_spawn_at = time::now();
-        customers.push(Customer {
-            destination: Xy::new(0, 0),
-            goods_to_buy: HashMap::new(),
-        });
-    }
-}
-
-#[derive(Debug)]
-struct CustomerSpawner {
-    interval: Duration,
-    last_spawn_at: Instant,
-}
-
-#[derive(Debug)]
-struct Customer {
-    destination: Xy<usize>,
-    goods_to_buy: HashMap<GoodsKind, NonZeroUsize>,
 }
 
 #[derive(Debug)]

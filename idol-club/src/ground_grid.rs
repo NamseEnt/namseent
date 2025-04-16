@@ -12,23 +12,27 @@ impl Grid {
             .collect::<Vec<_>>();
         Self { wh, cells }
     }
-    pub fn within_bounds(&self, xy: GameXy) -> bool {
-        xy.x >= 0 && xy.y >= 0 && xy.x < self.wh.width as isize && xy.y < self.wh.height as isize
+    pub fn in_wh(&self, xy: GameXy) -> bool {
+        xy.x < self.wh.width && xy.y < self.wh.height
     }
     pub fn install_object(&mut self, blueprint: Blueprint) -> Result<(), InstallErr> {
         let collider_xys = rotate_shape(&blueprint.collider_shape, blueprint.rotation)
             .iter()
-            .map(|xy| xy + blueprint.xy)
-            .collect::<Vec<_>>();
-
-        for xy in collider_xys.iter().copied() {
-            if !self.within_bounds(xy) {
-                return Err(InstallErr::OutOfBounds);
-            }
-            if self.cell(xy).object.is_some() {
-                return Err(InstallErr::Collision);
-            }
-        }
+            .map(|xy| {
+                let xy = xy + blueprint.xy.map(|v| v as isize);
+                if xy.x < 0 || xy.y < 0 {
+                    return Err(InstallErr::OutOfBounds);
+                }
+                let xy = xy.map(|v| v as usize);
+                if !self.in_wh(xy) {
+                    return Err(InstallErr::OutOfBounds);
+                }
+                if self.cell(xy).object.is_some() {
+                    return Err(InstallErr::Collision);
+                }
+                Ok(xy)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         for xy in collider_xys {
             self.cell_mut(xy).install_object();
@@ -37,10 +41,10 @@ impl Grid {
         Ok(())
     }
     fn cell(&self, xy: GameXy) -> &Cell {
-        &self.cells[xy.y as usize][xy.x as usize]
+        &self.cells[xy.y][xy.x]
     }
     fn cell_mut(&mut self, xy: GameXy) -> &mut Cell {
-        &mut self.cells[xy.y as usize][xy.x as usize]
+        &mut self.cells[xy.y][xy.x]
     }
 }
 pub struct Blueprint {
@@ -55,14 +59,17 @@ pub enum ObjectRotation {
     Clockwise180,
     Clockwise270,
 }
-fn rotate_shape(shape: &Vec<GameXy>, rotation: ObjectRotation) -> Vec<GameXy> {
+fn rotate_shape(shape: &Vec<GameXy>, rotation: ObjectRotation) -> Vec<GameXyS> {
     shape
         .iter()
-        .map(|xy| match rotation {
-            ObjectRotation::None => *xy,
-            ObjectRotation::Clockwise90 => GameXy::new(xy.y, -xy.x),
-            ObjectRotation::Clockwise180 => GameXy::new(-xy.x, -xy.y),
-            ObjectRotation::Clockwise270 => GameXy::new(-xy.y, xy.x),
+        .map(|xy| {
+            let xy = xy.map(|v| v as isize);
+            match rotation {
+                ObjectRotation::None => xy,
+                ObjectRotation::Clockwise90 => GameXyS::new(xy.y, -xy.x),
+                ObjectRotation::Clockwise180 => GameXyS::new(-xy.x, -xy.y),
+                ObjectRotation::Clockwise270 => GameXyS::new(-xy.y, xy.x),
+            }
         })
         .collect()
 }
