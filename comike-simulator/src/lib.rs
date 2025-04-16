@@ -47,14 +47,15 @@ fn customer(ctx: &RenderCtx) {
     let leg_length = 60.px();
 
     /*
-         O
+         O  <-- Bubble here
          |
         /|\
          |
         / \
     */
 
-    let path = Path::new()
+    // --- Person Drawing ---
+    let person_path = Path::new()
         // Head
         .add_oval(Rect::from_xy_wh(
             Xy::zero(),
@@ -86,11 +87,28 @@ fn customer(ctx: &RenderCtx) {
             head_radius * 2 + neck_length + body_length + leg_length,
         ); // Right foot (approx 45 deg)
 
-    let paint = Paint::new(Color::WHITE)
+    let person_paint = Paint::new(Color::WHITE)
         .set_style(PaintStyle::Stroke)
         .set_stroke_width(2.px());
 
-    ctx.add(namui::path(path, paint));
+    ctx.add(namui::path(person_path, person_paint));
+
+    ctx.add(namui::text(TextParam {
+        text: "1번 2개 주세요".to_string(),
+        x: head_radius,
+        y: -30.px(),
+        align: TextAlign::Center,
+        baseline: TextBaseline::Middle,
+        font: Font {
+            name: "NotoSansKR-Regular".to_string(),
+            size: 24.int_px(),
+        },
+        style: TextStyle {
+            color: Color::WHITE,
+            ..Default::default()
+        },
+        max_width: None,
+    }));
 }
 
 fn goods_stock_box(ctx: &RenderCtx) {
