@@ -62,7 +62,7 @@ enum EventType {
 }
 
 unsafe extern "C" {
-    fn poll_event(ptr: *const u8, wait_timeout_ms: i32) -> u8;
+    fn poll_event(ptr: *const u8, wait_timeout_ms: usize) -> u8;
     fn initial_window_wh() -> u32;
 }
 
@@ -74,16 +74,13 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
         loop {
             let mut raw_event = next_raw_event
                 .take()
-                .unwrap_or_else(|| get_event(&buffer, -1).unwrap());
+                .unwrap_or_else(|| get_event(&buffer, usize::MAX).unwrap());
 
             let start_instant = Instant::now();
             let max_wait_timeout = Duration::from_millis(16);
 
-            let get_wait_timeout_ms = || {
-                (max_wait_timeout - start_instant.elapsed())
-                    .as_millis()
-                    .max(0) as i32
-            };
+            let get_wait_timeout_ms =
+                || (max_wait_timeout - start_instant.elapsed()).as_millis() as usize;
 
             while let Some(peek_raw_event) = get_event(&buffer, get_wait_timeout_ms()) {
                 match (&mut raw_event, &peek_raw_event) {
@@ -102,7 +99,6 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
                     ) => {
                         raw_event = peek_raw_event;
                     }
-                    (_, RawEvent::ScreenRedraw) => {}
                     _ => {
                         next_raw_event = Some(peek_raw_event);
                         break;
@@ -115,7 +111,7 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
     });
 }
 
-fn get_event(buffer: &[u8], wait_timeout_ms: i32) -> Option<RawEvent> {
+fn get_event(buffer: &[u8], wait_timeout_ms: usize) -> Option<RawEvent> {
     unsafe {
         let length = poll_event(buffer.as_ptr(), wait_timeout_ms);
         if length == 0 {
@@ -257,7 +253,7 @@ static SIZE: OnceLock<AtomicU32> = OnceLock::new();
 fn on_resize(width: u16, height: u16) {
     SIZE.get_or_init(|| AtomicU32::new(unsafe { initial_window_wh() }))
         .store(
-            ((width as u32) << 16) | height as u32,
+            (width as u32) << 16 | height as u32,
             std::sync::atomic::Ordering::Relaxed,
         );
 

@@ -51,7 +51,6 @@ impl ComposeCtx<'_, '_> {
                             }
                         }
                     }
-                    ComposeCommand::OnTop => {}
                     ComposeCommand::Rotate { angle } => {
                         global_xy = TransformMatrix::from_rotate(-angle).transform_xy(global_xy);
                     }
@@ -59,6 +58,7 @@ impl ComposeCtx<'_, '_> {
                         global_xy = TransformMatrix::from_scale(1.0 / scale_xy.x, 1.0 / scale_xy.y)
                             .transform_xy(global_xy);
                     }
+                    ComposeCommand::OnTop | ComposeCommand::MouseCursor { .. } => {}
                 }
             }
 
@@ -71,8 +71,6 @@ impl ComposeCtx<'_, '_> {
                 match command {
                     ComposeCommand::Translate { xy } => global_xy -= xy,
                     ComposeCommand::Absolute { xy } => global_xy = original_xy - xy,
-                    ComposeCommand::Clip { .. } => {}
-                    ComposeCommand::OnTop => {}
                     ComposeCommand::Rotate { angle } => {
                         global_xy = TransformMatrix::from_rotate(-angle).transform_xy(global_xy);
                     }
@@ -80,6 +78,9 @@ impl ComposeCtx<'_, '_> {
                         global_xy = TransformMatrix::from_scale(1.0 / scale_xy.x, 1.0 / scale_xy.y)
                             .transform_xy(global_xy);
                     }
+                    ComposeCommand::Clip { .. }
+                    | ComposeCommand::OnTop
+                    | ComposeCommand::MouseCursor { .. } => {}
                 }
             }
 

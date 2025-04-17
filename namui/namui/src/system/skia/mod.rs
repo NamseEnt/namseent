@@ -122,7 +122,8 @@ pub(crate) fn on_skia_drawing_thread() -> Result<()> {
 
     let mut last_rendering_tree = None;
     let mut rendering_tree_changed = false;
-    let mut should_redraw = false;
+    let mut resized = false;
+    let mut last_mouse_xy = system::mouse::position();
 
     while let Ok(command) = rx.recv() {
         let mut on_command = |command| match command {
@@ -133,7 +134,7 @@ pub(crate) fn on_skia_drawing_thread() -> Result<()> {
                 }
             }
             DrawingCommand::Resize { wh } => {
-                should_redraw = true;
+                resized = true;
                 skia.on_resize(wh);
             }
         };
@@ -143,12 +144,14 @@ pub(crate) fn on_skia_drawing_thread() -> Result<()> {
             on_command(next_command);
         }
 
-        if should_redraw || rendering_tree_changed {
+        let mouse_xy = system::mouse::position();
+        if resized || rendering_tree_changed || mouse_xy != last_mouse_xy {
             if let Some(rendering_tree) = last_rendering_tree.clone() {
-                namui_drawer::draw(&mut skia, rendering_tree);
+                namui_drawer::draw(&mut skia, rendering_tree, mouse_xy);
                 inner::after_draw();
                 rendering_tree_changed = false;
-                should_redraw = false;
+                resized = false;
+                last_mouse_xy = mouse_xy;
             }
         }
     }

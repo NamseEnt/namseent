@@ -66,25 +66,31 @@ impl RenderingTree {
         RenderingTree::Children(children)
     }
 
-    // pub fn to_bytes(&self) -> Vec<u8> {
-    //     postcard::to_allocvec(self).unwrap()
-    // }
+    pub fn calculate_mouse_cursor(
+        &self,
+        calculator: &dyn SkCalculate,
+        mouse_xy: Xy<Px>,
+    ) -> MouseCursor {
+        let mut mouse_cursor = Default::default();
 
-    // pub fn from_bytes(bytes: &[u8]) -> Self {
-    //     postcard::from_bytes(bytes).unwrap()
-    // }
+        self.visit_rln(
+            &mut |rendering_tree, tool| {
+                let RenderingTree::Special(SpecialRenderingNode::MouseCursor(MouseCursorNode {
+                    cursor,
+                    rendering_tree,
+                })) = rendering_tree
+                else {
+                    return std::ops::ControlFlow::Continue(());
+                };
+                let local_xy = tool.to_local_xy(mouse_xy);
+                if rendering_tree.xy_in(calculator, local_xy) {
+                    mouse_cursor = *cursor.clone();
+                }
+                std::ops::ControlFlow::Continue(())
+            },
+            &[],
+        );
+
+        mouse_cursor
+    }
 }
-
-// impl std::iter::IntoIterator for RenderingTree {
-//     type Item = RenderingTree;
-//     type IntoIter = std::vec::IntoIter<Self::Item>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//         match self {
-//             RenderingTree::Children(children) => children.into_iter(),
-//             RenderingTree::Node(_) | RenderingTree::Special(_) => vec![self].into_iter(),
-//             RenderingTree::Empty => vec![].into_iter(),
-//             RenderingTree::Static(rendering_tree) => rendering_tree.into_iter(),
-//         }
-//     }
-// }
