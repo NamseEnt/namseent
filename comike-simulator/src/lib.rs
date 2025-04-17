@@ -29,6 +29,9 @@ impl Component for App {
         ctx.compose(|ctx| {
             ctx.translate(Xy::new(210.px(), 350.px())).add(customer);
         });
+        /*
+            TODO: 재고 박스에서 클릭해서 아이템 얻고, 손님 눌러서 제공해.
+        */
 
         ctx.add(simple_rect(
             screen_wh,
@@ -122,7 +125,13 @@ fn goods_stock_box(ctx: &RenderCtx) {
         for y in 0..height_hole {
             let x_offset = hole_wh.width * x;
             let y_offset = hole_wh.height * y;
-            ctx.add(namui::translate(x_offset, y_offset, hole.clone()));
+            ctx.compose(|ctx| {
+                ctx.mouse_cursor(MouseCursor::Pointer).add(namui::translate(
+                    x_offset,
+                    y_offset,
+                    hole.clone(),
+                ));
+            });
         }
     }
 }
