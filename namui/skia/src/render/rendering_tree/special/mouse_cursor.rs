@@ -1,11 +1,18 @@
 use super::*;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
+pub struct MouseCursorNode {
+    pub cursor: Box<MouseCursor>,
+    pub rendering_tree: Box<RenderingTree>,
+}
+
+#[derive(Debug, PartialEq, Clone, Hash, Eq, Default)]
 pub enum MouseCursor {
     TopBottomResize,
     LeftRightResize,
     LeftTopRightBottomResize,
     RightTopLeftBottomResize,
+    #[default]
     Default,
     Text,
     Grab,

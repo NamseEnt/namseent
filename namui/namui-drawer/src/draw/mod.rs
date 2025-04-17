@@ -82,7 +82,7 @@ impl Draw for RenderingTree {
                             .on_top_node_matrix_tuples
                             .push((on_top.clone(), matrix));
                     }
-                    SpecialRenderingNode::WithId(_) => {
+                    SpecialRenderingNode::WithId(_) | SpecialRenderingNode::MouseCursor(_) => {
                         draw_internal(
                             skia,
                             special.inner_rendering_tree_ref(),
@@ -122,6 +122,51 @@ impl Draw for &DrawCommand {
             DrawCommand::Path { command } => command.draw(skia),
             DrawCommand::Text { command } => command.draw(skia),
             DrawCommand::Image { command } => command.draw(skia),
+        }
+    }
+}
+
+impl Draw for MouseCursor {
+    fn draw(self, skia: &mut impl SkSkia) {
+        match self {
+            MouseCursor::TopBottomResize => todo!(),
+            MouseCursor::LeftRightResize => todo!(),
+            MouseCursor::LeftTopRightBottomResize => todo!(),
+            MouseCursor::RightTopLeftBottomResize => todo!(),
+            MouseCursor::Default => {
+                let path = Path::new()
+                    .line_to(0.px(), 15.px())
+                    .line_to(4.px(), 12.px())
+                    .line_to(7.px(), 19.px())
+                    .line_to(9.px(), 18.px())
+                    .line_to(6.px(), 11.px())
+                    .line_to(11.px(), 11.px())
+                    .close();
+
+                let fill_paint = Paint::new(Color::WHITE).set_style(PaintStyle::Fill);
+                let stroke_paint = Paint::new(Color::BLACK)
+                    .set_style(PaintStyle::Stroke)
+                    .set_stroke_width(1.px());
+
+                let fill_command = PathDrawCommand {
+                    path: path.clone(),
+                    paint: fill_paint,
+                };
+                let stroke_command = PathDrawCommand {
+                    path,
+                    paint: stroke_paint,
+                };
+
+                (&fill_command).draw(skia);
+                (&stroke_command).draw(skia);
+            }
+            MouseCursor::Text => todo!(),
+            MouseCursor::Grab => todo!(),
+            MouseCursor::Grabbing => todo!(),
+            MouseCursor::Move => todo!(),
+            MouseCursor::Pointer => todo!(),
+            MouseCursor::Crosshair => todo!(),
+            MouseCursor::Custom(_rendering_tree) => todo!(),
         }
     }
 }

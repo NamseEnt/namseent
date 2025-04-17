@@ -24,7 +24,6 @@ impl ComposeCtx<'_, '_> {
         let xy = xy.into();
         self.push(ComposeCommand::Translate { xy })
     }
-
     pub fn absolute(&self, xy: impl Into<Xy<Px>>) -> Self {
         let xy = xy.into();
         self.push(ComposeCommand::Absolute { xy })
@@ -40,5 +39,8 @@ impl ComposeCtx<'_, '_> {
     }
     pub fn scale(&self, scale_xy: Xy<f32>) -> Self {
         self.push(ComposeCommand::Scale { scale_xy })
+    }
+    pub fn mouse_cursor(&self, cursor: MouseCursor) -> Self {
+        self.push(ComposeCommand::MouseCursor { cursor })
     }
 }
