@@ -60,7 +60,23 @@ impl Visit for RenderingTree {
                     return ControlFlow::Break(());
                 }
             }
-            _ => {}
+            RenderingTree::Boxed(rendering_tree) => {
+                if let ControlFlow::Break(_) =
+                    rendering_tree.as_ref().visit_rln(callback, &next_ancestors)
+                {
+                    return ControlFlow::Break(());
+                }
+            }
+            RenderingTree::BoxedChildren(rendering_trees) => {
+                for rendering_tree in rendering_trees.iter().rev() {
+                    if let ControlFlow::Break(_) =
+                        rendering_tree.as_ref().visit_rln(callback, &next_ancestors)
+                    {
+                        return ControlFlow::Break(());
+                    }
+                }
+            }
+            RenderingTree::Empty | RenderingTree::Node(_) => {}
         }
 
         let utils = VisitUtils {
