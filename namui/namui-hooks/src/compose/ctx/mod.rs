@@ -75,6 +75,12 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                         rendering_tree: rendering_tree.into(),
                     }))
                 }
+                ComposeCommand::MouseCursor { cursor } => {
+                    RenderingTree::Special(SpecialRenderingNode::MouseCursor(MouseCursorNode {
+                        cursor: Box::new(cursor.clone()),
+                        rendering_tree: rendering_tree.into(),
+                    }))
+                }
             }
         }
 

@@ -8,4 +8,5 @@ pub enum ComposeCommand {
     OnTop,
     Rotate { angle: Angle },
     Scale { scale_xy: Xy<f32> },
+    MouseCursor { cursor: MouseCursor },
 }

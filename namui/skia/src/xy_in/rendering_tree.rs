@@ -3,7 +3,7 @@ use std::ops::ControlFlow;
 
 impl XyIn for RenderingTree {
     fn xy_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>) -> bool {
-        Visit::xy_in(self, calculator, xy, &[])
+        xy_in(self, calculator, xy, &[])
     }
 }
 
@@ -13,7 +13,7 @@ impl XyIn for [&RenderingTree] {
     }
 }
 
-pub struct VisitUtils<'a> {
+pub(crate) struct VisitUtils<'a> {
     pub rendering_tree: &'a RenderingTree,
     pub ancestors: &'a [&'a RenderingTree],
 }
@@ -27,18 +27,17 @@ impl VisitUtils<'_> {
     }
 }
 
-pub(super) trait Visit {
-    fn try_visit_rln<F>(&self, callback: &mut F, ancestors: &[&Self]) -> ControlFlow<()>
+pub(crate) trait Visit {
+    fn visit_rln<F>(&self, callback: &mut F, ancestors: &[&Self]) -> ControlFlow<()>
     where
         F: FnMut(&Self, VisitUtils) -> ControlFlow<()>;
     fn to_local_xy(&self, xy: Xy<Px>, ancestors: &[&Self]) -> Xy<Px>;
-    fn xy_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>, ancestors: &[&Self]) -> bool;
     #[allow(dead_code)]
     fn get_xy(&self, ancestors: &[&RenderingTree]) -> Xy<Px>;
 }
 
 impl Visit for RenderingTree {
-    fn try_visit_rln<F>(&self, callback: &mut F, ancestors: &[&Self]) -> ControlFlow<()>
+    fn visit_rln<F>(&self, callback: &mut F, ancestors: &[&Self]) -> ControlFlow<()>
     where
         F: FnMut(&Self, VisitUtils) -> ControlFlow<()>,
     {
@@ -48,7 +47,7 @@ impl Visit for RenderingTree {
         match self {
             RenderingTree::Children(children) => {
                 for child in children.iter().rev() {
-                    if let ControlFlow::Break(_) = child.try_visit_rln(callback, &next_ancestors) {
+                    if let ControlFlow::Break(_) = child.visit_rln(callback, &next_ancestors) {
                         return ControlFlow::Break(());
                     }
                 }
@@ -56,7 +55,7 @@ impl Visit for RenderingTree {
             RenderingTree::Special(special) => {
                 if let ControlFlow::Break(_) = special
                     .inner_rendering_tree_ref()
-                    .try_visit_rln(callback, &next_ancestors)
+                    .visit_rln(callback, &next_ancestors)
                 {
                     return ControlFlow::Break(());
                 }
@@ -96,34 +95,12 @@ impl Visit for RenderingTree {
                     }
                     SpecialRenderingNode::Clip(_)
                     | SpecialRenderingNode::WithId(_)
-                    | SpecialRenderingNode::OnTop(_) => {}
+                    | SpecialRenderingNode::OnTop(_)
+                    | SpecialRenderingNode::MouseCursor(_) => {}
                 }
             }
         }
         result_xy
-    }
-    fn xy_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>, ancestors: &[&Self]) -> bool {
-        let mut result = false;
-        self.try_visit_rln(
-            &mut |node, utils| {
-                if let RenderingTree::Node(node) = node {
-                    let local_xy = utils.to_local_xy(xy);
-                    if node.xy_in(calculator, local_xy)
-                        && is_xy_clip_in_by_ancestors(calculator, xy, utils.ancestors)
-                    {
-                        result = true;
-                        ControlFlow::Break(())
-                    } else {
-                        ControlFlow::Continue(())
-                    }
-                } else {
-                    ControlFlow::Continue(())
-                }
-            },
-            ancestors,
-        );
-
-        result
     }
     #[allow(dead_code)]
     fn get_xy(&self, ancestors: &[&RenderingTree]) -> Xy<Px> {
@@ -156,12 +133,42 @@ impl Visit for RenderingTree {
                     }
                     SpecialRenderingNode::Clip(_)
                     | SpecialRenderingNode::WithId(_)
-                    | SpecialRenderingNode::OnTop(_) => {}
+                    | SpecialRenderingNode::OnTop(_)
+                    | SpecialRenderingNode::MouseCursor(_) => {}
                 }
             }
         }
         xy
     }
+}
+
+fn xy_in(
+    rendering_tree: &RenderingTree,
+    calculator: &dyn SkCalculate,
+    xy: Xy<Px>,
+    ancestors: &[&RenderingTree],
+) -> bool {
+    let mut result = false;
+    rendering_tree.visit_rln(
+        &mut |node, utils| {
+            if let RenderingTree::Node(node) = node {
+                let local_xy = utils.to_local_xy(xy);
+                if node.xy_in(calculator, local_xy)
+                    && is_xy_clip_in_by_ancestors(calculator, xy, utils.ancestors)
+                {
+                    result = true;
+                    ControlFlow::Break(())
+                } else {
+                    ControlFlow::Continue(())
+                }
+            } else {
+                ControlFlow::Continue(())
+            }
+        },
+        ancestors,
+    );
+
+    result
 }
 
 fn is_xy_clip_in_by_ancestors(
@@ -252,7 +259,7 @@ mod tests {
         let node_0 = RenderingTree::wrap([node_1, node_2]).with_id(id_0);
 
         let mut called_ids = vec![];
-        node_0.try_visit_rln(
+        node_0.visit_rln(
             &mut |rendering_tree, _| {
                 if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
                     rendering_tree
@@ -325,7 +332,7 @@ mod tests {
 
         let mut call_count = 0;
 
-        node_0.try_visit_rln(
+        node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 let xy = Xy {
                     x: px(10.0),
@@ -468,7 +475,7 @@ mod tests {
 
         let mut call_count = 0;
 
-        node_0.try_visit_rln(
+        node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 let xy = Xy {
                     x: px(10.0),
@@ -560,7 +567,7 @@ mod tests {
 
         let mut call_count = 0;
 
-        node_0.try_visit_rln(
+        node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 let xy_0_0 = Xy {
                     x: px(0.0),
@@ -616,7 +623,7 @@ mod tests {
 
         let mut call_count = 0;
 
-        node_0.try_visit_rln(
+        node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 let xy_0_0 = Xy {
                     x: px(0.0),
@@ -695,7 +702,7 @@ mod tests {
                 .collect()
         }
 
-        node_0.try_visit_rln(
+        node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
                     rendering_tree

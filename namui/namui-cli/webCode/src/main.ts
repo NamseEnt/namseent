@@ -18,6 +18,7 @@ import { audioHandleOnMainThread } from "./audio";
     const canvas = document.createElement("canvas");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    canvas.style.cursor = "none";
     document.body.appendChild(canvas);
 
     const bitmapCtx = canvas.getContext("bitmaprenderer")!;

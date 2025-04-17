@@ -29,6 +29,7 @@ pub enum SpecialRenderingNode {
     Scale(ScaleNode),
     Transform(TransformNode),
     OnTop(OnTopNode),
+    MouseCursor(MouseCursorNode),
 }
 
 impl SpecialRenderingNode {
@@ -42,6 +43,7 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::Scale(node) => node.rendering_tree.as_ref(),
             SpecialRenderingNode::Transform(node) => node.rendering_tree.as_ref(),
             SpecialRenderingNode::OnTop(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::MouseCursor(node) => node.rendering_tree.as_ref(),
         }
     }
     pub fn inner_rendering_tree(self) -> RenderingTree {
@@ -54,6 +56,7 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::Scale(node) => *node.rendering_tree,
             SpecialRenderingNode::Transform(node) => *node.rendering_tree,
             SpecialRenderingNode::OnTop(node) => *node.rendering_tree,
+            SpecialRenderingNode::MouseCursor(node) => *node.rendering_tree,
         }
     }
 }
