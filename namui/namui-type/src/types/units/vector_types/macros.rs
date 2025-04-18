@@ -196,6 +196,18 @@ macro_rules! vector_types {
             }
         }
 
+        impl<T> std::ops::Neg for $type_name<T>
+        where
+            T: std::ops::Neg<Output = T> + std::fmt::Debug,
+        {
+            type Output = $type_name<T>;
+            fn neg(self) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.neg()),*
+                }
+            }
+        }
+
 
         impl<T> $type_name<T>
         where
@@ -226,6 +238,18 @@ macro_rules! vector_types {
                     sum.sqrt()
                 };
                 T::from(length_in_f32)
+            }
+        }
+        impl<T> $type_name<T>
+        where
+            T: From<f32> + Into<f32> + Copy + std::fmt::Debug,
+        {
+            pub fn length_squared(&self) -> T {
+                let mut sum = 0.0;
+                $(
+                    sum += self.$field_ident.into().powi(2);
+                )*
+                T::from(sum)
             }
         }
         impl<T> $type_name<T>
