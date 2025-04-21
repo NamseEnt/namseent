@@ -65,32 +65,4 @@ impl RenderingTree {
         children.extend(iter.filter(|x| *x != RenderingTree::Empty));
         RenderingTree::Children(children)
     }
-
-    pub fn calculate_mouse_cursor(
-        &self,
-        calculator: &dyn SkCalculate,
-        mouse_xy: Xy<Px>,
-    ) -> MouseCursor {
-        let mut mouse_cursor = Default::default();
-
-        self.visit_rln(
-            &mut |rendering_tree, tool| {
-                let RenderingTree::Special(SpecialRenderingNode::MouseCursor(MouseCursorNode {
-                    cursor,
-                    rendering_tree,
-                })) = rendering_tree
-                else {
-                    return std::ops::ControlFlow::Continue(());
-                };
-                let local_xy = tool.to_local_xy(mouse_xy);
-                if rendering_tree.xy_in(calculator, local_xy) {
-                    mouse_cursor = *cursor.clone();
-                }
-                std::ops::ControlFlow::Continue(())
-            },
-            &[],
-        );
-
-        mouse_cursor
-    }
 }

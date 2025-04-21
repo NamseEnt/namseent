@@ -3,7 +3,7 @@ mod rendering_tree;
 
 use crate::*;
 use namui_type::*;
-pub(crate) use rendering_tree::*;
+pub use rendering_tree::*;
 
 pub trait XyIn {
     fn xy_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>) -> bool;
