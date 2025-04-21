@@ -17,25 +17,6 @@ pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoB
     tokio::spawn(async move {
         let output = run_build_process(&build_option).await?;
 
-        if !output.status.success() {
-            return Ok(CargoBuildOutput {
-                is_successful: false,
-                error_messages: vec![ErrorMessage {
-                    relative_file: "".to_string(),
-                    absolute_file: "".to_string(),
-                    line: 0,
-                    column: 0,
-                    text: format!(
-                        "Failed to build: {}\n{}\n",
-                        String::from_utf8(output.stderr)?,
-                        String::from_utf8(output.stdout)?,
-                    ),
-                }],
-                other_messages: vec![],
-                warning_messages: vec![],
-            });
-        }
-
         let stderr = String::from_utf8(output.stderr)?
             // last 256 lines
             .lines()
