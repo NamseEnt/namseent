@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use namui::*;
 use namui_prebuilt::*;
 
@@ -10,24 +12,32 @@ pub fn main() {
 struct App {}
 impl Component for App {
     fn render(self, ctx: &RenderCtx) {
-        let (clicked_goods_count, set_clicked_goods_count) = ctx.state(|| 0);
-        let (game_flow, set_game_flow) =
-            ctx.state(|| GameFlow::CustomerWaitingGoods { goods_count: 2 });
+        let (clicked_goods_counts, set_clicked_goods_counts) =
+            ctx.state(BTreeMap::<usize, usize>::new);
+        let (game_flow, set_game_flow) = ctx.state(|| GameFlow::CustomerWaitingGoods {
+            goods_count: 2,
+            goods_index: 0,
+        });
 
         let screen_wh = screen::size().into_type::<Px>();
 
+        let clicked_goods_text = clicked_goods_counts
+            .iter()
+            .map(|(index, count)| format!("{}: {}", index + 1, count))
+            .collect::<Vec<_>>()
+            .join(", ");
         ctx.add(typography::body::left(
             24.px(),
-            format!("clicked goods: {}", *clicked_goods_count),
+            format!("[clicked goods] {clicked_goods_text}"),
             Color::WHITE,
         ));
 
         ctx.compose(|ctx| {
             ctx.translate(Xy::new(20.px(), 404.px()))
                 .add(GoodsStockBox {
-                    on_click_goods: &|| {
-                        set_clicked_goods_count.mutate(|count| {
-                            *count += 1;
+                    on_click_goods: &|goods_index| {
+                        set_clicked_goods_counts.mutate(move |counts| {
+                            *counts.entry(goods_index).or_insert(0) += 1;
                         });
                     },
                 });
@@ -46,11 +56,18 @@ impl Component for App {
             ctx.translate(Xy::new(210.px(), 350.px())).add(Customer {
                 game_flow: &game_flow,
                 on_click: &|| match *game_flow {
-                    GameFlow::CustomerWaitingGoods { goods_count } => {
-                        if *clicked_goods_count < goods_count {
+                    GameFlow::CustomerWaitingGoods {
+                        goods_count,
+                        goods_index,
+                    } => {
+                        let Some(clicked_count) = clicked_goods_counts.get(&goods_index) else {
+                            return;
+                        };
+
+                        if *clicked_count < goods_count {
                             return;
                         }
-                        set_clicked_goods_count.set(0);
+                        set_clicked_goods_counts.set(BTreeMap::new());
                         set_game_flow.set(GameFlow::CustomerLeaving);
                     }
                     GameFlow::CustomerLeaving => {}
@@ -68,7 +85,10 @@ impl Component for App {
 }
 
 enum GameFlow {
-    CustomerWaitingGoods { goods_count: usize },
+    CustomerWaitingGoods {
+        goods_index: usize,
+        goods_count: usize,
+    },
     CustomerLeaving,
 }
 
@@ -90,7 +110,7 @@ impl Component for Customer<'_> {
         let leg_length = 60.px();
 
         /*
-             O  <-- Bubble here
+             O
              |
             /|\
              |
@@ -146,8 +166,11 @@ impl Component for Customer<'_> {
 
         ctx.add(namui::text(TextParam {
             text: match game_flow {
-                GameFlow::CustomerWaitingGoods { goods_count } => {
-                    format!("1번 {}개 주세요", goods_count)
+                GameFlow::CustomerWaitingGoods {
+                    goods_count,
+                    goods_index,
+                } => {
+                    format!("{}번 {goods_count}개 주세요", goods_index + 1)
                 }
                 GameFlow::CustomerLeaving => "감사합니다".to_string(),
             },
@@ -169,33 +192,54 @@ impl Component for Customer<'_> {
 }
 
 struct GoodsStockBox<'a> {
-    pub on_click_goods: &'a dyn Fn(),
+    pub on_click_goods: &'a dyn Fn(usize),
 }
 
 impl Component for GoodsStockBox<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { on_click_goods } = self;
+
         let hole_wh = Wh::new(48.px(), 24.px());
         let width_hole = 3;
         let height_hole = 4;
 
         let hole = simple_rect(hole_wh, Color::WHITE, 1.px(), Color::grayscale_f01(0.8));
 
+        let items = ["asset/badge.jpg", "asset/stand.jpg", "asset/sticker.jpg"];
+
         for x in 0..width_hole {
             for y in 0..height_hole {
-                let x_offset = hole_wh.width * x;
-                let y_offset = hole_wh.height * y;
-                ctx.compose(|ctx| {
-                    ctx.mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
-                        .add(namui::translate(x_offset, y_offset, hole.clone()))
-                        .attach_event(|event| {
-                            let Event::MouseUp { event } = event else {
-                                return;
-                            };
-                            if event.is_local_xy_in() {
-                                on_click_goods();
-                            }
+                let index = x + y * width_hole;
+
+                ctx.compose(|mut ctx| {
+                    ctx = ctx
+                        .mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
+                        .translate((hole_wh.width * x, hole_wh.height * y));
+
+                    if let Some(item) = items.get(index) {
+                        ctx.add(namui::ImageRender {
+                            rect: Rect::from_xy_wh(Xy::zero(), hole_wh),
+                            source: ImageSource::ResourceLocation {
+                                resource_location: ResourceLocation::Bundle(item.into()),
+                            },
+                            fit: ImageFit::Contain,
+                            paint: None,
                         });
+                    }
+
+                    ctx.add(hole.clone());
+
+                    ctx.attach_event(|event| {
+                        if items.get(index).is_none() {
+                            return;
+                        }
+                        let Event::MouseUp { event } = event else {
+                            return;
+                        };
+                        if event.is_local_xy_in() {
+                            on_click_goods(index);
+                        }
+                    });
                 });
             }
         }
