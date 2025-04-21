@@ -169,9 +169,6 @@ pub fn draw_mouse_cursor(
                 };
                 let offset_xy = calculate_offset_xy(index);
 
-                println!(
-                    "mouse_xy: {mouse_xy:?}, offset_xy: {offset_xy:?}, hotspot_xy: {hotspot_xy:?}, mouse_cursor: {mouse_cursor:?}, index: {index:?}",
-                );
                 skia.surface().canvas().clip_path(
                     &Path::new().add_rect(Rect::from_xy_wh(-hotspot_xy, sprite_set.cursor_wh)),
                     ClipOp::Intersect,
