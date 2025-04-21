@@ -13,7 +13,6 @@ pub struct BuildOption {
     pub release: bool,
 }
 
-
 pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoBuildOutput>> {
     tokio::spawn(async move {
         let output = run_build_process(&build_option).await?;
