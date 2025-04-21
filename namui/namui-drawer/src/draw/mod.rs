@@ -126,47 +126,66 @@ impl Draw for &DrawCommand {
     }
 }
 
-impl Draw for MouseCursor {
-    fn draw(self, skia: &mut impl SkSkia) {
-        match self {
-            MouseCursor::TopBottomResize => todo!(),
-            MouseCursor::LeftRightResize => todo!(),
-            MouseCursor::LeftTopRightBottomResize => todo!(),
-            MouseCursor::RightTopLeftBottomResize => todo!(),
-            MouseCursor::Default => {
-                let path = Path::new()
-                    .line_to(0.px(), 15.px())
-                    .line_to(4.px(), 12.px())
-                    .line_to(7.px(), 19.px())
-                    .line_to(9.px(), 18.px())
-                    .line_to(6.px(), 11.px())
-                    .line_to(11.px(), 11.px())
-                    .close();
+pub fn draw_mouse_cursor(
+    skia: &mut impl SkSkia,
+    mouse_xy: Xy<Px>,
+    mouse_cursor: MouseCursor,
+    sprite_set: &StandardCursorSpriteSet,
+) {
+    skia.surface().canvas().save();
+    skia.surface().canvas().translate(mouse_xy.x, mouse_xy.y);
 
-                let fill_paint = Paint::new(Color::WHITE).set_style(PaintStyle::Fill);
-                let stroke_paint = Paint::new(Color::BLACK)
-                    .set_style(PaintStyle::Stroke)
-                    .set_stroke_width(1.px());
-
-                let fill_command = PathDrawCommand {
-                    path: path.clone(),
-                    paint: fill_paint,
+    'draw: {
+        match mouse_cursor {
+            MouseCursor::Standard(standard_cursor) => {
+                let Some(sprite) = sprite_set.sprites.get(&standard_cursor) else {
+                    break 'draw;
                 };
-                let stroke_command = PathDrawCommand {
-                    path,
-                    paint: stroke_paint,
+                let calculate_offset_xy = |index: usize| -> Xy<Px> {
+                    let column = index % sprite_set.columns;
+                    let row = index / sprite_set.columns;
+                    sprite_set.cursor_wh.as_xy() * Xy::new(column, row)
                 };
+                let (index, hotspot_xy) = match *sprite {
+                    CursorSprite::Static { index, hotspot_xy } => (index, hotspot_xy),
+                    CursorSprite::Animated {
+                        start_index,
+                        hotspot_xy,
+                        frame_count,
+                        frame_duration,
+                    } => {
+                        static INSTANT_FOR_ANIMATION: std::sync::OnceLock<namui_type::Instant> =
+                            std::sync::OnceLock::new();
+                        let elapsed = INSTANT_FOR_ANIMATION
+                            .get_or_init(namui_type::Instant::now)
+                            .elapsed();
 
-                (&fill_command).draw(skia);
-                (&stroke_command).draw(skia);
+                        let frame_index = ((elapsed.as_millis() / frame_duration.as_millis())
+                            % frame_count as i128)
+                            as usize;
+                        (start_index + frame_index, hotspot_xy)
+                    }
+                };
+                let offset_xy = calculate_offset_xy(index);
+
+                skia.surface().canvas().clip_path(
+                    &Path::new().add_rect(Rect::from_xy_wh(-hotspot_xy, sprite_set.cursor_wh)),
+                    ClipOp::Intersect,
+                    false,
+                );
+                ImageDrawCommand {
+                    rect: Rect::from_xy_wh(-offset_xy - hotspot_xy, sprite_set.sheet.info.wh()),
+                    image: sprite_set.sheet.clone(),
+                    fit: ImageFit::None,
+                    paint: None,
+                }
+                .draw(skia);
             }
-            MouseCursor::Text => todo!(),
-            MouseCursor::Grab => todo!(),
-            MouseCursor::Grabbing => todo!(),
-            MouseCursor::Move => todo!(),
-            MouseCursor::Pointer => todo!(),
-            MouseCursor::Crosshair => todo!(),
-            MouseCursor::Custom(_rendering_tree) => todo!(),
+            MouseCursor::Custom(rendering_tree) => {
+                rendering_tree.draw(skia);
+            }
         }
     }
+
+    skia.surface().canvas().restore();
 }

@@ -37,7 +37,6 @@ pub(super) async fn init_system() -> InitResult {
         font::init(),
         image::init(),
         keyboard::init(),
-        mouse::init(),
         network::init(),
         screen::init(),
         time::init(),
@@ -53,7 +52,7 @@ pub(super) async fn init_system() -> InitResult {
     //     web::init(),
     // )?;
 
-    futures::try_join!(typeface::init())?;
+    futures::try_join!(mouse::init(), typeface::init())?;
 
     SYSTEM_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
 

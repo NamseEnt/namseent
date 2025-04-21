@@ -147,7 +147,12 @@ pub(crate) fn on_skia_drawing_thread() -> Result<()> {
         let mouse_xy = system::mouse::position();
         if resized || rendering_tree_changed || mouse_xy != last_mouse_xy {
             if let Some(rendering_tree) = last_rendering_tree.clone() {
-                namui_drawer::draw(&mut skia, rendering_tree, mouse_xy);
+                namui_drawer::draw(
+                    &mut skia,
+                    rendering_tree,
+                    mouse_xy,
+                    mouse::standard_cursor_sprite_set(),
+                );
                 inner::after_draw();
                 rendering_tree_changed = false;
                 resized = false;

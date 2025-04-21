@@ -13,7 +13,7 @@ impl XyIn for [&RenderingTree] {
     }
 }
 
-pub(crate) struct VisitUtils<'a> {
+pub struct VisitUtils<'a> {
     pub rendering_tree: &'a RenderingTree,
     pub ancestors: &'a [&'a RenderingTree],
 }
@@ -27,7 +27,7 @@ impl VisitUtils<'_> {
     }
 }
 
-pub(crate) trait Visit {
+pub trait Visit {
     fn visit_rln<F>(&self, callback: &mut F, ancestors: &[&Self]) -> ControlFlow<()>
     where
         F: FnMut(&Self, VisitUtils) -> ControlFlow<()>;
