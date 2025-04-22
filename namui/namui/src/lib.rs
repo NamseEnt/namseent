@@ -20,6 +20,7 @@ pub use namui_cfg::*;
 pub use namui_skia::*;
 pub use namui_type as types;
 pub use namui_type::*;
+pub use rand;
 pub use rayon;
 pub use render::*;
 pub use serde;
