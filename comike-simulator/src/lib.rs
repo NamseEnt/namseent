@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use namui::*;
+use namui::{rand::seq::SliceRandom, *};
 use namui_prebuilt::*;
 
 pub fn main() {
@@ -8,6 +8,30 @@ pub fn main() {
         ctx.add(App {});
     });
 }
+
+struct ItemInfo {
+    pub name: &'static str,
+    pub image_path: &'static str,
+    pub price: usize,
+}
+
+const ITEM_INFOS: [ItemInfo; 3] = [
+    ItemInfo {
+        name: "배지",
+        image_path: "asset/badge.jpg",
+        price: 3000,
+    },
+    ItemInfo {
+        name: "스탠드",
+        image_path: "asset/stand.jpg",
+        price: 12000,
+    },
+    ItemInfo {
+        name: "스티커",
+        image_path: "asset/sticker.jpg",
+        price: 1000,
+    },
+];
 
 struct App {}
 impl Component for App {
@@ -21,14 +45,91 @@ impl Component for App {
 
         let screen_wh = screen::size().into_type::<Px>();
 
+        ctx.on_raw_event(|event| {
+            if let GameFlow::CalculatingPrice {
+                answer, candidates, ..
+            } = *game_flow
+            {
+                let RawEvent::KeyUp { event } = event else {
+                    return;
+                };
+
+                let index = match event.code {
+                    Code::Digit1 => 0,
+                    Code::Digit2 => 1,
+                    Code::Digit3 => 2,
+                    _ => return,
+                };
+                let candidate = candidates[index];
+                set_game_flow.set(if candidate == answer {
+                    GameFlow::CustomerPurchasing {
+                        end_at: Instant::now() + Duration::from_secs(2),
+                    }
+                } else {
+                    GameFlow::CalculatingPrice {
+                        answer,
+                        candidates,
+                        is_wrong_answer: true,
+                    }
+                });
+            }
+        });
+
+        if let GameFlow::CustomerPurchasing { end_at } = *game_flow {
+            if end_at < Instant::now() {
+                set_game_flow.set(GameFlow::CustomerLeaving);
+            }
+        }
+
+        ctx.add(namui::text(TextParam {
+            text: match *game_flow {
+                GameFlow::CustomerWaitingGoods {
+                    goods_count,
+                    goods_index,
+                } => {
+                    format!("{}번 {goods_count}개 주세요", goods_index + 1)
+                }
+                GameFlow::CalculatingPrice {
+                    candidates,
+                    is_wrong_answer,
+                    ..
+                } => {
+                    let thought = if is_wrong_answer {
+                        "틀렸어. 다시..."
+                    } else {
+                        "얼마지...?"
+                    };
+                    format!(
+                        "'{}' - 1. {}, 2. {}, 3. {}",
+                        thought, candidates[0], candidates[1], candidates[2]
+                    )
+                }
+                GameFlow::CustomerPurchasing { .. } => "잠시만요...! 지갑이... 여깄다!".to_string(),
+                GameFlow::CustomerLeaving => "감사합니다~".to_string(),
+            },
+            x: 300.px(),
+            y: 200.px(),
+            align: TextAlign::Center,
+            baseline: TextBaseline::Middle,
+            font: Font {
+                name: "NotoSansKR-Regular".to_string(),
+                size: 24.int_px(),
+            },
+            style: TextStyle {
+                color: Color::WHITE,
+                ..Default::default()
+            },
+            max_width: None,
+        }));
+
         let clicked_goods_text = clicked_goods_counts
             .iter()
-            .map(|(index, count)| format!("{}: {}", index + 1, count))
+            .map(|(index, count)| format!("{}: {}", ITEM_INFOS[*index].name, count))
             .collect::<Vec<_>>()
             .join(", ");
         ctx.add(typography::body::left(
             24.px(),
-            format!("[clicked goods] {clicked_goods_text}"),
+            format!("[선택된 아이템] {clicked_goods_text}"),
             Color::WHITE,
         ));
 
@@ -68,9 +169,27 @@ impl Component for App {
                             return;
                         }
                         set_clicked_goods_counts.set(BTreeMap::new());
-                        set_game_flow.set(GameFlow::CustomerLeaving);
+                        let answer = ITEM_INFOS[goods_index].price * goods_count;
+                        let mut candidates = [
+                            answer,
+                            answer + 1000,
+                            if answer <= 1000 {
+                                answer + 2000
+                            } else {
+                                answer - 1000
+                            },
+                        ];
+                        let mut rng = namui::rand::thread_rng();
+                        candidates.shuffle(&mut rng);
+                        set_game_flow.set(GameFlow::CalculatingPrice {
+                            answer,
+                            candidates,
+                            is_wrong_answer: false,
+                        });
                     }
-                    GameFlow::CustomerLeaving => {}
+                    GameFlow::CalculatingPrice { .. }
+                    | GameFlow::CustomerLeaving
+                    | GameFlow::CustomerPurchasing { .. } => {}
                 },
             });
         });
@@ -88,6 +207,14 @@ enum GameFlow {
     CustomerWaitingGoods {
         goods_index: usize,
         goods_count: usize,
+    },
+    CalculatingPrice {
+        answer: usize,
+        candidates: [usize; 3],
+        is_wrong_answer: bool,
+    },
+    CustomerPurchasing {
+        end_at: Instant,
     },
     CustomerLeaving,
 }
@@ -163,31 +290,6 @@ impl Component for Customer<'_> {
                     on_click();
                 }
             });
-
-        ctx.add(namui::text(TextParam {
-            text: match game_flow {
-                GameFlow::CustomerWaitingGoods {
-                    goods_count,
-                    goods_index,
-                } => {
-                    format!("{}번 {goods_count}개 주세요", goods_index + 1)
-                }
-                GameFlow::CustomerLeaving => "감사합니다".to_string(),
-            },
-            x: head_radius,
-            y: -30.px(),
-            align: TextAlign::Center,
-            baseline: TextBaseline::Middle,
-            font: Font {
-                name: "NotoSansKR-Regular".to_string(),
-                size: 24.int_px(),
-            },
-            style: TextStyle {
-                color: Color::WHITE,
-                ..Default::default()
-            },
-            max_width: None,
-        }));
     }
 }
 
@@ -205,8 +307,6 @@ impl Component for GoodsStockBox<'_> {
 
         let hole = simple_rect(hole_wh, Color::WHITE, 1.px(), Color::grayscale_f01(0.8));
 
-        let items = ["asset/badge.jpg", "asset/stand.jpg", "asset/sticker.jpg"];
-
         for x in 0..width_hole {
             for y in 0..height_hole {
                 let index = x + y * width_hole;
@@ -216,11 +316,13 @@ impl Component for GoodsStockBox<'_> {
                         .mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
                         .translate((hole_wh.width * x, hole_wh.height * y));
 
-                    if let Some(item) = items.get(index) {
+                    let item = ITEM_INFOS.get(index);
+
+                    if let Some(item) = item {
                         ctx.add(namui::ImageRender {
                             rect: Rect::from_xy_wh(Xy::zero(), hole_wh),
                             source: ImageSource::ResourceLocation {
-                                resource_location: ResourceLocation::Bundle(item.into()),
+                                resource_location: ResourceLocation::Bundle(item.image_path.into()),
                             },
                             fit: ImageFit::Contain,
                             paint: None,
@@ -230,7 +332,7 @@ impl Component for GoodsStockBox<'_> {
                     ctx.add(hole.clone());
 
                     ctx.attach_event(|event| {
-                        if items.get(index).is_none() {
+                        if item.is_none() {
                             return;
                         }
                         let Event::MouseUp { event } = event else {
