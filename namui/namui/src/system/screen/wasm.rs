@@ -76,13 +76,7 @@ pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Sen
                 .take()
                 .unwrap_or_else(|| get_event(&buffer, usize::MAX).unwrap());
 
-            let start_instant = Instant::now();
-            let max_wait_timeout = Duration::from_millis(16);
-
-            let get_wait_timeout_ms =
-                || (max_wait_timeout - start_instant.elapsed()).as_millis() as usize;
-
-            while let Some(peek_raw_event) = get_event(&buffer, get_wait_timeout_ms()) {
+            while let Some(peek_raw_event) = get_event(&buffer, 0) {
                 match (&mut raw_event, &peek_raw_event) {
                     (RawEvent::Wheel { event }, RawEvent::Wheel { event: peek_event }) => {
                         event.delta_xy += peek_event.delta_xy;
