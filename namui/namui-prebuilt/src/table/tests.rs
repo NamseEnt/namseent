@@ -41,7 +41,7 @@ async fn closure_should_give_right_wh() {
     let body_render_called = Arc::new(AtomicBool::new(false));
     let body_inner_render_called = Arc::new(AtomicBool::new(false));
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     struct Test {
         button_render_called: Arc<AtomicBool>,
@@ -133,7 +133,7 @@ async fn fit_should_work() {
     namui::system::init_for_test().await.unwrap();
     let a_width = Arc::new(Mutex::new(0.px()));
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     struct Test {
         a_width: Arc<Mutex<Px>>,
