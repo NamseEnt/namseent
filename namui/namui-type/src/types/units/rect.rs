@@ -679,3 +679,28 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_xy_inside() {
+        let rect = Rect::Ltrb {
+            left: 0.0.px(),
+            top: 0.0.px(),
+            right: 48.0.px(),
+            bottom: 24.0.px(),
+        };
+        let xy = Xy {
+            x: 12.0.px(),
+            y: 11.0.px(),
+        };
+        assert!(rect.is_xy_inside(xy));
+        let xy = Xy {
+            x: 12.0.px(),
+            y: 25.0.px(),
+        };
+        assert!(!rect.is_xy_inside(xy));
+    }
+}

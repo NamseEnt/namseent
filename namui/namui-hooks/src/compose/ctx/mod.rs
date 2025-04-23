@@ -9,9 +9,9 @@ use std::borrow::Cow;
 pub struct ComposeCtx<'a, 'rt> {
     world: &'a World,
     composer: &'a Composer,
-    stack: Vec<ComposeCommand>,
     rt_container: &'rt RtContainer,
     full_stack: CowFullStack<'rt>,
+    stack_parent_len: usize,
 }
 
 pub(crate) type CowFullStack<'a> = Cow<'a, Vec<ComposeCommand>>;
@@ -27,14 +27,14 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
         ComposeCtx {
             world,
             composer,
-            stack: Default::default(),
             rt_container,
+            stack_parent_len: full_stack.len(),
             full_stack,
         }
     }
 
     fn apply_stack(&self, mut rendering_tree: RenderingTree) -> RenderingTree {
-        for command in self.stack.iter().rev() {
+        for command in self.full_stack.iter().skip(self.stack_parent_len).rev() {
             rendering_tree = match command {
                 ComposeCommand::Translate { xy } => {
                     RenderingTree::Special(SpecialRenderingNode::Translate(TranslateNode {
@@ -115,5 +115,9 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
         }
         let rendering_tree = rt_container.into();
         self.add_rendering_tree(rendering_tree)
+    }
+
+    fn parent_stack(&self) -> impl Iterator<Item = &ComposeCommand> {
+        self.full_stack.iter().take(self.stack_parent_len).rev()
     }
 }
