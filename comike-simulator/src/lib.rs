@@ -1,7 +1,6 @@
-use std::collections::BTreeMap;
-
 use namui::{rand::seq::SliceRandom, *};
 use namui_prebuilt::*;
+use std::collections::BTreeMap;
 
 pub fn main() {
     namui::start(|ctx| {
@@ -38,10 +37,10 @@ impl Component for App {
     fn render(self, ctx: &RenderCtx) {
         let (clicked_goods_counts, set_clicked_goods_counts) =
             ctx.state(BTreeMap::<usize, usize>::new);
-        let (game_flow, set_game_flow) = ctx.state(|| GameFlow::CustomerWaitingGoods {
-            goods_count: 2,
-            goods_index: 0,
+        let (game_flow, set_game_flow) = ctx.state(|| GameFlow::Idle {
+            start_at: Instant::now(),
         });
+        let (revenue, set_revenue) = ctx.state(|| 0);
 
         let screen_wh = screen::size().into_type::<Px>();
 
@@ -64,6 +63,7 @@ impl Component for App {
                 set_game_flow.set(if candidate == answer {
                     GameFlow::CustomerPurchasing {
                         end_at: Instant::now() + Duration::from_secs(2),
+                        amount: answer,
                     }
                 } else {
                     GameFlow::CalculatingPrice {
@@ -75,17 +75,41 @@ impl Component for App {
             }
         });
 
-        if let GameFlow::CustomerPurchasing { end_at } = *game_flow {
-            if end_at < Instant::now() {
-                set_game_flow.set(GameFlow::CustomerLeaving);
+        ctx.interval("tick", 33.ms(), |_dt| match *game_flow {
+            GameFlow::Idle { start_at } => {
+                if start_at + 4.sec() < Instant::now() {
+                    set_game_flow.set(GameFlow::CustomerWaitingGoods {
+                        goods_index: rand::random::<usize>() % ITEM_INFOS.len(),
+                        goods_count: 1 + rand::random::<usize>() % 3,
+                    });
+                }
             }
-        }
+            GameFlow::CustomerPurchasing { end_at, amount } => {
+                if end_at < Instant::now() {
+                    set_game_flow.set(GameFlow::CustomerLeaving {
+                        start_at: Instant::now(),
+                    });
+                    set_revenue.mutate(move |revenue| {
+                        *revenue += amount;
+                    });
+                }
+            }
+            GameFlow::CustomerLeaving { start_at } => {
+                if start_at + 2.sec() < Instant::now() {
+                    set_game_flow.set(GameFlow::Idle {
+                        start_at: Instant::now(),
+                    });
+                }
+            }
+            GameFlow::CustomerWaitingGoods { .. } | GameFlow::CalculatingPrice { .. } => {}
+        });
 
         ctx.add(namui::text(TextParam {
             text: match *game_flow {
+                GameFlow::Idle { .. } => "".to_string(),
                 GameFlow::CustomerWaitingGoods {
-                    goods_count,
                     goods_index,
+                    goods_count,
                 } => {
                     format!("{}번 {goods_count}개 주세요", goods_index + 1)
                 }
@@ -105,7 +129,7 @@ impl Component for App {
                     )
                 }
                 GameFlow::CustomerPurchasing { .. } => "잠시만요...! 지갑이... 여깄다!".to_string(),
-                GameFlow::CustomerLeaving => "감사합니다~".to_string(),
+                GameFlow::CustomerLeaving { .. } => "감사합니다~".to_string(),
             },
             x: 300.px(),
             y: 200.px(),
@@ -129,7 +153,7 @@ impl Component for App {
             .join(", ");
         ctx.add(typography::body::left(
             24.px(),
-            format!("[선택된 아이템] {clicked_goods_text}"),
+            format!("[수익 - {revenue}][선택된 아이템] {clicked_goods_text}"),
             Color::WHITE,
         ));
 
@@ -137,6 +161,7 @@ impl Component for App {
             ctx.translate(Xy::new(20.px(), 404.px()))
                 .add(GoodsStockBox {
                     on_click_goods: &|goods_index| {
+                        println!("goods_index: {goods_index}");
                         set_clicked_goods_counts.mutate(move |counts| {
                             *counts.entry(goods_index).or_insert(0) += 1;
                         });
@@ -154,9 +179,12 @@ impl Component for App {
         });
 
         ctx.compose(|ctx| {
+            if matches!(*game_flow, GameFlow::Idle { .. }) {
+                return;
+            }
             ctx.translate(Xy::new(210.px(), 350.px())).add(Customer {
-                game_flow: &game_flow,
                 on_click: &|| match *game_flow {
+                    GameFlow::Idle { .. } => unreachable!(),
                     GameFlow::CustomerWaitingGoods {
                         goods_count,
                         goods_index,
@@ -188,7 +216,7 @@ impl Component for App {
                         });
                     }
                     GameFlow::CalculatingPrice { .. }
-                    | GameFlow::CustomerLeaving
+                    | GameFlow::CustomerLeaving { .. }
                     | GameFlow::CustomerPurchasing { .. } => {}
                 },
             });
@@ -204,6 +232,9 @@ impl Component for App {
 }
 
 enum GameFlow {
+    Idle {
+        start_at: Instant,
+    },
     CustomerWaitingGoods {
         goods_index: usize,
         goods_count: usize,
@@ -215,20 +246,19 @@ enum GameFlow {
     },
     CustomerPurchasing {
         end_at: Instant,
+        amount: usize,
     },
-    CustomerLeaving,
+    CustomerLeaving {
+        start_at: Instant,
+    },
 }
 
 struct Customer<'a> {
-    pub game_flow: &'a GameFlow,
     pub on_click: &'a dyn Fn(),
 }
 impl Component for Customer<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self {
-            game_flow,
-            on_click,
-        } = self;
+        let Self { on_click } = self;
 
         let head_radius = 40.px();
         let neck_length = 20.px();
@@ -330,6 +360,15 @@ impl Component for GoodsStockBox<'_> {
                     }
 
                     ctx.add(hole.clone());
+
+                    ctx.attach_event(|event| {
+                        let Event::MouseMove { event } = event else {
+                            return;
+                        };
+                        if event.is_local_xy_in() {
+                            println!("mouse in hole {index}, xy: {:?}", event.local_xy());
+                        }
+                    });
 
                     ctx.attach_event(|event| {
                         if item.is_none() {
