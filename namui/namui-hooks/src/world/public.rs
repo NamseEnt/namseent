@@ -4,7 +4,7 @@ use std::borrow::Cow;
 impl World {
     pub fn init(
         get_now: impl Fn() -> Instant + 'static,
-        sk_calculate: &'static dyn SkCalculate,
+        sk_calculate: Arc<dyn SkCalculate>,
     ) -> Self {
         let (set_state_tx, set_state_rx) = std::sync::mpsc::channel();
         Self {

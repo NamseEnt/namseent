@@ -37,7 +37,7 @@ impl ComposeCtx<'_, '_> {
                     ComposeCommand::Translate { xy } => global_xy -= xy,
                     ComposeCommand::Absolute { xy } => global_xy = original_xy - xy,
                     ComposeCommand::Clip { path, clip_op } => {
-                        let path_xy_in = path.xy_in(self.world.sk_calculate, global_xy);
+                        let path_xy_in = path.xy_in(self.world.sk_calculate.as_ref(), global_xy);
                         match clip_op {
                             ClipOp::Intersect => {
                                 if !path_xy_in {
@@ -91,11 +91,10 @@ impl ComposeCtx<'_, '_> {
             let Some(bounding_box) = self
                 .rt_container
                 .iter()
-                .bounding_box(self.world.sk_calculate)
+                .bounding_box(self.world.sk_calculate.as_ref())
             else {
                 return false;
             };
-            let xy = to_local_xy(xy);
             bounding_box.is_xy_inside(xy)
         };
 
