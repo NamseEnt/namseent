@@ -13,7 +13,7 @@ pub(crate) struct Looper {
 }
 impl Looper {
     pub(crate) fn new(root_component: impl 'static + Fn(&RenderCtx)) -> Looper {
-        let mut world = World::init(crate::time::now, crate::system::skia::sk_calculate());
+        let mut world = World::init(crate::time::now, crate::system::skia::sk_calculate_arc());
         let rendering_tree = world.run(&root_component);
         crate::system::skia::request_draw_rendering_tree(rendering_tree);
 
