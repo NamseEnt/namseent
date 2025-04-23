@@ -4,7 +4,7 @@ use super::*;
 fn pass_sig_to_child_should_work() {
     use std::sync::{Arc, atomic::AtomicUsize};
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     let record = Arc::new(AtomicUsize::new(0));
 
