@@ -89,6 +89,9 @@ pub async fn load_image_from_raw(image_info: ImageInfo, bytes: &[u8]) -> Result<
 pub(crate) fn sk_calculate() -> &'static dyn SkCalculate {
     SK_CALCULATE.get().unwrap().as_ref()
 }
+pub(crate) fn sk_calculate_arc() -> Arc<dyn SkCalculate> {
+    SK_CALCULATE.get().unwrap().clone()
+}
 
 pub(crate) fn group_glyph(font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph> {
     sk_calculate().group_glyph(font, paint)
