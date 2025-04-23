@@ -15,7 +15,7 @@ fn my_benchmark(c: &mut Criterion) {
 }
 
 fn bench_translate() {
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     #[derive(Debug)]
     struct A {}
@@ -38,7 +38,7 @@ fn bench_translate() {
     World::run(&mut world, A {});
 }
 fn bench_translate_run_twice() {
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     #[derive(Debug)]
     struct A {}

@@ -7,12 +7,8 @@ impl ComposeCtx<'_, '_> {
             composer: self.composer,
             world: self.world,
             // NOTE: Optimize point: `stack` can be replace with the index of full_stack.
-            stack: {
-                let mut stack = self.stack.clone();
-                stack.push(command.clone());
-                stack
-            },
             rt_container: self.rt_container,
+            stack_parent_len: self.stack_parent_len,
             full_stack: {
                 let mut full_stack = self.full_stack.clone().into_owned();
                 full_stack.push(command);

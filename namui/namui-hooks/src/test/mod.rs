@@ -1,3 +1,4 @@
+mod mouse_event;
 mod pass_sig;
 
 use crate::*;
@@ -38,7 +39,7 @@ impl SkCalculate for MockSkCalculate {
 fn memo_should_work() {
     use std::sync::{Arc, atomic::AtomicUsize};
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     let record = Arc::new(AtomicUsize::new(0));
 
@@ -118,7 +119,7 @@ fn memo_should_work() {
 fn effect_by_set_state_should_work() {
     use std::sync::{Arc, atomic::AtomicUsize};
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     let record = Arc::new(AtomicUsize::new(0));
 
@@ -198,7 +199,7 @@ fn effect_by_set_state_should_work() {
 fn effect_by_memo_should_work() {
     use std::sync::{Arc, atomic::AtomicUsize};
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     let call_count = Arc::new(AtomicUsize::new(0));
 
@@ -279,7 +280,7 @@ fn effect_by_memo_should_work() {
 fn effect_clean_up_should_work() {
     use std::sync::{Arc, atomic::AtomicUsize};
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     let record = Arc::new(AtomicUsize::new(0));
 
@@ -394,7 +395,7 @@ fn interval_should_work() {
                 *now
             }
         },
-        &MockSkCalculate,
+        Arc::new(MockSkCalculate),
     );
 
     let call_count = Arc::new(AtomicUsize::new(0));
@@ -494,7 +495,7 @@ fn interval_should_work() {
 fn controlled_memo_should_work() {
     use std::sync::{Arc, atomic::AtomicUsize};
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     let record = Arc::new(AtomicUsize::new(0));
 
@@ -589,7 +590,7 @@ fn controlled_memo_should_work() {
 fn atom_should_work() {
     use std::sync::{Arc, atomic::AtomicUsize};
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     let record = Arc::new(AtomicUsize::new(0));
 
@@ -674,7 +675,7 @@ fn atom_should_work() {
 
 #[test]
 fn set_state_should_be_copied_into_async_move() {
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     #[derive(Debug)]
     struct A {}
@@ -705,7 +706,7 @@ fn set_state_should_be_copied_into_async_move() {
 
 #[test]
 fn set_state_should_be_copied_into_async_effect() {
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     #[derive(Debug)]
     struct A {}
@@ -770,7 +771,7 @@ fn set_state_should_be_copied_into_async_effect() {
 fn tuple_set_state_should_work() {
     use std::sync::{Arc, atomic::AtomicUsize};
 
-    let mut world = World::init(Instant::now, &MockSkCalculate);
+    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
 
     let record = Arc::new(AtomicUsize::new(0));
 

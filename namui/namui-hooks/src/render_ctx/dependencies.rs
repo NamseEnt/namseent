@@ -202,7 +202,7 @@ mod tests {
             }
         }
 
-        let world = World::init(Instant::now, &MockSkCalculate);
+        let world = World::init(Instant::now, Arc::new(MockSkCalculate));
         let sig = Sig::new(&1, SigId::Atom { index: 0 }, &world);
         let _cloned: i32 = sig.to_owned();
     }
