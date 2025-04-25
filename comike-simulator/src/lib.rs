@@ -1,8 +1,13 @@
+mod grid_storage_box;
+
+use grid_storage_box::*;
 use namui::{rand::seq::SliceRandom, *};
 use namui_prebuilt::*;
 use std::collections::BTreeMap;
 
 pub fn main() {
+    let mut game_state = GameState::new();
+    game_state.tick();
     namui::start(|ctx| {
         ctx.add(App {});
     });
@@ -161,7 +166,6 @@ impl Component for App {
             ctx.translate(Xy::new(20.px(), 404.px()))
                 .add(GoodsStockBox {
                     on_click_goods: &|goods_index| {
-                        println!("goods_index: {goods_index}");
                         set_clicked_goods_counts.mutate(move |counts| {
                             *counts.entry(goods_index).or_insert(0) += 1;
                         });
@@ -360,15 +364,6 @@ impl Component for GoodsStockBox<'_> {
                     }
 
                     ctx.add(hole.clone());
-
-                    ctx.attach_event(|event| {
-                        let Event::MouseMove { event } = event else {
-                            return;
-                        };
-                        if event.is_local_xy_in() {
-                            println!("mouse in hole {index}, xy: {:?}", event.local_xy());
-                        }
-                    });
 
                     ctx.attach_event(|event| {
                         if item.is_none() {

@@ -9,3 +9,4 @@ namui = true
 [dependencies]
 namui = { path = "../namui/namui" }
 namui-prebuilt = { path = "../namui/namui-prebuilt" }
+rapier2d = { version = "0.24.0", features = ["simd-stable"] }
