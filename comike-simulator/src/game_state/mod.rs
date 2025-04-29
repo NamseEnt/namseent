@@ -10,6 +10,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 grid storage box와 hands 사이에 아이템을 주고 받는 것을 먼저 해보자.
 */
 
+// 애들 크기가 제대로 안그려진 것 같은데, debug 프린팅 지원해줬으면 해.
+
 const HANDS_RECT: Rect<Px> = Rect::Xywh {
     x: px(800.),
     y: px(0.),
@@ -38,15 +40,16 @@ pub struct GameState {
     dragging: Option<Dragging>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 struct Dragging {
     item_id: u128,
-    mouse_anchor_xy: Xy<Px>,
+    prev_mouse_xy: Xy<Px>,
+    last_mouse_xy: Xy<Px>,
 }
 
 impl GameState {
     pub fn new() -> Self {
-        let mut physics_world = PhysicsWorld::new(Xy::new(0.px(), 9.8.px()));
+        let mut physics_world = PhysicsWorld::new(Xy::new(0.px(), (9.8 * 100.).px()));
         let item = PhysicsItem::new(&mut physics_world, ItemKind::Sticker, HANDS_RECT.center());
 
         Self {
@@ -62,6 +65,8 @@ impl GameState {
         }
     }
     pub fn tick(&mut self) {
+        self.handle_dragging();
+        self.disable_gravity_on_hands();
         self.physics_world.tick();
         self.update_physics_items();
         // self.move_item_to_hands();
@@ -81,24 +86,9 @@ impl GameState {
         match event {
             RawEvent::MouseUp { event: _ } => self.stop_drag_item(),
             RawEvent::MouseMove { event } => {
-                let Some(dragging) = self.dragging else {
-                    return;
-                };
-
-                let Some(rigid_body) = self.physics_world.find_rigid_body_mut(dragging.item_id)
-                else {
-                    println!(
-                        "cannot find rigid body for dragging item id: {}",
-                        dragging.item_id
-                    );
-                    return;
-                };
-                let mouse_diff_xy = event.xy - dragging.mouse_anchor_xy;
-                let translation = rigid_body.translation();
-
-                rigid_body.set_next_kinematic_translation(
-                    translation + vector![mouse_diff_xy.x.as_f32(), mouse_diff_xy.y.as_f32(),],
-                );
+                if let Some(dragging) = &mut self.dragging {
+                    dragging.last_mouse_xy = event.xy;
+                }
             }
             _ => {}
         }
@@ -123,7 +113,8 @@ impl GameState {
         self.stop_drag_item();
         self.dragging = Some(Dragging {
             item_id,
-            mouse_anchor_xy,
+            prev_mouse_xy: mouse_anchor_xy,
+            last_mouse_xy: mouse_anchor_xy,
         });
         let Some(rigid_body) = self.physics_world.find_rigid_body_mut(item_id) else {
             println!("cannot find rigid body for dragging item id: {}", item_id);
@@ -131,11 +122,6 @@ impl GameState {
         };
 
         rigid_body.set_body_type(RigidBodyType::KinematicPositionBased, true);
-
-        println!(
-            "start drag item: {} at mouse anchor: {:?}",
-            item_id, mouse_anchor_xy
-        );
     }
 
     fn stop_drag_item(&mut self) {
@@ -151,8 +137,7 @@ impl GameState {
         };
 
         rigid_body.set_body_type(RigidBodyType::Dynamic, true);
-
-        println!("stop drag item: {}", dragging.item_id);
+        rigid_body.set_vels(Default::default(), true);
     }
 
     fn update_physics_items(&mut self) {
@@ -185,6 +170,48 @@ impl GameState {
         // }
 
         // self.view = view;
+    }
+
+    fn disable_gravity_on_hands(&mut self) {
+        let GameView::GridStorageBox { hands, .. } = &self.view else {
+            return;
+        };
+        for (rigid_body_handle, intersection) in
+            self.physics_world.query_intersection(hands.collider_handle)
+        {
+            let Some(rigid_body) = self.physics_world.rigid_body_mut(rigid_body_handle) else {
+                continue;
+            };
+
+            if intersection && rigid_body.gravity_scale() >= 1.0 {
+                rigid_body.set_gravity_scale(0., false);
+                rigid_body.set_vels(Default::default(), false);
+            } else if !intersection && rigid_body.gravity_scale() == 0.0 {
+                rigid_body.set_gravity_scale(1., false);
+                rigid_body.set_vels(Default::default(), true);
+            }
+        }
+    }
+
+    fn handle_dragging(&mut self) {
+        let Some(dragging) = &mut self.dragging else {
+            return;
+        };
+        let Some(rigid_body) = self.physics_world.find_rigid_body_mut(dragging.item_id) else {
+            println!(
+                "cannot find rigid body for dragging item id: {}",
+                dragging.item_id
+            );
+            return;
+        };
+
+        let mouse_diff_xy = dragging.last_mouse_xy - dragging.prev_mouse_xy;
+        let translation = rigid_body.translation();
+        rigid_body.set_next_kinematic_translation(
+            translation + vector![mouse_diff_xy.x.as_f32(), mouse_diff_xy.y.as_f32(),],
+        );
+
+        dragging.prev_mouse_xy = dragging.last_mouse_xy;
     }
 
     // fn move_item_to_hands(&mut self) {
@@ -237,16 +264,17 @@ struct PhysicsHands {
 
 impl PhysicsHands {
     fn new(physics_world: &mut PhysicsWorld) -> Self {
-        let rigid_body = RigidBodyBuilder::fixed();
+        let rigid_body = RigidBodyBuilder::fixed().translation(vector![
+            HANDS_RECT.center().x.as_f32(),
+            HANDS_RECT.center().y.as_f32(),
+        ]);
         let rigid_body_handle = physics_world.rigid_body_set.insert(rigid_body);
 
-        let vertices = vec![
-            Point2::new(HANDS_RECT.right().as_f32(), HANDS_RECT.top().as_f32()),
-            Point2::new(HANDS_RECT.left().as_f32(), HANDS_RECT.top().as_f32()),
-            Point2::new(HANDS_RECT.left().as_f32(), HANDS_RECT.bottom().as_f32()),
-            Point2::new(HANDS_RECT.right().as_f32(), HANDS_RECT.bottom().as_f32()),
-        ];
-        let collider = ColliderBuilder::polyline(vertices, None);
+        let collider = ColliderBuilder::cuboid(
+            HANDS_RECT.width().as_f32() / 2.,
+            HANDS_RECT.height().as_f32() / 2.,
+        )
+        .sensor(true);
         let collider_handle = physics_world.collider_set.insert_with_parent(
             collider,
             rigid_body_handle,
@@ -476,7 +504,7 @@ impl PhysicsWorld {
     ) -> impl Iterator<Item = (ColliderHandle, bool)> {
         self.narrow_phase
             .intersection_pairs_with(collider)
-            .map(|(_, collider_handle, intersecting)| (collider_handle, intersecting))
+            .map(move |(a, b, intersecting)| (if a == collider { b } else { a }, intersecting))
     }
 
     pub fn intersection_pairs_with_exact(
@@ -507,11 +535,53 @@ impl PhysicsWorld {
             })
     }
 
+    pub fn intersect_exact_rigid_body_handles(
+        &self,
+        collider: ColliderHandle,
+    ) -> Vec<RigidBodyHandle> {
+        self.intersection_pairs_with(collider)
+            .filter_map(|(collider_handle, intersecting)| {
+                if intersecting {
+                    let collider = self.collider_set.get(collider_handle).unwrap();
+                    collider.parent()
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     pub fn find_rigid_body_mut(&mut self, item_id: u128) -> Option<&mut RigidBody> {
         self.rigid_body_set
             .iter_mut()
             .find_map(|(_handle, rigid_body)| {
                 (rigid_body.user_data == item_id).then_some(rigid_body)
             })
+    }
+
+    pub fn rigid_body(&self, rigid_body_handle: RigidBodyHandle) -> Option<&RigidBody> {
+        self.rigid_body_set.get(rigid_body_handle)
+    }
+
+    pub fn rigid_body_mut(&mut self, rigid_body_handle: RigidBodyHandle) -> Option<&mut RigidBody> {
+        self.rigid_body_set.get_mut(rigid_body_handle)
+    }
+
+    pub fn query_intersection(
+        &self,
+        collider_handle: ColliderHandle,
+    ) -> Vec<(RigidBodyHandle, bool)> {
+        self.collider_set
+            .iter()
+            .filter(|(handle, collider)| handle != &collider_handle && collider.parent().is_some())
+            .map(|(handle, collider)| {
+                (
+                    collider.parent().unwrap(),
+                    self.narrow_phase
+                        .intersection_pair(collider_handle, handle)
+                        .unwrap_or_default(),
+                )
+            })
+            .collect()
     }
 }
