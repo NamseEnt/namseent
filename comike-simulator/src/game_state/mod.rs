@@ -151,7 +151,7 @@ impl GameState {
                     };
 
                     let translation = rigid_body.translation();
-                    item.xy = Xy::new(translation.x.px(), translation.y.px());
+                    item.center = Xy::new(translation.x.px(), translation.y.px());
                 }
             }
             GameView::CustomerBooth => todo!(),
@@ -355,11 +355,11 @@ impl GridStorageCell {
 struct PhysicsItem {
     id: u128,
     item_kind: ItemKind,
-    xy: Xy<Px>,
+    center: Xy<Px>,
     rotation: Angle,
 }
 impl PhysicsItem {
-    fn new(physics_world: &mut PhysicsWorld, item_kind: ItemKind, xy: Xy<Px>) -> Self {
+    fn new(physics_world: &mut PhysicsWorld, item_kind: ItemKind, center: Xy<Px>) -> Self {
         let id = {
             static ID: AtomicU64 = AtomicU64::new(1024);
             ID.fetch_add(1, Ordering::Relaxed) as u128
@@ -368,7 +368,7 @@ impl PhysicsItem {
         {
             let rigid_body = RigidBodyBuilder::dynamic()
                 .user_data(id)
-                .translation(vector![xy.x.as_f32(), xy.y.as_f32()]);
+                .translation(vector![center.x.as_f32(), center.y.as_f32()]);
             let rigid_body_handle = physics_world.rigid_body_set.insert(rigid_body);
 
             let wh = item_kind.wh().map(|v| v.as_f32());
@@ -383,7 +383,7 @@ impl PhysicsItem {
         Self {
             id,
             item_kind,
-            xy,
+            center,
             rotation: 0.deg(),
         }
     }

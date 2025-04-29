@@ -3,6 +3,8 @@ use crate::*;
 
 impl Component for &'_ GameState {
     fn render(self, ctx: &RenderCtx) {
+        self.render_physics_debug(ctx);
+
         match &self.view {
             GameView::BoothCustomer => todo!(),
             GameView::GridStorageBox { xy, hands, items } => {
@@ -21,6 +23,43 @@ impl Component for &'_ GameState {
         }
     }
 }
+impl GameState {
+    fn render_physics_debug(&self, ctx: &RenderCtx) {
+        let paint = Paint::new(Color::from_f01(0., 1., 0., 0.1));
+
+        for (_, collider) in self.physics_world.collider_set.iter() {
+            let translation = collider.translation();
+            let x = translation.x.px();
+            let y = translation.y.px();
+            let path = match collider.shape().as_typed_shape() {
+                TypedShape::Ball(ball) => todo!(),
+                TypedShape::Cuboid(cuboid) => Path::new().add_rect(Rect::from_xy_wh(
+                    Xy::new(-cuboid.half_extents.x.px(), -cuboid.half_extents.y.px()),
+                    Wh::new(
+                        cuboid.half_extents.x.px() * 2,
+                        cuboid.half_extents.y.px() * 2,
+                    ),
+                )),
+                TypedShape::Capsule(capsule) => todo!(),
+                TypedShape::Segment(segment) => todo!(),
+                TypedShape::Triangle(triangle) => todo!(),
+                TypedShape::TriMesh(tri_mesh) => todo!(),
+                TypedShape::Polyline(polyline) => todo!(),
+                TypedShape::HalfSpace(half_space) => todo!(),
+                TypedShape::HeightField(height_field) => todo!(),
+                TypedShape::Compound(compound) => todo!(),
+                TypedShape::ConvexPolygon(convex_polygon) => todo!(),
+                TypedShape::RoundCuboid(round_shape) => todo!(),
+                TypedShape::RoundTriangle(round_shape) => todo!(),
+                TypedShape::RoundConvexPolygon(round_shape) => todo!(),
+                TypedShape::Custom(shape) => todo!(),
+            };
+            ctx.compose(|ctx| {
+                ctx.translate((x, y)).add(namui::path(path, paint.clone()));
+            });
+        }
+    }
+}
 
 fn render_hands(ctx: &RenderCtx, hands: &PhysicsHands) {
     let path = Path::new().add_rect(HANDS_RECT);
@@ -29,7 +68,7 @@ fn render_hands(ctx: &RenderCtx, hands: &PhysicsHands) {
 }
 
 fn render_item(ctx: &RenderCtx, item: &PhysicsItem) {
-    ctx.translate(item.xy)
+    ctx.translate(item.center - item.item_kind.wh().as_xy() / 2)
         .rotate(item.rotation)
         .add_with_key(
             item.id,
