@@ -1,7 +1,7 @@
 mod render;
 
 use crate::*;
-use rapier2d::prelude::*;
+use rapier2d::{parry::query::ShapeCastOptions, prelude::*};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 const HANDS_RECT: Rect<Px> = Rect::Xywh {
@@ -39,8 +39,8 @@ pub struct GameState {
 struct Dragging {
     item_id: u128,
     last_mouse_xy: Xy<Px>,
-    joint_handle: ImpulseJointHandle,
-    anchor_rigid_body_handle: RigidBodyHandle,
+    anchor: Vector<f32>,
+    rigid_body_handle: RigidBodyHandle,
 }
 
 impl GameState {
@@ -91,56 +91,25 @@ impl GameState {
         }
     }
 
-    fn start_drag_item(&mut self, item_id: u128, anchor_xy: Xy<Px>) {
+    fn start_drag_item(&mut self, item_id: u128, mouse_xy: Xy<Px>) {
         self.stop_drag_item();
         let Some((rigid_body_handle, rigid_body)) = self.physics_world.find_rigid_body_mut(item_id)
         else {
             println!("cannot find rigid body for dragging item id: {}", item_id);
             return;
         };
-        println!("item_id: {}", item_id);
+        rigid_body.wake_up(true);
         rigid_body.set_vels(Default::default(), false);
         rigid_body.set_angvel(0., false);
         rigid_body.lock_rotations(true, false);
         rigid_body.set_gravity_scale(0., false);
-        rigid_body.set_linear_damping(0.5);
-
-        let stiffness = 200.;
-        let damping_ratio = 3.5;
-        let damping = damping_ratio * (rigid_body.mass() * stiffness).sqrt();
-
-        let anchor_xy_in_physics_world =
-            anchor_xy.map(|v| v.as_f32() / PHYSICS_WORLD_MAGNIFICATION);
-        let anchor_point = Point::new(anchor_xy_in_physics_world.x, anchor_xy_in_physics_world.y);
-
-        let rigid_body_anchor = rigid_body.position().inverse_transform_point(&anchor_point);
-
-        let anchor_rigid_body = RigidBodyBuilder::fixed().translation(vector![
-            anchor_xy_in_physics_world.x,
-            anchor_xy_in_physics_world.y
-        ]);
-        let anchor_rigid_body_handle = self.physics_world.rigid_body_set.insert(anchor_rigid_body);
-
-        let joint = 
-            // SpringJointBuilder::new(0., stiffness, damping)
-            // RopeJointBuilder::new(1.) // 안됨
-            // GenericJointBuilder::new(JointAxesMask::all()) // 이건 아닌듯
-            RevoluteJointBuilder::new()
-            .local_anchor1(rigid_body_anchor)
-            .local_anchor2(Default::default());
-
-        let joint_handle = self.physics_world.impulse_joint_set.insert(
-            rigid_body_handle,
-            anchor_rigid_body_handle,
-            joint,
-            true,
-        );
+        rigid_body.set_body_type(RigidBodyType::KinematicPositionBased, false);
 
         self.dragging = Some(Dragging {
             item_id,
-            last_mouse_xy: anchor_xy,
-            joint_handle,
-            anchor_rigid_body_handle,
+            last_mouse_xy: mouse_xy,
+            anchor: mouse_xy.to_vector() - rigid_body.translation(),
+            rigid_body_handle,
         });
     }
 
@@ -161,57 +130,76 @@ impl GameState {
         rigid_body.set_angvel(0., false);
         rigid_body.lock_rotations(false, false);
         rigid_body.set_gravity_scale(1., false);
-
-        self.physics_world.rigid_body_set.remove(
-            dragging.anchor_rigid_body_handle,
-            &mut self.physics_world.island_manager,
-            &mut self.physics_world.collider_set,
-            &mut self.physics_world.impulse_joint_set,
-            &mut self.physics_world.multibody_joint_set,
-            true,
-        );
-        self.physics_world
-            .impulse_joint_set
-            .remove(dragging.joint_handle, false);
+        rigid_body.set_body_type(RigidBodyType::Dynamic, false);
     }
     fn handle_dragging(&mut self) {
         let Some(dragging) = &mut self.dragging else {
             return;
         };
-        let Some(anchor_rigid_body) = self
-            .physics_world
-            .rigid_body_mut(dragging.anchor_rigid_body_handle)
-        else {
+        let Some(rigid_body) = self.physics_world.rigid_body(dragging.rigid_body_handle) else {
             println!(
                 "cannot find rigid body for dragging item id: {}",
                 dragging.item_id
             );
             return;
         };
+        let mouse_vec = dragging.last_mouse_xy.to_vector();
+        let mouse_and_anchor = mouse_vec - dragging.anchor;
+        let movement_vec = mouse_and_anchor - rigid_body.position().translation.vector;
+        let mut min_hit_info: Option<(ShapeCastHit, Isometry<Real>)> = None;
 
-        let mouse_vector = vector![
-            dragging.last_mouse_xy.x.as_f32(),
-            dragging.last_mouse_xy.y.as_f32()
-        ] / PHYSICS_WORLD_MAGNIFICATION;
+        for collider_handle in rigid_body.colliders() {
+            let collider = self
+                .physics_world
+                .collider_set
+                .get(*collider_handle)
+                .unwrap();
 
-        // anchor_rigid_body.set_next_kinematic_translation(mouse_vector);
-        anchor_rigid_body.set_translation(mouse_vector, true);
+            let collider_position = collider.position();
 
-        // let joint = self
-        //     .physics_world
-        //     .impulse_joint_set
-        //     .get(dragging.joint_handle)
-        //     .unwrap();
-        // let counterpart_rigid_body_handle = if joint.body1 == dragging.anchor_rigid_body_handle {
-        //     joint.body2
-        // } else {
-        //     joint.body1
-        // };
-        // let counterpart_rigid_body = self
-        //     .physics_world
-        //     .rigid_body(counterpart_rigid_body_handle)
-        //     .unwrap();
-        // println!("debug: {counterpart_rigid_body:?}");
+            let Some((_, hit)) = self.physics_world.cast_shape(
+                collider_position,
+                &movement_vec,
+                collider.shape(),
+                ShapeCastOptions::with_max_time_of_impact(1.),
+                QueryFilter::new()
+                    .exclude_sensors()
+                    .exclude_rigid_body(dragging.rigid_body_handle),
+            ) else {
+                continue;
+            };
+            if hit.time_of_impact < 0. {
+                continue;
+            }
+            if let Some((min_hit, _)) = &min_hit_info {
+                if hit.time_of_impact < min_hit.time_of_impact {
+                    min_hit_info = Some((hit, *collider_position));
+                }
+            } else {
+                min_hit_info = Some((hit, *collider_position));
+            }
+        }
+
+        const EPSILON: f32 = 1e-5;
+
+        let next_translation = if let Some((hit, collider_position)) = min_hit_info {
+            let world_normal1 = collider_position.rotation * hit.normal1;
+            let dot_product = movement_vec.dot(world_normal1.as_ref());
+
+            let is_away_from_collider = dot_product > 0.0;
+            if hit.time_of_impact < EPSILON && is_away_from_collider {
+                mouse_and_anchor
+            } else {
+                rigid_body.translation() + movement_vec * (hit.time_of_impact - EPSILON).max(0.)
+            }
+        } else {
+            mouse_and_anchor
+        };
+
+        self.physics_world
+            .rigid_body_mut(dragging.rigid_body_handle)
+            .unwrap()
+            .set_next_kinematic_translation(next_translation);
     }
 
     fn update_physics_items(&mut self) {
@@ -644,5 +632,38 @@ impl PhysicsWorld {
         self.rigid_body_set.iter().find_map(|(handle, rigid_body)| {
             (rigid_body.user_data == item_id).then_some((handle, rigid_body))
         })
+    }
+
+    fn cast_shape(
+        &self,
+        shape_position: &Isometry<Real>,
+        desired_movement_vec: &Vector<f32>,
+        shape: &dyn Shape,
+        cast_options: ShapeCastOptions,
+        query_filter: QueryFilter,
+    ) -> Option<(ColliderHandle, ShapeCastHit)> {
+        self.query_pipeline.cast_shape(
+            &self.rigid_body_set,
+            &self.collider_set,
+            shape_position,
+            desired_movement_vec,
+            shape,
+            cast_options,
+            query_filter,
+        )
+    }
+}
+
+trait NaHelper {
+    fn to_vector(&self) -> Vector<f32>;
+    fn to_point(&self) -> Point<f32>;
+}
+
+impl NaHelper for Xy<Px> {
+    fn to_vector(&self) -> Vector<f32> {
+        vector![self.x.as_f32(), self.y.as_f32()] / PHYSICS_WORLD_MAGNIFICATION
+    }
+    fn to_point(&self) -> Point<f32> {
+        point![self.x.as_f32(), self.y.as_f32()] / PHYSICS_WORLD_MAGNIFICATION
     }
 }
