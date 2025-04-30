@@ -6,6 +6,11 @@ pub struct TranslateNode {
     pub y: Px,
     pub rendering_tree: Box<RenderingTree>,
 }
+impl TranslateNode {
+    pub(crate) fn get_matrix(&self) -> TransformMatrix {
+        TransformMatrix::from_translate(self.x.as_f32(), self.y.as_f32())
+    }
+}
 
 pub fn translate(x: Px, y: Px, rendering_tree: RenderingTree) -> RenderingTree {
     if rendering_tree == RenderingTree::Empty {
