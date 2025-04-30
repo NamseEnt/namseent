@@ -22,12 +22,6 @@ pub fn main() {
             });
         });
 
-        ctx.effect("put initial item in box", || {
-            set_game_state.mutate(|game_state| {
-                game_state.put_item_in_grid_storage_box(ItemKind::Sticker, Xy::new(0, 0));
-            });
-        });
-
         ctx.add(game_state.as_ref());
 
         ctx.add(simple_rect(
