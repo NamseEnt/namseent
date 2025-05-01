@@ -38,6 +38,7 @@ pub struct GameState {
     grid_storage_box: GridStorageBox,
     hands: Hands,
     dragging: Option<Dragging>,
+    items: BTreeMap<u128, PhysicsItem>,
 }
 
 fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
@@ -48,7 +49,7 @@ fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
 
 impl GameState {
     pub fn new() -> Self {
-        let mut physics_world = PhysicsWorld::new(Xy::new(0.px(), 9.8.px()));
+        let mut physics_world = PhysicsWorld::new(vector![0.0, 9.8]);
         Self {
             view: GameView::BoothCustomer(BoothCustomerView {
                 grid_storage_cell_popup: None,
@@ -56,14 +57,15 @@ impl GameState {
             hands: Hands::new(&mut physics_world),
             physics_world,
             grid_storage_box: GridStorageBox::new(),
-            dragging: None,
+            dragging: Default::default(),
+            items: Default::default(),
         }
     }
     pub fn tick(&mut self) {
-        self.handle_dragging();
+        self.handle_dragging_move();
         self.update_gravity_by_place();
         self.physics_world.tick();
-        // self.update_physics_items();
+        self.update_physics_items();
     }
 
     pub fn on_namui_event(&mut self, event: RawEvent) {
@@ -97,10 +99,11 @@ impl GameState {
             return;
         };
         let original_linear_damping = rigid_body.linear_damping();
+        const DRAG_DAMPING: f32 = 10.;
 
         rigid_body.set_vels(Default::default(), true);
         rigid_body.set_gravity_scale(0., true);
-        rigid_body.set_linear_damping(10.);
+        rigid_body.set_linear_damping(DRAG_DAMPING);
 
         self.dragging = Some(Dragging {
             item_id,
@@ -127,7 +130,7 @@ impl GameState {
         rigid_body.set_gravity_scale(1., false);
         rigid_body.set_linear_damping(dragging.original_linear_damping);
     }
-    fn handle_dragging(&mut self) {
+    fn handle_dragging_move(&mut self) {
         let Some(dragging) = &mut self.dragging else {
             return;
         };
@@ -148,7 +151,7 @@ impl GameState {
         let distance = delta_pos.magnitude();
 
         const MAX_DRAG_SPEED: f32 = 75.0;
-        const SPEED_FACTOR: f32 = 8.0;
+        const SPEED_FACTOR: f32 = 32.0;
         let desired_speed = (distance * SPEED_FACTOR).min(MAX_DRAG_SPEED);
 
         const MIN_DISTANCE_THRESHOLD: f32 = 0.01;
@@ -166,32 +169,16 @@ impl GameState {
     }
 
     fn update_physics_items(&mut self) {
-        // 이거 좀 더 고민해보고 싶음. 뷰마다 하는것이 나을지, 아니면 하나의 큰 맵을 만들고 거기서 참조하도록 하는게 나을지.
-        // match &mut self.view {
-        //     GameView::BoothCustomer => todo!(),
-        //     GameView::GridStorageBox {
-        //         hands,
-        //         xy,
-        //         items,
-        //         physics_cell,
-        //     } => {
-        //         for (_, rigid_body) in self.physics_world.rigid_body_set.iter() {
-        //             let id = rigid_body.user_data;
-
-        //             let Some(item) = items.get_mut(&id) else {
-        //                 continue;
-        //             };
-
-        //             let translation = rigid_body.translation();
-        //             item.center = Xy::new(translation.x.px(), translation.y.px())
-        //                 * PHYSICS_WORLD_MAGNIFICATION;
-        //             item.rotation = rigid_body.rotation().angle().rad();
-        //         }
-        //     }
-        //     GameView::CustomerBooth => todo!(),
-        //     GameView::BoothStock => todo!(),
-        //     GameView::BoothFloor => todo!(),
-        // }
+        for (_rigid_body_handle, rigid_body) in self.physics_world.rigid_body_iter() {
+            let id = rigid_body.user_data;
+            let Some(item) = self.items.get_mut(&id) else {
+                continue;
+            };
+            let translation = rigid_body.translation();
+            item.center =
+                Xy::new(translation.x.px(), translation.y.px()) * PHYSICS_WORLD_MAGNIFICATION;
+            item.rotation = rigid_body.rotation().angle().rad();
+        }
     }
 
     fn update_gravity_by_place(&mut self) {
@@ -228,12 +215,9 @@ impl GameState {
         *grid_storage_cell_popup = Some(PhysicsGridStorageCell::new(&mut self.physics_world));
     }
 
-    fn spawn_item_on_hands(&mut self) {
-        self.hands.items.push(PhysicsItem::new(
-            &mut self.physics_world,
-            ItemKind::Sticker,
-            HANDS_RECT.center(),
-        ));
+    fn spawn_item(&mut self, xy: Xy<Px>) {
+        let item = PhysicsItem::new(&mut self.physics_world, ItemKind::Sticker, xy);
+        self.items.insert(item.id, item);
     }
 }
 
@@ -250,7 +234,6 @@ impl Default for GameState {
 }
 
 struct Hands {
-    items: Vec<PhysicsItem>,
     collider_handle: ColliderHandle,
     rigid_body_handle: RigidBodyHandle,
 }
@@ -267,7 +250,6 @@ impl Hands {
         let collider_handle = physics_world.insert_collider(collider, rigid_body_handle);
 
         Self {
-            items: vec![],
             collider_handle,
             rigid_body_handle,
         }

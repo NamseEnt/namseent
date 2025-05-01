@@ -4,7 +4,7 @@ use super::*;
 use crate::*;
 
 pub struct PhysicsWorld {
-    gravity: Xy<Px>,
+    gravity: Vector<f32>,
     rigid_body_set: RigidBodySet,
     collider_set: ColliderSet,
     physics_pipeline: PhysicsPipeline,
@@ -15,11 +15,10 @@ pub struct PhysicsWorld {
     multibody_joint_set: MultibodyJointSet,
     ccd_solver: CCDSolver,
     query_pipeline: QueryPipeline,
-    positions: BTreeMap<u128, Position>,
 }
 
 impl PhysicsWorld {
-    pub fn new(gravity: Xy<Px>) -> Self {
+    pub fn new(gravity: Vector<f32>) -> Self {
         Self {
             gravity,
             rigid_body_set: RigidBodySet::new(),
@@ -32,13 +31,12 @@ impl PhysicsWorld {
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
             query_pipeline: QueryPipeline::new(),
-            positions: BTreeMap::new(),
         }
     }
 
     pub fn tick(&mut self) {
         self.physics_pipeline.step(
-            &vector![self.gravity.x.as_f32(), self.gravity.y.as_f32()],
+            &self.gravity,
             &IntegrationParameters::default(),
             &mut self.island_manager,
             &mut self.broad_phase,
@@ -52,17 +50,6 @@ impl PhysicsWorld {
             &(),
             &(),
         );
-
-        for (_handle, rigid_body) in self.rigid_body_set.iter() {
-            let position = rigid_body.position();
-            self.positions.insert(
-                rigid_body.user_data,
-                Position {
-                    xy: Xy::new(position.translation.x.px(), position.translation.y.px()),
-                    rotation: position.rotation.re.rad(),
-                },
-            );
-        }
     }
 
     pub fn insert_with_parent(
@@ -208,6 +195,10 @@ impl PhysicsWorld {
     ) -> ColliderHandle {
         self.collider_set
             .insert_with_parent(collider, rigid_body_handle, &mut self.rigid_body_set)
+    }
+
+    pub(crate) fn rigid_body_iter(&self) -> impl Iterator<Item = (RigidBodyHandle, &RigidBody)> {
+        self.rigid_body_set.iter()
     }
 }
 

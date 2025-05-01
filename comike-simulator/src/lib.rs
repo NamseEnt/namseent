@@ -16,7 +16,7 @@ pub fn main() {
             });
         });
 
-        ctx.interval("tick", (1. / 60.).ms(), |_dt| {
+        ctx.interval("tick", (1. / 60.).sec(), |_dt| {
             set_game_state.mutate(|game_state| {
                 game_state.tick();
             });
