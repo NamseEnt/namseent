@@ -1,9 +1,14 @@
+mod physics_world;
 mod render;
 
 use crate::*;
+use physics_world::*;
 use rapier2d::{parry::query::ShapeCastOptions, prelude::*};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/*
+고객이 와서 주문하면 그 주문한 아이템이 있는 박스 셀을 열고, 아이템을 손으로 꺼낸다.
+*/
 const HANDS_RECT: Rect<Px> = Rect::Xywh {
     x: px(800.),
     y: px(0.),
@@ -35,30 +40,22 @@ pub struct GameState {
     dragging: Option<Dragging>,
 }
 
-#[derive(Debug)]
-struct Dragging {
-    item_id: u128,
-    last_mouse_xy: Xy<Px>,
-    anchor: Vector<f32>,
-    rigid_body_handle: RigidBodyHandle,
-    original_linear_damping: f32,
+fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
+    GAME_STATE_ATOM.mutate(|game_state| {
+        f(game_state);
+    });
 }
 
 impl GameState {
     pub fn new() -> Self {
         let mut physics_world = PhysicsWorld::new(Xy::new(0.px(), 9.8.px()));
-        let item = PhysicsItem::new(&mut physics_world, ItemKind::Sticker, HANDS_RECT.center());
-
         Self {
-            view: GameView::GridStorageBox {
-                xy: Xy::new(0, 0),
-                hands: PhysicsHands::new(&mut physics_world),
-                items: [(item.id, item)].into_iter().collect(),
-                physics_cell: PhysicsGridStorageCell::new(&mut physics_world),
-            },
+            view: GameView::BoothCustomer(BoothCustomerView {
+                grid_storage_cell_popup: None,
+            }),
+            hands: Hands::new(&mut physics_world),
             physics_world,
             grid_storage_box: GridStorageBox::new(),
-            hands: Hands::new(),
             dragging: None,
         }
     }
@@ -66,7 +63,7 @@ impl GameState {
         self.handle_dragging();
         self.update_gravity_by_place();
         self.physics_world.tick();
-        self.update_physics_items();
+        // self.update_physics_items();
     }
 
     pub fn on_namui_event(&mut self, event: RawEvent) {
@@ -169,47 +166,46 @@ impl GameState {
     }
 
     fn update_physics_items(&mut self) {
-        match &mut self.view {
-            GameView::BoothCustomer => todo!(),
-            GameView::GridStorageBox {
-                hands,
-                xy,
-                items,
-                physics_cell,
-            } => {
-                for (_, rigid_body) in self.physics_world.rigid_body_set.iter() {
-                    let id = rigid_body.user_data;
+        // 이거 좀 더 고민해보고 싶음. 뷰마다 하는것이 나을지, 아니면 하나의 큰 맵을 만들고 거기서 참조하도록 하는게 나을지.
+        // match &mut self.view {
+        //     GameView::BoothCustomer => todo!(),
+        //     GameView::GridStorageBox {
+        //         hands,
+        //         xy,
+        //         items,
+        //         physics_cell,
+        //     } => {
+        //         for (_, rigid_body) in self.physics_world.rigid_body_set.iter() {
+        //             let id = rigid_body.user_data;
 
-                    let Some(item) = items.get_mut(&id) else {
-                        continue;
-                    };
+        //             let Some(item) = items.get_mut(&id) else {
+        //                 continue;
+        //             };
 
-                    let translation = rigid_body.translation();
-                    item.center = Xy::new(translation.x.px(), translation.y.px())
-                        * PHYSICS_WORLD_MAGNIFICATION;
-                    item.rotation = rigid_body.rotation().angle().rad();
-                }
-            }
-            GameView::CustomerBooth => todo!(),
-            GameView::BoothStock => todo!(),
-            GameView::BoothFloor => todo!(),
-        }
+        //             let translation = rigid_body.translation();
+        //             item.center = Xy::new(translation.x.px(), translation.y.px())
+        //                 * PHYSICS_WORLD_MAGNIFICATION;
+        //             item.rotation = rigid_body.rotation().angle().rad();
+        //         }
+        //     }
+        //     GameView::CustomerBooth => todo!(),
+        //     GameView::BoothStock => todo!(),
+        //     GameView::BoothFloor => todo!(),
+        // }
     }
 
     fn update_gravity_by_place(&mut self) {
-        let GameView::GridStorageBox { hands, .. } = &self.view else {
-            return;
-        };
-        for (rigid_body_handle, intersection) in
-            self.physics_world.query_intersection(hands.collider_handle)
+        for (rigid_body_handle, intersection) in self
+            .physics_world
+            .query_dynamic_rigid_body_intersection_mut(self.hands.collider_handle)
         {
-            let Some(rigid_body) = self.physics_world.rigid_body_mut(rigid_body_handle) else {
+            let rigid_body = self
+                .physics_world
+                .rigid_body_mut(rigid_body_handle)
+                .unwrap();
+
+            if self.dragging.as_ref().map(|d| d.item_id) == Some(rigid_body.user_data) {
                 continue;
-            };
-            if let Some(dragging) = &self.dragging {
-                if dragging.item_id == rigid_body.user_data {
-                    continue;
-                }
             }
 
             if intersection && rigid_body.gravity_scale() >= 1.0 {
@@ -220,6 +216,24 @@ impl GameState {
                 rigid_body.set_vels(Default::default(), true);
             }
         }
+    }
+
+    fn open_grid_storage_cell_popup(&mut self, cell_xy: Xy<usize>) {
+        let GameView::BoothCustomer(BoothCustomerView {
+            grid_storage_cell_popup,
+        }) = &mut self.view
+        else {
+            return;
+        };
+        *grid_storage_cell_popup = Some(PhysicsGridStorageCell::new(&mut self.physics_world));
+    }
+
+    fn spawn_item_on_hands(&mut self) {
+        self.hands.items.push(PhysicsItem::new(
+            &mut self.physics_world,
+            ItemKind::Sticker,
+            HANDS_RECT.center(),
+        ));
     }
 }
 
@@ -237,49 +251,41 @@ impl Default for GameState {
 
 struct Hands {
     items: Vec<PhysicsItem>,
-}
-
-struct PhysicsHands {
     collider_handle: ColliderHandle,
     rigid_body_handle: RigidBodyHandle,
 }
 
-impl PhysicsHands {
+impl Hands {
     fn new(physics_world: &mut PhysicsWorld) -> Self {
         let rect = HANDS_RECT.map(|v| v.as_f32()) / PHYSICS_WORLD_MAGNIFICATION;
 
         let rigid_body =
             RigidBodyBuilder::fixed().translation(vector![rect.center().x, rect.center().y,]);
-        let rigid_body_handle = physics_world.rigid_body_set.insert(rigid_body);
+        let rigid_body_handle = physics_world.insert_rigid_body(rigid_body);
 
         let collider = ColliderBuilder::cuboid(rect.width() / 2., rect.height() / 2.).sensor(true);
-        let collider_handle = physics_world.collider_set.insert_with_parent(
-            collider,
-            rigid_body_handle,
-            &mut physics_world.rigid_body_set,
-        );
+        let collider_handle = physics_world.insert_collider(collider, rigid_body_handle);
 
         Self {
+            items: vec![],
             collider_handle,
             rigid_body_handle,
         }
     }
 }
 
-impl Hands {
-    fn new() -> Self {
-        Self { items: vec![] }
-    }
+struct BoothCustomerView {
+    grid_storage_cell_popup: Option<PhysicsGridStorageCell>,
 }
 
 enum GameView {
-    BoothCustomer,
-    GridStorageBox {
-        hands: PhysicsHands,
-        xy: Xy<usize>,
-        items: BTreeMap<u128, PhysicsItem>,
-        physics_cell: PhysicsGridStorageCell,
-    },
+    BoothCustomer(BoothCustomerView),
+    // GridStorageBox {
+    //     hands: PhysicsHands,
+    //     xy: Xy<usize>,
+    //     items: BTreeMap<u128, PhysicsItem>,
+    //     physics_cell: PhysicsGridStorageCell,
+    // },
     CustomerBooth,
     BoothStock,
     BoothFloor,
@@ -337,7 +343,7 @@ struct PhysicsGridStorageCell {
 impl PhysicsGridStorageCell {
     fn new(physics_world: &mut PhysicsWorld) -> Self {
         let rigid_body = RigidBodyBuilder::fixed();
-        let rigid_body_handle = physics_world.rigid_body_set.insert(rigid_body);
+        let rigid_body_handle = physics_world.insert_rigid_body(rigid_body);
 
         let rect = GRID_STORAGE_CELL_RECT.map(|v| v.as_f32()) / PHYSICS_WORLD_MAGNIFICATION;
         let thickness = GRID_STORAGE_CELL_THICKNESS.as_f32() / PHYSICS_WORLD_MAGNIFICATION;
@@ -348,27 +354,15 @@ impl PhysicsGridStorageCell {
 
         let top_collider = ColliderBuilder::cuboid((rect.width() + thickness) / 2., thickness / 2.)
             .translation(top_center);
-        physics_world.collider_set.insert_with_parent(
-            top_collider,
-            rigid_body_handle,
-            &mut physics_world.rigid_body_set,
-        );
+        physics_world.insert_collider(top_collider, rigid_body_handle);
         let left_collider =
             ColliderBuilder::cuboid(thickness / 2., (rect.height() + thickness) / 2.)
                 .translation(left_center);
-        physics_world.collider_set.insert_with_parent(
-            left_collider,
-            rigid_body_handle,
-            &mut physics_world.rigid_body_set,
-        );
+        physics_world.insert_collider(left_collider, rigid_body_handle);
         let bottom_collider =
             ColliderBuilder::cuboid((rect.width() + thickness) / 2., thickness / 2.)
                 .translation(bottom_center);
-        physics_world.collider_set.insert_with_parent(
-            bottom_collider,
-            rigid_body_handle,
-            &mut physics_world.rigid_body_set,
-        );
+        physics_world.insert_collider(bottom_collider, rigid_body_handle);
 
         Self { rigid_body_handle }
     }
@@ -393,17 +387,13 @@ impl PhysicsItem {
                 vector![center.x.as_f32(), center.y.as_f32()] / PHYSICS_WORLD_MAGNIFICATION,
             )
             .ccd_enabled(true);
-        let rigid_body_handle = physics_world.rigid_body_set.insert(rigid_body);
+        let rigid_body_handle = physics_world.insert_rigid_body(rigid_body);
 
         let wh = item_kind
             .wh()
             .map(|v| v.as_f32() / PHYSICS_WORLD_MAGNIFICATION);
         let collider = ColliderBuilder::cuboid(wh.width / 2.0, wh.height / 2.0);
-        physics_world.collider_set.insert_with_parent(
-            collider,
-            rigid_body_handle,
-            &mut physics_world.rigid_body_set,
-        );
+        physics_world.insert_collider(collider, rigid_body_handle);
 
         Self {
             id,
@@ -432,199 +422,10 @@ struct Position {
     rotation: Angle,
 }
 
-struct PhysicsWorld {
-    gravity: Xy<Px>,
-    rigid_body_set: RigidBodySet,
-    collider_set: ColliderSet,
-    physics_pipeline: PhysicsPipeline,
-    island_manager: IslandManager,
-    broad_phase: DefaultBroadPhase,
-    narrow_phase: NarrowPhase,
-    impulse_joint_set: ImpulseJointSet,
-    multibody_joint_set: MultibodyJointSet,
-    ccd_solver: CCDSolver,
-    query_pipeline: QueryPipeline,
-    positions: BTreeMap<u128, Position>,
-}
-
-impl PhysicsWorld {
-    fn new(gravity: Xy<Px>) -> Self {
-        Self {
-            gravity,
-            rigid_body_set: RigidBodySet::new(),
-            collider_set: ColliderSet::new(),
-            physics_pipeline: PhysicsPipeline::new(),
-            island_manager: IslandManager::new(),
-            broad_phase: DefaultBroadPhase::new(),
-            narrow_phase: NarrowPhase::new(),
-            impulse_joint_set: ImpulseJointSet::new(),
-            multibody_joint_set: MultibodyJointSet::new(),
-            ccd_solver: CCDSolver::new(),
-            query_pipeline: QueryPipeline::new(),
-            positions: BTreeMap::new(),
-        }
-    }
-
-    fn tick(&mut self) {
-        self.physics_pipeline.step(
-            &vector![self.gravity.x.as_f32(), self.gravity.y.as_f32()],
-            &IntegrationParameters::default(),
-            &mut self.island_manager,
-            &mut self.broad_phase,
-            &mut self.narrow_phase,
-            &mut self.rigid_body_set,
-            &mut self.collider_set,
-            &mut self.impulse_joint_set,
-            &mut self.multibody_joint_set,
-            &mut self.ccd_solver,
-            Some(&mut self.query_pipeline),
-            &(),
-            &(),
-        );
-
-        for (_handle, rigid_body) in self.rigid_body_set.iter() {
-            let position = rigid_body.position();
-            self.positions.insert(
-                rigid_body.user_data,
-                Position {
-                    xy: Xy::new(position.translation.x.px(), position.translation.y.px()),
-                    rotation: position.rotation.re.rad(),
-                },
-            );
-        }
-    }
-
-    pub fn insert_with_parent(
-        &mut self,
-        collider: impl Into<Collider>,
-        rigid_body_handle: RigidBodyHandle,
-    ) -> ColliderHandle {
-        self.collider_set
-            .insert_with_parent(collider, rigid_body_handle, &mut self.rigid_body_set)
-    }
-
-    /// last `bool` is indicating if the colliders are actually intersecting or not.
-    pub fn intersection_pairs_with(
-        &self,
-        collider: ColliderHandle,
-    ) -> impl Iterator<Item = (ColliderHandle, bool)> {
-        self.narrow_phase
-            .intersection_pairs_with(collider)
-            .map(move |(a, b, intersecting)| (if a == collider { b } else { a }, intersecting))
-    }
-
-    pub fn intersection_pairs_with_exact(
-        &self,
-        collider: ColliderHandle,
-    ) -> impl Iterator<Item = ColliderHandle> {
-        self.intersection_pairs_with(collider)
-            .filter_map(|(collider_handle, intersecting)| {
-                if intersecting {
-                    Some(collider_handle)
-                } else {
-                    None
-                }
-            })
-    }
-
-    pub fn intersection_exact_collider(
-        &self,
-        collider: ColliderHandle,
-    ) -> impl Iterator<Item = &Collider> {
-        self.intersection_pairs_with(collider)
-            .filter_map(|(collider_handle, intersecting)| {
-                if intersecting {
-                    Some(self.collider_set.get(collider_handle).unwrap())
-                } else {
-                    None
-                }
-            })
-    }
-
-    pub fn intersect_exact_rigid_body_handles(
-        &self,
-        collider: ColliderHandle,
-    ) -> Vec<RigidBodyHandle> {
-        self.intersection_pairs_with(collider)
-            .filter_map(|(collider_handle, intersecting)| {
-                if intersecting {
-                    let collider = self.collider_set.get(collider_handle).unwrap();
-                    collider.parent()
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
-    pub fn find_rigid_body_mut(
-        &mut self,
-        item_id: u128,
-    ) -> Option<(RigidBodyHandle, &mut RigidBody)> {
-        self.rigid_body_set
-            .iter_mut()
-            .find_map(|(handle, rigid_body)| {
-                (rigid_body.user_data == item_id).then_some((handle, rigid_body))
-            })
-    }
-
-    pub fn rigid_body(&self, rigid_body_handle: RigidBodyHandle) -> Option<&RigidBody> {
-        self.rigid_body_set.get(rigid_body_handle)
-    }
-
-    pub fn rigid_body_mut(&mut self, rigid_body_handle: RigidBodyHandle) -> Option<&mut RigidBody> {
-        self.rigid_body_set.get_mut(rigid_body_handle)
-    }
-
-    pub fn query_intersection(
-        &self,
-        collider_handle: ColliderHandle,
-    ) -> Vec<(RigidBodyHandle, bool)> {
-        self.collider_set
-            .iter()
-            .filter(|(handle, collider)| handle != &collider_handle && collider.parent().is_some())
-            .map(|(handle, collider)| {
-                (
-                    collider.parent().unwrap(),
-                    self.narrow_phase
-                        .intersection_pair(collider_handle, handle)
-                        .unwrap_or_default(),
-                )
-            })
-            .collect()
-    }
-
-    fn find_rigid_body(&self, item_id: u128) -> Option<(RigidBodyHandle, &RigidBody)> {
-        self.rigid_body_set.iter().find_map(|(handle, rigid_body)| {
-            (rigid_body.user_data == item_id).then_some((handle, rigid_body))
-        })
-    }
-
-    fn cast_shape(
-        &self,
-        shape_position: &Isometry<Real>,
-        desired_movement_vec: &Vector<f32>,
-        shape: &dyn Shape,
-        cast_options: ShapeCastOptions,
-        query_filter: QueryFilter,
-    ) -> Option<(ColliderHandle, ShapeCastHit)> {
-        self.query_pipeline.cast_shape(
-            &self.rigid_body_set,
-            &self.collider_set,
-            shape_position,
-            desired_movement_vec,
-            shape,
-            cast_options,
-            query_filter,
-        )
-    }
-}
-
 trait NaHelper {
     fn to_vector(&self) -> Vector<f32>;
     fn to_point(&self) -> Point<f32>;
 }
-
 impl NaHelper for Xy<Px> {
     fn to_vector(&self) -> Vector<f32> {
         vector![self.x.as_f32(), self.y.as_f32()] / PHYSICS_WORLD_MAGNIFICATION
@@ -632,4 +433,13 @@ impl NaHelper for Xy<Px> {
     fn to_point(&self) -> Point<f32> {
         point![self.x.as_f32(), self.y.as_f32()] / PHYSICS_WORLD_MAGNIFICATION
     }
+}
+
+#[derive(Debug)]
+struct Dragging {
+    item_id: u128,
+    last_mouse_xy: Xy<Px>,
+    anchor: Vector<f32>,
+    rigid_body_handle: RigidBodyHandle,
+    original_linear_damping: f32,
 }
