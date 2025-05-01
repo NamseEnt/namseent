@@ -41,6 +41,7 @@ struct Dragging {
     last_mouse_xy: Xy<Px>,
     anchor: Vector<f32>,
     rigid_body_handle: RigidBodyHandle,
+    original_linear_damping: f32,
 }
 
 impl GameState {
@@ -98,18 +99,18 @@ impl GameState {
             println!("cannot find rigid body for dragging item id: {}", item_id);
             return;
         };
-        rigid_body.wake_up(true);
-        rigid_body.set_vels(Default::default(), false);
-        rigid_body.set_angvel(0., false);
-        rigid_body.lock_rotations(true, false);
-        rigid_body.set_gravity_scale(0., false);
-        rigid_body.set_body_type(RigidBodyType::KinematicPositionBased, false);
+        let original_linear_damping = rigid_body.linear_damping();
+
+        rigid_body.set_vels(Default::default(), true);
+        rigid_body.set_gravity_scale(0., true);
+        rigid_body.set_linear_damping(10.);
 
         self.dragging = Some(Dragging {
             item_id,
             last_mouse_xy: mouse_xy,
             anchor: mouse_xy.to_vector() - rigid_body.translation(),
             rigid_body_handle,
+            original_linear_damping,
         });
     }
 
@@ -126,11 +127,8 @@ impl GameState {
             );
             return;
         };
-        rigid_body.set_vels(Default::default(), false);
-        rigid_body.set_angvel(0., false);
-        rigid_body.lock_rotations(false, false);
         rigid_body.set_gravity_scale(1., false);
-        rigid_body.set_body_type(RigidBodyType::Dynamic, false);
+        rigid_body.set_linear_damping(dragging.original_linear_damping);
     }
     fn handle_dragging(&mut self) {
         let Some(dragging) = &mut self.dragging else {
@@ -145,61 +143,29 @@ impl GameState {
         };
         let mouse_vec = dragging.last_mouse_xy.to_vector();
         let mouse_and_anchor = mouse_vec - dragging.anchor;
-        let movement_vec = mouse_and_anchor - rigid_body.position().translation.vector;
-        let mut min_hit_info: Option<(ShapeCastHit, Isometry<Real>)> = None;
 
-        for collider_handle in rigid_body.colliders() {
-            let collider = self
-                .physics_world
-                .collider_set
-                .get(*collider_handle)
-                .unwrap();
+        let current_pos_vec = rigid_body.translation();
+        let target_pos_vec = mouse_and_anchor;
 
-            let collider_position = collider.position();
+        let delta_pos = target_pos_vec - current_pos_vec;
+        let distance = delta_pos.magnitude();
 
-            let Some((_, hit)) = self.physics_world.cast_shape(
-                collider_position,
-                &movement_vec,
-                collider.shape(),
-                ShapeCastOptions::with_max_time_of_impact(1.),
-                QueryFilter::new()
-                    .exclude_sensors()
-                    .exclude_rigid_body(dragging.rigid_body_handle),
-            ) else {
-                continue;
-            };
-            if hit.time_of_impact < 0. {
-                continue;
-            }
-            if let Some((min_hit, _)) = &min_hit_info {
-                if hit.time_of_impact < min_hit.time_of_impact {
-                    min_hit_info = Some((hit, *collider_position));
-                }
-            } else {
-                min_hit_info = Some((hit, *collider_position));
-            }
-        }
+        const MAX_DRAG_SPEED: f32 = 75.0;
+        const SPEED_FACTOR: f32 = 8.0;
+        let desired_speed = (distance * SPEED_FACTOR).min(MAX_DRAG_SPEED);
 
-        const EPSILON: f32 = 1e-5;
-
-        let next_translation = if let Some((hit, collider_position)) = min_hit_info {
-            let world_normal1 = collider_position.rotation * hit.normal1;
-            let dot_product = movement_vec.dot(world_normal1.as_ref());
-
-            let is_away_from_collider = dot_product > 0.0;
-            if hit.time_of_impact < EPSILON && is_away_from_collider {
-                mouse_and_anchor
-            } else {
-                rigid_body.translation() + movement_vec * (hit.time_of_impact - EPSILON).max(0.)
-            }
+        const MIN_DISTANCE_THRESHOLD: f32 = 0.01;
+        let target_velocity = if distance < MIN_DISTANCE_THRESHOLD {
+            Vector::zeros()
         } else {
-            mouse_and_anchor
+            let direction = delta_pos.normalize();
+            direction * desired_speed
         };
 
         self.physics_world
             .rigid_body_mut(dragging.rigid_body_handle)
             .unwrap()
-            .set_next_kinematic_translation(next_translation);
+            .set_linvel(target_velocity, true);
     }
 
     fn update_physics_items(&mut self) {
