@@ -31,7 +31,12 @@ impl Component for &Tower {
 }
 
 pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
+    // STIFFNESS represents the spring constant in the physics simulation.
+    // A negative value is used to simulate a restoring force that pulls the tower back to its equilibrium position.
     const STIFFNESS: f32 = -1500.0;
+
+    // DAMPING represents the damping coefficient, which reduces oscillations over time.
+    // A negative value is used to simulate a force opposing the velocity of the tower's animation.
     const DAMPING: f32 = -10.0;
 
     game_state.towers.iter_mut().for_each(|tower| {
