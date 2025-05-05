@@ -8,14 +8,6 @@ pub trait Component {
     {
         Err(self)
     }
-    // TODO
-    // #[cfg(target_family = "wasm")]
-    // fn with_mouse_cursor<'a>(self, cursor: MouseCursor) -> WithMouseCursor<Self>
-    // where
-    //     Self: 'a + Sized,
-    // {
-    //     native::with_mouse_cursor(self, cursor)
-    // }
     fn attach_event<'a>(self, on_event: impl 'a + FnOnce(Event)) -> AttachEvent<'a, Self>
     where
         Self: 'a + Sized,
@@ -35,11 +27,20 @@ impl Component for RenderingTree {
 
 impl<T: Component> Component for Option<T> {
     fn render(self, ctx: &RenderCtx) {
-        ctx.compose(|ctx| {
-            if let Some(v) = self {
-                ctx.add(v);
-            }
-        });
+        if let Some(v) = self {
+            ctx.add(v);
+        }
+    }
+}
+
+impl<'a, T> Component for &'a Option<T>
+where
+    &'a T: Component,
+{
+    fn render(self, ctx: &RenderCtx) {
+        if let Some(v) = self {
+            ctx.add(v);
+        }
     }
 }
 
