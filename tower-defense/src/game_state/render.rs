@@ -94,10 +94,9 @@ impl GameState {
     fn render_stuffs<'a, C, MapCoord, MapAxis>(
         &self,
         ctx: &ComposeCtx,
-        stuffs: impl Iterator<Item = (MapCoord, &'a C)>,
+        stuffs: impl Iterator<Item = (MapCoord, C)>,
     ) where
-        C: 'a,
-        &'a C: Component,
+        C: 'a + Component,
         MapCoord: AsRef<Xy<MapAxis>>,
         MapAxis: Ratio + std::fmt::Debug + Clone + Copy,
     {
