@@ -16,7 +16,9 @@ impl SystemTime {
 
 impl Debug for SystemTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt(f)
+        use chrono::{DateTime, Utc};
+        let chrono_time = DateTime::<Utc>::from(self.inner);
+        write!(f, "{}", chrono_time.format("%+"))
     }
 }
 

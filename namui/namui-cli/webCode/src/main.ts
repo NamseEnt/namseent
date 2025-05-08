@@ -13,6 +13,7 @@ import {
 import { NewEventSystemHandleOnMainThread } from "./newEventSystem";
 import { BufferPoolHandleOnMainThread } from "./bufferPool";
 import { audioHandleOnMainThread } from "./audio";
+import { pushLog } from "./logger";
 
 (async function main() {
     const canvas = document.createElement("canvas");
@@ -212,6 +213,11 @@ import { audioHandleOnMainThread } from "./audio";
             }
             case "audio-context-volume-set": {
                 audioHandle.audioContextVolumeSet(payload);
+                break;
+            }
+            // Log
+            case "log": {
+                pushLog(payload.threadId, payload.msg);
                 break;
             }
             default:
