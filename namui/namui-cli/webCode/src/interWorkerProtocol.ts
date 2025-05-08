@@ -169,7 +169,13 @@ export type WorkerMessagePayload =
           type: "audio-context-volume-set";
           volume: number;
           requestSequenceNumber: number;
-      };
+      }
+    // Log
+    | {
+      type: 'log',
+      threadId: number,
+      msg: string;
+    };
 
 export function sendMessageToMainThread(
     payload: WorkerMessagePayload,

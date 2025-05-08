@@ -64,20 +64,20 @@ impl Looper {
         self.render_time_worst = self.render_time_worst.max(elapsed);
 
         if self.one_sec_timer.elapsed() > std::time::Duration::from_secs(1) {
-            println!(
-                r#"Render count: {}/sec
-                Render avg time: {:?}
-                Worst render time: {:?}"#,
+            let mut text = format!(
+                "{:?} rps {} / avg {:?} / worst {:?}",
+                SystemTime::now(),
                 self.one_sec_render_count,
                 self.render_time_sum / self.one_sec_render_count,
                 self.render_time_worst,
             );
             for (event_type, count) in &mut self.event_type_count {
                 if *count > 0 {
-                    println!("- {:?}: {}", event_type, count);
+                    text += &format!(" / {:?}: {}", event_type, count);
                     *count = 0;
                 }
             }
+            println!("\u{0081}{}", text);
             self.one_sec_render_count = 0;
             self.one_sec_timer = std::time::Instant::now();
             self.render_time_sum = 0.ms();
