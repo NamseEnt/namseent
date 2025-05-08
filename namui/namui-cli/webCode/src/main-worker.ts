@@ -12,6 +12,7 @@ import { sendMessageToMainThread, WorkerMessagePayload } from "./interWorkerProt
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
 import bundleSqliteUrl from "bundle.sqlite?url";
+import { stdout } from "./stdio";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -35,11 +36,9 @@ self.onmessage = async (message) => {
 
     const fd: Fd[] = [
         new OpenFile(new File([])), // stdin
+        stdout(threadId),
         ConsoleStdout.lineBuffered((msg) =>
-            console.log(`[WASI stdout(tid: ${threadId})] ${msg}`),
-        ),
-        ConsoleStdout.lineBuffered((msg) =>
-            console.warn(`[WASI stderr(tid: ${threadId})] ${msg}`),
+            console.warn(`[${threadId}] ${msg}`),
         ),
     ];
     const wasi = new WASI([], env, fd);

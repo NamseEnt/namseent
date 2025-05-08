@@ -26,6 +26,7 @@ derivative = "2.2.0"
 skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", optional = true }
 rand = "0.8"
 sha2 = "0.10"
+chrono = "0.4.41"
 
 [dev-dependencies]
 float-cmp = "0.9"

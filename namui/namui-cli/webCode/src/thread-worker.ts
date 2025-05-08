@@ -12,6 +12,7 @@ import {
 } from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
+import { stdout } from "./stdio";
 
 self.onmessage = async (message) => {
     const payload: WorkerMessagePayload = message.data;
@@ -35,11 +36,9 @@ self.onmessage = async (message) => {
 
     const wasi = new WASI([], env, [
         new OpenFile(new File([])), // stdin
+        stdout(tid),
         ConsoleStdout.lineBuffered((msg) =>
-            console.log(`[WASI stdout(tid: ${tid})] ${msg}`),
-        ),
-        ConsoleStdout.lineBuffered((msg) =>
-            console.warn(`[WASI stderr(tid: ${tid})] ${msg}`),
+            console.warn(`[${tid}] ${msg}`),
         ),
         new PreopenDirectory(
             ".",
