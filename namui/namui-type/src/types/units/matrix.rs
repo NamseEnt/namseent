@@ -93,8 +93,13 @@ impl TransformMatrix {
 
     pub fn transform_rect<T>(&self, rect: Rect<T>) -> Rect<T>
     where
-        T: std::ops::Add<Output = T> + Copy + std::ops::Mul<f32, Output = T> + From<f32>,
-        T: Debug,
+        T: std::ops::Add<Output = T>
+            + Copy
+            + std::ops::Mul<f32, Output = T>
+            + From<f32>
+            + PartialOrd
+            + Debug,
+        f32: From<T>,
     {
         let Ltrb {
             left,
@@ -102,19 +107,43 @@ impl TransformMatrix {
             right,
             bottom,
         } = rect.as_ltrb();
+        let a = Xy::new(left, top);
+        let b = Xy::new(right, bottom);
+        let c = Xy::new(left, bottom);
+        let d = Xy::new(right, top);
+
+        let a_transformed = self.transform_xy(a);
+        let b_transformed = self.transform_xy(b);
+        let c_transformed = self.transform_xy(c);
+        let d_transformed = self.transform_xy(d);
+        let xs = [
+            a_transformed.x,
+            b_transformed.x,
+            c_transformed.x,
+            d_transformed.x,
+        ];
+        let ys = [
+            a_transformed.y,
+            b_transformed.y,
+            c_transformed.y,
+            d_transformed.y,
+        ];
+
+        fn min<T: PartialOrd + Copy>(xs: [T; 4]) -> T {
+            xs.into_iter()
+                .reduce(|a, b| if a < b { a } else { b })
+                .unwrap()
+        }
+        fn max<T: PartialOrd + Copy>(xs: [T; 4]) -> T {
+            xs.into_iter()
+                .reduce(|a, b| if a > b { a } else { b })
+                .unwrap()
+        }
         Rect::Ltrb {
-            left: left * *self.values[0][0]
-                + top * *self.values[0][1]
-                + self.values[0][2].as_f32().into(),
-            top: left * *self.values[1][0]
-                + top * *self.values[1][1]
-                + self.values[1][2].as_f32().into(),
-            right: right * *self.values[0][0]
-                + bottom * *self.values[0][1]
-                + self.values[0][2].as_f32().into(),
-            bottom: right * *self.values[1][0]
-                + bottom * *self.values[1][1]
-                + self.values[1][2].as_f32().into(),
+            left: min(xs),
+            top: min(ys),
+            right: max(xs),
+            bottom: max(ys),
         }
     }
     pub fn x(&self) -> f32 {
