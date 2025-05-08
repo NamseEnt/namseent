@@ -1,6 +1,7 @@
 use super::*;
 use crate::*;
 
+#[derive(Debug)]
 struct ItemInfo {
     pub name: &'static str,
     pub image_path: &'static str,
@@ -32,6 +33,7 @@ impl Component for &BoothCustomerView {
         } = self;
         let screen_wh = screen::size().into_type::<Px>();
 
+        let game_state = use_game_state(ctx);
         let (clicked_goods_counts, set_clicked_goods_counts) =
             ctx.state(BTreeMap::<usize, usize>::new);
         let (game_flow, set_game_flow) = ctx.state(|| GameFlow::Idle {
@@ -151,7 +153,7 @@ impl Component for &BoothCustomerView {
             format!("[수익 - {revenue}][선택된 아이템] {clicked_goods_text}"),
             Color::WHITE,
         ));
-        ctx.add(grid_storage_cell_popup);
+        ctx.add(&game_state.physics_grid_storage_cell);
 
         ctx.compose(|ctx| {
             ctx.translate(Xy::new(20.px(), 404.px()))
@@ -467,6 +469,11 @@ fn booth_table(ctx: &RenderCtx) {
 
 impl Component for &'_ PhysicsGridStorageCell {
     fn render(self, ctx: &RenderCtx) {
+        let game_state = use_game_state(ctx);
+        if !game_state.grid_storage_cell_opened() {
+            return;
+        }
+
         let rect = GRID_STORAGE_CELL_RECT;
         let path = Path::new()
             .move_to(rect.right(), rect.top())

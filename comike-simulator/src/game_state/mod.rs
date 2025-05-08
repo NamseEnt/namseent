@@ -1,7 +1,9 @@
+mod physics_item;
 mod physics_world;
 mod render;
 
 use crate::*;
+use physics_item::*;
 use physics_world::*;
 use rapier2d::{parry::query::ShapeCastOptions, prelude::*};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -39,6 +41,7 @@ pub struct GameState {
     hands: Hands,
     dragging: Option<Dragging>,
     items: BTreeMap<u128, PhysicsItem>,
+    physics_grid_storage_cell: PhysicsGridStorageCell,
 }
 
 fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
@@ -47,20 +50,30 @@ fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
     });
 }
 
+fn use_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
+    ctx.atom(&GAME_STATE_ATOM).0
+}
+
 impl GameState {
     pub fn new() -> Self {
         let mut physics_world = PhysicsWorld::new(vector![0.0, 9.8]);
+
+        let physics_grid_storage_cell = PhysicsGridStorageCell::new(&mut physics_world);
+        physics_world.set_rigid_body_enabled(physics_grid_storage_cell.rigid_body_handle, false);
+
         Self {
             view: GameView::BoothCustomer(BoothCustomerView {
                 grid_storage_cell_popup: None,
             }),
             hands: Hands::new(&mut physics_world),
+            physics_grid_storage_cell,
             physics_world,
             grid_storage_box: GridStorageBox::new(),
             dragging: Default::default(),
             items: Default::default(),
         }
     }
+
     pub fn tick(&mut self) {
         self.handle_dragging_move();
         self.update_gravity_by_place();
@@ -130,6 +143,7 @@ impl GameState {
         rigid_body.set_gravity_scale(1., false);
         rigid_body.set_linear_damping(dragging.original_linear_damping);
     }
+
     fn handle_dragging_move(&mut self) {
         let Some(dragging) = &mut self.dragging else {
             return;
@@ -169,15 +183,38 @@ impl GameState {
     }
 
     fn update_physics_items(&mut self) {
-        for (_rigid_body_handle, rigid_body) in self.physics_world.rigid_body_iter() {
-            let id = rigid_body.user_data;
-            let Some(item) = self.items.get_mut(&id) else {
+        let grid_storage_cell_xy = self.grid_storage_cell_xy();
+
+        for item in self.items.values_mut() {
+            let Some(rigid_body) = self.physics_world.rigid_body(item.rigid_body_handle) else {
                 continue;
             };
+            if !rigid_body.is_enabled() {
+                continue;
+            }
+
             let translation = rigid_body.translation();
             item.center =
                 Xy::new(translation.x.px(), translation.y.px()) * PHYSICS_WORLD_MAGNIFICATION;
             item.rotation = rigid_body.rotation().angle().rad();
+
+            if self
+                .physics_world
+                .intersection(item.collider_handle, self.hands.collider_handle)
+            {
+                item.location = ItemLocation::Hands;
+            } else if grid_storage_cell_xy.is_some()
+                && self.physics_world.intersection(
+                    item.collider_handle,
+                    self.physics_grid_storage_cell.inner_sensor_handle,
+                )
+            {
+                item.location = ItemLocation::GridStorageCell {
+                    xy: grid_storage_cell_xy.unwrap(),
+                };
+            } else {
+                item.location = ItemLocation::Air;
+            }
         }
     }
 
@@ -212,12 +249,98 @@ impl GameState {
         else {
             return;
         };
-        *grid_storage_cell_popup = Some(PhysicsGridStorageCell::new(&mut self.physics_world));
+
+        if grid_storage_cell_popup.is_none() {
+            self.physics_world
+                .set_rigid_body_enabled(self.physics_grid_storage_cell.rigid_body_handle, true);
+        }
+
+        let prev_xy = *grid_storage_cell_popup;
+        *grid_storage_cell_popup = Some(cell_xy);
+
+        for item in self.items.values_mut() {
+            let ItemLocation::GridStorageCell { xy } = item.location else {
+                continue;
+            };
+
+            let enabled = if xy == cell_xy {
+                Some(true)
+            } else if prev_xy == Some(xy) {
+                Some(false)
+            } else {
+                None
+            };
+
+            println!("enabled: {:?}", enabled);
+
+            if let Some(enabled) = enabled {
+                self.physics_world
+                    .set_rigid_body_enabled(item.rigid_body_handle, enabled);
+            }
+        }
     }
 
-    fn spawn_item(&mut self, xy: Xy<Px>) {
-        let item = PhysicsItem::new(&mut self.physics_world, ItemKind::Sticker, xy);
+    fn spawn_item(&mut self, xy: Xy<Px>, location: ItemLocation) {
+        let item = PhysicsItem::new(&mut self.physics_world, ItemKind::Sticker, xy, location);
+
+        match location {
+            ItemLocation::GridStorageCell {
+                xy: item_location_cell_xy,
+            } => match &self.view {
+                GameView::BoothCustomer(booth_customer_view) => {
+                    let enabled =
+                        booth_customer_view.grid_storage_cell_popup == Some(item_location_cell_xy);
+
+                    self.physics_world
+                        .set_rigid_body_enabled(item.rigid_body_handle, enabled);
+                }
+                GameView::CustomerBooth => todo!(),
+                GameView::BoothStock => todo!(),
+                GameView::BoothFloor => todo!(),
+            },
+            ItemLocation::Air => todo!(),
+            ItemLocation::Hands => todo!(),
+        }
+
         self.items.insert(item.id, item);
+    }
+
+    fn spawn_initial_storage_cell_items(&mut self) {
+        for i in 0..3 {
+            for _ in 0..3 {
+                self.spawn_item(
+                    GRID_STORAGE_CELL_RECT.center(),
+                    ItemLocation::GridStorageCell { xy: Xy::new(i, 0) },
+                );
+            }
+        }
+    }
+
+    pub fn item_enabled(&self, id: u128) -> bool {
+        let Some(item) = self.items.get(&id) else {
+            return false;
+        };
+
+        self.physics_world
+            .rigid_body(item.rigid_body_handle)
+            .map(|rigid_body| rigid_body.is_enabled())
+            .unwrap_or(false)
+    }
+
+    fn grid_storage_cell_xy(&self) -> Option<Xy<usize>> {
+        match &self.view {
+            GameView::BoothCustomer(BoothCustomerView {
+                grid_storage_cell_popup,
+            }) => *grid_storage_cell_popup,
+            _ => None,
+        }
+    }
+
+    fn grid_storage_cell_opened(&self) -> bool {
+        self.physics_world
+            .rigid_body(self.physics_grid_storage_cell.rigid_body_handle)
+            .map(|rigid_body| rigid_body.is_enabled())
+            .unwrap_or_default()
     }
 }
 
@@ -257,17 +380,11 @@ impl Hands {
 }
 
 struct BoothCustomerView {
-    grid_storage_cell_popup: Option<PhysicsGridStorageCell>,
+    grid_storage_cell_popup: Option<Xy<usize>>,
 }
 
 enum GameView {
     BoothCustomer(BoothCustomerView),
-    // GridStorageBox {
-    //     hands: PhysicsHands,
-    //     xy: Xy<usize>,
-    //     items: BTreeMap<u128, PhysicsItem>,
-    //     physics_cell: PhysicsGridStorageCell,
-    // },
     CustomerBooth,
     BoothStock,
     BoothFloor,
@@ -321,6 +438,7 @@ impl GridStorageCell {
 
 struct PhysicsGridStorageCell {
     rigid_body_handle: RigidBodyHandle,
+    inner_sensor_handle: ColliderHandle,
 }
 impl PhysicsGridStorageCell {
     fn new(physics_world: &mut PhysicsWorld) -> Self {
@@ -346,44 +464,26 @@ impl PhysicsGridStorageCell {
                 .translation(bottom_center);
         physics_world.insert_collider(bottom_collider, rigid_body_handle);
 
-        Self { rigid_body_handle }
-    }
-}
-
-struct PhysicsItem {
-    id: u128,
-    item_kind: ItemKind,
-    center: Xy<Px>,
-    rotation: Angle,
-}
-impl PhysicsItem {
-    fn new(physics_world: &mut PhysicsWorld, item_kind: ItemKind, center: Xy<Px>) -> Self {
-        let id = {
-            static ID: AtomicU64 = AtomicU64::new(1024);
-            ID.fetch_add(1, Ordering::Relaxed) as u128
-        };
-
-        let rigid_body = RigidBodyBuilder::dynamic()
-            .user_data(id)
-            .translation(
-                vector![center.x.as_f32(), center.y.as_f32()] / PHYSICS_WORLD_MAGNIFICATION,
-            )
-            .ccd_enabled(true);
-        let rigid_body_handle = physics_world.insert_rigid_body(rigid_body);
-
-        let wh = item_kind
-            .wh()
-            .map(|v| v.as_f32() / PHYSICS_WORLD_MAGNIFICATION);
-        let collider = ColliderBuilder::cuboid(wh.width / 2.0, wh.height / 2.0);
-        physics_world.insert_collider(collider, rigid_body_handle);
+        let inner_sensor = ColliderBuilder::cuboid(
+            (rect.width() - thickness) / 2.,
+            (rect.height() - thickness) / 2.,
+        )
+        .translation(rect.center().to_vector())
+        .sensor(true);
+        let inner_sensor_handle = physics_world.insert_collider(inner_sensor, rigid_body_handle);
 
         Self {
-            id,
-            item_kind,
-            center,
-            rotation: 0.deg(),
+            rigid_body_handle,
+            inner_sensor_handle,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ItemLocation {
+    Air,
+    Hands,
+    GridStorageCell { xy: Xy<usize> },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -414,6 +514,14 @@ impl NaHelper for Xy<Px> {
     }
     fn to_point(&self) -> Point<f32> {
         point![self.x.as_f32(), self.y.as_f32()] / PHYSICS_WORLD_MAGNIFICATION
+    }
+}
+impl NaHelper for Xy<f32> {
+    fn to_vector(&self) -> Vector<f32> {
+        vector![self.x, self.y]
+    }
+    fn to_point(&self) -> Point<f32> {
+        point![self.x, self.y]
     }
 }
 

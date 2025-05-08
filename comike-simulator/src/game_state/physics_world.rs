@@ -200,6 +200,27 @@ impl PhysicsWorld {
     pub(crate) fn rigid_body_iter(&self) -> impl Iterator<Item = (RigidBodyHandle, &RigidBody)> {
         self.rigid_body_set.iter()
     }
+
+    pub(crate) fn set_rigid_body_enabled(
+        &mut self,
+        rigid_body_handle: RigidBodyHandle,
+        enabled: bool,
+    ) {
+        let Some(rigid_body) = self.rigid_body_set.get_mut(rigid_body_handle) else {
+            return;
+        };
+        rigid_body.set_enabled(enabled);
+    }
+
+    pub(crate) fn intersection(
+        &self,
+        collider_handle: ColliderHandle,
+        collider_handle_2: ColliderHandle,
+    ) -> bool {
+        self.narrow_phase
+            .intersection_pair(collider_handle, collider_handle_2)
+            .unwrap_or_default()
+    }
 }
 
 impl Component for &'_ PhysicsWorld {
@@ -237,6 +258,9 @@ impl Component for &'_ PhysicsWorld {
         }
 
         for (_, rigid_body) in self.rigid_body_set.iter() {
+            if !rigid_body.is_enabled() {
+                continue;
+            }
             let translation = rigid_body.translation();
             let x = translation.x.px() * PHYSICS_WORLD_MAGNIFICATION;
             let y = translation.y.px() * PHYSICS_WORLD_MAGNIFICATION;
@@ -251,6 +275,9 @@ impl Component for &'_ PhysicsWorld {
         }
 
         for (_, collider) in self.collider_set.iter() {
+            if !collider.is_enabled() {
+                continue;
+            }
             let translation = collider.translation();
             let x = translation.x.px() * PHYSICS_WORLD_MAGNIFICATION;
             let y = translation.y.px() * PHYSICS_WORLD_MAGNIFICATION;
