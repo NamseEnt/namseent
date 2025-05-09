@@ -17,7 +17,6 @@ const HANDS_RECT: Rect<Px> = Rect::Xywh {
     width: px(300.),
     height: px(300.),
 };
-
 const GRID_STORAGE_CELL_RECT: Rect<Px> = Rect::Xywh {
     x: px(400.),
     y: px(500.),
@@ -25,7 +24,6 @@ const GRID_STORAGE_CELL_RECT: Rect<Px> = Rect::Xywh {
     height: px(300.),
 };
 const GRID_STORAGE_CELL_THICKNESS: Px = px(10.);
-
 const PHYSICS_WORLD_MAGNIFICATION: f32 = 100.;
 
 pub static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
@@ -271,8 +269,6 @@ impl GameState {
                 None
             };
 
-            println!("enabled: {:?}", enabled);
-
             if let Some(enabled) = enabled {
                 self.physics_world
                     .set_rigid_body_enabled(item.rigid_body_handle, enabled);
@@ -280,8 +276,8 @@ impl GameState {
         }
     }
 
-    fn spawn_item(&mut self, xy: Xy<Px>, location: ItemLocation) {
-        let item = PhysicsItem::new(&mut self.physics_world, ItemKind::Sticker, xy, location);
+    fn spawn_item(&mut self, item_kind: ItemKind, xy: Xy<Px>, location: ItemLocation) {
+        let item = PhysicsItem::new(&mut self.physics_world, item_kind, xy, location);
 
         match location {
             ItemLocation::GridStorageCell {
@@ -306,9 +302,13 @@ impl GameState {
     }
 
     fn spawn_initial_storage_cell_items(&mut self) {
-        for i in 0..3 {
+        for (i, item_kind) in [ItemKind::Sticker, ItemKind::Stand, ItemKind::Badge]
+            .into_iter()
+            .enumerate()
+        {
             for _ in 0..3 {
                 self.spawn_item(
+                    item_kind,
                     GRID_STORAGE_CELL_RECT.center(),
                     ItemLocation::GridStorageCell { xy: Xy::new(i, 0) },
                 );
@@ -341,6 +341,35 @@ impl GameState {
             .rigid_body(self.physics_grid_storage_cell.rigid_body_handle)
             .map(|rigid_body| rigid_body.is_enabled())
             .unwrap_or_default()
+    }
+
+    pub fn items_on_hands_count(&self) -> BTreeMap<ItemKind, usize> {
+        self.items
+            .values()
+            .filter(|item| matches!(item.location, ItemLocation::Hands))
+            .map(|item| item.item_kind)
+            .fold(BTreeMap::new(), |mut acc, item_kind| {
+                *acc.entry(item_kind).or_insert(0) += 1;
+                acc
+            })
+    }
+
+    fn lock_hands(&mut self) {
+        // todo!()
+    }
+
+    fn unlock_hands(&mut self) {
+        // todo!()
+    }
+
+    fn flush_hands(&mut self) {
+        self.items.retain(|_, item| {
+            if !matches!(item.location, ItemLocation::Hands) {
+                return true;
+            }
+            self.physics_world.remove_rigid_body(item.rigid_body_handle);
+            false
+        });
     }
 }
 
@@ -486,15 +515,26 @@ pub enum ItemLocation {
     GridStorageCell { xy: Xy<usize> },
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ItemKind {
     Sticker,
+    Stand,
+    Badge,
 }
 
 impl ItemKind {
     pub fn wh(&self) -> Wh<Px> {
         match self {
             ItemKind::Sticker => Wh::new(50.px(), 100.px()),
+            ItemKind::Stand => Wh::new(50.px(), 100.px()),
+            ItemKind::Badge => Wh::new(50.px(), 100.px()),
+        }
+    }
+    pub fn name(&self) -> &'static str {
+        match self {
+            ItemKind::Sticker => "스티커",
+            ItemKind::Stand => "스탠드",
+            ItemKind::Badge => "뱃지",
         }
     }
 }

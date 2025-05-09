@@ -6,6 +6,7 @@ struct ItemInfo {
     pub name: &'static str,
     pub image_path: &'static str,
     pub price: usize,
+    pub item_kind: ItemKind,
 }
 
 const ITEM_INFOS: [ItemInfo; 3] = [
@@ -13,16 +14,19 @@ const ITEM_INFOS: [ItemInfo; 3] = [
         name: "배지",
         image_path: "asset/badge.jpg",
         price: 3000,
+        item_kind: ItemKind::Badge,
     },
     ItemInfo {
         name: "스탠드",
         image_path: "asset/stand.jpg",
         price: 12000,
+        item_kind: ItemKind::Stand,
     },
     ItemInfo {
         name: "스티커",
         image_path: "asset/sticker.jpg",
         price: 1000,
+        item_kind: ItemKind::Sticker,
     },
 ];
 
@@ -34,12 +38,15 @@ impl Component for &BoothCustomerView {
         let screen_wh = screen::size().into_type::<Px>();
 
         let game_state = use_game_state(ctx);
-        let (clicked_goods_counts, set_clicked_goods_counts) =
-            ctx.state(BTreeMap::<usize, usize>::new);
+        let items_on_hands_count = game_state.items_on_hands_count();
         let (game_flow, set_game_flow) = ctx.state(|| GameFlow::Idle {
             start_at: Instant::now(),
         });
         let (revenue, set_revenue) = ctx.state(|| 0);
+
+        ctx.interval("debug items_on_hands_count", 1000.ms(), |_dt| {
+            println!("items_on_hands_count: {:?}", items_on_hands_count);
+        });
 
         ctx.on_raw_event(|event| {
             if let GameFlow::CalculatingPrice {
@@ -75,9 +82,9 @@ impl Component for &BoothCustomerView {
         ctx.interval("tick", 33.ms(), |_dt| match *game_flow {
             GameFlow::Idle { start_at } => {
                 if start_at + 4.sec() < Instant::now() {
-                    set_game_flow.set(GameFlow::CustomerWaitingGoods {
-                        goods_index: rand::random::<usize>() % ITEM_INFOS.len(),
-                        goods_count: 1 + rand::random::<usize>() % 3,
+                    set_game_flow.set(GameFlow::CustomerWaitingItems {
+                        item_kind: ITEM_INFOS[rand::random::<usize>() % ITEM_INFOS.len()].item_kind,
+                        item_count: 1 + rand::random::<usize>() % 3,
                     });
                 }
             }
@@ -89,6 +96,10 @@ impl Component for &BoothCustomerView {
                     set_revenue.mutate(move |revenue| {
                         *revenue += amount;
                     });
+                    mutate_game_state(|game_state| {
+                        game_state.flush_hands();
+                        game_state.unlock_hands();
+                    });
                 }
             }
             GameFlow::CustomerLeaving { start_at } => {
@@ -98,17 +109,17 @@ impl Component for &BoothCustomerView {
                     });
                 }
             }
-            GameFlow::CustomerWaitingGoods { .. } | GameFlow::CalculatingPrice { .. } => {}
+            GameFlow::CustomerWaitingItems { .. } | GameFlow::CalculatingPrice { .. } => {}
         });
 
         ctx.add(namui::text(TextParam {
             text: match *game_flow {
                 GameFlow::Idle { .. } => "".to_string(),
-                GameFlow::CustomerWaitingGoods {
-                    goods_index,
-                    goods_count,
+                GameFlow::CustomerWaitingItems {
+                    item_kind,
+                    item_count,
                 } => {
-                    format!("{}번 {goods_count}개 주세요", goods_index + 1)
+                    format!("{} {item_count}개 주세요", item_kind.name())
                 }
                 GameFlow::CalculatingPrice {
                     candidates,
@@ -143,14 +154,14 @@ impl Component for &BoothCustomerView {
             max_width: None,
         }));
 
-        let clicked_goods_text = clicked_goods_counts
+        let items_on_hands = items_on_hands_count
             .iter()
-            .map(|(index, count)| format!("{}: {}", ITEM_INFOS[*index].name, count))
+            .map(|(item_kind, count)| format!("{}: {}", item_kind.name(), count))
             .collect::<Vec<_>>()
             .join(", ");
         ctx.add(typography::body::left(
             24.px(),
-            format!("[수익 - {revenue}][선택된 아이템] {clicked_goods_text}"),
+            format!("[수익 - {revenue}][선택된 아이템] {items_on_hands}"),
             Color::WHITE,
         ));
         ctx.add(&game_state.physics_grid_storage_cell);
@@ -182,19 +193,26 @@ impl Component for &BoothCustomerView {
             ctx.translate(Xy::new(210.px(), 350.px())).add(Customer {
                 on_click: &|| match *game_flow {
                     GameFlow::Idle { .. } => unreachable!(),
-                    GameFlow::CustomerWaitingGoods {
-                        goods_count,
-                        goods_index,
+                    GameFlow::CustomerWaitingItems {
+                        item_count,
+                        item_kind,
                     } => {
-                        let Some(clicked_count) = clicked_goods_counts.get(&goods_index) else {
+                        let Some(clicked_count) = items_on_hands_count.get(&item_kind) else {
                             return;
                         };
 
-                        if *clicked_count < goods_count {
+                        if *clicked_count < item_count {
                             return;
                         }
-                        set_clicked_goods_counts.set(BTreeMap::new());
-                        let answer = ITEM_INFOS[goods_index].price * goods_count;
+                        mutate_game_state(|game_state| {
+                            game_state.lock_hands();
+                        });
+                        let answer = ITEM_INFOS
+                            .iter()
+                            .find(|item_info| item_info.item_kind == item_kind)
+                            .unwrap()
+                            .price
+                            * item_count;
                         let mut candidates = [
                             answer,
                             answer + 1000,
@@ -232,9 +250,9 @@ enum GameFlow {
     Idle {
         start_at: Instant,
     },
-    CustomerWaitingGoods {
-        goods_index: usize,
-        goods_count: usize,
+    CustomerWaitingItems {
+        item_kind: ItemKind,
+        item_count: usize,
     },
     CalculatingPrice {
         answer: usize,

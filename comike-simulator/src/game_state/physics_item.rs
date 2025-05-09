@@ -65,13 +65,10 @@ impl Component for &'_ PhysicsItem {
                 namui::translate(
                     -self.item_kind.wh().as_xy().x / 2,
                     -self.item_kind.wh().as_xy().y / 2,
-                    match self.item_kind {
-                        ItemKind::Sticker => namui::path(
-                            Path::new()
-                                .add_rect(Rect::from_xy_wh(Xy::zero(), Wh::new(50.px(), 100.px()))),
-                            Paint::new(Color::from_f01(0.5, 0., 0., 0.7)),
-                        ),
-                    },
+                    namui::path(
+                        Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), self.item_kind.wh())),
+                        Paint::new(Color::from_f01(0.5, 0., 0., 0.7)),
+                    ),
                 ),
             ),
         );
