@@ -9,7 +9,6 @@ use crate::{
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
-use std::usize;
 
 //TODO: Call this function on clear boss stage
 pub fn generate_upgrades_for_boss_reward(game_state: &GameState, amount: usize) -> Vec<Upgrade> {
@@ -1131,12 +1130,11 @@ fn get_tower_kind_with_weight(weights: &[f32; 10]) -> TowerKind {
         TowerKind::RoyalFlush,
     ];
 
-    TOWER_KINDS
+    *TOWER_KINDS
         .iter()
         .zip(weights)
         .collect::<Vec<_>>()
         .choose_weighted(&mut thread_rng(), |x| x.1)
         .unwrap()
         .0
-        .clone()
 }

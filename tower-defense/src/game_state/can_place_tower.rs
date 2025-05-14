@@ -466,7 +466,7 @@ tower_left_top_history: {tower_left_top_history:?}",
             },
         ];
 
-        let route_coords = vec![
+        let route_coords = [
             MapCoord::new(0, 0),
             MapCoord::new(1, 1),
             MapCoord::new(2, 2),

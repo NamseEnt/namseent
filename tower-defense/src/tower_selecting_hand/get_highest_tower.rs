@@ -188,7 +188,7 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
         if upgrade.damage_plus > 0.0 {
             let upgrade_effect = TowerStatusEffect {
                 kind: TowerStatusEffectKind::DamageAdd {
-                    add: upgrade.damage_plus as f32,
+                    add: upgrade.damage_plus,
                 },
                 end_at: TowerStatusEffectEnd::NeverEnd,
             };
@@ -198,7 +198,7 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
         if upgrade.damage_multiplier > 1.0 {
             let upgrade_effect = TowerStatusEffect {
                 kind: TowerStatusEffectKind::DamageMul {
-                    mul: upgrade.damage_multiplier as f32,
+                    mul: upgrade.damage_multiplier,
                 },
                 end_at: TowerStatusEffectEnd::NeverEnd,
             };
@@ -208,7 +208,7 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
         if upgrade.speed_plus > 0.0 {
             let upgrade_effect = TowerStatusEffect {
                 kind: TowerStatusEffectKind::AttackSpeedAdd {
-                    add: upgrade.speed_plus as f32,
+                    add: upgrade.speed_plus,
                 },
                 end_at: TowerStatusEffectEnd::NeverEnd,
             };
@@ -218,7 +218,7 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
         if upgrade.speed_multiplier > 1.0 {
             let upgrade_effect = TowerStatusEffect {
                 kind: TowerStatusEffectKind::AttackSpeedMul {
-                    mul: upgrade.speed_multiplier as f32,
+                    mul: upgrade.speed_multiplier,
                 },
                 end_at: TowerStatusEffectEnd::NeverEnd,
             };
@@ -228,7 +228,7 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
         if upgrade.range_plus > 0.0 {
             let upgrade_effect = TowerStatusEffect {
                 kind: TowerStatusEffectKind::AttackRangeAdd {
-                    add: upgrade.range_plus as f32,
+                    add: upgrade.range_plus,
                 },
                 end_at: TowerStatusEffectEnd::NeverEnd,
             };

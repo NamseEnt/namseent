@@ -92,18 +92,18 @@ pub struct Card {
     pub suit: Suit,
     pub rank: Rank,
 }
-impl PartialOrd for Card {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let rank_cmp = (self.rank as usize).cmp(&(other.rank as usize));
-        if let std::cmp::Ordering::Equal = rank_cmp {
-            return Some((self.suit as usize).cmp(&(other.suit as usize)));
-        }
-        Some(rank_cmp)
-    }
-}
 impl Ord for Card {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+        let rank_cmp = (self.rank as usize).cmp(&(other.rank as usize));
+        if let std::cmp::Ordering::Equal = rank_cmp {
+            return (self.suit as usize).cmp(&(other.suit as usize));
+        }
+        rank_cmp
+    }
+}
+impl PartialOrd for Card {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 

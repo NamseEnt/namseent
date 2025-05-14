@@ -27,10 +27,7 @@ pub fn calculate_routes(
     for i in 0..travel_points.len() - 1 {
         let start_xy = travel_points[i];
         let end_xy = travel_points[i + 1];
-        let Some(route) = crate::route::find_shortest_route(map_wh, start_xy, end_xy, blockers)
-        else {
-            return None;
-        };
+        let route = crate::route::find_shortest_route(map_wh, start_xy, end_xy, blockers)?;
         map_coords.extend(route);
     }
 

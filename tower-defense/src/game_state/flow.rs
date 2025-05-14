@@ -16,7 +16,7 @@ pub enum GameFlow {
         cards: [Card; 5],
     },
     PlacingTower {
-        placing_tower_slots: [PlacingTowerSlot; 5],
+        placing_tower_slots: Box<[PlacingTowerSlot; 5]>,
     },
     Defense,
     SelectingUpgrade {
@@ -86,13 +86,13 @@ impl GameState {
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
         self.flow = GameFlow::PlacingTower {
-            placing_tower_slots: [
+            placing_tower_slots: Box::new([
                 PlacingTowerSlot::Tower { tower_template },
                 PlacingTowerSlot::barricade(),
                 PlacingTowerSlot::barricade(),
                 PlacingTowerSlot::barricade(),
                 PlacingTowerSlot::barricade(),
-            ],
+            ]),
         };
     }
 

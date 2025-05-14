@@ -151,7 +151,7 @@ impl Component for Shop<'_> {
         let refresh_shop = || {
             mutate_game_state(|game_state| {
                 game_state.left_shop_refresh_chance -= 1;
-                let items = generate_items(&game_state, game_state.max_shop_slot());
+                let items = generate_items(game_state, game_state.max_shop_slot());
                 for (slot, item) in game_state.shop_slots.iter_mut().zip(items.into_iter()) {
                     if let ShopSlot::Item {
                         item: item_of_slot,

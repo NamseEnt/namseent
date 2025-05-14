@@ -21,7 +21,7 @@ pub struct Monster {
 }
 impl Monster {
     pub fn new(template: &MonsterTemplate, route: Arc<Route>, now: Instant) -> Self {
-        const ID: AtomicUsize = AtomicUsize::new(0);
+        static ID: AtomicUsize = AtomicUsize::new(0);
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
             move_on_route: MoveOnRoute::new(route, template.velocity),
@@ -61,9 +61,8 @@ impl Monster {
         }
     }
     pub fn get_damage_to_user(&self) -> f32 {
-        let damage = self.damage;
         // weaken or strengthen the damage
-        damage
+        self.damage
     }
 
     pub fn dead(&self) -> bool {
