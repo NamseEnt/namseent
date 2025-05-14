@@ -18,7 +18,6 @@ impl Component for BackgroundAssetLoaderInitializer {
             ]
             .into_iter()
             .for_each(|background_kind| {
-                let set_background_asset_loader = set_background_asset_loader.clone();
                 ctx.spawn(async move {
                     let resource_location = background_image_resource_location(background_kind);
 

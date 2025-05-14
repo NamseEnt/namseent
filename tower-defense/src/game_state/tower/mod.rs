@@ -24,7 +24,7 @@ pub struct Tower {
 }
 impl Tower {
     pub fn new(template: &TowerTemplate, left_top: MapCoord, now: Instant) -> Self {
-        const ID: AtomicUsize = AtomicUsize::new(0);
+        static ID: AtomicUsize = AtomicUsize::new(0);
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
             left_top,
@@ -268,10 +268,7 @@ impl TowerKind {
         }
     }
     pub fn is_low_card_tower(&self) -> bool {
-        match self {
-            Self::High | Self::OnePair | Self::ThreeOfAKind => true,
-            _ => false,
-        }
+        matches!(self, Self::High | Self::OnePair | Self::ThreeOfAKind)
     }
 }
 impl Display for TowerKind {
@@ -302,7 +299,7 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             return;
         }
 
-        let tower_upgrades = game_state.upgrade_state.tower_upgrades(&tower);
+        let tower_upgrades = game_state.upgrade_state.tower_upgrades(tower);
 
         let mut time_multiple = 1.0;
 

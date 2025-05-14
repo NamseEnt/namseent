@@ -32,7 +32,6 @@ impl Component for TowerAssetLoaderInitializer {
                 ]
                 .into_iter()
                 .for_each(|animation_kind| {
-                    let set_tower_asset_loader = set_tower_asset_loader.clone();
                     ctx.spawn(async move {
                         let resource_location =
                             tower_image_resource_location(tower_kind, animation_kind);

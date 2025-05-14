@@ -113,15 +113,13 @@ impl Animation {
                 force: ATTACK_TRANSIT_FORCE,
                 end_at: now + FORCE_DURATION,
             });
+        } else if let AnimationKind::Attack = self.kind {
+            // Ignore transit force for transition from attack to idle
         } else {
-            if let AnimationKind::Attack = self.kind {
-                // Ignore transit force for transition from attack to idle
-            } else {
-                self.transit_force = Some(TransitForce {
-                    force: IDLE_TRANSIT_FORCE,
-                    end_at: now + FORCE_DURATION,
-                });
-            }
+            self.transit_force = Some(TransitForce {
+                force: IDLE_TRANSIT_FORCE,
+                end_at: now + FORCE_DURATION,
+            });
         }
 
         self.kind = kind;

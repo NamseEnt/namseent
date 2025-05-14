@@ -10,7 +10,7 @@ use crate::{
         user_status_effect::{UserStatusEffect, UserStatusEffectKind},
     },
 };
-use namui::{time::now, *};
+use namui::*;
 use rand::{Rng, thread_rng};
 
 #[derive(Debug, Clone)]

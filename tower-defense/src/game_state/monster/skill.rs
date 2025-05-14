@@ -173,9 +173,9 @@ pub enum PrebuiltSkill {
     Speedmul03,
     Speedmul04,
 }
-impl Into<MonsterSkillTemplate> for PrebuiltSkill {
-    fn into(self) -> MonsterSkillTemplate {
-        match self {
+impl From<PrebuiltSkill> for MonsterSkillTemplate {
+    fn from(val: PrebuiltSkill) -> Self {
+        match val {
             PrebuiltSkill::AreaHeal01 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::HealByMaxHp { ratio: 0.25 },
                 target: Target::MeAndNearby { radius: 3.0 },

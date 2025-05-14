@@ -98,10 +98,10 @@ pub struct QuestState {
 
 pub fn generate_quests(game_state: &GameState, amount: usize) -> Vec<Quest> {
     let rarities = (0..amount).map(|_| game_state.generate_rarity(Default::default()));
-    let items = rarities
+    
+    rarities
         .map(|rarity| generate_quest(game_state, rarity))
-        .collect();
-    items
+        .collect()
 }
 fn generate_quest(game_state: &GameState, rarity: Rarity) -> Quest {
     let requirement = generate_quest_requirement(rarity);

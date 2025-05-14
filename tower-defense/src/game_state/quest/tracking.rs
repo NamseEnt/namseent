@@ -205,8 +205,8 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
     }
     let mut remove_quests = vec![];
     for (quest_index, quest_state) in game_state.quest_states.iter_mut().enumerate() {
-        match &mut quest_state.tracking {
-            &mut QuestTrackingState::BuildTowerRankNew {
+        match quest_state.tracking {
+            QuestTrackingState::BuildTowerRankNew {
                 rank,
                 target_count,
                 ref mut new_built_count,
@@ -227,7 +227,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     }
                 }
             }
-            &mut QuestTrackingState::BuildTowerRank { rank, target_count } => {
+            QuestTrackingState::BuildTowerRank { rank, target_count } => {
                 let QuestTriggerEvent::BuildTower {
                     rank: event_rank, ..
                 } = event
@@ -249,7 +249,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     });
                 }
             }
-            &mut QuestTrackingState::BuildTowerSuitNew {
+            QuestTrackingState::BuildTowerSuitNew {
                 suit,
                 target_count,
                 ref mut new_built_count,
@@ -270,7 +270,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     }
                 }
             }
-            &mut QuestTrackingState::BuildTowerSuit { suit, target_count } => {
+            QuestTrackingState::BuildTowerSuit { suit, target_count } => {
                 let QuestTriggerEvent::BuildTower {
                     suit: event_suit, ..
                 } = event
@@ -291,7 +291,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     });
                 }
             }
-            &mut QuestTrackingState::BuildTowerHandNew {
+            QuestTrackingState::BuildTowerHandNew {
                 hand,
                 target_count,
                 ref mut new_built_count,
@@ -312,7 +312,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     }
                 }
             }
-            &mut QuestTrackingState::BuildTowerHand { hand, target_count } => {
+            QuestTrackingState::BuildTowerHand { hand, target_count } => {
                 let QuestTriggerEvent::BuildTower {
                     hand: event_hand, ..
                 } = event
@@ -333,14 +333,14 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     });
                 }
             }
-            &mut QuestTrackingState::ClearBossRoundWithoutItems => match event {
+            QuestTrackingState::ClearBossRoundWithoutItems => match event {
                 QuestTriggerEvent::ClearBossRound => remove_quests.push(RemoveQuest {
                     index: quest_index,
                     completed: true,
                 }),
                 _ => continue,
             },
-            &mut QuestTrackingState::DealDamageWithItems {
+            QuestTrackingState::DealDamageWithItems {
                 target_damage,
                 ref mut dealt_damage,
             } => {
@@ -355,7 +355,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     });
                 }
             }
-            &mut QuestTrackingState::BuildTowersWithoutReroll {
+            QuestTrackingState::BuildTowersWithoutReroll {
                 target_count,
                 ref mut built_count,
             } => match event {
@@ -373,7 +373,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                 }
                 _ => continue,
             },
-            &mut QuestTrackingState::UseReroll {
+            QuestTrackingState::UseReroll {
                 target_count,
                 ref mut rolled_count,
             } => {
@@ -388,7 +388,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     });
                 }
             }
-            &mut QuestTrackingState::SpendGold {
+            QuestTrackingState::SpendGold {
                 target_gold,
                 ref mut spent_gold,
             } => {
@@ -403,7 +403,7 @@ pub fn on_quest_trigger_event(game_state: &mut GameState, event: QuestTriggerEve
                     });
                 }
             }
-            &mut QuestTrackingState::EarnGold {
+            QuestTrackingState::EarnGold {
                 target_gold,
                 ref mut earned_gold,
             } => {

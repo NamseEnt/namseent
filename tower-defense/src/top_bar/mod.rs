@@ -99,7 +99,7 @@ impl Component for HPAndGoldIndicator {
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
                             ctx.add(Headline {
-                                text: format!("Gold"),
+                                text: "Gold".to_string(),
                                 font_size: typography::FontSize::Medium,
                                 text_align: typography::TextAlign::Center { wh },
                                 max_width: None,

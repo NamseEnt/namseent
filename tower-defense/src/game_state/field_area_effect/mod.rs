@@ -9,21 +9,14 @@ use crate::{
     card::{Rank, Suit},
 };
 use namui::*;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub struct FieldAreaEffect {
-    id: usize,
     kind: FieldAreaEffectKind,
     end_at: FieldAreaEffectEnd,
 }
 impl FieldAreaEffect {
     pub fn new(kind: FieldAreaEffectKind, end_at: FieldAreaEffectEnd) -> Self {
-        static ID: AtomicUsize = AtomicUsize::new(0);
-        Self {
-            id: ID.fetch_add(1, Ordering::Relaxed),
-            kind,
-            end_at,
-        }
+        Self { kind, end_at }
     }
 }
 
