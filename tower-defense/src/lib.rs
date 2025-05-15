@@ -1,6 +1,7 @@
 mod asset_loader;
 mod card;
 mod game_state;
+mod icon;
 mod inventory;
 mod l10n;
 mod quest_board;
