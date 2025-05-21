@@ -7,7 +7,7 @@ where
     T: Clone,
     T: std::fmt::Debug,
 {
-    pub fn as_xy(&self) -> Xy<T> {
+    pub fn to_xy(&self) -> Xy<T> {
         Xy {
             x: self.width.clone(),
             y: self.height.clone(),
