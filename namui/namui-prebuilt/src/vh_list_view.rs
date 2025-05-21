@@ -1,8 +1,10 @@
 use crate::scroll_view::ScrollView;
-use namui::prelude::*;
+use namui::*;
 use std::fmt::Debug;
 
-#[component]
+type ItemRenderFn<'a, TItem> = Box<dyn 'a + Fn(Wh<Px>, TItem, ComposeCtx)>;
+
+/// Auto Variable Height List View
 pub struct AutoVHListView<'a, TItem, TIterator, TItems>
 where
     TIterator: Iterator<Item = TItem>,
@@ -12,7 +14,7 @@ where
     pub scroll_bar_width: Px,
     pub items: TItems,
     pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
-    pub item_render: Box<dyn 'a + Fn(Wh<Px>, TItem, ComposeCtx)>,
+    pub item_render: ItemRenderFn<'a, TItem>,
 }
 impl<TItem, TIterator, TItems> Component for AutoVHListView<'_, TItem, TIterator, TItems>
 where
@@ -20,7 +22,7 @@ where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
 {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             scroll_bar_width,
@@ -31,7 +33,7 @@ where
 
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-        ctx.component(VHListView {
+        ctx.add(VHListView {
             wh,
             scroll_bar_width,
             items,
@@ -40,11 +42,10 @@ where
             scroll_y: *scroll_y,
             set_scroll_y,
         });
-        ctx.done()
     }
 }
 
-#[component]
+/// Variable Height List View
 pub struct VHListView<'a, TItem, TIterator, TItems>
 where
     TIterator: Iterator<Item = TItem>,
@@ -54,7 +55,7 @@ where
     pub scroll_bar_width: Px,
     pub items: TItems,
     pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
-    pub item_render: Box<dyn 'a + Fn(Wh<Px>, TItem, ComposeCtx)>,
+    pub item_render: ItemRenderFn<'a, TItem>,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<Px>,
 }
@@ -64,7 +65,7 @@ where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
 {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             scroll_bar_width,
@@ -99,11 +100,9 @@ where
                 set_scroll_y,
             });
         });
-        ctx.done()
     }
 }
 
-#[component]
 struct Content<'a, TItem, TIterator, TItems>
 where
     TIterator: Iterator<Item = TItem>,
@@ -112,7 +111,7 @@ where
     pub wh: Wh<Px>,
     pub items: TItems,
     pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
-    pub item_render: Box<dyn 'a + Fn(Wh<Px>, TItem, ComposeCtx)>,
+    pub item_render: ItemRenderFn<'a, TItem>,
     pub scroll_y: Px,
 }
 impl<TItem, TIterator, TItems> Component for Content<'_, TItem, TIterator, TItems>
@@ -120,7 +119,7 @@ where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
 {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             items,
             wh,
@@ -173,7 +172,5 @@ where
                 },
             }));
         });
-
-        ctx.done()
     }
 }

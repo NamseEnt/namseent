@@ -1,15 +1,14 @@
 use super::Tab;
 use crate::{color, pages::graphic_asset_manage_page::TAB_ATOM};
-use namui::prelude::*;
-use namui_prebuilt::{simple_rect, table::hooks::*, typography};
+use namui::*;
+use namui_prebuilt::{simple_rect, table::*, typography};
 
-#[component]
 pub(super) struct SideBar {
     pub wh: Wh<Px>,
 }
 
 impl Component for SideBar {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         const PADDING: Px = px(8.0);
@@ -40,17 +39,16 @@ impl Component for SideBar {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }
 
-#[component]
 struct TabButton {
     wh: Wh<Px>,
     tab: Tab,
 }
 impl Component for TabButton {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, tab } = self;
 
         const PADDING: Px = px(4.0);
@@ -89,6 +87,6 @@ impl Component for TabButton {
                 .with_mouse_cursor(MouseCursor::Pointer),
         );
 
-        ctx.done()
+        
     }
 }

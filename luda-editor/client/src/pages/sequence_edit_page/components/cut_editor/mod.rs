@@ -7,12 +7,11 @@ use crate::{
     pages::sequence_edit_page::atom::SEQUENCE_ATOM,
 };
 use background_with_event::*;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, Cut, CutUpdateAction, SequenceUpdateAction};
 use std::collections::BTreeSet;
 
-#[namui::component]
 pub struct CutEditor<'a> {
     pub wh: Wh<Px>,
     pub cut: &'a Cut,
@@ -43,7 +42,7 @@ enum ContextMenu {
 }
 
 impl Component for CutEditor<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cut,
@@ -335,7 +334,7 @@ impl Component for CutEditor<'_> {
             project_id,
         });
 
-        ctx.done()
+        
     }
 }
 

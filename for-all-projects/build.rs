@@ -7,7 +7,7 @@ use std::path::PathBuf;
 include!("src/cli.rs");
 
 fn main() -> Result<(), Error> {
-    if !cfg!(linux) {
+    if !cfg!(target_os = "linux") {
         return Ok(());
     }
 

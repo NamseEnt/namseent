@@ -1,9 +1,9 @@
 use super::Event;
 use crate::{color, components::tool_tip::ToolTip, storage::get_project_cg_part_variant_image_url};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{
     scroll_view, simple_rect,
-    table::hooks::*,
+    table::*,
     typography::{center_text, center_text_full_height},
 };
 use rpc::data::{CgFile, CgPart, CgPartVariant, PartSelectionType, ScreenCg};
@@ -17,7 +17,6 @@ const MIN_THUMBNAIL_CONTAINER_SIDE_PADDING: Px = px(8.0);
 const ROW_VERTICAL_PADDING: Px = px(8.0);
 const DIVIDER_HEIGHT: Px = px(32.0);
 
-#[namui::component]
 pub struct PartPicker<'a> {
     pub wh: Wh<Px>,
     pub cg_file: &'a CgFile,
@@ -32,7 +31,7 @@ pub enum InternalEvent {
 }
 
 impl Component for PartPicker<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cg_file,
@@ -85,11 +84,10 @@ impl Component for PartPicker<'_> {
             }),
         );
 
-        ctx.done()
+        
     }
 }
 
-#[component]
 struct CgPartList<'a> {
     wh: Wh<Px>,
     cg_file: &'a CgFile,
@@ -99,7 +97,7 @@ struct CgPartList<'a> {
     on_internal_event: &'a dyn Fn(InternalEvent),
 }
 impl Component for CgPartList<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cg_file,
@@ -152,11 +150,10 @@ impl Component for CgPartList<'_> {
             },
         });
 
-        ctx.done()
+        
     }
 }
 
-#[component]
 struct CgPartGroup<'a> {
     width: Px,
     cg_part: &'a CgPart,
@@ -171,7 +168,7 @@ struct CgPartGroup<'a> {
     thumbnail_container_side_padding: Px,
 }
 impl Component for CgPartGroup<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             width,
             cg_part,
@@ -266,7 +263,7 @@ impl Component for CgPartGroup<'_> {
 
         ctx.compose(|ctx| vertical(items)(Wh::new(width, 0.px()), ctx));
 
-        ctx.done()
+        
     }
 }
 
@@ -284,7 +281,6 @@ fn render_title_bar(cg_part: &CgPart) -> TableCell {
     })
 }
 
-#[component]
 struct NoSelectionButton<'a> {
     wh: Wh<Px>,
     no_selection: bool,
@@ -292,7 +288,7 @@ struct NoSelectionButton<'a> {
     on_event: &'a dyn Fn(Event),
 }
 impl Component for NoSelectionButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             no_selection,
@@ -347,7 +343,6 @@ fn render_divider<'a>(height: Px) -> TableCell<'a> {
     })
 }
 
-#[component]
 struct Thumbnail<'a> {
     wh: Wh<Px>,
     cg_part: &'a CgPart,
@@ -359,7 +354,7 @@ struct Thumbnail<'a> {
     on_internal_event: &'a dyn Fn(InternalEvent),
 }
 impl Component for Thumbnail<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cg_part,
@@ -441,7 +436,7 @@ impl Component for Thumbnail<'_> {
             ),
         );
 
-        ctx.done()
+        
     }
 }
 

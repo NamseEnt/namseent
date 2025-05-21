@@ -1,11 +1,10 @@
 use crate::color;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::button::TextButtonFitAlign;
 use namui_prebuilt::scroll_view::{self};
 use namui_prebuilt::{simple_rect, table, transparent_rect};
 use rpc::data::Memo;
 
-#[namui::component]
 pub struct MemoListView<'a> {
     pub wh: Wh<Px>,
     pub memos: Option<&'a Vec<Memo>>,
@@ -18,7 +17,7 @@ pub enum Event {
 }
 
 impl Component for MemoListView<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             ref memos,
@@ -33,9 +32,9 @@ impl Component for MemoListView<'_> {
                 let Some(memos) = memos else {
                     return;
                 };
-                table::hooks::vertical(memos.iter().map(|memo| {
-                    table::hooks::fit(
-                        table::hooks::FitAlign::LeftTop,
+                table::vertical(memos.iter().map(|memo| {
+                    table::fit(
+                        table::FitAlign::LeftTop,
                         MemoComponent {
                             width: wh.width,
                             memo,
@@ -53,11 +52,10 @@ impl Component for MemoListView<'_> {
             1.px(),
             color::BACKGROUND,
         ));
-        ctx.done()
+        
     }
 }
 
-#[namui::component]
 struct MemoComponent<'a> {
     width: Px,
     memo: &'a Memo,
@@ -65,7 +63,7 @@ struct MemoComponent<'a> {
     on_event: &'a dyn Fn(Event),
 }
 impl Component for MemoComponent<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const MARGIN: Px = px(8.0);
         const PADDING: Px = px(8.0);
 
@@ -107,7 +105,6 @@ impl Component for MemoComponent<'_> {
     }
 }
 
-#[namui::component]
 struct MemoContent<'a> {
     width: Px,
     memo: &'a Memo,
@@ -115,7 +112,7 @@ struct MemoContent<'a> {
     on_event: &'a dyn Fn(Event),
 }
 impl Component for MemoContent<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const MARGIN: Px = px(8.0);
         const PADDING: Px = px(8.0);
         const BUTTON_HEIGHT: Px = px(24.0);

@@ -8,20 +8,7 @@ pub async fn run_commands_in_parallel(run: Run, cargo_project_dirs: Vec<PathBuf>
 
     let throttle = std::thread::available_parallelism()?.get();
 
-    let commands = [
-        Command::Clean,
-        Command::Update,
-        Command::Metadata,
-        Command::Check,
-        Command::Fmt,
-        Command::Fix,
-        Command::Clippy,
-        Command::ClippyFix,
-        Command::Test,
-    ]
-    .into_iter()
-    .filter(|command| command.requested(&run))
-    .collect::<Vec<_>>();
+    let commands = filter_requested_commands(run);
 
     if commands.is_empty() {
         anyhow::bail!("No command is requested");
@@ -31,6 +18,7 @@ pub async fn run_commands_in_parallel(run: Run, cargo_project_dirs: Vec<PathBuf>
         for cargo_project_dir in &cargo_project_dirs {
             join_set.spawn({
                 let cargo_project_dir = cargo_project_dir.clone();
+                let command = command.clone();
                 async move {
                     let command_str = command.as_str(&cargo_project_dir).await?;
                     run_command(cargo_project_dir, &command_str).await
@@ -51,7 +39,42 @@ pub async fn run_commands_in_parallel(run: Run, cargo_project_dirs: Vec<PathBuf>
     Ok(())
 }
 
-#[derive(Clone, Copy)]
+fn filter_requested_commands(run: Run) -> Vec<Command> {
+    let mut commands = vec![];
+    if run.command.clean {
+        commands.push(Command::Clean);
+    }
+    if run.command.update {
+        commands.push(Command::Update);
+    }
+    if run.command.metadata {
+        commands.push(Command::Metadata);
+    }
+    if run.command.check {
+        commands.push(Command::Check);
+    }
+    if run.command.fmt {
+        commands.push(Command::Fmt);
+    }
+    if run.command.fix {
+        commands.push(Command::Fix);
+    }
+    if run.command.clippy {
+        commands.push(Command::Clippy);
+    }
+    if run.command.clippy_fix {
+        commands.push(Command::ClippyFix);
+    }
+    if run.command.test {
+        commands.push(Command::Test);
+    }
+    if let Some(command) = run.command.custom {
+        commands.push(Command::Custom { command });
+    }
+    commands
+}
+
+#[derive(Clone)]
 enum Command {
     Clean,
     Update,
@@ -62,23 +85,11 @@ enum Command {
     Clippy,
     ClippyFix,
     Test,
+    Custom { command: String },
 }
 
 impl Command {
-    fn requested(&self, run: &Run) -> bool {
-        match self {
-            Command::Clean => run.command.clean,
-            Command::Update => run.command.update,
-            Command::Metadata => run.command.metadata,
-            Command::Check => run.command.check,
-            Command::Fmt => run.command.fmt,
-            Command::Fix => run.command.fix,
-            Command::Clippy => run.command.clippy,
-            Command::ClippyFix => run.command.clippy_fix,
-            Command::Test => run.command.test,
-        }
-    }
-    async fn as_str<'a, 'b>(&'a self, cargo_project_dir: &'b Path) -> Result<String> {
+    async fn as_str(&self, cargo_project_dir: &Path) -> Result<String> {
         Ok(match self {
             Command::Clean => "cargo clean".to_string(),
             Command::Update => "cargo update".to_string(),
@@ -89,6 +100,7 @@ impl Command {
             Command::Clippy => "cargo clippy".to_string(),
             Command::ClippyFix => "cargo clippy --fix --allow-dirty --allow-staged".to_string(),
             Command::Test => get_test_command(cargo_project_dir).await?,
+            Command::Custom { command } => command.clone(),
         })
     }
 }

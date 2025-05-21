@@ -1,0 +1,17 @@
+[package]
+name = "psd-sprite-render"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+psd = { path = "../third-party-forks/psd" }
+rayon = "1.10.0"
+anyhow = { version = "1.0.86", features = ["backtrace"] }
+skia-safe = { path = "../../namui/third-party-forks/rust-skia/skia-safe" }
+schema-0 = { version = "0.0.1", path = "../new-server/database/schema/0" }
+namui = { version = "0.1.0", path = "../../namui/namui" }
+psd-sprite = { version = "0.1.0", path = "../psd-sprite" }
+
+[dev-dependencies]
+bytes = "1.7.1"
+futures-util = { version = "0.3.30", features = ["io"] }

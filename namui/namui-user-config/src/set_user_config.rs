@@ -9,24 +9,19 @@ pub fn set_user_config(target: Target) -> Result<()> {
     let user_config_path = get_user_config_path()?;
     ensure_user_config_dir(&user_config_path)?;
     let cfg_map: NamuiCfgMap = match target {
-        Target::WasmUnknownWeb => [
+        Target::Wasm32WasiWeb => [
             ("target_os", "unknown"),
             ("target_env", "web"),
-            ("target_arch", "wasm"),
-        ],
-        Target::WasmWindowsElectron => [
-            ("target_os", "windows"),
-            ("target_env", "electron"),
-            ("target_arch", "wasm"),
-        ],
-        Target::WasmLinuxElectron => [
-            ("target_os", "linux"),
-            ("target_env", "electron"),
             ("target_arch", "wasm"),
         ],
         Target::X86_64PcWindowsMsvc => [
             ("target_os", "windows"),
             ("target_env", "msvc"),
+            ("target_arch", "x86_64"),
+        ],
+        Target::X86_64UnknownLinuxGnu => [
+            ("target_os", "linux"),
+            ("target_env", "gnu"),
             ("target_arch", "x86_64"),
         ],
     }

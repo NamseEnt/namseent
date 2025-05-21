@@ -5,16 +5,32 @@ crate::vector_types!(Xy, { x, y });
 impl<T> Xy<T>
 where
     T: Into<f32> + From<f32> + Copy,
+    T: std::fmt::Debug,
 {
     pub fn angle_to(&self, rhs: Xy<T>) -> Angle {
         let x: f32 = self.x.into();
         let y: f32 = self.y.into();
         let rhs_x: f32 = rhs.x.into();
         let rhs_y: f32 = rhs.y.into();
-        Angle::Radian((x * rhs_y - y * rhs_x).atan2(x * rhs_x + y * rhs_y))
+        (x * rhs_y - y * rhs_x).atan2(x * rhs_x + y * rhs_y).rad()
     }
     pub fn atan2(&self) -> Angle {
-        Angle::Radian(self.y.into().atan2(self.x.into()))
+        self.y.into().atan2(self.x.into()).rad()
+    }
+}
+
+impl<T> Xy<T>
+where
+    T: std::fmt::Debug,
+{
+    pub fn as_wh(&self) -> Wh<T>
+    where
+        T: Clone,
+    {
+        Wh {
+            width: self.x.clone(),
+            height: self.y.clone(),
+        }
     }
 }
 
@@ -31,9 +47,22 @@ impl<T> Xy<T> {
 }
 
 // TODO: Implement this on vector_types! macro.
-impl<T> From<Xy<T>> for (T, T) {
+impl<T, T2> From<Xy<T>> for (T2, T2)
+where
+    T: Into<T2>,
+    T: std::fmt::Debug,
+{
     fn from(val: Xy<T>) -> Self {
-        (val.x, val.y)
+        (val.x.into(), val.y.into())
+    }
+}
+// TODO: Implement this on vector_types! macro.
+impl<T> From<(T, T)> for Xy<T>
+where
+    T: std::fmt::Debug,
+{
+    fn from(val: (T, T)) -> Self {
+        Xy { x: val.0, y: val.1 }
     }
 }
 

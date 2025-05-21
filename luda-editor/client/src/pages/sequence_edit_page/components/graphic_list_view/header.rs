@@ -1,13 +1,12 @@
 use crate::color;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
-#[component]
 pub struct Header {
     pub wh: Wh<Px>,
 }
 impl Component for Header {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const PADDING: Wh<Px> = Wh {
             width: px(8.0),
             height: px(4.0),
@@ -16,8 +15,8 @@ impl Component for Header {
         let Self { wh } = self;
 
         ctx.compose(|ctx| {
-            table::hooks::vertical_padding(PADDING.height, |wh, ctx| {
-                table::hooks::horizontal_padding(PADDING.width, |wh, ctx| {
+            table::vertical_padding(PADDING.height, |wh, ctx| {
+                table::horizontal_padding(PADDING.width, |wh, ctx| {
                     ctx.add(text(TextParam {
                         text: "Graphic List".to_string(),
                         x: 0.px(),
@@ -45,6 +44,6 @@ impl Component for Header {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }

@@ -1,0 +1,10 @@
+[package]
+name = "schema-0"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+document = { path = "../document" }
+schema-macro = { path = "../macro" }
+namui-type = { path = "../../../../../namui/namui-type" }
+serde = { version = "1.0", features = ["derive"] }

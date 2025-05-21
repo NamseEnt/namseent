@@ -1,10 +1,9 @@
 use crate::{list_view::AutoListView, simple_rect, typography};
-use namui::prelude::*;
+use namui::*;
 use std::{fmt::Debug, ops::Deref};
 
 const LEFT_PADDING: Px = px(10.0);
 
-#[component]
 pub struct Dropdown<'a> {
     pub rect: Rect<Px>,
     pub items: Vec<Item<'a>>,
@@ -12,7 +11,7 @@ pub struct Dropdown<'a> {
 }
 
 impl Component for Dropdown<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             rect,
             items,
@@ -28,7 +27,7 @@ impl Component for Dropdown<'_> {
             .map(|item| item.text.clone());
 
         ctx.compose(|ctx| {
-            let mut ctx = ctx.translate((rect.x(), rect.y()));
+            let ctx = ctx.translate((rect.x(), rect.y()));
 
             ctx.compose(|ctx| {
                 ctx.add(
@@ -76,40 +75,35 @@ impl Component for Dropdown<'_> {
                         height: body_height,
                         scroll_bar_width: 5.px(),
                         item_wh: rect.wh(),
-                        items: items
-                            .into_iter()
-                            .enumerate()
-                            .map(|(item_index, item)| {
-                                let is_mouse_over =
-                                    mouse_over_item_index.deref() == &Some(item_index);
-                                let is_selected = item.is_selected;
+                        items: items.into_iter().enumerate().map(|(item_index, item)| {
+                            let is_mouse_over = mouse_over_item_index.deref() == &Some(item_index);
+                            let is_selected = item.is_selected;
 
-                                let item_component = InternalItem {
-                                    wh: rect.wh(),
-                                    text: item.text,
-                                    is_selected,
-                                    is_mouse_over,
+                            let item_component = InternalItem {
+                                wh: rect.wh(),
+                                text: item.text,
+                                is_selected,
+                                is_mouse_over,
+                            }
+                            .attach_event(move |event| match event {
+                                Event::MouseDown { event } => {
+                                    if event.is_local_xy_in() {
+                                        set_mouse_over_item_index.set(Some(item_index));
+                                    }
                                 }
-                                .attach_event(move |event| match event {
-                                    Event::MouseDown { event } => {
-                                        if event.is_local_xy_in() {
-                                            set_mouse_over_item_index.set(Some(item_index));
+                                Event::MouseMove { event } => {
+                                    if event.is_local_xy_in() {
+                                        event.stop_propagation();
+                                        if !is_selected {
+                                            (item.on_select_item)();
                                         }
+                                        set_is_opened.set(false);
                                     }
-                                    Event::MouseMove { event } => {
-                                        if event.is_local_xy_in() {
-                                            event.stop_propagation();
-                                            if !is_selected {
-                                                (item.on_select_item)();
-                                            }
-                                            set_is_opened.set(false);
-                                        }
-                                    }
-                                    _ => {}
-                                });
-                                (item_index.to_string(), item_component)
-                            })
-                            .collect(),
+                                }
+                                _ => {}
+                            });
+                            (item_index, item_component)
+                        }),
                     })
                     .add(simple_rect(
                         Wh {
@@ -122,8 +116,6 @@ impl Component for Dropdown<'_> {
                     ));
             });
         });
-
-        ctx.done()
     }
 }
 
@@ -141,7 +133,6 @@ impl Debug for Item<'_> {
     }
 }
 
-#[component]
 struct InternalItem {
     wh: Wh<Px>,
     text: String,
@@ -150,7 +141,7 @@ struct InternalItem {
 }
 
 impl Component for InternalItem {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             text,
@@ -182,7 +173,5 @@ impl Component for InternalItem {
                 },
             ));
         });
-
-        ctx.done()
     }
 }

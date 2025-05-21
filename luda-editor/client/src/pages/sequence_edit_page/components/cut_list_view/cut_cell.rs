@@ -9,10 +9,9 @@ use crate::{
     storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
     *,
 };
-use namui_prebuilt::table::hooks::*;
+use namui_prebuilt::table::*;
 use rpc::data::{CgFile, ScreenGraphic, SequenceUpdateAction};
 
-#[namui::component]
 pub struct CutCell<'a> {
     pub wh: Wh<Px>,
     pub index: usize,
@@ -30,7 +29,7 @@ enum ContextMenu {
 }
 
 impl Component for CutCell<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             index,
@@ -84,27 +83,27 @@ impl Component for CutCell<'_> {
         }));
 
         ctx.compose(|ctx| {
-            table::hooks::padding(
+            table::padding(
                 12.px(),
-                table::hooks::horizontal([
-                    table::hooks::fixed(24.px(), |wh, ctx| {
-                        table::hooks::vertical([
-                            table::hooks::fit(
-                                table::hooks::FitAlign::LeftTop,
+                table::horizontal([
+                    table::fixed(24.px(), |wh, ctx| {
+                        table::vertical([
+                            table::fit(
+                                table::FitAlign::LeftTop,
                                 typography::body::center_top(
                                     wh.width,
                                     format!("{}", index),
                                     stroke_color,
                                 ),
                             ),
-                            table::hooks::fixed(4.px(), |_, _| {}),
-                            table::hooks::fit(
-                                table::hooks::FitAlign::LeftTop,
+                            table::fixed(4.px(), |_, _| {}),
+                            table::fit(
+                                table::FitAlign::LeftTop,
                                 render_comment_badge(wh.width, memo_count, stroke_color),
                             ),
                         ])(wh, ctx)
                     }),
-                    table::hooks::ratio(1, |wh, ctx| {
+                    table::ratio(1, |wh, ctx| {
                         let thumbnail = Thumbnail {
                             wh,
                             cut: &cut,
@@ -145,12 +144,12 @@ impl Component for CutCell<'_> {
                             }
                         };
                     }),
-                    table::hooks::fixed(8.px(), |_wh, _ctx| {}),
+                    table::fixed(8.px(), |_wh, _ctx| {}),
                 ]),
             )(wh, ctx)
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -203,7 +202,6 @@ fn render_comment_badge(width: Px, memo_count: usize, color: Color) -> Rendering
     ])
 }
 
-#[component]
 struct Thumbnail<'a> {
     wh: Wh<Px>,
     cut: &'a Cut,
@@ -213,7 +211,7 @@ struct Thumbnail<'a> {
     cg_files: &'a Vec<CgFile>,
 }
 impl Component for Thumbnail<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cut,
@@ -257,11 +255,10 @@ impl Component for Thumbnail<'_> {
             }
         });
 
-        ctx.done()
+        
     }
 }
 
-#[component]
 struct GraphicClip<'a> {
     container_wh: Wh<Px>,
     project_id: Uuid,
@@ -269,7 +266,7 @@ struct GraphicClip<'a> {
     cg_files: &'a Vec<CgFile>,
 }
 impl Component for GraphicClip<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             container_wh,
             project_id,
@@ -286,10 +283,10 @@ impl Component for GraphicClip<'_> {
             Some(Ok(image)) => image,
             Some(Err(error)) => {
                 namui::log!("Failed to load image: {:?}", error);
-                return ctx.done();
+                return ;
             }
             None => {
-                return ctx.done();
+                return ;
             }
         };
         let graphic_wh = image.wh;
@@ -341,17 +338,16 @@ impl Component for GraphicClip<'_> {
             ctx.compose(graphic_rendering_tree);
         });
 
-        ctx.done()
+        
     }
 }
 
-#[component]
 struct TextBox<'a> {
     container_wh: Wh<Px>,
     cut: &'a Cut,
 }
 impl Component for TextBox<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { container_wh, cut } = self;
 
         const PADDING_RATIO: f32 = 32.0 / 1080.0;
@@ -436,6 +432,6 @@ impl Component for TextBox<'_> {
             ])(container_wh, ctx)
         });
 
-        ctx.done()
+        
     }
 }

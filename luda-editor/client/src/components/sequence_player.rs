@@ -1,10 +1,9 @@
 use super::cg_render;
 use crate::storage::{get_project_cg_thumbnail_image_url, get_project_image_url};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::*;
 
-#[component]
 pub struct SequencePlayer<'a> {
     pub wh: Wh<Px>,
     pub sequence: &'a Sequence,
@@ -15,7 +14,7 @@ pub struct SequencePlayer<'a> {
 }
 
 impl Component for SequencePlayer<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let (cut_index, _) = ctx.state(|| self.init_cut_index);
 
         #[derive(Debug)]
@@ -34,7 +33,7 @@ impl Component for SequencePlayer<'_> {
         });
 
         if self.sequence.cuts.is_empty() {
-            return ctx.done();
+            return ;
         }
 
         let now = ctx.track_eq(&namui::now());
@@ -186,7 +185,7 @@ impl Component for SequencePlayer<'_> {
                 });
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -367,16 +366,16 @@ pub fn render_over_text_hooks<'a>(
     character_name_side: impl 'a + Fn(Wh<Px>, &mut ComposeCtx),
     cut_text_side: impl 'a + Fn(Wh<Px>, &mut ComposeCtx),
 ) {
-    table::hooks::vertical([
-        table::hooks::ratio(3, |_wh, _ctx| {}),
-        table::hooks::ratio(
+    table::vertical([
+        table::ratio(3, |_wh, _ctx| {}),
+        table::ratio(
             1,
-            table::hooks::vertical([
-                table::hooks::ratio(
+            table::vertical([
+                table::ratio(
                     1,
-                    table::hooks::horizontal_padding(32.px(), character_name_side),
+                    table::horizontal_padding(32.px(), character_name_side),
                 ),
-                table::hooks::ratio(3, table::hooks::padding_no_clip(32.px(), cut_text_side)),
+                table::ratio(3, table::padding_no_clip(32.px(), cut_text_side)),
             ]),
         ),
     ])(wh, ctx);
@@ -433,7 +432,6 @@ fn render_graphics(
     });
 }
 
-#[component]
 pub struct SequencePlayerGraphic<'a> {
     project_id: Uuid,
     wh: Wh<Px>,
@@ -443,7 +441,7 @@ pub struct SequencePlayerGraphic<'a> {
 }
 
 impl Component for SequencePlayerGraphic<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let graphic = ctx.track_eq(self.graphic);
         let url = ctx.memo(|| match graphic.as_ref() {
             ScreenGraphic::Image(screen_image) => {
@@ -455,12 +453,12 @@ impl Component for SequencePlayerGraphic<'_> {
         });
         let image = ctx.image(&url);
         let Some(image) = image.as_ref() else {
-            return ctx.done();
+            return ;
         };
 
         let Ok(image) = image else {
             namui::log!("Failed to load image: {:?}", url);
-            return ctx.done();
+            return ;
         };
 
         ctx.compose(|ctx| {

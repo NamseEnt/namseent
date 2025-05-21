@@ -1,8 +1,7 @@
 use crate::storage::get_project_cg_part_variant_image_url;
-use namui::prelude::*;
+use namui::*;
 use rpc::data::*;
 
-#[component]
 pub struct CgRender<'a> {
     pub rect: Rect<Px>,
     pub project_id: Uuid,
@@ -11,7 +10,7 @@ pub struct CgRender<'a> {
 }
 
 impl Component for CgRender<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let render_cg_variant = |ctx: &mut ComposeCtx, variant: &rpc::data::CgPartVariant| {
             let rect = Rect::Xywh {
                 x: self.rect.x() + self.rect.width() * variant.rect.x(),

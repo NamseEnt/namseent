@@ -2,8 +2,8 @@ mod part_picker;
 
 use self::part_picker::PartPicker;
 use crate::{color, components::cg_render::CgRender, storage::get_project_cg_thumbnail_image_url};
-use namui::prelude::*;
-use namui_prebuilt::{button, simple_rect, table::hooks::*, typography};
+use namui::*;
+use namui_prebuilt::{button, simple_rect, table::*, typography};
 use rpc::data::{CgFile, ScreenCg};
 use std::ops::Deref;
 
@@ -30,7 +30,6 @@ pub enum Event {
     },
 }
 
-#[component]
 pub struct CgViewer<'a> {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
@@ -40,7 +39,7 @@ pub struct CgViewer<'a> {
 }
 
 impl Component for CgViewer<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             project_id,
@@ -170,11 +169,10 @@ impl Component for CgViewer<'_> {
             ),
         );
 
-        ctx.done()
+        
     }
 }
 
-#[component]
 struct RenderCgContainFit<'a> {
     wh: Wh<Px>,
     project_id: Uuid,
@@ -182,7 +180,7 @@ struct RenderCgContainFit<'a> {
     cg_file: &'a rpc::data::CgFile,
 }
 impl Component for RenderCgContainFit<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             project_id,
@@ -210,7 +208,7 @@ impl Component for RenderCgContainFit<'_> {
             });
         });
 
-        ctx.done()
+        
     }
 }
 

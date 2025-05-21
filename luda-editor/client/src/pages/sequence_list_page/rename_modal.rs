@@ -1,7 +1,6 @@
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 
-#[namui::component]
 pub struct RenameModal<'a> {
     pub init_sequence_name: String,
     pub on_rename_done: &'a (dyn 'a + Fn(String)),
@@ -9,7 +8,7 @@ pub struct RenameModal<'a> {
 }
 
 impl Component for RenameModal<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             init_sequence_name,
             on_rename_done,
@@ -128,6 +127,6 @@ impl Component for RenameModal<'_> {
                 }),
             );
         });
-        ctx.done()
+        
     }
 }

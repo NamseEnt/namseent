@@ -1,26 +1,23 @@
 {
-  "name": "webcode",
+  "name": "wasi",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "build": "rollup -c --environment NAMUI_ENV:production",
-    "watch": "rollup -c -w --environment NAMUI_ENV:development",
-    "build:prod": "rollup -c --environment NAMUI_ENV:production",
-    "build:dev": "rollup -c --environment NAMUI_ENV:development"
+    "dev": "vite",
+    "watch": "vite build --sourcemap inline --watch",
+    "build": "tsc && vite build --sourcemap inline",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.7.5",
+    "@types/express": "^5.0.1",
+    "compression": "^1.8.0",
+    "express": "^5.1.0",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.0"
   },
   "dependencies": {
-    "@msgpack/msgpack": "^3.0.0-beta2",
-    "canvaskit-wasm": "=0.38.0",
-    "idb-keyval": "^6.2.1",
-    "preact": "^10.17.1"
-  },
-  "type": "module",
-  "devDependencies": {
-    "@rollup/plugin-babel": "^6.0.3",
-    "@rollup/plugin-node-resolve": "^15.1.0",
-    "@rollup/plugin-typescript": "^11.1.2",
-    "rollup": "^3.27.0",
-    "rollup-plugin-copy": "^3.4.0",
-    "rollup-plugin-polyfill-node": "^0.12.0",
-    "tslib": "^2.6.1",
-    "typescript": "^5.1.6"
+    "@bjorn3/browser_wasi_shim": "^0.3.0"
   }
 }

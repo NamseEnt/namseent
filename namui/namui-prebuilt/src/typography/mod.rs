@@ -3,7 +3,7 @@ pub mod effect;
 pub mod title;
 
 use crate::*;
-use namui::prelude::*;
+use namui::*;
 
 pub fn center_text(
     wh: Wh<Px>,
@@ -71,7 +71,7 @@ pub fn text_fit(
         max_width: None,
     });
 
-    let width = match center_text.bounding_box() {
+    let width = match namui::bounding_box(&center_text) {
         Some(bounding_box) => bounding_box.width(),
         None => return RenderingTree::Empty,
     };
@@ -98,10 +98,8 @@ pub fn adjust_font_size(height: Px) -> IntPx {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn adjust_font_size_should_work() {
         assert_eq!(adjust_font_size(10.0.px()), 4.int_px());
         assert_eq!(adjust_font_size(20.0.px()), 12.int_px());

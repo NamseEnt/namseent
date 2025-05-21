@@ -6,14 +6,13 @@ use crate::{
     pages::sequence_edit_page::atom::SEQUENCE_ATOM,
 };
 use cut_cell::*;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, Cut, Memo, MoveCutAction};
 use std::collections::HashMap;
 
 static DRAGGING_CONTEXT: Atom<Option<DraggingContext>> = Atom::uninitialized_new();
 
-#[namui::component]
 pub struct CutListView<'a> {
     pub wh: Wh<Px>,
     pub cuts: &'a Vec<Cut>,
@@ -32,7 +31,7 @@ pub enum Event {
     RightClick { global_xy: Xy<Px> },
 }
 impl Component for CutListView<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cuts,
@@ -235,7 +234,7 @@ impl Component for CutListView<'_> {
                 },
             ),
         );
-        ctx.done()
+        
     }
 }
 

@@ -7,12 +7,11 @@ use crate::{
     components::tool_tip::ToolTip,
     pages::sequence_edit_page::atom::{CG_FILES_ATOM, SEQUENCE_ATOM},
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::{Cut, CutUpdateAction, ScreenCg, ScreenGraphic};
 use std::{ops::Deref, sync::atomic::AtomicBool};
 
-#[namui::component]
 pub struct CharacterEditor<'a> {
     pub edit_target: EditTarget,
     pub wh: Wh<Px>,
@@ -28,7 +27,7 @@ pub enum Event {
 }
 
 impl Component for CharacterEditor<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             edit_target,
             wh,
@@ -206,7 +205,7 @@ impl Component for CharacterEditor<'_> {
 
         ctx.component(background);
 
-        ctx.done()
+        
     }
 }
 

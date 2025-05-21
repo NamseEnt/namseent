@@ -4,12 +4,12 @@ use crate::app::notification;
 use crate::app::notification::Notification;
 use crate::color;
 use crate::RPC;
-use namui::prelude::*;
+use namui::*;
 use namui::text_input::Style;
 use namui_prebuilt::button::TextButton;
 use namui_prebuilt::list_view::AutoListView;
 use namui_prebuilt::typography;
-use namui_prebuilt::{simple_rect, table::hooks::*};
+use namui_prebuilt::{simple_rect, table::*};
 use rpc::list_user_acls::UserAcl;
 use rpc::types::ProjectAclUserPermission;
 use std::fmt::Write;
@@ -18,14 +18,13 @@ use top_bar::TopBar;
 
 const BUTTON_WIDTH: Px = px(128.0);
 
-#[namui::component]
 pub struct ProjectAclManagePage {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
 }
 
 impl Component for ProjectAclManagePage {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         const TOP_BAR_HEIGHT: Px = px(48.0);
@@ -123,18 +122,17 @@ impl Component for ProjectAclManagePage {
             Color::TRANSPARENT,
         ));
 
-        ctx.done()
+        
     }
 }
 
-#[component]
 struct ListItem<'a> {
     wh: Wh<Px>,
     acl: &'a UserAcl,
     update_acl: &'a dyn Fn(Uuid, Option<ProjectAclUserPermission>),
 }
 impl Component for ListItem<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             acl,
@@ -175,17 +173,16 @@ impl Component for ListItem<'_> {
             1.px(),
             color::BACKGROUND,
         ));
-        ctx.done()
+        
     }
 }
 
-#[component]
 struct EditorAdder<'a> {
     wh: Wh<Px>,
     update_acl: &'a dyn Fn(Uuid, Option<ProjectAclUserPermission>),
 }
 impl Component for EditorAdder<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, update_acl } = self;
         const PADDING: Ltrb<Px> = Ltrb {
             left: px(8.0),
@@ -264,7 +261,7 @@ impl Component for EditorAdder<'_> {
                 }),
             ])(wh, ctx)
         });
-        ctx.done()
+        
     }
 }
 

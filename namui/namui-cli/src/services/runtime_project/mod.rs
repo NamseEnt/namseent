@@ -6,6 +6,7 @@ use std::path::PathBuf;
 pub struct GenerateRuntimeProjectArgs {
     pub target_dir: PathBuf,
     pub project_path: PathBuf,
+    pub strip_debug_info: bool,
 }
 
 fn get_project_name(project_path: PathBuf) -> String {
@@ -44,6 +45,7 @@ mod tests {
         generate_runtime_project(GenerateRuntimeProjectArgs {
             target_dir: std::env::temp_dir(),
             project_path,
+            strip_debug_info: false,
         })
         .unwrap();
     }

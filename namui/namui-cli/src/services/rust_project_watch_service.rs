@@ -1,54 +1,47 @@
-use crate::debug_println;
 use crate::*;
 use cargo_metadata::MetadataCommand;
 use notify::{Config, RecommendedWatcher, Watcher};
 use regex::Regex;
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::{collections::HashSet, path::PathBuf, str::FromStr};
 
-pub struct RustProjectWatchService {}
+pub struct RustProjectWatchService {
+    manifest_path: PathBuf,
+    watcher: RecommendedWatcher,
+    watcher_receiver: tokio::sync::mpsc::UnboundedReceiver<notify::Result<notify::Event>>,
+    watching_paths: HashSet<PathBuf>,
+}
 
 const WATCHING_ITEMS_IN_PROJECT: [&str; 3] = ["src", "Cargo.toml", ".namuibundle"];
 
 impl RustProjectWatchService {
-    pub(crate) fn new() -> Self {
-        Self {}
-    }
-
-    pub(crate) async fn watch(
-        &self,
-        manifest_path: PathBuf,
-        callback: impl 'static + Fn() + Send + Sync,
-    ) -> Result<()> {
-        let mut watching_paths = HashSet::new();
-
-        let (watcher_sender, mut watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
-        let mut watcher = RecommendedWatcher::new(
+    pub(crate) fn new(manifest_path: impl AsRef<std::path::Path>) -> Result<Self> {
+        let (watcher_sender, watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
+        let watcher = RecommendedWatcher::new(
             move |res| {
-                watcher_sender.send(res).unwrap();
+                let _ = watcher_sender.send(res);
             },
             Config::default(),
         )?;
 
-        loop {
-            RustProjectWatchService::update_watching_paths(
-                manifest_path.as_path(),
-                &mut watching_paths,
-                &mut watcher,
-            )
-            .unwrap();
+        Ok(Self {
+            manifest_path: manifest_path.as_ref().to_path_buf(),
+            watcher,
+            watcher_receiver,
+            watching_paths: HashSet::new(),
+        })
+    }
 
-            let event = watcher_receiver.recv().await.unwrap().unwrap();
-            debug_println!("watch event");
+    pub(crate) async fn next(&mut self) -> Result<Option<()>> {
+        loop {
+            self.update_watching_paths().await?;
+
+            let event = self.watcher_receiver.recv().await.unwrap().unwrap();
             match event.kind {
                 notify::EventKind::Create(_)
                 | notify::EventKind::Modify(_)
                 | notify::EventKind::Remove(_) => {
                     'flush: loop {
-                        match watcher_receiver.try_recv() {
+                        match self.watcher_receiver.try_recv() {
                             Ok(_) => (),
                             Err(error) => match error {
                                 tokio::sync::mpsc::error::TryRecvError::Empty => break 'flush,
@@ -58,23 +51,23 @@ impl RustProjectWatchService {
                             },
                         }
                     }
-                    callback();
+                    return Ok(Some(()));
                 }
                 _ => {}
             };
         }
     }
 
-    fn update_watching_paths(
-        manifest_path: &Path,
-        watching_paths: &mut HashSet<PathBuf>,
-        watcher: &mut impl Watcher,
-    ) -> Result<()> {
-        let local_path_in_repr = Regex::new(r"\(path\+file://([^\)]+)\)$").unwrap();
-        let project_root_path = manifest_path.parent().unwrap();
+    async fn update_watching_paths(&mut self) -> Result<()> {
+        let local_path_in_repr = Regex::new(r"path\+file://([^#]+)")?;
+        let project_root_path = self.manifest_path.parent().unwrap();
         let mut local_dependencies_root_paths = HashSet::new();
 
-        let metadata = MetadataCommand::new().manifest_path(manifest_path).exec()?;
+        let metadata = tokio::task::spawn_blocking({
+            let manifest_path = self.manifest_path.clone();
+            move || MetadataCommand::new().manifest_path(manifest_path).exec()
+        })
+        .await??;
 
         if let Some(resolve) = metadata.resolve {
             for node in resolve.nodes {
@@ -90,7 +83,7 @@ impl RustProjectWatchService {
             }
         }
 
-        let watched_paths = watching_paths.clone();
+        let watched_paths = self.watching_paths.clone();
         let next_watching_paths = local_dependencies_root_paths
             .union(&HashSet::from_iter([project_root_path.to_path_buf()]))
             .flat_map(|root_path| {
@@ -109,16 +102,14 @@ impl RustProjectWatchService {
             .collect::<Vec<_>>();
 
         for path in unwatch_paths {
-            debug_println!("update_paths: unwatching {:?}", path);
-            watcher.unwatch(path)?;
-            watching_paths.remove(path);
+            self.watcher.unwatch(path)?;
+            self.watching_paths.remove(path);
         }
 
         for path in new_watch_paths {
-            debug_println!("update_paths: watching {:?}", path);
             if path.exists() {
-                watcher.watch(path, notify::RecursiveMode::Recursive)?;
-                watching_paths.insert(path.clone());
+                self.watcher.watch(path, notify::RecursiveMode::Recursive)?;
+                self.watching_paths.insert(path.clone());
             }
         }
 

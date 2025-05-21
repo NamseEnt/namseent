@@ -1,0 +1,11 @@
+[package]
+name = "db-list-all"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { version = "1.0.86", features = ["backtrace"] }
+tokio = { version = "1", features = ["full"] }
+rusqlite = { version = "0.32.1", features = ["bundled"] }
+migration = { path = "../schema/migration" }
+document = { path = "../schema/document" }

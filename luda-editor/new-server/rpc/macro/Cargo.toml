@@ -1,0 +1,10 @@
+[package]
+edition = "2024"
+name = "rpc-macro"
+version = "0.1.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+macro-common-lib = { path = "../../macro-common-lib" }

@@ -1,5 +1,5 @@
 [package]
-edition = "2021"
+edition = "2024"
 name = "luda-adventure"
 version = "0.1.0"
 
@@ -21,7 +21,6 @@ ron = "0.8"
 
 [dev-dependencies]
 mockall = "0.11"
-wasm-bindgen-test = "0.3.13"
 
 [build-dependencies]
 walkdir = "2"

@@ -2,10 +2,9 @@ mod decomposed_string;
 
 use crate::components::sequence_player;
 use decomposed_string::DecomposedString;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 
-#[namui::component]
 pub struct AutoCompleteTextInput<'a> {
     pub text_input_instance: TextInputInstance,
     pub wh: Wh<Px>,
@@ -16,7 +15,7 @@ pub struct AutoCompleteTextInput<'a> {
 }
 
 impl Component for AutoCompleteTextInput<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             text_input_instance,
             wh,
@@ -179,7 +178,7 @@ impl Component for AutoCompleteTextInput<'_> {
             }
         });
 
-        ctx.done()
+        
     }
 }
 

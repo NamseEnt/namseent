@@ -1,15 +1,14 @@
 use crate::app::notification::{self};
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::simple_rect;
 
-#[component]
 pub struct CopyButton<'a> {
     pub wh: Wh<Px>,
     pub color: Color,
     pub content: &'a str,
 }
 impl Component for CopyButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, color, content } = self;
         let (copied, set_copied) = ctx.state(|| false);
         let color = match *copied {
@@ -17,7 +16,7 @@ impl Component for CopyButton<'_> {
             false => color,
         };
         ctx.compose(|ctx| {
-            namui_prebuilt::table::hooks::padding(wh.height / 6.0, |wh, ctx| {
+            namui_prebuilt::table::padding(wh.height / 6.0, |wh, ctx| {
                 let stroke_width = wh.height / 8.0;
                 let offset = wh / 4.0;
                 let wh = wh - offset;
@@ -85,6 +84,6 @@ impl Component for CopyButton<'_> {
             })(wh, ctx);
         });
 
-        ctx.done()
+        
     }
 }

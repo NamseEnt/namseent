@@ -1,14 +1,13 @@
 use super::*;
 use crate::color;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{
     button::{self},
     simple_rect,
-    table::{self, hooks::padding},
+    table::{self, padding},
 };
 use rpc::data::{Cut, Memo};
 
-#[component]
 pub struct SideBar<'a> {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
@@ -24,7 +23,7 @@ pub enum Event {
 }
 
 impl Component for SideBar<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             project_id,
@@ -39,8 +38,8 @@ impl Component for SideBar<'_> {
         const NAME_QUICK_SLOT_BUTTON_CONTAINER_PADDING: Px = px(8.0);
 
         ctx.compose(|ctx| {
-            table::hooks::vertical([
-                table::hooks::fixed(
+            table::vertical([
+                table::fixed(
                     NAME_QUICK_SLOT_BUTTON_CONTAINER_HEIGHT,
                     padding(NAME_QUICK_SLOT_BUTTON_CONTAINER_PADDING, |wh, ctx| {
                         ctx.add(
@@ -60,7 +59,7 @@ impl Component for SideBar<'_> {
                         );
                     }),
                 ),
-                table::hooks::ratio(1, |wh, ctx| {
+                table::ratio(1, |wh, ctx| {
                     ctx.add(memo_list_view::MemoListView {
                         wh,
                         memos,
@@ -68,7 +67,7 @@ impl Component for SideBar<'_> {
                         on_event: &|event| on_event(Event::MemoListView(event)),
                     });
                 }),
-                table::hooks::fixed(GRAPHIC_LIST_VIEW_HEIGHT, |wh, ctx| {
+                table::fixed(GRAPHIC_LIST_VIEW_HEIGHT, |wh, ctx| {
                     ctx.add(graphic_list_view::GraphicListView {
                         project_id,
                         wh,
@@ -85,6 +84,6 @@ impl Component for SideBar<'_> {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }

@@ -20,8 +20,8 @@ use crate::{
     },
 };
 use futures::join;
-use namui::prelude::*;
-use namui_prebuilt::{simple_rect, table::hooks::*};
+use namui::*;
+use namui_prebuilt::{simple_rect, table::*};
 use rpc::data::{CgFile, ImageWithLabels, ScreenCg, ScreenCgPart};
 use std::ops::Deref;
 
@@ -30,14 +30,13 @@ static IMAGES_ATOM: Atom<Vec<ImageWithLabels>> = Atom::uninitialized_new();
 static CG_FILES_ATOM: Atom<Vec<CgFile>> = Atom::uninitialized_new();
 static SELECTED_ASSET_ATOM: Atom<Option<SelectedAsset>> = Atom::uninitialized_new();
 
-#[namui::component]
 pub struct GraphicAssetManagePage {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
 }
 
 impl Component for GraphicAssetManagePage {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         const TOP_BAR_HEIGHT: Px = px(48.0);
@@ -169,7 +168,7 @@ impl Component for GraphicAssetManagePage {
             }),
         );
 
-        ctx.done()
+        
     }
 }
 

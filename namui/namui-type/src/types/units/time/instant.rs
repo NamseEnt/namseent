@@ -1,18 +1,27 @@
-use crate::Duration;
-use std::fmt::Debug;
+use crate::*;
+use std::{fmt::Debug, sync::OnceLock};
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[type_derives(-Debug, Copy, PartialOrd, Eq, Ord)]
 pub struct Instant {
-    #[cfg(not(target_family = "wasm"))]
     inner: Duration,
-    #[cfg(target_family = "wasm")]
-    inner: todo,
 }
 
 impl Instant {
-    #[cfg(feature = "namui_internal")]
     pub fn new(inner: Duration) -> Self {
         Self { inner }
+    }
+
+    pub fn now() -> Self {
+        static START: OnceLock<std::time::Instant> = OnceLock::new();
+        Self {
+            inner: std::time::Instant::now()
+                .duration_since(*START.get_or_init(std::time::Instant::now))
+                .into(),
+        }
+    }
+
+    pub fn elapsed(&self) -> Duration {
+        Self::now() - *self
     }
 }
 
@@ -37,12 +46,27 @@ auto_ops::impl_op!(-|lhs: &Instant, rhs: Duration| -> Instant { add_duration(*lh
 auto_ops::impl_op!(-|lhs: Instant, rhs: &Duration| -> Instant { add_duration(lhs, -*rhs) });
 auto_ops::impl_op!(-|lhs: &Instant, rhs: &Duration| -> Instant { add_duration(*lhs, -*rhs) });
 
-#[cfg(not(target_family = "wasm"))]
+auto_ops::impl_op!(-|lhs: &mut Instant, rhs: Instant| -> Duration { sub_instant(*lhs, rhs) });
+auto_ops::impl_op!(-|lhs: Instant, rhs: &mut Instant| -> Duration { sub_instant(lhs, *rhs) });
+auto_ops::impl_op!(-|lhs: &mut Instant, rhs: &mut Instant| -> Duration { sub_instant(*lhs, *rhs) });
+
+auto_ops::impl_op!(+|lhs: &mut Instant, rhs: Duration| -> Instant { add_duration(*lhs, rhs) });
+auto_ops::impl_op!(+|lhs: Instant, rhs: &mut Duration| -> Instant { add_duration(lhs, *rhs) });
+auto_ops::impl_op!(+|lhs: &mut Instant, rhs: &mut Duration| -> Instant { add_duration(*lhs, *rhs) });
+
+auto_ops::impl_op!(-|lhs: &mut Instant, rhs: Duration| -> Instant { add_duration(*lhs, -rhs) });
+auto_ops::impl_op!(-|lhs: Instant, rhs: &mut Duration| -> Instant { add_duration(lhs, -*rhs) });
+auto_ops::impl_op!(-|lhs: &mut Instant, rhs: &mut Duration| -> Instant {
+    add_duration(*lhs, -*rhs)
+});
+
+auto_ops::impl_op!(+= |lhs: &mut Instant, rhs: Duration| { *lhs = *lhs + rhs });
+auto_ops::impl_op!(+= |lhs: &mut Instant, rhs: &Duration| { *lhs = *lhs + rhs });
+
 fn sub_instant(lhs: Instant, rhs: Instant) -> Duration {
     lhs.inner - rhs.inner
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn add_duration(lhs: Instant, rhs: Duration) -> Instant {
     Instant {
         inner: lhs.inner + rhs,
@@ -52,7 +76,6 @@ fn add_duration(lhs: Instant, rhs: Duration) -> Instant {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
 
     #[test]
     fn test_instant_sub() {
@@ -64,7 +87,7 @@ mod tests {
         };
 
         assert_eq!(b - a, 1.sec());
-        assert_eq!(a - b, -1.sec());
+        assert_eq!(a - b, (-1).sec());
     }
 
     #[test]
@@ -75,6 +98,6 @@ mod tests {
         let b = a + 1.sec();
 
         assert_eq!(b - a, 1.sec());
-        assert_eq!(a - b, -1.sec());
+        assert_eq!(a - b, (-1).sec());
     }
 }

@@ -1,7 +1,6 @@
 use super::*;
 use rpc::data::Circumscribed;
 
-#[namui::component]
 pub struct Mover<'a> {
     pub image_dest_rect: Rect<Px>,
     pub dragging: Option<Dragging>,
@@ -19,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for Mover<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             image_dest_rect,
             ref dragging,
@@ -68,7 +67,7 @@ impl Component for Mover<'_> {
                 );
         });
 
-        ctx.done()
+        
     }
 }
 

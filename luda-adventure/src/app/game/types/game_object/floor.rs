@@ -1,6 +1,6 @@
 use crate::app::game::*;
 use crate::component::*;
-use namui::prelude::*;
+use namui::*;
 
 const VISUAL_WIDTH: Tile = tile(1.0);
 const VISUAL_HEIGHT: Tile = tile(1.0);
@@ -17,7 +17,7 @@ pub fn new_floor(app: &mut crate::ecs::App, positions: Vec<Xy<Tile>>) -> &mut cr
                 width: VISUAL_WIDTH,
                 height: VISUAL_HEIGHT,
             },
-            image_url: Url::parse("bundle:image/floor.png").unwrap(),
+            image_url: Url::parse("image/floor.png").unwrap(),
         })
         .collect();
     let mut sprite_batch = SpriteBatch::new(sprites);

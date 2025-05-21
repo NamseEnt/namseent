@@ -3,7 +3,7 @@ use crate::{
     pages::sequence_edit_page::atom::SEQUENCE_ATOM, storage::get_project_cg_part_variant_image_url,
 };
 use namui_prebuilt::{
-    table::hooks::TableCell,
+    table::TableCell,
     typography::{center_text, center_text_full_height},
     *,
 };
@@ -18,7 +18,6 @@ const THUMBNAIL_WH: Wh<Px> = Wh {
     height: px(96.0),
 };
 
-#[namui::component]
 pub struct PartPicker<'a> {
     pub wh: Wh<Px>,
     pub cg_file: &'a CgFile,
@@ -35,7 +34,7 @@ pub enum Event {
 }
 
 impl Component for PartPicker<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cg_file,
@@ -48,7 +47,7 @@ impl Component for PartPicker<'_> {
 
         let cg_id = cg_file.id;
 
-        let cg_select_button = table::hooks::horizontal_padding(INNER_PADDING, |wh, ctx| {
+        let cg_select_button = table::horizontal_padding(INNER_PADDING, |wh, ctx| {
             ctx.add(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
@@ -67,7 +66,7 @@ impl Component for PartPicker<'_> {
             ));
         });
 
-        let cg_part_group_list = table::hooks::vertical(
+        let cg_part_group_list = table::vertical(
             cg_file
                 .parts
                 .iter()
@@ -87,12 +86,12 @@ impl Component for PartPicker<'_> {
         );
 
         ctx.compose(|ctx| {
-            table::hooks::padding(
+            table::padding(
                 OUTER_PADDING,
-                table::hooks::vertical([
-                    table::hooks::fixed(BUTTON_HEIGHT, cg_select_button),
+                table::vertical([
+                    table::fixed(BUTTON_HEIGHT, cg_select_button),
                     render_divider(BUTTON_HEIGHT),
-                    table::hooks::ratio(1, |wh, ctx| {
+                    table::ratio(1, |wh, ctx| {
                         ctx.add(scroll_view::AutoScrollViewWithCtx {
                             wh,
                             scroll_bar_width: 4.px(),
@@ -103,7 +102,7 @@ impl Component for PartPicker<'_> {
             )(wh, ctx)
         });
 
-        ctx.done()
+        
     }
 }
 
@@ -128,8 +127,8 @@ fn render_cg_part_group(props: RenderCgPartGroupProps) -> Vec<TableCell> {
     let max_thumbnails_per_row = (width / (THUMBNAIL_WH.width)).floor() as usize;
     let chunks = cg_part.variants.chunks_exact(max_thumbnails_per_row);
     let chunk_remainder = chunks.remainder();
-    let last_variant_row = table::hooks::fixed(THUMBNAIL_WH.height, {
-        table::hooks::horizontal(
+    let last_variant_row = table::fixed(THUMBNAIL_WH.height, {
+        table::horizontal(
             chunk_remainder
                 .iter()
                 .map(move |variant| {
@@ -148,9 +147,9 @@ fn render_cg_part_group(props: RenderCgPartGroupProps) -> Vec<TableCell> {
         )
     });
     let variant_rows = chunks.map(move |row| {
-        table::hooks::fixed(
+        table::fixed(
             THUMBNAIL_WH.height,
-            table::hooks::horizontal(row.iter().map(move |variant| {
+            table::horizontal(row.iter().map(move |variant| {
                 render_thumbnail(RenderThumbnailProps {
                     cg_part,
                     cg_part_variant: variant,
@@ -184,8 +183,8 @@ struct RenderCgPartGroupProps<'a> {
 }
 
 fn render_title_bar(cg_part: &CgPart) -> TableCell {
-    table::hooks::fixed(BUTTON_HEIGHT, {
-        table::hooks::horizontal_padding(INNER_PADDING, |wh, ctx| {
+    table::fixed(BUTTON_HEIGHT, {
+        table::horizontal_padding(INNER_PADDING, |wh, ctx| {
             ctx.add(render([
                 center_text_full_height(wh, cg_part.name.clone(), color::STROKE_NORMAL),
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND),
@@ -200,9 +199,9 @@ fn render_no_selection_button(
     cut_id: Uuid,
     graphic_index: Uuid,
 ) -> TableCell {
-    table::hooks::fixed(
+    table::fixed(
         THUMBNAIL_WH.width,
-        table::hooks::padding(INNER_PADDING, move |wh, ctx| {
+        table::padding(INNER_PADDING, move |wh, ctx| {
             ctx.add(
                 simple_rect(
                     wh,
@@ -248,7 +247,7 @@ fn render_no_selection_button(
 }
 
 fn render_divider<'a>(height: Px) -> TableCell<'a> {
-    table::hooks::fixed(height, |_wh, _ctx| {})
+    table::fixed(height, |_wh, _ctx| {})
 }
 
 fn render_thumbnail(props: RenderThumbnailProps) -> TableCell {
@@ -267,9 +266,9 @@ fn render_thumbnail(props: RenderThumbnailProps) -> TableCell {
         .unwrap()
         .is_variant_selected(&cg_part_variant.name);
 
-    table::hooks::fixed(
+    table::fixed(
         THUMBNAIL_WH.width,
-        table::hooks::padding(INNER_PADDING, move |wh, ctx| {
+        table::padding(INNER_PADDING, move |wh, ctx| {
             ctx.add(
                 simple_rect(
                     wh,

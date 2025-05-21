@@ -1,10 +1,16 @@
+use crate::*;
 use anyhow::Result;
 use std::fmt::Debug;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[type_derives(-Debug, Copy, PartialOrd, Eq, Ord)]
+
 pub struct Duration {
     pub(crate) sign: bool,
     pub(crate) inner: std::time::Duration,
+}
+
+impl Duration {
+    pub const ZERO: Duration = Duration::from_millis(0);
 }
 
 impl Default for Duration {
@@ -39,31 +45,31 @@ impl Duration {
             inner: std::time::Duration::from_secs_f32(secs.abs()),
         }
     }
-    pub fn from_millis(millis: i64) -> Self {
+    pub const fn from_millis(millis: i64) -> Self {
         Self {
             sign: millis >= 0,
             inner: std::time::Duration::from_millis(millis.unsigned_abs()),
         }
     }
-    pub fn from_micros(micros: i64) -> Self {
+    pub const fn from_micros(micros: i64) -> Self {
         Self {
             sign: micros >= 0,
             inner: std::time::Duration::from_micros(micros.unsigned_abs()),
         }
     }
-    pub fn from_secs(secs: i64) -> Self {
+    pub const fn from_secs(secs: i64) -> Self {
         Self {
             sign: secs >= 0,
             inner: std::time::Duration::from_secs(secs.unsigned_abs()),
         }
     }
-    pub fn from_std(sign: bool, duration: std::time::Duration) -> Self {
+    pub const fn from_std(sign: bool, duration: std::time::Duration) -> Self {
         Self {
             sign,
             inner: duration,
         }
     }
-    pub fn abs(self) -> Self {
+    pub const fn abs(self) -> Self {
         Self {
             sign: true,
             inner: self.inner,
@@ -79,20 +85,20 @@ impl Duration {
     }
 
     /// CAUTION: You should take care about -0 case.
-    pub fn is_positive(&self) -> bool {
+    pub const fn is_positive(&self) -> bool {
         self.sign
     }
 
-    pub fn as_secs(&self) -> i64 {
+    pub const fn as_secs(&self) -> i64 {
         self.inner.as_secs() as i64 * if self.sign { 1 } else { -1 }
     }
-    pub fn as_millis(&self) -> i128 {
+    pub const fn as_millis(&self) -> i128 {
         self.inner.as_millis() as i128 * if self.sign { 1 } else { -1 }
     }
-    pub fn as_micros(&self) -> i128 {
+    pub const fn as_micros(&self) -> i128 {
         self.inner.as_micros() as i128 * if self.sign { 1 } else { -1 }
     }
-    pub fn as_nanos(&self) -> i128 {
+    pub const fn as_nanos(&self) -> i128 {
         self.inner.as_nanos() as i128 * if self.sign { 1 } else { -1 }
     }
     pub fn as_secs_f64(&self) -> f64 {
@@ -125,12 +131,21 @@ impl std::ops::Neg for &Duration {
 impl std::ops::Div<Duration> for Duration {
     type Output = f32;
     fn div(self, rhs: Self) -> Self::Output {
-        let lhs_secs = self.inner.as_secs_f64();
-        let rhs_secs = rhs.inner.as_secs_f64();
+        let lhs_secs = self.inner.as_secs_f32();
+        let rhs_secs = rhs.inner.as_secs_f32();
         if rhs_secs == 0.0 {
             panic!("divide by zero")
         }
-        (lhs_secs / rhs_secs) as f32 * if self.sign == rhs.sign { 1.0 } else { -1.0 }
+        (lhs_secs / rhs_secs) * if self.sign == rhs.sign { 1.0 } else { -1.0 }
+    }
+}
+
+impl From<std::time::Duration> for Duration {
+    fn from(duration: std::time::Duration) -> Self {
+        Self {
+            sign: true,
+            inner: duration,
+        }
     }
 }
 
@@ -163,6 +178,64 @@ auto_ops::impl_op!(/|lhs: Duration, rhs: i32| -> Duration { div_i32(lhs, rhs) })
 auto_ops::impl_op!(/|lhs: &Duration, rhs: i32| -> Duration { div_i32(*lhs, rhs) });
 auto_ops::impl_op!(/|lhs: Duration, rhs: &i32| -> Duration { div_i32(lhs, *rhs) });
 auto_ops::impl_op!(/|lhs: &Duration, rhs: &i32| -> Duration { div_i32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/|lhs: Duration, rhs: usize| -> Duration { div_usize(lhs, rhs) });
+auto_ops::impl_op!(/|lhs: &Duration, rhs: usize| -> Duration { div_usize(*lhs, rhs) });
+auto_ops::impl_op!(/|lhs: Duration, rhs: &usize| -> Duration { div_usize(lhs, *rhs) });
+auto_ops::impl_op!(/|lhs: &Duration, rhs: &usize| -> Duration { div_usize(*lhs, *rhs) });
+
+auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: Duration| { *lhs = add(*lhs, rhs) });
+auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: &Duration| { *lhs = add(*lhs, * rhs) });
+
+auto_ops::impl_op!(-=|lhs: &mut Duration, rhs: Duration| { *lhs = add(*lhs, -rhs) });
+auto_ops::impl_op!(-=|lhs: &mut Duration, rhs: &Duration| { *lhs = add(*lhs, -*rhs) });
+
+auto_ops::impl_op!(*=|lhs: &mut Duration, rhs: f32| { *lhs = mul_f32(*lhs, rhs) });
+auto_ops::impl_op!(*=|lhs: &mut Duration, rhs: &f32| { *lhs = mul_f32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: f32| { *lhs = mul_f32(*lhs, 1.0 / rhs) });
+auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: &f32| { *lhs = mul_f32(*lhs, 1.0 / *rhs) });
+
+auto_ops::impl_op!(*=|lhs: &mut Duration, rhs: i32| { *lhs = mul_i32(*lhs, rhs) });
+auto_ops::impl_op!(*=|lhs: &mut Duration, rhs: &i32| { *lhs = mul_i32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: i32| { *lhs = div_i32(*lhs, rhs) });
+auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: &i32| { *lhs = div_i32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: usize| { *lhs = div_usize(*lhs, rhs) });
+auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: &usize| { *lhs = div_usize(*lhs, *rhs) });
+
+//
+
+auto_ops::impl_op!(+|lhs: &mut Duration, rhs: Duration| -> Duration { add(*lhs, rhs) });
+auto_ops::impl_op!(+|lhs: Duration, rhs: &mut Duration| -> Duration { add(lhs, *rhs) });
+auto_ops::impl_op!(+|lhs: &mut Duration, rhs: &mut Duration| -> Duration { add(*lhs, *rhs) });
+
+auto_ops::impl_op!(-|lhs: &mut Duration, rhs: Duration| -> Duration { add(*lhs, -rhs) });
+auto_ops::impl_op!(-|lhs: Duration, rhs: &mut Duration| -> Duration { add(lhs, -*rhs) });
+auto_ops::impl_op!(-|lhs: &mut Duration, rhs: &mut Duration| -> Duration { add(*lhs, -*rhs) });
+
+auto_ops::impl_op!(*|lhs: &mut Duration, rhs: f32| -> Duration { mul_f32(*lhs, rhs) });
+auto_ops::impl_op!(*|lhs: Duration, rhs: &mut f32| -> Duration { mul_f32(lhs, *rhs) });
+auto_ops::impl_op!(*|lhs: &mut Duration, rhs: &mut f32| -> Duration { mul_f32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: f32| -> Duration { mul_f32(*lhs,1.0 /  rhs) });
+auto_ops::impl_op!(/|lhs: Duration, rhs: &mut f32| -> Duration { mul_f32(lhs, 1.0 / *rhs) });
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: &mut f32| -> Duration { mul_f32(*lhs,1.0 /  *rhs) });
+
+auto_ops::impl_op!(*|lhs: &mut Duration, rhs: i32| -> Duration { mul_i32(*lhs, rhs) });
+auto_ops::impl_op!(*|lhs: Duration, rhs: &mut i32| -> Duration { mul_i32(lhs, *rhs) });
+auto_ops::impl_op!(*|lhs: &mut Duration, rhs: &mut i32| -> Duration { mul_i32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: i32| -> Duration { div_i32(*lhs, rhs) });
+auto_ops::impl_op!(/|lhs: Duration, rhs: &mut i32| -> Duration { div_i32(lhs, *rhs) });
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: &mut i32| -> Duration { div_i32(*lhs, *rhs) });
+
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: usize| -> Duration { div_usize(*lhs, rhs) });
+auto_ops::impl_op!(/|lhs: Duration, rhs: &mut usize| -> Duration { div_usize(lhs, *rhs) });
+auto_ops::impl_op!(/|lhs: &mut Duration, rhs: &mut usize| -> Duration { div_usize(*lhs, *rhs) });
+
+auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: &mut Duration| { *lhs = add(*lhs, * rhs) });
 
 fn add(lhs: Duration, rhs: Duration) -> Duration {
     if lhs.sign == rhs.sign {
@@ -221,6 +294,16 @@ fn div_i32(lhs: Duration, rhs: i32) -> Duration {
         }
     }
 }
+fn div_usize(lhs: Duration, rhs: usize) -> Duration {
+    if rhs == 0 {
+        panic!("divide by zero")
+    } else {
+        Duration {
+            sign: lhs.sign,
+            inner: std::time::Duration::from_secs_f64(lhs.inner.as_secs_f64() / rhs as f64),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -235,17 +318,17 @@ mod tests {
     #[test]
     fn test_duration_sub() {
         assert_eq!((1.sec() - 1.sec()).abs(), (0.sec()).abs());
-        assert_eq!(1.sec() - 2.sec(), -1.sec());
+        assert_eq!(1.sec() - 2.sec(), (-1).sec());
     }
 
     #[test]
     fn test_duration_div() {
         assert_eq!(1.sec() / 1.sec(), 1.0);
         assert_eq!(1.sec() / 2.sec(), 0.5);
-        assert_eq!(1.sec() / -1.sec(), -1.0);
-        assert_eq!(1.sec() / -2.sec(), -0.5);
+        assert_eq!(1.sec() / (-1).sec(), -1.0);
+        assert_eq!(1.sec() / (-2).sec(), -0.5);
 
-        assert_eq!(Per::new(1.px(), 1.sec()) * (-1).sec(), -1.px());
+        assert_eq!(Per::new(1.px(), 1.sec()) * (-1).sec(), (-1).px());
     }
 
     #[test]
@@ -253,38 +336,39 @@ mod tests {
         assert_eq!(1.sec() * 0.0, 0.sec());
         assert_eq!(1.sec() * 1.0, 1.sec());
         assert_eq!(1.sec() * 2.0, 2.sec());
-        assert_eq!(1.sec() * -1.0, -1.sec());
-        assert_eq!(1.sec() * -2.0, -2.sec());
+        assert_eq!(1.sec() * -1.0, (-1).sec());
+        assert_eq!(1.sec() * -2.0, (-2).sec());
     }
 
     #[test]
     fn test_duration_div_f32() {
         assert_eq!(1.sec() / 1.0, 1.sec());
         assert_eq!(1.sec() / 2.0, 0.5.sec());
-        assert_eq!(1.sec() / -1.0, -1.sec());
-        assert_eq!(1.sec() / -2.0, -0.5.sec());
+        assert_eq!(1.sec() / -1.0, (-1).sec());
+        assert_eq!(1.sec() / -2.0, (-0.5).sec());
     }
 
     #[test]
+    #[allow(clippy::erasing_op)]
     fn test_duration_mul_i32() {
         assert_eq!(1.sec() * 0, 0.sec());
         assert_eq!(1.sec() * 1, 1.sec());
         assert_eq!(1.sec() * 2, 2.sec());
-        assert_eq!(1.sec() * -1, -1.sec());
-        assert_eq!(1.sec() * -2, -2.sec());
+        assert_eq!(1.sec() * -1, (-1).sec());
+        assert_eq!(1.sec() * -2, (-2).sec());
     }
 
     #[test]
     fn test_duration_div_i32() {
         assert_eq!(1.sec() / 1, 1.sec());
         assert_eq!(1.sec() / 2, 0.5.sec());
-        assert_eq!(1.sec() / -1, -1.sec());
-        assert_eq!(1.sec() / -2, -0.5.sec());
+        assert_eq!(1.sec() / -1, (-1).sec());
+        assert_eq!(1.sec() / -2, (-0.5).sec());
     }
 
     #[test]
     fn test_duration_neg() {
-        assert_eq!(-1.sec(), -1.sec());
-        assert_eq!(-(-1.sec()), 1.sec());
+        assert_eq!(-(1.sec()), (-1).sec());
+        assert_eq!(-((-1).sec()), 1.sec());
     }
 }

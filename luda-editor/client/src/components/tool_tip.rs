@@ -1,15 +1,14 @@
 use crate::color;
-use namui::prelude::*;
+use namui::*;
 
 #[derive(Clone)]
-#[component]
 pub struct ToolTip {
     pub global_xy: Xy<Px>,
     pub text: String,
 }
 
 impl Component for ToolTip {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { global_xy, text } = self;
 
         const OFFSET: Px = px(16.0);
@@ -36,6 +35,7 @@ impl Component for ToolTip {
                         right: 4.px(),
                         bottom: 4.px(),
                     }),
+                    ..Default::default()
                 }),
                 line_height_percent: 100.percent(),
                 underline: None,
@@ -43,8 +43,8 @@ impl Component for ToolTip {
             max_width: None,
         });
 
-        let Some(tooltip_bounding_box) = tooltip.bounding_box() else {
-            return ctx.done();
+        let Some(tooltip_bounding_box) = namui::bounding_box(&tooltip) else {
+            return ;
         };
 
         let screen_size = screen::size();

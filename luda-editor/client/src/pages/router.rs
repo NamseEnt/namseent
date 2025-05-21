@@ -1,13 +1,12 @@
 use super::*;
-use namui::prelude::*;
+use namui::*;
 
-#[namui::component]
 pub struct Router {
     pub wh: Wh<Px>,
 }
 
 impl Component for Router {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let (route, set_route) = ctx.state(|| Route::from(get_hash()));
 
         namui::web::event_listener_hash_change(move |event| {
@@ -43,7 +42,7 @@ impl Component for Router {
             }
         });
 
-        ctx.done()
+        
     }
 }
 

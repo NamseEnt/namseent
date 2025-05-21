@@ -1,7 +1,6 @@
-use namui::prelude::*;
+use namui::*;
 use rpc::data::Circumscribed;
 
-#[namui::component]
 pub struct Resizer<'a> {
     pub rect: Rect<Px>,
     pub dragging_context: Option<ResizerDraggingContext>,
@@ -22,7 +21,7 @@ pub enum Event {
 }
 
 impl Component for Resizer<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             rect,
             dragging_context,
@@ -116,7 +115,7 @@ impl Component for Resizer<'_> {
                 });
         });
 
-        ctx.done()
+        
     }
 }
 

@@ -1,7 +1,7 @@
 use super::super::token::*;
 use super::{
-    path::{Path, PathElement},
     ExcludeOperation, IncludeOperation,
+    path::{Path, PathElement},
 };
 use crate::*;
 use regex::Regex;
@@ -75,7 +75,7 @@ impl Lexer {
                 return Err(anyhow!(
                     "parse_include_operation: Unexpected token {:?}",
                     &self.last_token
-                ))
+                ));
             }
         };
 
@@ -93,7 +93,7 @@ impl Lexer {
                 return Err(anyhow!(
                     "parse_include_operation: Unexpected token {:?}",
                     &self.last_token
-                ))
+                ));
             }
         }
 
@@ -108,7 +108,7 @@ impl Lexer {
                 return Err(anyhow!(
                     "parse_include_operation: Unexpected token {:?}",
                     &self.last_token
-                ))
+                ));
             }
         };
 
@@ -132,10 +132,10 @@ impl Lexer {
                     return Err(anyhow!(
                         "parse_dest_path: Unexpected token {:?}",
                         &self.last_token
-                    ))
+                    ));
                 }
                 Token::SrcDestSeparator | Token::EndOfLine | Token::EndOfFile => {
-                    return Ok(Path { elements })
+                    return Ok(Path { elements });
                 }
             }
         }
@@ -182,13 +182,13 @@ impl Lexer {
                         raw_string: element_name_raw_string,
                         regex: Regex::new(&format!("^{}$", element_name_regex))
                             .map_err(|error| anyhow!("parse_path_element: {}", error))?,
-                    })
+                    });
                 }
                 _ => {
                     return Err(anyhow!(
                         "parse_path_element: Unexpected token {:?}",
                         &self.last_token
-                    ))
+                    ));
                 }
             }
         }

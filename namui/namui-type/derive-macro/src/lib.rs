@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 
 ///
 /// #[type_derives]
@@ -20,8 +20,8 @@ pub fn type_derives(attr: TokenStream, item: TokenStream) -> TokenStream {
         .iter()
         .partition::<Vec<_>, _>(|derive| !derive.is_excluded());
 
-    let default_derives = [
-        syn::parse_str::<syn::Path>("Debug").unwrap(),
+    let default_derives: [syn::Path; 5] = [
+        syn::parse_str("Debug").unwrap(),
         syn::parse_str("Clone").unwrap(),
         syn::parse_str("PartialEq").unwrap(),
         syn::parse_str("serde::Serialize").unwrap(),

@@ -6,25 +6,34 @@
 macro_rules! common_for_f32_type {
     ($your_type: tt, $short_term: ident, $short_term_ext: ident) => {
         $crate::common_for_f32_type!($your_type, |lhs: $your_type| -> f32 {
-            lhs.0
+            *lhs.0
         }, |rhs: f32| -> $your_type {
-            $your_type(rhs)
+            $your_type(OrderedFloat::new(rhs))
         }, $short_term, $short_term_ext, not_ratio);
     };
-    ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident, ratio) => {
+    ($your_type: tt, $to_f32: expr_2021, $from: expr_2021, $short_term: ident, $short_term_ext: ident, ratio) => {
         $crate::common_for_f32_type!($your_type, $to_f32, $from, $short_term, $short_term_ext);
     };
-    ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident, not_ratio) => {
+    ($your_type: tt, $to_f32: expr_2021, $from: expr_2021, $short_term: ident, $short_term_ext: ident, not_ratio) => {
         $crate::common_for_f32_type!($your_type, $to_f32, $from, $short_term, $short_term_ext);
         $crate::impl_op_forward_ref!(/|x: $your_type, y: $your_type| -> f32 {
-            x.0 / y.0
+            *x.0 / *y.0
         });
     };
-    ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident) => {
+    ($your_type: tt, $to_f32: expr_2021, $from: expr_2021, $short_term: ident, $short_term_ext: ident) => {
         use $crate::*;
 
-        #[type_derives(Default, PartialOrd, Copy)]
-        pub struct $your_type(f32);
+        #[type_derives(Default, PartialOrd, Copy, Eq, Hash, -Debug)]
+
+        pub struct $your_type(OrderedFloat);
+
+        impl std::fmt::Debug for $your_type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_tuple(stringify!($your_type))
+                    .field(self.0.as_ref())
+                    .finish()
+            }
+        }
 
         $crate::impl_single_trait!(from|lhs: $your_type| -> f32 {
             #[allow(clippy::redundant_closure_call)]
@@ -66,7 +75,7 @@ macro_rules! common_for_f32_type {
                 f32::from(*self)
             }
             pub fn abs(&self) -> $your_type {
-                if self.0 < 0.0 {
+                if *self.0 < 0.0 {
                     -*self
                 } else {
                     *self
@@ -161,7 +170,7 @@ macro_rules! common_for_f32_type {
         });
 
         pub const fn $short_term(value: f32) -> $your_type {
-            $your_type(value)
+            $your_type(OrderedFloat::new(value))
         }
 
         pub trait $short_term_ext {
@@ -170,13 +179,13 @@ macro_rules! common_for_f32_type {
 
         impl $short_term_ext for f32 {
             fn $short_term(self) -> $your_type {
-                $your_type(self)
+                $your_type(OrderedFloat::new(self))
             }
         }
 
         impl $short_term_ext for i32 {
             fn $short_term(self) -> $your_type {
-                $your_type(self as f32)
+                $your_type(OrderedFloat::new(self as f32))
             }
         }
 

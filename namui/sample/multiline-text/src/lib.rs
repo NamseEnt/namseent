@@ -1,16 +1,16 @@
-use namui::prelude::*;
+use namui::*;
 
 pub fn main() {
     let namui_context = namui::init();
-
-    namui::start(namui_context, &mut MultilineTextExample {})
+    namui::start(|ctx| {
+        ctx.add(MultilineTextExample {});
+    })
 }
 
-#[namui::component]
 struct MultilineTextExample {}
 
 impl Component for MultilineTextExample {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx)  {
         let wh = namui::screen::size();
         let mut trees = vec![];
 
@@ -54,7 +54,7 @@ impl Component for MultilineTextExample {
                 paint.clone(),
             ));
             trees.push(namui::path(
-                Path::new().add_rect(text_rendering_tree.bounding_box().unwrap()),
+                Path::new().add_rect(namui::bounding_box(&text_rendering_tree).unwrap()),
                 paint.clone(),
             ));
             trees.push(text_rendering_tree);
@@ -107,7 +107,7 @@ impl Component for MultilineTextExample {
                     paint.clone(),
                 ));
                 trees.push(namui::path(
-                    Path::new().add_rect(text_rendering_tree.bounding_box().unwrap()),
+                    Path::new().add_rect(namui::bounding_box(&text_rendering_tree).unwrap()),
                     paint.clone(),
                 ));
                 trees.push(text_rendering_tree);
@@ -160,7 +160,7 @@ impl Component for MultilineTextExample {
                     paint.clone(),
                 ));
                 trees.push(namui::path(
-                    Path::new().add_rect(text_rendering_tree.bounding_box().unwrap()),
+                    Path::new().add_rect(namui::bounding_box(&text_rendering_tree).unwrap()),
                     paint.clone(),
                 ));
                 trees.push(text_rendering_tree);

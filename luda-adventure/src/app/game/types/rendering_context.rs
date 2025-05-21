@@ -1,5 +1,5 @@
 use super::Tile;
-use namui::prelude::*;
+use namui::*;
 
 pub struct RenderingContext {
     pub px_per_tile: Per<Px, Tile>,

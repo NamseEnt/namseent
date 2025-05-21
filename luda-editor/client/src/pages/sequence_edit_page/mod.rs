@@ -6,12 +6,11 @@ mod sequence;
 use crate::components::name_quick_slot::NameQuickSlot;
 use ::futures::try_join;
 use loaded::LoadedSequenceEditorPage;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, ImageWithLabels, Memo, ProjectSharedData, Sequence};
 use std::collections::HashMap;
 
-#[namui::component]
 pub struct SequenceEditPage {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
@@ -19,7 +18,7 @@ pub struct SequenceEditPage {
 }
 
 impl Component for SequenceEditPage {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             project_id,

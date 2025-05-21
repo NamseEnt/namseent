@@ -9,7 +9,6 @@ use crate::{
 use namui_prebuilt::*;
 use rpc::data::{CutUpdateAction, ScreenCg, ScreenGraphic, ScreenImage};
 
-#[namui::component]
 pub struct BackgroundWithEvent<'a> {
     pub cut: &'a Cut,
     pub wh: Wh<Px>,
@@ -24,7 +23,7 @@ pub(super) enum Event {
 }
 
 impl Component for BackgroundWithEvent<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             cut,
             wh,
@@ -177,7 +176,7 @@ impl Component for BackgroundWithEvent<'_> {
             ),
         );
 
-        ctx.done()
+        
     }
 }
 

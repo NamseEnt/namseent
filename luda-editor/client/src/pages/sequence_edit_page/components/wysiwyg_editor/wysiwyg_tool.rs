@@ -1,6 +1,5 @@
 use super::*;
 
-#[namui::component]
 pub struct WysiwygTool<'a> {
     pub graphic_dest_rect: Rect<Px>,
     pub original_graphic_size: Wh<Px>,
@@ -18,7 +17,7 @@ pub enum Event {
 }
 
 impl Component for WysiwygTool<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             graphic_dest_rect,
             original_graphic_size,
@@ -65,6 +64,6 @@ impl Component for WysiwygTool<'_> {
             on_event: Box::new(|event| on_event(Event::Mover { event })),
         });
 
-        ctx.done()
+        
     }
 }

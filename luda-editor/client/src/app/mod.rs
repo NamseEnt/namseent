@@ -4,10 +4,9 @@ pub mod notification;
 use self::notification::NotificationRoot;
 use crate::{components::context_menu::ContextMenu, pages::router::Router};
 use anyhow::Result;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 
-#[namui::component]
 pub struct App;
 
 #[derive(Debug, PartialEq)]
@@ -18,7 +17,7 @@ enum LoadingState {
 }
 
 impl Component for App {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let (loading_state, set_loading_state) = ctx.state(|| LoadingState::Loading);
 
         ctx.effect("Try login", || {
@@ -60,6 +59,6 @@ impl Component for App {
         });
         ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
 
-        ctx.done()
+        
     }
 }

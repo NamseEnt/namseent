@@ -1,0 +1,11 @@
+[package]
+name = "particle"
+version = "0.1.0"
+edition = "2024"
+
+[package.metadata]
+namui = true
+
+[dependencies]
+namui = { path = "../../namui" }
+namui-prebuilt = { path = "../../namui-prebuilt" }

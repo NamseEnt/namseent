@@ -1,0 +1,8 @@
+[package]
+name = "serializer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+namui-type = { path = "../../../namui/namui-type" }
+serde_json = "1.0.133"

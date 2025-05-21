@@ -1,0 +1,19 @@
+[package]
+name = "audio-transcoding-lambda-code"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { version = "1.0.89", features = ["backtrace"] }
+aws-config = "1.5.6"
+aws-sdk-s3 = "1.51.0"
+reqwest = { version = "0.12.7", features = ["stream"] }
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
+tokio = { version = "1.40.0", features = ["full"] }
+tokio-util = { version = "0.7.12", features = ["io"] }
+
+[profile.release]
+lto = true
+codegen-units = 1 # Reduce number of codegen units to increase optimizations
+strip = true

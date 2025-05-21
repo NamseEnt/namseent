@@ -1,16 +1,14 @@
-use super::drawer_watch_build_service;
-use super::{bundle::NamuiBundleManifest, deep_link_manifest_service::DeepLinkManifest};
+use super::bundle::NamuiBundleManifest;
 use crate::*;
 use crate::{cli::Target, debug_println, util::get_cli_root_path};
-use std::path::Path;
 use std::{
     fs::{create_dir_all, remove_dir_all},
     path::PathBuf,
 };
 
 pub fn collect_all(
-    project_path: &Path,
-    dest_path: &PathBuf,
+    project_path: impl AsRef<std::path::Path>,
+    dest_path: impl AsRef<std::path::Path>,
     target: Target,
     bundle_manifest: NamuiBundleManifest,
     additional_runtime_path: Option<&PathBuf>,
@@ -18,21 +16,23 @@ pub fn collect_all(
 ) -> Result<()> {
     let mut ops: Vec<CollectOperation> = vec![];
     collect_runtime(&mut ops, additional_runtime_path, target)?;
-    collect_rust_build(&mut ops, project_path, target, release)?;
-    collect_bundle(&mut ops, &bundle_manifest)?;
-    collect_deep_link_manifest(&mut ops, project_path, target)?;
+    collect_rust_build(&mut ops, &project_path, target, release)?;
+    collect_deep_link_manifest(&mut ops, &project_path, target)?;
 
-    collect_resources(project_path, dest_path, ops)?;
+    collect_resources(&project_path, &dest_path, ops)?;
+    collect_bundle(&bundle_manifest, &dest_path)?;
 
-    bundle_manifest.create_bundle_metadata_file(dest_path)?;
+    bundle_manifest.create_bundle_metadata_file(&dest_path)?;
     Ok(())
 }
 
 fn collect_resources(
-    project_root_path: &Path,
-    dest_path: &PathBuf,
+    project_root_path: impl AsRef<std::path::Path>,
+    dest_path: impl AsRef<std::path::Path>,
     ops: Vec<CollectOperation>,
 ) -> Result<()> {
+    let project_root_path = project_root_path.as_ref();
+    let dest_path = dest_path.as_ref();
     println!("start collecting resources");
     remove_dir(dest_path)?;
     ensure_dir(dest_path)?;
@@ -48,19 +48,20 @@ fn collect_runtime(
     target: Target,
 ) -> Result<()> {
     match target {
-        Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
+        Target::Wasm32WasiWeb => {
             let namui_browser_runtime_path = get_cli_root_path().join("www");
             ops.push(CollectOperation::new(
-                &namui_browser_runtime_path,
-                &PathBuf::from(""),
+                namui_browser_runtime_path,
+                PathBuf::from(""),
             ));
         }
         Target::X86_64PcWindowsMsvc => {}
+        Target::X86_64UnknownLinuxGnu => {}
     }
     if let Some(additional_runtime_path) = additional_runtime_path {
         ops.push(CollectOperation::new(
             additional_runtime_path,
-            &PathBuf::from(""),
+            PathBuf::from(""),
         ));
     }
     Ok(())
@@ -68,30 +69,21 @@ fn collect_runtime(
 
 fn collect_rust_build(
     ops: &mut Vec<CollectOperation>,
-    project_path: &Path,
+    project_path: impl AsRef<std::path::Path>,
     target: Target,
     release: bool,
 ) -> Result<()> {
+    let project_path = project_path.as_ref();
     match target {
-        Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
+        Target::Wasm32WasiWeb => {
             let build_dist_path = project_path.join("pkg");
             ops.push(CollectOperation::new(
-                &build_dist_path.join("bundle.js"),
-                &PathBuf::from(""),
+                build_dist_path.join("bundle.js"),
+                PathBuf::from(""),
             ));
             ops.push(CollectOperation::new(
-                &build_dist_path.join("bundle_bg.wasm"),
-                &PathBuf::from(""),
-            ));
-
-            let drawer_dist_path = drawer_watch_build_service::project_root_path().join("pkg");
-            ops.push(CollectOperation::new(
-                &drawer_dist_path.join("drawer/bundle.js"),
-                &PathBuf::from("drawer"),
-            ));
-            ops.push(CollectOperation::new(
-                &drawer_dist_path.join("drawer/bundle_bg.wasm"),
-                &PathBuf::from("drawer"),
+                build_dist_path.join("bundle_bg.wasm"),
+                PathBuf::from(""),
             ));
         }
         Target::X86_64PcWindowsMsvc => {
@@ -100,12 +92,22 @@ fn collect_rust_build(
                 if release { "release" } else { "debug" }
             ));
             ops.push(CollectOperation::new(
-                &build_dist_path.join("namui-runtime-x86_64-pc-windows-msvc.exe"),
-                &PathBuf::from(""),
+                build_dist_path.join("namui-runtime-x86_64-pc-windows-msvc.exe"),
+                PathBuf::from(""),
             ));
             ops.push(CollectOperation::new(
-                &build_dist_path.join("namui_runtime_x86_64_pc_windows_msvc.pdb"),
-                &PathBuf::from(""),
+                build_dist_path.join("namui_runtime_x86_64_pc_windows_msvc.pdb"),
+                PathBuf::from(""),
+            ));
+        }
+        Target::X86_64UnknownLinuxGnu => {
+            let build_dist_path = project_path.join(format!(
+                "target/namui/target/x86_64-unknown-linux-gnu/{}",
+                if release { "release" } else { "debug" }
+            ));
+            ops.push(CollectOperation::new(
+                build_dist_path.join("namui-runtime-x86_64-unknown-linux-gnu"),
+                PathBuf::from(""),
             ));
         }
     }
@@ -113,30 +115,23 @@ fn collect_rust_build(
 }
 
 fn collect_bundle(
-    ops: &mut Vec<CollectOperation>,
     bundle_manifest: &NamuiBundleManifest,
+    dest_path: impl AsRef<std::path::Path>,
 ) -> Result<()> {
-    let mut bundle_ops = bundle_manifest.get_collect_operations(&PathBuf::from("bundle"))?;
-    ops.append(&mut bundle_ops);
+    bundle_manifest.bundle_to_sqlite(dest_path.as_ref().join("bundle.sqlite"))?;
+
     Ok(())
 }
 
 fn collect_deep_link_manifest(
     ops: &mut Vec<CollectOperation>,
-    project_path: &Path,
+    project_path: impl AsRef<std::path::Path>,
     target: Target,
 ) -> Result<()> {
+    let _ = ops;
     match target {
-        Target::WasmUnknownWeb => {}
-        Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
-            if let Some(namui_deep_link_manifest) = DeepLinkManifest::try_load(project_path)? {
-                ops.push(CollectOperation::new(
-                    namui_deep_link_manifest.path(),
-                    &PathBuf::from(""),
-                ));
-            }
-        }
-        Target::X86_64PcWindowsMsvc => {
+        Target::Wasm32WasiWeb => {}
+        Target::X86_64PcWindowsMsvc | Target::X86_64UnknownLinuxGnu => {
             // TODO, but not priority
         }
     }
@@ -144,42 +139,67 @@ fn collect_deep_link_manifest(
 }
 
 pub struct CollectOperation {
-    src_path: PathBuf,
-    dest_path: PathBuf,
+    pub src_path: PathBuf,
+    pub dest_dir_path: PathBuf,
 }
 
 impl CollectOperation {
-    pub fn new(src_path: &Path, dest_path: &Path) -> Self {
+    pub fn new(
+        src_path: impl AsRef<std::path::Path>,
+        dest_dir_path: impl AsRef<std::path::Path>,
+    ) -> Self {
         Self {
-            src_path: src_path.to_path_buf(),
-            dest_path: dest_path.to_path_buf(),
+            src_path: src_path.as_ref().to_path_buf(),
+            dest_dir_path: dest_dir_path.as_ref().to_path_buf(),
         }
     }
 
-    fn execute(&self, project_root_path: &Path, release_path: &Path) -> Result<()> {
-        let src_path = project_root_path.join(&self.src_path);
-        let dest_path = release_path.join(&self.dest_path);
-        copy_resource(&src_path, &dest_path)
+    pub fn execute(
+        &self,
+        project_root_path: impl AsRef<std::path::Path>,
+        release_path: impl AsRef<std::path::Path>,
+    ) -> Result<()> {
+        let src_path = project_root_path.as_ref().join(&self.src_path);
+        let dest_dir_path = release_path.as_ref().join(&self.dest_dir_path);
+        copy_resource(src_path, dest_dir_path)
+    }
+
+    pub fn dest_path(&self) -> PathBuf {
+        self.dest_dir_path.join(self.src_path.file_name().unwrap())
     }
 }
 
-fn copy_resource(from: &PathBuf, to: &PathBuf) -> Result<()> {
-    debug_println!("resource_collect_service: copy {:?} -> {:?}", &from, &to);
-    ensure_dir(to)?;
-    match from.is_dir() {
-        true => copy_dir(from, to),
-        false => copy_file(from, to),
-    }
+fn copy_resource(
+    from: impl AsRef<std::path::Path>,
+    dest_dir_path: impl AsRef<std::path::Path>,
+) -> Result<()> {
+    let from = from.as_ref();
+    let dest_dir_path = dest_dir_path.as_ref();
+    debug_println!(
+        "resource_collect_service: copy {:?} -> {:?}/{:?}",
+        &from,
+        &dest_dir_path,
+        &from.file_name().unwrap()
+    );
+    ensure_dir(dest_dir_path)?;
+    assert!(from.is_file());
+    copy_file(from, dest_dir_path)
 }
 
-fn copy_file(from: &PathBuf, to: &Path) -> Result<()> {
+fn copy_file(
+    from: impl AsRef<std::path::Path>,
+    dest_dir_path: impl AsRef<std::path::Path>,
+) -> Result<()> {
+    let from = from.as_ref();
+    let dest_dir_path = dest_dir_path.as_ref();
+
     const COPY_OPTION: fs_extra::file::CopyOptions = fs_extra::file::CopyOptions {
         overwrite: true,
         skip_exist: false,
         buffer_size: 64000,
     };
     let src_file_name = &from.file_name().unwrap();
-    let dest_path_with_file_name = &to.join(src_file_name);
+    let dest_path_with_file_name = &dest_dir_path.join(src_file_name);
     fs_extra::file::copy(from, dest_path_with_file_name, &COPY_OPTION).map_err(|error| {
         anyhow!(
             "resource_collect_service: copy file {:?} -> {:?}\n\t{}",
@@ -191,27 +211,8 @@ fn copy_file(from: &PathBuf, to: &Path) -> Result<()> {
     Ok(())
 }
 
-fn copy_dir(from: &PathBuf, to: &PathBuf) -> Result<()> {
-    const COPY_OPTION: fs_extra::dir::CopyOptions = fs_extra::dir::CopyOptions {
-        overwrite: true,
-        skip_exist: false,
-        copy_inside: true,
-        content_only: true,
-        buffer_size: 64000,
-        depth: 0,
-    };
-    fs_extra::dir::copy(from, to, &COPY_OPTION).map_err(|error| {
-        anyhow!(
-            "resource_collect_service: copy dir {:?} -> {:?}\n\t{}",
-            &from,
-            &to,
-            error
-        )
-    })?;
-    Ok(())
-}
-
-fn remove_dir(path: &PathBuf) -> Result<()> {
+fn remove_dir(path: impl AsRef<std::path::Path>) -> Result<()> {
+    let path = path.as_ref();
     if !path.exists() {
         return Ok(());
     }
@@ -219,7 +220,7 @@ fn remove_dir(path: &PathBuf) -> Result<()> {
         .map_err(|error| anyhow!("resource_collect_service: remove dir failed\n\t{}", error))
 }
 
-fn ensure_dir(path: &PathBuf) -> Result<()> {
+fn ensure_dir(path: impl AsRef<std::path::Path>) -> Result<()> {
     create_dir_all(path)
         .map_err(|error| anyhow!("resource_collect_service: ensure dir failed\n\t{}", error))
 }

@@ -9,11 +9,10 @@ use crate::{
         components::graphic_list_view::{graphic_list_item::GraphicListItem, header::Header},
     },
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{scroll_view, simple_rect, table};
 use rpc::data::ChangeGraphicOrderAction;
 
-#[component]
 pub struct GraphicListView<'a> {
     pub project_id: Uuid,
     pub wh: Wh<Px>,
@@ -21,7 +20,7 @@ pub struct GraphicListView<'a> {
 }
 
 impl Component for GraphicListView<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const HEADER_HEIGHT: Px = px(32.0);
         const GRAPHIC_LIST_ITEM_HEIGHT: Px = px(48.0);
         const PADDING: Px = px(4.0);
@@ -82,7 +81,7 @@ impl Component for GraphicListView<'_> {
             set_dragging.set(None);
         };
 
-        let header_cell = table::hooks::fixed(HEADER_HEIGHT, |wh, ctx| {
+        let header_cell = table::fixed(HEADER_HEIGHT, |wh, ctx| {
             ctx.add(Header { wh });
         });
 
@@ -136,7 +135,7 @@ impl Component for GraphicListView<'_> {
             };
         };
 
-        let body_cell = table::hooks::ratio(1, |wh, ctx| {
+        let body_cell = table::ratio(1, |wh, ctx| {
             ctx.compose(|ctx| {
                 const SIDE_MARGIN: Px = px(24.0);
                 const STROKE_WIDTH: Px = px(4.0);
@@ -157,18 +156,18 @@ impl Component for GraphicListView<'_> {
                 ctx.add(namui::path(path, paint));
             });
 
-            table::hooks::padding(PADDING, |wh, ctx| {
+            table::padding(PADDING, |wh, ctx| {
                 let content = |ctx: &mut ComposeCtx| {
                     let Some(graphics) = graphics else {
                         return;
                     };
 
-                    table::hooks::vertical(graphics.iter().map(|(graphic_index, graphic)| {
+                    table::vertical(graphics.iter().map(|(graphic_index, graphic)| {
                         let list_item = |wh, ctx: &mut ComposeCtx| {
                             render_list_item(wh, ctx, *graphic_index, graphic, graphics);
                         };
-                        table::hooks::fixed(GRAPHIC_LIST_ITEM_HEIGHT, move |wh, ctx| {
-                            table::hooks::padding(PADDING, list_item)(wh, ctx);
+                        table::fixed(GRAPHIC_LIST_ITEM_HEIGHT, move |wh, ctx| {
+                            table::padding(PADDING, list_item)(wh, ctx);
                         })
                     }))(wh, ctx);
                 };
@@ -194,7 +193,7 @@ impl Component for GraphicListView<'_> {
         });
 
         ctx.compose(|ctx| {
-            table::hooks::vertical([header_cell, body_cell])(wh, ctx);
+            table::vertical([header_cell, body_cell])(wh, ctx);
         });
 
         ctx.component(simple_rect(
@@ -204,7 +203,7 @@ impl Component for GraphicListView<'_> {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }
 

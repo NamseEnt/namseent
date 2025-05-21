@@ -1,6 +1,6 @@
 use crate::{color, storage::get_project_image_url};
-use namui::prelude::*;
-use namui_prebuilt::{button, simple_rect, table::hooks::*, typography};
+use namui::*;
+use namui_prebuilt::{button, simple_rect, table::*, typography};
 
 const MODAL_MAX_WH: Wh<Px> = Wh {
     width: px(1280.0),
@@ -9,7 +9,6 @@ const MODAL_MAX_WH: Wh<Px> = Wh {
 const MODAL_MIN_MARGIN: Px = px(16.0);
 const TITLE_BAR_HEIGHT: Px = px(48.0);
 
-#[component]
 pub struct ImageViewer<'a> {
     pub wh: Wh<Px>,
     pub image: &'a rpc::data::ImageWithLabels,
@@ -18,7 +17,7 @@ pub struct ImageViewer<'a> {
 }
 
 impl Component for ImageViewer<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             image,
@@ -143,6 +142,6 @@ impl Component for ImageViewer<'_> {
             }),
         );
 
-        ctx.done()
+        
     }
 }

@@ -1,8 +1,9 @@
 use crate::{simple_rect, typography::center_text_full_height};
-use namui::prelude::*;
+use namui::*;
+use std::borrow::Cow;
 
 fn attach_text_button_event(
-    ctx: &mut ComposeCtx,
+    ctx: ComposeCtx,
     mouse_buttons: Vec<MouseButton>,
     on_mouse_up_in: impl FnOnce(MouseEvent<'_>),
 ) {
@@ -21,19 +22,20 @@ fn attach_text_button_event(
     });
 }
 
-#[component]
-pub struct TextButton<'a> {
+pub struct TextButton<Text: AsRef<str>, OnMouseUpIn: FnOnce(MouseEvent)> {
     pub rect: Rect<Px>,
-    pub text: &'a str,
+    pub text: Text,
     pub text_color: Color,
     pub stroke_color: Color,
     pub stroke_width: Px,
     pub fill_color: Color,
     pub mouse_buttons: Vec<MouseButton>,
-    pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
+    pub on_mouse_up_in: OnMouseUpIn,
 }
-impl Component for TextButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+impl<Text: AsRef<str>, OnMouseUpIn: FnOnce(MouseEvent)> Component
+    for TextButton<Text, OnMouseUpIn>
+{
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             rect,
             text,
@@ -55,14 +57,15 @@ impl Component for TextButton<'_> {
                 ));
             attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
         });
-        ctx.done()
     }
 }
 
-#[component]
-pub struct TextButtonFit<'a> {
+pub struct TextButtonFit<'a, Text>
+where
+    Text: Into<Cow<'a, str>>,
+{
     pub height: Px,
-    pub text: &'a str,
+    pub text: Text,
     pub text_color: Color,
     pub stroke_color: Color,
     pub stroke_width: Px,
@@ -71,8 +74,11 @@ pub struct TextButtonFit<'a> {
     pub mouse_buttons: Vec<MouseButton>,
     pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
-impl Component for TextButtonFit<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+impl<'a, Text> Component for TextButtonFit<'a, Text>
+where
+    Text: Into<Cow<'a, str>>,
+{
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
             text,
@@ -84,10 +90,8 @@ impl Component for TextButtonFit<'_> {
             mouse_buttons,
             on_mouse_up_in,
         } = self;
-        let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
-        let width = center_text
-            .bounding_box()
-            .map(|bounding_box| bounding_box.width());
+        let center_text = center_text_full_height(Wh::new(0.px(), height), text.into(), text_color);
+        let width = namui::bounding_box(&center_text).map(|bounding_box| bounding_box.width());
 
         ctx.compose(|ctx| {
             if let Some(width) = width {
@@ -102,12 +106,9 @@ impl Component for TextButtonFit<'_> {
                 attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
             }
         });
-
-        ctx.done()
     }
 }
 
-#[component]
 pub struct TextButtonFitAlign<'a> {
     pub wh: Wh<Px>,
     pub align: TextAlign,
@@ -121,7 +122,7 @@ pub struct TextButtonFitAlign<'a> {
     pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for TextButtonFitAlign<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             align,
@@ -135,9 +136,8 @@ impl Component for TextButtonFitAlign<'_> {
             on_mouse_up_in,
         } = self;
         let center_text = center_text_full_height(Wh::new(0.px(), wh.height), text, text_color);
-        let center_text_width = center_text
-            .bounding_box()
-            .map(|bounding_box| bounding_box.width());
+        let center_text_width =
+            namui::bounding_box(&center_text).map(|bounding_box| bounding_box.width());
 
         ctx.compose(|ctx| {
             if let Some(center_text_width) = center_text_width {
@@ -160,12 +160,9 @@ impl Component for TextButtonFitAlign<'_> {
                 attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
             }
         });
-
-        ctx.done()
     }
 }
 
-#[component]
 pub struct BodyTextButton<'a> {
     pub rect: Rect<Px>,
     pub text: &'a str,
@@ -178,7 +175,7 @@ pub struct BodyTextButton<'a> {
     pub on_mouse_up_in: &'a dyn Fn(MouseEvent),
 }
 impl Component for BodyTextButton<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             rect,
             text,
@@ -211,7 +208,5 @@ impl Component for BodyTextButton<'_> {
 
             attach_text_button_event(ctx, mouse_buttons, on_mouse_up_in);
         });
-
-        ctx.done()
     }
 }

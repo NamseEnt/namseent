@@ -2,7 +2,7 @@ use crate::{
     app::game::{tile, Tile},
     component::{Sprite, SpriteAnimation},
 };
-use namui::prelude::*;
+use namui::*;
 
 const VISUAL_WIDTH: Tile = tile(3.0);
 const VISUAL_HEIGHT: Tile = tile(4.0);
@@ -13,7 +13,7 @@ pub fn walking_sprite_animation(started_at: Time) -> SpriteAnimation {
     SpriteAnimation::new(
         vec![
             Sprite {
-                image_url: Url::parse("bundle:image/character/character_0.png").unwrap(),
+                image_url: Url::parse("image/character/character_0.png").unwrap(),
                 visual_rect: Rect::Xywh {
                     x: VISUAL_OFFSET_X,
                     y: VISUAL_OFFSET_Y,
@@ -22,7 +22,7 @@ pub fn walking_sprite_animation(started_at: Time) -> SpriteAnimation {
                 },
             },
             Sprite {
-                image_url: Url::parse("bundle:image/character/character_1.png").unwrap(),
+                image_url: Url::parse("image/character/character_1.png").unwrap(),
                 visual_rect: Rect::Xywh {
                     x: VISUAL_OFFSET_X,
                     y: VISUAL_OFFSET_Y,
@@ -38,7 +38,7 @@ pub fn walking_sprite_animation(started_at: Time) -> SpriteAnimation {
 
 pub fn standing_sprite() -> Sprite {
     Sprite {
-        image_url: Url::parse("bundle:image/character/character_0.png").unwrap(),
+        image_url: Url::parse("image/character/character_0.png").unwrap(),
         visual_rect: Rect::Xywh {
             x: VISUAL_OFFSET_X,
             y: VISUAL_OFFSET_Y,

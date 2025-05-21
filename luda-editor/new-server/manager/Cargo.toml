@@ -1,0 +1,11 @@
+[package]
+name = "manager"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+axum = "0.7.5"
+anyhow = { version = "1.0.83", features = ["backtrace"] }
+axum-server = { version = "0.6.0", features = ["rustls", "tls-rustls"] }
+reqwest = "0.12.4"

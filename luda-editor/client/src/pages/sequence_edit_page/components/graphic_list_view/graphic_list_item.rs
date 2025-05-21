@@ -2,11 +2,10 @@ use crate::{
     color,
     pages::sequence_edit_page::components::graphic_list_view::graphic_thumbnail::GraphicThumbnail,
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::{simple_rect, table};
 use rpc::data::ScreenGraphic;
 
-#[component]
 pub struct GraphicListItem<'a> {
     pub project_id: Uuid,
     pub wh: Wh<Px>,
@@ -14,7 +13,7 @@ pub struct GraphicListItem<'a> {
     pub is_selected: bool,
 }
 impl Component for GraphicListItem<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const PADDING: Px = px(4.0);
 
         let Self {
@@ -35,16 +34,16 @@ impl Component for GraphicListItem<'_> {
         };
 
         ctx.compose(|ctx| {
-            table::hooks::horizontal([
-                table::hooks::fixed(wh.height, |wh, ctx| {
+            table::horizontal([
+                table::fixed(wh.height, |wh, ctx| {
                     ctx.add(GraphicThumbnail {
                         project_id,
                         wh,
                         graphic,
                     });
                 }),
-                table::hooks::ratio(1, |wh, ctx| {
-                    table::hooks::padding(PADDING, |wh, ctx| {
+                table::ratio(1, |wh, ctx| {
+                    table::padding(PADDING, |wh, ctx| {
                         ctx.add(namui_prebuilt::typography::body::left(
                             wh.height,
                             graphic_name,
@@ -62,6 +61,6 @@ impl Component for GraphicListItem<'_> {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }

@@ -69,9 +69,7 @@ fn main() {
             .join(",")
     );
 
-    println!(
-        "result: {output_key}={output_json_array}"
-    );
+    println!("result: {output_key}={output_json_array}");
 
     std::fs::write(dest, format!("{output_key}={output_json_array}")).unwrap();
 }

@@ -1,16 +1,25 @@
 use crate::scroll_view::{self};
-use namui::prelude::*;
+use namui::*;
 
-#[namui::component]
-pub struct AutoListView<C: Component> {
+pub struct AutoListView<Items, Key, C>
+where
+    C: Component,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
+{
     pub height: Px,
     pub scroll_bar_width: Px,
     pub item_wh: Wh<Px>,
-    pub items: Vec<(String, C)>,
+    pub items: Items,
 }
 
-impl<C: Component> Component for AutoListView<C> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+impl<Items, Key, C> Component for AutoListView<Items, Key, C>
+where
+    C: Component,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
+{
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
             scroll_bar_width,
@@ -19,7 +28,7 @@ impl<C: Component> Component for AutoListView<C> {
         } = self;
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-        ctx.component(ListView {
+        ctx.add(ListView {
             scroll_y: *scroll_y,
             set_scroll_y,
             height,
@@ -27,23 +36,30 @@ impl<C: Component> Component for AutoListView<C> {
             item_wh,
             items,
         });
-
-        ctx.done()
     }
 }
 
-#[namui::component]
-pub struct ListView<C: Component> {
+pub struct ListView<Items, Key, C>
+where
+    C: Component,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
+{
     pub height: Px,
     pub scroll_bar_width: Px,
     pub item_wh: Wh<Px>,
-    pub items: Vec<(String, C)>,
+    pub items: Items,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<Px>,
 }
 
-impl<C: Component> Component for ListView<C> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+impl<Items, Key, C> Component for ListView<Items, Key, C>
+where
+    C: Component,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
+{
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
             scroll_bar_width,
@@ -53,7 +69,7 @@ impl<C: Component> Component for ListView<C> {
             set_scroll_y,
         } = self;
 
-        ctx.component(scroll_view::ScrollView {
+        ctx.add(scroll_view::ScrollView {
             wh: Wh::new(item_wh.width, height),
             scroll_bar_width,
             content: ListViewInner {
@@ -65,21 +81,28 @@ impl<C: Component> Component for ListView<C> {
             scroll_y,
             set_scroll_y,
         });
-
-        ctx.done()
     }
 }
 
-#[namui::component]
-struct ListViewInner<C: Component> {
+struct ListViewInner<Items, Key, C>
+where
+    C: Component,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
+{
     height: Px,
     item_wh: Wh<Px>,
-    items: Vec<(String, C)>,
+    items: Items,
     scroll_y: Px,
 }
 
-impl<C: Component> Component for ListViewInner<C> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+impl<Items, Key, C> Component for ListViewInner<Items, Key, C>
+where
+    C: Component,
+    Key: Into<AddKey>,
+    Items: ExactSizeIterator<Item = (Key, C)>,
+{
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             height,
             item_wh,
@@ -90,7 +113,7 @@ impl<C: Component> Component for ListViewInner<C> {
         let item_len = items.len();
 
         if item_len == 0 {
-            return ctx.done();
+            return;
         }
         let max_scroll_y = item_wh.height * item_len - height;
 
@@ -122,7 +145,7 @@ impl<C: Component> Component for ListViewInner<C> {
             },
         });
 
-        ctx.component(transparent_pillar);
+        ctx.add(transparent_pillar);
 
         let max_scroll_y = item_wh.height * item_len - height;
 
@@ -138,7 +161,5 @@ impl<C: Component> Component for ListViewInner<C> {
                 });
             }
         });
-
-        ctx.done()
     }
 }

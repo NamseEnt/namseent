@@ -1,13 +1,10 @@
 [package]
 name = "tab-to-next-text-input"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [package.metadata]
 namui = true
 
 [dependencies]
 namui = { path = "../../namui" }
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3"

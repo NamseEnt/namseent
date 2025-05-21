@@ -12,8 +12,11 @@ pub fn test(target: Target, manifest_path: PathBuf) -> Result<()> {
             use super::linux;
 
             match target {
-                Target::WasmUnknownWeb => linux::wasm_unknown_web::test(&manifest_path)?,
-                _ => unimplemented!(),
+                Target::Wasm32WasiWeb => linux::wasm32_wasi_web::test(&manifest_path)?,
+                Target::X86_64PcWindowsMsvc => linux::x86_64_pc_windows_msvc::test(&manifest_path)?,
+                Target::X86_64UnknownLinuxGnu => {
+                    linux::x86_64_unknown_linux_gnu::test(&manifest_path)?
+                }
             }
         }
     } else {

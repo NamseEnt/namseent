@@ -1,6 +1,6 @@
 use crate::color;
-use namui::prelude::*;
-use namui_prebuilt::{scroll_view, simple_rect, table::hooks::*, typography};
+use namui::*;
+use namui_prebuilt::{scroll_view, simple_rect, table::*, typography};
 use std::fmt::Debug;
 
 const THUMBNAIL_WH: Wh<Px> = Wh {
@@ -12,7 +12,6 @@ const MINIMUM_SIDE_MARGIN: Px = px(8.0);
 const NAME_MIN_WIDTH: Px = px(128.0);
 const NAME_HEIGHT: Px = px(48.0);
 
-#[component]
 pub(super) struct AutoColumnList<'a, T>
 where
     T: Debug,
@@ -27,7 +26,7 @@ impl<T> Component for AutoColumnList<'_, T>
 where
     T: Debug,
 {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             items,
@@ -83,17 +82,16 @@ where
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }
 
-#[component]
 struct Name {
     wh: Wh<Px>,
     name: String,
 }
 impl Component for Name {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, name } = self;
 
         ctx.component(text(TextParam {
@@ -117,6 +115,6 @@ impl Component for Name {
             max_width: Some(wh.width),
         }));
 
-        ctx.done()
+        
     }
 }

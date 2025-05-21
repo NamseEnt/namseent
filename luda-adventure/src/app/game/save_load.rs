@@ -205,13 +205,10 @@ fn get_new_time_offset(saved_state: &GameState, current_state: &GameState) -> Ti
 
 #[cfg(test)]
 mod test {
-    use namui::TimeExt;
-    use wasm_bindgen_test::wasm_bindgen_test;
-
     use crate::app::game::GameState;
+    use namui::TimeExt;
 
     #[test]
-    #[wasm_bindgen_test]
     fn calibrate_time_offset() {
         // Saved when now() is 1500ms
         let mut saved = GameState::new();

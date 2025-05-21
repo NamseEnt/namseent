@@ -1,41 +1,33 @@
 [package]
 name = "namui-type"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [package.metadata.namui]
-targets = ["x86_64-pc-windows-msvc"]
+targets = [
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+    "wasm32-wasi-web",
+]
 
 [features]
 default = []
 skia = ["dep:skia-safe"]
-namui_internal = [
-    # for namui crate internal use. Don't use this feature if you don't know about it.
-]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive", "rc"] }
 num = { version = "0.4.0", features = ["std"] }
-ordered-float = "2.10"
 auto_ops = "0.3"
-uuid = { version = "1.1", features = [
-    "v4",
-    "js",
-    "macro-diagnostics",
-    "serde",
-] }
-siphasher = "0.3"
-nalgebra = { version = "0.31", features = ["serde-serialize"] }
 url = { version = "2.4.0", features = ["serde"] }
 derive-macro = { path = "./derive-macro" }
-postcard = { version = "1.0.6", features = ["use-std"] }
-textwrap = "0.16.0"
-unicode-segmentation = "1.10.1"
-serde_bytes = "0.11.12"
 lru = "0.11.0"
-skia-safe = { path = "../skia/rust-skia/skia-safe", optional = true }
 anyhow = { version = "1.0.77", features = ["backtrace"] }
+derivative = "2.2.0"
+skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", optional = true }
+rand = "0.8"
+sha2 = "0.10"
+chrono = "0.4.41"
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.13"
 float-cmp = "0.9"
+serde_json = "1.0.117"

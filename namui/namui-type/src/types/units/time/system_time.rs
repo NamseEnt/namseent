@@ -1,24 +1,24 @@
-use crate::Duration;
+use crate::*;
 use std::fmt::Debug;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[type_derives(-Debug, Copy, PartialOrd, Eq, Ord)]
 pub struct SystemTime {
-    #[cfg(not(target_family = "wasm"))]
     inner: std::time::SystemTime,
-    #[cfg(target_family = "wasm")]
-    inner: todo,
 }
 
 impl SystemTime {
-    #[cfg(feature = "namui_internal")]
-    pub fn new(inner: std::time::SystemTime) -> Self {
-        Self { inner }
+    pub fn now() -> Self {
+        Self {
+            inner: std::time::SystemTime::now(),
+        }
     }
 }
 
 impl Debug for SystemTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt(f)
+        use chrono::{DateTime, Utc};
+        let chrono_time = DateTime::<Utc>::from(self.inner);
+        write!(f, "{}", chrono_time.format("%+"))
     }
 }
 
@@ -39,7 +39,11 @@ auto_ops::impl_op!(-|lhs: &SystemTime, rhs: Duration| -> SystemTime { add_durati
 auto_ops::impl_op!(-|lhs: SystemTime, rhs: &Duration| -> SystemTime { add_duration(lhs, -*rhs) });
 auto_ops::impl_op!(-|lhs: &SystemTime, rhs: &Duration| -> SystemTime { add_duration(*lhs, -*rhs) });
 
-#[cfg(not(target_family = "wasm"))]
+auto_ops::impl_op!(+|lhs: SystemTime, rhs: std::time::Duration| -> SystemTime { add_std_duration(lhs, rhs) });
+auto_ops::impl_op!(+|lhs: &SystemTime, rhs: std::time::Duration| -> SystemTime { add_std_duration(*lhs, rhs) });
+auto_ops::impl_op!(+|lhs: SystemTime, rhs: &std::time::Duration| -> SystemTime { add_std_duration(lhs, *rhs) });
+auto_ops::impl_op!(+|lhs: &SystemTime, rhs: &std::time::Duration| -> SystemTime { add_std_duration(*lhs, *rhs) });
+
 fn sub_system_time(lhs: SystemTime, rhs: SystemTime) -> Duration {
     let duration = match lhs.inner.duration_since(rhs.inner) {
         Ok(duration) => duration,
@@ -50,7 +54,6 @@ fn sub_system_time(lhs: SystemTime, rhs: SystemTime) -> Duration {
     Duration::from_std(sign, duration)
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn add_duration(lhs: SystemTime, rhs: Duration) -> SystemTime {
     match rhs.sign {
         true => SystemTime {
@@ -62,10 +65,15 @@ fn add_duration(lhs: SystemTime, rhs: Duration) -> SystemTime {
     }
 }
 
+fn add_std_duration(lhs: SystemTime, rhs: std::time::Duration) -> SystemTime {
+    SystemTime {
+        inner: lhs.inner + rhs,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
 
     #[test]
     fn test_system_time_sub() {

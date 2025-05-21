@@ -1,4 +1,4 @@
-use super::{get_project_name, GenerateRuntimeProjectArgs};
+use super::{GenerateRuntimeProjectArgs, get_project_name};
 use crate::{util::recreate_dir_all, *};
 
 pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
@@ -15,18 +15,17 @@ pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> 
             r#"[package]
 name = "namui-runtime-x86_64-pc-windows-msvc"
 version = "0.0.1"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 {project_name} = {{ path = "{project_path}" }}
+mimalloc = "0.1.39"
 
 [profile.release]
-lto = true
 opt-level = 3
 
-# [profile.dev]
-# lto = true
-# opt-level = 2
+[profile.dev]
+opt-level = 2
     "#,
             project_path = project_path_in_relative
                 .to_str()
@@ -46,6 +45,9 @@ opt-level = 3
             format!(
                 r#"#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+                
 fn main() {{
     {project_name_underscored}::main()
 }}

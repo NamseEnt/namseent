@@ -1,7 +1,6 @@
 use super::{wysiwyg_tool::WysiwygTool, *};
 use crate::{app::notification, clipboard::LudaEditorClipboardItem};
 
-#[namui::component]
 pub struct GraphicClip<'a> {
     pub cut_id: Uuid,
     pub graphic_index: Uuid,
@@ -32,7 +31,7 @@ pub enum Event<'a> {
 }
 
 impl Component for GraphicClip<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             cut_id,
             graphic_index,
@@ -54,10 +53,10 @@ impl Component for GraphicClip<'_> {
             Some(Ok(image)) => image,
             Some(Err(error)) => {
                 namui::log!("Failed to load image: {:?}", error);
-                return ctx.done();
+                return ;
             }
             None => {
-                return ctx.done();
+                return ;
             }
         };
         let graphic_wh = image.wh;
@@ -209,6 +208,6 @@ impl Component for GraphicClip<'_> {
             ctx.compose(graphic_rendering_tree);
         });
 
-        ctx.done()
+        
     }
 }

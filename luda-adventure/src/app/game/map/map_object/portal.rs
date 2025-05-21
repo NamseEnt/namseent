@@ -2,7 +2,7 @@ use crate::{
     app::game::{Tile, TileExt},
     component::{Interactor, Positioner, RenderType, Renderer, Sprite},
 };
-use namui::prelude::*;
+use namui::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,7 +31,7 @@ impl Portal {
                         width: 2.tile(),
                         height: 3.tile(),
                     },
-                    image_url: Url::parse("bundle:image/portal.png").unwrap(),
+                    image_url: Url::parse("image/portal.png").unwrap(),
                 }),
             ));
     }

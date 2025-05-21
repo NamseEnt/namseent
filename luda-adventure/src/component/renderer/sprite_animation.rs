@@ -1,6 +1,6 @@
 use super::{minimum_visual_rect_containing_sprites, Sprite};
 use crate::app::game::{GameState, RenderingContext, Tile};
-use namui::prelude::*;
+use namui::*;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct SpriteAnimation {

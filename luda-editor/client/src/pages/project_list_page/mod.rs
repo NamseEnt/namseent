@@ -3,17 +3,16 @@ use crate::{
     RPC,
 };
 use futures::FutureExt;
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::list_editable_projects::EditableProject;
 
-#[namui::component]
 pub struct ProjectListPage {
     pub wh: Wh<Px>,
 }
 
 impl Component for ProjectListPage {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
         const ITEM_HEIGHT: Px = px(40.0);
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
@@ -105,12 +104,12 @@ impl Component for ProjectListPage {
         }
 
         ctx.compose(|ctx| {
-            table::hooks::horizontal([
-                table::hooks::ratio(1.0, |_wh, _ctx| {}),
-                table::hooks::ratio(
+            table::horizontal([
+                table::ratio(1.0, |_wh, _ctx| {}),
+                table::ratio(
                     2.0,
-                    table::hooks::vertical([
-                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
+                    table::vertical([
+                        table::fixed(ITEM_HEIGHT, |wh, ctx| {
                             ctx.add(namui_prebuilt::button::TextButton {
                                 rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 text: "Copy User ID",
@@ -122,8 +121,8 @@ impl Component for ProjectListPage {
                                 on_mouse_up_in: &|_| on_copy_id_button_clicked(),
                             });
                         }),
-                        table::hooks::fixed(ITEM_HEIGHT, |_, _| {}),
-                        table::hooks::fixed(ITEM_HEIGHT, |wh, ctx| {
+                        table::fixed(ITEM_HEIGHT, |_, _| {}),
+                        table::fixed(ITEM_HEIGHT, |wh, ctx| {
                             ctx.add(namui_prebuilt::button::TextButton {
                                 rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 text: "[+] Add Project",
@@ -135,7 +134,7 @@ impl Component for ProjectListPage {
                                 on_mouse_up_in: &|_| on_add_button_clicked(),
                             });
                         }),
-                        table::hooks::ratio(1.0, |wh, ctx| {
+                        table::ratio(1.0, |wh, ctx| {
                             let item_wh = Wh::new(wh.width, ITEM_HEIGHT);
                             ctx.add(list_view::AutoListView {
                                 height: wh.height,
@@ -157,7 +156,7 @@ impl Component for ProjectListPage {
                         }),
                     ]),
                 ),
-                table::hooks::ratio(1.0, |_wh, _ctx| {}),
+                table::ratio(1.0, |_wh, _ctx| {}),
             ])(wh, ctx)
         });
 
@@ -192,18 +191,17 @@ impl Component for ProjectListPage {
         //         })
         //     }),
 
-        ctx.done()
+        
     }
 }
 
-#[namui::component]
 pub struct ProjectCell {
     wh: Wh<Px>,
     project: EditableProject,
 }
 
 impl Component for ProjectCell {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let project_id = self.project.id;
 
         ctx.component(namui_prebuilt::button::TextButton {

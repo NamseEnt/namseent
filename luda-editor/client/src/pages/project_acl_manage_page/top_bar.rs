@@ -2,17 +2,16 @@ use crate::{
     color,
     pages::router::{move_to, Route},
 };
-use namui::prelude::*;
-use namui_prebuilt::{button::TextButtonFit, simple_rect, table::hooks::*, typography};
+use namui::*;
+use namui_prebuilt::{button::TextButtonFit, simple_rect, table::*, typography};
 
-#[component]
 pub(super) struct TopBar {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
 }
 
 impl Component for TopBar {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         const PADDING: Px = px(8.0);
@@ -53,6 +52,6 @@ impl Component for TopBar {
             color::BACKGROUND,
         ));
 
-        ctx.done()
+        
     }
 }

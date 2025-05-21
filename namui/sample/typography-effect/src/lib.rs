@@ -1,18 +1,19 @@
-use namui::prelude::*;
+use namui::*;
 
 pub fn main() {
-    namui::start(|| TypographyEffectExample)
+    namui::start(|ctx| {
+        ctx.add(TypographyEffectExample);
+    })
 }
 
-#[namui::component]
 struct TypographyEffectExample;
 
 impl Component for TypographyEffectExample {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let screen_wh = namui::screen::size();
         let (tile_mode, set_tile_mode) = ctx.state(|| TileMode::Clamp);
 
-        ctx.on_raw_event(move |event| {
+        ctx.on_raw_event(|event| {
             if let RawEvent::KeyUp { event } = event {
                 if event.code == Code::ArrowRight {
                     set_tile_mode.set(match *tile_mode {
@@ -32,7 +33,7 @@ impl Component for TypographyEffectExample {
             }
         });
 
-        ctx.component(namui_prebuilt::typography::effect::glow(
+        ctx.add(namui_prebuilt::typography::effect::glow(
             "Hello world!",
             Font {
                 size: 64.int_px(),
@@ -42,12 +43,13 @@ impl Component for TypographyEffectExample {
             Paint::new(Color::WHITE),
             TextAlign::Center,
             TextBaseline::Middle,
-            Blur::Normal { sigma: 24.0 },
+            BlurStyle::Normal,
+            blur_sigma::from_radius(24.0),
             24.px(),
             Color::from_u8(255, 128, 0, 255),
         ));
 
-        ctx.component({
+        ctx.add({
             let xy = screen_wh.as_xy().into_type::<Px>() * 3.0 / 4.0;
             let font = Font {
                 size: 64.int_px(),
@@ -78,7 +80,7 @@ impl Component for TypographyEffectExample {
             }
         });
 
-        ctx.component({
+        ctx.add({
             let x = screen_wh.width.into_px() / 8.0;
             let y = screen_wh.height.into_px() / 8.0;
             rect(RectParam {
@@ -101,7 +103,5 @@ impl Component for TypographyEffectExample {
                 },
             })
         });
-
-        ctx.done()
     }
 }

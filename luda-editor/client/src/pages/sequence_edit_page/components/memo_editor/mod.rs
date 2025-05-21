@@ -2,7 +2,6 @@ use crate::color;
 use namui::{prelude::*, text_input::Style};
 use namui_prebuilt::*;
 
-#[namui::component]
 pub struct MemoEditor<'a> {
     pub sequence_id: Uuid,
     pub cut_id: Uuid,
@@ -19,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for MemoEditor<'_> {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         const MEMO_EDITOR_WH: Wh<Px> = Wh {
             width: px(512.0),
             height: px(256.0),
@@ -66,8 +65,8 @@ impl Component for MemoEditor<'_> {
             on_event(Event::Close);
         };
         let render_close_button = |height: Px| {
-            table::hooks::fit(
-                table::hooks::FitAlign::LeftTop,
+            table::fit(
+                table::FitAlign::LeftTop,
                 button::TextButtonFit {
                     height,
                     text: "취소",
@@ -91,8 +90,8 @@ impl Component for MemoEditor<'_> {
             });
         };
         let render_save_button = |height: Px| {
-            table::hooks::fit(
-                table::hooks::FitAlign::RightBottom,
+            table::fit(
+                table::FitAlign::RightBottom,
                 button::TextButtonFit {
                     height,
                     text: "저장",
@@ -108,8 +107,8 @@ impl Component for MemoEditor<'_> {
             )
         };
 
-        let content = table::hooks::vertical([
-            table::hooks::fixed(TITLE_HEIGHT, |wh, ctx| {
+        let content = table::vertical([
+            table::fixed(TITLE_HEIGHT, |wh, ctx| {
                 ctx.add(simple_rect(
                     wh,
                     color::STROKE_NORMAL,
@@ -117,15 +116,15 @@ impl Component for MemoEditor<'_> {
                     Color::TRANSPARENT,
                 ));
 
-                table::hooks::padding(PADDING, |wh, ctx| {
-                    table::hooks::horizontal([
+                table::padding(PADDING, |wh, ctx| {
+                    table::horizontal([
                         render_close_button(wh.height),
-                        table::hooks::ratio(1, |_, _| {}),
+                        table::ratio(1, |_, _| {}),
                         render_save_button(wh.height),
                     ])(wh, ctx);
                 })(wh, ctx);
             }),
-            table::hooks::ratio(1, |wh, ctx| {
+            table::ratio(1, |wh, ctx| {
                 ctx.add(simple_rect(
                     wh,
                     color::STROKE_NORMAL,
@@ -133,7 +132,7 @@ impl Component for MemoEditor<'_> {
                     Color::TRANSPARENT,
                 ));
 
-                table::hooks::padding(PADDING, |wh, ctx| {
+                table::padding(PADDING, |wh, ctx| {
                     ctx.add(text_input::TextInput {
                         instance: text_input_instance,
                         rect: Rect::from_xy_wh(Xy::zero(), wh),

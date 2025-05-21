@@ -16,7 +16,13 @@ jobs:
     outputs:
       project-dirs: ${{ steps.project-dirs.outputs.dirs }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up cargo
+        run: |
+          rustup update
 
       - name: Output list of project directories
         id: project-dirs
@@ -35,15 +41,31 @@ jobs:
       XWIN_VERSION: 17
       CARGO_VERSION: "" # Should be set in the job
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install wine
         run: |
+          sudo dpkg --add-architecture i386 
+
+          sudo mkdir -pm755 /etc/apt/keyrings
+          sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
+
+          sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources
+
           sudo apt update
-          sudo apt install -y wine64
+
+          sudo apt install -y --install-recommends winehq-stable
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
 
       - name: Set up cargo
         run: |
+          rustup component add llvm-tools-preview
           rustup target add x86_64-pc-windows-msvc
           rustup update
 
@@ -55,7 +77,7 @@ jobs:
           path: |
             ~/.cache/cargo-xwin
           key: ${{ runner.os }}-${{ env.XWIN_ARCH }}-${{ env.XWIN_VERSION }}
-          
+
       - uses: actions/cache@v3
         with:
           path: |
@@ -68,24 +90,24 @@ jobs:
 
       - name: Install cargo-xwin
         run: |
-          cargo install cargo-xwin
+          cargo install cargo-xwin --locked
 
       - name: Run commands
         working-directory: ${{ matrix.dir }}
         run: |
           echo "Running commands in ${{ matrix.dir }}"
 
-          echo "cargo xwin check --target x86_64-pc-windows-msvc"
-          cargo xwin check --target x86_64-pc-windows-msvc
-          
+          echo "cargo xwin check --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests"
+          cargo xwin check --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests
+
           echo "cargo fmt"
           cargo fmt
 
-          echo "cargo xwin clippy --target x86_64-pc-windows-msvc"
-          cargo xwin clippy --target x86_64-pc-windows-msvc
+          echo "cargo xwin clippy --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests"
+          cargo xwin clippy --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests
 
-          echo "cargo xwin test --target x86_64-pc-windows-msvc"
-          cargo xwin test --target x86_64-pc-windows-msvc
+          echo "cargo xwin test --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17"
+          cargo xwin test --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17
 
   post-namui-linux-host-x86_64-pc-windows-msvc:
     if: always()

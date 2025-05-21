@@ -1,8 +1,12 @@
 use crate::*;
 use num::cast::AsPrimitive;
+use std::fmt::Debug;
 
-#[type_derives(Copy)]
-pub enum Rect<T> {
+#[type_derives(Copy, Eq, Hash)]
+pub enum Rect<T>
+where
+    T: Debug,
+{
     Xywh {
         x: T,
         y: T,
@@ -17,15 +21,21 @@ pub enum Rect<T> {
     },
 }
 
-#[type_derives(Copy)]
-pub struct Xywh<T> {
+#[type_derives(Copy, Eq)]
+pub struct Xywh<T>
+where
+    T: Debug,
+{
     pub x: T,
     pub y: T,
     pub width: T,
     pub height: T,
 }
 
-impl<T: Clone> Rect<T> {
+impl<T> Rect<T>
+where
+    T: Clone + Debug,
+{
     pub fn from_xy_wh(xy: Xy<T>, wh: Wh<T>) -> Self {
         Rect::Xywh {
             x: xy.x,
@@ -34,13 +44,14 @@ impl<T: Clone> Rect<T> {
             height: wh.height,
         }
     }
+    #[inline(always)]
     pub fn zero_wh(wh: Wh<T>) -> Self
     where
-        T: From<f32>,
+        T: Default,
     {
         Rect::Xywh {
-            x: Xy::zero().x,
-            y: Xy::zero().y,
+            x: T::default(),
+            y: T::default(),
             width: wh.width,
             height: wh.height,
         }
@@ -127,7 +138,7 @@ impl<T: Clone> Rect<T> {
 
 impl<T> Rect<T>
 where
-    T: Clone + std::ops::Sub<Output = T>,
+    T: Clone + std::ops::Sub<Output = T> + Debug,
 {
     pub fn as_xywh(&self) -> Xywh<T> {
         match self {
@@ -260,7 +271,7 @@ where
 }
 impl<T> Rect<T>
 where
-    T: std::ops::Add<Output = T> + Clone,
+    T: std::ops::Add<Output = T> + Clone + Debug,
 {
     pub fn as_ltrb(&self) -> Ltrb<T> {
         match self {
@@ -377,7 +388,7 @@ where
 }
 impl<T> Rect<T>
 where
-    T: std::ops::Mul<f32, Output = T> + Clone,
+    T: std::ops::Mul<f32, Output = T> + Clone + Debug,
 {
     pub fn scale(&self, ratio: impl AsPrimitive<f32>) -> Self {
         let ratio = ratio.as_();
@@ -410,7 +421,7 @@ where
 
 impl<'a, T> Rect<T>
 where
-    T: 'a + std::ops::Div<f32, Output = T>,
+    T: 'a + std::ops::Div<f32, Output = T> + Debug,
     &'a T: std::ops::Add<&'a T, Output = T>
         + std::ops::Div<f32, Output = T>
         + std::ops::Add<T, Output = T>,
@@ -441,7 +452,7 @@ where
 
 impl<T> Rect<T>
 where
-    T: PartialOrd + std::ops::Add<T, Output = T> + Clone,
+    T: PartialOrd + std::ops::Add<T, Output = T> + Clone + Debug,
 {
     pub fn intersect(&self, other: Rect<T>) -> Option<Rect<T>> {
         let my_ltrb = self.as_ltrb();
@@ -540,7 +551,7 @@ where
 
 impl<T> Default for Rect<T>
 where
-    T: Default,
+    T: Default + Debug,
 {
     fn default() -> Self {
         Rect::Ltrb {
@@ -554,7 +565,7 @@ where
 
 impl<T> std::ops::Add<Xy<T>> for Rect<T>
 where
-    T: std::ops::Add<Output = T> + Clone,
+    T: std::ops::Add<Output = T> + Clone + Debug,
 {
     type Output = Rect<T>;
     fn add(self, rhs: Xy<T>) -> Self::Output {
@@ -580,6 +591,74 @@ where
                 top: top + rhs.y.clone(),
                 right: right + rhs.x,
                 bottom: bottom + rhs.y,
+            },
+        }
+    }
+}
+
+impl<T, Rhs> std::ops::Mul<Rhs> for Rect<T>
+where
+    T: std::ops::Mul<Rhs, Output = T> + Debug,
+    Rhs: Clone,
+{
+    type Output = Rect<T>;
+    fn mul(self, rhs: Rhs) -> Self::Output {
+        match self {
+            Rect::Xywh {
+                x,
+                y,
+                width,
+                height,
+            } => Rect::Xywh {
+                x: x * rhs.clone(),
+                y: y * rhs.clone(),
+                width: width * rhs.clone(),
+                height: height * rhs,
+            },
+            Rect::Ltrb {
+                left,
+                top,
+                right,
+                bottom,
+            } => Rect::Ltrb {
+                left: left * rhs.clone(),
+                top: top * rhs.clone(),
+                right: right * rhs.clone(),
+                bottom: bottom * rhs,
+            },
+        }
+    }
+}
+
+impl<T, Rhs> std::ops::Div<Rhs> for Rect<T>
+where
+    T: std::ops::Div<Rhs, Output = T> + Debug,
+    Rhs: Clone,
+{
+    type Output = Rect<T>;
+    fn div(self, rhs: Rhs) -> Self::Output {
+        match self {
+            Rect::Xywh {
+                x,
+                y,
+                width,
+                height,
+            } => Rect::Xywh {
+                x: x / rhs.clone(),
+                y: y / rhs.clone(),
+                width: width / rhs.clone(),
+                height: height / rhs,
+            },
+            Rect::Ltrb {
+                left,
+                top,
+                right,
+                bottom,
+            } => Rect::Ltrb {
+                left: left / rhs.clone(),
+                top: top / rhs.clone(),
+                right: right / rhs.clone(),
+                bottom: bottom / rhs,
             },
         }
     }
@@ -613,7 +692,7 @@ impl From<Rect<Px>> for skia_safe::Rect {
 #[cfg(feature = "skia")]
 impl<T> Into<Rect<T>> for skia_safe::Rect
 where
-    T: From<f32>,
+    T: From<f32> + Debug,
 {
     fn into(self) -> Rect<T> {
         Rect::Ltrb {
@@ -622,5 +701,65 @@ where
             right: self.right.into(),
             bottom: self.bottom.into(),
         }
+    }
+}
+
+impl<T> Rect<T>
+where
+    T: Debug,
+{
+    pub fn map<U>(&self, f: impl Fn(&T) -> U) -> Rect<U>
+    where
+        U: Debug,
+    {
+        match self {
+            Rect::Xywh {
+                x,
+                y,
+                width,
+                height,
+            } => Rect::Xywh {
+                x: f(x),
+                y: f(y),
+                width: f(width),
+                height: f(height),
+            },
+            Rect::Ltrb {
+                left,
+                top,
+                right,
+                bottom,
+            } => Rect::Ltrb {
+                left: f(left),
+                top: f(top),
+                right: f(right),
+                bottom: f(bottom),
+            },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_xy_inside() {
+        let rect = Rect::Ltrb {
+            left: 0.0.px(),
+            top: 0.0.px(),
+            right: 48.0.px(),
+            bottom: 24.0.px(),
+        };
+        let xy = Xy {
+            x: 12.0.px(),
+            y: 11.0.px(),
+        };
+        assert!(rect.is_xy_inside(xy));
+        let xy = Xy {
+            x: 12.0.px(),
+            y: 25.0.px(),
+        };
+        assert!(!rect.is_xy_inside(xy));
     }
 }

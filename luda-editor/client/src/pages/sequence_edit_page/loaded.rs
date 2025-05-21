@@ -8,12 +8,11 @@ use crate::{
         character_editor::EditTarget, name_quick_slot_modal::NameQuickSlotModal,
     },
 };
-use namui::prelude::*;
+use namui::*;
 use namui_prebuilt::*;
 use rpc::data::*;
 use std::collections::HashMap;
 
-#[namui::component]
 pub struct LoadedSequenceEditorPage {
     pub wh: Wh<Px>,
     pub project_shared_data: ProjectSharedData,
@@ -31,7 +30,7 @@ enum ContextMenu {
 }
 
 impl Component for LoadedSequenceEditorPage {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             project_shared_data,
             cut_id_memos_map,
@@ -203,12 +202,12 @@ impl Component for LoadedSequenceEditorPage {
                 name_quick_slot_modal::Event::Close => set_name_quick_slot_open.set(false),
             },
         };
-        let side_bar_cell: table::hooks::TableCell = {
+        let side_bar_cell: table::TableCell = {
             const SIDE_BAR_WIDTH: Px = px(256.0);
 
             let memos = selected_cut.and_then(|cut| cut_id_memos_map.get(&cut.id));
 
-            table::hooks::fixed(SIDE_BAR_WIDTH, move |wh, ctx| {
+            table::fixed(SIDE_BAR_WIDTH, move |wh, ctx| {
                 ctx.add(side_bar::SideBar {
                     wh,
                     project_id,
@@ -226,7 +225,7 @@ impl Component for LoadedSequenceEditorPage {
 
             match *character_editor_target {
                 Some(character_editor_target) => {
-                    table::hooks::fixed(CHARACTER_EDITOR_WIDTH, move |wh, ctx| {
+                    table::fixed(CHARACTER_EDITOR_WIDTH, move |wh, ctx| {
                         ctx.add(character_editor::CharacterEditor {
                             wh,
                             project_id,
@@ -238,14 +237,14 @@ impl Component for LoadedSequenceEditorPage {
                         });
                     })
                 }
-                None => table::hooks::empty(),
+                None => table::empty(),
             }
         };
         let image_picker_cell = {
             const IMAGE_PICKER_WIDTH: Px = px(496.0);
 
             match (*image_picker_open, selected_cut) {
-                (true, Some(cut)) => table::hooks::fixed(IMAGE_PICKER_WIDTH, move |wh, ctx| {
+                (true, Some(cut)) => table::fixed(IMAGE_PICKER_WIDTH, move |wh, ctx| {
                     ctx.add(image_picker::ImagePicker {
                         wh,
                         project_id,
@@ -253,7 +252,7 @@ impl Component for LoadedSequenceEditorPage {
                         on_event: &|event| on_internal_event(InternalEvent::ImagePicker { event }),
                     });
                 }),
-                _ => table::hooks::empty(),
+                _ => table::empty(),
             }
         };
 
@@ -324,16 +323,16 @@ impl Component for LoadedSequenceEditorPage {
         });
 
         ctx.compose(|ctx| {
-            table::hooks::horizontal([
-                table::hooks::fixed(220.px(), cut_list_view_cell),
-                table::hooks::ratio(4, cut_editor_cell),
+            table::horizontal([
+                table::fixed(220.px(), cut_list_view_cell),
+                table::ratio(4, cut_editor_cell),
                 character_editor_cell,
                 side_bar_cell,
                 image_picker_cell,
             ])(wh, ctx)
         });
 
-        ctx.done()
+        
     }
 }
 

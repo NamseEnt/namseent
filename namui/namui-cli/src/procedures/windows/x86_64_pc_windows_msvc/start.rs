@@ -10,7 +10,7 @@ use crate::{
 use std::path::Path;
 
 /// NOTE: Start on windows doesn't support hot reload.
-pub async fn start(manifest_path: &Path) -> Result<()> {
+pub async fn start(manifest_path: impl AsRef<std::path::Path>) -> Result<()> {
     let target = cli::Target::X86_64PcWindowsMsvc;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let release_path = project_root_path

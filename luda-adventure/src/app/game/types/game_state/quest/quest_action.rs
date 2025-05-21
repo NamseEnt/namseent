@@ -1,4 +1,4 @@
-use namui::prelude::*;
+use namui::*;
 
 pub enum QuestAction {
     WaitForUserInteractObject(Uuid),

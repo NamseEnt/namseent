@@ -4,11 +4,9 @@ use crate::{
     ecs,
 };
 use float_cmp::assert_approx_eq;
-use namui::prelude::*;
-use wasm_bindgen_test::wasm_bindgen_test;
+use namui::*;
 
 #[test]
-#[wasm_bindgen_test]
 fn character_should_not_move_on_cross_axis_when_collide() {
     let mut game = Game::new();
     add_character(&mut game.ecs_app);

@@ -1,0 +1,20 @@
+[submodule "namui/third-party-forks/reqwest"]
+	path = namui/third-party-forks/reqwest
+	url = https://github.com/NamseEnt/reqwest
+	branch = "fork-v0.12.4"
+[submodule "namui/third-party-forks/rust-skia"]
+	path = namui/third-party-forks/rust-skia
+	url = https://github.com/namseent/rust-skia
+	branch = "fork-245b2bf"
+[submodule "namui/third-party-forks/tokio"]
+	path = namui/third-party-forks/tokio
+	url = https://github.com/namseent/tokio
+	branch = "fork-tokio-1.38.0"
+[submodule "namui/third-party-forks/rusqlite"]
+	path = namui/third-party-forks/rusqlite
+	url = https://github.com/namseent/rusqlite
+	branch = "fork-0.31.0"
+[submodule "luda-editor/third-party-forks/psd"]
+	path = luda-editor/third-party-forks/psd
+	url = https://github.com/NamseEnt/psd.git
+	branch = "master"

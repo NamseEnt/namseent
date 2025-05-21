@@ -1,14 +1,15 @@
-use namui::prelude::*;
+use namui::*;
 
 pub fn main() {
-    namui::start(|| RectExample)
+    namui::start(|ctx| {
+        ctx.add(RectExample);
+    })
 }
 
-#[namui::component]
 struct RectExample;
 
 impl Component for RectExample {
-    fn render(self, ctx: &RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) {
         let (delta_xy, set_delta_xy) = ctx.state(Xy::<f32>::zero);
 
         let screen_wh = namui::screen::size();
@@ -81,11 +82,11 @@ impl Component for RectExample {
                         round: None,
                     },
                 });
-                ctx.component(rect);
+                ctx.add(rect);
             }
         }
 
-        ctx.component(rect(RectParam {
+        ctx.add(rect(RectParam {
             rect: Rect::Xywh {
                 x: 0.px(),
                 y: 0.px(),
@@ -103,7 +104,7 @@ impl Component for RectExample {
             },
         }));
 
-        ctx.component(
+        ctx.add(
             rect(RectParam {
                 rect: Rect::Xywh {
                     x: 0.px(),
@@ -130,7 +131,5 @@ impl Component for RectExample {
                 }
             }),
         );
-
-        ctx.done()
     }
 }
