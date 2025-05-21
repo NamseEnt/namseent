@@ -23,7 +23,7 @@ impl<T> Xy<T>
 where
     T: std::fmt::Debug,
 {
-    pub fn as_wh(&self) -> Wh<T>
+    pub fn to_wh(&self) -> Wh<T>
     where
         T: Clone,
     {
