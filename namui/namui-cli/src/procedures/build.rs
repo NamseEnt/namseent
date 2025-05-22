@@ -17,6 +17,18 @@ pub async fn build(target: Target, manifest_path: PathBuf, release: bool) -> Res
                     linux::x86_64_pc_windows_msvc::build(&manifest_path, release).await?
                 }
                 Target::X86_64UnknownLinuxGnu => todo!(),
+                _ => unimplemented!(),
+            }
+        }
+    } else if cfg!(target_os = "macos") {
+        #[cfg(target_os = "macos")]
+        {
+            use super::macos;
+            match target {
+                Target::Wasm32WasiWeb => {
+                    macos::wasm32_wasi_web::build(&manifest_path, release).await?
+                }
+                _ => unimplemented!(),
             }
         }
     } else if cfg!(target_os = "windows") {
@@ -30,6 +42,7 @@ pub async fn build(target: Target, manifest_path: PathBuf, release: bool) -> Res
                 Target::X86_64PcWindowsMsvc => {
                     windows::x86_64_pc_windows_msvc::build(&manifest_path).await?;
                 }
+                _ => unimplemented!(),
             }
         }
     } else {
