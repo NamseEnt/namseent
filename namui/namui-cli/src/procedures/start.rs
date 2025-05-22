@@ -23,6 +23,17 @@ pub async fn start(
                 Target::X86_64UnknownLinuxGnu => todo!(),
             }
         }
+    } else if cfg!(target_os = "macos") {
+        #[cfg(target_os = "macos")]
+        {
+            use super::macos;
+            match target {
+                Target::Wasm32WasiWeb => {
+                    macos::wasm32_wasi_web::start(&manifest_path, start_option).await?
+                }
+                _ => unimplemented!(),
+            }
+        }
     } else if cfg!(target_os = "windows") {
         #[cfg(target_os = "windows")]
         {
