@@ -80,6 +80,16 @@ pub async fn start(
 }
 
 async fn start_web_code() -> Result<Child> {
+    let npm_check = tokio::process::Command::new("npm")
+        .arg("--version")
+        .output()
+        .await;
+
+    if npm_check.is_err() {
+        return Err(anyhow::anyhow!(
+            "npm is not installed. Please install Node.js"
+        ));
+    }
     let mut process = tokio::process::Command::new("npm")
         .current_dir(get_cli_root_path().join("webCode"))
         .args(["ci"])

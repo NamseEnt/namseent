@@ -20,13 +20,17 @@ unsafe extern "C" {
 
 impl NativeSkia {
     pub(crate) fn new(window_wh: Wh<IntPx>) -> Result<NativeSkia> {
-        let interface = skia_safe::gpu::gl::Interface::new_load_with(|addr| match addr {
-            "glGetString" => glGetString as _,
-            "glGetStringi" => glGetStringi as _,
-            "glGetIntegerv" => glGetIntegerv as _,
-            _ => todo!("unknown function on gl interface: {}", addr),
-        })
-        .expect("failed to load gl interface");
+        let result = skia_safe::gpu::gl::Interface::new_load_with(|addr| {
+            println!("addr: {}", addr);
+            match addr {
+                "glGetString" => glGetString as _,
+                "glGetStringi" => glGetStringi as _,
+                "glGetIntegerv" => glGetIntegerv as _,
+                _ => todo!("unknown function on gl interface: {}", addr),
+            }
+        });
+        println!("result: {:?}", result);
+        let interface = result.expect("failed to load gl interface");
 
         let context = skia_safe::gpu::direct_contexts::make_gl(interface, None)
             .expect("failed to create gl direct context");
