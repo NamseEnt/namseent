@@ -60,171 +60,232 @@ export function envGl({
 
     const extensionStringCache = new Map<number, number>();
 
-    return {
-        /**
-         * const GLubyte *glGetStringi(
-         *     GLenum name,
-         *     GLuint index
-         * );
-         *
-         * name: Specifies a symbolic constant, one of GL_VENDOR, GL_RENDERER, GL_VERSION,
-         * or GL_SHADING_LANGUAGE_VERSION. Additionally, glGetStringi accepts the GL_EXTENSIONS token.
-         *
-         * index: For glGetStringi, specifies the index of the string to return.
-         */
-        glGetStringi: (pname: number, index: number) => {
-            if (!webgl) {
-                throw new Error("webgl is not set");
-            }
-            switch (pname) {
-                case 0x1f03 /* GL_EXTENSIONS */: {
-                    const extensions = webgl.getSupportedExtensions();
-                    if (!extensions) {
-                        throw new Error("No extensions found");
-                    }
-                    if (extensionStringCache.has(index)) {
-                        return extensionStringCache.get(index)!;
-                    }
-                    if (index >= extensions.length) {
-                        return 0;
-                    }
-                    const ret = stringToNewUTF8(extensions[index]);
-                    extensionStringCache.set(index, ret);
-                    return ret;
-                }
-                default:
+    function glGetString(name: number) {
+        if (!webgl) {
+            throw new Error("webgl is not set");
+        }
+        let ret = stringCache.get(name);
+        if (ret) {
+            return ret;
+        }
+        switch (name) {
+            case 7939 /* GL_EXTENSIONS */:
+                ret = stringToNewUTF8(
+                    webgl.getSupportedExtensions()!.join(" "),
+                );
+                break;
+            case 7936 /* GL_VENDOR */:
+            case 7937 /* GL_RENDERER */:
+                const paramter = webgl.getParameter(name);
+
+                if (!paramter) {
+                    // This occurs e.g. if one attempts GL_UNMASKED_VENDOR_WEBGL when it is not supported.
                     throw new Error(
-                        `GL_INVALID_ENUM in glGetStringi: Unknown parameter ${pname.toString(
-                            16,
-                        )}!`,
+                        `GL_INVALID_ENUM in glGetString: Received empty parameter for query name ${name}!`,
                     );
-            }
-        },
-        /**
-         * @param pname
-         *  GLenum
-         * @param paramsPtr
-         *  GLint
-         * @returns
-         */
-        glGetIntegerv: (pname: number, paramsPtr: number) => {
-            if (!webgl) {
-                throw new Error("webgl is not set");
-            }
-            switch (pname) {
-                case 0x821d: // GL_NUM_EXTENSIONS
-                    {
-                        const value =
-                            webgl.getSupportedExtensions()?.length || 0;
-                        memoryView().setInt32(paramsPtr, value, true);
+                }
+
+                ret = stringToNewUTF8(paramter);
+                break;
+            case 37445 /* UNMASKED_VENDOR_WEBGL */:
+                {
+                    const debugInfo = webgl.getExtension(
+                        "WEBGL_debug_renderer_info",
+                    );
+                    if (!debugInfo) {
+                        throw new Error(
+                            "GL_INVALID_ENUM in glGetString: WEBGL_debug_renderer_info not supported!",
+                        );
                     }
-                    break;
-                default:
-                    {
-                        const value = webgl.getParameter(pname);
-                        memoryView().setInt32(paramsPtr, value, true);
+                    const vendor = webgl.getParameter(
+                        debugInfo.UNMASKED_VENDOR_WEBGL,
+                    );
+                    if (!vendor) {
+                        throw new Error(
+                            "GL_INVALID_ENUM in glGetString: Received empty parameter for query name UNMASKED_VENDOR_WEBGL!",
+                        );
                     }
-                    break;
-            }
-        },
-        glGetString: (name: number) => {
-            if (!webgl) {
-                throw new Error("webgl is not set");
-            }
-            let ret = stringCache.get(name);
-            if (ret) {
+                    ret = stringToNewUTF8(vendor);
+                }
+                break;
+            case 37446 /* UNMASKED_RENDERER_WEBGL */:
+                {
+                    const debugInfo = webgl.getExtension(
+                        "WEBGL_debug_renderer_info",
+                    );
+                    if (!debugInfo) {
+                        throw new Error(
+                            "GL_INVALID_ENUM in glGetString: WEBGL_debug_renderer_info not supported!",
+                        );
+                    }
+                    const renderer = webgl.getParameter(
+                        debugInfo.UNMASKED_RENDERER_WEBGL,
+                    );
+                    if (!renderer) {
+                        throw new Error(
+                            "GL_INVALID_ENUM in glGetString: Received empty parameter for query name UNMASKED_RENDERER_WEBGL!",
+                        );
+                    }
+                    ret = stringToNewUTF8(renderer);
+                }
+                break;
+            case 7938 /* GL_VERSION */:
+                const glVersion = `OpenGL ES 3.0 (${webgl.getParameter(
+                    7938 /*GL_VERSION*/,
+                )})`;
+                ret = stringToNewUTF8(glVersion);
+                break;
+            case 35724 /* GL_SHADING_LANGUAGE_VERSION */:
+                let glslVersion = webgl.getParameter(
+                    35724 /*GL_SHADING_LANGUAGE_VERSION*/,
+                );
+                // extract the version number 'N.M' from the string 'WebGL GLSL ES N.M ...'
+                const ver_re = /^WebGL GLSL ES ([0-9]\.[0-9][0-9]?)(?:$| .*)/;
+                const ver_num = glslVersion.match(ver_re);
+                if (ver_num !== null) {
+                    if (ver_num[1].length == 3) ver_num[1] = ver_num[1] + "0"; // ensure minor version has 2 digits
+                    glslVersion = `OpenGL ES GLSL ES ${ver_num[1]} (${glslVersion})`;
+                }
+                ret = stringToNewUTF8(glslVersion);
+                break;
+            default:
+                throw new Error(
+                    `GL_INVALID_ENUM in glGetString: Unknown parameter ${name}!`,
+                );
+        }
+        stringCache.set(name, ret);
+        return ret;
+    }
+
+    /**
+     * const GLubyte *glGetStringi(
+     *     GLenum name,
+     *     GLuint index
+     * );
+     *
+     * name: Specifies a symbolic constant, one of GL_VENDOR, GL_RENDERER, GL_VERSION,
+     * or GL_SHADING_LANGUAGE_VERSION. Additionally, glGetStringi accepts the GL_EXTENSIONS token.
+     *
+     * index: For glGetStringi, specifies the index of the string to return.
+     */
+    function glGetStringi(pname: number, index: number) {
+        if (!webgl) {
+            throw new Error("webgl is not set");
+        }
+        switch (pname) {
+            case 0x1f03 /* GL_EXTENSIONS */: {
+                const extensions = webgl.getSupportedExtensions();
+                if (!extensions) {
+                    throw new Error("No extensions found");
+                }
+                if (extensionStringCache.has(index)) {
+                    return extensionStringCache.get(index)!;
+                }
+                if (index >= extensions.length) {
+                    return 0;
+                }
+                const ret = stringToNewUTF8(extensions[index]);
+                extensionStringCache.set(index, ret);
                 return ret;
             }
-            switch (name) {
-                case 7939 /* GL_EXTENSIONS */:
-                    ret = stringToNewUTF8(
-                        webgl.getSupportedExtensions()!.join(" "),
-                    );
-                    break;
-                case 7936 /* GL_VENDOR */:
-                case 7937 /* GL_RENDERER */:
-                    const paramter = webgl.getParameter(name);
+            default:
+                throw new Error(
+                    `GL_INVALID_ENUM in glGetStringi: Unknown parameter ${pname.toString(
+                        16,
+                    )}!`,
+                );
+        }
+    }
 
-                    if (!paramter) {
-                        // This occurs e.g. if one attempts GL_UNMASKED_VENDOR_WEBGL when it is not supported.
-                        throw new Error(
-                            `GL_INVALID_ENUM in glGetString: Received empty parameter for query name ${name}!`,
-                        );
-                    }
+    /**
+     * @param pname
+     *  GLenum
+     * @param paramsPtr
+     *  GLint
+     * @returns
+     */
+    function glGetIntegerv(pname: number, paramsPtr: number) {
+        if (!webgl) {
+            throw new Error("webgl is not set");
+        }
+        switch (pname) {
+            case 0x821d: // GL_NUM_EXTENSIONS
+                {
+                    const value = webgl.getSupportedExtensions()?.length || 0;
+                    memoryView().setInt32(paramsPtr, value, true);
+                }
+                break;
+            default:
+                {
+                    const value = webgl.getParameter(pname);
+                    memoryView().setInt32(paramsPtr, value, true);
+                }
+                break;
+        }
+    }
 
-                    ret = stringToNewUTF8(paramter);
-                    break;
-                case 37445 /* UNMASKED_VENDOR_WEBGL */:
-                    {
-                        const debugInfo = webgl.getExtension(
-                            "WEBGL_debug_renderer_info",
-                        );
-                        if (!debugInfo) {
-                            throw new Error(
-                                "GL_INVALID_ENUM in glGetString: WEBGL_debug_renderer_info not supported!",
-                            );
-                        }
-                        const vendor = webgl.getParameter(
-                            debugInfo.UNMASKED_VENDOR_WEBGL,
-                        );
-                        if (!vendor) {
-                            throw new Error(
-                                "GL_INVALID_ENUM in glGetString: Received empty parameter for query name UNMASKED_VENDOR_WEBGL!",
-                            );
-                        }
-                        ret = stringToNewUTF8(vendor);
-                    }
-                    break;
-                case 37446 /* UNMASKED_RENDERER_WEBGL */:
-                    {
-                        const debugInfo = webgl.getExtension(
-                            "WEBGL_debug_renderer_info",
-                        );
-                        if (!debugInfo) {
-                            throw new Error(
-                                "GL_INVALID_ENUM in glGetString: WEBGL_debug_renderer_info not supported!",
-                            );
-                        }
-                        const renderer = webgl.getParameter(
-                            debugInfo.UNMASKED_RENDERER_WEBGL,
-                        );
-                        if (!renderer) {
-                            throw new Error(
-                                "GL_INVALID_ENUM in glGetString: Received empty parameter for query name UNMASKED_RENDERER_WEBGL!",
-                            );
-                        }
-                        ret = stringToNewUTF8(renderer);
-                    }
-                    break;
-                case 7938 /* GL_VERSION */:
-                    let glVersion = webgl.getParameter(7938 /*GL_VERSION*/);
-                    // return GLES version string corresponding to the version of the WebGL context
-                    glVersion = `OpenGL ES 3.0 (${glVersion})`;
-                    ret = stringToNewUTF8(glVersion);
-                    break;
-                case 35724 /* GL_SHADING_LANGUAGE_VERSION */:
-                    let glslVersion = webgl.getParameter(
-                        35724 /*GL_SHADING_LANGUAGE_VERSION*/,
-                    );
-                    // extract the version number 'N.M' from the string 'WebGL GLSL ES N.M ...'
-                    const ver_re =
-                        /^WebGL GLSL ES ([0-9]\.[0-9][0-9]?)(?:$| .*)/;
-                    const ver_num = glslVersion.match(ver_re);
-                    if (ver_num !== null) {
-                        if (ver_num[1].length == 3)
-                            ver_num[1] = ver_num[1] + "0"; // ensure minor version has 2 digits
-                        glslVersion = `OpenGL ES GLSL ES ${ver_num[1]} (${glslVersion})`;
-                    }
-                    ret = stringToNewUTF8(glslVersion);
-                    break;
-                default:
-                    throw new Error(
-                        `GL_INVALID_ENUM in glGetString: Unknown parameter ${name}!`,
-                    );
-            }
-            stringCache.set(name, ret);
-            return ret;
-        },
+    function glGetQueryiv(target: number, pname: number, paramsPtr: number) {
+        if (!webgl) {
+            throw new Error("webgl is not set");
+        }
+        console.log("glGetQueryiv", target, pname, paramsPtr);
+        throw new Error("not implemented");
+    }
+
+    function glGetQueryObjectuiv(
+        target: number,
+        pname: number,
+        paramsPtr: number,
+    ) {
+        if (!webgl) {
+            throw new Error("webgl is not set");
+        }
+        console.log("glGetQueryObjectuiv", target, pname, paramsPtr);
+        throw new Error("not implemented");
+    }
+
+    function glGenQueries(n: number, idsPtr: number) {
+        if (!webgl) {
+            throw new Error("webgl is not set");
+        }
+        console.log("glGenQueries", n, idsPtr);
+        throw new Error("not implemented");
+    }
+
+    const notImplementeds = [
+        "emscripten_glEndQuery",
+        "emscripten_glDeleteQueries",
+        "emscripten_glBeginQuery",
+        "emscripten_glBeginQueryEXT",
+        "emscripten_glGenQueriesEXT",
+        "emscripten_glDeleteQueriesEXT",
+        "emscripten_glIsQueryEXT",
+        "emscripten_glBeginQueryEXT",
+        "emscripten_glEndQueryEXT",
+        "emscripten_glQueryCounterEXT",
+        "emscripten_glGetQueryivEXT",
+        "emscripten_glGetQueryObjectivEXT",
+        "emscripten_glGetQueryObjectuivEXT",
+        "emscripten_glGetQueryObjecti64vEXT",
+        "emscripten_glGetQueryObjectui64vEXT",
+    ].reduce((acc, x) => {
+        acc[x] = () => {
+            throw new Error("not implemented");
+        };
+        return acc;
+    }, {} as Record<string, () => void>);
+
+    return {
+        ...notImplementeds,
+        glGetStringi,
+        emscripten_glGetStringi: glGetStringi,
+        glGetIntegerv,
+        emscripten_glGetIntegerv: glGetIntegerv,
+        glGetString,
+        emscripten_glGetString: glGetString,
+        emscripten_glGetQueryiv: glGetQueryiv,
+        emscripten_glGetQueryObjectuiv: glGetQueryObjectuiv,
+        emscripten_glGenQueries: glGenQueries,
         /**
          * void glTexSubImage2D(
          * GLenum target,
@@ -256,7 +317,7 @@ export function envGl({
          *
          * pixels: Specifies a pointer to the image data in memory.
          */
-        glTexSubImage2D: (
+        emscripten_glTexSubImage2D: (
             target: number,
             level: number,
             xoffset: number,
@@ -296,7 +357,7 @@ export function envGl({
                 pixels,
             );
         },
-        glTexParameteriv: () => {
+        emscripten_glTexParameteriv: () => {
             throw new Error("not implemented");
             // return webgl!.texParameteriv();
         },
@@ -307,45 +368,49 @@ export function envGl({
          *  GLint param
          * );
          */
-        glTexParameteri: (target: number, pname: number, param: number) => {
+        emscripten_glTexParameteri: (
+            target: number,
+            pname: number,
+            param: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
             return webgl.texParameteri(target, pname, param);
         },
-        glTexParameterfv: () => {
+        emscripten_glTexParameterfv: () => {
             throw new Error("not implemented");
             // return webgl!.texParameterfv();
         },
-        glTexParameterf: () => {
+        emscripten_glTexParameterf: () => {
             throw new Error("not implemented");
             // return webgl!.texParameterf();
         },
-        glTexImage2D: () => {
+        emscripten_glTexImage2D: () => {
             throw new Error("not implemented");
             // return webgl!.texImage2D();
         },
-        glStencilOpSeparate: () => {
+        emscripten_glStencilOpSeparate: () => {
             throw new Error("not implemented");
             // return webgl!.stencilOpSeparate();
         },
-        glStencilOp: () => {
+        emscripten_glStencilOp: () => {
             throw new Error("not implemented");
             // return webgl!.stencilOp();
         },
-        glStencilMaskSeparate: () => {
+        emscripten_glStencilMaskSeparate: () => {
             throw new Error("not implemented");
             // return webgl!.stencilMaskSeparate();
         },
-        glStencilMask: () => {
+        emscripten_glStencilMask: () => {
             throw new Error("not implemented");
             // return webgl!.stencilMask();
         },
-        glStencilFuncSeparate: () => {
+        emscripten_glStencilFuncSeparate: () => {
             throw new Error("not implemented");
             // return webgl!.stencilFuncSeparate();
         },
-        glStencilFunc: () => {
+        emscripten_glStencilFunc: () => {
             throw new Error("not implemented");
             // return webgl!.stencilFunc();
         },
@@ -356,7 +421,7 @@ export function envGl({
          *   const GLchar **string,
          *   const GLint *length);
          */
-        glShaderSource: (
+        emscripten_glShaderSource: (
             shaderId: number,
             count: number,
             stringPtr: number,
@@ -388,23 +453,23 @@ export function envGl({
             source += decoder.decode();
             webgl.shaderSource(shader, source);
         },
-        glScissor: () => {
+        emscripten_glScissor: () => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
             return webgl.scissor;
         },
-        glReadPixels: () => {
+        emscripten_glReadPixels: () => {
             throw new Error("not implemented");
             // return webgl!.readPixels();
         },
-        glPixelStorei: (pname: number, param: number) => {
+        emscripten_glPixelStorei: (pname: number, param: number) => {
             return webgl!.pixelStorei(pname, param);
         },
         /**
          * void glLinkProgram(GLuint program);
          */
-        glLinkProgram: (programId: number) => {
+        emscripten_glLinkProgram: (programId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -414,10 +479,10 @@ export function envGl({
             }
             webgl.linkProgram(programInfo.program);
         },
-        glLineWidth: (width: number) => {
+        emscripten_glLineWidth: (width: number) => {
             return webgl!.lineWidth(width);
         },
-        glIsTexture: () => {
+        emscripten_glIsTexture: () => {
             throw new Error("not implemented");
             // return webgl!.isTexture();
         },
@@ -427,7 +492,10 @@ export function envGl({
          *  const GLchar *name
          * );
          */
-        glGetUniformLocation: (programId: number, namePtr: number): number => {
+        emscripten_glGetUniformLocation: (
+            programId: number,
+            namePtr: number,
+        ): number => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -468,7 +536,11 @@ export function envGl({
          *  GLenum pname,
          *  GLint *params);
          */
-        glGetShaderiv: (shaderId: number, pname: number, paramsPtr: number) => {
+        emscripten_glGetShaderiv: (
+            shaderId: number,
+            pname: number,
+            paramsPtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -507,7 +579,7 @@ export function envGl({
          *  GLchar *infoLog
          * );
          */
-        glGetShaderInfoLog: (
+        emscripten_glGetShaderInfoLog: (
             shaderId: number,
             maxLength: number,
             lengthPtr: number,
@@ -543,7 +615,7 @@ export function envGl({
          *  GLint *params
          * );
          */
-        glGetProgramiv: (
+        emscripten_glGetProgramiv: (
             programId: number,
             pname: number,
             paramsPtr: number,
@@ -559,7 +631,7 @@ export function envGl({
             const value = webgl.getProgramParameter(programInfo.program, pname);
             memoryView().setInt32(paramsPtr, value, true);
         },
-        glGetProgramInfoLog: () => {
+        emscripten_glGetProgramInfoLog: () => {
             throw new Error("not implemented");
             // return webgl!.getProgramInfoLog();
         },
@@ -572,7 +644,7 @@ export function envGl({
          * pname: Specifies the parameter value to be returned. The accepted symbolic constants are listed below.
          * params: Returns the value or values of the specified parameter.
          */
-        glGetFloatv: (pname: number, paramsPtr: number) => {
+        emscripten_glGetFloatv: (pname: number, paramsPtr: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -602,10 +674,10 @@ export function envGl({
                     break;
             }
         },
-        glGetError: () => {
+        emscripten_glGetError: () => {
             return webgl!.getError();
         },
-        glGetBufferParameteriv: () => {
+        emscripten_glGetBufferParameteriv: () => {
             throw new Error("not implemented");
             // return webgl!.getBufferParameteriv();
         },
@@ -618,7 +690,7 @@ export function envGl({
          * n: Specifies the number of texture names to be generated.
          * textures: Specifies an array in which the generated texture names are stored.
          */
-        glGenTextures: (n: number, texturesPtr: number) => {
+        emscripten_glGenTextures: (n: number, texturesPtr: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -641,7 +713,7 @@ export function envGl({
          *  GLuint *
          *  Specifies an array in which the generated buffer object names are stored.
          */
-        glGenBuffers: (n: number, buffersPtr: number) => {
+        emscripten_glGenBuffers: (n: number, buffersPtr: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -655,22 +727,22 @@ export function envGl({
                 memoryView().setUint32(buffersPtr + i * 4, bufferId, true);
             }
         },
-        glFrontFace: (mode: number) => {
+        emscripten_glFrontFace: (mode: number) => {
             return webgl!.frontFace(mode);
         },
-        glFlush: () => {
+        emscripten_glFlush: () => {
             return webgl!.flush();
         },
-        glFinish: () => {
+        emscripten_glFinish: () => {
             return webgl!.finish();
         },
-        glEnableVertexAttribArray: (index: number) => {
+        emscripten_glEnableVertexAttribArray: (index: number) => {
             return webgl!.enableVertexAttribArray(index);
         },
-        glEnable: (cap: number) => {
+        emscripten_glEnable: (cap: number) => {
             return webgl!.enable(cap);
         },
-        glDrawElements: (
+        emscripten_glDrawElements: (
             mode: number,
             count: number,
             type: number,
@@ -678,16 +750,20 @@ export function envGl({
         ) => {
             return webgl!.drawElements(mode, count, type, offset);
         },
-        glDrawArrays: (mode: number, first: number, count: number) => {
+        emscripten_glDrawArrays: (
+            mode: number,
+            first: number,
+            count: number,
+        ) => {
             return webgl!.drawArrays(mode, first, count);
         },
-        glDisableVertexAttribArray: (index: number) => {
+        emscripten_glDisableVertexAttribArray: (index: number) => {
             return webgl!.disableVertexAttribArray(index);
         },
-        glDisable: (cap: number) => {
+        emscripten_glDisable: (cap: number) => {
             return webgl!.disable(cap);
         },
-        glDepthMask: (flag: number) => {
+        emscripten_glDepthMask: (flag: number) => {
             return webgl!.depthMask(!!flag);
         },
         /**
@@ -696,7 +772,7 @@ export function envGl({
          *  const GLuint * textures
          * );
          */
-        glDeleteTextures: (n: number, textureIdsPtr: number) => {
+        emscripten_glDeleteTextures: (n: number, textureIdsPtr: number) => {
             if (!webgl) {
                 throw new Error("WebGL context is not available");
             }
@@ -716,7 +792,7 @@ export function envGl({
         /**
          * void glDeleteShader(GLuint shader);
          */
-        glDeleteShader: (shaderId: number) => {
+        emscripten_glDeleteShader: (shaderId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -730,7 +806,7 @@ export function envGl({
         /**
          * void glDeleteProgram(GLuint program);
          */
-        glDeleteProgram: (programId: number) => {
+        emscripten_glDeleteProgram: (programId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -750,7 +826,7 @@ export function envGl({
          *  const GLuint * buffers
          * );
          */
-        glDeleteBuffers: (n: number, buffersPtr: number) => {
+        emscripten_glDeleteBuffers: (n: number, buffersPtr: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -767,7 +843,7 @@ export function envGl({
                 webglBufferMap.delete(bufferId);
             }
         },
-        glCullFace: (mode: number) => {
+        emscripten_glCullFace: (mode: number) => {
             return webgl!.cullFace(mode);
         },
         /**
@@ -775,7 +851,7 @@ export function envGl({
          *  GLenum type
          * );
          */
-        glCreateShader: (type: number): number => {
+        emscripten_glCreateShader: (type: number): number => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -790,7 +866,7 @@ export function envGl({
         /**
          * GLuint glCreateProgram(void);
          */
-        glCreateProgram: (): number => {
+        emscripten_glCreateProgram: (): number => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -807,7 +883,7 @@ export function envGl({
             });
             return programId;
         },
-        glCopyTexSubImage2D: (
+        emscripten_glCopyTexSubImage2D: (
             target: number,
             level: number,
             xoffset: number,
@@ -828,7 +904,7 @@ export function envGl({
                 height,
             );
         },
-        glCompressedTexSubImage2D: (
+        emscripten_glCompressedTexSubImage2D: (
             target: number,
             level: number,
             xoffset: number,
@@ -851,7 +927,7 @@ export function envGl({
                 offset,
             );
         },
-        glCompressedTexImage2D: (
+        emscripten_glCompressedTexImage2D: (
             target: number,
             level: number,
             internalformat: number,
@@ -875,7 +951,7 @@ export function envGl({
         /**
          * void glCompileShader(GLuint shader);
          */
-        glCompileShader: (shaderId: number) => {
+        emscripten_glCompileShader: (shaderId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -885,7 +961,7 @@ export function envGl({
             }
             webgl.compileShader(shader);
         },
-        glColorMask: (
+        emscripten_glColorMask: (
             red: number,
             green: number,
             blue: number,
@@ -893,10 +969,10 @@ export function envGl({
         ) => {
             return webgl!.colorMask(!!red, !!green, !!blue, !!alpha);
         },
-        glClearStencil: (s: number) => {
+        emscripten_glClearStencil: (s: number) => {
             return webgl!.clearStencil(s);
         },
-        glClearColor: (
+        emscripten_glClearColor: (
             red: number,
             green: number,
             blue: number,
@@ -904,7 +980,7 @@ export function envGl({
         ) => {
             return webgl!.clearColor(red, green, blue, alpha);
         },
-        glClear: (mask: number) => {
+        emscripten_glClear: (mask: number) => {
             return webgl!.clear(mask);
         },
         /**
@@ -914,7 +990,7 @@ export function envGl({
          *  GLsizeiptr size,
          *  const void * data);
          */
-        glBufferSubData: (
+        emscripten_glBufferSubData: (
             target: number,
             offset: number,
             size: number,
@@ -933,7 +1009,7 @@ export function envGl({
          *  const void * data,
          *  GLenum usage);
          */
-        glBufferData: (
+        emscripten_glBufferData: (
             target: number,
             size: number,
             dataPtr: number,
@@ -950,9 +1026,10 @@ export function envGl({
             const srcData = new Uint8Array(memory.buffer, dataPtr, size);
             webgl.bufferData(target, srcData, usage);
         },
-        glBlendFunc: webgl?.blendFunc.bind(webgl) || (() => {}),
-        glBlendEquation: webgl?.blendEquation.bind(webgl) || (() => {}),
-        glBlendColor: webgl?.blendColor.bind(webgl) || (() => {}),
+        emscripten_glBlendFunc: webgl?.blendFunc.bind(webgl) || (() => {}),
+        emscripten_glBlendEquation:
+            webgl?.blendEquation.bind(webgl) || (() => {}),
+        emscripten_glBlendColor: webgl?.blendColor.bind(webgl) || (() => {}),
         /**
          * void glBindTexture(
          *  GLenum target,
@@ -962,7 +1039,7 @@ export function envGl({
          * target: Specifies the target to which the texture is bound. Must be one of GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_RECTANGLE, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_BUFFER, GL_TEXTURE_2D_MULTISAMPLE, or GL_TEXTURE_2D_MULTISAMPLE_ARRAY.
          * texture: Specifies the name of a texture.
          */
-        glBindTexture: (target: number, textureId: number) => {
+        emscripten_glBindTexture: (target: number, textureId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -979,7 +1056,7 @@ export function envGl({
          * void glBindBuffer(GLenum target, GLuint buffer);
          *
          */
-        glBindBuffer: (target: number, bufferId: number) => {
+        emscripten_glBindBuffer: (target: number, bufferId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -996,7 +1073,7 @@ export function envGl({
          *  const GLchar *name
          * );
          */
-        glBindAttribLocation: (
+        emscripten_glBindAttribLocation: (
             programId: number,
             index: number,
             namePtr: number,
@@ -1025,7 +1102,7 @@ export function envGl({
          *  GLuint shader
          * );
          */
-        glAttachShader: (programId: number, shaderId: number) => {
+        emscripten_glAttachShader: (programId: number, shaderId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1039,7 +1116,8 @@ export function envGl({
             }
             webgl.attachShader(programInfo.program, shader);
         },
-        glActiveTexture: webgl?.activeTexture.bind(webgl) || (() => {}),
+        emscripten_glActiveTexture:
+            webgl?.activeTexture.bind(webgl) || (() => {}),
         /**
          * void glUniform1f(GLint location, GLfloat v0);
          * void glUniform2f(GLint location, GLfloat v0, GLfloat v1);
@@ -1075,7 +1153,7 @@ export function envGl({
          * void glUniformMatrix3x4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
          * void glUniformMatrix4x3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
          */
-        glUniform1f: (locationId: number, v0: number) => {
+        emscripten_glUniform1f: (locationId: number, v0: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1089,7 +1167,11 @@ export function envGl({
             }
             webgl.uniform1f(uniformLocation, v0);
         },
-        glUniform2f: (locationId: number, v0: number, v1: number) => {
+        emscripten_glUniform2f: (
+            locationId: number,
+            v0: number,
+            v1: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1103,7 +1185,7 @@ export function envGl({
             }
             webgl.uniform2f(uniformLocation, v0, v1);
         },
-        glUniform3f: (
+        emscripten_glUniform3f: (
             locationId: number,
             v0: number,
             v1: number,
@@ -1122,7 +1204,7 @@ export function envGl({
             }
             webgl.uniform3f(uniformLocation, v0, v1, v2);
         },
-        glUniform4f: (
+        emscripten_glUniform4f: (
             locationId: number,
             v0: number,
             v1: number,
@@ -1142,7 +1224,7 @@ export function envGl({
             }
             webgl.uniform4f(uniformLocation, v0, v1, v2, v3);
         },
-        glUniform1i: (locationId: number, v0: number) => {
+        emscripten_glUniform1i: (locationId: number, v0: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1156,7 +1238,11 @@ export function envGl({
             }
             webgl.uniform1i(uniformLocation, v0);
         },
-        glUniform2i: (locationId: number, v0: number, v1: number) => {
+        emscripten_glUniform2i: (
+            locationId: number,
+            v0: number,
+            v1: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1170,7 +1256,7 @@ export function envGl({
             }
             webgl.uniform2i(uniformLocation, v0, v1);
         },
-        glUniform3i: (
+        emscripten_glUniform3i: (
             locationId: number,
             v0: number,
             v1: number,
@@ -1189,7 +1275,7 @@ export function envGl({
             }
             webgl.uniform3i(uniformLocation, v0, v1, v2);
         },
-        glUniform4i: (
+        emscripten_glUniform4i: (
             locationId: number,
             v0: number,
             v1: number,
@@ -1209,7 +1295,7 @@ export function envGl({
             }
             webgl.uniform4i(uniformLocation, v0, v1, v2, v3);
         },
-        glUniform1ui: (locationId: number, v0: number) => {
+        emscripten_glUniform1ui: (locationId: number, v0: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1223,7 +1309,11 @@ export function envGl({
             }
             webgl.uniform1ui(uniformLocation, v0);
         },
-        glUniform2ui: (locationId: number, v0: number, v1: number) => {
+        emscripten_glUniform2ui: (
+            locationId: number,
+            v0: number,
+            v1: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1237,7 +1327,7 @@ export function envGl({
             }
             webgl.uniform2ui(uniformLocation, v0, v1);
         },
-        glUniform3ui: (
+        emscripten_glUniform3ui: (
             locationId: number,
             v0: number,
             v1: number,
@@ -1256,7 +1346,7 @@ export function envGl({
             }
             webgl.uniform3ui(uniformLocation, v0, v1, v2);
         },
-        glUniform4ui: (
+        emscripten_glUniform4ui: (
             locationId: number,
             v0: number,
             v1: number,
@@ -1276,7 +1366,11 @@ export function envGl({
             }
             webgl.uniform4ui(uniformLocation, v0, v1, v2, v3);
         },
-        glUniform1fv: (locationId: number, count: number, valuePtr: number) => {
+        emscripten_glUniform1fv: (
+            locationId: number,
+            count: number,
+            valuePtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1291,7 +1385,11 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count);
             webgl.uniform1fv(uniformLocation, value);
         },
-        glUniform2fv: (locationId: number, count: number, valuePtr: number) => {
+        emscripten_glUniform2fv: (
+            locationId: number,
+            count: number,
+            valuePtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1306,7 +1404,11 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 2);
             webgl.uniform2fv(uniformLocation, value);
         },
-        glUniform3fv: (locationId: number, count: number, valuePtr: number) => {
+        emscripten_glUniform3fv: (
+            locationId: number,
+            count: number,
+            valuePtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1321,7 +1423,11 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 3);
             webgl.uniform3fv(uniformLocation, value);
         },
-        glUniform4fv: (locationId: number, count: number, valuePtr: number) => {
+        emscripten_glUniform4fv: (
+            locationId: number,
+            count: number,
+            valuePtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1336,7 +1442,11 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 4);
             webgl.uniform4fv(uniformLocation, value);
         },
-        glUniform1iv: (locationId: number, count: number, valuePtr: number) => {
+        emscripten_glUniform1iv: (
+            locationId: number,
+            count: number,
+            valuePtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1351,7 +1461,11 @@ export function envGl({
             const value = new Int32Array(memory.buffer, valuePtr, count);
             webgl.uniform1iv(uniformLocation, value);
         },
-        glUniform2iv: (locationId: number, count: number, valuePtr: number) => {
+        emscripten_glUniform2iv: (
+            locationId: number,
+            count: number,
+            valuePtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1366,7 +1480,11 @@ export function envGl({
             const value = new Int32Array(memory.buffer, valuePtr, count * 2);
             webgl.uniform2iv(uniformLocation, value);
         },
-        glUniform3iv: (locationId: number, count: number, valuePtr: number) => {
+        emscripten_glUniform3iv: (
+            locationId: number,
+            count: number,
+            valuePtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1381,7 +1499,11 @@ export function envGl({
             const value = new Int32Array(memory.buffer, valuePtr, count * 3);
             webgl.uniform3iv(uniformLocation, value);
         },
-        glUniform4iv: (locationId: number, count: number, valuePtr: number) => {
+        emscripten_glUniform4iv: (
+            locationId: number,
+            count: number,
+            valuePtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1396,7 +1518,7 @@ export function envGl({
             const value = new Int32Array(memory.buffer, valuePtr, count * 4);
             webgl.uniform4iv(uniformLocation, value);
         },
-        glUniform1uiv: (
+        emscripten_glUniform1uiv: (
             locationId: number,
             count: number,
             valuePtr: number,
@@ -1415,7 +1537,7 @@ export function envGl({
             const value = new Uint32Array(memory.buffer, valuePtr, count);
             webgl.uniform1uiv(uniformLocation, value);
         },
-        glUniform2uiv: (
+        emscripten_glUniform2uiv: (
             locationId: number,
             count: number,
             valuePtr: number,
@@ -1434,7 +1556,7 @@ export function envGl({
             const value = new Uint32Array(memory.buffer, valuePtr, count * 2);
             webgl.uniform2uiv(uniformLocation, value);
         },
-        glUniform3uiv: (
+        emscripten_glUniform3uiv: (
             locationId: number,
             count: number,
             valuePtr: number,
@@ -1453,7 +1575,7 @@ export function envGl({
             const value = new Uint32Array(memory.buffer, valuePtr, count * 3);
             webgl.uniform3uiv(uniformLocation, value);
         },
-        glUniform4uiv: (
+        emscripten_glUniform4uiv: (
             locationId: number,
             count: number,
             valuePtr: number,
@@ -1472,7 +1594,7 @@ export function envGl({
             const value = new Uint32Array(memory.buffer, valuePtr, count * 4);
             webgl.uniform4uiv(uniformLocation, value);
         },
-        glUniformMatrix2fv: (
+        emscripten_glUniformMatrix2fv: (
             locationId: number,
             count: number,
             transpose: boolean,
@@ -1492,7 +1614,7 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 4);
             webgl.uniformMatrix2fv(uniformLocation, transpose, value);
         },
-        glUniformMatrix3fv: (
+        emscripten_glUniformMatrix3fv: (
             locationId: number,
             count: number,
             transpose: boolean,
@@ -1512,7 +1634,7 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 9);
             webgl.uniformMatrix3fv(uniformLocation, transpose, value);
         },
-        glUniformMatrix4fv: (
+        emscripten_glUniformMatrix4fv: (
             locationId: number,
             count: number,
             transpose: boolean,
@@ -1532,7 +1654,7 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 16);
             webgl.uniformMatrix4fv(uniformLocation, transpose, value);
         },
-        glUniformMatrix2x3fv: (
+        emscripten_glUniformMatrix2x3fv: (
             locationId: number,
             count: number,
             transpose: boolean,
@@ -1552,7 +1674,7 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 6);
             webgl.uniformMatrix2x3fv(uniformLocation, transpose, value);
         },
-        glUniformMatrix3x2fv: (
+        emscripten_glUniformMatrix3x2fv: (
             locationId: number,
             count: number,
             transpose: boolean,
@@ -1572,7 +1694,7 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 6);
             webgl.uniformMatrix3x2fv(uniformLocation, transpose, value);
         },
-        glUniformMatrix2x4fv: (
+        emscripten_glUniformMatrix2x4fv: (
             locationId: number,
             count: number,
             transpose: boolean,
@@ -1592,7 +1714,7 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 8);
             webgl.uniformMatrix2x4fv(uniformLocation, transpose, value);
         },
-        glUniformMatrix4x2fv: (
+        emscripten_glUniformMatrix4x2fv: (
             locationId: number,
             count: number,
             transpose: boolean,
@@ -1612,7 +1734,7 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 8);
             webgl.uniformMatrix4x2fv(uniformLocation, transpose, value);
         },
-        glUniformMatrix3x4fv: (
+        emscripten_glUniformMatrix3x4fv: (
             locationId: number,
             count: number,
             transpose: boolean,
@@ -1632,7 +1754,7 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 12);
             webgl.uniformMatrix3x4fv(uniformLocation, transpose, value);
         },
-        glUniformMatrix4x3fv: (
+        emscripten_glUniformMatrix4x3fv: (
             locationId: number,
             count: number,
             transpose: boolean,
@@ -1652,7 +1774,7 @@ export function envGl({
             const value = new Float32Array(memory.buffer, valuePtr, count * 12);
             webgl.uniformMatrix4x3fv(uniformLocation, transpose, value);
         },
-        glViewport: webgl?.viewport.bind(webgl) || (() => {}),
+        emscripten_glViewport: webgl?.viewport.bind(webgl) || (() => {}),
         /**
          * void glVertexAttribPointer(
          *  GLuint index,
@@ -1662,7 +1784,7 @@ export function envGl({
          *  GLsizei stride,
          *  const void * pointer);
          */
-        glVertexAttribPointer: (
+        emscripten_glVertexAttribPointer: (
             index: number,
             size: number,
             type: number,
@@ -1699,26 +1821,26 @@ export function envGl({
                 pointer,
             );
         },
-        glVertexAttrib4fv: () => {
+        emscripten_glVertexAttrib4fv: () => {
             throw new Error("not implemented");
             // return webgl!.vertexAttrib4fv();
         },
-        glVertexAttrib3fv: () => {
+        emscripten_glVertexAttrib3fv: () => {
             throw new Error("not implemented");
             // return webgl!.vertexAttrib3fv();
         },
-        glVertexAttrib2fv: () => {
+        emscripten_glVertexAttrib2fv: () => {
             throw new Error("not implemented");
             // return webgl!.vertexAttrib2fv();
         },
-        glVertexAttrib1f: () => {
+        emscripten_glVertexAttrib1f: () => {
             throw new Error("not implemented");
             // return webgl!.vertexAttrib1f();
         },
         /**
          * void glUseProgram(GLuint program);
          */
-        glUseProgram: (programId: number) => {
+        emscripten_glUseProgram: (programId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1734,30 +1856,30 @@ export function envGl({
             webgl.useProgram(programInfo.program);
             currentProgramInfo = programInfo;
         },
-        glGenVertexArraysOES: () => {
+        emscripten_glGenVertexArraysOES: () => {
             throw new Error("not implemented");
             // return webgl!.genVertexArraysOES();
         },
-        glDeleteVertexArraysOES: () => {
+        emscripten_glDeleteVertexArraysOES: () => {
             throw new Error("not implemented");
             // return webgl!.deleteVertexArraysOES();
         },
-        glBindVertexArrayOES: () => {
+        emscripten_glBindVertexArrayOES: () => {
             throw new Error("not implemented");
             // return webgl!.bindVertexArrayOES();
         },
-        glGenVertexArrays: () => {
+        emscripten_glGenVertexArrays: () => {
             throw new Error("not implemented");
             // return webgl!.genVertexArrays();
         },
-        glDeleteVertexArrays: () => {
+        emscripten_glDeleteVertexArrays: () => {
             throw new Error("not implemented");
             // return webgl!.deleteVertexArrays();
         },
         /**
          * void glBindVertexArray(GLuint array);
          */
-        glBindVertexArray: (arrayId: number) => {
+        emscripten_glBindVertexArray: (arrayId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1770,40 +1892,46 @@ export function envGl({
             }
             webgl.bindVertexArray(vertexArray);
         },
-        glDrawElementsInstanced:
+        emscripten_glDrawElementsInstanced:
             webgl?.drawElementsInstanced.bind(webgl) || (() => {}),
-        glDrawArraysInstanced:
+        emscripten_glDrawArraysInstanced:
             webgl?.drawArraysInstanced.bind(webgl) || (() => {}),
-        glDrawElementsInstancedBaseVertexBaseInstanceWEBGL: () => {
+        emscripten_glDrawElementsInstancedBaseVertexBaseInstanceWEBGL: () => {
             throw new Error("not implemented");
         },
-        glDrawArraysInstancedBaseInstanceWEBGL: () => {
+        emscripten_glDrawArraysInstancedBaseInstanceWEBGL: () => {
             throw new Error("not implemented");
         },
-        glReadBuffer: webgl?.readBuffer.bind(webgl) || (() => {}),
-        glDrawBuffers: () => {
+        emscripten_glReadBuffer: webgl?.readBuffer.bind(webgl) || (() => {}),
+        emscripten_glDrawBuffers: () => {
             throw new Error("not implemented");
             // return webgl!.drawBuffers();
         },
-        glMultiDrawElementsInstancedBaseVertexBaseInstanceWEBGL: () => {
+        emscripten_glMultiDrawElementsInstancedBaseVertexBaseInstanceWEBGL:
+            () => {
+                throw new Error("not implemented");
+            },
+        emscripten_glMultiDrawArraysInstancedBaseInstanceWEBGL: () => {
             throw new Error("not implemented");
         },
-        glMultiDrawArraysInstancedBaseInstanceWEBGL: () => {
-            throw new Error("not implemented");
-        },
-        glVertexAttribIPointer:
+        emscripten_glVertexAttribIPointer:
             webgl?.vertexAttribIPointer.bind(webgl) || (() => {}),
-        glVertexAttribDivisor:
+        emscripten_glVertexAttribDivisor:
             webgl?.vertexAttribDivisor.bind(webgl) || (() => {}),
-        glTexStorage2D: webgl?.texStorage2D.bind(webgl) || (() => {}),
-        glDrawRangeElements: webgl?.drawRangeElements.bind(webgl) || (() => {}),
+        emscripten_glTexStorage2D:
+            webgl?.texStorage2D.bind(webgl) || (() => {}),
+        emscripten_glDrawRangeElements:
+            webgl?.drawRangeElements.bind(webgl) || (() => {}),
         /**
          * void glGenRenderbuffers(
          *  GLsizei n,
          *  GLuint *renderbuffers
          * );
          */
-        glGenRenderbuffers: (n: number, renderbuffersPtr: number) => {
+        emscripten_glGenRenderbuffers: (
+            n: number,
+            renderbuffersPtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1830,7 +1958,7 @@ export function envGl({
          * n: Specifies the number of framebuffer object names to generate.
          * ids: Specifies an array in which the generated framebuffer object names are stored.
          */
-        glGenFramebuffers: (n: number, idsPtr: number) => {
+        emscripten_glGenFramebuffers: (n: number, idsPtr: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1941,7 +2069,7 @@ export function envGl({
          * or two-dimensional multisample array texture, the specified texture level is an array of images,
          * and the framebuffer attachment is considered to be layered.
          */
-        glFramebufferTexture2D: (
+        emscripten_glFramebufferTexture2D: (
             target: number,
             attachment: number,
             textarget: number,
@@ -1972,11 +2100,14 @@ export function envGl({
                 level,
             );
         },
-        glFramebufferRenderbuffer: () => {
+        emscripten_glFramebufferRenderbuffer: () => {
             throw new Error("not implemented");
             // return webgl!.framebufferRenderbuffer();
         },
-        glDeleteRenderbuffers: (n: number, renderbuffersPtr: number) => {
+        emscripten_glDeleteRenderbuffers: (
+            n: number,
+            renderbuffersPtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -1993,7 +2124,10 @@ export function envGl({
                 webglRenderbufferMap.delete(renderbufferId);
             }
         },
-        glDeleteFramebuffers: (n: number, framebuffersPtr: number) => {
+        emscripten_glDeleteFramebuffers: (
+            n: number,
+            framebuffersPtr: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -2010,13 +2144,16 @@ export function envGl({
                 webglFramebufferMap.delete(framebufferId);
             }
         },
-        glCheckFramebufferStatus:
+        emscripten_glCheckFramebufferStatus:
             webgl?.checkFramebufferStatus.bind(webgl) || (() => {}),
-        glBindRenderbuffer: () => {
+        emscripten_glBindRenderbuffer: () => {
             throw new Error("not implemented");
             // return webgl!.bindRenderbuffer();
         },
-        glBindFramebuffer: (target: number, framebufferId: number) => {
+        emscripten_glBindFramebuffer: (
+            target: number,
+            framebufferId: number,
+        ) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -2029,38 +2166,41 @@ export function envGl({
             }
             webgl.bindFramebuffer(target, framebuffer);
         },
-        glRenderbufferStorage:
+        emscripten_glRenderbufferStorage:
             webgl?.renderbufferStorage.bind(webgl) || (() => {}),
-        glGetRenderbufferParameteriv: () => {
+        emscripten_glGetRenderbufferParameteriv: () => {
             throw new Error("not implemented");
             // return webgl!.getRenderbufferParameteriv();
         },
-        glGetFramebufferAttachmentParameteriv: () => {
+        emscripten_glGetFramebufferAttachmentParameteriv: () => {
             throw new Error("not implemented");
             // return webgl!.getFramebufferAttachmentParameteriv();
         },
-        glGenerateMipmap: webgl?.generateMipmap.bind(webgl) || (() => {}),
-        glRenderbufferStorageMultisample:
+        emscripten_glGenerateMipmap:
+            webgl?.generateMipmap.bind(webgl) || (() => {}),
+        emscripten_glRenderbufferStorageMultisample:
             webgl?.renderbufferStorageMultisample || (() => {}),
-        glBlitFramebuffer: webgl?.blitFramebuffer.bind(webgl) || (() => {}),
-        glDeleteSync: () => {
+        emscripten_glBlitFramebuffer:
+            webgl?.blitFramebuffer.bind(webgl) || (() => {}),
+        emscripten_glDeleteSync: () => {
             throw new Error("not implemented");
             // return webgl!.deleteSync();
         },
-        glClientWaitSync: () => {
+        emscripten_glClientWaitSync: () => {
             throw new Error("not implemented");
             // return webgl!.clientWaitSync();
         },
-        glCopyBufferSubData: webgl?.copyBufferSubData.bind(webgl) || (() => {}),
-        glWaitSync: () => {
+        emscripten_glCopyBufferSubData:
+            webgl?.copyBufferSubData.bind(webgl) || (() => {}),
+        emscripten_glWaitSync: () => {
             throw new Error("not implemented");
             // return webgl!.waitSync();
         },
-        glIsSync: () => {
+        emscripten_glIsSync: () => {
             throw new Error("not implemented");
             // return webgl!.isSync();
         },
-        glFenceSync: () => {
+        emscripten_glFenceSync: () => {
             throw new Error("not implemented");
             // return webgl!.fenceSync();
         },
@@ -2072,7 +2212,7 @@ export function envGl({
          * void glSamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params);
          * void glSamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params);
          */
-        glSamplerParameterf: (
+        emscripten_glSamplerParameterf: (
             samplerId: number,
             pname: number,
             param: number,
@@ -2086,7 +2226,7 @@ export function envGl({
             }
             webgl.samplerParameterf(sampler, pname, param);
         },
-        glSamplerParameteri: (
+        emscripten_glSamplerParameteri: (
             samplerId: number,
             pname: number,
             param: number,
@@ -2100,7 +2240,7 @@ export function envGl({
             }
             webgl.samplerParameteri(sampler, pname, param);
         },
-        glSamplerParameterfv: (
+        emscripten_glSamplerParameterfv: (
             samplerId: number,
             pname: number,
             paramsPtr: number,
@@ -2115,7 +2255,7 @@ export function envGl({
             const params = new Float32Array(memory.buffer, paramsPtr, 1);
             webgl.samplerParameterf(sampler, pname, params[0]);
         },
-        glSamplerParameteriv: (
+        emscripten_glSamplerParameteriv: (
             samplerId: number,
             pname: number,
             paramsPtr: number,
@@ -2133,7 +2273,7 @@ export function envGl({
         /**
          * void glGenSamplers(GLsizei n, GLuint *samplers);
          */
-        glGenSamplers: (n: number, samplersPtr: number) => {
+        emscripten_glGenSamplers: (n: number, samplersPtr: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -2147,7 +2287,7 @@ export function envGl({
                 memoryView().setUint32(samplersPtr + i * 4, samplerId, true);
             }
         },
-        glDeleteSamplers: (n: number, samplersPtr: number) => {
+        emscripten_glDeleteSamplers: (n: number, samplersPtr: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -2167,7 +2307,7 @@ export function envGl({
         /**
          * void glBindSampler(GLuint unit, GLuint sampler);
          */
-        glBindSampler: (unit: number, samplerId: number) => {
+        emscripten_glBindSampler: (unit: number, samplerId: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
@@ -2177,11 +2317,11 @@ export function envGl({
             }
             webgl.bindSampler(unit, sampler);
         },
-        glInvalidateSubFramebuffer: () => {
+        emscripten_glInvalidateSubFramebuffer: () => {
             throw new Error("not implemented");
             // return webgl!.invalidateSubFramebuffer();
         },
-        glInvalidateFramebuffer: () => {
+        emscripten_glInvalidateFramebuffer: () => {
             throw new Error("not implemented");
             // return webgl!.invalidateFramebuffer();
         },
@@ -2205,7 +2345,7 @@ export function envGl({
          *  precision
          *  Specifies the address of an integer into which the numeric precision of the implementation is written.
          */
-        glGetShaderPrecisionFormat: (
+        emscripten_glGetShaderPrecisionFormat: (
             shaderType: number,
             precisionType: number,
             rangePtr: number,
@@ -2238,5 +2378,6 @@ export function envGl({
                 true,
             );
         },
+        eglQueryString: undefined,
     };
 }
