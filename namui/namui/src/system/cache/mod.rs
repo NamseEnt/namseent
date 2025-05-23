@@ -20,8 +20,7 @@ fn cache_root() -> io::Result<PathBuf> {
         Ok(PathBuf::from("/cache"))
     } else {
         Ok(std::env::temp_dir()
-            .join(std::env::current_exe()?.file_name().ok_or(io::Error::new(
-                io::ErrorKind::Other,
+            .join(std::env::current_exe()?.file_name().ok_or(io::Error::other(
                 anyhow!("Failed to get current executable file name"),
             ))?)
             .join("cache"))
@@ -50,8 +49,7 @@ pub async fn get_serde<T: serde::de::DeserializeOwned>(key: &str) -> io::Result<
         return Ok(None);
     };
     serde_json::from_slice(&value).map_err(|err| {
-        io::Error::new(
-            io::ErrorKind::Other,
+        io::Error::other(
             anyhow!(
                 "Failed to deserialize value of key `{}`: {:?}",
                 key,

@@ -28,7 +28,7 @@ fn bundle_sqlite_path() -> io::Result<PathBuf> {
         // https://www.sqlite.org/uri.html
         let mut file_path = std::env::current_exe()?
             .parent()
-            .ok_or_else(|| io::Error::new(ErrorKind::Other, anyhow!("No parent")))?
+            .ok_or_else(|| io::Error::other(anyhow!("No parent")))?
             .join("bundle.sqlite")
             .to_str()
             .unwrap()
@@ -61,17 +61,17 @@ pub async fn read(path_like: impl PathLike) -> io::Result<Vec<u8>> {
                 |row| row.get::<usize, Vec<u8>>(0),
             )
             .optional()
-            .map_err(|error| io::Error::new(ErrorKind::Other, error))?
+            .map_err(io::Error::other)?
             .ok_or_else(|| io::Error::new(ErrorKind::NotFound, anyhow!("Not found")))
         })
     })
     .await
-    .map_err(|error| io::Error::new(ErrorKind::Other, error))?
+    .map_err(io::Error::other)?
 }
 
 pub async fn read_json<T: serde::de::DeserializeOwned>(path_like: impl PathLike) -> io::Result<T> {
     let bytes = read(path_like).await?;
-    serde_json::from_slice(bytes.as_ref()).map_err(|error| Error::new(ErrorKind::Other, error))
+    serde_json::from_slice(bytes.as_ref()).map_err(Error::other)
 }
 
 pub fn read_dir(_path: impl PathLike) -> io::Result<Vec<Dirent>> {

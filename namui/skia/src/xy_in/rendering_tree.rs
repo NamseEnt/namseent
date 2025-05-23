@@ -165,7 +165,7 @@ fn xy_in(
     ancestors: &[&RenderingTree],
 ) -> bool {
     let mut result = false;
-    rendering_tree.visit_rln(
+    let _ = rendering_tree.visit_rln(
         &mut |node, utils| {
             if let RenderingTree::Node(node) = node {
                 let local_xy = utils.to_local_xy(xy);
