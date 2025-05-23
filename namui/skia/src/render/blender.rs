@@ -29,10 +29,18 @@ impl From<&Blender> for NativeBlender {
     fn from(blender: &Blender) -> Self {
         let skia_blender = match blender {
             Blender::BlendMode(blend_mode) => skia_safe::BlendMode::from(*blend_mode).into(),
-            Blender::Sksl(sksl) => skia_safe::RuntimeEffect::make_for_blender(sksl, None)
-                .unwrap()
-                .make_blender(skia_safe::Data::new_empty(), None)
-                .unwrap(),
+            Blender::Sksl(sksl) => {
+                let name = "namui_blender";
+                let options = skia_safe::runtime_effect::Options {
+                    name: &name,
+                    ..Default::default()
+                };
+                let option = Some(&options);
+                let blender = skia_safe::RuntimeEffect::make_for_blender(sksl, option).unwrap();
+                blender
+                    .make_blender(skia_safe::Data::new_empty(), None)
+                    .unwrap()
+            }
             Blender::Arithmetic { k1, k2, k3, k4 } => skia_safe::Blender::arithmetic(
                 (*k1).into(),
                 (*k2).into(),

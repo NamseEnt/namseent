@@ -85,7 +85,7 @@ fn main() {{
 rustflags = [
     "-Ctarget-feature=-crt-static",
     "-L{wasi_sdk_path}/share/wasi-sysroot/lib/wasm32-wasip1-threads",
-    "-L{wasi_sdk_path}/lib/clang/18/lib/wasip1",
+    "-L{wasi_sdk_path}/lib/clang/19/lib/wasip1",
     # 2MB: 2097152
     # 8MB: 8388608
     # 256MB: 268435456

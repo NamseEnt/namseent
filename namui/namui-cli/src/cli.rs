@@ -73,6 +73,8 @@ pub enum Target {
     X86_64PcWindowsMsvc,
     #[value(name = "x86_64-unknown-linux-gnu")]
     X86_64UnknownLinuxGnu,
+    #[value(name = "aarch64-apple-darwin")]
+    Aarch64AppleDarwin,
 }
 impl Display for Target {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -83,6 +85,7 @@ impl Display for Target {
                 Target::Wasm32WasiWeb => "wasm32-wasi-web",
                 Target::X86_64PcWindowsMsvc => "x86_64-pc-windows-msvc",
                 Target::X86_64UnknownLinuxGnu => "x86_64-unknown-linux-gnu",
+                Target::Aarch64AppleDarwin => "aarch64-apple-darwin",
             }
         )
     }
@@ -93,6 +96,7 @@ impl From<namui_user_config::Target> for Target {
             namui_user_config::Target::Wasm32WasiWeb => Target::Wasm32WasiWeb,
             namui_user_config::Target::X86_64PcWindowsMsvc => Target::X86_64PcWindowsMsvc,
             namui_user_config::Target::X86_64UnknownLinuxGnu => Target::X86_64UnknownLinuxGnu,
+            namui_user_config::Target::Aarch64AppleDarwin => Target::Aarch64AppleDarwin,
         }
     }
 }
@@ -102,6 +106,7 @@ impl From<Target> for namui_user_config::Target {
             Target::Wasm32WasiWeb => namui_user_config::Target::Wasm32WasiWeb,
             Target::X86_64PcWindowsMsvc => namui_user_config::Target::X86_64PcWindowsMsvc,
             Target::X86_64UnknownLinuxGnu => namui_user_config::Target::X86_64UnknownLinuxGnu,
+            Target::Aarch64AppleDarwin => namui_user_config::Target::Aarch64AppleDarwin,
         }
     }
 }

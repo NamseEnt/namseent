@@ -24,6 +24,11 @@ pub fn set_user_config(target: Target) -> Result<()> {
             ("target_env", "gnu"),
             ("target_arch", "x86_64"),
         ],
+        Target::Aarch64AppleDarwin => [
+            ("target_os", "macos"),
+            ("target_env", "darwin"),
+            ("target_arch", "aarch64"),
+        ],
     }
     .iter()
     .map(|(key, value)| (key.to_string(), value.to_string()))

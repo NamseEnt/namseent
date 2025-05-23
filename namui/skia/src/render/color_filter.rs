@@ -35,7 +35,7 @@ impl From<&ColorFilter> for NativeColorFilter {
             ColorFilter::ScaleMatrix { r, g, b, a } => {
                 let mut color_matrix = skia_safe::ColorMatrix::default();
                 color_matrix.set_scale(r.into(), b.into(), g.into(), Some(a.into()));
-                let skia_color_filter = skia_safe::color_filters::matrix(&color_matrix);
+                let skia_color_filter = skia_safe::color_filters::matrix(&color_matrix, None);
                 NativeColorFilter { skia_color_filter }
             }
         }

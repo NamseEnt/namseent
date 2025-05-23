@@ -57,6 +57,7 @@ fn collect_runtime(
         }
         Target::X86_64PcWindowsMsvc => {}
         Target::X86_64UnknownLinuxGnu => {}
+        Target::Aarch64AppleDarwin => {}
     }
     if let Some(additional_runtime_path) = additional_runtime_path {
         ops.push(CollectOperation::new(
@@ -110,6 +111,16 @@ fn collect_rust_build(
                 PathBuf::from(""),
             ));
         }
+        Target::Aarch64AppleDarwin => {
+            let build_dist_path = project_path.join(format!(
+                "target/namui/target/aarch64-apple-darwin/{}",
+                if release { "release" } else { "debug" }
+            ));
+            ops.push(CollectOperation::new(
+                build_dist_path.join("namui-runtime-aarch64-apple-darwin"),
+                PathBuf::from(""),
+            ));
+        }
     }
     Ok(())
 }
@@ -131,7 +142,9 @@ fn collect_deep_link_manifest(
     let _ = ops;
     match target {
         Target::Wasm32WasiWeb => {}
-        Target::X86_64PcWindowsMsvc | Target::X86_64UnknownLinuxGnu => {
+        Target::X86_64PcWindowsMsvc
+        | Target::X86_64UnknownLinuxGnu
+        | Target::Aarch64AppleDarwin => {
             // TODO, but not priority
         }
     }

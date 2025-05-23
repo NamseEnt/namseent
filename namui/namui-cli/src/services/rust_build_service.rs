@@ -88,6 +88,7 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 .await?)
         }
         Target::X86_64UnknownLinuxGnu => todo!(),
+        Target::Aarch64AppleDarwin => todo!(),
     }
 }
 
@@ -107,6 +108,11 @@ fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
             ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
             ("NAMUI_CFG_TARGET_OS", "linux"),
             ("NAMUI_CFG_TARGET_ENV", "gnu"),
+        ],
+        Target::Aarch64AppleDarwin => vec![
+            ("NAMUI_CFG_TARGET_ARCH", "aarch64"),
+            ("NAMUI_CFG_TARGET_OS", "macos"),
+            ("NAMUI_CFG_TARGET_ENV", "darwin"),
         ],
     };
 

@@ -77,6 +77,25 @@ pub async fn clippy(target: Target, manifest_path: PathBuf) -> Result<()> {
                 .wait()
                 .await?;
         }
+        Target::Aarch64AppleDarwin => {
+            let mut args = vec![];
+            args.extend([
+                "clippy",
+                "--target",
+                "aarch64-apple-darwin",
+                "--manifest-path",
+                manifest_path.to_str().unwrap(),
+                "--tests",
+            ]);
+
+            Command::new("cargo")
+                .args(args)
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .spawn()?
+                .wait()
+                .await?;
+        }
     }
 
     Ok(())

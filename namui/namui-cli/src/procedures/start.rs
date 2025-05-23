@@ -20,7 +20,18 @@ pub async fn start(
                 Target::X86_64PcWindowsMsvc => {
                     linux::x86_64_pc_windows_msvc::start(&manifest_path, start_option).await?
                 }
-                Target::X86_64UnknownLinuxGnu => todo!(),
+                _ => unimplemented!(),
+            }
+        }
+    } else if cfg!(target_os = "macos") {
+        #[cfg(target_os = "macos")]
+        {
+            use super::macos;
+            match target {
+                Target::Wasm32WasiWeb => {
+                    macos::wasm32_wasi_web::start(&manifest_path, start_option).await?
+                }
+                _ => unimplemented!(),
             }
         }
     } else if cfg!(target_os = "windows") {
@@ -34,6 +45,7 @@ pub async fn start(
                 Target::X86_64PcWindowsMsvc => {
                     windows::x86_64_pc_windows_msvc::start(&manifest_path).await?;
                 }
+                _ => unimplemented!(),
             }
         }
     } else {
