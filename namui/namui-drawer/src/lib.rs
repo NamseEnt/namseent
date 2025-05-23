@@ -30,7 +30,7 @@ fn calculate_mouse_cursor(
 ) -> MouseCursor {
     let mut mouse_cursor = MouseCursor::Standard(StandardCursor::Default);
 
-    rendering_tree.visit_rln(
+    let _ = rendering_tree.visit_rln(
         &mut |rendering_tree, tool| {
             let RenderingTree::Special(SpecialRenderingNode::MouseCursor(MouseCursorNode {
                 cursor,
