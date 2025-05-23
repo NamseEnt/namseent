@@ -10,27 +10,17 @@ unsafe impl Send for NativeSkia {}
 unsafe impl Sync for NativeSkia {}
 
 unsafe extern "C" {
-    // GL_API const GLubyte *GL_APIENTRY glGetString (GLenum name);
-    fn glGetString(name: u32) -> *const u8;
-    // WEBGL_APICALL const GLubyte *GL_APIENTRY emscripten_glGetStringi (GLenum name, GLuint index);
-    fn glGetStringi(name: u32, index: u32) -> *const u8;
-    //GL_API void GL_APIENTRY glGetIntegerv (GLenum pname, GLint *data);
-    fn glGetIntegerv(pname: u32, data: *mut i32);
+    fn emscripten_glGetString(name: u32) -> *const u8;
+    fn emscripten_glGetIntegerv(pname: u32, data: *mut i32);
 }
 
 impl NativeSkia {
     pub(crate) fn new(window_wh: Wh<IntPx>) -> Result<NativeSkia> {
-        let result = skia_safe::gpu::gl::Interface::new_load_with(|addr| {
-            println!("addr: {}", addr);
-            match addr {
-                "glGetString" => glGetString as _,
-                "glGetStringi" => glGetStringi as _,
-                "glGetIntegerv" => glGetIntegerv as _,
-                _ => todo!("unknown function on gl interface: {}", addr),
-            }
-        });
-        println!("result: {:?}", result);
-        let interface = result.expect("failed to load gl interface");
+        let interface = skia_safe::gpu::gl::Interface::new_load_with(|addr| match addr {
+            "glGetString" => emscripten_glGetString as _,
+            _ => todo!("unknown function on gl interface: {}", addr),
+        })
+        .expect("failed to load gl interface");
 
         let context = skia_safe::gpu::direct_contexts::make_gl(interface, None)
             .expect("failed to create gl direct context");
@@ -38,7 +28,7 @@ impl NativeSkia {
         let framebuffer_info = {
             let mut fboid: i32 = 0;
             unsafe {
-                glGetIntegerv(
+                emscripten_glGetIntegerv(
                     0x8ca6, // gl::FRAMEBUFFER_BINDING
                     &mut fboid,
                 )

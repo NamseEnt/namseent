@@ -14,7 +14,10 @@ pub fn wasi_cargo_envs() -> [(&'static str, PathBuf); 9] {
             "WASI_SYSROOT",
             cli_root_path.join("wasi-sdk/share/wasi-sysroot"),
         ),
-        ("OPENGL_INCLUDE", cli_root_path.join("opengl_include")),
+        (
+            "WASI_EMSCRIPTEN_GLUE",
+            cli_root_path.join("wasi_emscripten_glue"),
+        ),
         ("CLANG_PATH", cli_root_path.join("wasi-sdk/bin/clang")),
         (
             "CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER",
