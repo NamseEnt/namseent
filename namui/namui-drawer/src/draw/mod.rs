@@ -146,9 +146,9 @@ pub fn draw_mouse_cursor(
                     let row = index / sprite_set.columns;
                     sprite_set.cursor_wh.as_xy() * Xy::new(column, row)
                 };
-                let (index, hotspot_xy) = match sprite {
-                    &CursorSprite::Static { index, hotspot_xy } => (index, hotspot_xy),
-                    &CursorSprite::Animated {
+                let (index, hotspot_xy) = match *sprite {
+                    CursorSprite::Static { index, hotspot_xy } => (index, hotspot_xy),
+                    CursorSprite::Animated {
                         start_index,
                         hotspot_xy,
                         frame_count,
@@ -157,7 +157,7 @@ pub fn draw_mouse_cursor(
                         static INSTANT_FOR_ANIMATION: std::sync::OnceLock<namui_type::Instant> =
                             std::sync::OnceLock::new();
                         let elapsed = INSTANT_FOR_ANIMATION
-                            .get_or_init(|| namui_type::Instant::now())
+                            .get_or_init(namui_type::Instant::now)
                             .elapsed();
 
                         let frame_index = ((elapsed.as_millis() / frame_duration.as_millis())

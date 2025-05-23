@@ -34,7 +34,7 @@ pub fn bfs(blocks: &[Vec<bool>], start_xy: Xy<usize>, end_xy: Xy<usize>) -> Opti
         return Some(vec![start_xy]);
     }
 
-    let visit_map = search(&blocks, wh, start_xy, end_xy)?;
+    let visit_map = search(blocks, wh, start_xy, end_xy)?;
 
     let mut path = vec![end_xy];
     loop {

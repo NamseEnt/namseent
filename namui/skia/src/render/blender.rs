@@ -32,7 +32,7 @@ impl From<&Blender> for NativeBlender {
             Blender::Sksl(sksl) => {
                 let name = "namui_blender";
                 let options = skia_safe::runtime_effect::Options {
-                    name: &name,
+                    name,
                     ..Default::default()
                 };
                 let option = Some(&options);
