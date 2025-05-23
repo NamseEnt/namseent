@@ -126,10 +126,8 @@ impl Write for StorageWrite {
 
         match write_return_code {
             WriteReturnCode::Success => Ok(buf.len()),
-            WriteReturnCode::OutOfSpace => Err(std::io::Error::other(
-                std::io::ErrorKind::Other, // Stuck on https://github.com/rust-lang/rust/issues/86442
-                "Out of space",
-            )),
+            // Stuck on https://github.com/rust-lang/rust/issues/86442
+            WriteReturnCode::OutOfSpace => Err(std::io::Error::other("Out of space")),
         }
     }
 
