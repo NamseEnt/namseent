@@ -20,7 +20,7 @@ pub async fn start(
                 Target::X86_64PcWindowsMsvc => {
                     linux::x86_64_pc_windows_msvc::start(&manifest_path, start_option).await?
                 }
-                Target::X86_64UnknownLinuxGnu => todo!(),
+                _ => unimplemented!(),
             }
         }
     } else if cfg!(target_os = "macos") {
@@ -45,6 +45,7 @@ pub async fn start(
                 Target::X86_64PcWindowsMsvc => {
                     windows::x86_64_pc_windows_msvc::start(&manifest_path).await?;
                 }
+                _ => unimplemented!(),
             }
         }
     } else {
