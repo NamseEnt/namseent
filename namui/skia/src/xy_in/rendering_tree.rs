@@ -275,7 +275,7 @@ mod tests {
         let node_0 = RenderingTree::wrap([node_1, node_2]).with_id(id_0);
 
         let mut called_ids = vec![];
-        node_0.visit_rln(
+        let _ = node_0.visit_rln(
             &mut |rendering_tree, _| {
                 if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
                     rendering_tree
@@ -348,7 +348,7 @@ mod tests {
 
         let mut call_count = 0;
 
-        node_0.visit_rln(
+        let _ = node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 let xy = Xy {
                     x: px(10.0),
@@ -491,7 +491,7 @@ mod tests {
 
         let mut call_count = 0;
 
-        node_0.visit_rln(
+        let _ = node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 let xy = Xy {
                     x: px(10.0),
@@ -583,7 +583,7 @@ mod tests {
 
         let mut call_count = 0;
 
-        node_0.visit_rln(
+        let _ = node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 let xy_0_0 = Xy {
                     x: px(0.0),
@@ -639,7 +639,7 @@ mod tests {
 
         let mut call_count = 0;
 
-        node_0.visit_rln(
+        let _ = node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 let xy_0_0 = Xy {
                     x: px(0.0),
@@ -718,7 +718,7 @@ mod tests {
                 .collect()
         }
 
-        node_0.visit_rln(
+        let _ = node_0.visit_rln(
             &mut |rendering_tree, utils| {
                 if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
                     rendering_tree
