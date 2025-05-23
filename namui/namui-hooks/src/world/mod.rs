@@ -39,11 +39,11 @@ impl World {
                     .compose_id_map
                     .insert(child_key, child_composer_id.into());
 
-                let child_composer = self
-                    .composers
-                    .insert(child_composer_id, Composer::new().into());
+                
 
-                child_composer
+                (self
+                    .composers
+                    .insert(child_composer_id, Composer::new().into())) as _
             }
         }
     }
@@ -73,12 +73,12 @@ impl World {
                     .instance_id_map
                     .insert(child_key.clone(), child_instance_id.into());
 
-                let child_instance = self.instances.insert(
+                
+
+                (self.instances.insert(
                     child_instance_id,
                     Box::new(Instance::new(child_instance_id)),
-                );
-
-                child_instance
+                )) as _
             }
         }
     }
