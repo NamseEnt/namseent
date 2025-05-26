@@ -39,7 +39,7 @@ jobs:
       CARGO_LOCK_PATH: ${{ matrix.dir }}/Cargo.lock
       XWIN_ARCH: x86_64
       XWIN_VERSION: 17
-      XWIN_CROSS_COMPILER: clang
+      XWIN_CROSS_COMPILER: clang-cl
       CARGO_VERSION: "" # Should be set in the job
     steps:
       - uses: actions/checkout@v4
