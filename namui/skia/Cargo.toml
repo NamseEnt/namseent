@@ -38,7 +38,7 @@ skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", features = [
     "freetype-woff2",
     "embed-freetype",
 ] }
-windows = { version = "0.56.0", features = [
+windows = { version = "0.61.1", features = [
     "Win32",
     "Win32_Graphics",
     "Win32_Graphics_Dxgi",
