@@ -46,7 +46,14 @@ pub async fn check(target: Target, manifest_path: PathBuf) -> Result<()> {
             ]);
 
             if cfg!(target_os = "linux") {
-                args.extend(["--xwin-arch", "x86_64", "--xwin-version", "17"]);
+                args.extend([
+                    "--xwin-arch",
+                    "x86_64",
+                    "--xwin-version",
+                    "17",
+                    "--cross-compiler",
+                    "clang",
+                ]);
             }
 
             Command::new("cargo")

@@ -77,7 +77,14 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
             }
 
             if cfg!(target_os = "linux") {
-                args.extend(["--xwin-arch", "x86_64", "--xwin-version", "17"]);
+                args.extend([
+                    "--xwin-arch",
+                    "x86_64",
+                    "--xwin-version",
+                    "17",
+                    "--cross-compiler",
+                    "clang",
+                ]);
             }
 
             Ok(Command::new("cargo")

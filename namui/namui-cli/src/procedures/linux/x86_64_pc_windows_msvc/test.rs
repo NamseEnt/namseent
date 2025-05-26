@@ -12,6 +12,8 @@ pub fn test(manifest_path: impl AsRef<std::path::Path>) -> Result<()> {
             "x86_64",
             "--xwin-version",
             "17",
+            "--cross-compiler",
+            "clang",
         ])
         .status()?;
 
