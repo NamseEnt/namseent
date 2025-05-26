@@ -3,6 +3,7 @@ use clap::CommandFactory;
 use clap_complete::{generate_to, shells::Bash};
 use std::env;
 use std::fs::create_dir_all;
+use tokio::process::Command;
 
 include!("src/cli.rs");
 
@@ -11,7 +12,7 @@ async fn main() -> Result<()> {
     generate_completions()?;
     generate_symlink()?;
 
-    tokio::try_join!(download_wasi_sdk(), download_binaryen(),)?;
+    tokio::try_join!(download_wasi_sdk(), download_emsdk(), download_binaryen(),)?;
 
     Ok(())
 }
@@ -130,6 +131,80 @@ async fn download_wasi_sdk() -> Result<()> {
     archive.unpack(&temp)?;
     std::fs::rename(temp.join(format!("wasi-sdk-{VERSION}-{platform}")), dist)?;
     std::fs::remove_dir(temp)?;
+
+    std::fs::write(version_file_path, VERSION)?;
+
+    Ok(())
+}
+
+async fn download_emsdk() -> Result<()> {
+    const VERSION: &str = "3.1.61";
+
+    let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    let dist = root.join("emscripten");
+    let version_file_path = dist.join("VERSION");
+
+    if dist.exists() {
+        if let std::io::Result::Ok(version_file) = std::fs::read_to_string(&version_file_path) {
+            println!("EMSDK {version_file} Installed");
+
+            if version_file == VERSION {
+                return Ok(());
+            }
+        }
+
+        std::fs::remove_dir_all(&dist)?;
+    }
+
+    println!("DOWNLOADING EMSCRIPTEN");
+
+    assert!(
+        Command::new("git")
+            .current_dir(&root)
+            .args([
+                "clone",
+                "--filter=blob:none",
+                "--no-checkout",
+                "https://github.com/emscripten-core/emscripten",
+            ])
+            .output()
+            .await?
+            .status
+            .success()
+    );
+
+    assert!(
+        Command::new("git")
+            .current_dir(&dist)
+            .args(["sparse-checkout", "set", "--cone"])
+            .output()
+            .await?
+            .status
+            .success()
+    );
+
+    assert!(
+        Command::new("git")
+            .current_dir(&dist)
+            .args(["checkout", VERSION])
+            .output()
+            .await?
+            .status
+            .success()
+    );
+
+    assert!(
+        Command::new("git")
+            .current_dir(&dist)
+            .args(["sparse-checkout", "set", "system/include"])
+            .output()
+            .await?
+            .status
+            .success()
+    );
+
+    // NOTE: This is a temporary solution to avoid the error.
+    tokio::fs::remove_file(dist.join("system/include/emscripten/version.h")).await?;
 
     std::fs::write(version_file_path, VERSION)?;
 

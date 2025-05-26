@@ -15,8 +15,8 @@ pub fn wasi_cargo_envs() -> [(&'static str, PathBuf); 9] {
             cli_root_path.join("wasi-sdk/share/wasi-sysroot"),
         ),
         (
-            "WASI_EMSCRIPTEN_GLUE",
-            cli_root_path.join("wasi_emscripten_glue"),
+            "EMSDK_SYSTEM_INCLUDE",
+            cli_root_path.join("emscripten/system/include"),
         ),
         ("CLANG_PATH", cli_root_path.join("wasi-sdk/bin/clang")),
         (

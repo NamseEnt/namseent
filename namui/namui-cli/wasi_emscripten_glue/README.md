@@ -1,1 +1,0 @@
-It's from emscripten, modified. skia use emscripten, but emscripten's header file doesn't allow us to use it's headers only.
