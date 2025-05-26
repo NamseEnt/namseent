@@ -12,7 +12,7 @@ env:
 
 jobs:
   list-projects:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     outputs:
       project-dirs: ${{ steps.project-dirs.outputs.dirs }}
     steps:
@@ -29,7 +29,7 @@ jobs:
         run: cargo run --manifest-path ./github-actions-tools/matrix-output/Cargo.toml aarch64-apple-darwin $GITHUB_OUTPUT dirs
 
   run-commands:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     needs:
       - list-projects
     strategy:
@@ -54,10 +54,10 @@ jobs:
           path: |
             ~/.cargo/
             ${{ matrix.dir }}/target/
-          key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-aarch64-apple-darwin-${{ matrix.dir }}-${{ hashFiles(env.CARGO_LOCK_PATH) }}
+          key: ${{ runner.os }}-${{ env.CARGO_VERSION }}-aarch64-apple-darwin-${{ matrix.dir }}-${{ hashFiles(env.CARGO_LOCK_PATH) }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-aarch64-apple-darwin-${{ matrix.dir }}-
-            ${{ runner.os }}-${{ env.CARGO_VERSION }}-linux-aarch64-apple-darwin-
+            ${{ runner.os }}-${{ env.CARGO_VERSION }}-aarch64-apple-darwin-${{ matrix.dir }}-
+            ${{ runner.os }}-${{ env.CARGO_VERSION }}-aarch64-apple-darwin-
 
       - name: Run commands
         working-directory: ${{ matrix.dir }}
