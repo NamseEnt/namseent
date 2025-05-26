@@ -13,7 +13,7 @@ use windows::Win32::{
         },
         Dxgi::{
             CreateDXGIFactory2, DXGI_ADAPTER_FLAG, DXGI_ADAPTER_FLAG_NONE,
-            DXGI_ADAPTER_FLAG_SOFTWARE, IDXGIAdapter1, IDXGIFactory4,
+            DXGI_ADAPTER_FLAG_SOFTWARE, DXGI_CREATE_FACTORY_FLAGS, IDXGIAdapter1, IDXGIFactory4,
         },
     },
 };
@@ -34,11 +34,11 @@ impl NativeSkia {
         //     }
         // }
 
-        let hwnd = HWND(window_id as isize);
+        let hwnd = HWND(window_id as _);
 
         // Use `DXGI_CREATE_FACTORY_DEBUG` flag if needed.
         // https://github.com/NamseEnt/namseent/issues/738
-        let factory = unsafe { CreateDXGIFactory2::<IDXGIFactory4>(0) }?;
+        let factory = unsafe { CreateDXGIFactory2::<IDXGIFactory4>(DXGI_CREATE_FACTORY_FLAGS(0)) }?;
         let adapter = get_hardware_adapter(&factory)?;
 
         let mut device: Option<ID3D12Device> = None;
@@ -146,8 +146,7 @@ fn get_hardware_adapter(factory: &IDXGIFactory4) -> Result<IDXGIAdapter1> {
     for i in 0.. {
         let adapter = unsafe { factory.EnumAdapters1(i)? };
 
-        let mut desc = Default::default();
-        unsafe { adapter.GetDesc1(&mut desc)? };
+        let desc = unsafe { adapter.GetDesc1()? };
 
         if (DXGI_ADAPTER_FLAG(desc.Flags as i32) & DXGI_ADAPTER_FLAG_SOFTWARE)
             != DXGI_ADAPTER_FLAG_NONE

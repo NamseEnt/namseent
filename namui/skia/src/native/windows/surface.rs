@@ -13,8 +13,9 @@ use windows::{
             },
             Dxgi::{
                 Common::{DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SAMPLE_DESC},
-                CreateDXGIFactory1, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_EFFECT_FLIP_DISCARD,
-                DXGI_USAGE_RENDER_TARGET_OUTPUT, IDXGIFactory4, IDXGISwapChain3,
+                CreateDXGIFactory1, DXGI_PRESENT, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_CHAIN_FLAG,
+                DXGI_SWAP_EFFECT_FLIP_DISCARD, DXGI_USAGE_RENDER_TARGET_OUTPUT, IDXGIFactory4,
+                IDXGISwapChain3,
             },
         },
         System::Threading::{CreateEventA, INFINITE, WaitForSingleObjectEx},
@@ -105,8 +106,7 @@ impl NativeSurface {
     }
 
     pub(crate) fn resize(&mut self, window_wh: Wh<IntPx>) {
-        let mut desc = DXGI_SWAP_CHAIN_DESC1::default();
-        unsafe { self.swap_chain.GetDesc1(&mut desc).unwrap() };
+        let desc = unsafe { self.swap_chain.GetDesc1() }.unwrap();
 
         if desc.Width == window_wh.width.as_i32() as u32
             && desc.Height == window_wh.height.as_i32() as u32
@@ -136,7 +136,7 @@ impl NativeSurface {
                     window_wh.width.as_i32() as u32,
                     window_wh.height.as_i32() as u32,
                     DXGI_FORMAT_R8G8B8A8_UNORM,
-                    0,
+                    DXGI_SWAP_CHAIN_FLAG(0),
                 )
                 .expect("swap_chain.resize_buffers failed");
         };
@@ -186,7 +186,7 @@ impl SkSurface for NativeSurface {
 
         unsafe {
             self.swap_chain
-                .Present(1, 0)
+                .Present(1, DXGI_PRESENT(0))
                 .ok()
                 .expect("swap_chain.present failed")
         };

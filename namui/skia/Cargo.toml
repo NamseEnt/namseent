@@ -8,6 +8,7 @@ targets = [
     "x86_64-pc-windows-msvc",
     "x86_64-unknown-linux-gnu",
     "wasm32-wasi-web",
+    "aarch64-apple-darwin",
 ]
 
 [dependencies]
@@ -37,7 +38,7 @@ skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", features = [
     "freetype-woff2",
     "embed-freetype",
 ] }
-windows = { version = "0.56.0", features = [
+windows = { version = "0.61.1", features = [
     "Win32",
     "Win32_Graphics",
     "Win32_Graphics_Dxgi",
