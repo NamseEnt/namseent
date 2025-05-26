@@ -205,6 +205,15 @@ async fn download_emsdk() -> Result<()> {
 
     // NOTE: This is a temporary solution to avoid the error.
     tokio::fs::remove_file(dist.join("system/include/emscripten/version.h")).await?;
+    let no_version_emscripten_h =
+        tokio::fs::read_to_string(dist.join("system/include/emscripten/emscripten.h"))
+            .await?
+            .replace("#include \"version.h\"", "// #include \"version.h\"");
+    tokio::fs::write(
+        dist.join("system/include/emscripten/emscripten.h"),
+        no_version_emscripten_h,
+    )
+    .await?;
 
     std::fs::write(version_file_path, VERSION)?;
 

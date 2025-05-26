@@ -130,9 +130,7 @@ export function envGl({
                 }
                 break;
             case 7938 /* GL_VERSION */:
-                const glVersion = `OpenGL ES 3.0 (${webgl.getParameter(
-                    7938 /*GL_VERSION*/,
-                )})`;
+                const glVersion = `OpenGL ES 3.0 (${webgl.getParameter(name)})`;
                 ret = stringToNewUTF8(glVersion);
                 break;
             case 35724 /* GL_SHADING_LANGUAGE_VERSION */:
