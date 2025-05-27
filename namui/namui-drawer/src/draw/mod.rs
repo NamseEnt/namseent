@@ -144,7 +144,7 @@ pub fn draw_mouse_cursor(
                 let calculate_offset_xy = |index: usize| -> Xy<Px> {
                     let column = index % sprite_set.columns;
                     let row = index / sprite_set.columns;
-                    sprite_set.cursor_wh.as_xy() * Xy::new(column, row)
+                    sprite_set.cursor_wh.to_xy() * Xy::new(column, row)
                 };
                 let (index, hotspot_xy) = match *sprite {
                     CursorSprite::Static { index, hotspot_xy } => (index, hotspot_xy),

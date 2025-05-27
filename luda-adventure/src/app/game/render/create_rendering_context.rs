@@ -21,7 +21,7 @@ impl Game {
             height: px_per_tile.invert() * namui_screen_size.height,
         };
 
-        let screen_center = (screen_size * 0.5).as_xy();
+        let screen_center = (screen_size * 0.5).to_xy();
         Rect::from_xy_wh(camera_center_position - screen_center, screen_size)
     }
 

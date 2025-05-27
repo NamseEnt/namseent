@@ -47,7 +47,7 @@ impl Component for ToolTip {
         };
 
         let screen_size = screen::size();
-        let max_xy = (screen_size - tooltip_bounding_box.wh()).as_xy();
+        let max_xy = (screen_size - tooltip_bounding_box.wh()).to_xy();
 
         ctx.component(on_top(absolute(
             (global_xy.x + OFFSET).min(max_xy.x).max(0.px()),

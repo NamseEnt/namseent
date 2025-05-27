@@ -146,7 +146,7 @@ impl Component for &GameState {
         ctx.add(tick::Ticker {});
 
         ctx.scale(Xy::single(self.camera.zoom_level))
-            .translate(TILE_PX_SIZE.as_xy() * self.camera.left_top * -1.0)
+            .translate(TILE_PX_SIZE.to_xy() * self.camera.left_top * -1.0)
             .compose(|ctx| {
                 render::render(self, ctx);
             });

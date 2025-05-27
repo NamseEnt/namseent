@@ -52,7 +52,7 @@ impl Component for PositionTool<'_> {
                                 return;
                             }
 
-                            let new_xy = to_nearest_point(event.local_xy() / wh.as_xy());
+                            let new_xy = to_nearest_point(event.local_xy() / wh.to_xy());
                             on_change_position(new_xy.map(|xy| (100.0 * xy).percent()));
                         }),
                     );
@@ -76,7 +76,7 @@ impl Component for PositionTool<'_> {
                         }
                     }
 
-                    let active_xy = wh.as_xy() * to_nearest_point(position.map(|x| x.as_f32()));
+                    let active_xy = wh.to_xy() * to_nearest_point(position.map(|x| x.as_f32()));
                     ctx.translate(active_xy).add(active_rendering_tree);
                 }),
             ])(wh, ctx)

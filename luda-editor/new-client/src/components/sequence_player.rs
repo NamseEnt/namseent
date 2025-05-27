@@ -397,9 +397,9 @@ pub fn calculate_graphic_rect_on_screen(
     circumscribed: Circumscribed<Percent>,
 ) -> Rect<Px> {
     let wh = calculate_graphic_wh_on_screen(original_graphic_size, container_wh, circumscribed);
-    let center_xy = container_wh.as_xy() * circumscribed.center_xy;
+    let center_xy = container_wh.to_xy() * circumscribed.center_xy;
 
-    let xy = center_xy - wh.as_xy() / 2.0;
+    let xy = center_xy - wh.to_xy() / 2.0;
 
     Rect::from_xy_wh(xy, wh)
 }

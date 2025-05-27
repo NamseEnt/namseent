@@ -37,14 +37,14 @@ impl Component for ItemCursorPreview<'_> {
             });
         };
 
-        let ctx = ctx.translate(TILE_PX_SIZE.as_xy() * map_coord);
+        let ctx = ctx.translate(TILE_PX_SIZE.to_xy() * map_coord);
 
         match item.kind.usage() {
             ItemUsage::Instant => {}
             ItemUsage::CircularArea { radius } => {
                 let radius = TILE_PX_SIZE * radius;
                 let path =
-                    Path::new().add_oval(Rect::from_xy_wh(radius.as_xy() * -1.0, radius * 2.0));
+                    Path::new().add_oval(Rect::from_xy_wh(radius.to_xy() * -1.0, radius * 2.0));
                 let fill_paint = Paint::new(Color::RED.with_alpha(128));
                 let stroke_paint =
                     Paint::new(Color::RED.brighter(0.5)).set_style(PaintStyle::Stroke);
@@ -57,7 +57,7 @@ impl Component for ItemCursorPreview<'_> {
                     map_coord,
                     thickness,
                 )
-                .map(|tile| TILE_PX_SIZE.as_xy() * (tile - map_coord));
+                .map(|tile| TILE_PX_SIZE.to_xy() * (tile - map_coord));
 
                 let path = Path::new().add_poly(&points, true);
                 let fill_paint = Paint::new(Color::RED.with_alpha(128));

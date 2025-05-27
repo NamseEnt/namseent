@@ -116,7 +116,7 @@ impl GameState {
                 continue;
             }
 
-            let px_xy = TILE_PX_SIZE.as_xy() * xy.map(|t| t.as_f32());
+            let px_xy = TILE_PX_SIZE.to_xy() * xy.map(|t| t.as_f32());
             ctx.translate(px_xy).compose(move |ctx| {
                 let rendering_tree = ctx.ghost_add("", stuff);
                 let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {

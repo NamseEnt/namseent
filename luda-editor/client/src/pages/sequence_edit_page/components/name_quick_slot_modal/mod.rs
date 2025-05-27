@@ -33,7 +33,7 @@ impl Component for NameQuickSlotModal<'_> {
             width: wh.width.min(MODAL_MAX_WH.width),
             height: wh.height.min(MODAL_MAX_WH.height),
         };
-        let modal_xy = ((wh - modal_wh) / 2.0).as_xy();
+        let modal_xy = ((wh - modal_wh) / 2.0).to_xy();
         let (name_quick_slot, set_name_quick_slot) = ctx.atom(&NAME_QUICK_SLOT);
         let text_input_instances = [
             namui::text_input::TextInputInstance::new(ctx),

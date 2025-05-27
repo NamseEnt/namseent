@@ -21,7 +21,7 @@ impl Component for RenameModal<'_> {
         let screen_wh = namui::screen::size();
         let screen_wh = Wh::new(screen_wh.width.into_px(), screen_wh.height.into_px());
         let modal_wh = screen_wh * 0.5;
-        let modal_xy = ((screen_wh - modal_wh) * 0.5).as_xy();
+        let modal_xy = ((screen_wh - modal_wh) * 0.5).to_xy();
         let text_input_rect_in_modal = Rect::Xywh {
             x: modal_wh.width / 4.0,
             y: modal_wh.height / 4.0,

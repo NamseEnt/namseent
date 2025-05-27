@@ -43,7 +43,7 @@ impl Component for UpgradeSelectModal<'_> {
             });
         };
 
-        let offset = ((screen_wh - UPGRADE_SELECT_WH) * 0.5).as_xy();
+        let offset = ((screen_wh - UPGRADE_SELECT_WH) * 0.5).to_xy();
 
         ctx.compose(|ctx| {
             ctx.translate(offset).add(UpgradeSelectOpenButton {
