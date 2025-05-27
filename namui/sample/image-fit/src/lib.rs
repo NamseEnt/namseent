@@ -17,7 +17,7 @@ impl Component for App {
             ctx.state(|| ResourceLocation::bundle("resources/0.jpg"));
         let image = ctx.image(&image_location);
 
-        let image_xy = size.into_type::<Px>().as_xy() / 4.0;
+        let image_xy = size.into_type::<Px>().to_xy() / 4.0;
         let image_wh = size.into_type::<Px>() / 2.0;
 
         ctx.add(namui_prebuilt::typography::center_text(

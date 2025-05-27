@@ -68,7 +68,7 @@ impl Component for QuestBoardModal {
         };
 
         let quest_board_slots = &game_state.quest_board_slots;
-        let offset = ((screen_wh - QUEST_BOARD_WH) * 0.5).as_xy();
+        let offset = ((screen_wh - QUEST_BOARD_WH) * 0.5).to_xy();
 
         ctx.compose(|ctx| {
             ctx.translate(offset).add(QuestBoardOpenButton {

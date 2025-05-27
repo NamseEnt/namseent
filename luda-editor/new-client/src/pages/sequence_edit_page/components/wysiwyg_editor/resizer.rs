@@ -222,7 +222,7 @@ fn resize_by_center(
     image_size: Wh<Px>,
 ) -> Circumscribed<Percent> {
     let handle_xy = handle.xy(Rect::from_xy_wh(
-        center_xy - image_size.as_xy() / 2.0,
+        center_xy - image_size.to_xy() / 2.0,
         image_size,
     ));
     let designated_xy = handle_xy + diff_xy;

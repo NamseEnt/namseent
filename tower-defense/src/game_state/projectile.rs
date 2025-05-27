@@ -21,11 +21,11 @@ impl Component for &Projectile {
                 ProjectileKind::Ball => Wh::new(0.1, 0.1),
             };
         let path = Path::new().add_oval(Rect::from_xy_wh(
-            projectile_wh.as_xy() * -0.5,
+            projectile_wh.to_xy() * -0.5,
             projectile_wh,
         ));
         let paint = Paint::new(Color::GREEN);
-        ctx.translate(TILE_PX_SIZE.as_xy() * 0.5)
+        ctx.translate(TILE_PX_SIZE.to_xy() * 0.5)
             .add(namui::path(path, paint));
     }
 }

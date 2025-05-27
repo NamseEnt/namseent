@@ -48,7 +48,7 @@ fn event_local_xy_in_on_compose_translate() {
                                     );
                                     assert_eq!(
                                         event.local_xy(),
-                                        RECT_WH.as_xy() * 0.5,
+                                        RECT_WH.to_xy() * 0.5,
                                         "x: {x}, y: {y}, global_xy: {:?}",
                                         event.global_xy
                                     );
@@ -135,7 +135,7 @@ fn event_local_xy_in_after_translate_at_out() {
                                         );
                                         assert_eq!(
                                             event.local_xy(),
-                                            RECT_WH.as_xy() * 0.5,
+                                            RECT_WH.to_xy() * 0.5,
                                             "x: {x}, y: {y}",
                                         );
                                     }

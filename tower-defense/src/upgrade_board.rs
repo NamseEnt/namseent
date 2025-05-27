@@ -32,7 +32,7 @@ impl Component for UpgradeBoardModal {
         let Self { screen_wh } = self;
 
         ctx.compose(|ctx| {
-            let offset = ((screen_wh - UPGRADE_BOARD_WH) * 0.5).as_xy();
+            let offset = ((screen_wh - UPGRADE_BOARD_WH) * 0.5).to_xy();
 
             ctx.translate(offset).add(UpgradeBoard {});
 

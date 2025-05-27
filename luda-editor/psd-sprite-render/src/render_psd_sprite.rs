@@ -89,7 +89,7 @@ impl Component for RenderPsdSprite<'_> {
                     screen_wh.height * circumcircle.xy.y,
                 ))
                 .scale(Xy::single(ratio))
-                .translate(psd_sprite.wh.as_xy() * -0.5);
+                .translate(psd_sprite.wh.to_xy() * -0.5);
             let path = Path::new();
             ctx.add(PathDrawCommand { path, paint });
         });
