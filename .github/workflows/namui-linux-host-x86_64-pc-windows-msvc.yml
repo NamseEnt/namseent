@@ -39,6 +39,7 @@ jobs:
       CARGO_LOCK_PATH: ${{ matrix.dir }}/Cargo.lock
       XWIN_ARCH: x86_64
       XWIN_VERSION: 17
+      XWIN_CROSS_COMPILER: clang-cl
       CARGO_VERSION: "" # Should be set in the job
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +77,7 @@ jobs:
         with:
           path: |
             ~/.cache/cargo-xwin
-          key: ${{ runner.os }}-${{ env.XWIN_ARCH }}-${{ env.XWIN_VERSION }}
+          key: ${{ runner.os }}-cargo-xwin-${{ env.XWIN_ARCH }}-${{ env.XWIN_VERSION }}
 
       - uses: actions/cache@v3
         with:
@@ -97,17 +98,17 @@ jobs:
         run: |
           echo "Running commands in ${{ matrix.dir }}"
 
-          echo "cargo xwin check --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests"
-          cargo xwin check --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests
+          echo "cargo xwin check --target x86_64-pc-windows-msvc --tests"
+          cargo xwin check --target x86_64-pc-windows-msvc --tests
 
           echo "cargo fmt"
           cargo fmt
 
-          echo "cargo xwin clippy --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests"
-          cargo xwin clippy --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17 --tests
+          echo "cargo xwin clippy --target x86_64-pc-windows-msvc --tests"
+          cargo xwin clippy --target x86_64-pc-windows-msvc --tests
 
-          echo "cargo xwin test --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17"
-          cargo xwin test --target x86_64-pc-windows-msvc --xwin-arch x86_64 --xwin-version 17
+          echo "cargo xwin test --target x86_64-pc-windows-msvc"
+          cargo xwin test --target x86_64-pc-windows-msvc
 
   post-namui-linux-host-x86_64-pc-windows-msvc:
     if: always()

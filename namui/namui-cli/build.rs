@@ -3,7 +3,7 @@ use clap::CommandFactory;
 use clap_complete::{generate_to, shells::Bash};
 use std::env;
 use std::fs::create_dir_all;
-use std::process::Command;
+use tokio::process::Command;
 
 include!("src/cli.rs");
 
@@ -79,20 +79,19 @@ fn generate_completions() -> Result<()> {
 }
 
 async fn download_wasi_sdk() -> Result<()> {
-    const VERSION: &str = "23";
+    const VERSION: &str = "25.0";
 
     let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let dist = root.join("wasi-sdk");
     let temp = root.join("wasi-sdk-temp");
 
     let version_file_path = dist.join("VERSION");
-    let expected_version_file_content = format!("{VERSION}.0");
 
     if dist.exists() {
         if let std::io::Result::Ok(version_file) = std::fs::read_to_string(&version_file_path) {
             println!("WASI-SDK {version_file} Installed");
 
-            if version_file == expected_version_file_content {
+            if version_file == VERSION {
                 return Ok(());
             }
         }
@@ -100,9 +99,28 @@ async fn download_wasi_sdk() -> Result<()> {
         std::fs::remove_dir_all(&dist)?;
     }
 
-    println!("DOWNLOADING WASI-SDK {VERSION}.0");
+    let platform = if cfg!(target_os = "windows") {
+        "x86_64-windows"
+    } else if cfg!(target_os = "macos") {
+        if cfg!(target_arch = "aarch64") {
+            "arm64-macos"
+        } else {
+            "x86_64-macos"
+        }
+    } else if cfg!(target_os = "linux") {
+        if cfg!(target_arch = "aarch64") {
+            "arm64-linux"
+        } else {
+            "x86_64-linux"
+        }
+    } else {
+        return Err(anyhow::anyhow!("Unsupported platform"));
+    };
+
+    println!("DOWNLOADING WASI-SDK {VERSION}");
+    let version_without_dot = VERSION.split(".").next().unwrap();
     let url = format!(
-        "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{VERSION}/wasi-sdk-{VERSION}.0-x86_64-linux.tar.gz"
+        "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{version_without_dot}/wasi-sdk-{VERSION}-{platform}.tar.gz"
     );
 
     let response = reqwest::get(url).await?.error_for_status()?;
@@ -111,22 +129,31 @@ async fn download_wasi_sdk() -> Result<()> {
     let mut d = flate2::read::GzDecoder::new(bytes.as_ref());
     let mut archive = tar::Archive::new(&mut d);
     archive.unpack(&temp)?;
-    std::fs::rename(
-        temp.join(format!("wasi-sdk-{VERSION}.0-x86_64-linux")),
-        dist,
-    )?;
+    std::fs::rename(temp.join(format!("wasi-sdk-{VERSION}-{platform}")), dist)?;
     std::fs::remove_dir(temp)?;
 
-    std::fs::write(version_file_path, expected_version_file_content)?;
+    std::fs::write(version_file_path, VERSION)?;
 
     Ok(())
 }
 
 async fn download_emsdk() -> Result<()> {
+    const VERSION: &str = "3.1.61";
+
     let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let dist = root.join("emscripten");
+    let version_file_path = dist.join("VERSION");
+
     if dist.exists() {
-        return Ok(());
+        if let std::io::Result::Ok(version_file) = std::fs::read_to_string(&version_file_path) {
+            println!("EMSDK {version_file} Installed");
+
+            if version_file == VERSION {
+                return Ok(());
+            }
+        }
+
+        std::fs::remove_dir_all(&dist)?;
     }
 
     println!("DOWNLOADING EMSCRIPTEN");
@@ -140,7 +167,8 @@ async fn download_emsdk() -> Result<()> {
                 "--no-checkout",
                 "https://github.com/emscripten-core/emscripten",
             ])
-            .output()?
+            .output()
+            .await?
             .status
             .success()
     );
@@ -149,7 +177,8 @@ async fn download_emsdk() -> Result<()> {
         Command::new("git")
             .current_dir(&dist)
             .args(["sparse-checkout", "set", "--cone"])
-            .output()?
+            .output()
+            .await?
             .status
             .success()
     );
@@ -157,8 +186,9 @@ async fn download_emsdk() -> Result<()> {
     assert!(
         Command::new("git")
             .current_dir(&dist)
-            .args(["checkout", "3.1.61"])
-            .output()?
+            .args(["checkout", VERSION])
+            .output()
+            .await?
             .status
             .success()
     );
@@ -167,10 +197,25 @@ async fn download_emsdk() -> Result<()> {
         Command::new("git")
             .current_dir(&dist)
             .args(["sparse-checkout", "set", "system/include"])
-            .output()?
+            .output()
+            .await?
             .status
             .success()
     );
+
+    // NOTE: This is a temporary solution to avoid the error.
+    tokio::fs::remove_file(dist.join("system/include/emscripten/version.h")).await?;
+    let no_version_emscripten_h =
+        tokio::fs::read_to_string(dist.join("system/include/emscripten/emscripten.h"))
+            .await?
+            .replace("#include \"version.h\"", "// #include \"version.h\"");
+    tokio::fs::write(
+        dist.join("system/include/emscripten/emscripten.h"),
+        no_version_emscripten_h,
+    )
+    .await?;
+
+    std::fs::write(version_file_path, VERSION)?;
 
     Ok(())
 }

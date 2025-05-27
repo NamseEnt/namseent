@@ -17,6 +17,18 @@ pub fn test(target: Target, manifest_path: PathBuf) -> Result<()> {
                 Target::X86_64UnknownLinuxGnu => {
                     linux::x86_64_unknown_linux_gnu::test(&manifest_path)?
                 }
+                _ => unimplemented!(),
+            }
+        }
+    } else if cfg!(target_os = "macos") {
+        #[cfg(target_os = "macos")]
+        {
+            use super::macos;
+
+            match target {
+                Target::Wasm32WasiWeb => macos::wasm32_wasi_web::test(&manifest_path)?,
+                Target::Aarch64AppleDarwin => macos::aarch64_apple_darwin::test(&manifest_path)?,
+                _ => unimplemented!(),
             }
         }
     } else {
