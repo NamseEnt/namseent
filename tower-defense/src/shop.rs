@@ -84,7 +84,7 @@ impl Component for ShopModal {
             });
         };
 
-        let offset = ((screen_wh - SHOP_WH) * 0.5).as_xy();
+        let offset = ((screen_wh - SHOP_WH) * 0.5).to_xy();
 
         ctx.compose(|ctx| {
             ctx.translate(offset).add(ShopOpenButton {

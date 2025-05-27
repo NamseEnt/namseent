@@ -297,10 +297,10 @@ impl Component for GraphicClip<'_> {
         let radius_px = screen_radius * circumscribed.radius;
         let graphic_wh_on_screen = graphic_wh * (radius_px / graphic_radius_px);
 
-        let center_xy = container_wh.as_xy() * circumscribed.center_xy;
+        let center_xy = container_wh.to_xy() * circumscribed.center_xy;
 
         let graphic_rendering_rect = {
-            let image_left_top_xy = center_xy - graphic_wh_on_screen.as_xy() / 2.0;
+            let image_left_top_xy = center_xy - graphic_wh_on_screen.to_xy() / 2.0;
             Rect::from_xy_wh(image_left_top_xy, graphic_wh_on_screen)
         };
 

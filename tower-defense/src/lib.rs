@@ -213,7 +213,7 @@ impl Component for Game {
                     }
                     if game_state.cursor_preview.should_update_position() {
                         let local_xy_tile =
-                            (event.global_xy / game_state.camera.zoom_level) / TILE_PX_SIZE.as_xy();
+                            (event.global_xy / game_state.camera.zoom_level) / TILE_PX_SIZE.to_xy();
                         let map_coord = game_state.camera.left_top + local_xy_tile;
                         mutate_game_state(move |game_state| {
                             game_state.cursor_preview.update_position(map_coord);

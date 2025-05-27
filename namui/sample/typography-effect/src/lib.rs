@@ -39,7 +39,7 @@ impl Component for TypographyEffectExample {
                 size: 64.int_px(),
                 name: "NotoSansKR-Regular".to_string(),
             },
-            screen_wh.as_xy().into_type::<Px>() / 4.0,
+            screen_wh.to_xy().into_type::<Px>() / 4.0,
             Paint::new(Color::WHITE),
             TextAlign::Center,
             TextBaseline::Middle,
@@ -50,7 +50,7 @@ impl Component for TypographyEffectExample {
         ));
 
         ctx.add({
-            let xy = screen_wh.as_xy().into_type::<Px>() * 3.0 / 4.0;
+            let xy = screen_wh.to_xy().into_type::<Px>() * 3.0 / 4.0;
             let font = Font {
                 size: 64.int_px(),
                 name: "NotoSansKR-Regular".to_string(),

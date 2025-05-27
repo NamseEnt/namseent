@@ -21,7 +21,7 @@ impl Component for SettingsModal<'_> {
         } = self;
 
         let modal_wh = Wh::new(400.px(), 300.px());
-        let modal_xy = ((screen_wh - modal_wh) * 0.5).as_xy();
+        let modal_xy = ((screen_wh - modal_wh) * 0.5).to_xy();
 
         ctx.compose(|ctx| {
             // 모달 창

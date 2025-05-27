@@ -114,7 +114,7 @@ impl Component for EditSpeakerModal<'_> {
             let ctx = ctx.absolute((0.px(), 0.px()));
 
             let left_top = (screen_wh / 2.0) - MODAL_WH / 2.0;
-            ctx.translate(left_top.as_xy()).compose(|ctx| {
+            ctx.translate(left_top.to_xy()).compose(|ctx| {
                 ctx.compose(|ctx| {
                     table::padding(
                         8.px(),

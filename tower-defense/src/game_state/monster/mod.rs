@@ -77,9 +77,9 @@ impl Component for &Monster {
     fn render(self, ctx: &RenderCtx) {
         // TODO: add monster image
         let monster_wh = TILE_PX_SIZE * 0.6;
-        let path = Path::new().add_oval(Rect::from_xy_wh(monster_wh.as_xy() * -0.5, monster_wh));
+        let path = Path::new().add_oval(Rect::from_xy_wh(monster_wh.to_xy() * -0.5, monster_wh));
         let paint = Paint::new(Color::RED);
-        ctx.translate(TILE_PX_SIZE.as_xy() * 0.5)
+        ctx.translate(TILE_PX_SIZE.to_xy() * 0.5)
             .add(namui::path(path, paint));
 
         let hp_bar_wh = Wh::new(monster_wh.width, MONSTER_HP_BAR_HEIGHT);
@@ -102,7 +102,7 @@ impl Component for MonsterHpBar {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, progress } = self;
 
-        let container_rect = Rect::from_xy_wh(wh.as_xy() * -0.5, wh);
+        let container_rect = Rect::from_xy_wh(wh.to_xy() * -0.5, wh);
 
         ctx.add(rect(RectParam {
             rect: Rect::from_xy_wh(container_rect.xy(), Wh::new(wh.width * progress, wh.height)),

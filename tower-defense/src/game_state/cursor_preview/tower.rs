@@ -81,7 +81,7 @@ impl Component for TowerCursorPreview<'_> {
             });
         };
 
-        let ctx = ctx.translate(TILE_PX_SIZE.as_xy() * *rounded_center_xy);
+        let ctx = ctx.translate(TILE_PX_SIZE.to_xy() * *rounded_center_xy);
 
         ctx.add(TowerImage { tower_template });
         ctx.add(TowerAttackRange { tower_template });
@@ -131,7 +131,7 @@ impl Component for TowerImage<'_> {
         };
 
         let image_wh = tower_image.info.wh();
-        let rect = Rect::from_xy_wh(image_wh.as_xy() / -2.0, image_wh);
+        let rect = Rect::from_xy_wh(image_wh.to_xy() / -2.0, image_wh);
         let paint = Paint::new(Color::grayscale_alpha_f01(0.0, 0.5));
         ctx.add(namui::image(ImageParam {
             rect,

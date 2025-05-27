@@ -67,7 +67,7 @@ impl Component for GraphicClip<'_> {
         let radius_px = screen_radius * circumscribed.radius;
         let graphic_wh_on_screen = graphic_wh * (radius_px / graphic_radius_px);
 
-        let center_xy = wh.as_xy() * circumscribed.center_xy;
+        let center_xy = wh.to_xy() * circumscribed.center_xy;
 
         let graphic_rendering_rect = {
             match (is_editing_graphic, dragging.as_ref()) {
@@ -82,12 +82,12 @@ impl Component for GraphicClip<'_> {
                         calculate_graphic_rect_on_screen(graphic_wh, wh, circumscribed)
                     }
                     Dragging::Rotator { context: _context } => {
-                        let image_left_top_xy = center_xy - graphic_wh_on_screen.as_xy() / 2.0;
+                        let image_left_top_xy = center_xy - graphic_wh_on_screen.to_xy() / 2.0;
                         Rect::from_xy_wh(image_left_top_xy, graphic_wh_on_screen)
                     }
                 },
                 _ => {
-                    let image_left_top_xy = center_xy - graphic_wh_on_screen.as_xy() / 2.0;
+                    let image_left_top_xy = center_xy - graphic_wh_on_screen.to_xy() / 2.0;
 
                     Rect::from_xy_wh(image_left_top_xy, graphic_wh_on_screen)
                 }
