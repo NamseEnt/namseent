@@ -2,7 +2,7 @@ use namui::*;
 
 pub fn main() {
     let namui_context = namui::init();
-    namui::start(|ctx| {
+    namui::start(|ctx: &RenderCtx| {
         ctx.add(MultilineTextExample {});
     })
 }

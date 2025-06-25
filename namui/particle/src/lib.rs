@@ -1,6 +1,15 @@
+mod fire_and_forget;
+
 use arc_swap::{ArcSwap, ArcSwapOption};
-use namui::{rayon::prelude::*, *};
-use std::sync::Arc;
+pub use fire_and_forget::*;
+use namui_hooks::*;
+use namui_skia::*;
+use namui_type::*;
+use rayon::prelude::*;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 pub trait Emitter<P> {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<P>;
@@ -17,6 +26,7 @@ pub struct System<E, P> {
     _emitter: std::marker::PhantomData<E>,
     _particle: std::marker::PhantomData<P>,
     initial_emitters: ArcSwapOption<Vec<E>>,
+    is_done: Arc<AtomicBool>,
 }
 
 impl<E, P> System<E, P>
@@ -29,20 +39,27 @@ where
             _emitter: std::marker::PhantomData,
             _particle: std::marker::PhantomData,
             initial_emitters: ArcSwapOption::new(Some(Arc::new(emitters))),
+            is_done: Arc::new(AtomicBool::new(false)),
         }
     }
     pub fn render(&self, ctx: &ComposeCtx, now: Instant) {
         ctx.add(SystemComponent {
             now,
             initial_emitters: &self.initial_emitters,
+            system_is_done: &self.is_done,
             _p: std::marker::PhantomData,
         });
+    }
+
+    pub fn is_done(&self, _now: Instant) -> bool {
+        self.is_done.load(Ordering::Acquire)
     }
 }
 
 struct SystemComponent<'a, E, P> {
     now: Instant,
     initial_emitters: &'a ArcSwapOption<Vec<E>>,
+    system_is_done: &'a Arc<AtomicBool>,
     _p: std::marker::PhantomData<P>,
 }
 
@@ -57,10 +74,11 @@ where
 
         ctx.async_effect("run system on thread pool", (), {
             |()| {
-                let (req_tx, mut req_rx) = namui::tokio::sync::watch::channel(self.now);
+                let (req_tx, mut req_rx) = tokio::sync::watch::channel(self.now);
                 set_req_tx.set(Some(req_tx));
 
                 let rendering_trees_list = rendering_trees_list.clone_inner();
+                let system_is_done = self.system_is_done.clone();
                 let mut emitters: Vec<E> =
                     Arc::into_inner(self.initial_emitters.swap(None).unwrap()).unwrap();
                 let mut particles: Vec<P> = Vec::with_capacity(65536);
@@ -91,6 +109,11 @@ where
                                 .map(|particle| particle.render())
                                 .collect_vec_list(),
                         ));
+
+                        if emitters.is_empty() && particles.is_empty() {
+                            system_is_done.store(true, Ordering::Release);
+                            break;
+                        }
 
                         last_now = now;
                     }

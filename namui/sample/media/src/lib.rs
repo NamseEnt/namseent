@@ -2,7 +2,7 @@ use namui::*;
 use namui_prebuilt::button::TextButton;
 
 pub fn main() {
-    namui::start(|ctx| {
+    namui::start(|ctx: &RenderCtx| {
         ctx.add(MediaExample {});
     })
 }

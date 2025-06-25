@@ -33,7 +33,11 @@ pub use system::{
 pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
 
-pub fn start(component: impl 'static + Fn(&RenderCtx) + Send) {
+pub mod particle {
+    pub use namui_particle::{Emitter, Particle, System, fire_and_forget};
+}
+
+pub fn start<Root: Component + Clone + Send + 'static>(component: Root) {
     let tokio_runtime: tokio::runtime::Runtime =
         tokio_runtime().expect("Failed to create tokio runtime");
     tokio_runtime.spawn(async move {

@@ -5,7 +5,7 @@ mod component;
 mod ecs;
 
 pub fn main() {
-    namui::start(|ctx| {
+    namui::start(|ctx: &RenderCtx| {
         ctx.add(app::App::new());
     })
 }

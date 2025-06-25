@@ -23,7 +23,7 @@ pub(crate) fn window_id() -> usize {
     u64::from(WINDOW.get().unwrap().id()) as usize
 }
 
-pub(crate) fn take_main_thread(component: impl 'static + Fn(&RenderCtx) + Send) {
+pub(crate) fn take_main_thread<Root: Component + Clone>(component: Root) {
     let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
     let winit_window_builder = winit::window::WindowBuilder::new()
         .with_title("namui")

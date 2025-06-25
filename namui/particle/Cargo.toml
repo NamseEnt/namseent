@@ -1,0 +1,20 @@
+[package]
+name = "namui-particle"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+namui-type = { path = "../namui-type" }
+namui-hooks = { path = "../namui-hooks" }
+namui-skia = { path = "../skia" }  
+arc-swap = "1"
+rayon = "1"
+tokio = { path = "../third-party-forks/tokio/tokio", features = [
+    "sync",
+    "macros",
+    "io-util",
+    "rt",
+    "time",
+    "rt-multi-thread",
+    "fs",
+] }
