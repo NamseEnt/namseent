@@ -1503,6 +1503,7 @@ dependencies = [
  "namui-cfg",
  "namui-drawer",
  "namui-hooks",
+ "namui-particle",
  "namui-skia",
  "namui-type",
  "num",
@@ -1551,6 +1552,18 @@ dependencies = [
  "namui-type",
  "rustc-hash 1.1.0",
  "smol_str",
+ "tokio 1.38.0",
+]
+
+[[package]]
+name = "namui-particle"
+version = "0.1.0"
+dependencies = [
+ "arc-swap",
+ "namui-hooks",
+ "namui-skia",
+ "namui-type",
+ "rayon",
  "tokio 1.38.0",
 ]
 
