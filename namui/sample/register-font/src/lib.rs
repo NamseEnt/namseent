@@ -1,7 +1,7 @@
 use namui::*;
 
 pub fn main() {
-    namui::start(|ctx| {
+    namui::start(|ctx: &RenderCtx| {
         ctx.add(FontExample);
     })
 }

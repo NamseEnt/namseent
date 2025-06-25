@@ -38,7 +38,7 @@ type MapCoord = Xy<BlockUnit>;
 type MapCoordF32 = Xy<BlockUnitF32>;
 
 pub fn main() {
-    namui::start(|ctx| {
+    namui::start(|ctx: &RenderCtx| {
         ctx.add(Game {});
     });
 }

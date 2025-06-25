@@ -18,7 +18,7 @@ use network::*;
 use simple_button::*;
 
 pub fn main() {
-    namui::start(|ctx| {
+    namui::start(|ctx: &RenderCtx| {
         ctx.effect("init server connection", || {
             ServerConnection::init("ws://localhost:8080/ws")
         });

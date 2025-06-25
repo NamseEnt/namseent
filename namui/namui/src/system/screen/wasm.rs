@@ -66,7 +66,7 @@ unsafe extern "C" {
     fn initial_window_wh() -> u32;
 }
 
-pub(crate) fn run_event_hook_loop(component: impl 'static + Fn(&RenderCtx) + Send) {
+pub(crate) fn run_event_hook_loop<Root: Component + Clone + Send + 'static>(component: Root) {
     tokio::task::spawn_blocking(|| {
         let mut looper = Looper::new(component);
         let buffer = [0u8; 8096];

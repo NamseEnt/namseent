@@ -3,7 +3,7 @@ use namui_prebuilt::simple_rect;
 use quick::*;
 
 pub fn main() {
-    namui::start(|ctx| {
+    namui::start(|ctx: &RenderCtx| {
         ctx.add(TuiExample {});
     })
 }

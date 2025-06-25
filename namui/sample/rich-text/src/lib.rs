@@ -4,7 +4,7 @@ use namui::*;
 use namui_prebuilt::rich_text::*;
 
 pub fn main() {
-    namui::start(|ctx| {
+    namui::start(|ctx: &RenderCtx| {
         let Some(Ok(ref apple_image)) =
             *ctx.image(ResourceLocation::bundle("resources/apple.png"))
         else {

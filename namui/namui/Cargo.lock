@@ -135,6 +135,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arc-swap"
+version = "1.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
+
+[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1494,6 +1500,7 @@ dependencies = [
  "namui-cfg",
  "namui-drawer",
  "namui-hooks",
+ "namui-particle",
  "namui-skia",
  "namui-type",
  "num",
@@ -1542,6 +1549,18 @@ dependencies = [
  "namui-type",
  "rustc-hash 1.1.0",
  "smol_str",
+ "tokio 1.38.0",
+]
+
+[[package]]
+name = "namui-particle"
+version = "0.1.0"
+dependencies = [
+ "arc-swap",
+ "namui-hooks",
+ "namui-skia",
+ "namui-type",
+ "rayon",
  "tokio 1.38.0",
 ]
 

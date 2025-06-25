@@ -2,14 +2,25 @@ use namui::*;
 use namui_prebuilt::*;
 
 pub fn main() {
-    namui::start(|ctx| {
-        let system = ctx.memo(|| {
-            particle::System::new(vec![Emitter::Rocket {
+    namui::start(|ctx: &RenderCtx| {
+        let (system, set_system) = ctx.state(|| {
+            Some(particle::System::new(vec![Emitter::Rocket {
                 emitter: RocketEmitter::new(),
-            }])
+            }]))
         });
 
-        system.render(ctx, namui::time::now());
+        if let Some(system) = system.as_ref() {
+            system.render(ctx, namui::time::now());
+
+            if system.is_done(namui::time::now()) {
+                set_system.set(None);
+
+                println!("done, new system created with fire_and_forget");
+                particle::fire_and_forget(particle::System::new(vec![Emitter::Rocket {
+                    emitter: RocketEmitter::new(),
+                }]));
+            }
+        }
 
         ctx.add(simple_rect(
             Wh::new(1000.px(), 1000.px()),
@@ -24,11 +35,13 @@ const GRAVITY: Xy<Px> = Xy::new(px(0.), px(9.8));
 
 struct RocketEmitter {
     acc_time: Duration,
+    num_emitted: usize,
 }
 impl RocketEmitter {
     fn new() -> Self {
         Self {
             acc_time: Duration::ZERO,
+            num_emitted: 0,
         }
     }
     fn emit(&mut self, _now: Instant, dt: Duration) -> Vec<Particle> {
@@ -36,6 +49,7 @@ impl RocketEmitter {
         if self.acc_time < Duration::from_secs(3) {
             return vec![];
         }
+        self.num_emitted += 1;
         self.acc_time = Duration::ZERO;
         vec![Particle::Rocket {
             particle: RocketParticle {
@@ -48,7 +62,7 @@ impl RocketEmitter {
     }
 
     fn is_done(&self, _now: Instant) -> bool {
-        false
+        self.num_emitted >= 2
     }
 }
 struct RocketParticle {
