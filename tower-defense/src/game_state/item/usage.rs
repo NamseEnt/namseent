@@ -4,6 +4,7 @@ use crate::{
     game_state::{
         GameState, MAP_SIZE, MAX_HP, TRAVEL_POINTS,
         field_area_effect::{FieldAreaEffect, FieldAreaEffectEnd, FieldAreaEffectKind},
+        field_particle::{FieldParticleKind, emit_field_particle},
         monster::{MonsterStatusEffect, MonsterStatusEffectKind},
         quest::{QuestTriggerEvent, on_quest_trigger_event},
         tower::{TowerStatusEffect, TowerStatusEffectEnd, TowerStatusEffectKind},
@@ -163,7 +164,7 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             radius,
         } => {
             let xy = xy.expect("xy must be provided for RoundDamage item usage");
-            game_state.field_area_effects.push(FieldAreaEffect::new(
+            let field_area_effect = FieldAreaEffect::new(
                 FieldAreaEffectKind::RoundDamage {
                     rank,
                     suit,
@@ -172,7 +173,14 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                     radius,
                 },
                 FieldAreaEffectEnd::Once { fired: false },
-            ));
+            );
+            emit_field_particle(
+                game_state,
+                FieldParticleKind::FieldAreaEffect {
+                    field_area_effect: &field_area_effect,
+                },
+            );
+            game_state.field_area_effects.push(field_area_effect);
         }
         ItemKind::RoundDamageOverTime {
             rank,
@@ -184,7 +192,7 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             const TICK_INTERVAL: Duration = Duration::from_millis(500);
             let xy = xy.expect("xy must be provided for RoundDamageOverTime item usage");
             let damage_per_tick = damage / (duration / TICK_INTERVAL);
-            game_state.field_area_effects.push(FieldAreaEffect::new(
+            let field_area_effect = FieldAreaEffect::new(
                 FieldAreaEffectKind::RoundDamageOverTime {
                     rank,
                     suit,
@@ -194,8 +202,17 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                     tick_interval: TICK_INTERVAL,
                     next_tick_at: game_state.now(),
                 },
-                FieldAreaEffectEnd::Once { fired: false },
-            ));
+                FieldAreaEffectEnd::AtTime {
+                    end_at: game_state.now() + duration,
+                },
+            );
+            emit_field_particle(
+                game_state,
+                FieldParticleKind::FieldAreaEffect {
+                    field_area_effect: &field_area_effect,
+                },
+            );
+            game_state.field_area_effects.push(field_area_effect);
         }
         ItemKind::Lottery {
             amount,
@@ -215,7 +232,7 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             thickness,
         } => {
             let xy = xy.expect("xy must be provided for LinearDamage item usage");
-            game_state.field_area_effects.push(FieldAreaEffect::new(
+            let field_area_effect = FieldAreaEffect::new(
                 FieldAreaEffectKind::LinearDamage {
                     rank,
                     suit,
@@ -225,7 +242,14 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                     thickness,
                 },
                 FieldAreaEffectEnd::Once { fired: false },
-            ));
+            );
+            emit_field_particle(
+                game_state,
+                FieldParticleKind::FieldAreaEffect {
+                    field_area_effect: &field_area_effect,
+                },
+            );
+            game_state.field_area_effects.push(field_area_effect);
         }
         ItemKind::LinearDamageOverTime {
             rank,
@@ -237,7 +261,7 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
             const TICK_INTERVAL: Duration = Duration::from_millis(500);
             let xy = xy.expect("xy must be provided for LinearDamageOverTime item usage");
             let damage_per_tick = damage / (duration / TICK_INTERVAL);
-            game_state.field_area_effects.push(FieldAreaEffect::new(
+            let field_area_effect = FieldAreaEffect::new(
                 FieldAreaEffectKind::LinearDamageOverTime {
                     rank,
                     suit,
@@ -248,8 +272,17 @@ pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>
                     tick_interval: TICK_INTERVAL,
                     next_tick_at: game_state.now(),
                 },
-                FieldAreaEffectEnd::Once { fired: false },
-            ));
+                FieldAreaEffectEnd::AtTime {
+                    end_at: game_state.now() + duration,
+                },
+            );
+            emit_field_particle(
+                game_state,
+                FieldParticleKind::FieldAreaEffect {
+                    field_area_effect: &field_area_effect,
+                },
+            );
+            game_state.field_area_effects.push(field_area_effect);
         }
         ItemKind::ExtraReroll => {
             game_state.left_reroll_chance += 1;

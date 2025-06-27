@@ -4,6 +4,7 @@ mod can_place_tower;
 pub mod cursor_preview;
 pub mod fast_forward;
 mod field_area_effect;
+pub mod field_particle;
 pub mod flow;
 pub mod item;
 mod level_rarity_weight;
@@ -27,6 +28,7 @@ use camera::*;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use field_area_effect::FieldAreaEffect;
+
 use flow::GameFlow;
 use item::Item;
 pub use level_rarity_weight::level_rarity_weight;
@@ -87,6 +89,7 @@ pub struct GameState {
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
     pub locale: Locales,
+    pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -211,6 +214,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
             locale: Locales::KoKR(KoKRLocale),
+            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
         };
 
         game_state.goto_selecting_tower();

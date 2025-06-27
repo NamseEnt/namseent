@@ -10,9 +10,10 @@ use crate::{
 };
 use namui::*;
 
+#[derive(Clone, Debug)]
 pub struct FieldAreaEffect {
-    kind: FieldAreaEffectKind,
-    end_at: FieldAreaEffectEnd,
+    pub kind: FieldAreaEffectKind,
+    pub end_at: FieldAreaEffectEnd,
 }
 impl FieldAreaEffect {
     pub fn new(kind: FieldAreaEffectKind, end_at: FieldAreaEffectEnd) -> Self {
@@ -20,6 +21,7 @@ impl FieldAreaEffect {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum FieldAreaEffectKind {
     RoundDamage {
         rank: Rank,
@@ -57,6 +59,7 @@ pub enum FieldAreaEffectKind {
     },
 }
 
+#[derive(Clone, Debug)]
 pub enum FieldAreaEffectEnd {
     AtTime { end_at: Instant },
     Once { fired: bool },

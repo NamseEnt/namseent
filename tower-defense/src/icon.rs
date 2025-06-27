@@ -89,11 +89,13 @@ impl IconSize {
     }
 }
 
+#[derive(Clone)]
 pub struct Icon {
     pub kind: IconKind,
     pub size: IconSize,
     pub attributes: Vec<IconAttribute>,
     pub wh: Wh<Px>,
+    pub opacity: f32,
 }
 
 fn get_icon_image(ctx: &RenderCtx, kind: impl Into<IconAssetKind> + Copy) -> Option<namui::Image> {
@@ -108,6 +110,7 @@ impl Component for Icon {
             size,
             attributes,
             wh,
+            opacity,
         } = self;
         let icon_size = size.px();
         let icon_wh = Wh {
@@ -123,6 +126,14 @@ impl Component for Icon {
         let Some(image) = image else {
             return;
         };
+
+        // Create paint with opacity
+        let paint = if opacity < 1.0 {
+            Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, opacity)))
+        } else {
+            None
+        };
+
         for attribute in attributes {
             let attribute_image = get_icon_image(ctx, attribute);
             let Some(attribute_image) = attribute_image else {
@@ -134,7 +145,7 @@ impl Component for Icon {
                 image: attribute_image.clone(),
                 style: ImageStyle {
                     fit: ImageFit::Contain,
-                    paint: None,
+                    paint: paint.clone(),
                 },
             }));
         }
@@ -143,8 +154,79 @@ impl Component for Icon {
             image: image.clone(),
             style: ImageStyle {
                 fit: ImageFit::Contain,
-                paint: None,
+                paint,
             },
         }));
+    }
+}
+
+impl Icon {
+    pub fn to_rendering_tree(&self) -> RenderingTree {
+        let Self {
+            kind,
+            size,
+            attributes,
+            wh,
+            opacity,
+        } = self;
+        let icon_size = size.px();
+        let icon_wh = Wh {
+            width: icon_size,
+            height: icon_size,
+        };
+        let icon_xy = Xy::new(
+            (wh.width - icon_wh.width) / 2.0,
+            (wh.height - icon_wh.height) / 2.0,
+        );
+        let rect = Rect::from_xy_wh(icon_xy, icon_wh);
+
+        let mut rendering_trees = Vec::new();
+
+        // Try to get images from global asset loader
+        if let Some(global_loader) = IconAssetLoader::get_global() {
+            if let Ok(loader) = global_loader.lock() {
+                // Add attribute images
+                for attribute in attributes {
+                    if let Some(attribute_image) = loader.get(*attribute) {
+                        let attribute_render_rect = attribute.attribute_render_rect(rect);
+                        let paint = if *opacity < 1.0 {
+                            Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
+                        } else {
+                            None
+                        };
+                        rendering_trees.push(namui::image(ImageParam {
+                            rect: attribute_render_rect,
+                            image: attribute_image,
+                            style: ImageStyle {
+                                fit: ImageFit::Contain,
+                                paint: paint.clone(),
+                            },
+                        }));
+                    }
+                }
+
+                // Add main icon image
+                if let Some(image) = loader.get(*kind) {
+                    let paint = if *opacity < 1.0 {
+                        Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
+                    } else {
+                        None
+                    };
+                    rendering_trees.push(namui::image(ImageParam {
+                        rect,
+                        image,
+                        style: ImageStyle {
+                            fit: ImageFit::Contain,
+                            paint,
+                        },
+                    }));
+                }
+
+                return namui::render(rendering_trees);
+            }
+        }
+
+        // Fallback to empty rendering tree if global loader is not available
+        namui::render(rendering_trees)
     }
 }
