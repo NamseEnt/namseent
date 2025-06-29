@@ -2,12 +2,12 @@ use super::{Item, ItemKind};
 use crate::{
     MapCoordF32,
     game_state::{
-        GameState, MAP_SIZE, MAX_HP, TRAVEL_POINTS,
+        GameState, MAX_HP, TRAVEL_POINTS,
         field_area_effect::{FieldAreaEffect, FieldAreaEffectKind},
         field_particle::{FieldParticleKind, emit_field_particle},
-        schedule::CountBasedSchedule,
         monster::{MonsterStatusEffect, MonsterStatusEffectKind},
         quest::{QuestTriggerEvent, on_quest_trigger_event},
+        schedule::CountBasedSchedule,
         tower::{TowerStatusEffect, TowerStatusEffectEnd, TowerStatusEffectKind},
         user_status_effect::{UserStatusEffect, UserStatusEffectKind},
     },
@@ -330,31 +330,34 @@ pub fn linear_area_rect_points(
     target: MapCoordF32,
     thickness: f32,
 ) -> [MapCoordF32; 4] {
+    const LINEAR_AREA_LENGTH: f32 = 68.0;
     let half_thickness = thickness / 2.0;
-    let long_value = MAP_SIZE.width as f32 * 2.0;
-    let horizontal_rect = [
-        MapCoordF32::new(-long_value, half_thickness),
-        MapCoordF32::new(long_value, half_thickness),
-        MapCoordF32::new(long_value, -half_thickness),
-        MapCoordF32::new(-long_value, -half_thickness),
-    ];
-
-    let distance = center.distance(target);
     let dx = target.x - center.x;
     let dy = target.y - center.y;
-    let cos = dx / distance;
-    let sin = dy / distance;
-    [
-        rotate_around_origin(horizontal_rect[0], cos, sin) + center,
-        rotate_around_origin(horizontal_rect[1], cos, sin) + center,
-        rotate_around_origin(horizontal_rect[2], cos, sin) + center,
-        rotate_around_origin(horizontal_rect[3], cos, sin) + center,
-    ]
-}
-fn rotate_around_origin(point: MapCoordF32, cos: f32, sin: f32) -> MapCoordF32 {
-    let x = point.x * cos - point.y * sin;
-    let y = point.x * sin + point.y * cos;
-    MapCoordF32::new(x, y)
+    let distance = (dx * dx + dy * dy).sqrt();
+    let direction_x = dx / distance;
+    let direction_y = dy / distance;
+    let end_x = center.x + direction_x * LINEAR_AREA_LENGTH;
+    let end_y = center.y + direction_y * LINEAR_AREA_LENGTH;
+    let perpendicular_x = -direction_y;
+    let perpendicular_y = direction_x;
+    let p0 = MapCoordF32::new(
+        center.x + perpendicular_x * half_thickness,
+        center.y + perpendicular_y * half_thickness,
+    );
+    let p1 = MapCoordF32::new(
+        end_x + perpendicular_x * half_thickness,
+        end_y + perpendicular_y * half_thickness,
+    );
+    let p2 = MapCoordF32::new(
+        end_x - perpendicular_x * half_thickness,
+        end_y - perpendicular_y * half_thickness,
+    );
+    let p3 = MapCoordF32::new(
+        center.x - perpendicular_x * half_thickness,
+        center.y - perpendicular_y * half_thickness,
+    );
+    [p0, p1, p2, p3]
 }
 
 pub fn check_point_is_in_linear_area(points: &[MapCoordF32; 4], point: MapCoordF32) -> bool {
