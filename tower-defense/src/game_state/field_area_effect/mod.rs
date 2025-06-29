@@ -2,6 +2,7 @@ use super::{
     GameState,
     item::{check_point_is_in_linear_area, linear_area_rect_points},
     quest::{QuestTriggerEvent, on_quest_trigger_event},
+    schedule::CountBasedSchedule,
     upgrade::{TowerUpgradeTarget, UpgradeState},
 };
 use crate::{
@@ -13,11 +14,11 @@ use namui::*;
 #[derive(Clone, Debug)]
 pub struct FieldAreaEffect {
     pub kind: FieldAreaEffectKind,
-    pub end_at: FieldAreaEffectEnd,
+    pub schedule: CountBasedSchedule,
 }
 impl FieldAreaEffect {
-    pub fn new(kind: FieldAreaEffectKind, end_at: FieldAreaEffectEnd) -> Self {
-        Self { kind, end_at }
+    pub fn new(kind: FieldAreaEffectKind, schedule: CountBasedSchedule) -> Self {
+        Self { kind, schedule }
     }
 }
 
@@ -36,8 +37,6 @@ pub enum FieldAreaEffectKind {
         damage_per_tick: f32,
         xy: MapCoordF32,
         radius: f32,
-        tick_interval: Duration,
-        next_tick_at: Instant,
     },
     LinearDamage {
         rank: Rank,
@@ -54,21 +53,17 @@ pub enum FieldAreaEffectKind {
         center_xy: MapCoordF32,
         target_xy: MapCoordF32,
         thickness: f32,
-        tick_interval: Duration,
-        next_tick_at: Instant,
     },
-}
-
-#[derive(Clone, Debug)]
-pub enum FieldAreaEffectEnd {
-    AtTime { end_at: Instant },
-    Once { fired: bool },
 }
 
 pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
     let mut monster_dealt_damage = 0.0;
     let mut total_earn_gold = 0;
     for effect in game_state.field_area_effects.iter_mut() {
+        if !effect.schedule.try_emit(now) {
+            continue;
+        }
+
         match effect.kind {
             FieldAreaEffectKind::RoundDamage {
                 rank,
@@ -103,14 +98,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 damage_per_tick,
                 xy,
                 radius,
-                tick_interval,
-                mut next_tick_at,
             } => {
-                if now < next_tick_at {
-                    continue;
-                }
-                next_tick_at += tick_interval;
-
                 let mut damage = damage_per_tick;
                 apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
 
@@ -167,14 +155,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 center_xy,
                 target_xy,
                 thickness,
-                tick_interval,
-                mut next_tick_at,
             } => {
-                if now < next_tick_at {
-                    continue;
-                }
-                next_tick_at += tick_interval;
-
                 let mut damage = damage_per_tick;
                 apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
 
@@ -195,12 +176,6 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
 
                     true
                 });
-            }
-        }
-
-        if let FieldAreaEffectEnd::Once { fired } = effect.end_at {
-            if !fired {
-                effect.end_at = FieldAreaEffectEnd::Once { fired: true };
             }
         }
     }
@@ -241,8 +216,7 @@ fn apply_rank_and_suit_upgrades(
 }
 
 pub fn remove_finished_field_area_effects(game_state: &mut GameState, now: Instant) {
-    game_state.field_area_effects.retain(|e| match e.end_at {
-        FieldAreaEffectEnd::AtTime { end_at } => now < end_at,
-        FieldAreaEffectEnd::Once { fired } => !fired,
-    });
+    game_state
+        .field_area_effects
+        .retain(|e| !e.schedule.is_done(now));
 }

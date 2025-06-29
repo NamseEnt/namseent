@@ -11,7 +11,7 @@ pub fn emit_field_particle(game_state: &mut GameState, kind: FieldParticleKind) 
             emit_field_area_effect_particles(
                 game_state,
                 &field_area_effect.kind,
-                &field_area_effect.end_at,
+                &field_area_effect.schedule,
             );
         }
     }

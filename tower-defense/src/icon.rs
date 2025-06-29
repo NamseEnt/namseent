@@ -76,7 +76,7 @@ pub enum IconSize {
     // Small,
     // Medium,
     // Large,
-    // Custom { size: Px },
+    Custom { size: Px },
 }
 impl IconSize {
     pub fn px(self) -> Px {
@@ -84,7 +84,7 @@ impl IconSize {
             // IconSize::Small => px(16.),
             // IconSize::Medium => px(24.),
             // IconSize::Large => px(32.),
-            // IconSize::Custom { size } => size,
+            IconSize::Custom { size } => size,
         }
     }
 }

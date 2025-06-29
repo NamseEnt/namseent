@@ -74,7 +74,22 @@ impl FieldDamageAreaParticle {
                     (end.x * TILE_PX_SIZE.width.as_f32()).px(),
                     (end.y * TILE_PX_SIZE.height.as_f32()).px(),
                 );
-                let thickness_px = thickness * TILE_PX_SIZE.width.as_f32();
+                let direction = {
+                    let delta = end_px - start_px;
+                    let len = (delta.x.as_f32() * delta.x.as_f32()
+                        + delta.y.as_f32() * delta.y.as_f32())
+                    .sqrt();
+                    if len > 0.0 {
+                        Xy::new(
+                            (delta.x.as_f32() / len) * TILE_PX_SIZE.width.as_f32() * 68.0,
+                            (delta.y.as_f32() / len) * TILE_PX_SIZE.width.as_f32() * 68.0,
+                        )
+                    } else {
+                        Xy::new(0.0, 0.0)
+                    }
+                };
+                let end_px = start_px + direction.map(px);
+                let thickness_px = TILE_PX_SIZE.width * *thickness;
 
                 let line_path = Path::new()
                     .move_to(start_px.x, start_px.y)
@@ -82,7 +97,7 @@ impl FieldDamageAreaParticle {
 
                 let paint = Paint::new(color)
                     .set_style(PaintStyle::Stroke)
-                    .set_stroke_width(thickness_px.px())
+                    .set_stroke_width(thickness_px)
                     .set_stroke_cap(StrokeCap::Round)
                     .set_anti_alias(true);
 

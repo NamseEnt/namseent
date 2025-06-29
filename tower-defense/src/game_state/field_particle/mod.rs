@@ -1,11 +1,11 @@
 mod emit;
-mod emitter;
+pub mod emitter;
 mod particle;
 
 use crate::game_state::{
     GameState,
     field_particle::{
-        emitter::{FieldAreaEffectEmitter, OnceEmitter},
+        emitter::FieldAreaEffectEmitter,
         particle::{FieldDamageAreaParticle, IconParticle},
     },
 };
@@ -43,20 +43,17 @@ impl FieldParticleSystemManager {
 }
 
 pub enum FieldParticleEmitter {
-    OnceEmitter { emitter: OnceEmitter },
     FieldAreaEffect { emitter: FieldAreaEffectEmitter },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
         match self {
-            FieldParticleEmitter::OnceEmitter { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::FieldAreaEffect { emitter } => emitter.emit(now, dt),
         }
     }
 
     fn is_done(&self, now: Instant) -> bool {
         match self {
-            FieldParticleEmitter::OnceEmitter { emitter } => emitter.is_done(now),
             FieldParticleEmitter::FieldAreaEffect { emitter } => emitter.is_done(now),
         }
     }

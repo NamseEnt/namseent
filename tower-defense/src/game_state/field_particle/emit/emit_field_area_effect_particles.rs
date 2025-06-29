@@ -1,16 +1,17 @@
 use crate::game_state::{
     GameState,
-    field_area_effect::{FieldAreaEffectEnd, FieldAreaEffectKind},
+    field_area_effect::FieldAreaEffectKind,
     field_particle::{FieldParticleEmitter, FieldParticleSystem, emitter::FieldAreaEffectEmitter},
+    schedule::CountBasedSchedule,
 };
 
 pub(super) fn emit_field_area_effect_particles(
     game_state: &mut GameState,
     kind: &FieldAreaEffectKind,
-    end_at: &FieldAreaEffectEnd,
+    schedule: &CountBasedSchedule,
 ) {
     let emitter = FieldParticleEmitter::FieldAreaEffect {
-        emitter: FieldAreaEffectEmitter::new(game_state.now(), kind.clone(), end_at.clone()),
+        emitter: FieldAreaEffectEmitter::new(game_state.now(), kind.clone(), schedule.clone()),
     };
     let system = FieldParticleSystem::new(vec![emitter]);
 
