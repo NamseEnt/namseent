@@ -197,15 +197,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                     kind: item::ItemKind::ExtraReroll,
                     rarity: rarity::Rarity::Epic,
                 },
-                Item {
-                    kind: item::ItemKind::RoundDamage {
-                        rank: crate::card::Rank::Ace,
-                        suit: crate::card::Suit::Spades,
-                        damage: 50.0,
-                        radius: 2.0,
-                    },
-                    rarity: rarity::Rarity::Rare,
-                },
+                // For debugging purpose, should be removed in production.
                 Item {
                     kind: item::ItemKind::RoundDamageOverTime {
                         rank: crate::card::Rank::Ace,
@@ -215,25 +207,6 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                         duration: namui::Duration::from_secs_f32(3.0),
                     },
                     rarity: rarity::Rarity::Epic,
-                },
-                Item {
-                    kind: item::ItemKind::LinearDamage {
-                        rank: crate::card::Rank::Ace,
-                        suit: crate::card::Suit::Diamonds,
-                        damage: 40.0,
-                        thickness: 1.0,
-                    },
-                    rarity: rarity::Rarity::Common,
-                },
-                Item {
-                    kind: item::ItemKind::LinearDamageOverTime {
-                        rank: crate::card::Rank::Ace,
-                        suit: crate::card::Suit::Clubs,
-                        damage: 15.0,
-                        thickness: 1.5,
-                        duration: namui::Duration::from_secs_f32(4.0),
-                    },
-                    rarity: rarity::Rarity::Rare,
                 },
             ],
             quest_states: Default::default(),
