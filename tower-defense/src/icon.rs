@@ -1,5 +1,6 @@
 use crate::asset_loader::ICON_ASSET_LOADER_ATOM;
 use crate::asset_loader::icon_asset_loader::{IconAssetKind, IconAssetLoader};
+use crate::card::Suit;
 use namui::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,9 +19,10 @@ pub enum IconKind {
     Shield,
     Shop,
     Health,
+    Suit { suit: Suit },
 }
 impl IconKind {
-    pub fn asset_id(&self) -> &str {
+    pub fn asset_id(&self) -> &'static str {
         match self {
             IconKind::AttackDamage => "attack_damage",
             IconKind::AttackRange => "attack_range",
@@ -36,6 +38,12 @@ impl IconKind {
             IconKind::Shield => "shield",
             IconKind::Shop => "shop",
             IconKind::Health => "health",
+            IconKind::Suit { suit } => match suit {
+                Suit::Spades => "suit_spades",
+                Suit::Hearts => "suit_hearts",
+                Suit::Diamonds => "suit_diamonds",
+                Suit::Clubs => "suit_clubs",
+            },
         }
     }
 }
@@ -44,18 +52,25 @@ impl IconKind {
 pub enum IconAttribute {
     Up,
     Down,
+    Suit { suit: Suit },
 }
 impl IconAttribute {
-    pub fn asset_id(&self) -> &str {
+    pub fn asset_id(&self) -> &'static str {
         match self {
             IconAttribute::Up => "up",
             IconAttribute::Down => "down",
+            IconAttribute::Suit { suit } => match suit {
+                Suit::Spades => "suit_spades",
+                Suit::Hearts => "suit_hearts",
+                Suit::Diamonds => "suit_diamonds",
+                Suit::Clubs => "suit_clubs",
+            },
         }
     }
 
     pub fn attribute_render_rect(&self, icon_rect: Rect<Px>) -> Rect<Px> {
         match self {
-            IconAttribute::Up | IconAttribute::Down => {
+            IconAttribute::Up | IconAttribute::Down | IconAttribute::Suit { .. } => {
                 let left = icon_rect.left() + icon_rect.width() * 0.5;
                 let top = icon_rect.top() + icon_rect.height() * 0.5;
                 let right = icon_rect.right();

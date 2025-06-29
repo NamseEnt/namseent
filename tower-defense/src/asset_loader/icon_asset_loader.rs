@@ -1,4 +1,5 @@
 use super::ICON_ASSET_LOADER_ATOM;
+use crate::card::Suit;
 use crate::icon::{IconAttribute, IconKind};
 use namui::skia::load_image_from_resource_location;
 use namui::*;
@@ -30,13 +31,28 @@ impl Component for IconAssetLoaderInitializer {
                 IconKind::Shield,
                 IconKind::Shop,
                 IconKind::Health,
+                IconKind::Suit { suit: Suit::Spades },
+                IconKind::Suit { suit: Suit::Hearts },
+                IconKind::Suit {
+                    suit: Suit::Diamonds,
+                },
+                IconKind::Suit { suit: Suit::Clubs },
             ]
             .into_iter()
             .map(IconAssetKind::from)
             .chain(
-                [IconAttribute::Up, IconAttribute::Down]
-                    .into_iter()
-                    .map(IconAssetKind::from),
+                [
+                    IconAttribute::Up,
+                    IconAttribute::Down,
+                    IconAttribute::Suit { suit: Suit::Spades },
+                    IconAttribute::Suit { suit: Suit::Hearts },
+                    IconAttribute::Suit {
+                        suit: Suit::Diamonds,
+                    },
+                    IconAttribute::Suit { suit: Suit::Clubs },
+                ]
+                .into_iter()
+                .map(IconAssetKind::from),
             )
             .collect::<Vec<_>>();
 

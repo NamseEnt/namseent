@@ -1,4 +1,5 @@
 use crate::MapCoordF32;
+use crate::card::Suit;
 use crate::game_state::TILE_PX_SIZE;
 use crate::game_state::{
     field_area_effect::FieldAreaEffectKind,
@@ -83,6 +84,7 @@ impl FieldAreaEffectEmitter {
         velocity: Xy<Px>,
         rotation: Angle,
         angular_velocity: Per<Angle, Duration>,
+        suit: Suit,
     ) -> FieldParticle {
         let behavior = IconParticleBehavior::Physics {
             duration: PARTICLE_DURATION,
@@ -99,7 +101,7 @@ impl FieldAreaEffectEmitter {
         };
         let icon_particle = IconParticle {
             icon: Icon {
-                kind: IconKind::AttackDamage,
+                kind: IconKind::Suit { suit },
                 size: IconSize::Custom {
                     size: px(ICON_SIZE),
                 },
@@ -123,6 +125,7 @@ impl FieldAreaEffectEmitter {
         now: Instant,
         map_center_coordinate: MapCoordF32,
         radius_tile: f32,
+        suit: Suit,
     ) -> Vec<FieldParticle> {
         let center_pixel_f32 = Self::map_coord_to_pixel_f32(map_center_coordinate);
         let radius_pixel = TILE_PX_SIZE.width.as_f32() * radius_tile;
@@ -155,6 +158,7 @@ impl FieldAreaEffectEmitter {
                 velocity,
                 rotation,
                 angular_velocity,
+                suit,
             ));
         }
         field_particles
@@ -165,6 +169,7 @@ impl FieldAreaEffectEmitter {
         center_xy: MapCoordF32,
         target_xy: MapCoordF32,
         thickness: f32,
+        suit: Suit,
     ) -> Vec<FieldParticle> {
         let center_pixel_f32 = Self::map_coord_to_pixel_f32(center_xy);
         let target_pixel_f32 = Self::map_coord_to_pixel_f32(target_xy);
@@ -229,6 +234,7 @@ impl FieldAreaEffectEmitter {
                 velocity,
                 rotation,
                 angular_velocity,
+                suit,
             ));
         }
         particles
@@ -237,19 +243,22 @@ impl FieldAreaEffectEmitter {
     fn create_particles_for_shape(
         now: Instant,
         shape: FieldAreaParticleShape,
+        suit: Suit,
     ) -> Vec<FieldParticle> {
         let mut particles = vec![Self::make_damage_area_particle(now, shape.clone())];
 
         match shape {
             FieldAreaParticleShape::Circle { center, radius } => {
-                particles.extend(Self::make_icon_particles_circle(now, center, radius));
+                particles.extend(Self::make_icon_particles_circle(now, center, radius, suit));
             }
             FieldAreaParticleShape::Line {
                 start,
                 end,
                 thickness,
             } => {
-                particles.extend(Self::make_icon_particles_line(now, start, end, thickness));
+                particles.extend(Self::make_icon_particles_line(
+                    now, start, end, thickness, suit,
+                ));
             }
         }
 
@@ -262,23 +271,28 @@ impl FieldAreaEffectEmitter {
         }
 
         match self.kind {
-            FieldAreaEffectKind::RoundDamage { xy, radius, .. }
-            | FieldAreaEffectKind::RoundDamageOverTime { xy, radius, .. } => {
-                Self::create_particles_for_shape(
-                    now,
-                    FieldAreaParticleShape::Circle { center: xy, radius },
-                )
+            FieldAreaEffectKind::RoundDamage {
+                xy, radius, suit, ..
             }
+            | FieldAreaEffectKind::RoundDamageOverTime {
+                xy, radius, suit, ..
+            } => Self::create_particles_for_shape(
+                now,
+                FieldAreaParticleShape::Circle { center: xy, radius },
+                suit,
+            ),
             FieldAreaEffectKind::LinearDamage {
                 center_xy,
                 target_xy,
                 thickness,
+                suit,
                 ..
             }
             | FieldAreaEffectKind::LinearDamageOverTime {
                 center_xy,
                 target_xy,
                 thickness,
+                suit,
                 ..
             } => Self::create_particles_for_shape(
                 now,
@@ -287,6 +301,7 @@ impl FieldAreaEffectEmitter {
                     end: target_xy,
                     thickness,
                 },
+                suit,
             ),
         }
     }
