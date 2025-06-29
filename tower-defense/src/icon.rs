@@ -1,4 +1,3 @@
-use crate::asset_loader::ICON_ASSET_LOADER_ATOM;
 use crate::asset_loader::icon_asset_loader::{IconAssetKind, IconAssetLoader};
 use crate::card::Suit;
 use namui::*;
@@ -164,9 +163,8 @@ pub struct Icon {
     pub opacity: f32,
 }
 
-fn get_icon_image(ctx: &RenderCtx, kind: impl Into<IconAssetKind> + Copy) -> Option<namui::Image> {
-    let (icon_asset_loader, _) = ctx.atom::<IconAssetLoader>(&ICON_ASSET_LOADER_ATOM);
-    icon_asset_loader.get(kind)
+fn get_icon_image(_ctx: &RenderCtx, kind: impl Into<IconAssetKind> + Copy) -> Option<namui::Image> {
+    IconAssetLoader::get_global().and_then(|loader| loader.get(kind))
 }
 
 impl Component for Icon {

@@ -1,4 +1,3 @@
-use super::ICON_ASSET_LOADER_ATOM;
 use crate::card::Suit;
 use crate::icon::IconKind;
 use namui::skia::load_image_from_resource_location;
@@ -12,9 +11,6 @@ static GLOBAL_ICON_ASSET_LOADER: OnceLock<Arc<IconAssetLoader>> = OnceLock::new(
 pub struct IconAssetLoaderInitializer {}
 impl Component for IconAssetLoaderInitializer {
     fn render(self, ctx: &RenderCtx) {
-        let (_, set_icon_asset_loader) =
-            ctx.init_atom(&ICON_ASSET_LOADER_ATOM, IconAssetLoader::new);
-
         ctx.effect("Load icon assets", || {
             let icon_asset_kinds = [
                 IconKind::AttackDamage,
@@ -58,7 +54,6 @@ impl Component for IconAssetLoaderInitializer {
                     }
                 }
                 let loader = IconAssetLoader { inner: asset_map };
-                set_icon_asset_loader.set(loader.clone());
                 let arc_loader = Arc::new(loader);
                 GLOBAL_ICON_ASSET_LOADER.set(arc_loader).ok();
             });
@@ -71,12 +66,6 @@ pub struct IconAssetLoader {
     pub inner: HashMap<ResourceLocation, namui::Image>,
 }
 impl IconAssetLoader {
-    pub fn new() -> Self {
-        Self {
-            inner: HashMap::new(),
-        }
-    }
-
     pub fn get_global() -> Option<Arc<IconAssetLoader>> {
         GLOBAL_ICON_ASSET_LOADER.get().cloned()
     }
