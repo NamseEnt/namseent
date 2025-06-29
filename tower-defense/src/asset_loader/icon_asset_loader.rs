@@ -3,19 +3,16 @@ use crate::icon::{IconAttribute, IconKind};
 use namui::skia::load_image_from_resource_location;
 use namui::*;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 
 // Static global icon asset loader
-static GLOBAL_ICON_ASSET_LOADER: OnceLock<Arc<Mutex<IconAssetLoader>>> = OnceLock::new();
+static GLOBAL_ICON_ASSET_LOADER: OnceLock<Arc<IconAssetLoader>> = OnceLock::new();
 
 pub struct IconAssetLoaderInitializer {}
 impl Component for IconAssetLoaderInitializer {
     fn render(self, ctx: &RenderCtx) {
         let (_, set_icon_asset_loader) =
             ctx.init_atom(&ICON_ASSET_LOADER_ATOM, IconAssetLoader::new);
-
-        // Initialize global static loader
-        let global_loader = IconAssetLoader::init_global();
 
         ctx.effect("Load icon assets", || {
             let icon_asset_kinds = [
@@ -40,36 +37,32 @@ impl Component for IconAssetLoaderInitializer {
                 [IconAttribute::Up, IconAttribute::Down]
                     .into_iter()
                     .map(IconAssetKind::from),
-            );
-            for kind in icon_asset_kinds {
-                let global_loader_clone = global_loader.clone();
-                ctx.spawn(async move {
+            )
+            .collect::<Vec<_>>();
+
+            ctx.spawn(async move {
+                let mut asset_map = HashMap::new();
+                for kind in icon_asset_kinds {
                     let resource_location = kind.get_resource_location();
                     match load_image_from_resource_location(resource_location.clone()).await {
                         Ok(image) => {
-                            // Update both atom and global loader
-                            let resource_location_clone = resource_location.clone();
-                            let image_clone = image.clone();
-
-                            set_icon_asset_loader.mutate(move |icon_asset_loader| {
-                                icon_asset_loader.set_asset(resource_location_clone, image_clone);
-                            });
-
-                            // Update global loader
-                            if let Ok(mut global) = global_loader_clone.lock() {
-                                global.set_asset(resource_location, image);
-                            }
+                            asset_map.insert(resource_location.clone(), image.clone());
                         }
                         Err(error) => {
                             println!("Failed to load icon image: {:?}", error);
                         }
                     }
-                });
-            }
+                }
+                let loader = IconAssetLoader { inner: asset_map };
+                set_icon_asset_loader.set(loader.clone());
+                let arc_loader = Arc::new(loader);
+                GLOBAL_ICON_ASSET_LOADER.set(arc_loader).ok();
+            });
         });
     }
 }
 
+#[derive(Clone)]
 pub struct IconAssetLoader {
     pub inner: HashMap<ResourceLocation, namui::Image>,
 }
@@ -80,20 +73,8 @@ impl IconAssetLoader {
         }
     }
 
-    // Initialize the global static loader
-    pub fn init_global() -> Arc<Mutex<IconAssetLoader>> {
-        GLOBAL_ICON_ASSET_LOADER
-            .get_or_init(|| Arc::new(Mutex::new(IconAssetLoader::new())))
-            .clone()
-    }
-
-    // Get global static loader
-    pub fn get_global() -> Option<Arc<Mutex<IconAssetLoader>>> {
+    pub fn get_global() -> Option<Arc<IconAssetLoader>> {
         GLOBAL_ICON_ASSET_LOADER.get().cloned()
-    }
-
-    pub fn set_asset(&mut self, kind: ResourceLocation, image: namui::Image) {
-        self.inner.insert(kind, image);
     }
 
     pub fn get<T: Into<IconAssetKind>>(&self, kind: T) -> Option<namui::Image> {
