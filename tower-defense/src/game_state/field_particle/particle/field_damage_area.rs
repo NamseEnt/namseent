@@ -24,13 +24,12 @@ impl FieldDamageAreaParticle {
 
     pub fn render(&self) -> RenderingTree {
         let progress = self.progress();
-        // Quad easing in-out function: starts slow, fast in middle, ends slow
-        let eased_progress = if progress < 0.5 {
-            2.0 * progress * progress
+        let alpha = if progress < 0.1 {
+            0.75
         } else {
-            1.0 - 2.0 * (1.0 - progress).powi(2)
+            let fade_progress = (progress - 0.1) / 0.9;
+            (1.0 - fade_progress) * 0.75
         };
-        let alpha = (1.0 - eased_progress) * 0.75; // Fade out as time progresses, max opacity 0.75
         let color = Color::RED.with_alpha((alpha * 255.0) as u8);
         match &self.shape {
             FieldAreaParticleShape::Circle { center, radius } => {
