@@ -31,10 +31,6 @@ impl FieldParticleSystemManager {
 
     fn add_system(&mut self, system: FieldParticleSystem) {
         self.systems.push(system);
-        println!(
-            "Added field particle system, total systems: {}",
-            self.systems.len()
-        );
     }
 
     fn remove_finished_field_particle_systems(&mut self, now: Instant) {
