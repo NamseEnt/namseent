@@ -20,6 +20,8 @@ pub enum IconKind {
     Shop,
     Health,
     Suit { suit: Suit },
+    Up,
+    Down,
 }
 impl IconKind {
     pub fn asset_id(&self) -> &'static str {
@@ -44,37 +46,86 @@ impl IconKind {
                 Suit::Diamonds => "suit_diamonds",
                 Suit::Clubs => "suit_clubs",
             },
+            IconKind::Up => "up",
+            IconKind::Down => "down",
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum IconAttribute {
-    Up,
-    Down,
-    Suit { suit: Suit },
+pub struct IconAttribute {
+    pub icon_kind: IconKind,
+    pub position: IconAttributePosition,
 }
-impl IconAttribute {
-    pub fn asset_id(&self) -> &'static str {
-        match self {
-            IconAttribute::Up => "up",
-            IconAttribute::Down => "down",
-            IconAttribute::Suit { suit } => match suit {
-                Suit::Spades => "suit_spades",
-                Suit::Hearts => "suit_hearts",
-                Suit::Diamonds => "suit_diamonds",
-                Suit::Clubs => "suit_clubs",
-            },
-        }
-    }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IconAttributePosition {
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+    Center,
+}
+
+impl IconAttribute {
     pub fn attribute_render_rect(&self, icon_rect: Rect<Px>) -> Rect<Px> {
-        match self {
-            IconAttribute::Up | IconAttribute::Down | IconAttribute::Suit { .. } => {
+        match self.position {
+            IconAttributePosition::TopLeft => {
+                let left = icon_rect.left();
+                let top = icon_rect.top();
+                let right = icon_rect.left() + icon_rect.width() * 0.5;
+                let bottom = icon_rect.top() + icon_rect.height() * 0.5;
+                Rect::Ltrb {
+                    left,
+                    top,
+                    right,
+                    bottom,
+                }
+            }
+            IconAttributePosition::TopRight => {
+                let left = icon_rect.left() + icon_rect.width() * 0.5;
+                let top = icon_rect.top();
+                let right = icon_rect.right();
+                let bottom = icon_rect.top() + icon_rect.height() * 0.5;
+                Rect::Ltrb {
+                    left,
+                    top,
+                    right,
+                    bottom,
+                }
+            }
+            IconAttributePosition::BottomLeft => {
+                let left = icon_rect.left();
+                let top = icon_rect.top() + icon_rect.height() * 0.5;
+                let right = icon_rect.left() + icon_rect.width() * 0.5;
+                let bottom = icon_rect.bottom();
+                Rect::Ltrb {
+                    left,
+                    top,
+                    right,
+                    bottom,
+                }
+            }
+            IconAttributePosition::BottomRight => {
                 let left = icon_rect.left() + icon_rect.width() * 0.5;
                 let top = icon_rect.top() + icon_rect.height() * 0.5;
                 let right = icon_rect.right();
                 let bottom = icon_rect.bottom();
+                Rect::Ltrb {
+                    left,
+                    top,
+                    right,
+                    bottom,
+                }
+            }
+            IconAttributePosition::Center => {
+                let size_factor = 0.6; // 중앙에 더 작게 배치
+                let width = icon_rect.width() * size_factor;
+                let height = icon_rect.height() * size_factor;
+                let left = icon_rect.left() + (icon_rect.width() - width) * 0.5;
+                let top = icon_rect.top() + (icon_rect.height() - height) * 0.5;
+                let right = left + width;
+                let bottom = top + height;
                 Rect::Ltrb {
                     left,
                     top,
@@ -150,7 +201,7 @@ impl Component for Icon {
         };
 
         for attribute in attributes {
-            let attribute_image = get_icon_image(ctx, attribute);
+            let attribute_image = get_icon_image(ctx, attribute.icon_kind);
             let Some(attribute_image) = attribute_image else {
                 continue;
             };
@@ -201,7 +252,7 @@ impl Icon {
         if let Some(global_loader) = IconAssetLoader::get_global() {
             // Add attribute images
             for attribute in attributes {
-                if let Some(attribute_image) = global_loader.get(*attribute) {
+                if let Some(attribute_image) = global_loader.get(attribute.icon_kind) {
                     let attribute_render_rect = attribute.attribute_render_rect(rect);
                     let paint = if *opacity < 1.0 {
                         Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))

@@ -1,6 +1,6 @@
 use super::ICON_ASSET_LOADER_ATOM;
 use crate::card::Suit;
-use crate::icon::{IconAttribute, IconKind};
+use crate::icon::IconKind;
 use namui::skia::load_image_from_resource_location;
 use namui::*;
 use std::collections::HashMap;
@@ -37,23 +37,11 @@ impl Component for IconAssetLoaderInitializer {
                     suit: Suit::Diamonds,
                 },
                 IconKind::Suit { suit: Suit::Clubs },
+                IconKind::Up,
+                IconKind::Down,
             ]
             .into_iter()
             .map(IconAssetKind::from)
-            .chain(
-                [
-                    IconAttribute::Up,
-                    IconAttribute::Down,
-                    IconAttribute::Suit { suit: Suit::Spades },
-                    IconAttribute::Suit { suit: Suit::Hearts },
-                    IconAttribute::Suit {
-                        suit: Suit::Diamonds,
-                    },
-                    IconAttribute::Suit { suit: Suit::Clubs },
-                ]
-                .into_iter()
-                .map(IconAssetKind::from),
-            )
             .collect::<Vec<_>>();
 
             ctx.spawn(async move {
@@ -103,23 +91,16 @@ impl IconAssetLoader {
 
 pub enum IconAssetKind {
     Icon(IconKind),
-    Attribute(IconAttribute),
 }
 impl From<IconKind> for IconAssetKind {
     fn from(kind: IconKind) -> Self {
         Self::Icon(kind)
     }
 }
-impl From<IconAttribute> for IconAssetKind {
-    fn from(attribute: IconAttribute) -> Self {
-        Self::Attribute(attribute)
-    }
-}
 impl IconAssetKind {
     fn get_resource_location(&self) -> ResourceLocation {
         let asset_id = match self {
             IconAssetKind::Icon(kind) => kind.asset_id(),
-            IconAssetKind::Attribute(attribute) => attribute.asset_id(),
         };
         ResourceLocation::bundle(format!("asset/image/icon/{}.png", asset_id))
     }
