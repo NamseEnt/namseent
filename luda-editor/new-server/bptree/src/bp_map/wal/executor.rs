@@ -71,8 +71,7 @@ impl Executor {
                         }
 
                         eprintln!(
-                            "Error on execute wal record. error: {:?} Retry after {:?}",
-                            err, sleep_time
+                            "Error on execute wal record. error: {err:?} Retry after {sleep_time:?}"
                         );
                         tokio::time::sleep(sleep_time).await;
                         sleep_time = (sleep_time * 2).max(Duration::from_secs(4));

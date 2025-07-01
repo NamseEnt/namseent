@@ -109,7 +109,7 @@ impl PageCache {
                     node = guard.get(&PageRange::page(child_offset))?.as_page();
                 }
                 Page::LeafNode(leaf_node) => return Some(leaf_node.contains(key)),
-                x => panic!("Unexpected page type: {:?}", x),
+                x => panic!("Unexpected page type: {x:?}"),
             }
         }
     }
@@ -133,7 +133,7 @@ impl PageCache {
                     let bytes = guard.get(&record_page_range)?.as_record().content();
                     return Some(Some(bytes));
                 }
-                x => panic!("Unexpected page type: {:?}", x),
+                x => panic!("Unexpected page type: {x:?}"),
             }
         }
     }
@@ -184,7 +184,7 @@ impl PageCache {
                         continue;
                     }
                 },
-                x => panic!("Unexpected page type: {:?}", x),
+                x => panic!("Unexpected page type: {x:?}"),
             }
         }
     }
