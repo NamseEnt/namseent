@@ -29,7 +29,7 @@ fn render(ctx: &RenderCtx) {
 
             for i in 0..10 {
                 tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                ws_sender.send(format!("Hello from client {}", i).as_bytes());
+                ws_sender.send(format!("Hello from client {i}").as_bytes());
             }
         });
     });
