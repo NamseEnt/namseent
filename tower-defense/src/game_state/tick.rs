@@ -35,6 +35,10 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     crate::game_state::field_area_effect::remove_finished_field_area_effects(game_state, now);
     crate::game_state::field_particle::remove_finished_field_particle_systems(game_state, now);
 
+    crate::game_state::status_effect_particle_generator::tick_status_effect_particle_generator(
+        game_state, now,
+    );
+
     crate::game_state::monster::activate_monster_skills(game_state, now);
     crate::game_state::tower::activate_tower_skills(game_state, now);
 

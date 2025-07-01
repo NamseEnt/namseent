@@ -17,36 +17,26 @@ const TOWER_BUFF_MIN_SPEED: f32 = 8.0;
 const TOWER_BUFF_MAX_SPEED: f32 = 15.0;
 const TOWER_BUFF_INITIAL_OPACITY: f32 = 0.8;
 
-const MIN_EMIT_INTERVAL_MS: i64 = 400;
-const MAX_EMIT_INTERVAL_MS: i64 = 750;
-const PARTICLE_COUNT_PER_EMIT: usize = 1;
-const DEFAULT_EMITTER_DURATION_SECONDS: f32 = 1.0;
+const MIN_INSTANT_PARTICLE_COUNT: usize = 1;
+const MAX_INSTANT_PARTICLE_COUNT: usize = 2;
 
 pub struct TowerStatusEffectEmitter {
     tower_xy: MapCoordF32,
     buff_kind: FieldAreaEffectKind,
-    next_emit_time: Instant,
-    created_at: Instant,
-    duration: Duration,
+    has_emitted: bool,
 }
 
 impl TowerStatusEffectEmitter {
     pub fn new(
-        now: Instant,
+        _now: Instant,
         tower_xy: MapCoordF32,
         buff_kind: FieldAreaEffectKind,
-        duration: Duration,
+        _duration: Duration,
     ) -> Self {
-        let mut rng = rand::thread_rng();
-        let initial_delay =
-            Duration::from_millis(rng.gen_range(MIN_EMIT_INTERVAL_MS..=MAX_EMIT_INTERVAL_MS));
-
         Self {
             tower_xy,
             buff_kind,
-            next_emit_time: now + initial_delay,
-            created_at: now,
-            duration,
+            has_emitted: false,
         }
     }
 
@@ -55,12 +45,7 @@ impl TowerStatusEffectEmitter {
         tower_xy: MapCoordF32,
         buff_kind: FieldAreaEffectKind,
     ) -> Self {
-        Self::new(
-            now,
-            tower_xy,
-            buff_kind,
-            Duration::from_secs_f32(DEFAULT_EMITTER_DURATION_SECONDS),
-        )
+        Self::new(now, tower_xy, buff_kind, Duration::ZERO)
     }
 
     fn create_tower_buff_icon(&self) -> Icon {
@@ -136,30 +121,24 @@ impl TowerStatusEffectEmitter {
         }
     }
 
-    fn calculate_next_emit_time(&mut self, now: Instant) {
-        let mut rng = rand::thread_rng();
-        let interval =
-            Duration::from_millis(rng.gen_range(MIN_EMIT_INTERVAL_MS..=MAX_EMIT_INTERVAL_MS));
-        self.next_emit_time = now + interval;
-    }
-
     pub fn emit(&mut self, now: Instant, _dt: Duration) -> Vec<FieldParticle> {
-        if now < self.next_emit_time || self.is_done(now) {
+        if self.has_emitted {
             return vec![];
         }
 
-        let mut particles = Vec::with_capacity(PARTICLE_COUNT_PER_EMIT);
+        let mut rng = rand::thread_rng();
+        let particle_count = rng.gen_range(MIN_INSTANT_PARTICLE_COUNT..=MAX_INSTANT_PARTICLE_COUNT);
+        let mut particles = Vec::with_capacity(particle_count);
 
-        for _ in 0..PARTICLE_COUNT_PER_EMIT {
+        for _ in 0..particle_count {
             particles.push(self.create_fade_rise_particle(now));
         }
 
-        self.calculate_next_emit_time(now);
-
+        self.has_emitted = true;
         particles
     }
 
-    pub fn is_done(&self, now: Instant) -> bool {
-        now - self.created_at >= self.duration
+    pub fn is_done(&self, _now: Instant) -> bool {
+        self.has_emitted
     }
 }

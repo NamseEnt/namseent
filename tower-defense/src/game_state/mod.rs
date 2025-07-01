@@ -14,6 +14,7 @@ pub mod projectile;
 pub mod quest;
 mod render;
 pub mod schedule;
+mod status_effect_particle_generator;
 mod tick;
 pub mod tower;
 pub mod upgrade;
@@ -38,6 +39,7 @@ use monster_spawn::*;
 use namui::*;
 use projectile::*;
 use quest::*;
+use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
@@ -91,6 +93,7 @@ pub struct GameState {
     pub rerolled_count: usize,
     pub locale: Locales,
     pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
+    status_effect_particle_generator: StatusEffectParticleGenerator,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -208,14 +211,6 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                     },
                     rarity: rarity::Rarity::Epic,
                 },
-                Item {
-                    kind: item::ItemKind::AttackPowerMultiplyBuff {
-                        amount: 2.9,
-                        duration: 3.sec(),
-                        radius: 4.0,
-                    },
-                    rarity: rarity::Rarity::Epic,
-                },
             ],
             quest_states: Default::default(),
             gold: 100,
@@ -235,6 +230,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             rerolled_count: 0,
             locale: Locales::KoKR(KoKRLocale),
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
+            status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
         };
 
         game_state.goto_selecting_tower();

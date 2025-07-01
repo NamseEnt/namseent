@@ -159,7 +159,6 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                 }
             }
             FieldAreaEffectKind::TowerAttackPowerPlusBuffOverTime { amount, xy, radius } => {
-                let mut affected_tower_positions = Vec::new();
                 for tower in game_state.towers.iter_mut() {
                     if tower.center_xy_f32().distance(xy) <= radius {
                         let status_effect = TowerStatusEffect {
@@ -169,25 +168,10 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                             },
                         };
                         tower.status_effects.push(status_effect);
-                        affected_tower_positions.push(tower.center_xy_f32());
                     }
-                }
-
-                for tower_position in affected_tower_positions {
-                    let emitter = crate::game_state::field_particle::FieldParticleEmitter::TowerStatusEffect {
-                        emitter: crate::game_state::field_particle::emitter::TowerStatusEffectEmitter::new_with_default_duration(
-                            current_time,
-                            tower_position,
-                            FieldAreaEffectKind::TowerAttackPowerPlusBuffOverTime { amount, xy, radius },
-                        ),
-                    };
-                    let system =
-                        crate::game_state::field_particle::FieldParticleSystem::new(vec![emitter]);
-                    game_state.field_particle_system_manager.add_system(system);
                 }
             }
             FieldAreaEffectKind::TowerAttackPowerMultiplyBuffOverTime { amount, xy, radius } => {
-                let mut affected_tower_positions = Vec::new();
                 for tower in game_state.towers.iter_mut() {
                     if tower.center_xy_f32().distance(xy) <= radius {
                         let status_effect = TowerStatusEffect {
@@ -197,25 +181,10 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                             },
                         };
                         tower.status_effects.push(status_effect);
-                        affected_tower_positions.push(tower.center_xy_f32());
                     }
-                }
-
-                for tower_position in affected_tower_positions {
-                    let emitter = crate::game_state::field_particle::FieldParticleEmitter::TowerStatusEffect {
-                        emitter: crate::game_state::field_particle::emitter::TowerStatusEffectEmitter::new_with_default_duration(
-                            current_time,
-                            tower_position,
-                            FieldAreaEffectKind::TowerAttackPowerMultiplyBuffOverTime { amount, xy, radius },
-                        ),
-                    };
-                    let system =
-                        crate::game_state::field_particle::FieldParticleSystem::new(vec![emitter]);
-                    game_state.field_particle_system_manager.add_system(system);
                 }
             }
             FieldAreaEffectKind::TowerAttackSpeedPlusBuffOverTime { amount, xy, radius } => {
-                let mut affected_tower_positions = Vec::new();
                 for tower in game_state.towers.iter_mut() {
                     if tower.center_xy_f32().distance(xy) <= radius {
                         let status_effect = TowerStatusEffect {
@@ -225,25 +194,10 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                             },
                         };
                         tower.status_effects.push(status_effect);
-                        affected_tower_positions.push(tower.center_xy_f32());
                     }
-                }
-
-                for tower_position in affected_tower_positions {
-                    let emitter = crate::game_state::field_particle::FieldParticleEmitter::TowerStatusEffect {
-                        emitter: crate::game_state::field_particle::emitter::TowerStatusEffectEmitter::new_with_default_duration(
-                            current_time,
-                            tower_position,
-                            FieldAreaEffectKind::TowerAttackSpeedPlusBuffOverTime { amount, xy, radius },
-                        ),
-                    };
-                    let system =
-                        crate::game_state::field_particle::FieldParticleSystem::new(vec![emitter]);
-                    game_state.field_particle_system_manager.add_system(system);
                 }
             }
             FieldAreaEffectKind::TowerAttackSpeedMultiplyBuffOverTime { amount, xy, radius } => {
-                let mut affected_tower_positions = Vec::new();
                 for tower in game_state.towers.iter_mut() {
                     if tower.center_xy_f32().distance(xy) <= radius {
                         let status_effect = TowerStatusEffect {
@@ -253,25 +207,10 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                             },
                         };
                         tower.status_effects.push(status_effect);
-                        affected_tower_positions.push(tower.center_xy_f32());
                     }
-                }
-
-                for tower_position in affected_tower_positions {
-                    let emitter = crate::game_state::field_particle::FieldParticleEmitter::TowerStatusEffect {
-                        emitter: crate::game_state::field_particle::emitter::TowerStatusEffectEmitter::new_with_default_duration(
-                            current_time,
-                            tower_position,
-                            FieldAreaEffectKind::TowerAttackSpeedMultiplyBuffOverTime { amount, xy, radius },
-                        ),
-                    };
-                    let system =
-                        crate::game_state::field_particle::FieldParticleSystem::new(vec![emitter]);
-                    game_state.field_particle_system_manager.add_system(system);
                 }
             }
             FieldAreaEffectKind::TowerAttackRangePlusBuffOverTime { amount, xy, radius } => {
-                let mut affected_tower_positions = Vec::new();
                 for tower in game_state.towers.iter_mut() {
                     if tower.center_xy_f32().distance(xy) <= radius {
                         let status_effect = TowerStatusEffect {
@@ -281,21 +220,7 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                             },
                         };
                         tower.status_effects.push(status_effect);
-                        affected_tower_positions.push(tower.center_xy_f32());
                     }
-                }
-
-                for tower_position in affected_tower_positions {
-                    let emitter = crate::game_state::field_particle::FieldParticleEmitter::TowerStatusEffect {
-                        emitter: crate::game_state::field_particle::emitter::TowerStatusEffectEmitter::new_with_default_duration(
-                            current_time,
-                            tower_position,
-                            FieldAreaEffectKind::TowerAttackRangePlusBuffOverTime { amount, xy, radius },
-                        ),
-                    };
-                    let system =
-                        crate::game_state::field_particle::FieldParticleSystem::new(vec![emitter]);
-                    game_state.field_particle_system_manager.add_system(system);
                 }
             }
         }
