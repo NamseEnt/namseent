@@ -211,6 +211,22 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                     },
                     rarity: rarity::Rarity::Epic,
                 },
+                Item {
+                    kind: item::ItemKind::AttackPowerMultiplyBuff {
+                        amount: 2.9,
+                        duration: 3.sec(),
+                        radius: 4.0,
+                    },
+                    rarity: rarity::Rarity::Epic,
+                },
+                Item {
+                    kind: item::ItemKind::MovementSpeedDebuff {
+                        amount: 0.4,
+                        duration: 3.sec(),
+                        radius: 4.0,
+                    },
+                    rarity: rarity::Rarity::Epic,
+                },
             ],
             quest_states: Default::default(),
             gold: 100,

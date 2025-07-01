@@ -35,15 +35,25 @@ pub fn tick_status_effect_particle_generator(game_state: &mut GameState, now: In
         return;
     }
 
-    generate_monster_status_effect_particles(game_state, now);
-    generate_tower_status_effect_particles(game_state, now);
+    let mut all_emitters = Vec::new();
+
+    generate_monster_status_effect_emitters(game_state, now, &mut all_emitters);
+    generate_tower_status_effect_emitters(game_state, now, &mut all_emitters);
+
+    if !all_emitters.is_empty() {
+        game_state
+            .field_particle_system_manager
+            .add_emitters(all_emitters);
+    }
 
     game_state.status_effect_particle_generator.last_tick_time = now;
 }
 
-fn generate_monster_status_effect_particles(game_state: &mut GameState, now: Instant) {
-    let mut new_emitters = Vec::new();
-
+fn generate_monster_status_effect_emitters(
+    game_state: &GameState,
+    now: Instant,
+    emitters: &mut Vec<FieldParticleEmitter>,
+) {
     for monster in &game_state.monsters {
         for status_effect in &monster.status_effects {
             if should_create_monster_particle(status_effect.kind)
@@ -57,21 +67,17 @@ fn generate_monster_status_effect_particles(game_state: &mut GameState, now: Ins
                 let field_particle_emitter = FieldParticleEmitter::MonsterStatusEffect {
                     emitter: monster_emitter,
                 };
-                new_emitters.push(field_particle_emitter);
+                emitters.push(field_particle_emitter);
             }
         }
     }
-
-    for emitter in new_emitters {
-        game_state
-            .field_particle_system_manager
-            .add_emitter(emitter);
-    }
 }
 
-fn generate_tower_status_effect_particles(game_state: &mut GameState, now: Instant) {
-    let mut new_emitters = Vec::new();
-
+fn generate_tower_status_effect_emitters(
+    game_state: &GameState,
+    now: Instant,
+    emitters: &mut Vec<FieldParticleEmitter>,
+) {
     for tower in game_state.towers.iter() {
         for status_effect in &tower.status_effects {
             if random::<f32>() < TOWER_STATUS_EFFECT_PARTICLE_CHANCE {
@@ -84,15 +90,9 @@ fn generate_tower_status_effect_particles(game_state: &mut GameState, now: Insta
                 let field_particle_emitter = FieldParticleEmitter::TowerStatusEffect {
                     emitter: tower_emitter,
                 };
-                new_emitters.push(field_particle_emitter);
+                emitters.push(field_particle_emitter);
             }
         }
-    }
-
-    for emitter in new_emitters {
-        game_state
-            .field_particle_system_manager
-            .add_emitter(emitter);
     }
 }
 

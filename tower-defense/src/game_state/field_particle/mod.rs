@@ -60,6 +60,13 @@ impl FieldParticleSystemManager {
         self.add_system(system);
     }
 
+    pub fn add_emitters(&mut self, emitters: Vec<FieldParticleEmitter>) {
+        if !emitters.is_empty() {
+            let system = FieldParticleSystem::new(emitters);
+            self.add_system(system);
+        }
+    }
+
     pub fn add_particles(&mut self, particles: Vec<FieldParticle>) {
         if !particles.is_empty() {
             // Create a temporary emitter that emits all particles at once
