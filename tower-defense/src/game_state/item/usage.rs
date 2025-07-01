@@ -1,6 +1,4 @@
-use super::effect_processor::{
-    DirectEffectKind, EffectArea, EffectTargetType, ItemEffectKind, StatusEffectTemplate,
-};
+use super::effect_processor::{DirectEffectKind, ItemEffectKind};
 use super::{Item, ItemKind};
 use crate::game_state::item::effect_processor::process_item_effect;
 use crate::{
@@ -250,13 +248,9 @@ impl ItemKind {
             ItemKind::DamageReduction {
                 damage_multiply,
                 duration,
-            } => ItemEffectKind::InstantStatus {
-                target_type: EffectTargetType::User,
-                effect: StatusEffectTemplate::UserDamageReduction {
-                    multiply: *damage_multiply,
-                    duration: *duration,
-                },
-                area: EffectArea::Point,
+            } => ItemEffectKind::UserDamageReduction {
+                multiply: *damage_multiply,
+                duration: *duration,
             },
         }
     }
