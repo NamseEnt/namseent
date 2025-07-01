@@ -54,9 +54,9 @@ impl KoKRLocale {
                         TowerUpgradeTarget::Tower(tower_upgrade_target) =>
                             match tower_upgrade_target {
                                 crate::game_state::upgrade::TowerUpgradeTarget::Rank { rank } =>
-                                    format!("{} 카드", rank),
+                                    format!("{rank} 카드"),
                                 crate::game_state::upgrade::TowerUpgradeTarget::Suit { suit } =>
-                                    format!("{} 카드", suit),
+                                    format!("{suit} 카드"),
                                 crate::game_state::upgrade::TowerUpgradeTarget::TowerKind {
                                     tower_kind,
                                 } => tower_kind.to_string(),
@@ -83,8 +83,8 @@ impl KoKRLocale {
                         WhatUpgrade::Range => "사거리가",
                     },
                     match add_or_multiply {
-                        AddOrMultiply::Add => format!("{:.0}만큼 증가합니다", how_much),
-                        AddOrMultiply::Multiply => format!("{:.1}배 증가합니다", how_much),
+                        AddOrMultiply::Add => format!("{how_much:.0}만큼 증가합니다"),
+                        AddOrMultiply::Multiply => format!("{how_much:.1}배 증가합니다"),
                     }
                 )
             }

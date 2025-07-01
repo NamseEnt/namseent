@@ -500,7 +500,7 @@ impl FromStr for Code {
             "Insert" => Ok(Code::Insert),
             "Delete" => Ok(Code::Delete),
             "ContextMenu" => Ok(Code::ContextMenu),
-            _ => Err(format!("Unknown code: {}", s)),
+            _ => Err(format!("Unknown code: {s}")),
         }
     }
 }
@@ -704,7 +704,7 @@ impl std::fmt::Display for Code {
             Code::F35 => "F35",
         };
 
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 

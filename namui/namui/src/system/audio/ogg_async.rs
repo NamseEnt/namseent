@@ -190,7 +190,7 @@ pub enum OggAsyncReadError<Error> {
 
 impl<Error: std::error::Error> std::fmt::Display for OggAsyncReadError<Error> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 impl<Error: std::error::Error> std::error::Error for OggAsyncReadError<Error> {}

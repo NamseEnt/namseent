@@ -10,13 +10,13 @@ static DEFAULT_NAMUI_CFG_KEYS: [&str; 4] = [
 
 fn main() {
     for key in DEFAULT_NAMUI_CFG_KEYS {
-        println!("cargo:rerun-if-env-changed={}", key);
+        println!("cargo:rerun-if-env-changed={key}");
     }
 
     for (key, _value) in env::vars() {
         match key.starts_with(NAMUI_CFG_ENV_PREFIX) {
             true => {
-                println!("cargo:rerun-if-env-changed={}", key);
+                println!("cargo:rerun-if-env-changed={key}");
             }
             false => continue,
         }

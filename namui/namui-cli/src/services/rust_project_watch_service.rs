@@ -46,7 +46,7 @@ impl RustProjectWatchService {
                             Err(error) => match error {
                                 tokio::sync::mpsc::error::TryRecvError::Empty => break 'flush,
                                 tokio::sync::mpsc::error::TryRecvError::Disconnected => {
-                                    panic!("watcher closed {:?}", error)
+                                    panic!("watcher closed {error:?}")
                                 }
                             },
                         }

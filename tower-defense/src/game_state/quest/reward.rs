@@ -17,7 +17,7 @@ pub enum QuestReward {
 impl QuestReward {
     pub fn description(&self) -> String {
         match self {
-            Self::Money { amount } => format!("${} 골드", amount),
+            Self::Money { amount } => format!("${amount} 골드"),
             Self::Item { item } => format!("Item: {}", item.kind.description()),
             Self::Upgrade { upgrade } => format!("Upgrade: {}", upgrade.kind.description()),
         }

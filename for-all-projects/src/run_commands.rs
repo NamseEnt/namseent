@@ -118,7 +118,7 @@ async fn run_command(cargo_project_dir: PathBuf, command: &str) -> Result<()> {
 
     // NOTE: This is for multi-thread locked-printing.
     let print_output = format!("Running `{command}` in {cargo_project_dir:?}");
-    println!("{}", print_output);
+    println!("{print_output}");
 
     let mut stdout_pipe = child.stdout.take().unwrap();
     let mut stderr_pipe = child.stderr.take().unwrap();
@@ -189,7 +189,7 @@ async fn run_command(cargo_project_dir: PathBuf, command: &str) -> Result<()> {
                 .collect::<Vec<_>>()
                 .join("\n")
         );
-        eprintln!("{}", print_output);
+        eprintln!("{print_output}");
         anyhow::bail!("Failed to run `{command}` in {cargo_project_dir:?}");
     }
 

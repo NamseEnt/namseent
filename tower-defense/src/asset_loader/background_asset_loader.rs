@@ -24,15 +24,14 @@ impl Component for BackgroundAssetLoaderInitializer {
                     match load_image_from_resource_location(resource_location.clone()).await {
                         Ok(image) => {
                             println!(
-                                "Loaded image from resource location: {:?}",
-                                resource_location
+                                "Loaded image from resource location: {resource_location:?}"
                             );
                             set_background_asset_loader.mutate(move |background_asset_loader| {
                                 background_asset_loader.set_asset(background_kind, image);
                             });
                         }
                         Err(error) => {
-                            println!("Failed to load image from resource location: {:?}", error);
+                            println!("Failed to load image from resource location: {error:?}");
                         }
                     }
                 });

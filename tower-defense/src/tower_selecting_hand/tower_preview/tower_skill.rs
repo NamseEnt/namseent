@@ -103,8 +103,7 @@ impl Component for TowerEffectDescription<'_> {
             }
             TowerSkillKind::NearbyTowerDamageAdd { add, range_radius } => {
                 format!(
-                    "주변 타워의 공격력을 {}만큼 증가시킵니다 (반경 {} 타일)",
-                    add, range_radius
+                    "주변 타워의 공격력을 {add}만큼 증가시킵니다 (반경 {range_radius} 타일)"
                 )
             }
             TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => {
@@ -116,14 +115,12 @@ impl Component for TowerEffectDescription<'_> {
             }
             TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => {
                 format!(
-                    "주변 타워의 공격 속도를 {}배 증가시킵니다 (반경 {} 타일)",
-                    mul, range_radius
+                    "주변 타워의 공격 속도를 {mul}배 증가시킵니다 (반경 {range_radius} 타일)"
                 )
             }
             TowerSkillKind::NearbyTowerAttackRangeAdd { add, range_radius } => {
                 format!(
-                    "주변 타워의 공격 범위를 {} 타일 증가시킵니다 (반경 {} 타일)",
-                    add, range_radius
+                    "주변 타워의 공격 범위를 {add} 타일 증가시킵니다 (반경 {range_radius} 타일)"
                 )
             }
             TowerSkillKind::NearbyMonsterSpeedMul { mul, range_radius } => {
@@ -134,10 +131,10 @@ impl Component for TowerEffectDescription<'_> {
                 )
             }
             TowerSkillKind::MoneyIncomeAdd { add } => {
-                format!("적 처치시 {} 골드를 추가로 획득합니다", add)
+                format!("적 처치시 {add} 골드를 추가로 획득합니다")
             }
             TowerSkillKind::TopCardBonus { rank, bonus_damage } => {
-                format!("탑 카드 보너스: {} (공격력 +{})", rank, bonus_damage)
+                format!("탑 카드 보너스: {rank} (공격력 +{bonus_damage})")
             }
         };
 
