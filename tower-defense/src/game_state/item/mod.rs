@@ -1,3 +1,4 @@
+mod effect_processor;
 mod generation;
 mod usage;
 

@@ -1,6 +1,7 @@
 use super::{
     GameState,
     item::{check_point_is_in_linear_area, linear_area_rect_points},
+    monster::{MonsterStatusEffect, MonsterStatusEffectKind},
     quest::{QuestTriggerEvent, on_quest_trigger_event},
     schedule::CountBasedSchedule,
     upgrade::{TowerUpgradeTarget, UpgradeState},
@@ -23,28 +24,14 @@ impl FieldAreaEffect {
 }
 
 #[derive(Clone, Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum FieldAreaEffectKind {
-    RoundDamage {
-        rank: Rank,
-        suit: Suit,
-        damage: f32,
-        xy: MapCoordF32,
-        radius: f32,
-    },
     RoundDamageOverTime {
         rank: Rank,
         suit: Suit,
         damage_per_tick: f32,
         xy: MapCoordF32,
         radius: f32,
-    },
-    LinearDamage {
-        rank: Rank,
-        suit: Suit,
-        damage: f32,
-        center_xy: MapCoordF32,
-        target_xy: MapCoordF32,
-        thickness: f32,
     },
     LinearDamageOverTime {
         rank: Rank,
@@ -54,44 +41,24 @@ pub enum FieldAreaEffectKind {
         target_xy: MapCoordF32,
         thickness: f32,
     },
+    MovementSpeedDebuffOverTime {
+        speed_multiply: f32,
+        xy: MapCoordF32,
+        radius: f32,
+    },
 }
 
 pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
     let mut monster_dealt_damage = 0.0;
     let mut total_earn_gold = 0;
+    let current_time = now;
+
     for effect in game_state.field_area_effects.iter_mut() {
         if !effect.schedule.try_emit(now) {
             continue;
         }
 
         match effect.kind {
-            FieldAreaEffectKind::RoundDamage {
-                rank,
-                suit,
-                damage,
-                xy,
-                radius,
-            } => {
-                let mut damage = damage;
-                apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
-
-                game_state.monsters.retain_mut(|monster| {
-                    if monster.xy().distance(xy) > radius {
-                        return true;
-                    }
-
-                    monster.get_damage(damage);
-                    monster_dealt_damage += damage;
-
-                    if monster.dead() {
-                        let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
-                        total_earn_gold += earn;
-                        return false;
-                    }
-
-                    true
-                });
-            }
             FieldAreaEffectKind::RoundDamageOverTime {
                 rank,
                 suit,
@@ -104,35 +71,6 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
 
                 game_state.monsters.retain_mut(|monster| {
                     if monster.xy().distance(xy) > radius {
-                        return true;
-                    }
-
-                    monster.get_damage(damage);
-                    monster_dealt_damage += damage;
-
-                    if monster.dead() {
-                        let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
-                        total_earn_gold += earn;
-                        return false;
-                    }
-
-                    true
-                });
-            }
-            FieldAreaEffectKind::LinearDamage {
-                rank,
-                suit,
-                damage,
-                center_xy,
-                target_xy,
-                thickness,
-            } => {
-                let mut damage = damage;
-                apply_rank_and_suit_upgrades(&game_state.upgrade_state, rank, suit, &mut damage);
-
-                let points = linear_area_rect_points(center_xy, target_xy, thickness);
-                game_state.monsters.retain_mut(|monster| {
-                    if !check_point_is_in_linear_area(&points, monster.xy()) {
                         return true;
                     }
 
@@ -176,6 +114,23 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
 
                     true
                 });
+            }
+            FieldAreaEffectKind::MovementSpeedDebuffOverTime {
+                speed_multiply,
+                xy,
+                radius,
+            } => {
+                for monster in game_state.monsters.iter_mut() {
+                    if monster.xy().distance(xy) <= radius {
+                        let status_effect = MonsterStatusEffect {
+                            kind: MonsterStatusEffectKind::SpeedMul {
+                                mul: speed_multiply,
+                            },
+                            end_at: current_time + Duration::from_millis(500),
+                        };
+                        monster.status_effects.push(status_effect);
+                    }
+                }
             }
         }
     }

@@ -3,15 +3,24 @@ use namui::*;
 use crate::{MapCoordF32, game_state::TILE_PX_SIZE};
 
 #[derive(Clone)]
-pub struct FieldDamageAreaParticle {
+pub enum FieldAreaParticleKind {
+    Damage,
+    Buff,
+    Debuff,
+}
+
+#[derive(Clone)]
+pub struct FieldAreaParticle {
+    pub kind: FieldAreaParticleKind,
     pub shape: FieldAreaParticleShape,
     pub started_at: Instant,
     pub end_at: Instant,
 }
 
-impl FieldDamageAreaParticle {
-    pub fn new(now: Instant, shape: FieldAreaParticleShape) -> Self {
+impl FieldAreaParticle {
+    pub fn new(now: Instant, shape: FieldAreaParticleShape, kind: FieldAreaParticleKind) -> Self {
         Self {
+            kind,
             shape,
             started_at: now,
             end_at: now + Duration::from_secs(2),
@@ -30,7 +39,12 @@ impl FieldDamageAreaParticle {
             let fade_progress = (progress - 0.1) / 0.9;
             (1.0 - fade_progress) * 0.75
         };
-        let color = Color::RED.with_alpha((alpha * 255.0) as u8);
+        let color = match self.kind {
+            FieldAreaParticleKind::Damage => Color::RED,
+            FieldAreaParticleKind::Buff => Color::GREEN,
+            FieldAreaParticleKind::Debuff => Color::BLUE,
+        }
+        .with_alpha((alpha * 255.0) as u8);
         match &self.shape {
             FieldAreaParticleShape::Circle { center, radius } => {
                 let center_px = Xy::new(

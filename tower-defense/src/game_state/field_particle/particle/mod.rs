@@ -1,5 +1,6 @@
-mod field_damage_area;
+mod field_area;
 mod icon;
 
-pub use field_damage_area::*;
+pub use field_area::FieldAreaParticleKind;
+pub use field_area::*;
 pub use icon::*;
