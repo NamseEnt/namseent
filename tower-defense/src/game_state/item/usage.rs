@@ -59,67 +59,82 @@ impl ItemKind {
                 amount,
                 duration,
                 radius,
-            } => Self::make_instant_status(
-                EffectTargetType::Tower,
-                StatusEffectTemplate::TowerDamageAdd {
-                    add: *amount,
-                    duration: *duration,
-                },
-                xy,
-                *radius,
-            ),
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackPowerPlusBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
             ItemKind::AttackPowerMultiplyBuff {
                 amount,
                 duration,
                 radius,
-            } => Self::make_instant_status(
-                EffectTargetType::Tower,
-                StatusEffectTemplate::TowerDamageMultiply {
-                    multiply: *amount,
-                    duration: *duration,
-                },
-                xy,
-                *radius,
-            ),
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackPowerMultiplyBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
             ItemKind::AttackSpeedPlusBuff {
                 amount,
                 duration,
                 radius,
-            } => Self::make_instant_status(
-                EffectTargetType::Tower,
-                StatusEffectTemplate::TowerAttackSpeedAdd {
-                    add: *amount,
-                    duration: *duration,
-                },
-                xy,
-                *radius,
-            ),
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackSpeedPlusBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
             ItemKind::AttackSpeedMultiplyBuff {
                 amount,
                 duration,
                 radius,
-            } => Self::make_instant_status(
-                EffectTargetType::Tower,
-                StatusEffectTemplate::TowerAttackSpeedMultiply {
-                    multiply: *amount,
-                    duration: *duration,
-                },
-                xy,
-                *radius,
-            ),
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackSpeedMultiplyBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
             ItemKind::AttackRangePlus {
                 amount,
                 duration,
                 radius,
-            } => Self::make_instant_status(
-                EffectTargetType::Tower,
-                StatusEffectTemplate::TowerAttackRangeAdd {
-                    add: *amount,
-                    duration: *duration,
-                },
-                xy,
-                *radius,
-            ),
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackRangePlusBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
             ItemKind::MovementSpeedDebuff {
                 amount,
                 duration,
@@ -250,20 +265,6 @@ impl ItemKind {
         match xy {
             Some(val) => val,
             None => panic!("xy must be provided for this item usage"),
-        }
-    }
-
-    fn make_instant_status(
-        target_type: EffectTargetType,
-        effect: StatusEffectTemplate,
-        xy: Option<MapCoordF32>,
-        radius: f32,
-    ) -> ItemEffectKind {
-        let xy = Self::expect_xy(xy);
-        ItemEffectKind::InstantStatus {
-            target_type,
-            effect,
-            area: EffectArea::Circle { xy, radius },
         }
     }
 }

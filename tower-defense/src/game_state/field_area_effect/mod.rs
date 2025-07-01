@@ -4,6 +4,7 @@ use super::{
     monster::{MonsterStatusEffect, MonsterStatusEffectKind},
     quest::{QuestTriggerEvent, on_quest_trigger_event},
     schedule::CountBasedSchedule,
+    tower::{TowerStatusEffect, TowerStatusEffectEnd, TowerStatusEffectKind},
     upgrade::{TowerUpgradeTarget, UpgradeState},
 };
 use crate::{
@@ -43,6 +44,31 @@ pub enum FieldAreaEffectKind {
     },
     MovementSpeedDebuffOverTime {
         speed_multiply: f32,
+        xy: MapCoordF32,
+        radius: f32,
+    },
+    TowerAttackPowerPlusBuffOverTime {
+        amount: f32,
+        xy: MapCoordF32,
+        radius: f32,
+    },
+    TowerAttackPowerMultiplyBuffOverTime {
+        amount: f32,
+        xy: MapCoordF32,
+        radius: f32,
+    },
+    TowerAttackSpeedPlusBuffOverTime {
+        amount: f32,
+        xy: MapCoordF32,
+        radius: f32,
+    },
+    TowerAttackSpeedMultiplyBuffOverTime {
+        amount: f32,
+        xy: MapCoordF32,
+        radius: f32,
+    },
+    TowerAttackRangePlusBuffOverTime {
+        amount: f32,
         xy: MapCoordF32,
         radius: f32,
     },
@@ -129,6 +155,71 @@ pub fn field_area_effect_tick(game_state: &mut GameState, now: Instant) {
                             end_at: current_time + Duration::from_millis(500),
                         };
                         monster.status_effects.push(status_effect);
+                    }
+                }
+            }
+            FieldAreaEffectKind::TowerAttackPowerPlusBuffOverTime { amount, xy, radius } => {
+                for tower in game_state.towers.iter_mut() {
+                    if tower.center_xy_f32().distance(xy) <= radius {
+                        let status_effect = TowerStatusEffect {
+                            kind: TowerStatusEffectKind::DamageAdd { add: amount },
+                            end_at: TowerStatusEffectEnd::Time {
+                                end_at: current_time + Duration::from_millis(500),
+                            },
+                        };
+                        tower.status_effects.push(status_effect);
+                    }
+                }
+            }
+            FieldAreaEffectKind::TowerAttackPowerMultiplyBuffOverTime { amount, xy, radius } => {
+                for tower in game_state.towers.iter_mut() {
+                    if tower.center_xy_f32().distance(xy) <= radius {
+                        let status_effect = TowerStatusEffect {
+                            kind: TowerStatusEffectKind::DamageMul { mul: amount },
+                            end_at: TowerStatusEffectEnd::Time {
+                                end_at: current_time + Duration::from_millis(500),
+                            },
+                        };
+                        tower.status_effects.push(status_effect);
+                    }
+                }
+            }
+            FieldAreaEffectKind::TowerAttackSpeedPlusBuffOverTime { amount, xy, radius } => {
+                for tower in game_state.towers.iter_mut() {
+                    if tower.center_xy_f32().distance(xy) <= radius {
+                        let status_effect = TowerStatusEffect {
+                            kind: TowerStatusEffectKind::AttackSpeedAdd { add: amount },
+                            end_at: TowerStatusEffectEnd::Time {
+                                end_at: current_time + Duration::from_millis(500),
+                            },
+                        };
+                        tower.status_effects.push(status_effect);
+                    }
+                }
+            }
+            FieldAreaEffectKind::TowerAttackSpeedMultiplyBuffOverTime { amount, xy, radius } => {
+                for tower in game_state.towers.iter_mut() {
+                    if tower.center_xy_f32().distance(xy) <= radius {
+                        let status_effect = TowerStatusEffect {
+                            kind: TowerStatusEffectKind::AttackSpeedMul { mul: amount },
+                            end_at: TowerStatusEffectEnd::Time {
+                                end_at: current_time + Duration::from_millis(500),
+                            },
+                        };
+                        tower.status_effects.push(status_effect);
+                    }
+                }
+            }
+            FieldAreaEffectKind::TowerAttackRangePlusBuffOverTime { amount, xy, radius } => {
+                for tower in game_state.towers.iter_mut() {
+                    if tower.center_xy_f32().distance(xy) <= radius {
+                        let status_effect = TowerStatusEffect {
+                            kind: TowerStatusEffectKind::AttackRangeAdd { add: amount },
+                            end_at: TowerStatusEffectEnd::Time {
+                                end_at: current_time + Duration::from_millis(500),
+                            },
+                        };
+                        tower.status_effects.push(status_effect);
                     }
                 }
             }

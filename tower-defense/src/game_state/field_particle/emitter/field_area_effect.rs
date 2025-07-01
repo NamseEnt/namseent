@@ -356,6 +356,84 @@ impl FieldAreaEffectEmitter {
         }
     }
 
+    fn create_buff_icon(buff_kind: &FieldAreaEffectKind) -> Icon {
+        let (icon_kind, attribute_icon) = match buff_kind {
+            FieldAreaEffectKind::TowerAttackPowerPlusBuffOverTime { .. }
+            | FieldAreaEffectKind::TowerAttackPowerMultiplyBuffOverTime { .. } => {
+                (IconKind::AttackDamage, IconKind::Up)
+            }
+            FieldAreaEffectKind::TowerAttackSpeedPlusBuffOverTime { .. }
+            | FieldAreaEffectKind::TowerAttackSpeedMultiplyBuffOverTime { .. } => {
+                (IconKind::AttackSpeed, IconKind::Up)
+            }
+            FieldAreaEffectKind::TowerAttackRangePlusBuffOverTime { .. } => {
+                (IconKind::AttackRange, IconKind::Up)
+            }
+            _ => {
+                println!("Unknown buff kind: {:?}", buff_kind);
+                (IconKind::AttackDamage, IconKind::Up)
+            }
+        };
+
+        Icon {
+            kind: icon_kind,
+            size: IconSize::Custom {
+                size: px(DEBUFF_ICON_SIZE),
+            },
+            attributes: vec![IconAttribute {
+                icon_kind: attribute_icon,
+                position: IconAttributePosition::BottomRight,
+            }],
+            wh: Wh::single(px(DEBUFF_ICON_SIZE)),
+            opacity: 1.0,
+        }
+    }
+
+    fn create_tower_buff_icon_particles(
+        now: Instant,
+        center_xy: MapCoordF32,
+        radius: f32,
+        buff_kind: &FieldAreaEffectKind,
+    ) -> Vec<FieldParticle> {
+        let center_pixel_f32 = Self::map_coord_to_pixel_f32(center_xy);
+        let radius_pixel = TILE_PX_SIZE.width.as_f32() * radius;
+        let mut rng = rand::thread_rng();
+        let mut particles = Vec::with_capacity(DEBUFF_PARTICLE_COUNT);
+
+        for i in 0..DEBUFF_PARTICLE_COUNT {
+            let angle = (i as f32 / DEBUFF_PARTICLE_COUNT as f32) * TAU;
+            let distance = rng.gen_range(DEBUFF_MIN_DISTANCE_FACTOR..=DEBUFF_MAX_DISTANCE_FACTOR)
+                * radius_pixel;
+
+            let position = Xy {
+                x: center_pixel_f32.x + angle.cos() * distance,
+                y: center_pixel_f32.y + angle.sin() * distance,
+            };
+
+            let buff_icon = Self::create_buff_icon(buff_kind);
+
+            let behavior = IconParticleBehavior::FadeRise {
+                duration: Duration::from_millis(DEBUFF_FADE_DURATION_MS),
+                speed: rng.gen_range(DEBUFF_MIN_SPEED..DEBUFF_MAX_SPEED),
+                created_at: now,
+                initial_opacity: DEBUFF_INITIAL_OPACITY,
+            };
+
+            let icon_particle = IconParticle {
+                icon: buff_icon,
+                xy: Xy::new(px(position.x), px(position.y)),
+                rotation: 0.0.deg(),
+                behavior,
+            };
+
+            particles.push(FieldParticle::Icon {
+                particle: icon_particle,
+            });
+        }
+
+        particles
+    }
+
     fn generate_random_direction_and_position_in_circle(
         rng: &mut impl Rng,
         center: Xy<f32>,
@@ -434,6 +512,71 @@ impl FieldAreaEffectEmitter {
                 }];
                 particles.extend(Self::create_movement_speed_debuff_icon_particles(
                     now, xy, radius,
+                ));
+                particles
+            }
+            FieldAreaEffectKind::TowerAttackPowerPlusBuffOverTime { xy, radius, .. } => {
+                let mut particles = vec![FieldParticle::FieldArea {
+                    particle: FieldAreaParticle::new(
+                        now,
+                        FieldAreaParticleShape::Circle { center: xy, radius },
+                        FieldAreaParticleKind::Buff,
+                    ),
+                }];
+                particles.extend(Self::create_tower_buff_icon_particles(
+                    now, xy, radius, &self.kind,
+                ));
+                particles
+            }
+            FieldAreaEffectKind::TowerAttackPowerMultiplyBuffOverTime { xy, radius, .. } => {
+                let mut particles = vec![FieldParticle::FieldArea {
+                    particle: FieldAreaParticle::new(
+                        now,
+                        FieldAreaParticleShape::Circle { center: xy, radius },
+                        FieldAreaParticleKind::Buff,
+                    ),
+                }];
+                particles.extend(Self::create_tower_buff_icon_particles(
+                    now, xy, radius, &self.kind,
+                ));
+                particles
+            }
+            FieldAreaEffectKind::TowerAttackSpeedPlusBuffOverTime { xy, radius, .. } => {
+                let mut particles = vec![FieldParticle::FieldArea {
+                    particle: FieldAreaParticle::new(
+                        now,
+                        FieldAreaParticleShape::Circle { center: xy, radius },
+                        FieldAreaParticleKind::Buff,
+                    ),
+                }];
+                particles.extend(Self::create_tower_buff_icon_particles(
+                    now, xy, radius, &self.kind,
+                ));
+                particles
+            }
+            FieldAreaEffectKind::TowerAttackSpeedMultiplyBuffOverTime { xy, radius, .. } => {
+                let mut particles = vec![FieldParticle::FieldArea {
+                    particle: FieldAreaParticle::new(
+                        now,
+                        FieldAreaParticleShape::Circle { center: xy, radius },
+                        FieldAreaParticleKind::Buff,
+                    ),
+                }];
+                particles.extend(Self::create_tower_buff_icon_particles(
+                    now, xy, radius, &self.kind,
+                ));
+                particles
+            }
+            FieldAreaEffectKind::TowerAttackRangePlusBuffOverTime { xy, radius, .. } => {
+                let mut particles = vec![FieldParticle::FieldArea {
+                    particle: FieldAreaParticle::new(
+                        now,
+                        FieldAreaParticleShape::Circle { center: xy, radius },
+                        FieldAreaParticleKind::Buff,
+                    ),
+                }];
+                particles.extend(Self::create_tower_buff_icon_particles(
+                    now, xy, radius, &self.kind,
                 ));
                 particles
             }
