@@ -2,7 +2,7 @@ mod emit;
 pub mod emitter;
 mod particle;
 
-use self::emitter::FieldAreaEffectEmitter;
+use self::emitter::{FieldAreaEffectEmitter, TowerStatusEffectEmitter};
 use self::particle::{FieldAreaParticle, IconParticle};
 use crate::game_state::GameState;
 pub use emit::*;
@@ -79,12 +79,14 @@ impl FieldParticleSystemManager {
 pub enum FieldParticleEmitter {
     FieldAreaEffect { emitter: FieldAreaEffectEmitter },
     TempParticle { emitter: TempParticleEmitter },
+    TowerStatusEffect { emitter: TowerStatusEffectEmitter },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
         match self {
             FieldParticleEmitter::FieldAreaEffect { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TempParticle { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::TowerStatusEffect { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -92,6 +94,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
         match self {
             FieldParticleEmitter::FieldAreaEffect { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TempParticle { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::TowerStatusEffect { emitter } => emitter.is_done(now),
         }
     }
 }

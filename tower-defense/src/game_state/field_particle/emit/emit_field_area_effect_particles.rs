@@ -5,7 +5,7 @@ use crate::game_state::{
     schedule::CountBasedSchedule,
 };
 
-pub(super) fn emit_field_area_effect_particles(
+pub fn emit_field_area_effect_particles(
     game_state: &mut GameState,
     kind: &FieldAreaEffectKind,
     schedule: &CountBasedSchedule,
