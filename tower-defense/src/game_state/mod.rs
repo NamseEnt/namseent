@@ -4,6 +4,7 @@ mod can_place_tower;
 pub mod cursor_preview;
 pub mod fast_forward;
 mod field_area_effect;
+pub mod field_particle;
 pub mod flow;
 pub mod item;
 mod level_rarity_weight;
@@ -12,6 +13,8 @@ mod monster_spawn;
 pub mod projectile;
 pub mod quest;
 mod render;
+pub mod schedule;
+mod status_effect_particle_generator;
 mod tick;
 pub mod tower;
 pub mod upgrade;
@@ -27,6 +30,7 @@ use camera::*;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use field_area_effect::FieldAreaEffect;
+
 use flow::GameFlow;
 use item::Item;
 pub use level_rarity_weight::level_rarity_weight;
@@ -35,6 +39,7 @@ use monster_spawn::*;
 use namui::*;
 use projectile::*;
 use quest::*;
+use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
@@ -87,6 +92,8 @@ pub struct GameState {
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
     pub locale: Locales,
+    pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
+    status_effect_particle_generator: StatusEffectParticleGenerator,
 }
 impl GameState {
     pub fn in_even_stage(&self) -> bool {
@@ -193,6 +200,33 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                     kind: item::ItemKind::ExtraReroll,
                     rarity: rarity::Rarity::Epic,
                 },
+                // For debugging purpose, should be removed in production.
+                Item {
+                    kind: item::ItemKind::RoundDamageOverTime {
+                        rank: crate::card::Rank::Ace,
+                        suit: crate::card::Suit::Hearts,
+                        damage: 20.0,
+                        radius: 2.5,
+                        duration: namui::Duration::from_secs_f32(3.0),
+                    },
+                    rarity: rarity::Rarity::Epic,
+                },
+                Item {
+                    kind: item::ItemKind::AttackPowerMultiplyBuff {
+                        amount: 2.9,
+                        duration: 3.sec(),
+                        radius: 4.0,
+                    },
+                    rarity: rarity::Rarity::Epic,
+                },
+                Item {
+                    kind: item::ItemKind::MovementSpeedDebuff {
+                        amount: 0.4,
+                        duration: 3.sec(),
+                        radius: 4.0,
+                    },
+                    rarity: rarity::Rarity::Epic,
+                },
             ],
             quest_states: Default::default(),
             gold: 100,
@@ -211,6 +245,8 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
             locale: Locales::KoKR(KoKRLocale),
+            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
+            status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
         };
 
         game_state.goto_selecting_tower();

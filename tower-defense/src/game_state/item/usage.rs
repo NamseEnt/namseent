@@ -1,17 +1,20 @@
+use super::effect_processor::{DirectEffectKind, ItemEffectKind};
 use super::{Item, ItemKind};
+use crate::game_state::item::effect_processor::process_item_effect;
 use crate::{
     MapCoordF32,
     game_state::{
-        GameState, MAP_SIZE, MAX_HP, TRAVEL_POINTS,
-        field_area_effect::{FieldAreaEffect, FieldAreaEffectEnd, FieldAreaEffectKind},
-        monster::{MonsterStatusEffect, MonsterStatusEffectKind},
+        GameState, TRAVEL_POINTS,
+        field_area_effect::FieldAreaEffectKind,
         quest::{QuestTriggerEvent, on_quest_trigger_event},
-        tower::{TowerStatusEffect, TowerStatusEffectEnd, TowerStatusEffectKind},
-        user_status_effect::{UserStatusEffect, UserStatusEffectKind},
+        schedule::CountBasedSchedule,
     },
 };
 use namui::*;
 use rand::{Rng, thread_rng};
+
+const FIELD_TICK_INTERVAL: Duration = Duration::from_millis(500);
+const LINEAR_AREA_LENGTH: f32 = 68.0;
 
 #[derive(Debug, Clone)]
 pub enum ItemUsage {
@@ -23,7 +26,11 @@ pub enum ItemUsage {
 impl ItemKind {
     pub fn usage(&self) -> ItemUsage {
         match self {
-            ItemKind::Heal { .. } => ItemUsage::Instant,
+            ItemKind::Heal { .. }
+            | ItemKind::Lottery { .. }
+            | ItemKind::ExtraReroll
+            | ItemKind::Shield { .. }
+            | ItemKind::DamageReduction { .. } => ItemUsage::Instant,
             ItemKind::AttackPowerPlusBuff { radius, .. }
             | ItemKind::AttackPowerMultiplyBuff { radius, .. }
             | ItemKind::AttackSpeedPlusBuff { radius, .. }
@@ -34,267 +41,233 @@ impl ItemKind {
             | ItemKind::RoundDamageOverTime { radius, .. } => {
                 ItemUsage::CircularArea { radius: *radius }
             }
-            ItemKind::Lottery { .. } => ItemUsage::Instant,
             ItemKind::LinearDamage { thickness, .. }
             | ItemKind::LinearDamageOverTime { thickness, .. } => ItemUsage::LinearArea {
                 thickness: *thickness,
             },
-            ItemKind::ExtraReroll => ItemUsage::Instant,
-            ItemKind::Shield { .. } => ItemUsage::Instant,
-            ItemKind::DamageReduction { .. } => ItemUsage::Instant,
+        }
+    }
+
+    pub fn effect_kind(&self, xy: Option<MapCoordF32>, now: Instant) -> ItemEffectKind {
+        match self {
+            ItemKind::Heal { amount } => ItemEffectKind::Direct {
+                effect: DirectEffectKind::Heal { amount: *amount },
+            },
+            ItemKind::AttackPowerPlusBuff {
+                amount,
+                duration,
+                radius,
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackPowerPlusBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
+            ItemKind::AttackPowerMultiplyBuff {
+                amount,
+                duration,
+                radius,
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackPowerMultiplyBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
+            ItemKind::AttackSpeedPlusBuff {
+                amount,
+                duration,
+                radius,
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackSpeedPlusBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
+            ItemKind::AttackSpeedMultiplyBuff {
+                amount,
+                duration,
+                radius,
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackSpeedMultiplyBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
+            ItemKind::AttackRangePlus {
+                amount,
+                duration,
+                radius,
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::TowerAttackRangePlusBuffOverTime {
+                        amount: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
+            ItemKind::MovementSpeedDebuff {
+                amount,
+                duration,
+                radius,
+            } => {
+                let xy = Self::expect_xy(xy);
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::MovementSpeedDebuffOverTime {
+                        speed_multiply: *amount,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
+            ItemKind::RoundDamage {
+                rank,
+                suit,
+                damage,
+                radius,
+            } => {
+                let xy = Self::expect_xy(xy);
+                ItemEffectKind::Direct {
+                    effect: DirectEffectKind::RoundDamage {
+                        rank: *rank,
+                        suit: *suit,
+                        damage: *damage,
+                        xy,
+                        radius: *radius,
+                    },
+                }
+            }
+            ItemKind::RoundDamageOverTime {
+                rank,
+                suit,
+                damage,
+                radius,
+                duration,
+            } => {
+                let xy = Self::expect_xy(xy);
+                let damage_per_tick =
+                    damage / (duration.as_secs_f32() / FIELD_TICK_INTERVAL.as_secs_f32());
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::RoundDamageOverTime {
+                        rank: *rank,
+                        suit: *suit,
+                        damage_per_tick,
+                        xy,
+                        radius: *radius,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
+            ItemKind::Lottery {
+                amount,
+                probability,
+            } => {
+                let is_winner = thread_rng().gen_bool(*probability as f64);
+                let gold = if is_winner { *amount as usize } else { 0 };
+                ItemEffectKind::Direct {
+                    effect: DirectEffectKind::EarnGold { amount: gold },
+                }
+            }
+            ItemKind::LinearDamage {
+                rank,
+                suit,
+                damage,
+                thickness,
+            } => {
+                let xy = Self::expect_xy(xy);
+                ItemEffectKind::Direct {
+                    effect: DirectEffectKind::LinearDamage {
+                        rank: *rank,
+                        suit: *suit,
+                        damage: *damage,
+                        center_xy: TRAVEL_POINTS.last().unwrap().map(|x| x as f32),
+                        target_xy: xy,
+                        thickness: *thickness,
+                    },
+                }
+            }
+            ItemKind::LinearDamageOverTime {
+                rank,
+                suit,
+                damage,
+                thickness,
+                duration,
+            } => {
+                let xy = Self::expect_xy(xy);
+                let damage_per_tick =
+                    damage / (duration.as_secs_f32() / FIELD_TICK_INTERVAL.as_secs_f32());
+                let emit_count = (duration.as_millis() / FIELD_TICK_INTERVAL.as_millis()) as usize;
+                ItemEffectKind::FieldArea {
+                    effect: FieldAreaEffectKind::LinearDamageOverTime {
+                        rank: *rank,
+                        suit: *suit,
+                        damage_per_tick,
+                        center_xy: TRAVEL_POINTS.last().unwrap().map(|x| x as f32),
+                        target_xy: xy,
+                        thickness: *thickness,
+                    },
+                    schedule: CountBasedSchedule::new(FIELD_TICK_INTERVAL, emit_count, now),
+                }
+            }
+            ItemKind::ExtraReroll => ItemEffectKind::Direct {
+                effect: DirectEffectKind::ExtraReroll,
+            },
+            ItemKind::Shield { amount } => ItemEffectKind::Direct {
+                effect: DirectEffectKind::Shield { amount: *amount },
+            },
+            ItemKind::DamageReduction {
+                damage_multiply,
+                duration,
+            } => ItemEffectKind::UserDamageReduction {
+                multiply: *damage_multiply,
+                duration: *duration,
+            },
+        }
+    }
+
+    fn expect_xy(xy: Option<MapCoordF32>) -> MapCoordF32 {
+        match xy {
+            Some(val) => val,
+            None => panic!("xy must be provided for this item usage"),
         }
     }
 }
 
 pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>) {
     game_state.item_used = true;
-    match item.kind {
-        ItemKind::Heal { amount } => game_state.hp = (game_state.hp + amount).min(MAX_HP),
-        ItemKind::AttackPowerPlusBuff {
-            amount,
-            duration,
-            radius,
-        } => {
-            let xy = xy.expect("xy must be provided for AttackPowerPlusBuff item usage");
-            add_tower_status_effect_in_round_area(
-                game_state,
-                xy,
-                radius,
-                TowerStatusEffect {
-                    kind: TowerStatusEffectKind::DamageAdd { add: amount },
-                    end_at: TowerStatusEffectEnd::Time {
-                        end_at: game_state.now() + duration,
-                    },
-                },
-            );
-        }
-        ItemKind::AttackPowerMultiplyBuff {
-            amount,
-            duration,
-            radius,
-        } => {
-            let xy = xy.expect("xy must be provided for AttackPowerMultiplyBuff item usage");
-            add_tower_status_effect_in_round_area(
-                game_state,
-                xy,
-                radius,
-                TowerStatusEffect {
-                    kind: TowerStatusEffectKind::DamageMul { mul: amount },
-                    end_at: TowerStatusEffectEnd::Time {
-                        end_at: game_state.now() + duration,
-                    },
-                },
-            );
-        }
-        ItemKind::AttackSpeedPlusBuff {
-            amount,
-            duration,
-            radius,
-        } => {
-            let xy = xy.expect("xy must be provided for AttackSpeedPlusBuff item usage");
-            add_tower_status_effect_in_round_area(
-                game_state,
-                xy,
-                radius,
-                TowerStatusEffect {
-                    kind: TowerStatusEffectKind::AttackSpeedAdd { add: amount },
-                    end_at: TowerStatusEffectEnd::Time {
-                        end_at: game_state.now() + duration,
-                    },
-                },
-            );
-        }
-        ItemKind::AttackSpeedMultiplyBuff {
-            amount,
-            duration,
-            radius,
-        } => {
-            let xy = xy.expect("xy must be provided for AttackSpeedMultiplyBuff item usage");
-            add_tower_status_effect_in_round_area(
-                game_state,
-                xy,
-                radius,
-                TowerStatusEffect {
-                    kind: TowerStatusEffectKind::AttackSpeedMul { mul: amount },
-                    end_at: TowerStatusEffectEnd::Time {
-                        end_at: game_state.now() + duration,
-                    },
-                },
-            );
-        }
-        ItemKind::AttackRangePlus {
-            amount,
-            duration,
-            radius,
-        } => {
-            let xy = xy.expect("xy must be provided for AttackRangePlus item usage");
-            add_tower_status_effect_in_round_area(
-                game_state,
-                xy,
-                radius,
-                TowerStatusEffect {
-                    kind: TowerStatusEffectKind::AttackRangeAdd { add: amount },
-                    end_at: TowerStatusEffectEnd::Time {
-                        end_at: game_state.now() + duration,
-                    },
-                },
-            );
-        }
-        ItemKind::MovementSpeedDebuff {
-            amount,
-            duration,
-            radius,
-        } => {
-            let xy = xy.expect("xy must be provided for MovementSpeedDebuff item usage");
-            add_monster_status_effect_in_round_area(
-                game_state,
-                xy,
-                radius,
-                MonsterStatusEffect {
-                    kind: MonsterStatusEffectKind::SpeedMul { mul: amount },
-                    end_at: game_state.now() + duration,
-                },
-            );
-        }
-        ItemKind::RoundDamage {
-            rank,
-            suit,
-            damage,
-            radius,
-        } => {
-            let xy = xy.expect("xy must be provided for RoundDamage item usage");
-            game_state.field_area_effects.push(FieldAreaEffect::new(
-                FieldAreaEffectKind::RoundDamage {
-                    rank,
-                    suit,
-                    damage,
-                    xy,
-                    radius,
-                },
-                FieldAreaEffectEnd::Once { fired: false },
-            ));
-        }
-        ItemKind::RoundDamageOverTime {
-            rank,
-            suit,
-            damage,
-            radius,
-            duration,
-        } => {
-            const TICK_INTERVAL: Duration = Duration::from_millis(500);
-            let xy = xy.expect("xy must be provided for RoundDamageOverTime item usage");
-            let damage_per_tick = damage / (duration / TICK_INTERVAL);
-            game_state.field_area_effects.push(FieldAreaEffect::new(
-                FieldAreaEffectKind::RoundDamageOverTime {
-                    rank,
-                    suit,
-                    damage_per_tick,
-                    xy,
-                    radius,
-                    tick_interval: TICK_INTERVAL,
-                    next_tick_at: game_state.now(),
-                },
-                FieldAreaEffectEnd::Once { fired: false },
-            ));
-        }
-        ItemKind::Lottery {
-            amount,
-            probability,
-        } => {
-            let is_winner = thread_rng().gen_bool(probability as f64);
-            if !is_winner {
-                return;
-            }
-            game_state.earn_gold(amount as usize);
-            // TODO: Show effect on win
-        }
-        ItemKind::LinearDamage {
-            rank,
-            suit,
-            damage,
-            thickness,
-        } => {
-            let xy = xy.expect("xy must be provided for LinearDamage item usage");
-            game_state.field_area_effects.push(FieldAreaEffect::new(
-                FieldAreaEffectKind::LinearDamage {
-                    rank,
-                    suit,
-                    damage,
-                    center_xy: TRAVEL_POINTS.last().unwrap().map(|x| x as f32),
-                    target_xy: xy,
-                    thickness,
-                },
-                FieldAreaEffectEnd::Once { fired: false },
-            ));
-        }
-        ItemKind::LinearDamageOverTime {
-            rank,
-            suit,
-            damage,
-            thickness,
-            duration,
-        } => {
-            const TICK_INTERVAL: Duration = Duration::from_millis(500);
-            let xy = xy.expect("xy must be provided for LinearDamageOverTime item usage");
-            let damage_per_tick = damage / (duration / TICK_INTERVAL);
-            game_state.field_area_effects.push(FieldAreaEffect::new(
-                FieldAreaEffectKind::LinearDamageOverTime {
-                    rank,
-                    suit,
-                    damage_per_tick,
-                    center_xy: TRAVEL_POINTS.last().unwrap().map(|x| x as f32),
-                    target_xy: xy,
-                    thickness,
-                    tick_interval: TICK_INTERVAL,
-                    next_tick_at: game_state.now(),
-                },
-                FieldAreaEffectEnd::Once { fired: false },
-            ));
-        }
-        ItemKind::ExtraReroll => {
-            game_state.left_reroll_chance += 1;
-        }
-        ItemKind::Shield { amount } => {
-            game_state.shield += amount;
-        }
-        ItemKind::DamageReduction {
-            damage_multiply,
-            duration,
-        } => {
-            game_state.user_status_effects.push(UserStatusEffect {
-                kind: UserStatusEffectKind::DamageReduction { damage_multiply },
-                end_at: game_state.now() + duration,
-            });
-        }
-    }
-
+    let effect_kind = item.kind.effect_kind(xy, game_state.now());
+    process_item_effect(game_state, effect_kind);
     on_quest_trigger_event(game_state, QuestTriggerEvent::UseItem);
-}
-
-fn add_tower_status_effect_in_round_area(
-    game_state: &mut GameState,
-    xy: MapCoordF32,
-    radius: f32,
-    status_effect: TowerStatusEffect,
-) {
-    for tower in game_state.towers.iter_mut() {
-        if xy.distance(tower.center_xy_f32()) <= radius {
-            tower.status_effects.push(status_effect.clone());
-        }
-    }
-}
-
-fn add_monster_status_effect_in_round_area(
-    game_state: &mut GameState,
-    xy: MapCoordF32,
-    radius: f32,
-    status_effect: MonsterStatusEffect,
-) {
-    for monster in game_state.monsters.iter_mut() {
-        if xy.distance(monster.xy()) <= radius {
-            monster.status_effects.push(status_effect.clone());
-        }
-    }
 }
 
 pub fn linear_area_rect_points(
@@ -303,30 +276,32 @@ pub fn linear_area_rect_points(
     thickness: f32,
 ) -> [MapCoordF32; 4] {
     let half_thickness = thickness / 2.0;
-    let long_value = MAP_SIZE.width as f32 * 2.0;
-    let horizontal_rect = [
-        MapCoordF32::new(-long_value, half_thickness),
-        MapCoordF32::new(long_value, half_thickness),
-        MapCoordF32::new(long_value, -half_thickness),
-        MapCoordF32::new(-long_value, -half_thickness),
-    ];
-
-    let distance = center.distance(target);
     let dx = target.x - center.x;
     let dy = target.y - center.y;
-    let cos = dx / distance;
-    let sin = dy / distance;
-    [
-        rotate_around_origin(horizontal_rect[0], cos, sin) + center,
-        rotate_around_origin(horizontal_rect[1], cos, sin) + center,
-        rotate_around_origin(horizontal_rect[2], cos, sin) + center,
-        rotate_around_origin(horizontal_rect[3], cos, sin) + center,
-    ]
-}
-fn rotate_around_origin(point: MapCoordF32, cos: f32, sin: f32) -> MapCoordF32 {
-    let x = point.x * cos - point.y * sin;
-    let y = point.x * sin + point.y * cos;
-    MapCoordF32::new(x, y)
+    let distance = (dx * dx + dy * dy).sqrt();
+    let direction_x = dx / distance;
+    let direction_y = dy / distance;
+    let end_x = center.x + direction_x * LINEAR_AREA_LENGTH;
+    let end_y = center.y + direction_y * LINEAR_AREA_LENGTH;
+    let perpendicular_x = -direction_y;
+    let perpendicular_y = direction_x;
+    let p0 = MapCoordF32::new(
+        center.x + perpendicular_x * half_thickness,
+        center.y + perpendicular_y * half_thickness,
+    );
+    let p1 = MapCoordF32::new(
+        end_x + perpendicular_x * half_thickness,
+        end_y + perpendicular_y * half_thickness,
+    );
+    let p2 = MapCoordF32::new(
+        end_x - perpendicular_x * half_thickness,
+        end_y - perpendicular_y * half_thickness,
+    );
+    let p3 = MapCoordF32::new(
+        center.x - perpendicular_x * half_thickness,
+        center.y - perpendicular_y * half_thickness,
+    );
+    [p0, p1, p2, p3]
 }
 
 pub fn check_point_is_in_linear_area(points: &[MapCoordF32; 4], point: MapCoordF32) -> bool {

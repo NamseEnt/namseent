@@ -2,6 +2,7 @@ use super::*;
 
 pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
     game_state.render_cursor_preview(&ctx);
+    game_state.render_field_particles(&ctx);
     game_state.render_projectiles(&ctx);
     game_state.render_monsters(&ctx);
     game_state.render_route_guide(&ctx);
@@ -139,5 +140,9 @@ impl GameState {
 
     fn render_cursor_preview(&self, ctx: &ComposeCtx) {
         ctx.add(self.cursor_preview.render());
+    }
+
+    fn render_field_particles(&self, ctx: &ComposeCtx) {
+        self.field_particle_system_manager.render(ctx, self.now());
     }
 }

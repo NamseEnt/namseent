@@ -1,7 +1,9 @@
-mod background_asset_loader;
-mod tower_asset_loader;
+pub mod background_asset_loader;
+pub mod icon_asset_loader;
+pub mod tower_asset_loader;
 
 use background_asset_loader::{BackgroundAssetLoader, BackgroundAssetLoaderInitializer};
+use icon_asset_loader::IconAssetLoaderInitializer;
 use namui::*;
 use tower_asset_loader::{TowerAssetLoader, TowerAssetLoaderInitializer};
 
@@ -13,5 +15,6 @@ impl Component for AssetLoader {
     fn render(self, ctx: &namui::RenderCtx) {
         ctx.add(TowerAssetLoaderInitializer {});
         ctx.add(BackgroundAssetLoaderInitializer {});
+        ctx.add(IconAssetLoaderInitializer {});
     }
 }

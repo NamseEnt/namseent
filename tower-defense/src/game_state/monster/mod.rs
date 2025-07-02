@@ -72,6 +72,10 @@ impl Monster {
     pub fn xy(&self) -> MapCoordF32 {
         self.move_on_route.xy()
     }
+
+    pub fn id(&self) -> usize {
+        self.id
+    }
 }
 impl Component for &Monster {
     fn render(self, ctx: &RenderCtx) {

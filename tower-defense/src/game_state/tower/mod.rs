@@ -64,6 +64,10 @@ impl Tower {
         self.center_xy().map(|t| t as f32)
     }
 
+    pub fn id(&self) -> usize {
+        self.id
+    }
+
     fn calculate_projectile_damage(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
         let mut damage = self.default_damage;
 

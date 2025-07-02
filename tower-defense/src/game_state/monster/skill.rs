@@ -51,7 +51,7 @@ pub enum Target {
     MeAndNearby { radius: f32 },
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum MonsterStatusEffectKind {
     SpeedMul { mul: f32 },
     Invincible,
