@@ -264,7 +264,7 @@ pub(crate) fn http_fetch_on_response_body_done(fetch_id: u32) {
 }
 
 pub(crate) fn http_fetch_on_error(fetch_id: u32, message: String) {
-    eprintln!("http_fetch_on_error: {}", message);
+    eprintln!("http_fetch_on_error: {message}");
     if let Some((_, tx)) = error_from_js_txs().remove(&fetch_id) {
         let _ = tx.send(message.clone());
     };

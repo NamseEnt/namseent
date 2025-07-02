@@ -79,7 +79,7 @@ pub(crate) fn parse(text: impl AsRef<str>) -> Result<Vec<Token>, ParseError> {
                         // Treat the entire |content| as default text.
                         if tag_content.starts_with('/') {
                             tokens.push(Token::DefaultText {
-                                text: format!("|{}|", tag_content), // Include the delimiters
+                                text: format!("|{tag_content}|"), // Include the delimiters
                             });
                             cursor = end_delim1_abs + 1; // Move past the closing '|'
                             continue; // Restart loop
@@ -89,7 +89,7 @@ pub(crate) fn parse(text: impl AsRef<str>) -> Result<Vec<Token>, ParseError> {
                         let tag = tag_content; // Use tag_content as the tag name
 
                         // Check if it's a StyledText |Tag|Text|/Tag| or just an Image |Tag|
-                        let potential_closing_tag_marker = format!("|/{}|", tag);
+                        let potential_closing_tag_marker = format!("|/{tag}|");
                         let search_start_for_closing = end_delim1_abs + 1; // Position right after |Tag|
 
                         // Try to find the *full* closing marker |/Tag| in the rest of the string

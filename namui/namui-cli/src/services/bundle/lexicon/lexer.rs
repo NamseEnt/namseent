@@ -180,7 +180,7 @@ impl Lexer {
                 | Token::EndOfFile => {
                     break Ok(PathElement::FileOrDir {
                         raw_string: element_name_raw_string,
-                        regex: Regex::new(&format!("^{}$", element_name_regex))
+                        regex: Regex::new(&format!("^{element_name_regex}$"))
                             .map_err(|error| anyhow!("parse_path_element: {}", error))?,
                     });
                 }

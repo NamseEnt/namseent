@@ -5,13 +5,13 @@ use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
 
 #[wasm_bindgen]
 pub fn position_is_in_async_block(file_text: &str, position: LineColumn) -> Result<bool, JsValue> {
-    let file = syn::parse_file(file_text).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+    let file = syn::parse_file(file_text).map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
     Ok(find_cursor_located_expr_span(&file, position, ExprType::Async).is_ok())
 }
 
 #[wasm_bindgen]
 pub fn position_is_in_closure(file_text: &str, position: LineColumn) -> Result<bool, JsValue> {
-    let file = syn::parse_file(file_text).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+    let file = syn::parse_file(file_text).map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
     Ok(find_cursor_located_expr_span(&file, position, ExprType::Closure).is_ok())
 }
 
@@ -19,18 +19,18 @@ pub fn position_is_in_closure(file_text: &str, position: LineColumn) -> Result<b
 pub fn wrap_async_block_in_block(file_text: &str, position: LineColumn) -> Result<String, JsValue> {
     serde_json::to_string(
         &wrap_code_in_block_internal(file_text, position, ExprType::Async)
-            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?,
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?,
     )
-    .map_err(|e| JsValue::from_str(&format!("{:?}", e)))
+    .map_err(|e| JsValue::from_str(&format!("{e:?}")))
 }
 
 #[wasm_bindgen]
 pub fn wrap_closure_in_block(file_text: &str, position: LineColumn) -> Result<String, JsValue> {
     serde_json::to_string(
         &wrap_code_in_block_internal(file_text, position, ExprType::Closure)
-            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?,
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?,
     )
-    .map_err(|e| JsValue::from_str(&format!("{:?}", e)))
+    .map_err(|e| JsValue::from_str(&format!("{e:?}")))
 }
 
 fn wrap_code_in_block_internal(

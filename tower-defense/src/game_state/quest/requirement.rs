@@ -25,7 +25,7 @@ impl QuestRequirement {
     pub fn description(self, game_state: &GameState) -> String {
         match self {
             QuestRequirement::BuildTowerRankNew { rank, count } => {
-                format!("{}타워를 {}개 새로 건설하세요.", rank, count)
+                format!("{rank}타워를 {count}개 새로 건설하세요.")
             }
             QuestRequirement::BuildTowerHand { hand, count } => {
                 let current_count = game_state
@@ -34,12 +34,11 @@ impl QuestRequirement {
                     .filter(|tower| tower.kind == hand)
                     .count();
                 format!(
-                    "{}타워를 {}개 소유하세요. ({}/{})",
-                    hand, count, current_count, count
+                    "{hand}타워를 {count}개 소유하세요. ({current_count}/{count})"
                 )
             }
             QuestRequirement::BuildTowerHandNew { hand, count } => {
-                format!("{}타워를 {}개 새로 건설하세요.", hand, count)
+                format!("{hand}타워를 {count}개 새로 건설하세요.")
             }
             QuestRequirement::BuildTowerRank { rank, count } => {
                 let current_count = game_state
@@ -48,12 +47,11 @@ impl QuestRequirement {
                     .filter(|tower| tower.rank == rank)
                     .count();
                 format!(
-                    "{}타워를 {}개 소유하세요. ({}/{})",
-                    rank, count, current_count, count
+                    "{rank}타워를 {count}개 소유하세요. ({current_count}/{count})"
                 )
             }
             QuestRequirement::BuildTowerSuitNew { suit, count } => {
-                format!("{}타워를 {}개 새로 건설하세요.", suit, count)
+                format!("{suit}타워를 {count}개 새로 건설하세요.")
             }
             QuestRequirement::BuildTowerSuit { suit, count } => {
                 let current_count = game_state
@@ -62,27 +60,26 @@ impl QuestRequirement {
                     .filter(|tower| tower.suit == suit)
                     .count();
                 format!(
-                    "{}타워를 {}개 소유하세요. ({}/{})",
-                    suit, count, current_count, count
+                    "{suit}타워를 {count}개 소유하세요. ({current_count}/{count})"
                 )
             }
             QuestRequirement::ClearBossRoundWithoutItems => {
                 "아이템을 사용하지않고 보스라운드 클리어".to_string()
             }
             QuestRequirement::DealDamageWithItems { damage } => {
-                format!("아이템을 사용해 {}피해 입히기", damage)
+                format!("아이템을 사용해 {damage}피해 입히기")
             }
             QuestRequirement::BuildTowersWithoutReroll { count } => {
-                format!("리롤하지않고 타워 {}개 만들기", count)
+                format!("리롤하지않고 타워 {count}개 만들기")
             }
             QuestRequirement::UseReroll { count } => {
-                format!("리롤 {}회 사용하기", count)
+                format!("리롤 {count}회 사용하기")
             }
             QuestRequirement::SpendGold { gold } => {
-                format!("{}골드 사용하기", gold)
+                format!("{gold}골드 사용하기")
             }
             QuestRequirement::EarnGold { gold } => {
-                format!("{}골드 획득하기", gold)
+                format!("{gold}골드 획득하기")
             }
         }
     }

@@ -28,8 +28,8 @@ impl Display for ResourceLocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ResourceLocation::Bundle(path) => write!(f, "Bundle>> {}", path.display()),
-            ResourceLocation::KvStore(key) => write!(f, "KvStore>> {}", key),
-            ResourceLocation::Network(url) => write!(f, "Network>> {}", url),
+            ResourceLocation::KvStore(key) => write!(f, "KvStore>> {key}"),
+            ResourceLocation::Network(url) => write!(f, "Network>> {url}"),
         }
     }
 }

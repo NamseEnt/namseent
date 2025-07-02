@@ -37,7 +37,7 @@ pub async fn load_all_typefaces() -> Result<()> {
                 let bytes = get_file_from_bundle_with_cached(path)
                     .await
                     .map_err(|error| {
-                        eprintln!("error: {:?}", error);
+                        eprintln!("error: {error:?}");
                         anyhow!("Could not fetch {}: {}", path, error)
                     })?;
 

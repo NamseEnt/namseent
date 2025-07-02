@@ -58,13 +58,13 @@ mod tests {
         let c = a + b;
 
         assert_eq!(c, 75.percent());
-        assert_eq!(format!("{}", c), "75.0%");
+        assert_eq!(format!("{c}"), "75.0%");
     }
 
     #[test]
     fn percent_display_should_work() {
         let b = Percent::from_percent(150.0);
 
-        assert_eq!(format!("{}", b), "150.0%");
+        assert_eq!(format!("{b}"), "150.0%");
     }
 }

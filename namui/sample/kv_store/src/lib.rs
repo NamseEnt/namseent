@@ -16,7 +16,7 @@ fn render(ctx: &RenderCtx) {
 
     ctx.add(typography::body::left_top(
         match value.as_ref() {
-            Some(value) => format!("{:?}", value),
+            Some(value) => format!("{value:?}"),
             None => "None".to_string(),
         },
         Color::BLACK,

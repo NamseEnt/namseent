@@ -30,14 +30,14 @@ impl Component for MouseExample {
             .attach_event(|event| match event {
                 Event::MouseDown { event } => {
                     println!("Mouse Down");
-                    set_text.set(format!("Mouse Down: {:?}", event));
+                    set_text.set(format!("Mouse Down: {event:?}"));
                 }
                 Event::MouseMove { event } => {
-                    set_text.set(format!("Mouse Move: {:?}", event));
+                    set_text.set(format!("Mouse Move: {event:?}"));
                 }
                 Event::MouseUp { event } => {
                     println!("Mouse Up");
-                    set_text.set(format!("Mouse Up: {:?}", event));
+                    set_text.set(format!("Mouse Up: {event:?}"));
                 }
                 _ => {}
             }),

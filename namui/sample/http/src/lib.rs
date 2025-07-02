@@ -58,7 +58,7 @@ fn render(ctx: &RenderCtx) {
 
                                 let bytes_hex = bytes
                                     .iter()
-                                    .map(|byte| format!("{:02x}", byte))
+                                    .map(|byte| format!("{byte:02x}"))
                                     .collect::<Vec<String>>()
                                     .join("");
                                 let line = format!("\n[{}] {}", bytes_hex.len(), bytes_hex);
@@ -78,7 +78,7 @@ fn render(ctx: &RenderCtx) {
                             Err(err) => {
                                 let err = err.to_string();
                                 set_stream_content.mutate(move |content| {
-                                    let line = format!("\nstream error: {}", err);
+                                    let line = format!("\nstream error: {err}");
                                     if let Some(content) = content {
                                         *content += &line;
                                     } else {
@@ -91,7 +91,7 @@ fn render(ctx: &RenderCtx) {
                 }
                 Err(err) => {
                     let content = err.to_string();
-                    set_stream_content.set(Some(format!("stream error: {}", content)));
+                    set_stream_content.set(Some(format!("stream error: {content}")));
                 }
             }
         });
@@ -118,7 +118,7 @@ fn render(ctx: &RenderCtx) {
                 }
                 Err(err) => {
                     let content = err.to_string();
-                    set_stream_post_content.set(Some(format!("stream error: {}", content)));
+                    set_stream_post_content.set(Some(format!("stream error: {content}")));
                 }
             }
         });

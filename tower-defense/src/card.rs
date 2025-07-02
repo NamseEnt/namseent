@@ -16,7 +16,7 @@ impl Display for Suit {
             Suit::Diamonds => "◆",
             Suit::Clubs => "♣",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
@@ -70,7 +70,7 @@ impl Display for Rank {
             Rank::Queen => "Q",
             Rank::King => "K",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 pub const REVERSED_RANKS: [Rank; 8] = [

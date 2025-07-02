@@ -804,12 +804,12 @@ mod tests {
         leaf_node
             .keys()
             .zip(leaf_node.keys().skip(1))
-            .for_each(|(a, b)| assert!(a < b, "{:?} < {:?}", a, b));
+            .for_each(|(a, b)| assert!(a < b, "{a:?} < {b:?}"));
 
         new_leaf_node
             .keys()
             .zip(new_leaf_node.keys().skip(1))
-            .for_each(|(a, b)| assert!(a < b, "{:?} < {:?}", a, b));
+            .for_each(|(a, b)| assert!(a < b, "{a:?} < {b:?}"));
 
         for key in inserted_keys {
             assert!(leaf_node.contains(key) || new_leaf_node.contains(key));

@@ -14,7 +14,7 @@ impl TokenConsume for IntoIter {
         match token {
             TokenTree::Group(group) => group,
             _ => {
-                panic!("expected group, but got {:?}", token)
+                panic!("expected group, but got {token:?}")
             }
         }
     }
@@ -27,7 +27,7 @@ impl TokenConsume for IntoIter {
                 group
             }
             _ => {
-                panic!("expected group, but got {:?}", token)
+                panic!("expected group, but got {token:?}")
             }
         }
     }
@@ -36,7 +36,7 @@ impl TokenConsume for IntoIter {
         match token {
             TokenTree::Ident(ident) => ident,
             _ => {
-                panic!("expected ident, but got {:?}", token)
+                panic!("expected ident, but got {token:?}")
             }
         }
     }
@@ -55,11 +55,11 @@ impl TokenConsume for IntoIter {
                 if punct == expected_punct {
                     punct
                 } else {
-                    panic!("expected {:?}, but got {:?}", expected_punct, punct)
+                    panic!("expected {expected_punct:?}, but got {punct:?}")
                 }
             }
             _ => {
-                panic!("expected punct {:?}, but got {:?}", expected_punct, token)
+                panic!("expected punct {expected_punct:?}, but got {token:?}")
             }
         }
     }

@@ -33,7 +33,7 @@ impl Component for TextInputExample {
         ctx.compose(|ctx| {
             for x in 0..3 {
                 for y in 0..3 {
-                    let key = format!("{}-{}", x, y);
+                    let key = format!("{x}-{y}");
                     ctx.add_with_key(
                         key,
                         text_input::TextInput {

@@ -251,13 +251,13 @@ fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
     for (target, tower_upgrade_state) in &state.tower_upgrade_states {
         let target_text = match target {
             TowerUpgradeTarget::Rank { rank } => {
-                format!("랭크가 {}인 타워의", rank)
+                format!("랭크가 {rank}인 타워의")
             }
             TowerUpgradeTarget::Suit { suit } => {
-                format!("문양이 {}인 타워의", suit)
+                format!("문양이 {suit}인 타워의")
             }
             TowerUpgradeTarget::TowerKind { tower_kind } => {
-                format!("{} 타워의", tower_kind)
+                format!("{tower_kind} 타워의")
             }
             TowerUpgradeTarget::EvenOdd { even } => {
                 format!("{} 타워의", if *even { "짝수" } else { "홀수" })

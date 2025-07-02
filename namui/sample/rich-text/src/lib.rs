@@ -5,8 +5,7 @@ use namui_prebuilt::rich_text::*;
 
 pub fn main() {
     namui::start(|ctx: &RenderCtx| {
-        let Some(Ok(ref apple_image)) =
-            *ctx.image(ResourceLocation::bundle("resources/apple.png"))
+        let Some(Ok(ref apple_image)) = *ctx.image(ResourceLocation::bundle("resources/apple.png"))
         else {
             return;
         };
@@ -63,7 +62,7 @@ pub fn main() {
             .into_iter()
             .collect::<HashMap<_, _>>(),
             on_parse_error: Some(&|err| {
-                println!("Parse error: {:?}", err);
+                println!("Parse error: {err:?}");
             }),
         });
 

@@ -65,8 +65,7 @@ impl QuestTrackingState {
                 new_built_count,
             } => {
                 format!(
-                    "{}타워를 {}개 새로 건설하세요. ({}/{})",
-                    rank, target_count, new_built_count, target_count
+                    "{rank}타워를 {target_count}개 새로 건설하세요. ({new_built_count}/{target_count})"
                 )
             }
             QuestTrackingState::BuildTowerRank { rank, target_count } => {
@@ -76,8 +75,7 @@ impl QuestTrackingState {
                     .filter(|tower| tower.rank == *rank)
                     .count();
                 format!(
-                    "{}타워를 {}개 소유하세요. ({}/{})",
-                    rank, target_count, current_count, target_count
+                    "{rank}타워를 {target_count}개 소유하세요. ({current_count}/{target_count})"
                 )
             }
             QuestTrackingState::BuildTowerSuitNew {
@@ -86,8 +84,7 @@ impl QuestTrackingState {
                 new_built_count,
             } => {
                 format!(
-                    "{}타워를 {}개 새로 건설하세요. ({}/{})",
-                    suit, target_count, new_built_count, target_count
+                    "{suit}타워를 {target_count}개 새로 건설하세요. ({new_built_count}/{target_count})"
                 )
             }
             QuestTrackingState::BuildTowerSuit { suit, target_count } => {
@@ -97,8 +94,7 @@ impl QuestTrackingState {
                     .filter(|tower| tower.suit == *suit)
                     .count();
                 format!(
-                    "{}타워를 {}개 소유하세요. ({}/{})",
-                    suit, target_count, current_count, target_count
+                    "{suit}타워를 {target_count}개 소유하세요. ({current_count}/{target_count})"
                 )
             }
             QuestTrackingState::BuildTowerHandNew {
@@ -107,8 +103,7 @@ impl QuestTrackingState {
                 new_built_count,
             } => {
                 format!(
-                    "{}타워를 {}개 새로 건설하세요. ({}/{})",
-                    hand, target_count, new_built_count, target_count
+                    "{hand}타워를 {target_count}개 새로 건설하세요. ({new_built_count}/{target_count})"
                 )
             }
             QuestTrackingState::BuildTowerHand { hand, target_count } => {
@@ -118,8 +113,7 @@ impl QuestTrackingState {
                     .filter(|tower| tower.kind == *hand)
                     .count();
                 format!(
-                    "{}타워를 {}개 소유하세요. ({}/{})",
-                    hand, target_count, current_count, target_count
+                    "{hand}타워를 {target_count}개 소유하세요. ({current_count}/{target_count})"
                 )
             }
             QuestTrackingState::ClearBossRoundWithoutItems => {
@@ -130,8 +124,7 @@ impl QuestTrackingState {
                 dealt_damage,
             } => {
                 format!(
-                    "아이템을 사용해 {}피해 입히기 ({}/{})",
-                    target_damage, dealt_damage, target_damage
+                    "아이템을 사용해 {target_damage}피해 입히기 ({dealt_damage}/{target_damage})"
                 )
             }
             QuestTrackingState::BuildTowersWithoutReroll {
@@ -139,8 +132,7 @@ impl QuestTrackingState {
                 built_count,
             } => {
                 format!(
-                    "리롤하지않고 타워 {}개 만들기 ({}/{})",
-                    target_count, built_count, target_count
+                    "리롤하지않고 타워 {target_count}개 만들기 ({built_count}/{target_count})"
                 )
             }
             QuestTrackingState::UseReroll {
@@ -148,8 +140,7 @@ impl QuestTrackingState {
                 rolled_count,
             } => {
                 format!(
-                    "리롤 {}회 사용하기 ({}/{})",
-                    target_count, rolled_count, target_count
+                    "리롤 {target_count}회 사용하기 ({rolled_count}/{target_count})"
                 )
             }
             QuestTrackingState::SpendGold {
@@ -157,8 +148,7 @@ impl QuestTrackingState {
                 spent_gold,
             } => {
                 format!(
-                    "{}골드 사용하기 ({}/{})",
-                    target_gold, spent_gold, target_gold
+                    "{target_gold}골드 사용하기 ({spent_gold}/{target_gold})"
                 )
             }
             QuestTrackingState::EarnGold {
@@ -166,8 +156,7 @@ impl QuestTrackingState {
                 earned_gold,
             } => {
                 format!(
-                    "{}골드 획득하기 ({}/{})",
-                    target_gold, earned_gold, target_gold
+                    "{target_gold}골드 획득하기 ({earned_gold}/{target_gold})"
                 )
             }
         }

@@ -595,7 +595,7 @@ mod tests {
             .ids()
             .iter()
             .zip(leaf_node.ids().iter().skip(1))
-            .for_each(|(a, b)| assert!(a < b, "{:?} < {:?}", a, b));
+            .for_each(|(a, b)| assert!(a < b, "{a:?} < {b:?}"));
 
         new_leaf_node
             .ids()
@@ -607,7 +607,7 @@ mod tests {
                     .skip(1)
                     .take(new_leaf_node.id_count as usize),
             )
-            .for_each(|(a, b)| assert!(a < b, "{:?} < {:?}", a, b));
+            .for_each(|(a, b)| assert!(a < b, "{a:?} < {b:?}"));
 
         for id in inserted_ids {
             assert!(leaf_node.contains(id) || new_leaf_node.contains(id));
