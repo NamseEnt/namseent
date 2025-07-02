@@ -57,6 +57,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
     } = game_state;
 
     let mut total_earn_gold = 0;
+    let mut damage_emitters = Vec::new();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -69,7 +70,6 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
         };
 
         let monster = &mut monsters[monster_index];
-
         let monster_xy = monster.move_on_route.xy();
 
         if (monster_xy - start_xy).length() > projectile.velocity * dt {
@@ -77,20 +77,47 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
             return true;
         }
 
-        monster.get_damage(projectile.damage);
+        let damage = projectile.damage;
+        monster.get_damage(damage);
+        if damage > 0.0 {
+            damage_emitters.push(
+                crate::game_state::field_particle::emitter::DamageTextEmitter::new(
+                    monster_xy, damage,
+                ),
+            );
+        }
 
         if monster.dead() {
             let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
             total_earn_gold += earn;
-
             monsters.swap_remove(monster_index);
         }
 
         false
     });
 
+    emit_damage_text_particles(game_state, damage_emitters);
+
     if total_earn_gold > 0 {
         game_state.earn_gold(total_earn_gold);
+    }
+}
+
+fn emit_damage_text_particles(
+    game_state: &mut GameState,
+    emitters: Vec<crate::game_state::field_particle::emitter::DamageTextEmitter>,
+) {
+    if !emitters.is_empty() {
+        let field_emitters =
+            emitters
+                .into_iter()
+                .map(|emitter| {
+                    crate::game_state::field_particle::FieldParticleEmitter::DamageText { emitter }
+                })
+                .collect::<Vec<_>>();
+        game_state
+            .field_particle_system_manager
+            .add_emitters(field_emitters);
     }
 }
 
