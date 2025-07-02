@@ -49,7 +49,7 @@ impl Component for IconAssetLoaderInitializer {
                             asset_map.insert(resource_location.clone(), image.clone());
                         }
                         Err(error) => {
-                            println!("Failed to load icon image: {:?}", error);
+                            println!("Failed to load icon image: {error:?}");
                         }
                     }
                 }
@@ -91,6 +91,6 @@ impl IconAssetKind {
         let asset_id = match self {
             IconAssetKind::Icon(kind) => kind.asset_id(),
         };
-        ResourceLocation::bundle(format!("asset/image/icon/{}.png", asset_id))
+        ResourceLocation::bundle(format!("asset/image/icon/{asset_id}.png"))
     }
 }
