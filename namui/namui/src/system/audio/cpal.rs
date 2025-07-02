@@ -43,7 +43,7 @@ pub(super) async fn init() -> InitResult {
 
         loop {
             if let Err(error) = tick_in_checking_device_change(&host, &mut rx).await {
-                eprintln!("NAMUI: audio tick error: {:?}", error);
+                eprintln!("NAMUI: audio tick error: {error:?}");
             };
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         }
@@ -209,12 +209,12 @@ async fn tick_in_checking_device_change(
         T: SizedSample + Debug + FromSample<f32>,
         <T as Sample>::Signed: FromSample<f32>,
     {
-        println!("NAMUI: audio config: {:?}", config);
+        println!("NAMUI: audio config: {config:?}");
         let (err_tx, mut err_rx) = tokio::sync::oneshot::channel();
         let mut err_tx = Some(err_tx);
 
         let err_fn = move |err| {
-            eprintln!("NAMUI: an error occurred on audio output stream: {}", err);
+            eprintln!("NAMUI: an error occurred on audio output stream: {err}");
 
             if let StreamError::DeviceNotAvailable = err {
                 if let Some(err_tx) = err_tx.take() {

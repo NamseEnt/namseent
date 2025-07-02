@@ -43,7 +43,7 @@ impl PathLike for &Url {
         PathBuf::from(
             percent_decode_str(path)
                 .decode_utf8()
-                .unwrap_or_else(|_| panic!("invalid url path: {}", path))
+                .unwrap_or_else(|_| panic!("invalid url path: {path}"))
                 .into_owned(),
         )
     }

@@ -374,7 +374,7 @@ impl Component for ShopItemContent<'_> {
                                     table::fixed(48.px(), |wh, ctx| {
                                         ctx.add(button::TextButton {
                                             rect: wh.to_rect(),
-                                            text: format!("${}", cost),
+                                            text: format!("${cost}"),
                                             text_color: match available {
                                                 true => palette::ON_PRIMARY,
                                                 false => palette::ON_SURFACE,

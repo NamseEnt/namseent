@@ -95,7 +95,7 @@ fn format_stat(base: f32, plus: f32, multiplier: f32) -> String {
         ),
         (true, false) => format!("{:.1} ({:.1}+{:.1})", base + plus, base, plus),
         (false, true) => format!("{:.1} ({:.1}*{:.1})", base * multiplier, base, multiplier),
-        (false, false) => format!("{:.1}", base),
+        (false, false) => format!("{base:.1}"),
     }
 }
 

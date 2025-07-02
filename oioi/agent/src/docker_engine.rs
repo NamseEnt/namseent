@@ -32,7 +32,7 @@ impl DockerEngine {
                 container
                     .names
                     .as_ref()
-                    .map(|names| names.contains(&format!("/{}", CONTAINER_NAME)))
+                    .map(|names| names.contains(&format!("/{CONTAINER_NAME}")))
                     .unwrap_or(false)
             })
             .map(|container| OioiContainerConfig {
@@ -142,7 +142,7 @@ impl DockerEngine {
                                 .port_mappings
                                 .iter()
                                 .map(|mapping| {
-                                    println!("mapping: {:?}", mapping);
+                                    println!("mapping: {mapping:?}");
                                     (
                                         format!("{}/{}", mapping.container_port, mapping.protocol),
                                         Some(vec![bollard::models::PortBinding {

@@ -78,11 +78,11 @@ impl<Root: Component + Clone> Looper<Root> {
             );
             for (event_type, count) in &mut self.event_type_count {
                 if *count > 0 {
-                    text += &format!(" / {:?}: {}", event_type, count);
+                    text += &format!(" / {event_type:?}: {count}");
                     *count = 0;
                 }
             }
-            println!("\u{0081}{}", text);
+            println!("\u{0081}{text}");
             self.one_sec_render_count = 0;
             self.one_sec_timer = std::time::Instant::now();
             self.render_time_sum = 0.ms();

@@ -23,7 +23,7 @@ pub fn print_build_result(
         );
     }
     for error_message in cli_error_messages {
-        println!("{}\n", error_message);
+        println!("{error_message}\n");
     }
 }
 

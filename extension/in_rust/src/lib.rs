@@ -42,9 +42,9 @@ pub fn clone_to_closure(
 ) -> Result<String, JsValue> {
     serde_json::to_string(
         &clone_to_closure_internal(file_text, move_keyword_lc, variable_name, borrowing_lc)
-            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?,
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?,
     )
-    .map_err(|e| JsValue::from_str(&format!("{:?}", e)))
+    .map_err(|e| JsValue::from_str(&format!("{e:?}")))
 }
 
 fn clone_to_closure_internal(

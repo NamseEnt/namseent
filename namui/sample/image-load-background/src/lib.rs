@@ -35,7 +35,7 @@ impl Component for App {
                     else {
                         continue;
                     };
-                    let key = format!("{}-{}", x, y);
+                    let key = format!("{x}-{y}");
                     let rect = Rect::Xywh {
                         x: image_width * x,
                         y: image_height * y,

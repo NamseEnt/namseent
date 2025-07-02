@@ -107,7 +107,7 @@ impl Component for HPAndGoldIndicator {
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(Headline {
-                                text: format!("{}", gold),
+                                text: format!("{gold}"),
                                 font_size: typography::FontSize::Medium,
                                 text_align: typography::TextAlign::RightTop { width: wh.width },
                                 max_width: None,
@@ -140,7 +140,7 @@ impl Component for StageIndicator {
             table::horizontal(
                 once(table::fixed(px(64.), |wh, ctx| {
                     ctx.add(Headline {
-                        text: format!("Stage {}", stage),
+                        text: format!("Stage {stage}"),
                         font_size: typography::FontSize::Medium,
                         text_align: typography::TextAlign::Center { wh },
                         max_width: None,
@@ -202,7 +202,7 @@ impl Component for LevelIndicator {
             table::horizontal([
                 table::fixed(px(64.), |wh, ctx| {
                     ctx.add(Headline {
-                        text: format!("Level {}", level),
+                        text: format!("Level {level}"),
                         font_size: typography::FontSize::Medium,
                         text_align: typography::TextAlign::Center { wh },
                         max_width: None,
@@ -213,7 +213,7 @@ impl Component for LevelIndicator {
                     table::padding(PADDING, |wh, ctx| {
                         ctx.add(button::TextButton {
                             rect: wh.to_rect(),
-                            text: format!("레벨업 {}", level_up_cost),
+                            text: format!("레벨업 {level_up_cost}"),
                             text_color: match can_upgrade {
                                 true => palette::ON_PRIMARY,
                                 false => palette::ON_SURFACE,

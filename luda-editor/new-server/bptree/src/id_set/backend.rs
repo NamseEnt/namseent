@@ -176,7 +176,7 @@ impl Backend {
                 }
 
                 if result.is_err() {
-                    eprintln!("Error: {:?}", result);
+                    eprintln!("Error: {result:?}");
                 }
 
                 let no_error = result.is_ok();
@@ -231,7 +231,7 @@ impl Backend {
                 return Ok(());
             }
 
-            eprintln!("Error on writing staled pages: {:?}", result);
+            eprintln!("Error on writing staled pages: {result:?}");
             tokio::time::sleep(sleep_time).await;
             sleep_time = (sleep_time * 2).max(Duration::from_secs(4));
         }
