@@ -92,3 +92,64 @@ fn test_royal_flush_skip_rank_and_shorten_4cards() {
     assert_eq!(template.suit, Suit::Hearts);
     assert_eq!(template.rank, Rank::Ace);
 }
+
+#[test]
+fn test_royal_flush_treat_suits_as_same() {
+    let cards = vec![
+        make_card(Suit::Hearts, Rank::Ten),
+        make_card(Suit::Diamonds, Rank::Jack),
+        make_card(Suit::Hearts, Rank::Queen),
+        make_card(Suit::Diamonds, Rank::King),
+        make_card(Suit::Hearts, Rank::Ace),
+    ];
+    let upgrade_state = UpgradeState {
+        treat_suits_as_same: true,
+        ..UpgradeState::default()
+    };
+    let rerolled_count = 0;
+    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    assert_eq!(template.kind, TowerKind::RoyalFlush);
+    assert!(template.suit == Suit::Hearts || template.suit == Suit::Diamonds);
+    assert_eq!(template.rank, Rank::Ace);
+}
+
+#[test]
+fn test_royal_flush_treat_suits_as_same_and_shorten_4cards() {
+    let cards = vec![
+        make_card(Suit::Diamonds, Rank::Jack),
+        make_card(Suit::Diamonds, Rank::Queen),
+        make_card(Suit::Hearts, Rank::King),
+        make_card(Suit::Hearts, Rank::Ace),
+    ];
+    let upgrade_state = UpgradeState {
+        treat_suits_as_same: true,
+        shorten_straight_flush_to_4_cards: true,
+        ..UpgradeState::default()
+    };
+    let rerolled_count = 0;
+    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    assert_eq!(template.kind, TowerKind::RoyalFlush);
+    assert!(template.suit == Suit::Hearts || template.suit == Suit::Diamonds);
+    assert_eq!(template.rank, Rank::Ace);
+}
+
+#[test]
+fn test_royal_flush_treat_suits_as_same_and_shorten_4cards_and_skip_rank_for_straight() {
+    let cards = vec![
+        make_card(Suit::Hearts, Rank::Ten),
+        make_card(Suit::Diamonds, Rank::Jack),
+        make_card(Suit::Diamonds, Rank::Queen),
+        make_card(Suit::Hearts, Rank::Ace),
+    ];
+    let upgrade_state = UpgradeState {
+        treat_suits_as_same: true,
+        shorten_straight_flush_to_4_cards: true,
+        skip_rank_for_straight: true,
+        ..UpgradeState::default()
+    };
+    let rerolled_count = 0;
+    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    assert_eq!(template.kind, TowerKind::RoyalFlush);
+    assert!(template.suit == Suit::Hearts || template.suit == Suit::Diamonds);
+    assert_eq!(template.rank, Rank::Ace);
+}
