@@ -1,5 +1,5 @@
 use crate::card::{Card, Rank, Suit};
-use crate::game_state::GameState;
+use crate::game_state::upgrade::UpgradeState;
 use std::collections::HashMap;
 
 pub struct StraightResult {
@@ -11,12 +11,12 @@ pub struct FlushResult {
     pub suit: Suit,
 }
 
-pub fn check_straight(cards: &[Card], game_state: &GameState) -> Option<StraightResult> {
-    let straight_card_count = match game_state.upgrade_state.shorten_straight_flush_to_4_cards {
+pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<StraightResult> {
+    let straight_card_count = match upgrade_state.shorten_straight_flush_to_4_cards {
         true => 4,
         false => 5,
     };
-    let skip_rank_for_straight = game_state.upgrade_state.skip_rank_for_straight;
+    let skip_rank_for_straight = upgrade_state.skip_rank_for_straight;
 
     if cards.len() < straight_card_count {
         return None;
@@ -87,12 +87,12 @@ pub fn check_straight(cards: &[Card], game_state: &GameState) -> Option<Straight
     }
 }
 
-pub fn check_flush(cards: &[Card], game_state: &GameState) -> Option<FlushResult> {
-    let flush_card_count = match game_state.upgrade_state.shorten_straight_flush_to_4_cards {
+pub fn check_flush(cards: &[Card], upgrade_state: &UpgradeState) -> Option<FlushResult> {
+    let flush_card_count = match upgrade_state.shorten_straight_flush_to_4_cards {
         true => 4,
         false => 5,
     };
-    let treat_suits_as_same = game_state.upgrade_state.treat_suits_as_same;
+    let treat_suits_as_same = upgrade_state.treat_suits_as_same;
 
     if cards.len() < flush_card_count {
         return None;
