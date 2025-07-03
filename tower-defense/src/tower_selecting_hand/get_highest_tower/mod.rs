@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod tests;
 mod tower_hand_ranking;
 mod tower_skill_injector;
 mod tower_status_effect_injector;
