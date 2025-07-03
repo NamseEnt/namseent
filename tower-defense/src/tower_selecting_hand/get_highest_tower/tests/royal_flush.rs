@@ -53,3 +53,42 @@ fn test_royal_flush_4cards_with_upgrade() {
     assert_eq!(template.suit, Suit::Hearts);
     assert_eq!(template.rank, Rank::Ace);
 }
+
+#[test]
+fn test_royal_flush_skip_rank() {
+    let cards = vec![
+        make_card(Suit::Hearts, Rank::Ten),
+        make_card(Suit::Hearts, Rank::Jack),
+        make_card(Suit::Hearts, Rank::Queen),
+        make_card(Suit::Hearts, Rank::Ace),
+    ];
+    let upgrade_state = UpgradeState {
+        skip_rank_for_straight: true,
+        ..UpgradeState::default()
+    };
+    let rerolled_count = 0;
+    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    assert_eq!(template.kind, TowerKind::High);
+    assert_eq!(template.suit, Suit::Hearts);
+    assert_eq!(template.rank, Rank::Ace);
+}
+
+#[test]
+fn test_royal_flush_skip_rank_and_shorten_4cards() {
+    let cards = vec![
+        make_card(Suit::Hearts, Rank::Ten),
+        make_card(Suit::Hearts, Rank::Queen),
+        make_card(Suit::Hearts, Rank::Ace),
+        make_card(Suit::Hearts, Rank::Jack),
+    ];
+    let upgrade_state = UpgradeState {
+        skip_rank_for_straight: true,
+        shorten_straight_flush_to_4_cards: true,
+        ..UpgradeState::default()
+    };
+    let rerolled_count = 0;
+    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    assert_eq!(template.kind, TowerKind::RoyalFlush);
+    assert_eq!(template.suit, Suit::Hearts);
+    assert_eq!(template.rank, Rank::Ace);
+}

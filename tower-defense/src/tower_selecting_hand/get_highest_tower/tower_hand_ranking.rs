@@ -33,17 +33,58 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         })
         .collect::<Vec<_>>();
     cards_ace_as_high.sort_by(|a, b| a.0.cmp(&b.0));
-    let straight = check_rank(
+    if let Some((start_idx, end_idx, _)) = check_rank(
         &cards_ace_as_high,
         straight_card_count,
         skip_rank_for_straight,
-    );
-    if straight {
+    ) {
+        let straight_slice = &cards_ace_as_high[start_idx..=end_idx];
+        let ranks: Vec<usize> = straight_slice.iter().map(|(r, _)| *r).collect();
+        let is_royal = if straight_card_count == 5 {
+            [
+                Rank::Ten as usize,
+                Rank::Jack as usize,
+                Rank::Queen as usize,
+                Rank::King as usize,
+                Rank::Ace as usize,
+            ]
+            .iter()
+            .all(|r| ranks.contains(r))
+        } else if straight_card_count == 4 {
+            if skip_rank_for_straight {
+                // 10-J-Q-A, J-Q-K-A, 10-Q-K-A 등 4장 royal 허용 (랭크 건너뛰기 포함)
+                let has_10 = ranks.contains(&(Rank::Ten as usize));
+                let has_j = ranks.contains(&(Rank::Jack as usize));
+                let has_q = ranks.contains(&(Rank::Queen as usize));
+                let has_k = ranks.contains(&(Rank::King as usize));
+                let has_a = ranks.contains(&(Rank::Ace as usize));
+                has_a && has_q && (has_10 || has_j) && (has_j || has_k)
+            } else {
+                // 연속된 4장 royal 확인: 10-J-Q-K 또는 J-Q-K-A
+                let royal_sequences = [
+                    [
+                        Rank::Ten as usize,
+                        Rank::Jack as usize,
+                        Rank::Queen as usize,
+                        Rank::King as usize,
+                    ],
+                    [
+                        Rank::Jack as usize,
+                        Rank::Queen as usize,
+                        Rank::King as usize,
+                        Rank::Ace as usize,
+                    ],
+                ];
+                royal_sequences
+                    .iter()
+                    .any(|sequence| sequence.iter().all(|r| ranks.contains(r)))
+            }
+        } else {
+            false
+        };
         return Some(StraightResult {
-            royal: cards_ace_as_high
-                .iter()
-                .any(|(rank, _)| *rank == Rank::Ace as usize),
-            top: *cards_ace_as_high.last().unwrap().1,
+            royal: is_royal,
+            top: *straight_slice.last().unwrap().1,
         });
     }
 
@@ -52,23 +93,28 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         .map(|card| (card.rank as usize, card))
         .collect::<Vec<_>>();
     cards_ace_as_low.sort_by(|a, b| a.0.cmp(&b.0));
-    let straight = check_rank(
+    if let Some((start_idx, end_idx, _)) = check_rank(
         &cards_ace_as_low,
         straight_card_count,
         skip_rank_for_straight,
-    );
-    if straight {
+    ) {
+        let straight_slice = &cards_ace_as_low[start_idx..=end_idx];
         return Some(StraightResult {
             royal: false,
-            top: *cards_ace_as_low.last().unwrap().1,
+            top: *straight_slice.last().unwrap().1,
         });
     }
 
     return None;
 
-    fn check_rank(cards: &[(usize, &Card)], straight_card_count: usize, skip_rank: bool) -> bool {
+    fn check_rank(
+        cards: &[(usize, &Card)],
+        straight_card_count: usize,
+        skip_rank: bool,
+    ) -> Option<(usize, usize, usize)> {
         let mut count = 1;
         let mut skips = 0;
+        let mut start = 0;
         for i in 1..cards.len() {
             if cards[i].0 == cards[i - 1].0 + 1 {
                 count += 1;
@@ -78,12 +124,13 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
             } else {
                 count = 1;
                 skips = 0;
+                start = i;
             }
             if count == straight_card_count {
-                return true;
+                return Some((start, i, skips));
             }
         }
-        false
+        None
     }
 }
 

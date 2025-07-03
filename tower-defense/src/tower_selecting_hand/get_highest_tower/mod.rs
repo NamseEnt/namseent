@@ -24,7 +24,7 @@ pub fn get_highest_tower_template(
     let flush_result = check_flush(cards, upgrade_state);
 
     if let (Some(straight_result), Some(flush_result)) = (&straight_result, &flush_result) {
-        if straight_result.royal {
+        if straight_result.royal && straight_result.top.rank == crate::card::Rank::Ace {
             let mut template = create_tower_template(
                 TowerKind::RoyalFlush,
                 flush_result.suit,
