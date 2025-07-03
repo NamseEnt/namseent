@@ -47,7 +47,13 @@ impl Component for TowerSelectingHand<'_> {
             }
             cards.to_vec()
         });
-        let tower_template = ctx.memo(|| get_highest_tower_template(&using_cards, &game_state));
+        let tower_template = ctx.memo(|| {
+            get_highest_tower_template(
+                &using_cards,
+                &game_state.upgrade_state,
+                game_state.rerolled_count,
+            )
+        });
 
         let reroll_selected = || {
             if game_state.left_reroll_chance == 0 || selected.is_empty() {
