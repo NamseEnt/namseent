@@ -246,8 +246,7 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
         }
     }
 
-    let reroll_count = game_state.max_reroll_chance() - game_state.left_reroll_chance;
-    if reroll_count == 0 {
+    if game_state.rerolled_count == 0 {
         if let Some(upgrade) = game_state
             .upgrade_state
             .tower_select_upgrade_states
@@ -255,8 +254,8 @@ fn inject_status_effects(tower: &mut TowerTemplate, game_state: &GameState) {
         {
             inject_tower_upgrades(upgrade);
         }
-    } else {
-        for _ in 0..reroll_count {
+    } else if game_state.rerolled_count > 0 {
+        for _ in 0..game_state.rerolled_count {
             if let Some(upgrade) = game_state
                 .upgrade_state
                 .tower_select_upgrade_states
