@@ -1,4 +1,5 @@
 mod monster_hp_bar;
+mod monster_kind;
 mod monster_template;
 mod move_monsters;
 mod render;
@@ -9,6 +10,7 @@ use crate::{
     game_state::projectile::ProjectileTargetIndicator,
     route::{MoveOnRoute, Route},
 };
+pub use monster_kind::MonsterKind;
 pub use monster_template::MonsterTemplate;
 pub use move_monsters::move_monsters;
 use namui::*;
@@ -92,50 +94,4 @@ impl Monster {
     pub fn id(&self) -> usize {
         self.id
     }
-}
-
-#[derive(Clone, Copy)]
-pub enum MonsterKind {
-    Mob01,
-    Mob02,
-    Mob03,
-    Mob04,
-    Mob05,
-    Mob06,
-    Mob07,
-    Mob08,
-    Mob09,
-    Mob10,
-    Mob11,
-    Mob12,
-    Mob13,
-    Mob14,
-    Mob15,
-    Named01,
-    Named02,
-    Named03,
-    Named04,
-    Named05,
-    Named06,
-    Named07,
-    Named08,
-    Named09,
-    Named10,
-    Named11,
-    Named12,
-    Named13,
-    Named14,
-    Named15,
-    Named16,
-    Boss01,
-    Boss02,
-    Boss03,
-    Boss04,
-    Boss05,
-    Boss06,
-    Boss07,
-    Boss08,
-    Boss09,
-    Boss10,
-    Boss11,
 }
