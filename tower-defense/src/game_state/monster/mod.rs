@@ -7,13 +7,14 @@ mod skill;
 
 use crate::{
     MapCoordF32,
-    game_state::projectile::ProjectileTargetIndicator,
+    game_state::{monster::render::MonsterAnimation, projectile::ProjectileTargetIndicator},
     route::{MoveOnRoute, Route},
 };
 pub use monster_kind::MonsterKind;
 pub use monster_template::MonsterTemplate;
 pub use move_monsters::move_monsters;
 use namui::*;
+pub use render::monster_animation_tick;
 pub use skill::{
     MonsterSkill, MonsterSkillTemplate, MonsterStatusEffect, MonsterStatusEffectKind,
     PrebuiltSkill, activate_monster_skills, remove_monster_finished_status_effects,
@@ -36,6 +37,7 @@ pub struct Monster {
     pub status_effects: Vec<MonsterStatusEffect>,
     pub damage: f32,
     pub reward: usize,
+    pub animation: MonsterAnimation,
 }
 impl Monster {
     pub fn new(template: &MonsterTemplate, route: Arc<Route>, now: Instant) -> Self {
@@ -55,6 +57,7 @@ impl Monster {
             status_effects: vec![],
             damage: template.damage,
             reward: template.reward,
+            animation: MonsterAnimation::new(),
         }
     }
     pub fn get_damage(&mut self, damage: f32) {
@@ -93,5 +96,23 @@ impl Monster {
 
     pub fn id(&self) -> usize {
         self.id
+    }
+    pub fn get_speed_multiplier(&self) -> f32 {
+        let is_immune_to_slow = self.status_effects.iter().any(|status_effect| {
+            matches!(status_effect.kind, MonsterStatusEffectKind::ImmuneToSlow)
+        });
+        let mut speed_multiplier = 1.0f32;
+        for status_effect in &self.status_effects {
+            match status_effect.kind {
+                MonsterStatusEffectKind::SpeedMul { mul } => {
+                    if is_immune_to_slow && mul < 1.0 {
+                        continue;
+                    }
+                    speed_multiplier *= mul;
+                }
+                MonsterStatusEffectKind::Invincible | MonsterStatusEffectKind::ImmuneToSlow => {}
+            }
+        }
+        speed_multiplier
     }
 }

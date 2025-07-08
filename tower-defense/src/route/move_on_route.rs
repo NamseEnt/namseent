@@ -29,6 +29,9 @@ impl MoveOnRoute {
     pub fn xy(&self) -> Xy<f32> {
         self.map_coord
     }
+    pub fn velocity(&self) -> Velocity {
+        self.velocity
+    }
 
     pub(crate) fn move_by(&mut self, dt: Duration) {
         let mut movable_distance = self.velocity * dt;
