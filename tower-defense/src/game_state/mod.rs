@@ -34,7 +34,7 @@ use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
 use item::Item;
 pub use level_rarity_weight::level_rarity_weight;
-use monster::*;
+pub use monster::*;
 use monster_spawn::*;
 use namui::*;
 use projectile::*;
