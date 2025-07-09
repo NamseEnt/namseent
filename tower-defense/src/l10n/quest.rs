@@ -45,7 +45,7 @@ pub enum QuestText {
 }
 
 impl QuestText {
-    pub fn to_korean(&self) -> String {
+    fn to_korean(&self) -> String {
         match self {
             QuestText::BuildTowerRankNew { rank, count } => {
                 format!("{rank}타워를 {count}개 새로 건설하세요.")
@@ -83,6 +83,19 @@ impl QuestText {
             QuestText::UseReroll { count } => format!("리롤 {count}회 사용하기"),
             QuestText::SpendGold { gold } => format!("{gold}골드 사용하기"),
             QuestText::EarnGold { gold } => format!("{gold}골드 획득하기"),
+        }
+    }
+}
+
+pub trait QuestTextLocale {
+    fn quest_text(&self, text: &QuestText) -> String;
+}
+
+impl QuestTextLocale for crate::l10n::upgrade::Locales {
+    fn quest_text(&self, text: &QuestText) -> String {
+        match self {
+            crate::l10n::upgrade::Locales::KoKR(_) => text.to_korean(),
+            // 다국어 확장 시 여기에 추가
         }
     }
 }

@@ -4,6 +4,7 @@ use crate::{
         item::{Item, generate_item},
         upgrade::{Upgrade, generate_upgrade},
     },
+    l10n::upgrade::Locales,
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -15,11 +16,11 @@ pub enum QuestReward {
     Upgrade { upgrade: Upgrade },
 }
 impl QuestReward {
-    pub fn description(&self) -> String {
+    pub fn description(&self, locale: &Locales) -> String {
         match self {
             Self::Money { amount } => format!("${amount} 골드"),
-            Self::Item { item } => format!("Item: {}", item.kind.description()),
-            Self::Upgrade { upgrade } => format!("Upgrade: {}", upgrade.kind.description()),
+            Self::Item { item } => format!("Item: {}", item.kind.description(locale)),
+            Self::Upgrade { upgrade } => format!("Upgrade: {}", upgrade.kind.description(locale)),
         }
     }
 }

@@ -91,7 +91,7 @@ pub enum ItemText<'a> {
 }
 
 impl<'a> ItemText<'a> {
-    pub fn to_korean(&self) -> String {
+    fn to_korean(&self) -> String {
         match self {
             ItemText::HealName => "치유".to_string(),
             ItemText::HealDesc { amount } => format!("체력을 {amount} 회복합니다"),
@@ -195,6 +195,19 @@ impl<'a> ItemText<'a> {
                 damage_multiply,
                 duration,
             } => format!("{duration:?} 동안 받는 피해를 {damage_multiply}만큼 감소시킵니다"),
+        }
+    }
+}
+
+pub trait ItemTextLocale {
+    fn item_text<'a>(&self, text: ItemText<'a>) -> String;
+}
+
+impl ItemTextLocale for crate::l10n::upgrade::Locales {
+    fn item_text<'a>(&self, text: ItemText<'a>) -> String {
+        match self {
+            crate::l10n::upgrade::Locales::KoKR(_) => text.to_korean(),
+            // 다국어 확장 시 여기에 추가
         }
     }
 }

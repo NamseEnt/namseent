@@ -1,3 +1,5 @@
+use crate::l10n::ui::UiTextLocale;
+use crate::l10n::upgrade::Locales;
 use crate::{
     game_state::{
         MAX_INVENTORY_SLOT, mutate_game_state,
@@ -100,14 +102,14 @@ impl Component for QuestBoardOpenButton<'_> {
             opened,
             toggle_open,
         } = self;
-
+        let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             ctx.translate((0.px(), -QUEST_BOARD_BUTTON_WH.height))
                 .add(TextButton {
                     rect: QUEST_BOARD_BUTTON_WH.to_rect(),
                     text: format!(
                         "{} {}",
-                        TopBarText::Quest.to_korean(),
+                        game_state.locale.ui_text(TopBarText::Quest),
                         if opened { "^" } else { "v" }
                     ),
                     text_color: palette::ON_SURFACE,
@@ -188,7 +190,7 @@ impl Component for QuestBoard<'_> {
                                     rect: wh.to_rect(),
                                     text: format!(
                                         "{}-{}",
-                                        TopBarText::Refresh.to_korean(),
+                                        game_state.locale.ui_text(TopBarText::Refresh),
                                         game_state.left_quest_board_refresh_chance
                                     ),
                                     text_color: match disabled {
@@ -227,14 +229,16 @@ impl Component for QuestBoardItem<'_> {
             quest_board_slot_index,
             accept_quest,
         } = self;
-
+        let game_state = use_game_state(ctx);
         let accept_quest = || accept_quest(quest_board_slot_index);
-
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
                 match quest_board_slot {
                     QuestBoardSlot::Locked => {
-                        ctx.add(QuestBoardItemLocked { wh });
+                        ctx.add(QuestBoardItemLocked {
+                            wh,
+                            locale: game_state.locale.clone(),
+                        });
                     }
                     QuestBoardSlot::Quest { quest, accepted } => {
                         ctx.add(QuestBoardItemContent {
@@ -269,17 +273,17 @@ impl Component for QuestBoardItem<'_> {
 
 struct QuestBoardItemLocked {
     wh: Wh<Px>,
+    locale: Locales,
 }
 impl Component for QuestBoardItemLocked {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh } = self;
-
+        let Self { wh, locale } = self;
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: TopBarText::Locked.to_korean().to_string(),
+                        text: locale.ui_text(TopBarText::Locked).to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,
@@ -314,7 +318,10 @@ impl Component for QuestBoardItemContent<'_> {
             if !accepted {
                 return;
             }
-            ctx.add(QuestBoardItemAccepted { wh });
+            ctx.add(QuestBoardItemAccepted {
+                wh,
+                locale: game_state.locale.clone(),
+            });
         });
 
         ctx.compose(|ctx| {
@@ -342,7 +349,7 @@ impl Component for QuestBoardItemContent<'_> {
                                     table::fixed(PADDING, |_, _| {}),
                                     table::ratio(1, |wh, ctx| {
                                         ctx.add(Paragraph {
-                                            text: quest.reward.description(),
+                                            text: quest.reward.description(&game_state.locale),
                                             font_size: FontSize::Medium,
                                             text_align: TextAlign::LeftTop,
                                             max_width: Some(wh.width),
@@ -352,7 +359,10 @@ impl Component for QuestBoardItemContent<'_> {
                                     table::fixed(48.px(), |wh, ctx| {
                                         ctx.add(button::TextButton {
                                             rect: wh.to_rect(),
-                                            text: TopBarText::Accept.to_korean().to_string(),
+                                            text: game_state
+                                                .locale
+                                                .ui_text(TopBarText::Accept)
+                                                .to_string(),
                                             text_color: match available {
                                                 true => palette::ON_PRIMARY,
                                                 false => palette::ON_SURFACE,
@@ -401,26 +411,26 @@ impl Component for QuestBoardItemContent<'_> {
 
 struct QuestBoardItemAccepted {
     wh: Wh<Px>,
+    locale: Locales,
 }
 impl Component for QuestBoardItemAccepted {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh } = self;
-
+        let Self { wh, locale } = self;
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: TopBarText::Accepted.to_korean().to_string(),
+                        text: locale.ui_text(TopBarText::Accepted).to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,
                     });
                     ctx.add(simple_rect(
                         wh,
-                        Color::TRANSPARENT,
+                        palette::SURFACE_CONTAINER,
                         0.px(),
-                        palette::SECONDARY,
+                        palette::OUTLINE,
                     ));
                 }),
                 table::ratio(1, |_, _| {}),

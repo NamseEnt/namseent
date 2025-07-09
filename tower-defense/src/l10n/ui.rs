@@ -24,8 +24,21 @@ pub enum TopBarText {
     UseTower, // 타워 사용
 }
 
+pub trait UiTextLocale {
+    fn ui_text(&self, text: TopBarText) -> &'static str;
+}
+
+impl UiTextLocale for crate::l10n::upgrade::Locales {
+    fn ui_text(&self, text: TopBarText) -> &'static str {
+        match self {
+            crate::l10n::upgrade::Locales::KoKR(_) => text.to_korean(),
+            // 다국어 확장 시 여기에 추가
+        }
+    }
+}
+
 impl TopBarText {
-    pub fn to_korean(&self) -> &'static str {
+    fn to_korean(&self) -> &'static str {
         match self {
             TopBarText::Hp => "HP",
             TopBarText::Gold => "골드",

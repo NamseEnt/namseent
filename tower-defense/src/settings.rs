@@ -1,4 +1,4 @@
-use crate::l10n::ui::TopBarText;
+use crate::l10n::ui::{TopBarText, UiTextLocale};
 use crate::theme::{
     palette,
     typography::{self, Headline},
@@ -21,6 +21,7 @@ impl Component for SettingsModal<'_> {
             close_modal,
         } = self;
 
+        let game_state = crate::game_state::use_game_state(ctx);
         let modal_wh = Wh::new(400.px(), 300.px());
         let modal_xy = ((screen_wh - modal_wh) * 0.5).to_xy();
 
@@ -35,7 +36,10 @@ impl Component for SettingsModal<'_> {
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
                                 ctx.add(Headline {
-                                    text: TopBarText::Settings.to_korean().to_string(),
+                                    text: game_state
+                                        .locale
+                                        .ui_text(TopBarText::Settings)
+                                        .to_string(),
                                     font_size: typography::FontSize::Medium,
                                     text_align: typography::TextAlign::LeftCenter {
                                         height: wh.height,
@@ -46,7 +50,7 @@ impl Component for SettingsModal<'_> {
                             table::fixed(64.px(), |wh, ctx| {
                                 ctx.add(TextButton {
                                     rect: wh.to_rect(),
-                                    text: TopBarText::Close.to_korean().to_string(),
+                                    text: game_state.locale.ui_text(TopBarText::Close).to_string(),
                                     text_color: palette::ON_SURFACE,
                                     stroke_color: palette::OUTLINE,
                                     stroke_width: 1.px(),

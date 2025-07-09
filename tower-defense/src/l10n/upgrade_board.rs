@@ -27,7 +27,7 @@ pub enum UpgradeBoardText {
 }
 
 impl UpgradeBoardText {
-    pub fn to_korean(&self) -> &'static str {
+    fn to_korean(&self) -> &'static str {
         match self {
             UpgradeBoardText::Title => "강화 정보",
             UpgradeBoardText::GoldEarnPlus => "몬스터 처치 시 {amount}골드를 추가로 얻습니다",
@@ -37,9 +37,15 @@ impl UpgradeBoardText {
             UpgradeBoardText::RerollChancePlus => "리롤 기회가 {amount}개 증가합니다",
             UpgradeBoardText::ShopItemPriceMinus => "상점 아이템 가격이 {amount} 감소합니다",
             UpgradeBoardText::ShopRefreshChancePlus => "상점 새로고침 기회가 {amount}개 증가합니다",
-            UpgradeBoardText::QuestBoardRefreshChancePlus => "퀘스트 게시판 새로고침 기회가 {amount}개 증가합니다",
-            UpgradeBoardText::ShortenStraightFlushTo4Cards => "스트레이트와 플러시를 4장으로 줄입니다",
-            UpgradeBoardText::SkipRankForStraight => "스트레이트를 만들 때 랭크 하나를 건너뛸 수 있습니다",
+            UpgradeBoardText::QuestBoardRefreshChancePlus => {
+                "퀘스트 게시판 새로고침 기회가 {amount}개 증가합니다"
+            }
+            UpgradeBoardText::ShortenStraightFlushTo4Cards => {
+                "스트레이트와 플러시를 4장으로 줄입니다"
+            }
+            UpgradeBoardText::SkipRankForStraight => {
+                "스트레이트를 만들 때 랭크 하나를 건너뛸 수 있습니다"
+            }
             UpgradeBoardText::TreatSuitsAsSame => "색이 같으면 같은 문양으로 취급합니다",
             UpgradeBoardText::TowerSelectLowCard => "카드 {amount}개 이하로 타워를 만들 때 타워의",
             UpgradeBoardText::TowerSelectNoReroll => "리롤을 하지 않고 타워를 만들 때 타워의",
@@ -54,6 +60,19 @@ impl UpgradeBoardText {
             UpgradeBoardText::SpeedPlus => "공격 속도가 {amount}만큼 증가합니다",
             UpgradeBoardText::SpeedMultiplier => "공격 속도가 {amount}배 증가합니다",
             UpgradeBoardText::RangePlus => "사정거리가 {amount}만큼 증가합니다",
+        }
+    }
+}
+
+pub trait UpgradeBoardTextLocale {
+    fn upgrade_board_text(&self, text: &UpgradeBoardText) -> &'static str;
+}
+
+impl UpgradeBoardTextLocale for crate::l10n::upgrade::Locales {
+    fn upgrade_board_text(&self, text: &UpgradeBoardText) -> &'static str {
+        match self {
+            crate::l10n::upgrade::Locales::KoKR(_) => text.to_korean(),
+            // 다국어 확장 시 여기에 추가
         }
     }
 }

@@ -5,6 +5,8 @@ mod usage;
 use crate::{
     card::{Rank, Suit},
     l10n::item::ItemText,
+    l10n::item::ItemTextLocale,
+    l10n::upgrade::Locales,
     rarity::Rarity,
 };
 pub use generation::*;
@@ -93,42 +95,42 @@ pub enum ItemKind {
 }
 
 impl ItemKind {
-    pub fn name(&self) -> String {
+    pub fn name(&self, locale: &Locales) -> String {
         match self {
-            ItemKind::Heal { .. } => ItemText::HealName.to_korean(),
-            ItemKind::AttackPowerPlusBuff { .. } => ItemText::AttackPowerPlusBuffName.to_korean(),
-            ItemKind::AttackPowerMultiplyBuff { .. } => ItemText::AttackPowerMultiplyBuffName.to_korean(),
-            ItemKind::AttackSpeedPlusBuff { .. } => ItemText::AttackSpeedPlusBuffName.to_korean(),
-            ItemKind::AttackSpeedMultiplyBuff { .. } => ItemText::AttackSpeedMultiplyBuffName.to_korean(),
-            ItemKind::AttackRangePlus { .. } => ItemText::AttackRangePlusName.to_korean(),
-            ItemKind::MovementSpeedDebuff { .. } => ItemText::MovementSpeedDebuffName.to_korean(),
-            ItemKind::RoundDamage { .. } => ItemText::RoundDamageName.to_korean(),
-            ItemKind::RoundDamageOverTime { .. } => ItemText::RoundDamageOverTimeName.to_korean(),
-            ItemKind::Lottery { .. } => ItemText::LotteryName.to_korean(),
-            ItemKind::LinearDamage { .. } => ItemText::LinearDamageName.to_korean(),
-            ItemKind::LinearDamageOverTime { .. } => ItemText::LinearDamageOverTimeName.to_korean(),
-            ItemKind::ExtraReroll => ItemText::ExtraRerollName.to_korean(),
-            ItemKind::Shield { .. } => ItemText::ShieldName.to_korean(),
-            ItemKind::DamageReduction { .. } => ItemText::DamageReductionName.to_korean(),
+            ItemKind::Heal { .. } => locale.item_text(ItemText::HealName),
+            ItemKind::AttackPowerPlusBuff { .. } => locale.item_text(ItemText::AttackPowerPlusBuffName),
+            ItemKind::AttackPowerMultiplyBuff { .. } => locale.item_text(ItemText::AttackPowerMultiplyBuffName),
+            ItemKind::AttackSpeedPlusBuff { .. } => locale.item_text(ItemText::AttackSpeedPlusBuffName),
+            ItemKind::AttackSpeedMultiplyBuff { .. } => locale.item_text(ItemText::AttackSpeedMultiplyBuffName),
+            ItemKind::AttackRangePlus { .. } => locale.item_text(ItemText::AttackRangePlusName),
+            ItemKind::MovementSpeedDebuff { .. } => locale.item_text(ItemText::MovementSpeedDebuffName),
+            ItemKind::RoundDamage { .. } => locale.item_text(ItemText::RoundDamageName),
+            ItemKind::RoundDamageOverTime { .. } => locale.item_text(ItemText::RoundDamageOverTimeName),
+            ItemKind::Lottery { .. } => locale.item_text(ItemText::LotteryName),
+            ItemKind::LinearDamage { .. } => locale.item_text(ItemText::LinearDamageName),
+            ItemKind::LinearDamageOverTime { .. } => locale.item_text(ItemText::LinearDamageOverTimeName),
+            ItemKind::ExtraReroll => locale.item_text(ItemText::ExtraRerollName),
+            ItemKind::Shield { .. } => locale.item_text(ItemText::ShieldName),
+            ItemKind::DamageReduction { .. } => locale.item_text(ItemText::DamageReductionName),
         }
     }
-    pub fn description(&self) -> String {
+    pub fn description(&self, locale: &Locales) -> String {
         match self {
-            ItemKind::Heal { amount } => ItemText::HealDesc { amount: *amount }.to_korean(),
-            ItemKind::AttackPowerPlusBuff { amount, duration, radius } => ItemText::AttackPowerPlusBuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
-            ItemKind::AttackPowerMultiplyBuff { amount, duration, radius } => ItemText::AttackPowerMultiplyBuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
-            ItemKind::AttackSpeedPlusBuff { amount, duration, radius } => ItemText::AttackSpeedPlusBuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
-            ItemKind::AttackSpeedMultiplyBuff { amount, duration, radius } => ItemText::AttackSpeedMultiplyBuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
-            ItemKind::AttackRangePlus { amount, duration, radius } => ItemText::AttackRangePlusDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
-            ItemKind::MovementSpeedDebuff { amount, duration, radius } => ItemText::MovementSpeedDebuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
-            ItemKind::RoundDamage { rank, suit, damage, radius } => ItemText::RoundDamageDesc { rank, suit, damage: *damage, radius: *radius }.to_korean(),
-            ItemKind::RoundDamageOverTime { rank, suit, damage, radius, duration } => ItemText::RoundDamageOverTimeDesc { rank, suit, damage: *damage, radius: *radius, duration: *duration }.to_korean(),
-            ItemKind::Lottery { amount, probability } => ItemText::LotteryDesc { amount: *amount, probability: *probability }.to_korean(),
-            ItemKind::LinearDamage { rank, suit, damage, thickness } => ItemText::LinearDamageDesc { rank, suit, damage: *damage, thickness: *thickness }.to_korean(),
-            ItemKind::LinearDamageOverTime { rank, suit, damage, thickness, duration } => ItemText::LinearDamageOverTimeDesc { rank, suit, damage: *damage, thickness: *thickness, duration: *duration }.to_korean(),
-            ItemKind::ExtraReroll => ItemText::ExtraRerollDesc.to_korean(),
-            ItemKind::Shield { amount } => ItemText::ShieldDesc { amount: *amount }.to_korean(),
-            ItemKind::DamageReduction { damage_multiply, duration } => ItemText::DamageReductionDesc { damage_multiply: *damage_multiply, duration: *duration }.to_korean(),
+            ItemKind::Heal { amount } => locale.item_text(ItemText::HealDesc { amount: *amount }),
+            ItemKind::AttackPowerPlusBuff { amount, duration, radius } => locale.item_text(ItemText::AttackPowerPlusBuffDesc { amount: *amount, duration: *duration, radius: *radius }),
+            ItemKind::AttackPowerMultiplyBuff { amount, duration, radius } => locale.item_text(ItemText::AttackPowerMultiplyBuffDesc { amount: *amount, duration: *duration, radius: *radius }),
+            ItemKind::AttackSpeedPlusBuff { amount, duration, radius } => locale.item_text(ItemText::AttackSpeedPlusBuffDesc { amount: *amount, duration: *duration, radius: *radius }),
+            ItemKind::AttackSpeedMultiplyBuff { amount, duration, radius } => locale.item_text(ItemText::AttackSpeedMultiplyBuffDesc { amount: *amount, duration: *duration, radius: *radius }),
+            ItemKind::AttackRangePlus { amount, duration, radius } => locale.item_text(ItemText::AttackRangePlusDesc { amount: *amount, duration: *duration, radius: *radius }),
+            ItemKind::MovementSpeedDebuff { amount, duration, radius } => locale.item_text(ItemText::MovementSpeedDebuffDesc { amount: *amount, duration: *duration, radius: *radius }),
+            ItemKind::RoundDamage { rank, suit, damage, radius } => locale.item_text(ItemText::RoundDamageDesc { rank, suit, damage: *damage, radius: *radius }),
+            ItemKind::RoundDamageOverTime { rank, suit, damage, radius, duration } => locale.item_text(ItemText::RoundDamageOverTimeDesc { rank, suit, damage: *damage, radius: *radius, duration: *duration }),
+            ItemKind::Lottery { amount, probability } => locale.item_text(ItemText::LotteryDesc { amount: *amount, probability: *probability }),
+            ItemKind::LinearDamage { rank, suit, damage, thickness } => locale.item_text(ItemText::LinearDamageDesc { rank, suit, damage: *damage, thickness: *thickness }),
+            ItemKind::LinearDamageOverTime { rank, suit, damage, thickness, duration } => locale.item_text(ItemText::LinearDamageOverTimeDesc { rank, suit, damage: *damage, thickness: *thickness, duration: *duration }),
+            ItemKind::ExtraReroll => locale.item_text(ItemText::ExtraRerollDesc),
+            ItemKind::Shield { amount } => locale.item_text(ItemText::ShieldDesc { amount: *amount }),
+            ItemKind::DamageReduction { damage_multiply, duration } => locale.item_text(ItemText::DamageReductionDesc { damage_multiply: *damage_multiply, duration: *duration }),
         }
     }
 }

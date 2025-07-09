@@ -6,7 +6,8 @@ use crate::{
         },
         use_game_state,
     },
-    l10n::upgrade_board::UpgradeBoardText,
+    l10n::upgrade::Locales,
+    l10n::upgrade_board::{UpgradeBoardText, UpgradeBoardTextLocale},
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -64,7 +65,8 @@ pub struct UpgradeBoard {}
 impl Component for UpgradeBoard {
     fn render(self, ctx: &namui::RenderCtx) {
         let game_state = use_game_state(ctx);
-        let upgrade_description_texts = get_upgrade_description_texts(&game_state.upgrade_state);
+        let upgrade_description_texts =
+            get_upgrade_description_texts(&game_state.upgrade_state, &game_state.locale);
 
         ctx.compose(|ctx| {
             table::padding(
@@ -72,7 +74,10 @@ impl Component for UpgradeBoard {
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
                         ctx.add(Headline {
-                            text: UpgradeBoardText::Title.to_korean().to_string(),
+                            text: game_state
+                                .locale
+                                .upgrade_board_text(&UpgradeBoardText::Title)
+                                .to_string(),
                             font_size: FontSize::Large,
                             text_align: TextAlign::Center { wh },
                             max_width: None,
@@ -174,61 +179,61 @@ impl Component for UpgradeItem {
     }
 }
 
-fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
+fn get_upgrade_description_texts(state: &UpgradeState, locale: &Locales) -> Vec<String> {
     let mut texts = vec![];
     if state.gold_earn_plus != 0 {
         texts.push(
-            UpgradeBoardText::GoldEarnPlus
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::GoldEarnPlus)
                 .replace("{amount}", &state.gold_earn_plus.to_string()),
         );
     }
     if state.shop_slot_expand != 0 {
         texts.push(
-            UpgradeBoardText::ShopSlotExpand
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::ShopSlotExpand)
                 .replace("{amount}", &state.shop_slot_expand.to_string()),
         );
     }
     if state.quest_slot_expand != 0 {
         texts.push(
-            UpgradeBoardText::QuestSlotExpand
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::QuestSlotExpand)
                 .replace("{amount}", &state.quest_slot_expand.to_string()),
         );
     }
     if state.quest_board_slot_expand != 0 {
         texts.push(
-            UpgradeBoardText::QuestBoardSlotExpand
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::QuestBoardSlotExpand)
                 .replace("{amount}", &state.quest_board_slot_expand.to_string()),
         );
     }
     if state.reroll_chance_plus != 0 {
         texts.push(
-            UpgradeBoardText::RerollChancePlus
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::RerollChancePlus)
                 .replace("{amount}", &state.reroll_chance_plus.to_string()),
         );
     }
     if state.shop_item_price_minus != 0 {
         texts.push(
-            UpgradeBoardText::ShopItemPriceMinus
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::ShopItemPriceMinus)
                 .replace("{amount}", &state.shop_item_price_minus.to_string()),
         );
     }
     if state.shop_refresh_chance_plus != 0 {
         texts.push(
-            UpgradeBoardText::ShopRefreshChancePlus
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::ShopRefreshChancePlus)
                 .replace("{amount}", &state.shop_refresh_chance_plus.to_string()),
         );
     }
     if state.quest_board_refresh_chance_plus != 0 {
         texts.push(
-            UpgradeBoardText::QuestBoardRefreshChancePlus
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::QuestBoardRefreshChancePlus)
                 .replace(
                     "{amount}",
                     &state.quest_board_refresh_chance_plus.to_string(),
@@ -237,20 +242,24 @@ fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
     }
     if state.shorten_straight_flush_to_4_cards {
         texts.push(
-            UpgradeBoardText::ShortenStraightFlushTo4Cards
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::ShortenStraightFlushTo4Cards)
                 .to_string(),
         );
     }
     if state.skip_rank_for_straight {
         texts.push(
-            UpgradeBoardText::SkipRankForStraight
-                .to_korean()
+            locale
+                .upgrade_board_text(&UpgradeBoardText::SkipRankForStraight)
                 .to_string(),
         );
     }
     if state.treat_suits_as_same {
-        texts.push(UpgradeBoardText::TreatSuitsAsSame.to_korean().to_string());
+        texts.push(
+            locale
+                .upgrade_board_text(&UpgradeBoardText::TreatSuitsAsSame)
+                .to_string(),
+        );
     }
 
     for (target, tower_upgrade_state) in &state.tower_select_upgrade_states {

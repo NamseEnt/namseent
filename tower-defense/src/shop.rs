@@ -5,7 +5,7 @@ use crate::{
         quest::{QuestTriggerEvent, on_quest_trigger_event},
         use_game_state,
     },
-    l10n::ui::TopBarText,
+    l10n::ui::{TopBarText, UiTextLocale},
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -116,14 +116,14 @@ impl Component for ShopOpenButton<'_> {
             opened,
             toggle_open,
         } = self;
-
+        let game_state = crate::game_state::use_game_state(ctx);
         ctx.compose(|ctx| {
             ctx.translate((0.px(), -SHOP_BUTTON_WH.height))
                 .add(TextButton {
                     rect: SHOP_BUTTON_WH.to_rect(),
                     text: format!(
                         "{} {}",
-                        TopBarText::Shop.to_korean(),
+                        game_state.locale.ui_text(TopBarText::Shop),
                         if opened { "^" } else { "v" }
                     ),
                     text_color: palette::ON_SURFACE,
@@ -202,11 +202,7 @@ impl Component for Shop<'_> {
                             table::fixed(SHOP_REFRESH_BUTTON_WH.width, |wh, ctx| {
                                 ctx.add(TextButton {
                                     rect: wh.to_rect(),
-                                    text: format!(
-                                        "{}-{}",
-                                        TopBarText::Refresh.to_korean(),
-                                        game_state.left_shop_refresh_chance
-                                    ),
+                                    text: game_state.locale.ui_text(TopBarText::Refresh),
                                     text_color: match disabled {
                                         true => palette::ON_SURFACE_VARIANT,
                                         false => palette::ON_SURFACE,
@@ -299,13 +295,13 @@ struct ShopItemLocked {
 impl Component for ShopItemLocked {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
-
+        let game_state = crate::game_state::use_game_state(ctx);
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: TopBarText::Locked.to_korean().to_string(),
+                        text: game_state.locale.ui_text(TopBarText::Locked).to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,
@@ -335,16 +331,14 @@ impl Component for ShopItemContent<'_> {
             purchased,
             not_enough_money,
         } = self;
-
+        let game_state = crate::game_state::use_game_state(ctx);
         let available = !purchased && !not_enough_money;
-
         ctx.compose(|ctx| {
             if !purchased {
                 return;
             }
             ctx.add(ShopItemSoldOut { wh });
         });
-
         ctx.compose(|ctx| {
             table::vertical([
                 table::fixed(
@@ -361,7 +355,7 @@ impl Component for ShopItemContent<'_> {
                                 table::vertical([
                                     table::fit(table::FitAlign::LeftTop, |ctx| {
                                         ctx.add(Headline {
-                                            text: item.kind.name().to_string(),
+                                            text: item.kind.name(&game_state.locale).to_string(),
                                             font_size: FontSize::Small,
                                             text_align: TextAlign::LeftTop,
                                             max_width: Some(wh.width),
@@ -370,7 +364,7 @@ impl Component for ShopItemContent<'_> {
                                     table::fixed(PADDING, |_, _| {}),
                                     table::ratio(1, |wh, ctx| {
                                         ctx.add(Paragraph {
-                                            text: item.kind.description(),
+                                            text: item.kind.description(&game_state.locale),
                                             font_size: FontSize::Medium,
                                             text_align: TextAlign::LeftTop,
                                             max_width: Some(wh.width),
@@ -403,23 +397,6 @@ impl Component for ShopItemContent<'_> {
                                 ])(wh, ctx);
                             })(wh, ctx);
                         });
-
-                        ctx.add(rect(RectParam {
-                            rect: wh.to_rect(),
-                            style: RectStyle {
-                                stroke: Some(RectStroke {
-                                    color: palette::OUTLINE,
-                                    width: 1.px(),
-                                    border_position: BorderPosition::Inside,
-                                }),
-                                fill: Some(RectFill {
-                                    color: palette::SURFACE,
-                                }),
-                                round: Some(RectRound {
-                                    radius: palette::ROUND,
-                                }),
-                            },
-                        }));
                     }),
                 ),
             ])(wh, ctx);
@@ -433,13 +410,13 @@ struct ShopItemSoldOut {
 impl Component for ShopItemSoldOut {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
-
+        let game_state = crate::game_state::use_game_state(ctx);
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: TopBarText::SoldOut.to_korean().to_string(),
+                        text: game_state.locale.ui_text(TopBarText::SoldOut).to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,

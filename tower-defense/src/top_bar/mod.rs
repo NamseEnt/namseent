@@ -1,6 +1,6 @@
 use crate::{
     game_state::{is_boss_stage, level_rarity_weight, mutate_game_state, use_game_state},
-    l10n::ui::TopBarText,
+    l10n::ui::{TopBarText, UiTextLocale},
     palette,
     theme::typography::{self, Headline, Paragraph},
 };
@@ -61,7 +61,7 @@ pub struct HPAndGoldIndicator {
 impl Component for HPAndGoldIndicator {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, hp, gold } = self;
-
+        let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(
@@ -69,7 +69,11 @@ impl Component for HPAndGoldIndicator {
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
                             ctx.add(Headline {
-                                text: format!("{} {:.0}", TopBarText::Hp.to_korean(), hp * 100.0),
+                                text: format!(
+                                    "{} {:.0}",
+                                    game_state.locale.ui_text(TopBarText::Hp),
+                                    hp * 100.0
+                                ),
                                 font_size: typography::FontSize::Medium,
                                 text_align: typography::TextAlign::Center { wh },
                                 max_width: None,
@@ -100,7 +104,7 @@ impl Component for HPAndGoldIndicator {
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
                             ctx.add(Headline {
-                                text: TopBarText::Gold.to_korean().to_string(),
+                                text: game_state.locale.ui_text(TopBarText::Gold).to_string(),
                                 font_size: typography::FontSize::Medium,
                                 text_align: typography::TextAlign::Center { wh },
                                 max_width: None,
@@ -136,12 +140,12 @@ pub struct StageIndicator {
 impl Component for StageIndicator {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, stage } = self;
-
+        let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             table::horizontal(
                 once(table::fixed(px(64.), |wh, ctx| {
                     ctx.add(Headline {
-                        text: format!("{} {stage}", TopBarText::Stage.to_korean()),
+                        text: format!("{} {stage}", game_state.locale.ui_text(TopBarText::Stage)),
                         font_size: typography::FontSize::Medium,
                         text_align: typography::TextAlign::Center { wh },
                         max_width: None,
@@ -186,6 +190,7 @@ impl Component for LevelIndicator {
             level_up_cost,
             gold,
         } = self;
+        let game_state = use_game_state(ctx);
 
         let (mouse_hovering, set_mouse_hovering) = ctx.state(|| false);
 
@@ -203,7 +208,7 @@ impl Component for LevelIndicator {
             table::horizontal([
                 table::fixed(px(64.), |wh, ctx| {
                     ctx.add(Headline {
-                        text: format!("{} {level}", TopBarText::Level.to_korean()),
+                        text: format!("{} {level}", game_state.locale.ui_text(TopBarText::Level)),
                         font_size: typography::FontSize::Medium,
                         text_align: typography::TextAlign::Center { wh },
                         max_width: None,
@@ -214,7 +219,10 @@ impl Component for LevelIndicator {
                     table::padding(PADDING, |wh, ctx| {
                         ctx.add(button::TextButton {
                             rect: wh.to_rect(),
-                            text: format!("{} {level_up_cost}", TopBarText::LevelUp.to_korean()),
+                            text: format!(
+                                "{} {level_up_cost}",
+                                game_state.locale.ui_text(TopBarText::LevelUp)
+                            ),
                             text_color: match can_upgrade {
                                 true => palette::ON_PRIMARY,
                                 false => palette::ON_SURFACE,
@@ -258,6 +266,7 @@ impl Component for LevelIndicator {
                 .add(LevelUpDetails {
                     width: wh.width,
                     current_level: level,
+                    locale: game_state.locale.clone(),
                 });
         });
 
@@ -273,12 +282,14 @@ impl Component for LevelIndicator {
 struct LevelUpDetails {
     width: Px,
     current_level: usize,
+    locale: crate::l10n::upgrade::Locales,
 }
 impl Component for LevelUpDetails {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             width,
             current_level,
+            locale,
         } = self;
 
         const LINE_HEIGHT: Px = px(32.);
@@ -302,7 +313,6 @@ impl Component for LevelUpDetails {
             next_weights.iter_mut().for_each(|weight| {
                 *weight = (*weight as f32 / next_total_weight as f32 * 100.0).round() as usize;
             });
-
             [
                 [current_weights[0], next_weights[0]],
                 [current_weights[1], next_weights[1]],
@@ -321,7 +331,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: TopBarText::RarityCommon.to_korean().to_string(),
+                                text: locale.ui_text(TopBarText::RarityCommon).to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -360,7 +370,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: TopBarText::RarityRare.to_korean().to_string(),
+                                text: locale.ui_text(TopBarText::RarityRare).to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -399,7 +409,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: TopBarText::RarityEpic.to_korean().to_string(),
+                                text: locale.ui_text(TopBarText::RarityEpic).to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -438,7 +448,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: TopBarText::RarityLegendary.to_korean().to_string(),
+                                text: locale.ui_text(TopBarText::RarityLegendary).to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -471,14 +481,7 @@ impl Component for LevelUpDetails {
                         }),
                     ]),
                 ),
-            ])(wh, ctx)
+            ])(wh, ctx);
         });
-
-        ctx.add(simple_rect(
-            wh,
-            Color::TRANSPARENT,
-            0.px(),
-            palette::SURFACE_CONTAINER,
-        ));
     }
 }

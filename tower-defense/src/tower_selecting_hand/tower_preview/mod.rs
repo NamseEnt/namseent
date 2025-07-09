@@ -63,8 +63,10 @@ impl Component for TowerPreview<'_> {
                 return;
             };
 
-            ctx.absolute(*offset)
-                .add(TowerEffectDescription { skill: effect });
+            ctx.absolute(*offset).add(TowerEffectDescription {
+                skill: effect,
+                locale: &game_state.locale,
+            });
         });
 
         ctx.compose(|ctx| {

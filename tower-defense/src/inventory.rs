@@ -5,7 +5,7 @@ use crate::{
         item::{ ItemUsage, use_item},
         mutate_game_state, use_game_state,
     },
-    l10n::ui::TopBarText,
+    l10n::ui::{TopBarText, UiTextLocale},
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
 };
@@ -35,7 +35,7 @@ impl Component for Inventory {
                         table::vertical([
                             table::fixed(TITLE_HEIGHT, |wh, ctx| {
                                 ctx.add(Headline {
-                                    text: format!("{} {}/{}", TopBarText::Inventory.to_korean(), game_state.items.len(), MAX_INVENTORY_SLOT),
+                                    text: format!("{} {}/{}", game_state.locale.ui_text(TopBarText::Inventory), game_state.items.len(), MAX_INVENTORY_SLOT),
                                     font_size: FontSize::Medium,
                                     text_align: TextAlign::Center { wh },
                                     max_width: wh.width.into(),
@@ -78,7 +78,7 @@ impl Component for Inventory {
                                                             table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 3.0, |wh, ctx| {
                                                                 ctx.add(TextButton {
                                                                     rect: wh.to_rect(),
-                                                                    text: TopBarText::Use.to_korean().to_string(),
+                                                                    text: game_state.locale.ui_text(TopBarText::Use).to_string(),
                                                                     text_color: palette::ON_SURFACE,
                                                                     stroke_color: palette::OUTLINE,
                                                                     stroke_width: 1.px(),
@@ -106,7 +106,7 @@ impl Component for Inventory {
                                                             table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
                                                                 ctx.add(TextButton {
                                                                     rect: wh.to_rect(),
-                                                                    text: TopBarText::Remove.to_korean().to_string(),
+                                                                    text: game_state.locale.ui_text(TopBarText::Remove).to_string(),
                                                                     text_color: palette::ON_SURFACE,
                                                                     stroke_color: palette::OUTLINE,
                                                                     stroke_width: 1.px(),
@@ -124,7 +124,7 @@ impl Component for Inventory {
                                                     table::fixed(PADDING * 2.0, |_, _| {}),
                                                     table::fit(table::FitAlign::LeftTop, |ctx| {
                                                         ctx.add(Headline {
-                                                            text: item.kind.name().to_string(),
+                                                            text: item.kind.name(&game_state.locale).to_string(),
                                                             font_size: FontSize::Small,
                                                             text_align: TextAlign::LeftTop,
                                                             max_width: content_width.into(),
@@ -133,7 +133,7 @@ impl Component for Inventory {
                                                     table::fixed(PADDING, |_, _| {}),
                                                     table::fit(table::FitAlign::LeftTop, |ctx| {
                                                         ctx.add(Paragraph {
-                                                            text: item.kind.description(),
+                                                            text: item.kind.description(&game_state.locale),
                                                             font_size: FontSize::Medium,
                                                             text_align: TextAlign::LeftTop,
                                                             max_width: content_width.into(),

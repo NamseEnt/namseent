@@ -1,10 +1,10 @@
 use crate::{
     card::{Rank, Suit},
     game_state::{GameState, tower::TowerKind},
+    l10n::quest::{QuestText, QuestTextLocale},
 };
 
 use super::QuestState;
-use crate::l10n::quest::QuestText;
 
 #[derive(Debug)]
 pub enum QuestTrackingState {
@@ -60,8 +60,15 @@ pub enum QuestTrackingState {
 impl QuestTrackingState {
     pub(crate) fn description(&self, game_state: &GameState) -> String {
         match self {
-            QuestTrackingState::BuildTowerRankNew { rank, target_count, new_built_count } => {
-                QuestText::BuildTowerRankNew { rank: rank.to_string(), count: *target_count }.to_korean() + &format!(" ({}/{})", new_built_count, target_count)
+            QuestTrackingState::BuildTowerRankNew {
+                rank,
+                target_count,
+                new_built_count,
+            } => {
+                game_state.locale.quest_text(&QuestText::BuildTowerRankNew {
+                    rank: rank.to_string(),
+                    count: *target_count,
+                }) + &format!(" ({}/{})", new_built_count, target_count)
             }
             QuestTrackingState::BuildTowerRank { rank, target_count } => {
                 let current_count = game_state
@@ -69,10 +76,21 @@ impl QuestTrackingState {
                     .iter()
                     .filter(|tower| tower.rank == *rank)
                     .count();
-                QuestText::BuildTowerRank { rank: rank.to_string(), count: *target_count, current_count }.to_korean()
+                game_state.locale.quest_text(&QuestText::BuildTowerRank {
+                    rank: rank.to_string(),
+                    count: *target_count,
+                    current_count,
+                })
             }
-            QuestTrackingState::BuildTowerSuitNew { suit, target_count, new_built_count } => {
-                QuestText::BuildTowerSuitNew { suit: suit.to_string(), count: *target_count }.to_korean() + &format!(" ({}/{})", new_built_count, target_count)
+            QuestTrackingState::BuildTowerSuitNew {
+                suit,
+                target_count,
+                new_built_count,
+            } => {
+                game_state.locale.quest_text(&QuestText::BuildTowerSuitNew {
+                    suit: suit.to_string(),
+                    count: *target_count,
+                }) + &format!(" ({}/{})", new_built_count, target_count)
             }
             QuestTrackingState::BuildTowerSuit { suit, target_count } => {
                 let current_count = game_state
@@ -80,10 +98,21 @@ impl QuestTrackingState {
                     .iter()
                     .filter(|tower| tower.suit == *suit)
                     .count();
-                QuestText::BuildTowerSuit { suit: suit.to_string(), count: *target_count, current_count }.to_korean()
+                game_state.locale.quest_text(&QuestText::BuildTowerSuit {
+                    suit: suit.to_string(),
+                    count: *target_count,
+                    current_count,
+                })
             }
-            QuestTrackingState::BuildTowerHandNew { hand, target_count, new_built_count } => {
-                QuestText::BuildTowerHandNew { hand: hand.to_string(), count: *target_count }.to_korean() + &format!(" ({}/{})", new_built_count, target_count)
+            QuestTrackingState::BuildTowerHandNew {
+                hand,
+                target_count,
+                new_built_count,
+            } => {
+                game_state.locale.quest_text(&QuestText::BuildTowerHandNew {
+                    hand: hand.to_string(),
+                    count: *target_count,
+                }) + &format!(" ({}/{})", new_built_count, target_count)
             }
             QuestTrackingState::BuildTowerHand { hand, target_count } => {
                 let current_count = game_state
@@ -91,25 +120,62 @@ impl QuestTrackingState {
                     .iter()
                     .filter(|tower| tower.kind == *hand)
                     .count();
-                QuestText::BuildTowerHand { hand: hand.to_string(), count: *target_count, current_count }.to_korean()
+                game_state.locale.quest_text(&QuestText::BuildTowerHand {
+                    hand: hand.to_string(),
+                    count: *target_count,
+                    current_count,
+                })
             }
-            QuestTrackingState::ClearBossRoundWithoutItems => {
-                QuestText::ClearBossRoundWithoutItems.to_korean()
+            QuestTrackingState::ClearBossRoundWithoutItems => game_state
+                .locale
+                .quest_text(&QuestText::ClearBossRoundWithoutItems),
+            QuestTrackingState::DealDamageWithItems {
+                target_damage,
+                dealt_damage,
+            } => {
+                game_state
+                    .locale
+                    .quest_text(&QuestText::DealDamageWithItems {
+                        damage: *target_damage,
+                    })
+                    + &format!(" ({}/{})", dealt_damage, target_damage)
             }
-            QuestTrackingState::DealDamageWithItems { target_damage, dealt_damage } => {
-                QuestText::DealDamageWithItems { damage: *target_damage }.to_korean() + &format!(" ({}/{})", dealt_damage, target_damage)
+            QuestTrackingState::BuildTowersWithoutReroll {
+                target_count,
+                built_count,
+            } => {
+                game_state
+                    .locale
+                    .quest_text(&QuestText::BuildTowersWithoutReroll {
+                        count: *target_count,
+                    })
+                    + &format!(" ({}/{})", built_count, target_count)
             }
-            QuestTrackingState::BuildTowersWithoutReroll { target_count, built_count } => {
-                QuestText::BuildTowersWithoutReroll { count: *target_count }.to_korean() + &format!(" ({}/{})", built_count, target_count)
+            QuestTrackingState::UseReroll {
+                target_count,
+                rolled_count,
+            } => {
+                game_state.locale.quest_text(&QuestText::UseReroll {
+                    count: *target_count,
+                }) + &format!(" ({}/{})", rolled_count, target_count)
             }
-            QuestTrackingState::UseReroll { target_count, rolled_count } => {
-                QuestText::UseReroll { count: *target_count }.to_korean() + &format!(" ({}/{})", rolled_count, target_count)
+            QuestTrackingState::SpendGold {
+                target_gold,
+                spent_gold,
+            } => {
+                game_state
+                    .locale
+                    .quest_text(&QuestText::SpendGold { gold: *target_gold })
+                    + &format!(" ({}/{})", spent_gold, target_gold)
             }
-            QuestTrackingState::SpendGold { target_gold, spent_gold } => {
-                QuestText::SpendGold { gold: *target_gold }.to_korean() + &format!(" ({}/{})", spent_gold, target_gold)
-            }
-            QuestTrackingState::EarnGold { target_gold, earned_gold } => {
-                QuestText::EarnGold { gold: *target_gold }.to_korean() + &format!(" ({}/{})", earned_gold, target_gold)
+            QuestTrackingState::EarnGold {
+                target_gold,
+                earned_gold,
+            } => {
+                game_state
+                    .locale
+                    .quest_text(&QuestText::EarnGold { gold: *target_gold })
+                    + &format!(" ({}/{})", earned_gold, target_gold)
             }
         }
     }

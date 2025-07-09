@@ -18,7 +18,7 @@ pub enum TowerSkillText {
 }
 
 impl TowerSkillText {
-    pub fn to_korean(&self) -> String {
+    fn to_korean(&self) -> String {
         match self {
             TowerSkillText::NearbyTowerDamageMulTitle => "주변 타워 공격력 증가".to_string(),
             TowerSkillText::NearbyTowerDamageAddTitle => "주변 타워 공격력 추가".to_string(),
@@ -67,6 +67,19 @@ impl TowerSkillText {
             TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
                 format!("탑 카드 보너스: {rank} (공격력 +{bonus_damage})")
             }
+        }
+    }
+}
+
+pub trait TowerSkillTextLocale {
+    fn tower_skill_text(&self, text: &TowerSkillText) -> String;
+}
+
+impl TowerSkillTextLocale for crate::l10n::upgrade::Locales {
+    fn tower_skill_text(&self, text: &TowerSkillText) -> String {
+        match self {
+            crate::l10n::upgrade::Locales::KoKR(_) => text.to_korean(),
+            // 다국어 확장 시 여기에 추가
         }
     }
 }

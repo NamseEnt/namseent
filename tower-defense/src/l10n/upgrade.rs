@@ -26,6 +26,7 @@ pub enum Template {
     },
 }
 
+#[derive(Debug, Clone)]
 pub enum Locales {
     KoKR(KoKRLocale),
 }
@@ -38,6 +39,7 @@ impl Locales {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct KoKRLocale;
 impl KoKRLocale {
     pub fn text(&self, template: Template) -> String {
@@ -88,6 +90,19 @@ impl KoKRLocale {
                     }
                 )
             }
+        }
+    }
+}
+
+pub trait UpgradeTextLocale {
+    fn upgrade_text(&self, template: Template) -> String;
+}
+
+impl UpgradeTextLocale for Locales {
+    fn upgrade_text(&self, template: Template) -> String {
+        match self {
+            Locales::KoKR(locale) => locale.text(template),
+            // 다국어 확장 시 여기에 추가
         }
     }
 }

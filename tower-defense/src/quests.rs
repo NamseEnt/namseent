@@ -1,6 +1,6 @@
 use crate::{
     game_state::{quest::cancel_quest, use_game_state},
-    l10n::ui::TopBarText,
+    l10n::ui::{TopBarText, UiTextLocale},
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
 };
@@ -30,7 +30,7 @@ impl Component for Quests {
                             ctx.add(Headline {
                                 text: format!(
                                     "{} {}/{}",
-                                    TopBarText::Quest.to_korean(),
+                                    game_state.locale.ui_text(TopBarText::Quest),
                                     game_state.quest_states.len(),
                                     game_state.max_quest_slot()
                                 ),
@@ -89,9 +89,7 @@ impl Component for Quests {
                                                                         ctx.add(TextButton {
                                                                             rect: wh.to_rect(),
                                                                             text:
-                                                                                TopBarText::Remove
-                                                                                    .to_korean()
-                                                                                    .to_string(),
+                                                                                game_state.locale.ui_text(TopBarText::Remove).to_string(),
                                                                             text_color:
                                                                                 palette::ON_SURFACE,
                                                                             stroke_color:
@@ -134,7 +132,7 @@ impl Component for Quests {
                                                                 ctx.add(Paragraph {
                                                                     text: quest
                                                                         .reward
-                                                                        .description(),
+                                                                        .description(&game_state.locale),
                                                                     font_size: FontSize::Medium,
                                                                     text_align: TextAlign::LeftTop,
                                                                     max_width: content_width.into(),

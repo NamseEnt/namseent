@@ -13,7 +13,7 @@ pub enum TowerKindText {
 }
 
 impl TowerKindText {
-    pub fn to_korean(&self) -> &'static str {
+    fn to_korean(&self) -> &'static str {
         match self {
             TowerKindText::Barricade => "바리케이드",
             TowerKindText::High => "하이카드",
@@ -28,19 +28,17 @@ impl TowerKindText {
             TowerKindText::RoyalFlush => "로열 플러쉬",
         }
     }
-    pub fn to_english(&self) -> &'static str {
+}
+
+pub trait TowerKindTextLocale {
+    fn tower_kind_text(&self, text: &TowerKindText) -> &'static str;
+}
+
+impl TowerKindTextLocale for crate::l10n::upgrade::Locales {
+    fn tower_kind_text(&self, text: &TowerKindText) -> &'static str {
         match self {
-            TowerKindText::Barricade => "Barricade",
-            TowerKindText::High => "High",
-            TowerKindText::OnePair => "One Pair",
-            TowerKindText::TwoPair => "Two Pair",
-            TowerKindText::ThreeOfAKind => "Three of a Kind",
-            TowerKindText::Straight => "Straight",
-            TowerKindText::Flush => "Flush",
-            TowerKindText::FullHouse => "Full House",
-            TowerKindText::FourOfAKind => "Four of a Kind",
-            TowerKindText::StraightFlush => "Straight Flush",
-            TowerKindText::RoyalFlush => "Royal Flush",
+            crate::l10n::upgrade::Locales::KoKR(_) => text.to_korean(),
+            // 다국어 확장 시 여기에 추가
         }
     }
 }
