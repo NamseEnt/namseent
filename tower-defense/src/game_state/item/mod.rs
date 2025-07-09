@@ -4,6 +4,7 @@ mod usage;
 
 use crate::{
     card::{Rank, Suit},
+    l10n::item::ItemText,
     rarity::Rarity,
 };
 pub use generation::*;
@@ -92,116 +93,42 @@ pub enum ItemKind {
 }
 
 impl ItemKind {
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self) -> String {
         match self {
-            ItemKind::Heal { .. } => "치유",
-            ItemKind::AttackPowerPlusBuff { .. } => "공격력 증가 버프",
-            ItemKind::AttackPowerMultiplyBuff { .. } => "공격력 배수 버프",
-            ItemKind::AttackSpeedPlusBuff { .. } => "공격 속도 증가 버프",
-            ItemKind::AttackSpeedMultiplyBuff { .. } => "공격 속도 배수 버프",
-            ItemKind::AttackRangePlus { .. } => "공격 범위 증가",
-            ItemKind::MovementSpeedDebuff { .. } => "이동 속도 감소 디버프",
-            ItemKind::RoundDamage { .. } => "범위 피해",
-            ItemKind::RoundDamageOverTime { .. } => "지속 범위 피해",
-            ItemKind::Lottery { .. } => "복권",
-            ItemKind::LinearDamage { .. } => "광선 피해",
-            ItemKind::LinearDamageOverTime { .. } => "지속 광선 피해",
-            ItemKind::ExtraReroll => "추가 리롤",
-            ItemKind::Shield { .. } => "방어막",
-            ItemKind::DamageReduction { .. } => "피해 감소",
+            ItemKind::Heal { .. } => ItemText::HealName.to_korean(),
+            ItemKind::AttackPowerPlusBuff { .. } => ItemText::AttackPowerPlusBuffName.to_korean(),
+            ItemKind::AttackPowerMultiplyBuff { .. } => ItemText::AttackPowerMultiplyBuffName.to_korean(),
+            ItemKind::AttackSpeedPlusBuff { .. } => ItemText::AttackSpeedPlusBuffName.to_korean(),
+            ItemKind::AttackSpeedMultiplyBuff { .. } => ItemText::AttackSpeedMultiplyBuffName.to_korean(),
+            ItemKind::AttackRangePlus { .. } => ItemText::AttackRangePlusName.to_korean(),
+            ItemKind::MovementSpeedDebuff { .. } => ItemText::MovementSpeedDebuffName.to_korean(),
+            ItemKind::RoundDamage { .. } => ItemText::RoundDamageName.to_korean(),
+            ItemKind::RoundDamageOverTime { .. } => ItemText::RoundDamageOverTimeName.to_korean(),
+            ItemKind::Lottery { .. } => ItemText::LotteryName.to_korean(),
+            ItemKind::LinearDamage { .. } => ItemText::LinearDamageName.to_korean(),
+            ItemKind::LinearDamageOverTime { .. } => ItemText::LinearDamageOverTimeName.to_korean(),
+            ItemKind::ExtraReroll => ItemText::ExtraRerollName.to_korean(),
+            ItemKind::Shield { .. } => ItemText::ShieldName.to_korean(),
+            ItemKind::DamageReduction { .. } => ItemText::DamageReductionName.to_korean(),
         }
     }
     pub fn description(&self) -> String {
         match self {
-            ItemKind::Heal { amount } => format!("체력을 {amount} 회복합니다"),
-            ItemKind::AttackPowerPlusBuff {
-                amount,
-                duration,
-                radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 공격력을 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
-            ItemKind::AttackPowerMultiplyBuff {
-                amount,
-                duration,
-                radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 공격력을 {amount}배 만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
-            ItemKind::AttackSpeedPlusBuff {
-                amount,
-                duration,
-                radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 공격 속도를 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
-            ItemKind::AttackSpeedMultiplyBuff {
-                amount,
-                duration,
-                radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 공격 속도를 {amount}배 만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
-            ItemKind::AttackRangePlus {
-                amount,
-                duration,
-                radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 사거리를 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
-            ItemKind::MovementSpeedDebuff {
-                amount,
-                duration,
-                radius,
-            } => format!(
-                "{radius} 범위 내 적들의 이동 속도를 {amount}만큼 감소시킵니다. {duration:?} 동안 지속됩니다"
-            ),
-            ItemKind::RoundDamage {
-                rank,
-                suit,
-                damage,
-                radius,
-            } => format!("{radius} 범위 내 적들에게 {damage}만큼의 {suit}{rank} 피해를 입힙니다."),
-            ItemKind::RoundDamageOverTime {
-                rank,
-                suit,
-                damage,
-                radius,
-                duration,
-            } => format!(
-                "{radius} 범위 내 적들에게 {damage}만큼의 {suit}{rank} 지속 피해를 입힙니다. {duration:?} 동안 지속됩니다"
-            ),
-            ItemKind::Lottery {
-                amount,
-                probability,
-            } => format!("{probability}% 확률로 {amount}의 보상을 획득합니다"),
-            ItemKind::LinearDamage {
-                rank,
-                suit,
-                damage,
-                thickness,
-            } => format!(
-                "{thickness} 두께의 직선 범위 내 적들에게 {damage}만큼의 {suit}{rank} 피해를 입힙니다."
-            ),
-            ItemKind::LinearDamageOverTime {
-                rank,
-                suit,
-                damage,
-                thickness,
-                duration,
-            } => format!(
-                "{thickness} 두께의 직선 범위 내 적들에게 {damage}만큼의 {suit}{rank} 지속 피해를 입힙니다. {duration:?} 동안 지속됩니다"
-            ),
-            ItemKind::ExtraReroll => "추가 리롤을 획득합니다".to_string(),
-            ItemKind::Shield { amount } => {
-                format!("이번 라운드에 피해를 {amount}흡수하는 방어막을 획득합니다.")
-            }
-            ItemKind::DamageReduction {
-                damage_multiply: amount,
-                duration,
-            } => {
-                format!("{duration:?} 동안 받는 피해를 {amount}만큼 감소시킵니다")
-            }
+            ItemKind::Heal { amount } => ItemText::HealDesc { amount: *amount }.to_korean(),
+            ItemKind::AttackPowerPlusBuff { amount, duration, radius } => ItemText::AttackPowerPlusBuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
+            ItemKind::AttackPowerMultiplyBuff { amount, duration, radius } => ItemText::AttackPowerMultiplyBuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
+            ItemKind::AttackSpeedPlusBuff { amount, duration, radius } => ItemText::AttackSpeedPlusBuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
+            ItemKind::AttackSpeedMultiplyBuff { amount, duration, radius } => ItemText::AttackSpeedMultiplyBuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
+            ItemKind::AttackRangePlus { amount, duration, radius } => ItemText::AttackRangePlusDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
+            ItemKind::MovementSpeedDebuff { amount, duration, radius } => ItemText::MovementSpeedDebuffDesc { amount: *amount, duration: *duration, radius: *radius }.to_korean(),
+            ItemKind::RoundDamage { rank, suit, damage, radius } => ItemText::RoundDamageDesc { rank, suit, damage: *damage, radius: *radius }.to_korean(),
+            ItemKind::RoundDamageOverTime { rank, suit, damage, radius, duration } => ItemText::RoundDamageOverTimeDesc { rank, suit, damage: *damage, radius: *radius, duration: *duration }.to_korean(),
+            ItemKind::Lottery { amount, probability } => ItemText::LotteryDesc { amount: *amount, probability: *probability }.to_korean(),
+            ItemKind::LinearDamage { rank, suit, damage, thickness } => ItemText::LinearDamageDesc { rank, suit, damage: *damage, thickness: *thickness }.to_korean(),
+            ItemKind::LinearDamageOverTime { rank, suit, damage, thickness, duration } => ItemText::LinearDamageOverTimeDesc { rank, suit, damage: *damage, thickness: *thickness, duration: *duration }.to_korean(),
+            ItemKind::ExtraReroll => ItemText::ExtraRerollDesc.to_korean(),
+            ItemKind::Shield { amount } => ItemText::ShieldDesc { amount: *amount }.to_korean(),
+            ItemKind::DamageReduction { damage_multiply, duration } => ItemText::DamageReductionDesc { damage_multiply: *damage_multiply, duration: *duration }.to_korean(),
         }
     }
 }

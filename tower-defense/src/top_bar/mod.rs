@@ -1,5 +1,6 @@
 use crate::{
     game_state::{is_boss_stage, level_rarity_weight, mutate_game_state, use_game_state},
+    l10n::ui::TopBarText,
     palette,
     theme::typography::{self, Headline, Paragraph},
 };
@@ -68,7 +69,7 @@ impl Component for HPAndGoldIndicator {
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
                             ctx.add(Headline {
-                                text: format!("HP {:.0}", hp * 100.0),
+                                text: format!("{} {:.0}", TopBarText::Hp.to_korean(), hp * 100.0),
                                 font_size: typography::FontSize::Medium,
                                 text_align: typography::TextAlign::Center { wh },
                                 max_width: None,
@@ -99,7 +100,7 @@ impl Component for HPAndGoldIndicator {
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
                             ctx.add(Headline {
-                                text: "Gold".to_string(),
+                                text: TopBarText::Gold.to_korean().to_string(),
                                 font_size: typography::FontSize::Medium,
                                 text_align: typography::TextAlign::Center { wh },
                                 max_width: None,
@@ -140,7 +141,7 @@ impl Component for StageIndicator {
             table::horizontal(
                 once(table::fixed(px(64.), |wh, ctx| {
                     ctx.add(Headline {
-                        text: format!("Stage {stage}"),
+                        text: format!("{} {stage}", TopBarText::Stage.to_korean()),
                         font_size: typography::FontSize::Medium,
                         text_align: typography::TextAlign::Center { wh },
                         max_width: None,
@@ -202,7 +203,7 @@ impl Component for LevelIndicator {
             table::horizontal([
                 table::fixed(px(64.), |wh, ctx| {
                     ctx.add(Headline {
-                        text: format!("Level {level}"),
+                        text: format!("{} {level}", TopBarText::Level.to_korean()),
                         font_size: typography::FontSize::Medium,
                         text_align: typography::TextAlign::Center { wh },
                         max_width: None,
@@ -213,7 +214,7 @@ impl Component for LevelIndicator {
                     table::padding(PADDING, |wh, ctx| {
                         ctx.add(button::TextButton {
                             rect: wh.to_rect(),
-                            text: format!("레벨업 {level_up_cost}"),
+                            text: format!("{} {level_up_cost}", TopBarText::LevelUp.to_korean()),
                             text_color: match can_upgrade {
                                 true => palette::ON_PRIMARY,
                                 false => palette::ON_SURFACE,
@@ -320,7 +321,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: "Common".to_string(),
+                                text: TopBarText::RarityCommon.to_korean().to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -359,7 +360,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: "Rare".to_string(),
+                                text: TopBarText::RarityRare.to_korean().to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -398,7 +399,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: "Epic".to_string(),
+                                text: TopBarText::RarityEpic.to_korean().to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -437,7 +438,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: "Legendary".to_string(),
+                                text: TopBarText::RarityLegendary.to_korean().to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,

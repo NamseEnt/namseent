@@ -7,7 +7,11 @@ use crate::{
         tower::{TowerSkillTemplate, TowerTemplate},
         upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
-    l10n, palette,
+    l10n::upgrade::{
+        AddOrMultiply, Template as UpgradeTemplate, TowerUpgradeTarget as UpgradeTarget,
+        WhatUpgrade,
+    },
+    palette,
     theme::typography::{FontSize, Headline, PARAGRAPH_FONT_SIZE_MEDIUM, TextAlign},
 };
 use namui::*;
@@ -178,8 +182,7 @@ fn calculate_upgrade_state_and_texts(
         range: vec![],
     };
 
-    let mut apply_upgrade = |upgrade_state: &TowerUpgradeState,
-                             target: l10n::TowerUpgradeTarget| {
+    let mut apply_upgrade = |upgrade_state: &TowerUpgradeState, target: UpgradeTarget| {
         state.damage_plus += upgrade_state.damage_plus;
         state.damage_multiplier *= upgrade_state.damage_multiplier;
         state.speed_plus += upgrade_state.speed_plus;
@@ -189,50 +192,50 @@ fn calculate_upgrade_state_and_texts(
         if upgrade_state.damage_plus > 0.0 {
             texts
                 .damage
-                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
                     target,
-                    what_upgrade: l10n::WhatUpgrade::Damage,
-                    add_or_multiply: l10n::AddOrMultiply::Add,
+                    what_upgrade: WhatUpgrade::Damage,
+                    add_or_multiply: AddOrMultiply::Add,
                     how_much: upgrade_state.damage_plus,
                 }));
         }
         if upgrade_state.damage_multiplier > 1.0 {
             texts
                 .damage
-                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
                     target,
-                    what_upgrade: l10n::WhatUpgrade::Damage,
-                    add_or_multiply: l10n::AddOrMultiply::Multiply,
+                    what_upgrade: WhatUpgrade::Damage,
+                    add_or_multiply: AddOrMultiply::Multiply,
                     how_much: upgrade_state.damage_multiplier,
                 }));
         }
         if upgrade_state.speed_plus > 0.0 {
             texts
                 .speed
-                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
                     target,
-                    what_upgrade: l10n::WhatUpgrade::Speed,
-                    add_or_multiply: l10n::AddOrMultiply::Add,
+                    what_upgrade: WhatUpgrade::Speed,
+                    add_or_multiply: AddOrMultiply::Add,
                     how_much: upgrade_state.speed_plus,
                 }));
         }
         if upgrade_state.speed_multiplier > 1.0 {
             texts
                 .speed
-                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
                     target,
-                    what_upgrade: l10n::WhatUpgrade::Speed,
-                    add_or_multiply: l10n::AddOrMultiply::Multiply,
+                    what_upgrade: WhatUpgrade::Speed,
+                    add_or_multiply: AddOrMultiply::Multiply,
                     how_much: upgrade_state.speed_multiplier,
                 }));
         }
         if upgrade_state.range_plus > 0.0 {
             texts
                 .range
-                .push(game_state.locale.text(l10n::Template::TowerUpgrade {
+                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
                     target,
-                    what_upgrade: l10n::WhatUpgrade::Range,
-                    add_or_multiply: l10n::AddOrMultiply::Add,
+                    what_upgrade: WhatUpgrade::Range,
+                    add_or_multiply: AddOrMultiply::Add,
                     how_much: upgrade_state.range_plus,
                 }));
         }
@@ -242,7 +245,7 @@ fn calculate_upgrade_state_and_texts(
         let Some(upgrade_state) = game_state.upgrade_state.tower_upgrade_states.get(&target) else {
             return;
         };
-        apply_upgrade(upgrade_state, l10n::TowerUpgradeTarget::Tower(target));
+        apply_upgrade(upgrade_state, UpgradeTarget::Tower(target));
     };
 
     let targets = [
@@ -272,7 +275,7 @@ fn calculate_upgrade_state_and_texts(
         else {
             return;
         };
-        apply_upgrade(upgrade_state, l10n::TowerUpgradeTarget::TowerSelect(target));
+        apply_upgrade(upgrade_state, UpgradeTarget::TowerSelect(target));
     };
 
     if tower_template.kind.is_low_card_tower() {
@@ -290,7 +293,7 @@ fn calculate_upgrade_state_and_texts(
         for _ in 0..rerolled_count {
             apply_upgrade(
                 upgrade_state,
-                l10n::TowerUpgradeTarget::TowerSelect(TowerSelectUpgradeTarget::Reroll),
+                UpgradeTarget::TowerSelect(TowerSelectUpgradeTarget::Reroll),
             );
         }
     }

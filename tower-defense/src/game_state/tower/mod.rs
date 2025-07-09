@@ -3,6 +3,7 @@ mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
 use crate::card::{Rank, Suit};
+use crate::l10n::tower::TowerKindText;
 use namui::*;
 use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick};
@@ -281,17 +282,17 @@ impl Display for TowerKind {
             f,
             "{}",
             match self {
-                Self::Barricade => "Barricade",
-                Self::High => "High",
-                Self::OnePair => "One Pair",
-                Self::TwoPair => "Two Pair",
-                Self::ThreeOfAKind => "Three of a Kind",
-                Self::Straight => "Straight",
-                Self::Flush => "Flush",
-                Self::FullHouse => "Full House",
-                Self::FourOfAKind => "Four of a Kind",
-                Self::StraightFlush => "Straight Flush",
-                Self::RoyalFlush => "Royal Flush",
+                Self::Barricade => TowerKindText::Barricade.to_english(),
+                Self::High => TowerKindText::High.to_english(),
+                Self::OnePair => TowerKindText::OnePair.to_english(),
+                Self::TwoPair => TowerKindText::TwoPair.to_english(),
+                Self::ThreeOfAKind => TowerKindText::ThreeOfAKind.to_english(),
+                Self::Straight => TowerKindText::Straight.to_english(),
+                Self::Flush => TowerKindText::Flush.to_english(),
+                Self::FullHouse => TowerKindText::FullHouse.to_english(),
+                Self::FourOfAKind => TowerKindText::FourOfAKind.to_english(),
+                Self::StraightFlush => TowerKindText::StraightFlush.to_english(),
+                Self::RoyalFlush => TowerKindText::RoyalFlush.to_english(),
             }
         )
     }

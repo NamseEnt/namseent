@@ -1,6 +1,7 @@
 use crate::{
     card::Rank,
     game_state::tower::{TowerSkillKind, TowerSkillTemplate},
+    l10n::tower_skill::TowerSkillText,
     theme::{
         palette,
         typography::{FontSize, Headline, Paragraph, TextAlign},
@@ -78,64 +79,24 @@ impl Component for TowerEffectDescription<'_> {
         let Self { skill } = self;
 
         let title = match skill.kind {
-            TowerSkillKind::NearbyTowerDamageMul { .. } => "주변 타워 공격력 증가".to_string(),
-            TowerSkillKind::NearbyTowerDamageAdd { .. } => "주변 타워 공격력 추가".to_string(),
-            TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => {
-                "주변 타워 공격 속도 추가".to_string()
-            }
-            TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => {
-                "주변 타워 공격 속도 증가".to_string()
-            }
-            TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => {
-                "주변 타워 공격 범위 추가".to_string()
-            }
-            TowerSkillKind::NearbyMonsterSpeedMul { .. } => "주변 몬스터 속도 감소".to_string(),
-            TowerSkillKind::MoneyIncomeAdd { .. } => "돈 수입 증가".to_string(),
-            TowerSkillKind::TopCardBonus { .. } => "탑 카드 보너스".to_string(),
+            TowerSkillKind::NearbyTowerDamageMul { .. } => TowerSkillText::NearbyTowerDamageMulTitle.to_korean(),
+            TowerSkillKind::NearbyTowerDamageAdd { .. } => TowerSkillText::NearbyTowerDamageAddTitle.to_korean(),
+            TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => TowerSkillText::NearbyTowerAttackSpeedAddTitle.to_korean(),
+            TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => TowerSkillText::NearbyTowerAttackSpeedMulTitle.to_korean(),
+            TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => TowerSkillText::NearbyTowerAttackRangeAddTitle.to_korean(),
+            TowerSkillKind::NearbyMonsterSpeedMul { .. } => TowerSkillText::NearbyMonsterSpeedMulTitle.to_korean(),
+            TowerSkillKind::MoneyIncomeAdd { .. } => TowerSkillText::MoneyIncomeAddTitle.to_korean(),
+            TowerSkillKind::TopCardBonus { .. } => TowerSkillText::TopCardBonusTitle.to_korean(),
         };
         let description = match skill.kind {
-            TowerSkillKind::NearbyTowerDamageMul { mul, range_radius } => {
-                format!(
-                    "주변 타워의 공격력을 {}% 증가시킵니다 (반경 {} 타일)",
-                    mul * 100.0,
-                    range_radius
-                )
-            }
-            TowerSkillKind::NearbyTowerDamageAdd { add, range_radius } => {
-                format!(
-                    "주변 타워의 공격력을 {add}만큼 증가시킵니다 (반경 {range_radius} 타일)"
-                )
-            }
-            TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => {
-                format!(
-                    "주변 타워의 공격 속도를 {}% 증가시킵니다 (반경 {} 타일)",
-                    add * 100.0,
-                    range_radius
-                )
-            }
-            TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => {
-                format!(
-                    "주변 타워의 공격 속도를 {mul}배 증가시킵니다 (반경 {range_radius} 타일)"
-                )
-            }
-            TowerSkillKind::NearbyTowerAttackRangeAdd { add, range_radius } => {
-                format!(
-                    "주변 타워의 공격 범위를 {add} 타일 증가시킵니다 (반경 {range_radius} 타일)"
-                )
-            }
-            TowerSkillKind::NearbyMonsterSpeedMul { mul, range_radius } => {
-                format!(
-                    "주변 몬스터의 속도를 {}% 감소시킵니다 (반경 {} 타일)",
-                    mul * 100.0,
-                    range_radius
-                )
-            }
-            TowerSkillKind::MoneyIncomeAdd { add } => {
-                format!("적 처치시 {add} 골드를 추가로 획득합니다")
-            }
-            TowerSkillKind::TopCardBonus { rank, bonus_damage } => {
-                format!("탑 카드 보너스: {rank} (공격력 +{bonus_damage})")
-            }
+            TowerSkillKind::NearbyTowerDamageMul { mul, range_radius } => TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius: range_radius as usize }.to_korean(),
+            TowerSkillKind::NearbyTowerDamageAdd { add, range_radius } => TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius: range_radius as usize }.to_korean(),
+            TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius: range_radius as usize }.to_korean(),
+            TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius: range_radius as usize }.to_korean(),
+            TowerSkillKind::NearbyTowerAttackRangeAdd { add, range_radius } => TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius: range_radius as usize }.to_korean(),
+            TowerSkillKind::NearbyMonsterSpeedMul { mul, range_radius } => TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius: range_radius as usize }.to_korean(),
+            TowerSkillKind::MoneyIncomeAdd { add } => TowerSkillText::MoneyIncomeAddDesc { add }.to_korean(),
+            TowerSkillKind::TopCardBonus { rank, bonus_damage } => TowerSkillText::TopCardBonusDesc { rank: rank.to_string(), bonus_damage }.to_korean(),
         };
 
         ctx.compose(|ctx| {

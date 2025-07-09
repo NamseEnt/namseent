@@ -1,3 +1,4 @@
+use crate::l10n::ui::TopBarText;
 use crate::theme::{
     palette,
     typography::{self, Headline},
@@ -34,7 +35,7 @@ impl Component for SettingsModal<'_> {
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
                                 ctx.add(Headline {
-                                    text: "Settings".to_string(),
+                                    text: TopBarText::Settings.to_korean().to_string(),
                                     font_size: typography::FontSize::Medium,
                                     text_align: typography::TextAlign::LeftCenter {
                                         height: wh.height,
@@ -45,7 +46,7 @@ impl Component for SettingsModal<'_> {
                             table::fixed(64.px(), |wh, ctx| {
                                 ctx.add(TextButton {
                                     rect: wh.to_rect(),
-                                    text: "Close".to_string(),
+                                    text: TopBarText::Close.to_korean().to_string(),
                                     text_color: palette::ON_SURFACE,
                                     stroke_color: palette::OUTLINE,
                                     stroke_width: 1.px(),

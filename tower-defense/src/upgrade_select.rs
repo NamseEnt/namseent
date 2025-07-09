@@ -1,5 +1,6 @@
 use crate::{
     game_state::{mutate_game_state, upgrade::Upgrade},
+    l10n::upgrade::{KoKRLocale as UpgradeKoKRLocale, Template as UpgradeTemplate},
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -152,7 +153,12 @@ impl Component for UpgradeSelectItem<'_> {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(Headline {
-                                                    text: upgrade.kind.name().to_string(),
+                                                    text: UpgradeKoKRLocale.text(
+                                                        UpgradeTemplate::from_kind(
+                                                            &upgrade.kind,
+                                                            true,
+                                                        ),
+                                                    ),
                                                     font_size: FontSize::Small,
                                                     text_align: TextAlign::LeftTop,
                                                     max_width: Some(wh.width),
@@ -161,7 +167,12 @@ impl Component for UpgradeSelectItem<'_> {
                                             table::fixed(PADDING, |_, _| {}),
                                             table::ratio(1, |_wh, ctx| {
                                                 ctx.add(Paragraph {
-                                                    text: upgrade.kind.description(),
+                                                    text: UpgradeKoKRLocale.text(
+                                                        UpgradeTemplate::from_kind(
+                                                            &upgrade.kind,
+                                                            false,
+                                                        ),
+                                                    ),
                                                     font_size: FontSize::Medium,
                                                     text_align: TextAlign::LeftTop,
                                                     max_width: Some(wh.width),

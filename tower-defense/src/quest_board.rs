@@ -4,6 +4,7 @@ use crate::{
         quest::{Quest, generate_quests},
         use_game_state,
     },
+    l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -104,7 +105,11 @@ impl Component for QuestBoardOpenButton<'_> {
             ctx.translate((0.px(), -QUEST_BOARD_BUTTON_WH.height))
                 .add(TextButton {
                     rect: QUEST_BOARD_BUTTON_WH.to_rect(),
-                    text: format!("퀘스트 {}", if opened { "^" } else { "v" }),
+                    text: format!(
+                        "{} {}",
+                        TopBarText::Quest.to_korean(),
+                        if opened { "^" } else { "v" }
+                    ),
                     text_color: palette::ON_SURFACE,
                     stroke_color: palette::OUTLINE,
                     stroke_width: 1.px(),
@@ -182,7 +187,8 @@ impl Component for QuestBoard<'_> {
                                 ctx.add(TextButton {
                                     rect: wh.to_rect(),
                                     text: format!(
-                                        "새로고침-{}",
+                                        "{}-{}",
+                                        TopBarText::Refresh.to_korean(),
                                         game_state.left_quest_board_refresh_chance
                                     ),
                                     text_color: match disabled {
@@ -273,7 +279,7 @@ impl Component for QuestBoardItemLocked {
                 table::ratio(1, |_, _| {}),
                 table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: "Locked".to_string(),
+                        text: TopBarText::Locked.to_korean().to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,
@@ -346,7 +352,7 @@ impl Component for QuestBoardItemContent<'_> {
                                     table::fixed(48.px(), |wh, ctx| {
                                         ctx.add(button::TextButton {
                                             rect: wh.to_rect(),
-                                            text: "수락",
+                                            text: TopBarText::Accept.to_korean().to_string(),
                                             text_color: match available {
                                                 true => palette::ON_PRIMARY,
                                                 false => palette::ON_SURFACE,
@@ -405,7 +411,7 @@ impl Component for QuestBoardItemAccepted {
                 table::ratio(1, |_, _| {}),
                 table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: "Accepted".to_string(),
+                        text: TopBarText::Accepted.to_korean().to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,

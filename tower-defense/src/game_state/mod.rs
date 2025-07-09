@@ -20,7 +20,7 @@ pub mod tower;
 pub mod upgrade;
 mod user_status_effect;
 
-use crate::l10n::{KoKRLocale, Locales};
+use crate::l10n::upgrade::{KoKRLocale, Locales};
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
 use crate::shop::ShopSlot;

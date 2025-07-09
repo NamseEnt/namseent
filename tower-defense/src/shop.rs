@@ -5,6 +5,7 @@ use crate::{
         quest::{QuestTriggerEvent, on_quest_trigger_event},
         use_game_state,
     },
+    l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -120,7 +121,11 @@ impl Component for ShopOpenButton<'_> {
             ctx.translate((0.px(), -SHOP_BUTTON_WH.height))
                 .add(TextButton {
                     rect: SHOP_BUTTON_WH.to_rect(),
-                    text: format!("상점 {}", if opened { "^" } else { "v" }),
+                    text: format!(
+                        "{} {}",
+                        TopBarText::Shop.to_korean(),
+                        if opened { "^" } else { "v" }
+                    ),
                     text_color: palette::ON_SURFACE,
                     stroke_color: palette::OUTLINE,
                     stroke_width: 1.px(),
@@ -198,7 +203,8 @@ impl Component for Shop<'_> {
                                 ctx.add(TextButton {
                                     rect: wh.to_rect(),
                                     text: format!(
-                                        "새로고침-{}",
+                                        "{}-{}",
+                                        TopBarText::Refresh.to_korean(),
                                         game_state.left_shop_refresh_chance
                                     ),
                                     text_color: match disabled {
@@ -299,7 +305,7 @@ impl Component for ShopItemLocked {
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: "Locked".to_string(),
+                        text: TopBarText::Locked.to_korean().to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,
@@ -433,7 +439,7 @@ impl Component for ShopItemSoldOut {
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: "Sold Out".to_string(),
+                        text: TopBarText::SoldOut.to_korean().to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,

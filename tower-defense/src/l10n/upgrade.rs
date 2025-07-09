@@ -1,12 +1,3 @@
-pub enum Template {
-    TowerUpgrade {
-        target: TowerUpgradeTarget,
-        what_upgrade: WhatUpgrade,
-        add_or_multiply: AddOrMultiply,
-        how_much: f32,
-    },
-}
-
 #[derive(Debug, Clone, Copy)]
 pub enum TowerUpgradeTarget {
     Tower(crate::game_state::upgrade::TowerUpgradeTarget),
@@ -24,6 +15,15 @@ pub enum WhatUpgrade {
 pub enum AddOrMultiply {
     Add,
     Multiply,
+}
+
+pub enum Template {
+    TowerUpgrade {
+        target: TowerUpgradeTarget,
+        what_upgrade: WhatUpgrade,
+        add_or_multiply: AddOrMultiply,
+        how_much: f32,
+    },
 }
 
 pub enum Locales {
@@ -88,6 +88,49 @@ impl KoKRLocale {
                     }
                 )
             }
+        }
+    }
+}
+
+impl Template {
+    pub fn from_kind(kind: &crate::game_state::upgrade::UpgradeKind, is_name: bool) -> Self {
+        // 이름/설명 구분은 is_name 플래그로 처리, 실제 매핑은 필요에 따라 구현
+        // 예시: 이름은 is_name=true, 설명은 is_name=false
+        // 실제 구현에서는 kind의 variant별로 적절한 Template variant를 생성
+        match kind {
+            // 예시: RankAttackDamagePlus { rank, damage_plus } =>
+            crate::game_state::upgrade::UpgradeKind::RankAttackDamagePlus { rank, damage_plus } => {
+                if is_name {
+                    Template::TowerUpgrade {
+                        target: TowerUpgradeTarget::Tower(
+                            crate::game_state::upgrade::TowerUpgradeTarget::Rank { rank: *rank },
+                        ),
+                        what_upgrade: WhatUpgrade::Damage,
+                        add_or_multiply: AddOrMultiply::Add,
+                        how_much: *damage_plus,
+                    }
+                } else {
+                    Template::TowerUpgrade {
+                        target: TowerUpgradeTarget::Tower(
+                            crate::game_state::upgrade::TowerUpgradeTarget::Rank { rank: *rank },
+                        ),
+                        what_upgrade: WhatUpgrade::Damage,
+                        add_or_multiply: AddOrMultiply::Add,
+                        how_much: *damage_plus,
+                    }
+                }
+            }
+            // ...다른 UpgradeKind variant도 동일하게 매핑 필요...
+            _ => Template::TowerUpgrade {
+                target: TowerUpgradeTarget::Tower(
+                    crate::game_state::upgrade::TowerUpgradeTarget::Rank {
+                        rank: crate::card::Rank::Ace,
+                    },
+                ),
+                what_upgrade: WhatUpgrade::Damage,
+                add_or_multiply: AddOrMultiply::Add,
+                how_much: 0.0,
+            },
         }
     }
 }

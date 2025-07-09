@@ -1,6 +1,7 @@
 use crate::{
     card::{Rank, Suit, random_rank, random_suit},
     game_state::{GameState, tower::TowerKind},
+    l10n::quest::QuestText,
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -24,63 +25,72 @@ pub enum QuestRequirement {
 impl QuestRequirement {
     pub fn description(self, game_state: &GameState) -> String {
         match self {
-            QuestRequirement::BuildTowerRankNew { rank, count } => {
-                format!("{rank}타워를 {count}개 새로 건설하세요.")
+            QuestRequirement::BuildTowerRankNew { rank, count } => QuestText::BuildTowerRankNew {
+                rank: rank.to_string(),
+                count,
             }
+            .to_korean(),
             QuestRequirement::BuildTowerHand { hand, count } => {
                 let current_count = game_state
                     .towers
                     .iter()
                     .filter(|tower| tower.kind == hand)
                     .count();
-                format!(
-                    "{hand}타워를 {count}개 소유하세요. ({current_count}/{count})"
-                )
+                QuestText::BuildTowerHand {
+                    hand: hand.to_string(),
+                    count,
+                    current_count,
+                }
+                .to_korean()
             }
-            QuestRequirement::BuildTowerHandNew { hand, count } => {
-                format!("{hand}타워를 {count}개 새로 건설하세요.")
+            QuestRequirement::BuildTowerHandNew { hand, count } => QuestText::BuildTowerHandNew {
+                hand: hand.to_string(),
+                count,
             }
+            .to_korean(),
             QuestRequirement::BuildTowerRank { rank, count } => {
                 let current_count = game_state
                     .towers
                     .iter()
                     .filter(|tower| tower.rank == rank)
                     .count();
-                format!(
-                    "{rank}타워를 {count}개 소유하세요. ({current_count}/{count})"
-                )
+                QuestText::BuildTowerRank {
+                    rank: rank.to_string(),
+                    count,
+                    current_count,
+                }
+                .to_korean()
             }
-            QuestRequirement::BuildTowerSuitNew { suit, count } => {
-                format!("{suit}타워를 {count}개 새로 건설하세요.")
+            QuestRequirement::BuildTowerSuitNew { suit, count } => QuestText::BuildTowerSuitNew {
+                suit: suit.to_string(),
+                count,
             }
+            .to_korean(),
             QuestRequirement::BuildTowerSuit { suit, count } => {
                 let current_count = game_state
                     .towers
                     .iter()
                     .filter(|tower| tower.suit == suit)
                     .count();
-                format!(
-                    "{suit}타워를 {count}개 소유하세요. ({current_count}/{count})"
-                )
+                QuestText::BuildTowerSuit {
+                    suit: suit.to_string(),
+                    count,
+                    current_count,
+                }
+                .to_korean()
             }
             QuestRequirement::ClearBossRoundWithoutItems => {
-                "아이템을 사용하지않고 보스라운드 클리어".to_string()
+                QuestText::ClearBossRoundWithoutItems.to_korean()
             }
             QuestRequirement::DealDamageWithItems { damage } => {
-                format!("아이템을 사용해 {damage}피해 입히기")
+                QuestText::DealDamageWithItems { damage }.to_korean()
             }
             QuestRequirement::BuildTowersWithoutReroll { count } => {
-                format!("리롤하지않고 타워 {count}개 만들기")
+                QuestText::BuildTowersWithoutReroll { count }.to_korean()
             }
-            QuestRequirement::UseReroll { count } => {
-                format!("리롤 {count}회 사용하기")
-            }
-            QuestRequirement::SpendGold { gold } => {
-                format!("{gold}골드 사용하기")
-            }
-            QuestRequirement::EarnGold { gold } => {
-                format!("{gold}골드 획득하기")
-            }
+            QuestRequirement::UseReroll { count } => QuestText::UseReroll { count }.to_korean(),
+            QuestRequirement::SpendGold { gold } => QuestText::SpendGold { gold }.to_korean(),
+            QuestRequirement::EarnGold { gold } => QuestText::EarnGold { gold }.to_korean(),
         }
     }
 }

@@ -5,6 +5,7 @@ use crate::{
         item::{ ItemUsage, use_item},
         mutate_game_state, use_game_state,
     },
+    l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
 };
@@ -34,10 +35,7 @@ impl Component for Inventory {
                         table::vertical([
                             table::fixed(TITLE_HEIGHT, |wh, ctx| {
                                 ctx.add(Headline {
-                                    text: format!(
-                                        "인벤토리 {}/{MAX_INVENTORY_SLOT}",
-                                        game_state.items.len(),
-                                    ),
+                                    text: format!("{} {}/{}", TopBarText::Inventory.to_korean(), game_state.items.len(), MAX_INVENTORY_SLOT),
                                     font_size: FontSize::Medium,
                                     text_align: TextAlign::Center { wh },
                                     max_width: wh.width.into(),
@@ -80,7 +78,7 @@ impl Component for Inventory {
                                                             table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 3.0, |wh, ctx| {
                                                                 ctx.add(TextButton {
                                                                     rect: wh.to_rect(),
-                                                                    text: "사용",
+                                                                    text: TopBarText::Use.to_korean().to_string(),
                                                                     text_color: palette::ON_SURFACE,
                                                                     stroke_color: palette::OUTLINE,
                                                                     stroke_width: 1.px(),
@@ -108,7 +106,7 @@ impl Component for Inventory {
                                                             table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
                                                                 ctx.add(TextButton {
                                                                     rect: wh.to_rect(),
-                                                                    text: "X",
+                                                                    text: TopBarText::Remove.to_korean().to_string(),
                                                                     text_color: palette::ON_SURFACE,
                                                                     stroke_color: palette::OUTLINE,
                                                                     stroke_width: 1.px(),

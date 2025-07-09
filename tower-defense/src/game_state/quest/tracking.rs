@@ -4,6 +4,7 @@ use crate::{
 };
 
 use super::QuestState;
+use crate::l10n::quest::QuestText;
 
 #[derive(Debug)]
 pub enum QuestTrackingState {
@@ -59,14 +60,8 @@ pub enum QuestTrackingState {
 impl QuestTrackingState {
     pub(crate) fn description(&self, game_state: &GameState) -> String {
         match self {
-            QuestTrackingState::BuildTowerRankNew {
-                rank,
-                target_count,
-                new_built_count,
-            } => {
-                format!(
-                    "{rank}타워를 {target_count}개 새로 건설하세요. ({new_built_count}/{target_count})"
-                )
+            QuestTrackingState::BuildTowerRankNew { rank, target_count, new_built_count } => {
+                QuestText::BuildTowerRankNew { rank: rank.to_string(), count: *target_count }.to_korean() + &format!(" ({}/{})", new_built_count, target_count)
             }
             QuestTrackingState::BuildTowerRank { rank, target_count } => {
                 let current_count = game_state
@@ -74,18 +69,10 @@ impl QuestTrackingState {
                     .iter()
                     .filter(|tower| tower.rank == *rank)
                     .count();
-                format!(
-                    "{rank}타워를 {target_count}개 소유하세요. ({current_count}/{target_count})"
-                )
+                QuestText::BuildTowerRank { rank: rank.to_string(), count: *target_count, current_count }.to_korean()
             }
-            QuestTrackingState::BuildTowerSuitNew {
-                suit,
-                target_count,
-                new_built_count,
-            } => {
-                format!(
-                    "{suit}타워를 {target_count}개 새로 건설하세요. ({new_built_count}/{target_count})"
-                )
+            QuestTrackingState::BuildTowerSuitNew { suit, target_count, new_built_count } => {
+                QuestText::BuildTowerSuitNew { suit: suit.to_string(), count: *target_count }.to_korean() + &format!(" ({}/{})", new_built_count, target_count)
             }
             QuestTrackingState::BuildTowerSuit { suit, target_count } => {
                 let current_count = game_state
@@ -93,18 +80,10 @@ impl QuestTrackingState {
                     .iter()
                     .filter(|tower| tower.suit == *suit)
                     .count();
-                format!(
-                    "{suit}타워를 {target_count}개 소유하세요. ({current_count}/{target_count})"
-                )
+                QuestText::BuildTowerSuit { suit: suit.to_string(), count: *target_count, current_count }.to_korean()
             }
-            QuestTrackingState::BuildTowerHandNew {
-                hand,
-                target_count,
-                new_built_count,
-            } => {
-                format!(
-                    "{hand}타워를 {target_count}개 새로 건설하세요. ({new_built_count}/{target_count})"
-                )
+            QuestTrackingState::BuildTowerHandNew { hand, target_count, new_built_count } => {
+                QuestText::BuildTowerHandNew { hand: hand.to_string(), count: *target_count }.to_korean() + &format!(" ({}/{})", new_built_count, target_count)
             }
             QuestTrackingState::BuildTowerHand { hand, target_count } => {
                 let current_count = game_state
@@ -112,52 +91,25 @@ impl QuestTrackingState {
                     .iter()
                     .filter(|tower| tower.kind == *hand)
                     .count();
-                format!(
-                    "{hand}타워를 {target_count}개 소유하세요. ({current_count}/{target_count})"
-                )
+                QuestText::BuildTowerHand { hand: hand.to_string(), count: *target_count, current_count }.to_korean()
             }
             QuestTrackingState::ClearBossRoundWithoutItems => {
-                "아이템을 사용하지않고 보스라운드 클리어".to_string()
+                QuestText::ClearBossRoundWithoutItems.to_korean()
             }
-            QuestTrackingState::DealDamageWithItems {
-                target_damage,
-                dealt_damage,
-            } => {
-                format!(
-                    "아이템을 사용해 {target_damage}피해 입히기 ({dealt_damage}/{target_damage})"
-                )
+            QuestTrackingState::DealDamageWithItems { target_damage, dealt_damage } => {
+                QuestText::DealDamageWithItems { damage: *target_damage }.to_korean() + &format!(" ({}/{})", dealt_damage, target_damage)
             }
-            QuestTrackingState::BuildTowersWithoutReroll {
-                target_count,
-                built_count,
-            } => {
-                format!(
-                    "리롤하지않고 타워 {target_count}개 만들기 ({built_count}/{target_count})"
-                )
+            QuestTrackingState::BuildTowersWithoutReroll { target_count, built_count } => {
+                QuestText::BuildTowersWithoutReroll { count: *target_count }.to_korean() + &format!(" ({}/{})", built_count, target_count)
             }
-            QuestTrackingState::UseReroll {
-                target_count,
-                rolled_count,
-            } => {
-                format!(
-                    "리롤 {target_count}회 사용하기 ({rolled_count}/{target_count})"
-                )
+            QuestTrackingState::UseReroll { target_count, rolled_count } => {
+                QuestText::UseReroll { count: *target_count }.to_korean() + &format!(" ({}/{})", rolled_count, target_count)
             }
-            QuestTrackingState::SpendGold {
-                target_gold,
-                spent_gold,
-            } => {
-                format!(
-                    "{target_gold}골드 사용하기 ({spent_gold}/{target_gold})"
-                )
+            QuestTrackingState::SpendGold { target_gold, spent_gold } => {
+                QuestText::SpendGold { gold: *target_gold }.to_korean() + &format!(" ({}/{})", spent_gold, target_gold)
             }
-            QuestTrackingState::EarnGold {
-                target_gold,
-                earned_gold,
-            } => {
-                format!(
-                    "{target_gold}골드 획득하기 ({earned_gold}/{target_gold})"
-                )
+            QuestTrackingState::EarnGold { target_gold, earned_gold } => {
+                QuestText::EarnGold { gold: *target_gold }.to_korean() + &format!(" ({}/{})", earned_gold, target_gold)
             }
         }
     }
