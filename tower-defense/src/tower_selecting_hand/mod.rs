@@ -8,7 +8,7 @@ use crate::{
         mutate_game_state,
         quest::{QuestTriggerEvent, on_quest_trigger_event},
     },
-    l10n::ui::{TopBarText, UiTextLocale},
+    l10n::ui::TopBarText,
     palette,
 };
 use get_highest_tower::get_highest_tower_template;
@@ -241,7 +241,7 @@ impl Component for InteractionArea<'_> {
                     table::fixed(32.px(), |wh, ctx| {
                         ctx.add(button::TextButton {
                             rect: wh.to_rect(),
-                            text: game_state.locale.ui_text(TopBarText::Refresh),
+                            text: game_state.text().ui(TopBarText::Refresh),
                             text_color: match some_selected {
                                 true => palette::ON_PRIMARY,
                                 false => palette::ON_SURFACE,
@@ -262,7 +262,7 @@ impl Component for InteractionArea<'_> {
                     table::fixed(32.px(), |wh, ctx| {
                         ctx.add(button::TextButton {
                             rect: wh.to_rect(),
-                            text: game_state.locale.ui_text(TopBarText::UseTower),
+                            text: game_state.text().ui(TopBarText::UseTower),
                             text_color: palette::ON_PRIMARY,
                             stroke_color: palette::OUTLINE,
                             stroke_width: 1.px(),

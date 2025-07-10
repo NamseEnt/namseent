@@ -1,7 +1,7 @@
 use crate::{
     card::{Rank, Suit, random_rank, random_suit},
     game_state::{GameState, tower::TowerKind},
-    l10n::quest::{QuestText, QuestTextLocale},
+    l10n::quest::QuestText,
     rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -25,66 +25,74 @@ pub enum QuestRequirement {
 impl QuestRequirement {
     pub fn description(self, game_state: &GameState) -> String {
         match self {
-            QuestRequirement::BuildTowerRankNew { rank, count } => game_state.locale.quest_text(&QuestText::BuildTowerRankNew {
-                rank: rank.to_string(),
-                count,
-            }),
+            QuestRequirement::BuildTowerRankNew { rank, count } => {
+                game_state.text().quest(QuestText::BuildTowerRankNew {
+                    rank: rank.to_string(),
+                    count,
+                })
+            }
             QuestRequirement::BuildTowerHand { hand, count } => {
                 let current_count = game_state
                     .towers
                     .iter()
                     .filter(|tower| tower.kind == hand)
                     .count();
-                game_state.locale.quest_text(&QuestText::BuildTowerHand {
+                game_state.text().quest(QuestText::BuildTowerHand {
                     hand: hand.to_string(),
                     count,
                     current_count,
                 })
             }
-            QuestRequirement::BuildTowerHandNew { hand, count } => game_state.locale.quest_text(&QuestText::BuildTowerHandNew {
-                hand: hand.to_string(),
-                count,
-            }),
+            QuestRequirement::BuildTowerHandNew { hand, count } => {
+                game_state.text().quest(QuestText::BuildTowerHandNew {
+                    hand: hand.to_string(),
+                    count,
+                })
+            }
             QuestRequirement::BuildTowerRank { rank, count } => {
                 let current_count = game_state
                     .towers
                     .iter()
                     .filter(|tower| tower.rank == rank)
                     .count();
-                game_state.locale.quest_text(&QuestText::BuildTowerRank {
+                game_state.text().quest(QuestText::BuildTowerRank {
                     rank: rank.to_string(),
                     count,
                     current_count,
                 })
             }
-            QuestRequirement::BuildTowerSuitNew { suit, count } => game_state.locale.quest_text(&QuestText::BuildTowerSuitNew {
-                suit: suit.to_string(),
-                count,
-            }),
+            QuestRequirement::BuildTowerSuitNew { suit, count } => {
+                game_state.text().quest(QuestText::BuildTowerSuitNew {
+                    suit: suit.to_string(),
+                    count,
+                })
+            }
             QuestRequirement::BuildTowerSuit { suit, count } => {
                 let current_count = game_state
                     .towers
                     .iter()
                     .filter(|tower| tower.suit == suit)
                     .count();
-                game_state.locale.quest_text(&QuestText::BuildTowerSuit {
+                game_state.text().quest(QuestText::BuildTowerSuit {
                     suit: suit.to_string(),
                     count,
                     current_count,
                 })
             }
-            QuestRequirement::ClearBossRoundWithoutItems => {
-                game_state.locale.quest_text(&QuestText::ClearBossRoundWithoutItems)
+            QuestRequirement::ClearBossRoundWithoutItems => game_state
+                .text().quest(QuestText::ClearBossRoundWithoutItems),
+            QuestRequirement::DealDamageWithItems { damage } => game_state
+                .text().quest(QuestText::DealDamageWithItems { damage }),
+            QuestRequirement::BuildTowersWithoutReroll { count } => game_state
+                .text().quest(QuestText::BuildTowersWithoutReroll { count }),
+            QuestRequirement::UseReroll { count } => game_state
+                .text().quest(QuestText::UseReroll { count }),
+            QuestRequirement::SpendGold { gold } => {
+                game_state.text().quest(QuestText::SpendGold { gold })
             }
-            QuestRequirement::DealDamageWithItems { damage } => {
-                game_state.locale.quest_text(&QuestText::DealDamageWithItems { damage })
+            QuestRequirement::EarnGold { gold } => {
+                game_state.text().quest(QuestText::EarnGold { gold })
             }
-            QuestRequirement::BuildTowersWithoutReroll { count } => {
-                game_state.locale.quest_text(&QuestText::BuildTowersWithoutReroll { count })
-            }
-            QuestRequirement::UseReroll { count } => game_state.locale.quest_text(&QuestText::UseReroll { count }),
-            QuestRequirement::SpendGold { gold } => game_state.locale.quest_text(&QuestText::SpendGold { gold }),
-            QuestRequirement::EarnGold { gold } => game_state.locale.quest_text(&QuestText::EarnGold { gold }),
         }
     }
 }

@@ -3,8 +3,7 @@ mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
 use crate::card::{Rank, Suit};
-use crate::l10n::tower::{TowerKindText, TowerKindTextLocale};
-use crate::l10n::upgrade::Locales;
+use crate::l10n::{tower::TowerKindText};
 use namui::*;
 use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick};
@@ -279,22 +278,22 @@ impl TowerKind {
 }
 impl Display for TowerKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let locale = Locales::KoKR(crate::l10n::upgrade::KoKRLocale);
+        use crate::l10n::KOREAN_TEXT;
         write!(
             f,
             "{}",
             match self {
-                Self::Barricade => locale.tower_kind_text(&TowerKindText::Barricade),
-                Self::High => locale.tower_kind_text(&TowerKindText::High),
-                Self::OnePair => locale.tower_kind_text(&TowerKindText::OnePair),
-                Self::TwoPair => locale.tower_kind_text(&TowerKindText::TwoPair),
-                Self::ThreeOfAKind => locale.tower_kind_text(&TowerKindText::ThreeOfAKind),
-                Self::Straight => locale.tower_kind_text(&TowerKindText::Straight),
-                Self::Flush => locale.tower_kind_text(&TowerKindText::Flush),
-                Self::FullHouse => locale.tower_kind_text(&TowerKindText::FullHouse),
-                Self::FourOfAKind => locale.tower_kind_text(&TowerKindText::FourOfAKind),
-                Self::StraightFlush => locale.tower_kind_text(&TowerKindText::StraightFlush),
-                Self::RoyalFlush => locale.tower_kind_text(&TowerKindText::RoyalFlush),
+                Self::Barricade => KOREAN_TEXT.tower(TowerKindText::Barricade),
+                Self::High => KOREAN_TEXT.tower(TowerKindText::High),
+                Self::OnePair => KOREAN_TEXT.tower(TowerKindText::OnePair),
+                Self::TwoPair => KOREAN_TEXT.tower(TowerKindText::TwoPair),
+                Self::ThreeOfAKind => KOREAN_TEXT.tower(TowerKindText::ThreeOfAKind),
+                Self::Straight => KOREAN_TEXT.tower(TowerKindText::Straight),
+                Self::Flush => KOREAN_TEXT.tower(TowerKindText::Flush),
+                Self::FullHouse => KOREAN_TEXT.tower(TowerKindText::FullHouse),
+                Self::FourOfAKind => KOREAN_TEXT.tower(TowerKindText::FourOfAKind),
+                Self::StraightFlush => KOREAN_TEXT.tower(TowerKindText::StraightFlush),
+                Self::RoyalFlush => KOREAN_TEXT.tower(TowerKindText::RoyalFlush),
             }
         )
     }

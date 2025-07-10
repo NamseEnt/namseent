@@ -1,3 +1,6 @@
+use super::{Locale, Language, LocalizedStaticText};
+
+#[derive(Debug, Clone, Copy)]
 pub enum UpgradeBoardText {
     Title,
     GoldEarnPlus,
@@ -26,8 +29,17 @@ pub enum UpgradeBoardText {
     RangePlus,
 }
 
+impl LocalizedStaticText for UpgradeBoardText {
+    fn localized_text(&self, locale: &Locale) -> &'static str {
+        match locale.language {
+            Language::Korean => self.to_korean(),
+            Language::English => self.to_english(),
+        }
+    }
+}
+
 impl UpgradeBoardText {
-    fn to_korean(&self) -> &'static str {
+    pub(super) fn to_korean(&self) -> &'static str {
         match self {
             UpgradeBoardText::Title => "강화 정보",
             UpgradeBoardText::GoldEarnPlus => "몬스터 처치 시 {amount}골드를 추가로 얻습니다",
@@ -62,17 +74,40 @@ impl UpgradeBoardText {
             UpgradeBoardText::RangePlus => "사정거리가 {amount}만큼 증가합니다",
         }
     }
-}
 
-pub trait UpgradeBoardTextLocale {
-    fn upgrade_board_text(&self, text: &UpgradeBoardText) -> &'static str;
-}
-
-impl UpgradeBoardTextLocale for crate::l10n::upgrade::Locales {
-    fn upgrade_board_text(&self, text: &UpgradeBoardText) -> &'static str {
+    pub(super) fn to_english(&self) -> &'static str {
         match self {
-            crate::l10n::upgrade::Locales::KoKR(_) => text.to_korean(),
-            // 다국어 확장 시 여기에 추가
+            UpgradeBoardText::Title => "Upgrade Information",
+            UpgradeBoardText::GoldEarnPlus => "Earn an additional {amount} gold when defeating monsters",
+            UpgradeBoardText::ShopSlotExpand => "Increases shop slots by {amount}",
+            UpgradeBoardText::QuestSlotExpand => "Increases quest slots by {amount}",
+            UpgradeBoardText::QuestBoardSlotExpand => "Increases quest board slots by {amount}",
+            UpgradeBoardText::RerollChancePlus => "Increases reroll chances by {amount}",
+            UpgradeBoardText::ShopItemPriceMinus => "Decreases shop item prices by {amount}",
+            UpgradeBoardText::ShopRefreshChancePlus => "Increases shop refresh chances by {amount}",
+            UpgradeBoardText::QuestBoardRefreshChancePlus => {
+                "Increases quest board refresh chances by {amount}"
+            }
+            UpgradeBoardText::ShortenStraightFlushTo4Cards => {
+                "Shortens straight and flush to 4 cards"
+            }
+            UpgradeBoardText::SkipRankForStraight => {
+                "Skip one rank when creating a straight"
+            }
+            UpgradeBoardText::TreatSuitsAsSame => "Treats same colors as the same pattern",
+            UpgradeBoardText::TowerSelectLowCard => "When creating a tower with {amount} or fewer cards, the tower's",
+            UpgradeBoardText::TowerSelectNoReroll => "When creating a tower without rerolling, the tower's",
+            UpgradeBoardText::TowerSelectReroll => "Each time you reroll, the tower's",
+            UpgradeBoardText::TowerUpgradeRank => "For towers with rank {name},",
+            UpgradeBoardText::TowerUpgradeSuit => "For towers with suit {name},",
+            UpgradeBoardText::TowerUpgradeKind => "For {name} towers,",
+            UpgradeBoardText::TowerUpgradeEvenOdd => "For {name} towers,",
+            UpgradeBoardText::TowerUpgradeFaceNumber => "For {name} towers,",
+            UpgradeBoardText::DamagePlus => "Increases attack power by {amount}",
+            UpgradeBoardText::DamageMultiplier => "Increases attack power by a factor of {amount}",
+            UpgradeBoardText::SpeedPlus => "Increases attack speed by {amount}",
+            UpgradeBoardText::SpeedMultiplier => "Increases attack speed by a factor of {amount}",
+            UpgradeBoardText::RangePlus => "Increases range by {amount}",
         }
     }
 }

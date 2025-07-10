@@ -1,6 +1,6 @@
 use crate::{
     game_state::{quest::cancel_quest, use_game_state},
-    l10n::ui::{TopBarText, UiTextLocale},
+    l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
 };
@@ -30,7 +30,7 @@ impl Component for Quests {
                             ctx.add(Headline {
                                 text: format!(
                                     "{} {}/{}",
-                                    game_state.locale.ui_text(TopBarText::Quest),
+                                    game_state.text().ui(TopBarText::Quest),
                                     game_state.quest_states.len(),
                                     game_state.max_quest_slot()
                                 ),
@@ -67,6 +67,8 @@ impl Component for Quests {
                                         for (quest_index, quest) in
                                             game_state.quest_states.iter().enumerate()
                                         {
+                                            let tracking_description = quest.tracking.description(&game_state);
+                                            let reward_description = quest.reward.description(&game_state);
                                             let content = ctx.ghost_compose(
                                                 format!("QuestItemContent {quest_index}"),
                                                 |ctx| {
@@ -89,7 +91,7 @@ impl Component for Quests {
                                                                         ctx.add(TextButton {
                                                                             rect: wh.to_rect(),
                                                                             text:
-                                                                                game_state.locale.ui_text(TopBarText::Remove).to_string(),
+                                                                                game_state.text().ui(TopBarText::Remove).to_string(),
                                                                             text_color:
                                                                                 palette::ON_SURFACE,
                                                                             stroke_color:
@@ -114,11 +116,9 @@ impl Component for Quests {
                                                         table::fixed(PADDING * 2.0, |_, _| {}),
                                                         table::fit(
                                                             table::FitAlign::LeftTop,
-                                                            |ctx| {
+                                                            move |ctx| {
                                                                 ctx.add(Headline {
-                                                                    text: quest
-                                                                        .tracking
-                                                                        .description(&game_state),
+                                                                    text: tracking_description,
                                                                     font_size: FontSize::Small,
                                                                     text_align: TextAlign::LeftTop,
                                                                     max_width: content_width.into(),
@@ -128,11 +128,9 @@ impl Component for Quests {
                                                         table::fixed(PADDING, |_, _| {}),
                                                         table::fit(
                                                             table::FitAlign::LeftTop,
-                                                            |ctx| {
+                                                            move |ctx| {
                                                                 ctx.add(Paragraph {
-                                                                    text: quest
-                                                                        .reward
-                                                                        .description(&game_state.locale),
+                                                                    text: reward_description,
                                                                     font_size: FontSize::Medium,
                                                                     text_align: TextAlign::LeftTop,
                                                                     max_width: content_width.into(),

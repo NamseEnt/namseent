@@ -65,7 +65,6 @@ impl Component for TowerPreview<'_> {
 
             ctx.absolute(*offset).add(TowerEffectDescription {
                 skill: effect,
-                locale: &game_state.locale,
             });
         });
 
@@ -194,7 +193,7 @@ fn calculate_upgrade_state_and_texts(
         if upgrade_state.damage_plus > 0.0 {
             texts
                 .damage
-                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
+                .push(game_state.text().upgrade(UpgradeTemplate::TowerUpgrade {
                     target,
                     what_upgrade: WhatUpgrade::Damage,
                     add_or_multiply: AddOrMultiply::Add,
@@ -204,7 +203,7 @@ fn calculate_upgrade_state_and_texts(
         if upgrade_state.damage_multiplier > 1.0 {
             texts
                 .damage
-                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
+                .push(game_state.text().upgrade(UpgradeTemplate::TowerUpgrade {
                     target,
                     what_upgrade: WhatUpgrade::Damage,
                     add_or_multiply: AddOrMultiply::Multiply,
@@ -214,7 +213,7 @@ fn calculate_upgrade_state_and_texts(
         if upgrade_state.speed_plus > 0.0 {
             texts
                 .speed
-                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
+                .push(game_state.text().upgrade(UpgradeTemplate::TowerUpgrade {
                     target,
                     what_upgrade: WhatUpgrade::Speed,
                     add_or_multiply: AddOrMultiply::Add,
@@ -224,7 +223,7 @@ fn calculate_upgrade_state_and_texts(
         if upgrade_state.speed_multiplier > 1.0 {
             texts
                 .speed
-                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
+                .push(game_state.text().upgrade(UpgradeTemplate::TowerUpgrade {
                     target,
                     what_upgrade: WhatUpgrade::Speed,
                     add_or_multiply: AddOrMultiply::Multiply,
@@ -234,7 +233,7 @@ fn calculate_upgrade_state_and_texts(
         if upgrade_state.range_plus > 0.0 {
             texts
                 .range
-                .push(game_state.locale.text(UpgradeTemplate::TowerUpgrade {
+                .push(game_state.text().upgrade(UpgradeTemplate::TowerUpgrade {
                     target,
                     what_upgrade: WhatUpgrade::Range,
                     add_or_multiply: AddOrMultiply::Add,

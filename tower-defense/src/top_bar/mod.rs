@@ -1,6 +1,6 @@
 use crate::{
     game_state::{is_boss_stage, level_rarity_weight, mutate_game_state, use_game_state},
-    l10n::ui::{TopBarText, UiTextLocale},
+    l10n::ui::TopBarText,
     palette,
     theme::typography::{self, Headline, Paragraph},
 };
@@ -71,7 +71,7 @@ impl Component for HPAndGoldIndicator {
                             ctx.add(Headline {
                                 text: format!(
                                     "{} {:.0}",
-                                    game_state.locale.ui_text(TopBarText::Hp),
+                                    game_state.text().ui(TopBarText::Hp),
                                     hp * 100.0
                                 ),
                                 font_size: typography::FontSize::Medium,
@@ -104,7 +104,7 @@ impl Component for HPAndGoldIndicator {
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
                             ctx.add(Headline {
-                                text: game_state.locale.ui_text(TopBarText::Gold).to_string(),
+                                text: game_state.text().ui(TopBarText::Gold).to_string(),
                                 font_size: typography::FontSize::Medium,
                                 text_align: typography::TextAlign::Center { wh },
                                 max_width: None,
@@ -145,7 +145,7 @@ impl Component for StageIndicator {
             table::horizontal(
                 once(table::fixed(px(64.), |wh, ctx| {
                     ctx.add(Headline {
-                        text: format!("{} {stage}", game_state.locale.ui_text(TopBarText::Stage)),
+                        text: format!("{} {stage}", game_state.text().ui(TopBarText::Stage)),
                         font_size: typography::FontSize::Medium,
                         text_align: typography::TextAlign::Center { wh },
                         max_width: None,
@@ -208,7 +208,7 @@ impl Component for LevelIndicator {
             table::horizontal([
                 table::fixed(px(64.), |wh, ctx| {
                     ctx.add(Headline {
-                        text: format!("{} {level}", game_state.locale.ui_text(TopBarText::Level)),
+                        text: format!("{} {level}", game_state.text().ui(TopBarText::Level)),
                         font_size: typography::FontSize::Medium,
                         text_align: typography::TextAlign::Center { wh },
                         max_width: None,
@@ -221,7 +221,7 @@ impl Component for LevelIndicator {
                             rect: wh.to_rect(),
                             text: format!(
                                 "{} {level_up_cost}",
-                                game_state.locale.ui_text(TopBarText::LevelUp)
+                                game_state.text().ui(TopBarText::LevelUp)
                             ),
                             text_color: match can_upgrade {
                                 true => palette::ON_PRIMARY,
@@ -266,7 +266,6 @@ impl Component for LevelIndicator {
                 .add(LevelUpDetails {
                     width: wh.width,
                     current_level: level,
-                    locale: game_state.locale.clone(),
                 });
         });
 
@@ -282,15 +281,14 @@ impl Component for LevelIndicator {
 struct LevelUpDetails {
     width: Px,
     current_level: usize,
-    locale: crate::l10n::upgrade::Locales,
 }
 impl Component for LevelUpDetails {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             width,
             current_level,
-            locale,
         } = self;
+        let game_state = crate::game_state::use_game_state(ctx);
 
         const LINE_HEIGHT: Px = px(32.);
         const CONTAINER_HEIGHT: Px = px(128.);
@@ -331,7 +329,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: locale.ui_text(TopBarText::RarityCommon).to_string(),
+                                text: game_state.text().ui(TopBarText::RarityCommon).to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -370,7 +368,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: locale.ui_text(TopBarText::RarityRare).to_string(),
+                                text: game_state.text().ui(TopBarText::RarityRare).to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -409,7 +407,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: locale.ui_text(TopBarText::RarityEpic).to_string(),
+                                text: game_state.text().ui(TopBarText::RarityEpic).to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
@@ -448,7 +446,7 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: locale.ui_text(TopBarText::RarityLegendary).to_string(),
+                                text: game_state.text().ui(TopBarText::RarityLegendary).to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,

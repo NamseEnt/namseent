@@ -6,8 +6,7 @@ use crate::{
         },
         use_game_state,
     },
-    l10n::upgrade::Locales,
-    l10n::upgrade_board::{UpgradeBoardText, UpgradeBoardTextLocale},
+    l10n::upgrade_board::UpgradeBoardText,
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -66,7 +65,7 @@ impl Component for UpgradeBoard {
     fn render(self, ctx: &namui::RenderCtx) {
         let game_state = use_game_state(ctx);
         let upgrade_description_texts =
-            get_upgrade_description_texts(&game_state.upgrade_state, &game_state.locale);
+            get_upgrade_description_texts(&game_state.upgrade_state, &game_state.text());
 
         ctx.compose(|ctx| {
             table::padding(
@@ -75,8 +74,8 @@ impl Component for UpgradeBoard {
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
                         ctx.add(Headline {
                             text: game_state
-                                .locale
-                                .upgrade_board_text(&UpgradeBoardText::Title)
+                                .text()
+                                .upgrade_board(UpgradeBoardText::Title)
                                 .to_string(),
                             font_size: FontSize::Large,
                             text_align: TextAlign::Center { wh },
@@ -179,61 +178,53 @@ impl Component for UpgradeItem {
     }
 }
 
-fn get_upgrade_description_texts(state: &UpgradeState, locale: &Locales) -> Vec<String> {
+fn get_upgrade_description_texts(state: &UpgradeState, text: &crate::l10n::TextManager) -> Vec<String> {
     let mut texts = vec![];
     if state.gold_earn_plus != 0 {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::GoldEarnPlus)
+            text.upgrade_board(UpgradeBoardText::GoldEarnPlus)
                 .replace("{amount}", &state.gold_earn_plus.to_string()),
         );
     }
     if state.shop_slot_expand != 0 {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::ShopSlotExpand)
+            text.upgrade_board(UpgradeBoardText::ShopSlotExpand)
                 .replace("{amount}", &state.shop_slot_expand.to_string()),
         );
     }
     if state.quest_slot_expand != 0 {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::QuestSlotExpand)
+            text.upgrade_board(UpgradeBoardText::QuestSlotExpand)
                 .replace("{amount}", &state.quest_slot_expand.to_string()),
         );
     }
     if state.quest_board_slot_expand != 0 {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::QuestBoardSlotExpand)
+            text.upgrade_board(UpgradeBoardText::QuestBoardSlotExpand)
                 .replace("{amount}", &state.quest_board_slot_expand.to_string()),
         );
     }
     if state.reroll_chance_plus != 0 {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::RerollChancePlus)
+            text.upgrade_board(UpgradeBoardText::RerollChancePlus)
                 .replace("{amount}", &state.reroll_chance_plus.to_string()),
         );
     }
     if state.shop_item_price_minus != 0 {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::ShopItemPriceMinus)
+            text.upgrade_board(UpgradeBoardText::ShopItemPriceMinus)
                 .replace("{amount}", &state.shop_item_price_minus.to_string()),
         );
     }
     if state.shop_refresh_chance_plus != 0 {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::ShopRefreshChancePlus)
+            text.upgrade_board(UpgradeBoardText::ShopRefreshChancePlus)
                 .replace("{amount}", &state.shop_refresh_chance_plus.to_string()),
         );
     }
     if state.quest_board_refresh_chance_plus != 0 {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::QuestBoardRefreshChancePlus)
+            text.upgrade_board(UpgradeBoardText::QuestBoardRefreshChancePlus)
                 .replace(
                     "{amount}",
                     &state.quest_board_refresh_chance_plus.to_string(),
@@ -242,22 +233,19 @@ fn get_upgrade_description_texts(state: &UpgradeState, locale: &Locales) -> Vec<
     }
     if state.shorten_straight_flush_to_4_cards {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::ShortenStraightFlushTo4Cards)
+            text.upgrade_board(UpgradeBoardText::ShortenStraightFlushTo4Cards)
                 .to_string(),
         );
     }
     if state.skip_rank_for_straight {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::SkipRankForStraight)
+            text.upgrade_board(UpgradeBoardText::SkipRankForStraight)
                 .to_string(),
         );
     }
     if state.treat_suits_as_same {
         texts.push(
-            locale
-                .upgrade_board_text(&UpgradeBoardText::TreatSuitsAsSame)
+            text.upgrade_board(UpgradeBoardText::TreatSuitsAsSame)
                 .to_string(),
         );
     }

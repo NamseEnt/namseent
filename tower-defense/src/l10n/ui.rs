@@ -1,3 +1,6 @@
+use super::{Locale, Language, LocalizedStaticText};
+
+#[derive(Debug, Clone, Copy)]
 pub enum TopBarText {
     Hp,
     Gold,
@@ -19,26 +22,22 @@ pub enum TopBarText {
     Remove,
     Settings,
     Close,
-    Shop,     // 상점
-    SoldOut,  // 품절
-    UseTower, // 타워 사용
+    Shop,
+    SoldOut,
+    UseTower,
 }
 
-pub trait UiTextLocale {
-    fn ui_text(&self, text: TopBarText) -> &'static str;
-}
-
-impl UiTextLocale for crate::l10n::upgrade::Locales {
-    fn ui_text(&self, text: TopBarText) -> &'static str {
-        match self {
-            crate::l10n::upgrade::Locales::KoKR(_) => text.to_korean(),
-            // 다국어 확장 시 여기에 추가
+impl LocalizedStaticText for TopBarText {
+    fn localized_text(&self, locale: &Locale) -> &'static str {
+        match locale.language {
+            Language::Korean => self.to_korean(),
+            Language::English => self.to_english(),
         }
     }
 }
 
 impl TopBarText {
-    fn to_korean(&self) -> &'static str {
+    pub(super) fn to_korean(&self) -> &'static str {
         match self {
             TopBarText::Hp => "HP",
             TopBarText::Gold => "골드",
@@ -65,7 +64,8 @@ impl TopBarText {
             TopBarText::UseTower => "타워 사용",
         }
     }
-    pub fn to_english(&self) -> &'static str {
+    
+    pub(super) fn to_english(&self) -> &'static str {
         match self {
             TopBarText::Hp => "HP",
             TopBarText::Gold => "Gold",

@@ -5,7 +5,7 @@ use crate::{
         quest::{QuestTriggerEvent, on_quest_trigger_event},
         use_game_state,
     },
-    l10n::ui::{TopBarText, UiTextLocale},
+    l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -123,7 +123,7 @@ impl Component for ShopOpenButton<'_> {
                     rect: SHOP_BUTTON_WH.to_rect(),
                     text: format!(
                         "{} {}",
-                        game_state.locale.ui_text(TopBarText::Shop),
+                        game_state.text().ui(TopBarText::Shop),
                         if opened { "^" } else { "v" }
                     ),
                     text_color: palette::ON_SURFACE,
@@ -202,7 +202,7 @@ impl Component for Shop<'_> {
                             table::fixed(SHOP_REFRESH_BUTTON_WH.width, |wh, ctx| {
                                 ctx.add(TextButton {
                                     rect: wh.to_rect(),
-                                    text: game_state.locale.ui_text(TopBarText::Refresh),
+                                    text: game_state.text().ui(TopBarText::Refresh),
                                     text_color: match disabled {
                                         true => palette::ON_SURFACE_VARIANT,
                                         false => palette::ON_SURFACE,
@@ -301,7 +301,7 @@ impl Component for ShopItemLocked {
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: game_state.locale.ui_text(TopBarText::Locked).to_string(),
+                        text: game_state.text().ui(TopBarText::Locked).to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,
@@ -331,75 +331,59 @@ impl Component for ShopItemContent<'_> {
             purchased,
             not_enough_money,
         } = self;
-        let game_state = crate::game_state::use_game_state(ctx);
+        let game_state = use_game_state(ctx);
         let available = !purchased && !not_enough_money;
+        let name = item.kind.name(&game_state.text());
+        let desc = item.kind.description(&game_state.text());
         ctx.compose(|ctx| {
-            if !purchased {
-                return;
-            }
-            ctx.add(ShopItemSoldOut { wh });
-        });
-        ctx.compose(|ctx| {
-            table::vertical([
-                table::fixed(
-                    wh.width,
-                    table::padding(PADDING, |_wh, _ctx| {
-                        // TODO: Icons
-                    }),
-                ),
-                table::ratio(
-                    1,
-                    table::padding(PADDING, |wh, ctx| {
-                        ctx.compose(|ctx| {
-                            table::padding(PADDING, |wh, ctx| {
-                                table::vertical([
-                                    table::fit(table::FitAlign::LeftTop, |ctx| {
-                                        ctx.add(Headline {
-                                            text: item.kind.name(&game_state.locale).to_string(),
-                                            font_size: FontSize::Small,
-                                            text_align: TextAlign::LeftTop,
-                                            max_width: Some(wh.width),
-                                        });
-                                    }),
-                                    table::fixed(PADDING, |_, _| {}),
-                                    table::ratio(1, |wh, ctx| {
-                                        ctx.add(Paragraph {
-                                            text: item.kind.description(&game_state.locale),
-                                            font_size: FontSize::Medium,
-                                            text_align: TextAlign::LeftTop,
-                                            max_width: Some(wh.width),
-                                        });
-                                    }),
-                                    table::fixed(PADDING, |_, _| {}),
-                                    table::fixed(48.px(), |wh, ctx| {
-                                        ctx.add(button::TextButton {
-                                            rect: wh.to_rect(),
-                                            text: format!("${cost}"),
-                                            text_color: match available {
-                                                true => palette::ON_PRIMARY,
-                                                false => palette::ON_SURFACE,
-                                            },
-                                            stroke_color: palette::OUTLINE,
-                                            stroke_width: 1.px(),
-                                            fill_color: match available {
-                                                true => palette::PRIMARY,
-                                                false => palette::SURFACE_CONTAINER_HIGH,
-                                            },
-                                            mouse_buttons: vec![MouseButton::Left],
-                                            on_mouse_up_in: |_| {
-                                                if !available {
-                                                    return;
-                                                }
-                                                purchase_item();
-                                            },
-                                        });
-                                    }),
-                                ])(wh, ctx);
-                            })(wh, ctx);
+            if purchased {
+                ctx.add(ShopItemSoldOut { wh });
+            } else {
+                table::vertical([
+                    table::fixed(PADDING, |_, _| {}),
+                    table::fit(table::FitAlign::LeftTop, move |ctx| {
+                        ctx.add(Headline {
+                            text: name.clone(),
+                            font_size: FontSize::Small,
+                            text_align: TextAlign::LeftTop,
+                            max_width: Some(wh.width),
                         });
                     }),
-                ),
-            ])(wh, ctx);
+                    table::fixed(PADDING, |_, _| {}),
+                    table::fit(table::FitAlign::LeftTop, move |ctx| {
+                        ctx.add(Paragraph {
+                            text: desc.clone(),
+                            font_size: FontSize::Medium,
+                            text_align: TextAlign::LeftTop,
+                            max_width: Some(wh.width),
+                        });
+                    }),
+                    table::fixed(PADDING, |_, _| {}),
+                    table::fixed(48.px(), |wh, ctx| {
+                        ctx.add(button::TextButton {
+                            rect: wh.to_rect(),
+                            text: format!("${cost}"),
+                            text_color: match available {
+                                true => palette::ON_PRIMARY,
+                                false => palette::ON_SURFACE,
+                            },
+                            stroke_color: palette::OUTLINE,
+                            stroke_width: 1.px(),
+                            fill_color: match available {
+                                true => palette::PRIMARY,
+                                false => palette::SURFACE_CONTAINER_HIGH,
+                            },
+                            mouse_buttons: vec![MouseButton::Left],
+                            on_mouse_up_in: |_| {
+                                if !available {
+                                    return;
+                                }
+                                purchase_item();
+                            },
+                        });
+                    }),
+                ])(wh, ctx);
+            }
         });
     }
 }
@@ -416,7 +400,7 @@ impl Component for ShopItemSoldOut {
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
                     ctx.add(Headline {
-                        text: game_state.locale.ui_text(TopBarText::SoldOut).to_string(),
+                        text: game_state.text().ui(TopBarText::SoldOut).to_string(),
                         font_size: FontSize::Medium,
                         text_align: TextAlign::Center { wh },
                         max_width: None,

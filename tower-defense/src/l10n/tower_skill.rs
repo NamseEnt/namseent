@@ -1,3 +1,6 @@
+use super::{Locale, Language, LocalizedText};
+
+#[derive(Debug, Clone)]
 pub enum TowerSkillText {
     NearbyTowerDamageMulTitle,
     NearbyTowerDamageAddTitle,
@@ -17,8 +20,17 @@ pub enum TowerSkillText {
     TopCardBonusDesc { rank: String, bonus_damage: usize },
 }
 
+impl LocalizedText for TowerSkillText {
+    fn localized_text(&self, locale: &Locale) -> String {
+        match locale.language {
+            Language::Korean => self.to_korean(),
+            Language::English => self.to_english(),
+        }
+    }
+}
+
 impl TowerSkillText {
-    fn to_korean(&self) -> String {
+    pub(super) fn to_korean(&self) -> String {
         match self {
             TowerSkillText::NearbyTowerDamageMulTitle => "주변 타워 공격력 증가".to_string(),
             TowerSkillText::NearbyTowerDamageAddTitle => "주변 타워 공격력 추가".to_string(),
@@ -69,17 +81,50 @@ impl TowerSkillText {
             }
         }
     }
-}
 
-pub trait TowerSkillTextLocale {
-    fn tower_skill_text(&self, text: &TowerSkillText) -> String;
-}
-
-impl TowerSkillTextLocale for crate::l10n::upgrade::Locales {
-    fn tower_skill_text(&self, text: &TowerSkillText) -> String {
+    pub(super) fn to_english(&self) -> String {
         match self {
-            crate::l10n::upgrade::Locales::KoKR(_) => text.to_korean(),
-            // 다국어 확장 시 여기에 추가
+            TowerSkillText::NearbyTowerDamageMulTitle => "Nearby Tower Damage Multiplier".to_string(),
+            TowerSkillText::NearbyTowerDamageAddTitle => "Nearby Tower Damage Addition".to_string(),
+            TowerSkillText::NearbyTowerAttackSpeedAddTitle => "Nearby Tower Attack Speed Addition".to_string(),
+            TowerSkillText::NearbyTowerAttackSpeedMulTitle => "Nearby Tower Attack Speed Multiplier".to_string(),
+            TowerSkillText::NearbyTowerAttackRangeAddTitle => "Nearby Tower Attack Range Addition".to_string(),
+            TowerSkillText::NearbyMonsterSpeedMulTitle => "Nearby Monster Speed Multiplier".to_string(),
+            TowerSkillText::MoneyIncomeAddTitle => "Additional Money Income".to_string(),
+            TowerSkillText::TopCardBonusTitle => "Top Card Bonus".to_string(),
+            TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => format!(
+                "Increases nearby towers' damage by {:.0}% (within {} tiles)",
+                mul * 100.0,
+                range_radius
+            ),
+            TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => format!(
+                "Increases nearby towers' damage by {:.0} (within {} tiles)",
+                add, range_radius
+            ),
+            TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius } => format!(
+                "Increases nearby towers' attack speed by {:.0}% (within {} tiles)",
+                add * 100.0,
+                range_radius
+            ),
+            TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius } => format!(
+                "Increases nearby towers' attack speed by {:.1}x (within {} tiles)",
+                mul, range_radius
+            ),
+            TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius } => format!(
+                "Increases nearby towers' attack range by {:.0} tiles (within {} tiles)",
+                add, range_radius
+            ),
+            TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius } => format!(
+                "Decreases nearby monsters' speed by {:.0}% (within {} tiles)",
+                mul * 100.0,
+                range_radius
+            ),
+            TowerSkillText::MoneyIncomeAddDesc { add } => {
+                format!("Gain an additional {add} gold when defeating enemies")
+            }
+            TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
+                format!("Top Card Bonus: {rank} (Damage +{bonus_damage})")
+            }
         }
     }
 }

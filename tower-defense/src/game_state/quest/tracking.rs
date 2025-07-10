@@ -1,7 +1,7 @@
 use crate::{
     card::{Rank, Suit},
     game_state::{GameState, tower::TowerKind},
-    l10n::quest::{QuestText, QuestTextLocale},
+    l10n::quest::QuestText,
 };
 
 use super::QuestState;
@@ -65,7 +65,7 @@ impl QuestTrackingState {
                 target_count,
                 new_built_count,
             } => {
-                game_state.locale.quest_text(&QuestText::BuildTowerRankNew {
+                game_state.text().quest(QuestText::BuildTowerRankNew {
                     rank: rank.to_string(),
                     count: *target_count,
                 }) + &format!(" ({}/{})", new_built_count, target_count)
@@ -76,7 +76,7 @@ impl QuestTrackingState {
                     .iter()
                     .filter(|tower| tower.rank == *rank)
                     .count();
-                game_state.locale.quest_text(&QuestText::BuildTowerRank {
+                game_state.text().quest(QuestText::BuildTowerRank {
                     rank: rank.to_string(),
                     count: *target_count,
                     current_count,
@@ -87,7 +87,7 @@ impl QuestTrackingState {
                 target_count,
                 new_built_count,
             } => {
-                game_state.locale.quest_text(&QuestText::BuildTowerSuitNew {
+                game_state.text().quest(QuestText::BuildTowerSuitNew {
                     suit: suit.to_string(),
                     count: *target_count,
                 }) + &format!(" ({}/{})", new_built_count, target_count)
@@ -98,7 +98,7 @@ impl QuestTrackingState {
                     .iter()
                     .filter(|tower| tower.suit == *suit)
                     .count();
-                game_state.locale.quest_text(&QuestText::BuildTowerSuit {
+                game_state.text().quest(QuestText::BuildTowerSuit {
                     suit: suit.to_string(),
                     count: *target_count,
                     current_count,
@@ -109,7 +109,7 @@ impl QuestTrackingState {
                 target_count,
                 new_built_count,
             } => {
-                game_state.locale.quest_text(&QuestText::BuildTowerHandNew {
+                game_state.text().quest(QuestText::BuildTowerHandNew {
                     hand: hand.to_string(),
                     count: *target_count,
                 }) + &format!(" ({}/{})", new_built_count, target_count)
@@ -120,22 +120,20 @@ impl QuestTrackingState {
                     .iter()
                     .filter(|tower| tower.kind == *hand)
                     .count();
-                game_state.locale.quest_text(&QuestText::BuildTowerHand {
+                game_state.text().quest(QuestText::BuildTowerHand {
                     hand: hand.to_string(),
                     count: *target_count,
                     current_count,
                 })
             }
             QuestTrackingState::ClearBossRoundWithoutItems => game_state
-                .locale
-                .quest_text(&QuestText::ClearBossRoundWithoutItems),
+                .text().quest(QuestText::ClearBossRoundWithoutItems),
             QuestTrackingState::DealDamageWithItems {
                 target_damage,
                 dealt_damage,
             } => {
                 game_state
-                    .locale
-                    .quest_text(&QuestText::DealDamageWithItems {
+                    .text().quest(QuestText::DealDamageWithItems {
                         damage: *target_damage,
                     })
                     + &format!(" ({}/{})", dealt_damage, target_damage)
@@ -145,8 +143,7 @@ impl QuestTrackingState {
                 built_count,
             } => {
                 game_state
-                    .locale
-                    .quest_text(&QuestText::BuildTowersWithoutReroll {
+                    .text().quest(QuestText::BuildTowersWithoutReroll {
                         count: *target_count,
                     })
                     + &format!(" ({}/{})", built_count, target_count)
@@ -155,7 +152,7 @@ impl QuestTrackingState {
                 target_count,
                 rolled_count,
             } => {
-                game_state.locale.quest_text(&QuestText::UseReroll {
+                game_state.text().quest(QuestText::UseReroll {
                     count: *target_count,
                 }) + &format!(" ({}/{})", rolled_count, target_count)
             }
@@ -164,8 +161,7 @@ impl QuestTrackingState {
                 spent_gold,
             } => {
                 game_state
-                    .locale
-                    .quest_text(&QuestText::SpendGold { gold: *target_gold })
+                    .text().quest(QuestText::SpendGold { gold: *target_gold })
                     + &format!(" ({}/{})", spent_gold, target_gold)
             }
             QuestTrackingState::EarnGold {
@@ -173,8 +169,7 @@ impl QuestTrackingState {
                 earned_gold,
             } => {
                 game_state
-                    .locale
-                    .quest_text(&QuestText::EarnGold { gold: *target_gold })
+                    .text().quest(QuestText::EarnGold { gold: *target_gold })
                     + &format!(" ({}/{})", earned_gold, target_gold)
             }
         }

@@ -1,6 +1,6 @@
 use crate::{
-    game_state::{mutate_game_state, upgrade::Upgrade},
-    l10n::upgrade::{KoKRLocale as UpgradeKoKRLocale, Template as UpgradeTemplate},
+    game_state::{mutate_game_state, upgrade::Upgrade, use_game_state},
+    l10n::upgrade::Template as UpgradeTemplate,
     palette,
     theme::typography::{FontSize, Headline, Paragraph, TextAlign},
 };
@@ -134,7 +134,7 @@ impl Component for UpgradeSelectItem<'_> {
             upgrade,
             on_upgrade_select,
         } = self;
-
+        let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
                 ctx.compose(|ctx| {
@@ -153,7 +153,7 @@ impl Component for UpgradeSelectItem<'_> {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(Headline {
-                                                    text: UpgradeKoKRLocale.text(
+                                                    text: game_state.text().upgrade(
                                                         UpgradeTemplate::from_kind(
                                                             &upgrade.kind,
                                                             true,
@@ -167,7 +167,7 @@ impl Component for UpgradeSelectItem<'_> {
                                             table::fixed(PADDING, |_, _| {}),
                                             table::ratio(1, |_wh, ctx| {
                                                 ctx.add(Paragraph {
-                                                    text: UpgradeKoKRLocale.text(
+                                                    text: game_state.text().upgrade(
                                                         UpgradeTemplate::from_kind(
                                                             &upgrade.kind,
                                                             false,
