@@ -112,10 +112,6 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
 
             monster.animation.y_offset_velocity =
                 (-3.25 + ((movement_speed - 1.5) / (4.0 - 1.5)) * (-1.5)).clamp(-3.25, -1.75);
-            println!(
-                "movement_speed: {}, y_offset_velocity: {}",
-                movement_speed, monster.animation.y_offset_velocity
-            );
             monster.animation.rotated_side = match monster.animation.rotated_side {
                 MonsterAnimationRotatedSide::Left => MonsterAnimationRotatedSide::Right,
                 MonsterAnimationRotatedSide::Right => MonsterAnimationRotatedSide::Left,

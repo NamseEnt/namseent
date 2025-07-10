@@ -199,7 +199,6 @@ impl Component for LevelIndicator {
         let level_up = || {
             mutate_game_state(move |game_state| {
                 game_state.level = game_state.level.checked_add(1).expect("Level overflow");
-                println!("Level up to {}", game_state.level);
                 game_state.gold -= level_up_cost;
             });
         };
@@ -446,7 +445,10 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(Headline {
-                                text: game_state.text().ui(TopBarText::RarityLegendary).to_string(),
+                                text: game_state
+                                    .text()
+                                    .ui(TopBarText::RarityLegendary)
+                                    .to_string(),
                                 font_size: typography::FontSize::Small,
                                 text_align: typography::TextAlign::LeftCenter { height: wh.height },
                                 max_width: None,
