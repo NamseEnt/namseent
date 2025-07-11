@@ -7,6 +7,7 @@ pub(crate) enum Token {
     DefaultText { text: String },
     Image { tag: String },
     StyledText { tag: String, text: String },
+    RenderingTree { tag: String },
 }
 
 #[derive(Debug, PartialEq)]
@@ -86,6 +87,19 @@ pub(crate) fn parse(text: impl AsRef<str>) -> Result<Vec<Token>, ParseError> {
                         }
 
                         // At this point, tag_content is a potential valid tag name (not empty, not starting with /)
+
+                        // Check if it's a RenderingTree token |@Tag|
+                        if tag_content.starts_with('@') {
+                            let tag = &tag_content[1..]; // Remove the '@' prefix
+                            if !tag.is_empty() {
+                                tokens.push(Token::RenderingTree {
+                                    tag: tag.to_string(),
+                                });
+                                cursor = end_delim1_abs + 1; // Move past the closing '|'
+                                continue; // Restart loop
+                            }
+                        }
+
                         let tag = tag_content; // Use tag_content as the tag name
 
                         // Check if it's a StyledText |Tag|Text|/Tag| or just an Image |Tag|
@@ -432,6 +446,63 @@ mod tests {
         // Assert that parsing this results in UnclosedTag error, assuming '|' is always a delimiter
         assert_eq!(result, Err(ParseError::UnclosedTag));
         // *** END MODIFICATION ***
+    }
+
+    #[test]
+    fn test_rendering_tree_token() {
+        let text = "|@CustomWidget|";
+        let tokens = parse(text).unwrap();
+        assert_eq!(
+            tokens,
+            vec![Token::RenderingTree {
+                tag: "CustomWidget".to_string()
+            }]
+        );
+    }
+
+    #[test]
+    fn test_mixed_tokens_with_rendering_tree() {
+        let text = "Start |@Widget1| middle |Icon| |@Widget2| end";
+        let tokens = parse(text).unwrap();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::DefaultText {
+                    text: "Start ".to_string()
+                },
+                Token::RenderingTree {
+                    tag: "Widget1".to_string()
+                },
+                Token::DefaultText {
+                    text: " middle ".to_string()
+                },
+                Token::Image {
+                    tag: "Icon".to_string()
+                },
+                Token::DefaultText {
+                    text: " ".to_string()
+                },
+                Token::RenderingTree {
+                    tag: "Widget2".to_string()
+                },
+                Token::DefaultText {
+                    text: " end".to_string()
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn test_empty_rendering_tree_tag() {
+        let text = "|@|";
+        let tokens = parse(text).unwrap();
+        // Should be treated as Image token since the tag after @ is empty
+        assert_eq!(
+            tokens,
+            vec![Token::Image {
+                tag: "@".to_string()
+            }]
+        );
     }
 
     #[test]

@@ -7,6 +7,7 @@ use std::{cmp::Ordering, collections::HashMap};
 pub enum Tag {
     Image { param: ImageParam },
     StyledText { font: Font, style: TextStyle },
+    RenderingTree { rendering_tree: RenderingTree },
 }
 
 pub struct RichText<'a> {
@@ -68,6 +69,16 @@ impl Component for RichText<'_> {
                     };
 
                     processor.process_text(ctx, text, font.clone(), style.clone());
+                }
+                Token::RenderingTree { tag } => {
+                    let Some(tag) = self.tag_map.get(tag) else {
+                        continue;
+                    };
+                    let Tag::RenderingTree { rendering_tree } = tag else {
+                        continue;
+                    };
+
+                    processor.add(ctx, rendering_tree.clone());
                 }
             };
         }
