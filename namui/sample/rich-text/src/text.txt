@@ -1,1 +1,1 @@
-Increase |Apple||B|Food|/B| production by +3 and |Smile||B|Happiness|/B| by +1 for each |B|Food Silo|/B| (+5 |Apple| |B|Food|/B| if upgraded).
+Increase |Apple||B|Food|/B| production by +3 and |Smile||B|Happiness|/B| by +1 for each |B|Food Silo|/B| (+5 |Apple| |B|Food|/B| if upgraded). 아이콘 태그: icon<gold:24:16:16:1> icon<attack_damage:24:16:16:1> icon<shield:24:16:16:1> icon<health:24:16:16:1>. 멘션: @player1, @admin, @moderator. URL 링크: https://example.com, https://github.com/rust-lang/rust.
