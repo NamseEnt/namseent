@@ -1,5 +1,6 @@
 mod component;
 mod rendering_tree;
+mod rich_text;
 
 use crate::asset_loader::icon_asset_loader::{IconAssetKind, IconAssetLoader};
 use crate::card::Suit;
@@ -52,6 +53,34 @@ impl IconKind {
             IconKind::Down => "down",
         }
     }
+
+    pub fn from_asset_id(asset_id: &str) -> Option<Self> {
+        match asset_id {
+            "attack_damage" => Some(IconKind::AttackDamage),
+            "attack_range" => Some(IconKind::AttackRange),
+            "attack_speed" => Some(IconKind::AttackSpeed),
+            "enemy_boss" => Some(IconKind::EnemyBoss),
+            "enemy_named" => Some(IconKind::EnemyNamed),
+            "enemy_normal" => Some(IconKind::EnemyNormal),
+            "gold" => Some(IconKind::Gold),
+            "invincible" => Some(IconKind::Invincible),
+            "item" => Some(IconKind::Item),
+            "move_speed" => Some(IconKind::MoveSpeed),
+            "quest" => Some(IconKind::Quest),
+            "shield" => Some(IconKind::Shield),
+            "shop" => Some(IconKind::Shop),
+            "health" => Some(IconKind::Health),
+            "suit_spades" => Some(IconKind::Suit { suit: Suit::Spades }),
+            "suit_hearts" => Some(IconKind::Suit { suit: Suit::Hearts }),
+            "suit_diamonds" => Some(IconKind::Suit {
+                suit: Suit::Diamonds,
+            }),
+            "suit_clubs" => Some(IconKind::Suit { suit: Suit::Clubs }),
+            "up" => Some(IconKind::Up),
+            "down" => Some(IconKind::Down),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,6 +96,29 @@ pub enum IconAttributePosition {
     BottomLeft,
     BottomRight,
     Center,
+}
+
+impl IconAttributePosition {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            IconAttributePosition::TopLeft => "top_left",
+            IconAttributePosition::TopRight => "top_right",
+            IconAttributePosition::BottomLeft => "bottom_left",
+            IconAttributePosition::BottomRight => "bottom_right",
+            IconAttributePosition::Center => "center",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "top_left" => Some(IconAttributePosition::TopLeft),
+            "top_right" => Some(IconAttributePosition::TopRight),
+            "bottom_left" => Some(IconAttributePosition::BottomLeft),
+            "bottom_right" => Some(IconAttributePosition::BottomRight),
+            "center" => Some(IconAttributePosition::Center),
+            _ => None,
+        }
+    }
 }
 
 impl IconAttribute {
