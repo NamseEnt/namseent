@@ -67,11 +67,6 @@ impl HeadlineBuilder {
         }
     }
 
-    pub fn text(mut self, text: impl Into<String>) -> Self {
-        self.text_content = text.into();
-        self
-    }
-
     pub fn size(mut self, size: FontSize) -> Self {
         self.font_size = size;
         self
@@ -121,11 +116,6 @@ impl ParagraphBuilder {
             text_align: TextAlign::LeftTop,
             max_width: None,
         }
-    }
-
-    pub fn text(mut self, text: impl Into<String>) -> Self {
-        self.text_content = text.into();
-        self
     }
 
     pub fn size(mut self, size: FontSize) -> Self {
@@ -362,22 +352,6 @@ impl Component for ParagraphComponent {
             max_width,
         }));
     }
-}
-
-pub struct Typography;
-
-impl Typography {
-    pub fn headline(text: impl Into<String>) -> HeadlineBuilder {
-        HeadlineBuilder::new(text)
-    }
-
-    pub fn paragraph(text: impl Into<String>) -> ParagraphBuilder {
-        ParagraphBuilder::new(text)
-    }
-}
-
-pub fn typography() -> Typography {
-    Typography
 }
 
 pub fn headline(text: impl Into<String>) -> HeadlineBuilder {

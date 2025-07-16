@@ -2,7 +2,7 @@ use crate::{
     game_state::{quest::cancel_quest, use_game_state},
     l10n::ui::TopBarText,
     palette,
-    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, table};
@@ -27,17 +27,18 @@ impl Component for Quests {
                     PADDING,
                     table::vertical([
                         table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                            ctx.add(Headline {
-                                text: format!(
+                            ctx.add(
+                                headline(format!(
                                     "{} {}/{}",
                                     game_state.text().ui(TopBarText::Quest),
                                     game_state.quest_states.len(),
                                     game_state.max_quest_slot()
-                                ),
-                                font_size: FontSize::Medium,
-                                text_align: TextAlign::Center { wh },
-                                max_width: wh.width.into(),
-                            });
+                                ))
+                                .size(FontSize::Medium)
+                                .align(TextAlign::Center { wh })
+                                .max_width(wh.width)
+                                .build(),
+                            );
                             ctx.add(rect(RectParam {
                                 rect: wh.to_rect(),
                                 style: RectStyle {
@@ -117,24 +118,26 @@ impl Component for Quests {
                                                         table::fit(
                                                             table::FitAlign::LeftTop,
                                                             move |ctx| {
-                                                                ctx.add(Headline {
-                                                                    text: tracking_description,
-                                                                    font_size: FontSize::Small,
-                                                                    text_align: TextAlign::LeftTop,
-                                                                    max_width: content_width.into(),
-                                                                });
+                                                                ctx.add(
+                                                                    headline(tracking_description)
+                                                                        .size(FontSize::Small)
+                                                                        .align(TextAlign::LeftTop)
+                                                                        .max_width(content_width)
+                                                                        .build(),
+                                                                );
                                                             },
                                                         ),
                                                         table::fixed(PADDING, |_, _| {}),
                                                         table::fit(
                                                             table::FitAlign::LeftTop,
                                                             move |ctx| {
-                                                                ctx.add(Paragraph {
-                                                                    text: reward_description,
-                                                                    font_size: FontSize::Medium,
-                                                                    text_align: TextAlign::LeftTop,
-                                                                    max_width: content_width.into(),
-                                                                });
+                                                                ctx.add(
+                                                                    paragraph(reward_description)
+                                                                        .size(FontSize::Medium)
+                                                                        .align(TextAlign::LeftTop)
+                                                                        .max_width(content_width)
+                                                                        .build(),
+                                                                );
                                                             },
                                                         ),
                                                     ])(

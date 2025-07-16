@@ -8,7 +8,7 @@ use crate::{
     },
     l10n::upgrade_board::UpgradeBoardText,
     palette,
-    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, headline, paragraph, TextAlign},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -72,15 +72,13 @@ impl Component for UpgradeBoard {
                 PADDING,
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                        ctx.add(Headline {
-                            text: game_state
-                                .text()
-                                .upgrade_board(UpgradeBoardText::Title)
-                                .to_string(),
-                            font_size: FontSize::Large,
-                            text_align: TextAlign::Center { wh },
-                            max_width: None,
-                        });
+                        ctx.add(
+                            headline(game_state.text().upgrade_board(UpgradeBoardText::Title).to_string())
+                                .size(FontSize::Large)
+                                .align(TextAlign::Center { wh })
+                                .max_width(wh.width)
+                                .build()
+                        );
                     }),
                     table::ratio(1, |wh, ctx| {
                         let item_wh = Wh {
@@ -157,12 +155,13 @@ impl Component for UpgradeItem {
                         table::ratio(
                             1,
                             table::padding(PADDING, |wh, ctx| {
-                                ctx.add(Paragraph {
-                                    text: upgrade_description_text,
-                                    font_size: FontSize::Medium,
-                                    text_align: TextAlign::LeftTop,
-                                    max_width: Some(wh.width),
-                                });
+                                ctx.add(
+                                    paragraph(upgrade_description_text)
+                                        .size(FontSize::Medium)
+                                        .align(TextAlign::LeftTop)
+                                        .max_width(wh.width)
+                                        .build()
+                                );
                             }),
                         ),
                     ])(wh, ctx);

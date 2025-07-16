@@ -12,7 +12,7 @@ use crate::{
         WhatUpgrade,
     },
     palette,
-    theme::typography::{FontSize, Headline, PARAGRAPH_FONT_SIZE_MEDIUM, TextAlign},
+    theme::typography::{FontSize, headline, PARAGRAPH_FONT_SIZE_MEDIUM, TextAlign},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -77,12 +77,13 @@ impl Component for TowerPreview<'_> {
                         tower_name.push_str(&format!("{}", tower_template.rank));
                         tower_name.push_str(&format!(" {:?}", tower_template.kind));
 
-                        ctx.add(Headline {
-                            text: tower_name,
-                            font_size: FontSize::Small,
-                            text_align: TextAlign::LeftTop,
-                            max_width: Some(wh.width),
-                        });
+                        ctx.add(
+                            headline(tower_name)
+                                .size(FontSize::Small)
+                                .align(TextAlign::LeftTop)
+                                .max_width(wh.width)
+                                .build()
+                        );
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
                         let damage = tower_template.kind.default_damage();

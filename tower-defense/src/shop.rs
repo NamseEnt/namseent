@@ -7,7 +7,7 @@ use crate::{
     },
     l10n::ui::TopBarText,
     palette,
-    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -300,12 +300,13 @@ impl Component for ShopItemLocked {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(Headline {
-                        text: game_state.text().ui(TopBarText::Locked).to_string(),
-                        font_size: FontSize::Medium,
-                        text_align: TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                    ctx.add(
+                        headline(game_state.text().ui(TopBarText::Locked).to_string())
+                            .size(FontSize::Medium)
+                            .align(TextAlign::Center { wh })
+                            .max_width(px(0.))
+                            .build(),
+                    );
                 }),
                 table::ratio(1, |_, _| {}),
             ])(wh, ctx);
@@ -342,21 +343,23 @@ impl Component for ShopItemContent<'_> {
                 table::vertical([
                     table::fixed(PADDING, |_, _| {}),
                     table::fit(table::FitAlign::LeftTop, move |ctx| {
-                        ctx.add(Headline {
-                            text: name.clone(),
-                            font_size: FontSize::Small,
-                            text_align: TextAlign::LeftTop,
-                            max_width: Some(wh.width),
-                        });
+                        ctx.add(
+                            headline(name.clone())
+                                .size(FontSize::Small)
+                                .align(TextAlign::LeftTop)
+                                .max_width(wh.width)
+                                .build(),
+                        );
                     }),
                     table::fixed(PADDING, |_, _| {}),
                     table::fit(table::FitAlign::LeftTop, move |ctx| {
-                        ctx.add(Paragraph {
-                            text: desc.clone(),
-                            font_size: FontSize::Medium,
-                            text_align: TextAlign::LeftTop,
-                            max_width: Some(wh.width),
-                        });
+                        ctx.add(
+                            paragraph(desc.clone())
+                                .size(FontSize::Medium)
+                                .align(TextAlign::LeftTop)
+                                .max_width(wh.width)
+                                .build(),
+                        );
                     }),
                     table::fixed(PADDING, |_, _| {}),
                     table::fixed(48.px(), |wh, ctx| {
@@ -399,12 +402,13 @@ impl Component for ShopItemSoldOut {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(Headline {
-                        text: game_state.text().ui(TopBarText::SoldOut).to_string(),
-                        font_size: FontSize::Medium,
-                        text_align: TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                    ctx.add(
+                        headline(game_state.text().ui(TopBarText::SoldOut).to_string())
+                            .size(FontSize::Medium)
+                            .align(TextAlign::Center { wh })
+                            .max_width(px(0.))
+                            .build(),
+                    );
                     ctx.add(simple_rect(
                         wh,
                         Color::TRANSPARENT,

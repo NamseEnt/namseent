@@ -7,7 +7,7 @@ use crate::{
     },
     l10n::ui::TopBarText,
     palette,
-    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, table};
@@ -31,12 +31,13 @@ impl Component for Inventory {
                         PADDING,
                         table::vertical([
                             table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                                ctx.add(Headline {
-                                    text: format!("{} {}/{}", game_state.text().ui(TopBarText::Inventory), game_state.items.len(), MAX_INVENTORY_SLOT),
-                                    font_size: FontSize::Medium,
-                                    text_align: TextAlign::Center { wh },
-                                    max_width: wh.width.into(),
-                                });
+                                ctx.add(
+                                    headline(format!("{} {}/{}", game_state.text().ui(TopBarText::Inventory), game_state.items.len(), MAX_INVENTORY_SLOT))
+                                        .size(FontSize::Medium)
+                                        .align(TextAlign::Center { wh })
+                                        .max_width(wh.width)
+                                        .build(),
+                                );
                                 ctx.add(rect(RectParam {
                                     rect: wh.to_rect(),
                                     style: RectStyle {
@@ -104,21 +105,23 @@ impl Component for Inventory {
                                                     ),
                                                     table::fixed(PADDING * 2.0, |_, _| {}),
                                                     table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                                                        compose_ctx.add(Headline {
-                                                            text: name.clone(),
-                                                            font_size: FontSize::Small,
-                                                            text_align: TextAlign::LeftTop,
-                                                            max_width: content_width.into(),
-                                                        });
+                                                        compose_ctx.add(
+                                                            headline(name.clone())
+                                                                .size(FontSize::Small)
+                                                                .align(TextAlign::LeftTop)
+                                                                .max_width(content_width)
+                                                                .build(),
+                                                        );
                                                     }),
                                                     table::fixed(PADDING, |_, _| {}),
                                                     table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                                                        compose_ctx.add(Paragraph {
-                                                            text: desc.clone(),
-                                                            font_size: FontSize::Medium,
-                                                            text_align: TextAlign::LeftTop,
-                                                            max_width: content_width.into(),
-                                                        });
+                                                        compose_ctx.add(
+                                                            paragraph(desc.clone())
+                                                                .size(FontSize::Medium)
+                                                                .align(TextAlign::LeftTop)
+                                                                .max_width(content_width)
+                                                                .build(),
+                                                        );
                                                     }),
                                                 ])(Wh::new(content_width, f32::MAX.px()), ctx);
                                             });

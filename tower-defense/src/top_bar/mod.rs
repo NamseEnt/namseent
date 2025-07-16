@@ -2,7 +2,7 @@ use crate::{
     game_state::{is_boss_stage, level_rarity_weight, mutate_game_state, use_game_state},
     l10n::ui::TopBarText,
     palette,
-    theme::typography::{self, Headline, Paragraph},
+    theme::typography::{self, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{button, simple_rect, table};
@@ -68,16 +68,17 @@ impl Component for HPAndGoldIndicator {
                     1,
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
-                            ctx.add(Headline {
-                                text: format!(
+                            ctx.add(
+                                headline(format!(
                                     "{} {:.0}",
                                     game_state.text().ui(TopBarText::Hp),
                                     hp * 100.0
-                                ),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                                ))
+                                .size(typography::FontSize::Medium)
+                                .align(typography::TextAlign::Center { wh })
+                                .max_width(px(0.))
+                                .build(),
+                            );
                         }),
                         table::ratio(
                             1,
@@ -103,20 +104,22 @@ impl Component for HPAndGoldIndicator {
                     1,
                     table::horizontal([
                         table::fixed(px(64.), |wh, ctx| {
-                            ctx.add(Headline {
-                                text: game_state.text().ui(TopBarText::Gold).to_string(),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                headline(game_state.text().ui(TopBarText::Gold).to_string())
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Headline {
-                                text: format!("{gold}"),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::RightTop { width: wh.width },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                headline(format!("{gold}"))
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::RightTop { width: wh.width })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::fixed(PADDING, |_, _| {}),
                     ]),
@@ -144,12 +147,16 @@ impl Component for StageIndicator {
         ctx.compose(|ctx| {
             table::horizontal(
                 once(table::fixed(px(64.), |wh, ctx| {
-                    ctx.add(Headline {
-                        text: format!("{} {stage}", game_state.text().ui(TopBarText::Stage)),
-                        font_size: typography::FontSize::Medium,
-                        text_align: typography::TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                    ctx.add(
+                        headline(format!(
+                            "{} {stage}",
+                            game_state.text().ui(TopBarText::Stage)
+                        ))
+                        .size(typography::FontSize::Medium)
+                        .align(typography::TextAlign::Center { wh })
+                        .max_width(px(0.))
+                        .build(),
+                    );
                 }))
                 .chain((0..5).map(|offset| {
                     table::fixed(
@@ -206,12 +213,16 @@ impl Component for LevelIndicator {
         ctx.compose(|ctx| {
             table::horizontal([
                 table::fixed(px(64.), |wh, ctx| {
-                    ctx.add(Headline {
-                        text: format!("{} {level}", game_state.text().ui(TopBarText::Level)),
-                        font_size: typography::FontSize::Medium,
-                        text_align: typography::TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                    ctx.add(
+                        headline(format!(
+                            "{} {level}",
+                            game_state.text().ui(TopBarText::Level)
+                        ))
+                        .size(typography::FontSize::Medium)
+                        .align(typography::TextAlign::Center { wh })
+                        .max_width(px(0.))
+                        .build(),
+                    );
                 }),
                 table::ratio(
                     1,
@@ -327,37 +338,43 @@ impl Component for LevelUpDetails {
                     table::horizontal([
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
-                            ctx.add(Headline {
-                                text: game_state.text().ui(TopBarText::RarityCommon).to_string(),
-                                font_size: typography::FontSize::Small,
-                                text_align: typography::TextAlign::LeftCenter { height: wh.height },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                headline(
+                                    game_state.text().ui(TopBarText::RarityCommon).to_string(),
+                                )
+                                .size(typography::FontSize::Small)
+                                .align(typography::TextAlign::LeftCenter { height: wh.height })
+                                .max_width(px(0.))
+                                .build(),
+                            );
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: format!("{}%", weights[0][0]),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(format!("{}%", weights[0][0]))
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: ">>>".to_string(),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(">>>".to_string())
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: format!("{}%", weights[0][1]),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(format!("{}%", weights[0][1]))
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                     ]),
                 ),
@@ -366,37 +383,41 @@ impl Component for LevelUpDetails {
                     table::horizontal([
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
-                            ctx.add(Headline {
-                                text: game_state.text().ui(TopBarText::RarityRare).to_string(),
-                                font_size: typography::FontSize::Small,
-                                text_align: typography::TextAlign::LeftCenter { height: wh.height },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                headline(game_state.text().ui(TopBarText::RarityRare).to_string())
+                                    .size(typography::FontSize::Small)
+                                    .align(typography::TextAlign::LeftCenter { height: wh.height })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: format!("{}%", weights[1][0]),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(format!("{}%", weights[1][0]))
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: ">>>".to_string(),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(">>>".to_string())
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: format!("{}%", weights[1][1]),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(format!("{}%", weights[1][1]))
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                     ]),
                 ),
@@ -405,37 +426,41 @@ impl Component for LevelUpDetails {
                     table::horizontal([
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
-                            ctx.add(Headline {
-                                text: game_state.text().ui(TopBarText::RarityEpic).to_string(),
-                                font_size: typography::FontSize::Small,
-                                text_align: typography::TextAlign::LeftCenter { height: wh.height },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                headline(game_state.text().ui(TopBarText::RarityEpic).to_string())
+                                    .size(typography::FontSize::Small)
+                                    .align(typography::TextAlign::LeftCenter { height: wh.height })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: format!("{}%", weights[2][0]),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(format!("{}%", weights[2][0]))
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: ">>>".to_string(),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(">>>".to_string())
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: format!("{}%", weights[2][1]),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(format!("{}%", weights[2][1]))
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                     ]),
                 ),
@@ -444,40 +469,46 @@ impl Component for LevelUpDetails {
                     table::horizontal([
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
-                            ctx.add(Headline {
-                                text: game_state
-                                    .text()
-                                    .ui(TopBarText::RarityLegendary)
-                                    .to_string(),
-                                font_size: typography::FontSize::Small,
-                                text_align: typography::TextAlign::LeftCenter { height: wh.height },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                headline(
+                                    game_state
+                                        .text()
+                                        .ui(TopBarText::RarityLegendary)
+                                        .to_string(),
+                                )
+                                .size(typography::FontSize::Small)
+                                .align(typography::TextAlign::LeftCenter { height: wh.height })
+                                .max_width(px(0.))
+                                .build(),
+                            );
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: format!("{}%", weights[3][0]),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(format!("{}%", weights[3][0]))
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: ">>>".to_string(),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(">>>".to_string())
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(Paragraph {
-                                text: format!("{}%", weights[3][1]),
-                                font_size: typography::FontSize::Medium,
-                                text_align: typography::TextAlign::Center { wh },
-                                max_width: None,
-                            });
+                            ctx.add(
+                                paragraph(format!("{}%", weights[3][1]))
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::Center { wh })
+                                    .max_width(px(0.))
+                                    .build(),
+                            );
                         }),
                     ]),
                 ),

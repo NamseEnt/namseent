@@ -6,7 +6,7 @@ use crate::{
     },
     l10n::{KOREAN_TEXT, ui::TopBarText},
     palette,
-    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -276,12 +276,13 @@ impl Component for QuestBoardItemLocked {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
-                    ctx.add(Headline {
-                        text: KOREAN_TEXT.ui(TopBarText::Locked).to_string(),
-                        font_size: FontSize::Medium,
-                        text_align: TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                    ctx.add(
+                        headline(KOREAN_TEXT.ui(TopBarText::Locked).to_string())
+                            .size(FontSize::Medium)
+                            .align(TextAlign::Center { wh })
+                            .max_width(px(0.))
+                            .build(),
+                    );
                 }),
                 table::ratio(1, |_, _| {}),
             ])(wh, ctx);
@@ -331,30 +332,29 @@ impl Component for QuestBoardItemContent<'_> {
                     table::padding(PADDING, |wh, ctx| {
                         table::vertical([
                             table::fit(table::FitAlign::LeftTop, |compose_ctx| {
-                                compose_ctx.add(Headline {
-                                    text: quest.requirement.description(&game_state),
-                                    font_size: FontSize::Small,
-                                    text_align: TextAlign::LeftTop,
-                                    max_width: Some(wh.width),
-                                });
+                                compose_ctx.add(
+                                    headline(quest.requirement.description(&game_state))
+                                        .size(FontSize::Small)
+                                        .align(TextAlign::LeftTop)
+                                        .max_width(wh.width)
+                                        .build(),
+                                );
                             }),
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, compose_ctx| {
-                                compose_ctx.add(Paragraph {
-                                    text: quest.reward.description(&game_state),
-                                    font_size: FontSize::Medium,
-                                    text_align: TextAlign::LeftTop,
-                                    max_width: Some(wh.width),
-                                });
+                                compose_ctx.add(
+                                    paragraph(quest.reward.description(&game_state))
+                                        .size(FontSize::Medium)
+                                        .align(TextAlign::LeftTop)
+                                        .max_width(wh.width)
+                                        .build(),
+                                );
                             }),
                             table::fixed(PADDING, |_, _| {}),
                             table::fixed(48.px(), |wh, ctx| {
                                 ctx.add(button::TextButton {
                                     rect: wh.to_rect(),
-                                    text: game_state
-                                        .text()
-                                        .ui(TopBarText::Accept)
-                                        .to_string(),
+                                    text: game_state.text().ui(TopBarText::Accept).to_string(),
                                     text_color: palette::ON_PRIMARY,
                                     stroke_color: palette::OUTLINE,
                                     stroke_width: 1.px(),
@@ -384,12 +384,13 @@ impl Component for QuestBoardItemAccepted {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
-                    ctx.add(Headline {
-                        text: game_state.text().ui(TopBarText::Accepted).to_string(),
-                        font_size: FontSize::Medium,
-                        text_align: TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                    ctx.add(
+                        headline(game_state.text().ui(TopBarText::Accepted).to_string())
+                            .size(FontSize::Medium)
+                            .align(TextAlign::Center { wh })
+                            .max_width(px(0.))
+                            .build(),
+                    );
                     ctx.add(simple_rect(
                         wh,
                         palette::SURFACE_CONTAINER,

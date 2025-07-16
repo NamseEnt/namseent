@@ -1,6 +1,6 @@
 use crate::theme::{
     palette,
-    typography::{FontSize, Paragraph, TextAlign},
+    typography::{FontSize, paragraph, TextAlign},
 };
 use namui::*;
 use namui_prebuilt::simple_rect;
@@ -52,18 +52,20 @@ impl Component for StatPreview<'_> {
                 .add(tooltip);
         });
 
-        ctx.add(Paragraph {
-            text: format!("{stat_name}: "),
-            font_size: FontSize::Medium,
-            text_align: TextAlign::LeftTop,
-            max_width: None,
-        });
-        ctx.add(Paragraph {
-            text: format_stat(default_stat, plus_stat, multiplier),
-            font_size: FontSize::Medium,
-            text_align: TextAlign::RightTop { width: wh.width },
-            max_width: None,
-        });
+        ctx.add(
+            paragraph(format!("{stat_name}: "))
+                .size(FontSize::Medium)
+                .align(TextAlign::LeftTop)
+                .max_width(px(0.))
+                .build(),
+        );
+        ctx.add(
+            paragraph(format_stat(default_stat, plus_stat, multiplier))
+                .size(FontSize::Medium)
+                .align(TextAlign::RightTop { width: wh.width })
+                .max_width(px(0.))
+                .build(),
+        );
 
         ctx.add(
             simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
@@ -115,12 +117,11 @@ impl Component for Tooltip<'_> {
             for (index, upgrade_text) in upgrade_texts.iter().enumerate() {
                 let rendered_text = ctx.ghost_add(
                     format!("tooltip-content-{index}"),
-                    Paragraph {
-                        text: upgrade_text.clone(),
-                        font_size: FontSize::Medium,
-                        text_align: TextAlign::LeftTop,
-                        max_width: Some(text_max_width),
-                    },
+                    paragraph(upgrade_text.clone())
+                        .size(FontSize::Medium)
+                        .align(TextAlign::LeftTop)
+                        .max_width(text_max_width)
+                        .build(),
                 );
                 let text_height = bounding_box(&rendered_text)
                     .map(|rect| rect.height())
