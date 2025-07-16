@@ -1,6 +1,6 @@
 mod component;
 mod rendering_tree;
-mod rich_text;
+pub mod rich_text;
 
 use crate::asset_loader::icon_asset_loader::{IconAssetKind, IconAssetLoader};
 use crate::card::Suit;
@@ -51,6 +51,29 @@ impl IconKind {
             },
             IconKind::Up => "up",
             IconKind::Down => "down",
+        }
+    }
+
+    /// Get the default color for this icon kind
+    pub fn default_color(&self) -> Color {
+        match self {
+            IconKind::Gold => Color::from_u8(255, 215, 0, 255),
+            IconKind::AttackDamage => Color::from_u8(255, 100, 100, 255),
+            IconKind::AttackRange => Color::from_u8(100, 255, 100, 255),
+            IconKind::AttackSpeed => Color::from_u8(100, 100, 255, 255),
+            IconKind::Health => Color::from_u8(255, 0, 0, 255),
+            IconKind::Shield => Color::from_u8(0, 0, 255, 255),
+            IconKind::MoveSpeed => Color::from_u8(255, 255, 0, 255),
+            IconKind::Invincible => Color::from_u8(255, 255, 255, 255),
+            IconKind::EnemyBoss => Color::from_u8(128, 0, 128, 255),
+            IconKind::EnemyNamed => Color::from_u8(255, 165, 0, 255),
+            IconKind::EnemyNormal => Color::from_u8(139, 69, 19, 255),
+            IconKind::Item => Color::from_u8(255, 192, 203, 255),
+            IconKind::Quest => Color::from_u8(0, 255, 255, 255),
+            IconKind::Shop => Color::from_u8(150, 75, 0, 255),
+            IconKind::Suit { .. } => Color::from_u8(128, 128, 128, 255),
+            IconKind::Up => Color::from_u8(0, 255, 0, 255),
+            IconKind::Down => Color::from_u8(255, 0, 0, 255),
         }
     }
 

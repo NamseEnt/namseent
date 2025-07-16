@@ -201,6 +201,52 @@ impl Icon {
 
         true
     }
+
+    /// Create regex handlers for icon pattern matching in rich text
+    pub fn create_icon_regex_handlers() -> Vec<namui_prebuilt::rich_text::RegexHandler> {
+        vec![
+            namui_prebuilt::rich_text::RegexHandler::new(
+                r"icon<[^>]+>",
+                Box::new(move |matched_text| {
+                    // Try to parse the icon tag
+                    if let Ok(icon) = Icon::from_tag(matched_text) {
+                        icon.to_rendering_tree()
+                    } else {
+                        // Fallback to error placeholder
+                        Self::render_icon_error_fallback(matched_text)
+                    }
+                }),
+            )
+            .unwrap_or_else(|_| {
+                println!("Failed to create regex handler for icon tag");
+                // If regex compilation fails, create a dummy handler
+                namui_prebuilt::rich_text::RegexHandler::new(
+                    r"icon<[^>]+>",
+                    Box::new(|_| RenderingTree::Empty),
+                )
+                .unwrap()
+            }),
+        ]
+    }
+
+    /// Render a fallback error icon when parsing fails
+    pub fn render_icon_error_fallback(_matched_text: &str) -> RenderingTree {
+        namui::rect(RectParam {
+            rect: Rect::Xywh {
+                x: 0.px(),
+                y: 0.px(),
+                width: 16.px(),
+                height: 16.px(),
+            },
+            style: RectStyle {
+                fill: Some(RectFill {
+                    color: Color::from_u8(0, 0, 0, 32),
+                }),
+                stroke: None,
+                ..Default::default()
+            },
+        })
+    }
 }
 
 #[cfg(test)]
@@ -363,5 +409,21 @@ mod tests {
 
         // Show regex pattern for reference
         println!("Icon tag regex pattern: {}", Icon::tag_regex_pattern());
+    }
+
+    #[test]
+    fn test_create_icon_regex_handlers() {
+        let handlers = Icon::create_icon_regex_handlers();
+        assert_eq!(handlers.len(), 1);
+    }
+
+    #[test]
+    fn test_render_icon_error_fallback() {
+        let fallback = Icon::render_icon_error_fallback("invalid_tag");
+        // Should return a RenderingTree (basic structure test)
+        match fallback {
+            RenderingTree::Empty => panic!("Expected non-empty rendering tree"),
+            _ => {} // Success
+        }
     }
 }
