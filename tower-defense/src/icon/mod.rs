@@ -112,6 +112,23 @@ pub struct IconAttribute {
     pub position: IconAttributePosition,
 }
 
+impl IconAttribute {
+    pub fn new(icon_kind: IconKind) -> Self {
+        IconAttribute {
+            icon_kind,
+            position: IconAttributePosition::TopLeft,
+        }
+    }
+    pub fn kind(mut self, icon_kind: IconKind) -> Self {
+        self.icon_kind = icon_kind;
+        self
+    }
+    pub fn position(mut self, position: IconAttributePosition) -> Self {
+        self.position = position;
+        self
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IconAttributePosition {
     TopLeft,
@@ -239,6 +256,50 @@ pub struct Icon {
     pub attributes: Vec<IconAttribute>,
     pub wh: Wh<Px>,
     pub opacity: f32,
+}
+
+impl Default for Icon {
+    fn default() -> Self {
+        Icon {
+            kind: IconKind::Gold,
+            size: IconSize::Custom { size: px(24.0) },
+            attributes: Vec::new(),
+            wh: Wh {
+                width: px(24.0),
+                height: px(24.0),
+            },
+            opacity: 1.0,
+        }
+    }
+}
+
+impl Icon {
+    pub fn new(kind: IconKind) -> Self {
+        Icon {
+            kind,
+            ..Default::default()
+        }
+    }
+    pub fn kind(mut self, kind: IconKind) -> Self {
+        self.kind = kind;
+        self
+    }
+    pub fn size(mut self, size: IconSize) -> Self {
+        self.size = size;
+        self
+    }
+    pub fn attributes(mut self, attributes: Vec<IconAttribute>) -> Self {
+        self.attributes = attributes;
+        self
+    }
+    pub fn wh(mut self, wh: Wh<Px>) -> Self {
+        self.wh = wh;
+        self
+    }
+    pub fn opacity(mut self, opacity: f32) -> Self {
+        self.opacity = opacity;
+        self
+    }
 }
 
 fn get_icon_image(_ctx: &RenderCtx, kind: impl Into<IconAssetKind> + Copy) -> Option<namui::Image> {
