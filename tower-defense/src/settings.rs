@@ -41,7 +41,6 @@ impl Component for SettingsModal<'_> {
                                     )
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::LeftCenter { height: wh.height })
-                                    .max_width(px(0.))
                                     .build(),
                                 );
                             }),

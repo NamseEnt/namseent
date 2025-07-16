@@ -76,7 +76,6 @@ impl Component for HPAndGoldIndicator {
                                 ))
                                 .size(typography::FontSize::Medium)
                                 .align(typography::TextAlign::Center { wh })
-                                .max_width(px(0.))
                                 .build(),
                             );
                         }),
@@ -108,7 +107,6 @@ impl Component for HPAndGoldIndicator {
                                 headline(game_state.text().ui(TopBarText::Gold).to_string())
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -117,7 +115,6 @@ impl Component for HPAndGoldIndicator {
                                 headline(format!("{gold}"))
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::RightTop { width: wh.width })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -154,7 +151,6 @@ impl Component for StageIndicator {
                         ))
                         .size(typography::FontSize::Medium)
                         .align(typography::TextAlign::Center { wh })
-                        .max_width(px(0.))
                         .build(),
                     );
                 }))
@@ -220,7 +216,6 @@ impl Component for LevelIndicator {
                         ))
                         .size(typography::FontSize::Medium)
                         .align(typography::TextAlign::Center { wh })
-                        .max_width(px(0.))
                         .build(),
                     );
                 }),
@@ -344,7 +339,6 @@ impl Component for LevelUpDetails {
                                 )
                                 .size(typography::FontSize::Small)
                                 .align(typography::TextAlign::LeftCenter { height: wh.height })
-                                .max_width(px(0.))
                                 .build(),
                             );
                         }),
@@ -354,7 +348,6 @@ impl Component for LevelUpDetails {
                                 paragraph(format!("{}%", weights[0][0]))
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -363,7 +356,6 @@ impl Component for LevelUpDetails {
                                 paragraph(">>>".to_string())
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -372,7 +364,6 @@ impl Component for LevelUpDetails {
                                 paragraph(format!("{}%", weights[0][1]))
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -387,7 +378,6 @@ impl Component for LevelUpDetails {
                                 headline(game_state.text().ui(TopBarText::RarityRare).to_string())
                                     .size(typography::FontSize::Small)
                                     .align(typography::TextAlign::LeftCenter { height: wh.height })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -397,7 +387,6 @@ impl Component for LevelUpDetails {
                                 paragraph(format!("{}%", weights[1][0]))
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -406,7 +395,6 @@ impl Component for LevelUpDetails {
                                 paragraph(">>>".to_string())
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -415,7 +403,6 @@ impl Component for LevelUpDetails {
                                 paragraph(format!("{}%", weights[1][1]))
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -430,7 +417,6 @@ impl Component for LevelUpDetails {
                                 headline(game_state.text().ui(TopBarText::RarityEpic).to_string())
                                     .size(typography::FontSize::Small)
                                     .align(typography::TextAlign::LeftCenter { height: wh.height })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -440,7 +426,6 @@ impl Component for LevelUpDetails {
                                 paragraph(format!("{}%", weights[2][0]))
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -449,7 +434,6 @@ impl Component for LevelUpDetails {
                                 paragraph(">>>".to_string())
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -458,7 +442,6 @@ impl Component for LevelUpDetails {
                                 paragraph(format!("{}%", weights[2][1]))
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -478,7 +461,6 @@ impl Component for LevelUpDetails {
                                 )
                                 .size(typography::FontSize::Small)
                                 .align(typography::TextAlign::LeftCenter { height: wh.height })
-                                .max_width(px(0.))
                                 .build(),
                             );
                         }),
@@ -488,7 +470,6 @@ impl Component for LevelUpDetails {
                                 paragraph(format!("{}%", weights[3][0]))
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -497,7 +478,6 @@ impl Component for LevelUpDetails {
                                 paragraph(">>>".to_string())
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),
@@ -506,7 +486,6 @@ impl Component for LevelUpDetails {
                                 paragraph(format!("{}%", weights[3][1]))
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::Center { wh })
-                                    .max_width(px(0.))
                                     .build(),
                             );
                         }),

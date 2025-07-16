@@ -304,7 +304,6 @@ impl Component for ShopItemLocked {
                         headline(game_state.text().ui(TopBarText::Locked).to_string())
                             .size(FontSize::Medium)
                             .align(TextAlign::Center { wh })
-                            .max_width(px(0.))
                             .build(),
                     );
                 }),
@@ -406,7 +405,6 @@ impl Component for ShopItemSoldOut {
                         headline(game_state.text().ui(TopBarText::SoldOut).to_string())
                             .size(FontSize::Medium)
                             .align(TextAlign::Center { wh })
-                            .max_width(px(0.))
                             .build(),
                     );
                     ctx.add(simple_rect(

@@ -280,7 +280,6 @@ impl Component for QuestBoardItemLocked {
                         headline(KOREAN_TEXT.ui(TopBarText::Locked).to_string())
                             .size(FontSize::Medium)
                             .align(TextAlign::Center { wh })
-                            .max_width(px(0.))
                             .build(),
                     );
                 }),
@@ -388,7 +387,6 @@ impl Component for QuestBoardItemAccepted {
                         headline(game_state.text().ui(TopBarText::Accepted).to_string())
                             .size(FontSize::Medium)
                             .align(TextAlign::Center { wh })
-                            .max_width(px(0.))
                             .build(),
                     );
                     ctx.add(simple_rect(

@@ -1,6 +1,6 @@
 use crate::theme::{
     palette,
-    typography::{FontSize, paragraph, TextAlign},
+    typography::{FontSize, TextAlign, paragraph},
 };
 use namui::*;
 use namui_prebuilt::simple_rect;
@@ -56,14 +56,12 @@ impl Component for StatPreview<'_> {
             paragraph(format!("{stat_name}: "))
                 .size(FontSize::Medium)
                 .align(TextAlign::LeftTop)
-                .max_width(px(0.))
                 .build(),
         );
         ctx.add(
             paragraph(format_stat(default_stat, plus_stat, multiplier))
                 .size(FontSize::Medium)
                 .align(TextAlign::RightTop { width: wh.width })
-                .max_width(px(0.))
                 .build(),
         );
 
