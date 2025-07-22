@@ -5,6 +5,7 @@ use crate::{
         quest::{QuestTriggerEvent, on_quest_trigger_event},
         use_game_state,
     },
+    icon::{Icon, IconKind, IconSize},
     l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, TextAlign, headline, paragraph},
@@ -295,17 +296,11 @@ struct ShopItemLocked {
 impl Component for ShopItemLocked {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
-        let game_state = crate::game_state::use_game_state(ctx);
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
-                table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(
-                        headline(game_state.text().ui(TopBarText::Locked).to_string())
-                            .size(FontSize::Medium)
-                            .align(TextAlign::Center { wh })
-                            .build(),
-                    );
+                table::fixed(36.px(), |wh, ctx| {
+                    ctx.add(Icon::new(IconKind::Lock).size(IconSize::Large).wh(wh));
                 }),
                 table::ratio(1, |_, _| {}),
             ])(wh, ctx);

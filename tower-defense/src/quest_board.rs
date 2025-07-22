@@ -4,7 +4,8 @@ use crate::{
         quest::{Quest, generate_quests},
         use_game_state,
     },
-    l10n::{KOREAN_TEXT, ui::TopBarText},
+    icon::{Icon, IconKind, IconSize},
+    l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
@@ -275,13 +276,8 @@ impl Component for QuestBoardItemLocked {
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
-                table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
-                    ctx.add(
-                        headline(KOREAN_TEXT.ui(TopBarText::Locked).to_string())
-                            .size(FontSize::Medium)
-                            .align(TextAlign::Center { wh })
-                            .build(),
-                    );
+                table::fixed(36.px(), |wh, ctx| {
+                    ctx.add(Icon::new(IconKind::Lock).size(IconSize::Large).wh(wh));
                 }),
                 table::ratio(1, |_, _| {}),
             ])(wh, ctx);
