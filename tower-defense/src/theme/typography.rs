@@ -7,13 +7,13 @@ use std::{cell::OnceCell, collections::HashMap};
 pub const HEADLINE_FONT_NAME: &str = "NotoSansKR-Bold";
 pub const PARAGRAPH_FONT_NAME: &str = "NotoSansKR-Regular";
 
-pub const HEADLINE_FONT_SIZE_LARGE: IntPx = int_px(20);
-pub const HEADLINE_FONT_SIZE_MEDIUM: IntPx = int_px(16);
-pub const HEADLINE_FONT_SIZE_SMALL: IntPx = int_px(12);
+pub const HEADLINE_FONT_SIZE_LARGE: IntPx = int_px(24);
+pub const HEADLINE_FONT_SIZE_MEDIUM: IntPx = int_px(20);
+pub const HEADLINE_FONT_SIZE_SMALL: IntPx = int_px(16);
 
 pub const PARAGRAPH_FONT_SIZE_LARGE: IntPx = int_px(16);
-pub const PARAGRAPH_FONT_SIZE_MEDIUM: IntPx = int_px(12);
-pub const PARAGRAPH_FONT_SIZE_SMALL: IntPx = int_px(8);
+pub const PARAGRAPH_FONT_SIZE_MEDIUM: IntPx = int_px(14);
+pub const PARAGRAPH_FONT_SIZE_SMALL: IntPx = int_px(12);
 
 pub const DEFAULT_TEXT_STYLE: TextStyle = TextStyle {
     border: None,

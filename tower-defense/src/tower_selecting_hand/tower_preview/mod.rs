@@ -7,12 +7,13 @@ use crate::{
         tower::{TowerSkillTemplate, TowerTemplate},
         upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
+    icon::IconKind,
     l10n::upgrade::{
         AddOrMultiply, Template as UpgradeTemplate, TowerUpgradeTarget as UpgradeTarget,
         WhatUpgrade,
     },
     palette,
-    theme::typography::{FontSize, headline, PARAGRAPH_FONT_SIZE_MEDIUM, TextAlign},
+    theme::typography::{FontSize, PARAGRAPH_FONT_SIZE_LARGE, TextAlign, headline},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -63,9 +64,8 @@ impl Component for TowerPreview<'_> {
                 return;
             };
 
-            ctx.absolute(*offset).add(TowerEffectDescription {
-                skill: effect,
-            });
+            ctx.absolute(*offset)
+                .add(TowerEffectDescription { skill: effect });
         });
 
         ctx.compose(|ctx| {
@@ -82,17 +82,17 @@ impl Component for TowerPreview<'_> {
                                 .size(FontSize::Small)
                                 .align(TextAlign::LeftTop)
                                 .max_width(wh.width)
-                                .build()
+                                .build(),
                         );
                     }),
-                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
+                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
                         let damage = tower_template.kind.default_damage();
                         let damage_plus =
                             upgrade_state.damage_plus + tower_template.rank.bonus_damage() as f32;
                         let damage_multiplier = upgrade_state.damage_multiplier;
 
                         ctx.add(StatPreview {
-                            stat_name: "Damage",
+                            stat_icon_kind: IconKind::AttackDamage,
                             default_stat: damage as f32,
                             plus_stat: damage_plus,
                             multiplier: damage_multiplier,
@@ -100,12 +100,12 @@ impl Component for TowerPreview<'_> {
                             upgrade_texts: &texts.damage,
                         });
                     }),
-                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
+                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
                         let range = tower_template.default_attack_range_radius;
                         let range_plus = upgrade_state.range_plus;
 
                         ctx.add(StatPreview {
-                            stat_name: "Range",
+                            stat_icon_kind: IconKind::AttackRange,
                             default_stat: range,
                             plus_stat: range_plus,
                             multiplier: 1.0, // No multiplier for range
@@ -113,13 +113,13 @@ impl Component for TowerPreview<'_> {
                             upgrade_texts: &texts.range,
                         });
                     }),
-                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
+                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
                         let attack_speed = 1.0 / tower_template.kind.shoot_interval().as_secs_f32();
                         let speed_plus = upgrade_state.speed_plus;
                         let speed_multiplier = upgrade_state.speed_multiplier;
 
                         ctx.add(StatPreview {
-                            stat_name: "Speed",
+                            stat_icon_kind: IconKind::AttackSpeed,
                             default_stat: attack_speed,
                             plus_stat: speed_plus,
                             multiplier: speed_multiplier,
