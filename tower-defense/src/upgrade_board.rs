@@ -274,7 +274,7 @@ fn get_upgrade_description_texts(state: &UpgradeState, text: &crate::l10n::TextM
                 format!("문양이 {suit}인 타워의")
             }
             TowerUpgradeTarget::TowerKind { tower_kind } => {
-                format!("{tower_kind} 타워의")
+                format!("{} 타워의", text.tower(tower_kind.to_text()))
             }
             TowerUpgradeTarget::EvenOdd { even } => {
                 format!("{} 타워의", if *even { "짝수" } else { "홀수" })

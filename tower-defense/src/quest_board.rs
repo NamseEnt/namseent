@@ -332,7 +332,7 @@ impl Component for QuestBoardItemContent<'_> {
                                         .size(FontSize::Small)
                                         .align(TextAlign::LeftTop)
                                         .max_width(wh.width)
-                                        .build(),
+                                        .build_rich(),
                                 );
                             }),
                             table::fixed(PADDING, |_, _| {}),
@@ -342,7 +342,7 @@ impl Component for QuestBoardItemContent<'_> {
                                         .size(FontSize::Medium)
                                         .align(TextAlign::LeftTop)
                                         .max_width(wh.width)
-                                        .build(),
+                                        .build_rich(),
                                 );
                             }),
                             table::fixed(PADDING, |_, _| {}),

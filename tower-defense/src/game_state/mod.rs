@@ -250,7 +250,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             rerolled_count: 0,
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
-            locale: crate::l10n::Locale::default(),
+            locale: crate::l10n::Locale::ENGLISH,
         };
 
         game_state.goto_selecting_tower();

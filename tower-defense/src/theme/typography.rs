@@ -34,7 +34,7 @@ pub fn init_tag_map() -> HashMap<String, Tag> {
         "red".to_string(),
         Tag::StyledText {
             font: Font {
-                name: PARAGRAPH_FONT_NAME.to_string(),
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
                 size: PARAGRAPH_FONT_SIZE_MEDIUM,
             },
             style: TextStyle {
@@ -48,7 +48,7 @@ pub fn init_tag_map() -> HashMap<String, Tag> {
         "blue".to_string(),
         Tag::StyledText {
             font: Font {
-                name: PARAGRAPH_FONT_NAME.to_string(),
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
                 size: PARAGRAPH_FONT_SIZE_MEDIUM,
             },
             style: TextStyle {
@@ -62,7 +62,7 @@ pub fn init_tag_map() -> HashMap<String, Tag> {
         "epic".to_string(),
         Tag::StyledText {
             font: Font {
-                name: PARAGRAPH_FONT_NAME.to_string(),
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
                 size: PARAGRAPH_FONT_SIZE_MEDIUM,
             },
             style: TextStyle {
@@ -76,13 +76,85 @@ pub fn init_tag_map() -> HashMap<String, Tag> {
         "rare".to_string(),
         Tag::StyledText {
             font: Font {
-                name: PARAGRAPH_FONT_NAME.to_string(),
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
                 size: PARAGRAPH_FONT_SIZE_MEDIUM,
             },
             style: TextStyle {
                 color: palette::RARE,
                 ..DEFAULT_TEXT_STYLE
             },
+        },
+    );
+
+    // 공격력 컬러 태그
+    map.insert(
+        "attack_damage_color".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: Color::from_u8(255, 100, 100, 255), // 빨간색 계열
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    // 공격속도 컬러 태그
+    map.insert(
+        "attack_speed_color".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: Color::from_u8(100, 100, 255, 255), // 파란색 계열
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    // 사거리 컬러 태그
+    map.insert(
+        "attack_range_color".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: Color::from_u8(100, 255, 100, 255), // 초록색 계열
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    // 골드 컬러 태그
+    map.insert(
+        "gold_color".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: Color::from_u8(255, 215, 0, 255), // 골드 색상
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    // 볼드체 태그
+    map.insert(
+        "B".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 사용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: DEFAULT_TEXT_STYLE,
         },
     );
 

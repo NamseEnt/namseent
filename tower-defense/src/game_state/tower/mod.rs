@@ -3,13 +3,12 @@ mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
 use crate::card::{Rank, Suit};
-use crate::l10n::{tower::TowerKindText};
+use crate::l10n::tower::TowerKindText;
 use namui::*;
 use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick};
 pub use skill::*;
 use std::{
-    fmt::Display,
     ops::Deref,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -275,27 +274,21 @@ impl TowerKind {
     pub fn is_low_card_tower(&self) -> bool {
         matches!(self, Self::High | Self::OnePair | Self::ThreeOfAKind)
     }
-}
-impl Display for TowerKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use crate::l10n::KOREAN_TEXT;
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Barricade => KOREAN_TEXT.tower(TowerKindText::Barricade),
-                Self::High => KOREAN_TEXT.tower(TowerKindText::High),
-                Self::OnePair => KOREAN_TEXT.tower(TowerKindText::OnePair),
-                Self::TwoPair => KOREAN_TEXT.tower(TowerKindText::TwoPair),
-                Self::ThreeOfAKind => KOREAN_TEXT.tower(TowerKindText::ThreeOfAKind),
-                Self::Straight => KOREAN_TEXT.tower(TowerKindText::Straight),
-                Self::Flush => KOREAN_TEXT.tower(TowerKindText::Flush),
-                Self::FullHouse => KOREAN_TEXT.tower(TowerKindText::FullHouse),
-                Self::FourOfAKind => KOREAN_TEXT.tower(TowerKindText::FourOfAKind),
-                Self::StraightFlush => KOREAN_TEXT.tower(TowerKindText::StraightFlush),
-                Self::RoyalFlush => KOREAN_TEXT.tower(TowerKindText::RoyalFlush),
-            }
-        )
+
+    pub fn to_text(&self) -> TowerKindText {
+        match self {
+            Self::Barricade => TowerKindText::Barricade,
+            Self::High => TowerKindText::High,
+            Self::OnePair => TowerKindText::OnePair,
+            Self::TwoPair => TowerKindText::TwoPair,
+            Self::ThreeOfAKind => TowerKindText::ThreeOfAKind,
+            Self::Straight => TowerKindText::Straight,
+            Self::Flush => TowerKindText::Flush,
+            Self::FullHouse => TowerKindText::FullHouse,
+            Self::FourOfAKind => TowerKindText::FourOfAKind,
+            Self::StraightFlush => TowerKindText::StraightFlush,
+            Self::RoyalFlush => TowerKindText::RoyalFlush,
+        }
     }
 }
 

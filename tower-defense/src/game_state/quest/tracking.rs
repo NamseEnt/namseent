@@ -110,7 +110,7 @@ impl QuestTrackingState {
                 new_built_count,
             } => {
                 game_state.text().quest(QuestText::BuildTowerHandNew {
-                    hand: hand.to_string(),
+                    hand: game_state.text().tower(hand.to_text()).to_string(),
                     count: *target_count,
                 }) + &format!(" ({}/{})", new_built_count, target_count)
             }
@@ -121,7 +121,7 @@ impl QuestTrackingState {
                     .filter(|tower| tower.kind == *hand)
                     .count();
                 game_state.text().quest(QuestText::BuildTowerHand {
-                    hand: hand.to_string(),
+                    hand: game_state.text().tower(hand.to_text()).to_string(),
                     count: *target_count,
                     current_count,
                 })

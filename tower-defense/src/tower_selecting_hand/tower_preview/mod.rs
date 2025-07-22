@@ -3,9 +3,7 @@ mod tower_skill;
 
 use crate::{
     game_state::{
-        self, GameState,
-        tower::{TowerSkillTemplate, TowerTemplate},
-        upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
+        self, tower::{TowerSkillTemplate, TowerTemplate}, upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget}, GameState
     },
     icon::IconKind,
     l10n::upgrade::{
@@ -13,7 +11,7 @@ use crate::{
         WhatUpgrade,
     },
     palette,
-    theme::typography::{FontSize, PARAGRAPH_FONT_SIZE_LARGE, TextAlign, headline},
+    theme::typography::{headline, FontSize, TextAlign, HEADLINE_FONT_SIZE_SMALL, PARAGRAPH_FONT_SIZE_LARGE},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -71,11 +69,12 @@ impl Component for TowerPreview<'_> {
         ctx.compose(|ctx| {
             table::padding_no_clip(PADDING, |wh, ctx| {
                 table::vertical([
-                    table::fit(table::FitAlign::LeftTop, |ctx| {
+                    table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL.into_px(), |wh, ctx| {
                         let mut tower_name = String::new();
                         tower_name.push_str(&format!("{}", tower_template.suit));
                         tower_name.push_str(&format!("{}", tower_template.rank));
-                        tower_name.push_str(&format!(" {:?}", tower_template.kind));
+                        tower_name.push(' ');
+                        tower_name.push_str(game_state.text().tower(tower_template.kind.to_text()));
 
                         ctx.add(
                             headline(tower_name)
@@ -85,6 +84,7 @@ impl Component for TowerPreview<'_> {
                                 .build(),
                         );
                     }),
+                    
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
                         let damage = tower_template.kind.default_damage();
                         let damage_plus =

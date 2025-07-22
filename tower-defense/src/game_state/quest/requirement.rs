@@ -38,14 +38,14 @@ impl QuestRequirement {
                     .filter(|tower| tower.kind == hand)
                     .count();
                 game_state.text().quest(QuestText::BuildTowerHand {
-                    hand: hand.to_string(),
+                    hand: game_state.text().tower(hand.to_text()).to_string(),
                     count,
                     current_count,
                 })
             }
             QuestRequirement::BuildTowerHandNew { hand, count } => {
                 game_state.text().quest(QuestText::BuildTowerHandNew {
-                    hand: hand.to_string(),
+                    hand: game_state.text().tower(hand.to_text()).to_string(),
                     count,
                 })
             }
