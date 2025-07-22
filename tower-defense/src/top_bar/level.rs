@@ -5,7 +5,7 @@ use crate::{
     theme::typography::headline,
 };
 use namui::*;
-use namui_prebuilt::{table, button, simple_rect};
+use namui_prebuilt::{button, simple_rect, table};
 
 const PADDING: Px = px(8.);
 
@@ -89,12 +89,12 @@ impl Component for LevelIndicator {
             if !*mouse_hovering {
                 return;
             }
-            ctx.translate((0.px(), wh.height))
-                .on_top()
-                .add(crate::top_bar::level_up_details::LevelUpDetails {
+            ctx.translate((0.px(), wh.height)).on_top().add(
+                crate::top_bar::level_up_details::LevelUpDetails {
                     width: wh.width,
                     current_level: level,
-                });
+                },
+            );
         });
         ctx.add(simple_rect(
             wh,

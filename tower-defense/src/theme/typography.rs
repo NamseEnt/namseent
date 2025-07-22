@@ -24,16 +24,14 @@ pub const DEFAULT_TEXT_STYLE: TextStyle = TextStyle {
     underline: None,
 };
 
-const TAG_MAP: OnceCell<HashMap<String, Tag>> = OnceCell::new();
-const REGEX_HANDLERS: OnceCell<Vec<RegexHandler>> = OnceCell::new();
-
-fn init_tag_map() -> HashMap<String, Tag> {
+pub const TAG_MAP: OnceCell<HashMap<String, Tag>> = OnceCell::new();
+pub const REGEX_HANDLERS: OnceCell<Vec<RegexHandler>> = OnceCell::new();
+pub fn init_tag_map() -> HashMap<String, Tag> {
     let map = HashMap::new();
     // Add tags for rich text parsing
     map
 }
-
-fn init_regex_handlers() -> Vec<RegexHandler> {
+pub fn init_regex_handlers() -> Vec<RegexHandler> {
     icon::Icon::create_icon_regex_handlers()
 }
 

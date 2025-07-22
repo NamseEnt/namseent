@@ -1,5 +1,6 @@
 use crate::{
     game_state::{is_boss_stage, use_game_state},
+    icon::{Icon, IconKind, IconSize},
     l10n::ui::TopBarText,
     palette,
     theme::typography::headline,
@@ -35,12 +36,11 @@ impl Component for StageIndicator {
                     table::fixed(
                         wh.height,
                         table::padding(PADDING, move |wh, ctx| {
-                            let path = Path::new().add_oval(wh.to_rect());
-                            let paint = Paint::new(match is_boss_stage(stage + offset as usize) {
-                                true => palette::COMMON,
-                                false => palette::EPIC,
-                            });
-                            ctx.add(namui::path(path, paint));
+                            let kind = match is_boss_stage(stage + offset as usize) {
+                                true => IconKind::EnemyBoss,
+                                false => IconKind::EnemyNormal,
+                            };
+                            ctx.add(Icon::new(kind).size(IconSize::Large).wh(wh));
                         }),
                     )
                 })),

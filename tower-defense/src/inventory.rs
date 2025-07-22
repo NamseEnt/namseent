@@ -1,13 +1,7 @@
 use crate::{
     game_state::{
-        MAX_INVENTORY_SLOT,
-        cursor_preview::PreviewKind,
-        item::{ItemUsage, use_item},
-        mutate_game_state, use_game_state,
-    },
-    l10n::ui::TopBarText,
-    palette,
-    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
+        cursor_preview::PreviewKind, item::{use_item, ItemUsage}, mutate_game_state, use_game_state, MAX_INVENTORY_SLOT
+    }, icon::{Icon, IconKind, IconSize}, l10n::ui::TopBarText, palette, theme::typography::{headline, paragraph, FontSize, TextAlign, HEADLINE_FONT_SIZE_LARGE}
 };
 use namui::*;
 use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, table};
@@ -31,13 +25,28 @@ impl Component for Inventory {
                         PADDING,
                         table::vertical([
                             table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                                ctx.add(
-                                    headline(format!("{} {}/{}", game_state.text().ui(TopBarText::Inventory), game_state.items.len(), MAX_INVENTORY_SLOT))
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::Center { wh })
-                                        .max_width(wh.width)
-                                        .build(),
-                                );
+
+                                                            ctx.add(
+                                Icon::new(IconKind::Item)
+                                    .size(IconSize::Medium)
+                                    .wh(Wh {
+                                        width: 32.px(),
+                                        height: wh.height
+                                    })
+                            );
+                            let text = format!(
+                                "{}/{}",
+                                game_state.items.len(), MAX_INVENTORY_SLOT
+                            );
+                            ctx.add(
+                                headline(text)
+                                .size(FontSize::Medium)
+                                .align(TextAlign::Center { wh })
+                                .max_width(wh.width)
+                                .build(),
+                            );
+
+                            
                                 ctx.add(rect(RectParam {
                                     rect: wh.to_rect(),
                                     style: RectStyle {

@@ -234,16 +234,16 @@ impl IconAttribute {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IconSize {
     // Small,
-    // Medium,
-    // Large,
+    Medium,
+    Large,
     Custom { size: Px },
 }
 impl IconSize {
     pub fn px(self) -> Px {
         match self {
             // IconSize::Small => px(16.),
-            // IconSize::Medium => px(24.),
-            // IconSize::Large => px(32.),
+            IconSize::Medium => px(24.),
+            IconSize::Large => px(36.),
             IconSize::Custom { size } => size,
         }
     }

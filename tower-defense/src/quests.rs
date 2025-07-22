@@ -1,5 +1,6 @@
 use crate::{
     game_state::{quest::cancel_quest, use_game_state},
+    icon::{Icon, IconKind, IconSize},
     l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
@@ -28,12 +29,20 @@ impl Component for Quests {
                     table::vertical([
                         table::fixed(TITLE_HEIGHT, |wh, ctx| {
                             ctx.add(
-                                headline(format!(
-                                    "{} {}/{}",
-                                    game_state.text().ui(TopBarText::Quest),
-                                    game_state.quest_states.len(),
-                                    game_state.max_quest_slot()
-                                ))
+                                Icon::new(IconKind::Quest)
+                                    .size(IconSize::Medium)
+                                    .wh(Wh {
+                                        width: 32.px(),
+                                        height: wh.height
+                                    })
+                            );
+                            let text = format!(
+                                "{}/{}",
+                                game_state.quest_states.len(),
+                                game_state.max_quest_slot()
+                            );
+                            ctx.add(
+                                headline(text)
                                 .size(FontSize::Medium)
                                 .align(TextAlign::Center { wh })
                                 .max_width(wh.width)

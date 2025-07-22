@@ -1,9 +1,7 @@
-use super::{Locale, Language, LocalizedStaticText};
+use super::{Language, Locale, LocalizedStaticText};
 
 #[derive(Debug, Clone, Copy)]
 pub enum TopBarText {
-    Hp,
-    Gold,
     Stage,
     Level,
     LevelUp,
@@ -17,7 +15,6 @@ pub enum TopBarText {
     Locked,
     Accepted,
     Accept,
-    Inventory,
     Use,
     Remove,
     Settings,
@@ -39,8 +36,6 @@ impl LocalizedStaticText for TopBarText {
 impl TopBarText {
     pub(super) fn to_korean(&self) -> &'static str {
         match self {
-            TopBarText::Hp => "HP",
-            TopBarText::Gold => "골드",
             TopBarText::Stage => "스테이지",
             TopBarText::Level => "레벨",
             TopBarText::LevelUp => "레벨업",
@@ -54,7 +49,6 @@ impl TopBarText {
             TopBarText::Locked => "잠김",
             TopBarText::Accepted => "수락됨",
             TopBarText::Accept => "수락",
-            TopBarText::Inventory => "인벤토리",
             TopBarText::Use => "사용",
             TopBarText::Remove => "X",
             TopBarText::Settings => "설정",
@@ -64,11 +58,9 @@ impl TopBarText {
             TopBarText::UseTower => "타워 사용",
         }
     }
-    
+
     pub(super) fn to_english(&self) -> &'static str {
         match self {
-            TopBarText::Hp => "HP",
-            TopBarText::Gold => "Gold",
             TopBarText::Stage => "Stage",
             TopBarText::Level => "Level",
             TopBarText::LevelUp => "Level Up",
@@ -82,7 +74,6 @@ impl TopBarText {
             TopBarText::Locked => "Locked",
             TopBarText::Accepted => "Accepted",
             TopBarText::Accept => "Accept",
-            TopBarText::Inventory => "Inventory",
             TopBarText::Use => "Use",
             TopBarText::Remove => "X",
             TopBarText::Settings => "Settings",

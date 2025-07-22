@@ -1,6 +1,6 @@
-use crate::{
-    game_state::use_game_state, l10n::ui::TopBarText, palette, theme::typography::headline,
-};
+use crate::icon::{Icon, IconKind, IconSize};
+use crate::theme::typography::FontSize;
+use crate::{palette, theme::typography::headline};
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
@@ -14,22 +14,20 @@ pub struct HPAndGoldIndicator {
 impl Component for HPAndGoldIndicator {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, hp, gold } = self;
-        let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(
                     1,
                     table::horizontal([
-                        table::fixed(px(64.), |wh, ctx| {
+                        table::fixed(px(32.), |wh, ctx| {
+                            ctx.add(Icon::new(IconKind::Health).size(IconSize::Medium).wh(wh));
+                        }),
+                        table::fixed(32.px(), |wh, ctx| {
                             ctx.add(
-                                headline(format!(
-                                    "{} {:.0}",
-                                    game_state.text().ui(TopBarText::Hp),
-                                    hp * 100.0
-                                ))
-                                .size(crate::theme::typography::FontSize::Medium)
-                                .align(crate::theme::typography::TextAlign::Center { wh })
-                                .build(),
+                                headline(format!("{:.0}", hp * 100.0))
+                                    .size(FontSize::Medium)
+                                    .align(crate::theme::typography::TextAlign::Center { wh })
+                                    .build(),
                             );
                         }),
                         table::ratio(
@@ -54,13 +52,8 @@ impl Component for HPAndGoldIndicator {
                 table::ratio(
                     1,
                     table::horizontal([
-                        table::fixed(px(64.), |wh, ctx| {
-                            ctx.add(
-                                headline(game_state.text().ui(TopBarText::Gold).to_string())
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                        table::fixed(32.px(), |wh, ctx| {
+                            ctx.add(Icon::new(IconKind::Gold).size(IconSize::Medium).wh(wh));
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(
