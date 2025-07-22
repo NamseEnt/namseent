@@ -13,20 +13,27 @@ impl Component for IconAssetLoaderInitializer {
     fn render(self, ctx: &RenderCtx) {
         ctx.effect("Load icon assets", || {
             let icon_asset_kinds = [
+                IconKind::Accept,
                 IconKind::AttackDamage,
                 IconKind::AttackRange,
                 IconKind::AttackSpeed,
+                IconKind::Config,
                 IconKind::EnemyBoss,
                 IconKind::EnemyNamed,
                 IconKind::EnemyNormal,
                 IconKind::Gold,
+                IconKind::Health,
                 IconKind::Invincible,
                 IconKind::Item,
+                IconKind::Level,
+                IconKind::Lock,
                 IconKind::MoveSpeed,
                 IconKind::Quest,
+                IconKind::Refresh,
+                IconKind::Reject,
                 IconKind::Shield,
                 IconKind::Shop,
-                IconKind::Health,
+                IconKind::Speaker,
                 IconKind::Suit { suit: Suit::Spades },
                 IconKind::Suit { suit: Suit::Hearts },
                 IconKind::Suit {

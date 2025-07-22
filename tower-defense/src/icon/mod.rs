@@ -8,20 +8,27 @@ use namui::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IconKind {
+    Accept,
     AttackDamage,
     AttackRange,
     AttackSpeed,
+    Config,
     EnemyBoss,
     EnemyNamed,
     EnemyNormal,
     Gold,
+    Health,
     Invincible,
     Item,
+    Level,
+    Lock,
     MoveSpeed,
     Quest,
+    Refresh,
+    Reject,
     Shield,
     Shop,
-    Health,
+    Speaker,
     Suit { suit: Suit },
     Up,
     Down,
@@ -29,20 +36,27 @@ pub enum IconKind {
 impl IconKind {
     pub fn asset_id(&self) -> &'static str {
         match self {
+            IconKind::Accept => "accept",
             IconKind::AttackDamage => "attack_damage",
             IconKind::AttackRange => "attack_range",
             IconKind::AttackSpeed => "attack_speed",
+            IconKind::Config => "config",
             IconKind::EnemyBoss => "enemy_boss",
             IconKind::EnemyNamed => "enemy_named",
             IconKind::EnemyNormal => "enemy_normal",
             IconKind::Gold => "gold",
+            IconKind::Health => "health",
             IconKind::Invincible => "invincible",
             IconKind::Item => "item",
+            IconKind::Level => "level",
+            IconKind::Lock => "lock",
             IconKind::MoveSpeed => "move_speed",
             IconKind::Quest => "quest",
+            IconKind::Refresh => "refresh",
+            IconKind::Reject => "reject",
             IconKind::Shield => "shield",
             IconKind::Shop => "shop",
-            IconKind::Health => "health",
+            IconKind::Speaker => "speaker",
             IconKind::Suit { suit } => match suit {
                 Suit::Spades => "suit_spades",
                 Suit::Hearts => "suit_hearts",
@@ -57,20 +71,27 @@ impl IconKind {
     /// Get the default color for this icon kind
     pub fn default_color(&self) -> Color {
         match self {
-            IconKind::Gold => Color::from_u8(255, 215, 0, 255),
+            IconKind::Accept => Color::from_u8(0, 255, 0, 255), // Green for accept
             IconKind::AttackDamage => Color::from_u8(255, 100, 100, 255),
             IconKind::AttackRange => Color::from_u8(100, 255, 100, 255),
             IconKind::AttackSpeed => Color::from_u8(100, 100, 255, 255),
-            IconKind::Health => Color::from_u8(255, 0, 0, 255),
-            IconKind::Shield => Color::from_u8(0, 0, 255, 255),
-            IconKind::MoveSpeed => Color::from_u8(255, 255, 0, 255),
-            IconKind::Invincible => Color::from_u8(255, 255, 255, 255),
+            IconKind::Config => Color::from_u8(128, 128, 128, 255), // Gray for config
             IconKind::EnemyBoss => Color::from_u8(128, 0, 128, 255),
             IconKind::EnemyNamed => Color::from_u8(255, 165, 0, 255),
             IconKind::EnemyNormal => Color::from_u8(139, 69, 19, 255),
+            IconKind::Gold => Color::from_u8(255, 215, 0, 255),
+            IconKind::Health => Color::from_u8(255, 0, 0, 255),
+            IconKind::Invincible => Color::from_u8(255, 255, 255, 255),
             IconKind::Item => Color::from_u8(255, 192, 203, 255),
+            IconKind::Level => Color::from_u8(0, 191, 255, 255), // Deep sky blue for level
+            IconKind::Lock => Color::from_u8(169, 169, 169, 255), // Dark gray for lock
+            IconKind::MoveSpeed => Color::from_u8(255, 255, 0, 255),
             IconKind::Quest => Color::from_u8(0, 255, 255, 255),
+            IconKind::Refresh => Color::from_u8(124, 252, 0, 255), // Lawn green for refresh
+            IconKind::Reject => Color::from_u8(255, 0, 0, 255),    // Red for reject
+            IconKind::Shield => Color::from_u8(0, 0, 255, 255),
             IconKind::Shop => Color::from_u8(150, 75, 0, 255),
+            IconKind::Speaker => Color::from_u8(75, 0, 130, 255), // Indigo for speaker
             IconKind::Suit { .. } => Color::from_u8(128, 128, 128, 255),
             IconKind::Up => Color::from_u8(0, 255, 0, 255),
             IconKind::Down => Color::from_u8(255, 0, 0, 255),
@@ -79,20 +100,27 @@ impl IconKind {
 
     pub fn from_asset_id(asset_id: &str) -> Option<Self> {
         match asset_id {
+            "accept" => Some(IconKind::Accept),
             "attack_damage" => Some(IconKind::AttackDamage),
             "attack_range" => Some(IconKind::AttackRange),
             "attack_speed" => Some(IconKind::AttackSpeed),
+            "config" => Some(IconKind::Config),
             "enemy_boss" => Some(IconKind::EnemyBoss),
             "enemy_named" => Some(IconKind::EnemyNamed),
             "enemy_normal" => Some(IconKind::EnemyNormal),
             "gold" => Some(IconKind::Gold),
+            "health" => Some(IconKind::Health),
             "invincible" => Some(IconKind::Invincible),
             "item" => Some(IconKind::Item),
+            "level" => Some(IconKind::Level),
+            "lock" => Some(IconKind::Lock),
             "move_speed" => Some(IconKind::MoveSpeed),
             "quest" => Some(IconKind::Quest),
+            "refresh" => Some(IconKind::Refresh),
+            "reject" => Some(IconKind::Reject),
             "shield" => Some(IconKind::Shield),
             "shop" => Some(IconKind::Shop),
-            "health" => Some(IconKind::Health),
+            "speaker" => Some(IconKind::Speaker),
             "suit_spades" => Some(IconKind::Suit { suit: Suit::Spades }),
             "suit_hearts" => Some(IconKind::Suit { suit: Suit::Hearts }),
             "suit_diamonds" => Some(IconKind::Suit {
