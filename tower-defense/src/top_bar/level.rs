@@ -1,5 +1,6 @@
 use crate::{
     game_state::{mutate_game_state, use_game_state},
+    icon::{Icon, IconKind, IconSize},
     l10n::ui::TopBarText,
     palette,
     theme::typography::headline,
@@ -34,15 +35,15 @@ impl Component for LevelIndicator {
         };
         ctx.compose(|ctx| {
             table::horizontal([
-                table::fixed(px(64.), |wh, ctx| {
+                table::fixed(36.px(), |wh, ctx| {
+                    ctx.add(Icon::new(IconKind::Level).size(IconSize::Large).wh(wh));
+                }),
+                table::fixed(32.px(), |wh, ctx| {
                     ctx.add(
-                        headline(format!(
-                            "{} {level}",
-                            game_state.text().ui(TopBarText::Level)
-                        ))
-                        .size(crate::theme::typography::FontSize::Medium)
-                        .align(crate::theme::typography::TextAlign::Center { wh })
-                        .build(),
+                        headline(format!("{level}",))
+                            .size(crate::theme::typography::FontSize::Medium)
+                            .align(crate::theme::typography::TextAlign::Center { wh })
+                            .build(),
                     );
                 }),
                 table::ratio(
