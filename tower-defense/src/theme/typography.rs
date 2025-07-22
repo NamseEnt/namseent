@@ -27,8 +27,65 @@ pub const DEFAULT_TEXT_STYLE: TextStyle = TextStyle {
 pub const TAG_MAP: OnceCell<HashMap<String, Tag>> = OnceCell::new();
 pub const REGEX_HANDLERS: OnceCell<Vec<RegexHandler>> = OnceCell::new();
 pub fn init_tag_map() -> HashMap<String, Tag> {
-    let map = HashMap::new();
-    // Add tags for rich text parsing
+    let mut map = HashMap::new();
+
+    // 색상 태그 추가
+    map.insert(
+        "red".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: PARAGRAPH_FONT_NAME.to_string(),
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: palette::RED,
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    map.insert(
+        "blue".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: PARAGRAPH_FONT_NAME.to_string(),
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: palette::BLUE,
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    map.insert(
+        "epic".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: PARAGRAPH_FONT_NAME.to_string(),
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: palette::EPIC,
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    map.insert(
+        "rare".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: PARAGRAPH_FONT_NAME.to_string(),
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: palette::RARE,
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
     map
 }
 pub fn init_regex_handlers() -> Vec<RegexHandler> {
