@@ -282,7 +282,7 @@ mod tests {
             Box::new(|matched_text| {
                 // Mock rendering tree for testing
                 namui::text(TextParam {
-                    text: format!("ICON: {}", matched_text),
+                    text: format!("ICON: {matched_text}"),
                     x: 0.px(),
                     y: 0.px(),
                     align: TextAlign::Left,

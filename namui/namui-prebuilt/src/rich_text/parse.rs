@@ -89,8 +89,8 @@ pub(crate) fn parse(text: impl AsRef<str>) -> Result<Vec<Token>, ParseError> {
                         // At this point, tag_content is a potential valid tag name (not empty, not starting with /)
 
                         // Check if it's a RenderingTree token |@Tag|
-                        if tag_content.starts_with('@') {
-                            let tag = &tag_content[1..]; // Remove the '@' prefix
+                        // Remove the '@' prefix
+                        if let Some(tag) = tag_content.strip_prefix('@') {
                             if !tag.is_empty() {
                                 tokens.push(Token::RenderingTree {
                                     tag: tag.to_string(),
