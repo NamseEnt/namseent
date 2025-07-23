@@ -132,7 +132,7 @@ impl Component for Quests {
                                                                         .size(FontSize::Small)
                                                                         .align(TextAlign::LeftTop)
                                                                         .max_width(content_width)
-                                                                        .build(),
+                                                                        .build_rich(),
                                                                 );
                                                             },
                                                         ),
@@ -145,7 +145,7 @@ impl Component for Quests {
                                                                         .size(FontSize::Medium)
                                                                         .align(TextAlign::LeftTop)
                                                                         .max_width(content_width)
-                                                                        .build(),
+                                                                        .build_rich(),
                                                                 );
                                                             },
                                                         ),
