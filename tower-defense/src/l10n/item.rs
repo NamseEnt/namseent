@@ -28,108 +28,108 @@ impl<'a> ItemKindText<'a> {
     pub(super) fn to_korean(&self) -> String {
         match self {
             ItemKindText::Name(variant) => match variant {
-                ItemKindTextVariant::Heal => "치유".to_string(),
-                ItemKindTextVariant::AttackPowerPlusBuff => "공격력 증가 버프".to_string(),
-                ItemKindTextVariant::AttackPowerMultiplyBuff => "공격력 배수 버프".to_string(),
-                ItemKindTextVariant::AttackSpeedPlusBuff => "공격 속도 증가 버프".to_string(),
-                ItemKindTextVariant::AttackSpeedMultiplyBuff => "공격 속도 배수 버프".to_string(),
-                ItemKindTextVariant::AttackRangePlus => "공격 범위 증가".to_string(),
-                ItemKindTextVariant::MovementSpeedDebuff => "이동 속도 감소 디버프".to_string(),
-                ItemKindTextVariant::RoundDamage { .. } => "범위 피해".to_string(),
-                ItemKindTextVariant::RoundDamageOverTime { .. } => "지속 범위 피해".to_string(),
-                ItemKindTextVariant::Lottery => "복권".to_string(),
-                ItemKindTextVariant::LinearDamage { .. } => "광선 피해".to_string(),
-                ItemKindTextVariant::LinearDamageOverTime { .. } => "지속 광선 피해".to_string(),
-                ItemKindTextVariant::ExtraReroll => "추가 리롤".to_string(),
-                ItemKindTextVariant::Shield => "방어막".to_string(),
-                ItemKindTextVariant::DamageReduction => "피해 감소".to_string(),
+                ItemKindTextVariant::Heal => "|gold_color|icon<heal:16:16:16:1>치유|/gold_color|".to_string(),
+                ItemKindTextVariant::AttackPowerPlusBuff => "|attack_damage_color|icon<attack_damage:16:16:16:1>공격력 증가 버프|/attack_damage_color|".to_string(),
+                ItemKindTextVariant::AttackPowerMultiplyBuff => "|attack_damage_color|icon<attack_damage:16:16:16:1>공격력 배수 버프|/attack_damage_color|".to_string(),
+                ItemKindTextVariant::AttackSpeedPlusBuff => "|attack_speed_color|icon<attack_speed:16:16:16:1>공격 속도 증가 버프|/attack_speed_color|".to_string(),
+                ItemKindTextVariant::AttackSpeedMultiplyBuff => "|attack_speed_color|icon<attack_speed:16:16:16:1>공격 속도 배수 버프|/attack_speed_color|".to_string(),
+                ItemKindTextVariant::AttackRangePlus => "|attack_range_color|icon<attack_range:16:16:16:1>공격 범위 증가|/attack_range_color|".to_string(),
+                ItemKindTextVariant::MovementSpeedDebuff => "|red|이동 속도 감소 디버프|/red|".to_string(),
+                ItemKindTextVariant::RoundDamage { .. } => "|attack_damage_color|icon<attack_damage:16:16:16:1>범위 피해|/attack_damage_color|".to_string(),
+                ItemKindTextVariant::RoundDamageOverTime { .. } => "|attack_damage_color|icon<attack_damage:16:16:16:1>지속 범위 피해|/attack_damage_color|".to_string(),
+                ItemKindTextVariant::Lottery => "|gold_color|icon<gold:16:16:16:1>복권|/gold_color|".to_string(),
+                ItemKindTextVariant::LinearDamage { .. } => "|attack_damage_color|icon<attack_damage:16:16:16:1>광선 피해|/attack_damage_color|".to_string(),
+                ItemKindTextVariant::LinearDamageOverTime { .. } => "|attack_damage_color|icon<attack_damage:16:16:16:1>지속 광선 피해|/attack_damage_color|".to_string(),
+                ItemKindTextVariant::ExtraReroll => "|blue|추가 리롤|/blue|".to_string(),
+                ItemKindTextVariant::Shield => "|blue|방어막|/blue|".to_string(),
+                ItemKindTextVariant::DamageReduction => "|blue|피해 감소|/blue|".to_string(),
             },
             ItemKindText::Description(variant) => match variant {
-                ItemKindTextVariant::Heal => "체력을 회복합니다".to_string(),
-                ItemKindTextVariant::AttackPowerPlusBuff => "공격력을 증가시킵니다".to_string(),
+                ItemKindTextVariant::Heal => "|gold_color|icon<heal:16:16:16:1>체력|/gold_color|을 회복합니다".to_string(),
+                ItemKindTextVariant::AttackPowerPlusBuff => "|attack_damage_color|icon<attack_damage:16:16:16:1>공격력|/attack_damage_color|을 증가시킵니다".to_string(),
                 ItemKindTextVariant::AttackPowerMultiplyBuff => {
-                    "공격력을 배수로 증가시킵니다".to_string()
+                    "|attack_damage_color|icon<attack_damage:16:16:16:1>공격력|/attack_damage_color|을 배수로 증가시킵니다".to_string()
                 }
-                ItemKindTextVariant::AttackSpeedPlusBuff => "공격 속도를 증가시킵니다".to_string(),
+                ItemKindTextVariant::AttackSpeedPlusBuff => "|attack_speed_color|icon<attack_speed:16:16:16:1>공격 속도|/attack_speed_color|를 증가시킵니다".to_string(),
                 ItemKindTextVariant::AttackSpeedMultiplyBuff => {
-                    "공격 속도를 배수로 증가시킵니다".to_string()
+                    "|attack_speed_color|icon<attack_speed:16:16:16:1>공격 속도|/attack_speed_color|를 배수로 증가시킵니다".to_string()
                 }
-                ItemKindTextVariant::AttackRangePlus => "공격 범위를 증가시킵니다".to_string(),
-                ItemKindTextVariant::MovementSpeedDebuff => "이동 속도를 감소시킵니다".to_string(),
+                ItemKindTextVariant::AttackRangePlus => "|attack_range_color|icon<attack_range:16:16:16:1>공격 범위|/attack_range_color|를 증가시킵니다".to_string(),
+                ItemKindTextVariant::MovementSpeedDebuff => "|red|이동 속도|/red|를 감소시킵니다".to_string(),
                 ItemKindTextVariant::RoundDamage { .. } => {
-                    "범위 내 적들에게 피해를 입힙니다".to_string()
+                    "범위 내 적들에게 |attack_damage_color|icon<attack_damage:16:16:16:1>피해|/attack_damage_color|를 입힙니다".to_string()
                 }
                 ItemKindTextVariant::RoundDamageOverTime { .. } => {
-                    "범위 내 적들에게 지속 피해를 입힙니다".to_string()
+                    "범위 내 적들에게 |attack_damage_color|icon<attack_damage:16:16:16:1>지속 피해|/attack_damage_color|를 입힙니다".to_string()
                 }
-                ItemKindTextVariant::Lottery => "확률적으로 보상을 획득합니다".to_string(),
+                ItemKindTextVariant::Lottery => "확률적으로 |gold_color|icon<gold:16:16:16:1>보상|/gold_color|을 획득합니다".to_string(),
                 ItemKindTextVariant::LinearDamage { .. } => {
-                    "직선 범위 내 적들에게 피해를 입힙니다".to_string()
+                    "직선 범위 내 적들에게 |attack_damage_color|icon<attack_damage:16:16:16:1>피해|/attack_damage_color|를 입힙니다".to_string()
                 }
                 ItemKindTextVariant::LinearDamageOverTime { .. } => {
-                    "직선 범위 내 적들에게 지속 피해를 입힙니다".to_string()
+                    "직선 범위 내 적들에게 |attack_damage_color|icon<attack_damage:16:16:16:1>지속 피해|/attack_damage_color|를 입힙니다".to_string()
                 }
-                ItemKindTextVariant::ExtraReroll => "추가 리롤을 획득합니다".to_string(),
-                ItemKindTextVariant::Shield => "피해를 흡수하는 방어막을 획득합니다".to_string(),
-                ItemKindTextVariant::DamageReduction => "받는 피해를 감소시킵니다".to_string(),
+                ItemKindTextVariant::ExtraReroll => "|blue|추가 리롤|/blue|을 획득합니다".to_string(),
+                ItemKindTextVariant::Shield => "|blue|피해를 흡수하는 방어막|/blue|을 획득합니다".to_string(),
+                ItemKindTextVariant::DamageReduction => "받는 |red|피해를 감소|/red|시킵니다".to_string(),
             },
         }
     }
     pub(super) fn to_english(&self) -> String {
         match self {
             ItemKindText::Name(variant) => match variant {
-                ItemKindTextVariant::Heal => "Heal".to_string(),
-                ItemKindTextVariant::AttackPowerPlusBuff => "Attack Power Plus Buff".to_string(),
+                ItemKindTextVariant::Heal => "|gold_color|icon<heal:16:16:16:1>Heal|/gold_color|".to_string(),
+                ItemKindTextVariant::AttackPowerPlusBuff => "|attack_damage_color|icon<attack_damage:16:16:16:1>Attack Power Plus Buff|/attack_damage_color|".to_string(),
                 ItemKindTextVariant::AttackPowerMultiplyBuff => {
-                    "Attack Power Multiply Buff".to_string()
+                    "|attack_damage_color|icon<attack_damage:16:16:16:1>Attack Power Multiply Buff|/attack_damage_color|".to_string()
                 }
-                ItemKindTextVariant::AttackSpeedPlusBuff => "Attack Speed Plus Buff".to_string(),
+                ItemKindTextVariant::AttackSpeedPlusBuff => "|attack_speed_color|icon<attack_speed:16:16:16:1>Attack Speed Plus Buff|/attack_speed_color|".to_string(),
                 ItemKindTextVariant::AttackSpeedMultiplyBuff => {
-                    "Attack Speed Multiply Buff".to_string()
+                    "|attack_speed_color|icon<attack_speed:16:16:16:1>Attack Speed Multiply Buff|/attack_speed_color|".to_string()
                 }
-                ItemKindTextVariant::AttackRangePlus => "Attack Range Plus".to_string(),
-                ItemKindTextVariant::MovementSpeedDebuff => "Movement Speed Debuff".to_string(),
-                ItemKindTextVariant::RoundDamage { .. } => "Area Damage".to_string(),
+                ItemKindTextVariant::AttackRangePlus => "|attack_range_color|icon<attack_range:16:16:16:1>Attack Range Plus|/attack_range_color|".to_string(),
+                ItemKindTextVariant::MovementSpeedDebuff => "|red|Movement Speed Debuff|/red|".to_string(),
+                ItemKindTextVariant::RoundDamage { .. } => "|attack_damage_color|icon<attack_damage:16:16:16:1>Area Damage|/attack_damage_color|".to_string(),
                 ItemKindTextVariant::RoundDamageOverTime { .. } => {
-                    "Damage Over Time in Area".to_string()
+                    "|attack_damage_color|icon<attack_damage:16:16:16:1>Damage Over Time in Area|/attack_damage_color|".to_string()
                 }
-                ItemKindTextVariant::Lottery => "Lottery".to_string(),
-                ItemKindTextVariant::LinearDamage { .. } => "Beam Damage".to_string(),
+                ItemKindTextVariant::Lottery => "|gold_color|icon<gold:16:16:16:1>Lottery|/gold_color|".to_string(),
+                ItemKindTextVariant::LinearDamage { .. } => "|attack_damage_color|icon<attack_damage:16:16:16:1>Beam Damage|/attack_damage_color|".to_string(),
                 ItemKindTextVariant::LinearDamageOverTime { .. } => {
-                    "Damage Over Time in Beam".to_string()
+                    "|attack_damage_color|icon<attack_damage:16:16:16:1>Damage Over Time in Beam|/attack_damage_color|".to_string()
                 }
-                ItemKindTextVariant::ExtraReroll => "Extra Reroll".to_string(),
-                ItemKindTextVariant::Shield => "Shield".to_string(),
-                ItemKindTextVariant::DamageReduction => "Damage Reduction".to_string(),
+                ItemKindTextVariant::ExtraReroll => "|blue|Extra Reroll|/blue|".to_string(),
+                ItemKindTextVariant::Shield => "|blue|Shield|/blue|".to_string(),
+                ItemKindTextVariant::DamageReduction => "|blue|Damage Reduction|/blue|".to_string(),
             },
             ItemKindText::Description(variant) => match variant {
-                ItemKindTextVariant::Heal => "Restores health".to_string(),
-                ItemKindTextVariant::AttackPowerPlusBuff => "Increases attack power".to_string(),
+                ItemKindTextVariant::Heal => "|gold_color|icon<heal:16:16:16:1>Restores health|/gold_color|".to_string(),
+                ItemKindTextVariant::AttackPowerPlusBuff => "|attack_damage_color|icon<attack_damage:16:16:16:1>Increases attack power|/attack_damage_color|".to_string(),
                 ItemKindTextVariant::AttackPowerMultiplyBuff => {
-                    "Increases attack power by a factor".to_string()
+                    "|attack_damage_color|icon<attack_damage:16:16:16:1>Increases attack power by a factor|/attack_damage_color|".to_string()
                 }
-                ItemKindTextVariant::AttackSpeedPlusBuff => "Increases attack speed".to_string(),
+                ItemKindTextVariant::AttackSpeedPlusBuff => "|attack_speed_color|icon<attack_speed:16:16:16:1>Increases attack speed|/attack_speed_color|".to_string(),
                 ItemKindTextVariant::AttackSpeedMultiplyBuff => {
-                    "Increases attack speed by a factor".to_string()
+                    "|attack_speed_color|icon<attack_speed:16:16:16:1>Increases attack speed by a factor|/attack_speed_color|".to_string()
                 }
-                ItemKindTextVariant::AttackRangePlus => "Increases attack range".to_string(),
-                ItemKindTextVariant::MovementSpeedDebuff => "Decreases movement speed".to_string(),
+                ItemKindTextVariant::AttackRangePlus => "|attack_range_color|icon<attack_range:16:16:16:1>Increases attack range|/attack_range_color|".to_string(),
+                ItemKindTextVariant::MovementSpeedDebuff => "|red|Decreases movement speed|/red|".to_string(),
                 ItemKindTextVariant::RoundDamage { .. } => {
-                    "Deals area damage to enemies".to_string()
+                    "Deals |attack_damage_color|icon<attack_damage:16:16:16:1>area damage|/attack_damage_color| to enemies".to_string()
                 }
                 ItemKindTextVariant::RoundDamageOverTime { .. } => {
-                    "Deals damage over time in area".to_string()
+                    "Deals |attack_damage_color|icon<attack_damage:16:16:16:1>damage over time|/attack_damage_color| in area".to_string()
                 }
-                ItemKindTextVariant::Lottery => "Chance to gain rewards".to_string(),
+                ItemKindTextVariant::Lottery => "Chance to gain |gold_color|icon<gold:16:16:16:1>rewards|/gold_color|".to_string(),
                 ItemKindTextVariant::LinearDamage { .. } => {
-                    "Deals beam damage to enemies".to_string()
+                    "Deals |attack_damage_color|icon<attack_damage:16:16:16:1>beam damage|/attack_damage_color| to enemies".to_string()
                 }
                 ItemKindTextVariant::LinearDamageOverTime { .. } => {
-                    "Deals damage over time in beam".to_string()
+                    "Deals |attack_damage_color|icon<attack_damage:16:16:16:1>damage over time|/attack_damage_color| in beam".to_string()
                 }
-                ItemKindTextVariant::ExtraReroll => "Gain an extra reroll".to_string(),
-                ItemKindTextVariant::Shield => "Gain a shield that absorbs damage".to_string(),
-                ItemKindTextVariant::DamageReduction => "Reduces damage taken".to_string(),
+                ItemKindTextVariant::ExtraReroll => "Gain an |blue|extra reroll|/blue|".to_string(),
+                ItemKindTextVariant::Shield => "Gain a |blue|shield that absorbs damage|/blue|".to_string(),
+                ItemKindTextVariant::DamageReduction => "|blue|Reduces damage taken|/blue|".to_string(),
             },
         }
     }

@@ -119,7 +119,7 @@ impl Component for Inventory {
                                                                 .size(FontSize::Small)
                                                                 .align(TextAlign::LeftTop)
                                                                 .max_width(content_width)
-                                                                .build(),
+                                                                .build_rich(),
                                                         );
                                                     }),
                                                     table::fixed(PADDING, |_, _| {}),
@@ -129,7 +129,7 @@ impl Component for Inventory {
                                                                 .size(FontSize::Medium)
                                                                 .align(TextAlign::LeftTop)
                                                                 .max_width(content_width)
-                                                                .build(),
+                                                                .build_rich(),
                                                         );
                                                     }),
                                                 ])(Wh::new(content_width, f32::MAX.px()), ctx);
