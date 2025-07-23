@@ -335,50 +335,64 @@ impl Component for ShopItemContent<'_> {
                 ctx.add(ShopItemSoldOut { wh });
             } else {
                 table::vertical([
-                    table::fixed(PADDING, |_, _| {}),
-                    table::fit(table::FitAlign::LeftTop, move |ctx| {
-                        ctx.add(
-                            headline(name.clone())
-                                .size(FontSize::Small)
-                                .align(TextAlign::LeftTop)
-                                .max_width(wh.width)
-                                .build(),
-                        );
-                    }),
-                    table::fixed(PADDING, |_, _| {}),
-                    table::fit(table::FitAlign::LeftTop, move |ctx| {
-                        ctx.add(
-                            paragraph(desc.clone())
-                                .size(FontSize::Medium)
-                                .align(TextAlign::LeftTop)
-                                .max_width(wh.width)
-                                .build(),
-                        );
-                    }),
-                    table::fixed(PADDING, |_, _| {}),
-                    table::fixed(48.px(), |wh, ctx| {
-                        ctx.add(button::TextButton {
-                            rect: wh.to_rect(),
-                            text: format!("${cost}"),
-                            text_color: match available {
-                                true => palette::ON_PRIMARY,
-                                false => palette::ON_SURFACE,
-                            },
-                            stroke_color: palette::OUTLINE,
-                            stroke_width: 1.px(),
-                            fill_color: match available {
-                                true => palette::PRIMARY,
-                                false => palette::SURFACE_CONTAINER_HIGH,
-                            },
-                            mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: |_| {
-                                if !available {
-                                    return;
-                                }
-                                purchase_item();
-                            },
-                        });
-                    }),
+                    table::fixed(
+                        wh.width,
+                        table::padding(PADDING, |_wh, _ctx| {
+                            // TODO: Icons
+                        }),
+                    ),
+                    table::ratio(
+                        1,
+                        table::padding(
+                            PADDING,
+                            table::vertical([
+                                table::fixed(PADDING, |_, _| {}),
+                                table::fit(table::FitAlign::LeftTop, move |ctx| {
+                                    ctx.add(
+                                        headline(name.clone())
+                                            .size(FontSize::Small)
+                                            .align(TextAlign::LeftTop)
+                                            .max_width(wh.width)
+                                            .build_rich(),
+                                    );
+                                }),
+                                table::fixed(PADDING, |_, _| {}),
+                                table::ratio(1, move |wh, ctx| {
+                                    ctx.add(
+                                        paragraph(desc.clone())
+                                            .size(FontSize::Medium)
+                                            .align(TextAlign::LeftTop)
+                                            .max_width(wh.width)
+                                            .build_rich(),
+                                    );
+                                }),
+                                table::fixed(PADDING, |_, _| {}),
+                                table::fixed(48.px(), |wh, ctx| {
+                                    ctx.add(button::TextButton {
+                                        rect: wh.to_rect(),
+                                        text: format!("${cost}"),
+                                        text_color: match available {
+                                            true => palette::ON_PRIMARY,
+                                            false => palette::ON_SURFACE,
+                                        },
+                                        stroke_color: palette::OUTLINE,
+                                        stroke_width: 1.px(),
+                                        fill_color: match available {
+                                            true => palette::PRIMARY,
+                                            false => palette::SURFACE_CONTAINER_HIGH,
+                                        },
+                                        mouse_buttons: vec![MouseButton::Left],
+                                        on_mouse_up_in: |_| {
+                                            if !available {
+                                                return;
+                                            }
+                                            purchase_item();
+                                        },
+                                    });
+                                }),
+                            ]),
+                        ),
+                    ),
                 ])(wh, ctx);
             }
         });
