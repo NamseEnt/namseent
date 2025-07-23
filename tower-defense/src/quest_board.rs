@@ -4,8 +4,10 @@ use crate::{
         quest::{Quest, generate_quests},
         use_game_state,
     },
+    icon::{Icon, IconKind, IconSize},
+    l10n::ui::TopBarText,
     palette,
-    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -99,12 +101,16 @@ impl Component for QuestBoardOpenButton<'_> {
             opened,
             toggle_open,
         } = self;
-
+        let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             ctx.translate((0.px(), -QUEST_BOARD_BUTTON_WH.height))
                 .add(TextButton {
                     rect: QUEST_BOARD_BUTTON_WH.to_rect(),
-                    text: format!("퀘스트 {}", if opened { "^" } else { "v" }),
+                    text: format!(
+                        "{} {}",
+                        game_state.text().ui(TopBarText::Quest),
+                        if opened { "^" } else { "v" }
+                    ),
                     text_color: palette::ON_SURFACE,
                     stroke_color: palette::OUTLINE,
                     stroke_width: 1.px(),
@@ -182,7 +188,8 @@ impl Component for QuestBoard<'_> {
                                 ctx.add(TextButton {
                                     rect: wh.to_rect(),
                                     text: format!(
-                                        "새로고침-{}",
+                                        "{}-{}",
+                                        game_state.text().ui(TopBarText::Refresh),
                                         game_state.left_quest_board_refresh_chance
                                     ),
                                     text_color: match disabled {
@@ -221,9 +228,8 @@ impl Component for QuestBoardItem<'_> {
             quest_board_slot_index,
             accept_quest,
         } = self;
-
+        let _game_state = use_game_state(ctx);
         let accept_quest = || accept_quest(quest_board_slot_index);
-
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
                 match quest_board_slot {
@@ -267,17 +273,11 @@ struct QuestBoardItemLocked {
 impl Component for QuestBoardItemLocked {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
-
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
-                table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
-                    ctx.add(Headline {
-                        text: "Locked".to_string(),
-                        font_size: FontSize::Medium,
-                        text_align: TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                table::fixed(36.px(), |wh, ctx| {
+                    ctx.add(Icon::new(IconKind::Lock).size(IconSize::Large).wh(wh));
                 }),
                 table::ratio(1, |_, _| {}),
             ])(wh, ctx);
@@ -302,7 +302,7 @@ impl Component for QuestBoardItemContent<'_> {
 
         let game_state = use_game_state(ctx);
 
-        let available = !accepted;
+        let _available = !accepted;
 
         ctx.compose(|ctx| {
             if !accepted {
@@ -312,6 +312,9 @@ impl Component for QuestBoardItemContent<'_> {
         });
 
         ctx.compose(|ctx| {
+            if accepted {
+                return;
+            }
             table::vertical([
                 table::fixed(
                     wh.width,
@@ -322,70 +325,42 @@ impl Component for QuestBoardItemContent<'_> {
                 table::ratio(
                     1,
                     table::padding(PADDING, |wh, ctx| {
-                        ctx.compose(|ctx| {
-                            table::padding(PADDING, |wh, ctx| {
-                                table::vertical([
-                                    table::fit(table::FitAlign::LeftTop, |ctx| {
-                                        ctx.add(Headline {
-                                            text: quest.requirement.description(&game_state),
-                                            font_size: FontSize::Small,
-                                            text_align: TextAlign::LeftTop,
-                                            max_width: Some(wh.width),
-                                        });
-                                    }),
-                                    table::fixed(PADDING, |_, _| {}),
-                                    table::ratio(1, |wh, ctx| {
-                                        ctx.add(Paragraph {
-                                            text: quest.reward.description(),
-                                            font_size: FontSize::Medium,
-                                            text_align: TextAlign::LeftTop,
-                                            max_width: Some(wh.width),
-                                        });
-                                    }),
-                                    table::fixed(PADDING, |_, _| {}),
-                                    table::fixed(48.px(), |wh, ctx| {
-                                        ctx.add(button::TextButton {
-                                            rect: wh.to_rect(),
-                                            text: "수락",
-                                            text_color: match available {
-                                                true => palette::ON_PRIMARY,
-                                                false => palette::ON_SURFACE,
-                                            },
-                                            stroke_color: palette::OUTLINE,
-                                            stroke_width: 1.px(),
-                                            fill_color: match available {
-                                                true => palette::PRIMARY,
-                                                false => palette::SURFACE_CONTAINER_HIGH,
-                                            },
-                                            mouse_buttons: vec![MouseButton::Left],
-                                            on_mouse_up_in: |_| {
-                                                if !available {
-                                                    return;
-                                                }
-                                                accept_quest();
-                                            },
-                                        });
-                                    }),
-                                ])(wh, ctx);
-                            })(wh, ctx);
-                        });
-
-                        ctx.add(rect(RectParam {
-                            rect: wh.to_rect(),
-                            style: RectStyle {
-                                stroke: Some(RectStroke {
-                                    color: palette::OUTLINE,
-                                    width: 1.px(),
-                                    border_position: BorderPosition::Inside,
-                                }),
-                                fill: Some(RectFill {
-                                    color: palette::SURFACE,
-                                }),
-                                round: Some(RectRound {
-                                    radius: palette::ROUND,
-                                }),
-                            },
-                        }));
+                        table::vertical([
+                            table::fit(table::FitAlign::LeftTop, |compose_ctx| {
+                                compose_ctx.add(
+                                    headline(quest.requirement.description(&game_state))
+                                        .size(FontSize::Small)
+                                        .align(TextAlign::LeftTop)
+                                        .max_width(wh.width)
+                                        .build_rich(),
+                                );
+                            }),
+                            table::fixed(PADDING, |_, _| {}),
+                            table::ratio(1, |wh, compose_ctx| {
+                                compose_ctx.add(
+                                    paragraph(quest.reward.description(&game_state))
+                                        .size(FontSize::Medium)
+                                        .align(TextAlign::LeftTop)
+                                        .max_width(wh.width)
+                                        .build_rich(),
+                                );
+                            }),
+                            table::fixed(PADDING, |_, _| {}),
+                            table::fixed(48.px(), |wh, ctx| {
+                                ctx.add(button::TextButton {
+                                    rect: wh.to_rect(),
+                                    text: game_state.text().ui(TopBarText::Accept).to_string(),
+                                    text_color: palette::ON_PRIMARY,
+                                    stroke_color: palette::OUTLINE,
+                                    stroke_width: 1.px(),
+                                    fill_color: palette::PRIMARY,
+                                    mouse_buttons: vec![MouseButton::Left],
+                                    on_mouse_up_in: |_| {
+                                        accept_quest();
+                                    },
+                                });
+                            }),
+                        ])(wh, ctx);
                     }),
                 ),
             ])(wh, ctx);
@@ -399,22 +374,22 @@ struct QuestBoardItemAccepted {
 impl Component for QuestBoardItemAccepted {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
-
+        let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(ACCEPTED_LABEL_HEIGHT, |wh, ctx| {
-                    ctx.add(Headline {
-                        text: "Accepted".to_string(),
-                        font_size: FontSize::Medium,
-                        text_align: TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                    ctx.add(
+                        headline(game_state.text().ui(TopBarText::Accepted).to_string())
+                            .size(FontSize::Medium)
+                            .align(TextAlign::Center { wh })
+                            .build(),
+                    );
                     ctx.add(simple_rect(
                         wh,
-                        Color::TRANSPARENT,
+                        palette::SURFACE_CONTAINER,
                         0.px(),
-                        palette::SECONDARY,
+                        palette::OUTLINE,
                     ));
                 }),
                 table::ratio(1, |_, _| {}),

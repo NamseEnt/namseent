@@ -1,7 +1,8 @@
 use crate::{
-    game_state::{mutate_game_state, upgrade::Upgrade},
+    game_state::{mutate_game_state, upgrade::Upgrade, use_game_state},
+    l10n::upgrade::Template as UpgradeTemplate,
     palette,
-    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -133,7 +134,7 @@ impl Component for UpgradeSelectItem<'_> {
             upgrade,
             on_upgrade_select,
         } = self;
-
+        let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
                 ctx.compose(|ctx| {
@@ -151,21 +152,33 @@ impl Component for UpgradeSelectItem<'_> {
                                     table::padding(PADDING, |wh, ctx| {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(Headline {
-                                                    text: upgrade.kind.name().to_string(),
-                                                    font_size: FontSize::Small,
-                                                    text_align: TextAlign::LeftTop,
-                                                    max_width: Some(wh.width),
-                                                });
+                                                ctx.add(
+                                                    headline(game_state.text().upgrade(
+                                                        UpgradeTemplate::from_kind(
+                                                            &upgrade.kind,
+                                                            true,
+                                                        ),
+                                                    ))
+                                                    .size(FontSize::Small)
+                                                    .align(TextAlign::LeftTop)
+                                                    .max_width(wh.width)
+                                                    .build(),
+                                                );
                                             }),
                                             table::fixed(PADDING, |_, _| {}),
                                             table::ratio(1, |_wh, ctx| {
-                                                ctx.add(Paragraph {
-                                                    text: upgrade.kind.description(),
-                                                    font_size: FontSize::Medium,
-                                                    text_align: TextAlign::LeftTop,
-                                                    max_width: Some(wh.width),
-                                                });
+                                                ctx.add(
+                                                    paragraph(game_state.text().upgrade(
+                                                        UpgradeTemplate::from_kind(
+                                                            &upgrade.kind,
+                                                            false,
+                                                        ),
+                                                    ))
+                                                    .size(FontSize::Medium)
+                                                    .align(TextAlign::LeftTop)
+                                                    .max_width(wh.width)
+                                                    .build(),
+                                                );
                                             }),
                                         ])(wh, ctx);
                                     })(wh, ctx);

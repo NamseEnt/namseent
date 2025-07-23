@@ -20,7 +20,6 @@ pub mod tower;
 pub mod upgrade;
 mod user_status_effect;
 
-use crate::l10n::{KoKRLocale, Locales};
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
 use crate::shop::ShopSlot;
@@ -91,11 +90,16 @@ pub struct GameState {
     game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
-    pub locale: Locales,
     pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
     status_effect_particle_generator: StatusEffectParticleGenerator,
+    pub locale: crate::l10n::Locale,
 }
 impl GameState {
+    /// 현대적인 텍스트 매니저 반환
+    pub fn text(&self) -> crate::l10n::TextManager {
+        crate::l10n::TextManager::new(self.locale)
+    }
+
     pub fn in_even_stage(&self) -> bool {
         matches!(self.stage % 2, 0)
     }
@@ -244,9 +248,9 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
-            locale: Locales::KoKR(KoKRLocale),
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
+            locale: crate::l10n::Locale::ENGLISH,
         };
 
         game_state.goto_selecting_tower();

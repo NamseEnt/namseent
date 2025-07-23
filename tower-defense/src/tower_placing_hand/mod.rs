@@ -188,8 +188,10 @@ impl Component for RenderPlacingTowerSlotContent<'_> {
         let (tower_asset_loader_atom, _) = ctx.atom(&TOWER_ASSET_LOADER_ATOM);
         let tower_image = tower_asset_loader_atom.get(tower_template.kind, AnimationKind::Idle1);
 
+        let game_state = use_game_state(ctx);
+
         ctx.add(typography::body::left_top(
-            format!("{}", tower_template.kind),
+            game_state.text().tower(tower_template.kind.to_text()),
             palette::ON_SURFACE,
         ));
 

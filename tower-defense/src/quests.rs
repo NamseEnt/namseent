@@ -1,7 +1,9 @@
 use crate::{
     game_state::{quest::cancel_quest, use_game_state},
+    icon::{Icon, IconKind, IconSize},
+    l10n::ui::TopBarText,
     palette,
-    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, table};
@@ -26,16 +28,26 @@ impl Component for Quests {
                     PADDING,
                     table::vertical([
                         table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                            ctx.add(Headline {
-                                text: format!(
-                                    "퀘스트 {}/{}",
-                                    game_state.quest_states.len(),
-                                    game_state.max_quest_slot()
-                                ),
-                                font_size: FontSize::Medium,
-                                text_align: TextAlign::Center { wh },
-                                max_width: wh.width.into(),
-                            });
+                            ctx.add(
+                                Icon::new(IconKind::Quest)
+                                    .size(IconSize::Medium)
+                                    .wh(Wh {
+                                        width: 32.px(),
+                                        height: wh.height
+                                    })
+                            );
+                            let text = format!(
+                                "{}/{}",
+                                game_state.quest_states.len(),
+                                game_state.max_quest_slot()
+                            );
+                            ctx.add(
+                                headline(text)
+                                .size(FontSize::Medium)
+                                .align(TextAlign::Center { wh })
+                                .max_width(wh.width)
+                                .build(),
+                            );
                             ctx.add(rect(RectParam {
                                 rect: wh.to_rect(),
                                 style: RectStyle {
@@ -65,6 +77,8 @@ impl Component for Quests {
                                         for (quest_index, quest) in
                                             game_state.quest_states.iter().enumerate()
                                         {
+                                            let tracking_description = quest.tracking.description(&game_state);
+                                            let reward_description = quest.reward.description(&game_state);
                                             let content = ctx.ghost_compose(
                                                 format!("QuestItemContent {quest_index}"),
                                                 |ctx| {
@@ -86,7 +100,8 @@ impl Component for Quests {
                                                                     |wh, ctx| {
                                                                         ctx.add(TextButton {
                                                                             rect: wh.to_rect(),
-                                                                            text: "X",
+                                                                            text:
+                                                                                game_state.text().ui(TopBarText::Remove).to_string(),
                                                                             text_color:
                                                                                 palette::ON_SURFACE,
                                                                             stroke_color:
@@ -111,29 +126,27 @@ impl Component for Quests {
                                                         table::fixed(PADDING * 2.0, |_, _| {}),
                                                         table::fit(
                                                             table::FitAlign::LeftTop,
-                                                            |ctx| {
-                                                                ctx.add(Headline {
-                                                                    text: quest
-                                                                        .tracking
-                                                                        .description(&game_state),
-                                                                    font_size: FontSize::Small,
-                                                                    text_align: TextAlign::LeftTop,
-                                                                    max_width: content_width.into(),
-                                                                });
+                                                            move |ctx| {
+                                                                ctx.add(
+                                                                    headline(tracking_description)
+                                                                        .size(FontSize::Small)
+                                                                        .align(TextAlign::LeftTop)
+                                                                        .max_width(content_width)
+                                                                        .build_rich(),
+                                                                );
                                                             },
                                                         ),
                                                         table::fixed(PADDING, |_, _| {}),
                                                         table::fit(
                                                             table::FitAlign::LeftTop,
-                                                            |ctx| {
-                                                                ctx.add(Paragraph {
-                                                                    text: quest
-                                                                        .reward
-                                                                        .description(),
-                                                                    font_size: FontSize::Medium,
-                                                                    text_align: TextAlign::LeftTop,
-                                                                    max_width: content_width.into(),
-                                                                });
+                                                            move |ctx| {
+                                                                ctx.add(
+                                                                    paragraph(reward_description)
+                                                                        .size(FontSize::Medium)
+                                                                        .align(TextAlign::LeftTop)
+                                                                        .max_width(content_width)
+                                                                        .build_rich(),
+                                                                );
                                                             },
                                                         ),
                                                     ])(

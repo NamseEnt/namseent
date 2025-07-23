@@ -1,6 +1,7 @@
+use crate::l10n::ui::TopBarText;
 use crate::theme::{
     palette,
-    typography::{self, Headline},
+    typography::{self, headline},
 };
 use namui::*;
 use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, simple_rect, table};
@@ -20,6 +21,7 @@ impl Component for SettingsModal<'_> {
             close_modal,
         } = self;
 
+        let game_state = crate::game_state::use_game_state(ctx);
         let modal_wh = Wh::new(400.px(), 300.px());
         let modal_xy = ((screen_wh - modal_wh) * 0.5).to_xy();
 
@@ -33,19 +35,19 @@ impl Component for SettingsModal<'_> {
                         table::horizontal([
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
-                                ctx.add(Headline {
-                                    text: "Settings".to_string(),
-                                    font_size: typography::FontSize::Medium,
-                                    text_align: typography::TextAlign::LeftCenter {
-                                        height: wh.height,
-                                    },
-                                    max_width: None,
-                                });
+                                ctx.add(
+                                    headline(
+                                        game_state.text().ui(TopBarText::Settings).to_string(),
+                                    )
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::LeftCenter { height: wh.height })
+                                    .build(),
+                                );
                             }),
                             table::fixed(64.px(), |wh, ctx| {
                                 ctx.add(TextButton {
                                     rect: wh.to_rect(),
-                                    text: "Close".to_string(),
+                                    text: game_state.text().ui(TopBarText::Close).to_string(),
                                     text_color: palette::ON_SURFACE,
                                     stroke_color: palette::OUTLINE,
                                     stroke_width: 1.px(),

@@ -3,12 +3,12 @@ mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
 use crate::card::{Rank, Suit};
+use crate::l10n::tower::TowerKindText;
 use namui::*;
 use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick};
 pub use skill::*;
 use std::{
-    fmt::Display,
     ops::Deref,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -274,26 +274,21 @@ impl TowerKind {
     pub fn is_low_card_tower(&self) -> bool {
         matches!(self, Self::High | Self::OnePair | Self::ThreeOfAKind)
     }
-}
-impl Display for TowerKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Barricade => "Barricade",
-                Self::High => "High",
-                Self::OnePair => "One Pair",
-                Self::TwoPair => "Two Pair",
-                Self::ThreeOfAKind => "Three of a Kind",
-                Self::Straight => "Straight",
-                Self::Flush => "Flush",
-                Self::FullHouse => "Full House",
-                Self::FourOfAKind => "Four of a Kind",
-                Self::StraightFlush => "Straight Flush",
-                Self::RoyalFlush => "Royal Flush",
-            }
-        )
+
+    pub fn to_text(self) -> TowerKindText {
+        match self {
+            Self::Barricade => TowerKindText::Barricade,
+            Self::High => TowerKindText::High,
+            Self::OnePair => TowerKindText::OnePair,
+            Self::TwoPair => TowerKindText::TwoPair,
+            Self::ThreeOfAKind => TowerKindText::ThreeOfAKind,
+            Self::Straight => TowerKindText::Straight,
+            Self::Flush => TowerKindText::Flush,
+            Self::FullHouse => TowerKindText::FullHouse,
+            Self::FourOfAKind => TowerKindText::FourOfAKind,
+            Self::StraightFlush => TowerKindText::StraightFlush,
+            Self::RoyalFlush => TowerKindText::RoyalFlush,
+        }
     }
 }
 

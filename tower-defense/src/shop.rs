@@ -5,8 +5,10 @@ use crate::{
         quest::{QuestTriggerEvent, on_quest_trigger_event},
         use_game_state,
     },
+    icon::{Icon, IconKind, IconSize},
+    l10n::ui::TopBarText,
     palette,
-    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -115,12 +117,16 @@ impl Component for ShopOpenButton<'_> {
             opened,
             toggle_open,
         } = self;
-
+        let game_state = crate::game_state::use_game_state(ctx);
         ctx.compose(|ctx| {
             ctx.translate((0.px(), -SHOP_BUTTON_WH.height))
                 .add(TextButton {
                     rect: SHOP_BUTTON_WH.to_rect(),
-                    text: format!("상점 {}", if opened { "^" } else { "v" }),
+                    text: format!(
+                        "{} {}",
+                        game_state.text().ui(TopBarText::Shop),
+                        if opened { "^" } else { "v" }
+                    ),
                     text_color: palette::ON_SURFACE,
                     stroke_color: palette::OUTLINE,
                     stroke_width: 1.px(),
@@ -197,10 +203,7 @@ impl Component for Shop<'_> {
                             table::fixed(SHOP_REFRESH_BUTTON_WH.width, |wh, ctx| {
                                 ctx.add(TextButton {
                                     rect: wh.to_rect(),
-                                    text: format!(
-                                        "새로고침-{}",
-                                        game_state.left_shop_refresh_chance
-                                    ),
+                                    text: game_state.text().ui(TopBarText::Refresh),
                                     text_color: match disabled {
                                         true => palette::ON_SURFACE_VARIANT,
                                         false => palette::ON_SURFACE,
@@ -293,17 +296,11 @@ struct ShopItemLocked {
 impl Component for ShopItemLocked {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
-
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
-                table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(Headline {
-                        text: "Locked".to_string(),
-                        font_size: FontSize::Medium,
-                        text_align: TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                table::fixed(36.px(), |wh, ctx| {
+                    ctx.add(Icon::new(IconKind::Lock).size(IconSize::Large).wh(wh));
                 }),
                 table::ratio(1, |_, _| {}),
             ])(wh, ctx);
@@ -329,94 +326,75 @@ impl Component for ShopItemContent<'_> {
             purchased,
             not_enough_money,
         } = self;
-
+        let game_state = use_game_state(ctx);
         let available = !purchased && !not_enough_money;
-
+        let name = item.kind.name(&game_state.text());
+        let desc = item.kind.description(&game_state.text());
         ctx.compose(|ctx| {
-            if !purchased {
-                return;
+            if purchased {
+                ctx.add(ShopItemSoldOut { wh });
+            } else {
+                table::vertical([
+                    table::fixed(
+                        wh.width,
+                        table::padding(PADDING, |_wh, _ctx| {
+                            // TODO: Icons
+                        }),
+                    ),
+                    table::ratio(
+                        1,
+                        table::padding(
+                            PADDING,
+                            table::vertical([
+                                table::fixed(PADDING, |_, _| {}),
+                                table::fit(table::FitAlign::LeftTop, move |ctx| {
+                                    ctx.add(
+                                        headline(name)
+                                            .size(FontSize::Small)
+                                            .align(TextAlign::LeftTop)
+                                            .max_width(wh.width)
+                                            .build(),
+                                    );
+                                }),
+                                table::fixed(PADDING, |_, _| {}),
+                                table::ratio(1, move |wh, ctx| {
+                                    ctx.add(
+                                        paragraph(desc.clone())
+                                            .size(FontSize::Medium)
+                                            .align(TextAlign::LeftTop)
+                                            .max_width(wh.width)
+                                            .build_rich(),
+                                    );
+                                }),
+                                table::fixed(PADDING, |_, _| {}),
+                                table::fixed(48.px(), |wh, ctx| {
+                                    ctx.add(button::TextButton {
+                                        rect: wh.to_rect(),
+                                        text: format!("${cost}"),
+                                        text_color: match available {
+                                            true => palette::ON_PRIMARY,
+                                            false => palette::ON_SURFACE,
+                                        },
+                                        stroke_color: palette::OUTLINE,
+                                        stroke_width: 1.px(),
+                                        fill_color: match available {
+                                            true => palette::PRIMARY,
+                                            false => palette::SURFACE_CONTAINER_HIGH,
+                                        },
+                                        mouse_buttons: vec![MouseButton::Left],
+                                        on_mouse_up_in: |_| {
+                                            if !available {
+                                                return;
+                                            }
+                                            purchase_item();
+                                        },
+                                    });
+                                }),
+                            ]),
+                        ),
+                    ),
+                ])(wh, ctx);
             }
-            ctx.add(ShopItemSoldOut { wh });
-        });
-
-        ctx.compose(|ctx| {
-            table::vertical([
-                table::fixed(
-                    wh.width,
-                    table::padding(PADDING, |_wh, _ctx| {
-                        // TODO: Icons
-                    }),
-                ),
-                table::ratio(
-                    1,
-                    table::padding(PADDING, |wh, ctx| {
-                        ctx.compose(|ctx| {
-                            table::padding(PADDING, |wh, ctx| {
-                                table::vertical([
-                                    table::fit(table::FitAlign::LeftTop, |ctx| {
-                                        ctx.add(Headline {
-                                            text: item.kind.name().to_string(),
-                                            font_size: FontSize::Small,
-                                            text_align: TextAlign::LeftTop,
-                                            max_width: Some(wh.width),
-                                        });
-                                    }),
-                                    table::fixed(PADDING, |_, _| {}),
-                                    table::ratio(1, |wh, ctx| {
-                                        ctx.add(Paragraph {
-                                            text: item.kind.description(),
-                                            font_size: FontSize::Medium,
-                                            text_align: TextAlign::LeftTop,
-                                            max_width: Some(wh.width),
-                                        });
-                                    }),
-                                    table::fixed(PADDING, |_, _| {}),
-                                    table::fixed(48.px(), |wh, ctx| {
-                                        ctx.add(button::TextButton {
-                                            rect: wh.to_rect(),
-                                            text: format!("${cost}"),
-                                            text_color: match available {
-                                                true => palette::ON_PRIMARY,
-                                                false => palette::ON_SURFACE,
-                                            },
-                                            stroke_color: palette::OUTLINE,
-                                            stroke_width: 1.px(),
-                                            fill_color: match available {
-                                                true => palette::PRIMARY,
-                                                false => palette::SURFACE_CONTAINER_HIGH,
-                                            },
-                                            mouse_buttons: vec![MouseButton::Left],
-                                            on_mouse_up_in: |_| {
-                                                if !available {
-                                                    return;
-                                                }
-                                                purchase_item();
-                                            },
-                                        });
-                                    }),
-                                ])(wh, ctx);
-                            })(wh, ctx);
-                        });
-
-                        ctx.add(rect(RectParam {
-                            rect: wh.to_rect(),
-                            style: RectStyle {
-                                stroke: Some(RectStroke {
-                                    color: palette::OUTLINE,
-                                    width: 1.px(),
-                                    border_position: BorderPosition::Inside,
-                                }),
-                                fill: Some(RectFill {
-                                    color: palette::SURFACE,
-                                }),
-                                round: Some(RectRound {
-                                    radius: palette::ROUND,
-                                }),
-                            },
-                        }));
-                    }),
-                ),
-            ])(wh, ctx);
         });
     }
 }
@@ -427,17 +405,17 @@ struct ShopItemSoldOut {
 impl Component for ShopItemSoldOut {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh } = self;
-
+        let game_state = crate::game_state::use_game_state(ctx);
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(Headline {
-                        text: "Sold Out".to_string(),
-                        font_size: FontSize::Medium,
-                        text_align: TextAlign::Center { wh },
-                        max_width: None,
-                    });
+                    ctx.add(
+                        headline(game_state.text().ui(TopBarText::SoldOut).to_string())
+                            .size(FontSize::Medium)
+                            .align(TextAlign::Center { wh })
+                            .build(),
+                    );
                     ctx.add(simple_rect(
                         wh,
                         Color::TRANSPARENT,

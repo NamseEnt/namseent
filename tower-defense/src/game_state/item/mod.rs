@@ -92,116 +92,308 @@ pub enum ItemKind {
 }
 
 impl ItemKind {
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self, text_manager: &crate::l10n::TextManager) -> String {
+        use crate::l10n::item::{ItemKindText, ItemKindTextVariant};
         match self {
-            ItemKind::Heal { .. } => "치유",
-            ItemKind::AttackPowerPlusBuff { .. } => "공격력 증가 버프",
-            ItemKind::AttackPowerMultiplyBuff { .. } => "공격력 배수 버프",
-            ItemKind::AttackSpeedPlusBuff { .. } => "공격 속도 증가 버프",
-            ItemKind::AttackSpeedMultiplyBuff { .. } => "공격 속도 배수 버프",
-            ItemKind::AttackRangePlus { .. } => "공격 범위 증가",
-            ItemKind::MovementSpeedDebuff { .. } => "이동 속도 감소 디버프",
-            ItemKind::RoundDamage { .. } => "범위 피해",
-            ItemKind::RoundDamageOverTime { .. } => "지속 범위 피해",
-            ItemKind::Lottery { .. } => "복권",
-            ItemKind::LinearDamage { .. } => "광선 피해",
-            ItemKind::LinearDamageOverTime { .. } => "지속 광선 피해",
-            ItemKind::ExtraReroll => "추가 리롤",
-            ItemKind::Shield { .. } => "방어막",
-            ItemKind::DamageReduction { .. } => "피해 감소",
-        }
-    }
-    pub fn description(&self) -> String {
-        match self {
-            ItemKind::Heal { amount } => format!("체력을 {amount} 회복합니다"),
+            ItemKind::Heal { amount } => {
+                text_manager.item(ItemKindText::Name(ItemKindTextVariant::Heal {
+                    amount: *amount,
+                }))
+            }
             ItemKind::AttackPowerPlusBuff {
                 amount,
                 duration,
                 radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 공격력을 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::AttackPowerPlusBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
             ItemKind::AttackPowerMultiplyBuff {
                 amount,
                 duration,
                 radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 공격력을 {amount}배 만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::AttackPowerMultiplyBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
             ItemKind::AttackSpeedPlusBuff {
                 amount,
                 duration,
                 radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 공격 속도를 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::AttackSpeedPlusBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
             ItemKind::AttackSpeedMultiplyBuff {
                 amount,
                 duration,
                 radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 공격 속도를 {amount}배 만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::AttackSpeedMultiplyBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
             ItemKind::AttackRangePlus {
                 amount,
                 duration,
                 radius,
-            } => format!(
-                "{radius} 범위 내 타워들의 사거리를 {amount}만큼 증가시킵니다. {duration:?} 동안 지속됩니다"
-            ),
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::AttackRangePlus {
+                amount: *amount,
+                duration: *duration,
+                radius: *radius,
+            })),
             ItemKind::MovementSpeedDebuff {
                 amount,
                 duration,
                 radius,
-            } => format!(
-                "{radius} 범위 내 적들의 이동 속도를 {amount}만큼 감소시킵니다. {duration:?} 동안 지속됩니다"
-            ),
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::MovementSpeedDebuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
             ItemKind::RoundDamage {
                 rank,
                 suit,
                 damage,
                 radius,
-            } => format!("{radius} 범위 내 적들에게 {damage}만큼의 {suit}{rank} 피해를 입힙니다."),
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::RoundDamage {
+                rank,
+                suit,
+                damage: *damage,
+                radius: *radius,
+            })),
             ItemKind::RoundDamageOverTime {
                 rank,
                 suit,
                 damage,
                 radius,
                 duration,
-            } => format!(
-                "{radius} 범위 내 적들에게 {damage}만큼의 {suit}{rank} 지속 피해를 입힙니다. {duration:?} 동안 지속됩니다"
-            ),
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::RoundDamageOverTime {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    radius: *radius,
+                    duration: *duration,
+                },
+            )),
             ItemKind::Lottery {
                 amount,
                 probability,
-            } => format!("{probability}% 확률로 {amount}의 보상을 획득합니다"),
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::Lottery {
+                amount: *amount,
+                probability: *probability,
+            })),
             ItemKind::LinearDamage {
                 rank,
                 suit,
                 damage,
                 thickness,
-            } => format!(
-                "{thickness} 두께의 직선 범위 내 적들에게 {damage}만큼의 {suit}{rank} 피해를 입힙니다."
-            ),
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::LinearDamage {
+                rank,
+                suit,
+                damage: *damage,
+                thickness: *thickness,
+            })),
             ItemKind::LinearDamageOverTime {
                 rank,
                 suit,
                 damage,
                 thickness,
                 duration,
-            } => format!(
-                "{thickness} 두께의 직선 범위 내 적들에게 {damage}만큼의 {suit}{rank} 지속 피해를 입힙니다. {duration:?} 동안 지속됩니다"
-            ),
-            ItemKind::ExtraReroll => "추가 리롤을 획득합니다".to_string(),
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::LinearDamageOverTime {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    thickness: *thickness,
+                    duration: *duration,
+                },
+            )),
+            ItemKind::ExtraReroll => {
+                text_manager.item(ItemKindText::Name(ItemKindTextVariant::ExtraReroll))
+            }
             ItemKind::Shield { amount } => {
-                format!("이번 라운드에 피해를 {amount}흡수하는 방어막을 획득합니다.")
+                text_manager.item(ItemKindText::Name(ItemKindTextVariant::Shield {
+                    amount: *amount,
+                }))
             }
             ItemKind::DamageReduction {
-                damage_multiply: amount,
+                damage_multiply,
                 duration,
-            } => {
-                format!("{duration:?} 동안 받는 피해를 {amount}만큼 감소시킵니다")
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::DamageReduction {
+                damage_multiply: *damage_multiply,
+                duration: *duration,
+            })),
+        }
+    }
+    pub fn description(&self, text_manager: &crate::l10n::TextManager) -> String {
+        use crate::l10n::item::{ItemKindText, ItemKindTextVariant};
+        match self {
+            ItemKind::Heal { amount } => {
+                text_manager.item(ItemKindText::Description(ItemKindTextVariant::Heal {
+                    amount: *amount,
+                }))
             }
+            ItemKind::AttackPowerPlusBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackPowerPlusBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::AttackPowerMultiplyBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackPowerMultiplyBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::AttackSpeedPlusBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackSpeedPlusBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::AttackSpeedMultiplyBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackSpeedMultiplyBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::AttackRangePlus {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackRangePlus {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::MovementSpeedDebuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::MovementSpeedDebuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::RoundDamage {
+                rank,
+                suit,
+                damage,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::RoundDamage {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::RoundDamageOverTime {
+                rank,
+                suit,
+                damage,
+                radius,
+                duration,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::RoundDamageOverTime {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    radius: *radius,
+                    duration: *duration,
+                },
+            )),
+            ItemKind::Lottery {
+                amount,
+                probability,
+            } => text_manager.item(ItemKindText::Description(ItemKindTextVariant::Lottery {
+                amount: *amount,
+                probability: *probability,
+            })),
+            ItemKind::LinearDamage {
+                rank,
+                suit,
+                damage,
+                thickness,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::LinearDamage {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    thickness: *thickness,
+                },
+            )),
+            ItemKind::LinearDamageOverTime {
+                rank,
+                suit,
+                damage,
+                thickness,
+                duration,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::LinearDamageOverTime {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    thickness: *thickness,
+                    duration: *duration,
+                },
+            )),
+            ItemKind::ExtraReroll => {
+                text_manager.item(ItemKindText::Description(ItemKindTextVariant::ExtraReroll))
+            }
+            ItemKind::Shield { amount } => {
+                text_manager.item(ItemKindText::Description(ItemKindTextVariant::Shield {
+                    amount: *amount,
+                }))
+            }
+            ItemKind::DamageReduction {
+                damage_multiply,
+                duration,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::DamageReduction {
+                    damage_multiply: *damage_multiply,
+                    duration: *duration,
+                },
+            )),
         }
     }
 }

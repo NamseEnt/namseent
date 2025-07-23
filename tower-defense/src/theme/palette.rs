@@ -21,4 +21,7 @@ pub const RARE: Color = Color::from_u8(3, 138, 255, 255);
 pub const EPIC: Color = Color::from_u8(191, 85, 236, 255);
 pub const LEGENDARY: Color = Color::from_u8(216, 250, 8, 255);
 
+pub const RED: Color = Color::from_u8(244, 67, 54, 255);
+pub const BLUE: Color = Color::from_u8(33, 150, 243, 255);
+
 pub const ROUND: Px = px(8.);

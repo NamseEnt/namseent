@@ -16,3 +16,4 @@ targets = [
 [dependencies]
 arc-swap = "1.7.1"
 namui = { path = "../namui" }
+regex = "1.11.1"

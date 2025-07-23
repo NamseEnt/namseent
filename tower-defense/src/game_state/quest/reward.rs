@@ -15,11 +15,19 @@ pub enum QuestReward {
     Upgrade { upgrade: Upgrade },
 }
 impl QuestReward {
-    pub fn description(&self) -> String {
+    pub fn description(&self, game_state: &GameState) -> String {
+        use crate::l10n::quest::QuestRewardText;
+        let text_manager = &game_state.text();
         match self {
-            Self::Money { amount } => format!("${amount} 골드"),
-            Self::Item { item } => format!("Item: {}", item.kind.description()),
-            Self::Upgrade { upgrade } => format!("Upgrade: {}", upgrade.kind.description()),
+            Self::Money { amount } => text_manager.quest_reward(QuestRewardText::Money { amount: *amount }),
+            Self::Item { item } => format!("{}: {}", 
+                text_manager.quest_reward(QuestRewardText::Item), 
+                item.kind.description(text_manager)
+            ),
+            Self::Upgrade { upgrade } => format!("{}: {}", 
+                text_manager.quest_reward(QuestRewardText::Upgrade), 
+                upgrade.kind.description(text_manager)
+            ),
         }
     }
 }

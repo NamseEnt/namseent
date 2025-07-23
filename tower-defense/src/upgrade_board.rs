@@ -6,8 +6,9 @@ use crate::{
         },
         use_game_state,
     },
+    l10n::upgrade_board::UpgradeBoardText,
     palette,
-    theme::typography::{FontSize, Headline, Paragraph, TextAlign},
+    theme::typography::{FontSize, headline, paragraph, TextAlign},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -63,19 +64,21 @@ pub struct UpgradeBoard {}
 impl Component for UpgradeBoard {
     fn render(self, ctx: &namui::RenderCtx) {
         let game_state = use_game_state(ctx);
-        let upgrade_description_texts = get_upgrade_description_texts(&game_state.upgrade_state);
+        let upgrade_description_texts =
+            get_upgrade_description_texts(&game_state.upgrade_state, &game_state.text());
 
         ctx.compose(|ctx| {
             table::padding(
                 PADDING,
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                        ctx.add(Headline {
-                            text: "강화 정보".to_string(),
-                            font_size: FontSize::Large,
-                            text_align: TextAlign::Center { wh },
-                            max_width: None,
-                        });
+                        ctx.add(
+                            headline(game_state.text().upgrade_board(UpgradeBoardText::Title).to_string())
+                                .size(FontSize::Large)
+                                .align(TextAlign::Center { wh })
+                                .max_width(wh.width)
+                                .build()
+                        );
                     }),
                     table::ratio(1, |wh, ctx| {
                         let item_wh = Wh {
@@ -152,12 +155,13 @@ impl Component for UpgradeItem {
                         table::ratio(
                             1,
                             table::padding(PADDING, |wh, ctx| {
-                                ctx.add(Paragraph {
-                                    text: upgrade_description_text,
-                                    font_size: FontSize::Medium,
-                                    text_align: TextAlign::LeftTop,
-                                    max_width: Some(wh.width),
-                                });
+                                ctx.add(
+                                    paragraph(upgrade_description_text)
+                                        .size(FontSize::Medium)
+                                        .align(TextAlign::LeftTop)
+                                        .max_width(wh.width)
+                                        .build()
+                                );
                             }),
                         ),
                     ])(wh, ctx);
@@ -173,65 +177,76 @@ impl Component for UpgradeItem {
     }
 }
 
-fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
+fn get_upgrade_description_texts(state: &UpgradeState, text: &crate::l10n::TextManager) -> Vec<String> {
     let mut texts = vec![];
-
     if state.gold_earn_plus != 0 {
-        texts.push(format!(
-            "몬스터 처치 시 {}골드를 추가로 얻습니다",
-            state.gold_earn_plus
-        ));
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::GoldEarnPlus)
+                .replace("{amount}", &state.gold_earn_plus.to_string()),
+        );
     }
     if state.shop_slot_expand != 0 {
-        texts.push(format!(
-            "상점 슬롯이 {}개 증가합니다",
-            state.shop_slot_expand
-        ));
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::ShopSlotExpand)
+                .replace("{amount}", &state.shop_slot_expand.to_string()),
+        );
     }
     if state.quest_slot_expand != 0 {
-        texts.push(format!(
-            "퀘스트 슬롯이 {}개 증가합니다",
-            state.quest_slot_expand
-        ));
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::QuestSlotExpand)
+                .replace("{amount}", &state.quest_slot_expand.to_string()),
+        );
     }
     if state.quest_board_slot_expand != 0 {
-        texts.push(format!(
-            "퀘스트 게시판 슬롯이 {}개 증가합니다",
-            state.quest_board_slot_expand
-        ));
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::QuestBoardSlotExpand)
+                .replace("{amount}", &state.quest_board_slot_expand.to_string()),
+        );
     }
     if state.reroll_chance_plus != 0 {
-        texts.push(format!(
-            "리롤 기회가 {}개 증가합니다",
-            state.reroll_chance_plus
-        ));
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::RerollChancePlus)
+                .replace("{amount}", &state.reroll_chance_plus.to_string()),
+        );
     }
     if state.shop_item_price_minus != 0 {
-        texts.push(format!(
-            "상점 아이템 가격이 {} 감소합니다",
-            state.shop_item_price_minus
-        ));
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::ShopItemPriceMinus)
+                .replace("{amount}", &state.shop_item_price_minus.to_string()),
+        );
     }
     if state.shop_refresh_chance_plus != 0 {
-        texts.push(format!(
-            "상점 새로고침 기회가 {}개 증가합니다",
-            state.shop_refresh_chance_plus
-        ));
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::ShopRefreshChancePlus)
+                .replace("{amount}", &state.shop_refresh_chance_plus.to_string()),
+        );
     }
     if state.quest_board_refresh_chance_plus != 0 {
-        texts.push(format!(
-            "퀘스트 게시판 새로고침 기회가 {}개 증가합니다",
-            state.quest_board_refresh_chance_plus
-        ));
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::QuestBoardRefreshChancePlus)
+                .replace(
+                    "{amount}",
+                    &state.quest_board_refresh_chance_plus.to_string(),
+                ),
+        );
     }
     if state.shorten_straight_flush_to_4_cards {
-        texts.push("스트레이트와 플러시를 4장으로 줄입니다".to_string());
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::ShortenStraightFlushTo4Cards)
+                .to_string(),
+        );
     }
     if state.skip_rank_for_straight {
-        texts.push("스트레이트를 만들 때 랭크 하나를 건너뛸 수 있습니다".to_string());
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::SkipRankForStraight)
+                .to_string(),
+        );
     }
     if state.treat_suits_as_same {
-        texts.push("색이 같으면 같은 문양으로 취급합니다".to_string());
+        texts.push(
+            text.upgrade_board(UpgradeBoardText::TreatSuitsAsSame)
+                .to_string(),
+        );
     }
 
     for (target, tower_upgrade_state) in &state.tower_select_upgrade_states {
@@ -239,7 +254,9 @@ fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
             TowerSelectUpgradeTarget::LowCard => {
                 format!("카드 {LOW_CARD_COUNT}개 이하로 타워를 만들 때 타워의")
             }
-            TowerSelectUpgradeTarget::NoReroll => "리롤을 하지 않고 타워를 만들 때 타워의".to_string(),
+            TowerSelectUpgradeTarget::NoReroll => {
+                "리롤을 하지 않고 타워를 만들 때 타워의".to_string()
+            }
             TowerSelectUpgradeTarget::Reroll => "리롤을 할 때 마다 타워의".to_string(),
         };
         texts.extend(tower_upgrade_state_description_texts(
@@ -257,7 +274,7 @@ fn get_upgrade_description_texts(state: &UpgradeState) -> Vec<String> {
                 format!("문양이 {suit}인 타워의")
             }
             TowerUpgradeTarget::TowerKind { tower_kind } => {
-                format!("{tower_kind} 타워의")
+                format!("{} 타워의", text.tower(tower_kind.to_text()))
             }
             TowerUpgradeTarget::EvenOdd { even } => {
                 format!("{} 타워의", if *even { "짝수" } else { "홀수" })

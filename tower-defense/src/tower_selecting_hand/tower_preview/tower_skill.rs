@@ -1,14 +1,15 @@
 use crate::{
-    card::Rank,
     game_state::tower::{TowerSkillKind, TowerSkillTemplate},
+    game_state::use_game_state,
+    l10n::tower_skill::TowerSkillText,
     theme::{
         palette,
-        typography::{FontSize, Headline, Paragraph, TextAlign},
+        typography::{FontSize, TextAlign, headline, paragraph},
     },
     tower_selecting_hand::PADDING,
 };
 use namui::*;
-use namui_prebuilt::{simple_rect, table, typography};
+use namui_prebuilt::{simple_rect, table};
 
 const TOWER_EFFECT_DESCRIPTION_MAXWIDTH: Px = px(192.);
 
@@ -27,26 +28,26 @@ impl Component for TowerSkillTemplateIcon<'_> {
             on_mouse_move_in_effect_icon,
             on_mouse_move_out_effect_icon,
         } = self;
-        let symbol = match skill.kind {
-            TowerSkillKind::NearbyTowerDamageMul { .. } => "E",
-            TowerSkillKind::NearbyTowerDamageAdd { .. } => "E",
-            TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => "H",
-            TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => "H",
-            TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => "R",
-            TowerSkillKind::NearbyMonsterSpeedMul { .. } => "D",
-            TowerSkillKind::MoneyIncomeAdd { .. } => "B",
-            TowerSkillKind::TopCardBonus { rank, .. } => match rank {
-                Rank::Seven => "7",
-                Rank::Eight => "8",
-                Rank::Nine => "9",
-                Rank::Ten => "10",
-                Rank::Jack => "J",
-                Rank::Queen => "Q",
-                Rank::King => "K",
-                Rank::Ace => "A",
-            },
-        };
-        ctx.add(typography::body::center(wh, symbol, palette::ON_SURFACE));
+        // let symbol = match skill.kind {
+        //     TowerSkillKind::NearbyTowerDamageMul { .. } => "E",
+        //     TowerSkillKind::NearbyTowerDamageAdd { .. } => "E",
+        //     TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => "H",
+        //     TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => "H",
+        //     TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => "R",
+        //     TowerSkillKind::NearbyMonsterSpeedMul { .. } => "D",
+        //     TowerSkillKind::MoneyIncomeAdd { .. } => "B",
+        //     TowerSkillKind::TopCardBonus { rank, .. } => match rank {
+        //         Rank::Seven => "7",
+        //         Rank::Eight => "8",
+        //         Rank::Nine => "9",
+        //         Rank::Ten => "10",
+        //         Rank::Jack => "J",
+        //         Rank::Queen => "Q",
+        //         Rank::King => "K",
+        //         Rank::Ace => "A",
+        //     },
+        // };
+        // ctx.add(typography::body::center(wh, symbol, palette::ON_SURFACE));
         ctx.add(simple_rect(
             wh,
             palette::OUTLINE,
@@ -76,87 +77,103 @@ pub(super) struct TowerEffectDescription<'a> {
 impl Component for TowerEffectDescription<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { skill } = self;
-
+        let game_state = use_game_state(ctx);
         let title = match skill.kind {
-            TowerSkillKind::NearbyTowerDamageMul { .. } => "주변 타워 공격력 증가".to_string(),
-            TowerSkillKind::NearbyTowerDamageAdd { .. } => "주변 타워 공격력 추가".to_string(),
-            TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => {
-                "주변 타워 공격 속도 추가".to_string()
-            }
-            TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => {
-                "주변 타워 공격 속도 증가".to_string()
-            }
-            TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => {
-                "주변 타워 공격 범위 추가".to_string()
-            }
-            TowerSkillKind::NearbyMonsterSpeedMul { .. } => "주변 몬스터 속도 감소".to_string(),
-            TowerSkillKind::MoneyIncomeAdd { .. } => "돈 수입 증가".to_string(),
-            TowerSkillKind::TopCardBonus { .. } => "탑 카드 보너스".to_string(),
+            TowerSkillKind::NearbyTowerDamageMul { .. } => game_state
+                .text()
+                .tower_skill(TowerSkillText::NearbyTowerDamageMulTitle),
+            TowerSkillKind::NearbyTowerDamageAdd { .. } => game_state
+                .text()
+                .tower_skill(TowerSkillText::NearbyTowerDamageAddTitle),
+            TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => game_state
+                .text()
+                .tower_skill(TowerSkillText::NearbyTowerAttackSpeedAddTitle),
+            TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => game_state
+                .text()
+                .tower_skill(TowerSkillText::NearbyTowerAttackSpeedMulTitle),
+            TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => game_state
+                .text()
+                .tower_skill(TowerSkillText::NearbyTowerAttackRangeAddTitle),
+            TowerSkillKind::NearbyMonsterSpeedMul { .. } => game_state
+                .text()
+                .tower_skill(TowerSkillText::NearbyMonsterSpeedMulTitle),
+            TowerSkillKind::MoneyIncomeAdd { .. } => game_state
+                .text()
+                .tower_skill(TowerSkillText::MoneyIncomeAddTitle),
+            TowerSkillKind::TopCardBonus { .. } => game_state
+                .text()
+                .tower_skill(TowerSkillText::TopCardBonusTitle),
         };
-        let description = match skill.kind {
-            TowerSkillKind::NearbyTowerDamageMul { mul, range_radius } => {
-                format!(
-                    "주변 타워의 공격력을 {}% 증가시킵니다 (반경 {} 타일)",
-                    mul * 100.0,
-                    range_radius
-                )
-            }
-            TowerSkillKind::NearbyTowerDamageAdd { add, range_radius } => {
-                format!(
-                    "주변 타워의 공격력을 {add}만큼 증가시킵니다 (반경 {range_radius} 타일)"
-                )
-            }
-            TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => {
-                format!(
-                    "주변 타워의 공격 속도를 {}% 증가시킵니다 (반경 {} 타일)",
-                    add * 100.0,
-                    range_radius
-                )
-            }
-            TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => {
-                format!(
-                    "주변 타워의 공격 속도를 {mul}배 증가시킵니다 (반경 {range_radius} 타일)"
-                )
-            }
-            TowerSkillKind::NearbyTowerAttackRangeAdd { add, range_radius } => {
-                format!(
-                    "주변 타워의 공격 범위를 {add} 타일 증가시킵니다 (반경 {range_radius} 타일)"
-                )
-            }
-            TowerSkillKind::NearbyMonsterSpeedMul { mul, range_radius } => {
-                format!(
-                    "주변 몬스터의 속도를 {}% 감소시킵니다 (반경 {} 타일)",
-                    mul * 100.0,
-                    range_radius
-                )
-            }
-            TowerSkillKind::MoneyIncomeAdd { add } => {
-                format!("적 처치시 {add} 골드를 추가로 획득합니다")
-            }
-            TowerSkillKind::TopCardBonus { rank, bonus_damage } => {
-                format!("탑 카드 보너스: {rank} (공격력 +{bonus_damage})")
-            }
-        };
+        let description =
+            match skill.kind {
+                TowerSkillKind::NearbyTowerDamageMul { mul, range_radius } => game_state
+                    .text()
+                    .tower_skill(TowerSkillText::NearbyTowerDamageMulDesc {
+                        mul,
+                        range_radius: range_radius as usize,
+                    }),
+                TowerSkillKind::NearbyTowerDamageAdd { add, range_radius } => game_state
+                    .text()
+                    .tower_skill(TowerSkillText::NearbyTowerDamageAddDesc {
+                        add,
+                        range_radius: range_radius as usize,
+                    }),
+                TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => game_state
+                    .text()
+                    .tower_skill(TowerSkillText::NearbyTowerAttackSpeedAddDesc {
+                        add,
+                        range_radius: range_radius as usize,
+                    }),
+                TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => game_state
+                    .text()
+                    .tower_skill(TowerSkillText::NearbyTowerAttackSpeedMulDesc {
+                        mul,
+                        range_radius: range_radius as usize,
+                    }),
+                TowerSkillKind::NearbyTowerAttackRangeAdd { add, range_radius } => game_state
+                    .text()
+                    .tower_skill(TowerSkillText::NearbyTowerAttackRangeAddDesc {
+                        add,
+                        range_radius: range_radius as usize,
+                    }),
+                TowerSkillKind::NearbyMonsterSpeedMul { mul, range_radius } => game_state
+                    .text()
+                    .tower_skill(TowerSkillText::NearbyMonsterSpeedMulDesc {
+                        mul,
+                        range_radius: range_radius as usize,
+                    }),
+                TowerSkillKind::MoneyIncomeAdd { add } => game_state
+                    .text()
+                    .tower_skill(TowerSkillText::MoneyIncomeAddDesc { add }),
+                TowerSkillKind::TopCardBonus { rank, bonus_damage } => game_state
+                    .text()
+                    .tower_skill(TowerSkillText::TopCardBonusDesc {
+                        rank: format!("{rank:?}"),
+                        bonus_damage,
+                    }),
+            };
 
         ctx.compose(|ctx| {
             let text_content = ctx.ghost_compose("TowerEffect description tooltip", |ctx| {
                 table::vertical([
                     table::fit(table::FitAlign::LeftTop, |ctx| {
-                        ctx.add(Headline {
-                            text: title,
-                            font_size: FontSize::Small,
-                            text_align: TextAlign::LeftTop,
-                            max_width: Some(TOWER_EFFECT_DESCRIPTION_MAXWIDTH),
-                        });
+                        ctx.add(
+                            headline(title)
+                                .size(FontSize::Small)
+                                .align(TextAlign::LeftTop)
+                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
+                                .build(),
+                        );
                     }),
                     table::fixed(PADDING, |_, _| {}),
                     table::fit(table::FitAlign::LeftTop, |ctx| {
-                        ctx.add(Paragraph {
-                            text: description,
-                            font_size: FontSize::Medium,
-                            text_align: TextAlign::LeftTop,
-                            max_width: Some(TOWER_EFFECT_DESCRIPTION_MAXWIDTH),
-                        });
+                        ctx.add(
+                            paragraph(description)
+                                .size(FontSize::Medium)
+                                .align(TextAlign::LeftTop)
+                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
+                                .build(),
+                        );
                     }),
                 ])(
                     Wh {

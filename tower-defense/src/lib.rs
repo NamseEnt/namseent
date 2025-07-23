@@ -3,7 +3,7 @@ mod card;
 mod game_state;
 mod icon;
 mod inventory;
-mod l10n;
+pub mod l10n;
 mod quest_board;
 mod quests;
 mod rarity;
