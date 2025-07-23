@@ -1,3 +1,29 @@
+use crate::icon::{Icon, IconKind};
+// --- Rich text 헬퍼 함수 (upgrade 전용) ---
+fn suit_icon(suit: &crate::card::Suit) -> String {
+    Icon::new(IconKind::Suit { suit: *suit }).as_tag()
+}
+fn attack_damage_icon<T: std::fmt::Display>(value: T) -> String {
+    let icon = Icon::new(IconKind::AttackDamage);
+    format!(
+        "|attack_damage_color|{}{value}|/attack_damage_color|",
+        icon.as_tag()
+    )
+}
+fn attack_speed_icon<T: std::fmt::Display>(value: T) -> String {
+    let icon = Icon::new(IconKind::AttackSpeed);
+    format!(
+        "|attack_speed_color|{}{value}|/attack_speed_color|",
+        icon.as_tag()
+    )
+}
+fn attack_range_icon<T: std::fmt::Display>(value: T) -> String {
+    let icon = Icon::new(IconKind::AttackRange);
+    format!(
+        "|attack_range_color|{}{value}|/attack_range_color|",
+        icon.as_tag()
+    )
+}
 use super::{Language, Locale, LocalizedText};
 
 #[derive(Debug, Clone, Copy)]
@@ -48,36 +74,22 @@ impl Template {
                 how_much,
             } => {
                 let upgrade_text = match what_upgrade {
-                    WhatUpgrade::Damage => {
-                        "|attack_damage_color|icon<attack_damage:16:16:16:1>공격력이|/attack_damage_color|"
-                    }
-                    WhatUpgrade::Speed => {
-                        "|attack_speed_color|icon<attack_speed:16:16:16:1>공격 속도가|/attack_speed_color|"
-                    }
-                    WhatUpgrade::Range => {
-                        "|attack_range_color|icon<attack_range:16:16:16:1>사거리가|/attack_range_color|"
-                    }
+                    WhatUpgrade::Damage => attack_damage_icon("공격력"),
+                    WhatUpgrade::Speed => attack_speed_icon("공격 속도"),
+                    WhatUpgrade::Range => attack_range_icon("사거리"),
                 };
 
                 let target_text = match target {
                     TowerUpgradeTarget::Tower(tower_upgrade_target) => match tower_upgrade_target {
                         crate::game_state::upgrade::TowerUpgradeTarget::Rank { rank } => {
-                            format!("{rank} 카드")
+                            format!("|purple|{rank}|/purple| 카드")
                         }
                         crate::game_state::upgrade::TowerUpgradeTarget::Suit { suit } => {
-                            let suit_with_icon = match suit.to_string().as_str() {
-                                "♠" => "icon<suit_spades:16:16:16:1>스페이드".to_string(),
-                                "♥" => "icon<suit_hearts:16:16:16:1>하트".to_string(),
-                                "◆" => "icon<suit_diamonds:16:16:16:1>다이아".to_string(),
-                                "♣" => "icon<suit_clubs:16:16:16:1>클럽".to_string(),
-                                _ => suit.to_string(),
-                            };
-                            format!("{suit_with_icon} 카드")
+                            format!("{} 카드", suit_icon(suit))
                         }
                         crate::game_state::upgrade::TowerUpgradeTarget::TowerKind {
                             tower_kind,
                         } => {
-                            // Use tower kind localization
                             let tower_text = tower_kind.to_text();
                             match tower_text {
                                 crate::l10n::tower::TowerKindText::Barricade => "바리케이드",
@@ -119,8 +131,10 @@ impl Template {
                 };
 
                 let amount_text = match add_or_multiply {
-                    AddOrMultiply::Add => format!("|B|{how_much:.0}만큼 증가합니다|/B|"),
-                    AddOrMultiply::Multiply => format!("|B|{how_much:.1}배 증가합니다|/B|"),
+                    AddOrMultiply::Add => format!("|green|+{how_much:.0}|/green|만큼 증가합니다"),
+                    AddOrMultiply::Multiply => {
+                        format!("|green|×{how_much:.1}|/green|배 증가합니다")
+                    }
                 };
 
                 format!("{target_text} 타워의 {upgrade_text} {amount_text}")
@@ -137,31 +151,18 @@ impl Template {
                 how_much,
             } => {
                 let upgrade_text = match what_upgrade {
-                    WhatUpgrade::Damage => {
-                        "|attack_damage_color|icon<attack_damage:16:16:16:1>attack damage|/attack_damage_color| increased"
-                    }
-                    WhatUpgrade::Speed => {
-                        "|attack_speed_color|icon<attack_speed:16:16:16:1>attack speed|/attack_speed_color| increased"
-                    }
-                    WhatUpgrade::Range => {
-                        "|attack_range_color|icon<attack_range:16:16:16:1>range|/attack_range_color| increased"
-                    }
+                    WhatUpgrade::Damage => attack_damage_icon("attack damage"),
+                    WhatUpgrade::Speed => attack_speed_icon("attack speed"),
+                    WhatUpgrade::Range => attack_range_icon("range"),
                 };
 
                 let target_text = match target {
                     TowerUpgradeTarget::Tower(tower_upgrade_target) => match tower_upgrade_target {
                         crate::game_state::upgrade::TowerUpgradeTarget::Rank { rank } => {
-                            format!("{rank} card")
+                            format!("|purple|{rank}|/purple| card")
                         }
                         crate::game_state::upgrade::TowerUpgradeTarget::Suit { suit } => {
-                            let suit_with_icon = match suit.to_string().as_str() {
-                                "♠" => "icon<suit_spades:16:16:16:1>Spades".to_string(),
-                                "♥" => "icon<suit_hearts:16:16:16:1>Hearts".to_string(),
-                                "◆" => "icon<suit_diamonds:16:16:16:1>Diamonds".to_string(),
-                                "♣" => "icon<suit_clubs:16:16:16:1>Clubs".to_string(),
-                                _ => suit.to_string(),
-                            };
-                            format!("{suit_with_icon} card")
+                            format!("{} card", suit_icon(suit))
                         }
                         crate::game_state::upgrade::TowerUpgradeTarget::TowerKind {
                             tower_kind,
@@ -210,8 +211,10 @@ impl Template {
                 };
 
                 let amount_text = match add_or_multiply {
-                    AddOrMultiply::Add => format!("|B|by {how_much:.0}|/B|"),
-                    AddOrMultiply::Multiply => format!("|B|by {how_much:.1}x|/B|"),
+                    AddOrMultiply::Add => format!("increased by |green|+{how_much:.0}|/green|"),
+                    AddOrMultiply::Multiply => {
+                        format!("increased by |green|×{how_much:.1}|/green|")
+                    }
                 };
 
                 format!("{target_text} towers {upgrade_text} {amount_text}")

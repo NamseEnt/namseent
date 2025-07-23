@@ -61,12 +61,9 @@ impl QuestRequirement {
                     current_count,
                 })
             }
-            QuestRequirement::BuildTowerSuitNew { suit, count } => {
-                game_state.text().quest(QuestText::BuildTowerSuitNew {
-                    suit: suit.to_string(),
-                    count,
-                })
-            }
+            QuestRequirement::BuildTowerSuitNew { suit, count } => game_state
+                .text()
+                .quest(QuestText::BuildTowerSuitNew { suit, count }),
             QuestRequirement::BuildTowerSuit { suit, count } => {
                 let current_count = game_state
                     .towers
@@ -74,19 +71,23 @@ impl QuestRequirement {
                     .filter(|tower| tower.suit == suit)
                     .count();
                 game_state.text().quest(QuestText::BuildTowerSuit {
-                    suit: suit.to_string(),
+                    suit,
                     count,
                     current_count,
                 })
             }
             QuestRequirement::ClearBossRoundWithoutItems => game_state
-                .text().quest(QuestText::ClearBossRoundWithoutItems),
+                .text()
+                .quest(QuestText::ClearBossRoundWithoutItems),
             QuestRequirement::DealDamageWithItems { damage } => game_state
-                .text().quest(QuestText::DealDamageWithItems { damage }),
+                .text()
+                .quest(QuestText::DealDamageWithItems { damage }),
             QuestRequirement::BuildTowersWithoutReroll { count } => game_state
-                .text().quest(QuestText::BuildTowersWithoutReroll { count }),
-            QuestRequirement::UseReroll { count } => game_state
-                .text().quest(QuestText::UseReroll { count }),
+                .text()
+                .quest(QuestText::BuildTowersWithoutReroll { count }),
+            QuestRequirement::UseReroll { count } => {
+                game_state.text().quest(QuestText::UseReroll { count })
+            }
             QuestRequirement::SpendGold { gold } => {
                 game_state.text().quest(QuestText::SpendGold { gold })
             }

@@ -1,4 +1,38 @@
 use super::{Language, Locale, LocalizedText};
+use crate::{
+    card::Suit,
+    icon::{Icon, IconKind},
+};
+
+// --- Rich text 헬퍼 함수 (quest 전용) ---
+fn suit_icon(suit: Suit) -> String {
+    Icon::new(IconKind::Suit { suit }).as_tag()
+}
+fn gold_icon<T: std::fmt::Display>(value: T) -> String {
+    let icon = Icon::new(IconKind::Gold);
+    format!("|gold_color|{}{value}|/gold_color|", icon.as_tag())
+}
+fn attack_damage_icon<T: std::fmt::Display>(value: T) -> String {
+    let icon = Icon::new(IconKind::AttackDamage);
+    format!(
+        "|attack_damage_color|{}{value}|/attack_damage_color|",
+        icon.as_tag()
+    )
+}
+fn attack_speed_icon<T: std::fmt::Display>(value: T) -> String {
+    let icon = Icon::new(IconKind::AttackSpeed);
+    format!(
+        "|attack_speed_color|{}공격속도를 {value}|/attack_speed_color|",
+        icon.as_tag()
+    )
+}
+fn attack_range_icon<T: std::fmt::Display>(value: T) -> String {
+    let icon = Icon::new(IconKind::AttackRange);
+    format!(
+        "|attack_range_color|{}사거리를 {value}|/attack_range_color|",
+        icon.as_tag()
+    )
+}
 
 #[derive(Debug, Clone)]
 pub enum QuestText {
@@ -12,11 +46,11 @@ pub enum QuestText {
         current_count: usize,
     },
     BuildTowerSuitNew {
-        suit: String,
+        suit: Suit,
         count: usize,
     },
     BuildTowerSuit {
-        suit: String,
+        suit: Suit,
         count: usize,
         current_count: usize,
     },
@@ -54,28 +88,6 @@ pub enum QuestText {
 }
 
 impl QuestText {
-    /// Suit을 한국어와 아이콘으로 변환하는 헬퍼 함수
-    fn suit_to_korean_with_icon(suit: &str) -> String {
-        match suit {
-            "♠" => "icon<suit_spades:16:16:16:1>스페이드".to_string(),
-            "♥" => "icon<suit_hearts:16:16:16:1>하트".to_string(),
-            "◆" => "icon<suit_diamonds:16:16:16:1>다이아".to_string(),
-            "♣" => "icon<suit_clubs:16:16:16:1>클럽".to_string(),
-            _ => suit.to_string(),
-        }
-    }
-
-    /// Suit을 영어와 아이콘으로 변환하는 헬퍼 함수
-    fn suit_to_english_with_icon(suit: &str) -> String {
-        match suit {
-            "♠" => "icon<suit_spades:16:16:16:1>Spades".to_string(),
-            "♥" => "icon<suit_hearts:16:16:16:1>Hearts".to_string(),
-            "◆" => "icon<suit_diamonds:16:16:16:1>Diamonds".to_string(),
-            "♣" => "icon<suit_clubs:16:16:16:1>Clubs".to_string(),
-            _ => suit.to_string(),
-        }
-    }
-
     pub(super) fn to_korean(&self) -> String {
         match self {
             QuestText::BuildTowerRankNew { rank, count } => {
@@ -85,11 +97,9 @@ impl QuestText {
                 rank,
                 count,
                 current_count,
-            } => format!(
-                "{rank}타워를 {count}개 소유하세요. ({current_count}/{count})"
-            ),
+            } => format!("{rank}타워를 {count}개 소유하세요. ({current_count}/{count})"),
             QuestText::BuildTowerSuitNew { suit, count } => {
-                let suit_text = Self::suit_to_korean_with_icon(suit);
+                let suit_text = suit_icon(*suit);
                 format!("{suit_text}타워를 {count}개 새로 건설하세요.")
             }
             QuestText::BuildTowerSuit {
@@ -97,10 +107,8 @@ impl QuestText {
                 count,
                 current_count,
             } => {
-                let suit_text = Self::suit_to_korean_with_icon(suit);
-                format!(
-                    "{suit_text}타워를 {count}개 소유하세요. ({current_count}/{count})"
-                )
+                let suit_text = suit_icon(*suit);
+                format!("{suit_text}타워를 {count}개 소유하세요. ({current_count}/{count})")
             }
             QuestText::BuildTowerHandNew { hand, count } => {
                 format!("{hand}타워를 {count}개 새로 건설하세요.")
@@ -109,40 +117,28 @@ impl QuestText {
                 hand,
                 count,
                 current_count,
-            } => format!(
-                "{hand}타워를 {count}개 소유하세요. ({current_count}/{count})"
-            ),
+            } => format!("{hand}타워를 {count}개 소유하세요. ({current_count}/{count})"),
             QuestText::ClearBossRoundWithoutItems => {
                 "아이템을 사용하지않고 보스라운드 클리어".to_string()
             }
             QuestText::DealDamageWithItems { damage } => {
-                format!(
-                    "아이템을 사용해 |attack_damage_color|icon<attack_damage:16:16:16:1>{damage}|/attack_damage_color|피해 입히기"
-                )
+                format!("아이템을 사용해 {}피해 입히기", attack_damage_icon(damage))
             }
             QuestText::BuildTowersWithoutReroll { count } => {
                 format!("리롤하지않고 타워 {count}개 만들기")
             }
             QuestText::UseReroll { count } => format!("리롤 {count}회 사용하기"),
             QuestText::SpendGold { gold } => {
-                format!(
-                    "|gold_color|icon<gold:16:16:16:1>{gold}골드|/gold_color| 사용하기"
-                )
+                format!("{} 사용하기", gold_icon(*gold))
             }
             QuestText::EarnGold { gold } => {
-                format!(
-                    "|gold_color|icon<gold:16:16:16:1>{gold}골드|/gold_color| 획득하기"
-                )
+                format!("{} 획득하기", gold_icon(*gold))
             }
             QuestText::IncreaseAttackSpeed { speed } => {
-                format!(
-                    "|attack_speed_color|icon<attack_speed:16:16:16:1>공격속도를 {speed}|/attack_speed_color| 증가시키기"
-                )
+                format!("{} 증가시키기", attack_speed_icon(speed))
             }
             QuestText::IncreaseAttackRange { range } => {
-                format!(
-                    "|attack_range_color|icon<attack_range:16:16:16:1>사거리를 {range}|/attack_range_color| 증가시키기"
-                )
+                format!("{} 증가시키기", attack_range_icon(range))
             }
         }
     }
@@ -156,11 +152,9 @@ impl QuestText {
                 rank,
                 count,
                 current_count,
-            } => format!(
-                "Own {count} {rank} towers. ({current_count}/{count})"
-            ),
+            } => format!("Own {count} {rank} towers. ({current_count}/{count})"),
             QuestText::BuildTowerSuitNew { suit, count } => {
-                let suit_text = Self::suit_to_english_with_icon(suit);
+                let suit_text = suit_icon(*suit);
                 format!("Build {count} new {suit_text} towers.")
             }
             QuestText::BuildTowerSuit {
@@ -168,10 +162,8 @@ impl QuestText {
                 count,
                 current_count,
             } => {
-                let suit_text = Self::suit_to_english_with_icon(suit);
-                format!(
-                    "Own {count} {suit_text} towers. ({current_count}/{count})"
-                )
+                let suit_text = suit_icon(*suit);
+                format!("Own {count} {suit_text} towers. ({current_count}/{count})")
             }
             QuestText::BuildTowerHandNew { hand, count } => {
                 format!("Build {count} new {hand} towers.")
@@ -180,40 +172,28 @@ impl QuestText {
                 hand,
                 count,
                 current_count,
-            } => format!(
-                "Own {count} {hand} towers. ({current_count}/{count})"
-            ),
+            } => format!("Own {count} {hand} towers. ({current_count}/{count})"),
             QuestText::ClearBossRoundWithoutItems => {
                 "Clear the boss round without using items".to_string()
             }
             QuestText::DealDamageWithItems { damage } => {
-                format!(
-                    "Deal |attack_damage_color|icon<attack_damage:16:16:16:1>{damage}|/attack_damage_color| damage using items"
-                )
+                format!("Deal {} damage using items", attack_damage_icon(damage))
             }
             QuestText::BuildTowersWithoutReroll { count } => {
                 format!("Build {count} towers without rerolling")
             }
             QuestText::UseReroll { count } => format!("Use reroll {count} times"),
             QuestText::SpendGold { gold } => {
-                format!(
-                    "Spend |gold_color|icon<gold:16:16:16:1>{gold}|/gold_color| gold"
-                )
+                format!("Spend {}", gold_icon(*gold))
             }
             QuestText::EarnGold { gold } => {
-                format!(
-                    "Gain |gold_color|icon<gold:16:16:16:1>{gold}|/gold_color| gold"
-                )
+                format!("Gain {}", gold_icon(*gold))
             }
             QuestText::IncreaseAttackSpeed { speed } => {
-                format!(
-                    "Increase |attack_speed_color|icon<attack_speed:16:16:16:1>attack speed|/attack_speed_color| by {speed}"
-                )
+                format!("Increase {} by {speed}", attack_speed_icon("attack speed"))
             }
             QuestText::IncreaseAttackRange { range } => {
-                format!(
-                    "Increase |attack_range_color|icon<attack_range:16:16:16:1>attack range|/attack_range_color| by {range}"
-                )
+                format!("Increase {} by {range}", attack_range_icon("attack range"))
             }
         }
     }
@@ -239,9 +219,7 @@ impl QuestRewardText {
     pub(super) fn to_korean(&self) -> String {
         match self {
             QuestRewardText::Money { amount } => {
-                format!(
-                    "|gold_color|icon<gold:16:16:16:1>${amount}|/gold_color| 골드"
-                )
+                format!("{} 골드", gold_icon(format!("${amount}")))
             }
             QuestRewardText::Item => "아이템".to_string(),
             QuestRewardText::Upgrade => "업그레이드".to_string(),
@@ -251,9 +229,7 @@ impl QuestRewardText {
     pub(super) fn to_english(&self) -> String {
         match self {
             QuestRewardText::Money { amount } => {
-                format!(
-                    "|gold_color|icon<gold:16:16:16:1>${amount}|/gold_color| Gold"
-                )
+                format!("{} Gold", gold_icon(format!("${amount}")))
             }
             QuestRewardText::Item => "Item".to_string(),
             QuestRewardText::Upgrade => "Upgrade".to_string(),

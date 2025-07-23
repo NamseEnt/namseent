@@ -88,7 +88,7 @@ impl QuestTrackingState {
                 new_built_count,
             } => {
                 game_state.text().quest(QuestText::BuildTowerSuitNew {
-                    suit: suit.to_string(),
+                    suit: *suit,
                     count: *target_count,
                 }) + &format!(" ({new_built_count}/{target_count})")
             }
@@ -99,7 +99,7 @@ impl QuestTrackingState {
                     .filter(|tower| tower.suit == *suit)
                     .count();
                 game_state.text().quest(QuestText::BuildTowerSuit {
-                    suit: suit.to_string(),
+                    suit: *suit,
                     count: *target_count,
                     current_count,
                 })
@@ -127,23 +127,23 @@ impl QuestTrackingState {
                 })
             }
             QuestTrackingState::ClearBossRoundWithoutItems => game_state
-                .text().quest(QuestText::ClearBossRoundWithoutItems),
+                .text()
+                .quest(QuestText::ClearBossRoundWithoutItems),
             QuestTrackingState::DealDamageWithItems {
                 target_damage,
                 dealt_damage,
             } => {
-                game_state
-                    .text().quest(QuestText::DealDamageWithItems {
-                        damage: *target_damage,
-                    })
-                    + &format!(" ({dealt_damage}/{target_damage})")
+                game_state.text().quest(QuestText::DealDamageWithItems {
+                    damage: *target_damage,
+                }) + &format!(" ({dealt_damage}/{target_damage})")
             }
             QuestTrackingState::BuildTowersWithoutReroll {
                 target_count,
                 built_count,
             } => {
                 game_state
-                    .text().quest(QuestText::BuildTowersWithoutReroll {
+                    .text()
+                    .quest(QuestText::BuildTowersWithoutReroll {
                         count: *target_count,
                     })
                     + &format!(" ({built_count}/{target_count})")
@@ -161,7 +161,8 @@ impl QuestTrackingState {
                 spent_gold,
             } => {
                 game_state
-                    .text().quest(QuestText::SpendGold { gold: *target_gold })
+                    .text()
+                    .quest(QuestText::SpendGold { gold: *target_gold })
                     + &format!(" ({spent_gold}/{target_gold})")
             }
             QuestTrackingState::EarnGold {
@@ -169,7 +170,8 @@ impl QuestTrackingState {
                 earned_gold,
             } => {
                 game_state
-                    .text().quest(QuestText::EarnGold { gold: *target_gold })
+                    .text()
+                    .quest(QuestText::EarnGold { gold: *target_gold })
                     + &format!(" ({earned_gold}/{target_gold})")
             }
         }
