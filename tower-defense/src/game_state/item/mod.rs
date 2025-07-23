@@ -95,106 +95,304 @@ impl ItemKind {
     pub fn name(&self, text_manager: &crate::l10n::TextManager) -> String {
         use crate::l10n::item::{ItemKindText, ItemKindTextVariant};
         match self {
-            ItemKind::Heal { .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::Heal))
-            }
-            ItemKind::AttackPowerPlusBuff { .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::AttackPowerPlusBuff))
-            }
-            ItemKind::AttackPowerMultiplyBuff { .. } => text_manager.item(ItemKindText::Name(
-                ItemKindTextVariant::AttackPowerMultiplyBuff,
-            )),
-            ItemKind::AttackSpeedPlusBuff { .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::AttackSpeedPlusBuff))
-            }
-            ItemKind::AttackSpeedMultiplyBuff { .. } => text_manager.item(ItemKindText::Name(
-                ItemKindTextVariant::AttackSpeedMultiplyBuff,
-            )),
-            ItemKind::AttackRangePlus { .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::AttackRangePlus))
-            }
-            ItemKind::MovementSpeedDebuff { .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::MovementSpeedDebuff))
-            }
-            ItemKind::RoundDamage { rank, suit, .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::RoundDamage {
-                    rank,
-                    suit,
+            ItemKind::Heal { amount } => {
+                text_manager.item(ItemKindText::Name(ItemKindTextVariant::Heal {
+                    amount: *amount,
                 }))
             }
-            ItemKind::RoundDamageOverTime { rank, suit, .. } => text_manager.item(
-                ItemKindText::Name(ItemKindTextVariant::RoundDamageOverTime { rank, suit }),
-            ),
-            ItemKind::Lottery { .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::Lottery))
-            }
-            ItemKind::LinearDamage { rank, suit, .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::LinearDamage {
+            ItemKind::AttackPowerPlusBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::AttackPowerPlusBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::AttackPowerMultiplyBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::AttackPowerMultiplyBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::AttackSpeedPlusBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::AttackSpeedPlusBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::AttackSpeedMultiplyBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::AttackSpeedMultiplyBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::AttackRangePlus {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::AttackRangePlus {
+                amount: *amount,
+                duration: *duration,
+                radius: *radius,
+            })),
+            ItemKind::MovementSpeedDebuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::MovementSpeedDebuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::RoundDamage {
+                rank,
+                suit,
+                damage,
+                radius,
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::RoundDamage {
+                rank,
+                suit,
+                damage: *damage,
+                radius: *radius,
+            })),
+            ItemKind::RoundDamageOverTime {
+                rank,
+                suit,
+                damage,
+                radius,
+                duration,
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::RoundDamageOverTime {
                     rank,
                     suit,
-                }))
-            }
-            ItemKind::LinearDamageOverTime { rank, suit, .. } => text_manager.item(
-                ItemKindText::Name(ItemKindTextVariant::LinearDamageOverTime { rank, suit }),
-            ),
+                    damage: *damage,
+                    radius: *radius,
+                    duration: *duration,
+                },
+            )),
+            ItemKind::Lottery {
+                amount,
+                probability,
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::Lottery {
+                amount: *amount,
+                probability: *probability,
+            })),
+            ItemKind::LinearDamage {
+                rank,
+                suit,
+                damage,
+                thickness,
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::LinearDamage {
+                rank,
+                suit,
+                damage: *damage,
+                thickness: *thickness,
+            })),
+            ItemKind::LinearDamageOverTime {
+                rank,
+                suit,
+                damage,
+                thickness,
+                duration,
+            } => text_manager.item(ItemKindText::Name(
+                ItemKindTextVariant::LinearDamageOverTime {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    thickness: *thickness,
+                    duration: *duration,
+                },
+            )),
             ItemKind::ExtraReroll => {
                 text_manager.item(ItemKindText::Name(ItemKindTextVariant::ExtraReroll))
             }
-            ItemKind::Shield { .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::Shield))
+            ItemKind::Shield { amount } => {
+                text_manager.item(ItemKindText::Name(ItemKindTextVariant::Shield {
+                    amount: *amount,
+                }))
             }
-            ItemKind::DamageReduction { .. } => {
-                text_manager.item(ItemKindText::Name(ItemKindTextVariant::DamageReduction))
-            }
+            ItemKind::DamageReduction {
+                damage_multiply,
+                duration,
+            } => text_manager.item(ItemKindText::Name(ItemKindTextVariant::DamageReduction {
+                damage_multiply: *damage_multiply,
+                duration: *duration,
+            })),
         }
     }
     pub fn description(&self, text_manager: &crate::l10n::TextManager) -> String {
         use crate::l10n::item::{ItemKindText, ItemKindTextVariant};
         match self {
-            ItemKind::Heal { .. } => {
-                text_manager.item(ItemKindText::Description(ItemKindTextVariant::Heal))
+            ItemKind::Heal { amount } => {
+                text_manager.item(ItemKindText::Description(ItemKindTextVariant::Heal {
+                    amount: *amount,
+                }))
             }
-            ItemKind::AttackPowerPlusBuff { .. } => text_manager.item(ItemKindText::Description(
-                ItemKindTextVariant::AttackPowerPlusBuff,
+            ItemKind::AttackPowerPlusBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackPowerPlusBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
             )),
-            ItemKind::AttackPowerMultiplyBuff { .. } => text_manager.item(
-                ItemKindText::Description(ItemKindTextVariant::AttackPowerMultiplyBuff),
-            ),
-            ItemKind::AttackSpeedPlusBuff { .. } => text_manager.item(ItemKindText::Description(
-                ItemKindTextVariant::AttackSpeedPlusBuff,
+            ItemKind::AttackPowerMultiplyBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackPowerMultiplyBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
             )),
-            ItemKind::AttackSpeedMultiplyBuff { .. } => text_manager.item(
-                ItemKindText::Description(ItemKindTextVariant::AttackSpeedMultiplyBuff),
-            ),
-            ItemKind::AttackRangePlus { .. } => text_manager.item(ItemKindText::Description(
-                ItemKindTextVariant::AttackRangePlus,
+            ItemKind::AttackSpeedPlusBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackSpeedPlusBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
             )),
-            ItemKind::MovementSpeedDebuff { .. } => text_manager.item(ItemKindText::Description(
-                ItemKindTextVariant::MovementSpeedDebuff,
+            ItemKind::AttackSpeedMultiplyBuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackSpeedMultiplyBuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
             )),
-            ItemKind::RoundDamage { rank, suit, .. } => text_manager.item(
-                ItemKindText::Description(ItemKindTextVariant::RoundDamage { rank, suit }),
-            ),
-            ItemKind::RoundDamageOverTime { rank, suit, .. } => text_manager.item(
-                ItemKindText::Description(ItemKindTextVariant::RoundDamageOverTime { rank, suit }),
-            ),
-            ItemKind::Lottery { .. } => {
-                text_manager.item(ItemKindText::Description(ItemKindTextVariant::Lottery))
-            }
-            ItemKind::LinearDamage { rank, suit, .. } => text_manager.item(
-                ItemKindText::Description(ItemKindTextVariant::LinearDamage { rank, suit }),
-            ),
-            ItemKind::LinearDamageOverTime { rank, suit, .. } => text_manager.item(
-                ItemKindText::Description(ItemKindTextVariant::LinearDamageOverTime { rank, suit }),
-            ),
+            ItemKind::AttackRangePlus {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::AttackRangePlus {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::MovementSpeedDebuff {
+                amount,
+                duration,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::MovementSpeedDebuff {
+                    amount: *amount,
+                    duration: *duration,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::RoundDamage {
+                rank,
+                suit,
+                damage,
+                radius,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::RoundDamage {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    radius: *radius,
+                },
+            )),
+            ItemKind::RoundDamageOverTime {
+                rank,
+                suit,
+                damage,
+                radius,
+                duration,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::RoundDamageOverTime {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    radius: *radius,
+                    duration: *duration,
+                },
+            )),
+            ItemKind::Lottery {
+                amount,
+                probability,
+            } => text_manager.item(ItemKindText::Description(ItemKindTextVariant::Lottery {
+                amount: *amount,
+                probability: *probability,
+            })),
+            ItemKind::LinearDamage {
+                rank,
+                suit,
+                damage,
+                thickness,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::LinearDamage {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    thickness: *thickness,
+                },
+            )),
+            ItemKind::LinearDamageOverTime {
+                rank,
+                suit,
+                damage,
+                thickness,
+                duration,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::LinearDamageOverTime {
+                    rank,
+                    suit,
+                    damage: *damage,
+                    thickness: *thickness,
+                    duration: *duration,
+                },
+            )),
             ItemKind::ExtraReroll => {
                 text_manager.item(ItemKindText::Description(ItemKindTextVariant::ExtraReroll))
             }
-            ItemKind::Shield { .. } => {
-                text_manager.item(ItemKindText::Description(ItemKindTextVariant::Shield))
+            ItemKind::Shield { amount } => {
+                text_manager.item(ItemKindText::Description(ItemKindTextVariant::Shield {
+                    amount: *amount,
+                }))
             }
-            ItemKind::DamageReduction { .. } => text_manager.item(ItemKindText::Description(
-                ItemKindTextVariant::DamageReduction,
+            ItemKind::DamageReduction {
+                damage_multiply,
+                duration,
+            } => text_manager.item(ItemKindText::Description(
+                ItemKindTextVariant::DamageReduction {
+                    damage_multiply: *damage_multiply,
+                    duration: *duration,
+                },
             )),
         }
     }

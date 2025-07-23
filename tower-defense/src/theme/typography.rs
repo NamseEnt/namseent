@@ -75,6 +75,34 @@ pub fn init_tag_map() -> HashMap<String, Tag> {
     );
 
     map.insert(
+        "purple".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: Color::from_u8(128, 0, 128, 255), // 보라색
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    map.insert(
+        "green".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: Color::from_u8(0, 255, 0, 255), // 초록색
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    map.insert(
         "epic".to_string(),
         Tag::StyledText {
             font: Font {

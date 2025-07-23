@@ -349,11 +349,11 @@ impl Component for ShopItemContent<'_> {
                                 table::fixed(PADDING, |_, _| {}),
                                 table::fit(table::FitAlign::LeftTop, move |ctx| {
                                     ctx.add(
-                                        headline(name.clone())
+                                        headline(name)
                                             .size(FontSize::Small)
                                             .align(TextAlign::LeftTop)
                                             .max_width(wh.width)
-                                            .build_rich(),
+                                            .build(),
                                     );
                                 }),
                                 table::fixed(PADDING, |_, _| {}),

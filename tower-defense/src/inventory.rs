@@ -115,11 +115,11 @@ impl Component for Inventory {
                                                     table::fixed(PADDING * 2.0, |_, _| {}),
                                                     table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                                                         compose_ctx.add(
-                                                            headline(name.clone())
+                                                            headline(name)
                                                                 .size(FontSize::Small)
                                                                 .align(TextAlign::LeftTop)
                                                                 .max_width(content_width)
-                                                                .build_rich(),
+                                                                .build(),
                                                         );
                                                     }),
                                                     table::fixed(PADDING, |_, _| {}),
