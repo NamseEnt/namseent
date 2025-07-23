@@ -1,4 +1,4 @@
-use super::{Locale, Language, LocalizedStaticText};
+use super::{Language, Locale, LocalizedStaticText};
 
 #[derive(Debug, Clone, Copy)]
 pub enum TowerKindText {
@@ -25,7 +25,7 @@ impl LocalizedStaticText for TowerKindText {
 }
 
 impl TowerKindText {
-    pub(super) fn to_korean(&self) -> &'static str {
+    pub(super) fn to_korean(self) -> &'static str {
         match self {
             TowerKindText::Barricade => "바리케이드",
             TowerKindText::High => "하이카드",
@@ -40,8 +40,8 @@ impl TowerKindText {
             TowerKindText::RoyalFlush => "로열 플러쉬",
         }
     }
-    
-    pub(super) fn to_english(&self) -> &'static str {
+
+    pub(super) fn to_english(self) -> &'static str {
         match self {
             TowerKindText::Barricade => "Barricade",
             TowerKindText::High => "High",
@@ -57,5 +57,3 @@ impl TowerKindText {
         }
     }
 }
-
-

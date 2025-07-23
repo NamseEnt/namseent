@@ -191,7 +191,7 @@ impl Component for RenderPlacingTowerSlotContent<'_> {
         let game_state = use_game_state(ctx);
 
         ctx.add(typography::body::left_top(
-            game_state.text().tower(tower_template.kind.to_text()).to_string(),
+            game_state.text().tower(tower_template.kind.to_text()),
             palette::ON_SURFACE,
         ));
 

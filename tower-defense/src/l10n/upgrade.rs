@@ -72,7 +72,7 @@ impl Template {
                                 "♣" => "icon<suit_clubs:16:16:16:1>클럽".to_string(),
                                 _ => suit.to_string(),
                             };
-                            format!("{} 카드", suit_with_icon)
+                            format!("{suit_with_icon} 카드")
                         }
                         crate::game_state::upgrade::TowerUpgradeTarget::TowerKind {
                             tower_kind,
@@ -123,7 +123,7 @@ impl Template {
                     AddOrMultiply::Multiply => format!("|B|{how_much:.1}배 증가합니다|/B|"),
                 };
 
-                format!("{} 타워의 {} {}", target_text, upgrade_text, amount_text)
+                format!("{target_text} 타워의 {upgrade_text} {amount_text}")
             }
         }
     }
@@ -161,7 +161,7 @@ impl Template {
                                 "♣" => "icon<suit_clubs:16:16:16:1>Clubs".to_string(),
                                 _ => suit.to_string(),
                             };
-                            format!("{} card", suit_with_icon)
+                            format!("{suit_with_icon} card")
                         }
                         crate::game_state::upgrade::TowerUpgradeTarget::TowerKind {
                             tower_kind,
@@ -214,7 +214,7 @@ impl Template {
                     AddOrMultiply::Multiply => format!("|B|by {how_much:.1}x|/B|"),
                 };
 
-                format!("{} towers {} {}", target_text, upgrade_text, amount_text)
+                format!("{target_text} towers {upgrade_text} {amount_text}")
             }
         }
     }

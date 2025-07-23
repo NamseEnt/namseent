@@ -127,6 +127,12 @@ pub struct MonsterAnimation {
     y_offset_velocity: f32,
     rotated_side: MonsterAnimationRotatedSide,
 }
+impl Default for MonsterAnimation {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MonsterAnimation {
     pub fn new() -> Self {
         Self {

@@ -52,8 +52,7 @@ impl TowerSkillText {
                 range_radius
             ),
             TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => format!(
-                "주변 타워의 공격력을 {:.0}만큼 증가시킵니다 (반경 {} 타일)",
-                add, range_radius
+                "주변 타워의 공격력을 {add:.0}만큼 증가시킵니다 (반경 {range_radius} 타일)"
             ),
             TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius } => format!(
                 "주변 타워의 공격 속도를 {:.0}% 증가시킵니다 (반경 {} 타일)",
@@ -61,12 +60,10 @@ impl TowerSkillText {
                 range_radius
             ),
             TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius } => format!(
-                "주변 타워의 공격 속도를 {:.1}배 증가시킵니다 (반경 {} 타일)",
-                mul, range_radius
+                "주변 타워의 공격 속도를 {mul:.1}배 증가시킵니다 (반경 {range_radius} 타일)"
             ),
             TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius } => format!(
-                "주변 타워의 공격 범위를 {:.0} 타일 증가시킵니다 (반경 {} 타일)",
-                add, range_radius
+                "주변 타워의 공격 범위를 {add:.0} 타일 증가시킵니다 (반경 {range_radius} 타일)"
             ),
             TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius } => format!(
                 "주변 몬스터의 속도를 {:.0}% 감소시킵니다 (반경 {} 타일)",
@@ -98,8 +95,7 @@ impl TowerSkillText {
                 range_radius
             ),
             TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => format!(
-                "Increases nearby towers' damage by {:.0} (within {} tiles)",
-                add, range_radius
+                "Increases nearby towers' damage by {add:.0} (within {range_radius} tiles)"
             ),
             TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius } => format!(
                 "Increases nearby towers' attack speed by {:.0}% (within {} tiles)",
@@ -107,12 +103,10 @@ impl TowerSkillText {
                 range_radius
             ),
             TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius } => format!(
-                "Increases nearby towers' attack speed by {:.1}x (within {} tiles)",
-                mul, range_radius
+                "Increases nearby towers' attack speed by {mul:.1}x (within {range_radius} tiles)"
             ),
             TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius } => format!(
-                "Increases nearby towers' attack range by {:.0} tiles (within {} tiles)",
-                add, range_radius
+                "Increases nearby towers' attack range by {add:.0} tiles (within {range_radius} tiles)"
             ),
             TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius } => format!(
                 "Decreases nearby monsters' speed by {:.0}% (within {} tiles)",

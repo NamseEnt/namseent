@@ -2,7 +2,7 @@ use super::palette;
 use crate::icon;
 use namui::*;
 use namui_prebuilt::rich_text::*;
-use std::{cell::OnceCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, sync::OnceLock};
 
 pub const HEADLINE_FONT_NAME: &str = "NotoSansKR-Bold";
 pub const PARAGRAPH_FONT_NAME: &str = "NotoSansKR-Regular";
@@ -24,8 +24,24 @@ pub const DEFAULT_TEXT_STYLE: TextStyle = TextStyle {
     underline: None,
 };
 
-pub const TAG_MAP: OnceCell<HashMap<String, Tag>> = OnceCell::new();
-pub const REGEX_HANDLERS: OnceCell<Vec<RegexHandler>> = OnceCell::new();
+pub static TAG_MAP: OnceLock<HashMap<String, Tag>> = OnceLock::new();
+// thread_local을 사용하여 각 스레드마다 독립적인 RegexHandler 인스턴스 생성
+thread_local! {
+    static REGEX_HANDLERS: RefCell<Option<Vec<RegexHandler>>> = const { RefCell::new(None) };
+}
+
+fn with_regex_handlers<F, R>(f: F) -> R
+where
+    F: FnOnce(&Vec<RegexHandler>) -> R,
+{
+    REGEX_HANDLERS.with(|handlers| {
+        let mut handlers = handlers.borrow_mut();
+        if handlers.is_none() {
+            *handlers = Some(init_regex_handlers());
+        }
+        f(handlers.as_ref().unwrap())
+    })
+}
 pub fn init_tag_map() -> HashMap<String, Tag> {
     let mut map = HashMap::new();
 
@@ -309,17 +325,19 @@ impl Component for RichHeadlineComponent {
         };
 
         ctx.translate(Xy { x, y });
-        ctx.add(namui_prebuilt::rich_text::RichText {
-            text,
-            max_width,
-            default_font: Font {
-                name: HEADLINE_FONT_NAME.to_string(),
-                size,
-            },
-            default_text_style: DEFAULT_TEXT_STYLE,
-            tag_map: &TAG_MAP.get_or_init(init_tag_map),
-            regex_handlers: &REGEX_HANDLERS.get_or_init(init_regex_handlers),
-            on_parse_error: None,
+        with_regex_handlers(|regex_handlers| {
+            ctx.add(namui_prebuilt::rich_text::RichText {
+                text,
+                max_width,
+                default_font: Font {
+                    name: HEADLINE_FONT_NAME.to_string(),
+                    size,
+                },
+                default_text_style: DEFAULT_TEXT_STYLE,
+                tag_map: TAG_MAP.get_or_init(init_tag_map),
+                regex_handlers,
+                on_parse_error: None,
+            });
         });
     }
 }
@@ -354,17 +372,19 @@ impl Component for RichParagraphComponent {
         };
 
         ctx.translate(Xy { x, y });
-        ctx.add(namui_prebuilt::rich_text::RichText {
-            text,
-            max_width,
-            default_font: Font {
-                name: PARAGRAPH_FONT_NAME.to_string(),
-                size,
-            },
-            default_text_style: DEFAULT_TEXT_STYLE,
-            tag_map: &TAG_MAP.get_or_init(init_tag_map),
-            regex_handlers: &REGEX_HANDLERS.get_or_init(init_regex_handlers),
-            on_parse_error: None,
+        with_regex_handlers(|regex_handlers| {
+            ctx.add(namui_prebuilt::rich_text::RichText {
+                text,
+                max_width,
+                default_font: Font {
+                    name: PARAGRAPH_FONT_NAME.to_string(),
+                    size,
+                },
+                default_text_style: DEFAULT_TEXT_STYLE,
+                tag_map: TAG_MAP.get_or_init(init_tag_map),
+                regex_handlers,
+                on_parse_error: None,
+            });
         });
     }
 }

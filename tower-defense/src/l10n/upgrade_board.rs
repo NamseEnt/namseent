@@ -1,4 +1,4 @@
-use super::{Locale, Language, LocalizedStaticText};
+use super::{Language, Locale, LocalizedStaticText};
 
 #[derive(Debug, Clone, Copy)]
 pub enum UpgradeBoardText {
@@ -39,7 +39,7 @@ impl LocalizedStaticText for UpgradeBoardText {
 }
 
 impl UpgradeBoardText {
-    pub(super) fn to_korean(&self) -> &'static str {
+    pub(super) fn to_korean(self) -> &'static str {
         match self {
             UpgradeBoardText::Title => "강화 정보",
             UpgradeBoardText::GoldEarnPlus => "몬스터 처치 시 {amount}골드를 추가로 얻습니다",
@@ -75,10 +75,12 @@ impl UpgradeBoardText {
         }
     }
 
-    pub(super) fn to_english(&self) -> &'static str {
+    pub(super) fn to_english(self) -> &'static str {
         match self {
             UpgradeBoardText::Title => "Upgrade Information",
-            UpgradeBoardText::GoldEarnPlus => "Earn an additional {amount} gold when defeating monsters",
+            UpgradeBoardText::GoldEarnPlus => {
+                "Earn an additional {amount} gold when defeating monsters"
+            }
             UpgradeBoardText::ShopSlotExpand => "Increases shop slots by {amount}",
             UpgradeBoardText::QuestSlotExpand => "Increases quest slots by {amount}",
             UpgradeBoardText::QuestBoardSlotExpand => "Increases quest board slots by {amount}",
@@ -91,12 +93,14 @@ impl UpgradeBoardText {
             UpgradeBoardText::ShortenStraightFlushTo4Cards => {
                 "Shortens straight and flush to 4 cards"
             }
-            UpgradeBoardText::SkipRankForStraight => {
-                "Skip one rank when creating a straight"
-            }
+            UpgradeBoardText::SkipRankForStraight => "Skip one rank when creating a straight",
             UpgradeBoardText::TreatSuitsAsSame => "Treats same colors as the same pattern",
-            UpgradeBoardText::TowerSelectLowCard => "When creating a tower with {amount} or fewer cards, the tower's",
-            UpgradeBoardText::TowerSelectNoReroll => "When creating a tower without rerolling, the tower's",
+            UpgradeBoardText::TowerSelectLowCard => {
+                "When creating a tower with {amount} or fewer cards, the tower's"
+            }
+            UpgradeBoardText::TowerSelectNoReroll => {
+                "When creating a tower without rerolling, the tower's"
+            }
             UpgradeBoardText::TowerSelectReroll => "Each time you reroll, the tower's",
             UpgradeBoardText::TowerUpgradeRank => "For towers with rank {name},",
             UpgradeBoardText::TowerUpgradeSuit => "For towers with suit {name},",

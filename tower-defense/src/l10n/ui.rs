@@ -32,7 +32,7 @@ impl LocalizedStaticText for TopBarText {
 }
 
 impl TopBarText {
-    pub(super) fn to_korean(&self) -> &'static str {
+    pub(super) fn to_korean(self) -> &'static str {
         match self {
             TopBarText::Stage => "스테이지",
             TopBarText::LevelUp => "레벨업",
@@ -55,7 +55,7 @@ impl TopBarText {
         }
     }
 
-    pub(super) fn to_english(&self) -> &'static str {
+    pub(super) fn to_english(self) -> &'static str {
         match self {
             TopBarText::Stage => "Stage",
             TopBarText::LevelUp => "Level Up",

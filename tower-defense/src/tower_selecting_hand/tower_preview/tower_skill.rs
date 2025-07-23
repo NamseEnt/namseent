@@ -148,7 +148,7 @@ impl Component for TowerEffectDescription<'_> {
                 TowerSkillKind::TopCardBonus { rank, bonus_damage } => game_state
                     .text()
                     .tower_skill(TowerSkillText::TopCardBonusDesc {
-                        rank: format!("{:?}", rank),
+                        rank: format!("{rank:?}"),
                         bonus_damage,
                     }),
             };

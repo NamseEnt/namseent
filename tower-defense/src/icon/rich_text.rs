@@ -3,12 +3,12 @@ use namui::*;
 
 #[derive(Debug, Clone)]
 pub enum IconParseError {
-    InvalidFormat,
-    InvalidKind,
-    InvalidSize,
-    InvalidDimensions,
-    InvalidOpacity,
-    InvalidAttribute,
+    Format,
+    Kind,
+    Size,
+    Dimensions,
+    Opacity,
+    Attribute,
 }
 
 impl Icon {
@@ -38,14 +38,10 @@ impl Icon {
         };
 
         if attr_part.is_empty() {
-            format!(
-                "icon<{}:{}:{}:{}:{}>",
-                kind_part, size_part, width_part, height_part, opacity_part
-            )
+            format!("icon<{kind_part}:{size_part}:{width_part}:{height_part}:{opacity_part}>")
         } else {
             format!(
-                "icon<{}:{}:{}:{}:{}:{}>",
-                kind_part, size_part, width_part, height_part, opacity_part, attr_part
+                "icon<{kind_part}:{size_part}:{width_part}:{height_part}:{opacity_part}:{attr_part}>"
             )
         }
     }
@@ -53,7 +49,7 @@ impl Icon {
     pub fn from_tag(tag: &str) -> Result<Self, IconParseError> {
         // Check if tag starts with "icon<" and ends with ">"
         if !tag.starts_with("icon<") || !tag.ends_with(">") {
-            return Err(IconParseError::InvalidFormat);
+            return Err(IconParseError::Format);
         }
 
         // Extract content between icon< and >
@@ -64,16 +60,14 @@ impl Icon {
 
         // Minimum required parts: kind, size, width, height, opacity
         if parts.len() < 5 {
-            return Err(IconParseError::InvalidFormat);
+            return Err(IconParseError::Format);
         }
 
         // Parse kind
-        let kind = IconKind::from_asset_id(parts[0]).ok_or(IconParseError::InvalidKind)?;
+        let kind = IconKind::from_asset_id(parts[0]).ok_or(IconParseError::Kind)?;
 
         // Parse size
-        let size_value = parts[1]
-            .parse::<f32>()
-            .map_err(|_| IconParseError::InvalidSize)?;
+        let size_value = parts[1].parse::<f32>().map_err(|_| IconParseError::Size)?;
         let size = IconSize::Custom {
             size: px(size_value),
         };
@@ -81,10 +75,10 @@ impl Icon {
         // Parse width and height
         let width = parts[2]
             .parse::<f32>()
-            .map_err(|_| IconParseError::InvalidDimensions)?;
+            .map_err(|_| IconParseError::Dimensions)?;
         let height = parts[3]
             .parse::<f32>()
-            .map_err(|_| IconParseError::InvalidDimensions)?;
+            .map_err(|_| IconParseError::Dimensions)?;
         let wh = Wh {
             width: px(width),
             height: px(height),
@@ -93,7 +87,7 @@ impl Icon {
         // Parse opacity
         let opacity = parts[4]
             .parse::<f32>()
-            .map_err(|_| IconParseError::InvalidOpacity)?;
+            .map_err(|_| IconParseError::Opacity)?;
 
         // Parse attributes (if exists)
         let mut attributes = Vec::new();
@@ -116,23 +110,23 @@ impl Icon {
                     for &pos_suffix in &position_parts {
                         if attr_item.ends_with(pos_suffix) {
                             found_position = Some(&pos_suffix[1..]); // Remove the leading underscore
-                            attr_kind_str = &attr_item[..attr_item.len() - pos_suffix.len()];
+                            attr_kind_str = attr_item.strip_suffix(pos_suffix).unwrap();
                             break;
                         }
                     }
 
                     if let Some(pos_str) = found_position {
                         let attr_kind = IconKind::from_asset_id(attr_kind_str)
-                            .ok_or(IconParseError::InvalidAttribute)?;
+                            .ok_or(IconParseError::Attribute)?;
                         let attr_position = IconAttributePosition::from_str(pos_str)
-                            .ok_or(IconParseError::InvalidAttribute)?;
+                            .ok_or(IconParseError::Attribute)?;
 
                         attributes.push(IconAttribute {
                             icon_kind: attr_kind,
                             position: attr_position,
                         });
                     } else {
-                        return Err(IconParseError::InvalidAttribute);
+                        return Err(IconParseError::Attribute);
                     }
                 }
             }
@@ -169,8 +163,8 @@ impl Icon {
         }
 
         // Check that numeric parts can be parsed
-        for i in 1..5 {
-            if parts[i].parse::<f32>().is_err() {
+        for part in parts.iter().take(5).skip(1) {
+            if part.parse::<f32>().is_err() {
                 return false;
             }
         }
@@ -309,31 +303,31 @@ mod tests {
     fn test_invalid_tag_format() {
         assert!(matches!(
             Icon::from_tag("invalid"),
-            Err(IconParseError::InvalidFormat)
+            Err(IconParseError::Format)
         ));
         assert!(matches!(
             Icon::from_tag("not_icon<gold:24:32:32:1.0>"),
-            Err(IconParseError::InvalidFormat)
+            Err(IconParseError::Format)
         ));
         assert!(matches!(
             Icon::from_tag("icon<invalid_kind:24:32:32:1.0>"),
-            Err(IconParseError::InvalidKind)
+            Err(IconParseError::Kind)
         ));
         assert!(matches!(
             Icon::from_tag("icon<gold:invalid:32:32:1.0>"),
-            Err(IconParseError::InvalidSize)
+            Err(IconParseError::Size)
         ));
         assert!(matches!(
             Icon::from_tag("icon<gold:24:invalid:32:1.0>"),
-            Err(IconParseError::InvalidDimensions)
+            Err(IconParseError::Dimensions)
         ));
         assert!(matches!(
             Icon::from_tag("icon<gold:24:32:32:invalid>"),
-            Err(IconParseError::InvalidOpacity)
+            Err(IconParseError::Opacity)
         ));
         assert!(matches!(
             Icon::from_tag("icon<gold:24:32:32:1.0:invalid_attr>"),
-            Err(IconParseError::InvalidAttribute)
+            Err(IconParseError::Attribute)
         ));
     }
 
@@ -352,7 +346,7 @@ mod tests {
         };
 
         let tag = simple_icon.as_tag();
-        println!("Simple icon tag: {}", tag);
+        println!("Simple icon tag: {tag}");
         assert_eq!(tag, "icon<gold:24:32:32:1>");
 
         // Test icon with attributes
@@ -377,7 +371,7 @@ mod tests {
         };
 
         let complex_tag = complex_icon.as_tag();
-        println!("Complex icon tag: {}", complex_tag);
+        println!("Complex icon tag: {complex_tag}");
         assert_eq!(
             complex_tag,
             "icon<attack_damage:16:20:20:0.8:shield_top_left,gold_bottom_right>"
@@ -421,9 +415,8 @@ mod tests {
     fn test_render_icon_error_fallback() {
         let fallback = Icon::render_icon_error_fallback("invalid_tag");
         // Should return a RenderingTree (basic structure test)
-        match fallback {
-            RenderingTree::Empty => panic!("Expected non-empty rendering tree"),
-            _ => {} // Success
+        if fallback == RenderingTree::Empty {
+            panic!("Expected non-empty rendering tree")
         }
     }
 }

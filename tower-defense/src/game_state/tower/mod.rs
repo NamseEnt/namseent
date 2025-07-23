@@ -275,7 +275,7 @@ impl TowerKind {
         matches!(self, Self::High | Self::OnePair | Self::ThreeOfAKind)
     }
 
-    pub fn to_text(&self) -> TowerKindText {
+    pub fn to_text(self) -> TowerKindText {
         match self {
             Self::Barricade => TowerKindText::Barricade,
             Self::High => TowerKindText::High,

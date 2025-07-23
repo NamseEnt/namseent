@@ -67,16 +67,17 @@ fn main() {
         }
 
         let svg = SvgTwemojiAsset::from_emoji(kind.emoji())
-            .expect(format!("Emoji not found: {}", kind.emoji()).as_str());
+            .unwrap_or_else(|| panic!("Emoji not found: {}", kind.emoji()));
         save_svg_to_png(svg.as_bytes(), &output_path);
     });
 }
 
 fn save_svg_to_png(svg_data: &[u8], output_path: &Path) {
     let svg_text = String::from_utf8_lossy(svg_data);
-    let mut options = resvg::usvg::Options::default();
-    options.default_size =
-        resvg::usvg::Size::from_wh(OUTPUT_SIZE as f32, OUTPUT_SIZE as f32).unwrap();
+    let options = resvg::usvg::Options {
+        default_size: resvg::usvg::Size::from_wh(ORIGINAL_SIZE, ORIGINAL_SIZE).unwrap(),
+        ..Default::default()
+    };
     let tree = resvg::usvg::Tree::from_str(&svg_text, &options).unwrap();
 
     let mut pixmap = resvg::tiny_skia::Pixmap::new(OUTPUT_SIZE, OUTPUT_SIZE).unwrap();
