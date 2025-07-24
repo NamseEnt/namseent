@@ -1,0 +1,16 @@
+{
+  "name": "bukbuk",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run dev-server.ts",
+    "build": "bun build src/index.ts --outfile public/game.js --target browser"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
