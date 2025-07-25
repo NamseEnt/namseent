@@ -70,31 +70,7 @@ class Game {
     const mouseY = e.clientY - rect.top;
     const centerX = this.width / 2;
     const centerY = this.height / 2;
-    
-    if (this.gameState === "rinsing") {
-      // 클릭한 부위의 거품 제거
-      const showerX = this.width * 0.8;
-      const baseY = this.height * 0.8 - 180;
-      
-      // 각 부위 클릭 영역 확인
-      if (Math.abs(mouseX - showerX) < 50 && Math.abs(mouseY - (baseY - 50)) < 30) {
-        this.foamStatus['머리'] = 0;
-        console.log("머리 헹굼!");
-      } else if (Math.abs(mouseX - showerX) < 50 && Math.abs(mouseY - baseY) < 40) {
-        this.foamStatus['가슴'] = 0;
-      } else if (Math.abs(mouseX - showerX) < 60 && Math.abs(mouseY - (baseY + 20)) < 30) {
-        this.foamStatus['팔'] = 0;
-      } else if (Math.abs(mouseX - showerX) < 50 && Math.abs(mouseY - (baseY + 50)) < 35) {
-        this.foamStatus['배'] = 0;
-      } else if (Math.abs(mouseX - showerX) < 50 && Math.abs(mouseY - (baseY + 100)) < 30) {
-        this.foamStatus['다리'] = 0;
-      } else if (Math.abs(mouseX - showerX) < 50 && Math.abs(mouseY - (baseY + 150)) < 20) {
-        this.foamStatus['발'] = 0;
-      } else if (Math.abs(mouseX - showerX) < 50 && Math.abs(mouseY - baseY) < 40) {
-        // 등은 가슴과 같은 높이
-        this.foamStatus['등'] = 0;
-      }
-    } else if (this.gameState === "sleeping" /* SLEEPING */) {
+    if (this.gameState === "sleeping" /* SLEEPING */) {
       const blanketLeft = centerX - 60 + this.blanketX;
       const blanketTop = centerY - 45 + this.blanketY;
       const blanketWidth = 190;
@@ -189,44 +165,7 @@ class Game {
     this.gameLoop(0);
   }
   update(deltaTime) {
-    if (this.gameState === "rinsing") {
-      // 거품 흐름 타이머 업데이트
-      this.foamFlowTimer += deltaTime;
-      
-      // 1초마다 거품이 흘러내림
-      if (this.foamFlowTimer > 1000) {
-        this.foamFlowTimer = 0;
-        
-        // 위에서 아래로 거품이 흘러내리는 로직
-        // 중요: 이미 헹군 부위라도 위에 거품이 있으면 다시 거품이 생김
-        
-        // 머리에서 가슴으로
-        if (this.foamStatus['머리'] > 0) {
-          this.foamStatus['가슴'] = 1;
-          console.log("거품이 머리에서 가슴으로 흘러내렸습니다!");
-        }
-        
-        // 가슴/팔/등에서 배로
-        if (this.foamStatus['가슴'] > 0 || this.foamStatus['팔'] > 0 || this.foamStatus['등'] > 0) {
-          this.foamStatus['배'] = 1;
-          if (this.foamStatus['가슴'] > 0) console.log("거품이 가슴에서 배로 흘러내렸습니다!");
-          if (this.foamStatus['팔'] > 0) console.log("거품이 팔에서 배로 흘러내렸습니다!");
-          if (this.foamStatus['등'] > 0) console.log("거품이 등에서 배로 흘러내렸습니다!");
-        }
-        
-        // 배에서 다리로
-        if (this.foamStatus['배'] > 0) {
-          this.foamStatus['다리'] = 1;
-          console.log("거품이 배에서 다리로 흘러내렸습니다!");
-        }
-        
-        // 다리에서 발로
-        if (this.foamStatus['다리'] > 0) {
-          this.foamStatus['발'] = 1;
-          console.log("거품이 다리에서 발로 흘러내렸습니다!");
-        }
-      }
-    } else if (this.gameState === "sleeping" /* SLEEPING */) {
+    if (this.gameState === "sleeping" /* SLEEPING */) {
       const blanketDistance = Math.sqrt(this.blanketX * this.blanketX + this.blanketY * this.blanketY);
       if (blanketDistance > 150) {
         this.gameState = "blanket_removed" /* BLANKET_REMOVED */;
@@ -309,13 +248,10 @@ class Game {
       const allWet = Object.values(this.bodyParts).every((part) => part.wet);
       if (allWet && this.gameState === "wetting_body" /* WETTING_BODY */) {
         console.log("모든 부위를 적셨습니다!");
-        this.gameState = "transitioning"; // 임시 상태로 변경
         setTimeout(() => {
-          if (this.gameState === "transitioning") {
-            this.gameState = "soaping" /* SOAPING */;
-            this.initSoapingGrid();
-            console.log("비누칠 단계 시작!");
-          }
+          this.gameState = "soaping" /* SOAPING */;
+          this.initSoapingGrid();
+          console.log("비누칠 단계 시작!");
         }, 1000);
       }
     }
@@ -328,7 +264,7 @@ class Game {
       });
       const progress = this.calculateSoapingProgress();
       this.soapingProgress.set(this.currentSoapingPart, progress);
-      if (progress >= 1.0) {
+      if (progress >= 100) {
         console.log(`${this.currentSoapingPart} 완료!`);
         this.nextSoapingPart();
       }
@@ -354,22 +290,6 @@ class Game {
     this.bodyParts.rightLeg.x = centerX + 20;
     this.bodyParts.rightLeg.y = baseY + 150;
   }
-  initRinsing() {
-    // 각 부위별 거품 상태 (0: 거품 없음, 1: 거품 있음)
-    this.foamStatus = {
-      '머리': 1,
-      '가슴': 1,
-      '팔': 1,
-      '배': 1,
-      '등': 1,
-      '다리': 1,
-      '발': 1
-    };
-    this.rinsedParts = new Set();
-    this.foamFlowTimer = 0;
-    console.log("헹구기 시작!");
-  }
-  
   initSoapingGrid() {
     this.soapingGrid = [];
     for (let i = 0;i < this.gridSize; i++) {
@@ -380,18 +300,12 @@ class Game {
     }
     this.bubbles = [];
     this.currentBodyPartIndex = 0;
-    this.bodyPartOrder = ['머리', '가슴', '팔', '배', '등', '다리', '발'];
     console.log("비누칠 초기화 완료. 첫 부위:", this.bodyPartOrder[this.currentBodyPartIndex]);
   }
   rubArea(x, y) {
-    const centerX = this.width / 2;
-    const centerY = this.height / 2;
-    const gridCellSize = 10;
-    const startX = centerX - this.gridSize * gridCellSize / 2;
-    const startY = centerY - this.gridSize * gridCellSize / 2;
-    
-    const gridX = Math.floor((x - startX) / gridCellSize);
-    const gridY = Math.floor((y - startY) / gridCellSize);
+    const partArea = this.getSoapingPartArea();
+    const gridX = Math.floor((x - partArea.x) / partArea.width * this.gridSize);
+    const gridY = Math.floor((y - partArea.y) / partArea.height * this.gridSize);
     const radius = 2;
     for (let i = -radius;i <= radius; i++) {
       for (let j = -radius;j <= radius; j++) {
@@ -413,7 +327,7 @@ class Game {
           rubbed++;
       }
     }
-    return rubbed / total;
+    return rubbed / total * 100;
   }
   getSoapingPartArea() {
     const centerX = this.width / 2;
@@ -438,20 +352,13 @@ class Game {
     }
   }
   nextSoapingPart() {
-    this.currentBodyPartIndex++;
-    if (this.currentBodyPartIndex < this.bodyPartOrder.length) {
-      // 그리드만 초기화 (bodyPartOrder와 currentBodyPartIndex는 유지)
-      for (let i = 0; i < this.gridSize; i++) {
-        for (let j = 0; j < this.gridSize; j++) {
-          this.soapingGrid[i][j] = false;
-        }
-      }
-      this.bubbles = [];
-      console.log(`다음 부위: ${this.bodyPartOrder[this.currentBodyPartIndex]}`);
+    const parts = Object.values(SoapingPart);
+    const currentIndex = parts.indexOf(this.currentSoapingPart);
+    if (currentIndex < parts.length - 1) {
+      this.currentSoapingPart = parts[currentIndex + 1];
+      this.initSoapingGrid();
     } else {
-      console.log("모든 부위 비누칠 완료!");
-      this.gameState = "rinsing";
-      this.initRinsing();
+      console.log("비누칠 완료!");
     }
   }
   drawRoom() {
@@ -597,14 +504,8 @@ class Game {
     this.ctx.lineTo(centerX - 60, centerY + 10);
     this.ctx.closePath();
     this.ctx.fill();
-    if (this.gameState === "soaping") {
-      this.canvas.style.cursor = "default";
-    } else if (this.isDragging) {
+    if (this.isDragging) {
       this.canvas.style.cursor = "grabbing";
-    } else if (this.gameState === "sleeping" && 
-               this.blanketX > -150 && this.blanketX < 150 && 
-               this.blanketY > -150 && this.blanketY < 150) {
-      this.canvas.style.cursor = "grab";
     } else {
       this.canvas.style.cursor = "default";
     }
@@ -712,115 +613,6 @@ class Game {
       this.drawBathroomCharacter(showerX, this.height * 0.8);
     }
   }
-  drawRinsingInstruction() {
-    // 이제 사용하지 않음
-  }
-  
-  drawRinsing() {
-    this.drawBathroom();
-    
-    // 샤워기 아래 캐릭터
-    const showerX = this.width * 0.8;
-    this.drawBathroomCharacter(showerX, this.height * 0.8);
-    
-    // 거품 표시
-    const centerX = showerX;
-    const baseY = this.height * 0.8 - 180;
-    
-    // 각 부위에 거품 그리기
-    this.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-    if (this.foamStatus['머리'] > 0) {
-      this.drawFoam(centerX, baseY - 50, 30);
-    }
-    if (this.foamStatus['가슴'] > 0) {
-      this.drawFoam(centerX, baseY, 40);
-    }
-    if (this.foamStatus['팔'] > 0) {
-      this.drawFoam(centerX - 40, baseY + 20, 20);
-      this.drawFoam(centerX + 40, baseY + 20, 20);
-    }
-    if (this.foamStatus['배'] > 0) {
-      this.drawFoam(centerX, baseY + 50, 35);
-    }
-    if (this.foamStatus['등'] > 0) {
-      // 등은 가슴 뒤쪽에 그림
-      this.ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-      this.drawFoam(centerX - 10, baseY - 10, 30);
-      this.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-    }
-    if (this.foamStatus['다리'] > 0) {
-      this.drawFoam(centerX - 20, baseY + 100, 25);
-      this.drawFoam(centerX + 20, baseY + 100, 25);
-    }
-    if (this.foamStatus['발'] > 0) {
-      this.drawFoam(centerX - 20, baseY + 150, 15);
-      this.drawFoam(centerX + 20, baseY + 150, 15);
-    }
-    
-    // 거품이 흘러내리는 애니메이션 효과
-    const flowProgress = (this.foamFlowTimer % 1000) / 1000;
-    this.ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
-    
-    // 머리에서 가슴으로 흐르는 거품
-    if (this.foamStatus['머리'] > 0) {
-      const flowY = (baseY - 50) + ((baseY) - (baseY - 50)) * flowProgress;
-      this.drawSmallFoam(centerX, flowY, 10);
-    }
-    
-    // 가슴에서 배로 흐르는 거품
-    if (this.foamStatus['가슴'] > 0) {
-      const flowY = baseY + (baseY + 50 - baseY) * flowProgress;
-      this.drawSmallFoam(centerX, flowY, 10);
-    }
-    
-    // 배에서 다리로 흐르는 거품
-    if (this.foamStatus['배'] > 0) {
-      const flowY = (baseY + 50) + ((baseY + 100) - (baseY + 50)) * flowProgress;
-      this.drawSmallFoam(centerX, flowY, 10);
-    }
-    
-    // 안내 텍스트
-    this.ctx.fillStyle = "#000000";
-    this.ctx.font = "20px Arial";
-    this.ctx.textAlign = "center";
-    this.ctx.fillText("마우스를 클릭해서 거품을 헹구세요!", this.width / 2, this.height - 30);
-    
-    // 완료 체크
-    const allRinsed = Object.values(this.foamStatus).every(status => status === 0);
-    if (allRinsed) {
-      console.log("헹구기 완료!");
-      // TODO: 다음 단계로
-    }
-  }
-  
-  drawFoam(x, y, size) {
-    for (let i = 0; i < 5; i++) {
-      const offsetX = (Math.random() - 0.5) * size;
-      const offsetY = (Math.random() - 0.5) * size;
-      const bubbleSize = Math.random() * 10 + 5;
-      
-      this.ctx.beginPath();
-      this.ctx.arc(x + offsetX, y + offsetY, bubbleSize, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.strokeStyle = "rgba(200, 200, 200, 0.5)";
-      this.ctx.stroke();
-    }
-  }
-  
-  drawSmallFoam(x, y, size) {
-    // 흘러내리는 작은 거품들
-    for (let i = 0; i < 3; i++) {
-      const offsetX = (Math.random() - 0.5) * size;
-      const bubbleSize = Math.random() * 5 + 3;
-      
-      this.ctx.beginPath();
-      this.ctx.arc(x + offsetX, y, bubbleSize, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.strokeStyle = "rgba(200, 200, 200, 0.3)";
-      this.ctx.stroke();
-    }
-  }
-  
   drawSoaping() {
     this.ctx.fillStyle = "#F0F8FF";
     this.ctx.fillRect(0, 0, this.width, this.height);
@@ -887,11 +679,6 @@ class Game {
       case "등":
         this.ctx.strokeRect(centerX - 50, centerY - 60, 100, 120);
         break;
-      case "다리":
-        this.ctx.beginPath();
-        this.ctx.rect(centerX - 30, centerY - 40, 60, 100);
-        this.ctx.stroke();
-        break;
       case "발":
         this.ctx.beginPath();
         this.ctx.ellipse(centerX, centerY, 40, 60, 0, 0, Math.PI * 2);
@@ -916,14 +703,11 @@ class Game {
         }
       }
     }
+    this.ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
     this.bubbles.forEach((bubble) => {
-      this.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      this.ctx.strokeStyle = "rgba(150, 150, 200, 0.6)";
-      this.ctx.lineWidth = 1;
       this.ctx.beginPath();
       this.ctx.arc(bubble.x, bubble.y, bubble.size, 0, Math.PI * 2);
       this.ctx.fill();
-      this.ctx.stroke();
     });
     this.ctx.fillStyle = "#000000";
     this.ctx.font = "18px Arial";
@@ -1055,10 +839,6 @@ class Game {
       this.drawWettingBody();
     } else if (this.gameState === "soaping" /* SOAPING */) {
       this.drawSoaping();
-    } else if (this.gameState === "rinsing_instruction") {
-      this.drawRinsingInstruction();
-    } else if (this.gameState === "rinsing") {
-      this.drawRinsing();
     } else {
       this.drawRoom();
       this.drawBed();
