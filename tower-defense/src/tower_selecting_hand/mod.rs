@@ -2,9 +2,8 @@ mod get_highest_tower;
 mod tower_preview;
 
 use crate::{
-    card::Card,
     game_state::{
-        flow::GameFlow,
+        hand::{HAND_WH, HandComponent, HandSlotId},
         mutate_game_state,
         quest::{QuestTriggerEvent, on_quest_trigger_event},
     },
@@ -13,40 +12,30 @@ use crate::{
 };
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
-use namui_prebuilt::{button, table, typography};
-use std::iter::once;
+use namui_prebuilt::{button, table};
 use tower_preview::TowerPreview;
 
-const HAND_HEIGHT: Px = px(160.);
-const CARD_WIDTH: Px = px(120.);
 const PADDING: Px = px(4.);
 
-pub struct TowerSelectingHand<'a> {
+pub struct TowerSelectingHand {
     pub screen_wh: Wh<Px>,
-    pub cards: &'a [Card],
 }
-impl Component for TowerSelectingHand<'_> {
+impl Component for TowerSelectingHand {
     fn render(self, ctx: &RenderCtx) {
-        let Self { screen_wh, cards } = self;
+        let Self { screen_wh } = self;
 
         let game_state = crate::game_state::use_game_state(ctx);
-        let (selected, set_selected) = ctx.state(|| [false, false, false, false, false]);
-        let some_selected = ctx.memo(|| selected.iter().any(|selected| *selected));
+        let selected_hand_slot_ids = {
+            let selected_hand_slot_ids = game_state.hand.selected_slot_ids();
+            ctx.track_eq(&selected_hand_slot_ids)
+        };
+        let some_selected = ctx.memo(|| !selected_hand_slot_ids.is_empty());
         let using_cards = ctx.memo(|| {
-            let selected_cards = cards
-                .iter()
-                .zip(selected.iter())
-                .filter_map(|(card, selected)| {
-                    if *selected {
-                        return Some(*card);
-                    }
-                    None
-                })
-                .collect::<Vec<_>>();
+            let selected_cards = game_state.hand.selected_cards();
             if !selected_cards.is_empty() {
                 return selected_cards;
             }
-            cards.to_vec()
+            game_state.hand.all_cards()
         });
         let tower_template = ctx.memo(|| {
             get_highest_tower_template(
@@ -57,38 +46,30 @@ impl Component for TowerSelectingHand<'_> {
         });
 
         let reroll_selected = || {
-            if game_state.left_reroll_chance == 0 || selected.is_empty() {
+            if game_state.left_reroll_chance == 0 || selected_hand_slot_ids.is_empty() {
                 return;
             }
-            let selected = selected.clone_inner();
+            let selected_hand_slot_ids = selected_hand_slot_ids.clone_inner();
             mutate_game_state(move |game_state| {
-                if game_state.left_reroll_chance == 0 {
+                if game_state.left_reroll_chance == 0 || selected_hand_slot_ids.is_empty() {
                     return;
                 }
-                let GameFlow::SelectingTower { cards } = &mut game_state.flow else {
-                    return;
-                };
-                for (index, selected) in selected.iter().enumerate() {
-                    if !selected {
-                        continue;
-                    }
-                    cards[index] = Card::new_random();
-                }
+                let select_count = selected_hand_slot_ids.len();
+                game_state.hand.delete_slots(&selected_hand_slot_ids);
+                game_state.hand.add_random_cards(select_count);
                 game_state.left_reroll_chance -= 1;
                 game_state.rerolled_count += 1;
-
                 on_quest_trigger_event(game_state, QuestTriggerEvent::Reroll);
-            });
-            set_selected.mutate(move |set_selected| {
-                set_selected
-                    .iter_mut()
-                    .for_each(|selected| *selected = false);
             });
         };
 
-        let toggle_selected = |index: usize| {
-            set_selected.mutate(move |selected| {
-                selected[index] = !selected[index];
+        let on_card_click = |id: HandSlotId| {
+            mutate_game_state(move |game_state| {
+                if game_state.hand.selected_slot_ids().contains(&id) {
+                    game_state.hand.deselect_slot(id);
+                } else {
+                    game_state.hand.select_slot(id);
+                }
             });
         };
 
@@ -102,120 +83,40 @@ impl Component for TowerSelectingHand<'_> {
             table::vertical([
                 table::ratio_no_clip(1, |_, _| {}),
                 table::fixed_no_clip(
-                    HAND_HEIGHT,
-                    table::horizontal(
-                        once(table::ratio_no_clip(1, |_, _| {}))
-                            .chain(once(table::fixed_no_clip(
-                                HAND_HEIGHT,
-                                table::padding_no_clip(PADDING, |wh, ctx| {
-                                    ctx.add(TowerPreview {
-                                        wh,
-                                        tower_template: &tower_template,
-                                    });
-                                }),
-                            )))
-                            .chain(cards.iter().zip(selected.iter()).enumerate().map(
-                                |(index, (card, selected))| {
-                                    table::fixed(
-                                        CARD_WIDTH,
-                                        table::padding(PADDING, move |wh, ctx| {
-                                            ctx.add(RenderCard {
-                                                card: *card,
-                                                wh,
-                                                selected: *selected,
-                                                on_click: &|| {
-                                                    toggle_selected(index);
-                                                },
-                                            });
-                                        }),
-                                    )
-                                },
-                            ))
-                            .chain(once(table::fixed(
-                                HAND_HEIGHT,
-                                table::padding(PADDING, |wh, ctx| {
-                                    ctx.add(InteractionArea {
-                                        wh,
-                                        some_selected: *some_selected,
-                                        reroll_selected: &reroll_selected,
-                                        use_tower: &use_tower,
-                                    });
-                                }),
-                            )))
-                            .chain(once(table::ratio(1, |_, _| {}))),
-                    ),
+                    HAND_WH.height,
+                    table::horizontal([
+                        table::ratio_no_clip(1, |_, _| {}),
+                        table::fixed_no_clip(
+                            HAND_WH.height,
+                            table::padding_no_clip(PADDING, |wh, ctx| {
+                                ctx.add(TowerPreview {
+                                    wh,
+                                    tower_template: &tower_template,
+                                });
+                            }),
+                        ),
+                        table::fixed(HAND_WH.width, |_wh, ctx| {
+                            ctx.add(HandComponent {
+                                hand: &game_state.hand,
+                                on_click: &on_card_click,
+                            });
+                        }),
+                        table::fixed(
+                            HAND_WH.height,
+                            table::padding(PADDING, |wh, ctx| {
+                                ctx.add(InteractionArea {
+                                    wh,
+                                    some_selected: *some_selected,
+                                    reroll_selected: &reroll_selected,
+                                    use_tower: &use_tower,
+                                });
+                            }),
+                        ),
+                        table::ratio_no_clip(1, |_, _| {}),
+                    ]),
                 ),
             ])(screen_wh, ctx);
         });
-    }
-}
-
-struct RenderCard<'a> {
-    card: Card,
-    wh: Wh<Px>,
-    selected: bool,
-    on_click: &'a dyn Fn(),
-}
-impl Component for RenderCard<'_> {
-    fn render(self, ctx: &RenderCtx) {
-        let Self {
-            card,
-            wh,
-            selected,
-            on_click,
-        } = self;
-
-        ctx.compose(|ctx| {
-            ctx.translate(Xy::single(PADDING * 3.))
-                .add(typography::title::left_top(
-                    format!("{} {}", card.suit, card.rank,),
-                    palette::ON_SURFACE,
-                ));
-        });
-
-        ctx.add(rect(RectParam {
-            rect: Rect::from_xy_wh(Xy::single(PADDING * 2.), wh - Wh::single(PADDING * 4.0)),
-            style: RectStyle {
-                stroke: None,
-                fill: Some(RectFill {
-                    color: palette::SURFACE_CONTAINER,
-                }),
-                round: Some(RectRound {
-                    radius: palette::ROUND,
-                }),
-            },
-        }));
-
-        ctx.add(
-            rect(RectParam {
-                rect: wh.to_rect(),
-                style: RectStyle {
-                    stroke: Some(RectStroke {
-                        color: palette::OUTLINE,
-                        width: 1.px(),
-                        border_position: BorderPosition::Inside,
-                    }),
-                    fill: Some(RectFill {
-                        color: match selected {
-                            true => palette::PRIMARY,
-                            false => palette::SURFACE_CONTAINER_HIGH,
-                        },
-                    }),
-                    round: Some(RectRound {
-                        radius: palette::ROUND,
-                    }),
-                },
-            })
-            .attach_event(|event| {
-                let Event::MouseDown { event } = event else {
-                    return;
-                };
-                if !event.is_local_xy_in() {
-                    return;
-                }
-                on_click();
-            }),
-        );
     }
 }
 

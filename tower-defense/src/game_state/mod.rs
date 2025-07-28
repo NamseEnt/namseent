@@ -6,6 +6,7 @@ pub mod fast_forward;
 mod field_area_effect;
 pub mod field_particle;
 pub mod flow;
+pub mod hand;
 pub mod item;
 mod level_rarity_weight;
 mod monster;
@@ -93,6 +94,7 @@ pub struct GameState {
     pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
     status_effect_particle_generator: StatusEffectParticleGenerator,
     pub locale: crate::l10n::Locale,
+    pub hand: hand::Hand,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -190,7 +192,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
             backgrounds: generate_backgrounds(),
             upgrade_state: Default::default(),
-            flow: GameFlow::new_selecting_tower(),
+            flow: GameFlow::Initializing,
             stage: 1,
             left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::Idle,
@@ -251,6 +253,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
             locale: crate::l10n::Locale::ENGLISH,
+            hand: Default::default(),
         };
 
         game_state.goto_selecting_tower();

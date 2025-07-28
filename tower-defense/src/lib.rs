@@ -107,10 +107,10 @@ impl Component for Game {
         });
 
         ctx.compose(|ctx| {
-            let GameFlow::SelectingTower { cards } = &game_state.flow else {
+            if !matches!(&game_state.flow, GameFlow::SelectingTower) {
                 return;
             };
-            ctx.add(TowerSelectingHand { screen_wh, cards });
+            ctx.add(TowerSelectingHand { screen_wh });
 
             let in_even_stage = game_state.in_even_stage();
 

@@ -87,7 +87,7 @@ pub fn random_rank() -> Rank {
     REVERSED_RANKS[rand::thread_rng().gen_range(0..8)]
 }
 
-#[derive(Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Eq, Debug, PartialEq, Hash, Clone, Copy)]
 pub struct Card {
     pub suit: Suit,
     pub rank: Rank,
