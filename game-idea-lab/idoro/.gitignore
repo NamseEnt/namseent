@@ -37,3 +37,7 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Character source images
+스탠딩CG/
+신스탠딩CG/

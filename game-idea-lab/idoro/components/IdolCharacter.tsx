@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -9,6 +9,9 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import type { IdolState } from '@/types';
+import { CHARACTER_IMAGES } from '@/constants/characters';
+
+const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 interface IdolCharacterProps {
   state: IdolState;
@@ -94,31 +97,28 @@ export default function IdolCharacter({ state, playerName }: IdolCharacterProps)
     };
   });
 
+  const characterImage = CHARACTER_IMAGES.하연[state] || CHARACTER_IMAGES.하연.idle;
+
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.idolContainer, animatedStyle]}>
-        <View style={styles.idolBody}>
-          <View style={styles.idolHead}>
-            <View style={styles.eye} />
-            <View style={styles.eye} />
-            <View style={styles.mouth} />
-          </View>
-          <Text style={styles.idolText}>♪</Text>
-        </View>
-      </Animated.View>
+      <AnimatedImage 
+        source={characterImage}
+        style={[styles.characterImage, animatedStyle]}
+        resizeMode="contain"
+      />
       {state === 'idle' && playerName && (
         <Text style={styles.idleMessage}>
-          {playerName}님을 기다리고 있어요!
+          {playerName}님! 오늘도 함께 연습해요~
         </Text>
       )}
       {state === 'focusing' && (
         <Text style={styles.focusMessage}>
-          열심히 집중하는 중...
+          열심히 연습하는 중...💪
         </Text>
       )}
       {state === 'resting' && (
         <Text style={styles.restMessage}>
-          수고했어요! ✨
+          수고했어요! 정말 멋졌어요! ✨
         </Text>
       )}
     </View>
@@ -129,58 +129,11 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 400,
   },
-  idolContainer: {
-    width: 200,
-    height: 300,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  idolBody: {
-    width: 150,
-    height: 200,
-    backgroundColor: '#FFE4E1',
-    borderRadius: 75,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  idolHead: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#FFF',
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    flexDirection: 'row',
-  },
-  eye: {
-    width: 10,
-    height: 10,
-    backgroundColor: '#333',
-    borderRadius: 5,
-    marginHorizontal: 15,
-    marginTop: -10,
-  },
-  mouth: {
-    width: 20,
-    height: 10,
-    backgroundColor: '#FF69B4',
-    borderRadius: 10,
-    position: 'absolute',
-    bottom: 30,
-  },
-  idolText: {
-    fontSize: 24,
-    color: '#FF69B4',
+  characterImage: {
+    width: 300,
+    height: 400,
   },
   idleMessage: {
     marginTop: 20,
