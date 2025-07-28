@@ -73,14 +73,22 @@ export default function SessionResultScreen() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getSuccessMessage = () => {
+  const [successMessage] = useState(() => {
     const message = SUCCESS_MESSAGES[Math.floor(Math.random() * SUCCESS_MESSAGES.length)];
-    return message.replace('{name}', playerName);
+    return message;
+  });
+
+  const getSuccessMessage = () => {
+    return successMessage.replace('{name}', playerName);
   };
 
-  const getFailureMessage = () => {
+  const [failureMessage] = useState(() => {
     const message = FAILURE_MESSAGES[Math.floor(Math.random() * FAILURE_MESSAGES.length)];
-    return message.replace('{name}', playerName);
+    return message;
+  });
+
+  const getFailureMessage = () => {
+    return failureMessage.replace('{name}', playerName);
   };
 
   if (isSuccess) {
