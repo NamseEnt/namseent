@@ -59,15 +59,9 @@ export default function SessionResultScreen() {
   }, [goToHome]);
 
   const goToHome = useCallback(() => {
-    router.replace('/(tabs)/');
+    router.replace('/');
   }, [router]);
 
-  const skipRest = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    goToHome();
-  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -122,13 +116,6 @@ export default function SessionResultScreen() {
                 <Text style={styles.restTimer}>{formatTime(timeLeft)}</Text>
               </View>
 
-              <TouchableOpacity
-                style={styles.skipButton}
-                onPress={skipRest}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.skipButtonText}>휴식 건너뛰기</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </SafeAreaView>
@@ -246,18 +233,6 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: '#D2691E',
-  },
-  skipButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#DDA0DD',
-  },
-  skipButtonText: {
-    fontSize: 16,
-    color: '#8B4513',
   },
   confirmButton: {
     borderRadius: 25,
