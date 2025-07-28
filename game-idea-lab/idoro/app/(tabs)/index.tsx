@@ -1,75 +1,181 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import NameInputModal from '@/components/NameInputModal';
+import IdolCharacter from '@/components/IdolCharacter';
+import { getPlayerName, setPlayerName, getCheerPower } from '@/utils/storage';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const [playerName, setPlayerNameState] = useState<string | null>(null);
+  const [cheerPower, setCheerPower] = useState<number>(0);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    const savedName = await getPlayerName();
+    const savedPower = await getCheerPower();
+    
+    if (savedName) {
+      setPlayerNameState(savedName);
+    } else {
+      setShowNameModal(true);
+    }
+    
+    setCheerPower(savedPower);
+    setIsLoading(false);
+  };
+
+  const handleNameSubmit = async (name: string) => {
+    const success = await setPlayerName(name);
+    if (success) {
+      setPlayerNameState(name);
+      setShowNameModal(false);
+    }
+  };
+
+  const handleStartFocus = () => {
+    router.push('/focus-session');
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor }]}>
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: textColor }]}>로딩 중...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <LinearGradient
+      colors={['#E8F4FF', '#FFE4E1']}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <View style={styles.cheerPowerContainer}>
+              <Text style={styles.cheerPowerLabel}>응원력</Text>
+              <View style={styles.cheerPowerValueContainer}>
+                <Text style={styles.cheerPowerValue}>{cheerPower}</Text>
+                <Text style={styles.cheerPowerUnit}>점</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.centerContent}>
+            <IdolCharacter state="idle" playerName={playerName || undefined} />
+          </View>
+
+          <View style={styles.bottomContent}>
+            <TouchableOpacity 
+              style={styles.startButton}
+              onPress={handleStartFocus}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#5BA3F5', '#4A90E2']}
+                style={styles.startButtonGradient}
+              >
+                <Text style={styles.startButtonText}>집중 시작</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <NameInputModal
+          visible={showNameModal}
+          onSubmit={handleNameSubmit}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  loadingText: {
+    fontSize: 16,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  header: {
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  cheerPowerContainer: {
+    alignItems: 'flex-end',
+  },
+  cheerPowerLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  cheerPowerValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  cheerPowerValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+  },
+  cheerPowerUnit: {
+    fontSize: 16,
+    color: '#666',
+    marginLeft: 4,
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bottomContent: {
+    paddingBottom: 40,
+  },
+  startButton: {
+    borderRadius: 30,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 5.84,
+    elevation: 8,
+  },
+  startButtonGradient: {
+    paddingVertical: 18,
+    paddingHorizontal: 60,
+    alignItems: 'center',
+  },
+  startButtonText: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });
