@@ -8,9 +8,10 @@ import Animated, {
   withSequence,
   Easing,
 } from 'react-native-reanimated';
+import type { IdolState } from '@/types';
 
 interface IdolCharacterProps {
-  state: 'idle' | 'focusing' | 'resting';
+  state: IdolState;
   playerName?: string;
 }
 

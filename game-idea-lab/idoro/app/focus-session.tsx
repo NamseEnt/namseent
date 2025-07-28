@@ -13,22 +13,26 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import IdolCharacter from '@/components/IdolCharacter';
 import { getCheerPower, setCheerPower } from '@/utils/storage';
-
-const FOCUS_DURATION = 30; // 30 seconds for testing (originally 25 * 60)
-const CHEER_POWER_PER_MINUTE = 10;
+import { GAME_CONFIG } from '@/constants/game';
 
 export default function FocusSessionScreen() {
   const router = useRouter();
-  const [timeLeft, setTimeLeft] = useState(FOCUS_DURATION);
+  const [timeLeft, setTimeLeft] = useState(GAME_CONFIG.FOCUS_DURATION);
   const [cheerPower, setCheerPowerState] = useState(0);
   const [earnedPower, setEarnedPower] = useState(0);
   const appStateRef = useRef(AppState.currentState);
   const startTimeRef = useRef(Date.now());
   const intervalRef = useRef<NodeJS.Timeout>();
+  const cheerPowerRef = useRef(0);
+
+  // Update ref when cheerPower changes
+  useEffect(() => {
+    cheerPowerRef.current = cheerPower;
+  }, [cheerPower]);
 
   const handleSuccess = useCallback(async () => {
-    const totalEarned = Math.floor((FOCUS_DURATION / 60) * CHEER_POWER_PER_MINUTE);
-    const newTotal = cheerPower + totalEarned;
+    const totalEarned = Math.floor((GAME_CONFIG.FOCUS_DURATION / 60) * GAME_CONFIG.CHEER_POWER_PER_MINUTE);
+    const newTotal = cheerPowerRef.current + totalEarned;
     await setCheerPower(newTotal);
     
     router.replace({
@@ -39,31 +43,33 @@ export default function FocusSessionScreen() {
         totalPower: newTotal.toString()
       }
     });
-  }, [cheerPower, router]);
+  }, [router]);
 
   const startTimer = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
 
+    startTimeRef.current = Date.now();
+    
     intervalRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-          }
-          handleSuccess();
-          return 0;
-        }
-        return prev - 1;
-      });
-
-      // Update earned power
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const remaining = Math.max(0, GAME_CONFIG.FOCUS_DURATION - elapsed);
+      
+      setTimeLeft(remaining);
+      
+      // Update earned power
       const minutesElapsed = elapsed / 60;
-      const earned = Math.floor(minutesElapsed * CHEER_POWER_PER_MINUTE);
+      const earned = Math.floor(minutesElapsed * GAME_CONFIG.CHEER_POWER_PER_MINUTE);
       setEarnedPower(earned);
-    }, 1000);
+      
+      if (remaining === 0) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+        handleSuccess();
+      }
+    }, GAME_CONFIG.TIMER_UPDATE_INTERVAL);
   }, [handleSuccess]);
 
   const loadCheerPower = async () => {
@@ -78,7 +84,7 @@ export default function FocusSessionScreen() {
     ) {
       // App has come to the foreground
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      const newTimeLeft = Math.max(0, FOCUS_DURATION - elapsed);
+      const newTimeLeft = Math.max(0, GAME_CONFIG.FOCUS_DURATION - elapsed);
       setTimeLeft(newTimeLeft);
       
       if (newTimeLeft > 0) {
@@ -122,9 +128,9 @@ export default function FocusSessionScreen() {
               clearInterval(intervalRef.current);
             }
             
-            // Give partial reward (50% of earned power)
-            const partialReward = Math.floor(earnedPower * 0.5);
-            const newTotal = cheerPower + partialReward;
+            // Give partial reward
+            const partialReward = Math.floor(earnedPower * GAME_CONFIG.PARTIAL_REWARD_RATIO);
+            const newTotal = cheerPowerRef.current + partialReward;
             await setCheerPower(newTotal);
             
             router.replace({

@@ -10,19 +10,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import IdolCharacter from '@/components/IdolCharacter';
 import { getPlayerName } from '@/utils/storage';
-
-const REST_DURATION = 30; // 30 seconds for testing (originally 5 * 60)
+import { GAME_CONFIG, SUCCESS_MESSAGES, FAILURE_MESSAGES } from '@/constants/game';
+import type { SessionParams } from '@/types';
 
 export default function SessionResultScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<SessionParams>();
   const isSuccess = params.success === 'true';
-  const earnedPower = params.earnedPower ? parseInt(params.earnedPower as string) : 0;
-  const totalPower = params.totalPower ? parseInt(params.totalPower as string) : 0;
+  const earnedPower = params.earnedPower ? parseInt(params.earnedPower) : 0;
+  const totalPower = params.totalPower ? parseInt(params.totalPower) : 0;
   
-  const [timeLeft, setTimeLeft] = useState(REST_DURATION);
+  const [timeLeft, setTimeLeft] = useState(GAME_CONFIG.REST_DURATION);
   const [playerName, setPlayerName] = useState<string>('');
   const intervalRef = useRef<NodeJS.Timeout>();
+  const startTimeRef = useRef(Date.now());
 
   useEffect(() => {
     loadPlayerName();
@@ -44,18 +45,21 @@ export default function SessionResultScreen() {
   };
 
   const startRestTimer = useCallback(() => {
+    startTimeRef.current = Date.now();
+    
     intervalRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-          }
-          goToHome();
-          return 0;
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const remaining = Math.max(0, GAME_CONFIG.REST_DURATION - elapsed);
+      
+      setTimeLeft(remaining);
+      
+      if (remaining === 0) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
         }
-        return prev - 1;
-      });
-    }, 1000);
+        goToHome();
+      }
+    }, GAME_CONFIG.TIMER_UPDATE_INTERVAL);
   }, [goToHome]);
 
   const goToHome = useCallback(() => {
@@ -70,23 +74,13 @@ export default function SessionResultScreen() {
   };
 
   const getSuccessMessage = () => {
-    const messages = [
-      `${playerName}님, 대단해요! 덕분에 저도 힘내서 연습했어요!`,
-      `${playerName}님과 함께라면 뭐든 할 수 있을 것 같아요!`,
-      `${playerName}님의 집중력, 정말 멋져요! 저도 배우고 싶어요.`,
-      `${playerName}님, 오늘도 함께해줘서 고마워요!`,
-    ];
-    return messages[Math.floor(Math.random() * messages.length)];
+    const message = SUCCESS_MESSAGES[Math.floor(Math.random() * SUCCESS_MESSAGES.length)];
+    return message.replace('{name}', playerName);
   };
 
   const getFailureMessage = () => {
-    const messages = [
-      `${playerName}님, 괜찮아요. 쉬었다가 다시 해요!`,
-      `${playerName}님도 힘드셨구나... 잠깐 쉬어요.`,
-      `${playerName}님, 다음엔 더 잘할 수 있을 거예요!`,
-      `${playerName}님의 건강이 더 중요해요. 무리하지 마세요.`,
-    ];
-    return messages[Math.floor(Math.random() * messages.length)];
+    const message = FAILURE_MESSAGES[Math.floor(Math.random() * FAILURE_MESSAGES.length)];
+    return message.replace('{name}', playerName);
   };
 
   if (isSuccess) {
