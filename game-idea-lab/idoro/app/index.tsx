@@ -7,6 +7,7 @@ import NameInputModal from '@/components/NameInputModal';
 import IdolCharacter from '@/components/IdolCharacter';
 import CollectiveGoalProgress from '@/components/CollectiveGoalProgress';
 import GoalAchievementCelebration from '@/components/GoalAchievementCelebration';
+import TimeCapsuleTimeline from '@/components/TimeCapsuleTimeline';
 import { getPlayerName, setPlayerName, getCheerPower } from '@/utils/storage';
 import { virtualUsersManager } from '@/utils/virtualUsers';
 
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeUserCount, setActiveUserCount] = useState<number>(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showTimelineReaction, setShowTimelineReaction] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -36,8 +38,17 @@ export default function HomeScreen() {
     // 초기 카운트 설정
     setActiveUserCount(virtualUsersManager.getActiveUserCount());
     
+    // 타임라인 반응을 주기적으로 보여주기
+    const reactionInterval = setInterval(() => {
+      if (Math.random() < 0.3) { // 30% 확률로 반응
+        setShowTimelineReaction(true);
+        setTimeout(() => setShowTimelineReaction(false), 5000); // 5초 후 원래대로
+      }
+    }, 20000); // 20초마다 체크
+    
     return () => {
       clearInterval(updateInterval);
+      clearInterval(reactionInterval);
       virtualUsersManager.stopSimulation();
     };
   }, []);
@@ -109,7 +120,11 @@ export default function HomeScreen() {
           )}
 
           <View style={styles.centerContent}>
-            <IdolCharacter state="idle" playerName={playerName || undefined} />
+            <IdolCharacter 
+              state="idle" 
+              playerName={playerName || undefined}
+              showTimelineReaction={showTimelineReaction}
+            />
             
             {activeUserCount > 0 && (
               <View style={styles.activeUsersContainer}>
@@ -119,6 +134,8 @@ export default function HomeScreen() {
               </View>
             )}
           </View>
+
+          <TimeCapsuleTimeline />
 
           <View style={styles.bottomContent}>
             <TouchableOpacity 

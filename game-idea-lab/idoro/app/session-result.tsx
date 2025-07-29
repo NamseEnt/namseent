@@ -9,8 +9,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import IdolCharacter from '@/components/IdolCharacter';
+import TimeCapsuleMessageModal from '@/components/TimeCapsuleMessageModal';
 import { getPlayerName } from '@/utils/storage';
 import { GAME_CONFIG, SUCCESS_MESSAGES, FAILURE_MESSAGES } from '@/constants/game';
+import { timeCapsuleManager } from '@/utils/timeCapsule';
 import type { SessionParams } from '@/types';
 
 export default function SessionResultScreen() {
@@ -22,6 +24,7 @@ export default function SessionResultScreen() {
   
   const [timeLeft, setTimeLeft] = useState(GAME_CONFIG.REST_DURATION);
   const [playerName, setPlayerName] = useState<string>('');
+  const [showMessageModal, setShowMessageModal] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout>();
   const startTimeRef = useRef(Date.now());
 
@@ -30,6 +33,8 @@ export default function SessionResultScreen() {
     
     if (isSuccess) {
       startRestTimer();
+      // 성공 시 메시지 모달 표시
+      setShowMessageModal(true);
     }
 
     return () => {
@@ -65,6 +70,15 @@ export default function SessionResultScreen() {
   const goToHome = useCallback(() => {
     router.replace('/');
   }, [router]);
+
+  const handleMessageSubmit = async (message: string) => {
+    await timeCapsuleManager.addUserMessage(message, playerName);
+    setShowMessageModal(false);
+  };
+
+  const handleMessageSkip = () => {
+    setShowMessageModal(false);
+  };
 
 
   const formatTime = (seconds: number) => {
@@ -121,6 +135,13 @@ export default function SessionResultScreen() {
             </View>
           </View>
         </SafeAreaView>
+        
+        <TimeCapsuleMessageModal
+          visible={showMessageModal}
+          onSubmit={handleMessageSubmit}
+          onSkip={handleMessageSkip}
+          playerName={playerName}
+        />
       </LinearGradient>
     );
   }

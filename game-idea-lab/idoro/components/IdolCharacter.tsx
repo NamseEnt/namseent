@@ -16,9 +16,10 @@ const AnimatedImage = Animated.createAnimatedComponent(Image);
 interface IdolCharacterProps {
   state: IdolState;
   playerName?: string;
+  showTimelineReaction?: boolean;
 }
 
-export default function IdolCharacter({ state, playerName }: IdolCharacterProps) {
+export default function IdolCharacter({ state, playerName, showTimelineReaction }: IdolCharacterProps) {
   const breathingScale = useSharedValue(1);
   const floatY = useSharedValue(0);
   const rotation = useSharedValue(0);
@@ -106,9 +107,14 @@ export default function IdolCharacter({ state, playerName }: IdolCharacterProps)
         style={[styles.characterImage, animatedStyle]}
         resizeMode="contain"
       />
-      {state === 'idle' && playerName && (
+      {state === 'idle' && playerName && !showTimelineReaction && (
         <Text style={styles.idleMessage}>
           {playerName}님! 오늘도 함께 연습해요~
+        </Text>
+      )}
+      {state === 'idle' && showTimelineReaction && (
+        <Text style={styles.timelineReactionMessage}>
+          와, 다들 정말 열심히네요! 논문 쓰시는 분, 저도 응원할게요!
         </Text>
       )}
       {state === 'focusing' && (
@@ -154,5 +160,14 @@ const styles = StyleSheet.create({
     color: '#FF6347',
     textAlign: 'center',
     fontWeight: 'bold',
+  },
+  timelineReactionMessage: {
+    marginTop: 20,
+    fontSize: 14,
+    color: '#9370DB',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingHorizontal: 20,
+    lineHeight: 20,
   },
 });
