@@ -96,7 +96,7 @@ impl Component for TowerSelectingHand {
                                 });
                             }),
                         ),
-                        table::fixed(HAND_WH.width, |_wh, ctx| {
+                        table::fixed_no_clip(HAND_WH.width, |_wh, ctx| {
                             ctx.add(HandComponent {
                                 hand: &game_state.hand,
                                 on_click: &on_card_click,
