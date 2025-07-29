@@ -13,7 +13,7 @@ use std::sync::atomic::AtomicUsize;
 
 static HAND_SLOT_ID: AtomicUsize = AtomicUsize::new(0);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct HandSlotId(usize);
 impl HandSlotId {
     pub fn new() -> Self {

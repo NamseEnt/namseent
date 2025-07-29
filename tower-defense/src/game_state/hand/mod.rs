@@ -17,11 +17,37 @@ use namui::*;
 pub const HAND_SLOT_WH: Wh<Px> = Wh::new(px(112.), px(152.));
 pub const HAND_WH: Wh<Px> = Wh::new(px(600.), px(160.));
 
+// 레이아웃 관련 상수들
+const DEFAULT_SLOT_GAP: Px = px(8.0);
+
+// 바리케이드 기본 템플릿
+const DEFAULT_BARRICADE_TEMPLATE: fn() -> TowerTemplate =
+    || TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Ace);
+
 #[derive(Default, Clone)]
 pub struct Hand {
     slots: Vec<HandSlot>,
 }
 impl Hand {
+    // 헬퍼 함수들
+    fn find_slot_by_id_mut(&mut self, id: HandSlotId) -> Option<&mut HandSlot> {
+        self.slots.iter_mut().find(|slot| slot.id == id)
+    }
+
+    fn find_slot_by_id(&self, id: HandSlotId) -> Option<&HandSlot> {
+        self.slots.iter().find(|slot| slot.id == id)
+    }
+
+    fn active_slots(&self) -> impl Iterator<Item = &HandSlot> {
+        self.slots
+            .iter()
+            .filter(|slot| slot.exit_animation.is_none())
+    }
+
+    fn create_barricade_template() -> TowerTemplate {
+        DEFAULT_BARRICADE_TEMPLATE()
+    }
+
     pub fn clear(&mut self) {
         // exit 애니메이션 중이지 않은 모든 슬롯들의 ID 수집
         let slot_ids_to_delete: Vec<HandSlotId> = self
@@ -48,13 +74,11 @@ impl Hand {
         tower_template: TowerTemplate,
         barricade_amount: usize,
     ) {
-        let barricade_template = TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Ace);
+        let barricade_template = Self::create_barricade_template();
         let mut tower_templates = vec![tower_template];
 
         // barricade_amount만큼 바리케이드 추가
-        for _ in 0..barricade_amount {
-            tower_templates.push(barricade_template.clone());
-        }
+        tower_templates.extend((0..barricade_amount).map(|_| barricade_template.clone()));
 
         let slots = tower_templates
             .into_iter()
@@ -106,7 +130,7 @@ impl Hand {
     }
 
     pub fn select_slot(&mut self, id: HandSlotId) {
-        if let Some(slot) = self.slots.iter_mut().find(|s| s.id == id) {
+        if let Some(slot) = self.find_slot_by_id_mut(id) {
             if slot.exit_animation.is_some() {
                 return; // exit 애니메이션 중인 슬롯은 선택 불가
             }
@@ -115,7 +139,7 @@ impl Hand {
     }
 
     pub fn deselect_slot(&mut self, id: HandSlotId) {
-        if let Some(slot) = self.slots.iter_mut().find(|s| s.id == id) {
+        if let Some(slot) = self.find_slot_by_id_mut(id) {
             slot.selected = false;
         }
     }
@@ -150,20 +174,84 @@ impl Hand {
     }
 
     pub fn get_tower_template_by_id(&self, id: HandSlotId) -> Option<&TowerTemplate> {
-        self.slots
-            .iter()
-            .find(|slot| slot.id == id)
+        self.find_slot_by_id(id)
             .and_then(|slot| slot.get_tower_template())
     }
 
     pub fn has_tower_slots(&self) -> bool {
-        self.slots
-            .iter()
-            .filter(|slot| slot.exit_animation.is_none()) // exit 애니메이션 중이지 않은 슬롯만
+        self.active_slots()
             .any(|slot| slot.get_tower_template().is_some())
     }
 
+    fn sort_slots(&mut self) {
+        self.slots.sort_by(Self::compare_slots);
+    }
+
+    fn compare_slots(a: &HandSlot, b: &HandSlot) -> std::cmp::Ordering {
+        use std::cmp::Ordering;
+
+        // exit 애니메이션 중인 슬롯은 뒤로 정렬
+        match (a.exit_animation.is_some(), b.exit_animation.is_some()) {
+            (true, false) => return Ordering::Greater,
+            (false, true) => return Ordering::Less,
+            _ => {}
+        }
+
+        // 카드와 타워 타입별 정렬
+        match (&a.slot_kind, &b.slot_kind) {
+            (HandSlotKind::Card { .. }, HandSlotKind::Tower { .. }) => Ordering::Less,
+            (HandSlotKind::Tower { .. }, HandSlotKind::Card { .. }) => Ordering::Greater,
+            (HandSlotKind::Card { card: card_a }, HandSlotKind::Card { card: card_b }) => {
+                // 카드끼리는 rank -> suit -> id 순으로 정렬
+                card_a
+                    .rank
+                    .cmp(&card_b.rank)
+                    .then_with(|| card_a.suit.cmp(&card_b.suit))
+                    .then_with(|| a.id.cmp(&b.id))
+            }
+            (
+                HandSlotKind::Tower {
+                    tower_template: tower_a,
+                },
+                HandSlotKind::Tower {
+                    tower_template: tower_b,
+                },
+            ) => {
+                // 타워끼리는 kind(역순) -> suit -> rank -> id 순으로 정렬
+                tower_b
+                    .kind
+                    .cmp(&tower_a.kind)
+                    .then_with(|| tower_a.suit.cmp(&tower_b.suit))
+                    .then_with(|| tower_a.rank.cmp(&tower_b.rank))
+                    .then_with(|| a.id.cmp(&b.id))
+            }
+        }
+    }
+
+    fn calculate_layout(slot_count: f32) -> (Px, Px) {
+        let slot_width = HAND_SLOT_WH.width;
+        let hand_width = HAND_WH.width;
+
+        let total_width_with_default_gap =
+            slot_width * slot_count + DEFAULT_SLOT_GAP * (slot_count - 1.0);
+
+        // 갭 계산: hand 너비를 넘으면 음수 갭 적용
+        let gap = if total_width_with_default_gap > hand_width {
+            (hand_width - slot_width * slot_count) / (slot_count - 1.0)
+        } else {
+            DEFAULT_SLOT_GAP
+        };
+
+        let total_width = slot_width * slot_count + gap * (slot_count - 1.0);
+        let start_x = (hand_width - total_width) / 2.0;
+
+        (start_x, gap)
+    }
+
     fn calculate_slot_xy(&mut self) {
+        // 먼저 슬롯들을 정렬
+        self.sort_slots();
+
         // exit 애니메이션이 진행 중이지 않은 슬롯들만 필터링
         let active_slots: Vec<(usize, &mut HandSlot)> = self
             .slots
@@ -176,24 +264,9 @@ impl Hand {
         if slot_count == 0 {
             return;
         }
-        let slot_count = slot_count as f32;
 
-        let default_gap = px(8.0);
+        let (start_x, gap) = Self::calculate_layout(slot_count as f32);
         let slot_width = HAND_SLOT_WH.width;
-        let hand_width = HAND_WH.width;
-
-        let total_width_with_default_gap =
-            slot_width * slot_count + default_gap * (slot_count - 1.0);
-
-        // 갭 계산: hand 너비를 넘으면 음수 갭 적용
-        let gap = if total_width_with_default_gap > hand_width {
-            (hand_width - slot_width * slot_count) / (slot_count - 1.0)
-        } else {
-            default_gap
-        };
-
-        let total_width = slot_width * slot_count + gap * (slot_count - 1.0);
-        let start_x = (hand_width - total_width) / 2.0;
 
         // 각 활성 슬롯의 xy 위치 계산 및 업데이트
         for (active_index, (_, slot)) in active_slots.into_iter().enumerate() {
