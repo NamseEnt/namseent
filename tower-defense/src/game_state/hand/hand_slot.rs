@@ -64,8 +64,19 @@ impl Component for &HandSlot {
             false => self.xy,
         };
         let animated_xy = xy_with_spring(ctx, target_xy, HAND_WH.to_xy());
+        let target_scale = match self.selected {
+            true => Xy::single(1.1),
+            false => Xy::single(1.0),
+        };
+        let animated_scale = xy_with_spring(ctx, target_scale, Xy::single(0.0));
 
-        let ctx = ctx.translate(animated_xy);
+        let half_slot_xy = HAND_SLOT_WH.to_xy() * 0.5;
+
+        let ctx = ctx
+            .translate(animated_xy)
+            .translate(half_slot_xy)
+            .scale(animated_scale)
+            .translate(-half_slot_xy);
         match self.slot_kind {
             HandSlotKind::Card { card } => {
                 ctx.add(RenderCard {
