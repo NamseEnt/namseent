@@ -6,19 +6,15 @@ use super::{
     tower::TowerTemplate,
     upgrade::{Upgrade, generate_upgrades_for_boss_reward},
 };
-use crate::{quest_board::QuestBoardSlot, shop::ShopSlot, tower_placing_hand::PlacingTowerSlot};
+use crate::{quest_board::QuestBoardSlot, shop::ShopSlot};
 
 #[derive(Clone)]
 pub enum GameFlow {
     Initializing,
     SelectingTower,
-    PlacingTower {
-        placing_tower_slots: Box<[PlacingTowerSlot; 5]>,
-    },
+    PlacingTower,
     Defense,
-    SelectingUpgrade {
-        upgrades: Vec<Upgrade>,
-    },
+    SelectingUpgrade { upgrades: Vec<Upgrade> },
     Result,
 }
 
@@ -71,15 +67,10 @@ impl GameState {
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
-        self.flow = GameFlow::PlacingTower {
-            placing_tower_slots: Box::new([
-                PlacingTowerSlot::Tower { tower_template },
-                PlacingTowerSlot::barricade(),
-                PlacingTowerSlot::barricade(),
-                PlacingTowerSlot::barricade(),
-                PlacingTowerSlot::barricade(),
-            ]),
-        };
+        self.flow = GameFlow::PlacingTower;
+        self.hand.clear();
+        self.hand
+            .add_tower_template_with_barricades(tower_template, 4);
     }
 
     pub fn goto_defense(&mut self) {

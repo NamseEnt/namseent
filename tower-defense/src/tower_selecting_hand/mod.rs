@@ -55,8 +55,7 @@ impl Component for TowerSelectingHand {
                     return;
                 }
                 let select_count = selected_hand_slot_ids.len();
-                let now = Instant::now();
-                game_state.hand.delete_slots(&selected_hand_slot_ids, now);
+                game_state.hand.delete_slots(&selected_hand_slot_ids);
                 game_state.hand.add_random_cards(select_count);
                 game_state.left_reroll_chance -= 1;
                 game_state.rerolled_count += 1;

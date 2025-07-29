@@ -1,10 +1,14 @@
 mod hand_slot;
 mod render_card;
+mod render_tower;
 mod xy_with_spring;
 
 use crate::{
-    card::Card,
-    game_state::hand::hand_slot::{HandSlot, HandSlotKind},
+    card::{Card, Rank, Suit},
+    game_state::{
+        hand::hand_slot::{HandSlot, HandSlotKind},
+        tower::{TowerKind, TowerTemplate},
+    },
 };
 pub use hand_slot::HandSlotId;
 use namui::*;
@@ -12,13 +16,24 @@ use namui::*;
 pub const HAND_SLOT_WH: Wh<Px> = Wh::new(px(112.), px(152.));
 pub const HAND_WH: Wh<Px> = Wh::new(px(600.), px(160.));
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Hand {
     slots: Vec<HandSlot>,
 }
 impl Hand {
     pub fn clear(&mut self) {
-        self.slots.clear();
+        // exit 애니메이션 중이지 않은 모든 슬롯들의 ID 수집
+        let slot_ids_to_delete: Vec<HandSlotId> = self
+            .slots
+            .iter()
+            .filter(|slot| slot.exit_animation.is_none())
+            .map(|slot| slot.id)
+            .collect();
+
+        // 수집된 슬롯들에 대해 delete_slots 호출
+        if !slot_ids_to_delete.is_empty() {
+            self.delete_slots(&slot_ids_to_delete);
+        }
     }
 
     pub fn add_random_cards(&mut self, amount: usize) {
@@ -27,7 +42,29 @@ impl Hand {
         self.calculate_slot_xy();
     }
 
-    pub fn delete_slots(&mut self, ids: &[HandSlotId], now: Instant) {
+    pub fn add_tower_template_with_barricades(
+        &mut self,
+        tower_template: TowerTemplate,
+        barricade_amount: usize,
+    ) {
+        let barricade_template = TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Ace);
+        let mut tower_templates = vec![tower_template];
+
+        // barricade_amount만큼 바리케이드 추가
+        for _ in 0..barricade_amount {
+            tower_templates.push(barricade_template.clone());
+        }
+
+        let slots = tower_templates
+            .into_iter()
+            .map(HandSlot::from_tower_template);
+
+        self.slots.extend(slots);
+        self.calculate_slot_xy();
+    }
+
+    pub fn delete_slots(&mut self, ids: &[HandSlotId]) {
+        let now = Instant::now();
         // 삭제할 슬롯들에 exit 애니메이션 시작
         for slot in self.slots.iter_mut() {
             if ids.contains(&slot.id) {
@@ -38,7 +75,8 @@ impl Hand {
         self.calculate_slot_xy();
     }
 
-    pub fn remove_completed_exit_animations(&mut self, now: Instant) {
+    pub fn remove_completed_exit_animations(&mut self) {
+        let now = Instant::now();
         // 완료된 exit 애니메이션이 있는지 먼저 확인
         let has_completed_animations = self
             .slots
@@ -53,8 +91,7 @@ impl Hand {
     }
 
     pub fn update(&mut self) {
-        let now = Instant::now();
-        self.remove_completed_exit_animations(now);
+        self.remove_completed_exit_animations();
     }
 
     pub fn selected_slot_ids(&self) -> Vec<HandSlotId> {
@@ -88,6 +125,7 @@ impl Hand {
             .filter_map(|slot| match slot.slot_kind {
                 HandSlotKind::Card { card } if slot.selected => Some(card),
                 HandSlotKind::Card { .. } => None,
+                HandSlotKind::Tower { .. } => None,
             })
             .collect()
     }
@@ -97,8 +135,31 @@ impl Hand {
             .iter()
             .filter_map(|slot| match slot.slot_kind {
                 HandSlotKind::Card { card } => Some(card),
+                HandSlotKind::Tower { .. } => None,
             })
             .collect()
+    }
+
+    pub fn width(&self) -> Px {
+        HAND_WH.width
+    }
+
+    pub fn get_slot_id_by_index(&self, index: usize) -> Option<HandSlotId> {
+        self.slots.get(index).map(|slot| slot.id)
+    }
+
+    pub fn get_tower_template_by_id(&self, id: HandSlotId) -> Option<&TowerTemplate> {
+        self.slots
+            .iter()
+            .find(|slot| slot.id == id)
+            .and_then(|slot| slot.get_tower_template())
+    }
+
+    pub fn has_tower_slots(&self) -> bool {
+        self.slots
+            .iter()
+            .filter(|slot| slot.exit_animation.is_none()) // exit 애니메이션 중이지 않은 슬롯만
+            .any(|slot| slot.get_tower_template().is_some())
     }
 
     fn calculate_slot_xy(&mut self) {

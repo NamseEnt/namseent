@@ -130,16 +130,10 @@ impl Component for Game {
         });
 
         ctx.compose(|ctx| {
-            let GameFlow::PlacingTower {
-                placing_tower_slots,
-            } = &game_state.flow
-            else {
+            if !matches!(&game_state.flow, GameFlow::PlacingTower) {
                 return;
             };
-            ctx.add(TowerPlacingHand {
-                screen_wh,
-                placing_tower_slots,
-            });
+            ctx.add(TowerPlacingHand { screen_wh });
         });
 
         ctx.add(Inventory { screen_wh });

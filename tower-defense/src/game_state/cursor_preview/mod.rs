@@ -2,7 +2,7 @@ mod item;
 mod tower;
 
 use super::{item::Item, tower::TowerTemplate};
-use crate::MapCoordF32;
+use crate::{MapCoordF32, game_state::hand::HandSlotId};
 use item::ItemCursorPreview;
 use namui::*;
 use tower::TowerCursorPreview;
@@ -46,12 +46,12 @@ impl Component for RenderCursorPreview<'_> {
             PreviewKind::None => {}
             PreviewKind::PlacingTower {
                 tower_template,
-                placing_tower_slot_index,
+                placing_tower_slot_id,
             } => {
                 ctx.add(TowerCursorPreview {
                     tower_template,
                     map_coord: *map_coord,
-                    placing_tower_slot_index: *placing_tower_slot_index,
+                    placing_tower_slot_id: *placing_tower_slot_id,
                 });
             }
             PreviewKind::Item { item, item_index } => {
@@ -71,7 +71,7 @@ pub enum PreviewKind {
     None,
     PlacingTower {
         tower_template: TowerTemplate,
-        placing_tower_slot_index: usize,
+        placing_tower_slot_id: HandSlotId,
     },
     Item {
         item: Item,

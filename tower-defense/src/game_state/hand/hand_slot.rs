@@ -1,7 +1,11 @@
 use crate::{
     card::Card,
-    game_state::hand::{
-        HAND_SLOT_WH, HAND_WH, render_card::RenderCard, xy_with_spring::xy_with_spring,
+    game_state::{
+        hand::{
+            HAND_SLOT_WH, HAND_WH, render_card::RenderCard, render_tower::RenderTower,
+            xy_with_spring::xy_with_spring,
+        },
+        tower::TowerTemplate,
     },
 };
 use namui::*;
@@ -28,11 +32,10 @@ impl From<HandSlotId> for AddKey {
     }
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+#[derive(Clone)]
 pub(super) enum HandSlotKind {
-    // TODO
-    // Tower,
     Card { card: Card },
+    Tower { tower_template: TowerTemplate },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -51,7 +54,7 @@ impl ExitAnimation {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(super) struct HandSlot {
     pub id: HandSlotId,
     pub slot_kind: HandSlotKind,
@@ -67,6 +70,23 @@ impl HandSlot {
             selected: false,
             xy: HAND_WH.to_xy(),
             exit_animation: None,
+        }
+    }
+
+    pub fn from_tower_template(tower_template: TowerTemplate) -> Self {
+        Self {
+            id: HandSlotId::new(),
+            slot_kind: HandSlotKind::Tower { tower_template },
+            selected: false,
+            xy: HAND_WH.to_xy(),
+            exit_animation: None,
+        }
+    }
+
+    pub fn get_tower_template(&self) -> Option<&TowerTemplate> {
+        match &self.slot_kind {
+            HandSlotKind::Tower { tower_template } => Some(tower_template),
+            _ => None,
         }
     }
 
@@ -115,11 +135,17 @@ impl Component for &HandSlot {
             .scale(animated_scale)
             .translate(-half_slot_xy);
 
-        match self.slot_kind {
+        match &self.slot_kind {
             HandSlotKind::Card { card } => {
                 ctx.add(RenderCard {
                     wh: HAND_SLOT_WH,
-                    card,
+                    card: *card,
+                });
+            }
+            HandSlotKind::Tower { tower_template } => {
+                ctx.add(RenderTower {
+                    wh: HAND_SLOT_WH,
+                    tower_template: tower_template.clone(),
                 });
             }
         }
