@@ -7,6 +7,8 @@ import Animated, {
   withTiming,
   withSequence,
   Easing,
+  FadeInDown,
+  FadeOutUp,
 } from 'react-native-reanimated';
 import type { IdolState } from '@/types';
 import { CHARACTER_IMAGES } from '@/constants/characters';
@@ -18,9 +20,10 @@ interface IdolCharacterProps {
   state: IdolState;
   playerName?: string;
   showTimelineReaction?: boolean;
+  regularMessage?: string | null;
 }
 
-export default function IdolCharacter({ state, playerName, showTimelineReaction }: IdolCharacterProps) {
+export default function IdolCharacter({ state, playerName, showTimelineReaction, regularMessage }: IdolCharacterProps) {
   const breathingScale = useSharedValue(1);
   const floatY = useSharedValue(0);
   const rotation = useSharedValue(0);
@@ -108,10 +111,19 @@ export default function IdolCharacter({ state, playerName, showTimelineReaction 
         style={[styles.characterImage, animatedStyle]}
         resizeMode="contain"
       />
-      {state === 'idle' && playerName && !showTimelineReaction && (
+      {state === 'idle' && playerName && !showTimelineReaction && !regularMessage && (
         <Text style={styles.idleMessage}>
           {getTimeBasedCharacterMessage('idle', playerName)}
         </Text>
+      )}
+      {state === 'idle' && regularMessage && (
+        <Animated.Text 
+          entering={FadeInDown.duration(500)}
+          exiting={FadeOutUp.duration(500)}
+          style={styles.regularMessage}
+        >
+          {regularMessage}
+        </Animated.Text>
       )}
       {state === 'idle' && showTimelineReaction && (
         <Text style={styles.timelineReactionMessage}>
@@ -170,5 +182,25 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     paddingHorizontal: 20,
     lineHeight: 20,
+  },
+  regularMessage: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#FF1493',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    paddingHorizontal: 20,
+    lineHeight: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });

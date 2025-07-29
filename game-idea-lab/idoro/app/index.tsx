@@ -11,6 +11,7 @@ import TimeCapsuleTimeline from '@/components/TimeCapsuleTimeline';
 import { getPlayerName, setPlayerName, getCheerPower } from '@/utils/storage';
 import { virtualUsersManager } from '@/utils/virtualUsers';
 import { getCurrentTimeTheme } from '@/utils/timeOfDay';
+import { attendanceManager } from '@/utils/attendance';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function HomeScreen() {
   const [activeUserCount, setActiveUserCount] = useState<number>(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showTimelineReaction, setShowTimelineReaction] = useState(false);
+  const [regularMessage, setRegularMessage] = useState<string | null>(null);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -61,6 +63,15 @@ export default function HomeScreen() {
     
     if (savedName) {
       setPlayerNameState(savedName);
+      
+      // 접속 기록 및 단골 패턴 분석
+      await attendanceManager.recordAttendance();
+      const pattern = attendanceManager.analyzeRegularPattern(savedName);
+      if (pattern.isRegular && pattern.message) {
+        setRegularMessage(pattern.message);
+        // 5초 후 일반 메시지로 전환
+        setTimeout(() => setRegularMessage(null), 5000);
+      }
     } else {
       setShowNameModal(true);
     }
@@ -126,9 +137,10 @@ export default function HomeScreen() {
               state="idle" 
               playerName={playerName || undefined}
               showTimelineReaction={showTimelineReaction}
+              regularMessage={regularMessage}
             />
             
-            {activeUserCount > 0 && (
+            {activeUserCount > 0 && !regularMessage && (
               <View style={styles.activeUsersContainer}>
                 <Text style={styles.activeUsersText}>
                   지금 {activeUserCount}명의 팬과 함께 연습 중!
