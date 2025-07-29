@@ -1,0 +1,53 @@
+use crate::{
+    card::{Rank, Suit},
+    icon::{Icon, IconKind, IconSize},
+    theme::{
+        palette,
+        typography::{FontSize, TextAlign, headline},
+    },
+};
+use namui::*;
+
+/// 좌상단에 rank와 suit를 수직 배치로 렌더링
+pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: Suit) {
+    let padding = px(4.0);
+    let rank_font_size = FontSize::Small;
+    let suit_icon_size = px(16.0);
+
+    // 숫자 렌더링
+    ctx.translate(Xy::new(padding, padding)).add(
+        headline(rank.to_string())
+            .size(rank_font_size)
+            .align(TextAlign::LeftTop)
+            .build(),
+    );
+
+    // 문양 아이콘 렌더링 (숫자 아래)
+    ctx.translate(Xy::new(padding, padding + px(20.0))).add(
+        Icon::new(IconKind::Suit { suit })
+            .wh(Wh::new(suit_icon_size, suit_icon_size))
+            .size(IconSize::Custom {
+                size: suit_icon_size,
+            }),
+    );
+}
+
+/// 카드/타워 배경 rect를 렌더링
+pub(super) fn render_background_rect(ctx: &RenderCtx, wh: Wh<Px>) {
+    ctx.add(rect(RectParam {
+        rect: wh.to_rect(),
+        style: RectStyle {
+            stroke: Some(RectStroke {
+                color: palette::OUTLINE,
+                width: 4.px(),
+                border_position: BorderPosition::Inside,
+            }),
+            fill: Some(RectFill {
+                color: palette::SURFACE_CONTAINER,
+            }),
+            round: Some(RectRound {
+                radius: palette::ROUND,
+            }),
+        },
+    }));
+}
