@@ -52,7 +52,8 @@ impl Hand {
         }
     }
 
-    pub fn update(&mut self, now: Instant) {
+    pub fn update(&mut self) {
+        let now = Instant::now();
         self.remove_completed_exit_animations(now);
     }
 

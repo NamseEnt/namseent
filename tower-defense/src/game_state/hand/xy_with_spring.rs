@@ -1,11 +1,9 @@
-use crate::game_state::use_game_state;
 use namui::*;
 use std::ops::{Add, Mul, Sub};
 
 // 상수들을 컴파일 타임에 계산
-const SPRING_STRENGTH: f32 = 250.0;
-const DAMPING: f32 = 15.0;
-const MAX_DELTA_TIME: f32 = 1.0 / 30.0; // 30fps 제한
+const SPRING_STRENGTH: f32 = 350.0;
+const DAMPING: f32 = 25.0;
 const SNAP_THRESHOLD: f32 = 0.5;
 const VELOCITY_THRESHOLD: f32 = 0.5;
 
@@ -22,7 +20,7 @@ where
         + 'static,
     T: From<f32> + Into<f32>,
 {
-    let now = use_game_state(ctx).now();
+    let now = Instant::now();
     let (context, set_context) = ctx.state(|| SpringAnimationContext {
         last_tick_at: now,
         velocity: Xy::new(0.0.into(), 0.0.into()),
@@ -30,9 +28,7 @@ where
     });
 
     // 델타 타임 계산 및 제한
-    let delta_time = (now - context.last_tick_at)
-        .as_secs_f32()
-        .min(MAX_DELTA_TIME);
+    let delta_time = (now - context.last_tick_at).as_secs_f32();
 
     // 매우 작은 델타 타임이면 애니메이션 건너뛰기
     if delta_time < 0.001 {

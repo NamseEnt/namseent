@@ -98,7 +98,7 @@ impl Component for &HandSlot {
                 false => self.xy,
             };
             let scale = match self.selected {
-                true => Xy::single(1.1),
+                true => Xy::single(1.05),
                 false => Xy::single(1.0),
             };
             (xy, scale)
