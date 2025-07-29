@@ -6,6 +6,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import NameInputModal from '@/components/NameInputModal';
 import IdolCharacter from '@/components/IdolCharacter';
 import { getPlayerName, setPlayerName, getCheerPower } from '@/utils/storage';
+import { virtualUsersManager } from '@/utils/virtualUsers';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -13,12 +14,29 @@ export default function HomeScreen() {
   const [cheerPower, setCheerPower] = useState<number>(0);
   const [showNameModal, setShowNameModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeUserCount, setActiveUserCount] = useState<number>(0);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
 
   useEffect(() => {
     loadUserData();
+    
+    // 가상 유저 시뮬레이션 시작
+    virtualUsersManager.startSimulation();
+    
+    // 실시간 업데이트를 위한 인터벌
+    const updateInterval = setInterval(() => {
+      setActiveUserCount(virtualUsersManager.getActiveUserCount());
+    }, 3000); // 3초마다 업데이트
+    
+    // 초기 카운트 설정
+    setActiveUserCount(virtualUsersManager.getActiveUserCount());
+    
+    return () => {
+      clearInterval(updateInterval);
+      virtualUsersManager.stopSimulation();
+    };
   }, []);
 
   const loadUserData = async () => {
@@ -76,6 +94,14 @@ export default function HomeScreen() {
 
           <View style={styles.centerContent}>
             <IdolCharacter state="idle" playerName={playerName || undefined} />
+            
+            {activeUserCount > 0 && (
+              <View style={styles.activeUsersContainer}>
+                <Text style={styles.activeUsersText}>
+                  지금 {activeUserCount}명의 팬과 함께 연습 중!
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.bottomContent}>
@@ -177,5 +203,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  activeUsersContainer: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
+  },
+  activeUsersText: {
+    fontSize: 16,
+    color: '#4A90E2',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

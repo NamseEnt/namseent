@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import IdolCharacter from '@/components/IdolCharacter';
+import VirtualAvatars from '@/components/VirtualAvatars';
 import { getCheerPower, setCheerPower } from '@/utils/storage';
 import { GAME_CONFIG } from '@/constants/game';
 
@@ -177,6 +178,8 @@ export default function FocusSessionScreen() {
             <IdolCharacter state="focusing" />
             <Text style={styles.encourageText}>함께 집중하고 있어요!</Text>
           </View>
+          
+          <VirtualAvatars />
 
           <View style={styles.bottomContent}>
             <TouchableOpacity
