@@ -1,11 +1,10 @@
+use super::shared::render_top_left_rank_and_suit;
 use crate::{
     card::{Card, Rank},
+    game_state::hand::shared::render_background_rect,
     icon::{Icon, IconKind, IconSize},
-    theme::{
-        typography::{FontSize, TextAlign, headline},
-    },
+    theme::typography::{FontSize, TextAlign, headline},
 };
-use super::shared::{render_background_rect, render_top_left_rank_and_suit};
 use namui::*;
 
 pub(super) struct RenderCard {
@@ -69,6 +68,7 @@ impl RenderCard {
         .add(
             headline("TODO\nFace Card".to_string())
                 .size(FontSize::Small)
+                .color(Color::BLACK)
                 .align(TextAlign::Center {
                     wh: Wh::new(center_area.width(), center_area.height()),
                 })

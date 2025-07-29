@@ -226,6 +226,7 @@ pub struct HeadlineBuilder {
     font_size: FontSize,
     text_align: TextAlign,
     max_width: Option<Px>,
+    text_color: Option<Color>,
 }
 
 impl HeadlineBuilder {
@@ -235,6 +236,7 @@ impl HeadlineBuilder {
             font_size: FontSize::Medium,
             text_align: TextAlign::LeftTop,
             max_width: None,
+            text_color: None,
         }
     }
 
@@ -253,12 +255,18 @@ impl HeadlineBuilder {
         self
     }
 
+    pub fn color(mut self, color: Color) -> Self {
+        self.text_color = Some(color);
+        self
+    }
+
     pub fn build(self) -> HeadlineComponent {
         HeadlineComponent {
             text: self.text_content,
             font_size: self.font_size,
             text_align: self.text_align,
             max_width: self.max_width,
+            text_color: self.text_color,
         }
     }
 
@@ -268,6 +276,7 @@ impl HeadlineBuilder {
             font_size: self.font_size,
             text_align: self.text_align,
             max_width: self.max_width,
+            text_color: self.text_color,
         }
     }
 }
@@ -328,6 +337,7 @@ pub struct RichHeadlineComponent {
     font_size: FontSize,
     text_align: TextAlign,
     max_width: Option<Px>,
+    text_color: Option<Color>,
 }
 
 impl Component for RichHeadlineComponent {
@@ -337,6 +347,7 @@ impl Component for RichHeadlineComponent {
             font_size,
             text_align,
             max_width,
+            text_color,
         } = self;
 
         let (x, y) = match text_align {
@@ -353,6 +364,16 @@ impl Component for RichHeadlineComponent {
         };
 
         ctx.translate(Xy { x, y });
+
+        let text_style = if let Some(custom_color) = text_color {
+            TextStyle {
+                color: custom_color,
+                ..DEFAULT_TEXT_STYLE
+            }
+        } else {
+            DEFAULT_TEXT_STYLE
+        };
+
         with_regex_handlers(|regex_handlers| {
             ctx.add(namui_prebuilt::rich_text::RichText {
                 text,
@@ -361,7 +382,7 @@ impl Component for RichHeadlineComponent {
                     name: HEADLINE_FONT_NAME.to_string(),
                     size,
                 },
-                default_text_style: DEFAULT_TEXT_STYLE,
+                default_text_style: text_style,
                 tag_map: TAG_MAP.get_or_init(init_tag_map),
                 regex_handlers,
                 on_parse_error: None,
@@ -422,6 +443,7 @@ pub struct HeadlineComponent {
     font_size: FontSize,
     text_align: TextAlign,
     max_width: Option<Px>,
+    text_color: Option<Color>,
 }
 
 impl Component for HeadlineComponent {
@@ -431,6 +453,7 @@ impl Component for HeadlineComponent {
             font_size,
             text_align,
             max_width,
+            text_color,
         } = self;
 
         let (x, y) = match text_align {
@@ -457,6 +480,15 @@ impl Component for HeadlineComponent {
             TextAlign::RightTop { .. } => TextBaseline::Top,
         };
 
+        let text_style = if let Some(custom_color) = text_color {
+            TextStyle {
+                color: custom_color,
+                ..DEFAULT_TEXT_STYLE
+            }
+        } else {
+            DEFAULT_TEXT_STYLE
+        };
+
         ctx.add(namui::text(TextParam {
             text,
             x,
@@ -467,7 +499,7 @@ impl Component for HeadlineComponent {
                 name: HEADLINE_FONT_NAME.to_string(),
                 size,
             },
-            style: DEFAULT_TEXT_STYLE,
+            style: text_style,
             max_width,
         }));
     }
@@ -561,6 +593,7 @@ impl Component for Headline {
             font_size,
             text_align,
             max_width,
+            text_color: None,
         };
 
         component.render(ctx);

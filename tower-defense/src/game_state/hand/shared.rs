@@ -18,6 +18,7 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
     ctx.translate(Xy::new(padding, padding)).add(
         headline(rank.to_string())
             .size(rank_font_size)
+            .color(Color::BLACK)
             .align(TextAlign::LeftTop)
             .build(),
     );
@@ -43,7 +44,7 @@ pub(super) fn render_background_rect(ctx: &RenderCtx, wh: Wh<Px>) {
                 border_position: BorderPosition::Inside,
             }),
             fill: Some(RectFill {
-                color: palette::SURFACE_CONTAINER,
+                color: Color::WHITE,
             }),
             round: Some(RectRound {
                 radius: palette::ROUND,
