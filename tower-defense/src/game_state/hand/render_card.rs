@@ -1,5 +1,6 @@
 use super::shared::render_top_left_rank_and_suit;
 use crate::{
+    asset_loader::face_card_asset_loader::get_face_card_asset_loader,
     card::{Card, Rank},
     game_state::hand::shared::render_background_rect,
     icon::{Icon, IconKind, IconSize},
@@ -23,8 +24,8 @@ impl Component for RenderCard {
         if !card.rank.is_face() {
             self.render_center_suits(ctx, wh, card);
         } else {
-            // JQK 그림카드는 TODO 주석 처리
-            self.render_face_card_placeholder(ctx, wh);
+            // JQK 그림카드 이미지 렌더링
+            self.render_face_card(ctx, wh, card);
         }
 
         render_background_rect(ctx, wh);
@@ -53,14 +54,30 @@ impl RenderCard {
         }
     }
 
-    fn render_face_card_placeholder(&self, ctx: &RenderCtx, wh: Wh<Px>) {
+    fn render_face_card(&self, ctx: &RenderCtx, wh: Wh<Px>, card: Card) {
         let center_area = Rect::Xywh {
-            x: px(36.0),
-            y: px(36.0),
-            width: wh.width - px(72.0),
-            height: wh.height - px(72.0),
+            x: px(12.0),
+            y: px(12.0),
+            width: wh.width - px(24.0),
+            height: wh.height - px(24.0),
         };
 
+        // face card asset loader에서 이미지를 가져와서 렌더링
+        if let Some(asset_loader) = get_face_card_asset_loader() {
+            if let Some(face_image) = asset_loader.get_image(card.rank, card.suit) {
+                ctx.add(image(ImageParam {
+                    image: face_image.clone(),
+                    rect: center_area,
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint: None,
+                    },
+                }));
+                return;
+            }
+        }
+
+        // fallback: asset loader가 없거나 이미지가 없는 경우 기존 텍스트 표시
         ctx.translate(Xy::new(
             center_area.width() / 2.0,
             center_area.height() / 2.0,
