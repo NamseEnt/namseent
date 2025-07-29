@@ -14,18 +14,28 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
     let rank_font_size = FontSize::Small;
     let suit_icon_size = px(16.0);
 
+    // suit에 따른 색상 결정
+    let text_color = match suit {
+        Suit::Spades | Suit::Clubs => Color::BLACK,
+        Suit::Hearts | Suit::Diamonds => palette::RED,
+    };
+
+    let ctx = ctx.translate(Xy::new(padding, padding));
     // 숫자 렌더링
-    ctx.translate(Xy::new(padding, padding)).add(
+    ctx.add(
         headline(rank.to_string())
             .size(rank_font_size)
-            .align(TextAlign::LeftTop)
+            .color(text_color)
+            .align(TextAlign::Center {
+                wh: Wh::single(suit_icon_size),
+            })
             .build(),
     );
 
     // 문양 아이콘 렌더링 (숫자 아래)
-    ctx.translate(Xy::new(padding, padding + px(20.0))).add(
+    ctx.translate(Xy::new(0.px(), suit_icon_size)).add(
         Icon::new(IconKind::Suit { suit })
-            .wh(Wh::new(suit_icon_size, suit_icon_size))
+            .wh(Wh::single(suit_icon_size))
             .size(IconSize::Custom {
                 size: suit_icon_size,
             }),
@@ -43,7 +53,7 @@ pub(super) fn render_background_rect(ctx: &RenderCtx, wh: Wh<Px>) {
                 border_position: BorderPosition::Inside,
             }),
             fill: Some(RectFill {
-                color: palette::SURFACE_CONTAINER,
+                color: Color::WHITE,
             }),
             round: Some(RectRound {
                 radius: palette::ROUND,
