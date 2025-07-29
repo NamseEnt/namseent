@@ -6,45 +6,27 @@ use super::{
     tower::TowerTemplate,
     upgrade::{Upgrade, generate_upgrades_for_boss_reward},
 };
-use crate::{
-    card::Card, quest_board::QuestBoardSlot, shop::ShopSlot, tower_placing_hand::PlacingTowerSlot,
-};
+use crate::{quest_board::QuestBoardSlot, shop::ShopSlot};
 
 #[derive(Clone)]
 pub enum GameFlow {
-    SelectingTower {
-        cards: [Card; 5],
-    },
-    PlacingTower {
-        placing_tower_slots: Box<[PlacingTowerSlot; 5]>,
-    },
+    Initializing,
+    SelectingTower,
+    PlacingTower,
     Defense,
-    SelectingUpgrade {
-        upgrades: Vec<Upgrade>,
-    },
+    SelectingUpgrade { upgrades: Vec<Upgrade> },
     Result,
-}
-impl GameFlow {
-    pub fn new_selecting_tower() -> Self {
-        Self::SelectingTower {
-            cards: [
-                Card::new_random(),
-                Card::new_random(),
-                Card::new_random(),
-                Card::new_random(),
-                Card::new_random(),
-            ],
-        }
-    }
 }
 
 impl GameState {
     pub fn goto_selecting_tower(&mut self) {
-        self.flow = GameFlow::new_selecting_tower();
+        self.flow = GameFlow::SelectingTower;
         self.left_reroll_chance = self.max_reroll_chance();
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+        self.hand.clear();
+        self.hand.add_random_cards(5);
 
         match self.in_even_stage() {
             true => {
@@ -85,15 +67,10 @@ impl GameState {
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
-        self.flow = GameFlow::PlacingTower {
-            placing_tower_slots: Box::new([
-                PlacingTowerSlot::Tower { tower_template },
-                PlacingTowerSlot::barricade(),
-                PlacingTowerSlot::barricade(),
-                PlacingTowerSlot::barricade(),
-                PlacingTowerSlot::barricade(),
-            ]),
-        };
+        self.flow = GameFlow::PlacingTower;
+        self.hand.clear();
+        self.hand
+            .add_tower_template_with_barricades(tower_template, 4);
     }
 
     pub fn goto_defense(&mut self) {

@@ -107,10 +107,10 @@ impl Component for Game {
         });
 
         ctx.compose(|ctx| {
-            let GameFlow::SelectingTower { cards } = &game_state.flow else {
+            if !matches!(&game_state.flow, GameFlow::SelectingTower) {
                 return;
             };
-            ctx.add(TowerSelectingHand { screen_wh, cards });
+            ctx.add(TowerSelectingHand { screen_wh });
 
             let in_even_stage = game_state.in_even_stage();
 
@@ -130,16 +130,10 @@ impl Component for Game {
         });
 
         ctx.compose(|ctx| {
-            let GameFlow::PlacingTower {
-                placing_tower_slots,
-            } = &game_state.flow
-            else {
+            if !matches!(&game_state.flow, GameFlow::PlacingTower) {
                 return;
             };
-            ctx.add(TowerPlacingHand {
-                screen_wh,
-                placing_tower_slots,
-            });
+            ctx.add(TowerPlacingHand { screen_wh });
         });
 
         ctx.add(Inventory { screen_wh });
