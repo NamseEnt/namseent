@@ -15,6 +15,7 @@ import IdolCharacter from '@/components/IdolCharacter';
 import VirtualAvatars from '@/components/VirtualAvatars';
 import { getCheerPower, setCheerPower } from '@/utils/storage';
 import { GAME_CONFIG } from '@/constants/game';
+import { collectiveGoalManager } from '@/utils/collectiveGoal';
 
 export default function FocusSessionScreen() {
   const router = useRouter();
@@ -35,6 +36,10 @@ export default function FocusSessionScreen() {
     const totalEarned = Math.floor((GAME_CONFIG.FOCUS_DURATION / 60) * GAME_CONFIG.CHEER_POWER_PER_MINUTE);
     const newTotal = cheerPowerRef.current + totalEarned;
     await setCheerPower(newTotal);
+    
+    // 공동 목표에 기여
+    const focusMinutes = GAME_CONFIG.FOCUS_DURATION / 60;
+    await collectiveGoalManager.addUserContribution(focusMinutes);
     
     router.replace({
       pathname: '/session-result',
@@ -133,6 +138,13 @@ export default function FocusSessionScreen() {
             const partialReward = Math.floor(earnedPower * GAME_CONFIG.PARTIAL_REWARD_RATIO);
             const newTotal = cheerPowerRef.current + partialReward;
             await setCheerPower(newTotal);
+            
+            // 부분 기여도도 공동 목표에 추가
+            const elapsedSeconds = GAME_CONFIG.FOCUS_DURATION - timeLeft;
+            const contributedMinutes = Math.floor(elapsedSeconds / 60);
+            if (contributedMinutes > 0) {
+              await collectiveGoalManager.addUserContribution(contributedMinutes);
+            }
             
             router.replace({
               pathname: '/session-result',

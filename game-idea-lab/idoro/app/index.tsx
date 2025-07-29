@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import NameInputModal from '@/components/NameInputModal';
 import IdolCharacter from '@/components/IdolCharacter';
+import CollectiveGoalProgress from '@/components/CollectiveGoalProgress';
+import GoalAchievementCelebration from '@/components/GoalAchievementCelebration';
 import { getPlayerName, setPlayerName, getCheerPower } from '@/utils/storage';
 import { virtualUsersManager } from '@/utils/virtualUsers';
 
@@ -15,6 +17,7 @@ export default function HomeScreen() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeUserCount, setActiveUserCount] = useState<number>(0);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -81,7 +84,11 @@ export default function HomeScreen() {
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
             <View style={styles.cheerPowerContainer}>
               <Text style={styles.cheerPowerLabel}>응원력</Text>
@@ -91,6 +98,15 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
+
+          {playerName && (
+            <CollectiveGoalProgress 
+              playerName={playerName}
+              onGoalAchieved={() => {
+                setShowCelebration(true);
+              }}
+            />
+          )}
 
           <View style={styles.centerContent}>
             <IdolCharacter state="idle" playerName={playerName || undefined} />
@@ -118,11 +134,17 @@ export default function HomeScreen() {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
 
         <NameInputModal
           visible={showNameModal}
           onSubmit={handleNameSubmit}
+        />
+        
+        <GoalAchievementCelebration
+          visible={showCelebration}
+          onClose={() => setShowCelebration(false)}
+          playerName={playerName || ''}
         />
       </SafeAreaView>
     </LinearGradient>
@@ -136,8 +158,11 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 20,
   },
   loadingContainer: {
