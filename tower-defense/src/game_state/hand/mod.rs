@@ -27,9 +27,33 @@ impl Hand {
         self.calculate_slot_xy();
     }
 
-    pub fn delete_slots(&mut self, ids: &[HandSlotId]) {
-        self.slots.retain(|slot| !ids.contains(&slot.id));
+    pub fn delete_slots(&mut self, ids: &[HandSlotId], now: Instant) {
+        // 삭제할 슬롯들에 exit 애니메이션 시작
+        for slot in self.slots.iter_mut() {
+            if ids.contains(&slot.id) {
+                slot.start_exit_animation(now);
+                slot.selected = false; // 선택 해제
+            }
+        }
         self.calculate_slot_xy();
+    }
+
+    pub fn remove_completed_exit_animations(&mut self, now: Instant) {
+        // 완료된 exit 애니메이션이 있는지 먼저 확인
+        let has_completed_animations = self
+            .slots
+            .iter()
+            .any(|slot| slot.is_exit_animation_complete(now));
+
+        // 완료된 애니메이션이 있을 때만 retain 실행
+        if has_completed_animations {
+            self.slots
+                .retain(|slot| !slot.is_exit_animation_complete(now));
+        }
+    }
+
+    pub fn update(&mut self, now: Instant) {
+        self.remove_completed_exit_animations(now);
     }
 
     pub fn selected_slot_ids(&self) -> Vec<HandSlotId> {
@@ -44,6 +68,9 @@ impl Hand {
 
     pub fn select_slot(&mut self, id: HandSlotId) {
         if let Some(slot) = self.slots.iter_mut().find(|s| s.id == id) {
+            if slot.exit_animation.is_some() {
+                return; // exit 애니메이션 중인 슬롯은 선택 불가
+            }
             slot.selected = true;
         }
     }
@@ -59,7 +86,7 @@ impl Hand {
             .iter()
             .filter_map(|slot| match slot.slot_kind {
                 HandSlotKind::Card { card } if slot.selected => Some(card),
-                _ => None,
+                HandSlotKind::Card { .. } => None,
             })
             .collect()
     }
@@ -69,13 +96,20 @@ impl Hand {
             .iter()
             .filter_map(|slot| match slot.slot_kind {
                 HandSlotKind::Card { card } => Some(card),
-                _ => None,
             })
             .collect()
     }
 
     fn calculate_slot_xy(&mut self) {
-        let slot_count = self.slots.len();
+        // exit 애니메이션이 진행 중이지 않은 슬롯들만 필터링
+        let active_slots: Vec<(usize, &mut HandSlot)> = self
+            .slots
+            .iter_mut()
+            .enumerate()
+            .filter(|(_, slot)| slot.exit_animation.is_none())
+            .collect();
+
+        let slot_count = active_slots.len();
         if slot_count == 0 {
             return;
         }
@@ -98,9 +132,9 @@ impl Hand {
         let total_width = slot_width * slot_count + gap * (slot_count - 1.0);
         let start_x = (hand_width - total_width) / 2.0;
 
-        // 각 슬롯의 xy 위치 계산 및 업데이트
-        for (index, slot) in self.slots.iter_mut().enumerate() {
-            let x = start_x + (slot_width + gap) * index as f32;
+        // 각 활성 슬롯의 xy 위치 계산 및 업데이트
+        for (active_index, (_, slot)) in active_slots.into_iter().enumerate() {
+            let x = start_x + (slot_width + gap) * active_index as f32;
             let y = (HAND_WH.height - HAND_SLOT_WH.height) / 2.0;
             slot.set_xy(Xy { x, y });
         }

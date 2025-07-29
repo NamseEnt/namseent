@@ -26,6 +26,8 @@ impl Component for Ticker {
 fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     check_game_initialized(game_state);
 
+    game_state.hand.update(now);
+    
     crate::game_state::monster_spawn::tick(game_state, now);
     crate::game_state::tower::tower_cooldown_tick(game_state, dt);
     crate::game_state::tower::tower_animation_tick(game_state, now);
