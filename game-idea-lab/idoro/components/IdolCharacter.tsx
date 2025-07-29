@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { IdolState } from '@/types';
 import { CHARACTER_IMAGES } from '@/constants/characters';
+import { getTimeBasedCharacterMessage } from '@/utils/timeOfDay';
 
 const AnimatedImage = Animated.createAnimatedComponent(Image);
 
@@ -109,7 +110,7 @@ export default function IdolCharacter({ state, playerName, showTimelineReaction 
       />
       {state === 'idle' && playerName && !showTimelineReaction && (
         <Text style={styles.idleMessage}>
-          {playerName}님! 오늘도 함께 연습해요~
+          {getTimeBasedCharacterMessage('idle', playerName)}
         </Text>
       )}
       {state === 'idle' && showTimelineReaction && (
@@ -119,12 +120,12 @@ export default function IdolCharacter({ state, playerName, showTimelineReaction 
       )}
       {state === 'focusing' && (
         <Text style={styles.focusMessage}>
-          열심히 연습하는 중...💪
+          {getTimeBasedCharacterMessage('focusing', playerName || '')}
         </Text>
       )}
       {state === 'resting' && (
         <Text style={styles.restMessage}>
-          수고했어요! 정말 멋졌어요! ✨
+          {getTimeBasedCharacterMessage('resting', playerName || '')}
         </Text>
       )}
     </View>

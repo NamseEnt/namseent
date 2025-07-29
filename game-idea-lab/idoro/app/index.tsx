@@ -10,6 +10,7 @@ import GoalAchievementCelebration from '@/components/GoalAchievementCelebration'
 import TimeCapsuleTimeline from '@/components/TimeCapsuleTimeline';
 import { getPlayerName, setPlayerName, getCheerPower } from '@/utils/storage';
 import { virtualUsersManager } from '@/utils/virtualUsers';
+import { getCurrentTimeTheme } from '@/utils/timeOfDay';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function HomeScreen() {
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
+  const timeTheme = getCurrentTimeTheme();
 
   useEffect(() => {
     loadUserData();
@@ -91,7 +93,7 @@ export default function HomeScreen() {
 
   return (
     <LinearGradient
-      colors={['#E8F4FF', '#FFE4E1']}
+      colors={timeTheme.gradientColors}
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>

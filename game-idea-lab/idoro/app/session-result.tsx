@@ -11,8 +11,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import IdolCharacter from '@/components/IdolCharacter';
 import TimeCapsuleMessageModal from '@/components/TimeCapsuleMessageModal';
 import { getPlayerName } from '@/utils/storage';
-import { GAME_CONFIG, SUCCESS_MESSAGES, FAILURE_MESSAGES } from '@/constants/game';
+import { GAME_CONFIG, getTimeAwareSuccessMessage, getTimeAwareFailureMessage } from '@/constants/game';
 import { timeCapsuleManager } from '@/utils/timeCapsule';
+import { getCurrentTimeTheme, getTimeAdjustedColors } from '@/utils/timeOfDay';
 import type { SessionParams } from '@/types';
 
 export default function SessionResultScreen() {
@@ -88,8 +89,7 @@ export default function SessionResultScreen() {
   };
 
   const [successMessage] = useState(() => {
-    const message = SUCCESS_MESSAGES[Math.floor(Math.random() * SUCCESS_MESSAGES.length)];
-    return message;
+    return getTimeAwareSuccessMessage();
   });
 
   const getSuccessMessage = () => {
@@ -97,18 +97,20 @@ export default function SessionResultScreen() {
   };
 
   const [failureMessage] = useState(() => {
-    const message = FAILURE_MESSAGES[Math.floor(Math.random() * FAILURE_MESSAGES.length)];
-    return message;
+    return getTimeAwareFailureMessage();
   });
 
   const getFailureMessage = () => {
     return failureMessage.replace('{name}', playerName);
   };
 
+  const timeTheme = getCurrentTimeTheme();
+  const colors = getTimeAdjustedColors();
+
   if (isSuccess) {
     return (
       <LinearGradient
-        colors={['#FFE4B5', '#FFB6C1']}
+        colors={[colors.accent, colors.secondary + '60']}
         style={styles.container}
       >
         <SafeAreaView style={styles.safeArea}>
@@ -149,7 +151,7 @@ export default function SessionResultScreen() {
   // Failure screen
   return (
     <LinearGradient
-      colors={['#E6E6FA', '#DDA0DD']}
+      colors={[colors.secondary + '40', colors.accent]}
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>

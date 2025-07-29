@@ -16,6 +16,7 @@ import VirtualAvatars from '@/components/VirtualAvatars';
 import { getCheerPower, setCheerPower } from '@/utils/storage';
 import { GAME_CONFIG } from '@/constants/game';
 import { collectiveGoalManager } from '@/utils/collectiveGoal';
+import { getCurrentTimeTheme, getTimeAdjustedColors } from '@/utils/timeOfDay';
 
 export default function FocusSessionScreen() {
   const router = useRouter();
@@ -166,9 +167,12 @@ export default function FocusSessionScreen() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const timeTheme = getCurrentTimeTheme();
+  const colors = getTimeAdjustedColors();
+
   return (
     <LinearGradient
-      colors={['#FFE4E1', '#E8F4FF']}
+      colors={[colors.accent, colors.primary + '40']}
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
@@ -188,7 +192,7 @@ export default function FocusSessionScreen() {
           <View style={styles.centerContent}>
             <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
             <IdolCharacter state="focusing" />
-            <Text style={styles.encourageText}>함께 집중하고 있어요!</Text>
+            <Text style={styles.encourageText}>{timeTheme.encouragement}</Text>
           </View>
           
           <VirtualAvatars />
