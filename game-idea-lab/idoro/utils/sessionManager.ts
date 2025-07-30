@@ -1,6 +1,6 @@
 // 세션 타이밍 관리 (단순화된 버전)
 
-export interface SessionTiming {
+interface SessionTiming {
   nextSessionTime: Date;
   timeUntilNext: number; // seconds
   isSessionTime: boolean; // 현재가 세션 시간인지

@@ -9,11 +9,3 @@ export const CHARACTER_IMAGES = {
     resting: require('@/assets/images/characters/하연/resting.png'),
   }
 };
-
-export const CHARACTER_INFO = {
-  하연: {
-    name: '하연',
-    personality: '밝고 활발한 연습생',
-    description: '열심히 노력하는 귀여운 연습생입니다.',
-  }
-};

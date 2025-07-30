@@ -1,7 +1,7 @@
 // Virtual Users Simulation System
 // 실제 백엔드 없이 사회적 현존감을 제공하기 위한 가상 유저 시스템
 
-export type VirtualUserState = 'idle' | 'focusing' | 'resting' | 'offline';
+type VirtualUserState = 'idle' | 'focusing' | 'resting' | 'offline';
 
 export interface VirtualUser {
   id: string;
