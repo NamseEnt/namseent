@@ -2,7 +2,6 @@ use crate::{
     game_state::{
         item::{Item, generate_items, item_cost},
         mutate_game_state,
-        quest::{QuestTriggerEvent, on_quest_trigger_event},
         use_game_state,
     },
     icon::{Icon, IconKind, IconSize},
@@ -62,7 +61,7 @@ impl Component for ShopModal {
             mutate_game_state(move |game_state| {
                 assert!(game_state.items.len() <= game_state.max_shop_slot());
 
-                let cost = {
+                let (item_to_purchase, purchase_cost) = {
                     let slot = &mut game_state.shop_slots[slot_index];
                     let ShopSlot::Item {
                         item,
@@ -76,13 +75,13 @@ impl Component for ShopModal {
                     assert!(game_state.gold >= *cost);
                     assert!(!*purchased);
 
-                    game_state.items.push(item.clone());
-                    game_state.gold -= *cost;
+                    let item_to_purchase = item.clone();
+                    let purchase_cost = *cost;
                     *purchased = true;
-                    *cost
+                    (item_to_purchase, purchase_cost)
                 };
 
-                on_quest_trigger_event(game_state, QuestTriggerEvent::SpendGold { gold: cost });
+                game_state.purchase_item(item_to_purchase, purchase_cost);
             });
         };
 
