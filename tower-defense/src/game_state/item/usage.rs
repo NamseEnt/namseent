@@ -1,12 +1,10 @@
 use super::effect_processor::{DirectEffectKind, ItemEffectKind};
 use super::{Item, ItemKind};
-use crate::game_state::item::effect_processor::process_item_effect;
 use crate::{
     MapCoordF32,
     game_state::{
         GameState, TRAVEL_POINTS,
         field_area_effect::FieldAreaEffectKind,
-        quest::{QuestTriggerEvent, on_quest_trigger_event},
         schedule::CountBasedSchedule,
     },
 };
@@ -264,10 +262,7 @@ impl ItemKind {
 }
 
 pub fn use_item(game_state: &mut GameState, item: &Item, xy: Option<MapCoordF32>) {
-    game_state.item_used = true;
-    let effect_kind = item.kind.effect_kind(xy, game_state.now());
-    process_item_effect(game_state, effect_kind);
-    on_quest_trigger_event(game_state, QuestTriggerEvent::UseItem);
+    game_state.use_item(item, xy);
 }
 
 pub fn linear_area_rect_points(

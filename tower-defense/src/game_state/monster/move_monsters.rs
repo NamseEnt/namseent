@@ -23,13 +23,6 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
             }
         }
     }
-    if game_state.shield > 0.0 {
-        let min = damage.min(game_state.shield);
-        damage -= min;
-        game_state.shield -= min;
-    }
-    game_state.hp -= damage;
-    if game_state.hp <= 0.0 {
-        game_state.goto_result();
-    }
+    
+    game_state.take_damage(damage);
 }
