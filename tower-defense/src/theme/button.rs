@@ -211,8 +211,8 @@ fn get_button_style(
             0.px(),
         ),
         (ButtonVariant::Contained, ButtonState::Disabled) => (
-            palette::SURFACE_CONTAINER,
-            palette::SURFACE_CONTAINER,
+            palette::DISABLED_CONTAINER,
+            palette::DISABLED_CONTAINER,
             0.px(),
         ),
 

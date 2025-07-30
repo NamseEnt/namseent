@@ -3,7 +3,6 @@ use super::{Language, Locale, LocalizedStaticText};
 #[derive(Debug, Clone, Copy)]
 pub enum TopBarText {
     Stage,
-    LevelUp,
     RarityCommon,
     RarityRare,
     RarityEpic,
@@ -35,7 +34,6 @@ impl TopBarText {
     pub(super) fn to_korean(self) -> &'static str {
         match self {
             TopBarText::Stage => "스테이지",
-            TopBarText::LevelUp => "레벨업",
             TopBarText::RarityCommon => "커먼",
             TopBarText::RarityRare => "레어",
             TopBarText::RarityEpic => "에픽",
@@ -58,7 +56,6 @@ impl TopBarText {
     pub(super) fn to_english(self) -> &'static str {
         match self {
             TopBarText::Stage => "Stage",
-            TopBarText::LevelUp => "Level Up",
             TopBarText::RarityCommon => "Common",
             TopBarText::RarityRare => "Rare",
             TopBarText::RarityEpic => "Epic",
