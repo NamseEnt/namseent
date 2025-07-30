@@ -1,10 +1,11 @@
 use crate::{
     game_state::level_rarity_weight,
     l10n::ui::TopBarText,
+    palette,
     theme::typography::{headline, paragraph},
 };
 use namui::*;
-use namui_prebuilt::table;
+use namui_prebuilt::{simple_rect, table};
 use std::num::NonZero;
 
 const LINE_HEIGHT: Px = px(32.);
@@ -48,6 +49,7 @@ impl Component for LevelUpDetails {
             ]
         });
         let wh = Wh::new(width, CONTAINER_HEIGHT);
+
         ctx.compose(|ctx| {
             table::vertical([
                 table::fixed(
@@ -223,5 +225,12 @@ impl Component for LevelUpDetails {
                 ),
             ])(wh, ctx);
         });
+
+        ctx.add(simple_rect(
+            wh,
+            palette::OUTLINE,
+            1.px(),
+            palette::SURFACE_CONTAINER,
+        ));
     }
 }
