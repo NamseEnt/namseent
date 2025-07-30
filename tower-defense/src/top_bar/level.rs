@@ -1,12 +1,13 @@
+use crate::icon::IconAttribute;
+use crate::theme::button::Button;
 use crate::{
     game_state::{mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
-    l10n::ui::TopBarText,
     palette,
     theme::typography::headline,
 };
 use namui::*;
-use namui_prebuilt::{button, simple_rect, table};
+use namui_prebuilt::{simple_rect, table};
 
 const PADDING: Px = px(8.);
 
@@ -24,7 +25,7 @@ impl Component for LevelIndicator {
             level_up_cost,
             gold,
         } = self;
-        let game_state = use_game_state(ctx);
+        let _game_state = use_game_state(ctx);
         let (mouse_hovering, set_mouse_hovering) = ctx.state(|| false);
         let can_upgrade = level < 10 && gold >= level_up_cost;
         let level_up = || {
@@ -35,7 +36,7 @@ impl Component for LevelIndicator {
         };
         ctx.compose(|ctx| {
             table::horizontal([
-                table::fixed(36.px(), |wh, ctx| {
+                table::fixed(48.px(), |wh, ctx| {
                     ctx.add(Icon::new(IconKind::Level).size(IconSize::Large).wh(wh));
                 }),
                 table::fixed(32.px(), |wh, ctx| {
@@ -46,45 +47,60 @@ impl Component for LevelIndicator {
                             .build(),
                     );
                 }),
-                table::ratio(
-                    1,
+                table::ratio(1, |_, _| {}),
+                table::fixed(
+                    128.px(),
                     table::padding(PADDING, |wh, ctx| {
-                        ctx.add(button::TextButton {
-                            rect: wh.to_rect(),
-                            text: format!(
-                                "{} {level_up_cost}",
-                                game_state.text().ui(TopBarText::LevelUp)
-                            ),
-                            text_color: match can_upgrade {
-                                true => palette::ON_PRIMARY,
-                                false => palette::ON_SURFACE,
-                            },
-                            stroke_color: palette::OUTLINE,
-                            stroke_width: 1.px(),
-                            fill_color: match can_upgrade {
-                                true => palette::PRIMARY,
-                                false => palette::SURFACE_CONTAINER_HIGH,
-                            },
-                            mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: |_| {
-                                if !can_upgrade {
-                                    return;
-                                }
-                                level_up();
-                            },
-                        })
-                        .attach_event(|event| {
-                            let Event::MouseMove { event } = event else {
-                                return;
-                            };
-                            let mouse_move_is_local_xy_in = event.is_local_xy_in();
-                            if *mouse_hovering != mouse_move_is_local_xy_in {
-                                set_mouse_hovering.set(mouse_move_is_local_xy_in);
-                            }
-                        });
+                        ctx.add(
+                            Button::new(
+                                wh,
+                                &|| {
+                                    if !can_upgrade {
+                                        return;
+                                    }
+                                    level_up();
+                                },
+                                &|wh, _text_color, ctx| {
+                                    let text_color = match can_upgrade {
+                                        true => palette::ON_PRIMARY,
+                                        false => palette::ON_SURFACE,
+                                    };
+                                    ctx.add(
+                                        headline(format!(
+                                            "{} {}{level_up_cost}",
+                                            Icon::new(IconKind::Level)
+                                                .attributes(vec![IconAttribute {
+                                                    icon_kind: IconKind::Up,
+                                                    position: crate::icon::IconAttributePosition::BottomRight
+                                                }])
+                                                .wh(Wh::single(wh.height))
+                                                .as_tag(),
+                                            Icon::new(IconKind::Gold)
+                                                .wh(Wh::single(wh.height))
+                                                .as_tag(),
+                                        ))
+                                        .align(crate::theme::typography::TextAlign::Center { wh })
+                                        .color(text_color)
+                                        .build_rich(),
+                                    );
+                                },
+                            )
+                            .variant(crate::theme::button::ButtonVariant::Contained)
+                            .color(crate::theme::button::ButtonColor::Primary)
+                            .disabled(!can_upgrade),
+                        );
                     }),
                 ),
             ])(wh, ctx);
+        })
+        .attach_event(|event| {
+            let Event::MouseMove { event } = event else {
+                return;
+            };
+            let mouse_move_is_local_xy_in = event.is_local_xy_in();
+            if *mouse_hovering != mouse_move_is_local_xy_in {
+                set_mouse_hovering.set(mouse_move_is_local_xy_in);
+            }
         });
         ctx.compose(|ctx| {
             if !*mouse_hovering {

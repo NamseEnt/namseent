@@ -1,18 +1,20 @@
 mod get_highest_tower;
 mod tower_preview;
 
+use crate::icon::{Icon, IconKind, IconSize};
+use crate::theme::button::Button;
+use crate::theme::typography::{TextAlign, headline};
 use crate::{
     game_state::{
         hand::{HAND_WH, HandComponent, HandSlotId},
         mutate_game_state,
         quest::{QuestTriggerEvent, on_quest_trigger_event},
     },
-    l10n::ui::TopBarText,
     palette,
 };
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
-use namui_prebuilt::{button, table};
+use namui_prebuilt::table;
 use tower_preview::TowerPreview;
 
 const PADDING: Px = px(4.);
@@ -139,40 +141,45 @@ impl Component for InteractionArea<'_> {
             table::padding(
                 PADDING,
                 table::vertical([
-                    table::fixed(32.px(), |wh, ctx| {
-                        ctx.add(button::TextButton {
-                            rect: wh.to_rect(),
-                            text: game_state.text().ui(TopBarText::Refresh),
-                            text_color: match some_selected {
-                                true => palette::ON_PRIMARY,
-                                false => palette::ON_SURFACE,
-                            },
-                            stroke_color: palette::OUTLINE,
-                            stroke_width: 1.px(),
-                            fill_color: match some_selected {
-                                true => palette::PRIMARY,
-                                false => palette::SURFACE_CONTAINER_HIGH,
-                            },
-                            mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: |_| {
-                                reroll_selected();
-                            },
-                        });
+                    table::fixed(48.px(), |wh, ctx| {
+                        ctx.add(
+                            Button::new(
+                                wh,
+                                &|| {
+                                    reroll_selected();
+                                },
+                                &|wh, color, ctx| {
+                                    ctx.add(
+                                        headline(format!(
+                                            "{} {}/{}",
+                                            Icon::new(IconKind::Refresh)
+                                                .size(IconSize::Large)
+                                                .wh(Wh::single(wh.height))
+                                                .as_tag(),
+                                            game_state.rerolled_count,
+                                            game_state.rerolled_count
+                                                + game_state.left_reroll_chance,
+                                        ))
+                                        .color(color)
+                                        .align(TextAlign::Center { wh })
+                                        .build_rich(),
+                                    );
+                                },
+                            )
+                            .disabled(!some_selected || game_state.left_reroll_chance == 0),
+                        );
                     }),
                     table::ratio(1, |_, _| {}),
-                    table::fixed(32.px(), |wh, ctx| {
-                        ctx.add(button::TextButton {
-                            rect: wh.to_rect(),
-                            text: game_state.text().ui(TopBarText::UseTower),
-                            text_color: palette::ON_PRIMARY,
-                            stroke_color: palette::OUTLINE,
-                            stroke_width: 1.px(),
-                            fill_color: palette::PRIMARY,
-                            mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: |_| {
+                    table::fixed(48.px(), |wh, ctx| {
+                        ctx.add(Button::new(
+                            wh,
+                            &|| {
                                 use_tower();
                             },
-                        });
+                            &|wh, _text_color, ctx| {
+                                ctx.add(Icon::new(IconKind::Accept).size(IconSize::Large).wh(wh));
+                            },
+                        ));
                     }),
                 ]),
             )(wh, ctx);

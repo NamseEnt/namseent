@@ -1,3 +1,4 @@
+use crate::theme::button::{Button, ButtonColor, ButtonVariant};
 use crate::{
     game_state::{
         MAX_INVENTORY_SLOT, mutate_game_state,
@@ -11,7 +12,6 @@ use crate::{
 };
 use namui::*;
 use namui_prebuilt::{
-    button::{self, TextButton},
     simple_rect,
     table::{self},
 };
@@ -22,12 +22,12 @@ const QUEST_BOARD_WH: Wh<Px> = Wh {
     height: px(480.0),
 };
 const QUEST_BOARD_BUTTON_WH: Wh<Px> = Wh {
-    width: px(128.0),
-    height: px(36.0),
+    width: px(64.0),
+    height: px(48.0),
 };
 const QUEST_BOARD_REFRESH_BUTTON_WH: Wh<Px> = Wh {
     width: px(192.0),
-    height: px(36.0),
+    height: px(48.0),
 };
 const ACCEPTED_LABEL_HEIGHT: Px = px(24.0);
 
@@ -101,25 +101,23 @@ impl Component for QuestBoardOpenButton<'_> {
             opened,
             toggle_open,
         } = self;
-        let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
-            ctx.translate((0.px(), -QUEST_BOARD_BUTTON_WH.height))
-                .add(TextButton {
-                    rect: QUEST_BOARD_BUTTON_WH.to_rect(),
-                    text: format!(
-                        "{} {}",
-                        game_state.text().ui(TopBarText::Quest),
-                        if opened { "^" } else { "v" }
-                    ),
-                    text_color: palette::ON_SURFACE,
-                    stroke_color: palette::OUTLINE,
-                    stroke_width: 1.px(),
-                    fill_color: palette::SURFACE_CONTAINER,
-                    mouse_buttons: vec![MouseButton::Left],
-                    on_mouse_up_in: |_| {
+            ctx.translate((0.px(), -QUEST_BOARD_BUTTON_WH.height)).add(
+                Button::new(
+                    QUEST_BOARD_BUTTON_WH,
+                    &|| {
                         toggle_open();
                     },
-                });
+                    &|wh, _text_color, ctx| {
+                        ctx.add(Icon::new(IconKind::Quest).size(IconSize::Large).wh(wh));
+                    },
+                )
+                .variant(ButtonVariant::Fab)
+                .color(match opened {
+                    true => ButtonColor::Primary,
+                    false => ButtonColor::Secondary,
+                }),
+            );
         });
     }
 }
@@ -185,25 +183,31 @@ impl Component for QuestBoard<'_> {
                         table::horizontal([
                             table::ratio(1, |_, _| {}),
                             table::fixed(QUEST_BOARD_REFRESH_BUTTON_WH.width, |wh, ctx| {
-                                ctx.add(TextButton {
-                                    rect: wh.to_rect(),
-                                    text: format!(
-                                        "{}-{}",
-                                        game_state.text().ui(TopBarText::Refresh),
-                                        game_state.left_quest_board_refresh_chance
-                                    ),
-                                    text_color: match disabled {
-                                        true => palette::ON_SURFACE_VARIANT,
-                                        false => palette::ON_SURFACE,
-                                    },
-                                    stroke_color: palette::OUTLINE,
-                                    stroke_width: 1.px(),
-                                    fill_color: palette::SURFACE_CONTAINER,
-                                    mouse_buttons: vec![MouseButton::Left],
-                                    on_mouse_up_in: |_| {
-                                        refresh_quest_board();
-                                    },
-                                });
+                                ctx.add(
+                                    Button::new(
+                                        wh,
+                                        &|| {
+                                            refresh_quest_board();
+                                        },
+                                        &|wh, color, ctx| {
+                                            ctx.add(
+                                                headline(format!(
+                                                    "{}-{}",
+                                                    Icon::new(IconKind::Refresh)
+                                                        .size(IconSize::Large)
+                                                        .wh(Wh::single(wh.height))
+                                                        .as_tag(),
+                                                    game_state.left_quest_board_refresh_chance
+                                                ))
+                                                .color(color)
+                                                .align(TextAlign::Center { wh })
+                                                .build_rich(),
+                                            );
+                                        },
+                                    )
+                                    .variant(ButtonVariant::Fab)
+                                    .disabled(disabled),
+                                );
                             }),
                             table::ratio(1, |_, _| {}),
                         ]),
@@ -302,7 +306,8 @@ impl Component for QuestBoardItemContent<'_> {
 
         let game_state = use_game_state(ctx);
 
-        let _available = !accepted;
+        let is_quest_slots_full = game_state.quest_states.len() >= game_state.max_quest_slot();
+        let disabled = accepted || is_quest_slots_full;
 
         ctx.compose(|ctx| {
             if !accepted {
@@ -312,9 +317,6 @@ impl Component for QuestBoardItemContent<'_> {
         });
 
         ctx.compose(|ctx| {
-            if accepted {
-                return;
-            }
             table::vertical([
                 table::fixed(
                     wh.width,
@@ -347,18 +349,23 @@ impl Component for QuestBoardItemContent<'_> {
                             }),
                             table::fixed(PADDING, |_, _| {}),
                             table::fixed(48.px(), |wh, ctx| {
-                                ctx.add(button::TextButton {
-                                    rect: wh.to_rect(),
-                                    text: game_state.text().ui(TopBarText::Accept).to_string(),
-                                    text_color: palette::ON_PRIMARY,
-                                    stroke_color: palette::OUTLINE,
-                                    stroke_width: 1.px(),
-                                    fill_color: palette::PRIMARY,
-                                    mouse_buttons: vec![MouseButton::Left],
-                                    on_mouse_up_in: |_| {
-                                        accept_quest();
-                                    },
-                                });
+                                ctx.add(
+                                    Button::new(
+                                        wh,
+                                        &|| {
+                                            accept_quest();
+                                        },
+                                        &|wh, _text_color, ctx| {
+                                            ctx.add(
+                                                Icon::new(IconKind::Accept)
+                                                    .size(IconSize::Large)
+                                                    .wh(wh),
+                                            );
+                                        },
+                                    )
+                                    .color(crate::theme::button::ButtonColor::Primary)
+                                    .disabled(disabled),
+                                );
                             }),
                         ])(wh, ctx);
                     }),
@@ -387,7 +394,7 @@ impl Component for QuestBoardItemAccepted {
                     );
                     ctx.add(simple_rect(
                         wh,
-                        palette::SURFACE_CONTAINER,
+                        Color::TRANSPARENT,
                         0.px(),
                         palette::OUTLINE,
                     ));

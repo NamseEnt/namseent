@@ -1,12 +1,16 @@
 pub mod requirement;
 pub mod reward;
-mod tracking;
+mod tracking_state;
+mod trigger_event;
 
 use super::{GameState, mutate_game_state};
 use crate::rarity::Rarity;
-use requirement::{QuestRequirement, generate_quest_requirement};
-use reward::{QuestReward, generate_quest_reward};
-pub use tracking::*;
+use requirement::generate_quest_requirement;
+use reward::generate_quest_reward;
+pub use requirement::QuestRequirement;
+pub use reward::QuestReward;
+pub use tracking_state::QuestTrackingState;
+pub use trigger_event::{QuestTriggerEvent, on_quest_trigger_event};
 
 #[derive(Debug, Clone)]
 pub struct Quest {

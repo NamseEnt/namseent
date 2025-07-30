@@ -285,16 +285,18 @@ impl Component for HandComponent<'_> {
     fn render(self, ctx: &RenderCtx) {
         let HandComponent { hand, on_click } = self;
         for slot in &hand.slots {
-            ctx.add_with_key(slot.id, slot).attach_event(|event| {
-                let Event::MouseDown { event } = event else {
-                    return;
-                };
-                if !event.is_local_xy_in() {
-                    return;
-                }
-                event.stop_propagation();
-                (on_click)(slot.id);
-            });
+            ctx.mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
+                .add_with_key(slot.id, slot)
+                .attach_event(|event| {
+                    let Event::MouseDown { event } = event else {
+                        return;
+                    };
+                    if !event.is_local_xy_in() {
+                        return;
+                    }
+                    event.stop_propagation();
+                    (on_click)(slot.id);
+                });
         }
     }
 }

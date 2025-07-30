@@ -1,3 +1,4 @@
+use crate::theme::button::Button;
 use crate::{
     game_state::{mutate_game_state, upgrade::Upgrade, use_game_state},
     l10n::upgrade::Template as UpgradeTemplate,
@@ -5,10 +6,7 @@ use crate::{
     theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
-use namui_prebuilt::{
-    button::TextButton,
-    table::{self, ratio},
-};
+use namui_prebuilt::table::{self, ratio};
 
 const PADDING: Px = px(4.0);
 const UPGRADE_SELECT_WH: Wh<Px> = Wh {
@@ -39,7 +37,7 @@ impl Component for UpgradeSelectModal<'_> {
 
         let on_upgrade_select = |upgrade: Upgrade| {
             mutate_game_state(move |state| {
-                state.upgrade_state.upgrade(upgrade);
+                state.upgrade(upgrade);
                 state.goto_selecting_tower();
             });
         };
@@ -78,18 +76,34 @@ impl Component for UpgradeSelectOpenButton<'_> {
 
         ctx.compose(|ctx| {
             ctx.translate((0.px(), UPGRADE_SELECT_BUTTON_WH.height))
-                .add(TextButton {
-                    rect: UPGRADE_SELECT_BUTTON_WH.to_rect(),
-                    text: format!("강화 선택 {}", if opened { "🔼" } else { "🔽" }),
-                    text_color: palette::ON_SURFACE,
-                    stroke_color: palette::OUTLINE,
-                    stroke_width: 1.px(),
-                    fill_color: palette::SURFACE_CONTAINER,
-                    mouse_buttons: vec![MouseButton::Left],
-                    on_mouse_up_in: |_| {
+                .add(Button::new(
+                    UPGRADE_SELECT_BUTTON_WH,
+                    &|| {
                         toggle_open();
                     },
-                });
+                    &|wh, text_color, ctx| {
+                        ctx.add(namui::text(TextParam {
+                            text: format!("강화 선택 {}", if opened { "🔼" } else { "🔽" }),
+                            x: wh.width / 2.0,
+                            y: wh.height / 2.0,
+                            align: namui::TextAlign::Center,
+                            baseline: TextBaseline::Middle,
+                            font: Font {
+                                size: 14.int_px(),
+                                name: "NotoSansKR-Regular".to_string(),
+                            },
+                            style: TextStyle {
+                                color: text_color,
+                                background: None,
+                                border: None,
+                                drop_shadow: None,
+                                line_height_percent: 100.percent(),
+                                underline: None,
+                            },
+                            max_width: None,
+                        }));
+                    },
+                ));
         });
     }
 }

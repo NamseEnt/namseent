@@ -20,6 +20,9 @@ mod tick;
 pub mod tower;
 pub mod upgrade;
 mod user_status_effect;
+pub mod play_history;
+mod event_handlers;
+mod placed_towers;
 
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
@@ -45,6 +48,8 @@ use std::sync::Arc;
 use tower::*;
 use upgrade::UpgradeState;
 use user_status_effect::UserStatusEffect;
+use play_history::PlayHistory;
+use placed_towers::PlacedTowers;
 
 /// The size of a tile in pixels, with zoom level 1.0.
 pub const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
@@ -95,6 +100,7 @@ pub struct GameState {
     status_effect_particle_generator: StatusEffectParticleGenerator,
     pub locale: crate::l10n::Locale,
     pub hand: hand::Hand,
+    pub play_history: PlayHistory,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -128,12 +134,8 @@ impl GameState {
         self.rerolled_count > 0
     }
 
-    pub fn earn_gold(&mut self, gold: usize) {
-        self.gold += gold;
-        on_quest_trigger_event(self, quest::QuestTriggerEvent::EarnGold { gold });
-    }
 
-    fn now(&self) -> Instant {
+    pub fn now(&self) -> Instant {
         self.game_now
     }
 
@@ -254,6 +256,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
             locale: crate::l10n::Locale::ENGLISH,
             hand: Default::default(),
+            play_history: PlayHistory::new(),
         };
 
         game_state.goto_selecting_tower();
@@ -270,63 +273,11 @@ pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static)
     GAME_STATE_ATOM.mutate(f);
 }
 
-/// Assume that the tower's size is 2x2.
-/// All iteration in this struct will be in the order of left-top, right-top, left-bottom, right-bottom.
-#[derive(Default)]
-pub struct PlacedTowers {
-    /// key is the left-top coord of the tower.
-    inner: Vec<Tower>,
-}
-
-impl PlacedTowers {
-    pub fn iter(&self) -> impl Iterator<Item = &Tower> {
-        self.inner.iter()
-    }
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Tower> {
-        self.inner.iter_mut()
-    }
-
-    pub fn coords(&self) -> Vec<MapCoord> {
-        self.iter()
-            .flat_map(|tower| {
-                let left_top = tower.left_top;
-                let right_top = left_top + MapCoord::new(1, 0);
-                let left_bottom = left_top + MapCoord::new(0, 1);
-                let right_bottom = left_top + MapCoord::new(1, 1);
-                [left_top, right_top, left_bottom, right_bottom]
-            })
-            .collect()
-    }
-
-    pub fn place_tower(&mut self, tower: Tower) {
-        // let's find the right place of tower and insert it
-
-        let Some(index) = self.inner.iter().position(|placed_tower| {
-            tower.left_top.y < placed_tower.left_top.y || tower.left_top.x < placed_tower.left_top.x
-        }) else {
-            self.inner.push(tower);
-            return;
-        };
-
-        self.inner.insert(index, tower);
-    }
-}
 
 /// Make sure that the tower can be placed at the given coord.
 pub fn place_tower(tower: Tower) {
     crate::game_state::mutate_game_state(move |game_state| {
-        let rank = tower.rank;
-        let suit = tower.suit;
-        let hand = tower.kind;
-
-        game_state.towers.place_tower(tower);
-        game_state.route =
-            calculate_routes(&game_state.towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
-
-        on_quest_trigger_event(
-            game_state,
-            quest::QuestTriggerEvent::BuildTower { rank, suit, hand },
-        );
+        game_state.place_tower(tower);
     });
 }
 

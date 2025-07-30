@@ -17,11 +17,15 @@ mod tower_selecting_hand;
 mod upgrade_board;
 mod upgrade_select;
 
+use crate::{
+    icon::{Icon, IconKind, IconSize},
+    theme::button::{Button, ButtonVariant},
+};
 use asset_loader::AssetLoader;
 use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
-use namui_prebuilt::{button::TextButton, simple_rect};
+use namui_prebuilt::simple_rect;
 use quest_board::QuestBoardModal;
 use quests::Quests;
 use settings::SettingsModal;
@@ -78,23 +82,18 @@ impl Component for Game {
             }
         });
 
-        ctx.add(TextButton {
-            rect: Rect::Xywh {
-                x: 8.px(),
-                y: screen_wh.height - 48.px(),
-                width: 128.px(),
-                height: 36.px(),
-            },
-            text: "Setting".to_string(),
-            text_color: palette::ON_SURFACE,
-            stroke_color: palette::OUTLINE,
-            stroke_width: 1.px(),
-            fill_color: palette::SURFACE_CONTAINER,
-            mouse_buttons: vec![MouseButton::Left],
-            on_mouse_up_in: |_| {
-                toggle_settings();
-            },
-        });
+        ctx.translate((8.px(), screen_wh.height - 48.px())).add(
+            Button::new(
+                Wh::new(36.px(), 36.px()),
+                &|| {
+                    toggle_settings();
+                },
+                &|wh, _text_color, ctx| {
+                    ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
+                },
+            )
+            .variant(ButtonVariant::Text),
+        );
 
         ctx.compose(|ctx| {
             let GameFlow::SelectingUpgrade { upgrades } = &game_state.flow else {
