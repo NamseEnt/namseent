@@ -1,10 +1,12 @@
+use crate::icon::{Icon, IconKind, IconSize};
 use crate::l10n::ui::TopBarText;
+use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{
     palette,
     typography::{self, headline},
 };
 use namui::*;
-use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, simple_rect, table};
+use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
 
 const TITLE_HEIGHT: Px = px(36.);
 const PADDING: Px = px(8.);
@@ -45,16 +47,16 @@ impl Component for SettingsModal<'_> {
                                 );
                             }),
                             table::fixed(64.px(), |wh, ctx| {
-                                ctx.add(TextButton {
-                                    rect: wh.to_rect(),
-                                    text: game_state.text().ui(TopBarText::Close).to_string(),
-                                    text_color: palette::ON_SURFACE,
-                                    stroke_color: palette::OUTLINE,
-                                    stroke_width: 1.px(),
-                                    fill_color: palette::SURFACE,
-                                    mouse_buttons: vec![MouseButton::Left],
-                                    on_mouse_up_in: |_| close_modal(),
-                                });
+                                ctx.add(
+                                    Button::new(wh, &|| close_modal(), &|wh, _text_color, ctx| {
+                                        ctx.add(
+                                            Icon::new(IconKind::Reject)
+                                                .size(IconSize::Large)
+                                                .wh(wh),
+                                        );
+                                    })
+                                    .variant(ButtonVariant::Text),
+                                );
                             }),
                         ]),
                     ),

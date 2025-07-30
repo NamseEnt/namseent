@@ -1,12 +1,12 @@
+use crate::theme::button::{Button, ButtonVariant};
 use crate::{
     game_state::{quest::cancel_quest, use_game_state},
     icon::{Icon, IconKind, IconSize},
-    l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
 };
 use namui::*;
-use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, table};
+use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, table};
 
 const QUESTS_WIDTH: Px = px(240.);
 const PADDING: Px = px(8.);
@@ -98,27 +98,22 @@ impl Component for Quests {
                                                                     HEADLINE_FONT_SIZE_LARGE
                                                                         .into_px(),
                                                                     |wh, ctx| {
-                                                                        ctx.add(TextButton {
-                                                                            rect: wh.to_rect(),
-                                                                            text:
-                                                                                game_state.text().ui(TopBarText::Remove).to_string(),
-                                                                            text_color:
-                                                                                palette::ON_SURFACE,
-                                                                            stroke_color:
-                                                                                palette::OUTLINE,
-                                                                            stroke_width: 1.px(),
-                                                                            fill_color:
-                                                                                palette::SURFACE,
-                                                                            mouse_buttons: vec![
-                                                                                MouseButton::Left,
-                                                                            ],
-                                                                            on_mouse_up_in:
-                                                                                move |_| {
-                                                                                    cancel_quest(
-                                                                                        quest_index,
-                                                                                    );
-                                                                                },
-                                                                        });
+                                                                        ctx.add(Button::new(
+                                                                            wh,
+                                                                            &move || {
+                                                                                cancel_quest(
+                                                                                    quest_index,
+                                                                                );
+                                                                            },
+                                                                            &|wh, _text_color, ctx| {
+                                                                                ctx.add(
+                                                                                    Icon::new(
+                                                                                        IconKind::Reject,
+                                                                                    )
+                                                                                    .wh(wh),
+                                                                                );
+                                                                            }
+                                                                        ).variant(ButtonVariant::Text));
                                                                     },
                                                                 ),
                                                             ]),
