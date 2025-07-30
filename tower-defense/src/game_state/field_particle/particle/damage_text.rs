@@ -60,7 +60,7 @@ impl DamageTextParticle {
         let opacity = self.opacity;
         let style = TextStyle {
             border: Some(TextStyleBorder {
-                color: Color::BLACK,
+                color: Color::BLACK.with_alpha(opacity),
                 width: 4.0.into(),
             }),
             color: self.display_color.with_alpha(opacity),

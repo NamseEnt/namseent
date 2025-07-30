@@ -12,7 +12,7 @@ namui-prebuilt = { path = "../namui/namui-prebuilt" }
 rand = { version = "0.8.5", features = ["alloc"] }
 
 [build-dependencies]
-twemoji-assets = "1.4.0+16.0.1"
+twemoji-assets = "1.4.0"
 image = "0.25.1"
 rayon = "1.10.0"
 resvg = "0.45.1"

@@ -1,7 +1,13 @@
-use crate::game_state::tower::{TowerStatusEffect, TowerStatusEffectEnd, TowerStatusEffectKind, TowerTemplate};
+use crate::game_state::tower::{
+    TowerStatusEffect, TowerStatusEffectEnd, TowerStatusEffectKind, TowerTemplate,
+};
 use crate::game_state::upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, UpgradeState};
 
-pub fn inject_status_effects(tower: &mut TowerTemplate, upgrade_state: &UpgradeState, rerolled_count: usize) {
+pub fn inject_status_effects(
+    tower: &mut TowerTemplate,
+    upgrade_state: &UpgradeState,
+    rerolled_count: usize,
+) {
     let mut inject_tower_upgrades = |upgrade: &TowerUpgradeState| {
         if upgrade.damage_plus > 0.0 {
             let upgrade_effect = TowerStatusEffect {

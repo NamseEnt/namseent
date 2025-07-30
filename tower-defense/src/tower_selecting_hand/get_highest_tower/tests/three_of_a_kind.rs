@@ -1,8 +1,8 @@
 use super::super::get_highest_tower_template;
-use crate::card::{Suit, Rank};
+use super::make_card;
+use crate::card::{Rank, Suit};
 use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::UpgradeState;
-use super::make_card;
 
 #[test]
 fn test_three_of_a_kind() {

@@ -8,7 +8,7 @@ use crate::{
     },
     l10n::upgrade_board::UpgradeBoardText,
     palette,
-    theme::typography::{FontSize, headline, paragraph, TextAlign},
+    theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -73,11 +73,16 @@ impl Component for UpgradeBoard {
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
                         ctx.add(
-                            headline(game_state.text().upgrade_board(UpgradeBoardText::Title).to_string())
-                                .size(FontSize::Large)
-                                .align(TextAlign::Center { wh })
-                                .max_width(wh.width)
-                                .build()
+                            headline(
+                                game_state
+                                    .text()
+                                    .upgrade_board(UpgradeBoardText::Title)
+                                    .to_string(),
+                            )
+                            .size(FontSize::Large)
+                            .align(TextAlign::Center { wh })
+                            .max_width(wh.width)
+                            .build(),
                         );
                     }),
                     table::ratio(1, |wh, ctx| {
@@ -160,7 +165,7 @@ impl Component for UpgradeItem {
                                         .size(FontSize::Medium)
                                         .align(TextAlign::LeftTop)
                                         .max_width(wh.width)
-                                        .build()
+                                        .build(),
                                 );
                             }),
                         ),
@@ -177,7 +182,10 @@ impl Component for UpgradeItem {
     }
 }
 
-fn get_upgrade_description_texts(state: &UpgradeState, text: &crate::l10n::TextManager) -> Vec<String> {
+fn get_upgrade_description_texts(
+    state: &UpgradeState,
+    text: &crate::l10n::TextManager,
+) -> Vec<String> {
     let mut texts = vec![];
     if state.gold_earn_plus != 0 {
         texts.push(

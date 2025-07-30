@@ -6,26 +6,26 @@ use crate::{
         MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
         can_place_tower::can_place_tower,
         flow::GameFlow,
+        hand::HandSlotId,
         mutate_game_state, place_tower,
         tower::{AnimationKind, Tower, TowerTemplate},
         use_game_state,
     },
     palette,
-    tower_placing_hand::PlacingTowerSlot,
 };
 use namui::*;
 
 pub(super) struct TowerCursorPreview<'a> {
     pub tower_template: &'a TowerTemplate,
     pub map_coord: MapCoordF32,
-    pub placing_tower_slot_index: usize,
+    pub placing_tower_slot_id: HandSlotId,
 }
 impl Component for TowerCursorPreview<'_> {
     fn render(self, ctx: &namui::RenderCtx) {
         let Self {
             tower_template,
             map_coord,
-            placing_tower_slot_index,
+            placing_tower_slot_id,
         } = self;
 
         let game_state = use_game_state(ctx);
@@ -55,6 +55,14 @@ impl Component for TowerCursorPreview<'_> {
 
         let cancel_placing_tower_selection = || {
             mutate_game_state(|game_state| {
+                if let PreviewKind::PlacingTower {
+                    placing_tower_slot_id,
+                    ..
+                } = game_state.cursor_preview.kind
+                {
+                    game_state.hand.deselect_slot(placing_tower_slot_id);
+                }
+
                 game_state.cursor_preview.kind = PreviewKind::None;
             });
         };
@@ -63,19 +71,15 @@ impl Component for TowerCursorPreview<'_> {
             let left_top = *rounded_center_xy - Xy::single(1);
             place_tower(Tower::new(tower_template, left_top, game_state.now()));
             mutate_game_state(move |game_state| {
-                let GameFlow::PlacingTower {
-                    placing_tower_slots,
-                } = &mut game_state.flow
-                else {
-                    panic!("Expected GameFlow::PlacingTower");
-                };
-                placing_tower_slots[placing_tower_slot_index] = PlacingTowerSlot::Empty;
+                if !matches!(game_state.flow, GameFlow::PlacingTower) {
+                    println!("Expected GameFlow::PlacingTower");
+                }
+
+                game_state.hand.delete_slots(&[placing_tower_slot_id]);
                 game_state.cursor_preview.kind = PreviewKind::None;
 
-                if placing_tower_slots
-                    .iter()
-                    .all(|slot| matches!(slot, PlacingTowerSlot::Empty))
-                {
+                // 모든 타워 슬롯이 사용되었는지 확인
+                if !game_state.hand.has_tower_slots() {
                     game_state.goto_defense();
                 }
             });

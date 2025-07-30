@@ -24,6 +24,10 @@ impl Component for Ticker {
 }
 
 fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
+    check_game_initialized(game_state);
+
+    game_state.hand.update();
+
     crate::game_state::monster_spawn::tick(game_state, now);
     crate::game_state::tower::tower_cooldown_tick(game_state, dt);
     crate::game_state::tower::tower_animation_tick(game_state, now);
@@ -173,4 +177,13 @@ fn check_defense_end(game_state: &mut GameState) {
     } else {
         game_state.goto_selecting_tower();
     }
+}
+
+fn check_game_initialized(game_state: &mut GameState) {
+    if !matches!(game_state.flow, GameFlow::Initializing) {
+        return;
+    }
+
+    // TODO: check if all game state is initialized
+    game_state.goto_selecting_tower();
 }
