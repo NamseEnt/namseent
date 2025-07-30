@@ -1,7 +1,14 @@
 use crate::{
     game_state::{
-        cursor_preview::PreviewKind, item::{use_item, ItemUsage}, mutate_game_state, use_game_state, MAX_INVENTORY_SLOT
-    }, icon::{Icon, IconKind, IconSize}, l10n::ui::TopBarText, palette, theme::typography::{headline, paragraph, FontSize, TextAlign, HEADLINE_FONT_SIZE_LARGE}
+        MAX_INVENTORY_SLOT,
+        cursor_preview::PreviewKind,
+        item::{ItemUsage, use_item},
+        mutate_game_state, use_game_state,
+    },
+    icon::{Icon, IconKind, IconSize},
+    l10n::ui::TopBarText,
+    palette,
+    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, table};
@@ -16,6 +23,141 @@ pub struct Inventory {
 impl Component for Inventory {
     fn render(self, render_ctx: &RenderCtx) {
         let game_state = use_game_state(render_ctx);
+
+        let scroll_view = |wh: Wh<Px>, ctx: ComposeCtx| {
+            ctx.clip(Path::new().add_rect(wh.to_rect()), ClipOp::Intersect)
+                .add(AutoScrollViewWithCtx {
+                    wh,
+                    scroll_bar_width: PADDING,
+                    content: |mut ctx| {
+                        let content_width = wh.width - PADDING * 2.;
+                        for (item_index, item) in game_state.items.iter().enumerate() {
+                            let name = item.kind.name(&game_state.text());
+                            let desc = item.kind.description(&game_state.text());
+                            let content = ctx.ghost_compose(
+                                format!("InventoryItemContent {item_index}"),
+                                |ctx| {
+                                    table::vertical([
+                                        table::fixed(
+                                            HEADLINE_FONT_SIZE_LARGE.into_px(),
+                                            table::horizontal([
+                                                table::fixed(
+                                                    HEADLINE_FONT_SIZE_LARGE.into_px(),
+                                                    |_, _| {
+                                                        // TODO: Icons
+                                                    },
+                                                ),
+                                                table::ratio(1, |_, _| {}),
+                                                table::fixed(
+                                                    HEADLINE_FONT_SIZE_LARGE.into_px() * 3.0,
+                                                    |wh, ctx| {
+                                                        ctx.add(TextButton {
+                                                            rect: wh.to_rect(),
+                                                            text: game_state
+                                                                .text()
+                                                                .ui(TopBarText::Use)
+                                                                .to_string(),
+                                                            text_color: palette::ON_SURFACE,
+                                                            stroke_color: palette::OUTLINE,
+                                                            stroke_width: 1.px(),
+                                                            fill_color: palette::SURFACE,
+                                                            mouse_buttons: vec![MouseButton::Left],
+                                                            on_mouse_up_in: |_| match item
+                                                                .kind
+                                                                .usage()
+                                                            {
+                                                                ItemUsage::Instant => {
+                                                                    mutate_game_state(
+                                                                        move |game_state| {
+                                                                            let item = game_state
+                                                                                .items
+                                                                                .remove(item_index);
+                                                                            use_item(
+                                                                                game_state, &item,
+                                                                                None,
+                                                                            );
+                                                                        },
+                                                                    );
+                                                                }
+                                                                ItemUsage::CircularArea {
+                                                                    ..
+                                                                }
+                                                                | ItemUsage::LinearArea {
+                                                                    ..
+                                                                } => {
+                                                                    let item = item.clone();
+                                                                    mutate_game_state(
+                                                                        move |game_state| {
+                                                                            game_state
+                                                                                .cursor_preview
+                                                                                .kind =
+                                                                                PreviewKind::Item {
+                                                                                    item,
+                                                                                    item_index,
+                                                                                };
+                                                                        },
+                                                                    );
+                                                                }
+                                                            },
+                                                        });
+                                                    },
+                                                ),
+                                            ]),
+                                        ),
+                                        table::fixed(PADDING * 2.0, |_, _| {}),
+                                        table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
+                                            compose_ctx.add(
+                                                headline(name)
+                                                    .size(FontSize::Small)
+                                                    .align(TextAlign::LeftTop)
+                                                    .max_width(content_width)
+                                                    .build(),
+                                            );
+                                        }),
+                                        table::fixed(PADDING, |_, _| {}),
+                                        table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
+                                            compose_ctx.add(
+                                                paragraph(desc.clone())
+                                                    .size(FontSize::Medium)
+                                                    .align(TextAlign::LeftTop)
+                                                    .max_width(content_width)
+                                                    .build_rich(),
+                                            );
+                                        }),
+                                    ])(
+                                        Wh::new(content_width, f32::MAX.px()), ctx
+                                    );
+                                },
+                            );
+                            let Some(content_wh) = bounding_box(&content).map(|rect| rect.wh())
+                            else {
+                                return;
+                            };
+                            let container_wh = content_wh + Wh::single(PADDING * 2.);
+                            ctx.translate(Xy::single(PADDING)).add(content);
+                            ctx.add(rect(RectParam {
+                                rect: container_wh.to_rect(),
+                                style: RectStyle {
+                                    stroke: Some(RectStroke {
+                                        color: palette::OUTLINE,
+                                        width: 1.px(),
+                                        border_position: BorderPosition::Inside,
+                                    }),
+                                    fill: Some(RectFill {
+                                        color: palette::SURFACE_CONTAINER,
+                                    }),
+                                    round: Some(RectRound {
+                                        radius: palette::ROUND,
+                                    }),
+                                },
+                            }));
+
+                            ctx = ctx.translate(Xy::new(0.px(), container_wh.height));
+                        }
+                    },
+                });
+        };
+
         render_ctx.compose(|ctx| {
             table::horizontal([
                 table::ratio_no_clip(1, |_, _| {}),
@@ -25,28 +167,20 @@ impl Component for Inventory {
                         PADDING,
                         table::vertical([
                             table::fixed(TITLE_HEIGHT, |wh, ctx| {
+                                ctx.add(Icon::new(IconKind::Item).size(IconSize::Medium).wh(Wh {
+                                    width: 32.px(),
+                                    height: wh.height,
+                                }));
+                                let text =
+                                    format!("{}/{}", game_state.items.len(), MAX_INVENTORY_SLOT);
+                                ctx.add(
+                                    headline(text)
+                                        .size(FontSize::Medium)
+                                        .align(TextAlign::Center { wh })
+                                        .max_width(wh.width)
+                                        .build(),
+                                );
 
-                                                            ctx.add(
-                                Icon::new(IconKind::Item)
-                                    .size(IconSize::Medium)
-                                    .wh(Wh {
-                                        width: 32.px(),
-                                        height: wh.height
-                                    })
-                            );
-                            let text = format!(
-                                "{}/{}",
-                                game_state.items.len(), MAX_INVENTORY_SLOT
-                            );
-                            ctx.add(
-                                headline(text)
-                                .size(FontSize::Medium)
-                                .align(TextAlign::Center { wh })
-                                .max_width(wh.width)
-                                .build(),
-                            );
-
-                            
                                 ctx.add(rect(RectParam {
                                     rect: wh.to_rect(),
                                     style: RectStyle {
@@ -65,100 +199,7 @@ impl Component for Inventory {
                                 }));
                             }),
                             table::fixed_no_clip(PADDING, |_, _| {}),
-                            table::ratio(1, |wh, ctx| {
-                                ctx.clip(Path::new().add_rect(wh.to_rect()), ClipOp::Intersect).add(AutoScrollViewWithCtx {
-                                    wh,
-                                    scroll_bar_width: PADDING,
-                                    content: |ctx| {
-                                        let content_width = wh.width - PADDING * 2.;
-                                        for (item_index, item) in game_state.items.iter().enumerate() {
-                                            let name = item.kind.name(&game_state.text());
-                                            let desc = item.kind.description(&game_state.text());
-                                            let content = ctx.ghost_compose(format!("InventoryItemContent {item_index}"), |ctx| {
-                                                table::vertical([
-                                                    table::fixed(
-                                                        HEADLINE_FONT_SIZE_LARGE.into_px(),
-                                                        table::horizontal([
-                                                            table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px(), |_, _| {
-                                                                // TODO: Icons
-                                                            }),
-                                                            table::ratio(1, |_, _| {}),
-                                                            table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 3.0, |wh, ctx| {
-                                                                ctx.add(TextButton {
-                                                                    rect: wh.to_rect(),
-                                                                    text: game_state.text().ui(TopBarText::Use).to_string(),
-                                                                    text_color: palette::ON_SURFACE,
-                                                                    stroke_color: palette::OUTLINE,
-                                                                    stroke_width: 1.px(),
-                                                                    fill_color: palette::SURFACE,
-                                                                    mouse_buttons: vec![MouseButton::Left],
-                                                                    on_mouse_up_in: |_| match item.kind.usage() {
-                                                                        ItemUsage::Instant => {
-                                                                            mutate_game_state(move |game_state| {
-                                                                                let item = game_state.items.remove(item_index);
-                                                                                use_item(game_state, &item, None);
-                                                                            });
-                                                                        }
-                                                                        ItemUsage::CircularArea { .. }
-                                                                        | ItemUsage::LinearArea { .. } => {
-                                                                            let item = item.clone();
-                                                                            mutate_game_state(move |game_state| {
-                                                                                game_state.cursor_preview.kind =
-                                                                                    PreviewKind::Item { item, item_index };
-                                                                            });
-                                                                        }
-                                                                    },
-                                                                });
-                                                            }),
-                                                        ]),
-                                                    ),
-                                                    table::fixed(PADDING * 2.0, |_, _| {}),
-                                                    table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                                                        compose_ctx.add(
-                                                            headline(name)
-                                                                .size(FontSize::Small)
-                                                                .align(TextAlign::LeftTop)
-                                                                .max_width(content_width)
-                                                                .build(),
-                                                        );
-                                                    }),
-                                                    table::fixed(PADDING, |_, _| {}),
-                                                    table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                                                        compose_ctx.add(
-                                                            paragraph(desc.clone())
-                                                                .size(FontSize::Medium)
-                                                                .align(TextAlign::LeftTop)
-                                                                .max_width(content_width)
-                                                                .build_rich(),
-                                                        );
-                                                    }),
-                                                ])(Wh::new(content_width, f32::MAX.px()), ctx);
-                                            });
-                                            let Some(content_wh) = bounding_box(&content).map(|rect| rect.wh()) else {
-                                                return;
-                                            };
-                                            let container_wh = content_wh + Wh::single(PADDING * 2.);
-                                            ctx.translate(Xy::single(PADDING)).add(content);
-                                            ctx.add(rect(RectParam {
-                                                rect: container_wh.to_rect(),
-                                                style: RectStyle {
-                                                    stroke: Some(RectStroke {
-                                                        color: palette::OUTLINE,
-                                                        width: 1.px(),
-                                                        border_position: BorderPosition::Inside,
-                                                    }),
-                                                    fill: Some(RectFill {
-                                                        color: palette::SURFACE_CONTAINER,
-                                                    }),
-                                                    round: Some(RectRound {
-                                                        radius: palette::ROUND,
-                                                    }),
-                                                },
-                                            }));
-                                        }
-                                    },
-                                });
-                            }),
+                            table::ratio(1, scroll_view),
                         ]),
                     ),
                 ),

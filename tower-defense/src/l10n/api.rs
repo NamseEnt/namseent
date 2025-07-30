@@ -1,6 +1,6 @@
 // 현대적 l10n API - 간결하고 효율적인 다국어 텍스트 관리
 
-use super::{Locale, Language};
+use super::{Language, Locale};
 use super::{item, quest, tower, tower_skill, ui, upgrade, upgrade_board};
 
 /// 통합 다국어 텍스트 관리자
@@ -14,22 +14,22 @@ impl TextManager {
     pub const fn new(locale: Locale) -> Self {
         Self { locale }
     }
-    
+
     /// 한국어 텍스트 관리자
     pub const fn korean() -> Self {
         Self::new(Locale::KOREAN)
     }
-    
+
     /// 영어 텍스트 관리자
     pub const fn english() -> Self {
         Self::new(Locale::ENGLISH)
     }
-    
+
     /// 현재 로케일 반환
     pub const fn locale(&self) -> Locale {
         self.locale
     }
-    
+
     /// 로케일 변경
     pub const fn with_locale(self, locale: Locale) -> Self {
         Self::new(locale)
@@ -147,32 +147,32 @@ impl LegacyLocales {
             LegacyLocales::KoKR(_) => TextManager::korean(),
         }
     }
-    
+
     /// 기존 호환성을 위한 메서드들 - 새로운 TextManager로 위임
     pub fn text(&self, template: upgrade::Template) -> String {
         self.as_text_manager().upgrade(template)
     }
-    
+
     pub fn ui_text(&self, text: ui::TopBarText) -> &'static str {
         self.as_text_manager().ui(text)
     }
-    
+
     pub fn quest_text(&self, text: &quest::QuestText) -> String {
         self.as_text_manager().quest(text.clone())
     }
-    
+
     pub fn tower_kind_text(&self, text: &tower::TowerKindText) -> &'static str {
         self.as_text_manager().tower(*text)
     }
-    
+
     pub fn tower_skill_text(&self, text: &tower_skill::TowerSkillText) -> String {
         self.as_text_manager().tower_skill(text.clone())
     }
-    
+
     pub fn upgrade_text(&self, text: upgrade::Template) -> String {
         self.as_text_manager().upgrade(text)
     }
-    
+
     pub fn upgrade_board_text(&self, text: &upgrade_board::UpgradeBoardText) -> &'static str {
         self.as_text_manager().upgrade_board(*text)
     }
