@@ -7,6 +7,7 @@ pub enum ButtonVariant {
     Text,
     Contained,
     Outlined,
+    Fab,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,7 +104,7 @@ impl Component for Button<'_> {
         } else {
             match variant {
                 ButtonVariant::Text | ButtonVariant::Outlined => base_colors.0,
-                ButtonVariant::Contained => base_colors.1,
+                ButtonVariant::Contained | ButtonVariant::Fab => base_colors.1,
             }
         };
 
@@ -232,6 +233,25 @@ fn get_button_style(
         (ButtonVariant::Outlined, ButtonState::Disabled) => {
             (Color::TRANSPARENT, palette::OUTLINE, 1.px())
         }
+
+        (ButtonVariant::Fab, ButtonState::Normal) => {
+            (base_colors.0, darken_color(base_colors.0, 0.3), 5.px())
+        }
+        (ButtonVariant::Fab, ButtonState::Hovered) => (
+            lighten_color(base_colors.0, 0.1),
+            darken_color(base_colors.0, 0.3),
+            5.px(),
+        ),
+        (ButtonVariant::Fab, ButtonState::Pressed) => (
+            lighten_color(base_colors.0, 0.2),
+            darken_color(base_colors.0, 0.3),
+            5.px(),
+        ),
+        (ButtonVariant::Fab, ButtonState::Disabled) => (
+            palette::DISABLED_CONTAINER,
+            darken_color(palette::DISABLED_CONTAINER, 0.2),
+            5.px(),
+        ),
     }
 }
 
@@ -239,9 +259,9 @@ fn get_base_colors(color: ButtonColor) -> (Color, Color) {
     match color {
         ButtonColor::Primary => (palette::PRIMARY, palette::ON_PRIMARY),
         ButtonColor::Secondary => (palette::SECONDARY, palette::ON_SECONDARY),
-        ButtonColor::Error => (palette::RED, Color::WHITE),
-        ButtonColor::Warn => (Color::from_u8(255, 193, 7, 255), Color::BLACK),
-        ButtonColor::Info => (palette::BLUE, Color::WHITE),
+        ButtonColor::Error => (palette::RED, palette::WHITE),
+        ButtonColor::Warn => (palette::YELLOW, palette::BLACK),
+        ButtonColor::Info => (palette::BLUE, palette::WHITE),
     }
 }
 
@@ -249,6 +269,14 @@ fn lighten_color(color: Color, factor: f32) -> Color {
     let r = ((color.r as f32 / 255.0) + factor).min(1.0);
     let g = ((color.g as f32 / 255.0) + factor).min(1.0);
     let b = ((color.b as f32 / 255.0) + factor).min(1.0);
+
+    Color::from_f01(r, g, b, color.a as f32 / 255.0)
+}
+
+fn darken_color(color: Color, factor: f32) -> Color {
+    let r = ((color.r as f32 / 255.0) - factor).max(0.0);
+    let g = ((color.g as f32 / 255.0) - factor).max(0.0);
+    let b = ((color.b as f32 / 255.0) - factor).max(0.0);
 
     Color::from_f01(r, g, b, color.a as f32 / 255.0)
 }

@@ -17,7 +17,10 @@ mod tower_selecting_hand;
 mod upgrade_board;
 mod upgrade_select;
 
-use crate::theme::button::Button;
+use crate::{
+    icon::{Icon, IconKind, IconSize},
+    theme::button::{Button, ButtonVariant},
+};
 use asset_loader::AssetLoader;
 use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
 use inventory::Inventory;
@@ -79,35 +82,18 @@ impl Component for Game {
             }
         });
 
-        ctx.translate((8.px(), screen_wh.height - 48.px()))
-            .add(Button::new(
-                Wh::new(128.px(), 36.px()),
+        ctx.translate((8.px(), screen_wh.height - 48.px())).add(
+            Button::new(
+                Wh::new(36.px(), 36.px()),
                 &|| {
                     toggle_settings();
                 },
-                &|wh, text_color, ctx| {
-                    ctx.add(namui::text(TextParam {
-                        text: "Setting".to_string(),
-                        x: wh.width / 2.0,
-                        y: wh.height / 2.0,
-                        align: TextAlign::Center,
-                        baseline: TextBaseline::Middle,
-                        font: Font {
-                            size: 14.int_px(),
-                            name: "NotoSansKR-Regular".to_string(),
-                        },
-                        style: TextStyle {
-                            color: text_color,
-                            background: None,
-                            border: None,
-                            drop_shadow: None,
-                            line_height_percent: 100.percent(),
-                            underline: None,
-                        },
-                        max_width: None,
-                    }));
+                &|wh, _text_color, ctx| {
+                    ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
                 },
-            ));
+            )
+            .variant(ButtonVariant::Text),
+        );
 
         ctx.compose(|ctx| {
             let GameFlow::SelectingUpgrade { upgrades } = &game_state.flow else {

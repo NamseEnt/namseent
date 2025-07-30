@@ -1,5 +1,6 @@
+use crate::icon::{Icon, IconKind, IconSize};
 use crate::l10n::ui::TopBarText;
-use crate::theme::button::Button;
+use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{
     palette,
     typography::{self, headline},
@@ -46,35 +47,16 @@ impl Component for SettingsModal<'_> {
                                 );
                             }),
                             table::fixed(64.px(), |wh, ctx| {
-                                ctx.add(Button::new(
-                                    wh,
-                                    &|| close_modal(),
-                                    &|wh, text_color, ctx| {
-                                        ctx.add(namui::text(TextParam {
-                                            text: game_state
-                                                .text()
-                                                .ui(TopBarText::Close)
-                                                .to_string(),
-                                            x: wh.width / 2.0,
-                                            y: wh.height / 2.0,
-                                            align: namui::TextAlign::Center,
-                                            baseline: TextBaseline::Middle,
-                                            font: Font {
-                                                size: 14.int_px(),
-                                                name: "NotoSansKR-Regular".to_string(),
-                                            },
-                                            style: TextStyle {
-                                                color: text_color,
-                                                background: None,
-                                                border: None,
-                                                drop_shadow: None,
-                                                line_height_percent: 100.percent(),
-                                                underline: None,
-                                            },
-                                            max_width: None,
-                                        }));
-                                    },
-                                ));
+                                ctx.add(
+                                    Button::new(wh, &|| close_modal(), &|wh, _text_color, ctx| {
+                                        ctx.add(
+                                            Icon::new(IconKind::Reject)
+                                                .size(IconSize::Large)
+                                                .wh(wh),
+                                        );
+                                    })
+                                    .variant(ButtonVariant::Text),
+                                );
                             }),
                         ]),
                     ),

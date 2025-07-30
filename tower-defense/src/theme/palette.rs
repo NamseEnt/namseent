@@ -23,6 +23,11 @@ pub const LEGENDARY: Color = Color::from_u8(216, 250, 8, 255);
 
 pub const RED: Color = Color::from_u8(244, 67, 54, 255);
 pub const BLUE: Color = Color::from_u8(33, 150, 243, 255);
+pub const YELLOW: Color = Color::from_u8(255, 193, 7, 255);
+
+// Additional colors for buttons
+pub const WHITE: Color = Color::from_u8(255, 255, 255, 255);
+pub const BLACK: Color = Color::from_u8(0, 0, 0, 255);
 
 // Button disabled states
 pub const DISABLED_CONTAINER: Color = Color::from_u8(60, 60, 60, 255);
