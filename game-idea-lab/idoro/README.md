@@ -1,50 +1,120 @@
-# Welcome to your Expo app 👋
+idoro 라는 이 뽀모도로 프로젝트를 만든 과정과 결론을 llm을 통해 정리했습니다.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+# 아이돌 프로젝트의 여정: 큰 꿈에서 시작해 본질을 찾아가는 과정
 
-## Get started
+## 시작점: 거대한 비전
 
-1. Install dependencies
+당신은 처음부터 명확한 큰 그림을 가지고 있었습니다:
 
-   ```bash
-   npm install
-   ```
+**"함께하고 함께 성장하는 느낌을 주는 아이돌 프로젝트"**
 
-2. Start the app
+구체적으로:
 
-   ```bash
-   npx expo start
-   ```
+- 아이돌과 함께하고, 아이돌이 빛날 수 있도록 팬들의 작은 빛을 모아주는 시스템
+- 팬 커뮤니티가 서로 으쌰으쌰하며 함께 발전 (봉사활동, 자격증 공부 등)
+- 주간 라디오로 성우가 직접 응원 전달하는 소통
+- 팬들이 고립되지 않고 연결되는 공간
 
-In the output, you'll find options to open the app in a
+## 첫 발걸음: 왜 뽀모도로였나
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+이 큰 비전을 실현하기 위한 **작은 첫 걸음**으로 뽀모도로 타이머를 선택했습니다.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- 사용자들이 일상에서 성장하는 느낌을 받을 수 있는 도구
+- 아이돌과 시간을 함께 보낸다는 의미
+- 구체적이고 실현 가능한 시작점
 
-## Get a fresh project
+## v0.1: 첫 프로토타입과 예상 밖의 무감각함
 
-When you're ready, run:
+### 구현한 것
 
-```bash
-npm run reset-project
-```
+- 하연이라는 연습생 캐릭터
+- 개인화된 응원 시스템
+- 응원력 포인트
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 발견한 문제
 
-## Learn more
+만들고 나서 "자주 사용하고 싶지 않다"는 예상 밖의 감정. 왜일까?
 
-To learn more about developing your project with Expo, look at the following resources:
+### 근본 원인 분석
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. **맥락의 부재**: 하연이가 사용자가 뭘 하는지 모르고 기계적으로 칭찬
+2. **응원력의 무의미함**: 쌓이기만 하고 사용처가 없음
+3. **일방적 관계**: 진정한 "함께"가 아님
 
-## Join the community
+핵심 발견: **사용자의 25분 활동과 앱의 경험이 분리되어 있다**
 
-Join our community of developers creating universal apps.
+## 중간 고민: 게임화와 관계성
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 게임 디자인 원리 탐색
+
+- 세션-하루-시즌의 다층 구조
+- 각 층위별 다른 만족감
+
+### 관계성 재고찰
+
+- "위로받고 위로해주는" 상호적 관계
+- 사용자의 집중 = 아이돌의 연습 (함께 성장)
+
+## v0.2: "함께"를 구현하려는 시도
+
+### 핵심 컨셉 전환
+
+- 혼자하는 연습실 → 공동의 연습실
+- 개인의 성취 → 함께하는 성취
+
+### 주요 기능 추가
+
+1. **공동 세션**: 정해진 시간에 함께 시작
+2. **실시간 참여자**: "N명이 함께 하는 중"
+3. **흔적 시스템**: 서로의 메시지 공유
+
+### 의도한 변화
+
+- 하연이: 응원받는 대상 → 함께 연습하는 동료
+- 사용자: 혼자 → 커뮤니티의 일원
+
+## v0.2 피드백: 형식과 본질의 충돌
+
+### 당신이 발견한 문제들
+
+1. **대기실의 무의미함**
+
+   - "빨리 집중하고 싶은데 기다려야 함"
+   - 버튜버 라이브 대기실 같은 느낌
+
+2. **개인 리듬 vs 공동 리듬**
+
+   - 휴식 시간 개념이 꼬임
+   - 함께하는 순간 기존 뽀모도로 문법과 충돌
+
+3. **숫자의 무감각함**
+   - "몇 명이 보는지보다 재미난 채팅이 중요"
+   - 진짜 상호작용의 부재
+
+## 최종 깨달음: 도구와 목적의 불일치
+
+### 다른 경험들과의 비교를 통한 발견
+
+- **리그오브레전드**: 실시간 상호 영향
+- **ICO**: 서로 필수적인 관계
+- **밀리시타**: 나를 보고 웃어주는 정서적 교감
+
+### 핵심 통찰
+
+1. 당신은 실제로 뽀모도로를 사용하지 않음
+2. 집중력 강화가 목적이 아님
+3. 원하는 것은 "디지털 존재와의 의미있는 관계"
+
+### 결론
+
+**뽀모도로는 당신이 원하는 "함께 성장하는 아이돌 프로젝트"를 담기에는 잘못된 그릇**
+
+## 여정의 의미
+
+이것은 실패가 아닙니다. 오히려:
+
+- 큰 비전에서 시작해 작은 도구로 시도
+- 실제로 만들고 경험하며 본질 발견
+- 형식(뽀모도로)과 내용(관계성)의 불일치 깨달음
+
+이제 뽀모도로라는 형식을 놓아주고, 원래의 비전인 "함께 성장하는 아이돌 프로젝트"의 본질에 더 맞는 형태를 찾아갈 때입니다.
