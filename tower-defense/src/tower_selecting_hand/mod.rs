@@ -1,6 +1,7 @@
 mod get_highest_tower;
 mod tower_preview;
 
+use crate::theme::button::Button;
 use crate::{
     game_state::{
         hand::{HAND_WH, HandComponent, HandSlotId},
@@ -12,7 +13,7 @@ use crate::{
 };
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
-use namui_prebuilt::{button, table};
+use namui_prebuilt::table;
 use tower_preview::TowerPreview;
 
 const PADDING: Px = px(4.);
@@ -140,39 +141,69 @@ impl Component for InteractionArea<'_> {
                 PADDING,
                 table::vertical([
                     table::fixed(32.px(), |wh, ctx| {
-                        ctx.add(button::TextButton {
-                            rect: wh.to_rect(),
-                            text: game_state.text().ui(TopBarText::Refresh),
-                            text_color: match some_selected {
-                                true => palette::ON_PRIMARY,
-                                false => palette::ON_SURFACE,
-                            },
-                            stroke_color: palette::OUTLINE,
-                            stroke_width: 1.px(),
-                            fill_color: match some_selected {
-                                true => palette::PRIMARY,
-                                false => palette::SURFACE_CONTAINER_HIGH,
-                            },
-                            mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: |_| {
+                        ctx.add(Button::new(
+                            wh,
+                            &|| {
                                 reroll_selected();
                             },
-                        });
+                            &|wh, _text_color, ctx| {
+                                let text_color = match some_selected {
+                                    true => palette::ON_PRIMARY,
+                                    false => palette::ON_SURFACE,
+                                };
+                                ctx.add(namui::text(TextParam {
+                                    text: game_state.text().ui(TopBarText::Refresh).to_string(),
+                                    x: wh.width / 2.0,
+                                    y: wh.height / 2.0,
+                                    align: TextAlign::Center,
+                                    baseline: TextBaseline::Middle,
+                                    font: Font {
+                                        size: 14.int_px(),
+                                        name: "NotoSansKR-Regular".to_string(),
+                                    },
+                                    style: TextStyle {
+                                        color: text_color,
+                                        background: None,
+                                        border: None,
+                                        drop_shadow: None,
+                                        line_height_percent: 100.percent(),
+                                        underline: None,
+                                    },
+                                    max_width: None,
+                                }));
+                            },
+                        ));
                     }),
                     table::ratio(1, |_, _| {}),
                     table::fixed(32.px(), |wh, ctx| {
-                        ctx.add(button::TextButton {
-                            rect: wh.to_rect(),
-                            text: game_state.text().ui(TopBarText::UseTower),
-                            text_color: palette::ON_PRIMARY,
-                            stroke_color: palette::OUTLINE,
-                            stroke_width: 1.px(),
-                            fill_color: palette::PRIMARY,
-                            mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: |_| {
+                        ctx.add(Button::new(
+                            wh,
+                            &|| {
                                 use_tower();
                             },
-                        });
+                            &|wh, _text_color, ctx| {
+                                ctx.add(namui::text(TextParam {
+                                    text: game_state.text().ui(TopBarText::UseTower).to_string(),
+                                    x: wh.width / 2.0,
+                                    y: wh.height / 2.0,
+                                    align: TextAlign::Center,
+                                    baseline: TextBaseline::Middle,
+                                    font: Font {
+                                        size: 14.int_px(),
+                                        name: "NotoSansKR-Regular".to_string(),
+                                    },
+                                    style: TextStyle {
+                                        color: palette::ON_PRIMARY,
+                                        background: None,
+                                        border: None,
+                                        drop_shadow: None,
+                                        line_height_percent: 100.percent(),
+                                        underline: None,
+                                    },
+                                    max_width: None,
+                                }));
+                            },
+                        ));
                     }),
                 ]),
             )(wh, ctx);

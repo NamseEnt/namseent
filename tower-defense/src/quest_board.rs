@@ -1,3 +1,4 @@
+use crate::theme::button::Button;
 use crate::{
     game_state::{
         MAX_INVENTORY_SLOT, mutate_game_state,
@@ -11,7 +12,6 @@ use crate::{
 };
 use namui::*;
 use namui_prebuilt::{
-    button::{self, TextButton},
     simple_rect,
     table::{self},
 };
@@ -104,22 +104,38 @@ impl Component for QuestBoardOpenButton<'_> {
         let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             ctx.translate((0.px(), -QUEST_BOARD_BUTTON_WH.height))
-                .add(TextButton {
-                    rect: QUEST_BOARD_BUTTON_WH.to_rect(),
-                    text: format!(
-                        "{} {}",
-                        game_state.text().ui(TopBarText::Quest),
-                        if opened { "^" } else { "v" }
-                    ),
-                    text_color: palette::ON_SURFACE,
-                    stroke_color: palette::OUTLINE,
-                    stroke_width: 1.px(),
-                    fill_color: palette::SURFACE_CONTAINER,
-                    mouse_buttons: vec![MouseButton::Left],
-                    on_mouse_up_in: |_| {
+                .add(Button::new(
+                    QUEST_BOARD_BUTTON_WH,
+                    &|| {
                         toggle_open();
                     },
-                });
+                    &|wh, text_color, ctx| {
+                        ctx.add(namui::text(TextParam {
+                            text: format!(
+                                "{} {}",
+                                game_state.text().ui(TopBarText::Quest),
+                                if opened { "^" } else { "v" }
+                            ),
+                            x: wh.width / 2.0,
+                            y: wh.height / 2.0,
+                            align: namui::TextAlign::Center,
+                            baseline: TextBaseline::Middle,
+                            font: Font {
+                                size: 14.int_px(),
+                                name: "NotoSansKR-Regular".to_string(),
+                            },
+                            style: TextStyle {
+                                color: text_color,
+                                background: None,
+                                border: None,
+                                drop_shadow: None,
+                                line_height_percent: 100.percent(),
+                                underline: None,
+                            },
+                            max_width: None,
+                        }));
+                    },
+                ));
         });
     }
 }
@@ -185,25 +201,45 @@ impl Component for QuestBoard<'_> {
                         table::horizontal([
                             table::ratio(1, |_, _| {}),
                             table::fixed(QUEST_BOARD_REFRESH_BUTTON_WH.width, |wh, ctx| {
-                                ctx.add(TextButton {
-                                    rect: wh.to_rect(),
-                                    text: format!(
-                                        "{}-{}",
-                                        game_state.text().ui(TopBarText::Refresh),
-                                        game_state.left_quest_board_refresh_chance
-                                    ),
-                                    text_color: match disabled {
-                                        true => palette::ON_SURFACE_VARIANT,
-                                        false => palette::ON_SURFACE,
-                                    },
-                                    stroke_color: palette::OUTLINE,
-                                    stroke_width: 1.px(),
-                                    fill_color: palette::SURFACE_CONTAINER,
-                                    mouse_buttons: vec![MouseButton::Left],
-                                    on_mouse_up_in: |_| {
-                                        refresh_quest_board();
-                                    },
-                                });
+                                ctx.add(
+                                    Button::new(
+                                        wh,
+                                        &|| {
+                                            refresh_quest_board();
+                                        },
+                                        &|wh, _text_color, ctx| {
+                                            let text_color = match disabled {
+                                                true => palette::ON_SURFACE_VARIANT,
+                                                false => palette::ON_SURFACE,
+                                            };
+                                            ctx.add(namui::text(TextParam {
+                                                text: format!(
+                                                    "{}-{}",
+                                                    game_state.text().ui(TopBarText::Refresh),
+                                                    game_state.left_quest_board_refresh_chance
+                                                ),
+                                                x: wh.width / 2.0,
+                                                y: wh.height / 2.0,
+                                                align: namui::TextAlign::Center,
+                                                baseline: TextBaseline::Middle,
+                                                font: Font {
+                                                    size: 14.int_px(),
+                                                    name: "NotoSansKR-Regular".to_string(),
+                                                },
+                                                style: TextStyle {
+                                                    color: text_color,
+                                                    background: None,
+                                                    border: None,
+                                                    drop_shadow: None,
+                                                    line_height_percent: 100.percent(),
+                                                    underline: None,
+                                                },
+                                                max_width: None,
+                                            }));
+                                        },
+                                    )
+                                    .disabled(disabled),
+                                );
                             }),
                             table::ratio(1, |_, _| {}),
                         ]),
@@ -347,18 +383,40 @@ impl Component for QuestBoardItemContent<'_> {
                             }),
                             table::fixed(PADDING, |_, _| {}),
                             table::fixed(48.px(), |wh, ctx| {
-                                ctx.add(button::TextButton {
-                                    rect: wh.to_rect(),
-                                    text: game_state.text().ui(TopBarText::Accept).to_string(),
-                                    text_color: palette::ON_PRIMARY,
-                                    stroke_color: palette::OUTLINE,
-                                    stroke_width: 1.px(),
-                                    fill_color: palette::PRIMARY,
-                                    mouse_buttons: vec![MouseButton::Left],
-                                    on_mouse_up_in: |_| {
-                                        accept_quest();
-                                    },
-                                });
+                                ctx.add(
+                                    Button::new(
+                                        wh,
+                                        &|| {
+                                            accept_quest();
+                                        },
+                                        &|wh, _text_color, ctx| {
+                                            ctx.add(namui::text(TextParam {
+                                                text: game_state
+                                                    .text()
+                                                    .ui(TopBarText::Accept)
+                                                    .to_string(),
+                                                x: wh.width / 2.0,
+                                                y: wh.height / 2.0,
+                                                align: namui::TextAlign::Center,
+                                                baseline: TextBaseline::Middle,
+                                                font: Font {
+                                                    size: 14.int_px(),
+                                                    name: "NotoSansKR-Regular".to_string(),
+                                                },
+                                                style: TextStyle {
+                                                    color: palette::ON_PRIMARY,
+                                                    background: None,
+                                                    border: None,
+                                                    drop_shadow: None,
+                                                    line_height_percent: 100.percent(),
+                                                    underline: None,
+                                                },
+                                                max_width: None,
+                                            }));
+                                        },
+                                    )
+                                    .color(crate::theme::button::ButtonColor::Primary),
+                                );
                             }),
                         ])(wh, ctx);
                     }),

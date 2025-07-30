@@ -1,3 +1,4 @@
+use crate::theme::button::Button;
 use crate::{
     game_state::{
         item::{Item, generate_items, item_cost},
@@ -12,7 +13,6 @@ use crate::{
 };
 use namui::*;
 use namui_prebuilt::{
-    button::{self, TextButton},
     simple_rect,
     table::{self, ratio},
 };
@@ -120,22 +120,38 @@ impl Component for ShopOpenButton<'_> {
         let game_state = crate::game_state::use_game_state(ctx);
         ctx.compose(|ctx| {
             ctx.translate((0.px(), -SHOP_BUTTON_WH.height))
-                .add(TextButton {
-                    rect: SHOP_BUTTON_WH.to_rect(),
-                    text: format!(
-                        "{} {}",
-                        game_state.text().ui(TopBarText::Shop),
-                        if opened { "^" } else { "v" }
-                    ),
-                    text_color: palette::ON_SURFACE,
-                    stroke_color: palette::OUTLINE,
-                    stroke_width: 1.px(),
-                    fill_color: palette::SURFACE_CONTAINER,
-                    mouse_buttons: vec![MouseButton::Left],
-                    on_mouse_up_in: |_| {
+                .add(Button::new(
+                    SHOP_BUTTON_WH,
+                    &|| {
                         toggle_open();
                     },
-                });
+                    &|wh, text_color, ctx| {
+                        ctx.add(namui::text(TextParam {
+                            text: format!(
+                                "{} {}",
+                                game_state.text().ui(TopBarText::Shop),
+                                if opened { "^" } else { "v" }
+                            ),
+                            x: wh.width / 2.0,
+                            y: wh.height / 2.0,
+                            align: namui::TextAlign::Center,
+                            baseline: TextBaseline::Middle,
+                            font: Font {
+                                size: 14.int_px(),
+                                name: "NotoSansKR-Regular".to_string(),
+                            },
+                            style: TextStyle {
+                                color: text_color,
+                                background: None,
+                                border: None,
+                                drop_shadow: None,
+                                line_height_percent: 100.percent(),
+                                underline: None,
+                            },
+                            max_width: None,
+                        }));
+                    },
+                ));
         });
     }
 }
@@ -201,24 +217,47 @@ impl Component for Shop<'_> {
                         table::horizontal([
                             ratio(1, |_, _| {}),
                             table::fixed(SHOP_REFRESH_BUTTON_WH.width, |wh, ctx| {
-                                ctx.add(TextButton {
-                                    rect: wh.to_rect(),
-                                    text: game_state.text().ui(TopBarText::Refresh),
-                                    text_color: match disabled {
-                                        true => palette::ON_SURFACE_VARIANT,
-                                        false => palette::ON_SURFACE,
-                                    },
-                                    stroke_color: palette::OUTLINE,
-                                    stroke_width: 1.px(),
-                                    fill_color: palette::SURFACE_CONTAINER,
-                                    mouse_buttons: vec![MouseButton::Left],
-                                    on_mouse_up_in: |_| {
-                                        if disabled {
-                                            return;
-                                        }
-                                        refresh_shop();
-                                    },
-                                });
+                                ctx.add(
+                                    Button::new(
+                                        wh,
+                                        &|| {
+                                            if disabled {
+                                                return;
+                                            }
+                                            refresh_shop();
+                                        },
+                                        &|wh, _text_color, ctx| {
+                                            let text_color = match disabled {
+                                                true => palette::ON_SURFACE_VARIANT,
+                                                false => palette::ON_SURFACE,
+                                            };
+                                            ctx.add(namui::text(TextParam {
+                                                text: game_state
+                                                    .text()
+                                                    .ui(TopBarText::Refresh)
+                                                    .to_string(),
+                                                x: wh.width / 2.0,
+                                                y: wh.height / 2.0,
+                                                align: namui::TextAlign::Center,
+                                                baseline: TextBaseline::Middle,
+                                                font: Font {
+                                                    size: 14.int_px(),
+                                                    name: "NotoSansKR-Regular".to_string(),
+                                                },
+                                                style: TextStyle {
+                                                    color: text_color,
+                                                    background: None,
+                                                    border: None,
+                                                    drop_shadow: None,
+                                                    line_height_percent: 100.percent(),
+                                                    underline: None,
+                                                },
+                                                max_width: None,
+                                            }));
+                                        },
+                                    )
+                                    .disabled(disabled),
+                                );
                             }),
                             ratio(1, |_, _| {}),
                         ]),
@@ -368,27 +407,49 @@ impl Component for ShopItemContent<'_> {
                                 }),
                                 table::fixed(PADDING, |_, _| {}),
                                 table::fixed(48.px(), |wh, ctx| {
-                                    ctx.add(button::TextButton {
-                                        rect: wh.to_rect(),
-                                        text: format!("${cost}"),
-                                        text_color: match available {
-                                            true => palette::ON_PRIMARY,
-                                            false => palette::ON_SURFACE,
-                                        },
-                                        stroke_color: palette::OUTLINE,
-                                        stroke_width: 1.px(),
-                                        fill_color: match available {
-                                            true => palette::PRIMARY,
-                                            false => palette::SURFACE_CONTAINER_HIGH,
-                                        },
-                                        mouse_buttons: vec![MouseButton::Left],
-                                        on_mouse_up_in: |_| {
-                                            if !available {
-                                                return;
-                                            }
-                                            purchase_item();
-                                        },
-                                    });
+                                    ctx.add(
+                                        Button::new(
+                                            wh,
+                                            &|| {
+                                                if !available {
+                                                    return;
+                                                }
+                                                purchase_item();
+                                            },
+                                            &|wh, _text_color, ctx| {
+                                                let text_color = match available {
+                                                    true => palette::ON_PRIMARY,
+                                                    false => palette::ON_SURFACE,
+                                                };
+                                                ctx.add(namui::text(TextParam {
+                                                    text: format!("${cost}"),
+                                                    x: wh.width / 2.0,
+                                                    y: wh.height / 2.0,
+                                                    align: namui::TextAlign::Center,
+                                                    baseline: TextBaseline::Middle,
+                                                    font: Font {
+                                                        size: 14.int_px(),
+                                                        name: "NotoSansKR-Regular".to_string(),
+                                                    },
+                                                    style: TextStyle {
+                                                        color: text_color,
+                                                        background: None,
+                                                        border: None,
+                                                        drop_shadow: None,
+                                                        line_height_percent: 100.percent(),
+                                                        underline: None,
+                                                    },
+                                                    max_width: None,
+                                                }));
+                                            },
+                                        )
+                                        .color(if available {
+                                            crate::theme::button::ButtonColor::Primary
+                                        } else {
+                                            crate::theme::button::ButtonColor::Secondary
+                                        })
+                                        .disabled(!available),
+                                    );
                                 }),
                             ]),
                         ),

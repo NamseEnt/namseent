@@ -1,3 +1,4 @@
+use crate::theme::button::Button;
 use crate::{
     game_state::{mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
@@ -6,7 +7,7 @@ use crate::{
     theme::typography::headline,
 };
 use namui::*;
-use namui_prebuilt::{button, simple_rect, table};
+use namui_prebuilt::{simple_rect, table};
 
 const PADDING: Px = px(8.);
 
@@ -49,30 +50,39 @@ impl Component for LevelIndicator {
                 table::ratio(
                     1,
                     table::padding(PADDING, |wh, ctx| {
-                        ctx.add(button::TextButton {
-                            rect: wh.to_rect(),
-                            text: format!(
-                                "{} {level_up_cost}",
-                                game_state.text().ui(TopBarText::LevelUp)
-                            ),
-                            text_color: match can_upgrade {
-                                true => palette::ON_PRIMARY,
-                                false => palette::ON_SURFACE,
-                            },
-                            stroke_color: palette::OUTLINE,
-                            stroke_width: 1.px(),
-                            fill_color: match can_upgrade {
-                                true => palette::PRIMARY,
-                                false => palette::SURFACE_CONTAINER_HIGH,
-                            },
-                            mouse_buttons: vec![MouseButton::Left],
-                            on_mouse_up_in: |_| {
-                                if !can_upgrade {
-                                    return;
-                                }
-                                level_up();
-                            },
-                        })
+                        ctx.add(
+                            Button::new(
+                                wh,
+                                &|| {
+                                    if !can_upgrade {
+                                        return;
+                                    }
+                                    level_up();
+                                },
+                                &|wh, _text_color, ctx| {
+                                    let text_color = match can_upgrade {
+                                        true => palette::ON_PRIMARY,
+                                        false => palette::ON_SURFACE,
+                                    };
+                                    ctx.add(
+                                        headline(format!(
+                                            "{} {level_up_cost}",
+                                            game_state.text().ui(TopBarText::LevelUp)
+                                        ))
+                                        .size(crate::theme::typography::FontSize::Small)
+                                        .align(crate::theme::typography::TextAlign::Center { wh })
+                                        .color(text_color)
+                                        .build(),
+                                    );
+                                },
+                            )
+                            .color(if can_upgrade {
+                                crate::theme::button::ButtonColor::Primary
+                            } else {
+                                crate::theme::button::ButtonColor::Secondary
+                            })
+                            .disabled(!can_upgrade),
+                        )
                         .attach_event(|event| {
                             let Event::MouseMove { event } = event else {
                                 return;

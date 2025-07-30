@@ -8,10 +8,13 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     l10n::ui::TopBarText,
     palette,
-    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
+    theme::{
+        button::Button,
+        typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
+    },
 };
 use namui::*;
-use namui_prebuilt::{button::TextButton, scroll_view::AutoScrollViewWithCtx, table};
+use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, table};
 
 const INVENTORY_WIDTH: Px = px(240.);
 const PADDING: Px = px(4.);
@@ -51,21 +54,9 @@ impl Component for Inventory {
                                                 table::fixed(
                                                     HEADLINE_FONT_SIZE_LARGE.into_px() * 3.0,
                                                     |wh, ctx| {
-                                                        ctx.add(TextButton {
-                                                            rect: wh.to_rect(),
-                                                            text: game_state
-                                                                .text()
-                                                                .ui(TopBarText::Use)
-                                                                .to_string(),
-                                                            text_color: palette::ON_SURFACE,
-                                                            stroke_color: palette::OUTLINE,
-                                                            stroke_width: 1.px(),
-                                                            fill_color: palette::SURFACE,
-                                                            mouse_buttons: vec![MouseButton::Left],
-                                                            on_mouse_up_in: |_| match item
-                                                                .kind
-                                                                .usage()
-                                                            {
+                                                        ctx.add(Button::new(
+                                                            wh,
+                                                            &|| match item.kind.usage() {
                                                                 ItemUsage::Instant => {
                                                                     mutate_game_state(
                                                                         move |game_state| {
@@ -99,7 +90,21 @@ impl Component for Inventory {
                                                                     );
                                                                 }
                                                             },
-                                                        });
+                                                            &|wh, color, ctx| {
+                                                                ctx.add(
+                                                                    headline(
+                                                                        game_state
+                                                                            .text()
+                                                                            .ui(TopBarText::Use)
+                                                                            .to_string(),
+                                                                    )
+                                                                    .size(FontSize::Small)
+                                                                    .align(TextAlign::Center { wh })
+                                                                    .color(color)
+                                                                    .build(),
+                                                                );
+                                                            },
+                                                        ));
                                                     },
                                                 ),
                                             ]),
