@@ -1,3 +1,4 @@
+use crate::theme::button::Button;
 use crate::{
     game_state::{mutate_game_state, upgrade::Upgrade, use_game_state},
     l10n::upgrade::Template as UpgradeTemplate,
@@ -5,10 +6,7 @@ use crate::{
     theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
-use namui_prebuilt::{
-    table::{self, ratio},
-};
-use crate::theme::button::Button;
+use namui_prebuilt::table::{self, ratio};
 
 const PADDING: Px = px(4.0);
 const UPGRADE_SELECT_WH: Wh<Px> = Wh {
@@ -104,7 +102,7 @@ impl Component for UpgradeSelectOpenButton<'_> {
                             },
                             max_width: None,
                         }));
-                    }
+                    },
                 ));
         });
     }
