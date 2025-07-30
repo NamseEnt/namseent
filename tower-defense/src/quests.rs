@@ -1,8 +1,7 @@
-use crate::theme::button::Button;
+use crate::theme::button::{Button, ButtonVariant};
 use crate::{
     game_state::{quest::cancel_quest, use_game_state},
     icon::{Icon, IconKind, IconSize},
-    l10n::ui::TopBarText,
     palette,
     theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
 };
@@ -106,29 +105,15 @@ impl Component for Quests {
                                                                                     quest_index,
                                                                                 );
                                                                             },
-                                                                            &|wh, text_color, ctx| {
-                                                                                ctx.add(namui::text(TextParam {
-                                                                                    text: game_state.text().ui(TopBarText::Remove).to_string(),
-                                                                                    x: wh.width / 2.0,
-                                                                                    y: wh.height / 2.0,
-                                                                                    align: namui::TextAlign::Center,
-                                                                                    baseline: TextBaseline::Middle,
-                                                                                    font: Font {
-                                                                                        size: 14.int_px(),
-                                                                                        name: "NotoSansKR-Regular".to_string(),
-                                                                                    },
-                                                                                    style: TextStyle {
-                                                                                        color: text_color,
-                                                                                        background: None,
-                                                                                        border: None,
-                                                                                        drop_shadow: None,
-                                                                                        line_height_percent: 100.percent(),
-                                                                                        underline: None,
-                                                                                    },
-                                                                                    max_width: None,
-                                                                                }));
+                                                                            &|wh, _text_color, ctx| {
+                                                                                ctx.add(
+                                                                                    Icon::new(
+                                                                                        IconKind::Reject,
+                                                                                    )
+                                                                                    .wh(wh),
+                                                                                );
                                                                             }
-                                                                        ));
+                                                                        ).variant(ButtonVariant::Text));
                                                                     },
                                                                 ),
                                                             ]),
