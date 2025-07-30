@@ -40,13 +40,13 @@ export default function NameInputModal({ visible, onSubmit }: NameInputModalProp
         <View style={styles.backdrop}>
           <View style={[styles.modalContent, { backgroundColor }]}>
             <Text style={[styles.title, { color: textColor }]}>
-              당신의 이름은 무엇인가요?
+              이름 입력
             </Text>
             <TextInput
               style={[styles.input, { color: textColor, borderColor: textColor }]}
               value={name}
               onChangeText={setName}
-              placeholder="이름을 입력해주세요"
+              placeholder="이름"
               placeholderTextColor={textColor + '80'}
               maxLength={20}
               autoFocus

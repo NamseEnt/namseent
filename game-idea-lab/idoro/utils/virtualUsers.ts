@@ -8,6 +8,7 @@ export interface VirtualUser {
   name: string;
   state: VirtualUserState;
   currentSessionStart: number | null;
+  focusStartTime?: number; // 집중 시작 시간 (VirtualAvatars 컴포넌트용)
   sessionDuration: number; // 이 유저의 일반적인 집중 시간 (분)
   lastActivityTime: number;
   pattern: 'regular' | 'irregular' | 'night-owl' | 'early-bird'; // 활동 패턴
@@ -57,7 +58,7 @@ const VIRTUAL_USER_NAMES = [
 
 class VirtualUsersManager {
   private users: Map<string, VirtualUser> = new Map();
-  private updateInterval: NodeJS.Timeout | null = null;
+  private updateInterval: number | null = null;
   
   constructor() {
     this.initializeUsers();
@@ -153,6 +154,7 @@ class VirtualUsersManager {
           if (Math.random() < 0.2) {
             user.state = 'focusing';
             user.currentSessionStart = currentTime;
+            user.focusStartTime = currentTime;
             user.lastActivityTime = currentTime;
           }
           // 대기 -> 오프라인 확률

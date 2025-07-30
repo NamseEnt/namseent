@@ -1,8 +1,8 @@
 // Game configuration constants
 export const GAME_CONFIG = {
   // Timer durations (in seconds)
-  FOCUS_DURATION: 30, // 30 seconds for testing (originally 25 * 60)
-  REST_DURATION: 30, // 30 seconds for testing (originally 5 * 60)
+  FOCUS_DURATION: 30 as number, // 30 seconds for testing (originally 25 * 60)
+  REST_DURATION: 30 as number, // 30 seconds for testing (originally 5 * 60)
   
   // Reward system
   CHEER_POWER_PER_MINUTE: 10,
@@ -10,7 +10,7 @@ export const GAME_CONFIG = {
   
   // Timer update interval (ms)
   TIMER_UPDATE_INTERVAL: 100,
-} as const;
+};
 
 import { getTimeOfDay } from '@/utils/timeOfDay';
 

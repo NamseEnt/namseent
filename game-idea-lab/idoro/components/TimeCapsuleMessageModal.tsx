@@ -71,16 +71,16 @@ export default function TimeCapsuleMessageModal({
             colors={['#F0F8FF', '#E6F3FF']}
             style={styles.gradient}
           >
-            <Text style={styles.title}>타임캡슐 메시지 ✉️</Text>
+            <Text style={styles.title}>오늘의 성취 공유하기 🎯</Text>
             <Text style={styles.subtitle}>
-              오늘의 노력을 기록해보세요!{'\n'}
-              다른 팬들에게 동기부여가 될 거예요
+              오늘 이룬 작은 성취를 자랑해보세요!{'\n'}
+              서로의 노력이 큰 힘이 됩니다
             </Text>
             
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="예: 오늘도 하연이와 함께 파이팅!"
+                placeholder="예: 수학 3단원 끝! 영어 단어 50개 암기!"
                 placeholderTextColor="#999"
                 value={message}
                 onChangeText={handleChangeText}

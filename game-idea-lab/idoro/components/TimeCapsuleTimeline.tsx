@@ -40,7 +40,7 @@ export default function TimeCapsuleTimeline() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>최근 활동 📝</Text>
+      <Text style={styles.title}>칭찬과 응원의 게시판 💪</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -107,11 +107,12 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 12,
     paddingHorizontal: 20,
+    textAlign: 'center',
   },
   scrollContent: {
     paddingHorizontal: 20,

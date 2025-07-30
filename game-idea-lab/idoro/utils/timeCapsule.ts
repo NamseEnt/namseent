@@ -20,8 +20,8 @@ export interface TimeCapsuleMessage {
 
 class TimeCapsuleManager {
   private messages: TimeCapsuleMessage[] = [];
-  private updateInterval: NodeJS.Timeout | null = null;
-  private virtualMessageInterval: NodeJS.Timeout | null = null;
+  private updateInterval: number | null = null;
+  private virtualMessageInterval: number | null = null;
 
   constructor() {
     this.loadMessages();

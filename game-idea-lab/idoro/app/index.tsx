@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import NameInputModal from '@/components/NameInputModal';
 import IdolCharacter from '@/components/IdolCharacter';
-import CollectiveGoalProgress from '@/components/CollectiveGoalProgress';
-import GoalAchievementCelebration from '@/components/GoalAchievementCelebration';
-import TimeCapsuleTimeline from '@/components/TimeCapsuleTimeline';
 import { getPlayerName, setPlayerName, getCheerPower } from '@/utils/storage';
-import { virtualUsersManager } from '@/utils/virtualUsers';
 import { getCurrentTimeTheme } from '@/utils/timeOfDay';
-import { attendanceManager } from '@/utils/attendance';
+import { sessionManager } from '@/utils/sessionManager';
+import { userStateManager } from '@/utils/userState';
+import type { UserSessionState } from '@/utils/userState';
+import { tracesManager } from '@/utils/traces';
+import type { UserTrace } from '@/utils/traces';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -19,10 +19,9 @@ export default function HomeScreen() {
   const [cheerPower, setCheerPower] = useState<number>(0);
   const [showNameModal, setShowNameModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeUserCount, setActiveUserCount] = useState<number>(0);
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [showTimelineReaction, setShowTimelineReaction] = useState(false);
-  const [regularMessage, setRegularMessage] = useState<string | null>(null);
+  const [userState, setUserState] = useState<UserSessionState>('idle');
+  const [timeUntilNext, setTimeUntilNext] = useState<number>(0);
+  const [recentTraces, setRecentTraces] = useState<UserTrace[]>([]);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -31,31 +30,36 @@ export default function HomeScreen() {
   useEffect(() => {
     loadUserData();
     
-    // 가상 유저 시뮬레이션 시작
-    virtualUsersManager.startSimulation();
+    // 사용자 상태 및 세션 정보 업데이트
+    const updateInfo = async () => {
+      // 사용자 상태 확인
+      const currentUserState = await userStateManager.checkAndUpdateState();
+      setUserState(currentUserState);
+      
+      // 세션 타이밍 정보
+      const timing = sessionManager.getSessionTiming();
+      setTimeUntilNext(timing.timeUntilNext);
+    };
     
-    // 실시간 업데이트를 위한 인터벌
-    const updateInterval = setInterval(() => {
-      setActiveUserCount(virtualUsersManager.getActiveUserCount());
-    }, 3000); // 3초마다 업데이트
+    updateInfo();
+    const interval = setInterval(updateInfo, 1000); // 1초마다 업데이트
     
-    // 초기 카운트 설정
-    setActiveUserCount(virtualUsersManager.getActiveUserCount());
+    // 흔적 업데이트
+    const updateTraces = () => {
+      setRecentTraces(tracesManager.getRecentTraces(5));
+      // 가상 흔적 추가 (테스트용)
+      tracesManager.addRandomVirtualTrace();
+    };
     
-    // 타임라인 반응을 주기적으로 보여주기
-    const reactionInterval = setInterval(() => {
-      if (Math.random() < 0.3) { // 30% 확률로 반응
-        setShowTimelineReaction(true);
-        setTimeout(() => setShowTimelineReaction(false), 5000); // 5초 후 원래대로
-      }
-    }, 20000); // 20초마다 체크
+    updateTraces();
+    const tracesInterval = setInterval(updateTraces, 10000); // 10초마다
+    
     
     return () => {
-      clearInterval(updateInterval);
-      clearInterval(reactionInterval);
-      virtualUsersManager.stopSimulation();
+      clearInterval(interval);
+      clearInterval(tracesInterval);
     };
-  }, []);
+  }, [playerName, router]);
 
   const loadUserData = async () => {
     const savedName = await getPlayerName();
@@ -64,14 +68,6 @@ export default function HomeScreen() {
     if (savedName) {
       setPlayerNameState(savedName);
       
-      // 접속 기록 및 단골 패턴 분석
-      await attendanceManager.recordAttendance();
-      const pattern = attendanceManager.analyzeRegularPattern(savedName);
-      if (pattern.isRegular && pattern.message) {
-        setRegularMessage(pattern.message);
-        // 5초 후 일반 메시지로 전환
-        setTimeout(() => setRegularMessage(null), 5000);
-      }
     } else {
       setShowNameModal(true);
     }
@@ -88,8 +84,20 @@ export default function HomeScreen() {
     }
   };
 
-  const handleStartFocus = () => {
-    router.push('/focus-session');
+  const formatTimeUntil = (seconds: number): string => {
+    if (seconds <= 0) return '';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}시간 ${minutes}분`;
+    } else if (minutes > 0) {
+      return `${minutes}분 ${secs}초`;
+    } else {
+      return `${secs}초`;
+    }
   };
 
   if (isLoading) {
@@ -108,74 +116,114 @@ export default function HomeScreen() {
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={styles.content}>
           <View style={styles.header}>
-            <View style={styles.cheerPowerContainer}>
-              <Text style={styles.cheerPowerLabel}>응원력</Text>
-              <View style={styles.cheerPowerValueContainer}>
-                <Text style={styles.cheerPowerValue}>{cheerPower}</Text>
-                <Text style={styles.cheerPowerUnit}>점</Text>
+            <View style={styles.leftHeader}>
+              {playerName && (
+                <Text style={styles.playerName}>{playerName}님</Text>
+              )}
+            </View>
+            <View style={styles.rightHeader}>
+              <View style={styles.cheerPowerContainer}>
+                <Text style={styles.cheerPowerLabel}>응원력</Text>
+                <View style={styles.cheerPowerValueContainer}>
+                  <Text style={styles.cheerPowerValue}>{cheerPower}</Text>
+                  <Text style={styles.cheerPowerUnit}>점</Text>
+                </View>
               </View>
             </View>
           </View>
 
-          {playerName && (
-            <CollectiveGoalProgress 
-              playerName={playerName}
-              onGoalAchieved={() => {
-                setShowCelebration(true);
-              }}
-            />
-          )}
 
           <View style={styles.centerContent}>
-            <IdolCharacter 
-              state="idle" 
-              playerName={playerName || undefined}
-              showTimelineReaction={showTimelineReaction}
-              regularMessage={regularMessage}
-            />
+            <IdolCharacter state="idle" />
             
-            {activeUserCount > 0 && !regularMessage && (
-              <View style={styles.activeUsersContainer}>
-                <Text style={styles.activeUsersText}>
-                  지금 {activeUserCount}명의 팬과 함께 연습 중!
-                </Text>
-              </View>
+            {/* 사용자 상태별 UI */}
+            <View style={styles.sessionInfoContainer}>
+              {userState === 'idle' && (
+                <View style={styles.startingSoonContainer}>
+                  <Text style={styles.startingSoonTitle}>다음 세션</Text>
+                  <Text style={styles.timeUntilText}>{formatTimeUntil(timeUntilNext)}</Text>
+                  <TouchableOpacity
+                    style={styles.enterWaitingRoomButton}
+                    onPress={async () => {
+                      await userStateManager.enterWaitingRoom();
+                      router.push('/waiting-room');
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={['#5BA3F5', '#4A90E2']}
+                      style={styles.enterButtonGradient}
+                    >
+                      <Text style={styles.enterButtonText}>대기실 입장</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              )}
+              
+              {userState === 'waiting' && (
+                <View style={styles.inProgressContainer}>
+                  <Text style={styles.inProgressTitle}>대기실에서 대기 중</Text>
+                  <TouchableOpacity
+                    onPress={() => router.push('/waiting-room')}
+                    style={styles.linkButton}
+                  >
+                    <Text style={styles.linkText}>대기실로 이동</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              
+              {userState === 'in-session' && (
+                <View style={styles.inProgressContainer}>
+                  <Text style={styles.inProgressTitle}>세션 참여 중</Text>
+                  <TouchableOpacity
+                    onPress={() => router.push('/focus-session')}
+                    style={styles.linkButton}
+                  >
+                    <Text style={styles.linkText}>세션으로 이동</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              
+              {userState === 'resting' && (
+                <View style={styles.inProgressContainer}>
+                  <Text style={styles.inProgressTitle}>휴식 중</Text>
+                  <TouchableOpacity
+                    onPress={() => router.push('/session-result')}
+                    style={styles.linkButton}
+                  >
+                    <Text style={styles.linkText}>결과 화면으로</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+
+
+          {/* 흔적 표시 영역 */}
+          <View style={styles.tracesContainer}>
+            <Text style={styles.tracesTitle}>최근 활동</Text>
+            {recentTraces.length > 0 ? (
+              recentTraces.map((trace) => (
+                <View 
+                  key={trace.id}
+                  style={styles.traceItem}
+                >
+                  <Text style={styles.traceName}>{trace.name}</Text>
+                  <Text style={styles.traceMessage}>{trace.message}</Text>
+                  <Text style={styles.traceTime}>{tracesManager.getTraceAge(trace.timestamp)}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noTracesText}>활동 없음</Text>
             )}
           </View>
-
-          <TimeCapsuleTimeline />
-
-          <View style={styles.bottomContent}>
-            <TouchableOpacity 
-              style={styles.startButton}
-              onPress={handleStartFocus}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#5BA3F5', '#4A90E2']}
-                style={styles.startButtonGradient}
-              >
-                <Text style={styles.startButtonText}>집중 시작</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+        </View>
 
         <NameInputModal
           visible={showNameModal}
           onSubmit={handleNameSubmit}
-        />
-        
-        <GoalAchievementCelebration
-          visible={showCelebration}
-          onClose={() => setShowCelebration(false)}
-          playerName={playerName || ''}
         />
       </SafeAreaView>
     </LinearGradient>
@@ -189,12 +237,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scrollView: {
+  content: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
+    justifyContent: 'space-between',
   },
   loadingContainer: {
     flex: 1,
@@ -205,8 +250,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   header: {
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  leftHeader: {
+    flex: 1,
+  },
+  rightHeader: {
+    alignItems: 'flex-end',
+  },
+  playerName: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '600',
+  },
+  activeUsersText: {
+    fontSize: 14,
+    color: '#4A90E2',
+    marginBottom: 8,
+    fontWeight: '600',
   },
   cheerPowerContainer: {
     alignItems: 'flex-end',
@@ -234,43 +299,135 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  bottomContent: {
-    paddingBottom: 40,
-  },
-  startButton: {
-    borderRadius: 30,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 5.84,
-    elevation: 8,
-  },
-  startButtonGradient: {
-    paddingVertical: 18,
-    paddingHorizontal: 60,
-    alignItems: 'center',
-  },
-  startButtonText: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  activeUsersContainer: {
-    marginTop: 20,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 20,
   },
-  activeUsersText: {
+  sessionInfoContainer: {
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  nextSessionLabel: {
     fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
+  },
+  timeUntilText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  sessionTimeText: {
+    fontSize: 18,
     color: '#4A90E2',
     fontWeight: '600',
+  },
+  startingSoonContainer: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(91, 163, 245, 0.1)',
+    paddingHorizontal: 40,
+    paddingVertical: 30,
+    borderRadius: 20,
+  },
+  startingSoonTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+    marginBottom: 12,
+  },
+  waitingCountText: {
+    fontSize: 18,
+    color: '#666',
+    marginBottom: 8,
+  },
+  hayeonReadyText: {
+    fontSize: 14,
+    color: '#9370DB',
+    marginBottom: 16,
+    fontStyle: 'italic',
+  },
+  countdownText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+  },
+  enterWaitingRoomButton: {
+    marginTop: 20,
+    borderRadius: 25,
+    overflow: 'hidden',
+  },
+  enterButtonGradient: {
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+  },
+  enterButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  inProgressContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  inProgressTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 12,
+  },
+  inProgressSubtext: {
+    fontSize: 16,
+    color: '#999',
+  },
+  tracesContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    maxHeight: 200,
+  },
+  tracesTitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 12,
+    fontWeight: '600',
+  },
+  traceItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  traceName: {
+    fontSize: 14,
+    color: '#4A90E2',
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  traceMessage: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  traceTime: {
+    fontSize: 12,
+    color: '#999',
+    marginLeft: 8,
+  },
+  noTracesText: {
+    fontSize: 14,
+    color: '#999',
     textAlign: 'center',
+    marginTop: 20,
+  },
+  linkButton: {
+    marginTop: 12,
+    padding: 8,
+  },
+  linkText: {
+    fontSize: 16,
+    color: '#4A90E2',
+    textDecorationLine: 'underline',
   },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -7,23 +7,17 @@ import Animated, {
   withTiming,
   withSequence,
   Easing,
-  FadeInDown,
-  FadeOutUp,
 } from 'react-native-reanimated';
 import type { IdolState } from '@/types';
 import { CHARACTER_IMAGES } from '@/constants/characters';
-import { getTimeBasedCharacterMessage } from '@/utils/timeOfDay';
 
 const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 interface IdolCharacterProps {
   state: IdolState;
-  playerName?: string;
-  showTimelineReaction?: boolean;
-  regularMessage?: string | null;
 }
 
-export default function IdolCharacter({ state, playerName, showTimelineReaction, regularMessage }: IdolCharacterProps) {
+export default function IdolCharacter({ state }: IdolCharacterProps) {
   const breathingScale = useSharedValue(1);
   const floatY = useSharedValue(0);
   const rotation = useSharedValue(0);
@@ -111,35 +105,6 @@ export default function IdolCharacter({ state, playerName, showTimelineReaction,
         style={[styles.characterImage, animatedStyle]}
         resizeMode="contain"
       />
-      {state === 'idle' && playerName && !showTimelineReaction && !regularMessage && (
-        <Text style={styles.idleMessage}>
-          {getTimeBasedCharacterMessage('idle', playerName)}
-        </Text>
-      )}
-      {state === 'idle' && regularMessage && (
-        <Animated.Text 
-          entering={FadeInDown.duration(500)}
-          exiting={FadeOutUp.duration(500)}
-          style={styles.regularMessage}
-        >
-          {regularMessage}
-        </Animated.Text>
-      )}
-      {state === 'idle' && showTimelineReaction && (
-        <Text style={styles.timelineReactionMessage}>
-          와, 다들 정말 열심히네요! 논문 쓰시는 분, 저도 응원할게요!
-        </Text>
-      )}
-      {state === 'focusing' && (
-        <Text style={styles.focusMessage}>
-          {getTimeBasedCharacterMessage('focusing', playerName || '')}
-        </Text>
-      )}
-      {state === 'resting' && (
-        <Text style={styles.restMessage}>
-          {getTimeBasedCharacterMessage('resting', playerName || '')}
-        </Text>
-      )}
     </View>
   );
 }
@@ -148,59 +113,9 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 400,
   },
   characterImage: {
-    width: 300,
-    height: 400,
-  },
-  idleMessage: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  focusMessage: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#4A90E2',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  restMessage: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#FF6347',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  timelineReactionMessage: {
-    marginTop: 20,
-    fontSize: 14,
-    color: '#9370DB',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    paddingHorizontal: 20,
-    lineHeight: 20,
-  },
-  regularMessage: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#FF1493',
-    textAlign: 'center',
-    fontWeight: 'bold',
-    paddingHorizontal: 20,
-    lineHeight: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    width: 240,
+    height: 320,
   },
 });

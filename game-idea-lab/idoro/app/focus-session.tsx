@@ -12,35 +12,27 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import IdolCharacter from '@/components/IdolCharacter';
-import VirtualAvatars from '@/components/VirtualAvatars';
+import { sessionManager } from '@/utils/sessionManager';
+import { userStateManager } from '@/utils/userState';
 import { getCheerPower, setCheerPower } from '@/utils/storage';
 import { GAME_CONFIG } from '@/constants/game';
-import { collectiveGoalManager } from '@/utils/collectiveGoal';
-import { getCurrentTimeTheme, getTimeAdjustedColors } from '@/utils/timeOfDay';
+import { getTimeAdjustedColors } from '@/utils/timeOfDay';
 
 export default function FocusSessionScreen() {
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState(GAME_CONFIG.FOCUS_DURATION);
   const [cheerPower, setCheerPowerState] = useState(0);
   const [earnedPower, setEarnedPower] = useState(0);
-  const appStateRef = useRef(AppState.currentState);
-  const startTimeRef = useRef(Date.now());
-  const intervalRef = useRef<NodeJS.Timeout>();
-  const cheerPowerRef = useRef(0);
+  const [participantCount, setParticipantCount] = useState(0);
+  const [startTime] = useState(Date.now());
 
-  // Update ref when cheerPower changes
-  useEffect(() => {
-    cheerPowerRef.current = cheerPower;
-  }, [cheerPower]);
 
   const handleSuccess = useCallback(async () => {
     const totalEarned = Math.floor((GAME_CONFIG.FOCUS_DURATION / 60) * GAME_CONFIG.CHEER_POWER_PER_MINUTE);
-    const newTotal = cheerPowerRef.current + totalEarned;
+    const currentPower = await getCheerPower();
+    const newTotal = currentPower + totalEarned;
     await setCheerPower(newTotal);
-    
-    // 공동 목표에 기여
-    const focusMinutes = GAME_CONFIG.FOCUS_DURATION / 60;
-    await collectiveGoalManager.addUserContribution(focusMinutes);
+    await userStateManager.completeSession();
     
     router.replace({
       pathname: '/session-result',
@@ -52,15 +44,19 @@ export default function FocusSessionScreen() {
     });
   }, [router]);
 
-  const startTimer = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
 
-    startTimeRef.current = Date.now();
-    
-    intervalRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+  const loadCheerPower = async () => {
+    const power = await getCheerPower();
+    setCheerPowerState(power);
+  };
+
+
+  useEffect(() => {
+    loadCheerPower();
+    setParticipantCount(sessionManager.getVirtualParticipants());
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const remaining = Math.max(0, GAME_CONFIG.FOCUS_DURATION - elapsed);
       
       setTimeLeft(remaining);
@@ -71,81 +67,29 @@ export default function FocusSessionScreen() {
       setEarnedPower(earned);
       
       if (remaining === 0) {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
         handleSuccess();
       }
     }, GAME_CONFIG.TIMER_UPDATE_INTERVAL);
-  }, [handleSuccess]);
 
-  const loadCheerPower = async () => {
-    const power = await getCheerPower();
-    setCheerPowerState(power);
-  };
-
-  const handleAppStateChange = useCallback((nextAppState: AppStateStatus) => {
-    if (
-      appStateRef.current.match(/inactive|background/) &&
-      nextAppState === 'active'
-    ) {
-      // App has come to the foreground
-      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      const newTimeLeft = Math.max(0, GAME_CONFIG.FOCUS_DURATION - elapsed);
-      setTimeLeft(newTimeLeft);
-      
-      if (newTimeLeft > 0) {
-        startTimer();
-      } else {
-        handleSuccess();
-      }
-    } else if (nextAppState === 'background') {
-      // App has gone to the background
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    }
-    appStateRef.current = nextAppState;
-  }, [startTimer]);
-
-  useEffect(() => {
-    loadCheerPower();
-    startTimer();
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      subscription.remove();
-    };
-  }, [handleAppStateChange, startTimer]);
+    return () => clearInterval(interval);
+  }, [startTime, handleSuccess]);
 
   const handleGiveUp = () => {
     Alert.alert(
-      '정말 포기하시겠어요?',
-      '지금까지의 노력도 일부 보상으로 받을 수 있어요.',
+      '세션 중단',
+      '부분 보상을 받을 수 있습니다.',
       [
-        { text: '계속하기', style: 'cancel' },
+        { text: '취소', style: 'cancel' },
         { 
-          text: '포기하기', 
+          text: '중단', 
           style: 'destructive',
           onPress: async () => {
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-            }
-            
             // Give partial reward
             const partialReward = Math.floor(earnedPower * GAME_CONFIG.PARTIAL_REWARD_RATIO);
-            const newTotal = cheerPowerRef.current + partialReward;
+            const currentPower = await getCheerPower();
+            const newTotal = currentPower + partialReward;
             await setCheerPower(newTotal);
-            
-            // 부분 기여도도 공동 목표에 추가
-            const elapsedSeconds = GAME_CONFIG.FOCUS_DURATION - timeLeft;
-            const contributedMinutes = Math.floor(elapsedSeconds / 60);
-            if (contributedMinutes > 0) {
-              await collectiveGoalManager.addUserContribution(contributedMinutes);
-            }
+            await userStateManager.exitSession();
             
             router.replace({
               pathname: '/session-result',
@@ -167,7 +111,6 @@ export default function FocusSessionScreen() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const timeTheme = getCurrentTimeTheme();
   const colors = getTimeAdjustedColors();
 
   return (
@@ -178,24 +121,32 @@ export default function FocusSessionScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
           <View style={styles.header}>
-            <View style={styles.cheerPowerContainer}>
-              <Text style={styles.cheerPowerLabel}>응원력</Text>
-              <View style={styles.cheerPowerValueContainer}>
-                <Text style={styles.cheerPowerValue}>{cheerPower + earnedPower}</Text>
-                {earnedPower > 0 && (
-                  <Text style={styles.earnedPower}>+{earnedPower}</Text>
-                )}
+            <View style={styles.timerContainer}>
+              <Text style={styles.timerLabel}>남은 시간</Text>
+              <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
+            </View>
+            <View style={styles.rightHeader}>
+              {participantCount > 0 && (
+                <View style={styles.focusingCountContainer}>
+                  <Text style={styles.focusingCountText}>참여자: {participantCount}명</Text>
+                </View>
+              )}
+              <View style={styles.cheerPowerContainer}>
+                <Text style={styles.cheerPowerLabel}>응원력</Text>
+                <View style={styles.cheerPowerValueContainer}>
+                  <Text style={styles.cheerPowerValue}>{cheerPower + earnedPower}</Text>
+                  {earnedPower > 0 && (
+                    <Text style={styles.earnedPower}>+{earnedPower}</Text>
+                  )}
+                </View>
               </View>
             </View>
           </View>
 
-          <View style={styles.centerContent}>
-            <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
+          <View style={styles.mainContent}>
             <IdolCharacter state="focusing" />
-            <Text style={styles.encourageText}>{timeTheme.encouragement}</Text>
+            
           </View>
-          
-          <VirtualAvatars />
 
           <View style={styles.bottomContent}>
             <TouchableOpacity
@@ -225,7 +176,20 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 20,
-    paddingBottom: 10,
+    paddingBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    minHeight: 80,
+  },
+  timerContainer: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  timerLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
   },
   cheerPowerContainer: {
     alignItems: 'flex-end',
@@ -250,24 +214,33 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: 'bold',
   },
-  centerContent: {
+  mainContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  timer: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 30,
+  rightHeader: {
+    alignItems: 'flex-end',
   },
-  encourageText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 20,
+  focusingCountContainer: {
+    marginBottom: 10,
+  },
+  focusingCountText: {
+    fontSize: 14,
+    color: '#4A90E2',
+    fontWeight: '600',
+  },
+  timer: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   bottomContent: {
-    paddingBottom: 40,
+    paddingBottom: 20,
+    paddingTop: 10,
   },
   giveUpButton: {
     backgroundColor: '#FF6B6B',

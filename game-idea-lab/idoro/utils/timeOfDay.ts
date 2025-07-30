@@ -5,7 +5,7 @@ export type TimeOfDay = 'dawn' | 'morning' | 'afternoon' | 'evening' | 'night' |
 
 export interface TimeTheme {
   period: TimeOfDay;
-  gradientColors: string[];
+  gradientColors: [string, string, ...string[]];
   greeting: (name: string) => string;
   focusMessage: string;
   restMessage: string;

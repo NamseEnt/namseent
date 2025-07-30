@@ -134,7 +134,7 @@ class AttendanceManager {
 
   // 단골 메시지 생성
   private getRegularMessage(playerName: string, timeSlot: string, days: number, hour: number): string {
-    const timeMessages = {
+    const timeMessages: Record<string, string[]> = {
       morning: [
         `${playerName}님! 어제 이 시간에도 뵙지 않았나요? 아침형 인간이시군요!`,
         `매일 아침 ${playerName}님을 만나니 하루가 기대돼요!`,
