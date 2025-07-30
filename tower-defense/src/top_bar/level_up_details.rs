@@ -4,7 +4,7 @@ use crate::{
     theme::typography::{headline, paragraph},
 };
 use namui::*;
-use namui_prebuilt::{table};
+use namui_prebuilt::table;
 use std::num::NonZero;
 
 const LINE_HEIGHT: Px = px(32.);
@@ -60,7 +60,9 @@ impl Component for LevelUpDetails {
                                     game_state.text().ui(TopBarText::RarityCommon).to_string(),
                                 )
                                 .size(crate::theme::typography::FontSize::Small)
-                                .align(crate::theme::typography::TextAlign::LeftCenter { height: wh.height })
+                                .align(crate::theme::typography::TextAlign::LeftCenter {
+                                    height: wh.height,
+                                })
                                 .build(),
                             );
                         }),
@@ -99,7 +101,9 @@ impl Component for LevelUpDetails {
                             ctx.add(
                                 headline(game_state.text().ui(TopBarText::RarityRare).to_string())
                                     .size(crate::theme::typography::FontSize::Small)
-                                    .align(crate::theme::typography::TextAlign::LeftCenter { height: wh.height })
+                                    .align(crate::theme::typography::TextAlign::LeftCenter {
+                                        height: wh.height,
+                                    })
                                     .build(),
                             );
                         }),
@@ -138,7 +142,9 @@ impl Component for LevelUpDetails {
                             ctx.add(
                                 headline(game_state.text().ui(TopBarText::RarityEpic).to_string())
                                     .size(crate::theme::typography::FontSize::Small)
-                                    .align(crate::theme::typography::TextAlign::LeftCenter { height: wh.height })
+                                    .align(crate::theme::typography::TextAlign::LeftCenter {
+                                        height: wh.height,
+                                    })
                                     .build(),
                             );
                         }),
@@ -176,10 +182,15 @@ impl Component for LevelUpDetails {
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(
                                 headline(
-                                    game_state.text().ui(TopBarText::RarityLegendary).to_string(),
+                                    game_state
+                                        .text()
+                                        .ui(TopBarText::RarityLegendary)
+                                        .to_string(),
                                 )
                                 .size(crate::theme::typography::FontSize::Small)
-                                .align(crate::theme::typography::TextAlign::LeftCenter { height: wh.height })
+                                .align(crate::theme::typography::TextAlign::LeftCenter {
+                                    height: wh.height,
+                                })
                                 .build(),
                             );
                         }),

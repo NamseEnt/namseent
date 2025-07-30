@@ -82,7 +82,10 @@ fn test_straight_flush_treat_suits_as_same() {
         make_card(Suit::Diamonds, Rank::Queen),
         make_card(Suit::Hearts, Rank::King),
     ];
-    let upgrade_state = UpgradeState { treat_suits_as_same: true, ..UpgradeState::default() };
+    let upgrade_state = UpgradeState {
+        treat_suits_as_same: true,
+        ..UpgradeState::default()
+    };
     let rerolled_count = 0;
     let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
     assert_eq!(template.kind, TowerKind::StraightFlush);

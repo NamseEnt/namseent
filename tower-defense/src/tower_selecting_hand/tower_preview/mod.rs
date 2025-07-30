@@ -3,7 +3,9 @@ mod tower_skill;
 
 use crate::{
     game_state::{
-        self, tower::{TowerSkillTemplate, TowerTemplate}, upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget}, GameState
+        self, GameState,
+        tower::{TowerSkillTemplate, TowerTemplate},
+        upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
     icon::IconKind,
     l10n::upgrade::{
@@ -11,7 +13,9 @@ use crate::{
         WhatUpgrade,
     },
     palette,
-    theme::typography::{headline, FontSize, TextAlign, HEADLINE_FONT_SIZE_SMALL, PARAGRAPH_FONT_SIZE_LARGE},
+    theme::typography::{
+        FontSize, HEADLINE_FONT_SIZE_SMALL, PARAGRAPH_FONT_SIZE_LARGE, TextAlign, headline,
+    },
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -84,7 +88,6 @@ impl Component for TowerPreview<'_> {
                                 .build(),
                         );
                     }),
-                    
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
                         let damage = tower_template.kind.default_damage();
                         let damage_plus =

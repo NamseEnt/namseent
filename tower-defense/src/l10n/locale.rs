@@ -13,7 +13,7 @@ impl Locale {
     pub const KOREAN: Self = Self {
         language: Language::Korean,
     };
-    
+
     pub const ENGLISH: Self = Self {
         language: Language::English,
     };
