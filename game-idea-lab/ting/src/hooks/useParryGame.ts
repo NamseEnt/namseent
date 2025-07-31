@@ -83,20 +83,14 @@ export const useParryGame = () => {
     return () => clearTimeout(resultTimeout)
   }, [gameState])
 
-  // 키보드 입력 처리
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && gameState === 'cue') {
-        e.preventDefault()
-        const reactionTime = Date.now() - cueTimestamp
-        setGameState('result')
-        setResult({ success: true, reactionTime })
-      }
+  // 스페이스바 처리 함수
+  const handleSpacePress = () => {
+    if (gameState === 'cue') {
+      const reactionTime = Date.now() - cueTimestamp
+      setGameState('result')
+      setResult({ success: true, reactionTime })
     }
-
-    window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [gameState, cueTimestamp])
+  }
 
   return {
     gameState,
@@ -104,6 +98,7 @@ export const useParryGame = () => {
     isGameRunning,
     hasGameStarted,
     startGame,
-    stopGame
+    stopGame,
+    handleSpacePress
   }
 }

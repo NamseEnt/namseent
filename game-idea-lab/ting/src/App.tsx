@@ -1,9 +1,9 @@
 import { useParryGame } from './hooks/useParryGame'
-import { KonvaGame } from './components/KonvaGame'
+import { GameEngine } from './components/GameEngine'
 import './App.css'
 
 function App() {
-  const { gameState, result, startGame, hasGameStarted } = useParryGame()
+  const { gameState, result, startGame, hasGameStarted, handleSpacePress } = useParryGame()
 
   return (
     <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
@@ -17,7 +17,7 @@ function App() {
           </button>
         </div>
       ) : (
-        <KonvaGame gameState={gameState} result={result} />
+        <GameEngine gameState={gameState} result={result} onSpacePress={handleSpacePress} />
       )}
     </div>
   )
