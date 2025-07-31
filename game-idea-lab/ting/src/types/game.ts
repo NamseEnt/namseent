@@ -1,4 +1,4 @@
-export type GameState = 'idle' | 'hint' | 'cue' | 'judgement' | 'result'
+export type GameState = 'idle' | 'hint' | 'cue' | 'result'
 
 export interface GameResult {
   success: boolean
