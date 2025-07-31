@@ -72,8 +72,10 @@ pub struct RichText<'a> {
 
 impl Component for RichText<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let tokens = ctx.memo(|| {
-            parse::parse(self.text).unwrap_or_else(|err| {
+        let text = ctx.track_eq(&self.text);
+        let tokens = ctx.memo(move || {
+            let text = text.as_str();
+            parse::parse(text).unwrap_or_else(|err| {
                 if let Some(on_parse_error) = &self.on_parse_error {
                     on_parse_error(err);
                 }
