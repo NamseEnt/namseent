@@ -1,9 +1,9 @@
-import { useParryGame } from './hooks/useParryGame'
-import { GameEngine } from './components/GameEngine'
+import { GameProvider, useGame } from './contexts/GameContext'
+import { GameRenderer } from './components/GameRenderer'
 import './App.css'
 
-function App() {
-  const { gameState, result, startGame, hasGameStarted, handleSpacePress } = useParryGame()
+function GameContent() {
+  const { hasGameStarted, startGame } = useGame()
 
   return (
     <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
@@ -17,9 +17,17 @@ function App() {
           </button>
         </div>
       ) : (
-        <GameEngine gameState={gameState} result={result} onSpacePress={handleSpacePress} />
+        <GameRenderer />
       )}
     </div>
+  )
+}
+
+function App() {
+  return (
+    <GameProvider>
+      <GameContent />
+    </GameProvider>
   )
 }
 
