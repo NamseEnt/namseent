@@ -2,14 +2,24 @@ import { useState, useEffect, useRef } from 'react'
 import type { GameState, GameResult } from '../types/game'
 import { GAME_CONFIG } from '../constants/game'
 
+// 오디오 객체를 전역으로 관리 (한 번만 생성)
+let audio: HTMLAudioElement | null = null
+
+const getAudio = () => {
+  if (!audio) {
+    audio = new Audio(GAME_CONFIG.AUDIO_FILE_PATH)
+    audio.preload = 'auto'
+  }
+  return audio
+}
+
 export const useParryGame = () => {
   const [gameState, setGameState] = useState<GameState>('idle')
   const [result, setResult] = useState<GameResult | null>(null)
   const [isGameRunning, setIsGameRunning] = useState(false)
+  const [cueTimestamp, setCueTimestamp] = useState<number>(0)
   
-  const cueTimestampRef = useRef<number>(0)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const clearGameTimeout = () => {
     if (timeoutRef.current) {
@@ -26,11 +36,10 @@ export const useParryGame = () => {
       
       timeoutRef.current = setTimeout(() => {
         setGameState('cue')
-        cueTimestampRef.current = Date.now()
+        const timestamp = Date.now()
+        setCueTimestamp(timestamp)
         
-        if (audioRef.current) {
-          audioRef.current.play().catch(() => {})
-        }
+        getAudio().play().catch(() => {})
         
         timeoutRef.current = setTimeout(() => {
           setGameState('result')
@@ -77,20 +86,14 @@ export const useParryGame = () => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.code === 'Space' && gameState === 'cue') {
         e.preventDefault()
-        const reactionTime = Date.now() - cueTimestampRef.current
+        const reactionTime = Date.now() - cueTimestamp
         handleSuccess(reactionTime)
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [gameState])
-
-  useEffect(() => {
-    audioRef.current = new Audio(GAME_CONFIG.AUDIO_FILE_PATH)
-    audioRef.current.preload = 'auto'
-    audioRef.current.addEventListener('error', () => {})
-  }, [])
+  }, [gameState, cueTimestamp])
 
   useEffect(() => {
     return () => clearGameTimeout()
