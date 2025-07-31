@@ -227,22 +227,22 @@ impl<'a> Processor<'a> {
         }
 
         let mut low = 0;
-        let mut high = text.len();
+        let mut high = text.chars().count();
 
         loop {
             let middle_point = (low + high).div_ceil(2);
 
-            let left_text = &text[..middle_point];
-            let right_text = &text[middle_point..];
+            let left_text = text.chars().take(middle_point).collect::<String>();
+            let right_text = text.chars().skip(middle_point).collect::<String>();
 
             if middle_point == low || middle_point == high {
-                self.add(ctx, get_rendering_tree(left_text));
-                return self.process_text(ctx, right_text, font, style);
+                self.add(ctx, get_rendering_tree(&left_text));
+                return self.process_text(ctx, &right_text, font, style);
             }
 
-            let left_rendering_tree = get_rendering_tree(left_text);
+            let left_rendering_tree = get_rendering_tree(&left_text);
             let Some(left_bounding_box) = namui::bounding_box(&left_rendering_tree) else {
-                return self.process_text(ctx, right_text, font, style);
+                return self.process_text(ctx, &right_text, font, style);
             };
 
             match (self.cursor_x + left_bounding_box.right())
@@ -251,7 +251,7 @@ impl<'a> Processor<'a> {
             {
                 Ordering::Equal => {
                     self.add(ctx, left_rendering_tree);
-                    return self.process_text(ctx, right_text, font, style);
+                    return self.process_text(ctx, &right_text, font, style);
                 }
                 Ordering::Less => {
                     low = middle_point;
@@ -326,5 +326,34 @@ mod tests {
 
         assert_eq!(icon_handler.find_match(text), Some((16, 37)));
         assert_eq!(mention_handler.find_match(text), Some((6, 11)));
+    }
+
+    #[test]
+    fn test_korean_text_char_boundary() {
+        // Test that Korean text is properly handled with character boundaries
+        let korean_text = "한글 텍스트 아이콘 태그 테스트";
+        let char_count = korean_text.chars().count();
+        let byte_len = korean_text.len();
+
+        // Verify that character count is different from byte length for Korean text
+        assert_ne!(char_count, byte_len);
+        assert_eq!(char_count, 17); // 17 characters including spaces
+        assert_eq!(byte_len, 43); // UTF-8 encoded byte length
+        assert!(byte_len > char_count); // More bytes than characters due to UTF-8 encoding
+
+        // Test character slicing works correctly - split at position 9 (middle of "아이콘")
+        let first_part: String = korean_text.chars().take(9).collect();
+        let second_part: String = korean_text.chars().skip(9).collect();
+
+        assert_eq!(first_part, "한글 텍스트 아이");
+        assert_eq!(second_part, "콘 태그 테스트");
+        assert_eq!(format!("{first_part}{second_part}"), korean_text);
+
+        // Test that our character-based splitting avoids byte boundary errors
+        for i in 0..=char_count {
+            let left: String = korean_text.chars().take(i).collect();
+            let right: String = korean_text.chars().skip(i).collect();
+            assert_eq!(format!("{left}{right}"), korean_text);
+        }
     }
 }
