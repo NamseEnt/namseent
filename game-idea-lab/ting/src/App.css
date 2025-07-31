@@ -27,6 +27,27 @@
   }
 }
 
+@keyframes idlePulse {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.03;
+  }
+}
+
+@keyframes idleDrift {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(180deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+  }
+}
+
 .hint-effect {
   position: absolute;
   inset: 0;
@@ -47,4 +68,27 @@
   inset: 0;
   background: linear-gradient(45deg, transparent 48%, rgba(255, 255, 255, 0.02) 50%, transparent 52%);
   animation: subtleShift 2s ease-in-out infinite;
+}
+
+/* idle 효과 - hint보다 더 미묘함 */
+.idle-effect {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.idle-effect::before {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
+  animation: idleDrift 20s linear infinite;
+}
+
+.idle-effect::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.01) 0%, transparent 30%);
+  animation: idlePulse 8s ease-in-out infinite;
 }
