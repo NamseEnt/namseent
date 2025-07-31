@@ -17,10 +17,12 @@ export const useParryGame = () => {
   const [gameState, setGameState] = useState<GameState>('idle')
   const [result, setResult] = useState<GameResult | null>(null)
   const [isGameRunning, setIsGameRunning] = useState(false)
+  const [hasGameStarted, setHasGameStarted] = useState(false)
   const [cueTimestamp, setCueTimestamp] = useState<number>(0)
 
   const startGame = () => {
     setIsGameRunning(true)
+    setHasGameStarted(true)
     setResult(null)
     setGameState('idle')
   }
@@ -100,6 +102,7 @@ export const useParryGame = () => {
     gameState,
     result,
     isGameRunning,
+    hasGameStarted,
     startGame,
     stopGame
   }

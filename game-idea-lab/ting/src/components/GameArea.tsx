@@ -1,4 +1,5 @@
 import type { GameState, GameResult } from '../types/game'
+import { CueFlash } from './CueFlash'
 
 interface GameAreaProps {
   gameState: GameState
@@ -20,14 +21,10 @@ export const GameArea = ({ gameState, result }: GameAreaProps) => {
   return (
     <div className="relative w-96 h-96 bg-gray-800 rounded-lg flex items-center justify-center">
       {gameState === 'hint' && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="dust-effect"></div>
-        </div>
+        <div className="hint-effect"></div>
       )}
       
-      {gameState === 'cue' && (
-        <div className="text-yellow-400 text-8xl font-bold animate-pulse">+</div>
-      )}
+      {gameState === 'cue' && <CueFlash />}
       
       {(gameState === 'idle' || gameState === 'result') && (
         <div className={`text-2xl font-semibold ${statusColor}`}>

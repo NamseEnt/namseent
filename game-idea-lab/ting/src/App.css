@@ -2,57 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 흙먼지 효과 애니메이션 */
-@keyframes dustFloat {
+/* 미묘한 대기 효과 */
+@keyframes subtleGlow {
   0% {
     opacity: 0;
-    transform: translateY(20px) scale(0.8);
   }
   50% {
-    opacity: 0.7;
+    opacity: 0.1;
   }
   100% {
     opacity: 0;
-    transform: translateY(-40px) scale(1.2);
   }
 }
 
-.dust-effect {
-  position: relative;
-  width: 200px;
-  height: 200px;
+@keyframes subtleShift {
+  0% {
+    transform: translateX(-2px);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+  100% {
+    transform: translateX(-2px);
+  }
 }
 
-.dust-effect::before,
-.dust-effect::after {
+.hint-effect {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hint-effect::before {
   content: '';
   position: absolute;
-  background: radial-gradient(circle, rgba(139, 92, 69, 0.6) 0%, transparent 70%);
-  border-radius: 50%;
-  animation: dustFloat 2s ease-out infinite;
+  inset: -50%;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+  animation: subtleGlow 3s ease-in-out infinite;
 }
 
-.dust-effect::before {
-  width: 80px;
-  height: 80px;
-  left: 20%;
-  bottom: 0;
-  animation-delay: 0s;
-}
-
-.dust-effect::after {
-  width: 100px;
-  height: 100px;
-  right: 20%;
-  bottom: 0;
-  animation-delay: 0.3s;
-}
-
-/* 추가 먼지 입자들 */
-.dust-effect::before,
-.dust-effect::after {
-  box-shadow: 
-    20px 10px 40px rgba(139, 92, 69, 0.4),
-    -30px 15px 35px rgba(160, 110, 85, 0.3),
-    40px -10px 45px rgba(120, 80, 60, 0.35);
+.hint-effect::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent 48%, rgba(255, 255, 255, 0.02) 50%, transparent 52%);
+  animation: subtleShift 2s ease-in-out infinite;
 }
