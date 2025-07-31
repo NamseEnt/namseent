@@ -1,5 +1,5 @@
 import { useParryGame } from './hooks/useParryGame'
-import { GameArea } from './components/GameArea'
+import { KonvaGame } from './components/KonvaGame'
 import './App.css'
 
 function App() {
@@ -17,7 +17,7 @@ function App() {
           </button>
         </div>
       ) : (
-        <GameArea gameState={gameState} result={result} />
+        <KonvaGame gameState={gameState} result={result} />
       )}
     </div>
   )
