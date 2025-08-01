@@ -335,25 +335,6 @@ export class GameScene extends Phaser.Scene {
             }
         });
         
-        this.enemies.forEach(enemy => {
-            enemy.on('shoot', () => {
-                if (this.player.isInCover()) {
-                    this.createSpark(
-                        this.hideWall.x + Phaser.Math.Between(-50, 50),
-                        this.hideWall.y + Phaser.Math.Between(-30, 30)
-                    );
-                } else {
-                    if (Math.random() < 0.3) {
-                        this.player.hit();
-                    } else {
-                        this.createSpark(
-                            this.player.x + Phaser.Math.Between(-50, 50),
-                            this.player.y + Phaser.Math.Between(-50, 50)
-                        );
-                    }
-                }
-            });
-        });
     }
 
     private createSpark(x: number, y: number) {
