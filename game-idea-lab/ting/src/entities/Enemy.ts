@@ -7,17 +7,23 @@ export class Enemy extends Phaser.GameObjects.Container {
     private initialDelay: number = Phaser.Math.Between(1000, 3000);
     private shootInterval: number = Phaser.Math.Between(2000, 4000);
     private active: boolean = true;
+    private type: string;
     
-    constructor(scene: Phaser.Scene, x: number, y: number) {
+    constructor(scene: Phaser.Scene, x: number, y: number, type: string = 'full', scale: number = 0.15) {
         super(scene, x, y);
         this.scene = scene;
+        this.type = type;
         
         this.sprite = scene.add.image(0, 0, 'enemy');
-        this.sprite.setScale(0.15);
+        this.sprite.setScale(scale);
         this.add(this.sprite);
         
         scene.add.existing(this);
         this.setDepth(5);
+        
+        // 드래그를 위한 인터랙티브 설정
+        this.setSize(100, 100);
+        this.setInteractive();
         
         this.startShooting();
     }
@@ -51,7 +57,18 @@ export class Enemy extends Phaser.GameObjects.Container {
         
         const muzzleFlash = this.scene.add.graphics();
         muzzleFlash.fillStyle(0xffff00, 1);
-        muzzleFlash.fillCircle(this.x - 30, this.y, 15);
+        
+        // 타입에 따라 총구 화염 위치 조정
+        let flashX = this.x - 30;
+        let flashY = this.y;
+        
+        if (this.type === 'pillar-left') {
+            flashX = this.x - 20;
+        } else if (this.type === 'pillar-right') {
+            flashX = this.x - 10;
+        }
+        
+        muzzleFlash.fillCircle(flashX, flashY, 15);
         
         this.scene.tweens.add({
             targets: muzzleFlash,
@@ -91,5 +108,14 @@ export class Enemy extends Phaser.GameObjects.Container {
     
     update() {
         
+    }
+    
+    getCurrentScale(): number {
+        return this.sprite.scale;
+    }
+    
+    adjustScale(factor: number) {
+        const newScale = this.sprite.scale * factor;
+        this.sprite.setScale(newScale);
     }
 }
