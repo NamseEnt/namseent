@@ -132,8 +132,22 @@ impl Component for RichText<'_> {
 
         let max_width = self.max_width.unwrap_or(f32::INFINITY.px());
 
+        // Check for invalid text alignment without max_width and warn user
+        let effective_text_align = if self.max_width.is_none()
+            && (self.default_text_align == TextAlign::Center
+                || self.default_text_align == TextAlign::Right)
+        {
+            eprintln!(
+                "Warning: RichText with text_align {:?} requires max_width to be set. Falling back to Left alignment.",
+                self.default_text_align
+            );
+            TextAlign::Left
+        } else {
+            self.default_text_align
+        };
+
         let mut processor = Processor::new(max_width, self.regex_handlers);
-        processor.current_text_align = self.default_text_align;
+        processor.current_text_align = effective_text_align;
 
         for token in tokens.iter() {
             match token {
@@ -143,7 +157,7 @@ impl Component for RichText<'_> {
                         text,
                         self.default_font.clone(),
                         self.default_text_style.clone(),
-                        self.default_text_align,
+                        effective_text_align,
                     );
                 }
                 Token::Image { tag } => {
@@ -169,7 +183,7 @@ impl Component for RichText<'_> {
                         text,
                         font.clone(),
                         style.clone(),
-                        self.default_text_align,
+                        effective_text_align,
                     );
                 }
                 Token::RenderingTree { tag } => {
