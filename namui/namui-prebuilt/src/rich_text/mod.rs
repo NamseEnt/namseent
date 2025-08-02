@@ -7,6 +7,19 @@ pub use parse::*;
 use regex::Regex;
 use std::{cmp::Ordering, collections::HashMap};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum VerticalAlign {
+    Top,
+    Center,
+    Bottom,
+}
+
+impl Default for VerticalAlign {
+    fn default() -> Self {
+        Self::Top
+    }
+}
+
 pub enum Tag {
     Image { param: ImageParam },
     StyledText { font: Font, style: TextStyle },
@@ -55,27 +68,7 @@ impl<'a> RichText<'a> {
             default_font,
             default_text_style,
             default_text_align: TextAlign::Left,
-            tag_map,
-            regex_handlers: &[],
-            on_parse_error: None,
-        }
-    }
-
-    /// Create a new RichText with custom text alignment
-    pub fn with_text_alignment(
-        text: String,
-        max_width: Option<Px>,
-        default_font: Font,
-        default_text_style: TextStyle,
-        default_text_align: TextAlign,
-        tag_map: &'a HashMap<String, Tag>,
-    ) -> Self {
-        Self {
-            text,
-            max_width,
-            default_font,
-            default_text_style,
-            default_text_align,
+            default_vertical_align: VerticalAlign::default(),
             tag_map,
             regex_handlers: &[],
             on_parse_error: None,
@@ -99,6 +92,7 @@ impl<'a> RichText<'a> {
             default_font,
             default_text_style,
             default_text_align,
+            default_vertical_align: VerticalAlign::default(),
             tag_map,
             regex_handlers,
             on_parse_error: None,
@@ -112,6 +106,7 @@ pub struct RichText<'a> {
     pub default_font: Font,
     pub default_text_style: TextStyle,
     pub default_text_align: TextAlign,
+    pub default_vertical_align: VerticalAlign,
     pub tag_map: &'a HashMap<String, Tag>,
     pub regex_handlers: &'a [RegexHandler],
     pub on_parse_error: Option<&'a dyn Fn(ParseError)>,
@@ -146,7 +141,8 @@ impl Component for RichText<'_> {
             self.default_text_align
         };
 
-        let mut processor = Processor::new(max_width, self.regex_handlers);
+        let mut processor =
+            Processor::new(max_width, self.regex_handlers, self.default_vertical_align);
         processor.current_text_align = effective_text_align;
 
         for token in tokens.iter() {
@@ -213,11 +209,13 @@ pub(crate) struct Processor<'a> {
     regex_handlers: &'a [RegexHandler],
     current_line_items: Vec<LineItem>,
     current_text_align: TextAlign,
+    default_vertical_align: VerticalAlign,
 }
 
 struct LineItem {
     rendering_tree: RenderingTree,
     width: Px,
+    height: Px,
 }
 
 struct TextProcessParams {
@@ -227,7 +225,11 @@ struct TextProcessParams {
 }
 
 impl<'a> Processor<'a> {
-    fn new(max_width: Px, regex_handlers: &'a [RegexHandler]) -> Self {
+    fn new(
+        max_width: Px,
+        regex_handlers: &'a [RegexHandler],
+        default_vertical_align: VerticalAlign,
+    ) -> Self {
         Self {
             max_width,
             cursor_x: 0.px(),
@@ -237,6 +239,7 @@ impl<'a> Processor<'a> {
             regex_handlers,
             current_line_items: Vec::new(),
             current_text_align: TextAlign::Left,
+            default_vertical_align,
         }
     }
 
@@ -257,6 +260,7 @@ impl<'a> Processor<'a> {
         self.current_line_items.push(LineItem {
             rendering_tree,
             width: item_width,
+            height: bounding_box.height(),
         });
 
         self.line_height = self.line_height.max(bounding_box.height());
@@ -278,11 +282,25 @@ impl<'a> Processor<'a> {
             TextAlign::Right => available_width - total_width,
         };
 
+        // Calculate the maximum height of items in this line for vertical alignment
+        let line_height = self
+            .current_line_items
+            .iter()
+            .map(|item| item.height)
+            .fold(0.px(), |max_height, height| max_height.max(height));
+
         let mut current_x = start_x;
 
         for item in &self.current_line_items {
+            // Calculate vertical offset based on alignment
+            let vertical_offset = match self.default_vertical_align {
+                VerticalAlign::Top => 0.px(),
+                VerticalAlign::Center => (line_height - item.height) / 2.0,
+                VerticalAlign::Bottom => line_height - item.height,
+            };
+
             ctx.compose(|ctx| {
-                ctx.translate((current_x, self.cursor_y))
+                ctx.translate((current_x, self.cursor_y + vertical_offset))
                     .add(item.rendering_tree.clone());
             });
             current_x += item.width;
@@ -391,6 +409,7 @@ impl<'a> Processor<'a> {
                     self.current_line_items.push(LineItem {
                         rendering_tree: left_rendering_tree,
                         width: bounding_box.right(),
+                        height: bounding_box.height(),
                     });
                     self.line_height = self.line_height.max(bounding_box.height());
                     self.cursor_x += bounding_box.right();
@@ -504,6 +523,7 @@ impl<'a> Processor<'a> {
                         self.current_line_items.push(LineItem {
                             rendering_tree: left_rendering_tree,
                             width: bounding_box.right(),
+                            height: bounding_box.height(),
                         });
                         self.line_height = self.line_height.max(bounding_box.height());
                         self.cursor_x += bounding_box.right();
@@ -573,6 +593,7 @@ impl<'a> Processor<'a> {
                     self.current_line_items.push(LineItem {
                         rendering_tree: left_rendering_tree,
                         width: left_bounding_box.right(),
+                        height: left_bounding_box.height(),
                     });
                     self.line_height = self.line_height.max(left_bounding_box.height());
                     self.cursor_x += left_bounding_box.right();

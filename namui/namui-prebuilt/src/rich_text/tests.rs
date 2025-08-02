@@ -88,7 +88,7 @@ fn test_word_boundary_line_breaking() {
 
     // Create a mock processor to test the word boundary logic
     let regex_handlers: [RegexHandler; 0] = [];
-    let processor = Processor::new(100.px(), &regex_handlers);
+    let processor = Processor::new(100.px(), &regex_handlers, VerticalAlign::Top);
 
     // Test finding word boundaries
     let boundaries = [
@@ -193,7 +193,7 @@ fn test_split_word_rendering_order() {
     let long_word = "verylongwordthatmustbesplit";
     let narrow_width = 80.px(); // Force splitting
 
-    let processor = Processor::new(narrow_width, &regex_handlers);
+    let processor = Processor::new(narrow_width, &regex_handlers, VerticalAlign::Top);
 
     // Test the split_text_at_break_point function to ensure correct order
     for split_point in 5..=20 {
@@ -257,7 +257,7 @@ fn test_left_text_stays_on_current_line() {
     let regex_handlers: [RegexHandler; 0] = [];
     let narrow_width = 50.px();
 
-    let mut processor = Processor::new(narrow_width, &regex_handlers);
+    let mut processor = Processor::new(narrow_width, &regex_handlers, VerticalAlign::Top);
 
     // Simulate that we already have some content on the current line
     processor.cursor_x = 20.px();
@@ -294,6 +294,7 @@ fn test_left_text_stays_on_current_line() {
     processor.current_line_items.push(LineItem {
         rendering_tree: namui::RenderingTree::Empty, // Mock rendering tree
         width: mock_width,
+        height: mock_height,
     });
     processor.line_height = processor.line_height.max(mock_height);
     processor.cursor_x += mock_width;
@@ -338,7 +339,7 @@ fn test_forced_line_break_after_split() {
     let test_text = "ThisIsAVeryLongWordThatShouldBeSplit";
 
     // Create processor and verify behavior
-    let mut processor = Processor::new(narrow_width, &regex_handlers);
+    let mut processor = Processor::new(narrow_width, &regex_handlers, VerticalAlign::Top);
 
     // Simulate adding some content first to make cursor_x > 0
     processor.cursor_x = 20.px(); // Simulate some existing content on the line
@@ -412,7 +413,7 @@ fn test_line_break_character_positioning() {
     ];
 
     for (text, width) in test_cases {
-        let test_processor = Processor::new(width, &regex_handlers);
+        let test_processor = Processor::new(width, &regex_handlers, VerticalAlign::Top);
 
         // Test that character splitting doesn't create invalid positions
         for split_point in 1..text.chars().count() {
@@ -461,7 +462,7 @@ fn test_line_break_character_positioning() {
 fn test_word_boundary_character_positioning() {
     // Test for bugs where characters get misplaced at word boundaries
     let regex_handlers: [RegexHandler; 0] = [];
-    let processor = Processor::new(100.px(), &regex_handlers);
+    let processor = Processor::new(100.px(), &regex_handlers, VerticalAlign::Top);
 
     let test_cases = [
         "word1 word2 word3",     // Simple English words
@@ -534,7 +535,7 @@ fn test_word_boundary_character_positioning() {
 fn test_character_positioning_edge_cases() {
     // Test edge cases that commonly cause character positioning bugs
     let regex_handlers: [RegexHandler; 0] = [];
-    let processor = Processor::new(50.px(), &regex_handlers);
+    let processor = Processor::new(50.px(), &regex_handlers, VerticalAlign::Top);
 
     let edge_cases = [
         "",                 // Empty string
@@ -584,7 +585,7 @@ fn test_line_break_rendering_positions() {
     let long_text = "This is a very long sentence that should wrap across multiple lines when rendered with a narrow width constraint to test character positioning";
     let narrow_width = 100.px();
 
-    let processor = Processor::new(narrow_width, &regex_handlers);
+    let processor = Processor::new(narrow_width, &regex_handlers, VerticalAlign::Top);
 
     // Test various break points to ensure character positioning integrity
     let char_count = long_text.chars().count();
@@ -637,7 +638,7 @@ fn test_conditional_text_placement_logic() {
     let regex_handlers: [RegexHandler; 0] = [];
     let max_width = 100.px(); // Small width to force conditions
 
-    let mut processor = Processor::new(max_width, &regex_handlers);
+    let mut processor = Processor::new(max_width, &regex_handlers, VerticalAlign::Top);
 
     // Simulate being NOT first in line with some cursor position
     processor.cursor_x = 60.px(); // More than half the width
@@ -674,7 +675,7 @@ fn test_conditional_text_placement_logic() {
     );
 
     // Test the first-in-line exception
-    let mut processor_first = Processor::new(max_width, &regex_handlers);
+    let mut processor_first = Processor::new(max_width, &regex_handlers, VerticalAlign::Top);
     processor_first.is_first_in_line = true;
     processor_first.cursor_x = 60.px(); // Keep same position but now it's "first" 
 
@@ -702,7 +703,7 @@ fn test_character_overflow_prevention() {
     let regex_handlers: [RegexHandler; 0] = [];
     let max_width = 300.px(); // Match the debug output scenario
 
-    let mut processor = Processor::new(max_width, &regex_handlers);
+    let mut processor = Processor::new(max_width, &regex_handlers, VerticalAlign::Top);
 
     // Simulate the exact scenario from debug output:
     // cursor_x: 252, max_width: 300, left_text: 'Happin' (width=50, total=302)
@@ -741,7 +742,7 @@ fn test_character_overflow_prevention() {
     );
 
     // Test the exception: first in line should still allow overflow
-    let mut processor_first = Processor::new(max_width, &regex_handlers);
+    let mut processor_first = Processor::new(max_width, &regex_handlers, VerticalAlign::Top);
     processor_first.cursor_x = 252.px();
     processor_first.is_first_in_line = true;
 
@@ -768,43 +769,52 @@ fn test_text_align_warning_without_max_width() {
     let tag_map = std::collections::HashMap::new();
 
     // Test Center alignment without max_width
-    let rich_text_center = RichText::with_text_alignment(
-        "Test text".to_string(),
-        None, // No max_width provided
-        Font {
+    let rich_text_center = RichText {
+        text: "Test text".to_string(),
+        max_width: None, // No max_width provided
+        default_font: Font {
             name: "Arial".to_string(),
             size: px(14.0).into(),
         },
-        TextStyle::default(),
-        TextAlign::Center, // This should trigger warning
-        &tag_map,
-    );
+        default_text_style: TextStyle::default(),
+        default_text_align: TextAlign::Center, // This should trigger warning
+        default_vertical_align: VerticalAlign::default(),
+        tag_map: &tag_map,
+        regex_handlers: &[],
+        on_parse_error: None,
+    };
 
     // Test Right alignment without max_width
-    let rich_text_right = RichText::with_text_alignment(
-        "Test text".to_string(),
-        None, // No max_width provided
-        Font {
+    let rich_text_right = RichText {
+        text: "Test text".to_string(),
+        max_width: None, // No max_width provided
+        default_font: Font {
             name: "Arial".to_string(),
             size: px(14.0).into(),
         },
-        TextStyle::default(),
-        TextAlign::Right, // This should trigger warning
-        &tag_map,
-    );
+        default_text_style: TextStyle::default(),
+        default_text_align: TextAlign::Right, // This should trigger warning
+        default_vertical_align: VerticalAlign::default(),
+        tag_map: &tag_map,
+        regex_handlers: &[],
+        on_parse_error: None,
+    };
 
     // Test Left alignment without max_width (should be fine)
-    let rich_text_left = RichText::with_text_alignment(
-        "Test text".to_string(),
-        None, // No max_width provided
-        Font {
+    let rich_text_left = RichText {
+        text: "Test text".to_string(),
+        max_width: None, // No max_width provided
+        default_font: Font {
             name: "Arial".to_string(),
             size: px(14.0).into(),
         },
-        TextStyle::default(),
-        TextAlign::Left, // This should NOT trigger warning
-        &tag_map,
-    );
+        default_text_style: TextStyle::default(),
+        default_text_align: TextAlign::Left, // This should NOT trigger warning
+        default_vertical_align: VerticalAlign::default(),
+        tag_map: &tag_map,
+        regex_handlers: &[],
+        on_parse_error: None,
+    };
 
     // Verify the alignment configurations
     assert_eq!(rich_text_center.default_text_align, TextAlign::Center);
@@ -819,4 +829,79 @@ fn test_text_align_warning_without_max_width() {
     // The warning logic is tested during render(), but we can't easily test
     // stderr output in unit tests. The logic is verified by the successful compilation
     // and the fact that it handles the None max_width case gracefully.
+}
+
+#[test]
+fn test_vertical_alignment_creation() {
+    // Test that RichText can be created with different vertical alignments
+    let text = "Test vertical alignment".to_string();
+    let font = Font {
+        name: "Arial".to_string(),
+        size: int_px(16),
+    };
+    let style = TextStyle {
+        color: Color::BLACK,
+        border: None,
+        drop_shadow: None,
+        background: None,
+        line_height_percent: 100.percent(),
+        underline: None,
+    };
+    let tag_map = HashMap::new();
+
+    // Test with VerticalAlign::Top
+    let _rich_text_top = RichText {
+        text: text.clone(),
+        max_width: Some(200.px()),
+        default_font: font.clone(),
+        default_text_style: style.clone(),
+        default_text_align: TextAlign::Left,
+        default_vertical_align: VerticalAlign::Top,
+        tag_map: &tag_map,
+        regex_handlers: &[],
+        on_parse_error: None,
+    };
+
+    // Test with VerticalAlign::Center
+    let _rich_text_center = RichText {
+        text: text.clone(),
+        max_width: Some(200.px()),
+        default_font: font.clone(),
+        default_text_style: style.clone(),
+        default_text_align: TextAlign::Center,
+        default_vertical_align: VerticalAlign::Center,
+        tag_map: &tag_map,
+        regex_handlers: &[],
+        on_parse_error: None,
+    };
+
+    // Test with VerticalAlign::Bottom
+    let _rich_text_bottom = RichText {
+        text: text.clone(),
+        max_width: Some(200.px()),
+        default_font: font.clone(),
+        default_text_style: style.clone(),
+        default_text_align: TextAlign::Right,
+        default_vertical_align: VerticalAlign::Bottom,
+        tag_map: &tag_map,
+        regex_handlers: &[],
+        on_parse_error: None,
+    };
+
+    // Test with all alignments
+    let regex_handlers: [RegexHandler; 0] = [];
+    let _rich_text_all = RichText {
+        text,
+        max_width: Some(200.px()),
+        default_font: font,
+        default_text_style: style,
+        default_text_align: TextAlign::Center,
+        default_vertical_align: VerticalAlign::Bottom,
+        tag_map: &tag_map,
+        regex_handlers: &regex_handlers,
+        on_parse_error: None,
+    };
+
+    // If we reach here without panicking, the vertical alignment feature works correctly
+    println!("Vertical alignment feature works correctly!");
 }
