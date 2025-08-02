@@ -227,6 +227,7 @@ pub struct HeadlineBuilder {
     text_align: TextAlign,
     max_width: Option<Px>,
     text_color: Option<Color>,
+    vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
 impl HeadlineBuilder {
@@ -237,6 +238,7 @@ impl HeadlineBuilder {
             text_align: TextAlign::LeftTop,
             max_width: None,
             text_color: None,
+            vertical_align: namui_prebuilt::rich_text::VerticalAlign::Center,
         }
     }
 
@@ -260,6 +262,12 @@ impl HeadlineBuilder {
         self
     }
 
+    #[allow(dead_code)]
+    pub fn vertical_align(mut self, align: namui_prebuilt::rich_text::VerticalAlign) -> Self {
+        self.vertical_align = align;
+        self
+    }
+
     pub fn build(self) -> HeadlineComponent {
         HeadlineComponent {
             text: self.text_content,
@@ -277,6 +285,7 @@ impl HeadlineBuilder {
             text_align: self.text_align,
             max_width: self.max_width,
             text_color: self.text_color,
+            vertical_align: self.vertical_align,
         }
     }
 }
@@ -286,6 +295,7 @@ pub struct ParagraphBuilder {
     font_size: FontSize,
     text_align: TextAlign,
     max_width: Option<Px>,
+    vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
 impl ParagraphBuilder {
@@ -295,6 +305,7 @@ impl ParagraphBuilder {
             font_size: FontSize::Medium,
             text_align: TextAlign::LeftTop,
             max_width: None,
+            vertical_align: namui_prebuilt::rich_text::VerticalAlign::Center,
         }
     }
 
@@ -313,6 +324,12 @@ impl ParagraphBuilder {
         self
     }
 
+    #[allow(dead_code)]
+    pub fn vertical_align(mut self, align: namui_prebuilt::rich_text::VerticalAlign) -> Self {
+        self.vertical_align = align;
+        self
+    }
+
     pub fn build(self) -> ParagraphComponent {
         ParagraphComponent {
             text: self.text_content,
@@ -328,6 +345,7 @@ impl ParagraphBuilder {
             font_size: self.font_size,
             text_align: self.text_align,
             max_width: self.max_width,
+            vertical_align: self.vertical_align,
         }
     }
 }
@@ -338,6 +356,7 @@ pub struct RichHeadlineComponent {
     text_align: TextAlign,
     max_width: Option<Px>,
     text_color: Option<Color>,
+    vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
 impl Component for RichHeadlineComponent {
@@ -348,6 +367,7 @@ impl Component for RichHeadlineComponent {
             text_align,
             max_width,
             text_color,
+            vertical_align,
         } = self;
 
         let (x, y) = match text_align {
@@ -388,18 +408,20 @@ impl Component for RichHeadlineComponent {
         };
 
         with_regex_handlers(|regex_handlers| {
-            ctx.add(namui_prebuilt::rich_text::RichText::with_regex_handlers(
+            ctx.add(namui_prebuilt::rich_text::RichText {
                 text,
-                effective_max_width,
-                Font {
+                max_width: effective_max_width,
+                default_font: Font {
                     name: HEADLINE_FONT_NAME.to_string(),
                     size,
                 },
-                text_style,
-                rich_text_align,
-                TAG_MAP.get_or_init(init_tag_map),
+                default_text_style: text_style,
+                default_text_align: rich_text_align,
+                default_vertical_align: vertical_align,
+                tag_map: TAG_MAP.get_or_init(init_tag_map),
                 regex_handlers,
-            ));
+                on_parse_error: None,
+            });
         });
     }
 }
@@ -409,6 +431,7 @@ pub struct RichParagraphComponent {
     font_size: FontSize,
     text_align: TextAlign,
     max_width: Option<Px>,
+    vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
 impl Component for RichParagraphComponent {
@@ -418,6 +441,7 @@ impl Component for RichParagraphComponent {
             font_size,
             text_align,
             max_width,
+            vertical_align,
         } = self;
 
         let (x, y) = match text_align {
@@ -448,18 +472,20 @@ impl Component for RichParagraphComponent {
 
         ctx.translate(Xy { x, y });
         with_regex_handlers(|regex_handlers| {
-            ctx.add(namui_prebuilt::rich_text::RichText::with_regex_handlers(
+            ctx.add(namui_prebuilt::rich_text::RichText {
                 text,
-                effective_max_width,
-                Font {
+                max_width: effective_max_width,
+                default_font: Font {
                     name: PARAGRAPH_FONT_NAME.to_string(),
                     size,
                 },
-                DEFAULT_TEXT_STYLE,
-                rich_text_align,
-                TAG_MAP.get_or_init(init_tag_map),
+                default_text_style: DEFAULT_TEXT_STYLE,
+                default_text_align: rich_text_align,
+                default_vertical_align: vertical_align,
+                tag_map: TAG_MAP.get_or_init(init_tag_map),
                 regex_handlers,
-            ));
+                on_parse_error: None,
+            });
         });
     }
 }
