@@ -12,7 +12,7 @@ use namui::*;
 pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: Suit) {
     let padding = px(4.0);
     let rank_font_size = FontSize::Small;
-    let suit_icon_size = px(16.0);
+    let icon_wh = Wh::new(20.px(), 12.px());
 
     // suit에 따른 색상 결정
     let text_color = match suit {
@@ -26,20 +26,19 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
         headline(rank.to_string())
             .size(rank_font_size)
             .color(text_color)
-            .align(TextAlign::Center {
-                wh: Wh::single(suit_icon_size),
-            })
+            .align(TextAlign::Center { wh: icon_wh })
             .build(),
     );
 
     // 문양 아이콘 렌더링 (숫자 아래)
-    ctx.translate(Xy::new(0.px(), suit_icon_size)).add(
-        Icon::new(IconKind::Suit { suit })
-            .wh(Wh::single(suit_icon_size))
-            .size(IconSize::Custom {
-                size: suit_icon_size,
-            }),
-    );
+    ctx.translate(Xy::new(0.px(), icon_wh.height + padding))
+        .add(
+            Icon::new(IconKind::Suit { suit })
+                .wh(icon_wh)
+                .size(IconSize::Custom {
+                    size: icon_wh.height,
+                }),
+        );
 }
 
 /// 카드/타워 배경 rect를 렌더링
