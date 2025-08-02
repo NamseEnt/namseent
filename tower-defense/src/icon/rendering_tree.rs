@@ -1,5 +1,6 @@
 use crate::{asset_loader::icon_asset_loader::IconAssetLoader, icon::Icon};
 use namui::*;
+use namui_prebuilt::simple_rect;
 
 impl Icon {
     pub fn to_rendering_tree(&self) -> RenderingTree {
@@ -61,11 +62,14 @@ impl Icon {
                     },
                 }));
             }
-
-            return namui::render(rendering_trees);
         }
 
-        // Fallback to empty rendering tree if global loader is not available
+        rendering_trees.push(simple_rect(
+            *wh,
+            Color::TRANSPARENT,
+            0.px(),
+            Color::TRANSPARENT,
+        ));
         namui::render(rendering_trees)
     }
 }

@@ -227,6 +227,7 @@ pub struct HeadlineBuilder {
     text_align: TextAlign,
     max_width: Option<Px>,
     text_color: Option<Color>,
+    vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
 impl HeadlineBuilder {
@@ -237,6 +238,7 @@ impl HeadlineBuilder {
             text_align: TextAlign::LeftTop,
             max_width: None,
             text_color: None,
+            vertical_align: namui_prebuilt::rich_text::VerticalAlign::Center,
         }
     }
 
@@ -260,6 +262,12 @@ impl HeadlineBuilder {
         self
     }
 
+    #[allow(dead_code)]
+    pub fn vertical_align(mut self, align: namui_prebuilt::rich_text::VerticalAlign) -> Self {
+        self.vertical_align = align;
+        self
+    }
+
     pub fn build(self) -> HeadlineComponent {
         HeadlineComponent {
             text: self.text_content,
@@ -277,6 +285,7 @@ impl HeadlineBuilder {
             text_align: self.text_align,
             max_width: self.max_width,
             text_color: self.text_color,
+            vertical_align: self.vertical_align,
         }
     }
 }
@@ -286,6 +295,7 @@ pub struct ParagraphBuilder {
     font_size: FontSize,
     text_align: TextAlign,
     max_width: Option<Px>,
+    vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
 impl ParagraphBuilder {
@@ -295,6 +305,7 @@ impl ParagraphBuilder {
             font_size: FontSize::Medium,
             text_align: TextAlign::LeftTop,
             max_width: None,
+            vertical_align: namui_prebuilt::rich_text::VerticalAlign::Center,
         }
     }
 
@@ -313,6 +324,12 @@ impl ParagraphBuilder {
         self
     }
 
+    #[allow(dead_code)]
+    pub fn vertical_align(mut self, align: namui_prebuilt::rich_text::VerticalAlign) -> Self {
+        self.vertical_align = align;
+        self
+    }
+
     pub fn build(self) -> ParagraphComponent {
         ParagraphComponent {
             text: self.text_content,
@@ -328,6 +345,7 @@ impl ParagraphBuilder {
             font_size: self.font_size,
             text_align: self.text_align,
             max_width: self.max_width,
+            vertical_align: self.vertical_align,
         }
     }
 }
@@ -338,6 +356,7 @@ pub struct RichHeadlineComponent {
     text_align: TextAlign,
     max_width: Option<Px>,
     text_color: Option<Color>,
+    vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
 impl Component for RichHeadlineComponent {
@@ -348,6 +367,7 @@ impl Component for RichHeadlineComponent {
             text_align,
             max_width,
             text_color,
+            vertical_align,
         } = self;
 
         let (x, y) = match text_align {
@@ -374,15 +394,30 @@ impl Component for RichHeadlineComponent {
             DEFAULT_TEXT_STYLE
         };
 
+        let rich_text_align = match text_align {
+            TextAlign::LeftTop => namui::TextAlign::Left,
+            TextAlign::LeftCenter { .. } => namui::TextAlign::Left,
+            TextAlign::Center { .. } => namui::TextAlign::Center,
+            TextAlign::RightTop { .. } => namui::TextAlign::Right,
+        };
+
+        let effective_max_width = match (&text_align, max_width) {
+            (TextAlign::Center { wh }, None) => Some(wh.width),
+            (TextAlign::RightTop { width }, None) => Some(*width),
+            _ => max_width,
+        };
+
         with_regex_handlers(|regex_handlers| {
             ctx.add(namui_prebuilt::rich_text::RichText {
                 text,
-                max_width,
+                max_width: effective_max_width,
                 default_font: Font {
                     name: HEADLINE_FONT_NAME.to_string(),
                     size,
                 },
                 default_text_style: text_style,
+                default_text_align: rich_text_align,
+                default_vertical_align: vertical_align,
                 tag_map: TAG_MAP.get_or_init(init_tag_map),
                 regex_handlers,
                 on_parse_error: None,
@@ -396,6 +431,7 @@ pub struct RichParagraphComponent {
     font_size: FontSize,
     text_align: TextAlign,
     max_width: Option<Px>,
+    vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
 impl Component for RichParagraphComponent {
@@ -405,6 +441,7 @@ impl Component for RichParagraphComponent {
             font_size,
             text_align,
             max_width,
+            vertical_align,
         } = self;
 
         let (x, y) = match text_align {
@@ -420,16 +457,31 @@ impl Component for RichParagraphComponent {
             FontSize::Small => PARAGRAPH_FONT_SIZE_SMALL,
         };
 
+        let rich_text_align = match text_align {
+            TextAlign::LeftTop => namui::TextAlign::Left,
+            TextAlign::LeftCenter { .. } => namui::TextAlign::Left,
+            TextAlign::Center { .. } => namui::TextAlign::Center,
+            TextAlign::RightTop { .. } => namui::TextAlign::Right,
+        };
+
+        let effective_max_width = match (&text_align, max_width) {
+            (TextAlign::Center { wh }, None) => Some(wh.width),
+            (TextAlign::RightTop { width }, None) => Some(*width),
+            _ => max_width,
+        };
+
         ctx.translate(Xy { x, y });
         with_regex_handlers(|regex_handlers| {
             ctx.add(namui_prebuilt::rich_text::RichText {
                 text,
-                max_width,
+                max_width: effective_max_width,
                 default_font: Font {
                     name: PARAGRAPH_FONT_NAME.to_string(),
                     size,
                 },
                 default_text_style: DEFAULT_TEXT_STYLE,
+                default_text_align: rich_text_align,
+                default_vertical_align: vertical_align,
                 tag_map: TAG_MAP.get_or_init(init_tag_map),
                 regex_handlers,
                 on_parse_error: None,
@@ -489,6 +541,12 @@ impl Component for HeadlineComponent {
             DEFAULT_TEXT_STYLE
         };
 
+        let effective_max_width = match (&text_align, max_width) {
+            (TextAlign::Center { wh }, None) => Some(wh.width),
+            (TextAlign::RightTop { width }, None) => Some(*width),
+            _ => max_width,
+        };
+
         ctx.add(namui::text(TextParam {
             text,
             x,
@@ -500,7 +558,7 @@ impl Component for HeadlineComponent {
                 size,
             },
             style: text_style,
-            max_width,
+            max_width: effective_max_width,
         }));
     }
 }
@@ -545,6 +603,12 @@ impl Component for ParagraphComponent {
             TextAlign::RightTop { .. } => TextBaseline::Top,
         };
 
+        let effective_max_width = match (&text_align, max_width) {
+            (TextAlign::Center { wh }, None) => Some(wh.width),
+            (TextAlign::RightTop { width }, None) => Some(*width),
+            _ => max_width,
+        };
+
         ctx.add(namui::text(TextParam {
             text,
             x,
@@ -556,7 +620,7 @@ impl Component for ParagraphComponent {
                 size,
             },
             style: DEFAULT_TEXT_STYLE,
-            max_width,
+            max_width: effective_max_width,
         }));
     }
 }

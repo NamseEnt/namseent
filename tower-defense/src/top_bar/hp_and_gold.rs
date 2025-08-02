@@ -22,7 +22,7 @@ impl Component for HPAndGoldIndicator {
                         table::fixed(px(32.), |wh, ctx| {
                             ctx.add(Icon::new(IconKind::Health).size(IconSize::Medium).wh(wh));
                         }),
-                        table::fixed(32.px(), |wh, ctx| {
+                        table::fixed(48.px(), |wh, ctx| {
                             ctx.add(
                                 headline(format!("{:.0}", hp * 100.0))
                                     .size(FontSize::Medium)
