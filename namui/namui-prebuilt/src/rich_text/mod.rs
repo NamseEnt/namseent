@@ -1,4 +1,6 @@
 mod parse;
+#[cfg(test)]
+mod tests;
 
 use namui::*;
 pub use parse::*;
@@ -188,7 +190,7 @@ impl Component for RichText<'_> {
     }
 }
 
-struct Processor<'a> {
+pub(crate) struct Processor<'a> {
     max_width: Px,
     cursor_x: Px,
     cursor_y: Px,
@@ -369,10 +371,23 @@ impl<'a> Processor<'a> {
             let (left_text, right_text) = self.split_text_at_break_point(text, break_point);
 
             if !left_text.is_empty() {
-                self.add(ctx, get_rendering_tree(&left_text));
+                // Force add left_text to current line without line break check
+                let left_rendering_tree = get_rendering_tree(&left_text);
+                if let Some(bounding_box) = namui::bounding_box(&left_rendering_tree) {
+                    self.current_line_items.push(LineItem {
+                        rendering_tree: left_rendering_tree,
+                        width: bounding_box.right(),
+                    });
+                    self.line_height = self.line_height.max(bounding_box.height());
+                    self.cursor_x += bounding_box.right();
+                    self.is_first_in_line = false;
+                }
             }
 
             if !right_text.is_empty() {
+                // Force a line break before processing the right part
+                self.flush_current_line(ctx);
+                self.break_line();
                 self.process_text(ctx, &right_text, font, style, text_align);
             }
         } else {
@@ -465,18 +480,67 @@ impl<'a> Processor<'a> {
             let right_text = text.chars().skip(middle_point).collect::<String>();
 
             if middle_point == low || middle_point == high {
-                self.add(ctx, get_rendering_tree(&left_text));
-                return self.process_text(
-                    ctx,
-                    &right_text,
-                    params.font,
-                    params.style,
-                    params.text_align,
-                );
+                let left_rendering_tree = get_rendering_tree(&left_text);
+                if let Some(bounding_box) = namui::bounding_box(&left_rendering_tree) {
+                    // Only add left_text if it fits OR if it's the first item in line
+                    // This prevents character separation within words
+                    if self.is_first_in_line
+                        || self.cursor_x + bounding_box.right() <= self.max_width
+                    {
+                        self.current_line_items.push(LineItem {
+                            rendering_tree: left_rendering_tree,
+                            width: bounding_box.right(),
+                        });
+                        self.line_height = self.line_height.max(bounding_box.height());
+                        self.cursor_x += bounding_box.right();
+                        self.is_first_in_line = false;
+
+                        if !right_text.is_empty() {
+                            self.flush_current_line(ctx);
+                            self.break_line();
+                            return self.process_text(
+                                ctx,
+                                &right_text,
+                                params.font,
+                                params.style,
+                                params.text_align,
+                            );
+                        }
+                    } else {
+                        // If left_text doesn't fit and it's not first in line,
+                        // move to next line and process entire text there
+                        self.flush_current_line(ctx);
+                        self.break_line();
+                        return self.process_text(
+                            ctx,
+                            text,
+                            params.font,
+                            params.style,
+                            params.text_align,
+                        );
+                    }
+                } else if !right_text.is_empty() {
+                    self.flush_current_line(ctx);
+                    self.break_line();
+                    return self.process_text(
+                        ctx,
+                        &right_text,
+                        params.font,
+                        params.style,
+                        params.text_align,
+                    );
+                }
+
+                return;
             }
 
             let left_rendering_tree = get_rendering_tree(&left_text);
             let Some(left_bounding_box) = namui::bounding_box(&left_rendering_tree) else {
+                if !right_text.is_empty() {
+                    // Force a line break before processing the right part
+                    self.flush_current_line(ctx);
+                    self.break_line();
+                }
                 return self.process_text(
                     ctx,
                     &right_text,
@@ -491,14 +555,27 @@ impl<'a> Processor<'a> {
                 .unwrap()
             {
                 Ordering::Equal => {
-                    self.add(ctx, left_rendering_tree);
-                    return self.process_text(
-                        ctx,
-                        &right_text,
-                        params.font,
-                        params.style,
-                        params.text_align,
-                    );
+                    // Add left_text if it fits exactly
+                    self.current_line_items.push(LineItem {
+                        rendering_tree: left_rendering_tree,
+                        width: left_bounding_box.right(),
+                    });
+                    self.line_height = self.line_height.max(left_bounding_box.height());
+                    self.cursor_x += left_bounding_box.right();
+                    self.is_first_in_line = false;
+
+                    if !right_text.is_empty() {
+                        self.flush_current_line(ctx);
+                        self.break_line();
+                        return self.process_text(
+                            ctx,
+                            &right_text,
+                            params.font,
+                            params.style,
+                            params.text_align,
+                        );
+                    }
+                    return;
                 }
                 Ordering::Less => {
                     low = middle_point;
@@ -516,191 +593,5 @@ impl<'a> Processor<'a> {
         self.line_height = 0.px();
         self.is_first_in_line = true;
         // Line items are already flushed by the caller, so no need to clear here
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_regex_handler_creation() {
-        let handler = RegexHandler::new(
-            r"icon<[^>]+>",
-            Box::new(|matched_text| {
-                // Mock rendering tree for testing
-                namui::text(TextParam {
-                    text: format!("ICON: {matched_text}"),
-                    x: 0.px(),
-                    y: 0.px(),
-                    align: TextAlign::Left,
-                    baseline: TextBaseline::Top,
-                    font: Font {
-                        name: "Arial".to_string(),
-                        size: px(14.0).into(),
-                    },
-                    style: TextStyle::default(),
-                    max_width: None,
-                })
-            }),
-        );
-
-        assert!(handler.is_ok());
-    }
-
-    #[test]
-    fn test_regex_matching() {
-        let handler =
-            RegexHandler::new(r"icon<[^>]+>", Box::new(|_| RenderingTree::Empty)).unwrap();
-
-        let text = "Hello icon<gold:24:32:32:1> World";
-        let result = handler.find_match(text);
-
-        assert_eq!(result, Some((6, 27))); // "icon<gold:24:32:32:1>"
-
-        let matched = handler.get_match(text);
-        assert_eq!(matched, Some("icon<gold:24:32:32:1>"));
-    }
-
-    #[test]
-    fn test_multiple_regex_patterns() {
-        let icon_handler =
-            RegexHandler::new(r"icon<[^>]+>", Box::new(|_| RenderingTree::Empty)).unwrap();
-
-        let mention_handler =
-            RegexHandler::new(r"@\w+", Box::new(|_| RenderingTree::Empty)).unwrap();
-
-        let text = "Hello @user and icon<gold:24:32:32:1>";
-
-        assert_eq!(icon_handler.find_match(text), Some((16, 37)));
-        assert_eq!(mention_handler.find_match(text), Some((6, 11)));
-    }
-
-    #[test]
-    fn test_korean_text_char_boundary() {
-        // Test that Korean text is properly handled with character boundaries
-        let korean_text = "한글 텍스트 아이콘 태그 테스트";
-        let char_count = korean_text.chars().count();
-        let byte_len = korean_text.len();
-
-        // Verify that character count is different from byte length for Korean text
-        assert_ne!(char_count, byte_len);
-        assert_eq!(char_count, 17); // 17 characters including spaces
-        assert_eq!(byte_len, 43); // UTF-8 encoded byte length
-        assert!(byte_len > char_count); // More bytes than characters due to UTF-8 encoding
-
-        // Test character slicing works correctly - split at position 9 (middle of "아이콘")
-        let first_part: String = korean_text.chars().take(9).collect();
-        let second_part: String = korean_text.chars().skip(9).collect();
-
-        assert_eq!(first_part, "한글 텍스트 아이");
-        assert_eq!(second_part, "콘 태그 테스트");
-        assert_eq!(format!("{first_part}{second_part}"), korean_text);
-
-        // Test that our character-based splitting avoids byte boundary errors
-        for i in 0..=char_count {
-            let left: String = korean_text.chars().take(i).collect();
-            let right: String = korean_text.chars().skip(i).collect();
-            assert_eq!(format!("{left}{right}"), korean_text);
-        }
-    }
-
-    #[test]
-    fn test_word_boundary_line_breaking() {
-        // Test that word boundaries are respected when line breaking occurs
-        let text = "Happiness and Joy";
-
-        // Create a mock processor to test the word boundary logic
-        let regex_handlers: [RegexHandler; 0] = [];
-        let processor = Processor::new(100.px(), &regex_handlers);
-
-        // Test finding word boundaries
-        let boundaries = [
-            (0, ""),
-            (9, "Happiness"),          // Should break after "Happiness"
-            (13, "Happiness and"),     // Should break after "and"
-            (17, "Happiness and Joy"), // Complete text
-        ];
-
-        for (expected_char_pos, expected_text) in boundaries {
-            let test_chars: String = text.chars().take(expected_char_pos).collect();
-            assert_eq!(test_chars, expected_text);
-        }
-
-        // Test that split_text_at_break_point trims whitespace correctly
-        let (left, right) = processor.split_text_at_break_point(text, 9);
-        assert_eq!(left, "Happiness");
-        assert_eq!(right, "and Joy");
-
-        let (left, right) = processor.split_text_at_break_point(text, 13);
-        assert_eq!(left, "Happiness and");
-        assert_eq!(right, "Joy");
-    }
-
-    #[test]
-    fn test_regex_handler_full_integration() {
-        // Create a regex handler that matches icon patterns
-        let icon_handler = RegexHandler::new(
-            r"icon<([^:>]+):(\d+):(\d+):(\d+):(\d+)>",
-            Box::new(|matched_text| {
-                namui::text(TextParam {
-                    text: format!("[ICON:{matched_text}]"),
-                    x: 0.px(),
-                    y: 0.px(),
-                    align: TextAlign::Left,
-                    baseline: TextBaseline::Top,
-                    font: Font {
-                        name: "Arial".to_string(),
-                        size: px(14.0).into(),
-                    },
-                    style: TextStyle::default(),
-                    max_width: None,
-                })
-            }),
-        )
-        .unwrap();
-
-        // Create a mention handler
-        let mention_handler = RegexHandler::new(
-            r"@(\w+)",
-            Box::new(|matched_text| {
-                namui::text(TextParam {
-                    text: format!("[MENTION:{matched_text}]"),
-                    x: 0.px(),
-                    y: 0.px(),
-                    align: TextAlign::Left,
-                    baseline: TextBaseline::Top,
-                    font: Font {
-                        name: "Arial".to_string(),
-                        size: px(14.0).into(),
-                    },
-                    style: TextStyle::default(),
-                    max_width: None,
-                })
-            }),
-        )
-        .unwrap();
-
-        let regex_handlers = [icon_handler, mention_handler];
-
-        // Test with real input that should match multiple patterns
-        let test_text = "Hello @user, here's an icon: icon<gold:24:16:16:1> and another @admin.";
-
-        // Verify icon pattern matches
-        assert!(regex_handlers[0].find_match(test_text).is_some());
-        let icon_match = regex_handlers[0].find_match(test_text).unwrap();
-        assert_eq!(
-            &test_text[icon_match.0..icon_match.1],
-            "icon<gold:24:16:16:1>"
-        );
-
-        // Verify mention pattern matches
-        assert!(regex_handlers[1].find_match(test_text).is_some());
-        let mention_match = regex_handlers[1].find_match(test_text).unwrap();
-        assert_eq!(&test_text[mention_match.0..mention_match.1], "@user");
-
-        // Test that empty regex handlers array doesn't break anything
-        let empty_handlers: [RegexHandler; 0] = [];
-        assert_eq!(empty_handlers.len(), 0);
     }
 }
