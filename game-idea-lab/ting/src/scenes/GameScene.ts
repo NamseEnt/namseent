@@ -22,6 +22,11 @@ export class GameScene extends Phaser.Scene {
     // 마스크 시각화
     private maskGraphics: Phaser.GameObjects.Graphics[] = [];
     
+    // 연사 관련
+    private isMouseDown: boolean = false;
+    private fireRate: number = 150; // 연사 간격 (밀리초)
+    private lastFireTime: number = 0;
+    
     constructor() {
         super({ key: 'GameScene' });
     }
@@ -32,12 +37,14 @@ export class GameScene extends Phaser.Scene {
         this.load.image('enemy', 'enemy.png');
         this.load.image('playerStandby', 'standby.png');
         this.load.image('playerShoot', 'shoot.png');
+        this.load.image('playerLowReady', 'low-ready.png');
     }
 
     create() {
         removeWhiteBackground(this, 'enemy');
         removeWhiteBackground(this, 'playerStandby');
         removeWhiteBackground(this, 'playerShoot');
+        removeWhiteBackground(this, 'playerLowReady');
         removeWhiteBackground(this, 'hideWall');
         
         this.background = this.add.image(600, 300, 'building');
@@ -252,27 +259,22 @@ export class GameScene extends Phaser.Scene {
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (this.isSettingEnemyArea) return;  // 적 배치 모드에서는 사격 비활성화
             
-            if (!this.player.isInCover()) {
-                this.player.shoot();
-                
-                const hitEnemy = this.enemies.find(enemy => {
-                    const bounds = enemy.getBounds();
-                    return bounds.contains(pointer.x, pointer.y) && enemy.isActive();
-                });
-                
-                if (hitEnemy) {
-                    hitEnemy.hit();
-                    this.animateCrosshairHit();
-                } else {
-                    this.createSpark(pointer.x, pointer.y);
-                }
-                
-                this.animateCrosshairRecoil();
-            }
+            this.isMouseDown = true;
+            this.tryFire(pointer);
         });
         
+        this.input.on('pointerup', () => {
+            this.isMouseDown = false;
+            this.player.stopShooting();
+        });
+        
+        // 스페이스 키 홀드로 숨기/나오기
         this.input.keyboard?.on('keydown-SPACE', () => {
-            this.player.toggleCover();
+            this.player.setCover(true); // 숨기
+        });
+        
+        this.input.keyboard?.on('keyup-SPACE', () => {
+            this.player.setCover(false); // low-ready 상태로
         });
         
         // 적 배치 영역 설정 모드 활성화 (E 키)
@@ -337,6 +339,28 @@ export class GameScene extends Phaser.Scene {
         
     }
 
+    private tryFire(pointer: Phaser.Input.Pointer) {
+        // low-ready 또는 shoot 상태에서 사격 가능 (숨어있을 때만 불가)
+        if (this.player.getState() === 'low-ready' || this.player.getState() === 'shoot') {
+            this.lastFireTime = this.time.now;
+            this.player.shoot();
+            
+            const hitEnemy = this.enemies.find(enemy => {
+                const bounds = enemy.getBounds();
+                return bounds.contains(pointer.x, pointer.y) && enemy.isActive();
+            });
+            
+            if (hitEnemy) {
+                hitEnemy.hit();
+                this.animateCrosshairHit();
+            } else {
+                this.createSpark(pointer.x, pointer.y);
+            }
+            
+            this.animateCrosshairRecoil();
+        }
+    }
+
     private createSpark(x: number, y: number) {
         const spark = this.add.graphics();
         spark.fillStyle(0xffff00, 1);
@@ -360,6 +384,14 @@ export class GameScene extends Phaser.Scene {
     update() {
         this.player.update();
         this.enemies.forEach(enemy => enemy.update());
+        
+        // 연사 처리
+        if (this.isMouseDown && !this.isSettingEnemyArea) {
+            const currentTime = this.time.now;
+            if (currentTime - this.lastFireTime >= this.fireRate) {
+                this.tryFire(this.input.activePointer);
+            }
+        }
         
         // 적 위에 마우스가 있는지 확인하여 크로스헤어 색상 변경
         const pointer = this.input.activePointer;

@@ -1,31 +1,42 @@
 import Phaser from 'phaser';
 
+type PlayerState = 'hiding' | 'low-ready' | 'shoot';
+
 export class Player extends Phaser.GameObjects.Container {
     private sprite: Phaser.GameObjects.Image;
-    private isHiding: boolean = true;
+    private state: PlayerState = 'hiding';
     private scene: Phaser.Scene;
     private recoilTween?: Phaser.Tweens.Tween;
+    private isShooting: boolean = false;
     
     constructor(scene: Phaser.Scene, x: number, y: number) {
         super(scene, x, y);
         this.scene = scene;
         
-        this.sprite = scene.add.image(0, 0, 'playerStandby');
+        // 기본 상태를 low-ready로 시작
+        this.state = 'low-ready';
+        this.sprite = scene.add.image(0, 0, 'playerLowReady');
         this.sprite.setScale(0.3);
         this.add(this.sprite);
         
         scene.add.existing(this);
         this.setDepth(10);
+        
+        // 시작 위치 설정 (low-ready 위치)
+        this.x = 350;
     }
     
     isInCover(): boolean {
-        return this.isHiding;
+        return this.state === 'hiding';
     }
     
-    toggleCover() {
-        this.isHiding = !this.isHiding;
-        
-        if (this.isHiding) {
+    getState(): PlayerState {
+        return this.state;
+    }
+    
+    setCover(isHiding: boolean) {
+        if (isHiding) {
+            this.state = 'hiding';
             this.sprite.setTexture('playerStandby');
             this.scene.tweens.add({
                 targets: this,
@@ -34,7 +45,8 @@ export class Player extends Phaser.GameObjects.Container {
                 ease: 'Power2'
             });
         } else {
-            this.sprite.setTexture('playerShoot');
+            this.state = 'low-ready';
+            this.sprite.setTexture('playerLowReady');
             this.scene.tweens.add({
                 targets: this,
                 x: 350,
@@ -49,6 +61,13 @@ export class Player extends Phaser.GameObjects.Container {
             return;
         }
         
+        // 첫 발사 시에만 shoot 상태로 변경
+        if (!this.isShooting) {
+            this.isShooting = true;
+            this.state = 'shoot';
+            this.sprite.setTexture('playerShoot');
+        }
+        
         const originalX = this.x;
         this.recoilTween = this.scene.tweens.add({
             targets: this,
@@ -60,11 +79,19 @@ export class Player extends Phaser.GameObjects.Container {
         
         this.scene.tweens.add({
             targets: this.sprite,
-            rotation: -0.05,
+            x: this.sprite.x + Phaser.Math.Between(-3, 3),
             duration: 50,
             yoyo: true,
             ease: 'Power1'
         });
+    }
+    
+    stopShooting() {
+        this.isShooting = false;
+        if (this.state === 'shoot') {
+            this.state = 'low-ready';
+            this.sprite.setTexture('playerLowReady');
+        }
     }
     
     hit() {
