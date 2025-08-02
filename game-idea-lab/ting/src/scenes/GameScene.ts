@@ -27,6 +27,16 @@ export class GameScene extends Phaser.Scene {
     private fireRate: number = 150; // 연사 간격 (밀리초)
     private lastFireTime: number = 0;
     
+    // 탄약 시스템
+    private currentAmmo: number = 30;
+    private maxAmmo: number = 30;
+    private ammoText!: Phaser.GameObjects.Text;
+    private isReloading: boolean = false;
+    
+    // 흔들림 오프셋
+    private shakeOffsetX: number = 0;
+    private shakeOffsetY: number = 0;
+    
     constructor() {
         super({ key: 'GameScene' });
     }
@@ -109,12 +119,12 @@ export class GameScene extends Phaser.Scene {
                 
                 // 드래그 활성화
                 this.enemies.forEach(enemy => {
-                    this.input.setDraggable(enemy);
+                    this.input.setDraggable(enemy as any);
                 });
             } else {
                 // 드래그 비활성화
                 this.enemies.forEach(enemy => {
-                    this.input.setDraggable(enemy, false);
+                    this.input.setDraggable(enemy as any, false);
                 });
                 
                 // 마스크 시각화 끄기
@@ -191,15 +201,15 @@ export class GameScene extends Phaser.Scene {
         // 드래그 이벤트
         this.input.on('drag', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject, dragX: number, dragY: number) => {
             if (this.isAdjustMode && this.enemies.includes(gameObject as Enemy)) {
-                gameObject.x = dragX;
-                gameObject.y = dragY;
+                (gameObject as any).x = dragX;
+                (gameObject as any).y = dragY;
             }
         });
         
         // 드래그 종료 시 위치 로그
         this.input.on('dragend', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
-            if (this.isAdjustMode && this.enemies.includes(gameObject as Enemy)) {
-                const enemy = gameObject as Enemy;
+            if (this.isAdjustMode && this.enemies.includes(gameObject as unknown as Enemy)) {
+                const enemy = gameObject as any as Enemy;
                 const index = this.enemies.indexOf(enemy);
                 const type = enemyPositions[index].type;
                 console.log(`적 ${index + 1} (${type}) 새 위치: x=${Math.round(enemy.x)}, y=${Math.round(enemy.y)}, scale=${enemy.getCurrentScale()}`);
@@ -237,8 +247,20 @@ export class GameScene extends Phaser.Scene {
         this.crosshair = this.add.graphics();
         this.crosshair.setDepth(100);
         
+        // 탄약 UI 생성 (크로스헤어 하단에 위치)
+        this.ammoText = this.add.text(0, 0, `${this.currentAmmo}/${this.maxAmmo}`, {
+            fontSize: '18px',
+            color: '#ffffff',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        this.ammoText.setOrigin(0.5, 0); // 중앙 정렬
+        this.ammoText.setDepth(10);
+        
         // 초기 위치를 화면 중앙으로 설정
         this.crosshair.setPosition(600, 300);
+        this.ammoText.setPosition(600, 330);
         this.drawCrosshair(0xffffff);
         
         // 마우스가 게임 영역에 들어왔을 때
@@ -252,7 +274,8 @@ export class GameScene extends Phaser.Scene {
         });
         
         this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-            this.crosshair.setPosition(pointer.x, pointer.y);
+            this.crosshair.setPosition(pointer.x + this.shakeOffsetX, pointer.y + this.shakeOffsetY);
+            this.ammoText.setPosition(pointer.x + this.shakeOffsetX, pointer.y + this.shakeOffsetY + 30);
             this.crosshair.setVisible(true);
         });
         
@@ -266,6 +289,11 @@ export class GameScene extends Phaser.Scene {
         this.input.on('pointerup', () => {
             this.isMouseDown = false;
             this.player.stopShooting();
+        });
+        
+        // 키보드 이벤트 (장전)
+        this.input.keyboard?.on('keydown-R', () => {
+            this.reload();
         });
         
         // 스페이스 키 홀드로 숨기/나오기
@@ -340,9 +368,19 @@ export class GameScene extends Phaser.Scene {
     }
 
     private tryFire(pointer: Phaser.Input.Pointer) {
+        // 탄약이 없거나 장전 중이면 사격 불가
+        if (this.currentAmmo <= 0 || this.isReloading) {
+            if (this.currentAmmo <= 0) {
+                this.animateEmptyAmmo();
+            }
+            return;
+        }
+        
         // low-ready 또는 shoot 상태에서 사격 가능 (숨어있을 때만 불가)
         if (this.player.getState() === 'low-ready' || this.player.getState() === 'shoot') {
             this.lastFireTime = this.time.now;
+            this.currentAmmo--;
+            this.updateAmmoDisplay();
             this.player.shoot();
             
             const hitEnemy = this.enemies.find(enemy => {
@@ -358,6 +396,119 @@ export class GameScene extends Phaser.Scene {
             }
             
             this.animateCrosshairRecoil();
+        }
+    }
+
+    private updateAmmoDisplay() {
+        this.ammoText.setText(`${this.currentAmmo}/${this.maxAmmo}`);
+        
+        // 탄약이 0이면 빨간색으로만 표시
+        if (this.currentAmmo === 0) {
+            this.ammoText.setColor('#ff0000');
+        } else {
+            this.ammoText.setColor('#ffffff');
+        }
+    }
+    
+    private animateEmptyAmmo() {
+        // 오프셋을 이용한 흔들림
+        this.tweens.add({
+            targets: this,
+            shakeOffsetX: Phaser.Math.Between(-5, 5),
+            duration: 50,
+            yoyo: true,
+            repeat: 3,
+            onComplete: () => {
+                this.shakeOffsetX = 0;
+                this.shakeOffsetY = 0;
+            }
+        });
+        
+        // 간단한 깜빡임만
+        this.tweens.add({
+            targets: this.ammoText,
+            alpha: 0.5,
+            duration: 100,
+            yoyo: true,
+            repeat: 2
+        });
+    }
+    
+    private reload() {
+        if (this.isReloading || this.currentAmmo === this.maxAmmo) return;
+        
+        this.isReloading = true;
+        
+        // 탄약 텍스트를 노란색으로 변경
+        this.ammoText.setColor('#ffff00');
+        
+        // 크로스헤어를 로딩 스피너로 변경
+        this.crosshair.clear();
+        this.drawLoadingSpinner();
+        
+        // 크로스헤어(로딩 스피너) 회전 애니메이션
+        this.tweens.add({
+            targets: this.crosshair,
+            rotation: Math.PI * 4, // 2바퀴 회전
+            duration: 2000,
+            ease: 'Sine.easeInOut', // 위에서 느리고 아래서 빠른 효과
+            onComplete: () => {
+                this.currentAmmo = this.maxAmmo;
+                this.isReloading = false;
+                this.crosshair.setRotation(0);
+                this.updateAmmoDisplay(); // 색상도 복구됨
+                this.updateCrosshairShape(); // 크로스헤어 모양 복구
+            }
+        });
+    }
+    
+    private updateCrosshairShape() {
+        this.crosshair.clear();
+        
+        if (this.currentAmmo <= 0) {
+            // + 모양 크로스헤어 (빨간색)
+            this.drawCrosshair(0xff0000);
+        } else {
+            // 일반 크로스헤어
+            const pointer = this.input.activePointer;
+            const isOverEnemy = this.enemies.some(enemy => {
+                const bounds = enemy.getBounds();
+                return bounds.contains(pointer.x, pointer.y) && enemy.isActive();
+            });
+            this.drawCrosshair(isOverEnemy ? 0xff0000 : 0xffffff);
+        }
+    }
+    
+    private drawXCrosshair(color: number = 0xff0000) {
+        this.crosshair.lineStyle(2, color, 1);
+        
+        const size = this.crosshairSize;
+        const x = this.crosshair.x;
+        const y = this.crosshair.y;
+        
+        // X 모양 그리기
+        this.crosshair.beginPath();
+        this.crosshair.moveTo(-size/2, -size/2);
+        this.crosshair.lineTo(size/2, size/2);
+        this.crosshair.moveTo(size/2, -size/2);
+        this.crosshair.lineTo(-size/2, size/2);
+        this.crosshair.strokePath();
+    }
+    
+    private drawLoadingSpinner() {
+        const radius = 15;
+        const dotCount = 8;
+        
+        // 8개의 점으로 로딩 스피너 그리기 (크로스헤어에 직접)
+        for (let i = 0; i < dotCount; i++) {
+            const angle = (i / dotCount) * Math.PI * 2;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            
+            // 점의 투명도를 다르게 해서 회전 효과
+            const alpha = 0.3 + (i / dotCount) * 0.7;
+            this.crosshair.fillStyle(0xffff00, alpha);
+            this.crosshair.fillCircle(x, y, 2);
         }
     }
 
@@ -401,6 +552,7 @@ export class GameScene extends Phaser.Scene {
         });
         
         this.updateCrosshairColor(isOverEnemy);
+        this.updateCrosshairShape();
     }
     
     private drawCrosshair(color: number = 0xffffff) {

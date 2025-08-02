@@ -4,8 +4,8 @@ type PlayerState = 'hiding' | 'low-ready' | 'shoot';
 
 export class Player extends Phaser.GameObjects.Container {
     private sprite: Phaser.GameObjects.Image;
-    private state: PlayerState = 'hiding';
-    private scene: Phaser.Scene;
+    public state: PlayerState = 'hiding';
+    public scene: Phaser.Scene;
     private recoilTween?: Phaser.Tweens.Tween;
     private isShooting: boolean = false;
     
@@ -19,7 +19,7 @@ export class Player extends Phaser.GameObjects.Container {
         this.sprite.setScale(0.3);
         this.add(this.sprite);
         
-        scene.add.existing(this);
+        scene.add.existing(this as any);
         this.setDepth(10);
         
         // 시작 위치 설정 (low-ready 위치)

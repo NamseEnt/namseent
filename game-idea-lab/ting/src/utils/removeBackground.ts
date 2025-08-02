@@ -5,12 +5,14 @@ export function removeWhiteBackground(
 ): void {
     const texture = scene.textures.get(key);
     const canvas = scene.textures.createCanvas(key + '_transparent', texture.getSourceImage().width, texture.getSourceImage().height);
-    const context = canvas.context;
+    const context = canvas?.context;
     const source = texture.getSourceImage() as HTMLImageElement;
+    
+    if (!canvas?.canvas || !context) return; // null 체크
     
     context.drawImage(source, 0, 0);
     
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const imageData = context.getImageData(0, 0, canvas.canvas.width, canvas.canvas.height);
     const data = imageData.data;
     
     for (let i = 0; i < data.length; i += 4) {
@@ -27,5 +29,7 @@ export function removeWhiteBackground(
     canvas.refresh();
     
     scene.textures.remove(key);
-    scene.textures.addCanvas(key, canvas.canvas);
+    if (canvas.canvas) {
+        scene.textures.addCanvas(key, canvas.canvas);
+    }
 }
