@@ -10,46 +10,79 @@ pub fn main() {
             return;
         };
 
-        let bold_font = Font {
-            size: 16.int_px(),
-            name: "NotoSansKR-Bold".to_string(),
+        let demo_text = include_str!("text.txt");
+        let demo_font = Font {
+            size: 14.int_px(),
+            name: "NotoSansKR-Regular".to_string(),
         };
-        let bold_text_style = TextStyle {
+        let demo_text_style = TextStyle {
             color: Color::BLACK,
             ..Default::default()
         };
 
-        let max_width = 300.px();
+        let cell_width = 320.px();
+        let cell_height = 240.px();
+        let grid_margin = 24.px();
 
-        // Create regex handlers for pattern matching
-        let regex_handlers = vec![
-            // Handle icon tags like icon<gold:24:32:32:1>
+        // Define the alignment combinations for 1x3 matrix (only text align)
+        let text_alignments = [TextAlign::Left, TextAlign::Center, TextAlign::Right];
+
+        // Create tag map for styled text
+        let tag_map: HashMap<String, Tag> = [
+            (
+                "B".to_string(),
+                Tag::StyledText {
+                    font: Font {
+                        size: 14.int_px(),
+                        name: "NotoSansKR-Bold".to_string(),
+                    },
+                    style: TextStyle {
+                        color: Color::from_u8(200, 0, 0, 255), // Dark red
+                        ..Default::default()
+                    },
+                },
+            ),
+            (
+                "Apple".to_string(),
+                Tag::Image {
+                    param: ImageParam {
+                        rect: Rect::Xywh {
+                            x: 0.px(),
+                            y: 0.px(),
+                            width: 12.px(),
+                            height: 12.px(),
+                        },
+                        image: apple_image.clone(),
+                        style: ImageStyle {
+                            fit: ImageFit::Contain,
+                            paint: None,
+                        },
+                    },
+                },
+            ),
+        ]
+        .into_iter()
+        .collect();
+
+        // Create regex handlers for dynamic content
+        let regex_handlers = [
             RegexHandler::new(
-                r"icon<[^>]+>",
-                Box::new(|matched_text| {
-                    // Create a simple colored rectangle as icon placeholder
-                    let parts: Vec<&str> = matched_text.split(':').collect();
-                    let icon_name = if parts.len() > 1 { parts[1] } else { "unknown" };
-
-                    let color = match icon_name {
-                        "gold" => Color::from_u8(255, 215, 0, 255), // Gold color
-                        "attack_damage" => Color::RED,
-                        "shield" => Color::BLUE,
-                        "health" => Color::GREEN,
-                        _ => Color::from_u8(128, 128, 128, 255), // Gray color
-                    };
-
+                r"icon<([^:>]+):(\d+):(\d+):(\d+):(\d+)>",
+                Box::new(|_matched_text| {
+                    // Render a 24px x 24px colored rectangle for icon
                     namui::rect(RectParam {
                         rect: Rect::Xywh {
                             x: 0.px(),
                             y: 0.px(),
-                            width: 16.px(),
-                            height: 16.px(),
+                            width: 24.px(),
+                            height: 24.px(),
                         },
                         style: RectStyle {
-                            fill: Some(RectFill { color }),
+                            fill: Some(RectFill {
+                                color: Color::from_u8(0, 150, 0, 255), // Green for icons
+                            }),
                             stroke: Some(RectStroke {
-                                color: Color::BLACK,
+                                color: Color::from_u8(0, 100, 0, 255), // Darker green border
                                 width: 1.px(),
                                 border_position: BorderPosition::Inside,
                             }),
@@ -59,9 +92,8 @@ pub fn main() {
                 }),
             )
             .unwrap(),
-            // Handle @mentions
             RegexHandler::new(
-                r"@\w+",
+                r"@(\w+)",
                 Box::new(|matched_text| {
                     namui::text(TextParam {
                         text: matched_text.to_string(),
@@ -70,11 +102,11 @@ pub fn main() {
                         align: TextAlign::Left,
                         baseline: TextBaseline::Top,
                         font: Font {
-                            size: 16.int_px(),
+                            size: 14.int_px(),
                             name: "NotoSansKR-Bold".to_string(),
                         },
                         style: TextStyle {
-                            color: Color::BLUE,
+                            color: Color::from_u8(0, 100, 200, 255), // Blue for mentions
                             ..Default::default()
                         },
                         max_width: None,
@@ -82,7 +114,6 @@ pub fn main() {
                 }),
             )
             .unwrap(),
-            // Handle URLs
             RegexHandler::new(
                 r"https?://[^\s]+",
                 Box::new(|matched_text| {
@@ -93,12 +124,11 @@ pub fn main() {
                         align: TextAlign::Left,
                         baseline: TextBaseline::Top,
                         font: Font {
-                            size: 16.int_px(),
+                            size: 12.int_px(),
                             name: "NotoSansKR-Regular".to_string(),
                         },
                         style: TextStyle {
-                            color: Color::from_u8(0, 0, 255, 255),
-                            underline: Some(Paint::new(Color::from_u8(0, 0, 255, 255))),
+                            color: Color::from_u8(100, 0, 200, 255), // Purple for URLs
                             ..Default::default()
                         },
                         max_width: None,
@@ -108,56 +138,103 @@ pub fn main() {
             .unwrap(),
         ];
 
-        ctx.add(RichText::with_regex_handlers(
-            include_str!("./text.txt").to_string(),
-            Some(max_width),
-            Font {
-                size: 16.int_px(),
-                name: "NotoSansKR-Regular".to_string(),
+        // Draw 1x3 grid with different text alignment combinations
+        for (col, &text_align) in text_alignments.iter().enumerate() {
+            let x = grid_margin + (col as f32 * (cell_width + grid_margin).as_f32()).px();
+            let y = grid_margin * 3.0;
+
+            ctx.compose(|ctx| {
+                ctx.translate((x + 10.px(), y + 10.px()))
+                    .add(RichText::with_regex_handlers(
+                        demo_text.to_string(),
+                        Some(cell_width - 20.px()), // Account for padding
+                        demo_font.clone(),
+                        demo_text_style.clone(),
+                        text_align,
+                        &tag_map,
+                        &regex_handlers,
+                    ));
+            });
+
+            // Add alignment labels
+            ctx.add(text(TextParam {
+                text: format!("{text_align:?}"),
+                x: x + cell_width / 2.0,
+                y: y + cell_height - 15.px(),
+                align: TextAlign::Center,
+                baseline: TextBaseline::Middle,
+                font: Font {
+                    size: 12.int_px(),
+                    name: "NotoSansKR-Bold".to_string(),
+                },
+                style: TextStyle {
+                    color: Color::from_u8(100, 100, 100, 255),
+                    ..Default::default()
+                },
+                max_width: None,
+            }));
+
+            // Draw cell background
+            ctx.add(rect(RectParam {
+                rect: Rect::Xywh {
+                    x,
+                    y,
+                    width: cell_width,
+                    height: cell_height,
+                },
+                style: RectStyle {
+                    fill: Some(RectFill {
+                        color: Color::from_u8(245, 245, 245, 255), // Light gray background
+                    }),
+                    stroke: Some(RectStroke {
+                        color: Color::from_u8(200, 200, 200, 255),
+                        width: 1.px(),
+                        border_position: BorderPosition::Inside,
+                    }),
+                    ..Default::default()
+                },
+            }));
+        }
+
+        // Add column headers for text alignment
+        for (col, &text_align) in text_alignments.iter().enumerate() {
+            let x = grid_margin + (col as f32 * (cell_width + grid_margin).as_f32()).px();
+            let y = grid_margin * 2.0;
+
+            ctx.add(text(TextParam {
+                text: format!("{text_align:?}"),
+                x: x + cell_width / 2.0,
+                y,
+                align: TextAlign::Center,
+                baseline: TextBaseline::Middle,
+                font: Font {
+                    size: 14.int_px(),
+                    name: "NotoSansKR-Bold".to_string(),
+                },
+                style: TextStyle {
+                    color: Color::from_u8(50, 50, 50, 255),
+                    ..Default::default()
+                },
+                max_width: None,
+            }));
+        }
+
+        // Add title
+        ctx.add(text(TextParam {
+            text: "RichText TextAlign Demo".to_string(),
+            x: (3.0 * (cell_width + grid_margin).as_f32() + grid_margin.as_f32()).px() / 2.0,
+            y: grid_margin,
+            align: TextAlign::Center,
+            baseline: TextBaseline::Middle,
+            font: Font {
+                size: 18.int_px(),
+                name: "NotoSansKR-Bold".to_string(),
             },
-            TextStyle {
-                color: Color::grayscale_f01(0.5),
+            style: TextStyle {
+                color: Color::BLACK,
                 ..Default::default()
             },
-            &[
-                (
-                    "B".to_string(),
-                    Tag::StyledText {
-                        font: bold_font,
-                        style: bold_text_style,
-                    },
-                ),
-                (
-                    "Apple".to_string(),
-                    Tag::Image {
-                        param: ImageParam {
-                            rect: Rect::Xywh {
-                                x: 0.px(),
-                                y: 0.px(),
-                                width: 16.px(),
-                                height: 16.px(),
-                            },
-                            image: apple_image.clone(),
-                            style: ImageStyle {
-                                fit: ImageFit::Contain,
-                                paint: None,
-                            },
-                        },
-                    },
-                ),
-            ]
-            .into_iter()
-            .collect::<HashMap<_, _>>(),
-            &regex_handlers,
-        ));
-
-        ctx.add(path(
-            Path::new()
-                .move_to(max_width, 0.px())
-                .line_to(max_width, 500.px()),
-            Paint::new(Color::RED)
-                .set_style(PaintStyle::Stroke)
-                .set_stroke_width(1.px()),
-        ));
+            max_width: None,
+        }));
     })
 }
