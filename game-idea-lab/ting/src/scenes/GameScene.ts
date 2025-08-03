@@ -383,6 +383,9 @@ export class GameScene extends Phaser.Scene {
             this.updateAmmoDisplay();
             this.player.shoot();
             
+            // 에임 흔들림 추가
+            this.animateAimShake();
+            
             const hitEnemy = this.enemies.find(enemy => {
                 const bounds = enemy.getBounds();
                 return bounds.contains(pointer.x, pointer.y) && enemy.isActive();
@@ -410,20 +413,43 @@ export class GameScene extends Phaser.Scene {
         }
     }
     
-    private animateEmptyAmmo() {
-        // 오프셋을 이용한 흔들림
+    private animateAimShake() {
+        // FPS 게임 스타일 반동 (위쪽으로 더 많이, 좌우로 랜덤)
+        const recoilX = Phaser.Math.Between(-3, 3);
+        const recoilY = Phaser.Math.Between(-5, -2); // 위쪽으로만
+        
         this.tweens.add({
             targets: this,
-            shakeOffsetX: Phaser.Math.Between(-5, 5),
-            duration: 50,
-            yoyo: true,
-            repeat: 3,
+            shakeOffsetX: recoilX,
+            shakeOffsetY: recoilY,
+            duration: 80,
+            ease: 'Power2.easeOut',
+            onUpdate: () => {
+                // 애니메이션 중에도 크로스헤어 위치 업데이트
+                const pointer = this.input.activePointer;
+                this.crosshair.setPosition(pointer.x + this.shakeOffsetX, pointer.y + this.shakeOffsetY);
+                this.ammoText.setPosition(pointer.x + this.shakeOffsetX, pointer.y + this.shakeOffsetY + 30);
+            },
             onComplete: () => {
-                this.shakeOffsetX = 0;
-                this.shakeOffsetY = 0;
+                // 천천히 원래 위치로 복귀
+                this.tweens.add({
+                    targets: this,
+                    shakeOffsetX: 0,
+                    shakeOffsetY: 0,
+                    duration: 150,
+                    ease: 'Power2.easeOut',
+                    onUpdate: () => {
+                        // 복귀 중에도 크로스헤어 위치 업데이트
+                        const pointer = this.input.activePointer;
+                        this.crosshair.setPosition(pointer.x + this.shakeOffsetX, pointer.y + this.shakeOffsetY);
+                        this.ammoText.setPosition(pointer.x + this.shakeOffsetX, pointer.y + this.shakeOffsetY + 30);
+                    }
+                });
             }
         });
-        
+    }
+    
+    private animateEmptyAmmo() {
         // 간단한 깜빡임만
         this.tweens.add({
             targets: this.ammoText,
