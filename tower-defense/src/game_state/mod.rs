@@ -2,6 +2,7 @@ pub mod background;
 mod camera;
 mod can_place_tower;
 pub mod cursor_preview;
+mod event_handlers;
 pub mod fast_forward;
 mod field_area_effect;
 pub mod field_particle;
@@ -11,6 +12,8 @@ pub mod item;
 mod level_rarity_weight;
 mod monster;
 mod monster_spawn;
+mod placed_towers;
+pub mod play_history;
 pub mod projectile;
 pub mod quest;
 mod render;
@@ -20,9 +23,6 @@ mod tick;
 pub mod tower;
 pub mod upgrade;
 mod user_status_effect;
-pub mod play_history;
-mod event_handlers;
-mod placed_towers;
 
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
@@ -40,6 +40,8 @@ pub use level_rarity_weight::level_rarity_weight;
 pub use monster::*;
 use monster_spawn::*;
 use namui::*;
+use placed_towers::PlacedTowers;
+use play_history::PlayHistory;
 use projectile::*;
 use quest::*;
 use status_effect_particle_generator::StatusEffectParticleGenerator;
@@ -48,8 +50,6 @@ use std::sync::Arc;
 use tower::*;
 use upgrade::UpgradeState;
 use user_status_effect::UserStatusEffect;
-use play_history::PlayHistory;
-use placed_towers::PlacedTowers;
 
 /// The size of a tile in pixels, with zoom level 1.0.
 pub const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
@@ -133,7 +133,6 @@ impl GameState {
     pub fn rerolled(&self) -> bool {
         self.rerolled_count > 0
     }
-
 
     pub fn now(&self) -> Instant {
         self.game_now
@@ -254,7 +253,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             rerolled_count: 0,
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
-            locale: crate::l10n::Locale::ENGLISH,
+            locale: crate::l10n::Locale::KOREAN,
             hand: Default::default(),
             play_history: PlayHistory::new(),
         };
@@ -272,7 +271,6 @@ pub fn use_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
 pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
     GAME_STATE_ATOM.mutate(f);
 }
-
 
 /// Make sure that the tower can be placed at the given coord.
 pub fn place_tower(tower: Tower) {

@@ -21,7 +21,7 @@ impl Component for StageIndicator {
         let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
             table::horizontal(
-                once(table::fixed(px(64.), |wh, ctx| {
+                once(table::fixed(px(128.), |wh, ctx| {
                     ctx.add(
                         headline(format!(
                             "{} {stage}",
