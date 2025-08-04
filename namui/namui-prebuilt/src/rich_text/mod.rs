@@ -1,9 +1,24 @@
 mod parse;
+#[cfg(test)]
+mod tests;
 
 use namui::*;
 pub use parse::*;
 use regex::Regex;
 use std::{cmp::Ordering, collections::HashMap};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum VerticalAlign {
+    Top,
+    Center,
+    Bottom,
+}
+
+impl Default for VerticalAlign {
+    fn default() -> Self {
+        Self::Top
+    }
+}
 
 pub enum Tag {
     Image { param: ImageParam },
@@ -39,12 +54,35 @@ impl RegexHandler {
 
 /// Example usage documentation
 impl<'a> RichText<'a> {
+    /// Create a new RichText with default settings
+    pub fn new(
+        text: String,
+        max_width: Option<Px>,
+        default_font: Font,
+        default_text_style: TextStyle,
+        tag_map: &'a HashMap<String, Tag>,
+    ) -> Self {
+        Self {
+            text,
+            max_width,
+            default_font,
+            default_text_style,
+            default_text_align: TextAlign::Left,
+            default_vertical_align: VerticalAlign::default(),
+            tag_map,
+            regex_handlers: &[],
+            on_parse_error: None,
+        }
+    }
+
     /// Create a new RichText with regex handlers
+    #[allow(clippy::too_many_arguments)]
     pub fn with_regex_handlers(
         text: String,
         max_width: Option<Px>,
         default_font: Font,
         default_text_style: TextStyle,
+        default_text_align: TextAlign,
         tag_map: &'a HashMap<String, Tag>,
         regex_handlers: &'a [RegexHandler],
     ) -> Self {
@@ -53,6 +91,8 @@ impl<'a> RichText<'a> {
             max_width,
             default_font,
             default_text_style,
+            default_text_align,
+            default_vertical_align: VerticalAlign::default(),
             tag_map,
             regex_handlers,
             on_parse_error: None,
@@ -65,6 +105,8 @@ pub struct RichText<'a> {
     pub max_width: Option<Px>,
     pub default_font: Font,
     pub default_text_style: TextStyle,
+    pub default_text_align: TextAlign,
+    pub default_vertical_align: VerticalAlign,
     pub tag_map: &'a HashMap<String, Tag>,
     pub regex_handlers: &'a [RegexHandler],
     pub on_parse_error: Option<&'a dyn Fn(ParseError)>,
@@ -72,8 +114,10 @@ pub struct RichText<'a> {
 
 impl Component for RichText<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let tokens = ctx.memo(|| {
-            parse::parse(self.text).unwrap_or_else(|err| {
+        let text = ctx.track_eq(&self.text);
+        let tokens = ctx.memo(move || {
+            let text = text.as_str();
+            parse::parse(text).unwrap_or_else(|err| {
                 if let Some(on_parse_error) = &self.on_parse_error {
                     on_parse_error(err);
                 }
@@ -83,14 +127,23 @@ impl Component for RichText<'_> {
 
         let max_width = self.max_width.unwrap_or(f32::INFINITY.px());
 
-        let mut processor = Processor {
-            max_width,
-            cursor_x: 0.px(),
-            cursor_y: 0.px(),
-            line_height: 0.px(),
-            is_first_in_line: true,
-            regex_handlers: self.regex_handlers,
+        // Check for invalid text alignment without max_width and warn user
+        let effective_text_align = if self.max_width.is_none()
+            && (self.default_text_align == TextAlign::Center
+                || self.default_text_align == TextAlign::Right)
+        {
+            eprintln!(
+                "Warning: RichText with text_align {:?} requires max_width to be set. Falling back to Left alignment.",
+                self.default_text_align
+            );
+            TextAlign::Left
+        } else {
+            self.default_text_align
         };
+
+        let mut processor =
+            Processor::new(max_width, self.regex_handlers, self.default_vertical_align);
+        processor.current_text_align = effective_text_align;
 
         for token in tokens.iter() {
             match token {
@@ -100,6 +153,7 @@ impl Component for RichText<'_> {
                         text,
                         self.default_font.clone(),
                         self.default_text_style.clone(),
+                        effective_text_align,
                     );
                 }
                 Token::Image { tag } => {
@@ -120,7 +174,13 @@ impl Component for RichText<'_> {
                         continue;
                     };
 
-                    processor.process_text(ctx, text, font.clone(), style.clone());
+                    processor.process_text(
+                        ctx,
+                        text,
+                        font.clone(),
+                        style.clone(),
+                        effective_text_align,
+                    );
                 }
                 Token::RenderingTree { tag } => {
                     let Some(tag) = self.tag_map.get(tag) else {
@@ -134,37 +194,132 @@ impl Component for RichText<'_> {
                 }
             };
         }
+
+        // Flush any remaining items in the current line
+        processor.finish(ctx);
     }
 }
 
-struct Processor<'a> {
+pub(crate) struct Processor<'a> {
     max_width: Px,
     cursor_x: Px,
     cursor_y: Px,
     line_height: Px,
     is_first_in_line: bool,
     regex_handlers: &'a [RegexHandler],
+    current_line_items: Vec<LineItem>,
+    current_text_align: TextAlign,
+    default_vertical_align: VerticalAlign,
 }
+
+struct LineItem {
+    rendering_tree: RenderingTree,
+    width: Px,
+    height: Px,
+}
+
+struct TextProcessParams {
+    font: Font,
+    style: TextStyle,
+    text_align: TextAlign,
+}
+
 impl<'a> Processor<'a> {
+    fn new(
+        max_width: Px,
+        regex_handlers: &'a [RegexHandler],
+        default_vertical_align: VerticalAlign,
+    ) -> Self {
+        Self {
+            max_width,
+            cursor_x: 0.px(),
+            cursor_y: 0.px(),
+            line_height: 0.px(),
+            is_first_in_line: true,
+            regex_handlers,
+            current_line_items: Vec::new(),
+            current_text_align: TextAlign::Left,
+            default_vertical_align,
+        }
+    }
+
     fn add(&mut self, ctx: &RenderCtx, rendering_tree: RenderingTree) {
         let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
             return;
         };
-        if !self.is_first_in_line && self.cursor_x + bounding_box.right() > self.max_width {
+
+        let item_width = bounding_box.right();
+
+        // Check if we need to break the line before adding this item
+        if !self.is_first_in_line && self.cursor_x + item_width > self.max_width {
+            self.flush_current_line(ctx);
             self.break_line();
         }
 
-        self.line_height = self.line_height.max(bounding_box.height());
-
-        ctx.compose(|ctx| {
-            ctx.translate((self.cursor_x, self.cursor_y))
-                .add(rendering_tree);
+        // Add item to current line
+        self.current_line_items.push(LineItem {
+            rendering_tree,
+            width: item_width,
+            height: bounding_box.height(),
         });
 
+        self.line_height = self.line_height.max(bounding_box.height());
+        self.cursor_x += item_width;
         self.is_first_in_line = false;
-        self.cursor_x += bounding_box.right();
     }
-    fn process_text(&mut self, ctx: &RenderCtx, text: &str, font: Font, style: TextStyle) {
+
+    fn flush_current_line(&mut self, ctx: &RenderCtx) {
+        if self.current_line_items.is_empty() {
+            return;
+        }
+
+        let total_width: Px = self.current_line_items.iter().map(|item| item.width).sum();
+        let available_width = self.max_width;
+
+        let start_x = match self.current_text_align {
+            TextAlign::Left => 0.px(),
+            TextAlign::Center => (available_width - total_width) / 2.0,
+            TextAlign::Right => available_width - total_width,
+        };
+
+        // Calculate the maximum height of items in this line for vertical alignment
+        let line_height = self
+            .current_line_items
+            .iter()
+            .map(|item| item.height)
+            .fold(0.px(), |max_height, height| max_height.max(height));
+
+        let mut current_x = start_x;
+
+        for item in &self.current_line_items {
+            // Calculate vertical offset based on alignment
+            let vertical_offset = match self.default_vertical_align {
+                VerticalAlign::Top => 0.px(),
+                VerticalAlign::Center => (line_height - item.height) / 2.0,
+                VerticalAlign::Bottom => line_height - item.height,
+            };
+
+            ctx.compose(|ctx| {
+                ctx.translate((current_x, self.cursor_y + vertical_offset))
+                    .add(item.rendering_tree.clone());
+            });
+            current_x += item.width;
+        }
+
+        self.current_line_items.clear();
+    }
+
+    fn finish(&mut self, ctx: &RenderCtx) {
+        self.flush_current_line(ctx);
+    }
+    fn process_text(
+        &mut self,
+        ctx: &RenderCtx,
+        text: &str,
+        font: Font,
+        style: TextStyle,
+        text_align: TextAlign,
+    ) {
         if text.is_empty() {
             return;
         }
@@ -177,7 +332,13 @@ impl<'a> Processor<'a> {
                 // Process text before the match
                 if start > 0 {
                     let before_text = &text[..start];
-                    self.process_text_simple(ctx, before_text, font.clone(), style.clone());
+                    self.process_text_simple(
+                        ctx,
+                        before_text,
+                        font.clone(),
+                        style.clone(),
+                        text_align,
+                    );
                 }
 
                 // Process the matched text with the handler
@@ -187,7 +348,7 @@ impl<'a> Processor<'a> {
                 // Process text after the match
                 if end < text.len() {
                     let after_text = &text[end..];
-                    self.process_text(ctx, after_text, font, style);
+                    self.process_text(ctx, after_text, font, style, text_align);
                 }
 
                 return;
@@ -195,23 +356,34 @@ impl<'a> Processor<'a> {
         }
 
         // If no regex matched, process as normal text
-        self.process_text_simple(ctx, text, font, style);
+        self.process_text_simple(ctx, text, font, style, text_align);
     }
 
-    fn process_text_simple(&mut self, ctx: &RenderCtx, text: &str, font: Font, style: TextStyle) {
+    fn process_text_simple(
+        &mut self,
+        ctx: &RenderCtx,
+        text: &str,
+        font: Font,
+        style: TextStyle,
+        text_align: TextAlign,
+    ) {
         if text.is_empty() {
             return;
         }
+
+        // Calculate remaining width for text wrapping (not alignment)
+        let remaining_width = self.max_width - self.cursor_x;
+
         let get_rendering_tree = |text: &str| {
             namui::text(TextParam {
                 text: text.to_string(),
                 x: 0.px(),
                 y: 0.px(),
-                align: TextAlign::Left,
-                baseline: TextBaseline::Top,
+                align: TextAlign::Left, // Always use Left for individual text pieces
+                baseline: TextBaseline::Top, // Use Top baseline for consistent behavior
                 font: font.clone(),
                 style: style.clone(),
-                max_width: None,
+                max_width: Some(remaining_width),
             })
         };
 
@@ -221,28 +393,195 @@ impl<'a> Processor<'a> {
                 return;
             };
 
-            if self.cursor_x + bounding_box.right() < self.max_width {
+            if self.cursor_x + bounding_box.right() <= self.max_width {
                 return self.add(ctx, rendering_tree);
             }
         }
 
+        // Find the best break point considering word boundaries
+        if let Some(break_point) = self.find_best_break_point(text, &get_rendering_tree) {
+            let (left_text, right_text) = self.split_text_at_break_point(text, break_point);
+
+            if !left_text.is_empty() {
+                // Force add left_text to current line without line break check
+                let left_rendering_tree = get_rendering_tree(&left_text);
+                if let Some(bounding_box) = namui::bounding_box(&left_rendering_tree) {
+                    self.current_line_items.push(LineItem {
+                        rendering_tree: left_rendering_tree,
+                        width: bounding_box.right(),
+                        height: bounding_box.height(),
+                    });
+                    self.line_height = self.line_height.max(bounding_box.height());
+                    self.cursor_x += bounding_box.right();
+                    self.is_first_in_line = false;
+                }
+            }
+
+            if !right_text.is_empty() {
+                // Force a line break before processing the right part
+                self.flush_current_line(ctx);
+                self.break_line();
+                self.process_text(ctx, &right_text, font, style, text_align);
+            }
+        } else {
+            // Fallback to character-based splitting if no good word boundary found
+            let params = TextProcessParams {
+                font: font.clone(),
+                style: style.clone(),
+                text_align,
+            };
+            self.fallback_character_split(ctx, text, params, &get_rendering_tree);
+        }
+    }
+
+    /// Find the best break point considering word boundaries
+    fn find_best_break_point(
+        &self,
+        text: &str,
+        get_rendering_tree: &dyn Fn(&str) -> RenderingTree,
+    ) -> Option<usize> {
+        // Find all potential word boundaries (spaces and punctuation)
+        let mut word_boundaries = vec![0];
+
+        for (i, char) in text.char_indices() {
+            if char.is_whitespace() || char.is_ascii_punctuation() {
+                // Add the position after the whitespace/punctuation
+                if let Some(next_pos) = text.char_indices().nth(text[..i].chars().count() + 1) {
+                    word_boundaries.push(next_pos.0);
+                }
+            }
+        }
+        word_boundaries.push(text.len());
+        word_boundaries.sort_unstable();
+        word_boundaries.dedup();
+
+        // Convert byte indices to character indices
+        let char_boundaries: Vec<usize> = word_boundaries
+            .into_iter()
+            .map(|byte_idx| text[..byte_idx].chars().count())
+            .collect();
+
+        // Find the largest boundary that fits within the available width
+        let mut best_boundary = None;
+
+        for &boundary in char_boundaries.iter().rev() {
+            if boundary == 0 {
+                continue;
+            }
+
+            let test_text: String = text.chars().take(boundary).collect();
+            let rendering_tree = get_rendering_tree(&test_text);
+
+            if let Some(bounding_box) = namui::bounding_box(&rendering_tree) {
+                if self.cursor_x + bounding_box.right() <= self.max_width {
+                    best_boundary = Some(boundary);
+                    break;
+                }
+            }
+        }
+
+        best_boundary
+    }
+
+    /// Split text at the given character position, trimming whitespace appropriately
+    fn split_text_at_break_point(&self, text: &str, break_point: usize) -> (String, String) {
+        let left_text: String = text.chars().take(break_point).collect();
+        let right_text: String = text.chars().skip(break_point).collect();
+
+        // Trim trailing whitespace from left part and leading whitespace from right part
+        let left_trimmed = left_text.trim_end().to_string();
+        let right_trimmed = right_text.trim_start().to_string();
+
+        (left_trimmed, right_trimmed)
+    }
+
+    /// Fallback to character-based splitting when word boundary approach fails
+    fn fallback_character_split(
+        &mut self,
+        ctx: &RenderCtx,
+        text: &str,
+        params: TextProcessParams,
+        get_rendering_tree: &dyn Fn(&str) -> RenderingTree,
+    ) {
         let mut low = 0;
-        let mut high = text.len();
+        let mut high = text.chars().count();
 
         loop {
             let middle_point = (low + high).div_ceil(2);
 
-            let left_text = &text[..middle_point];
-            let right_text = &text[middle_point..];
+            let left_text = text.chars().take(middle_point).collect::<String>();
+            let right_text = text.chars().skip(middle_point).collect::<String>();
 
             if middle_point == low || middle_point == high {
-                self.add(ctx, get_rendering_tree(left_text));
-                return self.process_text(ctx, right_text, font, style);
+                let left_rendering_tree = get_rendering_tree(&left_text);
+                if let Some(bounding_box) = namui::bounding_box(&left_rendering_tree) {
+                    // Only add left_text if it fits OR if it's the first item in line
+                    // This prevents character separation within words
+                    if self.is_first_in_line
+                        || self.cursor_x + bounding_box.right() <= self.max_width
+                    {
+                        self.current_line_items.push(LineItem {
+                            rendering_tree: left_rendering_tree,
+                            width: bounding_box.right(),
+                            height: bounding_box.height(),
+                        });
+                        self.line_height = self.line_height.max(bounding_box.height());
+                        self.cursor_x += bounding_box.right();
+                        self.is_first_in_line = false;
+
+                        if !right_text.is_empty() {
+                            self.flush_current_line(ctx);
+                            self.break_line();
+                            return self.process_text(
+                                ctx,
+                                &right_text,
+                                params.font,
+                                params.style,
+                                params.text_align,
+                            );
+                        }
+                    } else {
+                        // If left_text doesn't fit and it's not first in line,
+                        // move to next line and process entire text there
+                        self.flush_current_line(ctx);
+                        self.break_line();
+                        return self.process_text(
+                            ctx,
+                            text,
+                            params.font,
+                            params.style,
+                            params.text_align,
+                        );
+                    }
+                } else if !right_text.is_empty() {
+                    self.flush_current_line(ctx);
+                    self.break_line();
+                    return self.process_text(
+                        ctx,
+                        &right_text,
+                        params.font,
+                        params.style,
+                        params.text_align,
+                    );
+                }
+
+                return;
             }
 
-            let left_rendering_tree = get_rendering_tree(left_text);
+            let left_rendering_tree = get_rendering_tree(&left_text);
             let Some(left_bounding_box) = namui::bounding_box(&left_rendering_tree) else {
-                return self.process_text(ctx, right_text, font, style);
+                if !right_text.is_empty() {
+                    // Force a line break before processing the right part
+                    self.flush_current_line(ctx);
+                    self.break_line();
+                }
+                return self.process_text(
+                    ctx,
+                    &right_text,
+                    params.font,
+                    params.style,
+                    params.text_align,
+                );
             };
 
             match (self.cursor_x + left_bounding_box.right())
@@ -250,8 +589,28 @@ impl<'a> Processor<'a> {
                 .unwrap()
             {
                 Ordering::Equal => {
-                    self.add(ctx, left_rendering_tree);
-                    return self.process_text(ctx, right_text, font, style);
+                    // Add left_text if it fits exactly
+                    self.current_line_items.push(LineItem {
+                        rendering_tree: left_rendering_tree,
+                        width: left_bounding_box.right(),
+                        height: left_bounding_box.height(),
+                    });
+                    self.line_height = self.line_height.max(left_bounding_box.height());
+                    self.cursor_x += left_bounding_box.right();
+                    self.is_first_in_line = false;
+
+                    if !right_text.is_empty() {
+                        self.flush_current_line(ctx);
+                        self.break_line();
+                        return self.process_text(
+                            ctx,
+                            &right_text,
+                            params.font,
+                            params.style,
+                            params.text_align,
+                        );
+                    }
+                    return;
                 }
                 Ordering::Less => {
                     low = middle_point;
@@ -268,63 +627,6 @@ impl<'a> Processor<'a> {
         self.cursor_y += self.line_height;
         self.line_height = 0.px();
         self.is_first_in_line = true;
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_regex_handler_creation() {
-        let handler = RegexHandler::new(
-            r"icon<[^>]+>",
-            Box::new(|matched_text| {
-                // Mock rendering tree for testing
-                namui::text(TextParam {
-                    text: format!("ICON: {matched_text}"),
-                    x: 0.px(),
-                    y: 0.px(),
-                    align: TextAlign::Left,
-                    baseline: TextBaseline::Top,
-                    font: Font {
-                        name: "Arial".to_string(),
-                        size: px(14.0).into(),
-                    },
-                    style: TextStyle::default(),
-                    max_width: None,
-                })
-            }),
-        );
-
-        assert!(handler.is_ok());
-    }
-
-    #[test]
-    fn test_regex_matching() {
-        let handler =
-            RegexHandler::new(r"icon<[^>]+>", Box::new(|_| RenderingTree::Empty)).unwrap();
-
-        let text = "Hello icon<gold:24:32:32:1> World";
-        let result = handler.find_match(text);
-
-        assert_eq!(result, Some((6, 27))); // "icon<gold:24:32:32:1>"
-
-        let matched = handler.get_match(text);
-        assert_eq!(matched, Some("icon<gold:24:32:32:1>"));
-    }
-
-    #[test]
-    fn test_multiple_regex_patterns() {
-        let icon_handler =
-            RegexHandler::new(r"icon<[^>]+>", Box::new(|_| RenderingTree::Empty)).unwrap();
-
-        let mention_handler =
-            RegexHandler::new(r"@\w+", Box::new(|_| RenderingTree::Empty)).unwrap();
-
-        let text = "Hello @user and icon<gold:24:32:32:1>";
-
-        assert_eq!(icon_handler.find_match(text), Some((16, 37)));
-        assert_eq!(mention_handler.find_match(text), Some((6, 11)));
+        // Line items are already flushed by the caller, so no need to clear here
     }
 }
