@@ -39,6 +39,7 @@ export class GameScene extends Phaser.Scene {
     private ammoText!: Phaser.GameObjects.Text;
     private isReloading: boolean = false;
     
+    
     // 흔들림 오프셋
     private shakeOffsetX: number = 0;
     private shakeOffsetY: number = 0;
@@ -110,22 +111,19 @@ export class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('building', 'building-background.png');
-        this.load.image('hideWall', 'hide-wall.png');
-        this.load.image('enemy', 'enemy.png');
-        this.load.image('playerStandby', 'standby.png');
-        this.load.image('playerShoot', 'shoot.png');
-        this.load.image('playerLowReady', 'low-ready.png');
+        this.load.image('building', 'building-background.jpg');
+        this.load.image('hideWall', 'hide-wall.jpg');
+        this.load.image('enemy', 'enemy.jpg');
+        this.load.image('playerStandby', 'standby.jpg');
+        this.load.image('playerShoot', 'shoot.jpg');
+        this.load.image('playerLowReady', 'low-ready.jpg');
         
         // 사운드 파일 로드
-        this.load.audio('gunshot', 'gunshot.mp3');
-        this.load.audio('gunshot-short', 'gunshot-short.mp3'); // 중간 연사용
-        this.load.audio('gunshot-rapid', 'gunshot-rapid.mp3'); // 빠른 연사용 (0.08초)
+        this.load.audio('gunshot', 'gunshot.mp3'); // 빈 발사 클릭음
         this.load.audio('gunshot-heavy', 'gunshot-heavy.mp3'); // 무거운 단발음 (7.62x39)
         this.load.audio('gunshot-heavy-rapid', 'gunshot-heavy-rapid-v2.mp3'); // 무거운 연사음 (개선)
-        this.load.audio('gunshot-heavy-short', 'gunshot-heavy-short.mp3'); // 무거운 중간 길이 (완전 통일)
         this.load.audio('reload', 'reload.mp3');
-        this.load.audio('hit', 'hit.mp3');
+        this.load.audio('hit', 'hit.mp3'); // 명중음 (thump)
     }
 
     create() {
@@ -186,6 +184,7 @@ export class GameScene extends Phaser.Scene {
             
             this.enemies.push(enemy);
         });
+        
         
         // 적 조정 모드 토글 (Q 키)
         this.input.keyboard?.on('keydown-Q', () => {
@@ -526,18 +525,18 @@ export class GameScene extends Phaser.Scene {
                     this.killCount++;
                     this.updateKillDisplay();
                     this.createBloodEffect(actualHitX, actualHitY);
-                    // 킬 사운드 (더 만족스러운 사운드)
-                    this.sound.play('hit', { volume: 0.3, rate: 1.5 });
+                    // 킬 사운드 (thump)
+                    this.sound.play('hit', { volume: 0.4, rate: 1.2 });
                 } else {
-                    // 일반 명중 사운드
-                    this.sound.play('hit', { volume: 0.2, rate: 1.2 });
+                    // 일반 명중 사운드 (thump)
+                    this.sound.play('hit', { volume: 0.3, rate: 1.0 });
                 }
                 
                 this.animateCrosshairHit();
             } else {
                 this.createSpark(actualHitX, actualHitY);
-                // 빗나감 사운드 (총소리를 살짝 변형)
-                this.sound.play('hit', { volume: 0.1, rate: 0.8 });
+                // 빗나감 사운드 (난 소리 없음)
+                // this.sound.play('hit', { volume: 0.1, rate: 0.8 });
             }
             
             this.animateCrosshairRecoil();
