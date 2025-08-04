@@ -27,8 +27,11 @@ export class GameScene extends Phaser.Scene {
     
     // 연사 관련
     private isMouseDown: boolean = false;
-    private fireRate: number = 150; // 연사 간격 (밀리초)
+    private fireRate: number = 100; // 연사 간격 (밀리초) - 600 RPM (0.15초 사운드에 맞게 조정)
     private lastFireTime: number = 0;
+    
+    // 사운드 관리
+    private currentGunSound: Phaser.Sound.BaseSound | null = null;
     
     // 탄약 시스템
     private currentAmmo: number = 30;
@@ -47,7 +50,7 @@ export class GameScene extends Phaser.Scene {
     // 반동 패턴 시스템
     private currentShotIndex: number = 0;
     private lastShotTime: number = 0;
-    private recoilResetDelay: number = 300; // 패턴 리셋까지의 시간 (ms)
+    private recoilResetDelay: number = 200; // 패턴 리셋까지의 시간 (빠른 연사에 맞게 단축)
     
     // 연사 누적 효과 시스템
     private accuracyPenalty: number = 0; // 현재 정확도 패널티 (0-1)
@@ -58,6 +61,10 @@ export class GameScene extends Phaser.Scene {
     private movementPenalty: number = 0.4; // 이동 중 정확도 패널티
     private standingStillTime: number = 0; // 정지 시간 추적
     private requiredStillTime: number = 200; // 정확도 회복에 필요한 정지 시간 (ms)
+    
+    // 킬 카운트 시스템
+    private killCount: number = 0;
+    private killText!: Phaser.GameObjects.Text;
     
     // CS 스타일 고정 반동 패턴 (30발 탄창)
     private recoilPattern = [
@@ -109,6 +116,16 @@ export class GameScene extends Phaser.Scene {
         this.load.image('playerStandby', 'standby.png');
         this.load.image('playerShoot', 'shoot.png');
         this.load.image('playerLowReady', 'low-ready.png');
+        
+        // 사운드 파일 로드
+        this.load.audio('gunshot', 'gunshot.mp3');
+        this.load.audio('gunshot-short', 'gunshot-short.mp3'); // 중간 연사용
+        this.load.audio('gunshot-rapid', 'gunshot-rapid.mp3'); // 빠른 연사용 (0.08초)
+        this.load.audio('gunshot-heavy', 'gunshot-heavy.mp3'); // 무거운 단발음 (7.62x39)
+        this.load.audio('gunshot-heavy-rapid', 'gunshot-heavy-rapid-v2.mp3'); // 무거운 연사음 (개선)
+        this.load.audio('gunshot-heavy-short', 'gunshot-heavy-short.mp3'); // 무거운 중간 길이 (완전 통일)
+        this.load.audio('reload', 'reload.mp3');
+        this.load.audio('hit', 'hit.mp3');
     }
 
     create() {
@@ -126,28 +143,31 @@ export class GameScene extends Phaser.Scene {
         
         this.player = new Player(this, 300, 400);
         
-        // 적 배치 설정 (조정된 위치와 scale, 마스크)
+        // 적 배치 설정 (조정된 위치, scale, 마스크, HP)
         const enemyPositions = [
             { 
-                x: 624, y: 243, type: 'window', scale: 0.04725,
+                x: 624, y: 243, type: 'window', scale: 0.04725, hp: 2,
                 maskX: 611, maskY: 211, maskW: 27, maskH: 31 
             },
             { 
-                x: 637, y: 395, type: 'pillar-left', scale: 0.0497,
+                x: 637, y: 395, type: 'pillar-left', scale: 0.0497, hp: 4,
                 maskX: 620, maskY: 361, maskW: 19, maskH: 68 
             },
             { 
-                x: 736, y: 134, type: 'rooftop', scale: 0.05178,
+                x: 736, y: 134, type: 'rooftop', scale: 0.05178, hp: 3,
                 maskX: 721, maskY: 98, maskW: 36, maskH: 35 
             },
             { 
-                x: 596, y: 397, type: 'pillar-right', scale: 0.044747,
+                x: 596, y: 397, type: 'pillar-right', scale: 0.044747, hp: 5,
                 maskX: 590, maskY: 365, maskW: 20, maskH: 60 
             }
         ];
         
         enemyPositions.forEach((pos, index) => {
             const enemy = new Enemy(this, pos.x, pos.y, pos.type, pos.scale);
+            
+            // HP 설정
+            enemy.setMaxHP(pos.hp);
             
             // 마스크 적용
             const mask = this.add.graphics();
@@ -319,6 +339,17 @@ export class GameScene extends Phaser.Scene {
         this.ammoText.setOrigin(0.5, 0); // 중앙 정렬
         this.ammoText.setDepth(10);
         
+        // 킬 카운트 UI 생성 (화면 우상단에 위치)
+        this.killText = this.add.text(1150, 50, `KILLS: ${this.killCount}`, {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        this.killText.setOrigin(1, 0); // 우측 정렬
+        this.killText.setDepth(100);
+        
         // 초기 위치를 화면 중앙으로 설정
         this.crosshair.setPosition(600, 300);
         this.ammoText.setPosition(600, 330);
@@ -457,6 +488,8 @@ export class GameScene extends Phaser.Scene {
         if (this.currentAmmo <= 0 || this.isReloading) {
             if (this.currentAmmo <= 0) {
                 this.animateEmptyAmmo();
+                // 빈 발사 사운드 (클릭 사운드)
+                this.sound.play('gunshot', { volume: 0.1, rate: 2.0 }); // 높은 피치로 작게
             }
             return;
         }
@@ -472,6 +505,9 @@ export class GameScene extends Phaser.Scene {
             this.animateAimShake();
             this.animateCameraRecoil();
             
+            // 총소리 재생 최적화
+            this.playGunshotSound();
+            
             // 정확도 패널티를 적용한 명중 판정
             const actualHitX = pointer.x + this.calculateAccuracyOffset();
             const actualHitY = pointer.y + this.calculateAccuracyOffset();
@@ -482,10 +518,26 @@ export class GameScene extends Phaser.Scene {
             });
             
             if (hitEnemy) {
+                const wasAlive = hitEnemy.isActive();
                 hitEnemy.hit();
+                
+                // 적이 방금 죽었다면 킬 카운트 증가
+                if (wasAlive && !hitEnemy.isActive()) {
+                    this.killCount++;
+                    this.updateKillDisplay();
+                    this.createBloodEffect(actualHitX, actualHitY);
+                    // 킬 사운드 (더 만족스러운 사운드)
+                    this.sound.play('hit', { volume: 0.3, rate: 1.5 });
+                } else {
+                    // 일반 명중 사운드
+                    this.sound.play('hit', { volume: 0.2, rate: 1.2 });
+                }
+                
                 this.animateCrosshairHit();
             } else {
                 this.createSpark(actualHitX, actualHitY);
+                // 빗나감 사운드 (총소리를 살짝 변형)
+                this.sound.play('hit', { volume: 0.1, rate: 0.8 });
             }
             
             this.animateCrosshairRecoil();
@@ -527,7 +579,7 @@ export class GameScene extends Phaser.Scene {
             targets: this,
             shakeOffsetX: recoilX,
             shakeOffsetY: recoilY,
-            duration: 80,
+            duration: 50, // 빠른 연사에 맞게 단축
             ease: 'Power2.easeOut',
             onUpdate: () => {
                 // 애니메이션 중에도 크로스헤어 위치 업데이트
@@ -541,7 +593,7 @@ export class GameScene extends Phaser.Scene {
                     targets: this,
                     shakeOffsetX: 0,
                     shakeOffsetY: 0,
-                    duration: 150,
+                    duration: 100, // 빠른 연사에 맞게 단축
                     ease: 'Power2.easeOut',
                     onUpdate: () => {
                         // 복귀 중에도 크로스헤어 위치 업데이트
@@ -561,14 +613,14 @@ export class GameScene extends Phaser.Scene {
         const recoilY = recoilData.y * 1.2; // 카메라는 수직 반동을 더 강하게
         
         // 카메라 shake 효과
-        this.cameras.main.shake(80, 0.003); // 짧고 강한 흔들림
+        this.cameras.main.shake(50, 0.003); // 빠른 연사에 맞게 단축
         
         // 부드러운 카메라 이동 효과
         this.tweens.add({
             targets: this,
             cameraRecoilX: recoilX,
             cameraRecoilY: recoilY,
-            duration: 60,
+            duration: 40, // 빠른 연사에 맞게 단축
             ease: 'Power2.easeOut',
             onUpdate: () => {
                 // 카메라 스크롤 위치 조정
@@ -580,7 +632,7 @@ export class GameScene extends Phaser.Scene {
                     targets: this,
                     cameraRecoilX: 0,
                     cameraRecoilY: 0,
-                    duration: 200,
+                    duration: 120, // 빠른 연사에 맞게 단축
                     ease: 'Power2.easeOut',
                     onUpdate: () => {
                         this.cameras.main.setScroll(this.cameraRecoilX, this.cameraRecoilY);
@@ -659,13 +711,13 @@ export class GameScene extends Phaser.Scene {
     }
     
     private getRecoverySpeed(): number {
-        // 연사 횟수에 따른 회복 속도 차등화
+        // 연사 횟수에 따른 회복 속도 차등화 (빠른 연사에 맞게 조정)
         if (this.currentShotIndex <= 3) {
-            return 500; // 점사: 빠른 회복
+            return 400; // 점사: 빠른 회복
         } else if (this.currentShotIndex <= 8) {
-            return 1000; // 중간 점사: 중간 회복
+            return 800; // 중간 점사: 중간 회복
         } else {
-            return 2000; // 연사: 느린 회복
+            return 1600; // 연사: 느린 회복
         }
     }
     
@@ -696,6 +748,54 @@ export class GameScene extends Phaser.Scene {
         }
     }
     
+    private playGunshotSound() {
+        // 이전 사운드 정지 (겹침 완전 방지)
+        if (this.currentGunSound && this.currentGunSound.isPlaying) {
+            this.currentGunSound.stop();
+        }
+        
+        // 일관된 총소리 시스템 (모두 7.62x39 기반으로 통일)
+        const timeSinceLastShot = this.time.now - this.lastFireTime;
+        let soundKey = 'gunshot-heavy'; // 기본: 무거운 단발음
+        
+        // 연사 중인지 판단 (300ms 이내 연속 발사)
+        if (this.currentShotIndex > 1 && timeSinceLastShot < 300) {
+            // 연사 중에는 항상 같은 총소리 사용 (일관성 유지)
+            soundKey = 'gunshot-heavy-rapid'; // 무거운 초단축 사운드로 통일
+        }
+        
+        // 일관된 볼륨과 피치 설정
+        const volumeBase = soundKey === 'gunshot-heavy-rapid' ? 0.42 : 0.38; // 볼륨 통일감 증가
+        const volumeVariation = volumeBase + (this.currentShotIndex * 0.003); // 볼륨 증가폭 줄임
+        const rateVariation = 1.0 + Phaser.Math.Between(-1, 1) * 0.003; // 피치 변화 최소화
+        
+        this.currentGunSound = this.sound.add(soundKey, {
+            volume: Math.min(volumeVariation, 0.55), // 최대 볼륨 증가
+            rate: rateVariation
+        });
+        
+        this.currentGunSound.play();
+        
+        // 빠른 연사를 위한 최적화된 메모리 정리
+        if (soundKey === 'gunshot-rapid' || soundKey === 'gunshot-heavy-rapid') {
+            // 0.15초 사운드는 적절한 시간 후 정리
+            this.time.delayedCall(180, () => {
+                if (this.currentGunSound) {
+                    this.currentGunSound.destroy();
+                    this.currentGunSound = null;
+                }
+            });
+        } else {
+            // 긴 사운드는 완료 후 정리
+            this.currentGunSound.once('complete', () => {
+                if (this.currentGunSound) {
+                    this.currentGunSound.destroy();
+                    this.currentGunSound = null;
+                }
+            });
+        }
+    }
+    
     private animateEmptyAmmo() {
         // 간단한 깜빡임만
         this.tweens.add({
@@ -711,6 +811,9 @@ export class GameScene extends Phaser.Scene {
         if (this.isReloading || this.currentAmmo === this.maxAmmo) return;
         
         this.isReloading = true;
+        
+        // 장전 사운드 재생
+        this.sound.play('reload', { volume: 0.4 });
         
         // 탄약 텍스트를 노란색으로 변경
         this.ammoText.setColor('#ffff00');
@@ -802,6 +905,58 @@ export class GameScene extends Phaser.Scene {
             alpha: 0,
             duration: 200,
             onComplete: () => spark.destroy()
+        });
+    }
+    
+    private updateKillDisplay() {
+        this.killText.setText(`KILLS: ${this.killCount}`);
+        
+        // 킬 획득 시 텍스트 강조 효과
+        this.tweens.add({
+            targets: this.killText,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 150,
+            yoyo: true,
+            ease: 'Power2'
+        });
+        
+        // 색상 변화 효과
+        this.killText.setColor('#ffff00'); // 노란색으로 잠깐 변경
+        this.time.delayedCall(300, () => {
+            this.killText.setColor('#ffffff'); // 다시 흰색으로
+        });
+    }
+    
+    private createBloodEffect(x: number, y: number) {
+        // 혈흔 파티클 효과
+        const bloodParticles = this.add.graphics();
+        bloodParticles.setDepth(50);
+        
+        // 여러 개의 혈방울 생성
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = Phaser.Math.Between(15, 35);
+            const px = x + Math.cos(angle) * distance;
+            const py = y + Math.sin(angle) * distance;
+            const size = Phaser.Math.Between(2, 6);
+            
+            // 혈방울 색상 (짙은 빨간색)
+            bloodParticles.fillStyle(0x8B0000);
+            bloodParticles.fillCircle(px, py, size);
+        }
+        
+        // 중앙에 큰 혈흔
+        bloodParticles.fillStyle(0xFF0000);
+        bloodParticles.fillCircle(x, y, 8);
+        
+        // 페이드 아웃 효과
+        this.tweens.add({
+            targets: bloodParticles,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2.easeOut',
+            onComplete: () => bloodParticles.destroy()
         });
     }
 
