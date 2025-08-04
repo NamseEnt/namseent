@@ -8,6 +8,9 @@ export class GameScene extends Phaser.Scene {
     private enemies: Enemy[] = [];
     private crosshair!: Phaser.GameObjects.Graphics;
     private crosshairSize: number = 20;
+    private baseCrosshairSize: number = 20; // 기본 크기
+    private maxCrosshairSize: number = 50; // 최대 확장 크기
+    private crosshairExpansion: number = 0; // 현재 확장 정도
     private background!: Phaser.GameObjects.Image;
     private hideWall!: Phaser.GameObjects.Image;
     
@@ -36,6 +39,64 @@ export class GameScene extends Phaser.Scene {
     // 흔들림 오프셋
     private shakeOffsetX: number = 0;
     private shakeOffsetY: number = 0;
+    
+    // 카메라 반동 시스템
+    private cameraRecoilX: number = 0;
+    private cameraRecoilY: number = 0;
+    
+    // 반동 패턴 시스템
+    private currentShotIndex: number = 0;
+    private lastShotTime: number = 0;
+    private recoilResetDelay: number = 300; // 패턴 리셋까지의 시간 (ms)
+    
+    // 연사 누적 효과 시스템
+    private accuracyPenalty: number = 0; // 현재 정확도 패널티 (0-1)
+    private maxAccuracyPenalty: number = 0.6; // 최대 정확도 패널티
+    
+    // 이동/정지 정확도 시스템
+    private isPlayerMoving: boolean = false;
+    private movementPenalty: number = 0.4; // 이동 중 정확도 패널티
+    private standingStillTime: number = 0; // 정지 시간 추적
+    private requiredStillTime: number = 200; // 정확도 회복에 필요한 정지 시간 (ms)
+    
+    // CS 스타일 고정 반동 패턴 (30발 탄창)
+    private recoilPattern = [
+        // 1-3발: 수직 상승 (점사에 유리)
+        { x: 0, y: -8 },
+        { x: 0, y: -7 },
+        { x: 1, y: -6 },
+        // 4-8발: 왼쪽으로 치우침
+        { x: -3, y: -5 },
+        { x: -4, y: -4 },
+        { x: -3, y: -3 },
+        { x: -2, y: -4 },
+        { x: -1, y: -3 },
+        // 9-15발: 오른쪽으로 큰 반동
+        { x: 4, y: -3 },
+        { x: 5, y: -2 },
+        { x: 6, y: -3 },
+        { x: 5, y: -2 },
+        { x: 4, y: -1 },
+        { x: 3, y: -2 },
+        { x: 2, y: -1 },
+        // 16-20발: 다시 왼쪽
+        { x: -2, y: -1 },
+        { x: -3, y: -2 },
+        { x: -4, y: -1 },
+        { x: -3, y: -1 },
+        { x: -2, y: 0 },
+        // 21-30발: 불규칙하지만 패턴 있음
+        { x: 1, y: -1 },
+        { x: 2, y: 0 },
+        { x: -1, y: -1 },
+        { x: -2, y: 0 },
+        { x: 3, y: -1 },
+        { x: -3, y: 0 },
+        { x: 2, y: -1 },
+        { x: -1, y: 0 },
+        { x: 1, y: -1 },
+        { x: 0, y: 0 }
+    ];
     
     constructor() {
         super({ key: 'GameScene' });
@@ -289,6 +350,10 @@ export class GameScene extends Phaser.Scene {
         this.input.on('pointerup', () => {
             this.isMouseDown = false;
             this.player.stopShooting();
+            // 마우스를 뗄 때 패턴 리셋 타이머 시작 및 조준점/정확도 회복
+            this.lastShotTime = this.time.now;
+            this.recoverCrosshairSize();
+            this.recoverAccuracy();
         });
         
         // 키보드 이벤트 (장전)
@@ -303,6 +368,26 @@ export class GameScene extends Phaser.Scene {
         
         this.input.keyboard?.on('keyup-SPACE', () => {
             this.player.setCover(false); // low-ready 상태로
+        });
+        
+        // WASD 키로 이동 시뮬레이션 (정확도 패널티용)
+        const moveKeys = ['W', 'A', 'S', 'D'];
+        moveKeys.forEach(key => {
+            this.input.keyboard?.on(`keydown-${key}`, () => {
+                this.isPlayerMoving = true;
+                this.standingStillTime = 0;
+            });
+            
+            this.input.keyboard?.on(`keyup-${key}`, () => {
+                // 모든 이동 키가 떼어졌는지 확인
+                const isAnyMoveKeyPressed = moveKeys.some(k => 
+                    this.input.keyboard?.checkDown(this.input.keyboard.addKey(k), 0)
+                );
+                if (!isAnyMoveKeyPressed) {
+                    this.isPlayerMoving = false;
+                    this.standingStillTime = this.time.now;
+                }
+            });
         });
         
         // 적 배치 영역 설정 모드 활성화 (E 키)
@@ -383,19 +468,24 @@ export class GameScene extends Phaser.Scene {
             this.updateAmmoDisplay();
             this.player.shoot();
             
-            // 에임 흔들림 추가
+            // 에임 흔들림 및 카메라 반동 추가
             this.animateAimShake();
+            this.animateCameraRecoil();
+            
+            // 정확도 패널티를 적용한 명중 판정
+            const actualHitX = pointer.x + this.calculateAccuracyOffset();
+            const actualHitY = pointer.y + this.calculateAccuracyOffset();
             
             const hitEnemy = this.enemies.find(enemy => {
                 const bounds = enemy.getBounds();
-                return bounds.contains(pointer.x, pointer.y) && enemy.isActive();
+                return bounds.contains(actualHitX, actualHitY) && enemy.isActive();
             });
             
             if (hitEnemy) {
                 hitEnemy.hit();
                 this.animateCrosshairHit();
             } else {
-                this.createSpark(pointer.x, pointer.y);
+                this.createSpark(actualHitX, actualHitY);
             }
             
             this.animateCrosshairRecoil();
@@ -414,9 +504,24 @@ export class GameScene extends Phaser.Scene {
     }
     
     private animateAimShake() {
-        // FPS 게임 스타일 반동 (위쪽으로 더 많이, 좌우로 랜덤)
-        const recoilX = Phaser.Math.Between(-3, 3);
-        const recoilY = Phaser.Math.Between(-5, -2); // 위쪽으로만
+        // 반동 패턴 관리
+        const currentTime = this.time.now;
+        if (currentTime - this.lastShotTime > this.recoilResetDelay) {
+            this.currentShotIndex = 0; // 패턴 리셋
+        }
+        this.lastShotTime = currentTime;
+        
+        // 현재 샷에 따른 반동 패턴 적용
+        const recoilData = this.recoilPattern[Math.min(this.currentShotIndex, this.recoilPattern.length - 1)];
+        const recoilX = recoilData.x + Phaser.Math.Between(-1, 1); // 약간의 랜덤성
+        const recoilY = recoilData.y + Phaser.Math.Between(-1, 1);
+        
+        this.currentShotIndex++;
+        
+        // 조준점 확장 및 정확도 패널티 계산
+        this.updateCrosshairExpansion();
+        this.updateAccuracyPenalty();
+        this.updateMovementPenaltyVisual();
         
         this.tweens.add({
             targets: this,
@@ -447,6 +552,148 @@ export class GameScene extends Phaser.Scene {
                 });
             }
         });
+    }
+    
+    private animateCameraRecoil() {
+        // 현재 샷 인덱스에 따른 카메라 반동 패턴 적용
+        const recoilData = this.recoilPattern[Math.min(this.currentShotIndex - 1, this.recoilPattern.length - 1)];
+        const recoilX = recoilData.x * 0.8; // 카메라는 조준점보다 약간 약하게
+        const recoilY = recoilData.y * 1.2; // 카메라는 수직 반동을 더 강하게
+        
+        // 카메라 shake 효과
+        this.cameras.main.shake(80, 0.003); // 짧고 강한 흔들림
+        
+        // 부드러운 카메라 이동 효과
+        this.tweens.add({
+            targets: this,
+            cameraRecoilX: recoilX,
+            cameraRecoilY: recoilY,
+            duration: 60,
+            ease: 'Power2.easeOut',
+            onUpdate: () => {
+                // 카메라 스크롤 위치 조정
+                this.cameras.main.setScroll(this.cameraRecoilX, this.cameraRecoilY);
+            },
+            onComplete: () => {
+                // 카메라를 천천히 원래 위치로 복귀
+                this.tweens.add({
+                    targets: this,
+                    cameraRecoilX: 0,
+                    cameraRecoilY: 0,
+                    duration: 200,
+                    ease: 'Power2.easeOut',
+                    onUpdate: () => {
+                        this.cameras.main.setScroll(this.cameraRecoilX, this.cameraRecoilY);
+                    }
+                });
+            }
+        });
+    }
+    
+    private updateCrosshairExpansion() {
+        // 연사 횟수에 따른 조준점 확장
+        // 처음 3발은 확장이 적고, 그 이후부터 급격히 확장
+        let expansionFactor = 0;
+        
+        if (this.currentShotIndex <= 3) {
+            // 1-3발: 최소 확장 (점사 유리)
+            expansionFactor = this.currentShotIndex * 0.1;
+        } else if (this.currentShotIndex <= 8) {
+            // 4-8발: 점진적 확장
+            expansionFactor = 0.3 + (this.currentShotIndex - 3) * 0.15;
+        } else {
+            // 9발 이상: 최대 확장
+            expansionFactor = 1.0 + (this.currentShotIndex - 8) * 0.05;
+            expansionFactor = Math.min(expansionFactor, 1.5); // 최대값 제한
+        }
+        
+        this.crosshairExpansion = expansionFactor;
+        this.crosshairSize = this.baseCrosshairSize + (this.maxCrosshairSize - this.baseCrosshairSize) * this.crosshairExpansion;
+    }
+    
+    private updateAccuracyPenalty() {
+        // 연사 횟수에 따른 정확도 패널티
+        // 처음 3발은 패널티가 적고, 그 이후부터 급격히 증가
+        let penaltyFactor = 0;
+        
+        if (this.currentShotIndex <= 3) {
+            // 1-3발: 최소 패널티 (점사 유리)
+            penaltyFactor = this.currentShotIndex * 0.05;
+        } else if (this.currentShotIndex <= 8) {
+            // 4-8발: 점진적 패널티 증가
+            penaltyFactor = 0.15 + (this.currentShotIndex - 3) * 0.08;
+        } else {
+            // 9발 이상: 최대 패널티
+            penaltyFactor = 0.55 + (this.currentShotIndex - 8) * 0.02;
+            penaltyFactor = Math.min(penaltyFactor, 1.0); // 최대값 제한
+        }
+        
+        this.accuracyPenalty = penaltyFactor * this.maxAccuracyPenalty;
+    }
+    
+    private recoverAccuracy() {
+        // 사격 중단 시 정확도 회복
+        const recoverySpeed = this.getRecoverySpeed();
+        
+        this.tweens.add({
+            targets: this,
+            accuracyPenalty: 0,
+            duration: recoverySpeed,
+            ease: 'Power2.easeOut'
+        });
+    }
+    
+    private recoverCrosshairSize() {
+        // 사격 중단 시 조준점 크기 회복
+        const recoverySpeed = this.getRecoverySpeed();
+        
+        this.tweens.add({
+            targets: this,
+            crosshairExpansion: 0,
+            duration: recoverySpeed,
+            ease: 'Power2.easeOut',
+            onUpdate: () => {
+                this.crosshairSize = this.baseCrosshairSize + (this.maxCrosshairSize - this.baseCrosshairSize) * this.crosshairExpansion;
+            }
+        });
+    }
+    
+    private getRecoverySpeed(): number {
+        // 연사 횟수에 따른 회복 속도 차등화
+        if (this.currentShotIndex <= 3) {
+            return 500; // 점사: 빠른 회복
+        } else if (this.currentShotIndex <= 8) {
+            return 1000; // 중간 점사: 중간 회복
+        } else {
+            return 2000; // 연사: 느린 회복
+        }
+    }
+    
+    private calculateAccuracyOffset(): number {
+        // 총 정확도 패널티 계산 (연사 + 이동)
+        let totalPenalty = this.accuracyPenalty;
+        
+        // 이동 중이거나 정지한 지 얼마 안 되었다면 이동 패널티 적용
+        if (this.isPlayerMoving || (this.time.now - this.standingStillTime < this.requiredStillTime)) {
+            totalPenalty += this.movementPenalty;
+        }
+        
+        // 초탄 정확도 보장 (첫 발이고 정지 상태라면 패널티 무시)
+        if (this.currentShotIndex === 1 && !this.isPlayerMoving && 
+            (this.time.now - this.standingStillTime >= this.requiredStillTime)) {
+            totalPenalty = 0; // 초탄은 100% 정확도
+        }
+        
+        // 조준점 크기에 비례하여 오차 범위 설정
+        const maxOffset = this.crosshairSize * Math.min(totalPenalty, 1.0);
+        return Phaser.Math.Between(-maxOffset, maxOffset);
+    }
+    
+    private updateMovementPenaltyVisual() {
+        // 이동 중이거나 정지한 지 얼마 안 되었다면 조준점 크기 추가 확장
+        if (this.isPlayerMoving || (this.time.now - this.standingStillTime < this.requiredStillTime)) {
+            this.crosshairSize *= 1.5; // 이동 패널티로 조준점 50% 더 확장
+        }
     }
     
     private animateEmptyAmmo() {
@@ -619,7 +866,19 @@ export class GameScene extends Phaser.Scene {
     }
     
     private updateCrosshairColor(isOverEnemy: boolean) {
-        const color = isOverEnemy ? 0xff0000 : 0xffffff;
+        let color = isOverEnemy ? 0xff0000 : 0xffffff;
+        
+        // 이동 중이거나 정지한 지 얼마 안 되었다면 노란색으로 표시
+        if (this.isPlayerMoving || (this.time.now - this.standingStillTime < this.requiredStillTime)) {
+            color = isOverEnemy ? 0xff8800 : 0xffff00; // 노란색 계열
+        }
+        
+        // 초탄이고 완전히 정지 상태라면 초록색으로 표시 (높은 정확도)
+        if (this.currentShotIndex === 0 && !this.isPlayerMoving && 
+            (this.time.now - this.standingStillTime >= this.requiredStillTime)) {
+            color = isOverEnemy ? 0xff0000 : 0x00ff00; // 초록색
+        }
+        
         this.drawCrosshair(color);
     }
     
