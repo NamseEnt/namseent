@@ -1,6 +1,6 @@
 use crate::{
     game_state::{fast_forward::FastForwardMultiplier, mutate_game_state, use_game_state},
-    theme::typography::{TextAlign, paragraph},
+    theme::typography::{paragraph, TextAlign},
     theme::{button::Button, palette},
 };
 use namui::*;
@@ -50,7 +50,7 @@ impl Component for GameSpeedIndicator {
                 // Current speed display
                 table::fixed(32.px(), |wh, ctx| {
                     ctx.add(
-                        paragraph(format!("Speed: {}", current_speed_text))
+                        paragraph(format!("Speed: {current_speed_text}"))
                             .align(TextAlign::Center { wh })
                             .build(),
                     );
