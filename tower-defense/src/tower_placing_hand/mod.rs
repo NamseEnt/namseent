@@ -1,7 +1,11 @@
-use crate::game_state::{
-    cursor_preview::PreviewKind,
-    hand::{HAND_WH, HandComponent, HandSlotId},
-    mutate_game_state, use_game_state,
+use crate::{
+    game_state::{
+        cursor_preview::PreviewKind,
+        hand::{HAND_WH, HandComponent, HandSlotId},
+        mutate_game_state, use_game_state,
+    },
+    icon::{Icon, IconKind, IconSize},
+    theme::button::Button,
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -39,6 +43,13 @@ impl Component for TowerPlacingHand {
             });
         };
 
+        let force_start = || {
+            mutate_game_state(|game_state| {
+                game_state.hand.clear();
+                game_state.goto_defense();
+            });
+        };
+
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio_no_clip(1, |_, _| {}),
@@ -50,6 +61,22 @@ impl Component for TowerPlacingHand {
                             ctx.add(HandComponent {
                                 hand: &game_state.hand,
                                 on_click: &select_tower,
+                            });
+                        }),
+                        table::fixed_no_clip(HAND_WH.height, |wh, ctx| {
+                            let padding = px(4.0);
+                            ctx.compose(|ctx| {
+                                table::padding(padding, |wh, ctx| {
+                                    ctx.add(Button::new(
+                                        wh,
+                                        &|| {
+                                            force_start();
+                                        },
+                                        &|wh, _text_color, ctx| {
+                                            ctx.add(Icon::new(IconKind::Up).size(IconSize::Large).wh(wh));
+                                        },
+                                    ));
+                                })(wh, ctx);
                             });
                         }),
                         table::ratio_no_clip(1, |_, _| {}),
