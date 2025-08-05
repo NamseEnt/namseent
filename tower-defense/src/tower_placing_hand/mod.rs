@@ -94,7 +94,6 @@ impl Component for TowerPlacingHand {
                                     })(wh, ctx);
                                 });
                             }),
-                            table::ratio(1, |_, _| {}),
                         ])(wh, ctx);
                     });
                 }),
