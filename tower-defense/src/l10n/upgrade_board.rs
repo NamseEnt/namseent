@@ -92,35 +92,35 @@ impl UpgradeBoardText {
                 format!(
                     "{}이 {} 증가합니다",
                     attack_damage_stat("공격력"),
-                    additive_value(amount)
+                    additive_value(format!("{amount:.1}"))
                 )
             }
             UpgradeBoardText::DamageMultiplier { amount } => {
                 format!(
                     "{}이 {} 증가합니다",
                     attack_damage_stat("공격력"),
-                    multiplier_value(amount)
+                    multiplier_value(format!("{amount:.1}"))
                 )
             }
             UpgradeBoardText::SpeedPlus { amount } => {
                 format!(
                     "{}이 {} 증가합니다",
                     attack_speed_stat("공격 속도"),
-                    additive_value(amount)
+                    additive_value(format!("{amount:.1}"))
                 )
             }
             UpgradeBoardText::SpeedMultiplier { amount } => {
                 format!(
                     "{}이 {} 증가합니다",
                     attack_speed_stat("공격 속도"),
-                    multiplier_value(amount)
+                    multiplier_value(format!("{amount:.1}"))
                 )
             }
             UpgradeBoardText::RangePlus { amount } => {
                 format!(
                     "{}가 {} 증가합니다",
                     attack_range_stat("사정거리"),
-                    additive_value(amount)
+                    additive_value(format!("{amount:.1}"))
                 )
             }
         }
@@ -180,33 +180,33 @@ impl UpgradeBoardText {
                 format!(
                     "{} increases by {}",
                     attack_damage_stat("Attack Damage"),
-                    additive_value(amount)
+                    additive_value(format!("{amount:.1}"))
                 )
             }
             UpgradeBoardText::DamageMultiplier { amount } => format!(
                 "{} increases by {}",
                 attack_damage_stat("Attack Damage"),
-                multiplier_value(amount)
+                multiplier_value(format!("{amount:.1}"))
             ),
             UpgradeBoardText::SpeedPlus { amount } => {
                 format!(
                     "{} increases by {}",
                     attack_speed_stat("Attack Speed"),
-                    additive_value(amount)
+                    additive_value(format!("{amount:.1}"))
                 )
             }
             UpgradeBoardText::SpeedMultiplier { amount } => {
                 format!(
                     "{} increases by {}",
                     attack_speed_stat("Attack Speed"),
-                    multiplier_value(amount)
+                    multiplier_value(format!("{amount:.1}"))
                 )
             }
             UpgradeBoardText::RangePlus { amount } => {
                 format!(
                     "{} increases by {}",
                     attack_range_stat("Attack Range"),
-                    additive_value(amount)
+                    additive_value(format!("{amount:.1}"))
                 )
             }
         }
