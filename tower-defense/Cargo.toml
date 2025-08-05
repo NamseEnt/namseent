@@ -7,6 +7,7 @@ edition = "2024"
 namui = true
 
 [dependencies]
+anyhow = "1.0.98"
 namui = { path = "../namui/namui" }
 namui-prebuilt = { path = "../namui/namui-prebuilt" }
 rand = { version = "0.8.5", features = ["alloc"] }

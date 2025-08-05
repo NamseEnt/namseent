@@ -4,6 +4,7 @@ use crate::game_state::background::BackgroundKind;
 use crate::game_state::tower::{AnimationKind, TowerKind};
 use crate::icon::IconKind;
 use crate::theme::{palette, typography};
+use anyhow;
 use namui::skia::load_image_from_resource_location;
 use namui::tokio::task::JoinSet;
 use namui::*;
@@ -45,7 +46,7 @@ enum State {
     },
     Error {
         resource_location: ResourceLocation,
-        error: namui::anyhow::Error,
+        error: anyhow::Error,
     },
 }
 
@@ -167,7 +168,7 @@ impl Component for LoadingScreen<'_> {
     }
 }
 
-fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, namui::anyhow::Error)>> {
+fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, anyhow::Error)>> {
     let mut set = JoinSet::new();
     load(
         &mut set,
@@ -361,7 +362,7 @@ impl ToResourceLocation for (TowerKind, AnimationKind) {
 }
 
 fn load<Key: ToResourceLocation + Copy + Send + Sync + 'static>(
-    set: &mut JoinSet<Result<(), (ResourceLocation, namui::anyhow::Error)>>,
+    set: &mut JoinSet<Result<(), (ResourceLocation, anyhow::Error)>>,
     keys: impl IntoIterator<Item = Key>,
     loader: &'static OnceLock<AssetLoader<Key>>,
 ) {
