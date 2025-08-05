@@ -4,7 +4,6 @@ use crate::game_state::background::BackgroundKind;
 use crate::game_state::tower::{AnimationKind, TowerKind};
 use crate::icon::IconKind;
 use crate::theme::{palette, typography};
-use anyhow;
 use namui::skia::load_image_from_resource_location;
 use namui::tokio::task::JoinSet;
 use namui::*;
