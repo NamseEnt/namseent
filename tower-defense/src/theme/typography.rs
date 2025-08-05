@@ -295,6 +295,7 @@ pub struct ParagraphBuilder {
     font_size: FontSize,
     text_align: TextAlign,
     max_width: Option<Px>,
+    text_color: Option<Color>,
     vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
@@ -305,6 +306,7 @@ impl ParagraphBuilder {
             font_size: FontSize::Medium,
             text_align: TextAlign::LeftTop,
             max_width: None,
+            text_color: None,
             vertical_align: namui_prebuilt::rich_text::VerticalAlign::Center,
         }
     }
@@ -321,6 +323,11 @@ impl ParagraphBuilder {
 
     pub fn max_width(mut self, width: Px) -> Self {
         self.max_width = Some(width);
+        self
+    }
+
+    pub fn color(mut self, color: Color) -> Self {
+        self.text_color = Some(color);
         self
     }
 
