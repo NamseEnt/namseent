@@ -4,8 +4,7 @@ use crate::{
         hand::{HAND_WH, HandComponent, HandSlotId},
         mutate_game_state, use_game_state,
     },
-    icon::{Icon, IconKind, IconSize},
-    theme::button::Button,
+    theme::{button::{Button, ButtonVariant, ButtonColor}, typography::{TextAlign, headline}},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -63,25 +62,42 @@ impl Component for TowerPlacingHand {
                                 on_click: &select_tower,
                             });
                         }),
-                        table::fixed_no_clip(HAND_WH.height, |wh, ctx| {
-                            let padding = px(4.0);
-                            ctx.compose(|ctx| {
-                                table::padding(padding, |wh, ctx| {
-                                    ctx.add(Button::new(
-                                        wh,
-                                        &|| {
-                                            force_start();
-                                        },
-                                        &|wh, _text_color, ctx| {
-                                            ctx.add(Icon::new(IconKind::Up).size(IconSize::Large).wh(wh));
-                                        },
-                                    ));
-                                })(wh, ctx);
-                            });
-                        }),
                         table::ratio_no_clip(1, |_, _| {}),
                     ]),
                 ),
+                table::fixed_no_clip(60.px(), |wh, ctx| {
+                    ctx.compose(|ctx| {
+                        table::horizontal([
+                            table::ratio(1, |_, _| {}),
+                            table::fixed(120.px(), |wh, ctx| {
+                                let padding = px(8.0);
+                                ctx.compose(|ctx| {
+                                    table::padding(padding, |wh, ctx| {
+                                        ctx.add(
+                                            Button::new(
+                                                wh,
+                                                &|| {
+                                                    force_start();
+                                                },
+                                                &|wh, text_color, ctx| {
+                                                    ctx.add(
+                                                        headline("START")
+                                                            .color(text_color)
+                                                            .align(TextAlign::Center { wh })
+                                                            .build(),
+                                                    );
+                                                },
+                                            )
+                                            .variant(ButtonVariant::Contained)
+                                            .color(ButtonColor::Primary),
+                                        );
+                                    })(wh, ctx);
+                                });
+                            }),
+                            table::ratio(1, |_, _| {}),
+                        ])(wh, ctx);
+                    });
+                }),
             ])(screen_wh, ctx);
         });
     }
