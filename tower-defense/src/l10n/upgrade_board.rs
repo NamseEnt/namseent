@@ -104,14 +104,14 @@ impl UpgradeBoardText {
             }
             UpgradeBoardText::SpeedPlus { amount } => {
                 format!(
-                    "{}이 {} 증가합니다",
+                    "{}가 {} 증가합니다",
                     attack_speed_stat("공격 속도"),
                     additive_value(format!("{amount:.1}"))
                 )
             }
             UpgradeBoardText::SpeedMultiplier { amount } => {
                 format!(
-                    "{}이 {} 증가합니다",
+                    "{}가 {} 증가합니다",
                     attack_speed_stat("공격 속도"),
                     multiplier_value(format!("{amount:.1}"))
                 )
