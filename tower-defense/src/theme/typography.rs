@@ -103,6 +103,20 @@ pub fn init_tag_map() -> HashMap<String, Tag> {
     );
 
     map.insert(
+        "yellow".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: Color::from_u8(255, 255, 0, 255), // 노란색
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    map.insert(
         "epic".to_string(),
         Tag::StyledText {
             font: Font {

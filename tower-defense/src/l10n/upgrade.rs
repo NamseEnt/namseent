@@ -1,34 +1,4 @@
-use super::{Language, Locale, LocalizedText};
-use crate::icon::{Icon, IconKind};
-
-// Rich text 헬퍼 함수
-fn suit_icon(suit: &crate::card::Suit) -> String {
-    Icon::new(IconKind::Suit { suit: *suit }).as_tag()
-}
-
-fn attack_damage_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackDamage);
-    format!(
-        "|attack_damage_color|{}{value}|/attack_damage_color|",
-        icon.as_tag()
-    )
-}
-
-fn attack_speed_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackSpeed);
-    format!(
-        "|attack_speed_color|{}{value}|/attack_speed_color|",
-        icon.as_tag()
-    )
-}
-
-fn attack_range_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackRange);
-    format!(
-        "|attack_range_color|{}{value}|/attack_range_color|",
-        icon.as_tag()
-    )
-}
+use super::{rich_text_helpers::*, Language, Locale, LocalizedText};
 
 pub enum UpgradeKindText<'a> {
     Name(&'a crate::game_state::upgrade::UpgradeKind),
@@ -54,11 +24,11 @@ impl UpgradeKindText<'_> {
                 crate::game_state::upgrade::UpgradeKind::RankAttackSpeedPlus { rank, .. } => format!("{rank} 카드 공격 속도 증가"),
                 crate::game_state::upgrade::UpgradeKind::RankAttackSpeedMultiply { rank, .. } => format!("{rank} 카드 공격 속도 배수 증가"),
                 crate::game_state::upgrade::UpgradeKind::RankAttackRangePlus { rank, .. } => format!("{rank} 카드 사거리 증가"),
-                crate::game_state::upgrade::UpgradeKind::SuitAttackDamagePlus { suit, .. } => format!("{} 카드 공격력 증가", suit_icon(suit)),
-                crate::game_state::upgrade::UpgradeKind::SuitAttackDamageMultiply { suit, .. } => format!("{} 카드 공격력 배수 증가", suit_icon(suit)),
-                crate::game_state::upgrade::UpgradeKind::SuitAttackSpeedPlus { suit, .. } => format!("{} 카드 공격 속도 증가", suit_icon(suit)),
-                crate::game_state::upgrade::UpgradeKind::SuitAttackSpeedMultiply { suit, .. } => format!("{} 카드 공격 속도 배수 증가", suit_icon(suit)),
-                crate::game_state::upgrade::UpgradeKind::SuitAttackRangePlus { suit, .. } => format!("{} 카드 사거리 증가", suit_icon(suit)),
+                crate::game_state::upgrade::UpgradeKind::SuitAttackDamagePlus { suit, .. } => format!("{} 카드 공격력 증가", suit_icon(*suit)),
+                crate::game_state::upgrade::UpgradeKind::SuitAttackDamageMultiply { suit, .. } => format!("{} 카드 공격력 배수 증가", suit_icon(*suit)),
+                crate::game_state::upgrade::UpgradeKind::SuitAttackSpeedPlus { suit, .. } => format!("{} 카드 공격 속도 증가", suit_icon(*suit)),
+                crate::game_state::upgrade::UpgradeKind::SuitAttackSpeedMultiply { suit, .. } => format!("{} 카드 공격 속도 배수 증가", suit_icon(*suit)),
+                crate::game_state::upgrade::UpgradeKind::SuitAttackRangePlus { suit, .. } => format!("{} 카드 사거리 증가", suit_icon(*suit)),
                 crate::game_state::upgrade::UpgradeKind::HandAttackDamagePlus { tower_kind, .. } => {
                     let tower_name = Self::get_tower_name(tower_kind);
                     format!("{tower_name} 공격력 증가")
@@ -153,19 +123,19 @@ impl UpgradeKindText<'_> {
                     format!("{rank} 카드로 만든 타워의 {}이 증가합니다.", attack_range_icon(format!("+{range_plus:.0}")))
                 },
                 crate::game_state::upgrade::UpgradeKind::SuitAttackDamagePlus { suit, damage_plus } => {
-                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(suit), attack_damage_icon(format!("+{damage_plus:.0}")))
+                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(*suit), attack_damage_icon(format!("+{damage_plus:.0}")))
                 },
                 crate::game_state::upgrade::UpgradeKind::SuitAttackDamageMultiply { suit, damage_multiplier } => {
-                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(suit), attack_damage_icon(format!("×{damage_multiplier:.1}")))
+                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(*suit), attack_damage_icon(format!("×{damage_multiplier:.1}")))
                 },
                 crate::game_state::upgrade::UpgradeKind::SuitAttackSpeedPlus { suit, speed_plus } => {
-                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(suit), attack_speed_icon(format!("+{speed_plus:.0}")))
+                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(*suit), attack_speed_icon(format!("+{speed_plus:.0}")))
                 },
                 crate::game_state::upgrade::UpgradeKind::SuitAttackSpeedMultiply { suit, speed_multiplier } => {
-                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(suit), attack_speed_icon(format!("×{speed_multiplier:.1}")))
+                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(*suit), attack_speed_icon(format!("×{speed_multiplier:.1}")))
                 },
                 crate::game_state::upgrade::UpgradeKind::SuitAttackRangePlus { suit, range_plus } => {
-                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(suit), attack_range_icon(format!("+{range_plus:.0}")))
+                    format!("{} 카드로 만든 타워의 {}이 증가합니다.", suit_icon(*suit), attack_range_icon(format!("+{range_plus:.0}")))
                 },
                 crate::game_state::upgrade::UpgradeKind::HandAttackDamagePlus { tower_kind, damage_plus } => {
                     let tower_name = Self::get_tower_name(tower_kind);

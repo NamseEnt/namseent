@@ -1,47 +1,4 @@
-use super::{Language, Locale, LocalizedText};
-use crate::icon::{Icon, IconKind};
-
-// Rich text 헬퍼 함수들
-fn gold_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::Gold);
-    format!("|gold_color|{}{value}|/gold_color|", icon.as_tag())
-}
-
-fn attack_damage_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackDamage);
-    format!(
-        "|attack_damage_color|{}{value}|/attack_damage_color|",
-        icon.as_tag()
-    )
-}
-
-fn attack_speed_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackSpeed);
-    format!(
-        "|attack_speed_color|{}{value}|/attack_speed_color|",
-        icon.as_tag()
-    )
-}
-
-fn attack_range_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackRange);
-    format!(
-        "|attack_range_color|{}{value}|/attack_range_color|",
-        icon.as_tag()
-    )
-}
-
-fn shop_icon() -> String {
-    Icon::new(IconKind::Shop).as_tag()
-}
-
-fn quest_icon() -> String {
-    Icon::new(IconKind::Quest).as_tag()
-}
-
-fn refresh_icon() -> String {
-    Icon::new(IconKind::Refresh).as_tag()
-}
+use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
 
 #[derive(Debug, Clone)]
 pub enum UpgradeBoardText {
@@ -132,19 +89,39 @@ impl UpgradeBoardText {
             UpgradeBoardText::TowerUpgradeEvenOdd { name } => format!("{name} 타워의"),
             UpgradeBoardText::TowerUpgradeFaceNumber { name } => format!("{name} 타워의"),
             UpgradeBoardText::DamagePlus { amount } => {
-                format!("{}이 {amount}만큼 증가합니다", attack_damage_icon(""))
+                format!(
+                    "{}이 {} 증가합니다",
+                    attack_damage_stat("공격력"),
+                    additive_value(amount)
+                )
             }
             UpgradeBoardText::DamageMultiplier { amount } => {
-                format!("{}이 {amount}배 증가합니다", attack_damage_icon(""))
+                format!(
+                    "{}이 {} 증가합니다",
+                    attack_damage_stat("공격력"),
+                    multiplier_value(amount)
+                )
             }
             UpgradeBoardText::SpeedPlus { amount } => {
-                format!("{}이 {amount}만큼 증가합니다", attack_speed_icon(""))
+                format!(
+                    "{}이 {} 증가합니다",
+                    attack_speed_stat("공격 속도"),
+                    additive_value(amount)
+                )
             }
             UpgradeBoardText::SpeedMultiplier { amount } => {
-                format!("{}이 {amount}배 증가합니다", attack_speed_icon(""))
+                format!(
+                    "{}이 {} 증가합니다",
+                    attack_speed_stat("공격 속도"),
+                    multiplier_value(amount)
+                )
             }
             UpgradeBoardText::RangePlus { amount } => {
-                format!("{}이 {amount}만큼 증가합니다", attack_range_icon(""))
+                format!(
+                    "{}가 {} 증가합니다",
+                    attack_range_stat("사정거리"),
+                    additive_value(amount)
+                )
             }
         }
     }
@@ -200,20 +177,37 @@ impl UpgradeBoardText {
             UpgradeBoardText::TowerUpgradeEvenOdd { name } => format!("For {name} towers,"),
             UpgradeBoardText::TowerUpgradeFaceNumber { name } => format!("For {name} towers,"),
             UpgradeBoardText::DamagePlus { amount } => {
-                format!("{}increases by {amount}", attack_damage_icon(""))
+                format!(
+                    "{} increases by {}",
+                    attack_damage_stat("Attack Damage"),
+                    additive_value(amount)
+                )
             }
             UpgradeBoardText::DamageMultiplier { amount } => format!(
-                "{}increases by a factor of {amount}",
-                attack_damage_icon("")
+                "{} increases by {}",
+                attack_damage_stat("Attack Damage"),
+                multiplier_value(amount)
             ),
             UpgradeBoardText::SpeedPlus { amount } => {
-                format!("{}increases by {amount}", attack_speed_icon(""))
+                format!(
+                    "{} increases by {}",
+                    attack_speed_stat("Attack Speed"),
+                    additive_value(amount)
+                )
             }
             UpgradeBoardText::SpeedMultiplier { amount } => {
-                format!("{}increases by a factor of {amount}", attack_speed_icon(""))
+                format!(
+                    "{} increases by {}",
+                    attack_speed_stat("Attack Speed"),
+                    multiplier_value(amount)
+                )
             }
             UpgradeBoardText::RangePlus { amount } => {
-                format!("{}increases by {amount}", attack_range_icon(""))
+                format!(
+                    "{} increases by {}",
+                    attack_range_stat("Attack Range"),
+                    additive_value(amount)
+                )
             }
         }
     }
