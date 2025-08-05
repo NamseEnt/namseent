@@ -65,37 +65,33 @@ impl Component for TowerPlacingHand {
                         table::ratio_no_clip(1, |_, _| {}),
                     ]),
                 ),
-                table::fixed_no_clip(60.px(), |wh, ctx| {
-                    ctx.compose(|ctx| {
-                        table::horizontal([
-                            table::ratio(1, |_, _| {}),
-                            table::fixed(120.px(), |wh, ctx| {
-                                let padding = px(8.0);
-                                ctx.compose(|ctx| {
-                                    table::padding(padding, |wh, ctx| {
-                                        ctx.add(
-                                            Button::new(
-                                                wh,
-                                                &|| {
-                                                    force_start();
-                                                },
-                                                &|wh, text_color, ctx| {
-                                                    ctx.add(
-                                                        headline("START")
-                                                            .color(text_color)
-                                                            .align(TextAlign::Center { wh })
-                                                            .build(),
-                                                    );
-                                                },
-                                            )
-                                            .variant(ButtonVariant::Contained)
-                                            .color(ButtonColor::Primary),
-                                        );
-                                    })(wh, ctx);
-                                });
-                            }),
-                        ])(wh, ctx);
-                    });
+                table::fixed(60.px(), |wh, ctx| {
+                    table::horizontal([
+                        table::ratio(1, |_, _| {}),
+                        table::fixed(120.px(), |wh, ctx| {
+                            let padding = px(8.0);
+                            table::padding(padding, |wh, ctx| {
+                                ctx.add(
+                                    Button::new(
+                                        wh,
+                                        &|| {
+                                            force_start();
+                                        },
+                                        &|wh, text_color, ctx| {
+                                            ctx.add(
+                                                headline("START")
+                                                    .color(text_color)
+                                                    .align(TextAlign::Center { wh })
+                                                    .build(),
+                                            );
+                                        },
+                                    )
+                                    .variant(ButtonVariant::Contained)
+                                    .color(ButtonColor::Primary),
+                                );
+                            })(wh, ctx);
+                        }),
+                    ])(wh, ctx);
                 }),
             ])(screen_wh, ctx);
         });
