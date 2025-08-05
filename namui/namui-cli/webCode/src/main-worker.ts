@@ -8,7 +8,10 @@ import {
 } from "@bjorn3/browser_wasi_shim";
 import { createImportObject } from "./imports/importObject";
 import wasmUrl from "namui-runtime-wasm.wasm?url";
-import { sendMessageToMainThread, WorkerMessagePayload } from "./interWorkerProtocol";
+import {
+    sendMessageToMainThread,
+    WorkerMessagePayload,
+} from "./interWorkerProtocol";
 import { Exports } from "./exports";
 import { patchWasi } from "./patchWasi";
 import bundleSqliteUrl from "bundle.sqlite?url";
@@ -84,17 +87,22 @@ self.onmessage = async (message) => {
             exports = instance.exports as Exports;
             return instance;
         })(),
-        fetch(bundleSqliteUrl).then((res) => res.arrayBuffer()),
+        fetch(bundleSqliteUrl)
+            .then((res) => res.arrayBuffer())
+            .then((buffer) => {
+                const sharedBundleSqlite = new SharedArrayBuffer(
+                    buffer.byteLength,
+                );
+                new Uint8Array(sharedBundleSqlite).set(new Uint8Array(buffer));
+                return sharedBundleSqlite;
+            }),
     ]);
 
     fd.push(
         new PreopenDirectory(
             ".",
             new Map([
-                [
-                    "bundle.sqlite",
-                    new File(new Uint8Array(bundleSqlite), { readonly: true }),
-                ],
+                ["bundle.sqlite", new File(bundleSqlite, { readonly: true })],
             ]),
         ),
     );
