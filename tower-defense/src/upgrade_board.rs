@@ -165,7 +165,7 @@ impl Component for UpgradeItem {
                                         .size(FontSize::Medium)
                                         .align(TextAlign::LeftTop)
                                         .max_width(wh.width)
-                                        .build(),
+                                        .build_rich(),
                                 );
                             }),
                         ),
@@ -188,82 +188,62 @@ fn get_upgrade_description_texts(
 ) -> Vec<String> {
     let mut texts = vec![];
     if state.gold_earn_plus != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::GoldEarnPlus { 
-                amount: state.gold_earn_plus 
-            }),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::GoldEarnPlus {
+            amount: state.gold_earn_plus,
+        }));
     }
     if state.shop_slot_expand != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::ShopSlotExpand { 
-                amount: state.shop_slot_expand 
-            }),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::ShopSlotExpand {
+            amount: state.shop_slot_expand,
+        }));
     }
     if state.quest_slot_expand != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::QuestSlotExpand { 
-                amount: state.quest_slot_expand 
-            }),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::QuestSlotExpand {
+            amount: state.quest_slot_expand,
+        }));
     }
     if state.quest_board_slot_expand != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::QuestBoardSlotExpand { 
-                amount: state.quest_board_slot_expand 
-            }),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::QuestBoardSlotExpand {
+            amount: state.quest_board_slot_expand,
+        }));
     }
     if state.reroll_chance_plus != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::RerollChancePlus { 
-                amount: state.reroll_chance_plus 
-            }),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::RerollChancePlus {
+            amount: state.reroll_chance_plus,
+        }));
     }
     if state.shop_item_price_minus != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::ShopItemPriceMinus { 
-                amount: state.shop_item_price_minus 
-            }),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::ShopItemPriceMinus {
+            amount: state.shop_item_price_minus,
+        }));
     }
     if state.shop_refresh_chance_plus != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::ShopRefreshChancePlus { 
-                amount: state.shop_refresh_chance_plus 
-            }),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::ShopRefreshChancePlus {
+            amount: state.shop_refresh_chance_plus,
+        }));
     }
     if state.quest_board_refresh_chance_plus != 0 {
         texts.push(
-            text.upgrade_board(UpgradeBoardText::QuestBoardRefreshChancePlus { 
-                amount: state.quest_board_refresh_chance_plus 
+            text.upgrade_board(UpgradeBoardText::QuestBoardRefreshChancePlus {
+                amount: state.quest_board_refresh_chance_plus,
             }),
         );
     }
     if state.shorten_straight_flush_to_4_cards {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::ShortenStraightFlushTo4Cards),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::ShortenStraightFlushTo4Cards));
     }
     if state.skip_rank_for_straight {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::SkipRankForStraight),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::SkipRankForStraight));
     }
     if state.treat_suits_as_same {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::TreatSuitsAsSame),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::TreatSuitsAsSame));
     }
 
     for (target, tower_upgrade_state) in &state.tower_select_upgrade_states {
         let target_prefix = match target {
             TowerSelectUpgradeTarget::LowCard => {
-                text.upgrade_board(UpgradeBoardText::TowerSelectLowCard { 
-                    amount: LOW_CARD_COUNT 
+                text.upgrade_board(UpgradeBoardText::TowerSelectLowCard {
+                    amount: LOW_CARD_COUNT,
                 })
             }
             TowerSelectUpgradeTarget::NoReroll => {
@@ -283,30 +263,30 @@ fn get_upgrade_description_texts(
     for (target, tower_upgrade_state) in &state.tower_upgrade_states {
         let target_prefix = match target {
             TowerUpgradeTarget::Rank { rank } => {
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeRank { 
-                    name: rank.to_string() 
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeRank {
+                    name: rank.to_string(),
                 })
             }
             TowerUpgradeTarget::Suit { suit } => {
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeSuit { 
-                    name: suit.to_string() 
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeSuit {
+                    name: suit.to_string(),
                 })
             }
             TowerUpgradeTarget::TowerKind { tower_kind } => {
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeKind { 
-                    name: text.tower(tower_kind.to_text()).to_string() 
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeKind {
+                    name: text.tower(tower_kind.to_text()).to_string(),
                 })
             }
             TowerUpgradeTarget::EvenOdd { even } => {
                 let name = if *even { "짝수" } else { "홀수" };
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeEvenOdd { 
-                    name: name.to_string() 
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeEvenOdd {
+                    name: name.to_string(),
                 })
             }
             TowerUpgradeTarget::FaceNumber { face } => {
                 let name = if *face { "그림" } else { "숫자" };
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeFaceNumber { 
-                    name: name.to_string() 
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeFaceNumber {
+                    name: name.to_string(),
                 })
             }
         };
@@ -327,32 +307,32 @@ fn tower_upgrade_state_description_texts(
 ) -> Vec<String> {
     let mut texts = vec![];
     if tower_upgrade_state.damage_plus != 0.0 {
-        let suffix = text.upgrade_board(UpgradeBoardText::DamagePlus { 
-            amount: tower_upgrade_state.damage_plus 
+        let suffix = text.upgrade_board(UpgradeBoardText::DamagePlus {
+            amount: tower_upgrade_state.damage_plus,
         });
         texts.push(format!("{target_prefix} {suffix}"));
     }
     if tower_upgrade_state.damage_multiplier != 1.0 {
-        let suffix = text.upgrade_board(UpgradeBoardText::DamageMultiplier { 
-            amount: tower_upgrade_state.damage_multiplier 
+        let suffix = text.upgrade_board(UpgradeBoardText::DamageMultiplier {
+            amount: tower_upgrade_state.damage_multiplier,
         });
         texts.push(format!("{target_prefix} {suffix}"));
     }
     if tower_upgrade_state.speed_plus != 0.0 {
-        let suffix = text.upgrade_board(UpgradeBoardText::SpeedPlus { 
-            amount: tower_upgrade_state.speed_plus 
+        let suffix = text.upgrade_board(UpgradeBoardText::SpeedPlus {
+            amount: tower_upgrade_state.speed_plus,
         });
         texts.push(format!("{target_prefix} {suffix}"));
     }
     if tower_upgrade_state.speed_multiplier != 1.0 {
-        let suffix = text.upgrade_board(UpgradeBoardText::SpeedMultiplier { 
-            amount: tower_upgrade_state.speed_multiplier 
+        let suffix = text.upgrade_board(UpgradeBoardText::SpeedMultiplier {
+            amount: tower_upgrade_state.speed_multiplier,
         });
         texts.push(format!("{target_prefix} {suffix}"));
     }
     if tower_upgrade_state.range_plus != 0.0 {
-        let suffix = text.upgrade_board(UpgradeBoardText::RangePlus { 
-            amount: tower_upgrade_state.range_plus 
+        let suffix = text.upgrade_board(UpgradeBoardText::RangePlus {
+            amount: tower_upgrade_state.range_plus,
         });
         texts.push(format!("{target_prefix} {suffix}"));
     }
