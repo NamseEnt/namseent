@@ -109,7 +109,7 @@ impl Component for Game {
 
         // Game speed indicator in bottom-right corner
         ctx.translate((screen_wh.width - 116.px(), screen_wh.height - 88.px()))
-            .add(GameSpeedIndicator { screen_wh });
+            .add(GameSpeedIndicator);
 
         ctx.compose(|ctx| {
             let GameFlow::SelectingUpgrade { upgrades } = &game_state.flow else {
