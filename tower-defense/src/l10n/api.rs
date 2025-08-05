@@ -112,7 +112,7 @@ impl TextManager {
 
 /// 업그레이드 보드 텍스트 처리
 impl TextManager {
-    pub fn upgrade_board(&self, text: upgrade_board::UpgradeBoardText) -> &'static str {
+    pub fn upgrade_board(&self, text: upgrade_board::UpgradeBoardText) -> String {
         match self.locale.language {
             Language::Korean => text.to_korean(),
             Language::English => text.to_english(),
@@ -180,7 +180,7 @@ impl LegacyLocales {
         self.as_text_manager().upgrade(text)
     }
 
-    pub fn upgrade_board_text(&self, text: &upgrade_board::UpgradeBoardText) -> &'static str {
-        self.as_text_manager().upgrade_board(*text)
+    pub fn upgrade_board_text(&self, text: &upgrade_board::UpgradeBoardText) -> String {
+        self.as_text_manager().upgrade_board(text.clone())
     }
 }

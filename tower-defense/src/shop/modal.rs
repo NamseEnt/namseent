@@ -1,8 +1,7 @@
 use super::constants::SHOP_WH;
 use super::layout::ShopLayout;
 use super::open_button::ShopOpenButton;
-use super::slot::ShopSlot;
-use crate::game_state::{MAX_INVENTORY_SLOT, mutate_game_state, use_game_state};
+use crate::game_state::{mutate_game_state, use_game_state};
 use namui::*;
 
 pub struct ShopModal {
@@ -23,29 +22,7 @@ impl Component for ShopModal {
 
         let purchase_item = |slot_index: usize| {
             mutate_game_state(move |game_state| {
-                assert!(game_state.items.len() <= MAX_INVENTORY_SLOT);
-
-                let (item_to_purchase, purchase_cost) = {
-                    let slot = &mut game_state.shop_slots[slot_index];
-                    let ShopSlot::Item {
-                        item,
-                        cost,
-                        purchased,
-                    } = slot
-                    else {
-                        panic!("Invalid shop slot");
-                    };
-
-                    assert!(game_state.gold >= *cost);
-                    assert!(!*purchased);
-
-                    let item_to_purchase = item.clone();
-                    let purchase_cost = *cost;
-                    *purchased = true;
-                    (item_to_purchase, purchase_cost)
-                };
-
-                game_state.purchase_item(item_to_purchase, purchase_cost);
+                game_state.purchase_shop_item(slot_index);
             });
         };
 

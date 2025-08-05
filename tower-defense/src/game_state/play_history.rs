@@ -46,6 +46,11 @@ pub enum HistoryEventType {
         upgrade: Upgrade,
     },
 
+    UpgradePurchased {
+        upgrade: Upgrade,
+        cost: usize,
+    },
+
     QuestCompleted {
         requirement: QuestRequirement,
         reward: QuestReward,

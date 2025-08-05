@@ -1,46 +1,5 @@
-// --- Rich text 헬퍼 함수 (item 전용) ---
-fn suit_icon(suit: Suit) -> String {
-    Icon::new(IconKind::Suit { suit }).as_tag()
-}
-
-fn purple<T: std::fmt::Display>(value: T) -> String {
-    format!("|purple|{value}|/purple|")
-}
-
-fn blue<T: std::fmt::Display>(value: T) -> String {
-    format!("|blue|{value}|/blue|")
-}
-
-fn attack_damage_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackDamage);
-    format!(
-        "|attack_damage_color|{}{value}|/attack_damage_color|",
-        icon.as_tag()
-    )
-}
-
-fn heal_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::Health);
-    format!("|gold_color|{}{value}|/gold_color|", icon.as_tag())
-}
-
-fn gold_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::Gold);
-    format!("|gold_color|{}{value}|/gold_color|", icon.as_tag())
-}
-
-fn green<T: std::fmt::Display>(value: T) -> String {
-    format!("|green|{value}|/green|")
-}
-
-fn red<T: std::fmt::Display>(value: T) -> String {
-    format!("|red|{value}|/red|")
-}
-use super::{Language, Locale, LocalizedText};
-use crate::{
-    card::{Rank, Suit},
-    icon::{Icon, IconKind},
-};
+use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
+use crate::card::{Rank, Suit};
 use namui::Duration;
 
 pub enum ItemKindText<'a> {
@@ -159,65 +118,66 @@ impl<'a> ItemKindText<'a> {
                     duration,
                     radius,
                 } => format!(
-                    "반경 {}m 내 타워의 |attack_damage_color|{}공격력|/attack_damage_color|을 {} {:.1}초간 증가시킵니다",
-                    blue(*radius),
-                    Icon::new(IconKind::AttackDamage).as_tag(),
-                    green(format!("+{amount:.0}")),
-                    duration.as_secs_f32()
+                    "{}동안 반경 {} 내 타워의 {}을 {} 증가시킵니다",
+                    time_duration(format!("{:.1}초", duration.as_secs_f32())),
+                    range(format!("{radius}m")),
+                    attack_damage_stat("공격력"),
+                    additive_value(format!("{amount:.0}"))
                 ),
                 ItemKindTextVariant::AttackPowerMultiplyBuff {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "반경 {}m 내 타워의 |attack_damage_color|{}공격력|/attack_damage_color|을 {} {:.1}초간 증가시킵니다",
-                    blue(*radius),
-                    Icon::new(IconKind::AttackDamage).as_tag(),
-                    green(format!("×{amount:.1}")),
-                    duration.as_secs_f32()
+                    "{}동안 반경 {} 내 타워의 {}을 {} 증가시킵니다",
+                    time_duration(format!("{:.1}초", duration.as_secs_f32())),
+                    range(format!("{radius}m")),
+                    attack_damage_stat("공격력"),
+                    multiplier_value(format!("{amount:.1}"))
                 ),
                 ItemKindTextVariant::AttackSpeedPlusBuff {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "반경 {}m 내 타워의 |attack_speed_color|{}공격 속도|/attack_speed_color|를 {} {:.1}초간 증가시킵니다",
-                    blue(*radius),
-                    Icon::new(IconKind::AttackSpeed).as_tag(),
-                    green(format!("+{amount:.0}")),
-                    duration.as_secs_f32()
+                    "{}동안 반경 {} 내 타워의 {}를 {} 증가시킵니다",
+                    time_duration(format!("{:.1}초", duration.as_secs_f32())),
+                    range(format!("{radius}m")),
+                    attack_speed_stat("공격 속도"),
+                    additive_value(format!("{amount:.0}"))
                 ),
                 ItemKindTextVariant::AttackSpeedMultiplyBuff {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "반경 {}m 내 타워의 |attack_speed_color|{}공격 속도|/attack_speed_color|를 {} {:.1}초간 증가시킵니다",
-                    blue(*radius),
-                    Icon::new(IconKind::AttackSpeed).as_tag(),
-                    green(format!("×{amount:.1}")),
-                    duration.as_secs_f32()
+                    "{}동안 반경 {} 내 타워의 {}를 {} 증가시킵니다",
+                    time_duration(format!("{:.1}초", duration.as_secs_f32())),
+                    range(format!("{radius}m")),
+                    attack_speed_stat("공격 속도"),
+                    multiplier_value(format!("{amount:.1}"))
                 ),
                 ItemKindTextVariant::AttackRangePlus {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "반경 {}m 내 타워의 |attack_range_color|{}공격 범위|/attack_range_color|를 {} {:.1}초간 증가시킵니다",
-                    blue(*radius),
-                    Icon::new(IconKind::AttackRange).as_tag(),
-                    green(format!("+{amount:.0}")),
-                    duration.as_secs_f32()
+                    "{}동안 반경 {} 내 타워의 {}를 {} 증가시킵니다",
+                    time_duration(format!("{:.1}초", duration.as_secs_f32())),
+                    range(format!("{radius}m")),
+                    attack_range_stat("공격 범위"),
+                    additive_value(format!("{amount:.0}"))
                 ),
                 ItemKindTextVariant::MovementSpeedDebuff {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "반경 {}m 내 적의 |red|이동 속도|/red|를 |red|-{:.0}%|/red| {:.1}초간 감소시킵니다",
-                    blue(*radius),
-                    amount * 100.0,
-                    duration.as_secs_f32()
+                    "{}동안 반경 {} 내 적의 {}를 {} 감소시킵니다",
+                    time_duration(format!("{:.1}초", duration.as_secs_f32())),
+                    range(format!("{radius}m")),
+                    movement_speed_debuff_text("이동 속도"),
+                    movement_speed_debuff_value(format!("-{:.0}%", amount * 100.0))
                 ),
                 ItemKindTextVariant::RoundDamage {
                     rank,
@@ -225,11 +185,11 @@ impl<'a> ItemKindText<'a> {
                     damage,
                     radius,
                 } => format!(
-                    "반경 {}m 내 적들에게 {} {} {} 피해를 입힙니다",
-                    blue(*radius),
+                    "반경 {} 내 적들에게 {} {} {} 피해를 입힙니다",
+                    range(format!("{radius}m")),
                     attack_damage_icon(*damage),
                     suit_icon(**suit),
-                    purple(rank)
+                    card_rank(rank)
                 ),
                 ItemKindTextVariant::RoundDamageOverTime {
                     rank,
@@ -239,12 +199,12 @@ impl<'a> ItemKindText<'a> {
                     duration,
                     ..
                 } => format!(
-                    "반경 {}m 내 적들에게 {} {} {} 지속 피해를 {:.1}초간 입힙니다",
-                    blue(*radius),
+                    "{}동안 반경 {} 내 적들에게 {} {} {} 지속 피해를 입힙니다",
+                    time_duration(format!("{:.1}초", duration.as_secs_f32())),
+                    range(format!("{radius}m")),
                     attack_damage_icon(*damage),
                     suit_icon(**suit),
-                    purple(rank),
-                    duration.as_secs_f32()
+                    card_rank(rank)
                 ),
                 ItemKindTextVariant::Lottery {
                     amount,
@@ -261,11 +221,11 @@ impl<'a> ItemKindText<'a> {
                     thickness,
                     ..
                 } => format!(
-                    "두께 {}m 직선 범위 내 적들에게 {} {} {} 피해를 입힙니다",
-                    blue(*thickness),
+                    "두께 {} 직선 범위 내 적들에게 {} {} {} 피해를 입힙니다",
+                    beam_thickness(format!("{thickness}m")),
                     attack_damage_icon(*damage),
                     suit_icon(**suit),
-                    purple(rank)
+                    card_rank(rank)
                 ),
                 ItemKindTextVariant::LinearDamageOverTime {
                     rank,
@@ -275,26 +235,29 @@ impl<'a> ItemKindText<'a> {
                     duration,
                     ..
                 } => format!(
-                    "두께 {}m 직선 범위 내 적들에게 {} {} {} 지속 피해를 {:.1}초간 입힙니다",
-                    blue(*thickness),
+                    "{}동안 두께 {} 직선 범위 내 적들에게 {} {} {} 지속 피해를 입힙니다",
+                    time_duration(format!("{:.1}초", duration.as_secs_f32())),
+                    beam_thickness(format!("{thickness}m")),
                     attack_damage_icon(*damage),
                     suit_icon(**suit),
-                    purple(rank),
-                    duration.as_secs_f32()
+                    card_rank(rank)
                 ),
                 ItemKindTextVariant::ExtraReroll => {
-                    "|blue|추가 리롤|/blue|을 획득합니다".to_string()
+                    format!("{}을 획득합니다", special_item_text("추가 리롤"))
                 }
                 ItemKindTextVariant::Shield { amount } => {
-                    format!("|blue|{amount:.0}|/blue| 피해를 흡수하는 방어막을 획득합니다",)
+                    format!(
+                        "{} 피해를 흡수하는 방어막을 획득합니다",
+                        shield_value(format!("{amount:.0}"))
+                    )
                 }
                 ItemKindTextVariant::DamageReduction {
                     damage_multiply,
                     duration,
                 } => format!(
-                    "받는 피해를 |green|{:.0}%|/green| 감소시킵니다 ({:.1}초간)",
-                    (1.0 - damage_multiply) * 100.0,
-                    duration.as_secs_f32()
+                    "받는 피해를 {} 감소시킵니다 ({})",
+                    reduction_percentage(format!("{:.0}", (1.0 - damage_multiply) * 100.0)),
+                    time_duration(format!("{:.1}초간", duration.as_secs_f32()))
                 ),
             },
         }
@@ -341,67 +304,66 @@ impl<'a> ItemKindText<'a> {
                     duration,
                     radius,
                 } => format!(
-                    "Increases |attack_damage_color|{}attack power|/attack_damage_color| by {} for towers within {}m radius for {:.1}s",
-                    Icon::new(IconKind::AttackDamage).as_tag(),
-                    green(format!("+{amount:.0}")),
-                    blue(*radius),
-                    duration.as_secs_f32()
+                    "Increases {} by {} for towers within {} radius for {}",
+                    attack_damage_stat("attack power"),
+                    additive_value(format!("{amount:.0}")),
+                    range(format!("{radius}m")),
+                    time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
                 ItemKindTextVariant::AttackPowerMultiplyBuff {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "Increases |attack_damage_color|{}attack power|/attack_damage_color| by {} for towers within {}m radius for {:.1}s",
-                    Icon::new(IconKind::AttackDamage).as_tag(),
-                    green(format!("×{amount:.1}")),
-                    blue(*radius),
-                    duration.as_secs_f32()
+                    "Increases {} by {} for towers within {} radius for {}",
+                    attack_damage_stat("attack power"),
+                    multiplier_value(format!("{amount:.1}")),
+                    range(format!("{radius}m")),
+                    time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
                 ItemKindTextVariant::AttackSpeedPlusBuff {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "Increases |attack_speed_color|{}attack speed|/attack_speed_color| by {} for towers within {}m radius for {:.1}s",
-                    Icon::new(IconKind::AttackSpeed).as_tag(),
-                    green(format!("+{amount:.0}")),
-                    blue(*radius),
-                    duration.as_secs_f32()
+                    "Increases {} by {} for towers within {} radius for {}",
+                    attack_speed_stat("attack speed"),
+                    additive_value(format!("{amount:.0}")),
+                    range(format!("{radius}m")),
+                    time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
                 ItemKindTextVariant::AttackSpeedMultiplyBuff {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "Increases |attack_speed_color|{}attack speed|/attack_speed_color| by {} for towers within {}m radius for {:.1}s",
-                    Icon::new(IconKind::AttackSpeed).as_tag(),
-                    green(format!("×{amount:.1}")),
-                    blue(*radius),
-                    duration.as_secs_f32()
+                    "Increases {} by {} for towers within {} radius for {}",
+                    attack_speed_stat("attack speed"),
+                    multiplier_value(format!("{amount:.1}")),
+                    range(format!("{radius}m")),
+                    time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
                 ItemKindTextVariant::AttackRangePlus {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "Increases |attack_range_color|{}attack range|/attack_range_color| by {} for towers within {}m radius for {:.1}s",
-                    Icon::new(IconKind::AttackRange).as_tag(),
-                    green(format!("+{amount:.0}")),
-                    blue(*radius),
-                    duration.as_secs_f32()
+                    "Increases {} by {} for towers within {} radius for {}",
+                    attack_range_stat("attack range"),
+                    additive_value(format!("{amount:.0}")),
+                    range(format!("{radius}m")),
+                    time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
                 ItemKindTextVariant::MovementSpeedDebuff {
                     amount,
                     duration,
                     radius,
                 } => format!(
-                    "Decreases enemy {}movement speed{} by {} within {}m radius for {:.1}s",
-                    "|red|",
-                    "|/red|",
-                    red(format!("-{:.0}%", amount * 100.0)),
-                    blue(*radius),
-                    duration.as_secs_f32()
+                    "Decreases enemy {} by {} within {} radius for {}",
+                    movement_speed_debuff_text("movement speed"),
+                    movement_speed_debuff_value(format!("-{:.0}%", amount * 100.0)),
+                    range(format!("{radius}m")),
+                    time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
                 ItemKindTextVariant::RoundDamage {
                     rank,
@@ -410,11 +372,11 @@ impl<'a> ItemKindText<'a> {
                     radius,
                     ..
                 } => format!(
-                    "Deals {} {} {} damage to enemies within {}m radius",
+                    "Deals {} {} {} damage to enemies within {} radius",
                     attack_damage_icon(*damage),
                     suit_icon(**suit),
-                    purple(rank),
-                    blue(*radius)
+                    card_rank(rank),
+                    range(format!("{radius}m"))
                 ),
                 ItemKindTextVariant::RoundDamageOverTime {
                     rank,
@@ -424,12 +386,12 @@ impl<'a> ItemKindText<'a> {
                     duration,
                     ..
                 } => format!(
-                    "Deals {} {} {} damage over time to enemies within {}m radius for {:.1}s",
+                    "Deals {} {} {} damage over time to enemies within {} radius for {}",
                     attack_damage_icon(*damage),
                     suit_icon(**suit),
-                    purple(rank),
-                    blue(*radius),
-                    duration.as_secs_f32()
+                    card_rank(rank),
+                    range(format!("{radius}m")),
+                    time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
                 ItemKindTextVariant::Lottery {
                     amount,
@@ -446,11 +408,11 @@ impl<'a> ItemKindText<'a> {
                     thickness,
                     ..
                 } => format!(
-                    "Deals {} {} {} damage to enemies in {}m thick beam",
+                    "Deals {} {} {} damage to enemies in {} thick beam",
                     attack_damage_icon(*damage),
                     suit_icon(**suit),
-                    purple(rank),
-                    blue(*thickness)
+                    card_rank(rank),
+                    beam_thickness(format!("{thickness}m"))
                 ),
                 ItemKindTextVariant::LinearDamageOverTime {
                     rank,
@@ -460,27 +422,29 @@ impl<'a> ItemKindText<'a> {
                     duration,
                     ..
                 } => format!(
-                    "Deals {} {} {} damage over time to enemies in {}m thick beam for {:.1}s",
+                    "Deals {} {} {} damage over time to enemies in {} thick beam for {}",
                     attack_damage_icon(*damage),
                     suit_icon(**suit),
-                    purple(rank),
-                    blue(*thickness),
-                    duration.as_secs_f32()
+                    card_rank(rank),
+                    beam_thickness(format!("{thickness}m")),
+                    time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
-                ItemKindTextVariant::ExtraReroll => "Gain an |blue|extra reroll|/blue|".to_string(),
+                ItemKindTextVariant::ExtraReroll => {
+                    format!("Gain an {}", special_item_text("extra reroll"))
+                }
                 ItemKindTextVariant::Shield { amount } => {
                     format!(
                         "Gain a shield that absorbs {} damage",
-                        blue(format!("{amount:.0}"))
+                        shield_value(format!("{amount:.0}"))
                     )
                 }
                 ItemKindTextVariant::DamageReduction {
                     damage_multiply,
                     duration,
                 } => format!(
-                    "Reduces damage taken by {} for {:.1}s",
-                    green(format!("{:.0}%", (1.0 - damage_multiply) * 100.0)),
-                    duration.as_secs_f32()
+                    "Reduces damage taken by {} for {}",
+                    reduction_percentage(format!("{:.0}", (1.0 - damage_multiply) * 100.0)),
+                    time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
             },
         }

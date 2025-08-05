@@ -1,38 +1,5 @@
-use super::{Language, Locale, LocalizedText};
-use crate::{
-    card::Suit,
-    icon::{Icon, IconKind},
-};
-
-// --- Rich text 헬퍼 함수 (quest 전용) ---
-fn suit_icon(suit: Suit) -> String {
-    Icon::new(IconKind::Suit { suit }).as_tag()
-}
-fn gold_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::Gold);
-    format!("|gold_color|{}{value}|/gold_color|", icon.as_tag())
-}
-fn attack_damage_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackDamage);
-    format!(
-        "|attack_damage_color|{}{value}|/attack_damage_color|",
-        icon.as_tag()
-    )
-}
-fn attack_speed_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackSpeed);
-    format!(
-        "|attack_speed_color|{}공격속도를 {value}|/attack_speed_color|",
-        icon.as_tag()
-    )
-}
-fn attack_range_icon<T: std::fmt::Display>(value: T) -> String {
-    let icon = Icon::new(IconKind::AttackRange);
-    format!(
-        "|attack_range_color|{}사거리를 {value}|/attack_range_color|",
-        icon.as_tag()
-    )
-}
+use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
+use crate::card::Suit;
 
 #[derive(Debug, Clone)]
 pub enum QuestText {
@@ -219,7 +186,7 @@ impl QuestRewardText {
     pub(super) fn to_korean(&self) -> String {
         match self {
             QuestRewardText::Money { amount } => {
-                format!("{} 골드", gold_icon(format!("${amount}")))
+                format!("{} 골드", gold_icon(amount))
             }
             QuestRewardText::Item => "아이템".to_string(),
             QuestRewardText::Upgrade => "업그레이드".to_string(),
@@ -229,7 +196,7 @@ impl QuestRewardText {
     pub(super) fn to_english(&self) -> String {
         match self {
             QuestRewardText::Money { amount } => {
-                format!("{} Gold", gold_icon(format!("${amount}")))
+                format!("{} Gold", gold_icon(amount))
             }
             QuestRewardText::Item => "Item".to_string(),
             QuestRewardText::Upgrade => "Upgrade".to_string(),
