@@ -18,6 +18,7 @@ pub mod projectile;
 pub mod quest;
 mod render;
 pub mod schedule;
+pub mod shop;
 mod status_effect_particle_generator;
 mod tick;
 pub mod tower;

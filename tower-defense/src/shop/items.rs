@@ -1,6 +1,7 @@
 use super::constants::{PADDING, SOLD_OUT_HEIGHT};
 use super::slot::ShopSlot;
 use crate::game_state::item::Item;
+use crate::game_state::upgrade::Upgrade;
 use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::l10n::ui::TopBarText;
@@ -44,6 +45,20 @@ impl Component for ShopItem<'_> {
                             wh,
                             item,
                             purchase_item: &purchase_item,
+                            cost: *cost,
+                            purchased: *purchased,
+                            not_enough_money: money < *cost,
+                        });
+                    }
+                    ShopSlot::Upgrade {
+                        upgrade,
+                        cost,
+                        purchased,
+                    } => {
+                        ctx.add(ShopUpgradeContent {
+                            wh,
+                            upgrade,
+                            purchase_upgrade: &purchase_item,
                             cost: *cost,
                             purchased: *purchased,
                             not_enough_money: money < *cost,
@@ -100,6 +115,104 @@ pub struct ShopItemContent<'a> {
     pub not_enough_money: bool,
 }
 
+struct ShopItemLayoutParams<'a> {
+    wh: Wh<Px>,
+    name: String,
+    description: String,
+    cost: usize,
+    purchased: bool,
+    available: bool,
+    purchase_action: &'a dyn Fn(),
+}
+
+fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
+    let ShopItemLayoutParams {
+        wh,
+        name,
+        description,
+        cost,
+        purchased,
+        available,
+        purchase_action,
+    } = params;
+
+    ctx.compose(|ctx| {
+        if purchased {
+            ctx.add(ShopItemSoldOut { wh });
+        } else {
+            table::vertical([
+                table::fixed(
+                    wh.width,
+                    table::padding(PADDING, |_wh, _ctx| {
+                        // TODO: Icons
+                    }),
+                ),
+                table::ratio(
+                    1,
+                    table::padding(
+                        PADDING,
+                        table::vertical([
+                            table::fixed(PADDING, |_, _| {}),
+                            table::fit(table::FitAlign::LeftTop, move |ctx| {
+                                ctx.add(
+                                    headline(name)
+                                        .size(FontSize::Small)
+                                        .align(TextAlign::LeftTop)
+                                        .max_width(wh.width)
+                                        .build_rich(),
+                                );
+                            }),
+                            table::fixed(PADDING, |_, _| {}),
+                            table::ratio(1, move |wh, ctx| {
+                                ctx.add(
+                                    paragraph(description.clone())
+                                        .size(FontSize::Medium)
+                                        .align(TextAlign::LeftTop)
+                                        .max_width(wh.width)
+                                        .build_rich(),
+                                );
+                            }),
+                            table::fixed(PADDING, |_, _| {}),
+                            table::fixed(48.px(), |wh, ctx| {
+                                ctx.add(
+                                    Button::new(
+                                        wh,
+                                        &|| {
+                                            if !available {
+                                                return;
+                                            }
+                                            purchase_action();
+                                        },
+                                        &|wh, color, ctx| {
+                                            ctx.add(
+                                                headline(format!(
+                                                    "{} {cost}",
+                                                    Icon::new(IconKind::Gold)
+                                                        .size(IconSize::Large)
+                                                        .wh(Wh::single(wh.height))
+                                                        .as_tag(),
+                                                ))
+                                                .color(color)
+                                                .build_rich(),
+                                            );
+                                        },
+                                    )
+                                    .color(if available {
+                                        ButtonColor::Primary
+                                    } else {
+                                        ButtonColor::Secondary
+                                    })
+                                    .disabled(!available),
+                                );
+                            }),
+                        ]),
+                    ),
+                ),
+            ])(wh, ctx);
+        }
+    });
+}
+
 impl Component for ShopItemContent<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
@@ -113,87 +226,64 @@ impl Component for ShopItemContent<'_> {
         let game_state = use_game_state(ctx);
         let available = !purchased && !not_enough_money;
         let name = item.kind.name(&game_state.text());
-        let desc = item.kind.description(&game_state.text());
-        ctx.compose(|ctx| {
-            if purchased {
-                ctx.add(ShopItemSoldOut { wh });
-            } else {
-                table::vertical([
-                    table::fixed(
-                        wh.width,
-                        table::padding(PADDING, |_wh, _ctx| {
-                            // TODO: Icons
-                        }),
-                    ),
-                    table::ratio(
-                        1,
-                        table::padding(
-                            PADDING,
-                            table::vertical([
-                                table::fixed(PADDING, |_, _| {}),
-                                table::fit(table::FitAlign::LeftTop, move |ctx| {
-                                    ctx.add(
-                                        headline(name)
-                                            .size(FontSize::Small)
-                                            .align(TextAlign::LeftTop)
-                                            .max_width(wh.width)
-                                            .build(),
-                                    );
-                                }),
-                                table::fixed(PADDING, |_, _| {}),
-                                table::ratio(1, move |wh, ctx| {
-                                    ctx.add(
-                                        paragraph(desc.clone())
-                                            .size(FontSize::Medium)
-                                            .align(TextAlign::LeftTop)
-                                            .max_width(wh.width)
-                                            .build_rich(),
-                                    );
-                                }),
-                                table::fixed(PADDING, |_, _| {}),
-                                table::fixed(48.px(), |wh, ctx| {
-                                    ctx.add(
-                                        Button::new(
-                                            wh,
-                                            &|| {
-                                                if !available {
-                                                    return;
-                                                }
-                                                purchase_item();
-                                            },
-                                            &|wh, color, ctx| {
-                                                ctx.add(
-                                                    headline(format!(
-                                                        "{} {cost}",
-                                                        Icon::new(IconKind::Gold)
-                                                            .size(IconSize::Large)
-                                                            .wh(Wh::single(wh.height))
-                                                            .as_tag(),
-                                                    ))
-                                                    .color(color)
-                                                    .build_rich(),
-                                                );
-                                            },
-                                        )
-                                        .color(if available {
-                                            ButtonColor::Primary
-                                        } else {
-                                            ButtonColor::Secondary
-                                        })
-                                        .disabled(!available),
-                                    );
-                                }),
-                            ]),
-                        ),
-                    ),
-                ])(wh, ctx);
-            }
-        });
+        let description = item.kind.description(&game_state.text());
+
+        render_shop_item_layout(
+            ShopItemLayoutParams {
+                wh,
+                name,
+                description,
+                cost,
+                purchased,
+                available,
+                purchase_action: purchase_item,
+            },
+            ctx,
+        );
     }
 }
 
-pub struct ShopItemSoldOut {
-    pub wh: Wh<Px>,
+struct ShopUpgradeContent<'a> {
+    wh: Wh<Px>,
+    upgrade: &'a Upgrade,
+    purchase_upgrade: &'a dyn Fn(),
+    cost: usize,
+    purchased: bool,
+    not_enough_money: bool,
+}
+
+impl Component for ShopUpgradeContent<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            wh,
+            upgrade,
+            purchase_upgrade,
+            cost,
+            purchased,
+            not_enough_money,
+        } = self;
+        let game_state = use_game_state(ctx);
+        let available = !purchased && !not_enough_money;
+        let name = upgrade.kind.name(&game_state.text());
+        let description = upgrade.kind.description(&game_state.text());
+
+        render_shop_item_layout(
+            ShopItemLayoutParams {
+                wh,
+                name,
+                description,
+                cost,
+                purchased,
+                available,
+                purchase_action: purchase_upgrade,
+            },
+            ctx,
+        );
+    }
+}
+
+struct ShopItemSoldOut {
+    wh: Wh<Px>,
 }
 
 impl Component for ShopItemSoldOut {

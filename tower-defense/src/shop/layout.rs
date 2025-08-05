@@ -1,10 +1,8 @@
 use super::constants::{PADDING, SHOP_REFRESH_BUTTON_WH, SHOP_WH};
 use super::items::ShopItem;
 use super::slot::ShopSlot;
-use crate::game_state::{
-    item::{generate_items, item_cost},
-    mutate_game_state, use_game_state,
-};
+use crate::game_state::shop::refresh_shop;
+use crate::game_state::{mutate_game_state, use_game_state};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::typography::{TextAlign, headline};
@@ -29,23 +27,7 @@ impl Component for ShopLayout<'_> {
         let refresh_shop = || {
             mutate_game_state(|game_state| {
                 game_state.left_shop_refresh_chance -= 1;
-                let items = generate_items(game_state, game_state.max_shop_slot());
-                for (slot, item) in game_state.shop_slots.iter_mut().zip(items.into_iter()) {
-                    if let ShopSlot::Item {
-                        item: item_of_slot,
-                        cost: cost_of_slot,
-                        purchased,
-                    } = slot
-                    {
-                        if *purchased {
-                            continue;
-                        }
-                        let cost =
-                            item_cost(&item.rarity, game_state.upgrade_state.shop_item_price_minus);
-                        *cost_of_slot = cost;
-                        *item_of_slot = item.clone();
-                    }
-                }
+                refresh_shop(game_state);
             });
         };
 
