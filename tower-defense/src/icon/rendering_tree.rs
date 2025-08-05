@@ -1,4 +1,4 @@
-use crate::{asset_loader::icon_asset_loader::IconAssetLoader, icon::Icon};
+use crate::{asset_loader::get_icon_asset, icon::Icon};
 use namui::*;
 use namui_prebuilt::simple_rect;
 
@@ -25,43 +25,41 @@ impl Icon {
         let mut rendering_trees = Vec::new();
 
         // Try to get images from global asset loader
-        if let Some(global_loader) = IconAssetLoader::get_global() {
-            // Add attribute images
-            for attribute in attributes {
-                if let Some(attribute_image) = global_loader.get(attribute.icon_kind) {
-                    let attribute_render_rect = attribute.attribute_render_rect(rect);
-                    let paint = if *opacity < 1.0 {
-                        Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
-                    } else {
-                        None
-                    };
-                    rendering_trees.push(namui::image(ImageParam {
-                        rect: attribute_render_rect,
-                        image: attribute_image,
-                        style: ImageStyle {
-                            fit: ImageFit::Contain,
-                            paint: paint.clone(),
-                        },
-                    }));
-                }
-            }
-
-            // Add main icon image
-            if let Some(image) = global_loader.get(*kind) {
+        // Add attribute images
+        for attribute in attributes {
+            if let Some(attribute_image) = get_icon_asset(attribute.icon_kind) {
+                let attribute_render_rect = attribute.attribute_render_rect(rect);
                 let paint = if *opacity < 1.0 {
                     Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
                 } else {
                     None
                 };
                 rendering_trees.push(namui::image(ImageParam {
-                    rect,
-                    image,
+                    rect: attribute_render_rect,
+                    image: attribute_image,
                     style: ImageStyle {
                         fit: ImageFit::Contain,
-                        paint,
+                        paint: paint.clone(),
                     },
                 }));
             }
+        }
+
+        // Add main icon image
+        if let Some(image) = get_icon_asset(*kind) {
+            let paint = if *opacity < 1.0 {
+                Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
+            } else {
+                None
+            };
+            rendering_trees.push(namui::image(ImageParam {
+                rect,
+                image,
+                style: ImageStyle {
+                    fit: ImageFit::Contain,
+                    paint,
+                },
+            }));
         }
 
         rendering_trees.push(simple_rect(

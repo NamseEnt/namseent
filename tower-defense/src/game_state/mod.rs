@@ -186,7 +186,7 @@ static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
 pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
     ctx.init_atom(&GAME_STATE_ATOM, || {
-        let mut game_state = GameState {
+        GameState {
             monsters: Default::default(),
             towers: Default::default(),
             camera: Camera::new(),
@@ -256,10 +256,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             locale: crate::l10n::Locale::KOREAN,
             hand: Default::default(),
             play_history: PlayHistory::new(),
-        };
-
-        game_state.goto_selecting_tower();
-        game_state
+        }
     })
     .0
 }

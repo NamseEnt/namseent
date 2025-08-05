@@ -2,7 +2,6 @@ mod component;
 mod rendering_tree;
 pub mod rich_text;
 
-use crate::asset_loader::icon_asset_loader::{IconAssetKind, IconAssetLoader};
 use crate::card::Suit;
 use namui::*;
 
@@ -328,8 +327,4 @@ impl Icon {
         self.opacity = opacity;
         self
     }
-}
-
-fn get_icon_image(_ctx: &RenderCtx, kind: impl Into<IconAssetKind> + Copy) -> Option<namui::Image> {
-    IconAssetLoader::get_global().and_then(|loader| loader.get(kind))
 }

@@ -21,7 +21,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     theme::button::{Button, ButtonVariant},
 };
-use asset_loader::AssetLoader;
+use asset_loader::LoadingScreen;
 use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
@@ -65,7 +65,17 @@ impl Component for Game {
             set_open_settings.mutate(|opened| *opened = !*opened); // 설정 모달 열기/닫기
         };
 
-        ctx.add(AssetLoader {});
+        if matches!(&game_state.flow, GameFlow::Initializing) {
+            ctx.add(LoadingScreen {
+                screen_wh,
+                on_complete: &|| {
+                    mutate_game_state(|game_state| {
+                        game_state.goto_selecting_tower();
+                    });
+                },
+            });
+            return;
+        }
 
         ctx.compose(|ctx| {
             if *open_settings {
