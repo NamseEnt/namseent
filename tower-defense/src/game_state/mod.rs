@@ -203,10 +203,12 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                 Item {
                     kind: item::ItemKind::ExtraReroll,
                     rarity: rarity::Rarity::Epic,
+                    value: 0.5.into(),
                 },
                 Item {
                     kind: item::ItemKind::ExtraReroll,
                     rarity: rarity::Rarity::Epic,
+                    value: 0.5.into(),
                 },
                 // For debugging purpose, should be removed in production.
                 Item {
@@ -218,6 +220,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                         duration: namui::Duration::from_secs_f32(3.0),
                     },
                     rarity: rarity::Rarity::Epic,
+                    value: 0.0.into(), // 디버깅용 - 최소값
                 },
                 Item {
                     kind: item::ItemKind::AttackPowerMultiplyBuff {
@@ -226,6 +229,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                         radius: 4.0,
                     },
                     rarity: rarity::Rarity::Epic,
+                    value: 0.75.into(), // 디버깅용 - 높은 값
                 },
                 Item {
                     kind: item::ItemKind::MovementSpeedDebuff {
@@ -234,6 +238,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                         radius: 4.0,
                     },
                     rarity: rarity::Rarity::Epic,
+                    value: 1.0.into(), // 디버깅용 - 최대값 (역산이므로 좋은 효과)
                 },
             ],
             quest_states: Default::default(),

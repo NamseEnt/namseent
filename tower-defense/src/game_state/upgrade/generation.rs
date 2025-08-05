@@ -469,7 +469,13 @@ pub fn generate_upgrade(game_state: &GameState, rarity: Rarity) -> Upgrade {
         }
     };
 
-    Upgrade { kind, rarity }
+    let value = thread_rng().gen_range(0.0..=1.0);
+
+    Upgrade {
+        kind,
+        rarity,
+        value: value.into(),
+    }
 }
 fn generate_upgrade_candidate_table(
     game_state: &GameState,

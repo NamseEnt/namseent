@@ -1,7 +1,7 @@
 use crate::{
     game_state::{
         GameState,
-        item::{Item, generate_item},
+        item::{Item, generation::generate_item},
         upgrade::{Upgrade, generate_upgrade},
     },
     rarity::Rarity,

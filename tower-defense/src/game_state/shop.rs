@@ -1,11 +1,9 @@
 use crate::{
-    game_state::{
-        GameState,
-        item::{generate_item, generate_items, item_cost},
-        upgrade::generate_upgrade,
-    },
+    game_state::{GameState, item::generation::generate_item, upgrade::generate_upgrade},
+    rarity::Rarity,
     shop::ShopSlot,
 };
+use namui::OneZero;
 use rand::{Rng, thread_rng};
 
 pub fn initialize_shop(game_state: &mut GameState) {
@@ -21,21 +19,18 @@ pub fn initialize_shop(game_state: &mut GameState) {
 }
 
 pub fn refresh_shop(game_state: &mut GameState) {
-    let items = generate_items(game_state, game_state.max_shop_slot());
+    let items = (0..game_state.max_shop_slot())
+        .map(|_| generate_shop_slot(game_state))
+        .collect::<Vec<_>>();
     for (slot, item) in game_state.shop_slots.iter_mut().zip(items.into_iter()) {
-        if let ShopSlot::Item {
-            item: item_of_slot,
-            cost: cost_of_slot,
-            purchased,
-        } = slot
-        {
-            if *purchased {
-                continue;
-            }
-            let cost = item_cost(&item.rarity, game_state.upgrade_state.shop_item_price_minus);
-            *cost_of_slot = cost;
-            *item_of_slot = item.clone();
+        let purchased = match slot {
+            ShopSlot::Item { purchased, .. } | ShopSlot::Upgrade { purchased, .. } => *purchased,
+            _ => false,
+        };
+        if purchased {
+            continue;
         }
+        *slot = item;
     }
 }
 
@@ -46,7 +41,11 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
     match is_item {
         true => {
             let item = generate_item(rarity);
-            let cost = item_cost(&item.rarity, game_state.upgrade_state.shop_item_price_minus);
+            let cost = item_cost(
+                rarity,
+                item.value,
+                game_state.upgrade_state.shop_item_price_minus,
+            );
             ShopSlot::Item {
                 item,
                 cost,
@@ -55,9 +54,11 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
         }
         false => {
             let upgrade = generate_upgrade(game_state, rarity);
-            // TODO
-            let cost = 1;
-
+            let cost = item_cost(
+                rarity,
+                upgrade.value,
+                game_state.upgrade_state.shop_item_price_minus,
+            );
             ShopSlot::Upgrade {
                 upgrade,
                 cost,
@@ -65,4 +66,16 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             }
         }
     }
+}
+
+fn item_cost(rarity: Rarity, value: OneZero, discount: usize) -> usize {
+    let base_cost = match rarity {
+        crate::rarity::Rarity::Common => 25.0,
+        crate::rarity::Rarity::Rare => 50.0,
+        crate::rarity::Rarity::Epic => 75.0,
+        crate::rarity::Rarity::Legendary => 100.0,
+    };
+    let additional_cost = value.as_f32() * base_cost * 0.5;
+    let cost = base_cost + additional_cost - discount as f32;
+    cost.max(0.0) as usize
 }
