@@ -96,12 +96,6 @@ impl GameState {
             QuestReward::Money { amount } => {
                 self.earn_gold(amount);
             }
-            QuestReward::Item { item } => {
-                self.items.push(item);
-            }
-            QuestReward::Upgrade { upgrade } => {
-                self.upgrade(upgrade);
-            }
         }
     }
 }
