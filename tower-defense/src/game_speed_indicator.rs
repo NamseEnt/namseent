@@ -6,9 +6,7 @@ use crate::{
 use namui::*;
 use namui_prebuilt::table;
 
-pub struct GameSpeedIndicator {
-    pub screen_wh: Wh<Px>,
-}
+pub struct GameSpeedIndicator;
 
 impl Component for GameSpeedIndicator {
     fn render(self, ctx: &RenderCtx) {
