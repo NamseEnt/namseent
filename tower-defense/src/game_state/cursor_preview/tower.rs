@@ -1,7 +1,7 @@
 use super::PreviewKind;
 use crate::{
     MapCoordF32,
-    asset_loader::TOWER_ASSET_LOADER_ATOM,
+    asset_loader::get_tower_asset,
     game_state::{
         MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
         can_place_tower::can_place_tower,
@@ -127,8 +127,7 @@ impl Component for TowerImage<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { tower_template } = self;
 
-        let (tower_asset_loader_atom, _) = ctx.atom(&TOWER_ASSET_LOADER_ATOM);
-        let tower_image = tower_asset_loader_atom.get(tower_template.kind, AnimationKind::Idle1);
+        let tower_image = get_tower_asset((tower_template.kind, AnimationKind::Idle1));
 
         let Some(tower_image) = tower_image else {
             return;

@@ -1,6 +1,6 @@
 use super::shared::{render_background_rect, render_top_left_rank_and_suit};
 use crate::{
-    asset_loader::TOWER_ASSET_LOADER_ATOM,
+    asset_loader::get_tower_asset,
     game_state::tower::{AnimationKind, TowerKind, TowerTemplate},
 };
 use namui::*;
@@ -13,8 +13,7 @@ impl Component for RenderTower {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, tower_template } = self;
 
-        let (tower_asset_loader_atom, _) = ctx.atom(&TOWER_ASSET_LOADER_ATOM);
-        let tower_image = tower_asset_loader_atom.get(tower_template.kind, AnimationKind::Idle1);
+        let tower_image = get_tower_asset((tower_template.kind, AnimationKind::Idle1));
 
         // 바리케이드가 아닐 때만 좌상단에 rank와 suit 수직 배치
         if tower_template.kind != TowerKind::Barricade {

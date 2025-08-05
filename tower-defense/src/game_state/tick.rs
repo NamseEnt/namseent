@@ -184,6 +184,5 @@ fn check_game_initialized(game_state: &mut GameState) {
         return;
     }
 
-    // TODO: check if all game state is initialized
     game_state.goto_selecting_tower();
 }
