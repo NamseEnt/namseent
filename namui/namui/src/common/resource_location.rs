@@ -5,7 +5,7 @@ use std::{
 };
 use url::Url;
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum ResourceLocation {
     Bundle(PathBuf),
     KvStore(String),
