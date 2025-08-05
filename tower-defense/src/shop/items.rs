@@ -137,79 +137,82 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
     } = params;
 
     ctx.compose(|ctx| {
-        if purchased {
-            ctx.add(ShopItemSoldOut { wh });
-        } else {
-            table::vertical([
-                table::fixed(
-                    wh.width,
-                    table::padding(PADDING, |_wh, _ctx| {
-                        // TODO: Icons
-                    }),
-                ),
-                table::ratio(
-                    1,
-                    table::padding(
-                        PADDING,
-                        table::vertical([
-                            table::fixed(PADDING, |_, _| {}),
-                            table::fit(table::FitAlign::LeftTop, move |ctx| {
-                                ctx.add(
-                                    headline(name)
-                                        .size(FontSize::Small)
-                                        .align(TextAlign::LeftTop)
-                                        .max_width(wh.width)
-                                        .build_rich(),
-                                );
-                            }),
-                            table::fixed(PADDING, |_, _| {}),
-                            table::ratio(1, move |wh, ctx| {
-                                ctx.add(
-                                    paragraph(description.clone())
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::LeftTop)
-                                        .max_width(wh.width)
-                                        .build_rich(),
-                                );
-                            }),
-                            table::fixed(PADDING, |_, _| {}),
-                            table::fixed(48.px(), |wh, ctx| {
-                                ctx.add(
-                                    Button::new(
-                                        wh,
-                                        &|| {
-                                            if !available {
-                                                return;
-                                            }
-                                            purchase_action();
-                                        },
-                                        &|wh, color, ctx| {
-                                            ctx.add(
-                                                headline(format!(
-                                                    "{} {cost}",
-                                                    Icon::new(IconKind::Gold)
-                                                        .size(IconSize::Large)
-                                                        .wh(Wh::single(wh.height))
-                                                        .as_tag(),
-                                                ))
-                                                .color(color)
-                                                .build_rich(),
-                                            );
-                                        },
-                                    )
-                                    .color(if available {
-                                        ButtonColor::Primary
-                                    } else {
-                                        ButtonColor::Secondary
-                                    })
-                                    .disabled(!available),
-                                );
-                            }),
-                        ]),
-                    ),
-                ),
-            ])(wh, ctx);
+        if !purchased {
+            return;
         }
+        ctx.add(ShopItemSoldOut { wh });
+    });
+
+    ctx.compose(|ctx| {
+        table::vertical([
+            table::fixed(
+                wh.width,
+                table::padding(PADDING, |_wh, _ctx| {
+                    // TODO: Icons
+                }),
+            ),
+            table::ratio(
+                1,
+                table::padding(
+                    PADDING,
+                    table::vertical([
+                        table::fixed(PADDING, |_, _| {}),
+                        table::fit(table::FitAlign::LeftTop, move |ctx| {
+                            ctx.add(
+                                headline(name)
+                                    .size(FontSize::Small)
+                                    .align(TextAlign::LeftTop)
+                                    .max_width(wh.width)
+                                    .build_rich(),
+                            );
+                        }),
+                        table::fixed(PADDING, |_, _| {}),
+                        table::ratio(1, move |wh, ctx| {
+                            ctx.add(
+                                paragraph(description.clone())
+                                    .size(FontSize::Medium)
+                                    .align(TextAlign::LeftTop)
+                                    .max_width(wh.width)
+                                    .build_rich(),
+                            );
+                        }),
+                        table::fixed(PADDING, |_, _| {}),
+                        table::fixed(48.px(), |wh, ctx| {
+                            ctx.add(
+                                Button::new(
+                                    wh,
+                                    &|| {
+                                        if !available {
+                                            return;
+                                        }
+                                        purchase_action();
+                                    },
+                                    &|wh, color, ctx| {
+                                        ctx.add(
+                                            headline(format!(
+                                                "{} {cost}",
+                                                Icon::new(IconKind::Gold)
+                                                    .size(IconSize::Large)
+                                                    .wh(Wh::single(wh.height))
+                                                    .as_tag(),
+                                            ))
+                                            .color(color)
+                                            .build_rich(),
+                                        );
+                                    },
+                                )
+                                .color(if available {
+                                    ButtonColor::Primary
+                                } else {
+                                    ButtonColor::Secondary
+                                })
+                                .disabled(!available),
+                            );
+                        }),
+                    ]),
+                ),
+            ),
+        ])(wh, ctx);
     });
 }
 
