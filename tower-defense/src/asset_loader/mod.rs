@@ -45,7 +45,7 @@ enum State {
     },
     Error {
         resource_location: ResourceLocation,
-        error: anyhow::Error,
+        error: namui::anyhow::Error,
     },
 }
 
@@ -167,7 +167,7 @@ impl Component for LoadingScreen<'_> {
     }
 }
 
-fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, anyhow::Error)>> {
+fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, namui::anyhow::Error)>> {
     let mut set = JoinSet::new();
     load(
         &mut set,
@@ -361,7 +361,7 @@ impl ToResourceLocation for (TowerKind, AnimationKind) {
 }
 
 fn load<Key: ToResourceLocation + Copy + Send + Sync + 'static>(
-    set: &mut JoinSet<Result<(), (ResourceLocation, anyhow::Error)>>,
+    set: &mut JoinSet<Result<(), (ResourceLocation, namui::anyhow::Error)>>,
     keys: impl IntoIterator<Item = Key>,
     loader: &'static OnceLock<AssetLoader<Key>>,
 ) {

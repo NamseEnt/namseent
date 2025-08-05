@@ -81,6 +81,13 @@ impl Component for TowerSelectingHand {
                 state.goto_placing_tower(tower_template);
             });
         };
+
+        let force_start = || {
+            mutate_game_state(|game_state| {
+                game_state.hand.clear();
+                game_state.goto_defense();
+            });
+        };
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio_no_clip(1, |_, _| {}),
@@ -111,6 +118,7 @@ impl Component for TowerSelectingHand {
                                     some_selected: *some_selected,
                                     reroll_selected: &reroll_selected,
                                     use_tower: &use_tower,
+                                    force_start: &force_start,
                                 });
                             }),
                         ),
@@ -127,6 +135,7 @@ struct InteractionArea<'a> {
     some_selected: bool,
     reroll_selected: &'a dyn Fn(),
     use_tower: &'a dyn Fn(),
+    force_start: &'a dyn Fn(),
 }
 impl Component for InteractionArea<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -135,6 +144,7 @@ impl Component for InteractionArea<'_> {
             some_selected,
             reroll_selected,
             use_tower,
+            force_start,
         } = self;
         let game_state = crate::game_state::use_game_state(ctx);
         ctx.compose(|ctx| {
@@ -168,6 +178,18 @@ impl Component for InteractionArea<'_> {
                             )
                             .disabled(!some_selected || game_state.left_reroll_chance == 0),
                         );
+                    }),
+                    table::ratio(1, |_, _| {}),
+                    table::fixed(48.px(), |wh, ctx| {
+                        ctx.add(Button::new(
+                            wh,
+                            &|| {
+                                force_start();
+                            },
+                            &|wh, _text_color, ctx| {
+                                ctx.add(Icon::new(IconKind::Up).size(IconSize::Large).wh(wh));
+                            },
+                        ));
                     }),
                     table::ratio(1, |_, _| {}),
                     table::fixed(48.px(), |wh, ctx| {
