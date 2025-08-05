@@ -8,7 +8,7 @@ export type WorkerMessagePayload =
           startArgPtr: number;
           eventBuffer: SharedArrayBuffer;
           initialWindowWh: number;
-          bundleSqlite: ArrayBuffer;
+          bundleSqlite: SharedArrayBuffer;
       }
     | {
           type: "start-main-thread";
@@ -172,10 +172,10 @@ export type WorkerMessagePayload =
       }
     // Log
     | {
-      type: 'log',
-      threadId: number,
-      msg: string;
-    };
+          type: "log";
+          threadId: number;
+          msg: string;
+      };
 
 export function sendMessageToMainThread(
     payload: WorkerMessagePayload,

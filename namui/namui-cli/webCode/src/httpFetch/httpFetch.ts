@@ -170,9 +170,9 @@ export function httpFetchHandleOnMainThread(
                 const valueBuffer = new TextEncoder().encode(value);
                 return {
                     keyByteLength: ["u16", keyBuffer.length],
-                    key: ["bytes", keyBuffer],
+                    key: ["bytes", new Uint8Array(keyBuffer).buffer],
                     valueByteLength: ["u16", valueBuffer.length],
-                    value: ["bytes", valueBuffer],
+                    value: ["bytes", new Uint8Array(valueBuffer).buffer],
                 };
             }),
         };
@@ -187,7 +187,7 @@ export function httpFetchHandleOnMainThread(
             type: "http-fetch/on-error",
             fetchId: ["u32", fetchId],
             messageByteLength: ["u32", messageBuffer.length],
-            message: ["bytes", messageBuffer],
+            message: ["bytes", new Uint8Array(messageBuffer).buffer],
         });
     }
 

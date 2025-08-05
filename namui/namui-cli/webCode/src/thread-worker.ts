@@ -37,16 +37,11 @@ self.onmessage = async (message) => {
     const wasi = new WASI([], env, [
         new OpenFile(new File([])), // stdin
         stdout(tid),
-        ConsoleStdout.lineBuffered((msg) =>
-            console.warn(`[${tid}] ${msg}`),
-        ),
+        ConsoleStdout.lineBuffered((msg) => console.warn(`[${tid}] ${msg}`)),
         new PreopenDirectory(
             ".",
             new Map([
-                [
-                    "bundle.sqlite",
-                    new File(new Uint8Array(bundleSqlite), { readonly: true }),
-                ],
+                ["bundle.sqlite", new File(bundleSqlite, { readonly: true })],
             ]),
         ),
     ]);

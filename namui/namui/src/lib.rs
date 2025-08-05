@@ -8,8 +8,8 @@ pub mod system;
 pub mod utils;
 
 pub use self::random::*;
+pub use ::anyhow::{self, Result, anyhow, bail};
 pub use ::url::Url;
-pub use anyhow::{Result, anyhow, bail};
 pub use auto_ops;
 pub use bounding_box::*;
 pub use common::*;
@@ -69,6 +69,7 @@ fn tokio_runtime() -> Result<tokio::runtime::Runtime> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .thread_stack_size(2 * 1024 * 1024)
+        .max_blocking_threads(32)
         .build()
         .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e))
 }

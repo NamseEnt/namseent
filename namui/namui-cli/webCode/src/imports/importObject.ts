@@ -31,7 +31,7 @@ export function createImportObject({
     eventBuffer: SharedArrayBuffer;
     initialWindowWh: number;
     exports: () => Exports;
-    bundleSqlite: () => ArrayBuffer;
+    bundleSqlite: () => SharedArrayBuffer;
     storageProtocolBuffer: SharedArrayBuffer;
 }) {
     const glFunctions = envGl({
