@@ -23,6 +23,6 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
             }
         }
     }
-    
+
     game_state.take_damage(damage);
 }

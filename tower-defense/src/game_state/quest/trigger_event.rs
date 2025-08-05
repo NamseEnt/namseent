@@ -1,8 +1,8 @@
+use super::{QuestState, QuestTrackingState};
 use crate::{
     card::{Rank, Suit},
     game_state::{GameState, tower::TowerKind},
 };
-use super::{QuestTrackingState, QuestState};
 
 #[derive(Debug, Clone, Copy)]
 /// NOTE: Please call this event after the actual event has been processed.

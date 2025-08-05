@@ -1,6 +1,6 @@
 use crate::{
     card::{Rank, Suit},
-    game_state::{GameState, tower::TowerKind, quest::QuestRequirement},
+    game_state::{GameState, quest::QuestRequirement, tower::TowerKind},
     l10n::quest::QuestText,
 };
 
@@ -59,36 +59,58 @@ pub enum QuestTrackingState {
 impl QuestTrackingState {
     pub fn to_requirement(&self) -> QuestRequirement {
         match self {
-            QuestTrackingState::BuildTowerRankNew { rank, target_count, .. } => {
-                QuestRequirement::BuildTowerRankNew { rank: *rank, count: *target_count }
-            }
+            QuestTrackingState::BuildTowerRankNew {
+                rank, target_count, ..
+            } => QuestRequirement::BuildTowerRankNew {
+                rank: *rank,
+                count: *target_count,
+            },
             QuestTrackingState::BuildTowerRank { rank, target_count } => {
-                QuestRequirement::BuildTowerRank { rank: *rank, count: *target_count }
+                QuestRequirement::BuildTowerRank {
+                    rank: *rank,
+                    count: *target_count,
+                }
             }
-            QuestTrackingState::BuildTowerSuitNew { suit, target_count, .. } => {
-                QuestRequirement::BuildTowerSuitNew { suit: *suit, count: *target_count }
-            }
+            QuestTrackingState::BuildTowerSuitNew {
+                suit, target_count, ..
+            } => QuestRequirement::BuildTowerSuitNew {
+                suit: *suit,
+                count: *target_count,
+            },
             QuestTrackingState::BuildTowerSuit { suit, target_count } => {
-                QuestRequirement::BuildTowerSuit { suit: *suit, count: *target_count }
+                QuestRequirement::BuildTowerSuit {
+                    suit: *suit,
+                    count: *target_count,
+                }
             }
-            QuestTrackingState::BuildTowerHandNew { hand, target_count, .. } => {
-                QuestRequirement::BuildTowerHandNew { hand: *hand, count: *target_count }
-            }
+            QuestTrackingState::BuildTowerHandNew {
+                hand, target_count, ..
+            } => QuestRequirement::BuildTowerHandNew {
+                hand: *hand,
+                count: *target_count,
+            },
             QuestTrackingState::BuildTowerHand { hand, target_count } => {
-                QuestRequirement::BuildTowerHand { hand: *hand, count: *target_count }
+                QuestRequirement::BuildTowerHand {
+                    hand: *hand,
+                    count: *target_count,
+                }
             }
             QuestTrackingState::ClearBossRoundWithoutItems => {
                 QuestRequirement::ClearBossRoundWithoutItems
             }
             QuestTrackingState::DealDamageWithItems { target_damage, .. } => {
-                QuestRequirement::DealDamageWithItems { damage: *target_damage }
+                QuestRequirement::DealDamageWithItems {
+                    damage: *target_damage,
+                }
             }
             QuestTrackingState::BuildTowersWithoutReroll { target_count, .. } => {
-                QuestRequirement::BuildTowersWithoutReroll { count: *target_count }
+                QuestRequirement::BuildTowersWithoutReroll {
+                    count: *target_count,
+                }
             }
-            QuestTrackingState::UseReroll { target_count, .. } => {
-                QuestRequirement::UseReroll { count: *target_count }
-            }
+            QuestTrackingState::UseReroll { target_count, .. } => QuestRequirement::UseReroll {
+                count: *target_count,
+            },
             QuestTrackingState::SpendGold { target_gold, .. } => {
                 QuestRequirement::SpendGold { gold: *target_gold }
             }
