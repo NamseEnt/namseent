@@ -4,7 +4,7 @@ export type RingBufferInput =
     | ["u8", number]
     | ["u16", number]
     | ["u32", number]
-    | ["bytes", ArrayBuffer];
+    | ["bytes", StrictArrayBuffer];
 
 export type RingBufferInputs = RingBufferInput[];
 

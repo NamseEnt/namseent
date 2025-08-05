@@ -56,7 +56,7 @@ export function insertJsImports({ memory }: { memory: WebAssembly.Memory }) {
                     type: "insert-js-send-data-from-rust",
                     sendDataId,
                     jsId,
-                    data,
+                    data: data.buffer,
                 },
                 [data.buffer],
             );

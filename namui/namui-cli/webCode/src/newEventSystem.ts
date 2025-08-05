@@ -2,7 +2,11 @@ import {
     sendMessageToMainThread,
     WorkerMessagePayload,
 } from "./interWorkerProtocol";
-import { RingBufferInputs, RingBufferWriter } from "./RingBufferWriter";
+import {
+    RingBufferInputs,
+    RingBufferWriter,
+    StrictArrayBuffer,
+} from "./RingBufferWriter";
 
 // TODO: Move other event related code to this system.
 
@@ -16,7 +20,7 @@ type U8T<T extends number> = ["u8", T];
 type U8 = U8T<number>;
 type U16 = ["u16", number];
 type U32 = ["u32", number];
-type Bytes = ["bytes", Uint8Array];
+type Bytes = ["bytes", StrictArrayBuffer];
 
 export type NewSystemEvent =
     | {
@@ -60,7 +64,7 @@ export type NewSystemEvent =
           type: "insert-js/data";
           jsId: U32;
           requestId: U32;
-    };
+      };
 
 export function newEventSystemImports({
     memory,
