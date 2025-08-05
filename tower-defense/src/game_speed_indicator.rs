@@ -6,9 +6,7 @@ use crate::{
 use namui::*;
 use namui_prebuilt::table;
 
-pub struct GameSpeedIndicator {
-    pub screen_wh: Wh<Px>,
-}
+pub struct GameSpeedIndicator;
 
 impl Component for GameSpeedIndicator {
     fn render(self, ctx: &RenderCtx) {
@@ -53,7 +51,7 @@ impl Component for GameSpeedIndicator {
                 // Current speed display
                 table::fixed(32.px(), |wh, ctx| {
                     ctx.add(
-                        paragraph(format!("Speed: {}", current_speed_text))
+                        paragraph(format!("Speed: {current_speed_text}"))
                             .align(TextAlign::Center { wh })
                             .build(),
                     );
