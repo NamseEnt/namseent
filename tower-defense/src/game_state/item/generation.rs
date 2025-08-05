@@ -1,18 +1,24 @@
 use super::{Item, ItemKind};
 use crate::{
     card::{REVERSED_RANKS, SUITS},
-    game_state::GameState,
     rarity::Rarity,
 };
 use namui::*;
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
-pub fn generate_items(game_state: &GameState, amount: usize) -> Vec<Item> {
-    (0..amount)
-        .map(|_| game_state.generate_rarity(Default::default()))
-        .map(generate_item)
-        .collect()
+/// 주어진 value(0.0~1.0)를 범위에 맞는 실제 값으로 변환
+fn calculate_amount_from_value(value: f32, min_value: f32, max_value: f32) -> f32 {
+    let clamped_value = value.clamp(0.0, 1.0);
+    min_value + (max_value - min_value) * clamped_value
 }
+
+/// MovementSpeedDebuff나 DamageReduction 같은 역효과 아이템용 변환
+fn calculate_reverse_amount_from_value(value: f32, min_value: f32, max_value: f32) -> f32 {
+    let clamped_value = value.clamp(0.0, 1.0);
+    // value가 높을수록 더 좋은 효과를 원하므로, 더 낮은 amount를 반환
+    max_value - (max_value - min_value) * clamped_value
+}
+
 pub fn generate_item(rarity: Rarity) -> Item {
     let candidates = generate_item_candidate_table(rarity);
     let candidate = &candidates
@@ -20,23 +26,28 @@ pub fn generate_item(rarity: Rarity) -> Item {
         .unwrap()
         .0;
 
+    // 먼저 0~1 범위의 랜덤 value 생성
+    let value = thread_rng().gen_range(0.0..1.0);
+
     let kind = match candidate {
         ItemCandidate::Heal => {
-            let amount = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 5.0..9.0,
                 Rarity::Rare => 10.0..14.0,
                 Rarity::Epic => 15.0..19.0,
                 Rarity::Legendary => 20.0..25.0,
-            });
+            };
+            let amount = calculate_amount_from_value(value, range.start, range.end);
             ItemKind::Heal { amount }
         }
         ItemCandidate::AttackPowerPlusBuff => {
-            let amount = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 10.0..100.0,
                 Rarity::Rare => 100.0..500.0,
                 Rarity::Epic => 500.0..2000.0,
                 Rarity::Legendary => 2000.0..5000.0,
-            });
+            };
+            let amount = calculate_amount_from_value(value, range.start, range.end);
             let duration = Duration::from_secs(match rarity {
                 Rarity::Common => 2,
                 Rarity::Rare => 3,
@@ -56,12 +67,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::AttackPowerMultiplyBuff => {
-            let amount = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 1.2..1.5,
                 Rarity::Rare => 1.3..1.75,
                 Rarity::Epic => 1.5..2.5,
                 Rarity::Legendary => 2.0..4.0,
-            });
+            };
+            let amount = calculate_amount_from_value(value, range.start, range.end);
             let duration = Duration::from_secs(match rarity {
                 Rarity::Common => 2,
                 Rarity::Rare => 3,
@@ -81,12 +93,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::AttackSpeedPlusBuff => {
-            let amount = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 0.2..0.4,
                 Rarity::Rare => 0.2..0.6,
                 Rarity::Epic => 0.4..1.0,
                 Rarity::Legendary => 0.5..1.5,
-            });
+            };
+            let amount = calculate_amount_from_value(value, range.start, range.end);
             let duration = Duration::from_secs(match rarity {
                 Rarity::Common => 2,
                 Rarity::Rare => 3,
@@ -106,12 +119,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::AttackSpeedMultiplyBuff => {
-            let amount = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 1.2..1.4,
                 Rarity::Rare => 1.2..1.6,
                 Rarity::Epic => 1.4..2.0,
                 Rarity::Legendary => 1.5..2.0,
-            });
+            };
+            let amount = calculate_amount_from_value(value, range.start, range.end);
             let duration = Duration::from_secs(match rarity {
                 Rarity::Common => 2,
                 Rarity::Rare => 3,
@@ -131,12 +145,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::AttackRangePlus => {
-            let amount = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 1.5..2.5,
                 Rarity::Rare => 2.0..5.0,
                 Rarity::Epic => 4.0..8.0,
                 Rarity::Legendary => 6.0..10.0,
-            });
+            };
+            let amount = calculate_amount_from_value(value, range.start, range.end);
             let duration = Duration::from_secs(match rarity {
                 Rarity::Common => 2,
                 Rarity::Rare => 3,
@@ -156,12 +171,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
             }
         }
         ItemCandidate::MovementSpeedDebuff => {
-            let amount = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 0.8..0.9,
                 Rarity::Rare => 0.7..0.8,
                 Rarity::Epic => 0.6..0.7,
                 Rarity::Legendary => 0.5..0.6,
-            });
+            };
+            let amount = calculate_reverse_amount_from_value(value, range.start, range.end);
             let duration = Duration::from_secs(match rarity {
                 Rarity::Common => 2,
                 Rarity::Rare => 3,
@@ -184,12 +200,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
             let mut rng = thread_rng();
             let rank = *REVERSED_RANKS.choose(&mut rng).unwrap();
             let suit = *SUITS.choose(&mut rng).unwrap();
-            let damage = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 25.0..100.0,
                 Rarity::Rare => 250.0..750.0,
                 Rarity::Epic => 2000.0..4000.0,
                 Rarity::Legendary => 5000.0..7500.0,
-            });
+            };
+            let damage = calculate_amount_from_value(value, range.start, range.end);
             let radius = match rarity {
                 Rarity::Common => 3.0,
                 Rarity::Rare => 4.0,
@@ -207,12 +224,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
             let mut rng = thread_rng();
             let rank = *REVERSED_RANKS.choose(&mut rng).unwrap();
             let suit = *SUITS.choose(&mut rng).unwrap();
-            let damage = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 50.0..150.0,
                 Rarity::Rare => 400.0..800.0,
                 Rarity::Epic => 3000.0..6000.0,
                 Rarity::Legendary => 8000.0..10000.0,
-            });
+            };
+            let damage = calculate_amount_from_value(value, range.start, range.end);
             let radius = match rarity {
                 Rarity::Common => 3.0,
                 Rarity::Rare => 4.0,
@@ -255,12 +273,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
             let mut rng = thread_rng();
             let rank = *REVERSED_RANKS.choose(&mut rng).unwrap();
             let suit = *SUITS.choose(&mut rng).unwrap();
-            let damage = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 25.0..100.0,
                 Rarity::Rare => 250.0..750.0,
                 Rarity::Epic => 2000.0..4000.0,
                 Rarity::Legendary => 5000.0..7500.0,
-            });
+            };
+            let damage = calculate_amount_from_value(value, range.start, range.end);
             let thickness = 4.0;
             ItemKind::LinearDamage {
                 rank,
@@ -273,12 +292,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
             let mut rng = thread_rng();
             let rank = *REVERSED_RANKS.choose(&mut rng).unwrap();
             let suit = *SUITS.choose(&mut rng).unwrap();
-            let damage = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 50.0..150.0,
                 Rarity::Rare => 400.0..800.0,
                 Rarity::Epic => 3000.0..6000.0,
                 Rarity::Legendary => 8000.0..10000.0,
-            });
+            };
+            let damage = calculate_amount_from_value(value, range.start, range.end);
             let thickness = 4.0;
             let duration = Duration::from_secs(match rarity {
                 Rarity::Common => 3,
@@ -296,21 +316,23 @@ pub fn generate_item(rarity: Rarity) -> Item {
         }
         ItemCandidate::ExtraReroll => ItemKind::ExtraReroll,
         ItemCandidate::Shield => {
-            let amount = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 10.0..15.0,
                 Rarity::Rare => 15.0..25.0,
                 Rarity::Epic => 25.0..35.0,
                 Rarity::Legendary => 35.0..50.0,
-            });
+            };
+            let amount = calculate_amount_from_value(value, range.start, range.end);
             ItemKind::Shield { amount }
         }
         ItemCandidate::DamageReduction => {
-            let amount = thread_rng().gen_range(match rarity {
+            let range = match rarity {
                 Rarity::Common => 0.85..0.9,
                 Rarity::Rare => 0.8..0.85,
                 Rarity::Epic => 0.7..0.8,
                 Rarity::Legendary => 0.55..0.7,
-            });
+            };
+            let amount = calculate_reverse_amount_from_value(value, range.start, range.end);
             let duration = Duration::from_secs(match rarity {
                 Rarity::Common => 3,
                 Rarity::Rare => 4,
@@ -324,8 +346,13 @@ pub fn generate_item(rarity: Rarity) -> Item {
         }
     };
 
-    Item { kind, rarity }
+    Item {
+        kind,
+        rarity,
+        value: value.into(),
+    }
 }
+
 fn generate_item_candidate_table(rarity: Rarity) -> Vec<(ItemCandidate, f32)> {
     let candidate_weight = match rarity {
         Rarity::Common => [
@@ -363,6 +390,7 @@ fn generate_item_candidate_table(rarity: Rarity) -> Vec<(ItemCandidate, f32)> {
     ];
     candidate_table
 }
+
 enum ItemCandidate {
     Heal,
     AttackPowerPlusBuff,

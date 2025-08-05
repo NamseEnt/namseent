@@ -101,6 +101,13 @@ impl TextManager {
             Language::English => text.to_english(),
         }
     }
+
+    pub fn upgrade_kind(&self, text: upgrade::UpgradeKindText) -> String {
+        match self.locale.language {
+            Language::Korean => text.to_korean(),
+            Language::English => text.to_english(),
+        }
+    }
 }
 
 /// 업그레이드 보드 텍스트 처리
