@@ -1,11 +1,10 @@
 use super::{Tower, TowerKind};
-use crate::{asset_loader::TOWER_ASSET_LOADER_ATOM, game_state::GameState};
+use crate::{asset_loader::get_tower_asset, game_state::GameState};
 use namui::*;
 
 impl Component for &Tower {
     fn render(self, ctx: &RenderCtx) {
-        let (tower_asset_loader, _) = ctx.atom(&TOWER_ASSET_LOADER_ATOM);
-        let image = tower_asset_loader.get(self.kind, self.animation.kind);
+        let image = get_tower_asset((self.kind, self.animation.kind));
 
         if let Some(image) = image {
             let image_wh = image.info.wh();

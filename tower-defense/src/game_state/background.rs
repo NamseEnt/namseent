@@ -1,4 +1,4 @@
-use crate::{MapCoordF32, asset_loader::BACKGROUND_ASSET_LOADER_ATOM};
+use crate::{MapCoordF32, asset_loader::get_background_asset};
 use namui::*;
 use namui_prebuilt::simple_rect;
 use rand::{Rng, thread_rng};
@@ -11,8 +11,7 @@ pub struct Background {
 }
 impl Component for &Background {
     fn render(self, ctx: &RenderCtx) {
-        let (background_asset_loader, _) = ctx.atom(&BACKGROUND_ASSET_LOADER_ATOM);
-        let image = background_asset_loader.get(self.kind);
+        let image = get_background_asset(self.kind);
 
         if let Some(image) = image {
             let image_wh = image.info.wh();

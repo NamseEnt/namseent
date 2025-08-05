@@ -1,5 +1,5 @@
 use crate::{
-    asset_loader::MONSTER_ASSET_LOADER_ATOM,
+    asset_loader::get_monster_asset,
     game_state::{
         GameState, MonsterKind, TILE_PX_SIZE,
         monster::{MONSTER_HP_BAR_HEIGHT, Monster, monster_hp_bar::MonsterHpBar},
@@ -13,8 +13,7 @@ impl Component for &Monster {
             kind, animation, ..
         } = self;
 
-        let (monster_asset_loader, _) = ctx.atom(&MONSTER_ASSET_LOADER_ATOM);
-        let image = monster_asset_loader.get(*kind);
+        let image = get_monster_asset(*kind);
         let monster_wh = monster_wh(*kind);
 
         if let Some(image) = image {

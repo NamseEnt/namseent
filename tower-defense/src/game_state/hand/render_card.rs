@@ -1,6 +1,6 @@
 use super::shared::render_top_left_rank_and_suit;
 use crate::{
-    asset_loader::face_card_asset_loader::get_face_card_asset_loader,
+    asset_loader::get_face_card_asset,
     card::{Card, Rank},
     game_state::hand::shared::render_background_rect,
     icon::{Icon, IconKind, IconSize},
@@ -62,19 +62,16 @@ impl RenderCard {
             height: wh.height - px(24.0),
         };
 
-        // face card asset loader에서 이미지를 가져와서 렌더링
-        if let Some(asset_loader) = get_face_card_asset_loader() {
-            if let Some(face_image) = asset_loader.get_image(card.rank, card.suit) {
-                ctx.add(image(ImageParam {
-                    image: face_image.clone(),
-                    rect: center_area,
-                    style: ImageStyle {
-                        fit: ImageFit::Contain,
-                        paint: None,
-                    },
-                }));
-                return;
-            }
+        if let Some(face_image) = get_face_card_asset((card.rank, card.suit)) {
+            ctx.add(image(ImageParam {
+                image: face_image.clone(),
+                rect: center_area,
+                style: ImageStyle {
+                    fit: ImageFit::Contain,
+                    paint: None,
+                },
+            }));
+            return;
         }
 
         // fallback: asset loader가 없거나 이미지가 없는 경우 기존 텍스트 표시
