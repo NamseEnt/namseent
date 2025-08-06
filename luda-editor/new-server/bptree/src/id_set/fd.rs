@@ -1,6 +1,6 @@
 //! Custom Fd to manage multiple read/write operations on a file descriptor.
 
-use super::{PageOffset, PAGE_LEN};
+use super::{PAGE_LEN, PageOffset};
 use libc::*;
 use std::{
     fs::File,

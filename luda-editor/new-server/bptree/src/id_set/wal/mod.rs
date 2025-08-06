@@ -23,7 +23,7 @@ use executor::*;
 use std::{
     collections::BTreeMap,
     io::ErrorKind,
-    sync::{atomic::AtomicU64, Arc},
+    sync::{Arc, atomic::AtomicU64},
 };
 use tokio::{fs::OpenOptions, sync::mpsc};
 
