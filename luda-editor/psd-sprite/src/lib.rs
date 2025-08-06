@@ -92,11 +92,11 @@ pub struct SpriteLoadedImage {
 pub async fn decode_psd_sprite(
     bytes_stream: impl futures_core::Stream<Item = anyhow::Result<bytes::Bytes>> + std::marker::Unpin,
 ) -> anyhow::Result<(PsdSprite, SpriteLoadedImages)> {
-    use futures_util::{AsyncReadExt, stream::*};
+    use futures_util::{stream::*, AsyncReadExt};
 
     let mut zstd_decoder = async_compression::futures::bufread::ZstdDecoder::new(
         bytes_stream
-            .map_err(futures_util::io::Error::other)
+            .map_err(|e| futures_util::io::Error::new(futures_util::io::ErrorKind::Other, e))
             .into_async_read(),
     );
 

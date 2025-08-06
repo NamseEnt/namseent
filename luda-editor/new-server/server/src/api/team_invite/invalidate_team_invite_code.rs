@@ -1,6 +1,6 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{WantUpdate, schema::*};
+use database::{schema::*, WantUpdate};
 use luda_rpc::team_invite::invalidate_team_invite_code::*;
 
 pub async fn invalidate_team_invite_code(

@@ -14,7 +14,7 @@ pub fn write_fmt(path: impl AsRef<Path>, code: impl ToString) {
         .unwrap();
     let output = fmt.wait_with_output().unwrap();
     if !output.status.success() {
-        panic!("Failed to run rustfmt: {output:?}");
+        panic!("Failed to run rustfmt: {:?}", output);
     }
 
     write_if_changed(path, String::from_utf8(output.stdout).unwrap())

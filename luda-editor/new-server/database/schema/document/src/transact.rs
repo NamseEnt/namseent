@@ -96,11 +96,11 @@ impl<'a, AbortReason, T: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>>
     }
 }
 impl<
-    'a,
-    AbortReason,
-    T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-> Transact<'a, AbortReason> for (T1, T2)
+        'a,
+        AbortReason,
+        T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+    > Transact<'a, AbortReason> for (T1, T2)
 {
     fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
         let (t1, t2) = self;
@@ -108,12 +108,12 @@ impl<
     }
 }
 impl<
-    'a,
-    AbortReason,
-    T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-> Transact<'a, AbortReason> for (T1, T2, T3)
+        'a,
+        AbortReason,
+        T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+    > Transact<'a, AbortReason> for (T1, T2, T3)
 {
     fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
         let (t1, t2, t3) = self;
@@ -125,13 +125,13 @@ impl<
     }
 }
 impl<
-    'a,
-    AbortReason,
-    T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-> Transact<'a, AbortReason> for (T1, T2, T3, T4)
+        'a,
+        AbortReason,
+        T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+    > Transact<'a, AbortReason> for (T1, T2, T3, T4)
 {
     fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
         let (t1, t2, t3, t4) = self;
@@ -144,14 +144,14 @@ impl<
     }
 }
 impl<
-    'a,
-    AbortReason,
-    T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-> Transact<'a, AbortReason> for (T1, T2, T3, T4, T5)
+        'a,
+        AbortReason,
+        T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+    > Transact<'a, AbortReason> for (T1, T2, T3, T4, T5)
 {
     fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
         let (t1, t2, t3, t4, t5) = self;
@@ -165,15 +165,15 @@ impl<
     }
 }
 impl<
-    'a,
-    AbortReason,
-    T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-> Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6)
+        'a,
+        AbortReason,
+        T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+    > Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6)
 {
     fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
         let (t1, t2, t3, t4, t5, t6) = self;
@@ -188,16 +188,16 @@ impl<
     }
 }
 impl<
-    'a,
-    AbortReason,
-    T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T7: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-> Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6, T7)
+        'a,
+        AbortReason,
+        T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T7: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+    > Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6, T7)
 {
     fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
         let (t1, t2, t3, t4, t5, t6, t7) = self;
@@ -214,17 +214,17 @@ impl<
 }
 
 impl<
-    'a,
-    AbortReason,
-    T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T7: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T8: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-> Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6, T7, T8)
+        'a,
+        AbortReason,
+        T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T7: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T8: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+    > Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6, T7, T8)
 {
     fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
         let (t1, t2, t3, t4, t5, t6, t7, t8) = self;
@@ -242,18 +242,18 @@ impl<
 }
 
 impl<
-    'a,
-    AbortReason,
-    T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T7: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T8: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T9: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-> Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6, T7, T8, T9)
+        'a,
+        AbortReason,
+        T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T7: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T8: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T9: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+    > Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6, T7, T8, T9)
 {
     fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
         let (t1, t2, t3, t4, t5, t6, t7, t8, t9) = self;
@@ -272,19 +272,19 @@ impl<
 }
 
 impl<
-    'a,
-    AbortReason,
-    T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T7: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T8: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T9: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-    T10: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
-> Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)
+        'a,
+        AbortReason,
+        T1: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T2: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T3: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T4: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T5: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T6: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T7: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T8: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T9: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+        T10: TryInto<TransactItem<'a, AbortReason>, Error = SerErr>,
+    > Transact<'a, AbortReason> for (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)
 {
     fn try_into_transact_items(self) -> Result<ArrayVec<TransactItem<'a, AbortReason>, 10>> {
         let (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10) = self;

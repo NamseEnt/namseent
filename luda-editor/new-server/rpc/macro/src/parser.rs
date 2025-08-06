@@ -1,5 +1,5 @@
 use macro_common_lib::*;
-use syn::{Ident, punctuated::Punctuated, spanned::Spanned};
+use syn::{punctuated::Punctuated, spanned::Spanned, Ident};
 
 pub struct Rpc {
     pub services: Punctuated<Service, syn::Token![,]>,

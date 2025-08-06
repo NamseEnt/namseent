@@ -1,6 +1,6 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{WantUpdate, schema::*};
+use database::{schema::*, WantUpdate};
 use luda_rpc::episode::create_new_episode::*;
 
 pub async fn create_new_episode(

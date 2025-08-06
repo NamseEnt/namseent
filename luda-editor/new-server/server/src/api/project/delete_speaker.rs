@@ -1,6 +1,6 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{WantUpdate, schema::*};
+use database::{schema::*, WantUpdate};
 use luda_rpc::project::delete_speaker::*;
 
 pub async fn delete_speaker(

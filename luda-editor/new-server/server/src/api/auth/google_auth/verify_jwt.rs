@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header};
+use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use std::{
     sync::{Arc, OnceLock},
     time::{Duration, Instant},

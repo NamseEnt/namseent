@@ -1,7 +1,7 @@
 use crate::*;
 use anyhow::Result;
 use namui_type::*;
-use psd::{IntoRgba, PsdLayer, ToMask, image_data_section::ChannelBytes};
+use psd::{image_data_section::ChannelBytes, IntoRgba, PsdLayer, ToMask};
 use rayon::prelude::*;
 use sk_position_image::SkPositionImage;
 use skia_safe::{Data, ImageInfo, Paint, Surface};
@@ -82,8 +82,7 @@ pub(crate) fn make_tree(psd: &psd::Psd) -> Vec<LayerTree> {
             group_ids_bottom_to_top
         };
 
-        
-        (group_ids_bottom_to_top
+        let group_children = group_ids_bottom_to_top
             .iter()
             .rev()
             .fold(tree, |tree, group_id| {
@@ -105,7 +104,8 @@ pub(crate) fn make_tree(psd: &psd::Psd) -> Vec<LayerTree> {
                     LayerTree::Group { children, .. } => children,
                     LayerTree::Layer { .. } => unreachable!("It should be group"),
                 }
-            })) as _
+            });
+        group_children
     }
 }
 
