@@ -79,7 +79,7 @@ jobs:
             git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add .
             git commit -m "Auto-fix clippy warnings in ${{ matrix.dir }} (aarch64-apple-darwin)"
-            git push
+            git push origin HEAD:${{ github.head_ref }}
             echo "Clippy fixes were applied and committed."
             exit 1
           else

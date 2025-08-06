@@ -90,7 +90,7 @@ jobs:
             git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add .
             git commit -m "Auto-fix fmt and clippy warnings in ${{ matrix.dir }}"
-            git push
+            git push origin HEAD:${{ github.head_ref }}
             echo "Code formatting and clippy fixes were applied and committed."
             exit 1
           else
