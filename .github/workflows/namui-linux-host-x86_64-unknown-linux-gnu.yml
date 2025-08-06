@@ -45,6 +45,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+          token: ${{ secrets.PAT_CARGO_LOCK_UPDATE }}
+          persist-credentials: false
 
       - name: Install dependencies
         run: |
@@ -92,10 +94,10 @@ jobs:
             git commit -m "Auto-fix fmt and clippy warnings in ${{ matrix.dir }}"
             
             # Try to push, if rejected, pull and retry
-            if ! git push origin HEAD:${{ github.head_ref }}; then
+            if ! git push https://x-access-token:${{ secrets.PAT_CARGO_LOCK_UPDATE }}@github.com/${{ github.repository }}.git HEAD:${{ github.head_ref }}; then
               echo "Push rejected, pulling latest changes and retrying..."
-              git pull --rebase origin ${{ github.head_ref }}
-              git push origin HEAD:${{ github.head_ref }}
+              git pull --rebase https://x-access-token:${{ secrets.PAT_CARGO_LOCK_UPDATE }}@github.com/${{ github.repository }}.git ${{ github.head_ref }}
+              git push https://x-access-token:${{ secrets.PAT_CARGO_LOCK_UPDATE }}@github.com/${{ github.repository }}.git HEAD:${{ github.head_ref }}
             fi
             
             echo "Code formatting and clippy fixes were applied and committed."
