@@ -73,7 +73,7 @@ jobs:
           echo "Running commands in ${{ matrix.dir }}"
 
           echo "cargo metadata"
-          cargo metadata --quiet
+          cargo metadata --quiet > /dev/null
 
           echo "cargo fmt"
           cargo fmt
