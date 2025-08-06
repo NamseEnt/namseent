@@ -8,7 +8,7 @@ use document_store::*;
 use futures::future::try_join_all;
 use simple_doc_file::*;
 use std::{
-    collections::{HashMap, VecDeque, hash_map},
+    collections::{hash_map, HashMap, VecDeque},
     sync::Mutex,
 };
 use tokio::sync::oneshot;

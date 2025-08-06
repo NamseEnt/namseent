@@ -8,10 +8,10 @@ mod utils;
 use anyhow::Result;
 use aws_smithy_async::rt::sleep::default_async_sleep;
 use hyper::{
-    Server, Uri,
     service::{make_service_fn, service_fn},
+    Server, Uri,
 };
-use lambda_web::{LambdaError, is_running_on_lambda, run_hyper_on_lambda};
+use lambda_web::{is_running_on_lambda, run_hyper_on_lambda, LambdaError};
 use once_cell::sync::OnceCell;
 use std::io::Write;
 use std::net::SocketAddr;

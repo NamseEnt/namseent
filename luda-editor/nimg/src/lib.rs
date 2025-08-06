@@ -82,7 +82,7 @@ pub fn encode(
 }
 
 pub fn decode(data: &[u8]) -> Result<(Header, Vec<u8>)> {
-    let header: Header = bincode::deserialize(data)?;
+    let header: Header = bincode::deserialize(&data)?;
     let header_size = data.len() - header.body_length as usize;
     let body = header.parse_body(&data[header_size..])?;
     Ok((header, body))
@@ -111,8 +111,8 @@ impl Header {
 
                 let mut rgba = {
                     use zune_jpeg::{
-                        JpegDecoder,
                         zune_core::{colorspace::ColorSpace, options::DecoderOptions},
+                        JpegDecoder,
                     };
                     let mut decoder = JpegDecoder::new(rgb_jpeg);
                     decoder.set_options(

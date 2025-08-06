@@ -1,4 +1,4 @@
-use super::layer_tree::{LayerTree, make_tree};
+use super::layer_tree::{make_tree, LayerTree};
 use psd::BlendMode;
 use rpc::data::PartSelectionType;
 

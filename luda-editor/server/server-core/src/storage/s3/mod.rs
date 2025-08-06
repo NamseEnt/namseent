@@ -1,7 +1,7 @@
 mod presigned_url;
 
 use aws_config::SdkConfig;
-use aws_sdk_s3::{Client, types::ByteStream};
+use aws_sdk_s3::{types::ByteStream, Client};
 use lambda_web::is_running_on_lambda;
 pub use presigned_url::*;
 

@@ -21,11 +21,12 @@ fn run_case(doc: &Value, patches: &Value) -> Result<Value, String> {
 
     // Patch and verify that in case of error document wasn't changed
     crate::patch(&mut actual, &patches)
-        .inspect_err(|e| {
+        .map_err(|e| {
             assert_eq!(
                 *doc, actual,
                 "no changes should be made to the original document"
             );
+            e
         })
         .map_err(|e| e.to_string())?;
     Ok(actual)
@@ -45,9 +46,9 @@ pub fn run_specs(path: &str) {
     let cases: Vec<TestCase> = serde_json::from_reader(buf).unwrap();
 
     for (idx, tc) in cases.into_iter().enumerate() {
-        print!("Running test case {idx}");
+        print!("Running test case {}", idx);
         if let Some(comment) = tc.comment {
-            print!(" ({comment})... ");
+            print!(" ({})... ", comment);
         } else {
             print!("... ");
         }
@@ -60,7 +61,7 @@ pub fn run_specs(path: &str) {
         match run_case(&tc.doc, &tc.patch) {
             Ok(actual) => {
                 if let Some(ref error) = tc.error {
-                    println!("expected to fail with '{error}'");
+                    println!("expected to fail with '{}'", error);
                     panic!("expected to fail, got document {:?}", actual);
                 }
                 println!();
@@ -69,7 +70,7 @@ pub fn run_specs(path: &str) {
                 }
             }
             Err(err) => {
-                println!("failed with '{err}'");
+                println!("failed with '{}'", err);
                 tc.error.as_ref().expect("patch expected to succeed");
             }
         }
@@ -77,7 +78,7 @@ pub fn run_specs(path: &str) {
         match run_case_patch(&tc.doc, &tc.patch) {
             Ok(actual) => {
                 if let Some(ref error) = tc.error {
-                    println!("expected to fail with '{error}'");
+                    println!("expected to fail with '{}'", error);
                     panic!("expected to fail, got document {:?}", actual);
                 }
                 println!();
@@ -86,7 +87,7 @@ pub fn run_specs(path: &str) {
                 }
             }
             Err(err) => {
-                println!("failed with '{err}'");
+                println!("failed with '{}'", err);
                 tc.error.as_ref().expect("patch expected to succeed");
             }
         }

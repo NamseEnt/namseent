@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use std::fmt::Write;
-use syn::{DataStruct, Field, parse_macro_input};
+use syn::{parse_macro_input, DataStruct, Field};
 
 #[proc_macro_attribute]
 pub fn document(
@@ -30,14 +30,14 @@ pub fn document(
     let (prefixed_pk, prefixed_sk) = prefixed_value(&pk_fields, &sk_fields);
 
     let get_struct_output = {
-        let get_struct_ident = Ident::new(&format!("{struct_ident}Get"), struct_ident.span());
+        let get_struct_ident = Ident::new(&format!("{}Get", struct_ident), struct_ident.span());
         let get_struct_fields = prefixed_pk_fields
             .iter()
             .chain(prefixed_sk_fields.iter())
             .collect::<Vec<_>>();
 
         let get_with_verison_struct_ident = Ident::new(
-            &format!("{struct_ident}GetWithVersion"),
+            &format!("{}GetWithVersion", struct_ident),
             struct_ident.span(),
         );
 
@@ -74,10 +74,10 @@ pub fn document(
     let query_struct_output = if sk_fields.is_empty() {
         quote! {}
     } else {
-        let query_struct_ident = Ident::new(&format!("{struct_ident}Query"), struct_ident.span());
+        let query_struct_ident = Ident::new(&format!("{}Query", struct_ident), struct_ident.span());
         let query_struct_fields = prefixed_pk_fields.iter();
 
-        let sk_struct_ident = Ident::new(&format!("{struct_ident}SortKey"), struct_ident.span());
+        let sk_struct_ident = Ident::new(&format!("{}SortKey", struct_ident), struct_ident.span());
         let sk_struct_fields = sk_fields.iter();
         let to_string_rows = sk_fields.iter().map(|field| {
             let field_ident = &field.ident;
@@ -112,7 +112,7 @@ pub fn document(
 
     let delete_struct_output = {
         let delete_struct_ident =
-            Ident::new(&format!("{struct_ident}Delete"), struct_ident.span());
+            Ident::new(&format!("{}Delete", struct_ident), struct_ident.span());
         let delete_struct_fields = prefixed_pk_fields.iter().chain(prefixed_sk_fields.iter());
         quote! {
             pub struct #delete_struct_ident {
@@ -142,7 +142,7 @@ pub fn document(
 
     let update_struct_output = {
         let update_struct_ident =
-            Ident::new(&format!("{struct_ident}Update"), struct_ident.span());
+            Ident::new(&format!("{}Update", struct_ident), struct_ident.span());
         let update_struct_fields = prefixed_pk_fields.iter().chain(prefixed_sk_fields.iter());
         quote! {
             pub struct #update_struct_ident<Update, TCancelError, TUpdateFuture>
@@ -206,7 +206,7 @@ pub fn document(
 
     let update_or_create_struct_output = {
         let update_or_create_struct_ident = Ident::new(
-            &format!("{struct_ident}UpdateOrCreate"),
+            &format!("{}UpdateOrCreate", struct_ident),
             struct_ident.span(),
         );
         let update_or_create_struct_fields =
@@ -430,7 +430,7 @@ fn prefixed_fields(
         .iter()
         .map(|field| {
             let ident = field.ident.as_ref().unwrap();
-            let field_ident = Ident::new(&format!("pk_{ident}"), ident.span());
+            let field_ident = Ident::new(&format!("pk_{}", ident), ident.span());
             let field_type = &field.ty;
             quote! {
                 pub #field_ident: #field_type
@@ -442,7 +442,7 @@ fn prefixed_fields(
         .iter()
         .map(|field| {
             let ident = field.ident.as_ref().unwrap();
-            let field_ident = Ident::new(&format!("sk_{ident}"), ident.span());
+            let field_ident = Ident::new(&format!("sk_{}", ident), ident.span());
             let field_type = &field.ty;
             quote! {
                 pub #field_ident: #field_type

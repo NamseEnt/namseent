@@ -1,6 +1,6 @@
 use macro_common_lib::*;
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::{quote, ToTokens};
 use syn::{spanned::Spanned, *};
 
 pub struct DocumentParsed {
@@ -55,7 +55,7 @@ impl DocumentParsed {
         };
 
         let input_redefine = input_redefine(input, &fields);
-        let ref_struct_name = Ident::new(&format!("{name}Ref"), name.span());
+        let ref_struct_name = Ident::new(&format!("{}Ref", name), name.span());
         let field_names = fields
             .iter()
             .map(|field| field.ident.as_ref().unwrap().clone())

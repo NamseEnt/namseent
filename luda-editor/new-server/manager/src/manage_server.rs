@@ -23,7 +23,7 @@ pub fn keep_server_updated() {
             }
 
             if let Err(err) = keep_server_updated_tick(&mut server).await {
-                eprintln!("Failed to pull: {err}");
+                eprintln!("Failed to pull: {}", err);
             }
             time::sleep(Duration::from_secs(10)).await;
         }
@@ -53,7 +53,7 @@ async fn keep_server_updated_tick(server: &mut Option<Server>) -> Result<()> {
     }
 
     if let Err(err) = server.as_ref().unwrap().turn_on_memory_cache().await {
-        eprintln!("Failed to turn on memory cache: {err}");
+        eprintln!("Failed to turn on memory cache: {}", err);
         server.take();
         return Err(err);
     };
