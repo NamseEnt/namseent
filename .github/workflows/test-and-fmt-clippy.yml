@@ -21,14 +21,16 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+            namui_target: x86_64-unknown-linux-gnu
+            rust_target: x86_64-unknown-linux-gnu
           - os: macos-latest
-            target: aarch64-apple-darwin
+            namui_target: aarch64-apple-darwin
+            rust_target: aarch64-apple-darwin
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
+            namui_target: x86_64-pc-windows-msvc
+            rust_target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +42,7 @@ jobs:
       - name: Set up cargo
         run: |
           rustup update
-          rustup target add ${{ matrix.target }}
+          rustup target add ${{ matrix.rust_target }}
 
       - name: Dependency - x86_64-unknown-linux-gnu
         if: matrix.target == 'x86_64-unknown-linux-gnu'
@@ -51,17 +53,17 @@ jobs:
       - name: workspace-maker cache
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.target }}-workspace-maker
+          key: ${{ matrix.rust_target }}-workspace-maker
           workspaces: "./github-actions-tools/workspace-maker"
 
       - name: Create workspace Cargo.toml
         run: |
-          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.target }}
+          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.namui_target }}
 
       - name: Workspace cache
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.target }}
+          key: ${{ matrix.namui_target }}
 
       - name: Run commands
         run: |
@@ -91,16 +93,19 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+            namui_target: x86_64-unknown-linux-gnu
+            rust_target: x86_64-unknown-linux-gnu
           - os: ubuntu-latest
-            target: wasm32-wasip1-threads
+            namui_target: wasm32-wasi-web
+            rust_target: wasm32-wasip1-threads
           - os: macos-latest
-            target: aarch64-apple-darwin
+            namui_target: aarch64-apple-darwin
+            rust_target: aarch64-apple-darwin
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
+            namui_target: x86_64-pc-windows-msvc
+            rust_target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -110,13 +115,13 @@ jobs:
         id: check-code
         uses: softwareforgood/check-artifact-v4-existence@v0
         with:
-          name: code-${{ matrix.target }}
+          name: code-${{ github.run_id }}
 
       - name: Download code if exists
         if: steps.check-code.outputs.exists == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: code-${{ matrix.target }}
+          name: code-${{ github.run_id }}
           path: .
 
       - name: Checkout if first job
@@ -131,7 +136,7 @@ jobs:
       - name: Set up cargo
         run: |
           rustup update
-          rustup target add ${{ matrix.target }}
+          rustup target add ${{ matrix.rust_target }}
 
       - name: Dependency - x86_64-unknown-linux-gnu
         if: matrix.target == 'x86_64-unknown-linux-gnu'
@@ -159,27 +164,27 @@ jobs:
       - name: workspace-maker cache
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.target }}-workspace-maker
+          key: ${{ matrix.rust_target }}-workspace-maker
           workspaces: "./github-actions-tools/workspace-maker"
 
       - name: Create workspace Cargo.toml
         run: |
-          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.target }}
+          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.namui_target }}
 
       - name: Workspace cache
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.target }}
+          key: ${{ matrix.namui_target }}
 
       - run: cargo fmt --all
 
-      - run: cargo clippy --target ${{ matrix.target }} --tests --fix --allow-dirty
+      - run: cargo clippy --target ${{ matrix.rust_target }} --tests --fix --allow-dirty
 
       - name: Upload code for next job
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: code-${{ matrix.target }}-${{ github.run_id }}
+          name: code-${{ github.run_id }}
           path: |
             .
             !target
