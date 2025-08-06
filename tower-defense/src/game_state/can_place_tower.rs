@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use super::*;
 
 pub fn can_place_tower(
@@ -10,17 +8,6 @@ pub fn can_place_tower(
     route_coords: &[MapCoord],
     map_wh: Wh<usize>,
 ) -> bool {
-    // NOTE: I guess this function would be called frequently so it needs to be optimized.
-    /*
-        Algorithm
-        1. Check if the new tower disrupts the route.
-        2. If it disrupts, divide the route into multiple routes by the new tower.
-        3. Let's say the route is divided START->A, A->B, ..., Z->END.
-          - Don't think about the exact number of divided routes because only START->A and Z->END are important.
-          - You can find A and Z by checking the route from START to END direction, and vice versa.
-        4. Perform BFS from A to Z-END. It's the same as performing BFS from START to END, but more efficient.
-    */
-
     let new_tower_coords = (0..tower_size.width)
         .flat_map(|x| (0..tower_size.height).map(move |y| MapCoord::new(x, y) + tower_left_top))
         .collect::<Vec<_>>();
@@ -35,61 +22,37 @@ pub fn can_place_tower(
         }
     }
 
-    let splitted_routes_by_travel_point = {
-        let mut routes = vec![];
-        let mut full_route_coords = route_coords.iter().copied().collect::<VecDeque<_>>();
-        for i in 0..travel_points.len() - 1 {
-            let start = travel_points[i];
-            assert_eq!(*full_route_coords.front().unwrap(), start);
-
-            let end = travel_points[i + 1];
-            let mut route = vec![];
-
-            loop {
-                let coord = full_route_coords.pop_front().unwrap();
-                if coord == end {
-                    break;
-                }
-                route.push(coord);
-            }
-
-            route.push(end);
-            routes.push(route);
-        }
-        routes
-    };
-
     let disrupts = find_all_disrupts(&new_tower_coords, placed_tower_coords);
 
-    for splitted_route_coords in splitted_routes_by_travel_point {
-        let Some(start_side_disrupt_point_index) =
-            find_disrupted_route_point_index(splitted_route_coords.iter(), &disrupts)
-        else {
-            continue;
-        };
-        if start_side_disrupt_point_index == 0 {
-            continue; // NOTE: I'm not sure this is correct. Remove this comment if you can confirm it.
-        }
-        let end_side_disrupt_after_point_index = splitted_route_coords.len()
-            - find_disrupted_route_point_index(splitted_route_coords.iter().rev(), &disrupts)
+    let all_tower_coords = {
+        let mut coords = new_tower_coords;
+        coords.extend_from_slice(placed_tower_coords);
+        coords
+    };
+
+    let mut route_coords_queue = route_coords;
+    for i in 0..travel_points.len() - 1 {
+        let start = travel_points[i];
+        let end = travel_points[i + 1];
+
+        let section_route_coords = {
+            let index = route_coords_queue
+                .iter()
+                .position(|&coord| coord == end)
                 .unwrap();
+            let left = &route_coords_queue[index..];
+            let right = &route_coords_queue[..index + 1];
+            route_coords_queue = left;
+            right
+        };
 
-        let start_side_disrupt_before_point = route_coords[start_side_disrupt_point_index - 1];
+        if !is_disrupted(section_route_coords, &disrupts) {
+            continue;
+        }
 
-        let tower_coords_with_new = placed_tower_coords
-            .iter()
-            .chain(new_tower_coords.iter())
-            .copied()
-            .collect::<Vec<_>>();
+        let new_route = crate::route::find_shortest_route(map_wh, start, end, &all_tower_coords);
 
-        if crate::route::bfs(
-            crate::game_state::MAP_SIZE,
-            start_side_disrupt_before_point,
-            &splitted_route_coords[end_side_disrupt_after_point_index..],
-            &tower_coords_with_new,
-        )
-        .is_none()
-        {
+        if new_route.is_none() {
             return false;
         }
     }
@@ -97,40 +60,7 @@ pub fn can_place_tower(
     true
 }
 
-/// None if no disrupt.
-fn find_disrupted_route_point_index<'a>(
-    route_coords: impl Iterator<Item = &'a MapCoord> + 'a,
-    disrupts: &[Disrupt],
-) -> Option<usize> {
-    let mut iter = route_coords.enumerate().peekable();
-    while let Some((i, route_coord)) = iter.next() {
-        let route_coord_i_plus_1 = iter.peek().map(|(_, route_coord)| route_coord);
-
-        for disrupt in disrupts {
-            match disrupt {
-                Disrupt::One { coord } => {
-                    if route_coord == coord {
-                        return Some(i);
-                    }
-                }
-                Disrupt::Path { coord1, coord2 } => {
-                    let Some(&route_coord_i_plus_1) = route_coord_i_plus_1 else {
-                        continue;
-                    };
-                    if route_coord == coord1 && route_coord_i_plus_1 == coord2
-                        || route_coord == coord2 && route_coord_i_plus_1 == coord1
-                    {
-                        return Some(i);
-                    }
-                }
-            }
-        }
-    }
-
-    None
-}
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Disrupt {
     One { coord: MapCoord },
     Path { coord1: MapCoord, coord2: MapCoord },
@@ -166,6 +96,15 @@ fn find_all_disrupts(
     disrupt
 }
 
+fn is_disrupted(route_coords: &[MapCoord], disrupts: &[Disrupt]) -> bool {
+    disrupts.iter().any(|disrupt| match disrupt {
+        Disrupt::One { coord } => route_coords.contains(coord),
+        &Disrupt::Path { coord1, coord2 } => route_coords.windows(2).any(|window| {
+            window[0] == coord1 && window[1] == coord2 || window[0] == coord2 && window[1] == coord1
+        }),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -198,20 +137,19 @@ mod tests {
 
         let tower_size = Wh::new(2, 2);
 
-        {
+        for _ in 0..100 {
             let mut placed_tower_coords = vec![];
             let mut route =
                 crate::route::calculate_routes(&placed_tower_coords, &TRAVEL_POINTS, MAP_SIZE)
                     .unwrap();
-            for tower_left_top in [
-                Xy { x: 0, y: 6 },
-                Xy { x: 2, y: 1 },
-                Xy { x: 4, y: 2 },
-                Xy { x: 2, y: 6 },
-                Xy { x: 3, y: 4 },
-                Xy { x: 8, y: 6 },
-                Xy { x: 0, y: 3 },
-            ] {
+            let mut tower_placed = false;
+            let mut tower_left_top_history = vec![];
+
+            for _ in 0..100 {
+                let tower_left_top = MapCoord::new(
+                    rand::random::<usize>() % MAP_SIZE.width,
+                    rand::random::<usize>() % MAP_SIZE.height,
+                );
                 if can_place_tower(
                     tower_left_top,
                     tower_size,
@@ -224,6 +162,8 @@ mod tests {
                     let last_placed_tower_coords = placed_tower_coords.clone();
                     assert!(tower_left_top.x < MAP_SIZE.width);
                     assert!(tower_left_top.y < MAP_SIZE.height);
+                    tower_left_top_history.push(tower_left_top);
+                    tower_placed = true;
                     placed_tower_coords.extend((0..tower_size.width).flat_map(|x| {
                         (0..tower_size.height).map(move |y| MapCoord::new(x, y) + tower_left_top)
                     }));
@@ -238,7 +178,8 @@ mod tests {
 -last_route-
 {}
 -new_route-
-{}",
+{}
+tower_left_top_history: {tower_left_top_history:?}",
                             debug_print_map(
                                 MAP_SIZE,
                                 &last_placed_tower_coords,
@@ -255,11 +196,28 @@ mod tests {
                     });
                 }
             }
+            assert!(tower_placed);
         }
+    }
 
-        let mut placed_tower_coords = vec![];
-        let mut route =
+    #[test]
+    fn test_empty_map() {
+        const TRAVEL_POINTS: [MapCoord; 7] = [
+            MapCoord::new(1, 1),
+            MapCoord::new(1, 5),
+            MapCoord::new(8, 5),
+            MapCoord::new(8, 1),
+            MapCoord::new(4, 1),
+            MapCoord::new(4, 8),
+            MapCoord::new(8, 8),
+        ];
+
+        let tower_size = Wh::new(2, 2);
+        let placed_tower_coords = vec![];
+        let route =
             crate::route::calculate_routes(&placed_tower_coords, &TRAVEL_POINTS, MAP_SIZE).unwrap();
+
+        assert_eq!(route.iter_coords()[0], MapCoord::new(1, 1));
 
         assert!(!can_place_tower(
             MapCoord::new(0, MAP_SIZE.height - 1),
@@ -277,15 +235,35 @@ mod tests {
             route.iter_coords(),
             MAP_SIZE,
         ));
+    }
 
-        let mut tower_placed = false;
-        let mut tower_left_top_history = vec![];
+    #[test]
+    fn test_can_place_tower_case1() {
+        const MAP_SIZE: Wh<BlockUnit> = Wh::new(10, 10);
+        const TRAVEL_POINTS: [MapCoord; 7] = [
+            MapCoord::new(1, 1),
+            MapCoord::new(1, 5),
+            MapCoord::new(8, 5),
+            MapCoord::new(8, 1),
+            MapCoord::new(4, 1),
+            MapCoord::new(4, 8),
+            MapCoord::new(8, 8),
+        ];
 
-        for _ in 0..100 {
-            let tower_left_top = MapCoord::new(
-                rand::random::<usize>() % MAP_SIZE.width,
-                rand::random::<usize>() % MAP_SIZE.height,
-            );
+        let tower_size = Wh::new(2, 2);
+
+        let mut placed_tower_coords = vec![];
+        let mut route =
+            crate::route::calculate_routes(&placed_tower_coords, &TRAVEL_POINTS, MAP_SIZE).unwrap();
+        for tower_left_top in [
+            Xy { x: 0, y: 6 },
+            Xy { x: 2, y: 1 },
+            Xy { x: 4, y: 2 },
+            Xy { x: 2, y: 6 },
+            Xy { x: 3, y: 4 },
+            Xy { x: 8, y: 6 },
+            Xy { x: 0, y: 3 },
+        ] {
             if can_place_tower(
                 tower_left_top,
                 tower_size,
@@ -298,8 +276,6 @@ mod tests {
                 let last_placed_tower_coords = placed_tower_coords.clone();
                 assert!(tower_left_top.x < MAP_SIZE.width);
                 assert!(tower_left_top.y < MAP_SIZE.height);
-                tower_left_top_history.push(tower_left_top);
-                tower_placed = true;
                 placed_tower_coords.extend((0..tower_size.width).flat_map(|x| {
                     (0..tower_size.height).map(move |y| MapCoord::new(x, y) + tower_left_top)
                 }));
@@ -311,8 +287,7 @@ mod tests {
 -last_route-
 {}
 -new_route-
-{}
-tower_left_top_history: {tower_left_top_history:?}",
+{}",
                                 debug_print_map(
                                     MAP_SIZE,
                                     &last_placed_tower_coords,
@@ -329,8 +304,6 @@ tower_left_top_history: {tower_left_top_history:?}",
                         });
             }
         }
-
-        assert!(tower_placed);
     }
 
     #[test]
@@ -453,30 +426,125 @@ tower_left_top_history: {tower_left_top_history:?}",
             MAP_SIZE,
         ));
     }
+    #[test]
+
+    /// https://github.com/NamseEnt/namseent/actions/runs/16744617267/job/47400614059#step:7:1036
+    fn cicd_47400614059() {
+        const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
+        const TRAVEL_POINTS: [MapCoord; 7] = [
+            MapCoord::new(1, 1),
+            MapCoord::new(1, 5),
+            MapCoord::new(8, 5),
+            MapCoord::new(8, 1),
+            MapCoord::new(4, 1),
+            MapCoord::new(4, 8),
+            MapCoord::new(8, 8),
+        ];
+
+        let tower_size = Wh::new(2, 2);
+
+        let placed_tower_coords = [
+            MapCoord::new(0, 2),
+            MapCoord::new(6, 8),
+            MapCoord::new(5, 3),
+            MapCoord::new(8, 2),
+            MapCoord::new(1, 8),
+            MapCoord::new(6, 6),
+            MapCoord::new(3, 6),
+        ]
+        .into_iter()
+        .flat_map(|coord| {
+            (coord.x..coord.x + tower_size.width).flat_map(move |x| {
+                (coord.y..coord.y + tower_size.height).map(move |y| MapCoord::new(x, y))
+            })
+        })
+        .collect::<Vec<_>>();
+        let route =
+            crate::route::calculate_routes(&placed_tower_coords, &TRAVEL_POINTS, MAP_SIZE).unwrap();
+
+        assert!(!can_place_tower(
+            MapCoord::new(2, 0),
+            tower_size,
+            &TRAVEL_POINTS,
+            &placed_tower_coords,
+            route.iter_coords(),
+            MAP_SIZE,
+        ));
+    }
 
     #[test]
-    fn test_find_disrupted_route_point_index() {
-        let disrupts = vec![
-            Disrupt::One {
-                coord: MapCoord::new(1, 1),
-            },
-            Disrupt::Path {
-                coord1: MapCoord::new(2, 2),
-                coord2: MapCoord::new(3, 3),
-            },
-        ];
-
-        let route_coords = [
-            MapCoord::new(0, 0),
-            MapCoord::new(1, 1),
-            MapCoord::new(2, 2),
-            MapCoord::new(3, 3),
-            MapCoord::new(4, 4),
-        ];
-
+    fn find_all_disrupts_47400614059() {
         assert_eq!(
-            find_disrupted_route_point_index(route_coords.iter(), &disrupts),
-            Some(1)
+            find_all_disrupts(
+                &[
+                    MapCoord::new(2, 0),
+                    MapCoord::new(2, 1),
+                    MapCoord::new(3, 0),
+                    MapCoord::new(3, 1),
+                ],
+                &[
+                    MapCoord::new(0, 2),
+                    MapCoord::new(0, 3),
+                    MapCoord::new(1, 2),
+                    MapCoord::new(1, 3),
+                ],
+            ),
+            vec![
+                Disrupt::One {
+                    coord: MapCoord::new(2, 0),
+                },
+                Disrupt::One {
+                    coord: MapCoord::new(2, 1),
+                },
+                Disrupt::One {
+                    coord: MapCoord::new(3, 0),
+                },
+                Disrupt::One {
+                    coord: MapCoord::new(3, 1),
+                },
+                Disrupt::Path {
+                    coord1: MapCoord::new(1, 1),
+                    coord2: MapCoord::new(2, 2),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn find_all_disrupts_diagonal_left_bottom() {
+        assert_eq!(
+            find_all_disrupts(
+                &[
+                    MapCoord::new(2, 0),
+                    MapCoord::new(2, 1),
+                    MapCoord::new(3, 0),
+                    MapCoord::new(3, 1),
+                ],
+                &[
+                    MapCoord::new(0, 2),
+                    MapCoord::new(0, 3),
+                    MapCoord::new(1, 2),
+                    MapCoord::new(1, 3),
+                ],
+            ),
+            vec![
+                Disrupt::One {
+                    coord: MapCoord::new(2, 0),
+                },
+                Disrupt::One {
+                    coord: MapCoord::new(2, 1),
+                },
+                Disrupt::One {
+                    coord: MapCoord::new(3, 0),
+                },
+                Disrupt::One {
+                    coord: MapCoord::new(3, 1),
+                },
+                Disrupt::Path {
+                    coord1: MapCoord::new(1, 1),
+                    coord2: MapCoord::new(2, 2),
+                },
+            ]
         );
     }
 

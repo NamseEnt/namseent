@@ -28,7 +28,8 @@ pub fn calculate_routes(
         let start_xy = travel_points[i];
         let end_xy = travel_points[i + 1];
         let route = crate::route::find_shortest_route(map_wh, start_xy, end_xy, blockers)?;
-        map_coords.extend(route);
+
+        map_coords.extend_from_slice(if i == 0 { &route } else { &route[1..] });
     }
 
     Some(Arc::new(Route { map_coords }))
