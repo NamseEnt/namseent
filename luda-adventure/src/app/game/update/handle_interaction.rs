@@ -1,4 +1,4 @@
-use crate::app::game::{self, Game, interaction};
+use crate::app::game::{self, interaction, Game};
 use interaction::nearest_entity;
 use namui::Code;
 

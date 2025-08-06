@@ -1,5 +1,5 @@
 use crate::{
-    app::game::{Tile, tile},
+    app::game::{tile, Tile},
     component::{Sprite, SpriteAnimation},
 };
 use namui::*;

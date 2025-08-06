@@ -1,4 +1,4 @@
-use crate::app::game::{TileExt, map::MapLoader, save_load::SaveLoad};
+use crate::app::game::{map::MapLoader, save_load::SaveLoad, TileExt};
 use namui::*;
 use namui_prebuilt::{
     button::text_button_fit,

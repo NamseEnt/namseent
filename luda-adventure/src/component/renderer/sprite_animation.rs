@@ -1,4 +1,4 @@
-use super::{Sprite, minimum_visual_rect_containing_sprites};
+use super::{minimum_visual_rect_containing_sprites, Sprite};
 use crate::app::game::{GameState, RenderingContext, Tile};
 use namui::*;
 

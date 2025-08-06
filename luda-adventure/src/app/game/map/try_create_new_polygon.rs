@@ -1,4 +1,4 @@
-use geo::{Area, Coord, EuclideanDistance, Line, LineString, Polygon, coord};
+use geo::{coord, Area, Coord, EuclideanDistance, Line, LineString, Polygon};
 use namui::*;
 use std::collections::HashMap;
 

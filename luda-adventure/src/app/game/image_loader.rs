@@ -31,7 +31,7 @@ impl ImageLoader {
 
     fn start_load_all_images(&mut self) {
         const CONCURRENT: usize = 4;
-        let ImageLoaderState::Idle = self.image_loader_state else {
+        let ImageLoaderState::Idle = self.image_loader_state  else{
             return;
         };
 
@@ -53,10 +53,7 @@ impl ImageLoader {
         let ImageLoaderState::Loading {
             total_image_count,
             loaded_image_count,
-        } = &mut self.image_loader_state
-        else {
-            return;
-        };
+        } = &mut self.image_loader_state else {return;};
 
         *loaded_image_count += 1;
 

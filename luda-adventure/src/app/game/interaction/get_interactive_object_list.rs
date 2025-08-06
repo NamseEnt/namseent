@@ -1,5 +1,5 @@
 use crate::{
-    app::game::{Game, Tile, tile},
+    app::game::{tile, Game, Tile},
     component::{Interactor, PlayerCharacter, Positioner, Renderer},
     ecs::Entity,
 };
@@ -14,8 +14,7 @@ impl Game {
             .ecs_app
             .query_entities::<(&PlayerCharacter, &Positioner)>()
             .into_iter()
-            .next()
-        else {
+            .next() else {
             return vec![];
         };
         let character_position = character_positioner.xy;

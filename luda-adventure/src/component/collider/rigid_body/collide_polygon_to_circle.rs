@@ -1,4 +1,4 @@
-use super::{Circle, collide_circle_to_polygon};
+use super::{collide_circle_to_polygon, Circle};
 use crate::component::CollisionInfo;
 use geo::Polygon;
 
