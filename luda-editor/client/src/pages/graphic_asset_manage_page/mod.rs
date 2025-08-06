@@ -36,7 +36,7 @@ pub struct GraphicAssetManagePage {
 }
 
 impl Component for GraphicAssetManagePage {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         const TOP_BAR_HEIGHT: Px = px(48.0);
@@ -167,6 +167,8 @@ impl Component for GraphicAssetManagePage {
                 }
             }),
         );
+
+        
     }
 }
 

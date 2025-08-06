@@ -22,7 +22,7 @@ pub enum Event {
 }
 
 impl Component for CgPicker<'_> {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             project_id,
@@ -38,15 +38,15 @@ impl Component for CgPicker<'_> {
                     scroll_bar_width: 4.px(),
                     wh,
                     content: |ctx| {
-                        table::vertical(cg_file_list.chunks(max_items_per_row).map(|cg_files| {
-                            table::fixed(CHARACTER_THUMBNAIL_WH.height, {
-                                table::horizontal(
-                                    cg_files.iter().map(|cg_file| {
+                        table::vertical(cg_file_list.chunks(max_items_per_row).map(
+                            |cg_files| {
+                                table::fixed(CHARACTER_THUMBNAIL_WH.height, {
+                                    table::horizontal(cg_files.iter().map(|cg_file| {
                                         render_thumbnail(cg_file, project_id, on_event)
-                                    }),
-                                )
-                            })
-                        }))(wh, ctx)
+                                    }))
+                                })
+                            },
+                        ))(wh, ctx)
                     },
                 });
             })(wh, ctx)

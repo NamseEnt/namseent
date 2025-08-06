@@ -1,6 +1,6 @@
 use crate::{
-    RPC,
     app::notification::{self, remove_notification},
+    RPC,
 };
 use futures::FutureExt;
 use namui::*;
@@ -12,7 +12,7 @@ pub struct ProjectListPage {
 }
 
 impl Component for ProjectListPage {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
         const ITEM_HEIGHT: Px = px(40.0);
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
@@ -190,6 +190,8 @@ impl Component for ProjectListPage {
         //                 .on_mouse_up_out(|event: MouseEvent| event.stop_propagation());
         //         })
         //     }),
+
+        
     }
 }
 
@@ -199,7 +201,7 @@ pub struct ProjectCell {
 }
 
 impl Component for ProjectCell {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let project_id = self.project.id;
 
         ctx.component(namui_prebuilt::button::TextButton {

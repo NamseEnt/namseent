@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for Rotator<'_> {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         const HANDLE_RADIUS: Px = px(5.0);
         const HANDLE_OFFSET: Px = px(18.0);
         let Self {
@@ -96,6 +96,8 @@ impl Component for Rotator<'_> {
         });
 
         ctx.component(rendering_tree);
+
+        
     }
 }
 

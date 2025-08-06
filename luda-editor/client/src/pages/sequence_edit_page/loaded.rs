@@ -30,7 +30,7 @@ enum ContextMenu {
 }
 
 impl Component for LoadedSequenceEditorPage {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             project_shared_data,
             cut_id_memos_map,
@@ -331,6 +331,8 @@ impl Component for LoadedSequenceEditorPage {
                 image_picker_cell,
             ])(wh, ctx)
         });
+
+        
     }
 }
 

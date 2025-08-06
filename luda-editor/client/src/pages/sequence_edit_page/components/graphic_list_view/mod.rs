@@ -20,7 +20,7 @@ pub struct GraphicListView<'a> {
 }
 
 impl Component for GraphicListView<'_> {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         const HEADER_HEIGHT: Px = px(32.0);
         const GRAPHIC_LIST_ITEM_HEIGHT: Px = px(48.0);
         const PADDING: Px = px(4.0);
@@ -202,6 +202,8 @@ impl Component for GraphicListView<'_> {
             1.px(),
             color::BACKGROUND,
         ));
+
+        
     }
 }
 

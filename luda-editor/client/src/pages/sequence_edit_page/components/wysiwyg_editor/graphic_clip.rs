@@ -31,7 +31,7 @@ pub enum Event<'a> {
 }
 
 impl Component for GraphicClip<'_> {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             cut_id,
             graphic_index,
@@ -53,10 +53,10 @@ impl Component for GraphicClip<'_> {
             Some(Ok(image)) => image,
             Some(Err(error)) => {
                 namui::log!("Failed to load image: {:?}", error);
-                return;
+                return ;
             }
             None => {
-                return;
+                return ;
             }
         };
         let graphic_wh = image.wh;
@@ -207,5 +207,7 @@ impl Component for GraphicClip<'_> {
 
             ctx.compose(graphic_rendering_tree);
         });
+
+        
     }
 }

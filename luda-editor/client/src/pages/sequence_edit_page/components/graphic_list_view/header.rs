@@ -6,7 +6,7 @@ pub struct Header {
     pub wh: Wh<Px>,
 }
 impl Component for Header {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         const PADDING: Wh<Px> = Wh {
             width: px(8.0),
             height: px(4.0),
@@ -43,5 +43,7 @@ impl Component for Header {
             1.px(),
             color::BACKGROUND,
         ));
+
+        
     }
 }

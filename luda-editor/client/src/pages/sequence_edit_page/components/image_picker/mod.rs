@@ -29,7 +29,7 @@ pub enum InternalEvent {
 }
 
 impl Component for ImagePicker<'_> {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             project_id,
@@ -75,6 +75,8 @@ impl Component for ImagePicker<'_> {
             });
 
         ctx.component(background);
+
+        
     }
 }
 

@@ -6,7 +6,7 @@ pub struct CloseButton {
     pub color: Color,
 }
 impl Component for CloseButton {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, color } = self;
         ctx.compose(|ctx| {
             namui_prebuilt::table::padding(wh.height / 6.0, |wh, ctx| {
@@ -29,5 +29,7 @@ impl Component for CloseButton {
                 ));
             })(wh, ctx);
         });
+
+        
     }
 }

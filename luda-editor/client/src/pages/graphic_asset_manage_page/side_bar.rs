@@ -8,7 +8,7 @@ pub(super) struct SideBar {
 }
 
 impl Component for SideBar {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh } = self;
 
         const PADDING: Px = px(8.0);
@@ -38,6 +38,8 @@ impl Component for SideBar {
             1.px(),
             color::BACKGROUND,
         ));
+
+        
     }
 }
 
@@ -46,7 +48,7 @@ struct TabButton {
     tab: Tab,
 }
 impl Component for TabButton {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, tab } = self;
 
         const PADDING: Px = px(4.0);
@@ -84,5 +86,7 @@ impl Component for TabButton {
                 })
                 .with_mouse_cursor(MouseCursor::Pointer),
         );
+
+        
     }
 }

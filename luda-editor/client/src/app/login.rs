@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use namui::*;
 
 const DEV_CLIENT_ID: &str = "abd04a6aeba3e99f5b4b";

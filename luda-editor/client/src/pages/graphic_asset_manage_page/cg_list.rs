@@ -1,4 +1,4 @@
-use super::{CG_FILES_ATOM, SELECTED_ASSET_ATOM, auto_column_list::AutoColumnList};
+use super::{auto_column_list::AutoColumnList, CG_FILES_ATOM, SELECTED_ASSET_ATOM};
 use crate::{color, storage::get_project_cg_thumbnail_image_url};
 use namui::*;
 use namui_prebuilt::simple_rect;
@@ -12,7 +12,7 @@ pub(super) struct CgList {
 }
 
 impl Component for CgList {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self { wh, project_id } = self;
 
         let (cg_files, _set_cg_files) = ctx.atom(&CG_FILES_ATOM);
@@ -36,6 +36,8 @@ impl Component for CgList {
             1.px(),
             color::BACKGROUND,
         ));
+
+        
     }
 }
 
@@ -45,7 +47,7 @@ struct Thumbnail<'a> {
     cg_file: &'a CgFile,
 }
 impl Component for Thumbnail<'_> {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cg_file,
@@ -91,5 +93,7 @@ impl Component for Thumbnail<'_> {
                 },
             ),
         );
+
+        
     }
 }

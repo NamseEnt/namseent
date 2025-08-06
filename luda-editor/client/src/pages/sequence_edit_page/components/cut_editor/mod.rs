@@ -42,7 +42,7 @@ enum ContextMenu {
 }
 
 impl Component for CutEditor<'_> {
-    fn render(self, ctx: &RenderCtx) {
+    fn render(self, ctx: &RenderCtx)  {
         let Self {
             wh,
             cut,
@@ -333,6 +333,8 @@ impl Component for CutEditor<'_> {
             on_internal_event: &on_internal_event,
             project_id,
         });
+
+        
     }
 }
 
@@ -355,7 +357,11 @@ enum UpDown {
 fn prev_cut_id(cuts: &[Cut], cut_id: Uuid) -> Option<Uuid> {
     cuts.iter().enumerate().find_map(|(i, cut)| {
         if cut.id == cut_id {
-            if i == 0 { None } else { Some(cuts[i - 1].id) }
+            if i == 0 {
+                None
+            } else {
+                Some(cuts[i - 1].id)
+            }
         } else {
             None
         }
