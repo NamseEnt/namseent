@@ -4,6 +4,7 @@ pub mod api;
 pub mod item;
 pub mod locale;
 pub mod quest;
+pub mod rich_text_helpers;
 pub mod tower;
 pub mod tower_skill;
 pub mod ui;

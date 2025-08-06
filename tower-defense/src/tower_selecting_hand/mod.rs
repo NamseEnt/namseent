@@ -81,6 +81,7 @@ impl Component for TowerSelectingHand {
                 state.goto_placing_tower(tower_template);
             });
         };
+
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio_no_clip(1, |_, _| {}),

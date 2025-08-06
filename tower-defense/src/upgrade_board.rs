@@ -165,7 +165,7 @@ impl Component for UpgradeItem {
                                         .size(FontSize::Medium)
                                         .align(TextAlign::LeftTop)
                                         .max_width(wh.width)
-                                        .build(),
+                                        .build_rich(),
                                 );
                             }),
                         ),
@@ -188,111 +188,111 @@ fn get_upgrade_description_texts(
 ) -> Vec<String> {
     let mut texts = vec![];
     if state.gold_earn_plus != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::GoldEarnPlus)
-                .replace("{amount}", &state.gold_earn_plus.to_string()),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::GoldEarnPlus {
+            amount: state.gold_earn_plus,
+        }));
     }
     if state.shop_slot_expand != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::ShopSlotExpand)
-                .replace("{amount}", &state.shop_slot_expand.to_string()),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::ShopSlotExpand {
+            amount: state.shop_slot_expand,
+        }));
     }
     if state.quest_slot_expand != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::QuestSlotExpand)
-                .replace("{amount}", &state.quest_slot_expand.to_string()),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::QuestSlotExpand {
+            amount: state.quest_slot_expand,
+        }));
     }
     if state.quest_board_slot_expand != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::QuestBoardSlotExpand)
-                .replace("{amount}", &state.quest_board_slot_expand.to_string()),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::QuestBoardSlotExpand {
+            amount: state.quest_board_slot_expand,
+        }));
     }
     if state.reroll_chance_plus != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::RerollChancePlus)
-                .replace("{amount}", &state.reroll_chance_plus.to_string()),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::RerollChancePlus {
+            amount: state.reroll_chance_plus,
+        }));
     }
     if state.shop_item_price_minus != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::ShopItemPriceMinus)
-                .replace("{amount}", &state.shop_item_price_minus.to_string()),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::ShopItemPriceMinus {
+            amount: state.shop_item_price_minus,
+        }));
     }
     if state.shop_refresh_chance_plus != 0 {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::ShopRefreshChancePlus)
-                .replace("{amount}", &state.shop_refresh_chance_plus.to_string()),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::ShopRefreshChancePlus {
+            amount: state.shop_refresh_chance_plus,
+        }));
     }
     if state.quest_board_refresh_chance_plus != 0 {
         texts.push(
-            text.upgrade_board(UpgradeBoardText::QuestBoardRefreshChancePlus)
-                .replace(
-                    "{amount}",
-                    &state.quest_board_refresh_chance_plus.to_string(),
-                ),
+            text.upgrade_board(UpgradeBoardText::QuestBoardRefreshChancePlus {
+                amount: state.quest_board_refresh_chance_plus,
+            }),
         );
     }
     if state.shorten_straight_flush_to_4_cards {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::ShortenStraightFlushTo4Cards)
-                .to_string(),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::ShortenStraightFlushTo4Cards));
     }
     if state.skip_rank_for_straight {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::SkipRankForStraight)
-                .to_string(),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::SkipRankForStraight));
     }
     if state.treat_suits_as_same {
-        texts.push(
-            text.upgrade_board(UpgradeBoardText::TreatSuitsAsSame)
-                .to_string(),
-        );
+        texts.push(text.upgrade_board(UpgradeBoardText::TreatSuitsAsSame));
     }
 
     for (target, tower_upgrade_state) in &state.tower_select_upgrade_states {
-        let target_text = match target {
+        let target_prefix = match target {
             TowerSelectUpgradeTarget::LowCard => {
-                format!("카드 {LOW_CARD_COUNT}개 이하로 타워를 만들 때 타워의")
+                text.upgrade_board(UpgradeBoardText::TowerSelectLowCard {
+                    amount: LOW_CARD_COUNT,
+                })
             }
             TowerSelectUpgradeTarget::NoReroll => {
-                "리롤을 하지 않고 타워를 만들 때 타워의".to_string()
+                text.upgrade_board(UpgradeBoardText::TowerSelectNoReroll)
             }
-            TowerSelectUpgradeTarget::Reroll => "리롤을 할 때 마다 타워의".to_string(),
+            TowerSelectUpgradeTarget::Reroll => {
+                text.upgrade_board(UpgradeBoardText::TowerSelectReroll)
+            }
         };
         texts.extend(tower_upgrade_state_description_texts(
-            &target_text,
+            text,
+            &target_prefix,
             tower_upgrade_state,
         ));
     }
 
     for (target, tower_upgrade_state) in &state.tower_upgrade_states {
-        let target_text = match target {
+        let target_prefix = match target {
             TowerUpgradeTarget::Rank { rank } => {
-                format!("랭크가 {rank}인 타워의")
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeRank {
+                    name: rank.to_string(),
+                })
             }
             TowerUpgradeTarget::Suit { suit } => {
-                format!("문양이 {suit}인 타워의")
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeSuit {
+                    name: suit.to_string(),
+                })
             }
             TowerUpgradeTarget::TowerKind { tower_kind } => {
-                format!("{} 타워의", text.tower(tower_kind.to_text()))
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeKind {
+                    name: text.tower(tower_kind.to_text()).to_string(),
+                })
             }
             TowerUpgradeTarget::EvenOdd { even } => {
-                format!("{} 타워의", if *even { "짝수" } else { "홀수" })
+                let name = if *even { "짝수" } else { "홀수" };
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeEvenOdd {
+                    name: name.to_string(),
+                })
             }
             TowerUpgradeTarget::FaceNumber { face } => {
-                format!("{} 타워의", if *face { "그림" } else { "숫자" })
+                let name = if *face { "그림" } else { "숫자" };
+                text.upgrade_board(UpgradeBoardText::TowerUpgradeFaceNumber {
+                    name: name.to_string(),
+                })
             }
         };
         texts.extend(tower_upgrade_state_description_texts(
-            &target_text,
+            text,
+            &target_prefix,
             tower_upgrade_state,
         ));
     }
@@ -301,39 +301,40 @@ fn get_upgrade_description_texts(
 }
 
 fn tower_upgrade_state_description_texts(
-    target_text: &str,
+    text: &crate::l10n::TextManager,
+    target_prefix: &str,
     tower_upgrade_state: &TowerUpgradeState,
 ) -> Vec<String> {
     let mut texts = vec![];
     if tower_upgrade_state.damage_plus != 0.0 {
-        texts.push(format!(
-            "{target_text} 공격력이 {}만큼 증가합니다",
-            tower_upgrade_state.damage_plus
-        ));
+        let suffix = text.upgrade_board(UpgradeBoardText::DamagePlus {
+            amount: tower_upgrade_state.damage_plus,
+        });
+        texts.push(format!("{target_prefix} {suffix}"));
     }
     if tower_upgrade_state.damage_multiplier != 1.0 {
-        texts.push(format!(
-            "{target_text} 공격력이 {}배 증가합니다",
-            tower_upgrade_state.damage_multiplier
-        ));
+        let suffix = text.upgrade_board(UpgradeBoardText::DamageMultiplier {
+            amount: tower_upgrade_state.damage_multiplier,
+        });
+        texts.push(format!("{target_prefix} {suffix}"));
     }
     if tower_upgrade_state.speed_plus != 0.0 {
-        texts.push(format!(
-            "{target_text} 공격 속도가 {}만큼 증가합니다",
-            tower_upgrade_state.speed_plus
-        ));
+        let suffix = text.upgrade_board(UpgradeBoardText::SpeedPlus {
+            amount: tower_upgrade_state.speed_plus,
+        });
+        texts.push(format!("{target_prefix} {suffix}"));
     }
     if tower_upgrade_state.speed_multiplier != 1.0 {
-        texts.push(format!(
-            "{target_text} 공격 속도가 {}배 증가합니다",
-            tower_upgrade_state.speed_multiplier
-        ));
+        let suffix = text.upgrade_board(UpgradeBoardText::SpeedMultiplier {
+            amount: tower_upgrade_state.speed_multiplier,
+        });
+        texts.push(format!("{target_prefix} {suffix}"));
     }
     if tower_upgrade_state.range_plus != 0.0 {
-        texts.push(format!(
-            "{target_text} 사정거리가 {}만큼 증가합니다",
-            tower_upgrade_state.range_plus
-        ));
+        let suffix = text.upgrade_board(UpgradeBoardText::RangePlus {
+            amount: tower_upgrade_state.range_plus,
+        });
+        texts.push(format!("{target_prefix} {suffix}"));
     }
     texts
 }

@@ -40,6 +40,7 @@ pub struct UpgradeState {
 pub struct Upgrade {
     pub kind: UpgradeKind,
     pub rarity: Rarity,
+    pub value: crate::OneZero,
 }
 
 impl UpgradeState {

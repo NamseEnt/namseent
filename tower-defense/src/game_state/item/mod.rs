@@ -1,12 +1,11 @@
 pub mod effect_processor;
-mod generation;
+pub mod generation;
 mod usage;
 
 use crate::{
     card::{Rank, Suit},
     rarity::Rarity,
 };
-pub use generation::*;
 use namui::*;
 pub use usage::*;
 
@@ -14,6 +13,7 @@ pub use usage::*;
 pub struct Item {
     pub kind: ItemKind,
     pub rarity: Rarity,
+    pub value: OneZero,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -396,13 +396,4 @@ impl ItemKind {
             )),
         }
     }
-}
-
-pub fn item_cost(rarity: &Rarity, shop_item_price_minus: usize) -> usize {
-    (match rarity {
-        Rarity::Common => 25,
-        Rarity::Rare => 50,
-        Rarity::Epic => 75,
-        Rarity::Legendary => 100,
-    } - shop_item_price_minus)
 }
