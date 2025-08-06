@@ -1,4 +1,4 @@
-name: cargo-lock-update
+name: cargo-lock-update-and-fmt
 on:
   push:
     branches-ignore:
@@ -29,15 +29,17 @@ jobs:
 
       - run: for-all-projects run --metadata
 
+      - run: for-all-projects fmt
+
       - name: Check for changes
         run: |
-          filtered_files=$(git diff --name-only | grep -v 'Cargo.lock' || true)
+          filtered_files=$(git diff --name-only | grep -v -E '(Cargo\.lock|\.rs)$' || true)
           if [ -n "$filtered_files" ]; then
-            echo "Error: Detected changes in files other than Cargo.lock:"
+            echo "Error: Detected changes in files other than Cargo.lock and .rs files:"
             echo "$filtered_files"
             exit 1
           fi
 
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: Update Cargo.lock
+          commit_message: Update Cargo.lock and format code

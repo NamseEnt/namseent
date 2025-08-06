@@ -2,6 +2,9 @@ name: namui-linux-host-x86_64-unknown-linux-gnu
 on:
   pull_request:
 
+permissions:
+  contents: write
+
 concurrency:
   group: ${{ github.ref }}-namui-linux-host-x86_64-unknown-linux-gnu
   cancel-in-progress: true
@@ -69,17 +72,26 @@ jobs:
         run: |
           echo "Running commands in ${{ matrix.dir }}"
 
-          echo "cargo check --tests"
-          cargo check --tests
-
           echo "cargo fmt"
           cargo fmt
 
-          echo "cargo clippy --tests"
-          cargo clippy --tests
+          echo "cargo clippy --fix --tests --allow-dirty"
+          cargo clippy --fix --tests --allow-dirty
 
-          echo "cargo test"
-          cargo test
+          if ! git diff --quiet; then
+            echo "Changes detected, committing and pushing..."
+            git config --local user.name "github-actions[bot]"
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .
+            git commit -m "Auto-fix fmt and clippy warnings in ${{ matrix.dir }}"
+            git push
+            echo "Code formatting and clippy fixes were applied and committed."
+            exit 1
+          else
+            echo "No changes detected, running tests..."
+            echo "cargo test"
+            cargo test
+          fi
 
   post-namui-linux-host-x86_64-unknown-linux-gnu:
     if: always()
