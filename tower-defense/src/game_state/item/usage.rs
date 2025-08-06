@@ -3,8 +3,7 @@ use super::{Item, ItemKind};
 use crate::{
     MapCoordF32,
     game_state::{
-        GameState, TRAVEL_POINTS,
-        field_area_effect::FieldAreaEffectKind,
+        GameState, TRAVEL_POINTS, field_area_effect::FieldAreaEffectKind,
         schedule::CountBasedSchedule,
     },
 };
