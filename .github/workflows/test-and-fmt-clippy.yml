@@ -13,6 +13,10 @@ env:
   CARGO_INCREMENTAL: 0
   RUSTFLAGS: -D warnings
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   test:
     strategy:
