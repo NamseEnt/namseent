@@ -47,14 +47,14 @@ jobs:
         run: |
           sudo apt install librust-alsa-sys-dev
 
+      - name: Create workspace
+        run: |
+          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.target }}
+
       - name: Workspace cache
         uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
-
-      - name: Create workspace
-        run: |
-          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.target }}
 
       - name: Run commands
         run: |
@@ -148,14 +148,14 @@ jobs:
         run: |
           cargo build
 
+      - name: Create workspace Cargo.toml
+        run: |
+          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.target }}
+
       - name: Workspace cache
         uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
-
-      - name: Create workspace Cargo.toml
-        run: |
-          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.target }}
 
       - run: cargo fmt --all
 
