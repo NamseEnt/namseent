@@ -19,7 +19,7 @@ use crate::{
         sequence_player::{calculate_graphic_rect_on_screen, calculate_graphic_wh_on_screen},
     },
     pages::sequence_edit_page::atom::{
-        FocusableComponent, EDITING_GRAPHIC_INDEX_ATOM, FOCUSED_COMPONENT, SEQUENCE_ATOM,
+        EDITING_GRAPHIC_INDEX_ATOM, FOCUSED_COMPONENT, FocusableComponent, SEQUENCE_ATOM,
     },
     storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
 };
@@ -51,7 +51,7 @@ enum ContextMenu {
 }
 
 impl Component for WysiwygEditor<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             cut_id,
@@ -450,8 +450,6 @@ impl Component for WysiwygEditor<'_> {
             }
         });
         ctx.component(background);
-
-        
     }
 }
 

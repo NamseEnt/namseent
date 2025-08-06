@@ -17,7 +17,7 @@ pub struct ImageViewer<'a> {
 }
 
 impl Component for ImageViewer<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             image,
@@ -141,7 +141,5 @@ impl Component for ImageViewer<'_> {
                 }
             }),
         );
-
-        
     }
 }

@@ -61,7 +61,7 @@ fn struct_get_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
         id_field_idents,
         ..
     } = parsed;
-    let get_struct_name = Ident::new(&format!("{}Get", name), name.span());
+    let get_struct_name = Ident::new(&format!("{name}Get"), name.span());
 
     quote! {
         pub struct #get_struct_name {
@@ -91,7 +91,7 @@ fn struct_put_define(parsed: &DocumentParsed) -> impl quote::ToTokens {
             },
         ..
     } = parsed;
-    let put_struct_name = Ident::new(&format!("{}Put", name), name.span());
+    let put_struct_name = Ident::new(&format!("{name}Put"), name.span());
 
     let try_into_generics = {
         let mut generics = generics.clone();
@@ -144,7 +144,7 @@ fn struct_create_define(
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
-    let create_struct_name = Ident::new(&format!("{}Create", name), name.span());
+    let create_struct_name = Ident::new(&format!("{name}Create"), name.span());
 
     let try_into_generics = {
         let mut generics = generics.clone();
@@ -190,7 +190,7 @@ fn struct_update_define(
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
-    let update_struct_name = Ident::new(&format!("{}Update", name), name.span());
+    let update_struct_name = Ident::new(&format!("{name}Update"), name.span());
 
     let has_lifetime = generics
         .params
@@ -288,7 +288,7 @@ fn struct_delete_define(
         ..
     }: &DocumentParsed,
 ) -> impl quote::ToTokens {
-    let delete_struct_name = Ident::new(&format!("{}Delete", name), name.span());
+    let delete_struct_name = Ident::new(&format!("{name}Delete"), name.span());
 
     quote! {
         pub struct #delete_struct_name {

@@ -4,7 +4,7 @@ use crate::{
     clipboard::TryReadLudaEditorClipboardItem,
     color,
     components::{cg_upload::create_cg, image_upload::create_image},
-    pages::sequence_edit_page::atom::{UpdateCgFile, CG_FILES_ATOM, NAME_QUICK_SLOT},
+    pages::sequence_edit_page::atom::{CG_FILES_ATOM, NAME_QUICK_SLOT, UpdateCgFile},
 };
 use namui_prebuilt::*;
 use rpc::data::{CutUpdateAction, ScreenCg, ScreenGraphic, ScreenImage};
@@ -23,7 +23,7 @@ pub(super) enum Event {
 }
 
 impl Component for BackgroundWithEvent<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             cut,
             wh,
@@ -175,8 +175,6 @@ impl Component for BackgroundWithEvent<'_> {
                 },
             ),
         );
-
-        
     }
 }
 

@@ -2,7 +2,7 @@ use crate::*;
 use api::team::IsTeamMember;
 use database::schema::*;
 use futures::future::try_join_all;
-use luda_rpc::{project::get_projects::*, Project};
+use luda_rpc::{Project, project::get_projects::*};
 
 pub async fn get_projects(
     Request { team_id }: Request,

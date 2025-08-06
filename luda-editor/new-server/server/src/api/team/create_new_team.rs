@@ -1,5 +1,5 @@
 use crate::*;
-use database::{schema::*, WantUpdate};
+use database::{WantUpdate, schema::*};
 use luda_rpc::team::create_new_team::*;
 
 const MAX_TEAM_COUNT: usize = 20;

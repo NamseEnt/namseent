@@ -61,7 +61,7 @@ async fn real_main() -> Result<()> {
         if let Some(debug_log_value) = debug_log_value_map.get(&name.as_ref()) {
             debug_log_value(&value)
         } else {
-            println!("Unknown doc: {}: {:?}", name, value);
+            println!("Unknown doc: {name}: {value:?}");
         }
 
         println!(
@@ -79,8 +79,8 @@ async fn real_main() -> Result<()> {
             }
         );
 
-        println!("PK: {:?}", pk);
-        println!("SK: {:?}", sk);
+        println!("PK: {pk:?}");
+        println!("SK: {sk:?}");
     }
 
     Ok(())

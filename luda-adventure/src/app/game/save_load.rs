@@ -1,6 +1,6 @@
-use super::{map::MapLoader, GameState};
+use super::{GameState, map::MapLoader};
 use crate::ecs;
-use namui::{file::local_storage, simple_error_impl, spawn_local, Time, TimeExt};
+use namui::{Time, TimeExt, file::local_storage, simple_error_impl, spawn_local};
 use serde::{Deserialize, Serialize};
 
 const AUTOSAVE_MINIMUM_TERM: Time = Time::Sec(5.0);

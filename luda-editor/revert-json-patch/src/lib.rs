@@ -168,26 +168,23 @@ fn apply_patches(doc: &mut Value, patches: &[PatchOperation]) -> Result<(), Patc
     match *patch {
         PatchOperation::Add(ref op) => {
             let prev = add(doc, op.path.as_str(), op.value.clone())?;
-            apply_patches(doc, tail).map_err(move |e| {
+            apply_patches(doc, tail).inspect_err(move |e| {
                 match prev {
                     None => remove(doc, op.path.as_str(), true).unwrap(),
                     Some(v) => add(doc, op.path.as_str(), v).unwrap().unwrap(),
                 };
-                e
             })
         }
         PatchOperation::Remove(ref op) => {
             let prev = remove(doc, op.path.as_str(), false)?;
-            apply_patches(doc, tail).map_err(move |e| {
+            apply_patches(doc, tail).inspect_err(move |e| {
                 assert!(add(doc, op.path.as_str(), prev).unwrap().is_none());
-                e
             })
         }
         PatchOperation::Replace(ref op) => {
             let prev = replace(doc, op.path.as_str(), op.value.clone())?;
-            apply_patches(doc, tail).map_err(move |e| {
+            apply_patches(doc, tail).inspect_err(move |e| {
                 replace(doc, op.path.as_str(), prev).unwrap();
-                e
             })
         }
     }

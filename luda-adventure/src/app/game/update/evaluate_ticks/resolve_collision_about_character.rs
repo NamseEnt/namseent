@@ -1,6 +1,6 @@
 use crate::component::*;
 use crate::{
-    app::game::{known_id::object::PLAYER_CHARACTER, Game, Tile},
+    app::game::{Game, Tile, known_id::object::PLAYER_CHARACTER},
     ecs,
 };
 use namui::*;

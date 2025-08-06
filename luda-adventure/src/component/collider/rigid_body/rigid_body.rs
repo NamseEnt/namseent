@@ -1,6 +1,6 @@
-use super::{collide_circle_to_polygon, collide_polygon_to_circle, Circle};
+use super::{Circle, collide_circle_to_polygon, collide_polygon_to_circle};
 use crate::{app::game::Tile, component::CollisionInfo};
-use geo::{coord, polygon, Polygon, Translate};
+use geo::{Polygon, Translate, coord, polygon};
 use namui::*;
 
 #[derive(serde::Serialize, serde::Deserialize)]

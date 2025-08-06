@@ -55,10 +55,10 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
                 }
                 Err(error) => match error {
                     TransactUpdateError::Canceled(canceled) => {
-                        return Err(TransactError::Canceled(canceled))
+                        return Err(TransactError::Canceled(canceled));
                     }
                     TransactUpdateError::Unknown(error) => {
-                        return Err(TransactError::Unknown(error.to_string()))
+                        return Err(TransactError::Unknown(error.to_string()));
                     }
                 },
             }

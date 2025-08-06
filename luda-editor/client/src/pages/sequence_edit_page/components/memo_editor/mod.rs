@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for MemoEditor<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         const MEMO_EDITOR_WH: Wh<Px> = Wh {
             width: px(512.0),
             height: px(256.0),

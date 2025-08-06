@@ -13,7 +13,7 @@ pub struct GraphicThumbnail<'a> {
 }
 
 impl Component for GraphicThumbnail<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             project_id,
             wh,
@@ -31,12 +31,12 @@ impl Component for GraphicThumbnail<'_> {
         });
         let image = ctx.image(&url);
         let Some(image) = image.as_ref() else {
-            return ;
+            return;
         };
 
         let Ok(image) = image else {
             namui::log!("Failed to load image: {:?}", url);
-            return ;
+            return;
         };
 
         ctx.compose(|ctx| match graphic.as_ref() {

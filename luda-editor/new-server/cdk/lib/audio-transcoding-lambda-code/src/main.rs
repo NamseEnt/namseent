@@ -41,7 +41,7 @@ async fn bootstrap() -> anyhow::Result<()> {
 }
 
 async fn handler(event_data: &str, s3_client: &aws_sdk_s3::Client) -> anyhow::Result<String> {
-    println!("event_data: {}", event_data);
+    println!("event_data: {event_data}");
 
     let bucket_name = std::env::var("BUCKET_NAME")?;
 

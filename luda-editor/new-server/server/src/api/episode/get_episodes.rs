@@ -2,7 +2,7 @@ use crate::*;
 use api::team::IsTeamMember;
 use database::schema::*;
 use futures::future::try_join_all;
-use luda_rpc::{episode::get_episodes::*, Episode};
+use luda_rpc::{Episode, episode::get_episodes::*};
 
 pub async fn get_episodes(
     Request { project_id }: Request,

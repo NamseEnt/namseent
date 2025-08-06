@@ -1,6 +1,6 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{schema::*, WantUpdate};
+use database::{WantUpdate, schema::*};
 use luda_rpc::episode_editor::save_speaker_slots::*;
 
 pub async fn save_speaker_slots(

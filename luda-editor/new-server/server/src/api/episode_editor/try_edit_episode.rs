@@ -1,6 +1,6 @@
 use crate::*;
 use api::{episode_editor::EPISODE_EDITOR_LOCK_TIMEOUT, team::IsTeamMember};
-use database::{schema::*, WantUpdate};
+use database::{WantUpdate, schema::*};
 use luda_rpc::episode_editor::try_edit_episode::*;
 
 pub async fn try_edit_episode(

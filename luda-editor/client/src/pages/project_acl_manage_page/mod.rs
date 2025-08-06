@@ -1,11 +1,11 @@
 mod top_bar;
 
+use crate::RPC;
 use crate::app::notification;
 use crate::app::notification::Notification;
 use crate::color;
-use crate::RPC;
-use namui::*;
 use namui::text_input::Style;
+use namui::*;
 use namui_prebuilt::button::TextButton;
 use namui_prebuilt::list_view::AutoListView;
 use namui_prebuilt::typography;
@@ -24,7 +24,7 @@ pub struct ProjectAclManagePage {
 }
 
 impl Component for ProjectAclManagePage {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, project_id } = self;
 
         const TOP_BAR_HEIGHT: Px = px(48.0);
@@ -121,8 +121,6 @@ impl Component for ProjectAclManagePage {
             0.px(),
             Color::TRANSPARENT,
         ));
-
-        
     }
 }
 
@@ -132,7 +130,7 @@ struct ListItem<'a> {
     update_acl: &'a dyn Fn(Uuid, Option<ProjectAclUserPermission>),
 }
 impl Component for ListItem<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             acl,
@@ -173,7 +171,6 @@ impl Component for ListItem<'_> {
             1.px(),
             color::BACKGROUND,
         ));
-        
     }
 }
 
@@ -182,7 +179,7 @@ struct EditorAdder<'a> {
     update_acl: &'a dyn Fn(Uuid, Option<ProjectAclUserPermission>),
 }
 impl Component for EditorAdder<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, update_acl } = self;
         const PADDING: Ltrb<Px> = Ltrb {
             left: px(8.0),
@@ -261,7 +258,6 @@ impl Component for EditorAdder<'_> {
                 }),
             ])(wh, ctx)
         });
-        
     }
 }
 

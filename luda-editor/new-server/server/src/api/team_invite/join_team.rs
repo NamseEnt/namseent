@@ -1,5 +1,5 @@
 use crate::*;
-use database::{schema::*, WantUpdate};
+use database::{WantUpdate, schema::*};
 use luda_rpc::team_invite::join_team::*;
 
 pub async fn join_team(

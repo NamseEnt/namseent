@@ -23,7 +23,7 @@ pub enum Event {
 }
 
 impl Component for SideBar<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             project_id,
@@ -83,7 +83,5 @@ impl Component for SideBar<'_> {
             1.px(),
             color::BACKGROUND,
         ));
-
-        
     }
 }

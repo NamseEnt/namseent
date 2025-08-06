@@ -1,7 +1,7 @@
 use super::EPISODE_EDITOR_LOCK_TIMEOUT;
 use crate::*;
 use anyhow::anyhow;
-use database::{schema::*, WantUpdate};
+use database::{WantUpdate, schema::*};
 use luda_rpc::episode_editor::exit_episode_editor::*;
 
 pub async fn exit_episode_editor(

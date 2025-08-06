@@ -17,7 +17,7 @@ pub enum Event {
 }
 
 impl Component for WysiwygTool<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             graphic_dest_rect,
             original_graphic_size,
@@ -63,7 +63,5 @@ impl Component for WysiwygTool<'_> {
             container_wh: wh,
             on_event: Box::new(|event| on_event(Event::Mover { event })),
         });
-
-        
     }
 }

@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use skia_safe::Image;
 
 pub(crate) fn encode_image(image: &Image) -> Result<Vec<u8>> {

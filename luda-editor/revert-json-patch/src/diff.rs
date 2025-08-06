@@ -184,7 +184,7 @@ mod tests {
         });
         let patch = super::diff(&left, &right);
 
-        eprintln!("{:?}", patch);
+        eprintln!("{patch:?}");
 
         crate::patch(&mut left, &patch).unwrap();
         assert_eq!(left, right);

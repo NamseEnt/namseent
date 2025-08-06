@@ -29,7 +29,7 @@ enum ContextMenu {
 }
 
 impl Component for CutCell<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             index,
@@ -148,8 +148,6 @@ impl Component for CutCell<'_> {
                 ]),
             )(wh, ctx)
         });
-
-        
     }
 }
 
@@ -211,7 +209,7 @@ struct Thumbnail<'a> {
     cg_files: &'a Vec<CgFile>,
 }
 impl Component for Thumbnail<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             cut,
@@ -254,8 +252,6 @@ impl Component for Thumbnail<'_> {
                 );
             }
         });
-
-        
     }
 }
 
@@ -266,7 +262,7 @@ struct GraphicClip<'a> {
     cg_files: &'a Vec<CgFile>,
 }
 impl Component for GraphicClip<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             container_wh,
             project_id,
@@ -283,10 +279,10 @@ impl Component for GraphicClip<'_> {
             Some(Ok(image)) => image,
             Some(Err(error)) => {
                 namui::log!("Failed to load image: {:?}", error);
-                return ;
+                return;
             }
             None => {
-                return ;
+                return;
             }
         };
         let graphic_wh = image.wh;
@@ -337,8 +333,6 @@ impl Component for GraphicClip<'_> {
 
             ctx.compose(graphic_rendering_tree);
         });
-
-        
     }
 }
 
@@ -347,7 +341,7 @@ struct TextBox<'a> {
     cut: &'a Cut,
 }
 impl Component for TextBox<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { container_wh, cut } = self;
 
         const PADDING_RATIO: f32 = 32.0 / 1080.0;
@@ -431,7 +425,5 @@ impl Component for TextBox<'_> {
                 }),
             ])(container_wh, ctx)
         });
-
-        
     }
 }

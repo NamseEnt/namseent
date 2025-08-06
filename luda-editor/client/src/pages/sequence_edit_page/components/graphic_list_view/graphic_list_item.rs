@@ -13,7 +13,7 @@ pub struct GraphicListItem<'a> {
     pub is_selected: bool,
 }
 impl Component for GraphicListItem<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         const PADDING: Px = px(4.0);
 
         let Self {
@@ -60,7 +60,5 @@ impl Component for GraphicListItem<'_> {
             stroke_width,
             color::BACKGROUND,
         ));
-
-        
     }
 }

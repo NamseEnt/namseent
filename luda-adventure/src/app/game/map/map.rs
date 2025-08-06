@@ -1,6 +1,6 @@
-use super::try_create_new_polygon::try_create_new_polygon;
 use super::MapObject;
-use crate::app::game::{new_floor, new_wall, types::TileExt, Tile};
+use super::try_create_new_polygon::try_create_new_polygon;
+use crate::app::game::{Tile, new_floor, new_wall, types::TileExt};
 use crate::component::*;
 use namui::{Wh, Xy};
 use serde::{Deserialize, Serialize};

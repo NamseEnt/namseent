@@ -1,7 +1,7 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{schema::*, WantUpdate};
-use luda_rpc::{team_invite::create_team_invite_code::*, TeamInviteCode};
+use database::{WantUpdate, schema::*};
+use luda_rpc::{TeamInviteCode, team_invite::create_team_invite_code::*};
 use std::time::Duration;
 
 const MAX_TEAM_INVITE_CODE_COUNT: usize = 20;

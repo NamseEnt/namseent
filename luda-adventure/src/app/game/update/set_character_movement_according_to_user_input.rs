@@ -1,7 +1,7 @@
 use crate::app::game::*;
 use crate::component::*;
 use namui::*;
-use std::collections::{hash_map::RandomState, HashSet};
+use std::collections::{HashSet, hash_map::RandomState};
 
 impl Game {
     pub fn set_character_movement_according_to_user_input(&mut self, event: &namui::Event) {

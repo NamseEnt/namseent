@@ -37,8 +37,7 @@ fn main() {
                                 .split("pub struct ")
                                 .nth(1)
                                 .unwrap()
-                                .split(" ")
-                                .nth(0)
+                                .split(" ").next()
                                 .unwrap();
                             component_idents.push(format_ident!("{component_name}"));
                             state = State::FindingComponentAttribute;

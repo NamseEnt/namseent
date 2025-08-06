@@ -27,7 +27,7 @@ pub enum Event {
 }
 
 impl Component for CharacterEditor<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             edit_target,
             wh,
@@ -204,8 +204,6 @@ impl Component for CharacterEditor<'_> {
         });
 
         ctx.component(background);
-
-        
     }
 }
 

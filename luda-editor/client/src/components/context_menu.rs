@@ -114,12 +114,12 @@ enum Item {
 pub struct ContextMenu;
 
 impl Component for ContextMenu {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.state(|| None);
         let (atom, _) = ctx.atom_init(&CONTEXT_MENU_ATOM, Default::default);
 
         let Some(atom) = atom.as_ref() else {
-            return ;
+            return;
         };
 
         let cell_wh = Wh::new(160.px(), 24.px());
@@ -242,8 +242,6 @@ impl Component for ContextMenu {
                 .compose(menus)
                 .add(background);
         });
-
-        
     }
 }
 

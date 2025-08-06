@@ -1,6 +1,6 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{schema::*, WantUpdate};
+use database::{WantUpdate, schema::*};
 use luda_rpc::asset::update_asset_tags_for_asset::*;
 
 pub async fn update_asset_tags_for_asset(

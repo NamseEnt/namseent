@@ -21,7 +21,7 @@ pub enum Event {
 }
 
 impl Component for Resizer<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             rect,
             dragging_context,
@@ -114,8 +114,6 @@ impl Component for Resizer<'_> {
                     ctx.add(handle);
                 });
         });
-
-        
     }
 }
 

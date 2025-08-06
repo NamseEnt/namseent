@@ -1,6 +1,6 @@
 use crate::*;
 use api::team::IsTeamMember;
-use database::{schema::*, WantUpdate};
+use database::{WantUpdate, schema::*};
 use luda_rpc::project::create_new_project::*;
 
 const MAX_PROJECTS_PER_TEAM: usize = 100;

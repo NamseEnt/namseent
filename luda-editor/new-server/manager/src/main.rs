@@ -1,7 +1,7 @@
 mod manage_server;
 
 use anyhow::Result;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use axum_server::tls_rustls::RustlsConfig;
 use manage_server::keep_server_updated;
 use std::{path::PathBuf, sync::atomic::AtomicU16};
@@ -40,7 +40,7 @@ async fn start_port_server() -> Result<()> {
                     .reload_from_pem_file(cert_dir().join("cert.pem"), cert_dir().join("key.pem"))
                     .await
                 {
-                    eprintln!("Failed to reload cert: {}", err);
+                    eprintln!("Failed to reload cert: {err}");
                 }
             }
         }

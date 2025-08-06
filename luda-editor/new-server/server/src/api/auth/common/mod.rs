@@ -1,7 +1,7 @@
 use crate::*;
 use database::{
-    schema::{SessionTokenDoc, SessionTokenDocPut},
     Database,
+    schema::{SessionTokenDoc, SessionTokenDocPut},
 };
 use namui_type::SystemTime;
 use std::time::Duration;

@@ -1,4 +1,4 @@
-use namui::{spawn_local, Uuid};
+use namui::{Uuid, spawn_local};
 use rpc::data::{CutUpdateAction, SequenceUpdateAction};
 use tokio::sync::mpsc::*;
 

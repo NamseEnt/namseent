@@ -46,7 +46,7 @@ fn generate_api_files(rpc: &Rpc) {
                     if x == "common" {
                         "mod common;\n".to_string()
                     } else {
-                        format!("pub mod {};\n", x)
+                        format!("pub mod {x};\n")
                     }
                 })
                 .collect::<Vec<String>>()

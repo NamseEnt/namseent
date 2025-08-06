@@ -86,7 +86,7 @@ pub fn component(_attribute_input: TokenStream, input: TokenStream) -> TokenStre
 
 #[proc_macro]
 pub fn define_combinations(_input: TokenStream) -> TokenStream {
-    let expanded = (2..32).into_iter().map(|index| {
+    let expanded = (2..32).map(|index| {
         let zero_to_index = 0..index;
 
         let generics = zero_to_index

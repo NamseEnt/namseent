@@ -1,4 +1,4 @@
-use super::{auto_column_list::AutoColumnList, SelectedAsset, IMAGES_ATOM, SELECTED_ASSET_ATOM};
+use super::{IMAGES_ATOM, SELECTED_ASSET_ATOM, SelectedAsset, auto_column_list::AutoColumnList};
 use crate::{color, storage::get_project_image_url};
 use namui::*;
 use namui_prebuilt::simple_rect;
@@ -12,7 +12,7 @@ pub(super) struct ImageList {
 }
 
 impl Component for ImageList {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, project_id } = self;
 
         let (images, _set_images) = ctx.atom(&IMAGES_ATOM);
@@ -36,8 +36,6 @@ impl Component for ImageList {
             1.px(),
             color::BACKGROUND,
         ));
-
-        
     }
 }
 
@@ -47,7 +45,7 @@ struct Thumbnail<'a> {
     image: &'a ImageWithLabels,
 }
 impl Component for Thumbnail<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             image,
@@ -91,6 +89,5 @@ impl Component for Thumbnail<'_> {
                 })
             },
         ));
-        
     }
 }

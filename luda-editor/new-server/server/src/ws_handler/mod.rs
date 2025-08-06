@@ -6,7 +6,7 @@ use axum::{
     extract::{State, WebSocketUpgrade},
     response::Response,
 };
-use futures::{stream::StreamExt, SinkExt};
+use futures::{SinkExt, stream::StreamExt};
 
 pub async fn ws_handler(ws: WebSocketUpgrade, State(db): State<Database>) -> Response {
     // TODO: Multiplexing. Don't wait the previous request to finish before starting the next one.

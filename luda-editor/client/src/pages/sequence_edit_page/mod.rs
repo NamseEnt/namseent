@@ -18,7 +18,7 @@ pub struct SequenceEditPage {
 }
 
 impl Component for SequenceEditPage {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
             project_id,

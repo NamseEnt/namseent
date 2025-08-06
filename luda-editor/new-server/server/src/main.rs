@@ -4,8 +4,8 @@ mod s3;
 mod session;
 mod ws_handler;
 
-use anyhow::{anyhow, bail, Result};
-use axum::{routing::get, Router};
+use anyhow::{Result, anyhow, bail};
+use axum::{Router, routing::get};
 use database::Database;
 use new_id::new_id;
 use s3::*;

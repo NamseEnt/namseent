@@ -1,5 +1,5 @@
-use hyper::{http::response::Builder, Body, Request, Response, StatusCode};
-use lambda_web::{is_running_on_lambda, LambdaError};
+use hyper::{Body, Request, Response, StatusCode, http::response::Builder};
+use lambda_web::{LambdaError, is_running_on_lambda};
 
 pub async fn serve_s3(
     request: Request<Body>,

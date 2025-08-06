@@ -1,6 +1,6 @@
 use crate::app::game::{
-    interaction::{nearest_entity, MAX_INTERACTION_DISTANCE},
     Game, RenderingContext,
+    interaction::{MAX_INTERACTION_DISTANCE, nearest_entity},
 };
 use namui::*;
 

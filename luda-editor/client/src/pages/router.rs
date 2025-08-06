@@ -6,7 +6,7 @@ pub struct Router {
 }
 
 impl Component for Router {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let (route, set_route) = ctx.state(|| Route::from(get_hash()));
 
         namui::web::event_listener_hash_change(move |event| {
@@ -41,8 +41,6 @@ impl Component for Router {
                 ctx.add(project_acl_manage_page::ProjectAclManagePage { wh, project_id });
             }
         });
-
-        
     }
 }
 

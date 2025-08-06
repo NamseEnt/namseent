@@ -8,7 +8,7 @@ pub struct ToolTip {
 }
 
 impl Component for ToolTip {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { global_xy, text } = self;
 
         const OFFSET: Px = px(16.0);
@@ -44,7 +44,7 @@ impl Component for ToolTip {
         });
 
         let Some(tooltip_bounding_box) = namui::bounding_box(&tooltip) else {
-            return ;
+            return;
         };
 
         let screen_size = screen::size();

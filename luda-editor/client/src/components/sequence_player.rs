@@ -14,7 +14,7 @@ pub struct SequencePlayer<'a> {
 }
 
 impl Component for SequencePlayer<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let (cut_index, _) = ctx.state(|| self.init_cut_index);
 
         #[derive(Debug)]
@@ -33,7 +33,7 @@ impl Component for SequencePlayer<'_> {
         });
 
         if self.sequence.cuts.is_empty() {
-            return ;
+            return;
         }
 
         let now = ctx.track_eq(&namui::now());
@@ -184,8 +184,6 @@ impl Component for SequencePlayer<'_> {
                     }
                 });
         });
-
-        
     }
 }
 
@@ -371,10 +369,7 @@ pub fn render_over_text_hooks<'a>(
         table::ratio(
             1,
             table::vertical([
-                table::ratio(
-                    1,
-                    table::horizontal_padding(32.px(), character_name_side),
-                ),
+                table::ratio(1, table::horizontal_padding(32.px(), character_name_side)),
                 table::ratio(3, table::padding_no_clip(32.px(), cut_text_side)),
             ]),
         ),
@@ -441,7 +436,7 @@ pub struct SequencePlayerGraphic<'a> {
 }
 
 impl Component for SequencePlayerGraphic<'_> {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let graphic = ctx.track_eq(self.graphic);
         let url = ctx.memo(|| match graphic.as_ref() {
             ScreenGraphic::Image(screen_image) => {
@@ -453,12 +448,12 @@ impl Component for SequencePlayerGraphic<'_> {
         });
         let image = ctx.image(&url);
         let Some(image) = image.as_ref() else {
-            return ;
+            return;
         };
 
         let Ok(image) = image else {
             namui::log!("Failed to load image: {:?}", url);
-            return ;
+            return;
         };
 
         ctx.compose(|ctx| {

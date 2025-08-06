@@ -1,7 +1,7 @@
 use super::EPISODE_EDITOR_LOCK_TIMEOUT;
 use crate::*;
 use api::team::IsTeamMember;
-use database::{schema::*, WantUpdate};
+use database::{WantUpdate, schema::*};
 use luda_rpc::episode_editor::join_episode_editor::*;
 
 pub async fn join_episode_editor(

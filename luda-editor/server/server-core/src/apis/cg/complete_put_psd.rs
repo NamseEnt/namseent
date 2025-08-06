@@ -1,4 +1,4 @@
-use super::shared::psd_to_cg_file::{psd_to_webps_and_cg_file, PsdParsingResult};
+use super::shared::psd_to_cg_file::{PsdParsingResult, psd_to_webps_and_cg_file};
 use crate::documents::*;
 use futures::FutureExt;
 use rpc::complete_put_psd::{Error, Request, Response};

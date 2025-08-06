@@ -2,7 +2,7 @@ use crate::*;
 use api::team::IsTeamMember;
 use database::schema::*;
 use futures::future::try_join_all;
-use luda_rpc::{team_invite::list_team_invite_codes::*, TeamInviteCode};
+use luda_rpc::{TeamInviteCode, team_invite::list_team_invite_codes::*};
 
 pub async fn list_team_invite_codes(
     Request { team_id }: Request,

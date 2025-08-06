@@ -1,5 +1,5 @@
 use super::Map;
-use crate::app::game::{interaction, new_player, Tile};
+use crate::app::game::{Tile, interaction, new_player};
 use namui::{prelude::*, simple_error_impl};
 
 pub struct MapLoader {
@@ -46,7 +46,11 @@ impl MapLoader {
             })
             .is::<interaction::Event>(|event| {
                 let interaction::Event::Interacted { kind, .. } = event;
-                let interaction::InteractionKind::MapTeleport { map_name, player_xy } = kind else {
+                let interaction::InteractionKind::MapTeleport {
+                    map_name,
+                    player_xy,
+                } = kind
+                else {
                     return;
                 };
                 let _ = self.start_load(map_name.clone(), *player_xy);
@@ -64,9 +68,13 @@ impl MapLoader {
 
         self.state = MapLoaderState::Loading;
         spawn_local(async move {
-            let Ok(serialized_map) = namui::system::file::bundle::read(format!("map/{map_name}.ron").as_str()).await.map(|serialized_map_bytes| {
-                String::from_utf8_lossy(serialized_map_bytes.as_ref()).to_string()
-            }) else {
+            let Ok(serialized_map) =
+                namui::system::file::bundle::read(format!("map/{map_name}.ron").as_str())
+                    .await
+                    .map(|serialized_map_bytes| {
+                        String::from_utf8_lossy(serialized_map_bytes.as_ref()).to_string()
+                    })
+            else {
                 namui::event::send(InternalEvent::FailedToReadMapFromBundle);
                 return;
             };

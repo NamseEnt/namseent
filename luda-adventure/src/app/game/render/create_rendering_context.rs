@@ -28,14 +28,11 @@ impl Game {
     fn camera_center_xy(&self) -> Xy<Tile> {
         match self.state.camera.subject {
             CameraSubject::Object { id } => {
-                let Some(subject) = self
-                    .ecs_app
-                    .entities()
-                    .find(|entity| entity.id() == id) else {
-                        return Xy::zero()
-                    };
+                let Some(subject) = self.ecs_app.entities().find(|entity| entity.id() == id) else {
+                    return Xy::zero();
+                };
                 let Some(positioner) = subject.get_component::<&Positioner>() else {
-                    return Xy::zero()
+                    return Xy::zero();
                 };
                 positioner.xy
             }

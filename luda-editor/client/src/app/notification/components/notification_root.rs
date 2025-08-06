@@ -7,7 +7,7 @@ pub struct NotificationRoot {
     pub wh: Wh<Px>,
 }
 impl Component for NotificationRoot {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         const NOTIFICATION_CARD_HEIGHT: Px = px(48.0);
         const PADDING: Px = px(8.0);
         const MAX_WIDTH: Px = px(720.0);
@@ -27,71 +27,67 @@ impl Component for NotificationRoot {
         ctx.compose(|ctx| {
             let mut ctx = ctx.translate(xy);
             namui_prebuilt::table::vertical_padding(PADDING, |wh, ctx| {
-                namui_prebuilt::table::vertical(notifications.deref().iter().map(
-                    |notification| {
-                        namui_prebuilt::table::fixed(NOTIFICATION_CARD_HEIGHT, |wh, ctx| {
-                            namui_prebuilt::table::padding(PADDING, |wh, ctx| {
-                                namui_prebuilt::table::horizontal([
-                                    namui_prebuilt::table::fixed(wh.height, |wh, ctx| {
-                                        if notification.loading {
-                                            ctx.add(LoadingIndicator {
-                                                wh,
-                                                color: notification.level.text_color(),
-                                            });
-                                        }
-                                    }),
-                                    namui_prebuilt::table::ratio(1, |wh, ctx| {
-                                        ctx.clip(
-                                            Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
-                                            ClipOp::Intersect,
-                                        )
-                                        .add(text_fit(
-                                            wh.height,
-                                            notification.message.clone(),
-                                            notification.level.text_color(),
-                                            PADDING,
-                                        ));
-                                    }),
-                                    namui_prebuilt::table::fixed(wh.height, |wh, ctx| {
-                                        ctx.add(CopyButton {
+                namui_prebuilt::table::vertical(notifications.deref().iter().map(|notification| {
+                    namui_prebuilt::table::fixed(NOTIFICATION_CARD_HEIGHT, |wh, ctx| {
+                        namui_prebuilt::table::padding(PADDING, |wh, ctx| {
+                            namui_prebuilt::table::horizontal([
+                                namui_prebuilt::table::fixed(wh.height, |wh, ctx| {
+                                    if notification.loading {
+                                        ctx.add(LoadingIndicator {
                                             wh,
                                             color: notification.level.text_color(),
-                                            content: &notification.message,
                                         });
-                                    }),
-                                    namui_prebuilt::table::fixed(wh.height, |wh, ctx| {
-                                        if !notification.loading {
-                                            ctx.add(
-                                                CloseButton {
-                                                    wh,
-                                                    color: notification.level.text_color(),
-                                                }
-                                                .attach_event(|event| {
-                                                    if let Event::MouseDown { event } = event {
-                                                        if event.is_local_xy_in() {
-                                                            event.stop_propagation();
-                                                            remove_notification(notification.id);
-                                                        }
+                                    }
+                                }),
+                                namui_prebuilt::table::ratio(1, |wh, ctx| {
+                                    ctx.clip(
+                                        Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
+                                        ClipOp::Intersect,
+                                    )
+                                    .add(text_fit(
+                                        wh.height,
+                                        notification.message.clone(),
+                                        notification.level.text_color(),
+                                        PADDING,
+                                    ));
+                                }),
+                                namui_prebuilt::table::fixed(wh.height, |wh, ctx| {
+                                    ctx.add(CopyButton {
+                                        wh,
+                                        color: notification.level.text_color(),
+                                        content: &notification.message,
+                                    });
+                                }),
+                                namui_prebuilt::table::fixed(wh.height, |wh, ctx| {
+                                    if !notification.loading {
+                                        ctx.add(
+                                            CloseButton {
+                                                wh,
+                                                color: notification.level.text_color(),
+                                            }
+                                            .attach_event(|event| {
+                                                if let Event::MouseDown { event } = event {
+                                                    if event.is_local_xy_in() {
+                                                        event.stop_propagation();
+                                                        remove_notification(notification.id);
                                                     }
-                                                })
-                                                .with_mouse_cursor(MouseCursor::Pointer),
-                                            );
-                                        }
-                                    }),
-                                ])(wh, ctx);
-                                ctx.add(simple_rect(
-                                    wh,
-                                    notification.level.text_color(),
-                                    2.px(),
-                                    notification.level.background_color(),
-                                ));
-                            })(wh, ctx)
-                        })
-                    },
-                ))(wh, ctx)
+                                                }
+                                            })
+                                            .with_mouse_cursor(MouseCursor::Pointer),
+                                        );
+                                    }
+                                }),
+                            ])(wh, ctx);
+                            ctx.add(simple_rect(
+                                wh,
+                                notification.level.text_color(),
+                                2.px(),
+                                notification.level.background_color(),
+                            ));
+                        })(wh, ctx)
+                    })
+                }))(wh, ctx)
             })(wh, &mut ctx);
         });
-
-        
     }
 }

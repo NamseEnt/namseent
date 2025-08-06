@@ -2,7 +2,7 @@ use crate::{
     color,
     pages::{
         graphic_asset_manage_page::upload_asset::upload_file,
-        router::{move_to, Route},
+        router::{Route, move_to},
     },
 };
 use futures::future::join_all;
@@ -15,7 +15,7 @@ pub(super) struct TopBar {
 }
 
 impl Component for TopBar {
-    fn render(self, ctx: &RenderCtx)  {
+    fn render(self, ctx: &RenderCtx) {
         let Self { wh, project_id } = self;
 
         const PADDING: Px = px(8.0);
@@ -79,7 +79,5 @@ impl Component for TopBar {
             1.px(),
             color::BACKGROUND,
         ));
-
-        
     }
 }
