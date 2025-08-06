@@ -32,30 +32,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
+        
+      - name: Fast parallel submodule checkout
+        run: |
+          git submodule update --init --recursive --jobs 16 --depth 1
 
       - name: Set up cargo
         run: |
           rustup update
           rustup target add ${{ matrix.target }}
 
-      - name: namui-cli cache
-        if: matrix.target == 'wasm32-wasip1-threads'
-        uses: actions/cache@v4
-        with:
-          path: |
-            namui/namui-cli/binaryen
-            namui/namui-cli/emscripten
-            namui/namui-cli/target
-            namui/namui-cli/wasi-sdk
-          key: ${{ matrix.os }}-namui-cli
-
-      - name: Install wasi-sdk
-        if: matrix.target == 'wasm32-wasip1-threads'
-        working-directory: namui/namui-cli
+      - name: Dependency - x86_64-unknown-linux-gnu
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
-          cargo build
+          sudo apt install librust-alsa-sys-dev
 
       - name: Workspace cache
         uses: Swatinem/rust-cache@v2
@@ -125,13 +115,21 @@ jobs:
       - name: Checkout if first job
         if: steps.check-code.outputs.exists == 'false'
         uses: actions/checkout@v4
-        with:
-          submodules: true
+        
+      - name: Fast parallel submodule checkout
+        if: steps.check-code.outputs.exists == 'false'
+        run: |
+          git submodule update --init --recursive --jobs 16 --depth 1
 
       - name: Set up cargo
         run: |
           rustup update
           rustup target add ${{ matrix.target }}
+
+      - name: Dependency - x86_64-unknown-linux-gnu
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt install librust-alsa-sys-dev
 
       - name: namui-cli cache
         if: matrix.target == 'wasm32-wasip1-threads'
