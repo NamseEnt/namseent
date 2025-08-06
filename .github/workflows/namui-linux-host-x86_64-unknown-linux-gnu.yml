@@ -90,7 +90,14 @@ jobs:
             git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add .
             git commit -m "Auto-fix fmt and clippy warnings in ${{ matrix.dir }}"
-            git push origin HEAD:${{ github.head_ref }}
+            
+            # Try to push, if rejected, pull and retry
+            if ! git push origin HEAD:${{ github.head_ref }}; then
+              echo "Push rejected, pulling latest changes and retrying..."
+              git pull --rebase origin ${{ github.head_ref }}
+              git push origin HEAD:${{ github.head_ref }}
+            fi
+            
             echo "Code formatting and clippy fixes were applied and committed."
             exit 1
           else

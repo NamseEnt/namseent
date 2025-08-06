@@ -117,7 +117,14 @@ jobs:
             git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add .
             git commit -m "Auto-fix clippy warnings in ${{ matrix.dir }} (wasm32-wasip1-threads)"
-            git push origin HEAD:${{ github.head_ref }}
+            
+            # Try to push, if rejected, pull and retry
+            if ! git push origin HEAD:${{ github.head_ref }}; then
+              echo "Push rejected, pulling latest changes and retrying..."
+              git pull --rebase origin ${{ github.head_ref }}
+              git push origin HEAD:${{ github.head_ref }}
+            fi
+            
             echo "Clippy fixes were applied and committed."
             exit 1
           else
