@@ -76,7 +76,11 @@ members = [{}]
 "#,
         target_project_paths
             .iter()
-            .map(|path| format!("\"{}\"", &path.to_str().unwrap()[2..])) // remove "./"
+            .map(|path| format!(
+                "\"{}\"",
+                &path.to_str().unwrap()[2..] // remove "./"
+                    .replace("\\", "/") // cargo support only "/"
+            ))
             .collect::<Vec<_>>()
             .join(",\n")
     );
