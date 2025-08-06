@@ -27,21 +27,11 @@ pub fn find_shortest_route(
     end_xy: Xy<usize>,
     blockers: &[Xy<usize>],
 ) -> Option<Vec<Xy<usize>>> {
-    bfs(wh, start_xy, &[end_xy], blockers)
-}
-
-/// Returns most nearest end_xy's route.
-pub fn bfs(
-    wh: Wh<usize>,
-    start_xy: Xy<usize>,
-    end_xys: &[Xy<usize>],
-    blockers: &[Xy<usize>],
-) -> Option<Vec<Xy<usize>>> {
-    if end_xys.contains(&start_xy) {
+    if end_xy == start_xy {
         return Some(vec![start_xy]);
     }
 
-    if blockers.contains(&start_xy) || blockers.iter().any(|&end_xy| end_xys.contains(&end_xy)) {
+    if blockers.contains(&start_xy) || blockers.contains(&end_xy) {
         return None;
     }
 
@@ -66,7 +56,7 @@ pub fn bfs(
             queue.push_back(xy);
             map.set_visit(xy, from_xy);
 
-            if end_xys.contains(&xy) {
+            if xy == end_xy {
                 return Some(map.gather_route(xy));
             }
         }

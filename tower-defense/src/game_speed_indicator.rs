@@ -1,7 +1,7 @@
 use crate::{
     game_state::{fast_forward::FastForwardMultiplier, mutate_game_state, use_game_state},
-    theme::{button::Button, palette},
     theme::typography::{TextAlign, paragraph},
+    theme::{button::Button, palette},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -38,14 +38,13 @@ impl Component for GameSpeedIndicator {
             });
         };
 
-
         const PADDING: Px = px(8.);
         let content_wh = Wh::new(92.px(), 64.px());
         let container_wh = Wh::new(
             content_wh.width + (PADDING * 2.0),
             content_wh.height + (PADDING * 2.0),
         );
-        
+
         ctx.translate((PADDING, PADDING)).compose(|ctx| {
             table::vertical([
                 // Current speed display
