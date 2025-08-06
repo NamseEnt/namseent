@@ -32,7 +32,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-        
+
       - name: Fast parallel submodule checkout
         run: |
           git submodule update --init --recursive --jobs 16 --depth 1
@@ -50,7 +50,7 @@ jobs:
       - name: Workspace cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix: ${{ matrix.os }}-${{ matrix.target }}
+          key: ${{ matrix.target }}
 
       - name: Create workspace
         run: |
@@ -115,7 +115,7 @@ jobs:
       - name: Checkout if first job
         if: steps.check-code.outputs.exists == 'false'
         uses: actions/checkout@v4
-        
+
       - name: Fast parallel submodule checkout
         if: steps.check-code.outputs.exists == 'false'
         run: |
@@ -151,7 +151,7 @@ jobs:
       - name: Workspace cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix: ${{ matrix.os }}-${{ matrix.target }}
+          key: ${{ matrix.target }}
 
       - name: Create workspace Cargo.toml
         run: |
