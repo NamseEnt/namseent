@@ -169,20 +169,20 @@ jobs:
             !target
           overwrite: true
 
-post-test-and-fmt-clippy:
-  if: always()
-  runs-on: ubuntu-latest
-  needs:
-    - test
-    - fmt-clippy
-  steps:
-    - run: |
-        echo ${{ join(needs.*.result, ',') }}
-        any_test_failed=${{ contains(join(needs.*.result, ','), 'failure') }}
-        echo $any_test_failed
-        if [[ $any_test_failed == "true" ]]; then
-            echo "::error::There are failed job"
-            exit 1
-        else
-            echo "Good. No test failed"
-        fi
+  post-test-and-fmt-clippy:
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - fmt-clippy
+    steps:
+      - run: |
+          echo ${{ join(needs.*.result, ',') }}
+          any_test_failed=${{ contains(join(needs.*.result, ','), 'failure') }}
+          echo $any_test_failed
+          if [[ $any_test_failed == "true" ]]; then
+              echo "::error::There are failed job"
+              exit 1
+          else
+              echo "Good. No test failed"
+          fi
