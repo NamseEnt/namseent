@@ -25,14 +25,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "matrix-output"
-version = "0.1.0"
-dependencies = [
- "toml",
- "walkdir",
-]
-
-[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -244,4 +236,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e7f4ea97f6f78012141bcdb6a216b2609f0979ada50b20ca5b52dde2eac2bb1"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "workspace-maker"
+version = "0.1.0"
+dependencies = [
+ "toml",
+ "walkdir",
 ]
