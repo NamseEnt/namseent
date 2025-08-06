@@ -2,6 +2,9 @@ name: namui-linux-host-x86_64-pc-windows-msvc
 on:
   pull_request:
 
+permissions:
+  contents: write
+
 concurrency:
   group: ${{ github.ref }}-namui-linux-host-x86_64-pc-windows-msvc
   cancel-in-progress: true
@@ -98,17 +101,26 @@ jobs:
         run: |
           echo "Running commands in ${{ matrix.dir }}"
 
-          echo "cargo xwin check --target x86_64-pc-windows-msvc --tests"
-          cargo xwin check --target x86_64-pc-windows-msvc --tests
+          echo "cargo xwin clippy --fix --target x86_64-pc-windows-msvc --tests --allow-dirty"
+          if ! cargo xwin clippy --fix --target x86_64-pc-windows-msvc --tests --allow-dirty; then
+            echo "Clippy failed with unfixable errors"
+            exit 1
+          fi
 
-          echo "cargo fmt"
-          cargo fmt
-
-          echo "cargo xwin clippy --target x86_64-pc-windows-msvc --tests"
-          cargo xwin clippy --target x86_64-pc-windows-msvc --tests
-
-          echo "cargo xwin test --target x86_64-pc-windows-msvc"
-          cargo xwin test --target x86_64-pc-windows-msvc
+          if ! git diff --quiet; then
+            echo "Changes detected, committing and pushing..."
+            git config --local user.name "github-actions[bot]"
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .
+            git commit -m "Auto-fix clippy warnings in ${{ matrix.dir }} (x86_64-pc-windows-msvc)"
+            git push
+            echo "Clippy fixes were applied and committed."
+            exit 1
+          else
+            echo "No changes detected, running tests..."
+            echo "cargo xwin test --target x86_64-pc-windows-msvc"
+            cargo xwin test --target x86_64-pc-windows-msvc
+          fi
 
   post-namui-linux-host-x86_64-pc-windows-msvc:
     if: always()

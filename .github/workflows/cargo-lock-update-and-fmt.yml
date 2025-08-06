@@ -27,8 +27,6 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - run: for-all-projects run --metadata
-
       - run: for-all-projects fmt
 
       - name: Check for changes
@@ -42,4 +40,4 @@ jobs:
 
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: Update Cargo.lock and format code
+          commit_message: Format code

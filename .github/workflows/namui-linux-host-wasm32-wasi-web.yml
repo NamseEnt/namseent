@@ -2,6 +2,9 @@ name: namui-linux-host-wasm32-wasi-web
 on:
   pull_request:
 
+permissions:
+  contents: write
+
 concurrency:
   group: ${{ github.ref }}-namui-linux-host-wasm32-wasi-web
   cancel-in-progress: true
@@ -102,18 +105,25 @@ jobs:
           echo "CLANG_PATH=$CLANG_PATH"
           echo "CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER=$CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER"
 
-          echo "cargo check --tests"
-          cargo check --tests
+          echo "cargo clippy --fix --target wasm32-wasip1-threads --tests --allow-dirty"
+          if ! cargo clippy --fix --target wasm32-wasip1-threads --tests --allow-dirty; then
+            echo "Clippy failed with unfixable errors"
+            exit 1
+          fi
 
-          echo "cargo fmt"
-          cargo fmt
-
-          echo "cargo clippy --tests"
-          cargo clippy --tests
-
-          # Cannot run test on wasi yet.
-          # echo "cargo test"
-          # cargo test
+          if ! git diff --quiet; then
+            echo "Changes detected, committing and pushing..."
+            git config --local user.name "github-actions[bot]"
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .
+            git commit -m "Auto-fix clippy warnings in ${{ matrix.dir }} (wasm32-wasip1-threads)"
+            git push
+            echo "Clippy fixes were applied and committed."
+            exit 1
+          else
+            echo "No changes detected, but skipping tests for WASM target"
+            echo "Tests are not yet supported on WASM target"
+          fi
 
   post-namui-linux-host-wasm32-wasi-web:
     if: always()
