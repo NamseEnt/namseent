@@ -4,7 +4,10 @@ use crate::{
         hand::{HAND_WH, HandComponent, HandSlotId},
         mutate_game_state, use_game_state,
     },
-    theme::{button::{Button, ButtonVariant, ButtonColor}, typography::{TextAlign, headline}},
+    theme::{
+        button::{Button, ButtonColor, ButtonVariant},
+        typography::{TextAlign, headline},
+    },
 };
 use namui::*;
 use namui_prebuilt::table;

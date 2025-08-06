@@ -1,6 +1,6 @@
 use crate::{
     game_state::{fast_forward::FastForwardMultiplier, mutate_game_state, use_game_state},
-    theme::typography::{paragraph, TextAlign},
+    theme::typography::{TextAlign, paragraph},
     theme::{button::Button, palette},
 };
 use namui::*;
