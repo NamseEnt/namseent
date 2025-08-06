@@ -68,6 +68,9 @@ resolver = "3"
 package.rust-version = "{cargo_version}"
 exclude = [
     "namui/third-party-forks/rusqlite",
+    "namui/third-party-forks/rust-skia/skia-safe",
+    "namui/third-party-forks/tokio/tokio",
+    "namui/third-party-forks/tokio/tokio-stream",
 ]
 members = [{}]
 "#,
