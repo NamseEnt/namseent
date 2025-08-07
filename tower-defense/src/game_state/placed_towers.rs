@@ -40,4 +40,21 @@ impl PlacedTowers {
 
         self.inner.insert(index, tower);
     }
+
+    pub fn remove_tower(&mut self, tower_id: usize) {
+        self.inner.retain(|tower| tower.id() != tower_id);
+    }
+
+    pub fn find_by_id(&self, tower_id: usize) -> Option<&Tower> {
+        self.inner.iter().find(|tower| tower.id() == tower_id)
+    }
+
+    pub fn find_by_xy(&self, xy: MapCoord) -> Option<&Tower> {
+        self.inner.iter().find(|tower| {
+            tower.left_top.x <= xy.x
+                && xy.x < tower.left_top.x + 2
+                && tower.left_top.y <= xy.y
+                && xy.y < tower.left_top.y + 2
+        })
+    }
 }

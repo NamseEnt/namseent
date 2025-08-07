@@ -39,7 +39,7 @@ impl Deref for TowerSkill {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TowerSkillKind {
     NearbyTowerDamageMul { mul: f32, range_radius: f32 },
     NearbyTowerDamageAdd { add: f32, range_radius: f32 },
@@ -57,7 +57,7 @@ pub struct TowerStatusEffect {
     pub end_at: TowerStatusEffectEnd,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum TowerStatusEffectKind {
     DamageMul { mul: f32 },
     DamageAdd { add: f32 },

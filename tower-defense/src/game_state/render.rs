@@ -1,6 +1,7 @@
 use super::*;
 
 pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
+    game_state.render_tower_status_bubble(&ctx);
     game_state.render_cursor_preview(&ctx);
     game_state.render_field_particles(&ctx);
     game_state.render_projectiles(&ctx);
@@ -36,7 +37,23 @@ impl GameState {
             .set_style(PaintStyle::Stroke)
             .set_stroke_width(2.px())
             .set_stroke_cap(StrokeCap::Round);
-        ctx.add(namui::path(path, paint));
+        ctx.add(namui::path(path, paint)).attach_event(|event| {
+            if let Event::MouseDown { event } = event
+                && let Some(MouseButton::Left) = event.button
+                && let GameFlow::PlacingTower = self.flow
+            {
+                let local_xy = event.local_xy();
+                let tile_x = (local_xy.x / TILE_PX_SIZE.width).floor() as usize;
+                let tile_y = (local_xy.y / TILE_PX_SIZE.height).floor() as usize;
+
+                mutate_game_state(move |game_state| {
+                    game_state.selected_tower_id = game_state
+                        .towers
+                        .find_by_xy(MapCoord::new(tile_x, tile_y))
+                        .map(|tower| tower.id());
+                });
+            }
+        });
     }
 
     fn render_backgrounds(&self, ctx: &ComposeCtx) {
@@ -59,6 +76,20 @@ impl GameState {
 
     fn render_towers(&self, ctx: &ComposeCtx) {
         self.render_stuffs(ctx, self.towers.iter().map(|tower| (tower.left_top, tower)));
+    }
+
+    fn render_tower_status_bubble(&self, ctx: &ComposeCtx) {
+        if let Some(selected_tower_id) = self.selected_tower_id
+            && let Some(selected_tower) = self.towers.find_by_id(selected_tower_id)
+        {
+            let tower_upgrades = self.upgrade_state.tower_upgrades(selected_tower);
+
+            let px_xy = TILE_PX_SIZE.to_xy() * selected_tower.left_top.map(|t| t as f32);
+            ctx.translate(px_xy).add(TowerStatusBubble {
+                tower: selected_tower,
+                tower_upgrades: &tower_upgrades,
+            });
+        }
     }
 
     fn render_monsters(&self, ctx: &ComposeCtx) {

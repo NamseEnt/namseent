@@ -68,7 +68,7 @@ impl Tower {
         self.id
     }
 
-    fn calculate_projectile_damage(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
+    pub fn calculate_projectile_damage(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
         let mut damage = self.default_damage;
 
         self.status_effects.iter().for_each(|status_effect| {
