@@ -277,15 +277,15 @@ impl From<skia_safe::Matrix> for TransformMatrix {
 }
 
 #[cfg(feature = "skia")]
-impl Into<skia_safe::Matrix> for TransformMatrix {
-    fn into(self) -> skia_safe::Matrix {
+impl From<TransformMatrix> for skia_safe::Matrix {
+    fn from(val: TransformMatrix) -> Self {
         skia_safe::Matrix::new_all(
-            self.values[0][0].as_f32(),
-            self.values[0][1].as_f32(),
-            self.values[0][2].as_f32(),
-            self.values[1][0].as_f32(),
-            self.values[1][1].as_f32(),
-            self.values[1][2].as_f32(),
+            val.values[0][0].as_f32(),
+            val.values[0][1].as_f32(),
+            val.values[0][2].as_f32(),
+            val.values[1][0].as_f32(),
+            val.values[1][1].as_f32(),
+            val.values[1][2].as_f32(),
             0.0,
             0.0,
             1.0,
