@@ -195,13 +195,12 @@ jobs:
           set +euo pipefail
 
           git merge --no-commit --no-ff "${branches[@]}"
-          git commit -m "Auto-fix: Apply clippy and fmt changes"
 
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git commit -m "Auto-fix: Apply clippy and fmt changes"
+          git push
 
       - run: |
           echo ${{ join(needs.*.result, ',') }}
