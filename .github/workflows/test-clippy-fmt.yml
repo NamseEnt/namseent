@@ -95,7 +95,8 @@ jobs:
       - test-clippy-fmt
     steps:
       - uses: actions/checkout@v4
-        token: ${{ secrets.PAT_CARGO_LOCK_UPDATE }}
+        with:
+          token: ${{ secrets.PAT_CARGO_LOCK_UPDATE }}
 
       - name: Download diffs
         uses: actions/download-artifact@v4
