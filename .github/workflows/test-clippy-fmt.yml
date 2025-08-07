@@ -4,6 +4,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: ${{ github.ref }}-test-clippy-fmt
@@ -118,9 +119,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           BASE_COMMIT=$(git rev-parse HEAD)
-          ORIGINAL_BRANCH=$(git branch --show-current)
           echo "Base commit: $BASE_COMMIT"
-          echo "Original branch: $ORIGINAL_BRANCH"
 
           echo "=== Creating feature branches and applying patches ==="
           branches=()
@@ -147,19 +146,22 @@ jobs:
             fi
           done
 
-          git checkout "$ORIGINAL_BRANCH"
+          git checkout "$BASE_COMMIT"
 
           echo "=== Performing octopus merge ==="
           echo "Merging branches: ${branches[*]}"
 
-          if git merge --no-commit --no-ff "${branches[@]}"; then
-            git commit -m "Auto-fix: Octopus merge clippy and fmt changes"
-            git push origin HEAD
-          else
-            echo "❌ Octopus merge failed due to conflicts"
-            git merge --abort || true
-            exit 1
-          fi
+          set +euo pipefail
+
+          git merge --no-commit --no-ff "${branches[@]}"
+          git commit -m "Auto-fix: Apply clippy and fmt changes"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+
       - run: |
           echo ${{ join(needs.*.result, ',') }}
           any_test_failed=${{ contains(join(needs.*.result, ','), 'failure') }}
