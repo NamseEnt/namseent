@@ -19,7 +19,7 @@ pub struct StartOption {
 pub enum Commands {
     Start {
         #[arg(value_enum)]
-        target: Option<Target>,
+        target: Option<NamuiTarget>,
         #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
         #[arg(long)]
@@ -31,7 +31,7 @@ pub enum Commands {
     },
     Build {
         #[arg(value_enum)]
-        target: Option<Target>,
+        target: Option<NamuiTarget>,
         #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
         #[arg(long)]
@@ -39,13 +39,13 @@ pub enum Commands {
     },
     Test {
         #[arg(value_enum)]
-        target: Option<Target>,
+        target: Option<NamuiTarget>,
         #[clap(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
     },
     Target {
         #[arg(value_enum)]
-        target: Target,
+        target: NamuiTarget,
     },
     Print {
         #[arg(value_enum)]
@@ -53,13 +53,13 @@ pub enum Commands {
     },
     Clippy {
         #[arg(value_enum)]
-        target: Option<Target>,
+        target: Option<NamuiTarget>,
         #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
     },
     Check {
         #[arg(value_enum)]
-        target: Option<Target>,
+        target: Option<NamuiTarget>,
         #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
     },
@@ -67,7 +67,7 @@ pub enum Commands {
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, ValueEnum)]
-pub enum Target {
+pub enum NamuiTarget {
     Wasm32WasiWeb,
     #[value(name = "x86_64-pc-windows-msvc")]
     X86_64PcWindowsMsvc,
@@ -76,37 +76,37 @@ pub enum Target {
     #[value(name = "aarch64-apple-darwin")]
     Aarch64AppleDarwin,
 }
-impl Display for Target {
+impl Display for NamuiTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                Target::Wasm32WasiWeb => "wasm32-wasi-web",
-                Target::X86_64PcWindowsMsvc => "x86_64-pc-windows-msvc",
-                Target::X86_64UnknownLinuxGnu => "x86_64-unknown-linux-gnu",
-                Target::Aarch64AppleDarwin => "aarch64-apple-darwin",
+                NamuiTarget::Wasm32WasiWeb => "wasm32-wasi-web",
+                NamuiTarget::X86_64PcWindowsMsvc => "x86_64-pc-windows-msvc",
+                NamuiTarget::X86_64UnknownLinuxGnu => "x86_64-unknown-linux-gnu",
+                NamuiTarget::Aarch64AppleDarwin => "aarch64-apple-darwin",
             }
         )
     }
 }
-impl From<namui_user_config::Target> for Target {
+impl From<namui_user_config::Target> for NamuiTarget {
     fn from(target: namui_user_config::Target) -> Self {
         match target {
-            namui_user_config::Target::Wasm32WasiWeb => Target::Wasm32WasiWeb,
-            namui_user_config::Target::X86_64PcWindowsMsvc => Target::X86_64PcWindowsMsvc,
-            namui_user_config::Target::X86_64UnknownLinuxGnu => Target::X86_64UnknownLinuxGnu,
-            namui_user_config::Target::Aarch64AppleDarwin => Target::Aarch64AppleDarwin,
+            namui_user_config::Target::Wasm32WasiWeb => NamuiTarget::Wasm32WasiWeb,
+            namui_user_config::Target::X86_64PcWindowsMsvc => NamuiTarget::X86_64PcWindowsMsvc,
+            namui_user_config::Target::X86_64UnknownLinuxGnu => NamuiTarget::X86_64UnknownLinuxGnu,
+            namui_user_config::Target::Aarch64AppleDarwin => NamuiTarget::Aarch64AppleDarwin,
         }
     }
 }
-impl From<Target> for namui_user_config::Target {
-    fn from(val: Target) -> Self {
+impl From<NamuiTarget> for namui_user_config::Target {
+    fn from(val: NamuiTarget) -> Self {
         match val {
-            Target::Wasm32WasiWeb => namui_user_config::Target::Wasm32WasiWeb,
-            Target::X86_64PcWindowsMsvc => namui_user_config::Target::X86_64PcWindowsMsvc,
-            Target::X86_64UnknownLinuxGnu => namui_user_config::Target::X86_64UnknownLinuxGnu,
-            Target::Aarch64AppleDarwin => namui_user_config::Target::Aarch64AppleDarwin,
+            NamuiTarget::Wasm32WasiWeb => namui_user_config::Target::Wasm32WasiWeb,
+            NamuiTarget::X86_64PcWindowsMsvc => namui_user_config::Target::X86_64PcWindowsMsvc,
+            NamuiTarget::X86_64UnknownLinuxGnu => namui_user_config::Target::X86_64UnknownLinuxGnu,
+            NamuiTarget::Aarch64AppleDarwin => namui_user_config::Target::Aarch64AppleDarwin,
         }
     }
 }

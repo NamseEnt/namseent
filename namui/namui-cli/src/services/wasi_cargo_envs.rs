@@ -20,7 +20,7 @@ pub fn wasi_cargo_envs() -> [(&'static str, PathBuf); 9] {
         ),
         ("CLANG_PATH", cli_root_path.join("wasi-sdk/bin/clang")),
         (
-            "CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER",
+            "CARGO_TARGET_WASM32_WASI2_LINKER",
             cli_root_path.join("wasi-sdk/bin/wasm-ld"),
         ),
     ]

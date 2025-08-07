@@ -1,6 +1,6 @@
 use super::bundle::NamuiBundleManifest;
 use crate::*;
-use crate::{cli::Target, debug_println, util::get_cli_root_path};
+use crate::{cli::NamuiTarget, debug_println, util::get_cli_root_path};
 use std::{
     fs::{create_dir_all, remove_dir_all},
     path::PathBuf,
@@ -9,7 +9,7 @@ use std::{
 pub fn collect_all(
     project_path: impl AsRef<std::path::Path>,
     dest_path: impl AsRef<std::path::Path>,
-    target: Target,
+    target: NamuiTarget,
     bundle_manifest: NamuiBundleManifest,
     additional_runtime_path: Option<&PathBuf>,
     release: bool,
@@ -45,19 +45,19 @@ fn collect_resources(
 fn collect_runtime(
     ops: &mut Vec<CollectOperation>,
     additional_runtime_path: Option<&PathBuf>,
-    target: Target,
+    target: NamuiTarget,
 ) -> Result<()> {
     match target {
-        Target::Wasm32WasiWeb => {
+        NamuiTarget::Wasm32WasiWeb => {
             let namui_browser_runtime_path = get_cli_root_path().join("www");
             ops.push(CollectOperation::new(
                 namui_browser_runtime_path,
                 PathBuf::from(""),
             ));
         }
-        Target::X86_64PcWindowsMsvc => {}
-        Target::X86_64UnknownLinuxGnu => {}
-        Target::Aarch64AppleDarwin => {}
+        NamuiTarget::X86_64PcWindowsMsvc => {}
+        NamuiTarget::X86_64UnknownLinuxGnu => {}
+        NamuiTarget::Aarch64AppleDarwin => {}
     }
     if let Some(additional_runtime_path) = additional_runtime_path {
         ops.push(CollectOperation::new(
@@ -71,12 +71,12 @@ fn collect_runtime(
 fn collect_rust_build(
     ops: &mut Vec<CollectOperation>,
     project_path: impl AsRef<std::path::Path>,
-    target: Target,
+    target: NamuiTarget,
     release: bool,
 ) -> Result<()> {
     let project_path = project_path.as_ref();
     match target {
-        Target::Wasm32WasiWeb => {
+        NamuiTarget::Wasm32WasiWeb => {
             let build_dist_path = project_path.join("pkg");
             ops.push(CollectOperation::new(
                 build_dist_path.join("bundle.js"),
@@ -87,7 +87,7 @@ fn collect_rust_build(
                 PathBuf::from(""),
             ));
         }
-        Target::X86_64PcWindowsMsvc => {
+        NamuiTarget::X86_64PcWindowsMsvc => {
             let build_dist_path = project_path.join(format!(
                 "target/namui/target/x86_64-pc-windows-msvc/{}",
                 if release { "release" } else { "debug" }
@@ -101,7 +101,7 @@ fn collect_rust_build(
                 PathBuf::from(""),
             ));
         }
-        Target::X86_64UnknownLinuxGnu => {
+        NamuiTarget::X86_64UnknownLinuxGnu => {
             let build_dist_path = project_path.join(format!(
                 "target/namui/target/x86_64-unknown-linux-gnu/{}",
                 if release { "release" } else { "debug" }
@@ -111,7 +111,7 @@ fn collect_rust_build(
                 PathBuf::from(""),
             ));
         }
-        Target::Aarch64AppleDarwin => {
+        NamuiTarget::Aarch64AppleDarwin => {
             let build_dist_path = project_path.join(format!(
                 "target/namui/target/aarch64-apple-darwin/{}",
                 if release { "release" } else { "debug" }
@@ -137,14 +137,14 @@ fn collect_bundle(
 fn collect_deep_link_manifest(
     ops: &mut Vec<CollectOperation>,
     project_path: impl AsRef<std::path::Path>,
-    target: Target,
+    target: NamuiTarget,
 ) -> Result<()> {
     let _ = ops;
     match target {
-        Target::Wasm32WasiWeb => {}
-        Target::X86_64PcWindowsMsvc
-        | Target::X86_64UnknownLinuxGnu
-        | Target::Aarch64AppleDarwin => {
+        NamuiTarget::Wasm32WasiWeb => {}
+        NamuiTarget::X86_64PcWindowsMsvc
+        | NamuiTarget::X86_64UnknownLinuxGnu
+        | NamuiTarget::Aarch64AppleDarwin => {
             // TODO, but not priority
         }
     }

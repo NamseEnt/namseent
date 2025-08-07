@@ -1,5 +1,5 @@
 use crate::*;
-use crate::{cli::Target, types::ErrorMessage};
+use crate::{cli::NamuiTarget, types::ErrorMessage};
 use cargo_metadata::{CompilerMessage, Message, diagnostic::DiagnosticLevel};
 use std::path::PathBuf;
 use std::process::Output;
@@ -8,7 +8,7 @@ use tokio::process::Command;
 #[derive(Clone, Debug)]
 pub struct BuildOption {
     pub project_root_path: PathBuf,
-    pub target: Target,
+    pub target: NamuiTarget,
     pub watch: bool,
     pub release: bool,
 }
@@ -35,13 +35,13 @@ pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoB
 
 async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
     match build_option.target {
-        Target::Wasm32WasiWeb => {
+        NamuiTarget::Wasm32WasiWeb => {
             let mut args = vec![];
 
             args.extend([
                 "build",
                 "--target",
-                "wasm32-wasip1-threads",
+                "wasm32-wasip2",
                 "--message-format",
                 "json",
                 "-vv",
@@ -58,7 +58,7 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 .output()
                 .await?)
         }
-        Target::X86_64PcWindowsMsvc => {
+        NamuiTarget::X86_64PcWindowsMsvc => {
             let mut args = vec![];
             if cfg!(target_os = "linux") {
                 args.push("xwin");
@@ -94,29 +94,29 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 .output()
                 .await?)
         }
-        Target::X86_64UnknownLinuxGnu => todo!(),
-        Target::Aarch64AppleDarwin => todo!(),
+        NamuiTarget::X86_64UnknownLinuxGnu => todo!(),
+        NamuiTarget::Aarch64AppleDarwin => todo!(),
     }
 }
 
 fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
     let mut envs = match build_option.target {
-        Target::Wasm32WasiWeb => vec![
+        NamuiTarget::Wasm32WasiWeb => vec![
             ("NAMUI_CFG_TARGET_ARCH", "wasm32"),
-            ("NAMUI_CFG_TARGET_OS", "wasip1"),
+            ("NAMUI_CFG_TARGET_OS", "wasip2"),
             ("NAMUI_CFG_TARGET_ENV", ""),
         ],
-        Target::X86_64PcWindowsMsvc => vec![
+        NamuiTarget::X86_64PcWindowsMsvc => vec![
             ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
             ("NAMUI_CFG_TARGET_OS", "windows"),
             ("NAMUI_CFG_TARGET_ENV", "msvc"),
         ],
-        Target::X86_64UnknownLinuxGnu => vec![
+        NamuiTarget::X86_64UnknownLinuxGnu => vec![
             ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
             ("NAMUI_CFG_TARGET_OS", "linux"),
             ("NAMUI_CFG_TARGET_ENV", "gnu"),
         ],
-        Target::Aarch64AppleDarwin => vec![
+        NamuiTarget::Aarch64AppleDarwin => vec![
             ("NAMUI_CFG_TARGET_ARCH", "aarch64"),
             ("NAMUI_CFG_TARGET_OS", "macos"),
             ("NAMUI_CFG_TARGET_ENV", "darwin"),

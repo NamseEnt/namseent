@@ -12,7 +12,7 @@ pub async fn update_vite_config(config: &ViteConfig<'_>) -> Result<()> {
     let bundle_manifest = NamuiBundleManifest::parse(config.project_root_path)?;
 
     let target_project_path = config.project_root_path.join(format!(
-        "target/namui/target/wasm32-wasip1-threads/{}",
+        "target/namui/target/wasm32-wasip2/{}",
         if config.release { "release" } else { "debug" }
     ));
     let namui_runtime_wasm_path = target_project_path.join("namui-runtime-wasm.wasm");

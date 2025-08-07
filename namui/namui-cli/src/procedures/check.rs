@@ -1,109 +1,56 @@
-use crate::cli::Target;
+use crate::cli::NamuiTarget;
 use crate::*;
 use services::wasi_cargo_envs::wasi_cargo_envs;
 use std::path::PathBuf;
 use tokio::process::Command;
 
-pub async fn check(target: Target, manifest_path: PathBuf) -> Result<()> {
+pub async fn check(target: NamuiTarget, manifest_path: PathBuf) -> Result<()> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
-    match target {
-        Target::Wasm32WasiWeb => {
-            let mut args = vec![];
+    let rust_target = match target {
+        NamuiTarget::Wasm32WasiWeb => "wasm32-wasip2",
+        NamuiTarget::X86_64PcWindowsMsvc => "x86_64-pc-windows-msvc",
+        NamuiTarget::X86_64UnknownLinuxGnu => "x86_64-unknown-linux-gnu",
+        NamuiTarget::Aarch64AppleDarwin => "aarch64-apple-darwin",
+    };
 
-            args.extend([
-                "check",
-                "--target",
-                "wasm32-wasip1-threads",
-                "--manifest-path",
-                manifest_path.to_str().unwrap(),
-                "--all-targets",
-            ]);
+    let mut args = vec![];
 
-            Command::new("cargo")
-                .args(args)
-                // .envs(get_envs(build_option)) << TODO
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit())
-                .envs(wasi_cargo_envs())
-                .spawn()?
-                .wait()
-                .await?;
-        }
-        Target::X86_64PcWindowsMsvc => {
-            let mut args = vec![];
-            if cfg!(target_os = "linux") {
-                args.push("xwin");
-            }
-
-            args.extend([
-                "check",
-                "--target",
-                "x86_64-pc-windows-msvc",
-                "--manifest-path",
-                manifest_path.to_str().unwrap(),
-                "--tests",
-            ]);
-
-            if cfg!(target_os = "linux") {
-                args.extend([
-                    "--xwin-arch",
-                    "x86_64",
-                    "--xwin-version",
-                    "17",
-                    "--cross-compiler",
-                    "clang",
-                ]);
-            }
-
-            Command::new("cargo")
-                .args(args)
-                // .envs(get_envs(build_option)) << TODO
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit())
-                .spawn()?
-                .wait()
-                .await?;
-        }
-        Target::X86_64UnknownLinuxGnu => {
-            let mut args = vec![];
-            args.extend([
-                "check",
-                "--target",
-                "x86_64-unknown-linux-gnu",
-                "--manifest-path",
-                manifest_path.to_str().unwrap(),
-                "--tests",
-            ]);
-
-            Command::new("cargo")
-                .args(args)
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit())
-                .spawn()?
-                .wait()
-                .await?;
-        }
-        Target::Aarch64AppleDarwin => {
-            let mut args = vec![];
-            args.extend([
-                "check",
-                "--target",
-                "aarch64-apple-darwin",
-                "--manifest-path",
-                manifest_path.to_str().unwrap(),
-                "--tests",
-            ]);
-
-            Command::new("cargo")
-                .args(args)
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit())
-                .spawn()?
-                .wait()
-                .await?;
-        }
+    if let NamuiTarget::X86_64PcWindowsMsvc = target
+        && cfg!(target_os = "linux")
+    {
+        args.push("xwin");
     }
+
+    args.extend([
+        "check",
+        "--target",
+        rust_target,
+        "--manifest-path",
+        manifest_path.to_str().unwrap(),
+        "--all-targets",
+    ]);
+
+    if let NamuiTarget::X86_64PcWindowsMsvc = target
+        && cfg!(target_os = "linux")
+    {
+        args.push("xwin");
+    }
+
+    let env: &[_] = if let NamuiTarget::Wasm32WasiWeb = target {
+        &wasi_cargo_envs()
+    } else {
+        &[]
+    };
+
+    Command::new("cargo")
+        .args(args)
+        .envs(env.iter().cloned())
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .spawn()?
+        .wait()
+        .await?;
 
     Ok(())
 }

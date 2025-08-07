@@ -1,20 +1,20 @@
-use crate::cli::Target;
+use crate::cli::NamuiTarget;
 use crate::*;
 use services::wasi_cargo_envs::wasi_cargo_envs;
 use std::path::PathBuf;
 use tokio::process::Command;
 
-pub async fn clippy(target: Target, manifest_path: PathBuf) -> Result<()> {
+pub async fn clippy(target: NamuiTarget, manifest_path: PathBuf) -> Result<()> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
     match target {
-        Target::Wasm32WasiWeb => {
+        NamuiTarget::Wasm32WasiWeb => {
             let mut args = vec![];
 
             args.extend([
                 "clippy",
                 "--target",
-                "wasm32-wasip1-threads",
+                "wasm32-wasip2",
                 "--manifest-path",
                 manifest_path.to_str().unwrap(),
                 "--all-targets",
@@ -30,7 +30,7 @@ pub async fn clippy(target: Target, manifest_path: PathBuf) -> Result<()> {
                 .wait()
                 .await?;
         }
-        Target::X86_64PcWindowsMsvc => {
+        NamuiTarget::X86_64PcWindowsMsvc => {
             let mut args = vec![];
             if cfg!(target_os = "linux") {
                 args.push("xwin");
@@ -65,7 +65,7 @@ pub async fn clippy(target: Target, manifest_path: PathBuf) -> Result<()> {
                 .wait()
                 .await?;
         }
-        Target::X86_64UnknownLinuxGnu => {
+        NamuiTarget::X86_64UnknownLinuxGnu => {
             let mut args = vec![];
             args.extend([
                 "clippy",
@@ -84,7 +84,7 @@ pub async fn clippy(target: Target, manifest_path: PathBuf) -> Result<()> {
                 .wait()
                 .await?;
         }
-        Target::Aarch64AppleDarwin => {
+        NamuiTarget::Aarch64AppleDarwin => {
             let mut args = vec![];
             args.extend([
                 "clippy",

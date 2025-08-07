@@ -1,8 +1,8 @@
-use crate::cli::Target;
+use crate::cli::NamuiTarget;
 use crate::*;
 use std::path::PathBuf;
 
-pub async fn build(target: Target, manifest_path: PathBuf, release: bool) -> Result<()> {
+pub async fn build(target: NamuiTarget, manifest_path: PathBuf, release: bool) -> Result<()> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
     if cfg!(target_os = "linux") {
@@ -10,10 +10,10 @@ pub async fn build(target: Target, manifest_path: PathBuf, release: bool) -> Res
         {
             use super::linux;
             match target {
-                Target::Wasm32WasiWeb => {
+                NamuiTarget::Wasm32WasiWeb => {
                     linux::wasm32_wasi_web::build(&manifest_path, release).await?
                 }
-                Target::X86_64PcWindowsMsvc => {
+                NamuiTarget::X86_64PcWindowsMsvc => {
                     linux::x86_64_pc_windows_msvc::build(&manifest_path, release).await?
                 }
                 _ => unimplemented!(),
@@ -24,7 +24,7 @@ pub async fn build(target: Target, manifest_path: PathBuf, release: bool) -> Res
         {
             use super::macos;
             match target {
-                Target::Wasm32WasiWeb => {
+                NamuiTarget::Wasm32WasiWeb => {
                     macos::wasm32_wasi_web::build(&manifest_path, release).await?
                 }
                 _ => unimplemented!(),
@@ -35,10 +35,10 @@ pub async fn build(target: Target, manifest_path: PathBuf, release: bool) -> Res
         {
             use super::windows;
             match target {
-                Target::Wasm32WasiWeb => {
+                NamuiTarget::Wasm32WasiWeb => {
                     bail!("{} is unsupported target", target)
                 }
-                Target::X86_64PcWindowsMsvc => {
+                NamuiTarget::X86_64PcWindowsMsvc => {
                     windows::x86_64_pc_windows_msvc::build(&manifest_path).await?;
                 }
                 _ => unimplemented!(),

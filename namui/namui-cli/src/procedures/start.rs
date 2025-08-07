@@ -1,9 +1,9 @@
-use crate::cli::Target;
+use crate::cli::NamuiTarget;
 use crate::*;
 use std::path::PathBuf;
 
 pub async fn start(
-    target: Target,
+    target: NamuiTarget,
     manifest_path: PathBuf,
     start_option: StartOption,
 ) -> Result<()> {
@@ -14,10 +14,10 @@ pub async fn start(
         {
             use super::linux;
             match target {
-                Target::Wasm32WasiWeb => {
+                NamuiTarget::Wasm32WasiWeb => {
                     linux::wasm32_wasi_web::start(&manifest_path, start_option).await?
                 }
-                Target::X86_64PcWindowsMsvc => {
+                NamuiTarget::X86_64PcWindowsMsvc => {
                     linux::x86_64_pc_windows_msvc::start(&manifest_path, start_option).await?
                 }
                 _ => unimplemented!(),
@@ -28,7 +28,7 @@ pub async fn start(
         {
             use super::macos;
             match target {
-                Target::Wasm32WasiWeb => {
+                NamuiTarget::Wasm32WasiWeb => {
                     macos::wasm32_wasi_web::start(&manifest_path, start_option).await?
                 }
                 _ => unimplemented!(),
@@ -39,10 +39,12 @@ pub async fn start(
         {
             use super::windows;
             match target {
-                Target::Wasm32WasiWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
+                NamuiTarget::Wasm32WasiWeb
+                | NamuiTarget::WasmWindowsElectron
+                | NamuiTarget::WasmLinuxElectron => {
                     bail!("{} is unsupported target", target)
                 }
-                Target::X86_64PcWindowsMsvc => {
+                NamuiTarget::X86_64PcWindowsMsvc => {
                     windows::x86_64_pc_windows_msvc::start(&manifest_path).await?;
                 }
                 _ => unimplemented!(),

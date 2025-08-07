@@ -79,7 +79,7 @@ fn generate_completions() -> Result<()> {
 }
 
 async fn download_wasi_sdk() -> Result<()> {
-    const VERSION: &str = "25.0";
+    const VERSION: &str = "27.0";
 
     let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let dist = root.join("wasi-sdk");

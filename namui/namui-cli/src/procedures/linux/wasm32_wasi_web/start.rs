@@ -1,5 +1,5 @@
 use super::vite_config::{ViteConfig, update_vite_config};
-use crate::cli::Target;
+use crate::cli::NamuiTarget;
 use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
 use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runtime_project};
@@ -13,7 +13,7 @@ pub async fn start(
     start_option: StartOption,
 ) -> Result<()> {
     let manifest_path = manifest_path.as_ref();
-    let target = Target::Wasm32WasiWeb;
+    let target = NamuiTarget::Wasm32WasiWeb;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let build_status_service = BuildStatusService::new();
     let runtime_target_dir = project_root_path.join("target/namui");
