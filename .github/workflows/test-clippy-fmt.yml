@@ -161,6 +161,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           BASE_COMMIT=$(git rev-parse HEAD)
+          BASE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
           echo "Base commit: $BASE_COMMIT"
 
           echo "=== Creating feature branches and applying patches ==="
@@ -188,7 +189,7 @@ jobs:
             fi
           done
 
-          git checkout "$BASE_COMMIT"
+          git checkout "$BASE_BRANCH"
 
           echo "=== Performing octopus merge ==="
           echo "Merging branches: ${branches[*]}"
@@ -197,9 +198,13 @@ jobs:
 
           git merge --no-commit --no-ff "${branches[@]}"
 
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git commit -m "Auto-fix: Apply clippy and fmt changes"
           git push
 
