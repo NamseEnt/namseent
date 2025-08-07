@@ -1,0 +1,72 @@
+name: test-clippy-fmt-common
+description: Test clippy and fmt
+
+inputs:
+  namui-target:
+    description: Namui target
+    required: true
+  rust-target:
+    description: Rust target
+    required: true
+  running-env:
+    description: Running environment
+    required: false
+
+outputs:
+  diff-artifact-id:
+    description: "Diff artifact id"
+    value: ${{ steps.diff-upload.outputs.artifact-id }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Fast parallel submodule checkout
+      run: |
+        git submodule update --init --recursive --jobs 16 --depth 1
+
+    - name: Set up cargo
+      run: |
+        rustup update
+        rustup target add ${{ inputs.rust-target }}
+
+    - name: workspace-maker cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ./github-actions-tools/workspace-maker/target
+        key: ${{ inputs.rust-target }}-workspace-maker
+
+    - name: Create workspace Cargo.toml
+      shell: bash
+      run: |
+        cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.namui-target }}
+
+    - name: Workspace cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.namui-target }}
+
+    - name: Test
+      shell: bash
+      if: matrix.namui-target != 'wasm32-wasi-web'
+      run: ${{ inputs.running-env }} cargo test --target ${{ inputs.rust-target }}
+
+    - name: Clippy
+      shell: bash
+      run: ${{ inputs.running-env }} cargo clippy --target ${{ inputs.rust-target }} --tests --fix
+
+    - name: Fmt
+      shell: bash
+      run: cargo fmt --all
+
+    - name: Git diff
+      shell: bash
+      run: git diff > ${{ inputs.rust-target }}.patch
+
+    - name: Upload diff
+      id: diff-upload
+      uses: actions/upload-artifact@v4
+      with:
+        path: ${{ inputs.rust-target }}.patch

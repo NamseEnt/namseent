@@ -18,83 +18,63 @@ defaults:
     shell: bash
 
 jobs:
-  test-clippy-fmt:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            namui_target: x86_64-unknown-linux-gnu
-            rust_target: x86_64-unknown-linux-gnu
-          - os: ubuntu-latest
-            namui_target: wasm32-wasi-web
-            rust_target: wasm32-wasip1-threads
-          - os: macos-latest
-            namui_target: aarch64-apple-darwin
-            rust_target: aarch64-apple-darwin
-          - os: windows-latest
-            namui_target: x86_64-pc-windows-msvc
-            rust_target: x86_64-pc-windows-msvc
-    runs-on: ${{ matrix.os }}
+  wasm32-wasi-web:
+    runs-on: macos-latest
     outputs:
-      diff-artifact-id: ${{ steps.diff-upload.outputs.artifact-id }}
+      diff-artifact-id: ${{ steps.test-clippy-fmt-common.outputs.diff-artifact-id }}
     steps:
-      - uses: actions/checkout@v4
+      - id: test-clippy-fmt-common
+        uses: ./.github/actions/test-clippy-fmt-common.yml
+        with:
+          namui-target: wasm32-wasi-web
+          rust-target: wasm32-wasip1-threads
+          running-env: CLANGCC=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang CLANGCXX=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang++ CC=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang CXX=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang++ WASI_SDK=${{ github.workspace }}/namui/namui-cli/wasi-sdk WASI_SYSROOT=${{ github.workspace }}/namui/namui-cli/wasi-sdk/share/wasi-sysroot EMSDK_SYSTEM_INCLUDE=${{ github.workspace }}/namui/namui-cli/emscripten/system/include CLANG_PATH=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/wasm-ld CARGO_BUILD_TARGET=wasm32-wasip1-threads
 
-      - name: Fast parallel submodule checkout
-        run: |
-          git submodule update --init --recursive --jobs 16 --depth 1
+  aarch64-apple-darwin:
+    runs-on: macos-latest
+    outputs:
+      diff-artifact-id: ${{ steps.test-clippy-fmt-common.outputs.diff-artifact-id }}
+    steps:
+      - id: test-clippy-fmt-common
+        uses: ./.github/actions/test-clippy-fmt-common.yml
+        with:
+          namui-target: aarch64-apple-darwin
+          rust-target: aarch64-apple-darwin
 
+  x86_64-unknown-linux-gnu:
+    runs-on: ubuntu-latest
+    outputs:
+      diff-artifact-id: ${{ steps.test-clippy-fmt-common.outputs.diff-artifact-id }}
+    steps:
       - uses: awalsh128/cache-apt-pkgs-action@latest
         if: matrix.namui_target == 'x86_64-unknown-linux-gnu'
         with:
           packages: libasound2-dev libfontconfig-dev
-
-      - uses: awalsh128/cache-apt-pkgs-action@latest
-        if: matrix.namui_target == 'wasm32-wasi-web'
+      - id: test-clippy-fmt-common
+        uses: ./.github/actions/test-clippy-fmt-common.yml
         with:
-          packages: gcc-multilib
+          namui-target: x86_64-unknown-linux-gnu
+          rust-target: x86_64-unknown-linux-gnu
 
-      - name: Set up cargo
-        run: |
-          rustup update
-          rustup target add ${{ matrix.rust_target }}
-
-      - name: workspace-maker cache
-        uses: actions/cache@v4
+  x86_64-pc-windows-msvc:
+    runs-on: windows-latest
+    outputs:
+      diff-artifact-id: ${{ steps.test-clippy-fmt-common.outputs.diff-artifact-id }}
+    steps:
+      - id: test-clippy-fmt-common
+        uses: ./.github/actions/test-clippy-fmt-common.yml
         with:
-          path: |
-            ./github-actions-tools/workspace-maker/target
-          key: ${{ matrix.rust_target }}-workspace-maker
-
-      - name: Create workspace Cargo.toml
-        run: |
-          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.namui_target }}
-
-      - name: Workspace cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.namui_target }}
-
-      - run: cargo test --target ${{ matrix.rust_target }}
-        if: matrix.namui_target != 'wasm32-wasi-web'
-
-      - run: cargo clippy --target ${{ matrix.rust_target }} --tests --fix
-
-      - run: cargo fmt --all
-
-      - run: git diff > ${{ matrix.namui_target }}.patch
-
-      - name: Upload diff
-        id: diff-upload
-        uses: actions/upload-artifact@v4
-        with:
-          path: ${{ matrix.namui_target }}.patch
+          namui-target: x86_64-pc-windows-msvc
+          rust-target: x86_64-pc-windows-msvc
 
   post-test-clippy-fmt:
     if: always()
     runs-on: ubuntu-latest
     needs:
-      - test-clippy-fmt
+      - wasm32-wasi-web
+      - aarch64-apple-darwin
+      - x86_64-unknown-linux-gnu
+      - x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
         with:
@@ -103,7 +83,7 @@ jobs:
       - name: Download diffs
         uses: actions/download-artifact@v4
         with:
-          artifact-ids: ${{ join(needs.test-clippy-fmt.outputs.diff-artifact-id, ',') }}
+          artifact-ids: ${{ join(needs.*.outputs.diff-artifact-id, ',') }}
           path: ${{ runner.temp }}
 
       - name: Octopus merge changes and push
