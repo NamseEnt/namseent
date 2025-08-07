@@ -1,0 +1,220 @@
+name: test-clippy-fmt
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.ref }}-test-clippy-fmt
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: -D warnings
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test-clippy-fmt:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            namui-target: wasm32-wasi-web
+            rust-target: wasm32-wasip1-threads
+          - os: macos-latest
+            namui-target: aarch64-apple-darwin
+            rust-target: aarch64-apple-darwin
+          - os: ubuntu-latest
+            namui-target: x86_64-unknown-linux-gnu
+            rust-target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            namui-target: x86_64-pc-windows-msvc
+            rust-target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    outputs:
+      diff-artifact-id: ${{ steps.upload-diff-artifact.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fast parallel submodule checkout
+        run: |
+          git submodule update --init --recursive --jobs 16 --depth 1
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        if: matrix.namui-target == 'x86_64-unknown-linux-gnu'
+        with:
+          packages: libasound2-dev libfontconfig-dev
+
+      - name: Set up cargo
+        run: |
+          rustup update
+          rustup target add ${{ matrix.rust-target }}
+
+      - name: namui-cli cache
+        if: matrix.namui-target == 'wasm32-wasi-web'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./namui/namui-cli
+          key: ${{ matrix.namui-target }}-namui-cli
+
+      - name: Build namui-cli
+        if: matrix.namui-target == 'wasm32-wasi-web'
+        working-directory: namui/namui-cli
+        run: cargo build
+
+      - name: workspace-maker cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./github-actions-tools/workspace-maker/target
+          key: ${{ matrix.namui-target }}-workspace-maker
+
+      - name: Create workspace Cargo.toml
+        run: |
+          cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.namui-target }}
+
+      - name: Workspace cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.namui-target }}
+
+      - name: Test
+        if: matrix.namui-target != 'wasm32-wasi-web'
+        run: ${{ matrix.running-env }} cargo test --target ${{ matrix.rust-target }}
+
+      - name: Set env for wasm32-wasi-web
+        if: matrix.namui-target == 'wasm32-wasi-web'
+        run: |
+          echo "CLANGCC=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang" >> $GITHUB_ENV
+          echo "CLANGCXX=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang++" >> $GITHUB_ENV
+          echo "CC=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang" >> $GITHUB_ENV
+          echo "CXX=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang++" >> $GITHUB_ENV
+          echo "WASI_SDK=${{ github.workspace }}/namui/namui-cli/wasi-sdk" >> $GITHUB_ENV
+          echo "WASI_SYSROOT=${{ github.workspace }}/namui/namui-cli/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
+          echo "EMSDK_SYSTEM_INCLUDE=${{ github.workspace }}/namui/namui-cli/emscripten/system/include" >> $GITHUB_ENV
+          echo "CLANG_PATH=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang" >> $GITHUB_ENV
+          echo "CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/wasm-ld" >> $GITHUB_ENV
+          echo "CARGO_BUILD_TARGET=wasm32-wasip1-threads" >> $GITHUB_ENV
+
+      - name: Clippy
+        run: cargo clippy --target ${{ matrix.rust-target }} --tests --fix
+
+      - name: Fmt
+        run: cargo fmt --all
+
+      - name: Git diff
+        run: git diff > ${{ github.run_id }}-${{ matrix.rust-target }}.patch
+
+      - name: Upload diff
+        id: diff-upload
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ github.run_id }}-${{ matrix.rust-target }}.patch
+          name: ${{ github.run_id }}-${{ matrix.rust-target }}.patch
+
+  post-test-clippy-fmt:
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - test-clippy-fmt
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_CARGO_LOCK_UPDATE }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Download diffs
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ join(needs.*.outputs.diff-artifact-id, ',') }}
+          path: ${{ runner.temp }}
+
+      - name: Octopus merge changes and push
+        run: |
+          set -euo pipefail
+
+          echo "=== Collecting patch files ==="
+          patches=()
+          for patch_file in ${{ runner.temp }}/**/*.patch; do
+            if [[ -f "$patch_file" && -s "$patch_file" ]]; then
+              target_name=$(basename "$patch_file" .patch)
+              patches+=("$target_name:$patch_file")
+              echo "Found non-empty patch: $target_name"
+            elif [[ -f "$patch_file" ]]; then
+              echo "Skipping empty patch: $(basename $patch_file)"
+            fi
+          done
+
+          if [[ ${#patches[@]} -eq 0 ]]; then
+            echo "No patches to apply. Exiting."
+            exit 0
+          fi
+
+          echo "=== Setting up git config ==="
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BASE_COMMIT=$(git rev-parse HEAD)
+          BASE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          echo "Base commit: $BASE_COMMIT"
+
+          echo "=== Creating feature branches and applying patches ==="
+          branches=()
+
+          for patch_info in "${patches[@]}"; do
+            target_name="${patch_info%%:*}"
+            patch_file="${patch_info##*:}"
+            branch_name="auto-fix/$target_name"
+            
+            echo "Creating branch $branch_name and applying patch..."
+            git checkout -b "$branch_name" "$BASE_COMMIT"
+            
+            if git apply "$patch_file" 2>/dev/null; then
+              git add -A
+              git commit -m "Auto-fix: Apply clippy and fmt changes for $target_name"
+              branches+=("$branch_name")
+              echo "✅ Successfully created $branch_name"
+            else
+              echo "❌ Failed to apply patch for $target_name"
+              echo "Error details:"
+              git apply "$patch_file" 2>&1 || true
+              echo "::error::Patch $target_name cannot be applied cleanly"
+              exit 1
+            fi
+          done
+
+          git checkout "$BASE_BRANCH"
+
+          echo "=== Performing octopus merge ==="
+          echo "Merging branches: ${branches[*]}"
+
+          set +euo pipefail
+
+          git merge --no-commit --no-ff "${branches[@]}"
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "Auto-fix: Apply clippy and fmt changes"
+          git push
+
+      - run: |
+          echo ${{ join(needs.*.result, ',') }}
+          any_test_failed=${{ contains(join(needs.*.result, ','), 'failure') }}
+          echo $any_test_failed
+          if [[ $any_test_failed == "true" ]]; then
+              echo "::error::There are failed job"
+              exit 1
+          else
+              echo "Good. No test failed"
+          fi

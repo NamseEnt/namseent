@@ -1,3 +1,4 @@
 .DS_Store
-rollup_err.json
-err.json
+/Cargo.toml
+/Cargo.lock
+/target/

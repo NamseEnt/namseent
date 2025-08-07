@@ -3,22 +3,15 @@ fn main() {
     let target = args
         .get(1)
         .expect("target is required. pass it as the first argument");
-    let dest = args
-        .get(2)
-        .expect("dest is required. pass it as the second argument");
-    let output_key = args
-        .get(3)
-        .expect("output_key is required. pass it as the third argument");
 
     println!("target: {target}");
-    println!("dest: {dest}");
 
     let cargo_toml_dirents = walkdir::WalkDir::new(".")
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file() && e.path().file_name() == Some("Cargo.toml".as_ref()));
 
-    let mut target_cargo_toml_paths = vec![];
+    let mut target_project_paths = vec![];
 
     for cargo_toml_dirent in cargo_toml_dirents {
         let cargo_toml_path = cargo_toml_dirent.path();
@@ -56,20 +49,45 @@ fn main() {
                 )
             }()
         {
-            target_cargo_toml_paths.push(cargo_toml_path.parent().unwrap().to_owned());
+            target_project_paths.push(cargo_toml_path.parent().unwrap().to_owned());
         }
     }
 
-    let output_json_array = format!(
-        "[{}]",
-        target_cargo_toml_paths
+    let cargo_version = {
+        let output = std::process::Command::new("cargo")
+            .arg("--version")
+            .output()
+            .unwrap();
+        let version = String::from_utf8_lossy(&output.stdout);
+        version.split_whitespace().nth(1).unwrap().to_string()
+    };
+
+    let output_cargo_toml = format!(
+        r#"[workspace]
+resolver = "3"
+package.rust-version = "{cargo_version}"
+exclude = [
+    "namui/third-party-forks/rusqlite",
+    "namui/third-party-forks/rust-skia/skia-safe",
+    "namui/third-party-forks/tokio/tokio",
+    "namui/third-party-forks/tokio/tokio-stream",
+    "namui/namui-cli",
+    "github-actions-tools/workspace-maker",
+]
+members = [{}]
+"#,
+        target_project_paths
             .iter()
-            .map(|path| format!("\"{}\"", path.to_str().unwrap()))
+            .map(|path| format!(
+                "\"{}\"",
+                &path.to_str().unwrap()[2..] // remove "./"
+                    .replace("\\", "/") // cargo support only "/"
+            ))
             .collect::<Vec<_>>()
-            .join(",")
+            .join(",\n")
     );
 
-    println!("result: {output_key}={output_json_array}");
+    println!("{output_cargo_toml}");
 
-    std::fs::write(dest, format!("{output_key}={output_json_array}")).unwrap();
+    std::fs::write("Cargo.toml", output_cargo_toml).unwrap();
 }

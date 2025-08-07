@@ -1,5 +1,5 @@
 use super::*;
-use std::collections::{btree_map, BTreeMap};
+use std::collections::{BTreeMap, btree_map};
 
 type Result<T> = std::io::Result<T>;
 

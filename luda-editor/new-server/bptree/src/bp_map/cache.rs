@@ -4,8 +4,8 @@ use std::{
     collections::BTreeMap,
     ops::Deref,
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc, OnceLock,
+        atomic::{AtomicU64, Ordering},
     },
     time::Instant,
 };

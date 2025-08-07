@@ -39,8 +39,6 @@ impl World {
                     .compose_id_map
                     .insert(child_key, child_composer_id.into());
 
-                
-
                 (self
                     .composers
                     .insert(child_composer_id, Composer::new().into())) as _
@@ -72,8 +70,6 @@ impl World {
                 parent_composer
                     .instance_id_map
                     .insert(child_key.clone(), child_instance_id.into());
-
-                
 
                 (self.instances.insert(
                     child_instance_id,

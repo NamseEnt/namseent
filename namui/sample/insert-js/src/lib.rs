@@ -1,6 +1,6 @@
 use namui::*;
 use namui_prebuilt::typography;
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, atomic::AtomicBool};
 
 pub fn main() {
     namui::start(render)

@@ -829,9 +829,11 @@ mod tests {
     fn internal_node_insert_split() {
         let mut internal_node = InternalNode::new(&[1], &[PageOffset::new(0), PageOffset::new(1)]);
         for i in 1..INTERNAL_NODE_KEY_LEN {
-            assert!(internal_node
-                .insert(i as Key + 1, PageOffset::new(i as u32 + 1))
-                .is_none());
+            assert!(
+                internal_node
+                    .insert(i as Key + 1, PageOffset::new(i as u32 + 1))
+                    .is_none()
+            );
         }
         let (right_node, center_key) = internal_node
             .insert(
