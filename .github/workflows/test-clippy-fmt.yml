@@ -75,7 +75,7 @@ jobs:
         with:
           key: ${{ matrix.namui_target }}
 
-      - run: cargo test
+      - run: cargo test --target ${{ matrix.rust_target }}
       - run: cargo clippy --target ${{ matrix.rust_target }} --tests --fix
       - run: cargo fmt --all
 
