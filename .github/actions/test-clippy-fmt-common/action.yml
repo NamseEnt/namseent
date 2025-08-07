@@ -41,15 +41,15 @@ runs:
     - name: Create workspace Cargo.toml
       shell: bash
       run: |
-        cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.namui-target }}
+        cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ inputs.namui-target }}
 
     - name: Workspace cache
       uses: Swatinem/rust-cache@v2
       with:
-        key: ${{ matrix.namui-target }}
+        key: ${{ inputs.namui-target }}
 
     - name: Test
-      if: matrix.namui-target != 'wasm32-wasi-web'
+      if: inputs.namui-target != 'wasm32-wasi-web'
       shell: bash
       run: ${{ inputs.running-env }} cargo test --target ${{ inputs.rust-target }}
 
