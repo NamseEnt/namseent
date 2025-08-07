@@ -21,10 +21,12 @@ runs:
   using: "composite"
   steps:
     - name: Fast parallel submodule checkout
+      shell: bash
       run: |
         git submodule update --init --recursive --jobs 16 --depth 1
 
     - name: Set up cargo
+      shell: bash
       run: |
         rustup update
         rustup target add ${{ inputs.rust-target }}
@@ -47,8 +49,8 @@ runs:
         key: ${{ matrix.namui-target }}
 
     - name: Test
-      shell: bash
       if: matrix.namui-target != 'wasm32-wasi-web'
+      shell: bash
       run: ${{ inputs.running-env }} cargo test --target ${{ inputs.rust-target }}
 
     - name: Clippy
