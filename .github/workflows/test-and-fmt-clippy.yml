@@ -188,6 +188,7 @@ jobs:
           path: |
             .
             !target
+          include-hidden-files: true
           overwrite: true
 
   post-test-and-fmt-clippy:
