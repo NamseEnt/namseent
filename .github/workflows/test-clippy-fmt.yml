@@ -127,7 +127,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT_CARGO_LOCK_UPDATE }}
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Download diffs
         uses: actions/download-artifact@v4
