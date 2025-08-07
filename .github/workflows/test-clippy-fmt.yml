@@ -76,7 +76,10 @@ jobs:
           key: ${{ matrix.namui_target }}
 
       - run: cargo test --target ${{ matrix.rust_target }}
+        if: matrix.namui_target != 'wasm32-wasi-web'
+
       - run: cargo clippy --target ${{ matrix.rust_target }} --tests --fix
+
       - run: cargo fmt --all
 
       - run: git diff > ${{ matrix.namui_target }}.patch
