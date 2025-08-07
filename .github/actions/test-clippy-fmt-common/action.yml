@@ -63,7 +63,7 @@ runs:
 
     - name: Git diff
       shell: bash
-      run: git diff > ${{ inputs.rust-target }}.patch
+      run: git diff > ${{ github.run_id }}-${{ inputs.rust-target }}.patch
 
     - name: Upload diff
       id: diff-upload
