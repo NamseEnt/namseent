@@ -12,19 +12,6 @@ concurrency:
 env:
   CARGO_INCREMENTAL: 0
   RUSTFLAGS: -D warnings
-  ENVIRONMENTS:
-    - os: ubuntu-latest
-      namui_target: x86_64-unknown-linux-gnu
-      rust_target: x86_64-unknown-linux-gnu
-    - os: ubuntu-latest
-      namui_target: wasm32-wasi-web
-      rust_target: wasm32-wasip1-threads
-    - os: macos-latest
-      namui_target: aarch64-apple-darwin
-      rust_target: aarch64-apple-darwin
-    - os: windows-latest
-      namui_target: x86_64-pc-windows-msvc
-      rust_target: x86_64-pc-windows-msvc
 
 defaults:
   run:
@@ -34,7 +21,19 @@ jobs:
   test-clippy-fmt:
     strategy:
       matrix:
-        include: ${{ env.ENVIROMENTS }}
+        include:
+          - os: ubuntu-latest
+            namui_target: x86_64-unknown-linux-gnu
+            rust_target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            namui_target: wasm32-wasi-web
+            rust_target: wasm32-wasip1-threads
+          - os: macos-latest
+            namui_target: aarch64-apple-darwin
+            rust_target: aarch64-apple-darwin
+          - os: windows-latest
+            namui_target: x86_64-pc-windows-msvc
+            rust_target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     outputs:
       diff-artifact-id: ${{ steps.diff-upload.outputs.artifact-id }}
