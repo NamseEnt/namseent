@@ -71,6 +71,8 @@ exclude = [
     "namui/third-party-forks/rust-skia/skia-safe",
     "namui/third-party-forks/tokio/tokio",
     "namui/third-party-forks/tokio/tokio-stream",
+    "namui/namui-cli",
+    "github-actions-tools/workspace-maker",
 ]
 members = [{}]
 "#,
