@@ -24,6 +24,9 @@ jobs:
       diff-artifact-id: ${{ steps.test-clippy-fmt-common.outputs.diff-artifact-id }}
     steps:
       - uses: actions/checkout@v4
+      - name: Build namui-cli
+        working-directory: namui/namui-cli
+        run: cargo build
       - id: test-clippy-fmt-common
         uses: ./.github/actions/test-clippy-fmt-common
         with:
@@ -50,7 +53,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: awalsh128/cache-apt-pkgs-action@latest
-        if: matrix.namui_target == 'x86_64-unknown-linux-gnu'
         with:
           packages: libasound2-dev libfontconfig-dev
       - id: test-clippy-fmt-common
