@@ -690,16 +690,16 @@ impl From<Rect<Px>> for skia_safe::Rect {
 }
 
 #[cfg(feature = "skia")]
-impl<T> Into<Rect<T>> for skia_safe::Rect
+impl<T> From<skia_safe::Rect> for Rect<T>
 where
     T: From<f32> + Debug,
 {
-    fn into(self) -> Rect<T> {
+    fn from(val: skia_safe::Rect) -> Self {
         Rect::Ltrb {
-            left: self.left.into(),
-            top: self.top.into(),
-            right: self.right.into(),
-            bottom: self.bottom.into(),
+            left: val.left.into(),
+            top: val.top.into(),
+            right: val.right.into(),
+            bottom: val.bottom.into(),
         }
     }
 }

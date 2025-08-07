@@ -55,9 +55,9 @@ where
 }
 
 #[cfg(feature = "skia")]
-impl Into<skia_safe::Point> for Xy<Px> {
-    fn into(self) -> skia_safe::Point {
-        skia_safe::Point::new(self.x.into(), self.y.into())
+impl From<Xy<Px>> for skia_safe::Point {
+    fn from(val: Xy<Px>) -> Self {
+        skia_safe::Point::new(val.x.into(), val.y.into())
     }
 }
 
