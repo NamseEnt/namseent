@@ -69,4 +69,4 @@ runs:
       id: diff-upload
       uses: actions/upload-artifact@v4
       with:
-        path: ${{ inputs.rust-target }}.patch
+        path: ${{ github.run_id }}-${{ inputs.rust-target }}.patch
