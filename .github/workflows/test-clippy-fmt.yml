@@ -23,6 +23,7 @@ jobs:
     outputs:
       diff-artifact-id: ${{ steps.test-clippy-fmt-common.outputs.diff-artifact-id }}
     steps:
+      - uses: actions/checkout@v4
       - id: test-clippy-fmt-common
         uses: ./.github/actions/test-clippy-fmt-common.yml
         with:
@@ -35,6 +36,7 @@ jobs:
     outputs:
       diff-artifact-id: ${{ steps.test-clippy-fmt-common.outputs.diff-artifact-id }}
     steps:
+      - uses: actions/checkout@v4
       - id: test-clippy-fmt-common
         uses: ./.github/actions/test-clippy-fmt-common.yml
         with:
@@ -46,6 +48,7 @@ jobs:
     outputs:
       diff-artifact-id: ${{ steps.test-clippy-fmt-common.outputs.diff-artifact-id }}
     steps:
+      - uses: actions/checkout@v4
       - uses: awalsh128/cache-apt-pkgs-action@latest
         if: matrix.namui_target == 'x86_64-unknown-linux-gnu'
         with:
@@ -61,6 +64,7 @@ jobs:
     outputs:
       diff-artifact-id: ${{ steps.test-clippy-fmt-common.outputs.diff-artifact-id }}
     steps:
+      - uses: actions/checkout@v4
       - id: test-clippy-fmt-common
         uses: ./.github/actions/test-clippy-fmt-common.yml
         with:

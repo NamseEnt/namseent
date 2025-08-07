@@ -20,8 +20,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
-
     - name: Fast parallel submodule checkout
       run: |
         git submodule update --init --recursive --jobs 16 --depth 1
@@ -36,7 +34,7 @@ runs:
       with:
         path: |
           ./github-actions-tools/workspace-maker/target
-        key: ${{ inputs.rust-target }}-workspace-maker
+        key: ${{ inputs.namui-target }}-workspace-maker
 
     - name: Create workspace Cargo.toml
       shell: bash
