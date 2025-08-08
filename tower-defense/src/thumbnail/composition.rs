@@ -212,13 +212,11 @@ impl ThumbnailComposer {
     pub fn build(self) -> RenderingTree {
         let mut layers = Vec::new();
 
-        // 기본 레이어를 먼저 추가 (배경에 렌더링됨 - 타워가 가장 아래)
+        layers.extend(self.overlay_layers);
+
         if let Some(base) = self.base_layer {
             layers.push(base);
         }
-
-        // 오버레이 레이어들을 나중에 추가 (위에 렌더링됨)
-        layers.extend(self.overlay_layers);
 
         namui::render(layers)
     }
