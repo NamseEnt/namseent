@@ -118,6 +118,6 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
     }
 
     fn parent_stack(&self) -> impl Iterator<Item = &ComposeCommand> {
-        self.full_stack.iter().take(self.stack_parent_len).rev()
+        self.full_stack.iter().take(self.stack_parent_len)
     }
 }
