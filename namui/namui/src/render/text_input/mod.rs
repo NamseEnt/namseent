@@ -82,17 +82,17 @@ impl Component for TextInput<'_> {
 
         let mut focus_ctx = focus_ctx.lock().unwrap();
 
-        if let Some(focus) = self.focus {
-            if focus.focused() {
-                focus.off();
-                if focus_ctx.as_ref().map(|x| x.id) != Some(id) {
-                    *focus_ctx = Some(FocusCtx {
-                        id,
-                        mouse_dragging: false,
-                        selection: Selection::None,
-                        editing_text: self.start_text.to_string(),
-                    });
-                }
+        if let Some(focus) = self.focus
+            && focus.focused()
+        {
+            focus.off();
+            if focus_ctx.as_ref().map(|x| x.id) != Some(id) {
+                *focus_ctx = Some(FocusCtx {
+                    id,
+                    mouse_dragging: false,
+                    selection: Selection::None,
+                    editing_text: self.start_text.to_string(),
+                });
             }
         }
 
