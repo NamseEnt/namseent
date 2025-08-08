@@ -231,6 +231,8 @@ fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, anyhow::Error)>>
             IconKind::Down,
             IconKind::Card,
             IconKind::New,
+            IconKind::Add,
+            IconKind::Multiply,
         ],
         &ICON_ASSET_LOADER,
     );

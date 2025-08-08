@@ -127,68 +127,6 @@ struct ShopItemLayoutParams<'a> {
     upgrade_kind: Option<&'a UpgradeKind>,
 }
 
-fn get_upgrade_icon(upgrade_kind: &UpgradeKind) -> IconKind {
-    match upgrade_kind {
-        UpgradeKind::GoldEarnPlus => IconKind::Gold,
-        UpgradeKind::RankAttackDamagePlus { .. }
-        | UpgradeKind::RankAttackDamageMultiply { .. }
-        | UpgradeKind::SuitAttackDamagePlus { .. }
-        | UpgradeKind::SuitAttackDamageMultiply { .. }
-        | UpgradeKind::HandAttackDamagePlus { .. }
-        | UpgradeKind::HandAttackDamageMultiply { .. }
-        | UpgradeKind::EvenOddTowerAttackDamagePlus { .. }
-        | UpgradeKind::EvenOddTowerAttackDamageMultiply { .. }
-        | UpgradeKind::FaceNumberCardTowerAttackDamagePlus { .. }
-        | UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { .. }
-        | UpgradeKind::LowCardTowerDamagePlus { .. }
-        | UpgradeKind::LowCardTowerDamageMultiply { .. }
-        | UpgradeKind::NoRerollTowerAttackDamagePlus { .. }
-        | UpgradeKind::NoRerollTowerAttackDamageMultiply { .. }
-        | UpgradeKind::RerollTowerAttackDamagePlus { .. }
-        | UpgradeKind::RerollTowerAttackDamageMultiply { .. } => IconKind::AttackDamage,
-
-        UpgradeKind::RankAttackSpeedPlus { .. }
-        | UpgradeKind::RankAttackSpeedMultiply { .. }
-        | UpgradeKind::SuitAttackSpeedPlus { .. }
-        | UpgradeKind::SuitAttackSpeedMultiply { .. }
-        | UpgradeKind::HandAttackSpeedPlus { .. }
-        | UpgradeKind::HandAttackSpeedMultiply { .. }
-        | UpgradeKind::EvenOddTowerAttackSpeedPlus { .. }
-        | UpgradeKind::EvenOddTowerAttackSpeedMultiply { .. }
-        | UpgradeKind::FaceNumberCardTowerAttackSpeedPlus { .. }
-        | UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply { .. }
-        | UpgradeKind::LowCardTowerAttackSpeedPlus { .. }
-        | UpgradeKind::LowCardTowerAttackSpeedMultiply { .. }
-        | UpgradeKind::NoRerollTowerAttackSpeedPlus { .. }
-        | UpgradeKind::NoRerollTowerAttackSpeedMultiply { .. }
-        | UpgradeKind::RerollTowerAttackSpeedPlus { .. }
-        | UpgradeKind::RerollTowerAttackSpeedMultiply { .. } => IconKind::AttackSpeed,
-
-        UpgradeKind::RankAttackRangePlus { .. }
-        | UpgradeKind::SuitAttackRangePlus { .. }
-        | UpgradeKind::HandAttackRangePlus { .. }
-        | UpgradeKind::EvenOddTowerAttackRangePlus { .. }
-        | UpgradeKind::FaceNumberCardTowerAttackRangePlus { .. }
-        | UpgradeKind::LowCardTowerAttackRangePlus { .. }
-        | UpgradeKind::NoRerollTowerAttackRangePlus { .. }
-        | UpgradeKind::RerollTowerAttackRangePlus { .. } => IconKind::AttackRange,
-
-        UpgradeKind::ShopSlotExpansion
-        | UpgradeKind::ShopItemPriceMinus
-        | UpgradeKind::ShopRefreshPlus => IconKind::Shop,
-
-        UpgradeKind::QuestSlotExpansion
-        | UpgradeKind::QuestBoardExpansion
-        | UpgradeKind::QuestBoardRefreshPlus => IconKind::Quest,
-
-        UpgradeKind::RerollCountPlus => IconKind::Refresh,
-
-        UpgradeKind::ShortenStraightFlushTo4Cards
-        | UpgradeKind::SkipRankForStraight
-        | UpgradeKind::TreatSuitsAsSame => IconKind::Card,
-    }
-}
-
 fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
     let ShopItemLayoutParams {
         wh,
@@ -217,8 +155,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                     if let Some(kind) = item_kind {
                         ctx.add(kind.icon(wh));
                     } else if let Some(upgrade) = upgrade_kind {
-                        let icon_kind = get_upgrade_icon(upgrade);
-                        ctx.add(Icon::new(icon_kind).size(IconSize::Large).wh(wh));
+                        ctx.add(upgrade.icon(wh));
                     } else {
                         // 기본 아이콘
                         ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
