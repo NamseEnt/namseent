@@ -1,5 +1,6 @@
 pub mod effect_processor;
 pub mod generation;
+pub mod icon;
 mod usage;
 
 use crate::{
