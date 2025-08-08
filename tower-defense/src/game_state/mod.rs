@@ -22,7 +22,7 @@ pub mod shop;
 mod status_effect_particle_generator;
 mod tick;
 pub mod tower;
-mod tower_status_bubble;
+mod tower_info_popup;
 pub mod upgrade;
 mod user_status_effect;
 
@@ -50,7 +50,6 @@ use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
-use tower_status_bubble::TowerStatusBubble;
 use upgrade::UpgradeState;
 use user_status_effect::UserStatusEffect;
 
