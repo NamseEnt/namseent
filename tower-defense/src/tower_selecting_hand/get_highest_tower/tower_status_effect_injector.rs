@@ -60,13 +60,12 @@ pub fn inject_status_effects(
         }
     };
 
-    if tower.kind.is_low_card_tower() {
-        if let Some(upgrade) = upgrade_state
+    if tower.kind.is_low_card_tower()
+        && let Some(upgrade) = upgrade_state
             .tower_select_upgrade_states
             .get(&TowerSelectUpgradeTarget::LowCard)
-        {
-            inject_tower_upgrades(upgrade);
-        }
+    {
+        inject_tower_upgrades(upgrade);
     }
 
     if rerolled_count == 0 {

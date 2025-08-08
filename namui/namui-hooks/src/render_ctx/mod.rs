@@ -27,13 +27,13 @@ impl RenderCtx<'_, '_> {
 
 // Component
 impl RenderCtx<'_, '_> {
-    pub fn state<T: 'static + Send>(&self, init: impl FnOnce() -> T) -> (Sig<T>, SetState<T>) {
+    pub fn state<T: 'static + Send>(&self, init: impl FnOnce() -> T) -> (Sig<'_, T>, SetState<T>) {
         self.component_ctx.state(init)
     }
-    pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T> {
+    pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<'_, T> {
         self.component_ctx.memo(func)
     }
-    pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T> {
+    pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
         self.component_ctx.track_eq(target)
     }
     pub fn track_eq_tuple(&self, track_eq_tuple: &impl TrackEqTuple) -> bool {
@@ -68,17 +68,20 @@ impl RenderCtx<'_, '_> {
     pub fn controlled_memo<T: 'static>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
-    ) -> Sig<T> {
+    ) -> Sig<'_, T> {
         self.component_ctx.controlled_memo(func)
     }
     pub fn init_atom<T: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<T>,
         init: impl Fn() -> T,
-    ) -> (Sig<T>, SetState<T>) {
+    ) -> (Sig<'_, T>, SetState<T>) {
         self.component_ctx.init_atom(atom, init)
     }
-    pub fn atom<T: Send + Sync + 'static>(&self, atom: &'static Atom<T>) -> (Sig<T>, SetState<T>) {
+    pub fn atom<T: Send + Sync + 'static>(
+        &self,
+        atom: &'static Atom<T>,
+    ) -> (Sig<'_, T>, SetState<T>) {
         self.component_ctx.atom(atom)
     }
     /// This method just keep JoinHandle to abort when the component is unmounted.
@@ -90,7 +93,7 @@ impl RenderCtx<'_, '_> {
     {
         self.component_ctx.spawn(future)
     }
-    pub fn is_sig_updated<T>(&self, sig: &Sig<T>) -> bool {
+    pub fn is_sig_updated<T>(&self, sig: &Sig<'_, T>) -> bool {
         self.component_ctx.is_sig_updated(&sig.id)
     }
 }
