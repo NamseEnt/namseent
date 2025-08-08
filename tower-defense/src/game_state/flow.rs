@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{game_state::shop::initialize_shop, quest_board::QuestBoardSlot};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum GameFlow {
     Initializing,
     SelectingTower,

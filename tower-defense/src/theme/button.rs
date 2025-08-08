@@ -137,15 +137,18 @@ impl Component for Button<'_> {
                 },
             }))
             .attach_event({
-                move |event| match event {
-                    Event::MouseDown { event } => {
-                        if !disabled && event.is_local_xy_in() {
-                            event.stop_propagation();
-                            set_button_state.set(ButtonState::Pressed);
-                        }
+                move |event| {
+                    if disabled {
+                        return;
                     }
-                    Event::MouseUp { event } => {
-                        if !disabled {
+                    match event {
+                        Event::MouseDown { event } => {
+                            if event.is_local_xy_in() {
+                                event.stop_propagation();
+                                set_button_state.set(ButtonState::Pressed);
+                            }
+                        }
+                        Event::MouseUp { event } => {
                             if event.is_local_xy_in() && *button_state == ButtonState::Pressed {
                                 on_click();
                             }
@@ -155,9 +158,7 @@ impl Component for Button<'_> {
                                 ButtonState::Normal
                             });
                         }
-                    }
-                    Event::MouseMove { event } => {
-                        if !disabled {
+                        Event::MouseMove { event } => {
                             let is_hovering = event.is_local_xy_in();
                             let new_state = match (*button_state, is_hovering) {
                                 (ButtonState::Pressed, _) => ButtonState::Pressed,
@@ -168,8 +169,8 @@ impl Component for Button<'_> {
                                 set_button_state.set(new_state);
                             }
                         }
+                        _ => {}
                     }
-                    _ => {}
                 }
             });
     }

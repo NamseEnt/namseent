@@ -22,6 +22,7 @@ pub mod shop;
 mod status_effect_particle_generator;
 mod tick;
 pub mod tower;
+mod tower_info_popup;
 pub mod upgrade;
 mod user_status_effect;
 
@@ -97,6 +98,7 @@ pub struct GameState {
     game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
+    pub selected_tower_id: Option<usize>,
     pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
     status_effect_particle_generator: StatusEffectParticleGenerator,
     pub locale: crate::l10n::Locale,
@@ -257,6 +259,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
+            selected_tower_id: None,
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
             locale: crate::l10n::Locale::KOREAN,
