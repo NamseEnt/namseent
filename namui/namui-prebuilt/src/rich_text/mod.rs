@@ -472,11 +472,11 @@ impl<'a> Processor<'a> {
             let test_text: String = text.chars().take(boundary).collect();
             let rendering_tree = get_rendering_tree(&test_text);
 
-            if let Some(bounding_box) = namui::bounding_box(&rendering_tree) {
-                if self.cursor_x + bounding_box.right() <= self.max_width {
-                    best_boundary = Some(boundary);
-                    break;
-                }
+            if let Some(bounding_box) = namui::bounding_box(&rendering_tree)
+                && self.cursor_x + bounding_box.right() <= self.max_width
+            {
+                best_boundary = Some(boundary);
+                break;
             }
         }
 

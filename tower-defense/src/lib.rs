@@ -207,19 +207,18 @@ impl Component for Game {
                     };
                 }
                 Event::MouseMove { event } => {
-                    if event.pressing_buttons.contains(&MouseButton::Middle) {
-                        if let Some(middle_mouse_button_dragging) =
+                    if event.pressing_buttons.contains(&MouseButton::Middle)
+                        && let Some(middle_mouse_button_dragging) =
                             middle_mouse_button_dragging.as_ref()
-                        {
-                            let global_xy = event.global_xy;
-                            let delta = global_xy - middle_mouse_button_dragging.last_global_xy;
-                            mutate_game_state(move |game_state| {
-                                game_state.camera.move_by(delta * -1.0);
-                            });
-                            set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
-                                last_global_xy: global_xy,
-                            }));
-                        }
+                    {
+                        let global_xy = event.global_xy;
+                        let delta = global_xy - middle_mouse_button_dragging.last_global_xy;
+                        mutate_game_state(move |game_state| {
+                            game_state.camera.move_by(delta * -1.0);
+                        });
+                        set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
+                            last_global_xy: global_xy,
+                        }));
                     }
                     if game_state.cursor_preview.should_update_position() {
                         let local_xy_tile =
