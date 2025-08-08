@@ -193,7 +193,6 @@ impl ThumbnailComposer {
         text: &str,
         position: overlay_rendering::OverlayPosition,
         size_ratio: f32,
-        background_color: Color,
         text_size_ratio: f32,
     ) -> Self {
         self.overlay_layers
@@ -202,7 +201,6 @@ impl ThumbnailComposer {
                 text,
                 position,
                 size_ratio,
-                background_color,
                 text_size_ratio,
             ));
         self

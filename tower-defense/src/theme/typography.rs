@@ -242,6 +242,7 @@ pub struct HeadlineBuilder {
     text_align: TextAlign,
     max_width: Option<Px>,
     text_color: Option<Color>,
+    text_border: Option<TextStyleBorder>,
     vertical_align: namui_prebuilt::rich_text::VerticalAlign,
 }
 
@@ -253,6 +254,7 @@ impl HeadlineBuilder {
             text_align: TextAlign::LeftTop,
             max_width: None,
             text_color: None,
+            text_border: None,
             vertical_align: namui_prebuilt::rich_text::VerticalAlign::Center,
         }
     }
@@ -277,6 +279,11 @@ impl HeadlineBuilder {
         self
     }
 
+    pub fn stroke(mut self, width: Px, color: Color) -> Self {
+        self.text_border = Some(TextStyleBorder { width, color });
+        self
+    }
+
     #[allow(dead_code)]
     pub fn vertical_align(mut self, align: namui_prebuilt::rich_text::VerticalAlign) -> Self {
         self.vertical_align = align;
@@ -290,6 +297,7 @@ impl HeadlineBuilder {
             text_align: self.text_align,
             max_width: self.max_width,
             text_color: self.text_color,
+            text_border: self.text_border,
         }
     }
 
@@ -520,6 +528,7 @@ pub struct HeadlineComponent {
     text_align: TextAlign,
     max_width: Option<Px>,
     text_color: Option<Color>,
+    text_border: Option<TextStyleBorder>,
 }
 impl HeadlineComponent {
     pub fn into_rendering_tree(self) -> RenderingTree {
@@ -529,6 +538,7 @@ impl HeadlineComponent {
             text_align,
             max_width,
             text_color,
+            text_border,
         } = self;
 
         let (x, y) = match text_align {
@@ -556,13 +566,10 @@ impl HeadlineComponent {
             TextAlign::RightTop { .. } => TextBaseline::Top,
         };
 
-        let text_style = if let Some(custom_color) = text_color {
-            TextStyle {
-                color: custom_color,
-                ..DEFAULT_TEXT_STYLE
-            }
-        } else {
-            DEFAULT_TEXT_STYLE
+        let text_style = TextStyle {
+            color: text_color.unwrap_or(DEFAULT_TEXT_STYLE.color),
+            border: text_border,
+            ..DEFAULT_TEXT_STYLE
         };
 
         let effective_max_width = match (&text_align, max_width) {
