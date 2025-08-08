@@ -359,18 +359,14 @@ fn add_tower_damage_upgrades(
                 suit: *suit,
                 damage_multiplier: tower_upgrade_state.damage_multiplier,
             },
-            TowerUpgradeTarget::TowerKind { tower_kind } => {
-                UpgradeKind::HandAttackDamageMultiply {
-                    tower_kind: *tower_kind,
-                    damage_multiplier: tower_upgrade_state.damage_multiplier,
-                }
-            }
-            TowerUpgradeTarget::EvenOdd { even } => {
-                UpgradeKind::EvenOddTowerAttackDamageMultiply {
-                    even: *even,
-                    damage_multiplier: tower_upgrade_state.damage_multiplier,
-                }
-            }
+            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeKind::HandAttackDamageMultiply {
+                tower_kind: *tower_kind,
+                damage_multiplier: tower_upgrade_state.damage_multiplier,
+            },
+            TowerUpgradeTarget::EvenOdd { even } => UpgradeKind::EvenOddTowerAttackDamageMultiply {
+                even: *even,
+                damage_multiplier: tower_upgrade_state.damage_multiplier,
+            },
             TowerUpgradeTarget::FaceNumber { face } => {
                 UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
                     face: *face,
@@ -439,18 +435,14 @@ fn add_tower_speed_upgrades(
                 suit: *suit,
                 speed_multiplier: tower_upgrade_state.speed_multiplier,
             },
-            TowerUpgradeTarget::TowerKind { tower_kind } => {
-                UpgradeKind::HandAttackSpeedMultiply {
-                    tower_kind: *tower_kind,
-                    speed_multiplier: tower_upgrade_state.speed_multiplier,
-                }
-            }
-            TowerUpgradeTarget::EvenOdd { even } => {
-                UpgradeKind::EvenOddTowerAttackSpeedMultiply {
-                    even: *even,
-                    speed_multiplier: tower_upgrade_state.speed_multiplier,
-                }
-            }
+            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeKind::HandAttackSpeedMultiply {
+                tower_kind: *tower_kind,
+                speed_multiplier: tower_upgrade_state.speed_multiplier,
+            },
+            TowerUpgradeTarget::EvenOdd { even } => UpgradeKind::EvenOddTowerAttackSpeedMultiply {
+                even: *even,
+                speed_multiplier: tower_upgrade_state.speed_multiplier,
+            },
             TowerUpgradeTarget::FaceNumber { face } => {
                 UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply {
                     face: *face,
