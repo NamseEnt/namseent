@@ -320,8 +320,8 @@ impl Component for QuestBoardItemContent<'_> {
             table::vertical([
                 table::fixed(
                     wh.width,
-                    table::padding(PADDING, |_wh, _ctx| {
-                        // TODO: Icons
+                    table::padding(PADDING, |wh, ctx| {
+                        ctx.add(quest.requirement.thumbnail(wh));
                     }),
                 ),
                 table::ratio(

@@ -1,7 +1,7 @@
 use super::constants::{PADDING, SOLD_OUT_HEIGHT};
 use super::slot::ShopSlot;
-use crate::game_state::item::Item;
-use crate::game_state::upgrade::Upgrade;
+use crate::game_state::item::{self, Item};
+use crate::game_state::upgrade::{Upgrade, UpgradeKind};
 use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::l10n::ui::TopBarText;
@@ -123,6 +123,8 @@ struct ShopItemLayoutParams<'a> {
     purchased: bool,
     available: bool,
     purchase_action: &'a dyn Fn(),
+    item_kind: Option<&'a item::ItemKind>,
+    upgrade_kind: Option<&'a UpgradeKind>,
 }
 
 fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
@@ -134,6 +136,8 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
         purchased,
         available,
         purchase_action,
+        item_kind,
+        upgrade_kind,
     } = params;
 
     ctx.compose(|ctx| {
@@ -147,8 +151,15 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
         table::vertical([
             table::fixed(
                 wh.width,
-                table::padding(PADDING, |_wh, _ctx| {
-                    // TODO: Icons
+                table::padding(PADDING, |wh, ctx| {
+                    if let Some(kind) = item_kind {
+                        ctx.add(kind.thumbnail(wh));
+                    } else if let Some(upgrade) = upgrade_kind {
+                        ctx.add(upgrade.thumbnail(wh));
+                    } else {
+                        // 기본 아이콘
+                        ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
+                    }
                 }),
             ),
             table::ratio(
@@ -240,6 +251,8 @@ impl Component for ShopItemContent<'_> {
                 purchased,
                 available,
                 purchase_action: purchase_item,
+                item_kind: Some(&item.kind),
+                upgrade_kind: None,
             },
             ctx,
         );
@@ -279,6 +292,8 @@ impl Component for ShopUpgradeContent<'_> {
                 purchased,
                 available,
                 purchase_action: purchase_upgrade,
+                item_kind: None,
+                upgrade_kind: Some(&upgrade.kind),
             },
             ctx,
         );

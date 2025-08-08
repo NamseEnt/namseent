@@ -1,5 +1,6 @@
 mod display;
 mod generation;
+mod thumbnail;
 
 use super::tower::TowerKind;
 use crate::{

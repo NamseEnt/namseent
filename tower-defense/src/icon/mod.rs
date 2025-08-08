@@ -31,6 +31,10 @@ pub enum IconKind {
     Suit { suit: Suit },
     Up,
     Down,
+    Card,
+    New,
+    Add,
+    Multiply,
 }
 impl IconKind {
     pub fn asset_id(&self) -> &'static str {
@@ -64,6 +68,10 @@ impl IconKind {
             },
             IconKind::Up => "up",
             IconKind::Down => "down",
+            IconKind::Card => "card",
+            IconKind::New => "new",
+            IconKind::Add => "add",
+            IconKind::Multiply => "multiply",
         }
     }
 
@@ -94,6 +102,10 @@ impl IconKind {
             IconKind::Suit { .. } => Color::from_u8(128, 128, 128, 255),
             IconKind::Up => Color::from_u8(0, 255, 0, 255),
             IconKind::Down => Color::from_u8(255, 0, 0, 255),
+            IconKind::Card => Color::from_u8(255, 255, 255, 255), // White for card
+            IconKind::New => Color::from_u8(0, 255, 0, 255),      // Green for new
+            IconKind::Add => Color::from_u8(0, 255, 0, 255),      // Green for add
+            IconKind::Multiply => Color::from_u8(0, 0, 255, 255), // Blue for multiply
         }
     }
 
@@ -128,6 +140,10 @@ impl IconKind {
             "suit_clubs" => Some(IconKind::Suit { suit: Suit::Clubs }),
             "up" => Some(IconKind::Up),
             "down" => Some(IconKind::Down),
+            "card" => Some(IconKind::Card),
+            "new" => Some(IconKind::New),
+            "add" => Some(IconKind::Add),
+            "multiply" => Some(IconKind::Multiply),
             _ => None,
         }
     }
