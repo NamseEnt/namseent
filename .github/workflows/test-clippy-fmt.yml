@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CARGO_INCREMENTAL: 0
   RUSTFLAGS: -D warnings
+  CARGO_VERSION: "" # Should be set in the job
 
 defaults:
   run:
@@ -53,6 +53,7 @@ jobs:
       - name: Set up cargo
         run: |
           rustup update
+          CARGO_VERSION=$(cargo --version | cut -d ' ' -f 2) && echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_ENV
           rustup target add ${{ matrix.rust-target }}
 
       - name: namui-cli cache
@@ -61,7 +62,7 @@ jobs:
         with:
           path: |
             ./namui/namui-cli
-          key: ${{ matrix.namui-target }}-namui-cli
+          key: ${{ env.CARGO_VERSION }}-${{ matrix.namui-target }}-namui-cli
 
       - name: Build namui-cli
         if: matrix.namui-target == 'wasm32-wasi-web'
@@ -73,16 +74,18 @@ jobs:
         with:
           path: |
             ./github-actions-tools/workspace-maker/target
-          key: ${{ matrix.namui-target }}-workspace-maker
+          key: ${{ env.CARGO_VERSION }}-${{ matrix.namui-target }}-workspace-maker
 
       - name: Create workspace Cargo.toml
         run: |
           cargo run --manifest-path github-actions-tools/workspace-maker/Cargo.toml ${{ matrix.namui-target }}
 
       - name: Workspace cache
-        uses: Swatinem/rust-cache@v2
+        uses: actions/cache@v4
         with:
-          key: ${{ matrix.namui-target }}
+          path: |
+            ./target
+          key: ${{ env.CARGO_VERSION }}-${{ matrix.namui-target }}-workspace
 
       - name: Test
         if: matrix.namui-target != 'wasm32-wasi-web'
