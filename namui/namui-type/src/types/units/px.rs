@@ -8,6 +8,28 @@ impl Display for Px {
     }
 }
 
+#[macro_export]
+macro_rules! assert_px_eq {
+    ($left:expr, $right:expr $(,)?) => {
+        let left = $left;
+        let right = $right;
+        let epsilon = f32::EPSILON.px();
+
+        if (left - right).abs() > epsilon {
+            assert_eq!(left, right);
+        }
+    };
+    ($left:expr, $right:expr, $($arg:tt)+) => {
+        let left = $left;
+        let right = $right;
+        let epsilon = f32::EPSILON.px();
+
+        if (left - right).abs() > epsilon {
+            assert_eq!(left, right, $($arg)+);
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
