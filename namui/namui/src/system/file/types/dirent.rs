@@ -44,7 +44,7 @@ impl Dirent {
         }
     }
 
-    pub fn path_string(&self) -> Cow<str> {
+    pub fn path_string(&self) -> Cow<'_, str> {
         percent_decode_str(self.url().path())
             .decode_utf8()
             .expect("invalid url path")

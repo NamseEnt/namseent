@@ -5,7 +5,7 @@ impl ComponentCtx<'_> {
     pub(crate) fn state<State: 'static + Send>(
         &self,
         init: impl FnOnce() -> State,
-    ) -> (Sig<State>, SetState<State>) {
+    ) -> (Sig<'_, State>, SetState<State>) {
         let state_index = self
             .state_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -38,7 +38,7 @@ impl ComponentCtx<'_> {
         (sig, set_state)
     }
 
-    pub(crate) fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<T> {
+    pub(crate) fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<'_, T> {
         let memo_index = self
             .memo_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -97,7 +97,7 @@ impl ComponentCtx<'_> {
     pub(crate) fn controlled_memo<T: 'static>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
-    ) -> Sig<T> {
+    ) -> Sig<'_, T> {
         let memo_index = self
             .memo_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -176,7 +176,7 @@ impl ComponentCtx<'_> {
         Sig::new(state, sig_id, self.world)
     }
 
-    pub(crate) fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<T> {
+    pub(crate) fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
         let track_eq_index = self
             .track_eq_index
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -228,7 +228,7 @@ impl ComponentCtx<'_> {
         target: &T,
         to_owned: impl FnOnce(&T) -> P,
         cmp: impl FnOnce(&T, &P) -> bool,
-    ) -> Sig<P>
+    ) -> Sig<'_, P>
     where
         P: 'static,
     {
@@ -382,7 +382,7 @@ impl ComponentCtx<'_> {
         &self,
         atom: &'static Atom<State>,
         init: impl Fn() -> State,
-    ) -> (Sig<State>, SetState<State>) {
+    ) -> (Sig<'_, State>, SetState<State>) {
         let atom_list = &self.world.atom_list;
 
         if !atom.is_initialized() {
@@ -417,7 +417,7 @@ impl ComponentCtx<'_> {
     pub(crate) fn atom<State: Send + Sync + 'static>(
         &self,
         atom: &'static Atom<State>,
-    ) -> (Sig<State>, SetState<State>) {
+    ) -> (Sig<'_, State>, SetState<State>) {
         let atom_list = &self.world.atom_list;
 
         let atom_index = atom.get_index();

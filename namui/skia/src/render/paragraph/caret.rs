@@ -75,7 +75,7 @@ impl Caret<'_> {
         key: CaretKey,
         text_align: TextAlign,
         container_width: Px,
-    ) -> Caret {
+    ) -> Caret<'_> {
         let (line_index, x) = match key {
             CaretKey::ArrowUp => {
                 if self.line_index == 0 {

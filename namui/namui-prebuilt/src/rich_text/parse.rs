@@ -90,14 +90,14 @@ pub(crate) fn parse(text: impl AsRef<str>) -> Result<Vec<Token>, ParseError> {
 
                         // Check if it's a RenderingTree token |@Tag|
                         // Remove the '@' prefix
-                        if let Some(tag) = tag_content.strip_prefix('@') {
-                            if !tag.is_empty() {
-                                tokens.push(Token::RenderingTree {
-                                    tag: tag.to_string(),
-                                });
-                                cursor = end_delim1_abs + 1; // Move past the closing '|'
-                                continue; // Restart loop
-                            }
+                        if let Some(tag) = tag_content.strip_prefix('@')
+                            && !tag.is_empty()
+                        {
+                            tokens.push(Token::RenderingTree {
+                                tag: tag.to_string(),
+                            });
+                            cursor = end_delim1_abs + 1; // Move past the closing '|'
+                            continue; // Restart loop
                         }
 
                         let tag = tag_content; // Use tag_content as the tag name

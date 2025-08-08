@@ -126,21 +126,20 @@ pub fn rect(param: RectParam) -> RenderingTree {
         width: stroke_width,
         ..
     }) = param.style.stroke
+        && stroke_width > 0.px()
     {
-        if stroke_width > 0.px() {
-            let stroke_paint = Paint::new(color)
-                .set_stroke_width(stroke_width)
-                .set_style(PaintStyle::Stroke)
-                .set_anti_alias(true);
+        let stroke_paint = Paint::new(color)
+            .set_stroke_width(stroke_width)
+            .set_style(PaintStyle::Stroke)
+            .set_anti_alias(true);
 
-            draw_commands.push(DrawCommand::Path {
-                command: PathDrawCommand {
-                    path: rect_path,
-                    paint: stroke_paint,
-                }
-                .into(),
-            });
-        }
+        draw_commands.push(DrawCommand::Path {
+            command: PathDrawCommand {
+                path: rect_path,
+                paint: stroke_paint,
+            }
+            .into(),
+        });
     };
 
     translate(
