@@ -439,7 +439,7 @@ impl Node {
             None
         }
     }
-    pub(crate) fn as_one_of(&self) -> NodeMatchRef {
+    pub(crate) fn as_one_of(&self) -> NodeMatchRef<'_> {
         if self.is_leaf() {
             NodeMatchRef::Leaf {
                 leaf_node: unsafe { std::mem::transmute::<&Node, &LeafNode>(self) },
