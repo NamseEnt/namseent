@@ -108,7 +108,7 @@ pub fn render_rank_overlay(container_size: Wh<Px>, rank: Rank) -> RenderingTree 
     render_text_overlay(
         container_size,
         &rank.to_string(),
-        OverlayPosition::BottomRight,
+        OverlayPosition::TopLeft,
         RANK_OVERLAY_SIZE_RATIO,
         TEXT_SIZE_RATIO,
     )
@@ -119,7 +119,7 @@ pub fn render_suit_overlay(container_size: Wh<Px>, suit: Suit) -> RenderingTree 
     render_icon_overlay(
         container_size,
         IconKind::Suit { suit },
-        OverlayPosition::BottomRight,
+        OverlayPosition::TopLeft,
         RANK_OVERLAY_SIZE_RATIO,
     )
 }
