@@ -2,9 +2,7 @@ use crate::{
     game_state::upgrade::UpgradeKind,
     icon::{Icon, IconKind, IconSize},
     thumbnail::{
-        ThumbnailComposer,
-        overlay_rendering::OverlayPosition,
-        constants::OVERLAY_SIZE_RATIO,
+        ThumbnailComposer, constants::OVERLAY_SIZE_RATIO, overlay_rendering::OverlayPosition,
     },
 };
 use namui::*;
@@ -13,217 +11,383 @@ impl UpgradeKind {
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
         match self {
             // 골드 관련 업그레이드
-            UpgradeKind::GoldEarnPlus => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Gold)
-                    .add_plus_overlay()
-                    .build()
-            }
+            UpgradeKind::GoldEarnPlus => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .add_plus_overlay()
+                .build(),
 
             // 랭크 기반 업그레이드들 - 공격력 관련
-            UpgradeKind::RankAttackDamagePlus { rank, .. } => {
-                create_rank_stat_upgrade_thumbnail(width_height, *rank, StatType::AttackDamage, OperationType::Plus)
-            }
+            UpgradeKind::RankAttackDamagePlus { rank, .. } => create_rank_stat_upgrade_thumbnail(
+                width_height,
+                *rank,
+                StatType::Damage,
+                OperationType::Plus,
+            ),
             UpgradeKind::RankAttackDamageMultiply { rank, .. } => {
-                create_rank_stat_upgrade_thumbnail(width_height, *rank, StatType::AttackDamage, OperationType::Multiply)
+                create_rank_stat_upgrade_thumbnail(
+                    width_height,
+                    *rank,
+                    StatType::Damage,
+                    OperationType::Multiply,
+                )
             }
-            UpgradeKind::RankAttackSpeedPlus { rank, .. } => {
-                create_rank_stat_upgrade_thumbnail(width_height, *rank, StatType::AttackSpeed, OperationType::Plus)
-            }
+            UpgradeKind::RankAttackSpeedPlus { rank, .. } => create_rank_stat_upgrade_thumbnail(
+                width_height,
+                *rank,
+                StatType::Speed,
+                OperationType::Plus,
+            ),
             UpgradeKind::RankAttackSpeedMultiply { rank, .. } => {
-                create_rank_stat_upgrade_thumbnail(width_height, *rank, StatType::AttackSpeed, OperationType::Multiply)
+                create_rank_stat_upgrade_thumbnail(
+                    width_height,
+                    *rank,
+                    StatType::Speed,
+                    OperationType::Multiply,
+                )
             }
-            UpgradeKind::RankAttackRangePlus { rank, .. } => {
-                create_rank_stat_upgrade_thumbnail(width_height, *rank, StatType::AttackRange, OperationType::Plus)
-            }
+            UpgradeKind::RankAttackRangePlus { rank, .. } => create_rank_stat_upgrade_thumbnail(
+                width_height,
+                *rank,
+                StatType::Range,
+                OperationType::Plus,
+            ),
 
             // 슈트 기반 업그레이드들 - 공격력 관련
-            UpgradeKind::SuitAttackDamagePlus { suit, .. } => {
-                create_suit_stat_upgrade_thumbnail(width_height, *suit, StatType::AttackDamage, OperationType::Plus)
-            }
+            UpgradeKind::SuitAttackDamagePlus { suit, .. } => create_suit_stat_upgrade_thumbnail(
+                width_height,
+                *suit,
+                StatType::Damage,
+                OperationType::Plus,
+            ),
             UpgradeKind::SuitAttackDamageMultiply { suit, .. } => {
-                create_suit_stat_upgrade_thumbnail(width_height, *suit, StatType::AttackDamage, OperationType::Multiply)
+                create_suit_stat_upgrade_thumbnail(
+                    width_height,
+                    *suit,
+                    StatType::Damage,
+                    OperationType::Multiply,
+                )
             }
-            UpgradeKind::SuitAttackSpeedPlus { suit, .. } => {
-                create_suit_stat_upgrade_thumbnail(width_height, *suit, StatType::AttackSpeed, OperationType::Plus)
-            }
+            UpgradeKind::SuitAttackSpeedPlus { suit, .. } => create_suit_stat_upgrade_thumbnail(
+                width_height,
+                *suit,
+                StatType::Speed,
+                OperationType::Plus,
+            ),
             UpgradeKind::SuitAttackSpeedMultiply { suit, .. } => {
-                create_suit_stat_upgrade_thumbnail(width_height, *suit, StatType::AttackSpeed, OperationType::Multiply)
+                create_suit_stat_upgrade_thumbnail(
+                    width_height,
+                    *suit,
+                    StatType::Speed,
+                    OperationType::Multiply,
+                )
             }
-            UpgradeKind::SuitAttackRangePlus { suit, .. } => {
-                create_suit_stat_upgrade_thumbnail(width_height, *suit, StatType::AttackRange, OperationType::Plus)
-            }
+            UpgradeKind::SuitAttackRangePlus { suit, .. } => create_suit_stat_upgrade_thumbnail(
+                width_height,
+                *suit,
+                StatType::Range,
+                OperationType::Plus,
+            ),
 
             // 핸드 기반 업그레이드들 - 공격력 관련
             UpgradeKind::HandAttackDamagePlus { tower_kind, .. } => {
-                create_hand_stat_upgrade_thumbnail(width_height, *tower_kind, StatType::AttackDamage, OperationType::Plus)
+                create_hand_stat_upgrade_thumbnail(
+                    width_height,
+                    *tower_kind,
+                    StatType::Damage,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::HandAttackDamageMultiply { tower_kind, .. } => {
-                create_hand_stat_upgrade_thumbnail(width_height, *tower_kind, StatType::AttackDamage, OperationType::Multiply)
+                create_hand_stat_upgrade_thumbnail(
+                    width_height,
+                    *tower_kind,
+                    StatType::Damage,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::HandAttackSpeedPlus { tower_kind, .. } => {
-                create_hand_stat_upgrade_thumbnail(width_height, *tower_kind, StatType::AttackSpeed, OperationType::Plus)
+                create_hand_stat_upgrade_thumbnail(
+                    width_height,
+                    *tower_kind,
+                    StatType::Speed,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::HandAttackSpeedMultiply { tower_kind, .. } => {
-                create_hand_stat_upgrade_thumbnail(width_height, *tower_kind, StatType::AttackSpeed, OperationType::Multiply)
+                create_hand_stat_upgrade_thumbnail(
+                    width_height,
+                    *tower_kind,
+                    StatType::Speed,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::HandAttackRangePlus { tower_kind, .. } => {
-                create_hand_stat_upgrade_thumbnail(width_height, *tower_kind, StatType::AttackRange, OperationType::Plus)
+                create_hand_stat_upgrade_thumbnail(
+                    width_height,
+                    *tower_kind,
+                    StatType::Range,
+                    OperationType::Plus,
+                )
             }
 
             // 확장 관련 업그레이드들
-            UpgradeKind::ShopSlotExpansion => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Shop)
-                    .add_expansion_indicator("+")
-                    .build()
-            }
-            UpgradeKind::QuestSlotExpansion => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Quest)
-                    .add_expansion_indicator("+")
-                    .build()
-            }
-            UpgradeKind::QuestBoardExpansion => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Quest)
-                    .add_expansion_indicator("Board")
-                    .build()
-            }
+            UpgradeKind::ShopSlotExpansion => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Shop)
+                .add_expansion_indicator("+")
+                .build(),
+            UpgradeKind::QuestSlotExpansion => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Quest)
+                .add_expansion_indicator("+")
+                .build(),
+            UpgradeKind::QuestBoardExpansion => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Quest)
+                .add_expansion_indicator("Board")
+                .build(),
 
             // 리롤 관련 업그레이드들
-            UpgradeKind::RerollCountPlus => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Refresh)
-                    .add_plus_overlay()
-                    .build()
-            }
+            UpgradeKind::RerollCountPlus => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Refresh)
+                .add_plus_overlay()
+                .build(),
 
             // 낮은 카드 관련 업그레이드들
-            UpgradeKind::LowCardTowerDamagePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::LowCard, StatType::AttackDamage, OperationType::Plus)
-            }
+            UpgradeKind::LowCardTowerDamagePlus { .. } => create_condition_stat_upgrade_thumbnail(
+                width_height,
+                ConditionType::LowCard,
+                StatType::Damage,
+                OperationType::Plus,
+            ),
             UpgradeKind::LowCardTowerDamageMultiply { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::LowCard, StatType::AttackDamage, OperationType::Multiply)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::LowCard,
+                    StatType::Damage,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::LowCardTowerAttackSpeedPlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::LowCard, StatType::AttackSpeed, OperationType::Plus)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::LowCard,
+                    StatType::Speed,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::LowCardTowerAttackSpeedMultiply { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::LowCard, StatType::AttackSpeed, OperationType::Multiply)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::LowCard,
+                    StatType::Speed,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::LowCardTowerAttackRangePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::LowCard, StatType::AttackRange, OperationType::Plus)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::LowCard,
+                    StatType::Range,
+                    OperationType::Plus,
+                )
             }
 
             // 상점 관련 업그레이드들
-            UpgradeKind::ShopItemPriceMinus => {
-                Icon::new(IconKind::Shop)
-                    .wh(width_height)
-                    .size(IconSize::Custom { size: width_height.width })
-                    .to_rendering_tree()
-            }
-            UpgradeKind::ShopRefreshPlus => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Shop)
-                    .add_reroll_indicator()
-                    .build()
-            }
+            UpgradeKind::ShopItemPriceMinus => Icon::new(IconKind::Shop)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .to_rendering_tree(),
+            UpgradeKind::ShopRefreshPlus => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Shop)
+                .add_reroll_indicator()
+                .build(),
 
             // 퀘스트 보드 리프레시
-            UpgradeKind::QuestBoardRefreshPlus => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Quest)
-                    .add_reroll_indicator()
-                    .build()
-            }
+            UpgradeKind::QuestBoardRefreshPlus => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Quest)
+                .add_reroll_indicator()
+                .build(),
 
             // 리롤 없음 관련 업그레이드들
             UpgradeKind::NoRerollTowerAttackDamagePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::NoReroll, StatType::AttackDamage, OperationType::Plus)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::NoReroll,
+                    StatType::Damage,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::NoReroll, StatType::AttackDamage, OperationType::Multiply)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::NoReroll,
+                    StatType::Damage,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::NoRerollTowerAttackSpeedPlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::NoReroll, StatType::AttackSpeed, OperationType::Plus)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::NoReroll,
+                    StatType::Speed,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::NoRerollTowerAttackSpeedMultiply { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::NoReroll, StatType::AttackSpeed, OperationType::Multiply)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::NoReroll,
+                    StatType::Speed,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::NoRerollTowerAttackRangePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::NoReroll, StatType::AttackRange, OperationType::Plus)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::NoReroll,
+                    StatType::Range,
+                    OperationType::Plus,
+                )
             }
 
             // 짝수/홀수 관련 업그레이드들
             UpgradeKind::EvenOddTowerAttackDamagePlus { even, .. } => {
-                create_even_odd_stat_upgrade_thumbnail(width_height, *even, StatType::AttackDamage, OperationType::Plus)
+                create_even_odd_stat_upgrade_thumbnail(
+                    width_height,
+                    *even,
+                    StatType::Damage,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::EvenOddTowerAttackDamageMultiply { even, .. } => {
-                create_even_odd_stat_upgrade_thumbnail(width_height, *even, StatType::AttackDamage, OperationType::Multiply)
+                create_even_odd_stat_upgrade_thumbnail(
+                    width_height,
+                    *even,
+                    StatType::Damage,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::EvenOddTowerAttackSpeedPlus { even, .. } => {
-                create_even_odd_stat_upgrade_thumbnail(width_height, *even, StatType::AttackSpeed, OperationType::Plus)
+                create_even_odd_stat_upgrade_thumbnail(
+                    width_height,
+                    *even,
+                    StatType::Speed,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::EvenOddTowerAttackSpeedMultiply { even, .. } => {
-                create_even_odd_stat_upgrade_thumbnail(width_height, *even, StatType::AttackSpeed, OperationType::Multiply)
+                create_even_odd_stat_upgrade_thumbnail(
+                    width_height,
+                    *even,
+                    StatType::Speed,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::EvenOddTowerAttackRangePlus { even, .. } => {
-                create_even_odd_stat_upgrade_thumbnail(width_height, *even, StatType::AttackRange, OperationType::Plus)
+                create_even_odd_stat_upgrade_thumbnail(
+                    width_height,
+                    *even,
+                    StatType::Range,
+                    OperationType::Plus,
+                )
             }
 
             // 페이스/숫자 카드 관련 업그레이드들
             UpgradeKind::FaceNumberCardTowerAttackDamagePlus { face, .. } => {
-                create_face_number_stat_upgrade_thumbnail(width_height, *face, StatType::AttackDamage, OperationType::Plus)
+                create_face_number_stat_upgrade_thumbnail(
+                    width_height,
+                    *face,
+                    StatType::Damage,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { face, .. } => {
-                create_face_number_stat_upgrade_thumbnail(width_height, *face, StatType::AttackDamage, OperationType::Multiply)
+                create_face_number_stat_upgrade_thumbnail(
+                    width_height,
+                    *face,
+                    StatType::Damage,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::FaceNumberCardTowerAttackSpeedPlus { face, .. } => {
-                create_face_number_stat_upgrade_thumbnail(width_height, *face, StatType::AttackSpeed, OperationType::Plus)
+                create_face_number_stat_upgrade_thumbnail(
+                    width_height,
+                    *face,
+                    StatType::Speed,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply { face, .. } => {
-                create_face_number_stat_upgrade_thumbnail(width_height, *face, StatType::AttackSpeed, OperationType::Multiply)
+                create_face_number_stat_upgrade_thumbnail(
+                    width_height,
+                    *face,
+                    StatType::Speed,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::FaceNumberCardTowerAttackRangePlus { face, .. } => {
-                create_face_number_stat_upgrade_thumbnail(width_height, *face, StatType::AttackRange, OperationType::Plus)
+                create_face_number_stat_upgrade_thumbnail(
+                    width_height,
+                    *face,
+                    StatType::Range,
+                    OperationType::Plus,
+                )
             }
 
             // 특수 카드 게임 규칙 업그레이드들
-            UpgradeKind::ShortenStraightFlushTo4Cards => {
-                ThumbnailComposer::new(width_height)
-                    .with_default_tower()
-                    .add_shortcut_indicator("4")
-                    .build()
-            }
-            UpgradeKind::SkipRankForStraight => {
-                ThumbnailComposer::new(width_height)
-                    .with_default_tower()
-                    .add_skip_indicator()
-                    .build()
-            }
-            UpgradeKind::TreatSuitsAsSame => {
-                ThumbnailComposer::new(width_height)
-                    .with_default_tower()
-                    .add_same_suits_indicator()
-                    .build()
-            }
+            UpgradeKind::ShortenStraightFlushTo4Cards => ThumbnailComposer::new(width_height)
+                .with_default_tower()
+                .add_shortcut_indicator("4")
+                .build(),
+            UpgradeKind::SkipRankForStraight => ThumbnailComposer::new(width_height)
+                .with_default_tower()
+                .add_skip_indicator()
+                .build(),
+            UpgradeKind::TreatSuitsAsSame => ThumbnailComposer::new(width_height)
+                .with_default_tower()
+                .add_same_suits_indicator()
+                .build(),
 
             // 리롤 관련 타워 업그레이드들
             UpgradeKind::RerollTowerAttackDamagePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::Reroll, StatType::AttackDamage, OperationType::Plus)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::Reroll,
+                    StatType::Damage,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::RerollTowerAttackDamageMultiply { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::Reroll, StatType::AttackDamage, OperationType::Multiply)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::Reroll,
+                    StatType::Damage,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::RerollTowerAttackSpeedPlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::Reroll, StatType::AttackSpeed, OperationType::Plus)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::Reroll,
+                    StatType::Speed,
+                    OperationType::Plus,
+                )
             }
             UpgradeKind::RerollTowerAttackSpeedMultiply { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::Reroll, StatType::AttackSpeed, OperationType::Multiply)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::Reroll,
+                    StatType::Speed,
+                    OperationType::Multiply,
+                )
             }
             UpgradeKind::RerollTowerAttackRangePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(width_height, ConditionType::Reroll, StatType::AttackRange, OperationType::Plus)
+                create_condition_stat_upgrade_thumbnail(
+                    width_height,
+                    ConditionType::Reroll,
+                    StatType::Range,
+                    OperationType::Plus,
+                )
             }
         }
     }
@@ -232,17 +396,17 @@ impl UpgradeKind {
 // 스탯 타입을 정의하는 열거형
 #[derive(Clone, Copy)]
 enum StatType {
-    AttackDamage,
-    AttackSpeed,
-    AttackRange,
+    Damage,
+    Speed,
+    Range,
 }
 
 impl StatType {
     fn to_icon_kind(self) -> IconKind {
         match self {
-            StatType::AttackDamage => IconKind::AttackDamage,
-            StatType::AttackSpeed => IconKind::AttackSpeed,
-            StatType::AttackRange => IconKind::AttackRange,
+            StatType::Damage => IconKind::AttackDamage,
+            StatType::Speed => IconKind::AttackSpeed,
+            StatType::Range => IconKind::AttackRange,
         }
     }
 }
