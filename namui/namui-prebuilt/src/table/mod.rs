@@ -218,12 +218,10 @@ impl Component for InternalSlice<'_> {
                     };
                     units.push(unit);
 
-                    let need_clip = fit_bounding_box_map.get(&index).is_some();
-
                     intermediates.push(Intermediate {
                         key,
                         render,
-                        need_clip,
+                        need_clip: false,
                         table_cell_type: TableCellType::Fit { align },
                     });
                 }
