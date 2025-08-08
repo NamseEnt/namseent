@@ -47,7 +47,7 @@ impl Component for Inventory {
                                                 table::fixed(
                                                     HEADLINE_FONT_SIZE_LARGE.into_px(),
                                                     |wh, ctx| {
-                                                        ctx.add(item.kind.icon(wh));
+                                                        ctx.add(item.kind.thumbnail(wh));
                                                     },
                                                 ),
                                                 table::ratio(1, |_, _| {}),

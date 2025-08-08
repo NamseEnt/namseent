@@ -1,6 +1,6 @@
-mod icon;
 pub mod requirement;
 pub mod reward;
+mod thumbnail;
 mod tracking_state;
 mod trigger_event;
 

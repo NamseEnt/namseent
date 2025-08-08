@@ -12,6 +12,7 @@ mod route;
 mod settings;
 mod shop;
 mod theme;
+mod thumbnail;
 mod top_bar;
 mod tower_placing_hand;
 mod tower_selecting_hand;

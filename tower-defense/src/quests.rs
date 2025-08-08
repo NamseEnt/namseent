@@ -90,7 +90,7 @@ impl Component for Quests {
                                                                     HEADLINE_FONT_SIZE_LARGE
                                                                         .into_px(),
                                                                     |wh, ctx| {
-                                                                        ctx.add(quest.tracking.to_requirement().icon(wh));
+                                                                        ctx.add(quest.tracking.to_requirement().thumbnail(wh));
                                                                     },
                                                                 ),
                                                                 table::ratio(1, |_, _| {}),

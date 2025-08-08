@@ -321,7 +321,7 @@ impl Component for QuestBoardItemContent<'_> {
                 table::fixed(
                     wh.width,
                     table::padding(PADDING, |wh, ctx| {
-                        ctx.add(quest.requirement.icon(wh));
+                        ctx.add(quest.requirement.thumbnail(wh));
                     }),
                 ),
                 table::ratio(

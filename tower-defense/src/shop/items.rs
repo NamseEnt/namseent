@@ -153,9 +153,9 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                 wh.width,
                 table::padding(PADDING, |wh, ctx| {
                     if let Some(kind) = item_kind {
-                        ctx.add(kind.icon(wh));
+                        ctx.add(kind.thumbnail(wh));
                     } else if let Some(upgrade) = upgrade_kind {
-                        ctx.add(upgrade.icon(wh));
+                        ctx.add(upgrade.thumbnail(wh));
                     } else {
                         // 기본 아이콘
                         ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
