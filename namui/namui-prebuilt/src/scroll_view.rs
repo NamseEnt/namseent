@@ -149,17 +149,17 @@ impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                 })
                 .compose(|ctx| {
                     ctx.add(wheeler).attach_event(|event| {
-                        if let Event::Wheel { event } = event {
-                            if event.is_local_xy_in() {
-                                let next_scroll_y = namui::math::num::clamp(
-                                    scroll_y + px(event.delta_xy.y),
-                                    px(0.0),
-                                    (px(0.0)).max(bounding_box.height() - height),
-                                );
+                        if let Event::Wheel { event } = event
+                            && event.is_local_xy_in()
+                        {
+                            let next_scroll_y = namui::math::num::clamp(
+                                scroll_y + px(event.delta_xy.y),
+                                px(0.0),
+                                (px(0.0)).max(bounding_box.height() - height),
+                            );
 
-                                set_scroll_y.set(next_scroll_y);
-                                event.stop_propagation();
-                            }
+                            set_scroll_y.set(next_scroll_y);
+                            event.stop_propagation();
                         }
                     });
                 });

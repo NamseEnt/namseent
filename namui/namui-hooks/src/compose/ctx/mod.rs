@@ -92,16 +92,16 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             return;
         }
 
-        if let RenderingTree::Children(children) = &rendering_tree {
-            if children.is_empty() {
-                return;
-            }
+        if let RenderingTree::Children(children) = &rendering_tree
+            && children.is_empty()
+        {
+            return;
         }
 
-        if let RenderingTree::BoxedChildren(children) = &rendering_tree {
-            if children.is_empty() {
-                return;
-            }
+        if let RenderingTree::BoxedChildren(children) = &rendering_tree
+            && children.is_empty()
+        {
+            return;
         }
 
         let stack_applied = self.apply_stack(rendering_tree);

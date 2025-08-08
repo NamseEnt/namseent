@@ -445,13 +445,12 @@ fn test_line_break_character_positioning() {
                 let next_in_original = text.chars().nth(split_point);
 
                 if let (Some(orig_char), Some(next_char)) = (boundary_in_original, next_in_original)
+                    && orig_char != next_char
                 {
-                    if orig_char != next_char {
-                        assert_ne!(
-                            last_left_char, first_right_char,
-                            "Character duplication detected at split point {split_point} in text: '{text}'"
-                        );
-                    }
+                    assert_ne!(
+                        last_left_char, first_right_char,
+                        "Character duplication detected at split point {split_point} in text: '{text}'"
+                    );
                 }
             }
         }
