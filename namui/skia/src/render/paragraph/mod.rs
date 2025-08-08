@@ -107,7 +107,7 @@ impl Paragraph {
             .sum()
     }
 
-    pub fn caret(&self, caret_index: usize) -> Caret {
+    pub fn caret(&self, caret_index: usize) -> Caret<'_> {
         get_caret(caret_index, self)
     }
 

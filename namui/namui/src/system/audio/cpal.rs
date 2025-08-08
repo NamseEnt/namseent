@@ -216,10 +216,10 @@ async fn tick_in_checking_device_change(
         let err_fn = move |err| {
             eprintln!("NAMUI: an error occurred on audio output stream: {err}");
 
-            if let StreamError::DeviceNotAvailable = err {
-                if let Some(err_tx) = err_tx.take() {
-                    let _ = err_tx.send(());
-                }
+            if let StreamError::DeviceNotAvailable = err
+                && let Some(err_tx) = err_tx.take()
+            {
+                let _ = err_tx.send(());
             }
         };
 
