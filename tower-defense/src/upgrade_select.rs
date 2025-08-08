@@ -155,8 +155,8 @@ impl Component for UpgradeSelectItem<'_> {
                     table::vertical([
                         table::fixed(
                             wh.width,
-                            table::padding(PADDING, |_wh, _ctx| {
-                                // TODO: Icons
+                            table::padding(PADDING, |wh, ctx| {
+                                ctx.add(upgrade.kind.thumbnail(wh));
                             }),
                         ),
                         table::ratio(
