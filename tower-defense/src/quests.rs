@@ -89,8 +89,8 @@ impl Component for Quests {
                                                                 table::fixed(
                                                                     HEADLINE_FONT_SIZE_LARGE
                                                                         .into_px(),
-                                                                    |_, _| {
-                                                                        // TODO: Icons
+                                                                    |wh, ctx| {
+                                                                        ctx.add(quest.tracking.to_requirement().icon(wh));
                                                                     },
                                                                 ),
                                                                 table::ratio(1, |_, _| {}),

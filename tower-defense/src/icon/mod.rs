@@ -31,6 +31,8 @@ pub enum IconKind {
     Suit { suit: Suit },
     Up,
     Down,
+    Card,
+    New,
 }
 impl IconKind {
     pub fn asset_id(&self) -> &'static str {
@@ -64,6 +66,8 @@ impl IconKind {
             },
             IconKind::Up => "up",
             IconKind::Down => "down",
+            IconKind::Card => "card",
+            IconKind::New => "new",
         }
     }
 
@@ -94,6 +98,8 @@ impl IconKind {
             IconKind::Suit { .. } => Color::from_u8(128, 128, 128, 255),
             IconKind::Up => Color::from_u8(0, 255, 0, 255),
             IconKind::Down => Color::from_u8(255, 0, 0, 255),
+            IconKind::Card => Color::from_u8(255, 255, 255, 255), // White for card
+            IconKind::New => Color::from_u8(0, 255, 0, 255),      // Green for new
         }
     }
 
@@ -128,6 +134,8 @@ impl IconKind {
             "suit_clubs" => Some(IconKind::Suit { suit: Suit::Clubs }),
             "up" => Some(IconKind::Up),
             "down" => Some(IconKind::Down),
+            "card" => Some(IconKind::Card),
+            "new" => Some(IconKind::New),
             _ => None,
         }
     }

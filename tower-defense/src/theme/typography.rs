@@ -226,6 +226,7 @@ pub enum FontSize {
     Large,
     Medium,
     Small,
+    Custom { size: Px },
 }
 
 pub enum TextAlign {
@@ -402,6 +403,7 @@ impl Component for RichHeadlineComponent {
             FontSize::Large => HEADLINE_FONT_SIZE_LARGE,
             FontSize::Medium => HEADLINE_FONT_SIZE_MEDIUM,
             FontSize::Small => HEADLINE_FONT_SIZE_SMALL,
+            FontSize::Custom { size } => size.into(),
         };
 
         ctx.translate(Xy { x, y });
@@ -476,6 +478,7 @@ impl Component for RichParagraphComponent {
             FontSize::Large => PARAGRAPH_FONT_SIZE_LARGE,
             FontSize::Medium => PARAGRAPH_FONT_SIZE_MEDIUM,
             FontSize::Small => PARAGRAPH_FONT_SIZE_SMALL,
+            FontSize::Custom { size } => size.into(),
         };
 
         let rich_text_align = match text_align {
@@ -518,9 +521,8 @@ pub struct HeadlineComponent {
     max_width: Option<Px>,
     text_color: Option<Color>,
 }
-
-impl Component for HeadlineComponent {
-    fn render(self, ctx: &RenderCtx) {
+impl HeadlineComponent {
+    pub fn into_rendering_tree(self) -> RenderingTree {
         let Self {
             text,
             font_size,
@@ -545,6 +547,7 @@ impl Component for HeadlineComponent {
             FontSize::Large => HEADLINE_FONT_SIZE_LARGE,
             FontSize::Medium => HEADLINE_FONT_SIZE_MEDIUM,
             FontSize::Small => HEADLINE_FONT_SIZE_SMALL,
+            FontSize::Custom { size } => size.into(),
         };
         let baseline = match text_align {
             TextAlign::LeftTop => TextBaseline::Top,
@@ -568,7 +571,7 @@ impl Component for HeadlineComponent {
             _ => max_width,
         };
 
-        ctx.add(namui::text(TextParam {
+        namui::text(TextParam {
             text,
             x,
             y,
@@ -580,7 +583,12 @@ impl Component for HeadlineComponent {
             },
             style: text_style,
             max_width: effective_max_width,
-        }));
+        })
+    }
+}
+impl Component for HeadlineComponent {
+    fn render(self, ctx: &RenderCtx) {
+        ctx.add(self.into_rendering_tree());
     }
 }
 
@@ -590,9 +598,8 @@ pub struct ParagraphComponent {
     text_align: TextAlign,
     max_width: Option<Px>,
 }
-
-impl Component for ParagraphComponent {
-    fn render(self, ctx: &RenderCtx) {
+impl ParagraphComponent {
+    pub fn into_rendering_tree(self) -> RenderingTree {
         let Self {
             text,
             font_size,
@@ -616,6 +623,7 @@ impl Component for ParagraphComponent {
             FontSize::Large => PARAGRAPH_FONT_SIZE_LARGE,
             FontSize::Medium => PARAGRAPH_FONT_SIZE_MEDIUM,
             FontSize::Small => PARAGRAPH_FONT_SIZE_SMALL,
+            FontSize::Custom { size } => size.into(),
         };
         let baseline = match text_align {
             TextAlign::LeftTop => TextBaseline::Top,
@@ -629,8 +637,7 @@ impl Component for ParagraphComponent {
             (TextAlign::RightTop { width }, None) => Some(*width),
             _ => max_width,
         };
-
-        ctx.add(namui::text(TextParam {
+        namui::text(TextParam {
             text,
             x,
             y,
@@ -642,7 +649,12 @@ impl Component for ParagraphComponent {
             },
             style: DEFAULT_TEXT_STYLE,
             max_width: effective_max_width,
-        }));
+        })
+    }
+}
+impl Component for ParagraphComponent {
+    fn render(self, ctx: &RenderCtx) {
+        ctx.add(self.into_rendering_tree());
     }
 }
 

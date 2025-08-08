@@ -229,6 +229,8 @@ fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, anyhow::Error)>>
             IconKind::Suit { suit: Suit::Clubs },
             IconKind::Up,
             IconKind::Down,
+            IconKind::Card,
+            IconKind::New,
         ],
         &ICON_ASSET_LOADER,
     );

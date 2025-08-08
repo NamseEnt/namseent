@@ -1,3 +1,4 @@
+mod icon;
 pub mod requirement;
 pub mod reward;
 mod tracking_state;
