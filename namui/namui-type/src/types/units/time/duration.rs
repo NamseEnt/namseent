@@ -33,16 +33,16 @@ impl Debug for Duration {
 }
 
 impl Duration {
-    pub fn from_secs_f64(secs: f64) -> Self {
-        Self {
-            sign: secs >= 0.0,
-            inner: std::time::Duration::from_secs_f64(secs.abs()),
-        }
-    }
     pub fn from_secs_f32(secs: f32) -> Self {
         Self {
             sign: secs >= 0.0,
             inner: std::time::Duration::from_secs_f32(secs.abs()),
+        }
+    }
+    pub fn from_secs_f64(secs: f64) -> Self {
+        Self {
+            sign: secs >= 0.0,
+            inner: std::time::Duration::from_secs_f64(secs.abs()),
         }
     }
     pub const fn from_millis(millis: i64) -> Self {
@@ -101,11 +101,11 @@ impl Duration {
     pub const fn as_nanos(&self) -> i128 {
         self.inner.as_nanos() as i128 * if self.sign { 1 } else { -1 }
     }
-    pub fn as_secs_f64(&self) -> f64 {
-        self.inner.as_secs_f64() * if self.sign { 1.0 } else { -1.0 }
-    }
     pub fn as_secs_f32(&self) -> f32 {
         self.inner.as_secs_f32() * if self.sign { 1.0 } else { -1.0 }
+    }
+    pub fn as_secs_f64(&self) -> f64 {
+        self.inner.as_secs_f64() * if self.sign { 1.0 } else { -1.0 }
     }
 }
 
@@ -128,18 +128,6 @@ impl std::ops::Neg for &Duration {
     }
 }
 
-impl std::ops::Div<Duration> for Duration {
-    type Output = f32;
-    fn div(self, rhs: Self) -> Self::Output {
-        let lhs_secs = self.inner.as_secs_f32();
-        let rhs_secs = rhs.inner.as_secs_f32();
-        if rhs_secs == 0.0 {
-            panic!("divide by zero")
-        }
-        (lhs_secs / rhs_secs) * if self.sign == rhs.sign { 1.0 } else { -1.0 }
-    }
-}
-
 impl From<std::time::Duration> for Duration {
     fn from(duration: std::time::Duration) -> Self {
         Self {
@@ -158,6 +146,16 @@ auto_ops::impl_op!(-|lhs: Duration, rhs: Duration| -> Duration { add(lhs, -rhs) 
 auto_ops::impl_op!(-|lhs: &Duration, rhs: Duration| -> Duration { add(*lhs, -rhs) });
 auto_ops::impl_op!(-|lhs: Duration, rhs: &Duration| -> Duration { add(lhs, -*rhs) });
 auto_ops::impl_op!(-|lhs: &Duration, rhs: &Duration| -> Duration { add(*lhs, -*rhs) });
+
+auto_ops::impl_op!(/|lhs: Duration, rhs: Duration| -> f32 { div(lhs, rhs) });
+auto_ops::impl_op!(/|lhs: &Duration, rhs: Duration| -> f32 { div(*lhs, rhs) });
+auto_ops::impl_op!(/|lhs: Duration, rhs: &Duration| -> f32 { div(lhs, *rhs) });
+auto_ops::impl_op!(/|lhs: &Duration, rhs: &Duration| -> f32 { div(*lhs, *rhs) });
+
+auto_ops::impl_op!(%|lhs: Duration, rhs: Duration| -> Duration { rem(lhs, rhs) });
+auto_ops::impl_op!(%|lhs: &Duration, rhs: Duration| -> Duration { rem(*lhs, rhs) });
+auto_ops::impl_op!(%|lhs: Duration, rhs: &Duration| -> Duration { rem(lhs, *rhs) });
+auto_ops::impl_op!(%|lhs: &Duration, rhs: &Duration| -> Duration { rem(*lhs, *rhs) });
 
 auto_ops::impl_op!(*|lhs: Duration, rhs: f32| -> Duration { mul_f32(lhs, rhs) });
 auto_ops::impl_op!(*|lhs: &Duration, rhs: f32| -> Duration { mul_f32(*lhs, rhs) });
@@ -256,6 +254,16 @@ fn add(lhs: Duration, rhs: Duration) -> Duration {
     }
 }
 
+fn div(lhs: Duration, rhs: Duration) -> f32 {
+    let lhs_secs = lhs.inner.as_secs_f32();
+    let rhs_secs = rhs.inner.as_secs_f32();
+    (lhs_secs / rhs_secs) * if lhs.sign == rhs.sign { 1.0 } else { -1.0 }
+}
+
+fn rem(lhs: Duration, rhs: Duration) -> Duration {
+    Duration::from_secs_f32(lhs.as_secs_f32() % rhs.as_secs_f32())
+}
+
 fn mul_f32(lhs: Duration, rhs: f32) -> Duration {
     if rhs == 0.0 {
         Duration {
@@ -265,7 +273,7 @@ fn mul_f32(lhs: Duration, rhs: f32) -> Duration {
     } else {
         Duration {
             sign: lhs.sign == (rhs >= 0.0),
-            inner: std::time::Duration::from_secs_f64(lhs.inner.as_secs_f64() * rhs.abs() as f64),
+            inner: std::time::Duration::from_secs_f32(lhs.inner.as_secs_f32() * rhs.abs() as f32),
         }
     }
 }
@@ -279,7 +287,7 @@ fn mul_i32(lhs: Duration, rhs: i32) -> Duration {
     } else {
         Duration {
             sign: lhs.sign == (rhs >= 0),
-            inner: std::time::Duration::from_secs_f64(lhs.inner.as_secs_f64() * rhs.abs() as f64),
+            inner: std::time::Duration::from_secs_f32(lhs.inner.as_secs_f32() * rhs.abs() as f32),
         }
     }
 }
@@ -290,7 +298,7 @@ fn div_i32(lhs: Duration, rhs: i32) -> Duration {
     } else {
         Duration {
             sign: lhs.sign == (rhs >= 0),
-            inner: std::time::Duration::from_secs_f64(lhs.inner.as_secs_f64() / rhs.abs() as f64),
+            inner: std::time::Duration::from_secs_f32(lhs.inner.as_secs_f32() / rhs.abs() as f32),
         }
     }
 }
@@ -300,7 +308,7 @@ fn div_usize(lhs: Duration, rhs: usize) -> Duration {
     } else {
         Duration {
             sign: lhs.sign,
-            inner: std::time::Duration::from_secs_f64(lhs.inner.as_secs_f64() / rhs as f64),
+            inner: std::time::Duration::from_secs_f32(lhs.inner.as_secs_f32() / rhs as f32),
         }
     }
 }
@@ -370,5 +378,67 @@ mod tests {
     fn test_duration_neg() {
         assert_eq!(-(1.sec()), (-1).sec());
         assert_eq!(-((-1).sec()), 1.sec());
+    }
+
+    #[test]
+    fn test_duration_rem() {
+        // Basic positive cases
+        assert_eq!(5.sec() % 3.sec(), 2.sec());
+        assert_eq!(7.sec() % 3.sec(), 1.sec());
+        assert_eq!(6.sec() % 3.sec(), 0.sec());
+
+        // Cases with decimals
+        assert_eq!(5.5.sec() % 2.sec(), 1.5.sec());
+        assert_eq!(7.25.sec() % 2.5.sec(), 2.25.sec());
+
+        // Mixed sign cases (following standard remainder behavior)
+        // 5 % (-3) = 2 (result has same sign as dividend)
+        assert_eq!(5.sec() % (-3).sec(), 2.sec());
+        // (-5) % 3 = -2 (result has same sign as dividend)
+        assert_eq!((-5).sec() % 3.sec(), (-2).sec());
+        // (-5) % (-3) = -2 (result has same sign as dividend)
+        assert_eq!((-5).sec() % (-3).sec(), (-2).sec());
+
+        // Edge cases
+        assert_eq!(0.sec() % 3.sec(), 0.sec());
+        assert_eq!(1.sec() % 2.sec(), 1.sec());
+
+        // Millisecond precision
+        assert_eq!(
+            Duration::from_millis(1500) % Duration::from_millis(1000),
+            Duration::from_millis(500)
+        );
+        assert_eq!(
+            Duration::from_millis(2500) % Duration::from_millis(1000),
+            Duration::from_millis(500)
+        );
+    }
+
+    #[test]
+    fn test_duration_div_duration() {
+        // Basic positive division
+        assert_eq!(6.sec() / 2.sec(), 3.0);
+        assert_eq!(5.sec() / 2.sec(), 2.5);
+        assert_eq!(1.sec() / 1.sec(), 1.0);
+
+        // Division with decimals
+        assert_eq!(2.5.sec() / 0.5.sec(), 5.0);
+        assert_eq!(7.5.sec() / 2.5.sec(), 3.0);
+
+        // Mixed sign cases
+        assert_eq!(6.sec() / (-2).sec(), -3.0);
+        assert_eq!((-6).sec() / 2.sec(), -3.0);
+        assert_eq!((-6).sec() / (-2).sec(), 3.0);
+
+        // Small values
+        assert_eq!(Duration::from_millis(100) / Duration::from_millis(50), 2.0);
+        assert_eq!(1.sec() / Duration::from_millis(1000), 1.0);
+
+        // Fractional results
+        assert_eq!(1.sec() / 3.sec(), 1.0 / 3.0);
+        assert_eq!(2.sec() / 3.sec(), 2.0 / 3.0);
+
+        // Zero dividend
+        assert_eq!(0.sec() / 1.sec(), 0.0);
     }
 }
