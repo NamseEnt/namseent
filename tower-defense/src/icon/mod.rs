@@ -2,7 +2,7 @@ mod component;
 mod rendering_tree;
 pub mod rich_text;
 
-use crate::card::Suit;
+use crate::{card::Suit, rarity::Rarity, theme::palette};
 use namui::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +35,7 @@ pub enum IconKind {
     New,
     Add,
     Multiply,
+    Rarity { rarity: Rarity },
 }
 impl IconKind {
     pub fn asset_id(&self) -> &'static str {
@@ -72,6 +73,12 @@ impl IconKind {
             IconKind::New => "new",
             IconKind::Add => "add",
             IconKind::Multiply => "multiply",
+            IconKind::Rarity { rarity } => match rarity {
+                Rarity::Common => "rarity_common",
+                Rarity::Rare => "rarity_rare",
+                Rarity::Epic => "rarity_epic",
+                Rarity::Legendary => "rarity_legendary",
+            },
         }
     }
 
@@ -106,6 +113,12 @@ impl IconKind {
             IconKind::New => Color::from_u8(0, 255, 0, 255),      // Green for new
             IconKind::Add => Color::from_u8(0, 255, 0, 255),      // Green for add
             IconKind::Multiply => Color::from_u8(0, 0, 255, 255), // Blue for multiply
+            IconKind::Rarity { rarity } => match rarity {
+                Rarity::Common => palette::COMMON,
+                Rarity::Rare => palette::RARE,
+                Rarity::Epic => palette::EPIC,
+                Rarity::Legendary => palette::LEGENDARY,
+            },
         }
     }
 
@@ -144,6 +157,18 @@ impl IconKind {
             "new" => Some(IconKind::New),
             "add" => Some(IconKind::Add),
             "multiply" => Some(IconKind::Multiply),
+            "rarity_common" => Some(IconKind::Rarity {
+                rarity: Rarity::Common,
+            }),
+            "rarity_rare" => Some(IconKind::Rarity {
+                rarity: Rarity::Rare,
+            }),
+            "rarity_epic" => Some(IconKind::Rarity {
+                rarity: Rarity::Epic,
+            }),
+            "rarity_legendary" => Some(IconKind::Rarity {
+                rarity: Rarity::Legendary,
+            }),
             _ => None,
         }
     }

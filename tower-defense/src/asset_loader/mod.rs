@@ -3,6 +3,7 @@ use crate::game_state::MonsterKind;
 use crate::game_state::background::BackgroundKind;
 use crate::game_state::tower::{AnimationKind, TowerKind};
 use crate::icon::IconKind;
+use crate::rarity::Rarity;
 use crate::theme::{palette, typography};
 use namui::skia::load_image_from_resource_location;
 use namui::tokio::task::JoinSet;
@@ -233,6 +234,18 @@ fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, anyhow::Error)>>
             IconKind::New,
             IconKind::Add,
             IconKind::Multiply,
+            IconKind::Rarity {
+                rarity: Rarity::Common,
+            },
+            IconKind::Rarity {
+                rarity: Rarity::Rare,
+            },
+            IconKind::Rarity {
+                rarity: Rarity::Epic,
+            },
+            IconKind::Rarity {
+                rarity: Rarity::Legendary,
+            },
         ],
         &ICON_ASSET_LOADER,
     );
