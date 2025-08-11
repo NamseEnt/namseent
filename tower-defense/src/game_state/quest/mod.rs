@@ -17,6 +17,7 @@ pub use trigger_event::{QuestTriggerEvent, on_quest_trigger_event};
 pub struct Quest {
     pub requirement: QuestRequirement,
     pub reward: QuestReward,
+    pub rarity: Rarity,
 }
 
 impl Quest {
@@ -114,6 +115,7 @@ fn generate_quest(game_state: &GameState, rarity: Rarity) -> Quest {
     Quest {
         requirement,
         reward,
+        rarity,
     }
 }
 

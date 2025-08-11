@@ -160,14 +160,14 @@ impl Component for QuestBoard<'_> {
         };
 
         ctx.compose(|ctx| {
-            table::padding(
+            table::padding_no_clip(
                 PADDING,
                 table::vertical([
-                    table::ratio(
+                    table::ratio_no_clip(
                         1,
                         table::horizontal(quest_board_slots.iter().enumerate().map(
                             |(shop_slot_index, shop_slot)| {
-                                table::ratio(1, move |wh, ctx| {
+                                table::ratio_no_clip(1, move |wh, ctx| {
                                     ctx.add(QuestBoardItem {
                                         wh,
                                         quest_board_slot: shop_slot,
@@ -235,7 +235,7 @@ impl Component for QuestBoardItem<'_> {
         let _game_state = use_game_state(ctx);
         let accept_quest = || accept_quest(quest_board_slot_index);
         ctx.compose(|ctx| {
-            table::padding(PADDING, |wh, ctx| {
+            table::padding_no_clip(PADDING, |wh, ctx| {
                 match quest_board_slot {
                     QuestBoardSlot::Locked => {
                         ctx.add(QuestBoardItemLocked { wh });
@@ -318,10 +318,34 @@ impl Component for QuestBoardItemContent<'_> {
 
         ctx.compose(|ctx| {
             table::vertical([
-                table::fixed(
+                table::fixed_no_clip(
                     wh.width,
-                    table::padding(PADDING, |wh, ctx| {
-                        ctx.add(quest.requirement.thumbnail(wh));
+                    table::padding_no_clip(PADDING, |wh, ctx| {
+                        ctx.translate(((wh.width - IconSize::Large.px()) * 0.5, -PADDING))
+                            .add(
+                                Icon::new(IconKind::Rarity {
+                                    rarity: quest.rarity,
+                                })
+                                .size(IconSize::Large)
+                                .wh(Wh::new(IconSize::Large.px(), PADDING)),
+                            );
+                        ctx.compose(|ctx| {
+                            table::padding(PADDING, |wh, ctx| {
+                                ctx.add(quest.requirement.thumbnail(wh));
+                            })(wh, ctx);
+                        });
+                        ctx.add(rect(RectParam {
+                            rect: wh.to_rect(),
+                            style: RectStyle {
+                                stroke: None,
+                                fill: Some(RectFill {
+                                    color: palette::SURFACE_CONTAINER_LOWEST,
+                                }),
+                                round: Some(RectRound {
+                                    radius: palette::ROUND,
+                                }),
+                            },
+                        }));
                     }),
                 ),
                 table::ratio(
