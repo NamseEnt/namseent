@@ -92,6 +92,7 @@ impl Quest {
                 },
             },
             reward: self.reward.clone(),
+            rarity: self.rarity,
         }
     }
 }
@@ -100,6 +101,7 @@ impl Quest {
 pub struct QuestState {
     pub tracking: QuestTrackingState,
     pub reward: QuestReward,
+    pub rarity: Rarity,
 }
 
 pub fn generate_quests(game_state: &GameState, amount: usize) -> Vec<Quest> {
