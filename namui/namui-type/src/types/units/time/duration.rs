@@ -273,7 +273,7 @@ fn mul_f32(lhs: Duration, rhs: f32) -> Duration {
     } else {
         Duration {
             sign: lhs.sign == (rhs >= 0.0),
-            inner: std::time::Duration::from_secs_f32(lhs.inner.as_secs_f32() * rhs.abs() as f32),
+            inner: std::time::Duration::from_secs_f32(lhs.inner.as_secs_f32() * rhs.abs()),
         }
     }
 }
