@@ -31,7 +31,7 @@ impl Component for ShopItem<'_> {
         let purchase_item = || purchase_item(shop_slot_index);
 
         ctx.compose(|ctx| {
-            table::padding(PADDING, |wh, ctx| {
+            table::padding_no_clip(PADDING, |wh, ctx| {
                 match shop_slot {
                     ShopSlot::Locked => {
                         ctx.add(ShopItemLocked { wh });
@@ -151,14 +151,14 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
 
     ctx.compose(|ctx| {
         table::vertical([
-            table::fixed(
+            table::fixed_no_clip(
                 wh.width,
-                table::padding(PADDING, |wh, ctx| {
+                table::padding_no_clip(PADDING, |wh, ctx| {
                     ctx.translate(((wh.width - IconSize::Large.px()) * 0.5, -PADDING))
                         .add(
                             Icon::new(IconKind::Rarity { rarity })
-                            .size(IconSize::Large)
-                            .wh(Wh::new(IconSize::Large.px(), PADDING)),
+                                .size(IconSize::Large)
+                                .wh(Wh::new(IconSize::Large.px(), PADDING)),
                         );
                     ctx.compose(|ctx| {
                         table::padding(PADDING, |wh, ctx| {
