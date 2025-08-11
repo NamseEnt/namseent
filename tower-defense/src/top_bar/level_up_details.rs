@@ -1,8 +1,9 @@
 use crate::{
     game_state::level_rarity_weight,
-    l10n::ui::TopBarText,
+    icon::{Icon, IconKind, IconSize},
     palette,
-    theme::typography::{headline, paragraph},
+    rarity::Rarity,
+    theme::typography::paragraph,
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -23,7 +24,6 @@ impl Component for LevelUpDetails {
             width,
             current_level,
         } = self;
-        let game_state = crate::game_state::use_game_state(ctx);
         let current_level = ctx.track_eq(&current_level);
         let weights = ctx.memo(|| {
             let current_level = NonZero::new(*current_level).expect("Level must be non-zero");
@@ -58,14 +58,11 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(
-                                headline(
-                                    game_state.text().ui(TopBarText::RarityCommon).to_string(),
-                                )
-                                .size(crate::theme::typography::FontSize::Small)
-                                .align(crate::theme::typography::TextAlign::LeftCenter {
-                                    height: wh.height,
+                                Icon::new(IconKind::Rarity {
+                                    rarity: Rarity::Common,
                                 })
-                                .build(),
+                                .size(IconSize::Medium)
+                                .wh(wh),
                             );
                         }),
                         table::ratio(1, |_, _| {}),
@@ -101,12 +98,11 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(
-                                headline(game_state.text().ui(TopBarText::RarityRare).to_string())
-                                    .size(crate::theme::typography::FontSize::Small)
-                                    .align(crate::theme::typography::TextAlign::LeftCenter {
-                                        height: wh.height,
-                                    })
-                                    .build(),
+                                Icon::new(IconKind::Rarity {
+                                    rarity: Rarity::Rare,
+                                })
+                                .size(IconSize::Medium)
+                                .wh(wh),
                             );
                         }),
                         table::ratio(1, |_, _| {}),
@@ -142,12 +138,11 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(
-                                headline(game_state.text().ui(TopBarText::RarityEpic).to_string())
-                                    .size(crate::theme::typography::FontSize::Small)
-                                    .align(crate::theme::typography::TextAlign::LeftCenter {
-                                        height: wh.height,
-                                    })
-                                    .build(),
+                                Icon::new(IconKind::Rarity {
+                                    rarity: Rarity::Epic,
+                                })
+                                .size(IconSize::Medium)
+                                .wh(wh),
                             );
                         }),
                         table::ratio(1, |_, _| {}),
@@ -183,17 +178,11 @@ impl Component for LevelUpDetails {
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(RARITY_LABEL_WIDTH, |wh, ctx| {
                             ctx.add(
-                                headline(
-                                    game_state
-                                        .text()
-                                        .ui(TopBarText::RarityLegendary)
-                                        .to_string(),
-                                )
-                                .size(crate::theme::typography::FontSize::Small)
-                                .align(crate::theme::typography::TextAlign::LeftCenter {
-                                    height: wh.height,
+                                Icon::new(IconKind::Rarity {
+                                    rarity: Rarity::Legendary,
                                 })
-                                .build(),
+                                .size(IconSize::Medium)
+                                .wh(wh),
                             );
                         }),
                         table::ratio(1, |_, _| {}),
