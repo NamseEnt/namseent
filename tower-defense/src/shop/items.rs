@@ -125,6 +125,7 @@ struct ShopItemLayoutParams<'a> {
     purchase_action: &'a dyn Fn(),
     item_kind: Option<&'a item::ItemKind>,
     upgrade_kind: Option<&'a UpgradeKind>,
+    rarity: crate::rarity::Rarity,
 }
 
 fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
@@ -138,6 +139,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
         purchase_action,
         item_kind,
         upgrade_kind,
+        rarity,
     } = params;
 
     ctx.compose(|ctx| {
@@ -152,14 +154,40 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
             table::fixed(
                 wh.width,
                 table::padding(PADDING, |wh, ctx| {
-                    if let Some(kind) = item_kind {
-                        ctx.add(kind.thumbnail(wh));
-                    } else if let Some(upgrade) = upgrade_kind {
-                        ctx.add(upgrade.thumbnail(wh));
-                    } else {
-                        // 기본 아이콘
-                        ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
-                    }
+                    ctx.translate(((wh.width - IconSize::Large.px()) * 0.5, -PADDING))
+                        .add(
+                            Icon::new(IconKind::Rarity { rarity })
+                            .size(IconSize::Large)
+                            .wh(Wh::new(IconSize::Large.px(), PADDING)),
+                        );
+                    ctx.compose(|ctx| {
+                        table::padding(PADDING, |wh, ctx| {
+                            if let Some(kind) = item_kind {
+                                ctx.add(kind.thumbnail(wh));
+                            } else if let Some(upgrade) = upgrade_kind {
+                                ctx.add(upgrade.thumbnail(wh));
+                            } else {
+                                // 기본 아이콘
+                                ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
+                            }
+                        })(wh, ctx);
+                    });
+                    ctx.add(rect(RectParam {
+                        rect: wh.to_rect(),
+                        style: RectStyle {
+                            stroke: Some(RectStroke {
+                                color: palette::OUTLINE,
+                                width: 1.px(),
+                                border_position: BorderPosition::Inside,
+                            }),
+                            fill: Some(RectFill {
+                                color: palette::SURFACE_CONTAINER_LOWEST,
+                            }),
+                            round: Some(RectRound {
+                                radius: palette::ROUND,
+                            }),
+                        },
+                    }));
                 }),
             ),
             table::ratio(
@@ -253,6 +281,7 @@ impl Component for ShopItemContent<'_> {
                 purchase_action: purchase_item,
                 item_kind: Some(&item.kind),
                 upgrade_kind: None,
+                rarity: item.rarity,
             },
             ctx,
         );
@@ -294,6 +323,7 @@ impl Component for ShopUpgradeContent<'_> {
                 purchase_action: purchase_upgrade,
                 item_kind: None,
                 upgrade_kind: Some(&upgrade.kind),
+                rarity: upgrade.rarity,
             },
             ctx,
         );
