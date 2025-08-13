@@ -7,7 +7,7 @@ use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::typography::{TextAlign, headline};
 use namui::*;
-use namui_prebuilt::table::{self, ratio};
+use namui_prebuilt::table::{self, ratio, ratio_no_clip};
 
 pub struct ShopLayout<'a> {
     pub shop_slots: &'a [ShopSlot],
@@ -32,14 +32,14 @@ impl Component for ShopLayout<'_> {
         };
 
         ctx.compose(|ctx| {
-            table::padding(
+            table::padding_no_clip(
                 PADDING,
                 table::vertical([
-                    table::ratio(
+                    table::ratio_no_clip(
                         1,
                         table::horizontal(shop_slots.iter().enumerate().map(
                             |(shop_slot_index, shop_slot)| {
-                                ratio(1, move |wh, ctx| {
+                                ratio_no_clip(1, move |wh, ctx| {
                                     ctx.add(ShopItem {
                                         wh,
                                         shop_slot,

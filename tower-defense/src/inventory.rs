@@ -47,6 +47,20 @@ impl Component for Inventory {
                                                 table::fixed(
                                                     HEADLINE_FONT_SIZE_LARGE.into_px(),
                                                     |wh, ctx| {
+                                                        ctx.add(
+                                                            Icon::new(IconKind::Rarity {
+                                                                rarity: item.rarity,
+                                                            })
+                                                            .size(IconSize::Custom {
+                                                                size: wh.width,
+                                                            })
+                                                            .wh(wh),
+                                                        );
+                                                    },
+                                                ),
+                                                table::fixed(
+                                                    HEADLINE_FONT_SIZE_LARGE.into_px(),
+                                                    |wh, ctx| {
                                                         ctx.add(item.kind.thumbnail(wh));
                                                     },
                                                 ),

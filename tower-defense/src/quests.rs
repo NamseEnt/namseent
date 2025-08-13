@@ -90,6 +90,13 @@ impl Component for Quests {
                                                                     HEADLINE_FONT_SIZE_LARGE
                                                                         .into_px(),
                                                                     |wh, ctx| {
+                                                                        ctx.add(Icon::new(IconKind::Rarity { rarity: quest.rarity }).size(IconSize::Custom { size: wh.width }).wh(wh));
+                                                                    },
+                                                                ),
+                                                                table::fixed(
+                                                                    HEADLINE_FONT_SIZE_LARGE
+                                                                        .into_px(),
+                                                                    |wh, ctx| {
                                                                         ctx.add(quest.tracking.to_requirement().thumbnail(wh));
                                                                     },
                                                                 ),

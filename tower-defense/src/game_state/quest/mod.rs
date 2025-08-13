@@ -17,6 +17,7 @@ pub use trigger_event::{QuestTriggerEvent, on_quest_trigger_event};
 pub struct Quest {
     pub requirement: QuestRequirement,
     pub reward: QuestReward,
+    pub rarity: Rarity,
 }
 
 impl Quest {
@@ -91,6 +92,7 @@ impl Quest {
                 },
             },
             reward: self.reward.clone(),
+            rarity: self.rarity,
         }
     }
 }
@@ -99,6 +101,7 @@ impl Quest {
 pub struct QuestState {
     pub tracking: QuestTrackingState,
     pub reward: QuestReward,
+    pub rarity: Rarity,
 }
 
 pub fn generate_quests(game_state: &GameState, amount: usize) -> Vec<Quest> {
@@ -114,6 +117,7 @@ fn generate_quest(game_state: &GameState, rarity: Rarity) -> Quest {
     Quest {
         requirement,
         reward,
+        rarity,
     }
 }
 

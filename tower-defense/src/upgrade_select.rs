@@ -1,3 +1,4 @@
+use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::Button;
 use crate::{
     game_state::{mutate_game_state, upgrade::Upgrade, use_game_state},
@@ -6,7 +7,7 @@ use crate::{
     theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
-use namui_prebuilt::table::{self, ratio};
+use namui_prebuilt::table::{self, ratio_no_clip};
 
 const PADDING: Px = px(4.0);
 const UPGRADE_SELECT_WH: Wh<Px> = Wh {
@@ -120,10 +121,10 @@ impl Component for UpgradeSelect<'_> {
         } = self;
 
         ctx.compose(|ctx| {
-            table::padding(
+            table::padding_no_clip(
                 PADDING,
                 table::horizontal(upgrades.iter().map(|&upgrade| {
-                    ratio(1, move |wh, ctx| {
+                    ratio_no_clip(1, move |wh, ctx| {
                         ctx.add(UpgradeSelectItem {
                             wh,
                             upgrade,
@@ -150,13 +151,39 @@ impl Component for UpgradeSelectItem<'_> {
         } = self;
         let game_state = use_game_state(ctx);
         ctx.compose(|ctx| {
-            table::padding(PADDING, |wh, ctx| {
+            table::padding_no_clip(PADDING, |wh, ctx| {
                 ctx.compose(|ctx| {
                     table::vertical([
-                        table::fixed(
+                        table::fixed_no_clip(
                             wh.width,
-                            table::padding(PADDING, |wh, ctx| {
-                                ctx.add(upgrade.kind.thumbnail(wh));
+                            table::padding_no_clip(PADDING, |wh, ctx| {
+                                ctx.translate(((wh.width - IconSize::Large.px()) * 0.5, -PADDING))
+                                    .add(
+                                        Icon::new(IconKind::Rarity {
+                                            rarity: upgrade.rarity,
+                                        })
+                                        .size(IconSize::Large)
+                                        .wh(Wh::new(IconSize::Large.px(), PADDING)),
+                                    );
+
+                                ctx.compose(|ctx| {
+                                    table::padding(PADDING, |wh, ctx| {
+                                        ctx.add(upgrade.kind.thumbnail(wh));
+                                    })(wh, ctx);
+                                });
+
+                                ctx.add(rect(RectParam {
+                                    rect: wh.to_rect(),
+                                    style: RectStyle {
+                                        stroke: None,
+                                        fill: Some(RectFill {
+                                            color: palette::SURFACE_CONTAINER_LOWEST,
+                                        }),
+                                        round: Some(RectRound {
+                                            radius: palette::ROUND,
+                                        }),
+                                    },
+                                }));
                             }),
                         ),
                         table::ratio(
