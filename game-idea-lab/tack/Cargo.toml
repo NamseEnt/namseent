@@ -1,0 +1,11 @@
+[package]
+name = "tack"
+version = "0.1.0"
+edition = "2024"
+
+[package.metadata.namui]
+targets = ["wasm32-wasi-web", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc", "aarch64-apple-darwin"]
+
+[dependencies]
+namui = { path = "../../namui/namui" }
+namui-prebuilt = { path = "../../namui/namui-prebuilt" }
