@@ -42,7 +42,34 @@ impl TempParticleEmitter {
     }
 }
 
-pub type FieldParticleSystem = namui::particle::System<FieldParticleEmitter, FieldParticle>;
+pub struct FieldParticleSystem {
+    id: usize,
+    system: namui::particle::System<FieldParticleEmitter, FieldParticle>,
+}
+
+impl FieldParticleSystem {
+    pub fn new(emitters: Vec<FieldParticleEmitter>) -> Self {
+        static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        Self {
+            id: NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            system: namui::particle::System::new(emitters),
+        }
+    }
+
+    pub fn render(&self, ctx: &ComposeCtx, now: Instant) {
+        ctx.compose_with_key(self.id, |ctx| {
+            self.system.render(&ctx, now);
+        });
+    }
+
+    pub fn is_done(&self, now: Instant) -> bool {
+        self.system.is_done(now)
+    }
+
+    pub fn id(&self) -> usize {
+        self.id
+    }
+}
 
 #[derive(Default)]
 pub struct FieldParticleSystemManager {
