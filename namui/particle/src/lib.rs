@@ -79,11 +79,8 @@ where
 
                 let rendering_trees_list = rendering_trees_list.clone_inner();
                 let system_is_done = self.system_is_done.clone();
-                let mut emitters: Vec<E> = self
-                    .initial_emitters
-                    .swap(None)
-                    .and_then(Arc::into_inner)
-                    .unwrap_or_default();
+                let mut emitters: Vec<E> =
+                    Arc::into_inner(self.initial_emitters.swap(None).unwrap()).unwrap();
                 let mut particles: Vec<P> = Vec::with_capacity(65536);
                 let mut last_now = self.now;
 
