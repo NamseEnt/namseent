@@ -177,3 +177,13 @@ pub fn refresh_icon() -> String {
 pub fn suit_icon(suit: crate::card::Suit) -> String {
     Icon::new(IconKind::Suit { suit }).as_tag()
 }
+
+// === 문양 색상 헬퍼 ===
+pub fn with_suit_color(text: String, suit: crate::card::Suit) -> String {
+    use crate::card::Suit;
+    let color_tag = match suit {
+        Suit::Spades | Suit::Clubs => "black_suit_color",
+        Suit::Hearts | Suit::Diamonds => "red_suit_color",
+    };
+    format!("|{color_tag}|{text}|/{color_tag}|")
+}

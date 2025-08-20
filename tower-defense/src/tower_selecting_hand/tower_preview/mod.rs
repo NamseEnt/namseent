@@ -7,7 +7,7 @@ use crate::{
         tower::{TowerSkillTemplate, TowerTemplate},
         upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
-    icon::IconKind,
+    icon::{Icon, IconKind},
     l10n::upgrade::{
         AddOrMultiply, Template as UpgradeTemplate, TowerUpgradeTarget as UpgradeTarget,
         WhatUpgrade,
@@ -75,17 +75,25 @@ impl Component for TowerPreview<'_> {
                 table::vertical([
                     table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL.into_px(), |wh, ctx| {
                         let mut tower_name = String::new();
-                        tower_name.push_str(&format!("{}", tower_template.suit));
-                        tower_name.push_str(&format!("{}", tower_template.rank));
+
+                        tower_name.push_str(
+                            &Icon::new(IconKind::Suit {
+                                suit: tower_template.suit,
+                            })
+                            .size(crate::icon::IconSize::Small)
+                            .wh(Wh::single(crate::icon::IconSize::Small.px()))
+                            .as_tag(),
+                        );
+                        tower_name.push_str(&tower_template.rank.to_string());
                         tower_name.push(' ');
                         tower_name.push_str(game_state.text().tower(tower_template.kind.to_text()));
 
                         ctx.add(
                             headline(tower_name)
                                 .size(FontSize::Small)
-                                .align(TextAlign::LeftTop)
+                                .align(TextAlign::LeftCenter { height: wh.height })
                                 .max_width(wh.width)
-                                .build(),
+                                .build_rich(),
                         );
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE.into_px(), |wh, ctx| {
