@@ -1,6 +1,7 @@
 use super::*;
 use crate::game_state::tower_info_popup::TowerInfoPopup;
 
+// ASSUME: NO EFFECT AND STATE IN INNER RENDER
 // Render in the 1:1 scale, without thinking about the camera zoom level.
 pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
     ctx.add((render_tower_info_popup, game_state));
@@ -12,6 +13,54 @@ pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
     ctx.add((render_towers, game_state));
     ctx.add((render_grid, game_state));
     ctx.add((render_backgrounds, game_state));
+}
+
+impl GameState {
+    fn render_stuffs<'a, C, MapCoord, MapAxis>(
+        &self,
+        ctx: &ComposeCtx,
+        stuffs: impl Iterator<Item = (MapCoord, C)>,
+    ) where
+        C: 'a + Component,
+        MapCoord: AsRef<Xy<MapAxis>>,
+        MapAxis: Ratio + std::fmt::Debug + Clone + Copy,
+    {
+        let camera = &self.camera;
+
+        let screen_rect = Rect::from_xy_wh(camera.left_top, {
+            let screen_size = namui::screen::size();
+            Wh::new(
+                screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
+                screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
+            ) / camera.zoom_level
+        });
+
+        for (xy, stuff) in stuffs {
+            let xy = *xy.as_ref();
+            if screen_rect.right() < xy.x.as_f32() || screen_rect.bottom() < xy.y.as_f32() {
+                continue;
+            }
+
+            let px_xy = TILE_PX_SIZE.to_xy() * xy.map(|t| t.as_f32());
+            ctx.translate(px_xy).compose(move |ctx| {
+                let rendering_tree = ctx.ghost_add("", stuff);
+                let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
+                    return;
+                };
+
+                let local_right = bounding_box.right() / TILE_PX_SIZE.width;
+                let local_bottom = bounding_box.bottom() / TILE_PX_SIZE.height;
+
+                if xy.x.as_f32() + local_right < screen_rect.left()
+                    || xy.y.as_f32() + local_bottom < screen_rect.top()
+                {
+                    return;
+                }
+
+                ctx.add(rendering_tree);
+            });
+        }
+    }
 }
 
 fn render_grid(ctx: &RenderCtx, game_state: &GameState) {
@@ -139,54 +188,6 @@ fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
         .set_stroke_cap(StrokeCap::Round);
 
     ctx.add(namui::path(path, paint));
-}
-
-impl GameState {
-    fn render_stuffs<'a, C, MapCoord, MapAxis>(
-        &self,
-        ctx: &ComposeCtx,
-        stuffs: impl Iterator<Item = (MapCoord, C)>,
-    ) where
-        C: 'a + Component,
-        MapCoord: AsRef<Xy<MapAxis>>,
-        MapAxis: Ratio + std::fmt::Debug + Clone + Copy,
-    {
-        let camera = &self.camera;
-
-        let screen_rect = Rect::from_xy_wh(camera.left_top, {
-            let screen_size = namui::screen::size();
-            Wh::new(
-                screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
-                screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
-            ) / camera.zoom_level
-        });
-
-        for (xy, stuff) in stuffs {
-            let xy = *xy.as_ref();
-            if screen_rect.right() < xy.x.as_f32() || screen_rect.bottom() < xy.y.as_f32() {
-                continue;
-            }
-
-            let px_xy = TILE_PX_SIZE.to_xy() * xy.map(|t| t.as_f32());
-            ctx.translate(px_xy).compose(move |ctx| {
-                let rendering_tree = ctx.ghost_add("", stuff);
-                let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
-                    return;
-                };
-
-                let local_right = bounding_box.right() / TILE_PX_SIZE.width;
-                let local_bottom = bounding_box.bottom() / TILE_PX_SIZE.height;
-
-                if xy.x.as_f32() + local_right < screen_rect.left()
-                    || xy.y.as_f32() + local_bottom < screen_rect.top()
-                {
-                    return;
-                }
-
-                ctx.add(rendering_tree);
-            });
-        }
-    }
 }
 
 fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
