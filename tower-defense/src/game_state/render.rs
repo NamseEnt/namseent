@@ -1,4 +1,5 @@
 use super::*;
+use crate::game_state::tower_info_popup::TowerInfoPopup;
 
 // Render in the 1:1 scale, without thinking about the camera zoom level.
 pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
@@ -62,8 +63,7 @@ fn render_grid(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
-    render_stuffs(
-        game_state,
+    game_state.render_stuffs(
         ctx,
         game_state
             .backgrounds
@@ -73,8 +73,7 @@ fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_projectiles(ctx: &RenderCtx, game_state: &GameState) {
-    render_stuffs(
-        game_state,
+    game_state.render_stuffs(
         ctx,
         game_state
             .projectiles
@@ -84,8 +83,7 @@ fn render_projectiles(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
-    render_stuffs(
-        game_state,
+    game_state.render_stuffs(
         ctx,
         game_state
             .towers
@@ -94,9 +92,25 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
     );
 }
 
+fn render_tower_info_popup(ctx: &RenderCtx, game_state: &GameState) {
+    if let Some(selected_tower_id) = game_state.selected_tower_id
+        && let Some(selected_tower) = game_state.towers.find_by_id(selected_tower_id)
+    {
+        let tower_upgrades = game_state.upgrade_state.tower_upgrades(selected_tower);
+
+        let px_xy = TILE_PX_SIZE.to_xy() * selected_tower.left_top.map(|t| t as f32)
+            + Xy::new(TILE_PX_SIZE.width, 0.px());
+        ctx.translate(px_xy)
+            .scale(Xy::single(1. / game_state.camera.zoom_level))
+            .add(TowerInfoPopup {
+                tower: selected_tower,
+                tower_upgrades: &tower_upgrades,
+            });
+    }
+}
+
 fn render_monsters(ctx: &RenderCtx, game_state: &GameState) {
-    render_stuffs(
-        game_state,
+    game_state.render_stuffs(
         ctx,
         game_state
             .monsters
@@ -127,6 +141,54 @@ fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
     ctx.add(namui::path(path, paint));
 }
 
+impl GameState {
+    fn render_stuffs<'a, C, MapCoord, MapAxis>(
+        &self,
+        ctx: &ComposeCtx,
+        stuffs: impl Iterator<Item = (MapCoord, C)>,
+    ) where
+        C: 'a + Component,
+        MapCoord: AsRef<Xy<MapAxis>>,
+        MapAxis: Ratio + std::fmt::Debug + Clone + Copy,
+    {
+        let camera = &self.camera;
+
+        let screen_rect = Rect::from_xy_wh(camera.left_top, {
+            let screen_size = namui::screen::size();
+            Wh::new(
+                screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
+                screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
+            ) / camera.zoom_level
+        });
+
+        for (xy, stuff) in stuffs {
+            let xy = *xy.as_ref();
+            if screen_rect.right() < xy.x.as_f32() || screen_rect.bottom() < xy.y.as_f32() {
+                continue;
+            }
+
+            let px_xy = TILE_PX_SIZE.to_xy() * xy.map(|t| t.as_f32());
+            ctx.translate(px_xy).compose(move |ctx| {
+                let rendering_tree = ctx.ghost_add("", stuff);
+                let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
+                    return;
+                };
+
+                let local_right = bounding_box.right() / TILE_PX_SIZE.width;
+                let local_bottom = bounding_box.bottom() / TILE_PX_SIZE.height;
+
+                if xy.x.as_f32() + local_right < screen_rect.left()
+                    || xy.y.as_f32() + local_bottom < screen_rect.top()
+                {
+                    return;
+                }
+
+                ctx.add(rendering_tree);
+            });
+        }
+    }
+}
+
 fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
     ctx.add(game_state.cursor_preview.render());
 }
@@ -135,67 +197,4 @@ fn render_field_particles(ctx: &RenderCtx, game_state: &GameState) {
     game_state
         .field_particle_system_manager
         .render(ctx, game_state.now());
-}
-
-fn render_tower_info_popup(ctx: &RenderCtx, game_state: &GameState) {
-    if let Some(selected_tower_id) = game_state.selected_tower_id
-        && let Some(selected_tower) = game_state.towers.find_by_id(selected_tower_id)
-    {
-        let tower_upgrades = game_state.upgrade_state.tower_upgrades(selected_tower);
-
-        let px_xy = TILE_PX_SIZE.to_xy() * selected_tower.left_top.map(|t| t as f32)
-            + Xy::new(TILE_PX_SIZE.width, 0.px());
-        ctx.translate(px_xy)
-            .scale(Xy::single(1. / game_state.camera.zoom_level))
-            .add(tower_info_popup::TowerInfoPopup {
-                tower: selected_tower,
-                tower_upgrades: &tower_upgrades,
-            });
-    }
-}
-
-fn render_stuffs<'a, C, MapCoord, MapAxis>(
-    game_state: &GameState,
-    ctx: &RenderCtx,
-    stuffs: impl Iterator<Item = (MapCoord, C)>,
-) where
-    C: 'a + Component,
-    MapCoord: AsRef<Xy<MapAxis>>,
-    MapAxis: Ratio + std::fmt::Debug + Clone + Copy,
-{
-    let camera = &game_state.camera;
-
-    let screen_rect = Rect::from_xy_wh(camera.left_top, {
-        let screen_size = namui::screen::size();
-        Wh::new(
-            screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
-            screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
-        ) / camera.zoom_level
-    });
-
-    for (xy, stuff) in stuffs {
-        let xy = *xy.as_ref();
-        if screen_rect.right() < xy.x.as_f32() || screen_rect.bottom() < xy.y.as_f32() {
-            continue;
-        }
-
-        let px_xy = TILE_PX_SIZE.to_xy() * xy.map(|t| t.as_f32());
-        ctx.translate(px_xy).compose(move |ctx| {
-            let rendering_tree = ctx.ghost_add("", stuff);
-            let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
-                return;
-            };
-
-            let local_right = bounding_box.right() / TILE_PX_SIZE.width;
-            let local_bottom = bounding_box.bottom() / TILE_PX_SIZE.height;
-
-            if xy.x.as_f32() + local_right < screen_rect.left()
-                || xy.y.as_f32() + local_bottom < screen_rect.top()
-            {
-                return;
-            }
-
-            ctx.add(rendering_tree);
-        });
-    }
 }
