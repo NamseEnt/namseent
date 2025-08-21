@@ -1,11 +1,14 @@
 use crate::{
     MapCoord,
-    game_state::{GameState, flow::GameFlow, mutate_game_state, place_tower},
+    game_state::{
+        GameState, fast_forward::FastForwardMultiplier, flow::GameFlow, mutate_game_state,
+        place_tower,
+    },
 };
 
 pub fn auto_play() {
     mutate_game_state(|game_state| {
-        println!("flow: {:?}", game_state.flow);
+        game_state.fast_forward_multiplier = FastForwardMultiplier::X16;
         match &game_state.flow {
             GameFlow::Initializing => {}
             GameFlow::SelectingTower => {
