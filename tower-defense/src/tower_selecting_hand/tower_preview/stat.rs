@@ -40,6 +40,7 @@ impl Component for StatPreview<'_> {
             let tooltip = ctx.ghost_add(
                 "tooltip",
                 Tooltip {
+                    stat_detail: format_stat_detail(default_stat, plus_stat, multiplier),
                     upgrade_texts,
                     max_width: TOOLTIP_MAX_WIDTH,
                 },
@@ -61,7 +62,7 @@ impl Component for StatPreview<'_> {
                 .wh(Wh::new(16.px(), wh.height)),
         );
         ctx.add(
-            paragraph(format_stat(default_stat, plus_stat, multiplier))
+            paragraph(format_stat_final(default_stat, plus_stat, multiplier))
                 .size(FontSize::Medium)
                 .align(TextAlign::RightTop { width: wh.width })
                 .build(),
@@ -83,37 +84,69 @@ impl Component for StatPreview<'_> {
     }
 }
 
-fn format_stat(base: f32, plus: f32, multiplier: f32) -> String {
+fn format_stat_final(base: f32, plus: f32, multiplier: f32) -> String {
+    let final_value = calculate_final_stat(base, plus, multiplier);
+    format!("{final_value:.1}")
+}
+
+fn format_stat_detail(base: f32, plus: f32, multiplier: f32) -> String {
     let has_plus = plus != 0.0;
     let has_multiplier = multiplier != 1.0;
 
     match (has_plus, has_multiplier) {
         (true, true) => format!(
-            "{:.1} (({:.1}+{:.1})*{})",
-            base * multiplier + plus,
+            "({:.1} + {:.1}) * {:.1} = {:.1}",
             base,
             plus,
-            multiplier
+            multiplier,
+            calculate_final_stat(base, plus, multiplier)
         ),
-        (true, false) => format!("{:.1} ({:.1}+{:.1})", base + plus, base, plus),
-        (false, true) => format!("{:.1} ({:.1}*{:.1})", base * multiplier, base, multiplier),
+        (true, false) => format!("{:.1} + {:.1} = {:.1}", base, plus, base + plus),
+        (false, true) => format!("{:.1} * {:.1} = {:.1}", base, multiplier, base * multiplier),
         (false, false) => format!("{base:.1}"),
     }
 }
 
+fn calculate_final_stat(base: f32, plus: f32, multiplier: f32) -> f32 {
+    (base + plus) * multiplier
+}
+
 struct Tooltip<'a> {
+    stat_detail: String,
     upgrade_texts: &'a [String],
     max_width: Px,
 }
 impl Component for Tooltip<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Tooltip {
+            stat_detail,
             upgrade_texts,
             max_width,
         } = self;
 
         let text_max_width = max_width - (PADDING * 2.0);
         let content = ctx.ghost_compose("tooltip-contents", |mut ctx| {
+            // 통계 상세 정보 렌더링
+            let stat_text = ctx.ghost_add(
+                "stat-detail",
+                paragraph(stat_detail)
+                    .size(FontSize::Medium)
+                    .align(TextAlign::LeftTop)
+                    .max_width(text_max_width)
+                    .build(),
+            );
+            let stat_text_height = bounding_box(&stat_text)
+                .map(|rect| rect.height())
+                .unwrap_or_default();
+            ctx.add(stat_text);
+            ctx = ctx.translate((0.px(), PADDING + stat_text_height));
+
+            // 구분선 추가 (업그레이드 텍스트가 있는 경우)
+            if !upgrade_texts.is_empty() {
+                ctx = ctx.translate((0.px(), PADDING));
+            }
+
+            // 업그레이드 텍스트들 렌더링
             for (index, upgrade_text) in upgrade_texts.iter().enumerate() {
                 let rendered_text = ctx.ghost_add(
                     format!("tooltip-content-{index}"),
