@@ -92,31 +92,8 @@ impl<T: FnOnce(&RenderCtx)> Component for T {
     }
 }
 
-macro_rules! component_impl {
-    (
-        $(
-            ($
-                ($T:ident, $i:tt),
-            *),
-        )*
-    ) => {
-        $(
-            impl<$($T: Component),*> Component for ($($T,)*) {
-                fn render(self, ctx: &RenderCtx) {
-                    $(ctx.add(self.$i);)*
-                }
-            }
-        )*
-    };
+impl<T: FnOnce(&RenderCtx, S), S> Component for (T, S) {
+    fn render(self, ctx: &RenderCtx) {
+        self.0(ctx, self.1)
+    }
 }
-
-component_impl!(
-    (T0, 0),
-    (T0, 0, T1, 1),
-    (T0, 0, T1, 1, T2, 2),
-    (T0, 0, T1, 1, T2, 2, T3, 3),
-    (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4),
-    (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4, T5, 5),
-    (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4, T5, 5, T6, 6),
-    (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4, T5, 5, T6, 6, T7, 7),
-);
