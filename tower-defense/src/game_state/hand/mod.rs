@@ -183,6 +183,12 @@ impl Hand {
             .any(|slot| slot.get_tower_template().is_some())
     }
 
+    pub fn get_first_tower_slot_id(&self) -> Option<HandSlotId> {
+        self.active_slots()
+            .find(|slot| slot.get_tower_template().is_some())
+            .map(|slot| slot.id)
+    }
+
     fn sort_slots(&mut self) {
         self.slots.sort_by(Self::compare_slots);
     }

@@ -1,4 +1,4 @@
-mod get_highest_tower;
+pub mod get_highest_tower;
 mod tower_preview;
 
 use crate::icon::{Icon, IconKind, IconSize};

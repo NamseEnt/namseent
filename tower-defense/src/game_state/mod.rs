@@ -1,6 +1,6 @@
 pub mod background;
 mod camera;
-mod can_place_tower;
+pub mod can_place_tower;
 pub mod cursor_preview;
 mod event_handlers;
 pub mod fast_forward;
@@ -26,6 +26,8 @@ mod tower_info_popup;
 pub mod upgrade;
 mod user_status_effect;
 
+use crate::game_state::cursor_preview::PreviewKind;
+use crate::game_state::hand::HandSlotId;
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
 use crate::shop::ShopSlot;
@@ -55,8 +57,8 @@ use user_status_effect::UserStatusEffect;
 
 /// The size of a tile in pixels, with zoom level 1.0.
 pub const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
-const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
-const TRAVEL_POINTS: [MapCoord; 7] = [
+pub const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
+pub const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(6, 0),
     MapCoord::new(6, 23),
     MapCoord::new(41, 23),
@@ -279,9 +281,22 @@ pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static)
 }
 
 /// Make sure that the tower can be placed at the given coord.
-pub fn place_tower(tower: Tower) {
+pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
     crate::game_state::mutate_game_state(move |game_state| {
+        if !matches!(game_state.flow, GameFlow::PlacingTower) {
+            println!(
+                "Expected GameFlow::PlacingTower, but got {:?}",
+                game_state.flow
+            );
+        }
         game_state.place_tower(tower);
+        game_state.hand.delete_slots(&[placing_tower_slot_id]);
+        game_state.cursor_preview.kind = PreviewKind::None;
+
+        let has_tower_slots = game_state.hand.has_tower_slots();
+        if !has_tower_slots {
+            game_state.goto_defense();
+        }
     });
 }
 
