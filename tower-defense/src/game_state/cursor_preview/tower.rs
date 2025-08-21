@@ -5,7 +5,6 @@ use crate::{
     game_state::{
         MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
         can_place_tower::can_place_tower,
-        flow::GameFlow,
         hand::HandSlotId,
         mutate_game_state, place_tower,
         tower::{AnimationKind, Tower, TowerTemplate},
@@ -69,20 +68,10 @@ impl Component for TowerCursorPreview<'_> {
 
         let place_tower = || {
             let left_top = *rounded_center_xy - Xy::single(1);
-            place_tower(Tower::new(tower_template, left_top, game_state.now()));
-            mutate_game_state(move |game_state| {
-                if !matches!(game_state.flow, GameFlow::PlacingTower) {
-                    println!("Expected GameFlow::PlacingTower");
-                }
-
-                game_state.hand.delete_slots(&[placing_tower_slot_id]);
-                game_state.cursor_preview.kind = PreviewKind::None;
-
-                // 모든 타워 슬롯이 사용되었는지 확인
-                if !game_state.hand.has_tower_slots() {
-                    game_state.goto_defense();
-                }
-            });
+            place_tower(
+                Tower::new(tower_template, left_top, game_state.now()),
+                placing_tower_slot_id,
+            );
         };
 
         let ctx = ctx.translate(TILE_PX_SIZE.to_xy() * *rounded_center_xy);

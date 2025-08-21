@@ -1,4 +1,5 @@
 mod asset_loader;
+mod auto_play;
 mod card;
 mod game_speed_indicator;
 mod game_state;
@@ -59,6 +60,7 @@ impl Component for Game {
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
         let (open_upgrade_board, set_open_upgrade_board) = ctx.state(|| false);
         let (open_settings, set_open_settings) = ctx.state(|| false);
+        let (auto_play, set_auto_play) = ctx.state(|| false);
 
         let toggle_upgrade_board = || {
             set_open_upgrade_board
@@ -67,6 +69,10 @@ impl Component for Game {
         let toggle_settings = || {
             set_open_settings.mutate(|opened| *opened = !*opened); // 설정 모달 열기/닫기
         };
+
+        if *auto_play {
+            auto_play::auto_play();
+        }
 
         if matches!(&game_state.flow, GameFlow::Initializing) {
             ctx.add(LoadingScreen {
@@ -185,6 +191,9 @@ impl Component for Game {
                                 game_state.fast_forward_multiplier =
                                     game_state.fast_forward_multiplier.next();
                             });
+                        }
+                        Code::F8 => {
+                            set_auto_play.set(true);
                         }
                         _ => {}
                     };
