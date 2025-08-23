@@ -1,3 +1,4 @@
+use crate::l10n::rich_text_helpers::{additive_value, multiplier_value};
 use crate::{
     icon::{Icon, IconKind, IconSize},
     theme::{
@@ -7,6 +8,7 @@ use crate::{
 };
 use namui::*;
 use namui_prebuilt::simple_rect;
+use std::fmt;
 
 const TOOLTIP_MAX_WIDTH: Px = px(256.);
 const PADDING: Px = px(8.);
@@ -95,15 +97,32 @@ fn format_stat_detail(base: f32, plus: f32, multiplier: f32) -> String {
 
     match (has_plus, has_multiplier) {
         (true, true) => format!(
-            "({:.1} + {:.1}) * {:.1} = {:.1}",
+            "({:.1} {}) {} = {:.1}",
             base,
-            plus,
-            multiplier,
+            additive_value(OneDecimal(plus)),
+            multiplier_value(OneDecimal(multiplier)),
             calculate_final_stat(base, plus, multiplier)
         ),
-        (true, false) => format!("{:.1} + {:.1} = {:.1}", base, plus, base + plus),
-        (false, true) => format!("{:.1} * {:.1} = {:.1}", base, multiplier, base * multiplier),
+        (true, false) => format!(
+            "{:.1} {} = {:.1}",
+            base,
+            additive_value(OneDecimal(plus)),
+            base + plus
+        ),
+        (false, true) => format!(
+            "{:.1} {} = {:.1}",
+            base,
+            multiplier_value(OneDecimal(multiplier)),
+            base * multiplier
+        ),
         (false, false) => format!("{base:.1}"),
+    }
+}
+
+struct OneDecimal(f32);
+impl fmt::Display for OneDecimal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:.1}", self.0)
     }
 }
 
