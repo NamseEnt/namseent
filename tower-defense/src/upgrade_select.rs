@@ -2,7 +2,7 @@ use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::Button;
 use crate::{
     game_state::{mutate_game_state, upgrade::Upgrade, use_game_state},
-    l10n::upgrade::Template as UpgradeTemplate,
+    l10n::upgrade::UpgradeKindText,
     palette,
     theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
@@ -194,11 +194,8 @@ impl Component for UpgradeSelectItem<'_> {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(
-                                                    headline(game_state.text().upgrade(
-                                                        UpgradeTemplate::from_kind(
-                                                            &upgrade.kind,
-                                                            true,
-                                                        ),
+                                                    headline(game_state.text().upgrade_kind(
+                                                        UpgradeKindText::Name(&upgrade.kind),
                                                     ))
                                                     .size(FontSize::Small)
                                                     .align(TextAlign::LeftTop)
@@ -209,11 +206,8 @@ impl Component for UpgradeSelectItem<'_> {
                                             table::fixed(PADDING, |_, _| {}),
                                             table::ratio(1, |_wh, ctx| {
                                                 ctx.add(
-                                                    paragraph(game_state.text().upgrade(
-                                                        UpgradeTemplate::from_kind(
-                                                            &upgrade.kind,
-                                                            false,
-                                                        ),
+                                                    paragraph(game_state.text().upgrade_kind(
+                                                        UpgradeKindText::Description(&upgrade.kind),
                                                     ))
                                                     .size(FontSize::Medium)
                                                     .align(TextAlign::LeftTop)

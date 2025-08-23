@@ -162,7 +162,7 @@ impl Component for TowerEffectDescription<'_> {
                                 .size(FontSize::Small)
                                 .align(TextAlign::LeftTop)
                                 .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
-                                .build(),
+                                .build_rich(),
                         );
                     }),
                     table::fixed(PADDING, |_, _| {}),
@@ -172,7 +172,7 @@ impl Component for TowerEffectDescription<'_> {
                                 .size(FontSize::Medium)
                                 .align(TextAlign::LeftTop)
                                 .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
-                                .build(),
+                                .build_rich(),
                         );
                     }),
                 ])(
@@ -200,10 +200,4 @@ impl Component for TowerEffectDescription<'_> {
             ));
         });
     }
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub(super) struct MouseHoveringSkill {
-    pub skill: TowerSkillTemplate,
-    pub offset: Xy<Px>,
 }

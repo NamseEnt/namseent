@@ -95,13 +95,6 @@ impl TextManager {
 
 /// 업그레이드 텍스트 처리
 impl TextManager {
-    pub fn upgrade(&self, text: upgrade::Template) -> String {
-        match self.locale.language {
-            Language::Korean => text.to_korean(),
-            Language::English => text.to_english(),
-        }
-    }
-
     pub fn upgrade_kind(&self, text: upgrade::UpgradeKindText) -> String {
         match self.locale.language {
             Language::Korean => text.to_korean(),
@@ -156,10 +149,6 @@ impl LegacyLocales {
     }
 
     /// 기존 호환성을 위한 메서드들 - 새로운 TextManager로 위임
-    pub fn text(&self, template: upgrade::Template) -> String {
-        self.as_text_manager().upgrade(template)
-    }
-
     pub fn ui_text(&self, text: ui::TopBarText) -> &'static str {
         self.as_text_manager().ui(text)
     }
@@ -176,8 +165,8 @@ impl LegacyLocales {
         self.as_text_manager().tower_skill(text.clone())
     }
 
-    pub fn upgrade_text(&self, text: upgrade::Template) -> String {
-        self.as_text_manager().upgrade(text)
+    pub fn upgrade_kind_text(&self, text: upgrade::UpgradeKindText) -> String {
+        self.as_text_manager().upgrade_kind(text)
     }
 
     pub fn upgrade_board_text(&self, text: &upgrade_board::UpgradeBoardText) -> String {
