@@ -204,6 +204,51 @@ pub fn init_tag_map() -> HashMap<String, Tag> {
         },
     );
 
+    // 스페이드/클럽 색상 태그 (검은색)
+    map.insert(
+        "black_suit_color".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: Color::BLACK,
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    // 하트/다이아몬드 색상 태그 (빨간색)
+    map.insert(
+        "red_suit_color".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: palette::RED,
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
+    // 흰색 suit 색상 태그 (타워 미리보기용)
+    map.insert(
+        "white_suit_color".to_string(),
+        Tag::StyledText {
+            font: Font {
+                name: HEADLINE_FONT_NAME.to_string(), // 볼드 폰트 적용
+                size: PARAGRAPH_FONT_SIZE_MEDIUM,
+            },
+            style: TextStyle {
+                color: palette::WHITE,
+                ..DEFAULT_TEXT_STYLE
+            },
+        },
+    );
+
     // 볼드체 태그
     map.insert(
         "B".to_string(),

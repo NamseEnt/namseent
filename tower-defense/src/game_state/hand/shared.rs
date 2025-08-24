@@ -8,6 +8,14 @@ use crate::{
 };
 use namui::*;
 
+/// suit에 따른 색상을 반환하는 헬퍼 함수
+pub fn get_suit_color(suit: Suit) -> Color {
+    match suit {
+        Suit::Spades | Suit::Clubs => Color::BLACK,
+        Suit::Hearts | Suit::Diamonds => palette::RED,
+    }
+}
+
 /// 좌상단에 rank와 suit를 수직 배치로 렌더링
 pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: Suit) {
     let padding = px(4.0);
@@ -15,10 +23,7 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
     let icon_wh = Wh::new(20.px(), 12.px());
 
     // suit에 따른 색상 결정
-    let text_color = match suit {
-        Suit::Spades | Suit::Clubs => Color::BLACK,
-        Suit::Hearts | Suit::Diamonds => palette::RED,
-    };
+    let text_color = get_suit_color(suit);
 
     let ctx = ctx.translate(Xy::new(padding, padding));
     // 숫자 렌더링

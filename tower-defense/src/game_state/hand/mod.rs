@@ -1,7 +1,7 @@
 mod hand_slot;
 mod render_card;
 mod render_tower;
-mod shared;
+pub mod shared;
 mod xy_with_spring;
 
 use crate::{
