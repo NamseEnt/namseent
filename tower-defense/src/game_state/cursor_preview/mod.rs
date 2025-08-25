@@ -65,7 +65,7 @@ impl Component for RenderCursorPreview<'_> {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq)]
 pub enum PreviewKind {
     #[default]
     None,

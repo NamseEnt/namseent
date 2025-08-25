@@ -81,6 +81,8 @@ pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
         }
     });
 }
+
+#[derive(Clone, PartialEq)]
 pub(super) struct Animation {
     kind: AnimationKind,
     transited_at: Instant,
@@ -130,13 +132,13 @@ impl Animation {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 struct TransitForce {
     force: f32,
     end_at: Instant,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum AnimationKind {
     Idle1,
     Idle2,

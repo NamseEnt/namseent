@@ -10,14 +10,14 @@ use crate::{
 use namui::*;
 pub use usage::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Item {
     pub kind: ItemKind,
     pub rarity: Rarity,
     pub value: OneZero,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ItemKind {
     Heal {
         amount: f32,

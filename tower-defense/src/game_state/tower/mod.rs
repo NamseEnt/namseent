@@ -13,6 +13,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+#[derive(Clone, PartialEq)]
 pub struct Tower {
     id: usize,
     pub left_top: MapCoord,
@@ -126,7 +127,7 @@ impl Deref for Tower {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct TowerTemplate {
     pub kind: TowerKind,
     pub shoot_interval: Duration,

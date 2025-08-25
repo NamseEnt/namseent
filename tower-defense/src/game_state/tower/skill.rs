@@ -17,6 +17,7 @@ impl TowerSkillTemplate {
     }
 }
 
+#[derive(Clone, PartialEq)]
 pub struct TowerSkill {
     pub last_used_at: Instant,
     pub template: TowerSkillTemplate,
@@ -51,13 +52,13 @@ pub enum TowerSkillKind {
     TopCardBonus { rank: Rank, bonus_damage: usize },
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct TowerStatusEffect {
     pub kind: TowerStatusEffectKind,
     pub end_at: TowerStatusEffectEnd,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TowerStatusEffectKind {
     DamageMul { mul: f32 },
     DamageAdd { add: f32 },
@@ -66,7 +67,7 @@ pub enum TowerStatusEffectKind {
     AttackRangeAdd { add: f32 },
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum TowerStatusEffectEnd {
     Time { end_at: Instant },
     NeverEnd,
