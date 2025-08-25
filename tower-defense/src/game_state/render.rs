@@ -1,5 +1,5 @@
 use super::*;
-use crate::game_state::tower_info_popup::TowerInfoPopup;
+use crate::game_state::{can_place_tower::can_place_tower, tower_info_popup::TowerInfoPopup};
 
 // ASSUME: NO EFFECT AND STATE IN INNER RENDER
 // Render in the 1:1 scale, without thinking about the camera zoom level.
@@ -169,8 +169,49 @@ fn render_monsters(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
+    let cursor_preview_kind = ctx.track_eq(&game_state.cursor_preview.kind);
+    let cursor_coord = ctx.track_eq(
+        &game_state
+            .cursor_preview
+            .map_coord
+            .map(|f| f.round() as usize),
+    );
+    let game_state_route = ctx.track_eq(&game_state.route);
+    let towers = ctx.track_eq(&game_state.towers);
+
+    let route = ctx.memo(|| {
+        'out: {
+            if cursor_coord.x == 0 || cursor_coord.y == 0 {
+                break 'out;
+            }
+            let PreviewKind::PlacingTower { tower_template, .. } = cursor_preview_kind.as_ref()
+            else {
+                break 'out;
+            };
+            let cursor_tower_coord = cursor_coord.as_ref().map(|v| v - 1);
+            if !can_place_tower(
+                cursor_tower_coord,
+                Wh::single(2),
+                &TRAVEL_POINTS,
+                &towers.coords(),
+                game_state_route.iter_coords(),
+                MAP_SIZE,
+            ) {
+                break 'out;
+            }
+            let mut towers = towers.clone_inner();
+            towers.place_tower(Tower::new(
+                tower_template,
+                cursor_tower_coord,
+                game_state.now(),
+            ));
+            return calculate_routes(&towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
+        };
+        game_state_route.clone_inner()
+    });
+
     let mut path = Path::new();
-    for coord in game_state.route.iter_coords() {
+    for coord in route.iter_coords() {
         let xy = Xy::new(
             (coord.x.as_f32() + 0.5) * TILE_PX_SIZE.width.as_f32(),
             (coord.y.as_f32() + 0.5) * TILE_PX_SIZE.height.as_f32(),
