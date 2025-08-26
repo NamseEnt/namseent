@@ -1,7 +1,7 @@
 use super::*;
 use std::ops::Deref;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TowerSkillTemplate {
     pub kind: TowerSkillKind,
     pub cooldown: Duration,
@@ -52,7 +52,7 @@ pub enum TowerSkillKind {
     TopCardBonus { rank: Rank, bonus_damage: usize },
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TowerStatusEffect {
     pub kind: TowerStatusEffectKind,
     pub end_at: TowerStatusEffectEnd,
@@ -67,7 +67,7 @@ pub enum TowerStatusEffectKind {
     AttackRangeAdd { add: f32 },
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TowerStatusEffectEnd {
     Time { end_at: Instant },
     NeverEnd,

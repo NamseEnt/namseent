@@ -127,7 +127,7 @@ impl Deref for Tower {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TowerTemplate {
     pub kind: TowerKind,
     pub shoot_interval: Duration,
