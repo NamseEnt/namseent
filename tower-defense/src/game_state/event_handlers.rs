@@ -89,7 +89,7 @@ impl GameState {
                 if self.gold < *cost {
                     return;
                 }
-                if self.items.len() <= MAX_INVENTORY_SLOT {
+                if self.items.len() >= MAX_INVENTORY_SLOT {
                     return;
                 }
 
