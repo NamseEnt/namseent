@@ -29,25 +29,6 @@ pub struct Hand {
     slots: Vec<HandSlot>,
 }
 impl Hand {
-    // 헬퍼 함수들
-    fn find_slot_by_id_mut(&mut self, id: HandSlotId) -> Option<&mut HandSlot> {
-        self.slots.iter_mut().find(|slot| slot.id == id)
-    }
-
-    fn find_slot_by_id(&self, id: HandSlotId) -> Option<&HandSlot> {
-        self.slots.iter().find(|slot| slot.id == id)
-    }
-
-    fn active_slots(&self) -> impl Iterator<Item = &HandSlot> {
-        self.slots
-            .iter()
-            .filter(|slot| slot.exit_animation.is_none())
-    }
-
-    fn create_barricade_template() -> TowerTemplate {
-        DEFAULT_BARRICADE_TEMPLATE()
-    }
-
     pub fn clear(&mut self) {
         // exit 애니메이션 중이지 않은 모든 슬롯들의 ID 수집
         let slot_ids_to_delete: Vec<HandSlotId> = self
@@ -120,8 +101,7 @@ impl Hand {
     }
 
     pub fn selected_slot_ids(&self) -> Vec<HandSlotId> {
-        self.slots
-            .iter()
+        self.active_slots()
             .filter_map(|slot| match slot.selected {
                 true => Some(slot.id),
                 false => None,
@@ -145,8 +125,7 @@ impl Hand {
     }
 
     pub fn selected_cards(&self) -> Vec<Card> {
-        self.slots
-            .iter()
+        self.active_slots()
             .filter_map(|slot| match slot.slot_kind {
                 HandSlotKind::Card { card } if slot.selected => Some(card),
                 HandSlotKind::Card { .. } => None,
@@ -156,8 +135,7 @@ impl Hand {
     }
 
     pub fn all_cards(&self) -> Vec<Card> {
-        self.slots
-            .iter()
+        self.active_slots()
             .filter_map(|slot| match slot.slot_kind {
                 HandSlotKind::Card { card } => Some(card),
                 HandSlotKind::Tower { .. } => None,
@@ -280,6 +258,22 @@ impl Hand {
             let y = (HAND_WH.height - HAND_SLOT_WH.height) / 2.0;
             slot.set_xy(Xy { x, y });
         }
+    }
+    fn find_slot_by_id_mut(&mut self, id: HandSlotId) -> Option<&mut HandSlot> {
+        self.slots.iter_mut().find(|slot| slot.id == id)
+    }
+
+    fn find_slot_by_id(&self, id: HandSlotId) -> Option<&HandSlot> {
+        self.slots.iter().find(|slot| slot.id == id)
+    }
+
+    fn active_slots(&self) -> impl Iterator<Item = &HandSlot> {
+        self.slots
+            .iter()
+            .filter(|slot| slot.exit_animation.is_none())
+    }
+    fn create_barricade_template() -> TowerTemplate {
+        DEFAULT_BARRICADE_TEMPLATE()
     }
 }
 

@@ -30,7 +30,7 @@ impl Component for &Projectile {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ProjectileKind {
     Ball,
 }

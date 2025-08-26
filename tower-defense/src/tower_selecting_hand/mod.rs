@@ -27,10 +27,7 @@ impl Component for TowerSelectingHand {
         let Self { screen_wh } = self;
 
         let game_state = crate::game_state::use_game_state(ctx);
-        let selected_hand_slot_ids = {
-            let selected_hand_slot_ids = game_state.hand.selected_slot_ids();
-            ctx.track_eq(&selected_hand_slot_ids)
-        };
+        let selected_hand_slot_ids = ctx.track_eq(&game_state.hand.selected_slot_ids());
         let some_selected = ctx.memo(|| !selected_hand_slot_ids.is_empty());
         let using_cards = ctx.memo(|| {
             let selected_cards = game_state.hand.selected_cards();
