@@ -31,7 +31,7 @@ impl Component for LevelIndicator {
         let level_up = || {
             mutate_game_state(move |game_state| {
                 game_state.level = game_state.level.checked_add(1).expect("Level overflow");
-                game_state.gold -= level_up_cost;
+                game_state.spend_gold(level_up_cost);
             });
         };
         ctx.compose(|ctx| {
