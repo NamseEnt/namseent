@@ -15,6 +15,11 @@ impl GameState {
         self.gold += gold;
         on_quest_trigger_event(self, QuestTriggerEvent::EarnGold { gold });
     }
+    /// WARNING: `gold` must be less than or equal to self.gold
+    pub fn spend_gold(&mut self, gold: usize) {
+        self.gold -= gold;
+        on_quest_trigger_event(self, QuestTriggerEvent::SpendGold { gold });
+    }
 
     pub fn upgrade(&mut self, upgrade: Upgrade) {
         self.upgrade_state.upgrade(upgrade);
@@ -94,12 +99,11 @@ impl GameState {
 
                 *purchased = true;
                 self.items.push(item_clone.clone());
-                self.gold -= cost_value;
                 self.record_event(HistoryEventType::ItemPurchased {
                     item: item_clone,
                     cost: cost_value,
                 });
-                on_quest_trigger_event(self, QuestTriggerEvent::SpendGold { gold: cost_value });
+                self.spend_gold(cost_value);
             }
             ShopSlot::Upgrade {
                 upgrade,
@@ -119,12 +123,11 @@ impl GameState {
 
                 *purchased = true;
                 self.upgrade_state.upgrade(upgrade_value);
-                self.gold -= cost_value;
                 self.record_event(HistoryEventType::UpgradePurchased {
                     upgrade: upgrade_value,
                     cost: cost_value,
                 });
-                on_quest_trigger_event(self, QuestTriggerEvent::SpendGold { gold: cost_value });
+                self.spend_gold(cost_value);
             }
         }
     }
