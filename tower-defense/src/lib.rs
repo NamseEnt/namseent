@@ -21,7 +21,7 @@ mod upgrade_board;
 mod upgrade_select;
 
 use crate::{
-    game_state::Modal,
+    game_state::{Modal, set_modal},
     icon::{Icon, IconKind, IconSize},
     theme::button::{Button, ButtonVariant},
 };
@@ -87,7 +87,7 @@ impl Component for Game {
             Button::new(
                 Wh::new(36.px(), 36.px()),
                 &|| {
-                    mutate_game_state(|game_state| game_state.opened_modal = Some(Modal::Settings));
+                    set_modal(Some(Modal::Settings));
                 },
                 &|wh, _text_color, ctx| {
                     ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
@@ -160,9 +160,7 @@ impl Component for Game {
                 Event::KeyDown { event } => {
                     match event.code {
                         Code::Tab => {
-                            mutate_game_state(|game_state| {
-                                game_state.opened_modal = Some(Modal::UpgradeBoard);
-                            });
+                            set_modal(Some(Modal::UpgradeBoard));
                         }
                         Code::KeyQ => {
                             mutate_game_state(|game_state| {
