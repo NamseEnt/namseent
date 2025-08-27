@@ -167,6 +167,10 @@ impl Hand {
             .map(|slot| slot.id)
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.active_slots().next().is_none()
+    }
+
     fn sort_slots(&mut self) {
         self.slots.sort_by(Self::compare_slots);
     }

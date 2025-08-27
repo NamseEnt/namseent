@@ -10,6 +10,7 @@ pub mod flow;
 pub mod hand;
 pub mod item;
 mod level_rarity_weight;
+mod modal;
 mod monster;
 mod monster_spawn;
 mod placed_towers;
@@ -19,6 +20,7 @@ pub mod quest;
 mod render;
 pub mod schedule;
 pub mod shop;
+mod start_confirm_modal;
 mod status_effect_particle_generator;
 mod tick;
 pub mod tower;
@@ -26,8 +28,6 @@ mod tower_info_popup;
 pub mod upgrade;
 mod user_status_effect;
 
-use crate::game_state::cursor_preview::PreviewKind;
-use crate::game_state::hand::HandSlotId;
 use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
 use crate::shop::ShopSlot;
@@ -35,12 +35,14 @@ use crate::*;
 use background::{Background, generate_backgrounds};
 use camera::*;
 use cursor_preview::CursorPreview;
+use cursor_preview::PreviewKind;
 use fast_forward::FastForwardMultiplier;
 use field_area_effect::FieldAreaEffect;
-
 use flow::GameFlow;
+use hand::HandSlotId;
 use item::Item;
 pub use level_rarity_weight::level_rarity_weight;
+pub use modal::Modal;
 pub use monster::*;
 use monster_spawn::*;
 use namui::*;
@@ -106,6 +108,7 @@ pub struct GameState {
     pub locale: crate::l10n::Locale,
     pub hand: hand::Hand,
     pub play_history: PlayHistory,
+    pub opened_modal: Option<Modal>,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -267,6 +270,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             locale: crate::l10n::Locale::KOREAN,
             hand: Default::default(),
             play_history: PlayHistory::new(),
+            opened_modal: None,
         }
     })
     .0
@@ -302,4 +306,17 @@ pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
 
 pub fn is_boss_stage(stage: usize) -> bool {
     matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
+}
+
+pub fn set_modal(modal: Option<Modal>) {
+    mutate_game_state(|game_state| {
+        game_state.opened_modal = modal;
+    });
+}
+
+pub fn force_start() {
+    mutate_game_state(|game_state| {
+        game_state.hand.clear();
+        game_state.goto_defense();
+    });
 }

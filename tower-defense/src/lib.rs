@@ -21,6 +21,7 @@ mod upgrade_board;
 mod upgrade_select;
 
 use crate::{
+    game_state::Modal,
     icon::{Icon, IconKind, IconSize},
     theme::button::{Button, ButtonVariant},
 };
@@ -32,13 +33,11 @@ use namui::*;
 use namui_prebuilt::simple_rect;
 use quest_board::QuestBoardModal;
 use quests::Quests;
-use settings::SettingsModal;
 use shop::ShopModal;
 use theme::palette;
 use top_bar::TopBar;
 use tower_placing_hand::TowerPlacingHand;
 use tower_selecting_hand::TowerSelectingHand;
-use upgrade_board::UpgradeBoardModal;
 use upgrade_select::UpgradeSelectModal;
 
 type BlockUnit = usize;
@@ -58,17 +57,7 @@ impl Component for Game {
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = game_state::init_game_state(ctx);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
-        let (open_upgrade_board, set_open_upgrade_board) = ctx.state(|| false);
-        let (open_settings, set_open_settings) = ctx.state(|| false);
         let (auto_play, set_auto_play) = ctx.state(|| false);
-
-        let toggle_upgrade_board = || {
-            set_open_upgrade_board
-                .mutate(|open_upgrade_board| *open_upgrade_board = !*open_upgrade_board);
-        };
-        let toggle_settings = || {
-            set_open_settings.mutate(|opened| *opened = !*opened); // 설정 모달 열기/닫기
-        };
 
         if *auto_play {
             auto_play::auto_play();
@@ -87,25 +76,18 @@ impl Component for Game {
         }
 
         ctx.compose(|ctx| {
-            if *open_settings {
-                ctx.add(SettingsModal {
-                    screen_wh,
-                    close_modal: &|| set_open_settings.set(false),
-                });
-            }
-        });
+            let Some(modal) = game_state.opened_modal.as_ref() else {
+                return;
+            };
 
-        ctx.compose(|ctx| {
-            if *open_upgrade_board {
-                ctx.add(UpgradeBoardModal { screen_wh });
-            }
+            ctx.add(modal);
         });
 
         ctx.translate((8.px(), screen_wh.height - 48.px())).add(
             Button::new(
                 Wh::new(36.px(), 36.px()),
                 &|| {
-                    toggle_settings();
+                    mutate_game_state(|game_state| game_state.opened_modal = Some(Modal::Settings));
                 },
                 &|wh, _text_color, ctx| {
                     ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
@@ -178,7 +160,9 @@ impl Component for Game {
                 Event::KeyDown { event } => {
                     match event.code {
                         Code::Tab => {
-                            toggle_upgrade_board();
+                            mutate_game_state(|game_state| {
+                                game_state.opened_modal = Some(Modal::UpgradeBoard);
+                            });
                         }
                         Code::KeyQ => {
                             mutate_game_state(|game_state| {

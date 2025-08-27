@@ -20,13 +20,11 @@ const UPGRADE_BOARD_WH: Wh<Px> = Wh {
 };
 const ITEM_HEIGHT: Px = px(48.0);
 
-pub struct UpgradeBoardModal {
-    pub screen_wh: Wh<Px>,
-}
+pub struct UpgradeBoardModal;
 
 impl Component for UpgradeBoardModal {
     fn render(self, ctx: &namui::RenderCtx) {
-        let Self { screen_wh } = self;
+        let screen_wh = screen::size().into_type::<Px>();
 
         ctx.compose(|ctx| {
             let offset = ((screen_wh - UPGRADE_BOARD_WH) * 0.5).to_xy();

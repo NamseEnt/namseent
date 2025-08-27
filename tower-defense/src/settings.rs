@@ -1,3 +1,4 @@
+use crate::game_state::set_modal;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::l10n::ui::TopBarText;
 use crate::theme::button::{Button, ButtonVariant};
@@ -11,17 +12,11 @@ use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
 const TITLE_HEIGHT: Px = px(36.);
 const PADDING: Px = px(8.);
 
-pub struct SettingsModal<'a> {
-    pub screen_wh: Wh<Px>,
-    pub close_modal: &'a dyn Fn(),
-}
+pub struct SettingsModal;
 
-impl Component for SettingsModal<'_> {
+impl Component for SettingsModal {
     fn render(self, ctx: &RenderCtx) {
-        let Self {
-            screen_wh,
-            close_modal,
-        } = self;
+        let screen_wh = screen::size().into_type::<Px>();
 
         let game_state = crate::game_state::use_game_state(ctx);
         let modal_wh = Wh::new(400.px(), 300.px());
@@ -48,13 +43,17 @@ impl Component for SettingsModal<'_> {
                             }),
                             table::fixed(64.px(), |wh, ctx| {
                                 ctx.add(
-                                    Button::new(wh, &|| close_modal(), &|wh, _text_color, ctx| {
-                                        ctx.add(
-                                            Icon::new(IconKind::Reject)
-                                                .size(IconSize::Large)
-                                                .wh(wh),
-                                        );
-                                    })
+                                    Button::new(
+                                        wh,
+                                        &|| set_modal(None),
+                                        &|wh, _text_color, ctx| {
+                                            ctx.add(
+                                                Icon::new(IconKind::Reject)
+                                                    .size(IconSize::Large)
+                                                    .wh(wh),
+                                            );
+                                        },
+                                    )
                                     .variant(ButtonVariant::Text),
                                 );
                             }),
@@ -132,7 +131,7 @@ impl Component for SettingsModal<'_> {
                 let Event::MouseDown { event } = event else {
                     return;
                 };
-                close_modal();
+                set_modal(None);
                 event.stop_propagation();
             }),
         );
