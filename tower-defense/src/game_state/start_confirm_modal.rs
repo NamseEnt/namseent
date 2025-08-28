@@ -1,5 +1,6 @@
-use crate::game_state::{force_start, set_modal};
+use crate::game_state::{force_start, set_modal, use_game_state};
 use crate::icon::{Icon, IconKind, IconSize};
+use crate::l10n::ui::StartConfirmModalText;
 use crate::theme::button::{Button, ButtonColor, ButtonVariant};
 use crate::theme::{
     palette,
@@ -16,6 +17,7 @@ pub struct StartConfirmModal;
 impl Component for StartConfirmModal {
     fn render(self, ctx: &RenderCtx) {
         let screen_wh = screen::size().into_type::<Px>();
+        let game_state = use_game_state(ctx);
 
         let modal_wh = Wh::new(320.px(), 180.px());
         let modal_xy = ((screen_wh - modal_wh) * 0.5).to_xy();
@@ -31,7 +33,7 @@ impl Component for StartConfirmModal {
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
                                 ctx.add(
-                                    headline("확인")
+                                    headline(game_state.text().start_confirm_modal(StartConfirmModalText::Title))
                                         .size(typography::FontSize::Medium)
                                         .align(typography::TextAlign::LeftCenter {
                                             height: wh.height,
@@ -57,7 +59,7 @@ impl Component for StartConfirmModal {
                         1,
                         table::padding(PADDING, |wh, ctx| {
                             ctx.add(
-                                paragraph("아직 사용할 수 있는 타워가 남았습니다.\n그래도 정말 시작하시겠습니까?")
+                                paragraph(game_state.text().start_confirm_modal(StartConfirmModalText::Message))
                                     .align(typography::TextAlign::Center { wh })
                                     .build(),
                             );
@@ -73,7 +75,7 @@ impl Component for StartConfirmModal {
                                         Button::new(wh, &|| set_modal(None)
                                     , &|wh, text_color, ctx| {
                                             ctx.add(
-                                                paragraph("아니오")
+                                                paragraph(game_state.text().start_confirm_modal(StartConfirmModalText::No))
                                                     .color(text_color)
                                                     .align(typography::TextAlign::Center { wh })
                                                     .build(),
@@ -93,7 +95,7 @@ impl Component for StartConfirmModal {
                                             },
                                             &|wh, text_color, ctx| {
                                                 ctx.add(
-                                                    paragraph("예")
+                                                    paragraph(game_state.text().start_confirm_modal(StartConfirmModalText::Yes))
                                                         .color(text_color)
                                                         .align(typography::TextAlign::Center { wh })
                                                         .build(),

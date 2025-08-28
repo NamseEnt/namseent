@@ -13,6 +13,14 @@ pub enum TopBarText {
     UseTower,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum StartConfirmModalText {
+    Title,
+    Message,
+    No,
+    Yes,
+}
+
 impl LocalizedStaticText for TopBarText {
     fn localized_text(&self, locale: &Locale) -> &'static str {
         match locale.language {
@@ -48,6 +56,26 @@ impl TopBarText {
             TopBarText::Shop => "Shop",
             TopBarText::SoldOut => "Sold Out",
             TopBarText::UseTower => "Use Tower",
+        }
+    }
+}
+
+impl StartConfirmModalText {
+    pub(super) fn to_korean(self) -> &'static str {
+        match self {
+            StartConfirmModalText::Title => "확인",
+            StartConfirmModalText::Message => "아직 사용할 수 있는 타워가 남았습니다.\n그래도 정말 시작하시겠습니까?",
+            StartConfirmModalText::No => "아니오",
+            StartConfirmModalText::Yes => "예",
+        }
+    }
+
+    pub(super) fn to_english(self) -> &'static str {
+        match self {
+            StartConfirmModalText::Title => "Confirm",
+            StartConfirmModalText::Message => "You still have towers available.\nAre you sure you want to start?",
+            StartConfirmModalText::No => "No",
+            StartConfirmModalText::Yes => "Yes",
         }
     }
 }
