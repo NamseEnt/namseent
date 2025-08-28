@@ -33,23 +33,29 @@ impl Component for StartConfirmModal {
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
                                 ctx.add(
-                                    headline(game_state.text().start_confirm_modal(StartConfirmModalText::Title))
-                                        .size(typography::FontSize::Medium)
-                                        .align(typography::TextAlign::LeftCenter {
-                                            height: wh.height,
-                                        })
-                                        .build(),
+                                    headline(
+                                        game_state
+                                            .text()
+                                            .start_confirm_modal(StartConfirmModalText::Title),
+                                    )
+                                    .size(typography::FontSize::Medium)
+                                    .align(typography::TextAlign::LeftCenter { height: wh.height })
+                                    .build(),
                                 );
                             }),
                             table::fixed(48.px(), |wh, ctx| {
                                 ctx.add(
-                                    Button::new(wh, &|| set_modal(None), &|wh, _text_color, ctx| {
-                                        ctx.add(
-                                            Icon::new(IconKind::Reject)
-                                                .size(IconSize::Large)
-                                                .wh(wh),
-                                        );
-                                    })
+                                    Button::new(
+                                        wh,
+                                        &|| set_modal(None),
+                                        &|wh, _text_color, ctx| {
+                                            ctx.add(
+                                                Icon::new(IconKind::Reject)
+                                                    .size(IconSize::Large)
+                                                    .wh(wh),
+                                            );
+                                        },
+                                    )
                                     .variant(ButtonVariant::Text),
                                 );
                             }),
@@ -59,9 +65,13 @@ impl Component for StartConfirmModal {
                         1,
                         table::padding(PADDING, |wh, ctx| {
                             ctx.add(
-                                paragraph(game_state.text().start_confirm_modal(StartConfirmModalText::Message))
-                                    .align(typography::TextAlign::Center { wh })
-                                    .build(),
+                                paragraph(
+                                    game_state
+                                        .text()
+                                        .start_confirm_modal(StartConfirmModalText::Message),
+                                )
+                                .align(typography::TextAlign::Center { wh })
+                                .build(),
                             );
                         }),
                     ),
@@ -72,15 +82,22 @@ impl Component for StartConfirmModal {
                             table::horizontal([
                                 table::ratio(1, |wh, ctx| {
                                     ctx.add(
-                                        Button::new(wh, &|| set_modal(None)
-                                    , &|wh, text_color, ctx| {
-                                            ctx.add(
-                                                paragraph(game_state.text().start_confirm_modal(StartConfirmModalText::No))
+                                        Button::new(
+                                            wh,
+                                            &|| set_modal(None),
+                                            &|wh, text_color, ctx| {
+                                                ctx.add(
+                                                    paragraph(
+                                                        game_state.text().start_confirm_modal(
+                                                            StartConfirmModalText::No,
+                                                        ),
+                                                    )
                                                     .color(text_color)
                                                     .align(typography::TextAlign::Center { wh })
                                                     .build(),
-                                            );
-                                        })
+                                                );
+                                            },
+                                        )
                                         .variant(ButtonVariant::Outlined),
                                     );
                                 }),
@@ -95,10 +112,14 @@ impl Component for StartConfirmModal {
                                             },
                                             &|wh, text_color, ctx| {
                                                 ctx.add(
-                                                    paragraph(game_state.text().start_confirm_modal(StartConfirmModalText::Yes))
-                                                        .color(text_color)
-                                                        .align(typography::TextAlign::Center { wh })
-                                                        .build(),
+                                                    paragraph(
+                                                        game_state.text().start_confirm_modal(
+                                                            StartConfirmModalText::Yes,
+                                                        ),
+                                                    )
+                                                    .color(text_color)
+                                                    .align(typography::TextAlign::Center { wh })
+                                                    .build(),
                                                 );
                                             },
                                         )

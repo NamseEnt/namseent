@@ -64,7 +64,9 @@ impl StartConfirmModalText {
     pub(super) fn to_korean(self) -> &'static str {
         match self {
             StartConfirmModalText::Title => "확인",
-            StartConfirmModalText::Message => "아직 사용할 수 있는 타워가 남았습니다.\n그래도 정말 시작하시겠습니까?",
+            StartConfirmModalText::Message => {
+                "아직 사용할 수 있는 타워가 남았습니다.\n그래도 정말 시작하시겠습니까?"
+            }
             StartConfirmModalText::No => "아니오",
             StartConfirmModalText::Yes => "예",
         }
@@ -73,7 +75,9 @@ impl StartConfirmModalText {
     pub(super) fn to_english(self) -> &'static str {
         match self {
             StartConfirmModalText::Title => "Confirm",
-            StartConfirmModalText::Message => "You still have towers available.\nAre you sure you want to start?",
+            StartConfirmModalText::Message => {
+                "You still have towers available.\nAre you sure you want to start?"
+            }
             StartConfirmModalText::No => "No",
             StartConfirmModalText::Yes => "Yes",
         }
