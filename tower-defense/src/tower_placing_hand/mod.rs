@@ -1,8 +1,10 @@
 use crate::{
     game_state::{
+        Modal,
         cursor_preview::PreviewKind,
+        force_start,
         hand::{HAND_WH, HandComponent, HandSlotId},
-        mutate_game_state, use_game_state,
+        mutate_game_state, set_modal, use_game_state,
     },
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
@@ -45,11 +47,12 @@ impl Component for TowerPlacingHand {
             });
         };
 
-        let force_start = || {
-            mutate_game_state(|game_state| {
-                game_state.hand.clear();
-                game_state.goto_defense();
-            });
+        let handle_start_button_click = || {
+            if game_state.hand.is_empty() {
+                force_start();
+            } else {
+                set_modal(Some(Modal::StartConfirm));
+            }
         };
 
         ctx.compose(|ctx| {
@@ -76,7 +79,7 @@ impl Component for TowerPlacingHand {
                                                 Button::new(
                                                     wh,
                                                     &|| {
-                                                        force_start();
+                                                        handle_start_button_click();
                                                     },
                                                     &|wh, text_color, ctx| {
                                                         ctx.add(
