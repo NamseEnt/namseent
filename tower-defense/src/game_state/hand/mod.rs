@@ -4,15 +4,10 @@ mod render_tower;
 pub mod shared;
 mod xy_with_spring;
 
-use crate::{
-    card::{Card, Rank, Suit},
-    game_state::{
-        hand::hand_slot::{HandSlot, HandSlotKind},
-        tower::{TowerKind, TowerTemplate},
-    },
-};
+use crate::game_state::hand::hand_slot::HandSlot;
 pub use hand_slot::HandSlotId;
 use namui::*;
+use std::{any::Any, cmp::Ordering};
 
 pub const HAND_SLOT_WH: Wh<Px> = Wh::new(px(112.), px(152.));
 pub const HAND_WH: Wh<Px> = Wh::new(px(600.), px(160.));
@@ -20,55 +15,15 @@ pub const HAND_WH: Wh<Px> = Wh::new(px(600.), px(160.));
 // 레이아웃 관련 상수들
 const DEFAULT_SLOT_GAP: Px = px(8.0);
 
-// 바리케이드 기본 템플릿
-const DEFAULT_BARRICADE_TEMPLATE: fn() -> TowerTemplate =
-    || TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Ace);
-
-#[derive(Default, Clone)]
-pub struct Hand {
-    slots: Vec<HandSlot>,
+#[derive(Default, Clone, Debug)]
+pub struct Hand<Item> {
+    slots: Vec<HandSlot<Item>>,
 }
-impl Hand {
-    pub fn clear(&mut self) {
-        // exit 애니메이션 중이지 않은 모든 슬롯들의 ID 수집
-        let slot_ids_to_delete: Vec<HandSlotId> = self
-            .slots
-            .iter()
-            .filter(|slot| slot.exit_animation.is_none())
-            .map(|slot| slot.id)
-            .collect();
-
-        // 수집된 슬롯들에 대해 delete_slots 호출
-        if !slot_ids_to_delete.is_empty() {
-            self.delete_slots(&slot_ids_to_delete);
-        }
+impl<Item: PartialOrd> Hand<Item> {
+    pub fn new(items: impl IntoIterator<Item = Item>) -> Self {
+        let slots = items.into_iter().map(|item| HandSlot::new(item)).collect();
+        Self { slots }
     }
-
-    pub fn add_random_cards(&mut self, amount: usize) {
-        let slots = (0..amount).map(|_| HandSlot::from_card(Card::new_random()));
-        self.slots.extend(slots);
-        self.calculate_slot_xy();
-    }
-
-    pub fn add_tower_template_with_barricades(
-        &mut self,
-        tower_template: TowerTemplate,
-        barricade_amount: usize,
-    ) {
-        let barricade_template = Self::create_barricade_template();
-        let mut tower_templates = vec![tower_template];
-
-        // barricade_amount만큼 바리케이드 추가
-        tower_templates.extend((0..barricade_amount).map(|_| barricade_template.clone()));
-
-        let slots = tower_templates
-            .into_iter()
-            .map(HandSlot::from_tower_template);
-
-        self.slots.extend(slots);
-        self.calculate_slot_xy();
-    }
-
     pub fn delete_slots(&mut self, ids: &[HandSlotId]) {
         let now = Instant::now();
         // 삭제할 슬롯들에 exit 애니메이션 시작
@@ -100,6 +55,9 @@ impl Hand {
         self.remove_completed_exit_animations();
     }
 
+    pub fn active_slot_ids(&self) -> Vec<HandSlotId> {
+        self.active_slots().map(|slot| slot.id).collect()
+    }
     pub fn selected_slot_ids(&self) -> Vec<HandSlotId> {
         self.active_slots()
             .filter_map(|slot| match slot.selected {
@@ -124,96 +82,35 @@ impl Hand {
         }
     }
 
-    pub fn selected_cards(&self) -> Vec<Card> {
-        self.active_slots()
-            .filter_map(|slot| match slot.slot_kind {
-                HandSlotKind::Card { card } if slot.selected => Some(card),
-                HandSlotKind::Card { .. } => None,
-                HandSlotKind::Tower { .. } => None,
-            })
-            .collect()
-    }
-
-    pub fn all_cards(&self) -> Vec<Card> {
-        self.active_slots()
-            .filter_map(|slot| match slot.slot_kind {
-                HandSlotKind::Card { card } => Some(card),
-                HandSlotKind::Tower { .. } => None,
-            })
-            .collect()
-    }
-
-    pub fn width(&self) -> Px {
-        HAND_WH.width
-    }
-
     pub fn get_slot_id_by_index(&self, index: usize) -> Option<HandSlotId> {
         self.slots.get(index).map(|slot| slot.id)
-    }
-
-    pub fn get_tower_template_by_id(&self, id: HandSlotId) -> Option<&TowerTemplate> {
-        self.find_slot_by_id(id)
-            .and_then(|slot| slot.get_tower_template())
-    }
-
-    pub fn has_tower_slots(&self) -> bool {
-        self.active_slots()
-            .any(|slot| slot.get_tower_template().is_some())
-    }
-
-    pub fn get_first_tower_slot_id(&self) -> Option<HandSlotId> {
-        self.active_slots()
-            .find(|slot| slot.get_tower_template().is_some())
-            .map(|slot| slot.id)
     }
 
     pub fn is_empty(&self) -> bool {
         self.active_slots().next().is_none()
     }
 
-    fn sort_slots(&mut self) {
-        self.slots.sort_by(Self::compare_slots);
+    pub fn get_items(&self, slot_ids: &[HandSlotId]) -> impl Iterator<Item = &Item> {
+        slot_ids
+            .iter()
+            .map(|id| &self.slots.iter().find(|slot| slot.id == *id).unwrap().item)
     }
 
-    fn compare_slots(a: &HandSlot, b: &HandSlot) -> std::cmp::Ordering {
-        use std::cmp::Ordering;
+    pub fn push(&mut self, item: Item) {
+        self.slots.push(HandSlot::new(item));
+    }
 
-        // exit 애니메이션 중인 슬롯은 뒤로 정렬
-        match (a.exit_animation.is_some(), b.exit_animation.is_some()) {
-            (true, false) => return Ordering::Greater,
-            (false, true) => return Ordering::Less,
-            _ => {}
-        }
+    fn sort_slots(&mut self) {
+        self.slots.sort_by(|a, b| {
+            // exit 애니메이션 중인 슬롯은 뒤로 정렬
+            match (a.exit_animation.is_some(), b.exit_animation.is_some()) {
+                (true, false) => return Ordering::Greater,
+                (false, true) => return Ordering::Less,
+                _ => {}
+            }
 
-        // 카드와 타워 타입별 정렬
-        match (&a.slot_kind, &b.slot_kind) {
-            (HandSlotKind::Card { .. }, HandSlotKind::Tower { .. }) => Ordering::Less,
-            (HandSlotKind::Tower { .. }, HandSlotKind::Card { .. }) => Ordering::Greater,
-            (HandSlotKind::Card { card: card_a }, HandSlotKind::Card { card: card_b }) => {
-                // 카드끼리는 rank -> suit -> id 순으로 정렬
-                card_a
-                    .rank
-                    .cmp(&card_b.rank)
-                    .then_with(|| card_a.suit.cmp(&card_b.suit))
-                    .then_with(|| a.id.cmp(&b.id))
-            }
-            (
-                HandSlotKind::Tower {
-                    tower_template: tower_a,
-                },
-                HandSlotKind::Tower {
-                    tower_template: tower_b,
-                },
-            ) => {
-                // 타워끼리는 kind(역순) -> suit -> rank -> id 순으로 정렬
-                tower_b
-                    .kind
-                    .cmp(&tower_a.kind)
-                    .then_with(|| tower_a.suit.cmp(&tower_b.suit))
-                    .then_with(|| tower_a.rank.cmp(&tower_b.rank))
-                    .then_with(|| a.id.cmp(&b.id))
-            }
-        }
+            a.item.partial_cmp(&b.item).unwrap()
+        });
     }
 
     fn calculate_layout(slot_count: f32) -> (Px, Px) {
@@ -241,7 +138,7 @@ impl Hand {
         self.sort_slots();
 
         // exit 애니메이션이 진행 중이지 않은 슬롯들만 필터링
-        let active_slots: Vec<(usize, &mut HandSlot)> = self
+        let active_slots: Vec<(usize, &mut HandSlot<Item>)> = self
             .slots
             .iter_mut()
             .enumerate()
@@ -263,29 +160,32 @@ impl Hand {
             slot.set_xy(Xy { x, y });
         }
     }
-    fn find_slot_by_id_mut(&mut self, id: HandSlotId) -> Option<&mut HandSlot> {
+    fn find_slot_by_id_mut(&mut self, id: HandSlotId) -> Option<&mut HandSlot<Item>> {
         self.slots.iter_mut().find(|slot| slot.id == id)
     }
 
-    fn find_slot_by_id(&self, id: HandSlotId) -> Option<&HandSlot> {
-        self.slots.iter().find(|slot| slot.id == id)
-    }
-
-    fn active_slots(&self) -> impl Iterator<Item = &HandSlot> {
+    fn active_slots(&self) -> impl Iterator<Item = &HandSlot<Item>> {
         self.slots
             .iter()
             .filter(|slot| slot.exit_animation.is_none())
     }
-    fn create_barricade_template() -> TowerTemplate {
-        DEFAULT_BARRICADE_TEMPLATE()
+
+    pub fn get_item(&self, slot_id: HandSlotId) -> Option<&Item> {
+        self.slots
+            .iter()
+            .find(|slot| slot.id == slot_id)
+            .map(|slot| &slot.item)
     }
 }
 
-pub struct HandComponent<'a> {
-    pub hand: &'a Hand,
+pub struct HandComponent<'a, Item> {
+    pub hand: &'a Hand<Item>,
     pub on_click: &'a dyn Fn(HandSlotId),
 }
-impl Component for HandComponent<'_> {
+impl<'a, Item> Component for HandComponent<'a, Item>
+where
+    Item: Any,
+{
     fn render(self, ctx: &RenderCtx) {
         let HandComponent { hand, on_click } = self;
         for slot in &hand.slots {

@@ -1,24 +1,17 @@
 use super::*;
 use crate::{
     MapCoordF32,
-    game_state::{
-        item,
-        play_history::HistoryEventType,
-        quest::{QuestRequirement, QuestReward, QuestTriggerEvent, on_quest_trigger_event},
-        tower::Tower,
-        upgrade::Upgrade,
-    },
+    game_state::{item, play_history::HistoryEventType, tower::Tower, upgrade::Upgrade},
+    shop::ShopSlot,
 };
 
 impl GameState {
     pub fn earn_gold(&mut self, gold: usize) {
         self.gold += gold;
-        on_quest_trigger_event(self, QuestTriggerEvent::EarnGold { gold });
     }
     /// WARNING: `gold` must be less than or equal to self.gold
     pub fn spend_gold(&mut self, gold: usize) {
         self.gold -= gold;
-        on_quest_trigger_event(self, QuestTriggerEvent::SpendGold { gold });
     }
 
     pub fn upgrade(&mut self, upgrade: Upgrade) {
@@ -41,8 +34,6 @@ impl GameState {
             suit,
             left_top,
         });
-
-        on_quest_trigger_event(self, QuestTriggerEvent::BuildTower { rank, suit, hand });
     }
 
     pub fn take_damage(&mut self, damage: f32) {
@@ -72,7 +63,11 @@ impl GameState {
     }
 
     pub fn purchase_shop_item(&mut self, slot_index: usize) {
-        let Some(slot) = self.shop_slots.get_mut(slot_index) else {
+        let GameFlow::SelectingTower(flow) = &mut self.flow else {
+            unreachable!()
+        };
+
+        let Some(slot) = flow.shop.slots.get_mut(slot_index) else {
             return;
         };
 
@@ -140,20 +135,5 @@ impl GameState {
         self.record_event(HistoryEventType::ItemUsed {
             item_kind: item.kind,
         });
-
-        on_quest_trigger_event(self, QuestTriggerEvent::UseItem);
-    }
-
-    pub fn complete_quest(&mut self, requirement: QuestRequirement, reward: QuestReward) {
-        self.record_event(HistoryEventType::QuestCompleted {
-            requirement,
-            reward: reward.clone(),
-        });
-
-        match reward {
-            QuestReward::Money { amount } => {
-                self.earn_gold(amount);
-            }
-        }
     }
 }

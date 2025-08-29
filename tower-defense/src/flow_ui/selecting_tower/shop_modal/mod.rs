@@ -1,24 +1,29 @@
-use super::constants::SHOP_WH;
-use super::layout::ShopLayout;
-use super::open_button::ShopOpenButton;
-use crate::game_state::{mutate_game_state, use_game_state};
-use namui::*;
+mod constants;
+mod items;
+mod layout;
+mod open_button;
 
-pub struct ShopModal {
-    pub screen_wh: Wh<Px>,
+use crate::game_state::mutate_game_state;
+use crate::shop::Shop;
+use constants::SHOP_WH;
+use layout::ShopLayout;
+use namui::*;
+use open_button::ShopOpenButton;
+
+pub struct ShopModal<'a> {
+    pub shop: &'a Shop,
 }
 
-impl Component for ShopModal {
+impl Component for ShopModal<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { screen_wh } = self;
-        let game_state = use_game_state(ctx);
+        let Self { shop } = self;
+        let screen_wh = screen::size().into_type::<Px>();
 
         let (opened, set_opened) = ctx.state(|| true);
 
         let toggle_open = || {
             set_opened.mutate(|opened| *opened = !*opened);
         };
-        let shop_slots = &game_state.shop_slots;
 
         let purchase_item = |slot_index: usize| {
             mutate_game_state(move |game_state| {
@@ -40,7 +45,7 @@ impl Component for ShopModal {
                 return;
             }
             ctx.translate(offset).add(ShopLayout {
-                shop_slots,
+                shop,
                 purchase_item: &purchase_item,
             });
         });

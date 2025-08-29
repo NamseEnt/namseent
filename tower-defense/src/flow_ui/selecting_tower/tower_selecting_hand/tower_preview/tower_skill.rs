@@ -1,3 +1,4 @@
+use crate::flow_ui::selecting_tower::tower_selecting_hand::PADDING;
 use crate::icon::IconKind;
 use crate::thumbnail::ThumbnailComposer;
 use crate::thumbnail::constants::OVERLAY_SIZE_RATIO;
@@ -10,7 +11,6 @@ use crate::{
         palette,
         typography::{FontSize, TextAlign, headline, paragraph},
     },
-    tower_selecting_hand::PADDING,
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};

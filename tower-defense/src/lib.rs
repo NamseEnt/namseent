@@ -1,13 +1,11 @@
 mod asset_loader;
-mod auto_play;
 mod card;
+mod flow_ui;
 mod game_speed_indicator;
 mod game_state;
 mod icon;
 mod inventory;
 pub mod l10n;
-mod quest_board;
-mod quests;
 mod rarity;
 mod route;
 mod settings;
@@ -15,8 +13,6 @@ mod shop;
 mod theme;
 mod thumbnail;
 mod top_bar;
-mod tower_placing_hand;
-mod tower_selecting_hand;
 mod upgrade_board;
 mod upgrade_select;
 
@@ -31,13 +27,8 @@ use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
 use namui_prebuilt::simple_rect;
-use quest_board::QuestBoardModal;
-use quests::Quests;
-use shop::ShopModal;
 use theme::palette;
 use top_bar::TopBar;
-use tower_placing_hand::TowerPlacingHand;
-use tower_selecting_hand::TowerSelectingHand;
 use upgrade_select::UpgradeSelectModal;
 
 type BlockUnit = usize;
@@ -57,11 +48,6 @@ impl Component for Game {
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = game_state::init_game_state(ctx);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
-        let (auto_play, set_auto_play) = ctx.state(|| false);
-
-        if *auto_play {
-            auto_play::auto_play();
-        }
 
         if matches!(&game_state.flow, GameFlow::Initializing) {
             ctx.add(LoadingScreen {
@@ -110,39 +96,9 @@ impl Component for Game {
             });
         });
 
-        ctx.compose(|ctx| {
-            if !matches!(&game_state.flow, GameFlow::SelectingTower) {
-                return;
-            };
-            ctx.add(TowerSelectingHand { screen_wh });
-
-            let in_even_stage = game_state.in_even_stage();
-
-            ctx.compose(|ctx| {
-                if !in_even_stage {
-                    return;
-                }
-                ctx.add(ShopModal { screen_wh });
-            });
-
-            ctx.compose(|ctx| {
-                if in_even_stage {
-                    return;
-                }
-                ctx.add(QuestBoardModal { screen_wh });
-            });
-        });
-
-        ctx.compose(|ctx| {
-            if !matches!(&game_state.flow, GameFlow::PlacingTower) {
-                return;
-            };
-            ctx.add(TowerPlacingHand { screen_wh });
-        });
+        ctx.add(flow_ui::FlowUi);
 
         ctx.add(Inventory { screen_wh });
-
-        ctx.add(Quests { screen_wh });
 
         ctx.add(TopBar { screen_wh });
 
@@ -173,9 +129,6 @@ impl Component for Game {
                                 game_state.fast_forward_multiplier =
                                     game_state.fast_forward_multiplier.next();
                             });
-                        }
-                        Code::F8 => {
-                            set_auto_play.set(true);
                         }
                         _ => {}
                     };
@@ -212,7 +165,12 @@ impl Component for Game {
                             last_global_xy: global_xy,
                         }));
                     }
-                    if game_state.cursor_preview.should_update_position() {
+                    if game_state.cursor_preview.should_update_position()
+                        || matches!(
+                            game_state.flow,
+                            crate::game_state::flow::GameFlow::PlacingTower { hand: _ }
+                        )
+                    {
                         let local_xy_tile =
                             (event.global_xy / game_state.camera.zoom_level) / TILE_PX_SIZE.to_xy();
                         let map_coord = game_state.camera.left_top + local_xy_tile;

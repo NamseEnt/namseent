@@ -8,12 +8,12 @@ use crate::{
 };
 use namui::*;
 
-pub(super) struct RenderCard {
+pub(super) struct RenderCard<'a> {
     pub wh: Wh<Px>,
-    pub card: Card,
+    pub card: &'a Card,
 }
 
-impl Component for RenderCard {
+impl Component for RenderCard<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, card } = self;
 
@@ -32,8 +32,8 @@ impl Component for RenderCard {
     }
 }
 
-impl RenderCard {
-    fn render_center_suits(&self, ctx: &RenderCtx, wh: Wh<Px>, card: Card) {
+impl<'a> RenderCard<'a> {
+    fn render_center_suits(&self, ctx: &RenderCtx, wh: Wh<Px>, card: &'a Card) {
         let center_area = Rect::Xywh {
             x: px(36.0),
             y: px(36.0),
@@ -54,7 +54,7 @@ impl RenderCard {
         }
     }
 
-    fn render_face_card(&self, ctx: &RenderCtx, wh: Wh<Px>, card: Card) {
+    fn render_face_card(&self, ctx: &RenderCtx, wh: Wh<Px>, card: &'a Card) {
         let center_area = Rect::Xywh {
             x: px(12.0),
             y: px(12.0),

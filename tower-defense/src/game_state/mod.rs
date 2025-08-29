@@ -16,10 +16,8 @@ mod monster_spawn;
 mod placed_towers;
 pub mod play_history;
 pub mod projectile;
-pub mod quest;
 mod render;
 pub mod schedule;
-pub mod shop;
 mod start_confirm_modal;
 mod status_effect_particle_generator;
 mod tick;
@@ -28,14 +26,11 @@ mod tower_info_popup;
 pub mod upgrade;
 mod user_status_effect;
 
-use crate::quest_board::QuestBoardSlot;
 use crate::route::*;
-use crate::shop::ShopSlot;
 use crate::*;
 use background::{Background, generate_backgrounds};
 use camera::*;
 use cursor_preview::CursorPreview;
-use cursor_preview::PreviewKind;
 use fast_forward::FastForwardMultiplier;
 use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
@@ -49,7 +44,6 @@ use namui::*;
 use placed_towers::PlacedTowers;
 use play_history::PlayHistory;
 use projectile::*;
-use quest::*;
 use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -87,8 +81,6 @@ pub struct GameState {
     pub projectiles: Vec<Projectile>,
     pub items: Vec<item::Item>,
     pub gold: usize,
-    pub shop_slots: [ShopSlot; 5],
-    pub quest_board_slots: [QuestBoardSlot; 3],
     pub cursor_preview: CursorPreview,
     pub hp: f32,
     pub shield: f32,
@@ -96,7 +88,6 @@ pub struct GameState {
     pub field_area_effects: Vec<FieldAreaEffect>,
     pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
-    pub quest_states: Vec<QuestState>,
     pub item_used: bool,
     pub level: NonZeroUsize,
     game_now: Instant,
@@ -106,7 +97,6 @@ pub struct GameState {
     pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
     status_effect_particle_generator: StatusEffectParticleGenerator,
     pub locale: crate::l10n::Locale,
-    pub hand: hand::Hand,
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
 }
@@ -248,10 +238,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                     value: 1.0.into(), // 디버깅용 - 최대값 (역산이므로 좋은 효과)
                 },
             ],
-            quest_states: Default::default(),
             gold: 100,
-            shop_slots: Default::default(),
-            quest_board_slots: Default::default(),
             cursor_preview: Default::default(),
             hp: 100.0,
             shield: 0.0,
@@ -268,7 +255,6 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
             locale: crate::l10n::Locale::KOREAN,
-            hand: Default::default(),
             play_history: PlayHistory::new(),
             opened_modal: None,
         }
@@ -287,18 +273,20 @@ pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static)
 /// Make sure that the tower can be placed at the given coord.
 pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
     crate::game_state::mutate_game_state(move |game_state| {
-        if !matches!(game_state.flow, GameFlow::PlacingTower) {
-            println!(
-                "Expected GameFlow::PlacingTower, but got {:?}",
-                game_state.flow
-            );
-        }
         game_state.place_tower(tower);
-        game_state.hand.delete_slots(&[placing_tower_slot_id]);
-        game_state.cursor_preview.kind = PreviewKind::None;
+        let GameFlow::PlacingTower { hand } = &mut game_state.flow else {
+            unreachable!()
+        };
+        hand.delete_slots(&[placing_tower_slot_id]);
 
-        let has_tower_slots = game_state.hand.has_tower_slots();
-        if !has_tower_slots {
+        // Auto-select the first card (tower or barricade) if available
+        if let Some(first_slot_id) = hand.get_slot_id_by_index(0)
+            && hand.get_item(first_slot_id).is_some()
+        {
+            hand.select_slot(first_slot_id);
+        }
+
+        if hand.is_empty() {
             game_state.goto_defense();
         }
     });
@@ -316,7 +304,6 @@ pub fn set_modal(modal: Option<Modal>) {
 
 pub fn force_start() {
     mutate_game_state(|game_state| {
-        game_state.hand.clear();
         game_state.goto_defense();
     });
 }

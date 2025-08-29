@@ -1,6 +1,9 @@
-pub mod get_highest_tower;
+mod get_highest_tower;
 mod tower_preview;
 
+use crate::card::Card;
+use crate::game_state::flow::GameFlow;
+use crate::game_state::hand::Hand;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::Button;
 use crate::theme::typography::{TextAlign, headline};
@@ -8,7 +11,6 @@ use crate::{
     game_state::{
         hand::{HAND_WH, HandComponent, HandSlotId},
         mutate_game_state,
-        quest::{QuestTriggerEvent, on_quest_trigger_event},
     },
     palette,
 };
@@ -19,22 +21,28 @@ use tower_preview::TowerPreview;
 
 const PADDING: Px = px(4.);
 
-pub struct TowerSelectingHand {
-    pub screen_wh: Wh<Px>,
+pub struct TowerSelectingHand<'a> {
+    pub hand: &'a Hand<Card>,
 }
-impl Component for TowerSelectingHand {
+
+impl<'a> Component for TowerSelectingHand<'a> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { screen_wh } = self;
+        let Self { hand } = self;
+        let screen_wh = screen::size().into_type::<Px>();
 
         let game_state = crate::game_state::use_game_state(ctx);
-        let selected_hand_slot_ids = ctx.track_eq(&game_state.hand.selected_slot_ids());
+        let selected_hand_slot_ids = ctx.track_eq(&hand.selected_slot_ids());
         let some_selected = ctx.memo(|| !selected_hand_slot_ids.is_empty());
         let using_cards = ctx.memo(|| {
-            let selected_cards = game_state.hand.selected_cards();
-            if !selected_cards.is_empty() {
-                return selected_cards;
-            }
-            game_state.hand.all_cards()
+            let slot_ids = {
+                let selected_slot_ids = hand.selected_slot_ids();
+                if !selected_slot_ids.is_empty() {
+                    selected_slot_ids
+                } else {
+                    hand.active_slot_ids()
+                }
+            };
+            hand.get_items(&slot_ids).cloned().collect::<Vec<Card>>()
         });
         let tower_template = ctx.memo(|| {
             get_highest_tower_template(
@@ -53,21 +61,31 @@ impl Component for TowerSelectingHand {
                 if game_state.left_reroll_chance == 0 || selected_hand_slot_ids.is_empty() {
                     return;
                 }
-                let select_count = selected_hand_slot_ids.len();
-                game_state.hand.delete_slots(&selected_hand_slot_ids);
-                game_state.hand.add_random_cards(select_count);
+                {
+                    let GameFlow::SelectingTower(flow) = &mut game_state.flow else {
+                        unreachable!()
+                    };
+                    let select_count = selected_hand_slot_ids.len();
+                    flow.hand.delete_slots(&selected_hand_slot_ids);
+                    (0..select_count).for_each(|_| {
+                        flow.hand.push(Card::new_random());
+                    });
+                }
+
                 game_state.left_reroll_chance -= 1;
                 game_state.rerolled_count += 1;
-                on_quest_trigger_event(game_state, QuestTriggerEvent::Reroll);
             });
         };
 
         let on_card_click = |id: HandSlotId| {
             mutate_game_state(move |game_state| {
-                if game_state.hand.selected_slot_ids().contains(&id) {
-                    game_state.hand.deselect_slot(id);
+                let GameFlow::SelectingTower(flow) = &mut game_state.flow else {
+                    unreachable!()
+                };
+                if flow.hand.selected_slot_ids().contains(&id) {
+                    flow.hand.deselect_slot(id);
                 } else {
-                    game_state.hand.select_slot(id);
+                    flow.hand.select_slot(id);
                 }
             });
         };
@@ -94,7 +112,7 @@ impl Component for TowerSelectingHand {
                         }),
                         table::fixed_no_clip(HAND_WH.width, |_wh, ctx| {
                             ctx.add(HandComponent {
-                                hand: &game_state.hand,
+                                hand,
                                 on_click: &on_card_click,
                             });
                         }),
