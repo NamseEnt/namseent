@@ -6,7 +6,6 @@ use crate::{
         field_area_effect::{FieldAreaEffect, FieldAreaEffectKind},
         field_particle::{FieldParticleKind, emit_field_particle},
         item::{check_point_is_in_linear_area, linear_area_rect_points},
-        quest::{QuestTriggerEvent, on_quest_trigger_event},
         schedule::CountBasedSchedule,
         upgrade::UpgradeState,
         user_status_effect::{UserStatusEffect, UserStatusEffectKind},
@@ -179,15 +178,6 @@ impl DamageApplicationResult {
     pub fn finalize(self, game_state: &mut GameState) {
         if self.total_gold_earned > 0 {
             game_state.earn_gold(self.total_gold_earned);
-        }
-
-        if self.total_damage_dealt > 0.0 {
-            on_quest_trigger_event(
-                game_state,
-                QuestTriggerEvent::DealDamageWithItem {
-                    damage: self.total_damage_dealt,
-                },
-            );
         }
     }
 }

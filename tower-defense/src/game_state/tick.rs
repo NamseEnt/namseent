@@ -7,7 +7,7 @@ pub struct Ticker {}
 impl Component for Ticker {
     fn render(self, ctx: &RenderCtx) {
         ctx.interval("game state tick", TICK_MAX_DURATION, |real_dt| {
-            crate::game_state::mutate_game_state(move |game_state| {
+            mutate_game_state(move |game_state| {
                 let mut scaled_dt =
                     real_dt * game_state.fast_forward_multiplier.time_scale().get() as i32;
                 while scaled_dt.as_millis() > 0 {
@@ -26,28 +26,26 @@ impl Component for Ticker {
 fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     check_game_initialized(game_state);
 
-    game_state.hand.update();
+    game_state.flow.update();
 
-    crate::game_state::monster_spawn::tick(game_state, now);
-    crate::game_state::tower::tower_cooldown_tick(game_state, dt);
-    crate::game_state::tower::tower_animation_tick(game_state, now);
-    crate::game_state::monster::monster_animation_tick(game_state, dt);
-    crate::game_state::field_area_effect::field_area_effect_tick(game_state, now);
+    monster_spawn::tick(game_state, now);
+    tower::tower_cooldown_tick(game_state, dt);
+    tower::tower_animation_tick(game_state, now);
+    monster::monster_animation_tick(game_state, dt);
+    field_area_effect::field_area_effect_tick(game_state, now);
 
-    crate::game_state::monster::remove_monster_finished_status_effects(game_state, now);
-    crate::game_state::tower::remove_tower_finished_status_effects(game_state, now);
-    crate::game_state::user_status_effect::remove_user_finished_status_effects(game_state, now);
-    crate::game_state::field_area_effect::remove_finished_field_area_effects(game_state, now);
-    crate::game_state::field_particle::remove_finished_field_particle_systems(game_state, now);
+    monster::remove_monster_finished_status_effects(game_state, now);
+    tower::remove_tower_finished_status_effects(game_state, now);
+    user_status_effect::remove_user_finished_status_effects(game_state, now);
+    field_area_effect::remove_finished_field_area_effects(game_state, now);
+    field_particle::remove_finished_field_particle_systems(game_state, now);
 
-    crate::game_state::status_effect_particle_generator::tick_status_effect_particle_generator(
-        game_state, now,
-    );
+    status_effect_particle_generator::tick_status_effect_particle_generator(game_state, now);
 
-    crate::game_state::monster::activate_monster_skills(game_state, now);
-    crate::game_state::tower::activate_tower_skills(game_state, now);
+    monster::activate_monster_skills(game_state, now);
+    tower::activate_tower_skills(game_state, now);
 
-    crate::game_state::monster::move_monsters(game_state, dt);
+    monster::move_monsters(game_state, dt);
 
     move_projectiles(game_state, dt);
     shoot_projectiles(game_state);
@@ -85,11 +83,9 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
         let damage = projectile.damage;
         monster.get_damage(damage);
         if damage > 0.0 {
-            damage_emitters.push(
-                crate::game_state::field_particle::emitter::DamageTextEmitter::new(
-                    monster_xy, damage,
-                ),
-            );
+            damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
+                monster_xy, damage,
+            ));
         }
 
         if monster.dead() {
@@ -110,16 +106,13 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 
 fn emit_damage_text_particles(
     game_state: &mut GameState,
-    emitters: Vec<crate::game_state::field_particle::emitter::DamageTextEmitter>,
+    emitters: Vec<field_particle::emitter::DamageTextEmitter>,
 ) {
     if !emitters.is_empty() {
-        let field_emitters =
-            emitters
-                .into_iter()
-                .map(|emitter| {
-                    crate::game_state::field_particle::FieldParticleEmitter::DamageText { emitter }
-                })
-                .collect::<Vec<_>>();
+        let field_emitters = emitters
+            .into_iter()
+            .map(|emitter| field_particle::FieldParticleEmitter::DamageText { emitter })
+            .collect::<Vec<_>>();
         game_state
             .field_particle_system_manager
             .add_emitters(field_emitters);
@@ -173,7 +166,6 @@ fn check_defense_end(game_state: &mut GameState) {
 
     if is_boss_stage {
         game_state.goto_selecting_upgrade();
-        on_quest_trigger_event(game_state, quest::QuestTriggerEvent::ClearBossRound);
     } else {
         game_state.goto_selecting_tower();
     }

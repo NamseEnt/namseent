@@ -1,10 +1,10 @@
-use super::PreviewKind;
 use crate::{
     MapCoordF32,
     asset_loader::get_tower_asset,
     game_state::{
         MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
         can_place_tower::can_place_tower,
+        flow::GameFlow,
         hand::HandSlotId,
         mutate_game_state, place_tower,
         tower::{AnimationKind, Tower, TowerTemplate},
@@ -14,7 +14,7 @@ use crate::{
 };
 use namui::*;
 
-pub(super) struct TowerCursorPreview<'a> {
+pub struct TowerCursorPreview<'a> {
     pub tower_template: &'a TowerTemplate,
     pub map_coord: MapCoordF32,
     pub placing_tower_slot_id: HandSlotId,
@@ -52,17 +52,12 @@ impl Component for TowerCursorPreview<'_> {
             )
         });
 
-        let cancel_placing_tower_selection = || {
-            mutate_game_state(|game_state| {
-                if let PreviewKind::PlacingTower {
-                    placing_tower_slot_id,
-                    ..
-                } = game_state.cursor_preview.kind
-                {
-                    game_state.hand.deselect_slot(placing_tower_slot_id);
-                }
-
-                game_state.cursor_preview.kind = PreviewKind::None;
+        let cancel_placing_tower_selection = move || {
+            mutate_game_state(move |game_state| {
+                let GameFlow::PlacingTower { hand } = &mut game_state.flow else {
+                    unreachable!()
+                };
+                hand.deselect_slot(placing_tower_slot_id);
             });
         };
 

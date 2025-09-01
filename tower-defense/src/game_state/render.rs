@@ -87,7 +87,7 @@ fn render_grid(ctx: &RenderCtx, game_state: &GameState) {
         .set_stroke_cap(StrokeCap::Round);
 
     ctx.add(namui::path(path, paint)).attach_event(|event| {
-        if let GameFlow::PlacingTower = game_state.flow
+        if let GameFlow::PlacingTower { .. } = game_state.flow
             && let Event::MouseUp { event } = event
             && let Some(MouseButton::Left) = event.button
         {
@@ -169,7 +169,6 @@ fn render_monsters(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
-    let cursor_preview_kind = ctx.track_eq(&game_state.cursor_preview.kind);
     let cursor_coord = ctx.track_eq(
         &game_state
             .cursor_preview
@@ -178,16 +177,18 @@ fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
     );
     let game_state_route = ctx.track_eq(&game_state.route);
     let towers = ctx.track_eq(&game_state.towers);
+    let is_tower_placing =
+        ctx.track_eq(&if let GameFlow::PlacingTower { hand } = &game_state.flow {
+            !hand.selected_slot_ids().is_empty()
+        } else {
+            false
+        });
 
     let route = ctx.memo(|| {
-        'out: {
-            if cursor_coord.x == 0 || cursor_coord.y == 0 {
-                break 'out;
+        'placing_tower: {
+            if cursor_coord.x == 0 || cursor_coord.y == 0 || !*is_tower_placing {
+                break 'placing_tower;
             }
-            let PreviewKind::PlacingTower { tower_template, .. } = cursor_preview_kind.as_ref()
-            else {
-                break 'out;
-            };
             let cursor_tower_coord = cursor_coord.as_ref().map(|v| v - 1);
             if !can_place_tower(
                 cursor_tower_coord,
@@ -197,11 +198,11 @@ fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
                 game_state_route.iter_coords(),
                 MAP_SIZE,
             ) {
-                break 'out;
+                break 'placing_tower;
             }
             let mut towers = towers.clone_inner();
             towers.place_tower(Tower::new(
-                tower_template,
+                &TowerTemplate::barricade(),
                 cursor_tower_coord,
                 game_state.now(),
             ));
@@ -233,6 +234,22 @@ fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
 
 fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
     ctx.add(game_state.cursor_preview.render());
+
+    // Render tower preview if in PlacingTower flow and hand has selected tower
+    if let crate::game_state::GameFlow::PlacingTower { hand } = &game_state.flow {
+        let selected_slot_ids = hand.selected_slot_ids();
+        if let Some(&selected_slot_id) = selected_slot_ids.first()
+            && let Some(tower_template) = hand.get_item(selected_slot_id)
+        {
+            ctx.add(
+                crate::game_state::cursor_preview::tower::TowerCursorPreview {
+                    tower_template,
+                    map_coord: game_state.cursor_preview.map_coord,
+                    placing_tower_slot_id: selected_slot_id,
+                },
+            );
+        }
+    }
 }
 
 fn render_field_particles(ctx: &RenderCtx, game_state: &GameState) {

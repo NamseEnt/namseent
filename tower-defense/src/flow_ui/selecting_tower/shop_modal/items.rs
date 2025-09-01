@@ -1,11 +1,11 @@
 use super::constants::{PADDING, SOLD_OUT_HEIGHT};
-use super::slot::ShopSlot;
 use crate::game_state::item::{self, Item};
 use crate::game_state::upgrade::{Upgrade, UpgradeKind};
 use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::l10n::ui::TopBarText;
 use crate::palette;
+use crate::shop::ShopSlot;
 use crate::theme::button::{Button, ButtonColor};
 use crate::theme::typography::{FontSize, TextAlign, headline, paragraph};
 use namui::*;

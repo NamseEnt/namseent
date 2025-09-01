@@ -3,7 +3,6 @@ use crate::{
     card::{Rank, Suit},
     game_state::{
         item::{Item, ItemKind},
-        quest::{QuestRequirement, QuestReward},
         upgrade::Upgrade,
     },
 };
@@ -49,11 +48,6 @@ pub enum HistoryEventType {
     UpgradePurchased {
         upgrade: Upgrade,
         cost: usize,
-    },
-
-    QuestCompleted {
-        requirement: QuestRequirement,
-        reward: QuestReward,
     },
 }
 

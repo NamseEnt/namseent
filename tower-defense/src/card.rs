@@ -20,9 +20,6 @@ impl Display for Suit {
     }
 }
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
-pub fn random_suit() -> Suit {
-    SUITS[rand::thread_rng().gen_range(0..4)]
-}
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord)]
 pub enum Rank {
@@ -83,9 +80,6 @@ pub const REVERSED_RANKS: [Rank; 8] = [
     Rank::Eight,
     Rank::Seven,
 ];
-pub fn random_rank() -> Rank {
-    REVERSED_RANKS[rand::thread_rng().gen_range(0..8)]
-}
 
 #[derive(Eq, Debug, PartialEq, Hash, Clone, Copy)]
 pub struct Card {

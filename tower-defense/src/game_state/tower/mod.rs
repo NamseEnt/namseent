@@ -155,6 +155,20 @@ impl TowerTemplate {
             default_status_effects: vec![],
         }
     }
+    pub fn barricade() -> Self {
+        Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
+    }
+}
+impl PartialOrd for TowerTemplate {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // 타워끼리는 kind(역순) -> suit -> rank 순으로 정렬
+        Some(
+            self.kind
+                .cmp(&other.kind)
+                .then_with(|| self.suit.cmp(&other.suit))
+                .then_with(|| self.rank.cmp(&other.rank)),
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

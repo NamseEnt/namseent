@@ -1,11 +1,6 @@
 use crate::{
-    game_state::{
-        Modal,
-        cursor_preview::PreviewKind,
-        force_start,
-        hand::{HAND_WH, HandComponent, HandSlotId},
-        mutate_game_state, set_modal, use_game_state,
-    },
+    game_state::{Modal, force_start, mutate_game_state, set_modal, use_game_state},
+    hand::{HAND_WH, HandComponent, HandSlotId},
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
         typography::{TextAlign, headline},
@@ -14,17 +9,20 @@ use crate::{
 use namui::*;
 use namui_prebuilt::table;
 
-pub struct TowerPlacingHand {
-    pub screen_wh: Wh<Px>,
-}
+pub struct TowerPlacingHand;
+
 impl Component for TowerPlacingHand {
     fn render(self, ctx: &RenderCtx) {
-        let Self { screen_wh } = self;
-
+        let screen_wh = screen::size().into_type::<Px>();
         let game_state = use_game_state(ctx);
-        let selected_hand_slot_ids = {
-            let selected_hand_slot_ids = game_state.hand.selected_slot_ids();
-            ctx.track_eq(&selected_hand_slot_ids)
+
+        // Only render if we're in PlacingTower flow
+        let (hand, selected_hand_slot_ids) = match &game_state.flow {
+            crate::game_state::flow::GameFlow::PlacingTower { hand } => {
+                let selected_hand_slot_ids = ctx.track_eq(&hand.selected_slot_ids());
+                (hand, selected_hand_slot_ids)
+            }
+            _ => return, // Don't render if not in PlacingTower flow
         };
 
         let select_tower = |slot_id: HandSlotId| {
@@ -33,22 +31,21 @@ impl Component for TowerPlacingHand {
             }
 
             // Find the tower template by slot ID
-            let Some(tower_template) = game_state.hand.get_tower_template_by_id(slot_id) else {
+            let Some(_tower_template) = hand.get_item(slot_id) else {
                 return;
             };
 
-            let tower_template = tower_template.clone();
             mutate_game_state(move |game_state| {
-                game_state.hand.select_slot(slot_id);
-                game_state.cursor_preview.kind = PreviewKind::PlacingTower {
-                    tower_template,
-                    placing_tower_slot_id: slot_id,
-                };
+                if let crate::game_state::flow::GameFlow::PlacingTower { hand } =
+                    &mut game_state.flow
+                {
+                    hand.select_slot(slot_id);
+                }
             });
         };
 
         let handle_start_button_click = || {
-            if game_state.hand.is_empty() {
+            if hand.is_empty() {
                 force_start();
             } else {
                 set_modal(Some(Modal::StartConfirm));
@@ -64,7 +61,7 @@ impl Component for TowerPlacingHand {
                         table::ratio_no_clip(1, |_, _| {}),
                         table::fixed_no_clip(HAND_WH.width, |_wh, ctx| {
                             ctx.add(HandComponent {
-                                hand: &game_state.hand,
+                                hand,
                                 on_click: &select_tower,
                             });
                         }),

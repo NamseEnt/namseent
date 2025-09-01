@@ -1,15 +1,7 @@
-use crate::{
-    card::Card,
-    game_state::{
-        hand::{
-            HAND_SLOT_WH, HAND_WH, render_card::RenderCard, render_tower::RenderTower,
-            xy_with_spring::xy_with_spring,
-        },
-        tower::TowerTemplate,
-    },
-};
+use super::*;
+use crate::{card::Card, game_state::tower::TowerTemplate};
 use namui::*;
-use std::sync::atomic::AtomicUsize;
+use std::{any::Any, sync::atomic::AtomicUsize};
 
 static HAND_SLOT_ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -32,12 +24,6 @@ impl From<HandSlotId> for AddKey {
     }
 }
 
-#[derive(Clone)]
-pub(super) enum HandSlotKind {
-    Card { card: Card },
-    Tower { tower_template: TowerTemplate },
-}
-
 #[derive(Debug, Clone, Copy)]
 pub(super) struct ExitAnimation {
     pub start_time: Instant,
@@ -54,39 +40,22 @@ impl ExitAnimation {
     }
 }
 
-#[derive(Clone)]
-pub(super) struct HandSlot {
+#[derive(Clone, Debug)]
+pub(super) struct HandSlot<Item> {
     pub id: HandSlotId,
-    pub slot_kind: HandSlotKind,
+    pub item: Item,
     pub selected: bool,
     pub xy: Xy<Px>,
     pub exit_animation: Option<ExitAnimation>,
 }
-impl HandSlot {
-    pub fn from_card(card: Card) -> Self {
+impl<Item> HandSlot<Item> {
+    pub fn new(item: Item) -> Self {
         Self {
             id: HandSlotId::new(),
-            slot_kind: HandSlotKind::Card { card },
+            item,
             selected: false,
             xy: HAND_WH.to_xy(),
             exit_animation: None,
-        }
-    }
-
-    pub fn from_tower_template(tower_template: TowerTemplate) -> Self {
-        Self {
-            id: HandSlotId::new(),
-            slot_kind: HandSlotKind::Tower { tower_template },
-            selected: false,
-            xy: HAND_WH.to_xy(),
-            exit_animation: None,
-        }
-    }
-
-    pub fn get_tower_template(&self) -> Option<&TowerTemplate> {
-        match &self.slot_kind {
-            HandSlotKind::Tower { tower_template } => Some(tower_template),
-            _ => None,
         }
     }
 
@@ -107,7 +76,10 @@ impl HandSlot {
     }
 }
 
-impl Component for &HandSlot {
+impl<Item> Component for &HandSlot<Item>
+where
+    Item: Any,
+{
     fn render(self, ctx: &RenderCtx) {
         // Exit 애니메이션이 있는 경우 처리
         let (target_xy, target_scale) = if self.exit_animation.is_some() {
@@ -135,19 +107,20 @@ impl Component for &HandSlot {
             .scale(animated_scale)
             .translate(-half_slot_xy);
 
-        match &self.slot_kind {
-            HandSlotKind::Card { card } => {
-                ctx.add(RenderCard {
-                    wh: HAND_SLOT_WH,
-                    card: *card,
-                });
-            }
-            HandSlotKind::Tower { tower_template } => {
-                ctx.add(RenderTower {
-                    wh: HAND_SLOT_WH,
-                    tower_template: tower_template.clone(),
-                });
-            }
+        if let Some(card) = (&self.item as &dyn Any).downcast_ref::<Card>() {
+            ctx.add(RenderCard {
+                wh: HAND_SLOT_WH,
+                card,
+            });
+        } else if let Some(tower_template) =
+            (&self.item as &dyn Any).downcast_ref::<TowerTemplate>()
+        {
+            ctx.add(RenderTower {
+                wh: HAND_SLOT_WH,
+                tower_template,
+            });
+        } else {
+            unreachable!("Invalid item type: {}", std::any::type_name::<Item>());
         }
     }
 }

@@ -1,15 +1,15 @@
-use super::shared::{render_background_rect, render_top_left_rank_and_suit};
+use super::*;
 use crate::{
     asset_loader::get_tower_asset,
     game_state::tower::{AnimationKind, TowerKind, TowerTemplate},
 };
 use namui::*;
 
-pub(super) struct RenderTower {
+pub(super) struct RenderTower<'a> {
     pub wh: Wh<Px>,
-    pub tower_template: TowerTemplate,
+    pub tower_template: &'a TowerTemplate,
 }
-impl Component for RenderTower {
+impl Component for RenderTower<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, tower_template } = self;
 

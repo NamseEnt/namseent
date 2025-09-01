@@ -1,23 +1,23 @@
 use super::constants::{PADDING, SHOP_REFRESH_BUTTON_WH, SHOP_WH};
 use super::items::ShopItem;
-use super::slot::ShopSlot;
-use crate::game_state::shop::refresh_shop;
 use crate::game_state::{mutate_game_state, use_game_state};
 use crate::icon::{Icon, IconKind, IconSize};
+use crate::shop::Shop;
+use crate::shop::refresh_shop;
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::typography::{TextAlign, headline};
 use namui::*;
 use namui_prebuilt::table::{self, ratio, ratio_no_clip};
 
 pub struct ShopLayout<'a> {
-    pub shop_slots: &'a [ShopSlot],
+    pub shop: &'a Shop,
     pub purchase_item: &'a dyn Fn(usize),
 }
 
 impl Component for ShopLayout<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
-            shop_slots,
+            shop,
             purchase_item,
         } = self;
 
@@ -37,7 +37,7 @@ impl Component for ShopLayout<'_> {
                 table::vertical([
                     table::ratio_no_clip(
                         1,
-                        table::horizontal(shop_slots.iter().enumerate().map(
+                        table::horizontal(shop.slots.iter().enumerate().map(
                             |(shop_slot_index, shop_slot)| {
                                 ratio_no_clip(1, move |wh, ctx| {
                                     ctx.add(ShopItem {

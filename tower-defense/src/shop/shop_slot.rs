@@ -1,6 +1,6 @@
 use crate::game_state::{item::Item, upgrade::Upgrade};
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub enum ShopSlot {
     #[default]
     Locked,
