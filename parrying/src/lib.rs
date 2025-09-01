@@ -49,24 +49,34 @@ fn fight_scene(ctx: &RenderCtx) {
     struct State {
         monster: Monster,
         attack_motion_machine: AttackMotionMachine,
-    }
-
-    struct Monster {
-        hp: f32,
+        monster_attack_cooldown: Duration,
+        monster_attack_signal_at: Option<Instant>,
+        parried_at: Option<Instant>,
     }
 
     let screen_wh = screen::size().into_type::<Px>();
     let (state, set_state) = ctx.state(|| State {
         monster: Monster { hp: 100. },
         attack_motion_machine: AttackMotionMachine::new(),
+        monster_attack_cooldown: 3.sec(),
+        monster_attack_signal_at: None,
+        parried_at: None,
     });
 
     ctx.on_raw_event(|event| {
         let RawEvent::KeyDown { event } = event else {
             return;
         };
-        if Code::ArrowLeft == event.code {
-            set_state.mutate(|state| state.attack_motion_machine.push());
+        match event.code {
+            Code::ArrowLeft => {
+                set_state.mutate(|state| state.attack_motion_machine.push());
+            }
+            Code::ArrowUp => {
+                if state.monster_attack_signal_at.is_some() {
+                    set_state.mutate(|state| state.parried_at = Some(Instant::now()));
+                }
+            }
+            _ => (),
         }
     });
 
@@ -75,6 +85,15 @@ fn fight_scene(ctx: &RenderCtx) {
             let attacked = state.attack_motion_machine.tick_and_attacked(dt);
             if attacked {
                 state.monster.hp -= 1.;
+            }
+
+            state.monster_attack_cooldown -= dt;
+            if state.monster_attack_cooldown < Duration::ZERO {
+                state.monster_attack_cooldown = 5.sec();
+                // signal 이 발생하고
+                state.monster_attack_signal_at = Some(Instant::now());
+                // x초 후에 실제로 공격이 들어가고.
+                // 그 안에 적절한 키를 눌렀으면 패링이 되는거고
             }
         });
     });
@@ -95,6 +114,34 @@ fn fight_scene(ctx: &RenderCtx) {
         Color::WHITE,
         32.int_px(),
     ));
+
+    ctx.compose(|ctx| {
+        let Some(parried_at) = state.parried_at.as_ref() else {
+            return;
+        };
+        if parried_at.elapsed() < 10.ms() {
+            ctx.add(simple_rect(
+                screen_wh,
+                Color::TRANSPARENT,
+                0.px(),
+                Color::from_f01(0., 0., 1., 1.),
+            ));
+        }
+    });
+
+    ctx.compose(|ctx| {
+        let Some(monster_attack_signal_at) = state.monster_attack_signal_at.as_ref() else {
+            return;
+        };
+        if monster_attack_signal_at.elapsed() < 10.ms() {
+            ctx.add(simple_rect(
+                screen_wh,
+                Color::TRANSPARENT,
+                0.px(),
+                Color::from_f01(1., 1., 0., 1.),
+            ));
+        }
+    });
 }
 
 struct AttackMotionMachine {
@@ -156,3 +203,7 @@ const DELAY_DURATIONS: [Duration; 5] = [
     Duration::from_millis(250),
     Duration::from_millis(500),
 ];
+
+struct Monster {
+    hp: f32,
+}
