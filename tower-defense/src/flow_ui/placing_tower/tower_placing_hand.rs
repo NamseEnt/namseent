@@ -1,9 +1,6 @@
 use crate::{
-    game_state::{
-        Modal, force_start,
-        hand::{HAND_WH, HandComponent, HandSlotId},
-        mutate_game_state, set_modal, use_game_state,
-    },
+    game_state::{Modal, force_start, mutate_game_state, set_modal, use_game_state},
+    hand::{HAND_WH, HandComponent, HandSlotId},
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
         typography::{TextAlign, headline},

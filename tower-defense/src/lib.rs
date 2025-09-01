@@ -3,6 +3,7 @@ mod card;
 mod flow_ui;
 mod game_speed_indicator;
 mod game_state;
+mod hand;
 mod icon;
 mod inventory;
 pub mod l10n;

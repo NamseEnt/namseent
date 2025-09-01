@@ -1,8 +1,7 @@
-use super::shared::render_top_left_rank_and_suit;
+use super::*;
 use crate::{
     asset_loader::get_face_card_asset,
     card::{Card, Rank},
-    game_state::hand::shared::render_background_rect,
     icon::{Icon, IconKind, IconSize},
     theme::typography::{FontSize, TextAlign, headline},
 };

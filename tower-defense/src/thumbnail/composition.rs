@@ -42,16 +42,6 @@ impl ThumbnailComposer {
         self
     }
 
-    /// 카운트 오버레이를 추가합니다.
-    pub fn add_count_overlay(mut self, count: usize) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_count_overlay(
-                self.width_height,
-                count,
-            ));
-        self
-    }
-
     /// 플러스 오버레이를 추가합니다.
     pub fn add_plus_overlay(mut self) -> Self {
         self.overlay_layers
@@ -76,13 +66,6 @@ impl ThumbnailComposer {
                 self.width_height,
                 suit,
             ));
-        self
-    }
-
-    /// 새 아이템 표시기를 추가합니다.
-    pub fn add_new_indicator(mut self) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_new_indicator(self.width_height));
         self
     }
 

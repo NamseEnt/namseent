@@ -1,13 +1,5 @@
-use crate::{
-    card::Card,
-    game_state::{
-        hand::{
-            HAND_SLOT_WH, HAND_WH, render_card::RenderCard, render_tower::RenderTower,
-            xy_with_spring::xy_with_spring,
-        },
-        tower::TowerTemplate,
-    },
-};
+use super::*;
+use crate::{card::Card, game_state::tower::TowerTemplate};
 use namui::*;
 use std::{any::Any, sync::atomic::AtomicUsize};
 
@@ -115,7 +107,6 @@ where
             .scale(animated_scale)
             .translate(-half_slot_xy);
 
-        // ctx.add(&self.item);
         if let Some(card) = (&self.item as &dyn Any).downcast_ref::<Card>() {
             ctx.add(RenderCard {
                 wh: HAND_SLOT_WH,
@@ -128,6 +119,8 @@ where
                 wh: HAND_SLOT_WH,
                 tower_template,
             });
+        } else {
+            unreachable!("Invalid item type: {}", std::any::type_name::<Item>());
         }
     }
 }

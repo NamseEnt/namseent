@@ -4,10 +4,14 @@ mod render_tower;
 pub mod shared;
 mod xy_with_spring;
 
-use crate::game_state::hand::hand_slot::HandSlot;
+use hand_slot::HandSlot;
 pub use hand_slot::HandSlotId;
 use namui::*;
-use std::{any::Any, cmp::Ordering};
+use render_card::RenderCard;
+use render_tower::RenderTower;
+use shared::*;
+use std::{any::Any, cmp::Ordering, fmt::Debug};
+use xy_with_spring::*;
 
 pub const HAND_SLOT_WH: Wh<Px> = Wh::new(px(112.), px(152.));
 pub const HAND_WH: Wh<Px> = Wh::new(px(600.), px(160.));
@@ -16,13 +20,15 @@ pub const HAND_WH: Wh<Px> = Wh::new(px(600.), px(160.));
 const DEFAULT_SLOT_GAP: Px = px(8.0);
 
 #[derive(Default, Clone, Debug)]
-pub struct Hand<Item> {
+pub struct Hand<Item: Debug> {
     slots: Vec<HandSlot<Item>>,
 }
-impl<Item: PartialOrd> Hand<Item> {
+impl<Item: PartialOrd + Debug> Hand<Item> {
     pub fn new(items: impl IntoIterator<Item = Item>) -> Self {
         let slots = items.into_iter().map(|item| HandSlot::new(item)).collect();
-        Self { slots }
+        let mut hand = Self { slots };
+        hand.calculate_slot_xy();
+        hand
     }
     pub fn delete_slots(&mut self, ids: &[HandSlotId]) {
         let now = Instant::now();
@@ -98,6 +104,7 @@ impl<Item: PartialOrd> Hand<Item> {
 
     pub fn push(&mut self, item: Item) {
         self.slots.push(HandSlot::new(item));
+        self.calculate_slot_xy();
     }
 
     fn sort_slots(&mut self) {
@@ -109,7 +116,7 @@ impl<Item: PartialOrd> Hand<Item> {
                 _ => {}
             }
 
-            a.item.partial_cmp(&b.item).unwrap()
+            a.item.partial_cmp(&b.item).unwrap().reverse()
         });
     }
 
@@ -178,11 +185,11 @@ impl<Item: PartialOrd> Hand<Item> {
     }
 }
 
-pub struct HandComponent<'a, Item> {
+pub struct HandComponent<'a, Item: Debug> {
     pub hand: &'a Hand<Item>,
     pub on_click: &'a dyn Fn(HandSlotId),
 }
-impl<'a, Item> Component for HandComponent<'a, Item>
+impl<'a, Item: Debug> Component for HandComponent<'a, Item>
 where
     Item: Any,
 {

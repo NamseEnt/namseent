@@ -60,17 +60,6 @@ pub fn render_text_overlay(
     )
 }
 
-/// 카운트 오버레이를 렌더링하는 함수
-pub fn render_count_overlay(container_size: Wh<Px>, count: usize) -> RenderingTree {
-    render_text_overlay(
-        container_size,
-        &count.to_string(),
-        OverlayPosition::BottomRight,
-        OVERLAY_SIZE_RATIO * 0.75, // 카운트는 조금 작게
-        TEXT_SIZE_RATIO,
-    )
-}
-
 /// 플러스 아이콘 오버레이를 렌더링하는 함수
 pub fn render_plus_overlay(container_size: Wh<Px>) -> RenderingTree {
     render_icon_overlay(
@@ -244,15 +233,5 @@ pub fn render_same_suits_indicator(container_size: Wh<Px>) -> RenderingTree {
         OverlayPosition::TopLeft,
         OVERLAY_SIZE_RATIO,
         LARGE_TEXT_SIZE_RATIO,
-    )
-}
-
-/// 새 아이템 표시기를 렌더링하는 함수
-pub fn render_new_indicator(container_size: Wh<Px>) -> RenderingTree {
-    render_icon_overlay(
-        container_size,
-        IconKind::New,
-        OverlayPosition::TopLeft,
-        OVERLAY_SIZE_RATIO,
     )
 }

@@ -3,17 +3,12 @@ mod tower_preview;
 
 use crate::card::Card;
 use crate::game_state::flow::GameFlow;
-use crate::game_state::hand::Hand;
+use crate::game_state::mutate_game_state;
+use crate::hand::{HAND_WH, Hand, HandComponent, HandSlotId};
 use crate::icon::{Icon, IconKind, IconSize};
+use crate::palette;
 use crate::theme::button::Button;
 use crate::theme::typography::{TextAlign, headline};
-use crate::{
-    game_state::{
-        hand::{HAND_WH, HandComponent, HandSlotId},
-        mutate_game_state,
-    },
-    palette,
-};
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
 use namui_prebuilt::table;
