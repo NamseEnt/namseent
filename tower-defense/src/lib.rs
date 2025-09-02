@@ -1,5 +1,6 @@
 mod asset_loader;
 mod card;
+mod contracts;
 mod flow_ui;
 mod game_speed_indicator;
 mod game_state;
@@ -23,6 +24,7 @@ use crate::{
     theme::button::{Button, ButtonVariant},
 };
 use asset_loader::LoadingScreen;
+use contracts::Contracts;
 use game_speed_indicator::GameSpeedIndicator;
 use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
 use inventory::Inventory;
@@ -55,7 +57,7 @@ impl Component for Game {
                 screen_wh,
                 on_complete: &|| {
                     mutate_game_state(|game_state| {
-                        game_state.goto_selecting_tower();
+                        game_state.goto_next_stage();
                     });
                 },
             });
@@ -99,6 +101,7 @@ impl Component for Game {
 
         ctx.add(flow_ui::FlowUi);
 
+        ctx.add(Contracts { screen_wh });
         ctx.add(Inventory { screen_wh });
 
         ctx.add(TopBar { screen_wh });

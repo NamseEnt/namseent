@@ -167,7 +167,7 @@ fn check_defense_end(game_state: &mut GameState) {
     if is_boss_stage {
         game_state.goto_selecting_upgrade();
     } else {
-        game_state.goto_selecting_tower();
+        game_state.goto_next_stage();
     }
 }
 
@@ -176,5 +176,5 @@ fn check_game_initialized(game_state: &mut GameState) {
         return;
     }
 
-    game_state.goto_selecting_tower();
+    game_state.goto_next_stage();
 }

@@ -3,6 +3,7 @@ mod camera;
 pub mod can_place_tower;
 pub mod contract;
 pub mod cursor_preview;
+pub mod effect;
 mod event_handlers;
 pub mod fast_forward;
 mod field_area_effect;
@@ -260,7 +261,28 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             locale: crate::l10n::Locale::KOREAN,
             play_history: PlayHistory::new(),
             opened_modal: None,
-            contracts: Vec::new(),
+            contracts: vec![
+                contract::Contract::new(
+                    rarity::Rarity::Common,
+                    2,
+                    contract::ContractEffect::OnExpire {
+                        effect: effect::Effect::Dummy,
+                    },
+                    contract::ContractEffect::OnSign {
+                        effect: effect::Effect::Dummy,
+                    },
+                ),
+                contract::Contract::new(
+                    rarity::Rarity::Rare,
+                    2,
+                    contract::ContractEffect::OnExpire {
+                        effect: effect::Effect::Dummy,
+                    },
+                    contract::ContractEffect::OnSign {
+                        effect: effect::Effect::Dummy,
+                    },
+                ),
+            ],
             contract_state: ContractState::default(),
         }
     })

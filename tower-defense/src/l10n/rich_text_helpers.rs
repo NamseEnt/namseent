@@ -187,3 +187,12 @@ pub fn with_suit_color(text: String, suit: crate::card::Suit) -> String {
     };
     format!("|{color_tag}|{text}|/{color_tag}|")
 }
+
+// === 계약 텍스트 색상 ===
+pub fn contract_risk<T: std::fmt::Display>(text: T) -> String {
+    format!("|red|{text}|/red|")
+}
+
+pub fn contract_reward<T: std::fmt::Display>(text: T) -> String {
+    format!("|blue|{text}|/blue|")
+}

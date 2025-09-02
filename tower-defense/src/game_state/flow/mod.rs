@@ -10,6 +10,7 @@ use crate::{card::Card, game_state::hand::Hand, shop::Shop};
 #[allow(clippy::large_enum_variant)]
 pub enum GameFlow {
     Initializing,
+    Contract,
     SelectingTower(SelectingTowerFlow),
     PlacingTower { hand: Hand<TowerTemplate> },
     Defense,
@@ -50,13 +51,16 @@ impl SelectingTowerFlow {
 }
 
 impl GameState {
-    pub fn goto_selecting_tower(&mut self) {
-        self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
-
+    pub fn goto_next_stage(&mut self) {
+        self.flow = GameFlow::Contract;
         self.left_reroll_chance = self.max_reroll_chance();
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+    }
+
+    pub fn goto_selecting_tower(&mut self) {
+        self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
