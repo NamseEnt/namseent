@@ -1,6 +1,7 @@
 pub mod background;
 mod camera;
 pub mod can_place_tower;
+pub mod contract;
 pub mod cursor_preview;
 mod event_handlers;
 pub mod fast_forward;
@@ -30,6 +31,7 @@ use crate::route::*;
 use crate::*;
 use background::{Background, generate_backgrounds};
 use camera::*;
+use contract::ContractState;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use field_area_effect::FieldAreaEffect;
@@ -98,6 +100,8 @@ pub struct GameState {
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
+    pub contracts: Vec<contract::Contract>,
+    pub contract_state: ContractState,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -256,6 +260,8 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             locale: crate::l10n::Locale::KOREAN,
             play_history: PlayHistory::new(),
             opened_modal: None,
+            contracts: Vec::new(),
+            contract_state: ContractState::default(),
         }
     })
     .0
