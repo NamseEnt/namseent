@@ -1,10 +1,11 @@
 ---
 import { getSession } from 'auth-astro/server';
-import '../styles/global.css';
-import Home from '../components/home/Home.tsx';
+import '../../styles/global.css';
+import FundingDetail from '../../components/funding/FundingDetail.tsx';
 
 export const prerender = false;
 
+const { id } = Astro.params;
 const session = await getSession(Astro.request);
 
 const mockFundings = [
@@ -57,17 +58,23 @@ const mockFundings = [
     contentImage: 'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800&h=1200&fit=crop'
   }
 ];
+
+const funding = mockFundings.find(f => f.id === id);
+
+if (!funding) {
+  return Astro.redirect('/404');
+}
 ---
 
 <html lang="ko">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>하연이에게 저녁을</title>
-	</head>
-	<body>
-		<Home session={session} fundings={mockFundings} client:load />
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{funding.title} - 하연이에게 저녁을</title>
+  </head>
+  <body>
+    <FundingDetail session={session} funding={funding} client:load />
+  </body>
 </html>
