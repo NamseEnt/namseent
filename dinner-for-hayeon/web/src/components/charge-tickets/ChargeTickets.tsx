@@ -1,5 +1,4 @@
 import { useState } from "react";
-import GlobalNavigation from "../common/GlobalNavigation";
 import type { SessionUser } from "@/utils/auth";
 
 export default function ChargeTickets({
@@ -44,11 +43,7 @@ export default function ChargeTickets({
     const ticketOptions = [1, 5, 10, 20, 50, 100];
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <GlobalNavigation session={session} userTickets={userTickets} />
-
-            {/* 메인 컨텐츠 */}
-            <main className="max-w-2xl mx-auto px-4 py-8">
+        <main className="max-w-2xl mx-auto px-4 py-8">
                 {/* 현재 보유 티켓 */}
                 <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
                     <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -177,7 +172,6 @@ export default function ChargeTickets({
                         현재 결제 기능은 개발 중입니다
                     </p>
                 </div>
-            </main>
-        </div>
+        </main>
     );
 }

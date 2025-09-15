@@ -1,6 +1,6 @@
 ---
+import Layout from "../../layouts/Layout.astro";
 import { getSessionUser } from "@/utils/auth.ts";
-import "../../styles/global.css";
 import UseTicket from "../../components/use-ticket/UseTicket.tsx";
 import { db, Funding, User, eq } from "astro:db";
 
@@ -30,20 +30,6 @@ const userResults = await db
 const userTickets = userResults[0]?.tickets || 0;
 ---
 
-<html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>티켓 사용하기 - {funding.title}</title>
-  </head>
-  <body>
-    <UseTicket
-      sessionUser={sessionUser}
-      funding={funding}
-      userTickets={userTickets}
-      client:load
-    />
-  </body>
-</html>
+<Layout title={`티켓 사용하기 - ${funding.title}`}>
+  <UseTicket funding={funding} userTickets={userTickets} client:load />
+</Layout>

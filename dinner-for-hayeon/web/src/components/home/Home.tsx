@@ -1,7 +1,5 @@
 import FundingList from "./FundingList";
-import GlobalNavigation, {
-    type GlobalNavigationProps,
-} from "../common/GlobalNavigation";
+import type { GlobalNavigationProps } from "../common/GlobalNavigation";
 
 interface FundingData {
     id: string;
@@ -19,13 +17,8 @@ export default function Home({
     fundings: FundingData[];
 }) {
     return (
-        <div className="min-h-screen bg-gray-50">
-            <GlobalNavigation {...gnb} />
-
-            {/* 메인 컨텐츠 */}
-            <main className="py-8">
-                <FundingList fundings={fundings} />
-            </main>
-        </div>
+        <main className="py-8">
+            <FundingList fundings={fundings} />
+        </main>
     );
 }

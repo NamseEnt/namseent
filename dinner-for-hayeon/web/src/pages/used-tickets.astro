@@ -1,6 +1,6 @@
 ---
-import { db, TicketUsageHistory, Funding, User, eq } from "astro:db";
-import "../styles/global.css";
+import Layout from "../layouts/Layout.astro";
+import { db, TicketUsageHistory, Funding, eq } from "astro:db";
 import UsedTicketsList from "../components/used-tickets/UsedTicketsList.tsx";
 import { checkAdmin, getSessionUser } from "../utils/auth.ts";
 
@@ -9,16 +9,13 @@ export const prerender = false;
 const sessionUser = await getSessionUser(Astro.request);
 
 // 로그인 체크
-if (!session) {
+if (!sessionUser) {
   return Astro.redirect("/");
 }
 
 // 세션에서 사용자 ID 가져오기 및 티켓 정보 조회
-const userId = session.id;
-const isAdmin = checkAdmin(session);
-
-const userResults = await db.select().from(User).where(eq(User.id, userId));
-const userTickets = userResults[0]!.tickets;
+const userId = sessionUser.id;
+const isAdmin = checkAdmin(sessionUser);
 
 console.log("사용할 사용자 ID:", userId);
 console.log("Admin 권한:", isAdmin);
@@ -42,20 +39,6 @@ const usageHistoryWithFunding = await db
 const usageHistory = usageHistoryWithFunding.reverse();
 ---
 
-<html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>사용한 티켓 내역 - 하연이에게 저녁을</title>
-  </head>
-  <body>
-    <UsedTicketsList
-      session={session}
-      usageHistory={usageHistory}
-      userTickets={userTickets}
-      client:load
-    />
-  </body>
-</html>
+<Layout title="사용한 티켓 내역 - 하연이에게 저녁을">
+  <UsedTicketsList usageHistory={usageHistory} client:load />
+</Layout>

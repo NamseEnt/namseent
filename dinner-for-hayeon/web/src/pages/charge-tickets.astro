@@ -1,7 +1,7 @@
 ---
-import { getSessionUser } from "@/utils/auth.ts";
-import "../styles/global.css";
+import Layout from "../layouts/Layout.astro";
 import ChargeTicketsComponent from "../components/charge-tickets/ChargeTickets.tsx";
+import { getSessionUser } from "@/utils/auth.ts";
 import { db, User, eq } from "astro:db";
 
 export const prerender = false;
@@ -9,7 +9,7 @@ export const prerender = false;
 const sessionUser = await getSessionUser(Astro.request);
 
 // 로그인하지 않았다면 홈으로 리다이렉트
-if (!session) {
+if (!sessionUser) {
   return Astro.redirect("/");
 }
 
@@ -17,23 +17,14 @@ if (!session) {
 const userResults = await db
   .select()
   .from(User)
-  .where(eq(User.id, session.user!.id!));
+  .where(eq(User.id, sessionUser.id));
 const userTickets = userResults[0]!.tickets;
 ---
 
-<html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>티켓 충전 - 하연이에게 저녁을</title>
-  </head>
-  <body>
-    <ChargeTicketsComponent
-      session={session}
-      userTickets={userTickets}
-      client:load
-    />
-  </body>
-</html>
+<Layout title="티켓 충전 - 하연이에게 저녁을">
+  <ChargeTicketsComponent
+    session={sessionUser}
+    userTickets={userTickets}
+    client:load
+  />
+</Layout>

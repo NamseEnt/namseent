@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { SessionUser } from "@/utils/auth";
-import GlobalNavigation from "../common/GlobalNavigation";
 import TicketAdjustment from "./TicketAdjustment";
 import FundingCreator from "./FundingCreator";
 
@@ -13,10 +12,7 @@ export default function Admin({ sessionUser }: { sessionUser: SessionUser }) {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <GlobalNavigation sessionUser={sessionUser} />
-
-            <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 py-8">
                 <div className="bg-white rounded-lg shadow-sm border">
                     {/* 헤더 */}
                     <div className="border-b px-6 py-4">
@@ -57,7 +53,6 @@ export default function Admin({ sessionUser }: { sessionUser: SessionUser }) {
                         {activeTab === "funding" && <FundingCreator />}
                     </div>
                 </div>
-            </div>
         </div>
     );
 }

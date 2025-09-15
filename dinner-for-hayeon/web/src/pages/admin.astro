@@ -1,6 +1,6 @@
 ---
+import Layout from "../layouts/Layout.astro";
 import { getSessionUser, checkAdmin } from "@/utils/auth.ts";
-import "../styles/global.css";
 import AdminPage from "../components/admin/Admin.tsx";
 
 export const prerender = false;
@@ -8,24 +8,15 @@ export const prerender = false;
 const sessionUser = await getSessionUser(Astro.request);
 
 // 로그인하지 않았거나 admin이 아닌 경우 리다이렉트
-if (!session) {
+if (!sessionUser) {
   return Astro.redirect("/");
 }
 
-if (!checkAdmin(session)) {
+if (!checkAdmin(sessionUser)) {
   return Astro.redirect("/");
 }
 ---
 
-<html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>관리자 페이지 - 하연이에게 저녁을</title>
-  </head>
-  <body>
-    <AdminPage sessionUser={session} client:load />
-  </body>
-</html>
+<Layout title="관리자 페이지 - 하연이에게 저녁을">
+  <AdminPage sessionUser={sessionUser} client:load />
+</Layout>

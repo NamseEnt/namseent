@@ -1,34 +1,24 @@
 ---
-import { getSessionUser } from "@/utils/auth.ts";
-import "../styles/global.css";
+import Layout from "../layouts/Layout.astro";
 import Home from "../components/home/Home.tsx";
-import { checkAdmin } from "../utils/auth.ts";
+import { getSessionUser } from "@/utils/auth.ts";
 import { db, Funding, User, eq } from "astro:db";
 
 export const prerender = false;
 
-const sessionUser = (await getSessionUser(Astro.request))?.user;
+const sessionUser = (await getSessionUser(Astro.request));
 const fundings = await db.select().from(Funding);
 
 const gnb = sessionUser
   ? {
       sessionUser,
       userTickets: (
-        await db.select().from(User).where(eq(User.id, sessionUser.id!))
+        await db.select().from(User).where(eq(User.id, sessionUser.id))
       )[0]!.tickets,
     }
   : { sessionUser: null };
 ---
 
-<html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>하연이에게 저녁을</title>
-  </head>
-  <body>
-    <Home gnb={gnb} fundings={fundings} client:load />
-  </body>
-</html>
+<Layout title="하연이에게 저녁을" showGnb={false}>
+  <Home gnb={gnb} fundings={fundings} client:load />
+</Layout>

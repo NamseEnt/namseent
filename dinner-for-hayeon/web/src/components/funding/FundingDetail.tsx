@@ -1,5 +1,4 @@
 import { signIn } from "auth-astro/client";
-import GlobalNavigation from "../common/GlobalNavigation";
 import type { SessionUser } from "@/utils/auth";
 
 interface FundingData {
@@ -34,11 +33,7 @@ export default function FundingDetail({
     );
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <GlobalNavigation session={session} />
-
-            {/* 메인 컨텐츠 */}
-            <main>
+        <main>
                 {/* 상단 메인 섹션 */}
                 <div className="bg-white border-b">
                     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -113,7 +108,6 @@ export default function FundingDetail({
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+        </main>
     );
 }

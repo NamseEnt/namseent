@@ -1,6 +1,6 @@
 ---
+import Layout from "../../layouts/Layout.astro";
 import { getSessionUser } from "@/utils/auth.ts";
-import "../../styles/global.css";
 import FundingDetail from "../../components/funding/FundingDetail.tsx";
 import { db, Funding, eq } from "astro:db";
 
@@ -20,15 +20,6 @@ if (!funding) {
 }
 ---
 
-<html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>{funding.title} - 하연이에게 저녁을</title>
-  </head>
-  <body>
-    <FundingDetail session={session} funding={funding} client:load />
-  </body>
-</html>
+<Layout title={`${funding.title} - 하연이에게 저녁을`}>
+  <FundingDetail session={sessionUser} funding={funding} client:load />
+</Layout>
