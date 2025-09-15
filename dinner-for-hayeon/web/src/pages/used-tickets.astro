@@ -1,22 +1,25 @@
 ---
-import { getSession } from "auth-astro/server";
-import { db, TicketUsageHistory, Funding, eq } from "astro:db";
+import { db, TicketUsageHistory, Funding, User, eq } from "astro:db";
 import "../styles/global.css";
 import UsedTicketsList from "../components/used-tickets/UsedTicketsList.tsx";
-import { checkAdmin } from "../utils/auth.ts";
+import { checkAdmin, getSessionUser } from "../utils/auth.ts";
 
 export const prerender = false;
 
-const session = await getSession(Astro.request);
+const sessionUser = await getSessionUser(Astro.request);
 
 // 로그인 체크
 if (!session) {
   return Astro.redirect("/");
 }
 
-// 세션에서 사용자 ID 가져오기 (이제 실제 구글 ID 사용)
-const userId = session.user?.id || "unknown";
+// 세션에서 사용자 ID 가져오기 및 티켓 정보 조회
+const userId = session.id;
 const isAdmin = checkAdmin(session);
+
+const userResults = await db.select().from(User).where(eq(User.id, userId));
+const userTickets = userResults[0]!.tickets;
+
 console.log("사용할 사용자 ID:", userId);
 console.log("Admin 권한:", isAdmin);
 
@@ -51,6 +54,7 @@ const usageHistory = usageHistoryWithFunding.reverse();
     <UsedTicketsList
       session={session}
       usageHistory={usageHistory}
+      userTickets={userTickets}
       client:load
     />
   </body>

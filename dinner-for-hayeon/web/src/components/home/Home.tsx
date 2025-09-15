@@ -1,6 +1,7 @@
 import FundingList from "./FundingList";
-import GlobalNavigation from "../common/GlobalNavigation";
-import type { Session } from "@auth/core/types";
+import GlobalNavigation, {
+    type GlobalNavigationProps,
+} from "../common/GlobalNavigation";
 
 interface FundingData {
     id: string;
@@ -11,15 +12,15 @@ interface FundingData {
 }
 
 export default function Home({
-    session,
+    gnb,
     fundings,
 }: {
-    session: Session | null;
+    gnb: GlobalNavigationProps;
     fundings: FundingData[];
 }) {
     return (
         <div className="min-h-screen bg-gray-50">
-            <GlobalNavigation session={session} />
+            <GlobalNavigation {...gnb} />
 
             {/* 메인 컨텐츠 */}
             <main className="py-8">

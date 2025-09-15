@@ -1,6 +1,6 @@
 import { signIn } from "auth-astro/client";
 import GlobalNavigation from "../common/GlobalNavigation";
-import type { Session } from "@auth/core/types";
+import type { SessionUser } from "@/utils/auth";
 
 interface FundingData {
     id: string;

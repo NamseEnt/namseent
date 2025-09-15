@@ -1,6 +1,6 @@
 import { useState } from "react";
 import GlobalNavigation from "../common/GlobalNavigation";
-import type { Session } from "@auth/core/types";
+import type { SessionUser } from "@/utils/auth";
 
 interface FundingData {
     id: string;
@@ -11,11 +11,11 @@ interface FundingData {
 }
 
 export default function UseTicket({
-    session,
+    sessionUser,
     funding,
     userTickets,
 }: {
-    session: Session | null;
+    sessionUser: SessionUser;
     funding: FundingData;
     userTickets: number;
 }) {
@@ -38,7 +38,7 @@ export default function UseTicket({
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <GlobalNavigation session={session} />
+            <GlobalNavigation sessionUser={sessionUser} />
 
             {/* 메인 컨텐츠 */}
             <main className="py-8">

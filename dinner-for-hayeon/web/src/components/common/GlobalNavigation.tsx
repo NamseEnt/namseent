@@ -1,13 +1,16 @@
 import { signIn, signOut } from "auth-astro/client";
-import type { Session } from "@auth/core/types";
+import { checkAdmin, type SessionUser } from "../../utils/auth";
 
-export default function GlobalNavigation({
-    session,
-}: {
-    session: Session | null;
-}) {
-    const userTickets = 12; // Mock data - 실제로는 API에서 가져와야 함
+export type GlobalNavigationProps =
+    | {
+          sessionUser: null;
+      }
+    | {
+          sessionUser: SessionUser;
+          userTickets?: number;
+      };
 
+export default function GlobalNavigation(props: GlobalNavigationProps) {
     const handleLogin = () => {
         signIn("google");
     };
@@ -30,7 +33,7 @@ export default function GlobalNavigation({
                     하연이에게 저녁을 🍽️
                 </button>
 
-                {session ? (
+                {props.sessionUser ? (
                     <div className="flex items-center gap-4">
                         {/* 네비게이션 메뉴 */}
                         <nav className="flex items-center gap-3">
@@ -42,13 +45,23 @@ export default function GlobalNavigation({
                             >
                                 📋 사용 내역
                             </button>
+                            {checkAdmin(props.sessionUser) && (
+                                <button
+                                    onClick={() =>
+                                        (window.location.href = "/admin")
+                                    }
+                                    className="text-sm text-purple-600 hover:text-purple-800 px-3 py-2 rounded-lg hover:bg-purple-100 transition-colors flex items-center gap-1 font-medium"
+                                >
+                                    ⚙️ 관리자
+                                </button>
+                            )}
                         </nav>
 
                         {/* 티켓 정보 및 충전 버튼 */}
                         <div className="flex items-center gap-3 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
                             <div className="text-orange-600">🎫</div>
                             <span className="text-sm font-medium text-orange-700">
-                                {userTickets}개
+                                {props.userTickets}개
                             </span>
                             <button
                                 onClick={() =>
@@ -61,15 +74,15 @@ export default function GlobalNavigation({
                         </div>
 
                         {/* 기존 프로필 영역 */}
-                        {session.user?.image && (
+                        {props.sessionUser?.image && (
                             <img
-                                src={session.user.image}
+                                src={props.sessionUser.image}
                                 alt="프로필 이미지"
                                 className="w-8 h-8 rounded-full"
                             />
                         )}
                         <span className="text-sm text-gray-700">
-                            {session.user?.name}님
+                            {props.sessionUser?.name}님
                         </span>
                         <button
                             onClick={handleLogout}

@@ -9,6 +9,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.4",
     "@astrojs/db": "^0.17.2",
     "@astrojs/node": "^9.4.3",
     "@astrojs/react": "^4.3.1",
@@ -17,9 +18,10 @@
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "astro": "^5.13.7",
-    "auth-astro": "^4.2.0",
+    "auth-astro": "github:mridang/auth-astro#auth-core-migration",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "tailwindcss": "^4.1.13"
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2"
   }
 }

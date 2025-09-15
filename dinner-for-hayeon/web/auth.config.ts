@@ -1,30 +1,56 @@
 import Google from "@auth/core/providers/google";
 import { defineConfig } from "auth-astro";
+import { db, User, eq } from "astro:db";
 
 export default defineConfig({
-  providers: [
-    Google({
-      clientId: import.meta.env.GOOGLE_CLIENT_ID,
-      clientSecret: import.meta.env.GOOGLE_CLIENT_SECRET,
-    }),
-  ],
-  callbacks: {
-    jwt({ token, user, profile }) {
-      // 로그인 시 사용자 정보를 JWT 토큰에 저장
-      if (user) {
-        // Google OAuth에서는 profile.sub에 고유 ID가 들어있음
-        token.id = profile?.sub || user.id || token.email;
-      }
+    providers: [
+        Google({
+            clientId: import.meta.env.GOOGLE_CLIENT_ID,
+            clientSecret: import.meta.env.GOOGLE_CLIENT_SECRET,
+        }),
+    ],
+    callbacks: {
+        async signIn({ user, profile }) {
+            const userId = profile?.sub;
+            const username = user.name;
+            if (!userId) {
+                console.error("User ID is required", user, profile);
+                return false;
+            }
 
-      return token;
-    },
-    session({ session, token }) {
-      // 세션에 사용자 ID 포함
-      if (token) {
-        session.user.id = token.id as string;
-      }
+            if (!username) {
+                console.error("Username is required", user, profile);
+                return false;
+            }
 
-      return session;
+            const existingUser = await db
+                .select()
+                .from(User)
+                .where(eq(User.id, userId));
+
+            if (existingUser.length === 0) {
+                db.transaction(async (tx) => {
+                    await tx.insert(User).values({
+                        id: userId,
+                        name: username,
+                        tickets: 0,
+                    });
+                });
+            }
+
+            return true;
+        },
+        jwt({ token, account }) {
+            if (account) {
+                token.id = account.providerAccountId;
+            }
+            return token;
+        },
+        session({ session, token }) {
+            if (session.user && token?.id) {
+                session.user.id = token.id as string;
+            }
+            return session;
+        },
     },
-  },
 });

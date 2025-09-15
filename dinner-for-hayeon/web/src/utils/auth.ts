@@ -1,4 +1,4 @@
-import type { Session } from "@auth/core/types";
+import { getSession as getSessionAstro } from "auth-astro/server";
 
 // Admin 사용자 목록 (Google ID 기반)
 const ADMIN_GOOGLE_IDS = ["108731783381066958153"];
@@ -8,13 +8,13 @@ const ADMIN_GOOGLE_IDS = ["108731783381066958153"];
  * @param session - Auth.js 세션 객체
  * @returns admin 권한이 있으면 true, 없으면 false
  */
-export function checkAdmin(session: Session | null): boolean {
-    if (!session?.user?.id) {
+export function checkAdmin(sessionUser: SessionUser): boolean {
+    if (!sessionUser?.id) {
         return false;
     }
 
     // Google ID로 admin 체크
-    return ADMIN_GOOGLE_IDS.includes(session.user.id);
+    return ADMIN_GOOGLE_IDS.includes(sessionUser.id);
 }
 
 /**
@@ -24,3 +24,25 @@ export function checkAdmin(session: Session | null): boolean {
 export function getAdminGoogleIds(): readonly string[] {
     return ADMIN_GOOGLE_IDS;
 }
+
+export async function getSessionUser(
+    request: Request,
+): Promise<SessionUser | undefined> {
+    const session = await getSessionAstro(request);
+    if (!session?.user) {
+        return;
+    }
+    return {
+        id: session.user.id!,
+        name: session.user.name!,
+        email: session.user.email!,
+        image: session.user.image!,
+    };
+}
+
+export type SessionUser = {
+    id: string;
+    name: string;
+    email: string;
+    image: string;
+};

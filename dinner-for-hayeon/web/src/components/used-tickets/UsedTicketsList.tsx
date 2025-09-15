@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { signOut } from "auth-astro/client";
 import GlobalNavigation from "../common/GlobalNavigation";
 
 interface UsageHistoryItem {
@@ -14,9 +12,11 @@ interface UsageHistoryItem {
 export default function UsedTicketsList({
     session,
     usageHistory,
+    userTickets = 0,
 }: {
     session: any;
     usageHistory: UsageHistoryItem[];
+    userTickets?: number;
 }) {
     const formatDate = (date: Date) => {
         return new Date(date).toLocaleDateString("ko-KR", {
@@ -32,7 +32,7 @@ export default function UsedTicketsList({
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <GlobalNavigation session={session} />
+            <GlobalNavigation session={session} userTickets={userTickets} />
 
             <div className="container mx-auto px-4 py-8">
                 {/* 헤더 */}

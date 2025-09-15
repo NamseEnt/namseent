@@ -1,16 +1,16 @@
 import { useState } from "react";
 import GlobalNavigation from "../common/GlobalNavigation";
-import type { Session } from "@auth/core/types";
+import type { SessionUser } from "@/utils/auth";
 
 export default function ChargeTickets({
     session,
+    userTickets = 0,
 }: {
     session: Session | null;
+    userTickets?: number;
 }) {
     const [selectedTicketCount, setSelectedTicketCount] = useState(0);
     const [customAmount, setCustomAmount] = useState("");
-
-    const userTickets = 12; // Mock data - 실제로는 API에서 가져와야 함
 
     const selectTicketCount = (count: number) => {
         setSelectedTicketCount(count);
@@ -45,7 +45,7 @@ export default function ChargeTickets({
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <GlobalNavigation session={session} />
+            <GlobalNavigation session={session} userTickets={userTickets} />
 
             {/* 메인 컨텐츠 */}
             <main className="max-w-2xl mx-auto px-4 py-8">

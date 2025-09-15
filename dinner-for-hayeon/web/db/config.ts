@@ -2,10 +2,9 @@ import { defineDb, defineTable, column } from "astro:db";
 
 const User = defineTable({
     columns: {
-        id: column.text({ primaryKey: true }), // 이메일 주소를 ID로 사용
+        id: column.text({ primaryKey: true }),
         name: column.text(),
-        email: column.text({ unique: true }),
-        image: column.text({ optional: true }),
+        tickets: column.number({ default: 0 }),
         createdAt: column.date({ default: new Date() }),
     },
 });
