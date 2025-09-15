@@ -1,7 +1,6 @@
 import { defineAction } from "astro:actions";
 import { z } from "astro:schema";
 import { getSessionUser } from "@/utils/auth.ts";
-import { checkAdmin } from "../utils/auth";
 import { updateUserTickets } from "../utils/db";
 import { db, Funding } from "astro:db";
 
@@ -19,20 +18,20 @@ export const server = {
 
             // 세션 체크
             const sessionUser = await getSessionUser(context.request);
-            if (!session) {
+            if (!sessionUser) {
                 throw new Error("로그인이 필요합니다.");
             }
 
             // admin 권한 체크
-            if (!checkAdmin(session)) {
+            if (!sessionUser.admin) {
                 throw new Error("관리자 권한이 필요합니다.");
             }
 
             try {
-                await updateUserTickets(session.user!.id!, input.amount);
+                await updateUserTickets(sessionUser.id, input.amount);
 
                 console.log(
-                    `티켓 조정 완료: 사용자 ${session.user?.id}, 수량 ${input.amount}`,
+                    `티켓 조정 완료: 사용자 ${sessionUser.id}, 수량 ${input.amount}`,
                 );
 
                 return {
@@ -60,12 +59,12 @@ export const server = {
         handler: async (input, context) => {
             // 세션 체크
             const sessionUser = await getSessionUser(context.request);
-            if (!session) {
+            if (!sessionUser) {
                 throw new Error("로그인이 필요합니다.");
             }
 
             // admin 권한 체크
-            if (!checkAdmin(session)) {
+            if (!sessionUser.admin) {
                 throw new Error("관리자 권한이 필요합니다.");
             }
 
@@ -84,7 +83,7 @@ export const server = {
                 console.log(`펀딩 생성 완료:`, {
                     id: fundingId,
                     title: input.title,
-                    createdBy: session.user?.id,
+                    createdBy: sessionUser.id,
                 });
 
                 return {

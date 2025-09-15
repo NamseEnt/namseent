@@ -1,5 +1,5 @@
 import { signIn, signOut } from "auth-astro/client";
-import { checkAdmin, type SessionUser } from "../../utils/auth";
+import type { SessionUser } from "../../utils/auth";
 
 export type GlobalNavigationProps =
     | {
@@ -45,7 +45,7 @@ export default function GlobalNavigation(props: GlobalNavigationProps) {
                             >
                                 📋 사용 내역
                             </button>
-                            {checkAdmin(props.sessionUser) && (
+                            {props.sessionUser.admin && (
                                 <button
                                     onClick={() =>
                                         (window.location.href = "/admin")

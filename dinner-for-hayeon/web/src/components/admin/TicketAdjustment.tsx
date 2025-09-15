@@ -2,7 +2,7 @@ import { useState } from "react";
 import { actions } from "astro:actions";
 import type { SessionUser } from "@/utils/auth";
 
-export default function TicketAdjustment({ session }: { session: Session }) {
+export default function TicketAdjustment({ sessionUser }: { sessionUser: SessionUser }) {
     const [ticketAmount, setTicketAmount] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState("");
@@ -74,13 +74,13 @@ export default function TicketAdjustment({ session }: { session: Session }) {
                     </span>
                 </div>
                 <p className="text-sm text-blue-700">
-                    이름: {session.user?.name || "사용자"}
+                    이름: {sessionUser.name}
                 </p>
                 <p className="text-sm text-blue-700">
-                    ID: {session.user?.id || session.user?.email}
+                    ID: {sessionUser.id}
                 </p>
                 <p className="text-sm text-blue-700">
-                    이메일: {session.user?.email}
+                    이메일: {sessionUser.email}
                 </p>
             </div>
 

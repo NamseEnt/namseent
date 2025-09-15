@@ -11,14 +11,14 @@ interface FundingData {
 }
 
 export default function FundingDetail({
-    session,
+    sessionUser,
     funding,
 }: {
-    session: Session | null;
+    sessionUser: SessionUser | null;
     funding: FundingData;
 }) {
     const handleUseTicket = () => {
-        if (!session) {
+        if (!sessionUser) {
             // 로그인이 안되어 있으면 구글 로그인 시작하고 로그인 후 티켓 사용 페이지로 리다이렉트
             signIn("google", { callbackUrl: `/use-ticket/${funding.id}` });
             return;

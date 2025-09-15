@@ -1,7 +1,7 @@
 ---
-import Layout from "../../layouts/Layout.astro";
+import Layout from "@/layouts/Layout.astro";
 import { getSessionUser } from "@/utils/auth.ts";
-import UseTicket from "../../components/use-ticket/UseTicket.tsx";
+import UseTicket from "@/components/use-ticket/UseTicket.tsx";
 import { db, Funding, User, eq } from "astro:db";
 
 export const prerender = false;

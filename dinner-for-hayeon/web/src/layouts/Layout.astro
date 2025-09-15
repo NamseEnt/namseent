@@ -7,20 +7,19 @@ import { db, User, eq } from "astro:db";
 export const prerender = false;
 
 interface Props {
-  title?: string;
-  showGnb?: boolean;
+  title: string;
 }
 
-const { title = "하연이에게 저녁을", showGnb = true } = Astro.props;
+const { title } = Astro.props;
 
-const sessionUser = (await getSessionUser(Astro.request));
+const sessionUser = await getSessionUser(Astro.request);
 
 const gnb = sessionUser
   ? {
       sessionUser,
       userTickets: (
         await db.select().from(User).where(eq(User.id, sessionUser.id))
-      )[0]!.tickets,
+      )[0].tickets,
     }
   : { sessionUser: null };
 ---
@@ -34,7 +33,7 @@ const gnb = sessionUser
     <title>{title}</title>
   </head>
   <body class="min-h-screen bg-gray-50">
-    {showGnb && <GlobalNavigation {...gnb} client:load />}
+    <GlobalNavigation {...gnb} client:load />
     <main>
       <slot />
     </main>

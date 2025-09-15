@@ -1,11 +1,8 @@
 import { useState } from "react";
-import type { SessionUser } from "@/utils/auth";
 
 export default function ChargeTickets({
-    session,
     userTickets = 0,
 }: {
-    session: Session | null;
     userTickets?: number;
 }) {
     const [selectedTicketCount, setSelectedTicketCount] = useState(0);

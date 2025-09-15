@@ -1,26 +1,17 @@
 ---
-import Layout from "../layouts/Layout.astro";
+import Layout from "@/layouts/Layout.astro";
 import { db, TicketUsageHistory, Funding, eq } from "astro:db";
-import UsedTicketsList from "../components/used-tickets/UsedTicketsList.tsx";
-import { checkAdmin, getSessionUser } from "../utils/auth.ts";
+import UsedTicketsList from "@/components/used-tickets/UsedTicketsList.tsx";
+import { getSessionUser } from "@/utils/auth.ts";
 
 export const prerender = false;
 
 const sessionUser = await getSessionUser(Astro.request);
 
-// 로그인 체크
 if (!sessionUser) {
   return Astro.redirect("/");
 }
 
-// 세션에서 사용자 ID 가져오기 및 티켓 정보 조회
-const userId = sessionUser.id;
-const isAdmin = checkAdmin(sessionUser);
-
-console.log("사용할 사용자 ID:", userId);
-console.log("Admin 권한:", isAdmin);
-
-// 사용자의 티켓 사용 내역을 날짜 역순으로 가져오기
 const usageHistoryWithFunding = await db
   .select({
     id: TicketUsageHistory.id,
@@ -32,7 +23,7 @@ const usageHistoryWithFunding = await db
   })
   .from(TicketUsageHistory)
   .innerJoin(Funding, eq(TicketUsageHistory.fundingId, Funding.id))
-  .where(eq(TicketUsageHistory.userId, userId))
+  .where(eq(TicketUsageHistory.userId, sessionUser.id))
   .orderBy(TicketUsageHistory.usedAt);
 
 // 최신순으로 정렬

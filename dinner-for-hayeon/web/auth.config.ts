@@ -23,20 +23,19 @@ export default defineConfig({
                 return false;
             }
 
-            const existingUser = await db
-                .select()
-                .from(User)
-                .where(eq(User.id, userId));
-
-            if (existingUser.length === 0) {
-                db.transaction(async (tx) => {
+            await db.transaction(async (tx) => {
+                const existingUser = await tx
+                    .select()
+                    .from(User)
+                    .where(eq(User.id, userId));
+                if (existingUser.length === 0) {
                     await tx.insert(User).values({
                         id: userId,
                         name: username,
                         tickets: 0,
                     });
-                });
-            }
+                }
+            });
 
             return true;
         },

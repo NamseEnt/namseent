@@ -1,7 +1,7 @@
 ---
-import Layout from "../../layouts/Layout.astro";
+import Layout from "@/layouts/Layout.astro";
 import { getSessionUser } from "@/utils/auth.ts";
-import FundingDetail from "../../components/funding/FundingDetail.tsx";
+import FundingDetail from "@/components/funding/FundingDetail.tsx";
 import { db, Funding, eq } from "astro:db";
 
 export const prerender = false;
@@ -21,5 +21,9 @@ if (!funding) {
 ---
 
 <Layout title={`${funding.title} - 하연이에게 저녁을`}>
-  <FundingDetail session={sessionUser} funding={funding} client:load />
+  <FundingDetail
+    sessionUser={sessionUser || null}
+    funding={funding}
+    client:load
+  />
 </Layout>

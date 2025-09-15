@@ -1,24 +1,13 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import Home from "../components/home/Home.tsx";
-import { getSessionUser } from "@/utils/auth.ts";
-import { db, Funding, User, eq } from "astro:db";
+import Layout from "@/layouts/Layout.astro";
+import Home from "@/components/home/Home.tsx";
+import { db, Funding } from "astro:db";
 
 export const prerender = false;
 
-const sessionUser = (await getSessionUser(Astro.request));
 const fundings = await db.select().from(Funding);
-
-const gnb = sessionUser
-  ? {
-      sessionUser,
-      userTickets: (
-        await db.select().from(User).where(eq(User.id, sessionUser.id))
-      )[0]!.tickets,
-    }
-  : { sessionUser: null };
 ---
 
-<Layout title="하연이에게 저녁을" showGnb={false}>
-  <Home gnb={gnb} fundings={fundings} client:load />
+<Layout title="하연이에게 저녁을">
+  <Home fundings={fundings} client:load />
 </Layout>
