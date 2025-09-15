@@ -1,5 +1,5 @@
-import { signOut } from "auth-astro/client";
 import { useState } from "react";
+import GlobalNavigation from "../common/GlobalNavigation";
 import type { Session } from "@auth/core/types";
 
 interface FundingData {
@@ -21,10 +21,6 @@ export default function UseTicket({
 }) {
     const [ticketsToUse, setTicketsToUse] = useState(1);
 
-    const handleLogout = () => {
-        signOut();
-    };
-
     const handleUseTickets = () => {
         if (ticketsToUse <= 0 || ticketsToUse > userTickets) {
             alert("사용할 티켓 수를 올바르게 입력해주세요.");
@@ -36,42 +32,13 @@ export default function UseTicket({
         alert(`${ticketsToUse}개의 티켓을 사용했습니다!`);
     };
 
-    const progressPercentage = Math.round((funding.currentTickets / funding.targetTickets) * 100);
+    const progressPercentage = Math.round(
+        (funding.currentTickets / funding.targetTickets) * 100,
+    );
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* 헤더 섹션 */}
-            <header className="bg-white shadow-sm border-b">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <a href={`/funding/${funding.id}`} className="text-blue-500 hover:text-blue-700">
-                            ← 펀딩으로 돌아가기
-                        </a>
-                        <h1 className="text-2xl font-bold text-gray-800">
-                            하연이에게 저녁을 🍽️
-                        </h1>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        {session?.user?.image && (
-                            <img
-                                src={session.user.image}
-                                alt="프로필 이미지"
-                                className="w-8 h-8 rounded-full"
-                            />
-                        )}
-                        <span className="text-sm text-gray-700">
-                            {session?.user?.name}님
-                        </span>
-                        <button
-                            onClick={handleLogout}
-                            className="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-                        >
-                            로그아웃
-                        </button>
-                    </div>
-                </div>
-            </header>
+            <GlobalNavigation session={session} />
 
             {/* 메인 컨텐츠 */}
             <main className="py-8">
@@ -113,7 +80,10 @@ export default function UseTicket({
                                     <div
                                         className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                                         style={{
-                                            width: `${Math.min(progressPercentage, 100)}%`
+                                            width: `${Math.min(
+                                                progressPercentage,
+                                                100,
+                                            )}%`,
                                         }}
                                     />
                                 </div>
@@ -149,7 +119,9 @@ export default function UseTicket({
                                     min="1"
                                     max={userTickets}
                                     value={ticketsToUse}
-                                    onChange={(e) => setTicketsToUse(Number(e.target.value))}
+                                    onChange={(e) =>
+                                        setTicketsToUse(Number(e.target.value))
+                                    }
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 />
                             </div>
@@ -157,7 +129,10 @@ export default function UseTicket({
                             {/* 사용하기 버튼 */}
                             <button
                                 onClick={handleUseTickets}
-                                disabled={ticketsToUse <= 0 || ticketsToUse > userTickets}
+                                disabled={
+                                    ticketsToUse <= 0 ||
+                                    ticketsToUse > userTickets
+                                }
                                 className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors mb-6"
                             >
                                 {ticketsToUse}개 티켓 사용하기
@@ -169,8 +144,9 @@ export default function UseTicket({
                                     ⚠️ 중요 안내
                                 </h4>
                                 <p className="text-sm text-yellow-700">
-                                    티켓을 한번 사용하면 <strong>환불이나 철회가 불가능</strong>합니다.
-                                    신중하게 선택해주세요.
+                                    티켓을 한번 사용하면{" "}
+                                    <strong>환불이나 철회가 불가능</strong>
+                                    합니다. 신중하게 선택해주세요.
                                 </p>
                             </div>
                         </div>

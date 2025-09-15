@@ -1,73 +1,100 @@
 ---
-import { getSession } from 'auth-astro/server';
-import '../styles/global.css';
-import Home from '../components/home/Home.tsx';
+import { getSession } from "auth-astro/server";
+import "../styles/global.css";
+import Home from "../components/home/Home.tsx";
+import { checkAdmin } from "../utils/auth.ts";
 
 export const prerender = false;
 
 const session = await getSession(Astro.request);
 
+// 로그인한 사용자 정보 확인
+if (session?.user) {
+  const isAdmin = checkAdmin(session);
+  console.log(
+    "로그인 사용자:",
+    session.user.name,
+    "(ID:",
+    session.user.id,
+    ", Admin:",
+    isAdmin,
+    ")",
+  );
+}
+
 const mockFundings = [
   {
-    id: '1',
-    title: '하연이의 파스타 데이트 펀딩',
-    thumbnail: 'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=400&h=300&fit=crop',
+    id: "1",
+    title: "하연이의 파스타 데이트 펀딩",
+    thumbnail:
+      "https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=400&h=300&fit=crop",
     currentTickets: 15,
     targetTickets: 30,
-    contentImage: 'https://images.unsplash.com/photo-1551782450-17144efb9c50?w=800&h=1200&fit=crop'
+    contentImage:
+      "https://images.unsplash.com/photo-1551782450-17144efb9c50?w=800&h=1200&fit=crop",
   },
   {
-    id: '2',
-    title: '로맨틱 프렌치 코스 저녁식사',
-    thumbnail: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop',
+    id: "2",
+    title: "로맨틱 프렌치 코스 저녁식사",
+    thumbnail:
+      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop",
     currentTickets: 8,
     targetTickets: 20,
-    contentImage: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&h=1200&fit=crop'
+    contentImage:
+      "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&h=1200&fit=crop",
   },
   {
-    id: '3',
-    title: '특별한 날 스테이크 하우스',
-    thumbnail: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop',
+    id: "3",
+    title: "특별한 날 스테이크 하우스",
+    thumbnail:
+      "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop",
     currentTickets: 22,
     targetTickets: 25,
-    contentImage: 'https://images.unsplash.com/photo-1558030006-450675393462?w=800&h=1200&fit=crop'
+    contentImage:
+      "https://images.unsplash.com/photo-1558030006-450675393462?w=800&h=1200&fit=crop",
   },
   {
-    id: '4',
-    title: '일본 정통 가이세키 요리',
-    thumbnail: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop',
+    id: "4",
+    title: "일본 정통 가이세키 요리",
+    thumbnail:
+      "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop",
     currentTickets: 3,
     targetTickets: 15,
-    contentImage: 'https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=800&h=1200&fit=crop'
+    contentImage:
+      "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=800&h=1200&fit=crop",
   },
   {
-    id: '5',
-    title: '홈메이드 한식 풀코스',
-    thumbnail: 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=400&h=300&fit=crop',
+    id: "5",
+    title: "홈메이드 한식 풀코스",
+    thumbnail:
+      "https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=400&h=300&fit=crop",
     currentTickets: 12,
     targetTickets: 18,
-    contentImage: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&h=1200&fit=crop'
+    contentImage:
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&h=1200&fit=crop",
   },
   {
-    id: '6',
-    title: '미슐랭 스타 레스토랑 체험',
-    thumbnail: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&h=300&fit=crop',
+    id: "6",
+    title: "미슐랭 스타 레스토랑 체험",
+    thumbnail:
+      "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&h=300&fit=crop",
     currentTickets: 5,
     targetTickets: 50,
-    contentImage: 'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800&h=1200&fit=crop'
-  }
+    contentImage:
+      "https://images.unsplash.com/photo-1551218808-94e220e084d2?w=800&h=1200&fit=crop",
+  },
 ];
 ---
 
 <html lang="ko">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>하연이에게 저녁을</title>
-	</head>
-	<body>
-		<Home session={session} fundings={mockFundings} client:load />
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>하연이에게 저녁을</title>
+  </head>
+  <body>
+    <Home session={session} fundings={mockFundings} client:load />
+  </body>
 </html>

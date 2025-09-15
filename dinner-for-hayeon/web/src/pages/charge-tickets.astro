@@ -1,0 +1,27 @@
+---
+import { getSession } from "auth-astro/server";
+import "../styles/global.css";
+import ChargeTickets from "../components/charge-tickets/ChargeTickets.tsx";
+
+export const prerender = false;
+
+const session = await getSession(Astro.request);
+
+// 로그인하지 않았다면 홈으로 리다이렉트
+if (!session) {
+  return Astro.redirect("/");
+}
+---
+
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>티켓 충전 - 하연이에게 저녁을</title>
+  </head>
+  <body>
+    <ChargeTickets session={session} client:load />
+  </body>
+</html>
