@@ -27,6 +27,7 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     check_game_initialized(game_state);
 
     game_state.flow.update();
+    flow::contract::update_contract_flow(game_state);
 
     monster_spawn::tick(game_state, now);
     tower::tower_cooldown_tick(game_state, dt);

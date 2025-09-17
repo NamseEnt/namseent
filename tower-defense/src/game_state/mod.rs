@@ -261,28 +261,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             locale: crate::l10n::Locale::KOREAN,
             play_history: PlayHistory::new(),
             opened_modal: None,
-            contracts: vec![
-                contract::Contract::new(
-                    rarity::Rarity::Common,
-                    2,
-                    contract::ContractEffect::OnExpire {
-                        effect: effect::Effect::Dummy,
-                    },
-                    contract::ContractEffect::OnSign {
-                        effect: effect::Effect::Dummy,
-                    },
-                ),
-                contract::Contract::new(
-                    rarity::Rarity::Rare,
-                    2,
-                    contract::ContractEffect::OnExpire {
-                        effect: effect::Effect::Dummy,
-                    },
-                    contract::ContractEffect::OnSign {
-                        effect: effect::Effect::Dummy,
-                    },
-                ),
-            ],
+            contracts: vec![],
             contract_state: ContractState::default(),
         }
     })
