@@ -1,7 +1,7 @@
 // 현대적 l10n API - 간결하고 효율적인 다국어 텍스트 관리
 
 use super::{Language, Locale};
-use super::{item, quest, tower, tower_skill, ui, upgrade, upgrade_board};
+use super::{contract, item, quest, tower, tower_skill, ui, upgrade, upgrade_board};
 
 /// 통합 다국어 텍스트 관리자
 #[derive(Debug, Clone, Copy)]
@@ -73,6 +73,16 @@ impl TextManager {
 /// 아이템 텍스트 처리
 impl TextManager {
     pub fn item(&self, text: item::ItemKindText) -> String {
+        match self.locale.language {
+            Language::Korean => text.to_korean(),
+            Language::English => text.to_english(),
+        }
+    }
+}
+
+/// 계약 텍스트 처리
+impl TextManager {
+    pub fn contract(&self, text: contract::ContractText) -> String {
         match self.locale.language {
             Language::Korean => text.to_korean(),
             Language::English => text.to_english(),

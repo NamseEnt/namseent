@@ -39,7 +39,7 @@ impl Component for UpgradeSelectModal<'_> {
         let on_upgrade_select = |upgrade: Upgrade| {
             mutate_game_state(move |state| {
                 state.upgrade(upgrade);
-                state.goto_selecting_tower();
+                state.goto_next_stage();
             });
         };
 

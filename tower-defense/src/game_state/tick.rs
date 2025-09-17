@@ -27,6 +27,7 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     check_game_initialized(game_state);
 
     game_state.flow.update();
+    flow::contract::update_contract_flow(game_state);
 
     monster_spawn::tick(game_state, now);
     tower::tower_cooldown_tick(game_state, dt);
@@ -167,7 +168,7 @@ fn check_defense_end(game_state: &mut GameState) {
     if is_boss_stage {
         game_state.goto_selecting_upgrade();
     } else {
-        game_state.goto_selecting_tower();
+        game_state.goto_next_stage();
     }
 }
 
@@ -176,5 +177,5 @@ fn check_game_initialized(game_state: &mut GameState) {
         return;
     }
 
-    game_state.goto_selecting_tower();
+    game_state.goto_next_stage();
 }

@@ -1,4 +1,4 @@
-use crate::game_state::{item::Item, upgrade::Upgrade};
+use crate::game_state::{contract::Contract, item::Item, upgrade::Upgrade};
 
 #[derive(Debug, Default, Clone)]
 pub enum ShopSlot {
@@ -11,6 +11,11 @@ pub enum ShopSlot {
     },
     Upgrade {
         upgrade: Upgrade,
+        cost: usize,
+        purchased: bool,
+    },
+    Contract {
+        contract: Contract,
         cost: usize,
         purchased: bool,
     },

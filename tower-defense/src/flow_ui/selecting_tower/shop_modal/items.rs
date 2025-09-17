@@ -1,4 +1,5 @@
 use super::constants::{PADDING, SOLD_OUT_HEIGHT};
+use crate::game_state::contract::Contract;
 use crate::game_state::item::{self, Item};
 use crate::game_state::upgrade::{Upgrade, UpgradeKind};
 use crate::game_state::use_game_state;
@@ -59,6 +60,20 @@ impl Component for ShopItem<'_> {
                             wh,
                             upgrade,
                             purchase_upgrade: &purchase_item,
+                            cost: *cost,
+                            purchased: *purchased,
+                            not_enough_money: money < *cost,
+                        });
+                    }
+                    ShopSlot::Contract {
+                        contract,
+                        cost,
+                        purchased,
+                    } => {
+                        ctx.add(ShopContractContent {
+                            wh,
+                            contract,
+                            purchase_contract: &purchase_item,
                             cost: *cost,
                             purchased: *purchased,
                             not_enough_money: money < *cost,
@@ -125,6 +140,7 @@ struct ShopItemLayoutParams<'a> {
     purchase_action: &'a dyn Fn(),
     item_kind: Option<&'a item::ItemKind>,
     upgrade_kind: Option<&'a UpgradeKind>,
+    contract_kind: Option<&'a Contract>,
     rarity: crate::rarity::Rarity,
 }
 
@@ -139,6 +155,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
         purchase_action,
         item_kind,
         upgrade_kind,
+        contract_kind,
         rarity,
     } = params;
 
@@ -166,6 +183,8 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                 ctx.add(kind.thumbnail(wh));
                             } else if let Some(upgrade) = upgrade_kind {
                                 ctx.add(upgrade.thumbnail(wh));
+                            } else if contract_kind.is_some() {
+                                ctx.add(Icon::new(IconKind::Quest).size(IconSize::Large).wh(wh));
                             } else {
                                 // 기본 아이콘
                                 ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
@@ -281,6 +300,7 @@ impl Component for ShopItemContent<'_> {
                 purchase_action: purchase_item,
                 item_kind: Some(&item.kind),
                 upgrade_kind: None,
+                contract_kind: None,
                 rarity: item.rarity,
             },
             ctx,
@@ -323,7 +343,61 @@ impl Component for ShopUpgradeContent<'_> {
                 purchase_action: purchase_upgrade,
                 item_kind: None,
                 upgrade_kind: Some(&upgrade.kind),
+                contract_kind: None,
                 rarity: upgrade.rarity,
+            },
+            ctx,
+        );
+    }
+}
+
+struct ShopContractContent<'a> {
+    wh: Wh<Px>,
+    contract: &'a Contract,
+    purchase_contract: &'a dyn Fn(),
+    cost: usize,
+    purchased: bool,
+    not_enough_money: bool,
+}
+
+impl Component for ShopContractContent<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            wh,
+            contract,
+            purchase_contract,
+            cost,
+            purchased,
+            not_enough_money,
+        } = self;
+        let _game_state = use_game_state(ctx);
+        let available = !purchased && !not_enough_money;
+        let name = match contract.rarity {
+            crate::rarity::Rarity::Common => "Common Contract",
+            crate::rarity::Rarity::Rare => "Rare Contract",
+            crate::rarity::Rarity::Epic => "Epic Contract",
+            crate::rarity::Rarity::Legendary => "Legendary Contract",
+        }
+        .to_string();
+        let description = format!(
+            "{}\n{}",
+            crate::l10n::contract::ContractText::Risk(&contract.risk).to_korean(),
+            crate::l10n::contract::ContractText::Reward(&contract.reward).to_korean()
+        );
+
+        render_shop_item_layout(
+            ShopItemLayoutParams {
+                wh,
+                name,
+                description,
+                cost,
+                purchased,
+                available,
+                purchase_action: purchase_contract,
+                item_kind: None,
+                upgrade_kind: None,
+                contract_kind: Some(contract),
+                rarity: contract.rarity,
             },
             ctx,
         );

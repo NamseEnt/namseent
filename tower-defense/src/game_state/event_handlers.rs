@@ -1,7 +1,10 @@
 use super::*;
 use crate::{
     MapCoordF32,
-    game_state::{item, play_history::HistoryEventType, tower::Tower, upgrade::Upgrade},
+    game_state::{
+        contract::sign_contract, item, play_history::HistoryEventType, tower::Tower,
+        upgrade::Upgrade,
+    },
     shop::ShopSlot,
 };
 
@@ -120,6 +123,30 @@ impl GameState {
                 self.upgrade_state.upgrade(upgrade_value);
                 self.record_event(HistoryEventType::UpgradePurchased {
                     upgrade: upgrade_value,
+                    cost: cost_value,
+                });
+                self.spend_gold(cost_value);
+            }
+            ShopSlot::Contract {
+                contract,
+                cost,
+                purchased,
+            } => {
+                if *purchased {
+                    return;
+                }
+                if self.gold < *cost {
+                    return;
+                }
+
+                // Store values before borrowing self mutably
+                let contract_value = contract.clone();
+                let cost_value = *cost;
+
+                *purchased = true;
+                sign_contract(self, contract_value.clone());
+                self.record_event(HistoryEventType::ContractPurchased {
+                    contract: contract_value,
                     cost: cost_value,
                 });
                 self.spend_gold(cost_value);

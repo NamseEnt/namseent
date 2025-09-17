@@ -1,15 +1,22 @@
+pub mod contract;
+
 use super::{
     GameState,
     monster_spawn::start_spawn,
     tower::TowerTemplate,
     upgrade::{Upgrade, generate_upgrades_for_boss_reward},
 };
-use crate::{card::Card, game_state::hand::Hand, shop::Shop};
+use crate::{
+    card::Card,
+    game_state::{flow::contract::ContractFlow, hand::Hand},
+    shop::Shop,
+};
 
 #[derive(Clone, Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum GameFlow {
     Initializing,
+    Contract(ContractFlow),
     SelectingTower(SelectingTowerFlow),
     PlacingTower { hand: Hand<TowerTemplate> },
     Defense,
@@ -50,13 +57,20 @@ impl SelectingTowerFlow {
 }
 
 impl GameState {
-    pub fn goto_selecting_tower(&mut self) {
-        self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
+    pub fn goto_next_stage(&mut self) {
+        ContractFlow::step_all_contracts(&mut self.contracts);
+        let contract_events = ContractFlow::drain_all_events(&mut self.contracts);
+        self.contracts.retain(|c| !c.is_expired());
+        self.flow = GameFlow::Contract(ContractFlow::new(contract_events));
 
         self.left_reroll_chance = self.max_reroll_chance();
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+    }
+
+    pub fn goto_selecting_tower(&mut self) {
+        self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {

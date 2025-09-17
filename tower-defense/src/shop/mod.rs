@@ -2,7 +2,8 @@ mod shop_slot;
 
 use crate::{
     game_state::{
-        GameState, flow::GameFlow, item::generation::generate_item, upgrade::generate_upgrade,
+        GameState, contract::generate_contract, flow::GameFlow, item::generation::generate_item,
+        upgrade::generate_upgrade,
     },
     rarity::Rarity,
 };
@@ -12,7 +13,7 @@ pub use shop_slot::*;
 
 #[derive(Clone, Debug)]
 pub struct Shop {
-    pub slots: [ShopSlot; 5],
+    pub slots: [ShopSlot; 4],
     pub left_refresh_chance: usize,
 }
 
@@ -21,7 +22,7 @@ impl Shop {
         let items = (0..game_state.max_shop_slot())
             .map(|_| generate_shop_slot(game_state))
             .collect::<Vec<_>>();
-        let mut slots = [const { ShopSlot::Locked }; 5];
+        let mut slots = [const { ShopSlot::Locked }; 4];
         for (slot, item) in slots.iter_mut().zip(items.into_iter()) {
             *slot = item;
         }
@@ -42,8 +43,10 @@ pub fn refresh_shop(game_state: &mut GameState) {
     };
     for (slot, item) in flow.shop.slots.iter_mut().zip(items.into_iter()) {
         let purchased = match slot {
-            ShopSlot::Item { purchased, .. } | ShopSlot::Upgrade { purchased, .. } => *purchased,
-            _ => false,
+            ShopSlot::Item { purchased, .. }
+            | ShopSlot::Upgrade { purchased, .. }
+            | ShopSlot::Contract { purchased, .. } => *purchased,
+            ShopSlot::Locked => false,
         };
         if purchased {
             continue;
@@ -53,11 +56,12 @@ pub fn refresh_shop(game_state: &mut GameState) {
 }
 
 fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
-    let is_item = thread_rng().gen_bool(0.3);
+    let slot_type = thread_rng().gen_range(0..10);
     let rarity = game_state.generate_rarity(Default::default());
 
-    match is_item {
-        true => {
+    match slot_type {
+        0..=2 => {
+            // Item (3/10)
             let item = generate_item(rarity);
             let cost = item_cost(
                 rarity,
@@ -70,7 +74,8 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
                 purchased: false,
             }
         }
-        false => {
+        3..=7 => {
+            // Upgrade (5/10)
             let upgrade = generate_upgrade(game_state, rarity);
             let cost = item_cost(
                 rarity,
@@ -83,6 +88,21 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
                 purchased: false,
             }
         }
+        8..=9 => {
+            // Contract (2/10)
+            let contract = generate_contract(rarity);
+            let cost = item_cost(
+                rarity,
+                0.5.into(), // 임시로 0.5 사용, contract에 value가 없으므로
+                game_state.upgrade_state.shop_item_price_minus,
+            );
+            ShopSlot::Contract {
+                contract,
+                cost,
+                purchased: false,
+            }
+        }
+        _ => unreachable!(),
     }
 }
 
