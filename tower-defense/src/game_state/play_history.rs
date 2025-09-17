@@ -2,6 +2,7 @@ use super::*;
 use crate::{
     card::{Rank, Suit},
     game_state::{
+        contract::Contract,
         item::{Item, ItemKind},
         upgrade::Upgrade,
     },
@@ -47,6 +48,11 @@ pub enum HistoryEventType {
 
     UpgradePurchased {
         upgrade: Upgrade,
+        cost: usize,
+    },
+
+    ContractPurchased {
+        contract: Contract,
         cost: usize,
     },
 }
