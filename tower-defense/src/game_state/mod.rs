@@ -115,7 +115,7 @@ impl GameState {
     }
 
     pub fn max_shop_slot(&self) -> usize {
-        self.upgrade_state.shop_slot_expand + 3
+        self.upgrade_state.shop_slot_expand + 2
     }
     pub fn max_quest_slot(&self) -> usize {
         self.upgrade_state.quest_slot_expand + 3

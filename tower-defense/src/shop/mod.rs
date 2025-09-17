@@ -13,7 +13,7 @@ pub use shop_slot::*;
 
 #[derive(Clone, Debug)]
 pub struct Shop {
-    pub slots: [ShopSlot; 5],
+    pub slots: [ShopSlot; 4],
     pub left_refresh_chance: usize,
 }
 
@@ -22,7 +22,7 @@ impl Shop {
         let items = (0..game_state.max_shop_slot())
             .map(|_| generate_shop_slot(game_state))
             .collect::<Vec<_>>();
-        let mut slots = [const { ShopSlot::Locked }; 5];
+        let mut slots = [const { ShopSlot::Locked }; 4];
         for (slot, item) in slots.iter_mut().zip(items.into_iter()) {
             *slot = item;
         }
