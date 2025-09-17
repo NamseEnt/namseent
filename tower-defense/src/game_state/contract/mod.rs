@@ -9,8 +9,12 @@ use std::sync::atomic::AtomicUsize;
 pub fn generate_contract(rarity: Rarity) -> Contract {
     let mut rng = thread_rng();
     let duration_stages = rng.gen_range(1..=5);
-    let risk = ContractEffect::OnSign { effect: Effect::Dummy };
-    let reward = ContractEffect::OnSign { effect: Effect::Dummy };
+    let risk = ContractEffect::OnSign {
+        effect: Effect::Dummy,
+    };
+    let reward = ContractEffect::OnSign {
+        effect: Effect::Dummy,
+    };
     Contract::new(rarity, duration_stages, risk, reward)
 }
 
