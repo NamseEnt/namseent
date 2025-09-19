@@ -261,7 +261,12 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             locale: crate::l10n::Locale::KOREAN,
             play_history: PlayHistory::new(),
             opened_modal: None,
-            contracts: vec![],
+            contracts: vec![
+                contract::generate_contract(rarity::Rarity::Common),
+                contract::generate_contract(rarity::Rarity::Rare),
+                contract::generate_contract(rarity::Rarity::Epic),
+                contract::generate_contract(rarity::Rarity::Legendary),
+            ],
             contract_state: ContractState::default(),
         }
     })
