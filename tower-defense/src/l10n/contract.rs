@@ -67,7 +67,7 @@ fn effect_suffix_ko(ce: &ContractEffect) -> String {
         | ContractEffect::OnStageStart { effect }
         | ContractEffect::OnExpire { effect } => effect,
     };
-    let s = EffectText::new(eff).to_korean();
+    let s = EffectText::Description(eff.clone()).to_korean();
     if s.is_empty() {
         String::new()
     } else {
@@ -82,7 +82,7 @@ fn effect_suffix_en(ce: &ContractEffect) -> String {
         | ContractEffect::OnStageStart { effect }
         | ContractEffect::OnExpire { effect } => effect,
     };
-    let s = EffectText::new(eff).to_english();
+    let s = EffectText::Description(eff.clone()).to_english();
     if s.is_empty() {
         String::new()
     } else {

@@ -1,8 +1,8 @@
 use super::*;
 use crate::{
     game_state::{
-        contract::sign_contract, item, play_history::HistoryEventType, tower::Tower,
-        upgrade::Upgrade,
+        contract::sign_contract, effect::run_effect, item, play_history::HistoryEventType,
+        tower::Tower, upgrade::Upgrade,
     },
     shop::ShopSlot,
 };
@@ -155,11 +155,9 @@ impl GameState {
 
     pub fn use_item(&mut self, item: &item::Item) {
         self.item_used = true;
-        let effect_kind = item.kind.effect_kind();
-        item::effect_processor::process_item_effect(self, effect_kind);
-
+        run_effect(self, &item.effect);
         self.record_event(HistoryEventType::ItemUsed {
-            item_kind: item.kind,
+            item_effect: item.effect.clone(),
         });
     }
 }

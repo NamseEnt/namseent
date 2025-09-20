@@ -3,7 +3,7 @@ use crate::{
     card::{Rank, Suit},
     game_state::{
         contract::Contract,
-        item::{Item, ItemKind},
+        item::{Item, Effect},
         upgrade::Upgrade,
     },
 };
@@ -39,7 +39,7 @@ pub enum HistoryEventType {
     },
 
     ItemUsed {
-        item_kind: ItemKind,
+        item_effect: Effect,
     },
 
     UpgradeSelected {

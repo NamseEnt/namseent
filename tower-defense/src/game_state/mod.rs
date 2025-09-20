@@ -33,7 +33,7 @@ use contract::ContractState;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
-use item::Item;
+use item::{Item, Effect};
 pub use level_rarity_weight::level_rarity_weight;
 pub use modal::Modal;
 pub use monster::*;
@@ -195,18 +195,18 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             projectiles: Default::default(),
             items: vec![
                 Item {
-                    kind: item::ItemKind::ExtraReroll,
+                    effect: Effect::ExtraReroll,
                     rarity: rarity::Rarity::Epic,
                     value: 0.5.into(),
                 },
                 Item {
-                    kind: item::ItemKind::ExtraReroll,
+                    effect: Effect::ExtraReroll,
                     rarity: rarity::Rarity::Epic,
                     value: 0.5.into(),
                 },
                 // For debugging purpose, should be removed in production.
                 Item {
-                    kind: item::ItemKind::Heal { amount: 20.0 },
+                    effect: Effect::Heal { amount: 20.0 },
                     rarity: rarity::Rarity::Epic,
                     value: 0.0.into(), // 디버깅용 - 최소값
                 },

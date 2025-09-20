@@ -1,7 +1,5 @@
-use super::{Item, ItemKind};
-use crate::{
-    rarity::Rarity,
-};
+use super::Item;
+use crate::{game_state::effect::Effect, rarity::Rarity};
 use namui::*;
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
@@ -28,7 +26,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
     // 먼저 0~1 범위의 랜덤 value 생성
     let value = thread_rng().gen_range(0.0..1.0);
 
-    let kind = match candidate {
+    let effect = match candidate {
         ItemCandidate::Heal => {
             let range = match rarity {
                 Rarity::Common => 5.0..9.0,
@@ -37,7 +35,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Legendary => 20.0..25.0,
             };
             let amount = calculate_amount_from_value(value, range.start, range.end);
-            ItemKind::Heal { amount }
+            Effect::Heal { amount }
         }
         ItemCandidate::Lottery => {
             let amount = match rarity {
@@ -52,12 +50,12 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 0.03,
                 Rarity::Legendary => 0.05,
             };
-            ItemKind::Lottery {
+            Effect::Lottery {
                 amount,
                 probability,
             }
         }
-        ItemCandidate::ExtraReroll => ItemKind::ExtraReroll,
+        ItemCandidate::ExtraReroll => Effect::ExtraReroll,
         ItemCandidate::Shield => {
             let range = match rarity {
                 Rarity::Common => 10.0..15.0,
@@ -66,7 +64,7 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Legendary => 35.0..50.0,
             };
             let amount = calculate_amount_from_value(value, range.start, range.end);
-            ItemKind::Shield { amount }
+            Effect::Shield { amount }
         }
         ItemCandidate::DamageReduction => {
             let range = match rarity {
@@ -82,15 +80,15 @@ pub fn generate_item(rarity: Rarity) -> Item {
                 Rarity::Epic => 6,
                 Rarity::Legendary => 8,
             });
-            ItemKind::DamageReduction {
-                damage_multiply: amount,
+            Effect::UserDamageReduction {
+                multiply: amount,
                 duration,
             }
         }
     };
 
     Item {
-        kind,
+        effect,
         rarity,
         value: value.into(),
     }

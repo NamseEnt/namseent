@@ -1,7 +1,7 @@
 use crate::{
     game_state::{
         MAX_INVENTORY_SLOT,
-        item::{ItemUsage, use_item},
+        item::use_item,
         mutate_game_state, use_game_state,
     },
     icon::{Icon, IconKind, IconSize},
@@ -34,8 +34,8 @@ impl Component for Inventory {
                     content: |mut ctx| {
                         let content_width = wh.width - PADDING * 2.;
                         for (item_index, item) in game_state.items.iter().enumerate() {
-                            let name = item.kind.name(&game_state.text());
-                            let desc = item.kind.description(&game_state.text());
+                            let name = item.name(&game_state.text());
+                            let desc = item.description(&game_state.text());
                             let content = ctx.ghost_compose(
                                 format!("InventoryItemContent {item_index}"),
                                 |ctx| {
@@ -60,7 +60,7 @@ impl Component for Inventory {
                                                 table::fixed(
                                                     HEADLINE_FONT_SIZE_LARGE.into_px(),
                                                     |wh, ctx| {
-                                                        ctx.add(item.kind.thumbnail(wh));
+                                                        ctx.add(item.effect.thumbnail(wh));
                                                     },
                                                 ),
                                                 table::ratio(1, |_, _| {}),
@@ -69,19 +69,17 @@ impl Component for Inventory {
                                                     |wh, ctx| {
                                                         ctx.add(Button::new(
                                                             wh,
-                                                            &|| match item.kind.usage() {
-                                                                ItemUsage::Instant => {
-                                                                    mutate_game_state(
-                                                                        move |game_state| {
-                                                                            let item = game_state
-                                                                                .items
-                                                                                .remove(item_index);
-                                                                            use_item(
-                                                                                game_state, &item,
-                                                                            );
-                                                                        },
-                                                                    );
-                                                                }
+                                                            &|| {
+                                                                mutate_game_state(
+                                                                    move |game_state| {
+                                                                        let item = game_state
+                                                                            .items
+                                                                            .remove(item_index);
+                                                                        use_item(
+                                                                            game_state, &item,
+                                                                        );
+                                                                    }
+                                                                );
                                                             },
                                                             &|wh, color, ctx| {
                                                                 ctx.add(

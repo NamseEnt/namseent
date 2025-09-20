@@ -1,6 +1,6 @@
 use super::constants::{PADDING, SOLD_OUT_HEIGHT};
 use crate::game_state::contract::Contract;
-use crate::game_state::item::{self, Item};
+use crate::game_state::item::{Effect, Item};
 use crate::game_state::upgrade::{Upgrade, UpgradeKind};
 use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind, IconSize};
@@ -138,7 +138,7 @@ struct ShopItemLayoutParams<'a> {
     purchased: bool,
     available: bool,
     purchase_action: &'a dyn Fn(),
-    item_kind: Option<&'a item::ItemKind>,
+    item_kind: Option<&'a Effect>,
     upgrade_kind: Option<&'a UpgradeKind>,
     contract_kind: Option<&'a Contract>,
     rarity: crate::rarity::Rarity,
@@ -286,8 +286,8 @@ impl Component for ShopItemContent<'_> {
         } = self;
         let game_state = use_game_state(ctx);
         let available = !purchased && !not_enough_money;
-        let name = item.kind.name(&game_state.text());
-        let description = item.kind.description(&game_state.text());
+        let name = item.name(&game_state.text());
+        let description = item.description(&game_state.text());
 
         render_shop_item_layout(
             ShopItemLayoutParams {
@@ -298,7 +298,7 @@ impl Component for ShopItemContent<'_> {
                 purchased,
                 available,
                 purchase_action: purchase_item,
-                item_kind: Some(&item.kind),
+                item_kind: Some(&item.effect),
                 upgrade_kind: None,
                 contract_kind: None,
                 rarity: item.rarity,
@@ -370,7 +370,6 @@ impl Component for ShopContractContent<'_> {
             purchased,
             not_enough_money,
         } = self;
-        let _game_state = use_game_state(ctx);
         let available = !purchased && !not_enough_money;
         let name = match contract.rarity {
             crate::rarity::Rarity::Common => "Common Contract",
