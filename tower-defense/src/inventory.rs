@@ -1,7 +1,6 @@
 use crate::{
     game_state::{
         MAX_INVENTORY_SLOT,
-        cursor_preview::PreviewKind,
         item::{ItemUsage, use_item},
         mutate_game_state, use_game_state,
     },
@@ -79,27 +78,7 @@ impl Component for Inventory {
                                                                                 .remove(item_index);
                                                                             use_item(
                                                                                 game_state, &item,
-                                                                                None,
                                                                             );
-                                                                        },
-                                                                    );
-                                                                }
-                                                                ItemUsage::CircularArea {
-                                                                    ..
-                                                                }
-                                                                | ItemUsage::LinearArea {
-                                                                    ..
-                                                                } => {
-                                                                    let item = item.clone();
-                                                                    mutate_game_state(
-                                                                        move |game_state| {
-                                                                            game_state
-                                                                                .cursor_preview
-                                                                                .kind =
-                                                                                PreviewKind::Item {
-                                                                                    item,
-                                                                                    item_index,
-                                                                                };
                                                                         },
                                                                     );
                                                                 }

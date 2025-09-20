@@ -33,15 +33,11 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     tower::tower_cooldown_tick(game_state, dt);
     tower::tower_animation_tick(game_state, now);
     monster::monster_animation_tick(game_state, dt);
-    field_area_effect::field_area_effect_tick(game_state, now);
 
     monster::remove_monster_finished_status_effects(game_state, now);
     tower::remove_tower_finished_status_effects(game_state, now);
     user_status_effect::remove_user_finished_status_effects(game_state, now);
-    field_area_effect::remove_finished_field_area_effects(game_state, now);
     field_particle::remove_finished_field_particle_systems(game_state, now);
-
-    status_effect_particle_generator::tick_status_effect_particle_generator(game_state, now);
 
     monster::activate_monster_skills(game_state, now);
     tower::activate_tower_skills(game_state, now);

@@ -1,6 +1,5 @@
 use super::*;
 use crate::{
-    MapCoordF32,
     game_state::{
         contract::sign_contract, item, play_history::HistoryEventType, tower::Tower,
         upgrade::Upgrade,
@@ -154,9 +153,9 @@ impl GameState {
         }
     }
 
-    pub fn use_item(&mut self, item: &item::Item, xy: Option<MapCoordF32>) {
+    pub fn use_item(&mut self, item: &item::Item) {
         self.item_used = true;
-        let effect_kind = item.kind.effect_kind(xy, self.now());
+        let effect_kind = item.kind.effect_kind();
         item::effect_processor::process_item_effect(self, effect_kind);
 
         self.record_event(HistoryEventType::ItemUsed {

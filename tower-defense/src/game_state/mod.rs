@@ -6,7 +6,6 @@ pub mod cursor_preview;
 pub mod effect;
 mod event_handlers;
 pub mod fast_forward;
-mod field_area_effect;
 pub mod field_particle;
 pub mod flow;
 pub mod item;
@@ -18,9 +17,7 @@ mod placed_towers;
 pub mod play_history;
 pub mod projectile;
 mod render;
-pub mod schedule;
 mod start_confirm_modal;
-mod status_effect_particle_generator;
 mod tick;
 pub mod tower;
 mod tower_info_popup;
@@ -35,7 +32,6 @@ use camera::*;
 use contract::ContractState;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
-use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
 use item::Item;
 pub use level_rarity_weight::level_rarity_weight;
@@ -46,7 +42,6 @@ use namui::*;
 use placed_towers::PlacedTowers;
 use play_history::PlayHistory;
 use projectile::*;
-use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
@@ -87,7 +82,6 @@ pub struct GameState {
     pub hp: f32,
     pub shield: f32,
     pub user_status_effects: Vec<UserStatusEffect>,
-    pub field_area_effects: Vec<FieldAreaEffect>,
     pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
@@ -97,7 +91,6 @@ pub struct GameState {
     pub rerolled_count: usize,
     pub selected_tower_id: Option<usize>,
     pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
-    status_effect_particle_generator: StatusEffectParticleGenerator,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
@@ -213,33 +206,9 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                 },
                 // For debugging purpose, should be removed in production.
                 Item {
-                    kind: item::ItemKind::RoundDamageOverTime {
-                        rank: crate::card::Rank::Ace,
-                        suit: crate::card::Suit::Hearts,
-                        damage: 20.0,
-                        radius: 2.5,
-                        duration: namui::Duration::from_secs_f32(3.0),
-                    },
+                    kind: item::ItemKind::Heal { amount: 20.0 },
                     rarity: rarity::Rarity::Epic,
                     value: 0.0.into(), // 디버깅용 - 최소값
-                },
-                Item {
-                    kind: item::ItemKind::AttackPowerMultiplyBuff {
-                        amount: 2.9,
-                        duration: 3.sec(),
-                        radius: 4.0,
-                    },
-                    rarity: rarity::Rarity::Epic,
-                    value: 0.75.into(), // 디버깅용 - 높은 값
-                },
-                Item {
-                    kind: item::ItemKind::MovementSpeedDebuff {
-                        amount: 0.4,
-                        duration: 3.sec(),
-                        radius: 4.0,
-                    },
-                    rarity: rarity::Rarity::Epic,
-                    value: 1.0.into(), // 디버깅용 - 최대값 (역산이므로 좋은 효과)
                 },
             ],
             gold: 100,
@@ -247,7 +216,6 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             hp: 100.0,
             shield: 0.0,
             user_status_effects: Default::default(),
-            field_area_effects: Default::default(),
             left_shop_refresh_chance: 0,
             left_quest_board_refresh_chance: 0,
             item_used: false,
@@ -257,7 +225,6 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             rerolled_count: 0,
             selected_tower_id: None,
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
-            status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
             locale: crate::l10n::Locale::KOREAN,
             play_history: PlayHistory::new(),
             opened_modal: None,
