@@ -128,7 +128,7 @@ pub(crate) async fn execute_one(
             let body = {
                 let body_length: usize = header.body_length as usize;
 
-                if body_length % PutPageBlocks::CHUNK_SIZE != 0 {
+                if !body_length.is_multiple_of(PutPageBlocks::CHUNK_SIZE) {
                     return Err(ExecuteError::WrongBodyLength { body_length }.into());
                 }
                 let body = wal_read_fd.read_exact(wal_read_offset, body_length).await?;
