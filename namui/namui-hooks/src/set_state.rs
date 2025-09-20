@@ -64,17 +64,17 @@ pub(crate) enum SetStateItem {
         mutate: MutateFnOnce4,
     },
 }
-pub(crate) type MutateFnOnce = Box<dyn FnOnce(&mut (dyn Value)) + Send>;
-pub(crate) type MutateFnOnce2 = Box<dyn FnOnce((&mut (dyn Value), &mut (dyn Value))) + Send>;
+pub(crate) type MutateFnOnce = Box<dyn FnOnce(&mut dyn Value) + Send>;
+pub(crate) type MutateFnOnce2 = Box<dyn FnOnce((&mut dyn Value, &mut dyn Value)) + Send>;
 pub(crate) type MutateFnOnce3 =
-    Box<dyn FnOnce((&mut (dyn Value), &mut (dyn Value), &mut (dyn Value))) + Send>;
+    Box<dyn FnOnce((&mut dyn Value, &mut dyn Value, &mut dyn Value)) + Send>;
 pub(crate) type MutateFnOnce4 = Box<
     dyn FnOnce(
             (
-                &mut (dyn Value),
-                &mut (dyn Value),
-                &mut (dyn Value),
-                &mut (dyn Value),
+                &mut dyn Value,
+                &mut dyn Value,
+                &mut dyn Value,
+                &mut dyn Value,
             ),
         ) + Send,
 >;

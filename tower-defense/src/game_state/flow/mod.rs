@@ -61,6 +61,10 @@ impl GameState {
         ContractFlow::step_all_contracts(&mut self.contracts);
         let contract_events = ContractFlow::drain_all_events(&mut self.contracts);
         self.contracts.retain(|c| !c.is_expired());
+        println!(
+            "Advanced to next stage. Active contracts: {:?}",
+            self.contracts
+        );
         self.flow = GameFlow::Contract(ContractFlow::new(contract_events));
 
         self.left_reroll_chance = self.max_reroll_chance();

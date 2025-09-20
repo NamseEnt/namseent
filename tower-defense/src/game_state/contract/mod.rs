@@ -12,7 +12,7 @@ pub fn generate_contract(rarity: Rarity) -> Contract {
     let risk = ContractEffect::OnSign {
         effect: Effect::Dummy,
     };
-    let reward = ContractEffect::OnSign {
+    let reward = ContractEffect::OnStageStart {
         effect: Effect::Dummy,
     };
     Contract::new(rarity, duration_stages, risk, reward)

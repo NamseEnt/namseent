@@ -14,7 +14,7 @@ const SNAP_THRESHOLD_SQ: f32 = SNAP_THRESHOLD * SNAP_THRESHOLD;
 const VELOCITY_THRESHOLD_SQ: f32 = VELOCITY_THRESHOLD * VELOCITY_THRESHOLD;
 const NEG_DAMPING: f32 = -DAMPING;
 
-pub(super) fn xy_with_spring<T>(ctx: &RenderCtx, target_xy: Xy<T>, initial_xy: Xy<T>) -> Xy<T>
+pub fn xy_with_spring<T>(ctx: &RenderCtx, target_xy: Xy<T>, initial_xy: Xy<T>) -> Xy<T>
 where
     T: Copy
         + Add<Output = T>

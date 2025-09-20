@@ -5,20 +5,21 @@ use crate::game_state::{
     flow::GameFlow,
 };
 use namui::*;
+use std::collections::VecDeque;
 
 const STANDBY_DURATION: Duration = Duration::from_millis(250);
 const ACTIVE_DURATION: Duration = Duration::from_millis(750);
 
 #[derive(Clone, Debug)]
 pub struct ContractFlow {
-    pub contract_event_queue: Vec<ContractEvent>,
-    state: ContractFlowState,
+    pub contract_event_queue: VecDeque<ContractEvent>,
+    pub state: ContractFlowState,
 }
 impl ContractFlow {
     /// Creates a new ContractFlow with the given events.
     pub fn new(events: Vec<ContractEvent>) -> Self {
         ContractFlow {
-            contract_event_queue: events,
+            contract_event_queue: VecDeque::from(events),
             state: Default::default(),
         }
     }
@@ -55,10 +56,12 @@ pub enum ContractFlowState {
     Standby {
         /// game_now
         end_at: Instant,
+        event: ContractEvent,
     },
     Active {
         /// game_now
         end_at: Instant,
+        event: ContractEvent,
     },
 }
 
@@ -70,29 +73,25 @@ pub fn update_contract_flow(game_state: &mut GameState) {
 
     match &mut contract_flow.state {
         ContractFlowState::Unset => {
-            if contract_flow.contract_event_queue.is_empty() {
+            let Some(contract_event) = contract_flow.contract_event_queue.pop_front() else {
                 game_state.goto_selecting_tower();
                 return;
-            }
+            };
             contract_flow.state = ContractFlowState::Standby {
                 end_at: game_now + STANDBY_DURATION,
+                event: contract_event,
             };
         }
-        ContractFlowState::Standby { end_at, .. } => {
+        ContractFlowState::Standby { end_at, event } => {
             if game_now < *end_at {
                 return;
             }
-            if let Some(contract_event) = contract_flow.contract_event_queue.pop() {
-                contract_flow.state = ContractFlowState::Active {
-                    end_at: game_now + ACTIVE_DURATION,
-                };
-
-                run_effect(game_state, &contract_event.effect);
-                return;
-            }
-
-            println!("Contract event queue empty");
-            contract_flow.state = ContractFlowState::Unset;
+            let effect = event.effect.clone();
+            contract_flow.state = ContractFlowState::Active {
+                end_at: game_now + ACTIVE_DURATION,
+                event: event.clone(),
+            };
+            run_effect(game_state, &effect);
         }
         ContractFlowState::Active { end_at, .. } => {
             if game_now < *end_at {
