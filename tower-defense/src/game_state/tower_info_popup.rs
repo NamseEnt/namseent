@@ -38,7 +38,7 @@ impl Component for TowerInfoPopup<'_> {
                                 );
                             }),
                             table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                let damage = tower.calculate_projectile_damage(tower_upgrades);
+                                let damage = tower.calculate_projectile_damage(tower_upgrades, 1.0);
                                 ctx.add(
                                     paragraph(format!("데미지: {damage:.1}"))
                                         .size(FontSize::Medium)

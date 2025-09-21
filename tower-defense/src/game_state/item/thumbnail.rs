@@ -50,6 +50,9 @@ impl Effect {
             Effect::AddChallengeMonster => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::AttackDamage)
                 .build(),
+            Effect::IncreaseAllTowersDamage { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
         }
     }
 }

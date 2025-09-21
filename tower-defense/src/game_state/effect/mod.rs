@@ -42,6 +42,9 @@ pub enum Effect {
         rarity: Rarity,
     },
     AddChallengeMonster,
+    IncreaseAllTowersDamage {
+        multiplier: f32,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -110,6 +113,11 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
         }
         Effect::AddChallengeMonster => {
             unimplemented!("AddChallengeMonster effect is not implemented yet");
+        }
+        Effect::IncreaseAllTowersDamage { multiplier } => {
+            game_state
+                .contract_state
+                .apply_damage_multiplier(*multiplier);
         }
     }
 }

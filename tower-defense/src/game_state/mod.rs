@@ -33,7 +33,7 @@ use contract::ContractState;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
-use item::{Item, Effect};
+use item::{Effect, Item};
 pub use level_rarity_weight::level_rarity_weight;
 pub use modal::Modal;
 pub use monster::*;
@@ -148,6 +148,12 @@ impl GameState {
             _ => unreachable!("Level up cost not defined for level {}", self.level),
         }
     }
+
+    pub fn calculate_tower_damage(&self, tower: &tower::Tower) -> f32 {
+        let tower_upgrade_states = self.upgrade_state.tower_upgrades(tower);
+        let contract_multiplier: f32 = self.contract_state.get_damage_multiplier();
+        tower.calculate_projectile_damage(&tower_upgrade_states, contract_multiplier)
+    }
 }
 
 impl Component for &GameState {
@@ -228,13 +234,8 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             locale: crate::l10n::Locale::KOREAN,
             play_history: PlayHistory::new(),
             opened_modal: None,
-            contracts: vec![
-                contract::generate_contract(rarity::Rarity::Common),
-                contract::generate_contract(rarity::Rarity::Rare),
-                contract::generate_contract(rarity::Rarity::Epic),
-                contract::generate_contract(rarity::Rarity::Legendary),
-            ],
-            contract_state: ContractState::default(),
+            contracts: vec![],
+            contract_state: ContractState::new(),
         }
     })
     .0

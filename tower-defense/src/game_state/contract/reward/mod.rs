@@ -96,10 +96,9 @@ fn effect_from_on_sign_kind(kind: OnSignEffectKind, rarity: Rarity) -> Effect {
 
 fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) -> Effect {
     match kind {
-        WhileActiveEffectKind::IncreaseAllTowersDamage => Effect::UserDamageReduction {
-            multiply: rarity_based_amount(rarity, 0.9, 0.85, 0.8, 0.7),
-            duration: rarity_based_duration(rarity, 3, 4, 5, 6),
-        }, // placeholder, actually increase damage
+        WhileActiveEffectKind::IncreaseAllTowersDamage => Effect::IncreaseAllTowersDamage {
+            multiplier: rarity_based_amount(rarity, 1.1, 1.15, 1.2, 1.3),
+        },
         WhileActiveEffectKind::IncreaseAllTowersAttackSpeed => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::IncreaseAllTowersRange => Effect::ExtraReroll,       // placeholder
         WhileActiveEffectKind::DecreaseIncomingDamage => Effect::UserDamageReduction {

@@ -137,7 +137,14 @@ fn shoot_projectiles(game_state: &mut GameState) {
                 < attack_range_radius
         })?;
 
-        Some(tower.shoot(target.projectile_target_indicator, &tower_upgrades, now))
+        let contract_multiplier = game_state.contract_state.get_damage_multiplier();
+
+        Some(tower.shoot(
+            target.projectile_target_indicator,
+            &tower_upgrades,
+            contract_multiplier,
+            now,
+        ))
     });
 
     game_state.projectiles.extend(projectiles);

@@ -32,6 +32,7 @@ impl EffectText {
                 Effect::GrantUpgrade { .. } => "업그레이드 획득".to_string(),
                 Effect::GrantItem { .. } => "아이템 획득".to_string(),
                 Effect::AddChallengeMonster => "도전 몬스터 추가".to_string(),
+                Effect::IncreaseAllTowersDamage { .. } => "모든 타워 공격력 증가".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -79,6 +80,9 @@ impl EffectText {
                 Effect::GrantUpgrade { .. } => "랜덤한 업그레이드를 획득합니다".to_string(),
                 Effect::GrantItem { .. } => "아이템을 획득합니다".to_string(),
                 Effect::AddChallengeMonster => "다음 라운드에 도전 몬스터가 추가됩니다".to_string(),
+                Effect::IncreaseAllTowersDamage { multiplier } => {
+                    format!("모든 타워의 공격력이 {:.0}% 증가합니다", (multiplier - 1.0) * 100.0)
+                }
             },
         }
     }
@@ -98,6 +102,7 @@ impl EffectText {
                 Effect::GrantUpgrade { .. } => "Grant Upgrade".to_string(),
                 Effect::GrantItem { .. } => "Grant Item".to_string(),
                 Effect::AddChallengeMonster => "Add Challenge Monster".to_string(),
+                Effect::IncreaseAllTowersDamage { .. } => "Increase All Towers Damage".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -145,6 +150,9 @@ impl EffectText {
                 Effect::GrantUpgrade { .. } => "Gain a random upgrade".to_string(),
                 Effect::GrantItem { .. } => "Gain an item".to_string(),
                 Effect::AddChallengeMonster => "Add a challenge monster next round".to_string(),
+                Effect::IncreaseAllTowersDamage { multiplier } => {
+                    format!("Increase damage of all towers by {:.0}%", (multiplier - 1.0) * 100.0)
+                }
             },
         }
     }

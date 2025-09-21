@@ -165,35 +165,34 @@ impl Contract {
         to_status: ContractStatus,
     ) -> Vec<ContractEvent> {
         match (from_status, to_status) {
-            // Pending -> Active: Generate stage start events
+            // Pending -> Active: Generate stage start events and while active effects
             (ContractStatus::Pending { .. }, ContractStatus::Active { .. }) => {
-                self.create_events_from_effects(&self.on_stage_start_effects(), false)
+                let mut events = self.create_events_from_effects(&self.on_stage_start_effects());
+                events.extend(self.create_events_from_effects(&self.while_active_effects()));
+                events
             }
             // Active -> Expired: Generate expire events
             (ContractStatus::Active { .. }, ContractStatus::Expired) => {
-                self.create_events_from_effects(&self.on_expire_effects(), true)
+                self.create_events_from_effects(&self.on_expire_effects())
             }
-            // Active -> Active: Generate ongoing stage events if any
+            // Active -> Active: Generate ongoing stage events including while active effects
             (ContractStatus::Active { .. }, ContractStatus::Active { .. }) => {
-                self.create_events_from_effects(&self.on_stage_start_effects(), false)
+                let mut events = self.create_events_from_effects(&self.on_stage_start_effects());
+                events.extend(self.create_events_from_effects(&self.while_active_effects()));
+                events
             }
             // No events for other transitions
             _ => vec![],
         }
     }
 
-    /// Creates ContractEvents from a list of effects with consistent structure.
-    fn create_events_from_effects(
-        &self,
-        effects: &[&Effect],
-        should_remove: bool,
-    ) -> Vec<ContractEvent> {
+    /// Creates ContractEvents from a list of effects.
+    fn create_events_from_effects(&self, effects: &[&Effect]) -> Vec<ContractEvent> {
         effects
             .iter()
             .map(|effect| ContractEvent {
                 contract_id: self.id,
                 effect: (*effect).clone(),
-                should_remove,
             })
             .collect()
     }
@@ -203,9 +202,29 @@ impl Contract {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ContractState {
-    // TODO: like upgrade state
+    pub current_stage_damage_multiplier: f32,
+}
+
+impl ContractState {
+    pub fn new() -> Self {
+        Self {
+            current_stage_damage_multiplier: 1.0,
+        }
+    }
+
+    pub fn reset_stage_multipliers(&mut self) {
+        self.current_stage_damage_multiplier = 1.0;
+    }
+
+    pub fn get_damage_multiplier(&self) -> f32 {
+        self.current_stage_damage_multiplier
+    }
+
+    pub fn apply_damage_multiplier(&mut self, multiplier: f32) {
+        self.current_stage_damage_multiplier *= multiplier;
+    }
 }
 
 #[allow(dead_code)]
@@ -221,5 +240,4 @@ pub fn sign_contract(game_state: &mut GameState, contract: Contract) {
 pub struct ContractEvent {
     pub contract_id: ContractId,
     pub effect: Effect,
-    pub should_remove: bool,
 }

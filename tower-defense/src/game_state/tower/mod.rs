@@ -44,6 +44,7 @@ impl Tower {
         &mut self,
         target_indicator: ProjectileTargetIndicator,
         tower_upgrade_states: &[TowerUpgradeState],
+        contract_multiplier: f32,
         now: Instant,
     ) -> Projectile {
         self.cooldown = self.shoot_interval;
@@ -54,7 +55,7 @@ impl Tower {
             xy: self.left_top.map(|t| t as f32 + 0.5),
             velocity: self.projectile_speed,
             target_indicator,
-            damage: self.calculate_projectile_damage(tower_upgrade_states),
+            damage: self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
         }
     }
 
@@ -69,7 +70,11 @@ impl Tower {
         self.id
     }
 
-    pub fn calculate_projectile_damage(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
+    pub fn calculate_projectile_damage(
+        &self,
+        tower_upgrade_states: &[TowerUpgradeState],
+        contract_multiplier: f32,
+    ) -> f32 {
         let mut damage = self.default_damage;
 
         self.status_effects.iter().for_each(|status_effect| {
@@ -95,6 +100,9 @@ impl Tower {
         tower_upgrade_states.iter().for_each(|tower_upgrade_state| {
             damage *= tower_upgrade_state.damage_multiplier;
         });
+
+        // Apply contract damage multiplier
+        damage *= contract_multiplier;
 
         damage
     }
