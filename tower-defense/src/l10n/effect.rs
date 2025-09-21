@@ -27,6 +27,11 @@ impl EffectText {
                 Effect::EarnGold { .. } => "골드 획득".to_string(),
                 Effect::DamageReduction { .. } => "피해 감소".to_string(),
                 Effect::UserDamageReduction { .. } => "피해 감소".to_string(),
+                Effect::LoseHealth { .. } => "체력 감소".to_string(),
+                Effect::LoseGold { .. } => "골드 감소".to_string(),
+                Effect::GrantUpgrade => "업그레이드 획득".to_string(),
+                Effect::GrantItem => "아이템 획득".to_string(),
+                Effect::AddChallengeMonster => "도전 몬스터 추가".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -65,6 +70,15 @@ impl EffectText {
                     reduction_percentage(format!("{:.0}", (1.0 - multiply) * 100.0)),
                     time_duration(format!("{:.1}초간", duration.as_secs_f32()))
                 ),
+                Effect::LoseHealth { amount } => {
+                    format!("체력을 {} 잃습니다", heal_icon(format!("{amount:.0}")))
+                }
+                Effect::LoseGold { amount } => {
+                    format!("골드를 {} 잃습니다", gold_icon(format!("{amount}")))
+                }
+                Effect::GrantUpgrade => "업그레이드를 획득합니다".to_string(),
+                Effect::GrantItem => "아이템을 획득합니다".to_string(),
+                Effect::AddChallengeMonster => "다음 라운드에 도전 몬스터가 추가됩니다".to_string(),
             },
         }
     }
@@ -79,6 +93,11 @@ impl EffectText {
                 Effect::EarnGold { .. } => "Gold Gain".to_string(),
                 Effect::DamageReduction { .. } => "Damage Reduction".to_string(),
                 Effect::UserDamageReduction { .. } => "Damage Reduction".to_string(),
+                Effect::LoseHealth { .. } => "Lose Health".to_string(),
+                Effect::LoseGold { .. } => "Lose Gold".to_string(),
+                Effect::GrantUpgrade => "Grant Upgrade".to_string(),
+                Effect::GrantItem => "Grant Item".to_string(),
+                Effect::AddChallengeMonster => "Add Challenge Monster".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -117,6 +136,15 @@ impl EffectText {
                     reduction_percentage(format!("{:.0}", (1.0 - multiply) * 100.0)),
                     time_duration(format!("{:.1}s", duration.as_secs_f32()))
                 ),
+                Effect::LoseHealth { amount } => {
+                    format!("Lose {} health", heal_icon(format!("{amount:.0}")))
+                }
+                Effect::LoseGold { amount } => {
+                    format!("Lose {} gold", gold_icon(format!("{amount}")))
+                }
+                Effect::GrantUpgrade => "Gain an upgrade".to_string(),
+                Effect::GrantItem => "Gain an item".to_string(),
+                Effect::AddChallengeMonster => "Add a challenge monster next round".to_string(),
             },
         }
     }

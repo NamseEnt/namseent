@@ -2,6 +2,7 @@ use crate::game_state::{
     GameState,
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
+use crate::rarity::Rarity;
 use namui::*;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -28,6 +29,15 @@ pub enum Effect {
         multiply: f32,
         duration: Duration,
     },
+    LoseHealth {
+        amount: f32,
+    },
+    LoseGold {
+        amount: usize,
+    },
+    GrantUpgrade,
+    GrantItem,
+    AddChallengeMonster,
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -42,7 +52,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state.left_reroll_chance += 1;
         }
         Effect::EarnGold { amount } => {
-            game_state.earn_gold(*amount);
+            game_state.gold = game_state.gold.saturating_add(*amount);
         }
         Effect::Lottery {
             amount,
@@ -73,6 +83,30 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
                 end_at: game_state.now() + *duration,
             };
             game_state.user_status_effects.push(status_effect);
+        }
+        Effect::LoseHealth { amount } => {
+            game_state.hp = (game_state.hp - amount).max(1.0);
+        }
+        Effect::LoseGold { amount } => {
+            if game_state.gold >= *amount {
+                game_state.gold -= *amount;
+            } else {
+                let remaining = *amount - game_state.gold;
+                game_state.gold = 0;
+                game_state.hp = (game_state.hp - (remaining as f32 / 10.0)).max(1.0);
+            }
+        }
+        Effect::GrantUpgrade => {
+            // 임시
+            game_state.left_reroll_chance += 1;
+        }
+        Effect::GrantItem => {
+            let item = crate::game_state::item::generation::generate_item(Rarity::Common);
+            game_state.items.push(item);
+        }
+        Effect::AddChallengeMonster => {
+            // 임시
+            game_state.left_reroll_chance += 1;
         }
     }
 }

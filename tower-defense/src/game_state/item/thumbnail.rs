@@ -35,6 +35,21 @@ impl Effect {
             Effect::UserDamageReduction { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::AttackDamage)
                 .build(),
+            Effect::LoseHealth { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
+            Effect::LoseGold { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
+            Effect::GrantUpgrade => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Refresh)
+                .build(),
+            Effect::GrantItem => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Item)
+                .build(),
+            Effect::AddChallengeMonster => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
         }
     }
 }

@@ -2,7 +2,7 @@ mod shop_slot;
 
 use crate::{
     game_state::{
-        GameState, contract::generate_contract, flow::GameFlow, item::generation::generate_item,
+        GameState, contract::generation::generate_contract, flow::GameFlow, item::generation::generate_item,
         upgrade::generate_upgrade,
     },
     rarity::Rarity,

@@ -1,25 +1,13 @@
+pub mod effect_kinds;
+pub mod generation;
+pub mod reward;
+pub mod risk;
+
 use crate::game_state::GameState;
 use crate::game_state::effect::{Effect, run_effect};
 use crate::rarity::Rarity;
-use rand::{Rng, thread_rng};
 use std::fmt::Display;
 use std::sync::atomic::AtomicUsize;
-
-#[allow(dead_code)]
-pub fn generate_contract(rarity: Rarity) -> Contract {
-    let mut rng = thread_rng();
-    let duration_stages = rng.gen_range(1..=5);
-    let risk = ContractEffect::OnSign {
-        effect: Effect::Lottery {
-            amount: 50.0,
-            probability: 0.3,
-        },
-    };
-    let reward = ContractEffect::OnSign {
-        effect: Effect::EarnGold { amount: 100 },
-    };
-    Contract::new(rarity, duration_stages, risk, reward)
-}
 
 #[derive(Clone, Debug)]
 pub enum ContractEffect {
