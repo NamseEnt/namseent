@@ -45,6 +45,12 @@ pub enum Effect {
     IncreaseAllTowersDamage {
         multiplier: f32,
     },
+    IncreaseAllTowersAttackSpeed {
+        multiplier: f32,
+    },
+    IncreaseAllTowersRange {
+        multiplier: f32,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -118,6 +124,16 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_damage_multiplier(*multiplier);
+        }
+        Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
+            game_state
+                .contract_state
+                .apply_attack_speed_multiplier(*multiplier);
+        }
+        Effect::IncreaseAllTowersRange { multiplier } => {
+            game_state
+                .contract_state
+                .apply_range_multiplier(*multiplier);
         }
     }
 }

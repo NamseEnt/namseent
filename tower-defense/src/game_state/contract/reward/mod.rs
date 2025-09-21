@@ -97,10 +97,34 @@ fn effect_from_on_sign_kind(kind: OnSignEffectKind, rarity: Rarity) -> Effect {
 fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) -> Effect {
     match kind {
         WhileActiveEffectKind::IncreaseAllTowersDamage => Effect::IncreaseAllTowersDamage {
-            multiplier: rarity_based_amount(rarity, 1.1, 1.15, 1.2, 1.3),
+            multiplier: rarity_based_random_amount(
+                rarity,
+                1.01..1.06, // 1% ~ 5%
+                1.05..1.11, // 5% ~ 10%
+                1.10..1.26, // 10% ~ 25%
+                1.25..1.76, // 25% ~ 75%
+            ),
         },
-        WhileActiveEffectKind::IncreaseAllTowersAttackSpeed => Effect::ExtraReroll, // placeholder
-        WhileActiveEffectKind::IncreaseAllTowersRange => Effect::ExtraReroll,       // placeholder
+        WhileActiveEffectKind::IncreaseAllTowersAttackSpeed => {
+            Effect::IncreaseAllTowersAttackSpeed {
+                multiplier: rarity_based_random_amount(
+                    rarity,
+                    1.01..1.06, // 1% ~ 5%
+                    1.05..1.11, // 5% ~ 10%
+                    1.10..1.26, // 10% ~ 25%
+                    1.25..1.76, // 25% ~ 75%
+                ),
+            }
+        }
+        WhileActiveEffectKind::IncreaseAllTowersRange => Effect::IncreaseAllTowersRange {
+            multiplier: rarity_based_random_amount(
+                rarity,
+                1.01..1.06, // 1% ~ 5%
+                1.05..1.11, // 5% ~ 10%
+                1.10..1.26, // 10% ~ 25%
+                1.25..1.51, // 25% ~ 50%
+            ),
+        },
         WhileActiveEffectKind::DecreaseIncomingDamage => Effect::UserDamageReduction {
             multiply: rarity_based_amount(rarity, 0.9, 0.85, 0.8, 0.7),
             duration: rarity_based_duration(rarity, 3, 4, 5, 6),

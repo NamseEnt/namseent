@@ -107,11 +107,15 @@ impl Tower {
         damage
     }
 
-    pub(crate) fn attack_range_radius(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
+    pub(crate) fn attack_range_radius(
+        &self,
+        tower_upgrade_states: &[TowerUpgradeState],
+        contract_range_multiplier: f32,
+    ) -> f32 {
         if self.kind == TowerKind::Barricade {
             return 0.0;
         }
-        self.status_effects.iter().fold(
+        let base_range = self.status_effects.iter().fold(
             self.default_attack_range_radius,
             |attack_range_radius, status_effect| {
                 if let TowerStatusEffectKind::AttackRangeAdd { add } = status_effect.kind {
@@ -124,7 +128,8 @@ impl Tower {
             .iter()
             .fold(0.0, |r, tower_upgrade_state| {
                 r + tower_upgrade_state.range_plus
-            })
+            });
+        base_range * contract_range_multiplier
     }
 }
 impl Deref for Tower {
@@ -316,6 +321,8 @@ impl TowerKind {
 }
 
 pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
+    let attack_speed_multiplier = game_state.contract_state.get_attack_speed_multiplier();
+
     game_state.towers.iter_mut().for_each(|tower| {
         if tower.cooldown == Duration::from_secs(0) {
             return;
@@ -345,6 +352,9 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
         tower_upgrades.iter().for_each(|tower_upgrade_state| {
             time_multiple *= tower_upgrade_state.speed_multiplier;
         });
+
+        // Apply contract attack speed multiplier
+        time_multiple *= attack_speed_multiplier;
 
         let cooldown_sub = dt * time_multiple;
 

@@ -130,7 +130,10 @@ fn shoot_projectiles(game_state: &mut GameState) {
 
         let tower_upgrades = upgrade_state.tower_upgrades(tower);
 
-        let attack_range_radius = tower.attack_range_radius(&tower_upgrades);
+        let attack_range_radius = tower.attack_range_radius(
+            &tower_upgrades,
+            game_state.contract_state.get_range_multiplier(),
+        );
 
         let target = game_state.monsters.iter().find(|monster| {
             (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()

@@ -53,6 +53,12 @@ impl Effect {
             Effect::IncreaseAllTowersDamage { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::AttackDamage)
                 .build(),
+            Effect::IncreaseAllTowersAttackSpeed { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackSpeed)
+                .build(),
+            Effect::IncreaseAllTowersRange { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackRange)
+                .build(),
         }
     }
 }

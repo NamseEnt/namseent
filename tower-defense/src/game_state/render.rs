@@ -154,6 +154,7 @@ fn render_tower_info_popup(ctx: &RenderCtx, game_state: &GameState) {
             .add(TowerInfoPopup {
                 tower: selected_tower,
                 tower_upgrades: &tower_upgrades,
+                game_state,
             });
     }
 }

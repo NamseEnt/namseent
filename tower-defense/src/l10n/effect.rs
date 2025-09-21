@@ -33,6 +33,10 @@ impl EffectText {
                 Effect::GrantItem { .. } => "아이템 획득".to_string(),
                 Effect::AddChallengeMonster => "도전 몬스터 추가".to_string(),
                 Effect::IncreaseAllTowersDamage { .. } => "모든 타워 공격력 증가".to_string(),
+                Effect::IncreaseAllTowersAttackSpeed { .. } => {
+                    "모든 타워 공격속도 증가".to_string()
+                }
+                Effect::IncreaseAllTowersRange { .. } => "모든 타워 사정거리 증가".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -81,7 +85,22 @@ impl EffectText {
                 Effect::GrantItem { .. } => "아이템을 획득합니다".to_string(),
                 Effect::AddChallengeMonster => "다음 라운드에 도전 몬스터가 추가됩니다".to_string(),
                 Effect::IncreaseAllTowersDamage { multiplier } => {
-                    format!("모든 타워의 공격력이 {:.0}% 증가합니다", (multiplier - 1.0) * 100.0)
+                    format!(
+                        "모든 타워의 공격력이 {:.0}% 증가합니다",
+                        (multiplier - 1.0) * 100.0
+                    )
+                }
+                Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
+                    format!(
+                        "모든 타워의 공격속도가 {:.0}% 증가합니다",
+                        (multiplier - 1.0) * 100.0
+                    )
+                }
+                Effect::IncreaseAllTowersRange { multiplier } => {
+                    format!(
+                        "모든 타워의 사정거리가 {:.0}% 증가합니다",
+                        (multiplier - 1.0) * 100.0
+                    )
                 }
             },
         }
@@ -103,6 +122,10 @@ impl EffectText {
                 Effect::GrantItem { .. } => "Grant Item".to_string(),
                 Effect::AddChallengeMonster => "Add Challenge Monster".to_string(),
                 Effect::IncreaseAllTowersDamage { .. } => "Increase All Towers Damage".to_string(),
+                Effect::IncreaseAllTowersAttackSpeed { .. } => {
+                    "Increase All Towers Attack Speed".to_string()
+                }
+                Effect::IncreaseAllTowersRange { .. } => "Increase All Towers Range".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -151,7 +174,22 @@ impl EffectText {
                 Effect::GrantItem { .. } => "Gain an item".to_string(),
                 Effect::AddChallengeMonster => "Add a challenge monster next round".to_string(),
                 Effect::IncreaseAllTowersDamage { multiplier } => {
-                    format!("Increase damage of all towers by {:.0}%", (multiplier - 1.0) * 100.0)
+                    format!(
+                        "Increase damage of all towers by {:.0}%",
+                        (multiplier - 1.0) * 100.0
+                    )
+                }
+                Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
+                    format!(
+                        "Increase attack speed of all towers by {:.0}%",
+                        (multiplier - 1.0) * 100.0
+                    )
+                }
+                Effect::IncreaseAllTowersRange { multiplier } => {
+                    format!(
+                        "Increase range of all towers by {:.0}%",
+                        (multiplier - 1.0) * 100.0
+                    )
                 }
             },
         }

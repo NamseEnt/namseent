@@ -205,25 +205,47 @@ impl Contract {
 #[derive(Clone, Debug, Default)]
 pub struct ContractState {
     pub current_stage_damage_multiplier: f32,
+    pub current_stage_attack_speed_multiplier: f32,
+    pub current_stage_range_multiplier: f32,
 }
 
 impl ContractState {
     pub fn new() -> Self {
         Self {
             current_stage_damage_multiplier: 1.0,
+            current_stage_attack_speed_multiplier: 1.0,
+            current_stage_range_multiplier: 1.0,
         }
     }
 
     pub fn reset_stage_multipliers(&mut self) {
         self.current_stage_damage_multiplier = 1.0;
+        self.current_stage_attack_speed_multiplier = 1.0;
+        self.current_stage_range_multiplier = 1.0;
     }
 
     pub fn get_damage_multiplier(&self) -> f32 {
         self.current_stage_damage_multiplier
     }
 
+    pub fn get_attack_speed_multiplier(&self) -> f32 {
+        self.current_stage_attack_speed_multiplier
+    }
+
+    pub fn get_range_multiplier(&self) -> f32 {
+        self.current_stage_range_multiplier
+    }
+
     pub fn apply_damage_multiplier(&mut self, multiplier: f32) {
         self.current_stage_damage_multiplier *= multiplier;
+    }
+
+    pub fn apply_attack_speed_multiplier(&mut self, multiplier: f32) {
+        self.current_stage_attack_speed_multiplier *= multiplier;
+    }
+
+    pub fn apply_range_multiplier(&mut self, multiplier: f32) {
+        self.current_stage_range_multiplier *= multiplier;
     }
 }
 
