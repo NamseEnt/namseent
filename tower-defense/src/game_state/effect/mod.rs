@@ -35,8 +35,12 @@ pub enum Effect {
     LoseGold {
         amount: usize,
     },
-    GrantUpgrade,
-    GrantItem,
+    GrantUpgrade {
+        rarity: Rarity,
+    },
+    GrantItem {
+        rarity: Rarity,
+    },
     AddChallengeMonster,
 }
 
@@ -96,12 +100,12 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
                 game_state.hp = (game_state.hp - (remaining as f32 / 10.0)).max(1.0);
             }
         }
-        Effect::GrantUpgrade => {
-            // 임시
-            game_state.left_reroll_chance += 1;
+        Effect::GrantUpgrade { rarity } => {
+            let upgrade = crate::game_state::upgrade::generate_upgrade(game_state, *rarity);
+            game_state.upgrade_state.upgrade(upgrade);
         }
-        Effect::GrantItem => {
-            let item = crate::game_state::item::generation::generate_item(Rarity::Common);
+        Effect::GrantItem { rarity } => {
+            let item = crate::game_state::item::generation::generate_item(*rarity);
             game_state.items.push(item);
         }
         Effect::AddChallengeMonster => {

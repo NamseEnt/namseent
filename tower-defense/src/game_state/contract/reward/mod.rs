@@ -72,13 +72,25 @@ pub fn generate_reward_effect(effect_type: &ContractEffectType, rarity: Rarity) 
 fn effect_from_on_sign_kind(kind: OnSignEffectKind, rarity: Rarity) -> Effect {
     match kind {
         OnSignEffectKind::HealHealth => Effect::Heal {
-            amount: rarity_based_amount(rarity, 10.0, 20.0, 30.0, 50.0),
+            amount: rarity_based_random_amount(
+                rarity,
+                10.0..15.0,
+                20.0..25.0,
+                30.0..35.0,
+                40.0..46.0,
+            ),
         },
         OnSignEffectKind::GainGold => Effect::EarnGold {
-            amount: rarity_based_amount(rarity, 100.0, 200.0, 400.0, 1000.0) as usize,
+            amount: rarity_based_random_amount(
+                rarity,
+                225.0..251.0,
+                500.0..551.0,
+                1000.0..1251.0,
+                2000.0..2501.0,
+            ) as usize,
         },
-        OnSignEffectKind::GrantUpgrade => Effect::ExtraReroll, // placeholder
-        OnSignEffectKind::GrantItem => Effect::ExtraReroll,    // placeholder
+        OnSignEffectKind::GrantUpgrade => Effect::GrantUpgrade { rarity },
+        OnSignEffectKind::GrantItem => Effect::GrantItem { rarity },
     }
 }
 
@@ -135,6 +147,23 @@ fn rarity_based_amount(rarity: Rarity, common: f32, rare: f32, epic: f32, legend
         Rarity::Rare => rare,
         Rarity::Epic => epic,
         Rarity::Legendary => legendary,
+    }
+}
+
+fn rarity_based_random_amount(
+    rarity: Rarity,
+    common: std::ops::Range<f32>,
+    rare: std::ops::Range<f32>,
+    epic: std::ops::Range<f32>,
+    legendary: std::ops::Range<f32>,
+) -> f32 {
+    use rand::Rng;
+    let mut rng = thread_rng();
+    match rarity {
+        Rarity::Common => rng.gen_range(common),
+        Rarity::Rare => rng.gen_range(rare),
+        Rarity::Epic => rng.gen_range(epic),
+        Rarity::Legendary => rng.gen_range(legendary),
     }
 }
 
