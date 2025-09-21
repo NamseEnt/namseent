@@ -109,8 +109,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state.items.push(item);
         }
         Effect::AddChallengeMonster => {
-            // 임시
-            game_state.left_reroll_chance += 1;
+            unimplemented!("AddChallengeMonster effect is not implemented yet");
         }
     }
 }

@@ -71,15 +71,25 @@ pub fn generate_risk_effect(effect_type: &ContractEffectType, rarity: Rarity) ->
 
 fn effect_from_on_sign_kind(kind: OnSignEffectKind, rarity: Rarity) -> Effect {
     match kind {
-        OnSignEffectKind::LoseHealth => Effect::Lottery {
-            amount: rarity_based_amount(rarity, 50.0, 100.0, 200.0, 500.0),
-            probability: 0.3,
-        }, // placeholder for lose health
-        OnSignEffectKind::LoseGold => Effect::Lottery {
-            amount: rarity_based_amount(rarity, 50.0, 100.0, 200.0, 500.0),
-            probability: 0.3,
-        }, // placeholder for lose gold
-        OnSignEffectKind::AddChallengeMonsterNextRound => Effect::ExtraReroll, // placeholder
+        OnSignEffectKind::LoseHealth => Effect::LoseHealth {
+            amount: rarity_based_random_amount(
+                rarity,
+                5.0..10.0,
+                10.0..15.0,
+                15.0..20.0,
+                20.0..26.0,
+            ),
+        },
+        OnSignEffectKind::LoseGold => Effect::LoseGold {
+            amount: rarity_based_random_amount(
+                rarity,
+                125.0..151.0,
+                250.0..301.0,
+                500.0..751.0,
+                1000.0..1501.0,
+            ) as usize,
+        },
+        OnSignEffectKind::AddChallengeMonsterNextRound => Effect::AddChallengeMonster,
     }
 }
 
@@ -139,6 +149,23 @@ fn rarity_based_amount(rarity: Rarity, common: f32, rare: f32, epic: f32, legend
         Rarity::Rare => rare,
         Rarity::Epic => epic,
         Rarity::Legendary => legendary,
+    }
+}
+
+fn rarity_based_random_amount(
+    rarity: Rarity,
+    common: std::ops::Range<f32>,
+    rare: std::ops::Range<f32>,
+    epic: std::ops::Range<f32>,
+    legendary: std::ops::Range<f32>,
+) -> f32 {
+    use rand::Rng;
+    let mut rng = thread_rng();
+    match rarity {
+        Rarity::Common => rng.gen_range(common),
+        Rarity::Rare => rng.gen_range(rare),
+        Rarity::Epic => rng.gen_range(epic),
+        Rarity::Legendary => rng.gen_range(legendary),
     }
 }
 
