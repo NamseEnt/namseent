@@ -123,7 +123,7 @@ impl GameState {
         self.upgrade_state.quest_board_refresh_chance_plus + 1
     }
     pub fn max_reroll_chance(&self) -> usize {
-        self.upgrade_state.reroll_chance_plus + 1
+        self.upgrade_state.reroll_chance_plus + 1 + self.contract_state.get_card_selection_hand_max_rerolls_bonus()
     }
     pub fn rerolled(&self) -> bool {
         self.rerolled_count > 0

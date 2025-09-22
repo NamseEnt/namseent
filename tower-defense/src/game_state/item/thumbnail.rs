@@ -67,6 +67,11 @@ impl Effect {
                     .with_icon_base(IconKind::Card)
                     .build()
             }
+            Effect::IncreaseCardSelectionHandMaxRerolls { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Refresh)
+                    .build()
+            }
             Effect::IncreaseGoldGain { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
