@@ -117,7 +117,7 @@ impl GameState {
         self.upgrade_state.quest_board_slot_expand + 1
     }
     pub fn max_shop_refresh_chance(&self) -> usize {
-        self.upgrade_state.shop_refresh_chance_plus + 1
+        self.upgrade_state.shop_refresh_chance_plus + 1 + self.contract_state.get_shop_max_rerolls_bonus()
     }
     pub fn max_quest_board_refresh_chance(&self) -> usize {
         self.upgrade_state.quest_board_refresh_chance_plus + 1

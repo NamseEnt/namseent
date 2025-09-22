@@ -63,6 +63,9 @@ pub enum Effect {
     IncreaseCardSelectionHandMaxRerolls {
         bonus: usize,
     },
+    IncreaseShopMaxRerolls {
+        bonus: usize,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -166,6 +169,11 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_card_selection_hand_max_rerolls_bonus(*bonus);
+        }
+        Effect::IncreaseShopMaxRerolls { bonus } => {
+            game_state
+                .contract_state
+                .apply_shop_max_rerolls_bonus(*bonus);
         }
     }
 }

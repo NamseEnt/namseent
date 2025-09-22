@@ -149,7 +149,9 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
         WhileActiveEffectKind::IncreaseCardSelectionHandMaxRerolls => {
             Effect::IncreaseCardSelectionHandMaxRerolls { bonus: 1 }
         }
-        WhileActiveEffectKind::IncreaseShopMaxRerolls => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::IncreaseShopMaxRerolls => {
+            Effect::IncreaseShopMaxRerolls { bonus: 1 }
+        }
     }
 }
 

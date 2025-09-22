@@ -72,6 +72,9 @@ impl Effect {
                     .with_icon_base(IconKind::Refresh)
                     .build()
             }
+            Effect::IncreaseShopMaxRerolls { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Refresh)
+                .build(),
             Effect::IncreaseGoldGain { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),

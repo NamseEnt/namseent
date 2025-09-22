@@ -44,6 +44,7 @@ impl EffectText {
                 Effect::IncreaseCardSelectionHandMaxRerolls { .. } => {
                     "카드 선택 최대 리롤 증가".to_string()
                 }
+                Effect::IncreaseShopMaxRerolls { .. } => "상점 최대 리롤 증가".to_string(),
                 Effect::IncreaseGoldGain { .. } => "골드 획득량 증가".to_string(),
             },
             EffectText::Description(effect) => match effect {
@@ -122,6 +123,9 @@ impl EffectText {
                 Effect::IncreaseCardSelectionHandMaxRerolls { bonus } => {
                     format!("카드 선택 시 최대 {}번 리롤할 수 있습니다", 1 + bonus)
                 }
+                Effect::IncreaseShopMaxRerolls { bonus } => {
+                    format!("상점 리롤 시 최대 {}번 리롤할 수 있습니다", 1 + bonus)
+                }
                 Effect::IncreaseGoldGain { multiplier } => {
                     format!(
                         "골드 획득량이 {:.0}% 증가합니다",
@@ -159,6 +163,7 @@ impl EffectText {
                 Effect::IncreaseCardSelectionHandMaxRerolls { .. } => {
                     "Increase Card Selection Max Rerolls".to_string()
                 }
+                Effect::IncreaseShopMaxRerolls { .. } => "Increase Shop Max Rerolls".to_string(),
                 Effect::IncreaseGoldGain { .. } => "Increase Gold Gain".to_string(),
             },
             EffectText::Description(effect) => match effect {
@@ -236,6 +241,9 @@ impl EffectText {
                 }
                 Effect::IncreaseCardSelectionHandMaxRerolls { bonus } => {
                     format!("Can reroll up to {} times when selecting cards", 1 + bonus)
+                }
+                Effect::IncreaseShopMaxRerolls { bonus } => {
+                    format!("Can reroll shop up to {} times", 1 + bonus)
                 }
                 Effect::IncreaseGoldGain { multiplier } => {
                     format!("Increase gold gain by {:.0}%", (multiplier - 1.0) * 100.0)

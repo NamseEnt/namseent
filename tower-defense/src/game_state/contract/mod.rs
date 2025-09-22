@@ -211,6 +211,7 @@ pub struct ContractState {
     pub current_stage_gold_gain_multiplier: f32,
     pub current_stage_card_selection_hand_max_slots_bonus: usize,
     pub current_stage_card_selection_hand_max_rerolls_bonus: usize,
+    pub current_stage_shop_max_rerolls_bonus: usize,
 }
 
 impl ContractState {
@@ -223,6 +224,7 @@ impl ContractState {
             current_stage_gold_gain_multiplier: 1.0,
             current_stage_card_selection_hand_max_slots_bonus: 0,
             current_stage_card_selection_hand_max_rerolls_bonus: 0,
+            current_stage_shop_max_rerolls_bonus: 0,
         }
     }
 
@@ -234,6 +236,7 @@ impl ContractState {
         self.current_stage_gold_gain_multiplier = 1.0;
         self.current_stage_card_selection_hand_max_slots_bonus = 0;
         self.current_stage_card_selection_hand_max_rerolls_bonus = 0;
+        self.current_stage_shop_max_rerolls_bonus = 0;
     }
 
     pub fn get_damage_multiplier(&self) -> f32 {
@@ -264,6 +267,10 @@ impl ContractState {
         self.current_stage_card_selection_hand_max_rerolls_bonus
     }
 
+    pub fn get_shop_max_rerolls_bonus(&self) -> usize {
+        self.current_stage_shop_max_rerolls_bonus
+    }
+
     pub fn apply_damage_multiplier(&mut self, multiplier: f32) {
         self.current_stage_damage_multiplier *= multiplier;
     }
@@ -290,6 +297,10 @@ impl ContractState {
 
     pub fn apply_card_selection_hand_max_rerolls_bonus(&mut self, bonus: usize) {
         self.current_stage_card_selection_hand_max_rerolls_bonus += bonus;
+    }
+
+    pub fn apply_shop_max_rerolls_bonus(&mut self, bonus: usize) {
+        self.current_stage_shop_max_rerolls_bonus += bonus;
     }
 }
 
