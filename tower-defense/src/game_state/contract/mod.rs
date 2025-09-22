@@ -209,6 +209,7 @@ pub struct ContractState {
     pub current_stage_range_multiplier: f32,
     pub current_stage_damage_reduction_multiplier: f32,
     pub current_stage_gold_gain_multiplier: f32,
+    pub current_stage_card_selection_hand_max_slots_bonus: usize,
 }
 
 impl ContractState {
@@ -219,6 +220,7 @@ impl ContractState {
             current_stage_range_multiplier: 1.0,
             current_stage_damage_reduction_multiplier: 1.0,
             current_stage_gold_gain_multiplier: 1.0,
+            current_stage_card_selection_hand_max_slots_bonus: 0,
         }
     }
 
@@ -228,6 +230,7 @@ impl ContractState {
         self.current_stage_range_multiplier = 1.0;
         self.current_stage_damage_reduction_multiplier = 1.0;
         self.current_stage_gold_gain_multiplier = 1.0;
+        self.current_stage_card_selection_hand_max_slots_bonus = 0;
     }
 
     pub fn get_damage_multiplier(&self) -> f32 {
@@ -250,6 +253,10 @@ impl ContractState {
         self.current_stage_gold_gain_multiplier
     }
 
+    pub fn get_card_selection_hand_max_slots_bonus(&self) -> usize {
+        self.current_stage_card_selection_hand_max_slots_bonus
+    }
+
     pub fn apply_damage_multiplier(&mut self, multiplier: f32) {
         self.current_stage_damage_multiplier *= multiplier;
     }
@@ -268,6 +275,10 @@ impl ContractState {
 
     pub fn apply_gold_gain_multiplier(&mut self, multiplier: f32) {
         self.current_stage_gold_gain_multiplier *= multiplier;
+    }
+
+    pub fn apply_card_selection_hand_max_slots_bonus(&mut self, bonus: usize) {
+        self.current_stage_card_selection_hand_max_slots_bonus += bonus;
     }
 }
 

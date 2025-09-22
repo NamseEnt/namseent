@@ -143,7 +143,9 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
                 1.75..2.25, // 75% ~ 125%
             ),
         },
-        WhileActiveEffectKind::IncreaseCardSelectionHandMaxSlots => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::IncreaseCardSelectionHandMaxSlots => Effect::IncreaseCardSelectionHandMaxSlots {
+            bonus: 1,
+        },
         WhileActiveEffectKind::IncreaseCardSelectionHandMaxRerolls => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::IncreaseShopMaxRerolls => Effect::ExtraReroll, // placeholder
     }

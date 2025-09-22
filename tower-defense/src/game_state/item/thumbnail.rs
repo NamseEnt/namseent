@@ -62,6 +62,11 @@ impl Effect {
             Effect::DecreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::AttackDamage)
                 .build(),
+            Effect::IncreaseCardSelectionHandMaxSlots { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Card)
+                    .build()
+            }
             Effect::IncreaseGoldGain { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
