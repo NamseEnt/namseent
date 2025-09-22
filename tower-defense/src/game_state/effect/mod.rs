@@ -51,6 +51,9 @@ pub enum Effect {
     IncreaseAllTowersRange {
         multiplier: f32,
     },
+    DecreaseIncomingDamage {
+        multiplier: f32,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -134,6 +137,11 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_range_multiplier(*multiplier);
+        }
+        Effect::DecreaseIncomingDamage { multiplier } => {
+            game_state
+                .contract_state
+                .apply_damage_reduction_multiplier(*multiplier);
         }
     }
 }

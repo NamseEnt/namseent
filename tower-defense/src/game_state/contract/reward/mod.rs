@@ -125,9 +125,14 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
                 1.25..1.51, // 25% ~ 50%
             ),
         },
-        WhileActiveEffectKind::DecreaseIncomingDamage => Effect::UserDamageReduction {
-            multiply: rarity_based_amount(rarity, 0.9, 0.85, 0.8, 0.7),
-            duration: rarity_based_duration(rarity, 3, 4, 5, 6),
+        WhileActiveEffectKind::DecreaseIncomingDamage => Effect::DecreaseIncomingDamage {
+            multiplier: rarity_based_random_amount(
+                rarity,
+                0.9..0.95, // 5% ~ 10% reduction
+                0.8..0.9,  // 10% ~ 20% reduction
+                0.65..0.8, // 20% ~ 35% reduction
+                0.5..0.65, // 35% ~ 50% reduction
+            ),
         },
         WhileActiveEffectKind::IncreaseGoldGain => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::IncreaseCardSelectionHandMaxSlots => Effect::ExtraReroll, // placeholder

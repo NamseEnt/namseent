@@ -207,6 +207,7 @@ pub struct ContractState {
     pub current_stage_damage_multiplier: f32,
     pub current_stage_attack_speed_multiplier: f32,
     pub current_stage_range_multiplier: f32,
+    pub current_stage_damage_reduction_multiplier: f32,
 }
 
 impl ContractState {
@@ -215,6 +216,7 @@ impl ContractState {
             current_stage_damage_multiplier: 1.0,
             current_stage_attack_speed_multiplier: 1.0,
             current_stage_range_multiplier: 1.0,
+            current_stage_damage_reduction_multiplier: 1.0,
         }
     }
 
@@ -222,6 +224,7 @@ impl ContractState {
         self.current_stage_damage_multiplier = 1.0;
         self.current_stage_attack_speed_multiplier = 1.0;
         self.current_stage_range_multiplier = 1.0;
+        self.current_stage_damage_reduction_multiplier = 1.0;
     }
 
     pub fn get_damage_multiplier(&self) -> f32 {
@@ -236,6 +239,10 @@ impl ContractState {
         self.current_stage_range_multiplier
     }
 
+    pub fn get_damage_reduction_multiplier(&self) -> f32 {
+        self.current_stage_damage_reduction_multiplier
+    }
+
     pub fn apply_damage_multiplier(&mut self, multiplier: f32) {
         self.current_stage_damage_multiplier *= multiplier;
     }
@@ -246,6 +253,10 @@ impl ContractState {
 
     pub fn apply_range_multiplier(&mut self, multiplier: f32) {
         self.current_stage_range_multiplier *= multiplier;
+    }
+
+    pub fn apply_damage_reduction_multiplier(&mut self, multiplier: f32) {
+        self.current_stage_damage_reduction_multiplier *= multiplier;
     }
 }
 

@@ -59,6 +59,9 @@ impl Effect {
             Effect::IncreaseAllTowersRange { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::AttackRange)
                 .build(),
+            Effect::DecreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
         }
     }
 }

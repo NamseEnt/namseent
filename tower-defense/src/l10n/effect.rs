@@ -37,6 +37,7 @@ impl EffectText {
                     "모든 타워 공격속도 증가".to_string()
                 }
                 Effect::IncreaseAllTowersRange { .. } => "모든 타워 사정거리 증가".to_string(),
+                Effect::DecreaseIncomingDamage { .. } => "받는 피해 감소".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -102,6 +103,9 @@ impl EffectText {
                         (multiplier - 1.0) * 100.0
                     )
                 }
+                Effect::DecreaseIncomingDamage { multiplier } => {
+                    format!("받는 피해가 {:.0}% 감소합니다", (1.0 - multiplier) * 100.0)
+                }
             },
         }
     }
@@ -126,6 +130,7 @@ impl EffectText {
                     "Increase All Towers Attack Speed".to_string()
                 }
                 Effect::IncreaseAllTowersRange { .. } => "Increase All Towers Range".to_string(),
+                Effect::DecreaseIncomingDamage { .. } => "Decrease Incoming Damage".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -189,6 +194,12 @@ impl EffectText {
                     format!(
                         "Increase range of all towers by {:.0}%",
                         (multiplier - 1.0) * 100.0
+                    )
+                }
+                Effect::DecreaseIncomingDamage { multiplier } => {
+                    format!(
+                        "Reduce incoming damage by {:.0}%",
+                        (1.0 - multiplier) * 100.0
                     )
                 }
             },
