@@ -87,6 +87,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 
         if monster.dead() {
             let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
+            let earn = (earn as f32 * game_state.contract_state.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;
             monsters.swap_remove(monster_index);
         }

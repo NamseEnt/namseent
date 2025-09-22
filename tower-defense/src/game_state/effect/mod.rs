@@ -54,6 +54,9 @@ pub enum Effect {
     DecreaseIncomingDamage {
         multiplier: f32,
     },
+    IncreaseGoldGain {
+        multiplier: f32,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -142,6 +145,11 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_damage_reduction_multiplier(*multiplier);
+        }
+        Effect::IncreaseGoldGain { multiplier } => {
+            game_state
+                .contract_state
+                .apply_gold_gain_multiplier(*multiplier);
         }
     }
 }

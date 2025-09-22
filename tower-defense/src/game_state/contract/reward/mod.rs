@@ -134,7 +134,15 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
                 0.5..0.65, // 35% ~ 50% reduction
             ),
         },
-        WhileActiveEffectKind::IncreaseGoldGain => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::IncreaseGoldGain => Effect::IncreaseGoldGain {
+            multiplier: rarity_based_random_amount(
+                rarity,
+                1.25..1.35, // 25% ~ 35%
+                1.35..1.5,  // 35% ~ 50%
+                1.5..1.75,  // 50% ~ 75%
+                1.75..2.25, // 75% ~ 125%
+            ),
+        },
         WhileActiveEffectKind::IncreaseCardSelectionHandMaxSlots => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::IncreaseCardSelectionHandMaxRerolls => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::IncreaseShopMaxRerolls => Effect::ExtraReroll, // placeholder
@@ -193,19 +201,4 @@ fn rarity_based_random_amount(
         Rarity::Epic => rng.gen_range(epic),
         Rarity::Legendary => rng.gen_range(legendary),
     }
-}
-
-fn rarity_based_duration(
-    rarity: Rarity,
-    common: i64,
-    rare: i64,
-    epic: i64,
-    legendary: i64,
-) -> Duration {
-    Duration::from_secs(match rarity {
-        Rarity::Common => common,
-        Rarity::Rare => rare,
-        Rarity::Epic => epic,
-        Rarity::Legendary => legendary,
-    })
 }

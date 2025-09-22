@@ -38,6 +38,7 @@ impl EffectText {
                 }
                 Effect::IncreaseAllTowersRange { .. } => "모든 타워 사정거리 증가".to_string(),
                 Effect::DecreaseIncomingDamage { .. } => "받는 피해 감소".to_string(),
+                Effect::IncreaseGoldGain { .. } => "골드 획득량 증가".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -106,6 +107,12 @@ impl EffectText {
                 Effect::DecreaseIncomingDamage { multiplier } => {
                     format!("받는 피해가 {:.0}% 감소합니다", (1.0 - multiplier) * 100.0)
                 }
+                Effect::IncreaseGoldGain { multiplier } => {
+                    format!(
+                        "골드 획득량이 {:.0}% 증가합니다",
+                        (multiplier - 1.0) * 100.0
+                    )
+                }
             },
         }
     }
@@ -131,6 +138,7 @@ impl EffectText {
                 }
                 Effect::IncreaseAllTowersRange { .. } => "Increase All Towers Range".to_string(),
                 Effect::DecreaseIncomingDamage { .. } => "Decrease Incoming Damage".to_string(),
+                Effect::IncreaseGoldGain { .. } => "Increase Gold Gain".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -201,6 +209,9 @@ impl EffectText {
                         "Reduce incoming damage by {:.0}%",
                         (1.0 - multiplier) * 100.0
                     )
+                }
+                Effect::IncreaseGoldGain { multiplier } => {
+                    format!("Increase gold gain by {:.0}%", (multiplier - 1.0) * 100.0)
                 }
             },
         }
