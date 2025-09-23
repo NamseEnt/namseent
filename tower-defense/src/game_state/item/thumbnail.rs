@@ -81,6 +81,9 @@ impl Effect {
             Effect::IncreaseGoldGain { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
+            Effect::IncreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
         }
     }
 }

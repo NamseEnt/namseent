@@ -48,6 +48,9 @@ pub enum Effect {
     DecreaseAllTowersDamage {
         multiplier: f32,
     },
+    IncreaseIncomingDamage {
+        multiplier: f32,
+    },
     IncreaseAllTowersAttackSpeed {
         multiplier: f32,
     },
@@ -147,6 +150,11 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_damage_multiplier(*multiplier);
+        }
+        Effect::IncreaseIncomingDamage { multiplier } => {
+            game_state
+                .contract_state
+                .apply_incoming_damage_multiplier(*multiplier);
         }
         Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
             game_state

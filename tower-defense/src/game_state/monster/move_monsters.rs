@@ -26,6 +26,8 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
 
     // Apply contract damage reduction
     damage *= game_state.contract_state.get_damage_reduction_multiplier();
+    // Apply contract incoming damage increase
+    damage *= game_state.contract_state.get_incoming_damage_multiplier();
 
     game_state.take_damage(damage);
 }

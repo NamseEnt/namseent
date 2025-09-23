@@ -39,6 +39,7 @@ impl EffectText {
                 }
                 Effect::IncreaseAllTowersRange { .. } => "모든 타워 사정거리 증가".to_string(),
                 Effect::DecreaseIncomingDamage { .. } => "받는 피해 감소".to_string(),
+                Effect::IncreaseIncomingDamage { .. } => "받는 피해 증가".to_string(),
                 Effect::IncreaseCardSelectionHandMaxSlots { .. } => {
                     "카드 선택 최대 슬롯 증가".to_string()
                 }
@@ -121,6 +122,9 @@ impl EffectText {
                 Effect::DecreaseIncomingDamage { multiplier } => {
                     format!("받는 피해가 {:.0}% 감소합니다", (1.0 - multiplier) * 100.0)
                 }
+                Effect::IncreaseIncomingDamage { multiplier } => {
+                    format!("받는 피해가 {:.0}% 증가합니다", (multiplier - 1.0) * 100.0)
+                }
                 Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
                     format!(
                         "카드 선택 시 최대 {}장의 카드를 받을 수 있습니다",
@@ -165,6 +169,7 @@ impl EffectText {
                 }
                 Effect::IncreaseAllTowersRange { .. } => "Increase All Towers Range".to_string(),
                 Effect::DecreaseIncomingDamage { .. } => "Decrease Incoming Damage".to_string(),
+                Effect::IncreaseIncomingDamage { .. } => "Increase Incoming Damage".to_string(),
                 Effect::IncreaseCardSelectionHandMaxSlots { .. } => {
                     "Increase Card Selection Max Slots".to_string()
                 }
@@ -248,6 +253,12 @@ impl EffectText {
                     format!(
                         "Reduce incoming damage by {:.0}%",
                         (1.0 - multiplier) * 100.0
+                    )
+                }
+                Effect::IncreaseIncomingDamage { multiplier } => {
+                    format!(
+                        "Increase incoming damage by {:.0}%",
+                        (multiplier - 1.0) * 100.0
                     )
                 }
                 Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {

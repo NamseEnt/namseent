@@ -98,9 +98,8 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
         WhileActiveEffectKind::DecreaseAllTowersDamage => Effect::DecreaseAllTowersDamage {
             multiplier: rand::thread_rng().gen_range(0.75..0.95), // 5-25% decrease
         },
-        WhileActiveEffectKind::IncreaseIncomingDamage => Effect::DamageReduction {
-            damage_multiply: rarity_based_amount(rarity, 1.1, 1.15, 1.2, 1.3),
-            duration: rarity_based_duration(rarity, 3, 4, 5, 6),
+        WhileActiveEffectKind::IncreaseIncomingDamage => Effect::IncreaseIncomingDamage {
+            multiplier: rand::thread_rng().gen_range(1.1..2.0), // 10-100% increase
         },
         WhileActiveEffectKind::DecreaseGoldGain => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::DisableItemAndUpgradePurchases => Effect::ExtraReroll, // placeholder
@@ -166,19 +165,4 @@ fn rarity_based_random_amount(
         Rarity::Epic => rng.gen_range(epic),
         Rarity::Legendary => rng.gen_range(legendary),
     }
-}
-
-fn rarity_based_duration(
-    rarity: Rarity,
-    common: i64,
-    rare: i64,
-    epic: i64,
-    legendary: i64,
-) -> Duration {
-    Duration::from_secs(match rarity {
-        Rarity::Common => common,
-        Rarity::Rare => rare,
-        Rarity::Epic => epic,
-        Rarity::Legendary => legendary,
-    })
 }
