@@ -54,6 +54,7 @@ impl EffectText {
                 Effect::DisableItemAndUpgradePurchasesDuringContract => {
                     "아이템/업그레이드 구매 불가".to_string()
                 }
+                Effect::DisableItemUseDuringContract => "아이템 사용 불가".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
                     "카드 선택 최대 슬롯 감소".to_string()
                 }
@@ -163,6 +164,7 @@ impl EffectText {
                 Effect::DisableItemAndUpgradePurchasesDuringContract => {
                     "아이템과 업그레이드를 구매할 수 없습니다".to_string()
                 }
+                Effect::DisableItemUseDuringContract => "아이템을 사용할 수 없습니다".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
                     format!("카드 선택 시 최대 슬롯이 {}개 감소합니다", penalty)
                 }
@@ -207,6 +209,7 @@ impl EffectText {
                 Effect::DisableItemAndUpgradePurchasesDuringContract => {
                     "Disable Item/Upgrade Purchases".to_string()
                 }
+                Effect::DisableItemUseDuringContract => "Disable Item Use".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
                     "Decrease Card Selection Max Slots".to_string()
                 }
@@ -313,6 +316,7 @@ impl EffectText {
                 Effect::DisableItemAndUpgradePurchasesDuringContract => {
                     "Cannot purchase items and upgrades".to_string()
                 }
+                Effect::DisableItemUseDuringContract => "Cannot use items".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
                     format!("Reduce maximum card selection slots by {}", penalty)
                 }

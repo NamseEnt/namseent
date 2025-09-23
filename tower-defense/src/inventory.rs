@@ -1,9 +1,5 @@
 use crate::{
-    game_state::{
-        MAX_INVENTORY_SLOT,
-        item::use_item,
-        mutate_game_state, use_game_state,
-    },
+    game_state::{MAX_INVENTORY_SLOT, item::use_item, mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
     l10n::ui::TopBarText,
     palette,
@@ -67,35 +63,44 @@ impl Component for Inventory {
                                                 table::fixed(
                                                     HEADLINE_FONT_SIZE_LARGE.into_px() * 3.0,
                                                     |wh, ctx| {
-                                                        ctx.add(Button::new(
-                                                            wh,
-                                                            &|| {
-                                                                mutate_game_state(
-                                                                    move |game_state| {
-                                                                        let item = game_state
-                                                                            .items
-                                                                            .remove(item_index);
-                                                                        use_item(
-                                                                            game_state, &item,
-                                                                        );
-                                                                    }
-                                                                );
-                                                            },
-                                                            &|wh, color, ctx| {
-                                                                ctx.add(
-                                                                    headline(
-                                                                        game_state
-                                                                            .text()
-                                                                            .ui(TopBarText::Use)
-                                                                            .to_string(),
-                                                                    )
-                                                                    .size(FontSize::Small)
-                                                                    .align(TextAlign::Center { wh })
-                                                                    .color(color)
-                                                                    .build(),
-                                                                );
-                                                            },
-                                                        ));
+                                                        ctx.add(
+                                                            Button::new(
+                                                                wh,
+                                                                &|| {
+                                                                    mutate_game_state(
+                                                                        move |game_state| {
+                                                                            let item = game_state
+                                                                                .items
+                                                                                .remove(item_index);
+                                                                            use_item(
+                                                                                game_state, &item,
+                                                                            );
+                                                                        },
+                                                                    );
+                                                                },
+                                                                &|wh, color, ctx| {
+                                                                    ctx.add(
+                                                                        headline(
+                                                                            game_state
+                                                                                .text()
+                                                                                .ui(TopBarText::Use)
+                                                                                .to_string(),
+                                                                        )
+                                                                        .size(FontSize::Small)
+                                                                        .align(TextAlign::Center {
+                                                                            wh,
+                                                                        })
+                                                                        .color(color)
+                                                                        .build(),
+                                                                    );
+                                                                },
+                                                            )
+                                                            .disabled(
+                                                                game_state
+                                                                    .contract_state
+                                                                    .is_item_use_disabled(),
+                                                            ),
+                                                        );
                                                     },
                                                 ),
                                             ]),

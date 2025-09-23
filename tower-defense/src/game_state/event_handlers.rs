@@ -164,6 +164,11 @@ impl GameState {
     }
 
     pub fn use_item(&mut self, item: &item::Item) {
+        // 아이템 사용 불가 효과 체크
+        if self.contract_state.is_item_use_disabled() {
+            return; // 아이템 사용 불가 상태에서는 아무것도 하지 않음
+        }
+
         self.item_used = true;
         run_effect(self, &item.effect);
         self.record_event(HistoryEventType::ItemUsed {

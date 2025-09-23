@@ -214,6 +214,7 @@ pub struct ContractState {
     pub current_stage_card_selection_hand_max_rerolls_bonus: usize,
     pub current_stage_shop_max_rerolls_bonus: usize,
     pub current_stage_disable_item_and_upgrade_purchases: bool,
+    pub current_stage_disable_item_use: bool,
 }
 
 impl ContractState {
@@ -229,6 +230,7 @@ impl ContractState {
             current_stage_card_selection_hand_max_rerolls_bonus: 0,
             current_stage_shop_max_rerolls_bonus: 0,
             current_stage_disable_item_and_upgrade_purchases: false,
+            current_stage_disable_item_use: false,
         }
     }
 
@@ -243,6 +245,7 @@ impl ContractState {
         self.current_stage_card_selection_hand_max_rerolls_bonus = 0;
         self.current_stage_shop_max_rerolls_bonus = 0;
         self.current_stage_disable_item_and_upgrade_purchases = false;
+        self.current_stage_disable_item_use = false;
     }
 
     pub fn get_damage_multiplier(&self) -> f32 {
@@ -283,6 +286,10 @@ impl ContractState {
 
     pub fn is_item_and_upgrade_purchases_disabled(&self) -> bool {
         self.current_stage_disable_item_and_upgrade_purchases
+    }
+
+    pub fn is_item_use_disabled(&self) -> bool {
+        self.current_stage_disable_item_use
     }
 
     pub fn apply_damage_multiplier(&mut self, multiplier: f32) {
@@ -329,6 +336,10 @@ impl ContractState {
 
     pub fn disable_item_and_upgrade_purchases(&mut self) {
         self.current_stage_disable_item_and_upgrade_purchases = true;
+    }
+
+    pub fn disable_item_use(&mut self) {
+        self.current_stage_disable_item_use = true;
     }
 }
 

@@ -67,6 +67,7 @@ pub enum Effect {
         reduction_percentage: f32,
     },
     DisableItemAndUpgradePurchasesDuringContract,
+    DisableItemUseDuringContract,
     IncreaseCardSelectionHandMaxSlots {
         bonus: usize,
     },
@@ -194,6 +195,9 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .disable_item_and_upgrade_purchases();
+        }
+        Effect::DisableItemUseDuringContract => {
+            game_state.contract_state.disable_item_use();
         }
         Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
             game_state
