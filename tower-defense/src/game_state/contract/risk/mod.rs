@@ -101,7 +101,9 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
         WhileActiveEffectKind::IncreaseIncomingDamage => Effect::IncreaseIncomingDamage {
             multiplier: rand::thread_rng().gen_range(1.1..2.0), // 10-100% increase
         },
-        WhileActiveEffectKind::DecreaseGoldGain => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::DecreaseGoldGain => Effect::DecreaseGoldGainPercentDuringContract {
+            reduction_percentage: rand::thread_rng().gen_range(0.1..0.5), // 10-50% decrease
+        },
         WhileActiveEffectKind::DisableItemAndUpgradePurchases => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::DisableItemUse => Effect::ExtraReroll,   // placeholder
         WhileActiveEffectKind::DecreaseCardSelectionHandMaxSlots => Effect::ExtraReroll, // placeholder

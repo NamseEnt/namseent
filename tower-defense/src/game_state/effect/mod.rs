@@ -63,6 +63,9 @@ pub enum Effect {
     IncreaseGoldGain {
         multiplier: f32,
     },
+    DecreaseGoldGainPercentDuringContract {
+        reduction_percentage: f32,
+    },
     IncreaseCardSelectionHandMaxSlots {
         bonus: usize,
     },
@@ -175,6 +178,13 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_gold_gain_multiplier(*multiplier);
+        }
+        Effect::DecreaseGoldGainPercentDuringContract {
+            reduction_percentage,
+        } => {
+            game_state
+                .contract_state
+                .apply_gold_gain_multiplier(1.0 - *reduction_percentage);
         }
         Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
             game_state

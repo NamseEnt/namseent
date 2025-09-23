@@ -48,6 +48,9 @@ impl EffectText {
                 }
                 Effect::IncreaseShopMaxRerolls { .. } => "상점 최대 리롤 증가".to_string(),
                 Effect::IncreaseGoldGain { .. } => "골드 획득량 증가".to_string(),
+                Effect::DecreaseGoldGainPercentDuringContract { .. } => {
+                    "골드 획득량 감소".to_string()
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -143,6 +146,14 @@ impl EffectText {
                         (multiplier - 1.0) * 100.0
                     )
                 }
+                Effect::DecreaseGoldGainPercentDuringContract {
+                    reduction_percentage,
+                } => {
+                    format!(
+                        "골드 획득량이 {:.0}% 감소합니다",
+                        reduction_percentage * 100.0
+                    )
+                }
             },
         }
     }
@@ -178,6 +189,9 @@ impl EffectText {
                 }
                 Effect::IncreaseShopMaxRerolls { .. } => "Increase Shop Max Rerolls".to_string(),
                 Effect::IncreaseGoldGain { .. } => "Increase Gold Gain".to_string(),
+                Effect::DecreaseGoldGainPercentDuringContract { .. } => {
+                    "Decrease Gold Gain".to_string()
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -272,6 +286,11 @@ impl EffectText {
                 }
                 Effect::IncreaseGoldGain { multiplier } => {
                     format!("Increase gold gain by {:.0}%", (multiplier - 1.0) * 100.0)
+                }
+                Effect::DecreaseGoldGainPercentDuringContract {
+                    reduction_percentage,
+                } => {
+                    format!("Decrease gold gain by {:.0}%", reduction_percentage * 100.0)
                 }
             },
         }
