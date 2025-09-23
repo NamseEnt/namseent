@@ -95,9 +95,8 @@ fn effect_from_on_sign_kind(kind: OnSignEffectKind, rarity: Rarity) -> Effect {
 
 fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) -> Effect {
     match kind {
-        WhileActiveEffectKind::DecreaseAllTowersDamage => Effect::DamageReduction {
-            damage_multiply: rarity_based_amount(rarity, 1.1, 1.15, 1.2, 1.3),
-            duration: rarity_based_duration(rarity, 3, 4, 5, 6),
+        WhileActiveEffectKind::DecreaseAllTowersDamage => Effect::DecreaseAllTowersDamage {
+            multiplier: rand::thread_rng().gen_range(0.75..0.95), // 5-25% decrease
         },
         WhileActiveEffectKind::IncreaseIncomingDamage => Effect::DamageReduction {
             damage_multiply: rarity_based_amount(rarity, 1.1, 1.15, 1.2, 1.3),

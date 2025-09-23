@@ -45,6 +45,9 @@ pub enum Effect {
     IncreaseAllTowersDamage {
         multiplier: f32,
     },
+    DecreaseAllTowersDamage {
+        multiplier: f32,
+    },
     IncreaseAllTowersAttackSpeed {
         multiplier: f32,
     },
@@ -136,6 +139,11 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             unimplemented!("AddChallengeMonster effect is not implemented yet");
         }
         Effect::IncreaseAllTowersDamage { multiplier } => {
+            game_state
+                .contract_state
+                .apply_damage_multiplier(*multiplier);
+        }
+        Effect::DecreaseAllTowersDamage { multiplier } => {
             game_state
                 .contract_state
                 .apply_damage_multiplier(*multiplier);

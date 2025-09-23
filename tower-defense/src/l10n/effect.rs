@@ -33,6 +33,7 @@ impl EffectText {
                 Effect::GrantItem { .. } => "아이템 획득".to_string(),
                 Effect::AddChallengeMonster => "도전 몬스터 추가".to_string(),
                 Effect::IncreaseAllTowersDamage { .. } => "모든 타워 공격력 증가".to_string(),
+                Effect::DecreaseAllTowersDamage { .. } => "모든 타워 공격력 감소".to_string(),
                 Effect::IncreaseAllTowersAttackSpeed { .. } => {
                     "모든 타워 공격속도 증가".to_string()
                 }
@@ -99,6 +100,12 @@ impl EffectText {
                         (multiplier - 1.0) * 100.0
                     )
                 }
+                Effect::DecreaseAllTowersDamage { multiplier } => {
+                    format!(
+                        "모든 타워의 공격력이 {:.0}% 감소합니다",
+                        (1.0 - multiplier) * 100.0
+                    )
+                }
                 Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
                     format!(
                         "모든 타워의 공격속도가 {:.0}% 증가합니다",
@@ -152,6 +159,7 @@ impl EffectText {
                 Effect::GrantItem { .. } => "Grant Item".to_string(),
                 Effect::AddChallengeMonster => "Add Challenge Monster".to_string(),
                 Effect::IncreaseAllTowersDamage { .. } => "Increase All Towers Damage".to_string(),
+                Effect::DecreaseAllTowersDamage { .. } => "Decrease All Towers Damage".to_string(),
                 Effect::IncreaseAllTowersAttackSpeed { .. } => {
                     "Increase All Towers Attack Speed".to_string()
                 }
@@ -216,6 +224,12 @@ impl EffectText {
                     format!(
                         "Increase damage of all towers by {:.0}%",
                         (multiplier - 1.0) * 100.0
+                    )
+                }
+                Effect::DecreaseAllTowersDamage { multiplier } => {
+                    format!(
+                        "Decrease damage of all towers by {:.0}%",
+                        (1.0 - multiplier) * 100.0
                     )
                 }
                 Effect::IncreaseAllTowersAttackSpeed { multiplier } => {

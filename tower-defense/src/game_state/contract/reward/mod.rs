@@ -19,6 +19,7 @@ pub(crate) enum OnSignEffectKind {
 #[derive(Clone, Copy)]
 pub(crate) enum WhileActiveEffectKind {
     IncreaseAllTowersDamage,
+    DecreaseAllTowersDamagePercentDuringContract,
     IncreaseAllTowersAttackSpeed,
     IncreaseAllTowersRange,
     DecreaseIncomingDamage,
@@ -105,6 +106,17 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
                 1.25..1.76, // 25% ~ 75%
             ),
         },
+        WhileActiveEffectKind::DecreaseAllTowersDamagePercentDuringContract => {
+            Effect::DecreaseAllTowersDamage {
+                multiplier: rarity_based_random_amount(
+                    rarity,
+                    0.95..0.99, // 1% ~ 5% decrease
+                    0.90..0.95, // 5% ~ 10% decrease
+                    0.75..0.90, // 10% ~ 25% decrease
+                    0.25..0.75, // 25% ~ 75% decrease
+                ),
+            }
+        }
         WhileActiveEffectKind::IncreaseAllTowersAttackSpeed => {
             Effect::IncreaseAllTowersAttackSpeed {
                 multiplier: rarity_based_random_amount(
