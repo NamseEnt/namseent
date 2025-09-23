@@ -66,8 +66,12 @@ pub enum Effect {
     DecreaseGoldGainPercentDuringContract {
         reduction_percentage: f32,
     },
+    DisableItemAndUpgradePurchasesDuringContract,
     IncreaseCardSelectionHandMaxSlots {
         bonus: usize,
+    },
+    DecreaseCardSelectionHandMaxSlots {
+        penalty: usize,
     },
     IncreaseCardSelectionHandMaxRerolls {
         bonus: usize,
@@ -185,6 +189,16 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_gold_gain_multiplier(1.0 - *reduction_percentage);
+        }
+        Effect::DisableItemAndUpgradePurchasesDuringContract => {
+            game_state
+                .contract_state
+                .disable_item_and_upgrade_purchases();
+        }
+        Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
+            game_state
+                .contract_state
+                .decrease_card_selection_hand_max_slots_penalty(*penalty);
         }
         Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
             game_state

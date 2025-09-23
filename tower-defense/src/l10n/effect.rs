@@ -51,6 +51,12 @@ impl EffectText {
                 Effect::DecreaseGoldGainPercentDuringContract { .. } => {
                     "골드 획득량 감소".to_string()
                 }
+                Effect::DisableItemAndUpgradePurchasesDuringContract => {
+                    "아이템/업그레이드 구매 불가".to_string()
+                }
+                Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
+                    "카드 선택 최대 슬롯 감소".to_string()
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -154,6 +160,12 @@ impl EffectText {
                         reduction_percentage * 100.0
                     )
                 }
+                Effect::DisableItemAndUpgradePurchasesDuringContract => {
+                    "아이템과 업그레이드를 구매할 수 없습니다".to_string()
+                }
+                Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
+                    format!("카드 선택 시 최대 슬롯이 {}개 감소합니다", penalty)
+                }
             },
         }
     }
@@ -191,6 +203,12 @@ impl EffectText {
                 Effect::IncreaseGoldGain { .. } => "Increase Gold Gain".to_string(),
                 Effect::DecreaseGoldGainPercentDuringContract { .. } => {
                     "Decrease Gold Gain".to_string()
+                }
+                Effect::DisableItemAndUpgradePurchasesDuringContract => {
+                    "Disable Item/Upgrade Purchases".to_string()
+                }
+                Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
+                    "Decrease Card Selection Max Slots".to_string()
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -291,6 +309,12 @@ impl EffectText {
                     reduction_percentage,
                 } => {
                     format!("Decrease gold gain by {:.0}%", reduction_percentage * 100.0)
+                }
+                Effect::DisableItemAndUpgradePurchasesDuringContract => {
+                    "Cannot purchase items and upgrades".to_string()
+                }
+                Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
+                    format!("Reduce maximum card selection slots by {}", penalty)
                 }
             },
         }

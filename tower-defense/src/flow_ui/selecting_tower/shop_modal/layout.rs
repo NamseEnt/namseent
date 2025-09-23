@@ -12,6 +12,7 @@ use namui_prebuilt::table::{self, ratio, ratio_no_clip};
 pub struct ShopLayout<'a> {
     pub shop: &'a Shop,
     pub purchase_item: &'a dyn Fn(usize),
+    pub can_purchase_items: &'a [bool],
 }
 
 impl Component for ShopLayout<'_> {
@@ -19,6 +20,7 @@ impl Component for ShopLayout<'_> {
         let Self {
             shop,
             purchase_item,
+            can_purchase_items,
         } = self;
 
         let game_state = use_game_state(ctx);
@@ -45,6 +47,7 @@ impl Component for ShopLayout<'_> {
                                         shop_slot,
                                         shop_slot_index,
                                         purchase_item,
+                                        can_purchase_item: can_purchase_items[shop_slot_index],
                                     });
                                 })
                             },

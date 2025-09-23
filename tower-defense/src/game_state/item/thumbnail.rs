@@ -89,6 +89,12 @@ impl Effect {
             Effect::IncreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::AttackDamage)
                 .build(),
+            Effect::DisableItemAndUpgradePurchasesDuringContract => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Item)
+                .build(),
+            Effect::DecreaseCardSelectionHandMaxSlots { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Card)
+                .build(),
         }
     }
 }

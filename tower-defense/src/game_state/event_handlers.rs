@@ -90,6 +90,11 @@ impl GameState {
                     return;
                 }
 
+                // 아이템/업그레이드 구매 불가 효과 체크
+                if self.contract_state.is_item_and_upgrade_purchases_disabled() {
+                    return; // 구매 불가 상태에서는 아무것도 하지 않음
+                }
+
                 // Store values before borrowing self mutably
                 let item_clone = item.clone();
                 let cost_value = *cost;
@@ -112,6 +117,11 @@ impl GameState {
                 }
                 if self.gold < *cost {
                     return;
+                }
+
+                // 아이템/업그레이드 구매 불가 효과 체크
+                if self.contract_state.is_item_and_upgrade_purchases_disabled() {
+                    return; // 구매 불가 상태에서는 아무것도 하지 않음
                 }
 
                 // Store values before borrowing self mutably
@@ -159,5 +169,37 @@ impl GameState {
         self.record_event(HistoryEventType::ItemUsed {
             item_effect: item.effect.clone(),
         });
+    }
+
+    pub fn can_purchase_shop_item(&self, slot_index: usize) -> bool {
+        let GameFlow::SelectingTower(flow) = &self.flow else {
+            return false;
+        };
+
+        let Some(slot) = flow.shop.slots.get(slot_index) else {
+            return false;
+        };
+
+        match slot {
+            ShopSlot::Locked => false,
+            ShopSlot::Item {
+                cost, purchased, ..
+            } => {
+                !*purchased
+                    && self.gold >= *cost
+                    && self.items.len() < MAX_INVENTORY_SLOT
+                    && !self.contract_state.is_item_and_upgrade_purchases_disabled()
+            }
+            ShopSlot::Upgrade {
+                cost, purchased, ..
+            } => {
+                !*purchased
+                    && self.gold >= *cost
+                    && !self.contract_state.is_item_and_upgrade_purchases_disabled()
+            }
+            ShopSlot::Contract {
+                cost, purchased, ..
+            } => !*purchased && self.gold >= *cost,
+        }
     }
 }

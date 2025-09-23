@@ -213,6 +213,7 @@ pub struct ContractState {
     pub current_stage_card_selection_hand_max_slots_bonus: usize,
     pub current_stage_card_selection_hand_max_rerolls_bonus: usize,
     pub current_stage_shop_max_rerolls_bonus: usize,
+    pub current_stage_disable_item_and_upgrade_purchases: bool,
 }
 
 impl ContractState {
@@ -227,6 +228,7 @@ impl ContractState {
             current_stage_card_selection_hand_max_slots_bonus: 0,
             current_stage_card_selection_hand_max_rerolls_bonus: 0,
             current_stage_shop_max_rerolls_bonus: 0,
+            current_stage_disable_item_and_upgrade_purchases: false,
         }
     }
 
@@ -240,6 +242,7 @@ impl ContractState {
         self.current_stage_card_selection_hand_max_slots_bonus = 0;
         self.current_stage_card_selection_hand_max_rerolls_bonus = 0;
         self.current_stage_shop_max_rerolls_bonus = 0;
+        self.current_stage_disable_item_and_upgrade_purchases = false;
     }
 
     pub fn get_damage_multiplier(&self) -> f32 {
@@ -278,6 +281,10 @@ impl ContractState {
         self.current_stage_shop_max_rerolls_bonus
     }
 
+    pub fn is_item_and_upgrade_purchases_disabled(&self) -> bool {
+        self.current_stage_disable_item_and_upgrade_purchases
+    }
+
     pub fn apply_damage_multiplier(&mut self, multiplier: f32) {
         self.current_stage_damage_multiplier *= multiplier;
     }
@@ -306,12 +313,22 @@ impl ContractState {
         self.current_stage_card_selection_hand_max_slots_bonus += bonus;
     }
 
+    pub fn decrease_card_selection_hand_max_slots_penalty(&mut self, penalty: usize) {
+        self.current_stage_card_selection_hand_max_slots_bonus = self
+            .current_stage_card_selection_hand_max_slots_bonus
+            .saturating_sub(penalty);
+    }
+
     pub fn apply_card_selection_hand_max_rerolls_bonus(&mut self, bonus: usize) {
         self.current_stage_card_selection_hand_max_rerolls_bonus += bonus;
     }
 
     pub fn apply_shop_max_rerolls_bonus(&mut self, bonus: usize) {
         self.current_stage_shop_max_rerolls_bonus += bonus;
+    }
+
+    pub fn disable_item_and_upgrade_purchases(&mut self) {
+        self.current_stage_disable_item_and_upgrade_purchases = true;
     }
 }
 

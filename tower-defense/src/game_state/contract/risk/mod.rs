@@ -104,9 +104,11 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
         WhileActiveEffectKind::DecreaseGoldGain => Effect::DecreaseGoldGainPercentDuringContract {
             reduction_percentage: rand::thread_rng().gen_range(0.1..0.5), // 10-50% decrease
         },
-        WhileActiveEffectKind::DisableItemAndUpgradePurchases => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::DisableItemAndUpgradePurchases => Effect::DisableItemAndUpgradePurchasesDuringContract,
         WhileActiveEffectKind::DisableItemUse => Effect::ExtraReroll,   // placeholder
-        WhileActiveEffectKind::DecreaseCardSelectionHandMaxSlots => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::DecreaseCardSelectionHandMaxSlots => Effect::DecreaseCardSelectionHandMaxSlots {
+            penalty: rarity_based_amount(rarity, 1.0, 2.0, 2.0, 3.0) as usize,
+        },
         WhileActiveEffectKind::DecreaseCardSelectionHandMaxRerolls => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::DecreaseShopMaxRerolls => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::AddCardSelectionHandRerollHealthCost => Effect::ExtraReroll, // placeholder
