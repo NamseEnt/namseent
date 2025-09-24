@@ -25,6 +25,7 @@ pub(crate) enum WhileActiveEffectKind {
     DecreaseCardSelectionHandMaxSlots,
     DecreaseCardSelectionHandMaxSlotsDuringContract,
     DecreaseCardSelectionHandMaxRerolls,
+    DecreaseCardSelectionHandMaxRerollsDuringContract,
     DecreaseShopMaxRerolls,
     AddCardSelectionHandRerollHealthCost,
     AddShopRerollHealthCost,
@@ -116,6 +117,9 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
         }
         WhileActiveEffectKind::DecreaseCardSelectionHandMaxSlotsDuringContract => {
             Effect::DecreaseCardSelectionHandMaxSlots { penalty: 1 }
+        }
+        WhileActiveEffectKind::DecreaseCardSelectionHandMaxRerollsDuringContract => {
+            Effect::DecreaseCardSelectionHandMaxRerolls { penalty: 1 }
         }
         WhileActiveEffectKind::DecreaseCardSelectionHandMaxRerolls => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::DecreaseShopMaxRerolls => Effect::ExtraReroll, // placeholder

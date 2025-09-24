@@ -58,6 +58,9 @@ impl EffectText {
                 Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
                     "카드 선택 최대 슬롯 감소".to_string()
                 }
+                Effect::DecreaseCardSelectionHandMaxRerolls { .. } => {
+                    "카드 선택 최대 리롤 감소".to_string()
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -168,6 +171,9 @@ impl EffectText {
                 Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
                     format!("카드 선택 시 최대 슬롯이 {}개 감소합니다", penalty)
                 }
+                Effect::DecreaseCardSelectionHandMaxRerolls { penalty } => {
+                    format!("카드 선택 시 최대 리롤 횟수가 {}회 감소합니다", penalty)
+                }
             },
         }
     }
@@ -212,6 +218,9 @@ impl EffectText {
                 Effect::DisableItemUseDuringContract => "Disable Item Use".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
                     "Decrease Card Selection Max Slots".to_string()
+                }
+                Effect::DecreaseCardSelectionHandMaxRerolls { .. } => {
+                    "Decrease Card Selection Max Rerolls".to_string()
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -319,6 +328,9 @@ impl EffectText {
                 Effect::DisableItemUseDuringContract => "Cannot use items".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
                     format!("Reduce maximum card selection slots by {}", penalty)
+                }
+                Effect::DecreaseCardSelectionHandMaxRerolls { penalty } => {
+                    format!("Reduce maximum card selection rerolls by {}", penalty)
                 }
             },
         }
