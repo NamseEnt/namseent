@@ -83,6 +83,9 @@ pub enum Effect {
     IncreaseShopMaxRerolls {
         bonus: usize,
     },
+    DecreaseShopMaxRerolls {
+        penalty: usize,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -226,6 +229,11 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_shop_max_rerolls_bonus(*bonus);
+        }
+        Effect::DecreaseShopMaxRerolls { penalty } => {
+            game_state
+                .contract_state
+                .apply_shop_max_rerolls_penalty(*penalty);
         }
     }
 }

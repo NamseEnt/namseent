@@ -215,6 +215,7 @@ pub struct ContractState {
     pub current_stage_card_selection_hand_max_rerolls_bonus: usize,
     pub current_stage_card_selection_hand_max_rerolls_penalty: usize,
     pub current_stage_shop_max_rerolls_bonus: usize,
+    pub current_stage_shop_max_rerolls_penalty: usize,
     pub current_stage_disable_item_and_upgrade_purchases: bool,
     pub current_stage_disable_item_use: bool,
 }
@@ -233,6 +234,7 @@ impl ContractState {
             current_stage_card_selection_hand_max_rerolls_bonus: 0,
             current_stage_card_selection_hand_max_rerolls_penalty: 0,
             current_stage_shop_max_rerolls_bonus: 0,
+            current_stage_shop_max_rerolls_penalty: 0,
             current_stage_disable_item_and_upgrade_purchases: false,
             current_stage_disable_item_use: false,
         }
@@ -250,6 +252,7 @@ impl ContractState {
         self.current_stage_card_selection_hand_max_rerolls_bonus = 0;
         self.current_stage_card_selection_hand_max_rerolls_penalty = 0;
         self.current_stage_shop_max_rerolls_bonus = 0;
+        self.current_stage_shop_max_rerolls_penalty = 0;
         self.current_stage_disable_item_and_upgrade_purchases = false;
         self.current_stage_disable_item_use = false;
     }
@@ -296,6 +299,10 @@ impl ContractState {
 
     pub fn get_shop_max_rerolls_bonus(&self) -> usize {
         self.current_stage_shop_max_rerolls_bonus
+    }
+
+    pub fn get_shop_max_rerolls_penalty(&self) -> usize {
+        self.current_stage_shop_max_rerolls_penalty
     }
 
     pub fn is_item_and_upgrade_purchases_disabled(&self) -> bool {
@@ -348,6 +355,10 @@ impl ContractState {
 
     pub fn apply_shop_max_rerolls_bonus(&mut self, bonus: usize) {
         self.current_stage_shop_max_rerolls_bonus += bonus;
+    }
+
+    pub fn apply_shop_max_rerolls_penalty(&mut self, penalty: usize) {
+        self.current_stage_shop_max_rerolls_penalty += penalty;
     }
 
     pub fn disable_item_and_upgrade_purchases(&mut self) {

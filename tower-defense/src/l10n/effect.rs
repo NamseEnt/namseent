@@ -61,6 +61,7 @@ impl EffectText {
                 Effect::DecreaseCardSelectionHandMaxRerolls { .. } => {
                     "카드 선택 최대 리롤 감소".to_string()
                 }
+                Effect::DecreaseShopMaxRerolls { .. } => "상점 최대 리롤 감소".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -174,6 +175,9 @@ impl EffectText {
                 Effect::DecreaseCardSelectionHandMaxRerolls { penalty } => {
                     format!("카드 선택 시 최대 리롤 횟수가 {}회 감소합니다", penalty)
                 }
+                Effect::DecreaseShopMaxRerolls { penalty } => {
+                    format!("상점 리롤 시 최대 횟수가 {}회 감소합니다", penalty)
+                }
             },
         }
     }
@@ -222,6 +226,7 @@ impl EffectText {
                 Effect::DecreaseCardSelectionHandMaxRerolls { .. } => {
                     "Decrease Card Selection Max Rerolls".to_string()
                 }
+                Effect::DecreaseShopMaxRerolls { .. } => "Decrease Shop Max Rerolls".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -331,6 +336,9 @@ impl EffectText {
                 }
                 Effect::DecreaseCardSelectionHandMaxRerolls { penalty } => {
                     format!("Reduce maximum card selection rerolls by {}", penalty)
+                }
+                Effect::DecreaseShopMaxRerolls { penalty } => {
+                    format!("Reduce maximum shop rerolls by {}", penalty)
                 }
             },
         }

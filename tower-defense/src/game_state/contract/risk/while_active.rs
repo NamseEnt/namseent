@@ -12,6 +12,7 @@ pub fn kinds() -> &'static [WhileActiveEffectKind] {
         WhileActiveEffectKind::DecreaseCardSelectionHandMaxRerolls,
         WhileActiveEffectKind::DecreaseCardSelectionHandMaxRerollsDuringContract,
         WhileActiveEffectKind::DecreaseShopMaxRerolls,
+        WhileActiveEffectKind::DecreaseShopMaxRerollsDuringContract,
         WhileActiveEffectKind::AddCardSelectionHandRerollHealthCost,
         WhileActiveEffectKind::AddShopRerollHealthCost,
         WhileActiveEffectKind::DecreaseEnemyHealth,

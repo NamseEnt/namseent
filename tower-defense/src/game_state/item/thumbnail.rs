@@ -107,6 +107,9 @@ impl Effect {
                     .with_icon_base(IconKind::Refresh)
                     .build()
             }
+            Effect::DecreaseShopMaxRerolls { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Shop)
+                .build(),
         }
     }
 }
