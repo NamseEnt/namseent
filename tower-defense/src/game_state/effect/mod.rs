@@ -202,7 +202,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
         Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
             game_state
                 .contract_state
-                .decrease_card_selection_hand_max_slots_penalty(*penalty);
+                .apply_card_selection_hand_max_slots_penalty(*penalty);
         }
         Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
             game_state

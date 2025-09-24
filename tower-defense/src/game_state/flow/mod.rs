@@ -45,7 +45,15 @@ pub struct SelectingTowerFlow {
 
 impl SelectingTowerFlow {
     pub fn new(game_state: &GameState) -> Self {
-        let max_slots = 5 + game_state.contract_state.get_card_selection_hand_max_slots_bonus();
+        let max_slots = (5 + game_state
+            .contract_state
+            .get_card_selection_hand_max_slots_bonus())
+        .saturating_sub(
+            game_state
+                .contract_state
+                .get_card_selection_hand_max_slots_penalty(),
+        )
+        .max(1);
         SelectingTowerFlow {
             hand: Hand::new((0..max_slots).map(|_| Card::new_random())),
             shop: Shop::new(game_state),
