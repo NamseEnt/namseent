@@ -49,6 +49,9 @@ impl Effect {
             Effect::LoseHealthOnContractEnd { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),
+            Effect::LoseGoldOnContractEnd { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
             Effect::LoseGold { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),

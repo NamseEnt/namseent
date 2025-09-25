@@ -129,6 +129,10 @@ pub enum Effect {
         min_amount: f32,
         max_amount: f32,
     },
+    LoseGoldOnContractEnd {
+        min_amount: f32,
+        max_amount: f32,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -208,6 +212,21 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             use rand::{Rng, thread_rng};
             let amount = thread_rng().gen_range(*min_amount..=*max_amount);
             game_state.hp = (game_state.hp - amount).max(1.0);
+        }
+        Effect::LoseGoldOnContractEnd {
+            min_amount,
+            max_amount,
+        } => {
+            use rand::{Rng, thread_rng};
+            let amount = thread_rng().gen_range(*min_amount..=*max_amount) as usize;
+            if game_state.gold >= amount {
+                game_state.gold -= amount;
+            } else {
+                let remaining = amount - game_state.gold;
+                game_state.gold = 0;
+                let health_penalty = (remaining as f32 / 10.0).max(1.0);
+                game_state.hp = (game_state.hp - health_penalty).max(1.0);
+            }
         }
         Effect::LoseGold { amount } => {
             if game_state.gold >= *amount {

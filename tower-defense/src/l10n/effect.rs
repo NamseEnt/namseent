@@ -35,6 +35,7 @@ impl EffectText {
                     "계약 기간 매 스테이지 골드 감소".to_string()
                 }
                 Effect::LoseHealthOnContractEnd { .. } => "계약 만료 시 체력 감소".to_string(),
+                Effect::LoseGoldOnContractEnd { .. } => "계약 만료 시 골드 감소".to_string(),
                 Effect::LoseGold { .. } => "골드 감소".to_string(),
                 Effect::GrantUpgrade { .. } => "업그레이드 획득".to_string(),
                 Effect::GrantItem { .. } => "아이템 획득".to_string(),
@@ -195,6 +196,18 @@ impl EffectText {
                         min_amount, max_amount
                     )
                 }
+                Effect::LoseGoldOnContractEnd {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "계약 만료 시 골드를 {:.0}~{:.0}만큼 잃습니다. 골드가 부족하면 체력을 {:.0}~{:.0}만큼 잃습니다",
+                        min_amount,
+                        max_amount,
+                        min_amount / 10.0,
+                        max_amount / 10.0
+                    )
+                }
                 Effect::LoseGold { amount } => {
                     format!("골드를 {} 잃습니다", gold_icon(format!("{amount}")))
                 }
@@ -349,6 +362,7 @@ impl EffectText {
                     "Lose Gold Each Stage During Contract".to_string()
                 }
                 Effect::LoseHealthOnContractEnd { .. } => "Lose Health On Contract End".to_string(),
+                Effect::LoseGoldOnContractEnd { .. } => "Lose Gold On Contract End".to_string(),
                 Effect::LoseGold { .. } => "Lose Gold".to_string(),
                 Effect::GrantUpgrade { .. } => "Grant Upgrade".to_string(),
                 Effect::GrantItem { .. } => "Grant Item".to_string(),
@@ -510,6 +524,18 @@ impl EffectText {
                     format!(
                         "Lose {:.0}~{:.0} health when contract expires",
                         min_amount, max_amount
+                    )
+                }
+                Effect::LoseGoldOnContractEnd {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Lose {:.0}~{:.0} gold when contract expires, if insufficient, lose {:.0}~{:.0} health",
+                        min_amount,
+                        max_amount,
+                        min_amount / 10.0,
+                        max_amount / 10.0
                     )
                 }
                 Effect::LoseGold { amount } => {
