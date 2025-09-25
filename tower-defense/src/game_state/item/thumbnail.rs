@@ -155,6 +155,11 @@ impl Effect {
                     .with_icon_base(IconKind::Shield)
                     .build()
             }
+            Effect::HealHealthEachStageDuringContract { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Health)
+                    .build()
+            }
         }
     }
 }

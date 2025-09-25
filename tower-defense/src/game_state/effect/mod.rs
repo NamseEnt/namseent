@@ -109,6 +109,10 @@ pub enum Effect {
         min_amount: f32,
         max_amount: f32,
     },
+    HealHealthEachStageDuringContract {
+        min_amount: f32,
+        max_amount: f32,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -294,6 +298,15 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             let mut rng = thread_rng();
             let shield_amount = rng.gen_range(*min_amount..=*max_amount);
             game_state.shield += shield_amount;
+        }
+        Effect::HealHealthEachStageDuringContract {
+            min_amount,
+            max_amount,
+        } => {
+            use rand::{Rng, thread_rng};
+            let mut rng = thread_rng();
+            let heal_amount = rng.gen_range(*min_amount..=*max_amount);
+            game_state.hp = (game_state.hp + heal_amount).min(crate::game_state::MAX_HP);
         }
     }
 }

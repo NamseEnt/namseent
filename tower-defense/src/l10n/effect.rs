@@ -81,8 +81,17 @@ impl EffectText {
                         count
                     )
                 }
-                Effect::GainShieldEachStageDuringContract { min_amount, max_amount } => {
+                Effect::GainShieldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
                     format!("매 스테이지 보호막 {}~{} 획득", min_amount, max_amount)
+                }
+                Effect::HealHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!("매 스테이지 체력 {}~{} 회복", min_amount, max_amount)
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -221,8 +230,23 @@ impl EffectText {
                         count
                     )
                 }
-                Effect::GainShieldEachStageDuringContract { min_amount, max_amount } => {
-                    format!("계약 기간 동안 매 스테이지 보호막을 {}~{}만큼 획득합니다", min_amount, max_amount)
+                Effect::GainShieldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "계약 기간 동안 매 스테이지 보호막을 {}~{}만큼 획득합니다",
+                        min_amount, max_amount
+                    )
+                }
+                Effect::HealHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "계약 기간 동안 매 스테이지 체력을 {}~{}만큼 회복합니다",
+                        min_amount, max_amount
+                    )
                 }
             },
         }
@@ -292,8 +316,17 @@ impl EffectText {
                         count
                     )
                 }
-                Effect::GainShieldEachStageDuringContract { min_amount, max_amount } => {
+                Effect::GainShieldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
                     format!("Gain Shield Each Stage ({}~{})", min_amount, max_amount)
+                }
+                Effect::HealHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!("Heal Health Each Stage ({}~{})", min_amount, max_amount)
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -429,8 +462,23 @@ impl EffectText {
                         count
                     )
                 }
-                Effect::GainShieldEachStageDuringContract { min_amount, max_amount } => {
-                    format!("Gain shield each stage during contract ({}~{})", min_amount, max_amount)
+                Effect::GainShieldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Gain shield each stage during contract ({}~{})",
+                        min_amount, max_amount
+                    )
+                }
+                Effect::HealHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Heal health each stage during contract ({}~{})",
+                        min_amount, max_amount
+                    )
                 }
             },
         }

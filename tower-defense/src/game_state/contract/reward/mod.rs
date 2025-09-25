@@ -188,8 +188,19 @@ fn effect_from_on_stage_start_kind(kind: OnStageStartEffectKind, rarity: Rarity)
                 Rarity::Legendary => 10.0,
             },
         },
-        OnStageStartEffectKind::HealHealth => Effect::Heal {
-            amount: rarity_based_amount(rarity, 5.0, 10.0, 15.0, 25.0),
+        OnStageStartEffectKind::HealHealth => Effect::HealHealthEachStageDuringContract {
+            min_amount: match rarity {
+                Rarity::Common => 10.0,
+                Rarity::Rare => 20.0,
+                Rarity::Epic => 30.0,
+                Rarity::Legendary => 40.0,
+            },
+            max_amount: match rarity {
+                Rarity::Common => 14.0,
+                Rarity::Rare => 24.0,
+                Rarity::Epic => 34.0,
+                Rarity::Legendary => 45.0,
+            },
         },
         OnStageStartEffectKind::GainGold => Effect::EarnGold {
             amount: rarity_based_amount(rarity, 50.0, 100.0, 200.0, 500.0) as usize,
