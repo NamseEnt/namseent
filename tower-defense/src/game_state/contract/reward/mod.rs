@@ -40,7 +40,7 @@ pub(crate) enum OnStageStartEffectKind {
 #[derive(Clone, Copy)]
 pub(crate) enum OnExpireEffectKind {
     HealHealthOnContractEnd,
-    GainGold,
+    GainGoldOnContractEnd,
     GrantUpgrade,
     GrantItem,
 }
@@ -240,8 +240,14 @@ fn effect_from_on_expire_kind(kind: OnExpireEffectKind, rarity: Rarity) -> Effec
                 40.0..46.0, // Legendary: 40~45
             ),
         },
-        OnExpireEffectKind::GainGold => Effect::EarnGold {
-            amount: rarity_based_amount(rarity, 200.0, 400.0, 800.0, 2000.0) as usize,
+        OnExpireEffectKind::GainGoldOnContractEnd => Effect::EarnGold {
+            amount: rarity_based_random_amount(
+                rarity,
+                225.0..251.0,   // Common: 225~250
+                500.0..551.0,   // Rare: 500~550
+                1000.0..1251.0, // Epic: 1000~1250
+                2000.0..2501.0, // Legendary: 2000~2500
+            ) as usize,
         },
         OnExpireEffectKind::GrantUpgrade => Effect::ExtraReroll, // placeholder
         OnExpireEffectKind::GrantItem => Effect::ExtraReroll,    // placeholder
