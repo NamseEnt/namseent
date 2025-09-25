@@ -105,6 +105,10 @@ pub enum Effect {
     AddBarricadeCardsToTowerPlacementHandEachStageDuringContract {
         count: usize,
     },
+    GainShieldEachStageDuringContract {
+        min_amount: f32,
+        max_amount: f32,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -281,6 +285,15 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .set_barricade_cards_per_stage(*count);
+        }
+        Effect::GainShieldEachStageDuringContract {
+            min_amount,
+            max_amount,
+        } => {
+            use rand::{Rng, thread_rng};
+            let mut rng = thread_rng();
+            let shield_amount = rng.gen_range(*min_amount..=*max_amount);
+            game_state.shield += shield_amount;
         }
     }
 }

@@ -81,6 +81,9 @@ impl EffectText {
                         count
                     )
                 }
+                Effect::GainShieldEachStageDuringContract { min_amount, max_amount } => {
+                    format!("매 스테이지 보호막 {}~{} 획득", min_amount, max_amount)
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -218,6 +221,9 @@ impl EffectText {
                         count
                     )
                 }
+                Effect::GainShieldEachStageDuringContract { min_amount, max_amount } => {
+                    format!("계약 기간 동안 매 스테이지 보호막을 {}~{}만큼 획득합니다", min_amount, max_amount)
+                }
             },
         }
     }
@@ -285,6 +291,9 @@ impl EffectText {
                         "Add {} Barricade Cards to Tower Placement Hand Each Stage",
                         count
                     )
+                }
+                Effect::GainShieldEachStageDuringContract { min_amount, max_amount } => {
+                    format!("Gain Shield Each Stage ({}~{})", min_amount, max_amount)
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -419,6 +428,9 @@ impl EffectText {
                         "Add {} barricade cards to tower placement hand each stage during contract",
                         count
                     )
+                }
+                Effect::GainShieldEachStageDuringContract { min_amount, max_amount } => {
+                    format!("Gain shield each stage during contract ({}~{})", min_amount, max_amount)
                 }
             },
         }

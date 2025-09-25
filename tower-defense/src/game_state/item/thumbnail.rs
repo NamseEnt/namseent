@@ -150,6 +150,11 @@ impl Effect {
                     .with_icon_base(IconKind::Card)
                     .build()
             }
+            Effect::GainShieldEachStageDuringContract { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Shield)
+                    .build()
+            }
         }
     }
 }

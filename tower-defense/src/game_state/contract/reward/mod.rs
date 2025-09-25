@@ -174,8 +174,19 @@ fn effect_from_on_stage_start_kind(kind: OnStageStartEffectKind, rarity: Rarity)
                 count: rarity_based_amount(rarity, 1.0, 2.0, 3.0, 4.0) as usize,
             }
         }
-        OnStageStartEffectKind::GainShield => Effect::Shield {
-            amount: rarity_based_amount(rarity, 20.0, 40.0, 60.0, 100.0),
+        OnStageStartEffectKind::GainShield => Effect::GainShieldEachStageDuringContract {
+            min_amount: match rarity {
+                Rarity::Common => 1.0,
+                Rarity::Rare => 2.0,
+                Rarity::Epic => 4.0,
+                Rarity::Legendary => 7.0,
+            },
+            max_amount: match rarity {
+                Rarity::Common => 2.0,
+                Rarity::Rare => 3.0,
+                Rarity::Epic => 6.0,
+                Rarity::Legendary => 10.0,
+            },
         },
         OnStageStartEffectKind::HealHealth => Effect::Heal {
             amount: rarity_based_amount(rarity, 5.0, 10.0, 15.0, 25.0),

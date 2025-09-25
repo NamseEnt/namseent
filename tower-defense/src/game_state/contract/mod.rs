@@ -225,6 +225,8 @@ pub struct ContractState {
     pub current_stage_disabled_ranks: Vec<Rank>,
     pub current_stage_disabled_suits: Vec<Suit>,
     pub barricade_cards_per_stage: usize,
+    pub shield_per_stage_min: f32,
+    pub shield_per_stage_max: f32,
 }
 
 impl ContractState {
@@ -250,6 +252,8 @@ impl ContractState {
             current_stage_disabled_ranks: vec![],
             current_stage_disabled_suits: vec![],
             barricade_cards_per_stage: 0,
+            shield_per_stage_min: 0.0,
+            shield_per_stage_max: 0.0,
         }
     }
 
@@ -433,6 +437,19 @@ impl ContractState {
 
     pub fn set_barricade_cards_per_stage(&mut self, count: usize) {
         self.barricade_cards_per_stage = count;
+    }
+
+    pub fn set_shield_per_stage(&mut self, min_amount: f32, max_amount: f32) {
+        self.shield_per_stage_min = min_amount;
+        self.shield_per_stage_max = max_amount;
+    }
+
+    pub fn get_shield_per_stage_min(&self) -> f32 {
+        self.shield_per_stage_min
+    }
+
+    pub fn get_shield_per_stage_max(&self) -> f32 {
+        self.shield_per_stage_max
     }
 
     pub fn get_barricade_cards_per_stage(&self) -> usize {
