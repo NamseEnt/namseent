@@ -37,7 +37,6 @@ pub(crate) enum WhileActiveEffectKind {
 pub(crate) enum OnStageStartEffectKind {
     LoseHealthEachStageDuringContract,
     LoseGoldEachStageDuringContract,
-    LoseGold,
 }
 
 #[derive(Clone, Copy)]
@@ -183,10 +182,6 @@ fn effect_from_on_stage_start_kind(
                 max_amount,
             }
         }
-        OnStageStartEffectKind::LoseGold => Effect::Lottery {
-            amount: rarity_based_amount(rarity, 25.0, 50.0, 100.0, 250.0),
-            probability: 0.3,
-        }, // placeholder
     }
 }
 
