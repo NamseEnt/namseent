@@ -28,6 +28,12 @@ impl EffectText {
                 Effect::DamageReduction { .. } => "피해 감소".to_string(),
                 Effect::UserDamageReduction { .. } => "피해 감소".to_string(),
                 Effect::LoseHealth { .. } => "체력 감소".to_string(),
+                Effect::LoseHealthEachStageDuringContract { .. } => {
+                    "계약 기간 매 스테이지 체력 감소".to_string()
+                }
+                Effect::LoseGoldEachStageDuringContract { .. } => {
+                    "계약 기간 매 스테이지 골드 감소".to_string()
+                }
                 Effect::LoseGold { .. } => "골드 감소".to_string(),
                 Effect::GrantUpgrade { .. } => "업그레이드 획득".to_string(),
                 Effect::GrantItem { .. } => "아이템 획득".to_string(),
@@ -105,6 +111,18 @@ impl EffectText {
                 } => {
                     format!("매 스테이지 체력 {:.0}~{:.0} 감소", min_amount, max_amount)
                 }
+                Effect::LoseGoldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "매 스테이지 골드 {:.0}~{:.0} 감소 (부족 시 체력 {:.0}~{:.0} 감소)",
+                        min_amount,
+                        max_amount,
+                        min_amount / 10.0,
+                        max_amount / 10.0
+                    )
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -145,6 +163,27 @@ impl EffectText {
                 ),
                 Effect::LoseHealth { amount } => {
                     format!("체력을 {} 잃습니다", heal_icon(format!("{amount:.0}")))
+                }
+                Effect::LoseHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "계약 기간 동안 매 스테이지 체력을 {:.0}~{:.0}만큼 잃습니다",
+                        min_amount, max_amount
+                    )
+                }
+                Effect::LoseGoldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "계약 기간 동안 매 스테이지 골드를 {:.0}~{:.0}만큼 잃습니다. 골드가 부족하면 체력을 {:.0}~{:.0}만큼 잃습니다",
+                        min_amount,
+                        max_amount,
+                        min_amount / 10.0,
+                        max_amount / 10.0
+                    )
                 }
                 Effect::LoseGold { amount } => {
                     format!("골드를 {} 잃습니다", gold_icon(format!("{amount}")))
@@ -293,6 +332,12 @@ impl EffectText {
                 Effect::DamageReduction { .. } => "Damage Reduction".to_string(),
                 Effect::UserDamageReduction { .. } => "Damage Reduction".to_string(),
                 Effect::LoseHealth { .. } => "Lose Health".to_string(),
+                Effect::LoseHealthEachStageDuringContract { .. } => {
+                    "Lose Health Each Stage During Contract".to_string()
+                }
+                Effect::LoseGoldEachStageDuringContract { .. } => {
+                    "Lose Gold Each Stage During Contract".to_string()
+                }
                 Effect::LoseGold { .. } => "Lose Gold".to_string(),
                 Effect::GrantUpgrade { .. } => "Grant Upgrade".to_string(),
                 Effect::GrantItem { .. } => "Grant Item".to_string(),
@@ -373,6 +418,18 @@ impl EffectText {
                         min_amount, max_amount
                     )
                 }
+                Effect::LoseGoldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Lose Gold Each Stage ({:.0}~{:.0}), if insufficient, lose health ({:.0}~{:.0})",
+                        min_amount,
+                        max_amount,
+                        min_amount / 10.0,
+                        max_amount / 10.0
+                    )
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -413,6 +470,27 @@ impl EffectText {
                 ),
                 Effect::LoseHealth { amount } => {
                     format!("Lose {} health", heal_icon(format!("{amount:.0}")))
+                }
+                Effect::LoseHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Lose {:.0}~{:.0} health each stage during contract",
+                        min_amount, max_amount
+                    )
+                }
+                Effect::LoseGoldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Lose {:.0}~{:.0} gold each stage during contract, if insufficient, lose {:.0}~{:.0} health",
+                        min_amount,
+                        max_amount,
+                        min_amount / 10.0,
+                        max_amount / 10.0
+                    )
                 }
                 Effect::LoseGold { amount } => {
                     format!("Lose {} gold", gold_icon(format!("{amount}")))

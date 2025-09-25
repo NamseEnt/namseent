@@ -32,9 +32,11 @@ pub(crate) enum WhileActiveEffectKind {
     SuitTowerDisable,
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy)]
 pub(crate) enum OnStageStartEffectKind {
     LoseHealthEachStageDuringContract,
+    LoseGoldEachStageDuringContract,
     LoseGold,
 }
 
@@ -166,6 +168,17 @@ fn effect_from_on_stage_start_kind(
             let min_amount = (base_amount * 0.8).floor();
             let max_amount = (base_amount * 1.2).ceil();
             Effect::LoseHealthEachStageDuringContract {
+                min_amount,
+                max_amount,
+            }
+        }
+        OnStageStartEffectKind::LoseGoldEachStageDuringContract => {
+            let total_gold_loss =
+                rarity_based_random_amount(rarity, 10.0..20.0, 20.0..30.0, 30.0..40.0, 40.0..50.0);
+            let base_amount = (total_gold_loss / duration_stages as f32).max(1.0);
+            let min_amount = (base_amount * 0.8).floor();
+            let max_amount = (base_amount * 1.2).ceil();
+            Effect::LoseGoldEachStageDuringContract {
                 min_amount,
                 max_amount,
             }
