@@ -54,7 +54,7 @@ pub fn generate_risk_effect(effect_type: &ContractEffectType, rarity: Rarity) ->
         ContractEffectType::WhileActive => {
             let kinds = while_active::kinds();
             let kind = kinds.choose(&mut thread_rng()).unwrap();
-            effect_from_while_active_kind(*kind, rarity)
+            effect_from_while_active_kind(*kind)
         }
         ContractEffectType::OnStageStart => {
             let kinds = on_stage_start::kinds();
@@ -93,7 +93,7 @@ fn effect_from_on_sign_kind(kind: OnSignEffectKind, rarity: Rarity) -> Effect {
     }
 }
 
-fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) -> Effect {
+fn effect_from_while_active_kind(kind: WhileActiveEffectKind) -> Effect {
     match kind {
         WhileActiveEffectKind::DecreaseAllTowersDamage => Effect::DecreaseAllTowersDamage {
             multiplier: rand::thread_rng().gen_range(0.75..0.95), // 5-25% decrease
@@ -109,21 +109,17 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
         }
         WhileActiveEffectKind::DisableItemUse => Effect::DisableItemUseDuringContract,
         WhileActiveEffectKind::DecreaseCardSelectionHandMaxSlots => {
-            Effect::DecreaseCardSelectionHandMaxSlots {
-                penalty: rarity_based_amount(rarity, 1.0, 2.0, 2.0, 3.0) as usize,
-            }
+            Effect::DecreaseCardSelectionHandMaxSlots { penalty: 1 }
         }
         WhileActiveEffectKind::DecreaseCardSelectionHandMaxRerolls => {
-            Effect::DecreaseCardSelectionHandMaxRerolls {
-                penalty: rarity_based_amount(rarity, 1.0, 2.0, 2.0, 3.0) as usize,
-            }
+            Effect::DecreaseCardSelectionHandMaxRerolls { penalty: 1 }
         }
-        WhileActiveEffectKind::DecreaseShopMaxRerolls => Effect::DecreaseShopMaxRerolls {
-            penalty: rarity_based_amount(rarity, 1.0, 2.0, 2.0, 3.0) as usize,
-        },
+        WhileActiveEffectKind::DecreaseShopMaxRerolls => {
+            Effect::DecreaseShopMaxRerolls { penalty: 1 }
+        }
         WhileActiveEffectKind::AddCardSelectionHandRerollHealthCost => {
             Effect::AddCardSelectionHandRerollHealthCost {
-                cost: rarity_based_amount(rarity, 1.0, 2.0, 3.0, 5.0) as usize,
+                cost: rand::thread_rng().gen_range(1..=5),
             }
         }
         WhileActiveEffectKind::AddShopRerollHealthCost => Effect::AddShopRerollHealthCost {
