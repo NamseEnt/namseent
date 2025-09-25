@@ -24,11 +24,20 @@ impl Component for ShopLayout<'_> {
         } = self;
 
         let game_state = use_game_state(ctx);
-        let disabled = game_state.left_shop_refresh_chance == 0;
+        let disabled = game_state.left_shop_refresh_chance == 0
+            || {
+                let health_cost = game_state.contract_state.get_shop_reroll_health_cost();
+                (game_state.hp - health_cost as f32) < 1.0
+            };
 
         let refresh_shop = || {
             mutate_game_state(|game_state| {
+                let health_cost = game_state.contract_state.get_shop_reroll_health_cost();
+                if (game_state.hp - health_cost as f32) < 1.0 {
+                    return;
+                }
                 game_state.left_shop_refresh_chance -= 1;
+                game_state.take_damage(health_cost as f32);
                 refresh_shop(game_state);
             });
         };
@@ -65,18 +74,29 @@ impl Component for ShopLayout<'_> {
                                             refresh_shop();
                                         },
                                         &|wh, color, ctx| {
+                                            let health_cost = game_state.contract_state.get_shop_reroll_health_cost();
+                                            let mut text = format!(
+                                                "{}-{}",
+                                                Icon::new(IconKind::Refresh)
+                                                    .size(IconSize::Large)
+                                                    .wh(Wh::single(wh.height))
+                                                    .as_tag(),
+                                                game_state.left_shop_refresh_chance
+                                            );
+                                            if health_cost > 0 {
+                                                text.push_str(&format!(
+                                                    " {}",
+                                                    Icon::new(IconKind::Health)
+                                                        .size(IconSize::Small)
+                                                        .wh(Wh::single(wh.height * 0.5))
+                                                        .as_tag()
+                                                ));
+                                            }
                                             ctx.add(
-                                                headline(format!(
-                                                    "{}-{}",
-                                                    Icon::new(IconKind::Refresh)
-                                                        .size(IconSize::Large)
-                                                        .wh(Wh::single(wh.height))
-                                                        .as_tag(),
-                                                    game_state.left_shop_refresh_chance
-                                                ))
-                                                .color(color)
-                                                .align(TextAlign::Center { wh })
-                                                .build_rich(),
+                                                headline(text)
+                                                    .color(color)
+                                                    .align(TextAlign::Center { wh })
+                                                    .build_rich(),
                                             );
                                         },
                                     )

@@ -126,10 +126,12 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
                 cost: rarity_based_amount(rarity, 1.0, 2.0, 3.0, 5.0) as usize,
             }
         }
-        WhileActiveEffectKind::AddShopRerollHealthCost => Effect::ExtraReroll, // placeholder
-        WhileActiveEffectKind::DecreaseEnemyHealth => Effect::ExtraReroll,     // placeholder
-        WhileActiveEffectKind::RankTowerDisable => Effect::ExtraReroll,        // placeholder
-        WhileActiveEffectKind::SuitTowerDisable => Effect::ExtraReroll,        // placeholder
+        WhileActiveEffectKind::AddShopRerollHealthCost => Effect::AddShopRerollHealthCost {
+            cost: rand::thread_rng().gen_range(1..=5),
+        },
+        WhileActiveEffectKind::DecreaseEnemyHealth => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::RankTowerDisable => Effect::ExtraReroll,    // placeholder
+        WhileActiveEffectKind::SuitTowerDisable => Effect::ExtraReroll,    // placeholder
     }
 }
 

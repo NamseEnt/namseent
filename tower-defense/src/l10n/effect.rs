@@ -65,6 +65,7 @@ impl EffectText {
                 Effect::AddCardSelectionHandRerollHealthCost { .. } => {
                     "카드 선택 리롤 체력 비용".to_string()
                 }
+                Effect::AddShopRerollHealthCost { .. } => "상점 리롤 체력 비용".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -184,6 +185,9 @@ impl EffectText {
                 Effect::AddCardSelectionHandRerollHealthCost { cost } => {
                     format!("카드 선택 리롤 시 체력을 {} 잃습니다", cost)
                 }
+                Effect::AddShopRerollHealthCost { cost } => {
+                    format!("상점 리롤 시 체력을 {} 잃습니다", cost)
+                }
             },
         }
     }
@@ -236,6 +240,7 @@ impl EffectText {
                 Effect::AddCardSelectionHandRerollHealthCost { .. } => {
                     "Card Selection Reroll Health Cost".to_string()
                 }
+                Effect::AddShopRerollHealthCost { .. } => "Shop Reroll Health Cost".to_string(),
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -351,6 +356,9 @@ impl EffectText {
                 }
                 Effect::AddCardSelectionHandRerollHealthCost { cost } => {
                     format!("Lose {} health when rerolling card selection", cost)
+                }
+                Effect::AddShopRerollHealthCost { cost } => {
+                    format!("Lose {} health when rerolling shop", cost)
                 }
             },
         }

@@ -89,6 +89,9 @@ pub enum Effect {
     AddCardSelectionHandRerollHealthCost {
         cost: usize,
     },
+    AddShopRerollHealthCost {
+        cost: usize,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -242,6 +245,11 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_card_selection_hand_reroll_health_cost(*cost);
+        }
+        Effect::AddShopRerollHealthCost { cost } => {
+            game_state
+                .contract_state
+                .apply_shop_reroll_health_cost(*cost);
         }
     }
 }

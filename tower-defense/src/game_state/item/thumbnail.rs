@@ -115,6 +115,9 @@ impl Effect {
                     .with_icon_base(IconKind::Health)
                     .build()
             }
+            Effect::AddShopRerollHealthCost { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
         }
     }
 }
