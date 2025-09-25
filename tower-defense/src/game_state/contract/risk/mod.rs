@@ -34,7 +34,7 @@ pub(crate) enum WhileActiveEffectKind {
 
 #[derive(Clone, Copy)]
 pub(crate) enum OnStageStartEffectKind {
-    LoseHealth,
+    LoseHealthEachStageDuringContract,
     LoseGold,
 }
 
@@ -44,7 +44,11 @@ pub(crate) enum OnExpireEffectKind {
     LoseGold,
 }
 
-pub fn generate_risk_effect(effect_type: &ContractEffectType, rarity: Rarity) -> Effect {
+pub fn generate_risk_effect(
+    effect_type: &ContractEffectType,
+    rarity: Rarity,
+    duration_stages: usize,
+) -> Effect {
     match effect_type {
         ContractEffectType::OnSign => {
             let kinds = on_sign::kinds();
@@ -59,7 +63,7 @@ pub fn generate_risk_effect(effect_type: &ContractEffectType, rarity: Rarity) ->
         ContractEffectType::OnStageStart => {
             let kinds = on_stage_start::kinds();
             let kind = kinds.choose(&mut thread_rng()).unwrap();
-            effect_from_on_stage_start_kind(*kind, rarity)
+            effect_from_on_stage_start_kind(*kind, rarity, duration_stages)
         }
         ContractEffectType::OnExpire => {
             let kinds = on_expire::kinds();
@@ -149,12 +153,23 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, _rarity: Rarity) -
     }
 }
 
-fn effect_from_on_stage_start_kind(kind: OnStageStartEffectKind, rarity: Rarity) -> Effect {
+fn effect_from_on_stage_start_kind(
+    kind: OnStageStartEffectKind,
+    rarity: Rarity,
+    duration_stages: usize,
+) -> Effect {
     match kind {
-        OnStageStartEffectKind::LoseHealth => Effect::Lottery {
-            amount: rarity_based_amount(rarity, 25.0, 50.0, 100.0, 250.0),
-            probability: 0.3,
-        }, // placeholder
+        OnStageStartEffectKind::LoseHealthEachStageDuringContract => {
+            let total_damage =
+                rarity_based_random_amount(rarity, 5.0..10.0, 10.0..15.0, 15.0..20.0, 20.0..26.0);
+            let base_amount = (total_damage / duration_stages as f32).max(1.0);
+            let min_amount = (base_amount * 0.8).floor();
+            let max_amount = (base_amount * 1.2).ceil();
+            Effect::LoseHealthEachStageDuringContract {
+                min_amount,
+                max_amount,
+            }
+        }
         OnStageStartEffectKind::LoseGold => Effect::Lottery {
             amount: rarity_based_amount(rarity, 25.0, 50.0, 100.0, 250.0),
             probability: 0.3,

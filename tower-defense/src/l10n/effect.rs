@@ -99,6 +99,12 @@ impl EffectText {
                 } => {
                     format!("매 스테이지 골드 {:.0}~{:.0} 획득", min_amount, max_amount)
                 }
+                Effect::LoseHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!("매 스테이지 체력 {:.0}~{:.0} 감소", min_amount, max_amount)
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -263,6 +269,15 @@ impl EffectText {
                         min_amount, max_amount
                     )
                 }
+                Effect::LoseHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "계약 기간 동안 매 스테이지 체력을 {:.0}~{:.0}만큼 감소합니다",
+                        min_amount, max_amount
+                    )
+                }
             },
         }
     }
@@ -348,6 +363,15 @@ impl EffectText {
                     max_amount,
                 } => {
                     format!("Gain Gold Each Stage ({:.0}~{:.0})", min_amount, max_amount)
+                }
+                Effect::LoseHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Lose Health Each Stage ({:.0}~{:.0})",
+                        min_amount, max_amount
+                    )
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -507,6 +531,15 @@ impl EffectText {
                 } => {
                     format!(
                         "Gain gold each stage during contract ({:.0}~{:.0})",
+                        min_amount, max_amount
+                    )
+                }
+                Effect::LoseHealthEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Lose health each stage during contract ({:.0}~{:.0})",
                         min_amount, max_amount
                     )
                 }

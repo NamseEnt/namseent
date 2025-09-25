@@ -39,7 +39,7 @@ fn generate_contract_effect(
     duration_stages: usize,
 ) -> ContractEffect {
     let effect = if is_risk {
-        risk::generate_risk_effect(&effect_type, rarity)
+        risk::generate_risk_effect(&effect_type, rarity, duration_stages)
     } else {
         reward::generate_reward_effect(&effect_type, rarity, duration_stages)
     };
