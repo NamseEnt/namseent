@@ -220,6 +220,7 @@ pub struct ContractState {
     pub current_stage_disable_item_use: bool,
     pub current_stage_card_selection_hand_reroll_health_cost: usize,
     pub current_stage_shop_reroll_health_cost: usize,
+    pub current_stage_enemy_health_multiplier: f32,
 }
 
 impl ContractState {
@@ -241,6 +242,7 @@ impl ContractState {
             current_stage_disable_item_use: false,
             current_stage_card_selection_hand_reroll_health_cost: 0,
             current_stage_shop_reroll_health_cost: 0,
+            current_stage_enemy_health_multiplier: 1.0,
         }
     }
 
@@ -261,6 +263,7 @@ impl ContractState {
         self.current_stage_disable_item_use = false;
         self.current_stage_card_selection_hand_reroll_health_cost = 0;
         self.current_stage_shop_reroll_health_cost = 0;
+        self.current_stage_enemy_health_multiplier = 1.0;
     }
 
     pub fn get_damage_multiplier(&self) -> f32 {
@@ -327,6 +330,10 @@ impl ContractState {
         self.current_stage_shop_reroll_health_cost
     }
 
+    pub fn get_enemy_health_multiplier(&self) -> f32 {
+        self.current_stage_enemy_health_multiplier
+    }
+
     pub fn apply_damage_multiplier(&mut self, multiplier: f32) {
         self.current_stage_damage_multiplier *= multiplier;
     }
@@ -389,6 +396,10 @@ impl ContractState {
 
     pub fn apply_shop_reroll_health_cost(&mut self, cost: usize) {
         self.current_stage_shop_reroll_health_cost += cost;
+    }
+
+    pub fn apply_enemy_health_multiplier(&mut self, multiplier: f32) {
+        self.current_stage_enemy_health_multiplier *= multiplier;
     }
 }
 

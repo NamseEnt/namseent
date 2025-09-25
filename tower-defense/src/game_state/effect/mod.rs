@@ -92,6 +92,9 @@ pub enum Effect {
     AddShopRerollHealthCost {
         cost: usize,
     },
+    DecreaseEnemyHealthPercentDuringContract {
+        percentage: f32,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -250,6 +253,12 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_shop_reroll_health_cost(*cost);
+        }
+        Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+            let multiplier = 1.0 + percentage / 100.0;
+            game_state
+                .contract_state
+                .apply_enemy_health_multiplier(multiplier);
         }
     }
 }

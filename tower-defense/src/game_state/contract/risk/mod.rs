@@ -54,7 +54,7 @@ pub fn generate_risk_effect(effect_type: &ContractEffectType, rarity: Rarity) ->
         ContractEffectType::WhileActive => {
             let kinds = while_active::kinds();
             let kind = kinds.choose(&mut thread_rng()).unwrap();
-            effect_from_while_active_kind(*kind)
+            effect_from_while_active_kind(*kind, rarity)
         }
         ContractEffectType::OnStageStart => {
             let kinds = on_stage_start::kinds();
@@ -93,7 +93,7 @@ fn effect_from_on_sign_kind(kind: OnSignEffectKind, rarity: Rarity) -> Effect {
     }
 }
 
-fn effect_from_while_active_kind(kind: WhileActiveEffectKind) -> Effect {
+fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) -> Effect {
     match kind {
         WhileActiveEffectKind::DecreaseAllTowersDamage => Effect::DecreaseAllTowersDamage {
             multiplier: rand::thread_rng().gen_range(0.75..0.95), // 5-25% decrease
@@ -125,9 +125,11 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind) -> Effect {
         WhileActiveEffectKind::AddShopRerollHealthCost => Effect::AddShopRerollHealthCost {
             cost: rand::thread_rng().gen_range(1..=5),
         },
-        WhileActiveEffectKind::DecreaseEnemyHealth => Effect::ExtraReroll, // placeholder
-        WhileActiveEffectKind::RankTowerDisable => Effect::ExtraReroll,    // placeholder
-        WhileActiveEffectKind::SuitTowerDisable => Effect::ExtraReroll,    // placeholder
+        WhileActiveEffectKind::DecreaseEnemyHealth => {
+            Effect::DecreaseEnemyHealthPercentDuringContract { percentage: 10.0 }
+        }
+        WhileActiveEffectKind::RankTowerDisable => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::SuitTowerDisable => Effect::ExtraReroll, // placeholder
     }
 }
 

@@ -118,6 +118,15 @@ impl Effect {
             Effect::AddShopRerollHealthCost { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),
+            Effect::DecreaseEnemyHealthPercentDuringContract { .. } => Icon::new(IconKind::Health)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
+                ])
+                .to_rendering_tree(),
         }
     }
 }

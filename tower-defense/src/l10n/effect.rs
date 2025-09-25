@@ -66,6 +66,9 @@ impl EffectText {
                     "카드 선택 리롤 체력 비용".to_string()
                 }
                 Effect::AddShopRerollHealthCost { .. } => "상점 리롤 체력 비용".to_string(),
+                Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+                    format!("적 체력 {}% 증가", percentage)
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -188,6 +191,9 @@ impl EffectText {
                 Effect::AddShopRerollHealthCost { cost } => {
                     format!("상점 리롤 시 체력을 {} 잃습니다", cost)
                 }
+                Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+                    format!("적 체력이 {}% 증가합니다", percentage)
+                }
             },
         }
     }
@@ -241,6 +247,9 @@ impl EffectText {
                     "Card Selection Reroll Health Cost".to_string()
                 }
                 Effect::AddShopRerollHealthCost { .. } => "Shop Reroll Health Cost".to_string(),
+                Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+                    format!("Enemy Health +{}%", percentage)
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -359,6 +368,9 @@ impl EffectText {
                 }
                 Effect::AddShopRerollHealthCost { cost } => {
                     format!("Lose {} health when rerolling shop", cost)
+                }
+                Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+                    format!("Increase enemy health by {}%", percentage)
                 }
             },
         }

@@ -46,10 +46,12 @@ pub fn tick(game_state: &mut GameState, now: Instant) {
     };
 
     let next_monster_template = MonsterTemplate::new(next_monster_kind);
+    let health_multiplier = game_state.contract_state.get_enemy_health_multiplier();
     game_state.monsters.push(Monster::new(
         &next_monster_template,
         game_state.route.clone(),
         now,
+        health_multiplier,
     ));
 
     *next_spawn_time = now + *spawn_interval;
