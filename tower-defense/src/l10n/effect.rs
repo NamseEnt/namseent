@@ -34,6 +34,7 @@ impl EffectText {
                 Effect::LoseGoldEachStageDuringContract { .. } => {
                     "계약 기간 매 스테이지 골드 감소".to_string()
                 }
+                Effect::LoseHealthOnContractEnd { .. } => "계약 만료 시 체력 감소".to_string(),
                 Effect::LoseGold { .. } => "골드 감소".to_string(),
                 Effect::GrantUpgrade { .. } => "업그레이드 획득".to_string(),
                 Effect::GrantItem { .. } => "아이템 획득".to_string(),
@@ -183,6 +184,15 @@ impl EffectText {
                         max_amount,
                         min_amount / 10.0,
                         max_amount / 10.0
+                    )
+                }
+                Effect::LoseHealthOnContractEnd {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "계약 만료 시 체력을 {:.0}~{:.0}만큼 잃습니다",
+                        min_amount, max_amount
                     )
                 }
                 Effect::LoseGold { amount } => {
@@ -338,6 +348,7 @@ impl EffectText {
                 Effect::LoseGoldEachStageDuringContract { .. } => {
                     "Lose Gold Each Stage During Contract".to_string()
                 }
+                Effect::LoseHealthOnContractEnd { .. } => "Lose Health On Contract End".to_string(),
                 Effect::LoseGold { .. } => "Lose Gold".to_string(),
                 Effect::GrantUpgrade { .. } => "Grant Upgrade".to_string(),
                 Effect::GrantItem { .. } => "Grant Item".to_string(),
@@ -490,6 +501,15 @@ impl EffectText {
                         max_amount,
                         min_amount / 10.0,
                         max_amount / 10.0
+                    )
+                }
+                Effect::LoseHealthOnContractEnd {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Lose {:.0}~{:.0} health when contract expires",
+                        min_amount, max_amount
                     )
                 }
                 Effect::LoseGold { amount } => {

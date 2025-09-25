@@ -41,8 +41,8 @@ pub(crate) enum OnStageStartEffectKind {
 
 #[derive(Clone, Copy)]
 pub(crate) enum OnExpireEffectKind {
-    LoseHealth,
     LoseGold,
+    LoseHealthOnContractEnd,
 }
 
 pub fn generate_risk_effect(
@@ -187,14 +187,14 @@ fn effect_from_on_stage_start_kind(
 
 fn effect_from_on_expire_kind(kind: OnExpireEffectKind, rarity: Rarity) -> Effect {
     match kind {
-        OnExpireEffectKind::LoseHealth => Effect::Lottery {
-            amount: rarity_based_amount(rarity, 100.0, 200.0, 400.0, 1000.0),
-            probability: 0.3,
-        }, // placeholder
         OnExpireEffectKind::LoseGold => Effect::Lottery {
             amount: rarity_based_amount(rarity, 100.0, 200.0, 400.0, 1000.0),
             probability: 0.3,
         }, // placeholder
+        OnExpireEffectKind::LoseHealthOnContractEnd => Effect::LoseHealthOnContractEnd {
+            min_amount: rarity_based_amount(rarity, 5.0, 10.0, 15.0, 20.0),
+            max_amount: rarity_based_amount(rarity, 9.0, 14.0, 19.0, 25.0),
+        },
     }
 }
 

@@ -46,6 +46,9 @@ impl Effect {
             Effect::LoseGoldEachStageDuringContract { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
+            Effect::LoseHealthOnContractEnd { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
             Effect::LoseGold { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
