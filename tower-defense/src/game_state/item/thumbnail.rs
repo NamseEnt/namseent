@@ -38,18 +38,16 @@ impl Effect {
             Effect::LoseHealth { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),
-            Effect::LoseHealthEachStageDuringContract { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Health)
-                    .build()
-            }
-            Effect::LoseGoldEachStageDuringContract { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Gold)
-                .build(),
-            Effect::LoseHealthOnContractEnd { .. } => ThumbnailComposer::new(width_height)
+            Effect::LoseHealthRange { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),
-            Effect::LoseGoldOnContractEnd { .. } => ThumbnailComposer::new(width_height)
+            Effect::LoseGoldRange { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
+            Effect::LoseHealthExpire { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
+            Effect::LoseGoldExpire { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
             Effect::LoseGold { .. } => ThumbnailComposer::new(width_height)
@@ -95,20 +93,16 @@ impl Effect {
             Effect::IncreaseGoldGain { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
-            Effect::DecreaseGoldGainPercentDuringContract { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Gold)
-                    .build()
-            }
+            Effect::DecreaseGoldGainPercent { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
             Effect::IncreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::AttackDamage)
                 .build(),
-            Effect::DisableItemAndUpgradePurchasesDuringContract => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Item)
-                    .build()
-            }
-            Effect::DisableItemUseDuringContract => ThumbnailComposer::new(width_height)
+            Effect::DisableItemAndUpgradePurchases => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Item)
+                .build(),
+            Effect::DisableItemUse => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Reject)
                 .build(),
             Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
@@ -132,7 +126,7 @@ impl Effect {
             Effect::AddShopRerollHealthCost { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),
-            Effect::DecreaseEnemyHealthPercentDuringContract { .. } => Icon::new(IconKind::Health)
+            Effect::DecreaseEnemyHealthPercent { .. } => Icon::new(IconKind::Health)
                 .wh(width_height)
                 .size(IconSize::Custom {
                     size: width_height.width,
@@ -141,7 +135,7 @@ impl Effect {
                     IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
                 ])
                 .to_rendering_tree(),
-            Effect::RankTowerDisableDuringContract { .. } => Icon::new(IconKind::AttackDamage)
+            Effect::RankTowerDisable { .. } => Icon::new(IconKind::AttackDamage)
                 .wh(width_height)
                 .size(IconSize::Custom {
                     size: width_height.width,
@@ -150,7 +144,7 @@ impl Effect {
                     IconAttribute::new(IconKind::Reject).position(IconAttributePosition::Center),
                 ])
                 .to_rendering_tree(),
-            Effect::SuitTowerDisableDuringContract { .. } => Icon::new(IconKind::Card)
+            Effect::SuitTowerDisable { .. } => Icon::new(IconKind::Card)
                 .wh(width_height)
                 .size(IconSize::Custom {
                     size: width_height.width,
@@ -159,22 +153,18 @@ impl Effect {
                     IconAttribute::new(IconKind::Reject).position(IconAttributePosition::Center),
                 ])
                 .to_rendering_tree(),
-            Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { .. } => {
+            Effect::AddBarricadeCardsToTowerPlacementHand { .. } => {
                 ThumbnailComposer::new(width_height)
                     .with_icon_base(IconKind::Card)
                     .build()
             }
-            Effect::GainShieldEachStageDuringContract { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Shield)
-                    .build()
-            }
-            Effect::HealHealthEachStageDuringContract { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Health)
-                    .build()
-            }
-            Effect::GainGoldEachStageDuringContract { .. } => ThumbnailComposer::new(width_height)
+            Effect::GainShield { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Shield)
+                .build(),
+            Effect::HealHealth { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
+            Effect::GainGold { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
         }

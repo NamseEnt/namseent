@@ -1,12 +1,14 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
 use crate::game_state::effect::Effect;
 
+#[allow(unreachable_patterns)]
 #[derive(Clone)]
 pub enum EffectText {
     Name(Effect),
     Description(Effect),
 }
 
+#[allow(unreachable_patterns)]
 impl LocalizedText for EffectText {
     fn localized_text(&self, locale: &Locale) -> String {
         match locale.language {
@@ -16,7 +18,9 @@ impl LocalizedText for EffectText {
     }
 }
 
+#[allow(unreachable_patterns)]
 impl EffectText {
+    #[allow(unreachable_patterns)]
     pub(super) fn to_korean(&self) -> String {
         match self {
             EffectText::Name(effect) => match effect {
@@ -28,14 +32,10 @@ impl EffectText {
                 Effect::DamageReduction { .. } => "피해 감소".to_string(),
                 Effect::UserDamageReduction { .. } => "피해 감소".to_string(),
                 Effect::LoseHealth { .. } => "체력 감소".to_string(),
-                Effect::LoseHealthEachStageDuringContract { .. } => {
-                    "계약 기간 매 스테이지 체력 감소".to_string()
-                }
-                Effect::LoseGoldEachStageDuringContract { .. } => {
-                    "계약 기간 매 스테이지 골드 감소".to_string()
-                }
-                Effect::LoseHealthOnContractEnd { .. } => "계약 만료 시 체력 감소".to_string(),
-                Effect::LoseGoldOnContractEnd { .. } => "계약 만료 시 골드 감소".to_string(),
+                Effect::LoseHealthRange { .. } => "랜덤 체력 감소".to_string(),
+                Effect::LoseGoldRange { .. } => "랜덤 골드 감소".to_string(),
+                Effect::LoseHealthExpire { .. } => "계약 만료 시 체력 감소".to_string(),
+                Effect::LoseGoldExpire { .. } => "계약 만료 시 골드 감소".to_string(),
                 Effect::LoseGold { .. } => "골드 감소".to_string(),
                 Effect::GrantUpgrade { .. } => "업그레이드 획득".to_string(),
                 Effect::GrantItem { .. } => "아이템 획득".to_string(),
@@ -56,13 +56,9 @@ impl EffectText {
                 }
                 Effect::IncreaseShopMaxRerolls { .. } => "상점 최대 리롤 증가".to_string(),
                 Effect::IncreaseGoldGain { .. } => "골드 획득량 증가".to_string(),
-                Effect::DecreaseGoldGainPercentDuringContract { .. } => {
-                    "골드 획득량 감소".to_string()
-                }
-                Effect::DisableItemAndUpgradePurchasesDuringContract => {
-                    "아이템/업그레이드 구매 불가".to_string()
-                }
-                Effect::DisableItemUseDuringContract => "아이템 사용 불가".to_string(),
+                Effect::DecreaseGoldGainPercent { .. } => "골드 획득량 감소".to_string(),
+                Effect::DisableItemAndUpgradePurchases => "아이템/업그레이드 구매 불가".to_string(),
+                Effect::DisableItemUse => "아이템 사용 불가".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
                     "카드 선택 최대 슬롯 감소".to_string()
                 }
@@ -74,51 +70,48 @@ impl EffectText {
                     "카드 선택 리롤 체력 비용".to_string()
                 }
                 Effect::AddShopRerollHealthCost { .. } => "상점 리롤 체력 비용".to_string(),
-                Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+                Effect::DecreaseEnemyHealthPercent { percentage } => {
                     format!("적 체력 {}% 증가", percentage)
                 }
-                Effect::RankTowerDisableDuringContract { rank } => {
+                Effect::RankTowerDisable { rank } => {
                     format!("{} 랭크 타워 비활성화", rank)
                 }
-                Effect::SuitTowerDisableDuringContract { suit } => {
+                Effect::SuitTowerDisable { suit } => {
                     format!("{} 수트 타워 비활성화", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
-                    format!(
-                        "매 스테이지 타워 설치 핸드에 바리케이드 카드 {}장 추가",
-                        count
-                    )
+                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
+                    format!("타워 설치 핸드에 바리케이드 카드 {}장 추가", count)
                 }
-                Effect::GainShieldEachStageDuringContract {
+                Effect::GainShield {
                     min_amount,
                     max_amount,
                 } => {
-                    format!("매 스테이지 보호막 {}~{} 획득", min_amount, max_amount)
+                    format!("보호막 {}~{} 획득", min_amount, max_amount)
                 }
-                Effect::HealHealthEachStageDuringContract {
+                Effect::HealHealth {
                     min_amount,
                     max_amount,
                 } => {
-                    format!("매 스테이지 체력 {}~{} 회복", min_amount, max_amount)
+                    format!("체력 {}~{} 회복", min_amount, max_amount)
                 }
-                Effect::GainGoldEachStageDuringContract {
+                Effect::GainGold {
                     min_amount,
                     max_amount,
                 } => {
-                    format!("매 스테이지 골드 {:.0}~{:.0} 획득", min_amount, max_amount)
+                    format!("골드 {:.0}~{:.0} 획득", min_amount, max_amount)
                 }
-                Effect::LoseHealthEachStageDuringContract {
+                Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    format!("매 스테이지 체력 {:.0}~{:.0} 감소", min_amount, max_amount)
+                    format!("체력 {:.0}~{:.0} 감소", min_amount, max_amount)
                 }
-                Effect::LoseGoldEachStageDuringContract {
+                Effect::LoseGoldRange {
                     min_amount,
                     max_amount,
                 } => {
                     format!(
-                        "매 스테이지 골드 {:.0}~{:.0} 감소 (부족 시 체력 {:.0}~{:.0} 감소)",
+                        "골드 {:.0}~{:.0} 감소 (부족 시 체력 {:.0}~{:.0} 감소)",
                         min_amount,
                         max_amount,
                         min_amount / 10.0,
@@ -166,28 +159,25 @@ impl EffectText {
                 Effect::LoseHealth { amount } => {
                     format!("체력을 {} 잃습니다", heal_icon(format!("{amount:.0}")))
                 }
-                Effect::LoseHealthEachStageDuringContract {
+                Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "계약 기간 동안 매 스테이지 체력을 {:.0}~{:.0}만큼 잃습니다",
-                        min_amount, max_amount
-                    )
+                    format!("체력을 {:.0}~{:.0}만큼 잃습니다", min_amount, max_amount)
                 }
-                Effect::LoseGoldEachStageDuringContract {
+                Effect::LoseGoldRange {
                     min_amount,
                     max_amount,
                 } => {
                     format!(
-                        "계약 기간 동안 매 스테이지 골드를 {:.0}~{:.0}만큼 잃습니다. 골드가 부족하면 체력을 {:.0}~{:.0}만큼 잃습니다",
+                        "골드를 {:.0}~{:.0}만큼 잃습니다. 골드가 부족하면 체력을 {:.0}~{:.0}만큼 잃습니다",
                         min_amount,
                         max_amount,
                         min_amount / 10.0,
                         max_amount / 10.0
                     )
                 }
-                Effect::LoseHealthOnContractEnd {
+                Effect::LoseHealthExpire {
                     min_amount,
                     max_amount,
                 } => {
@@ -196,7 +186,7 @@ impl EffectText {
                         min_amount, max_amount
                     )
                 }
-                Effect::LoseGoldOnContractEnd {
+                Effect::LoseGoldExpire {
                     min_amount,
                     max_amount,
                 } => {
@@ -262,7 +252,7 @@ impl EffectText {
                         (multiplier - 1.0) * 100.0
                     )
                 }
-                Effect::DecreaseGoldGainPercentDuringContract {
+                Effect::DecreaseGoldGainPercent {
                     reduction_percentage,
                 } => {
                     format!(
@@ -270,10 +260,10 @@ impl EffectText {
                         reduction_percentage * 100.0
                     )
                 }
-                Effect::DisableItemAndUpgradePurchasesDuringContract => {
+                Effect::DisableItemAndUpgradePurchases => {
                     "아이템과 업그레이드를 구매할 수 없습니다".to_string()
                 }
-                Effect::DisableItemUseDuringContract => "아이템을 사용할 수 없습니다".to_string(),
+                Effect::DisableItemUse => "아이템을 사용할 수 없습니다".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
                     format!("카드 선택 시 최대 슬롯이 {}개 감소합니다", penalty)
                 }
@@ -289,56 +279,41 @@ impl EffectText {
                 Effect::AddShopRerollHealthCost { cost } => {
                     format!("상점 리롤 시 체력을 {} 잃습니다", cost)
                 }
-                Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+                Effect::DecreaseEnemyHealthPercent { percentage } => {
                     format!("적 체력이 {}% 증가합니다", percentage)
                 }
-                Effect::RankTowerDisableDuringContract { rank } => {
+                Effect::RankTowerDisable { rank } => {
                     format!("계약 기간 동안 {} 랭크 타워를 사용할 수 없습니다", rank)
                 }
-                Effect::SuitTowerDisableDuringContract { suit } => {
+                Effect::SuitTowerDisable { suit } => {
                     format!("계약 기간 동안 {} 수트 타워를 사용할 수 없습니다", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
-                    format!(
-                        "계약 기간 동안 매 스테이지 타워 설치 핸드에 바리케이드 카드를 {}장 추가합니다",
-                        count
-                    )
+                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
+                    format!("타워 설치 핸드에 바리케이드 카드를 {}장 추가합니다", count)
                 }
-                Effect::GainShieldEachStageDuringContract {
+                Effect::GainShield {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "계약 기간 동안 매 스테이지 보호막을 {}~{}만큼 획득합니다",
-                        min_amount, max_amount
-                    )
+                    format!("보호막을 {}~{}만큼 획득합니다", min_amount, max_amount)
                 }
-                Effect::HealHealthEachStageDuringContract {
+                Effect::HealHealth {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "계약 기간 동안 매 스테이지 체력을 {}~{}만큼 회복합니다",
-                        min_amount, max_amount
-                    )
+                    format!("체력을 {}~{}만큼 회복합니다", min_amount, max_amount)
                 }
-                Effect::GainGoldEachStageDuringContract {
+                Effect::GainGold {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "계약 기간 동안 매 스테이지 골드를 {:.0}~{:.0}만큼 획득합니다",
-                        min_amount, max_amount
-                    )
+                    format!("골드를 {:.0}~{:.0}만큼 획득합니다", min_amount, max_amount)
                 }
-                Effect::LoseHealthEachStageDuringContract {
+                Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "계약 기간 동안 매 스테이지 체력을 {:.0}~{:.0}만큼 감소합니다",
-                        min_amount, max_amount
-                    )
+                    format!("체력을 {:.0}~{:.0}만큼 감소합니다", min_amount, max_amount)
                 }
             },
         }
@@ -355,14 +330,10 @@ impl EffectText {
                 Effect::DamageReduction { .. } => "Damage Reduction".to_string(),
                 Effect::UserDamageReduction { .. } => "Damage Reduction".to_string(),
                 Effect::LoseHealth { .. } => "Lose Health".to_string(),
-                Effect::LoseHealthEachStageDuringContract { .. } => {
-                    "Lose Health Each Stage During Contract".to_string()
-                }
-                Effect::LoseGoldEachStageDuringContract { .. } => {
-                    "Lose Gold Each Stage During Contract".to_string()
-                }
-                Effect::LoseHealthOnContractEnd { .. } => "Lose Health On Contract End".to_string(),
-                Effect::LoseGoldOnContractEnd { .. } => "Lose Gold On Contract End".to_string(),
+                Effect::LoseHealthRange { .. } => "Lose Health (Random)".to_string(),
+                Effect::LoseGoldRange { .. } => "Lose Gold (Random)".to_string(),
+                Effect::LoseHealthExpire { .. } => "Lose Health On Contract End".to_string(),
+                Effect::LoseGoldExpire { .. } => "Lose Gold On Contract End".to_string(),
                 Effect::LoseGold { .. } => "Lose Gold".to_string(),
                 Effect::GrantUpgrade { .. } => "Grant Upgrade".to_string(),
                 Effect::GrantItem { .. } => "Grant Item".to_string(),
@@ -383,13 +354,11 @@ impl EffectText {
                 }
                 Effect::IncreaseShopMaxRerolls { .. } => "Increase Shop Max Rerolls".to_string(),
                 Effect::IncreaseGoldGain { .. } => "Increase Gold Gain".to_string(),
-                Effect::DecreaseGoldGainPercentDuringContract { .. } => {
-                    "Decrease Gold Gain".to_string()
-                }
-                Effect::DisableItemAndUpgradePurchasesDuringContract => {
+                Effect::DecreaseGoldGainPercent { .. } => "Decrease Gold Gain".to_string(),
+                Effect::DisableItemAndUpgradePurchases => {
                     "Disable Item/Upgrade Purchases".to_string()
                 }
-                Effect::DisableItemUseDuringContract => "Disable Item Use".to_string(),
+                Effect::DisableItemUse => "Disable Item Use".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
                     "Decrease Card Selection Max Slots".to_string()
                 }
@@ -401,54 +370,48 @@ impl EffectText {
                     "Card Selection Reroll Health Cost".to_string()
                 }
                 Effect::AddShopRerollHealthCost { .. } => "Shop Reroll Health Cost".to_string(),
-                Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+                Effect::DecreaseEnemyHealthPercent { percentage } => {
                     format!("Enemy Health +{}%", percentage)
                 }
-                Effect::RankTowerDisableDuringContract { rank } => {
+                Effect::RankTowerDisable { rank } => {
                     format!("Disable {} Rank Towers", rank)
                 }
-                Effect::SuitTowerDisableDuringContract { suit } => {
+                Effect::SuitTowerDisable { suit } => {
                     format!("Disable {} Suit Towers", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
-                    format!(
-                        "Add {} Barricade Cards to Tower Placement Hand Each Stage",
-                        count
-                    )
+                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
+                    format!("Add {} Barricade Cards to Tower Placement Hand", count)
                 }
-                Effect::GainShieldEachStageDuringContract {
+                Effect::GainShield {
                     min_amount,
                     max_amount,
                 } => {
-                    format!("Gain Shield Each Stage ({}~{})", min_amount, max_amount)
+                    format!("Gain Shield ({}~{})", min_amount, max_amount)
                 }
-                Effect::HealHealthEachStageDuringContract {
+                Effect::HealHealth {
                     min_amount,
                     max_amount,
                 } => {
-                    format!("Heal Health Each Stage ({}~{})", min_amount, max_amount)
+                    format!("Heal Health ({}~{})", min_amount, max_amount)
                 }
-                Effect::GainGoldEachStageDuringContract {
+                Effect::GainGold {
                     min_amount,
                     max_amount,
                 } => {
-                    format!("Gain Gold Each Stage ({:.0}~{:.0})", min_amount, max_amount)
+                    format!("Gain Gold ({:.0}~{:.0})", min_amount, max_amount)
                 }
-                Effect::LoseHealthEachStageDuringContract {
+                Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "Lose Health Each Stage ({:.0}~{:.0})",
-                        min_amount, max_amount
-                    )
+                    format!("Lose Health ({:.0}~{:.0})", min_amount, max_amount)
                 }
-                Effect::LoseGoldEachStageDuringContract {
+                Effect::LoseGoldRange {
                     min_amount,
                     max_amount,
                 } => {
                     format!(
-                        "Lose Gold Each Stage ({:.0}~{:.0}), if insufficient, lose health ({:.0}~{:.0})",
+                        "Lose Gold ({:.0}~{:.0}), if insufficient, lose health ({:.0}~{:.0})",
                         min_amount,
                         max_amount,
                         min_amount / 10.0,
@@ -496,28 +459,25 @@ impl EffectText {
                 Effect::LoseHealth { amount } => {
                     format!("Lose {} health", heal_icon(format!("{amount:.0}")))
                 }
-                Effect::LoseHealthEachStageDuringContract {
+                Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "Lose {:.0}~{:.0} health each stage during contract",
-                        min_amount, max_amount
-                    )
+                    format!("Lose {:.0}~{:.0} health", min_amount, max_amount)
                 }
-                Effect::LoseGoldEachStageDuringContract {
+                Effect::LoseGoldRange {
                     min_amount,
                     max_amount,
                 } => {
                     format!(
-                        "Lose {:.0}~{:.0} gold each stage during contract, if insufficient, lose {:.0}~{:.0} health",
+                        "Lose {:.0}~{:.0} gold, if insufficient, lose {:.0}~{:.0} health",
                         min_amount,
                         max_amount,
                         min_amount / 10.0,
                         max_amount / 10.0
                     )
                 }
-                Effect::LoseHealthOnContractEnd {
+                Effect::LoseHealthExpire {
                     min_amount,
                     max_amount,
                 } => {
@@ -526,7 +486,7 @@ impl EffectText {
                         min_amount, max_amount
                     )
                 }
-                Effect::LoseGoldOnContractEnd {
+                Effect::LoseGoldExpire {
                     min_amount,
                     max_amount,
                 } => {
@@ -592,15 +552,15 @@ impl EffectText {
                 Effect::IncreaseGoldGain { multiplier } => {
                     format!("Increase gold gain by {:.0}%", (multiplier - 1.0) * 100.0)
                 }
-                Effect::DecreaseGoldGainPercentDuringContract {
+                Effect::DecreaseGoldGainPercent {
                     reduction_percentage,
                 } => {
                     format!("Decrease gold gain by {:.0}%", reduction_percentage * 100.0)
                 }
-                Effect::DisableItemAndUpgradePurchasesDuringContract => {
+                Effect::DisableItemAndUpgradePurchases => {
                     "Cannot purchase items and upgrades".to_string()
                 }
-                Effect::DisableItemUseDuringContract => "Cannot use items".to_string(),
+                Effect::DisableItemUse => "Cannot use items".to_string(),
                 Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
                     format!("Reduce maximum card selection slots by {}", penalty)
                 }
@@ -616,56 +576,41 @@ impl EffectText {
                 Effect::AddShopRerollHealthCost { cost } => {
                     format!("Lose {} health when rerolling shop", cost)
                 }
-                Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+                Effect::DecreaseEnemyHealthPercent { percentage } => {
                     format!("Increase enemy health by {}%", percentage)
                 }
-                Effect::RankTowerDisableDuringContract { rank } => {
+                Effect::RankTowerDisable { rank } => {
                     format!("Cannot use {} rank towers during contract", rank)
                 }
-                Effect::SuitTowerDisableDuringContract { suit } => {
+                Effect::SuitTowerDisable { suit } => {
                     format!("Cannot use {} suit towers during contract", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
-                    format!(
-                        "Add {} barricade cards to tower placement hand each stage during contract",
-                        count
-                    )
+                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
+                    format!("Add {} barricade cards to tower placement hand", count)
                 }
-                Effect::GainShieldEachStageDuringContract {
+                Effect::GainShield {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "Gain shield each stage during contract ({}~{})",
-                        min_amount, max_amount
-                    )
+                    format!("Gain shield ({}~{})", min_amount, max_amount)
                 }
-                Effect::HealHealthEachStageDuringContract {
+                Effect::HealHealth {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "Heal health each stage during contract ({}~{})",
-                        min_amount, max_amount
-                    )
+                    format!("Heal health ({}~{})", min_amount, max_amount)
                 }
-                Effect::GainGoldEachStageDuringContract {
+                Effect::GainGold {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "Gain gold each stage during contract ({:.0}~{:.0})",
-                        min_amount, max_amount
-                    )
+                    format!("Gain gold ({:.0}~{:.0})", min_amount, max_amount)
                 }
-                Effect::LoseHealthEachStageDuringContract {
+                Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    format!(
-                        "Lose health each stage during contract ({:.0}~{:.0})",
-                        min_amount, max_amount
-                    )
+                    format!("Lose health ({:.0}~{:.0})", min_amount, max_amount)
                 }
             },
         }

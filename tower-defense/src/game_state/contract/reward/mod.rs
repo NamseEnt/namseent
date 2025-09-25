@@ -19,7 +19,6 @@ pub(crate) enum OnSignEffectKind {
 #[derive(Clone, Copy)]
 pub(crate) enum WhileActiveEffectKind {
     IncreaseAllTowersDamage,
-    DecreaseAllTowersDamagePercentDuringContract,
     IncreaseAllTowersAttackSpeed,
     IncreaseAllTowersRange,
     DecreaseIncomingDamage,
@@ -34,15 +33,15 @@ pub(crate) enum OnStageStartEffectKind {
     AddBarricadeCardsToTowerPlacementHand,
     GainShield,
     HealHealth,
-    GainGoldEachStageDuringContract,
+    GainGold,
 }
 
 #[derive(Clone, Copy)]
 pub(crate) enum OnExpireEffectKind {
-    HealHealthOnContractEnd,
-    GainGoldOnContractEnd,
-    GrantUpgradeOnContractEnd,
-    GrantItemOnContractEnd,
+    HealHealth,
+    GainGold,
+    GrantUpgrade,
+    GrantItem,
 }
 
 pub fn generate_reward_effect(
@@ -110,17 +109,6 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
                 1.25..1.76, // 25% ~ 75%
             ),
         },
-        WhileActiveEffectKind::DecreaseAllTowersDamagePercentDuringContract => {
-            Effect::DecreaseAllTowersDamage {
-                multiplier: rarity_based_random_amount(
-                    rarity,
-                    0.95..0.99, // 1% ~ 5% decrease
-                    0.90..0.95, // 5% ~ 10% decrease
-                    0.75..0.90, // 10% ~ 25% decrease
-                    0.25..0.75, // 25% ~ 75% decrease
-                ),
-            }
-        }
         WhileActiveEffectKind::IncreaseAllTowersAttackSpeed => {
             Effect::IncreaseAllTowersAttackSpeed {
                 multiplier: rarity_based_random_amount(
@@ -178,11 +166,11 @@ fn effect_from_on_stage_start_kind(
 ) -> Effect {
     match kind {
         OnStageStartEffectKind::AddBarricadeCardsToTowerPlacementHand => {
-            Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract {
+            Effect::AddBarricadeCardsToTowerPlacementHand {
                 count: rarity_based_amount(rarity, 1.0, 2.0, 3.0, 4.0) as usize,
             }
         }
-        OnStageStartEffectKind::GainShield => Effect::GainShieldEachStageDuringContract {
+        OnStageStartEffectKind::GainShield => Effect::GainShield {
             min_amount: match rarity {
                 Rarity::Common => 1.0,
                 Rarity::Rare => 2.0,
@@ -196,7 +184,7 @@ fn effect_from_on_stage_start_kind(
                 Rarity::Legendary => 10.0,
             },
         },
-        OnStageStartEffectKind::HealHealth => Effect::HealHealthEachStageDuringContract {
+        OnStageStartEffectKind::HealHealth => Effect::HealHealth {
             min_amount: match rarity {
                 Rarity::Common => 10.0,
                 Rarity::Rare => 20.0,
@@ -210,7 +198,7 @@ fn effect_from_on_stage_start_kind(
                 Rarity::Legendary => 45.0,
             },
         },
-        OnStageStartEffectKind::GainGoldEachStageDuringContract => {
+        OnStageStartEffectKind::GainGold => {
             let total_gold = rarity_based_random_amount(
                 rarity,
                 225.0..251.0,
@@ -221,7 +209,7 @@ fn effect_from_on_stage_start_kind(
             let base_amount = (total_gold / duration_stages as f32).max(1.0);
             let min_amount = (base_amount * 0.8).floor();
             let max_amount = (base_amount * 1.2).ceil();
-            Effect::GainGoldEachStageDuringContract {
+            Effect::GainGold {
                 min_amount,
                 max_amount,
             }
@@ -231,7 +219,7 @@ fn effect_from_on_stage_start_kind(
 
 fn effect_from_on_expire_kind(kind: OnExpireEffectKind, rarity: Rarity) -> Effect {
     match kind {
-        OnExpireEffectKind::HealHealthOnContractEnd => Effect::Heal {
+        OnExpireEffectKind::HealHealth => Effect::Heal {
             amount: rarity_based_random_amount(
                 rarity,
                 10.0..15.0, // Common: 10~14
@@ -240,7 +228,7 @@ fn effect_from_on_expire_kind(kind: OnExpireEffectKind, rarity: Rarity) -> Effec
                 40.0..46.0, // Legendary: 40~45
             ),
         },
-        OnExpireEffectKind::GainGoldOnContractEnd => Effect::EarnGold {
+        OnExpireEffectKind::GainGold => Effect::EarnGold {
             amount: rarity_based_random_amount(
                 rarity,
                 225.0..251.0,   // Common: 225~250
@@ -249,8 +237,8 @@ fn effect_from_on_expire_kind(kind: OnExpireEffectKind, rarity: Rarity) -> Effec
                 2000.0..2501.0, // Legendary: 2000~2500
             ) as usize,
         },
-        OnExpireEffectKind::GrantUpgradeOnContractEnd => Effect::GrantUpgrade { rarity },
-        OnExpireEffectKind::GrantItemOnContractEnd => Effect::GrantItem { rarity },
+        OnExpireEffectKind::GrantUpgrade => Effect::GrantUpgrade { rarity },
+        OnExpireEffectKind::GrantItem => Effect::GrantItem { rarity },
     }
 }
 

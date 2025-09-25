@@ -35,14 +35,14 @@ pub(crate) enum WhileActiveEffectKind {
 #[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy)]
 pub(crate) enum OnStageStartEffectKind {
-    LoseHealthEachStageDuringContract,
-    LoseGoldEachStageDuringContract,
+    LoseHealthRange,
+    LoseGoldRange,
 }
 
 #[derive(Clone, Copy)]
 pub(crate) enum OnExpireEffectKind {
-    LoseHealthOnContractEnd,
-    LoseGoldOnContractEnd,
+    LoseHealth,
+    LoseGold,
 }
 
 pub fn generate_risk_effect(
@@ -106,13 +106,13 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, _rarity: Rarity) -
         WhileActiveEffectKind::IncreaseIncomingDamage => Effect::IncreaseIncomingDamage {
             multiplier: rand::thread_rng().gen_range(1.1..2.0), // 10-100% increase
         },
-        WhileActiveEffectKind::DecreaseGoldGain => Effect::DecreaseGoldGainPercentDuringContract {
+        WhileActiveEffectKind::DecreaseGoldGain => Effect::DecreaseGoldGainPercent {
             reduction_percentage: rand::thread_rng().gen_range(0.1..0.5), // 10-50% decrease
         },
         WhileActiveEffectKind::DisableItemAndUpgradePurchases => {
-            Effect::DisableItemAndUpgradePurchasesDuringContract
+            Effect::DisableItemAndUpgradePurchases
         }
-        WhileActiveEffectKind::DisableItemUse => Effect::DisableItemUseDuringContract,
+        WhileActiveEffectKind::DisableItemUse => Effect::DisableItemUse,
         WhileActiveEffectKind::DecreaseCardSelectionHandMaxSlots => {
             Effect::DecreaseCardSelectionHandMaxSlots { penalty: 1 }
         }
@@ -131,7 +131,7 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, _rarity: Rarity) -
             cost: rand::thread_rng().gen_range(1..=5),
         },
         WhileActiveEffectKind::DecreaseEnemyHealth => {
-            Effect::DecreaseEnemyHealthPercentDuringContract { percentage: 10.0 }
+            Effect::DecreaseEnemyHealthPercent { percentage: 10.0 }
         }
         WhileActiveEffectKind::RankTowerDisable => {
             let ranks = [
@@ -145,11 +145,11 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, _rarity: Rarity) -
                 Rank::Ace,
             ];
             let rank = ranks.choose(&mut thread_rng()).unwrap();
-            Effect::RankTowerDisableDuringContract { rank: *rank }
+            Effect::RankTowerDisable { rank: *rank }
         }
         WhileActiveEffectKind::SuitTowerDisable => {
             let suit = crate::card::SUITS.choose(&mut thread_rng()).unwrap();
-            Effect::SuitTowerDisableDuringContract { suit: *suit }
+            Effect::SuitTowerDisable { suit: *suit }
         }
     }
 }
@@ -160,24 +160,24 @@ fn effect_from_on_stage_start_kind(
     duration_stages: usize,
 ) -> Effect {
     match kind {
-        OnStageStartEffectKind::LoseHealthEachStageDuringContract => {
+        OnStageStartEffectKind::LoseHealthRange => {
             let total_damage =
                 rarity_based_random_amount(rarity, 5.0..10.0, 10.0..15.0, 15.0..20.0, 20.0..26.0);
             let base_amount = (total_damage / duration_stages as f32).max(1.0);
             let min_amount = (base_amount * 0.8).floor();
             let max_amount = (base_amount * 1.2).ceil();
-            Effect::LoseHealthEachStageDuringContract {
+            Effect::LoseHealthRange {
                 min_amount,
                 max_amount,
             }
         }
-        OnStageStartEffectKind::LoseGoldEachStageDuringContract => {
+        OnStageStartEffectKind::LoseGoldRange => {
             let total_gold_loss =
                 rarity_based_random_amount(rarity, 10.0..20.0, 20.0..30.0, 30.0..40.0, 40.0..50.0);
             let base_amount = (total_gold_loss / duration_stages as f32).max(1.0);
             let min_amount = (base_amount * 0.8).floor();
             let max_amount = (base_amount * 1.2).ceil();
-            Effect::LoseGoldEachStageDuringContract {
+            Effect::LoseGoldRange {
                 min_amount,
                 max_amount,
             }
@@ -187,11 +187,11 @@ fn effect_from_on_stage_start_kind(
 
 fn effect_from_on_expire_kind(kind: OnExpireEffectKind, rarity: Rarity) -> Effect {
     match kind {
-        OnExpireEffectKind::LoseHealthOnContractEnd => Effect::LoseHealthOnContractEnd {
+        OnExpireEffectKind::LoseHealth => Effect::LoseHealthExpire {
             min_amount: rarity_based_amount(rarity, 5.0, 10.0, 15.0, 20.0),
             max_amount: rarity_based_amount(rarity, 9.0, 14.0, 19.0, 25.0),
         },
-        OnExpireEffectKind::LoseGoldOnContractEnd => Effect::LoseGoldOnContractEnd {
+        OnExpireEffectKind::LoseGold => Effect::LoseGoldExpire {
             min_amount: rarity_based_amount(rarity, 125.0, 250.0, 500.0, 1000.0),
             max_amount: rarity_based_amount(rarity, 150.0, 300.0, 750.0, 1500.0),
         },

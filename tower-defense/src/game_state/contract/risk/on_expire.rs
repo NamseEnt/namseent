@@ -1,8 +1,5 @@
 use super::OnExpireEffectKind;
 
 pub fn kinds() -> &'static [OnExpireEffectKind] {
-    &[
-        OnExpireEffectKind::LoseHealthOnContractEnd,
-        OnExpireEffectKind::LoseGoldOnContractEnd,
-    ]
+    &[OnExpireEffectKind::LoseHealth, OnExpireEffectKind::LoseGold]
 }

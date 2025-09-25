@@ -64,11 +64,11 @@ pub enum Effect {
     IncreaseGoldGain {
         multiplier: f32,
     },
-    DecreaseGoldGainPercentDuringContract {
+    DecreaseGoldGainPercent {
         reduction_percentage: f32,
     },
-    DisableItemAndUpgradePurchasesDuringContract,
-    DisableItemUseDuringContract,
+    DisableItemAndUpgradePurchases,
+    DisableItemUse,
     IncreaseCardSelectionHandMaxSlots {
         bonus: usize,
     },
@@ -93,43 +93,43 @@ pub enum Effect {
     AddShopRerollHealthCost {
         cost: usize,
     },
-    DecreaseEnemyHealthPercentDuringContract {
+    DecreaseEnemyHealthPercent {
         percentage: f32,
     },
-    RankTowerDisableDuringContract {
+    RankTowerDisable {
         rank: Rank,
     },
-    SuitTowerDisableDuringContract {
+    SuitTowerDisable {
         suit: Suit,
     },
-    AddBarricadeCardsToTowerPlacementHandEachStageDuringContract {
+    AddBarricadeCardsToTowerPlacementHand {
         count: usize,
     },
-    GainShieldEachStageDuringContract {
+    GainShield {
         min_amount: f32,
         max_amount: f32,
     },
-    HealHealthEachStageDuringContract {
+    HealHealth {
         min_amount: f32,
         max_amount: f32,
     },
-    GainGoldEachStageDuringContract {
+    GainGold {
         min_amount: f32,
         max_amount: f32,
     },
-    LoseHealthEachStageDuringContract {
+    LoseHealthRange {
         min_amount: f32,
         max_amount: f32,
     },
-    LoseGoldEachStageDuringContract {
+    LoseGoldRange {
         min_amount: f32,
         max_amount: f32,
     },
-    LoseHealthOnContractEnd {
+    LoseHealthExpire {
         min_amount: f32,
         max_amount: f32,
     },
-    LoseGoldOnContractEnd {
+    LoseGoldExpire {
         min_amount: f32,
         max_amount: f32,
     },
@@ -182,7 +182,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
         Effect::LoseHealth { amount } => {
             game_state.hp = (game_state.hp - amount).max(1.0);
         }
-        Effect::LoseHealthEachStageDuringContract {
+        Effect::LoseHealthRange {
             min_amount,
             max_amount,
         } => {
@@ -190,7 +190,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             let amount = thread_rng().gen_range(*min_amount..=*max_amount);
             game_state.hp = (game_state.hp - amount).max(1.0);
         }
-        Effect::LoseGoldEachStageDuringContract {
+        Effect::LoseGoldRange {
             min_amount,
             max_amount,
         } => {
@@ -205,7 +205,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
                 game_state.hp = (game_state.hp - health_penalty).max(1.0);
             }
         }
-        Effect::LoseHealthOnContractEnd {
+        Effect::LoseHealthExpire {
             min_amount,
             max_amount,
         } => {
@@ -213,7 +213,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             let amount = thread_rng().gen_range(*min_amount..=*max_amount);
             game_state.hp = (game_state.hp - amount).max(1.0);
         }
-        Effect::LoseGoldOnContractEnd {
+        Effect::LoseGoldExpire {
             min_amount,
             max_amount,
         } => {
@@ -283,19 +283,19 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
                 .contract_state
                 .apply_gold_gain_multiplier(*multiplier);
         }
-        Effect::DecreaseGoldGainPercentDuringContract {
+        Effect::DecreaseGoldGainPercent {
             reduction_percentage,
         } => {
             game_state
                 .contract_state
                 .apply_gold_gain_multiplier(1.0 - *reduction_percentage);
         }
-        Effect::DisableItemAndUpgradePurchasesDuringContract => {
+        Effect::DisableItemAndUpgradePurchases => {
             game_state
                 .contract_state
                 .disable_item_and_upgrade_purchases();
         }
-        Effect::DisableItemUseDuringContract => {
+        Effect::DisableItemUse => {
             game_state.contract_state.disable_item_use();
         }
         Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
@@ -338,25 +338,25 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
                 .contract_state
                 .apply_shop_reroll_health_cost(*cost);
         }
-        Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
+        Effect::DecreaseEnemyHealthPercent { percentage } => {
             let multiplier = 1.0 + percentage / 100.0;
             game_state
                 .contract_state
                 .apply_enemy_health_multiplier(multiplier);
         }
-        Effect::RankTowerDisableDuringContract { rank } => {
+        Effect::RankTowerDisable { rank } => {
             game_state.contract_state.disable_rank(*rank);
         }
-        Effect::SuitTowerDisableDuringContract { suit } => {
+        Effect::SuitTowerDisable { suit } => {
             game_state.contract_state.disable_suit(*suit);
         }
-        Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
+        Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
             // This effect is handled in the stage start logic
             game_state
                 .contract_state
                 .set_barricade_cards_per_stage(*count);
         }
-        Effect::GainShieldEachStageDuringContract {
+        Effect::GainShield {
             min_amount,
             max_amount,
         } => {
@@ -365,7 +365,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             let shield_amount = rng.gen_range(*min_amount..=*max_amount);
             game_state.shield += shield_amount;
         }
-        Effect::HealHealthEachStageDuringContract {
+        Effect::HealHealth {
             min_amount,
             max_amount,
         } => {
@@ -374,7 +374,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             let heal_amount = rng.gen_range(*min_amount..=*max_amount);
             game_state.hp = (game_state.hp + heal_amount).min(crate::game_state::MAX_HP);
         }
-        Effect::GainGoldEachStageDuringContract {
+        Effect::GainGold {
             min_amount,
             max_amount,
         } => {
