@@ -2,7 +2,7 @@ use super::OnExpireEffectKind;
 
 pub fn kinds() -> &'static [OnExpireEffectKind] {
     &[
-        OnExpireEffectKind::HealHealth,
+        OnExpireEffectKind::HealHealthOnContractEnd,
         OnExpireEffectKind::GainGold,
         OnExpireEffectKind::GrantUpgrade,
         OnExpireEffectKind::GrantItem,
