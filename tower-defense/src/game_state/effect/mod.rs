@@ -1,3 +1,4 @@
+use crate::card::Rank;
 use crate::game_state::{
     GameState,
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
@@ -94,6 +95,9 @@ pub enum Effect {
     },
     DecreaseEnemyHealthPercentDuringContract {
         percentage: f32,
+    },
+    RankTowerDisableDuringContract {
+        rank: Rank,
     },
 }
 
@@ -259,6 +263,9 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_enemy_health_multiplier(multiplier);
+        }
+        Effect::RankTowerDisableDuringContract { rank } => {
+            game_state.contract_state.disable_rank(*rank);
         }
     }
 }

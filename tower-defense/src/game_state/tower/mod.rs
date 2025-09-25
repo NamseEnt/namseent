@@ -69,6 +69,9 @@ impl Tower {
     pub fn id(&self) -> usize {
         self.id
     }
+    pub fn rank(&self) -> Rank {
+        self.template.rank
+    }
 
     pub fn calculate_projectile_damage(
         &self,

@@ -4,7 +4,7 @@ pub mod on_stage_start;
 pub mod while_active;
 
 use super::effect_kinds::ContractEffectType;
-use crate::{game_state::effect::Effect, rarity::Rarity};
+use crate::{card::Rank, game_state::effect::Effect, rarity::Rarity};
 use namui::*;
 use rand::prelude::*;
 
@@ -128,7 +128,20 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
         WhileActiveEffectKind::DecreaseEnemyHealth => {
             Effect::DecreaseEnemyHealthPercentDuringContract { percentage: 10.0 }
         }
-        WhileActiveEffectKind::RankTowerDisable => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::RankTowerDisable => {
+            let ranks = [
+                Rank::Seven,
+                Rank::Eight,
+                Rank::Nine,
+                Rank::Ten,
+                Rank::Jack,
+                Rank::Queen,
+                Rank::King,
+                Rank::Ace,
+            ];
+            let rank = ranks.choose(&mut thread_rng()).unwrap();
+            Effect::RankTowerDisableDuringContract { rank: *rank }
+        }
         WhileActiveEffectKind::SuitTowerDisable => Effect::ExtraReroll, // placeholder
     }
 }

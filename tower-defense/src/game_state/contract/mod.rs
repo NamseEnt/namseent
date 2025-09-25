@@ -3,6 +3,7 @@ pub mod generation;
 pub mod reward;
 pub mod risk;
 
+use crate::card::Rank;
 use crate::game_state::GameState;
 use crate::game_state::effect::{Effect, run_effect};
 use crate::rarity::Rarity;
@@ -221,6 +222,7 @@ pub struct ContractState {
     pub current_stage_card_selection_hand_reroll_health_cost: usize,
     pub current_stage_shop_reroll_health_cost: usize,
     pub current_stage_enemy_health_multiplier: f32,
+    pub current_stage_disabled_ranks: Vec<Rank>,
 }
 
 impl ContractState {
@@ -243,6 +245,7 @@ impl ContractState {
             current_stage_card_selection_hand_reroll_health_cost: 0,
             current_stage_shop_reroll_health_cost: 0,
             current_stage_enemy_health_multiplier: 1.0,
+            current_stage_disabled_ranks: vec![],
         }
     }
 
@@ -264,6 +267,7 @@ impl ContractState {
         self.current_stage_card_selection_hand_reroll_health_cost = 0;
         self.current_stage_shop_reroll_health_cost = 0;
         self.current_stage_enemy_health_multiplier = 1.0;
+        self.current_stage_disabled_ranks = vec![];
     }
 
     pub fn get_damage_multiplier(&self) -> f32 {
@@ -400,6 +404,16 @@ impl ContractState {
 
     pub fn apply_enemy_health_multiplier(&mut self, multiplier: f32) {
         self.current_stage_enemy_health_multiplier *= multiplier;
+    }
+
+    pub fn get_disabled_ranks(&self) -> &Vec<Rank> {
+        &self.current_stage_disabled_ranks
+    }
+
+    pub fn disable_rank(&mut self, rank: Rank) {
+        if !self.current_stage_disabled_ranks.contains(&rank) {
+            self.current_stage_disabled_ranks.push(rank);
+        }
     }
 }
 

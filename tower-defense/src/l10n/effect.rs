@@ -69,6 +69,9 @@ impl EffectText {
                 Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
                     format!("적 체력 {}% 증가", percentage)
                 }
+                Effect::RankTowerDisableDuringContract { rank } => {
+                    format!("{} 랭크 타워 비활성화", rank)
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -194,6 +197,9 @@ impl EffectText {
                 Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
                     format!("적 체력이 {}% 증가합니다", percentage)
                 }
+                Effect::RankTowerDisableDuringContract { rank } => {
+                    format!("계약 기간 동안 {} 랭크 타워를 사용할 수 없습니다", rank)
+                }
             },
         }
     }
@@ -249,6 +255,9 @@ impl EffectText {
                 Effect::AddShopRerollHealthCost { .. } => "Shop Reroll Health Cost".to_string(),
                 Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
                     format!("Enemy Health +{}%", percentage)
+                }
+                Effect::RankTowerDisableDuringContract { rank } => {
+                    format!("Disable {} Rank Towers", rank)
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -371,6 +380,9 @@ impl EffectText {
                 }
                 Effect::DecreaseEnemyHealthPercentDuringContract { percentage } => {
                     format!("Increase enemy health by {}%", percentage)
+                }
+                Effect::RankTowerDisableDuringContract { rank } => {
+                    format!("Cannot use {} rank towers during contract", rank)
                 }
             },
         }

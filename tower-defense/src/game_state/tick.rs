@@ -87,7 +87,8 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 
         if monster.dead() {
             let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
-            let earn = (earn as f32 * game_state.contract_state.get_gold_gain_multiplier()) as usize;
+            let earn =
+                (earn as f32 * game_state.contract_state.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;
             monsters.swap_remove(monster_index);
         }
@@ -126,6 +127,15 @@ fn shoot_projectiles(game_state: &mut GameState) {
     } = game_state;
     let projectiles = towers.iter_mut().filter_map(|tower| {
         if tower.in_cooltime() {
+            return None;
+        }
+
+        // Check if tower rank is disabled by contract
+        if game_state
+            .contract_state
+            .get_disabled_ranks()
+            .contains(&tower.rank())
+        {
             return None;
         }
 

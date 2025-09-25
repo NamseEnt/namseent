@@ -127,6 +127,15 @@ impl Effect {
                     IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
                 ])
                 .to_rendering_tree(),
+            Effect::RankTowerDisableDuringContract { .. } => Icon::new(IconKind::AttackDamage)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Reject).position(IconAttributePosition::Center),
+                ])
+                .to_rendering_tree(),
         }
     }
 }
