@@ -72,6 +72,9 @@ impl EffectText {
                 Effect::RankTowerDisableDuringContract { rank } => {
                     format!("{} 랭크 타워 비활성화", rank)
                 }
+                Effect::SuitTowerDisableDuringContract { suit } => {
+                    format!("{} 수트 타워 비활성화", suit)
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -200,6 +203,9 @@ impl EffectText {
                 Effect::RankTowerDisableDuringContract { rank } => {
                     format!("계약 기간 동안 {} 랭크 타워를 사용할 수 없습니다", rank)
                 }
+                Effect::SuitTowerDisableDuringContract { suit } => {
+                    format!("계약 기간 동안 {} 수트 타워를 사용할 수 없습니다", suit)
+                }
             },
         }
     }
@@ -258,6 +264,9 @@ impl EffectText {
                 }
                 Effect::RankTowerDisableDuringContract { rank } => {
                     format!("Disable {} Rank Towers", rank)
+                }
+                Effect::SuitTowerDisableDuringContract { suit } => {
+                    format!("Disable {} Suit Towers", suit)
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -383,6 +392,9 @@ impl EffectText {
                 }
                 Effect::RankTowerDisableDuringContract { rank } => {
                     format!("Cannot use {} rank towers during contract", rank)
+                }
+                Effect::SuitTowerDisableDuringContract { suit } => {
+                    format!("Cannot use {} suit towers during contract", suit)
                 }
             },
         }

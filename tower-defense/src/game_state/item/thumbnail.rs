@@ -136,6 +136,15 @@ impl Effect {
                     IconAttribute::new(IconKind::Reject).position(IconAttributePosition::Center),
                 ])
                 .to_rendering_tree(),
+            Effect::SuitTowerDisableDuringContract { .. } => Icon::new(IconKind::Card)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Reject).position(IconAttributePosition::Center),
+                ])
+                .to_rendering_tree(),
         }
     }
 }

@@ -3,7 +3,7 @@ pub mod generation;
 pub mod reward;
 pub mod risk;
 
-use crate::card::Rank;
+use crate::card::{Rank, Suit};
 use crate::game_state::GameState;
 use crate::game_state::effect::{Effect, run_effect};
 use crate::rarity::Rarity;
@@ -223,6 +223,7 @@ pub struct ContractState {
     pub current_stage_shop_reroll_health_cost: usize,
     pub current_stage_enemy_health_multiplier: f32,
     pub current_stage_disabled_ranks: Vec<Rank>,
+    pub current_stage_disabled_suits: Vec<Suit>,
 }
 
 impl ContractState {
@@ -246,6 +247,7 @@ impl ContractState {
             current_stage_shop_reroll_health_cost: 0,
             current_stage_enemy_health_multiplier: 1.0,
             current_stage_disabled_ranks: vec![],
+            current_stage_disabled_suits: vec![],
         }
     }
 
@@ -268,6 +270,7 @@ impl ContractState {
         self.current_stage_shop_reroll_health_cost = 0;
         self.current_stage_enemy_health_multiplier = 1.0;
         self.current_stage_disabled_ranks = vec![];
+        self.current_stage_disabled_suits = vec![];
     }
 
     pub fn get_damage_multiplier(&self) -> f32 {
@@ -413,6 +416,16 @@ impl ContractState {
     pub fn disable_rank(&mut self, rank: Rank) {
         if !self.current_stage_disabled_ranks.contains(&rank) {
             self.current_stage_disabled_ranks.push(rank);
+        }
+    }
+
+    pub fn get_disabled_suits(&self) -> &Vec<Suit> {
+        &self.current_stage_disabled_suits
+    }
+
+    pub fn disable_suit(&mut self, suit: Suit) {
+        if !self.current_stage_disabled_suits.contains(&suit) {
+            self.current_stage_disabled_suits.push(suit);
         }
     }
 }

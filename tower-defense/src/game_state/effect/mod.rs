@@ -1,4 +1,4 @@
-use crate::card::Rank;
+use crate::card::{Rank, Suit};
 use crate::game_state::{
     GameState,
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
@@ -98,6 +98,9 @@ pub enum Effect {
     },
     RankTowerDisableDuringContract {
         rank: Rank,
+    },
+    SuitTowerDisableDuringContract {
+        suit: Suit,
     },
 }
 
@@ -266,6 +269,9 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
         }
         Effect::RankTowerDisableDuringContract { rank } => {
             game_state.contract_state.disable_rank(*rank);
+        }
+        Effect::SuitTowerDisableDuringContract { suit } => {
+            game_state.contract_state.disable_suit(*suit);
         }
     }
 }

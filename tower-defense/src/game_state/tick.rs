@@ -139,6 +139,15 @@ fn shoot_projectiles(game_state: &mut GameState) {
             return None;
         }
 
+        // Check if tower suit is disabled by contract
+        if game_state
+            .contract_state
+            .get_disabled_suits()
+            .contains(&tower.suit())
+        {
+            return None;
+        }
+
         let tower_upgrades = upgrade_state.tower_upgrades(tower);
 
         let attack_range_radius = tower.attack_range_radius(

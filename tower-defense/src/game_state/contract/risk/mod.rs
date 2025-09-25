@@ -93,7 +93,7 @@ fn effect_from_on_sign_kind(kind: OnSignEffectKind, rarity: Rarity) -> Effect {
     }
 }
 
-fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) -> Effect {
+fn effect_from_while_active_kind(kind: WhileActiveEffectKind, _rarity: Rarity) -> Effect {
     match kind {
         WhileActiveEffectKind::DecreaseAllTowersDamage => Effect::DecreaseAllTowersDamage {
             multiplier: rand::thread_rng().gen_range(0.75..0.95), // 5-25% decrease
@@ -142,7 +142,10 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
             let rank = ranks.choose(&mut thread_rng()).unwrap();
             Effect::RankTowerDisableDuringContract { rank: *rank }
         }
-        WhileActiveEffectKind::SuitTowerDisable => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::SuitTowerDisable => {
+            let suit = crate::card::SUITS.choose(&mut thread_rng()).unwrap();
+            Effect::SuitTowerDisableDuringContract { suit: *suit }
+        }
     }
 }
 
