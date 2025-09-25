@@ -160,6 +160,9 @@ impl Effect {
                     .with_icon_base(IconKind::Health)
                     .build()
             }
+            Effect::GainGoldEachStageDuringContract { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
         }
     }
 }

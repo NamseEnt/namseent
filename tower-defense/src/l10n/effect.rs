@@ -93,6 +93,12 @@ impl EffectText {
                 } => {
                     format!("매 스테이지 체력 {}~{} 회복", min_amount, max_amount)
                 }
+                Effect::GainGoldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!("매 스테이지 골드 {:.0}~{:.0} 획득", min_amount, max_amount)
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -248,6 +254,15 @@ impl EffectText {
                         min_amount, max_amount
                     )
                 }
+                Effect::GainGoldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "계약 기간 동안 매 스테이지 골드를 {:.0}~{:.0}만큼 획득합니다",
+                        min_amount, max_amount
+                    )
+                }
             },
         }
     }
@@ -327,6 +342,12 @@ impl EffectText {
                     max_amount,
                 } => {
                     format!("Heal Health Each Stage ({}~{})", min_amount, max_amount)
+                }
+                Effect::GainGoldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!("Gain Gold Each Stage ({:.0}~{:.0})", min_amount, max_amount)
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -477,6 +498,15 @@ impl EffectText {
                 } => {
                     format!(
                         "Heal health each stage during contract ({}~{})",
+                        min_amount, max_amount
+                    )
+                }
+                Effect::GainGoldEachStageDuringContract {
+                    min_amount,
+                    max_amount,
+                } => {
+                    format!(
+                        "Gain gold each stage during contract ({:.0}~{:.0})",
                         min_amount, max_amount
                     )
                 }

@@ -5,6 +5,6 @@ pub fn kinds() -> &'static [OnStageStartEffectKind] {
         OnStageStartEffectKind::AddBarricadeCardsToTowerPlacementHand,
         OnStageStartEffectKind::GainShield,
         OnStageStartEffectKind::HealHealth,
-        OnStageStartEffectKind::GainGold,
+        OnStageStartEffectKind::GainGoldEachStageDuringContract,
     ]
 }

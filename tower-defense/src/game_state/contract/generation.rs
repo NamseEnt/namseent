@@ -6,8 +6,8 @@ pub fn generate_contract(rarity: Rarity) -> Contract {
     let duration_stages = generate_duration_stages();
 
     let (risk_type, reward_type) = generate_contract_effect_types();
-    let risk = generate_contract_effect(risk_type, true, rarity);
-    let reward = generate_contract_effect(reward_type, false, rarity);
+    let risk = generate_contract_effect(risk_type, true, rarity, duration_stages);
+    let reward = generate_contract_effect(reward_type, false, rarity, duration_stages);
 
     Contract::new(rarity, duration_stages, risk, reward)
 }
@@ -36,11 +36,12 @@ fn generate_contract_effect(
     effect_type: ContractEffectType,
     is_risk: bool,
     rarity: Rarity,
+    duration_stages: usize,
 ) -> ContractEffect {
     let effect = if is_risk {
         risk::generate_risk_effect(&effect_type, rarity)
     } else {
-        reward::generate_reward_effect(&effect_type, rarity)
+        reward::generate_reward_effect(&effect_type, rarity, duration_stages)
     };
     match effect_type {
         ContractEffectType::OnSign => ContractEffect::OnSign { effect },

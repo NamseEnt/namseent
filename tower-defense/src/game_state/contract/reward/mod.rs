@@ -34,7 +34,7 @@ pub(crate) enum OnStageStartEffectKind {
     AddBarricadeCardsToTowerPlacementHand,
     GainShield,
     HealHealth,
-    GainGold,
+    GainGoldEachStageDuringContract,
 }
 
 #[derive(Clone, Copy)]
@@ -45,7 +45,11 @@ pub(crate) enum OnExpireEffectKind {
     GrantItem,
 }
 
-pub fn generate_reward_effect(effect_type: &ContractEffectType, rarity: Rarity) -> Effect {
+pub fn generate_reward_effect(
+    effect_type: &ContractEffectType,
+    rarity: Rarity,
+    duration_stages: usize,
+) -> Effect {
     match effect_type {
         ContractEffectType::OnSign => {
             let kinds = on_sign::kinds();
@@ -60,7 +64,7 @@ pub fn generate_reward_effect(effect_type: &ContractEffectType, rarity: Rarity) 
         ContractEffectType::OnStageStart => {
             let kinds = on_stage_start::kinds();
             let kind = kinds.choose(&mut thread_rng()).unwrap();
-            effect_from_on_stage_start_kind(*kind, rarity)
+            effect_from_on_stage_start_kind(*kind, rarity, duration_stages)
         }
         ContractEffectType::OnExpire => {
             let kinds = on_expire::kinds();
@@ -167,7 +171,11 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
     }
 }
 
-fn effect_from_on_stage_start_kind(kind: OnStageStartEffectKind, rarity: Rarity) -> Effect {
+fn effect_from_on_stage_start_kind(
+    kind: OnStageStartEffectKind,
+    rarity: Rarity,
+    duration_stages: usize,
+) -> Effect {
     match kind {
         OnStageStartEffectKind::AddBarricadeCardsToTowerPlacementHand => {
             Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract {
@@ -202,9 +210,22 @@ fn effect_from_on_stage_start_kind(kind: OnStageStartEffectKind, rarity: Rarity)
                 Rarity::Legendary => 45.0,
             },
         },
-        OnStageStartEffectKind::GainGold => Effect::EarnGold {
-            amount: rarity_based_amount(rarity, 50.0, 100.0, 200.0, 500.0) as usize,
-        },
+        OnStageStartEffectKind::GainGoldEachStageDuringContract => {
+            let total_gold = rarity_based_random_amount(
+                rarity,
+                225.0..251.0,
+                500.0..551.0,
+                1000.0..1251.0,
+                2000.0..2501.0,
+            );
+            let base_amount = (total_gold / duration_stages as f32).max(1.0);
+            let min_amount = (base_amount * 0.8).floor();
+            let max_amount = (base_amount * 1.2).ceil();
+            Effect::GainGoldEachStageDuringContract {
+                min_amount,
+                max_amount,
+            }
+        }
     }
 }
 

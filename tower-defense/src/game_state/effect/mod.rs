@@ -113,6 +113,10 @@ pub enum Effect {
         min_amount: f32,
         max_amount: f32,
     },
+    GainGoldEachStageDuringContract {
+        min_amount: f32,
+        max_amount: f32,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -307,6 +311,15 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             let mut rng = thread_rng();
             let heal_amount = rng.gen_range(*min_amount..=*max_amount);
             game_state.hp = (game_state.hp + heal_amount).min(crate::game_state::MAX_HP);
+        }
+        Effect::GainGoldEachStageDuringContract {
+            min_amount,
+            max_amount,
+        } => {
+            use rand::{Rng, thread_rng};
+            let mut rng = thread_rng();
+            let gold_amount = rng.gen_range(*min_amount..=*max_amount) as usize;
+            game_state.gold += gold_amount;
         }
     }
 }
