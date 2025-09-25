@@ -42,7 +42,7 @@ pub(crate) enum OnExpireEffectKind {
     HealHealthOnContractEnd,
     GainGoldOnContractEnd,
     GrantUpgradeOnContractEnd,
-    GrantItem,
+    GrantItemOnContractEnd,
 }
 
 pub fn generate_reward_effect(
@@ -250,7 +250,7 @@ fn effect_from_on_expire_kind(kind: OnExpireEffectKind, rarity: Rarity) -> Effec
             ) as usize,
         },
         OnExpireEffectKind::GrantUpgradeOnContractEnd => Effect::GrantUpgrade { rarity },
-        OnExpireEffectKind::GrantItem => Effect::ExtraReroll, // placeholder
+        OnExpireEffectKind::GrantItemOnContractEnd => Effect::GrantItem { rarity },
     }
 }
 
