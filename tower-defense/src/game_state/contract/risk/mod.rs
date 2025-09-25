@@ -121,7 +121,11 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
         WhileActiveEffectKind::DecreaseShopMaxRerolls => Effect::DecreaseShopMaxRerolls {
             penalty: rarity_based_amount(rarity, 1.0, 2.0, 2.0, 3.0) as usize,
         },
-        WhileActiveEffectKind::AddCardSelectionHandRerollHealthCost => Effect::ExtraReroll, // placeholder
+        WhileActiveEffectKind::AddCardSelectionHandRerollHealthCost => {
+            Effect::AddCardSelectionHandRerollHealthCost {
+                cost: rarity_based_amount(rarity, 1.0, 2.0, 3.0, 5.0) as usize,
+            }
+        }
         WhileActiveEffectKind::AddShopRerollHealthCost => Effect::ExtraReroll, // placeholder
         WhileActiveEffectKind::DecreaseEnemyHealth => Effect::ExtraReroll,     // placeholder
         WhileActiveEffectKind::RankTowerDisable => Effect::ExtraReroll,        // placeholder

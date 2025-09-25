@@ -62,6 +62,9 @@ impl EffectText {
                     "카드 선택 최대 리롤 감소".to_string()
                 }
                 Effect::DecreaseShopMaxRerolls { .. } => "상점 최대 리롤 감소".to_string(),
+                Effect::AddCardSelectionHandRerollHealthCost { .. } => {
+                    "카드 선택 리롤 체력 비용".to_string()
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -178,6 +181,9 @@ impl EffectText {
                 Effect::DecreaseShopMaxRerolls { penalty } => {
                     format!("상점 리롤 시 최대 횟수가 {}회 감소합니다", penalty)
                 }
+                Effect::AddCardSelectionHandRerollHealthCost { cost } => {
+                    format!("카드 선택 리롤 시 체력을 {} 잃습니다", cost)
+                }
             },
         }
     }
@@ -227,6 +233,9 @@ impl EffectText {
                     "Decrease Card Selection Max Rerolls".to_string()
                 }
                 Effect::DecreaseShopMaxRerolls { .. } => "Decrease Shop Max Rerolls".to_string(),
+                Effect::AddCardSelectionHandRerollHealthCost { .. } => {
+                    "Card Selection Reroll Health Cost".to_string()
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -339,6 +348,9 @@ impl EffectText {
                 }
                 Effect::DecreaseShopMaxRerolls { penalty } => {
                     format!("Reduce maximum shop rerolls by {}", penalty)
+                }
+                Effect::AddCardSelectionHandRerollHealthCost { cost } => {
+                    format!("Lose {} health when rerolling card selection", cost)
                 }
             },
         }

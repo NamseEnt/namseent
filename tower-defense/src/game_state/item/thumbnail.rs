@@ -110,6 +110,11 @@ impl Effect {
             Effect::DecreaseShopMaxRerolls { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Shop)
                 .build(),
+            Effect::AddCardSelectionHandRerollHealthCost { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Health)
+                    .build()
+            }
         }
     }
 }

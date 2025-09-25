@@ -86,6 +86,9 @@ pub enum Effect {
     DecreaseShopMaxRerolls {
         penalty: usize,
     },
+    AddCardSelectionHandRerollHealthCost {
+        cost: usize,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -234,6 +237,11 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state
                 .contract_state
                 .apply_shop_max_rerolls_penalty(*penalty);
+        }
+        Effect::AddCardSelectionHandRerollHealthCost { cost } => {
+            game_state
+                .contract_state
+                .apply_card_selection_hand_reroll_health_cost(*cost);
         }
     }
 }
