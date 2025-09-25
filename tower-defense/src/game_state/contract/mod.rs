@@ -224,6 +224,7 @@ pub struct ContractState {
     pub current_stage_enemy_health_multiplier: f32,
     pub current_stage_disabled_ranks: Vec<Rank>,
     pub current_stage_disabled_suits: Vec<Suit>,
+    pub barricade_cards_per_stage: usize,
 }
 
 impl ContractState {
@@ -248,6 +249,7 @@ impl ContractState {
             current_stage_enemy_health_multiplier: 1.0,
             current_stage_disabled_ranks: vec![],
             current_stage_disabled_suits: vec![],
+            barricade_cards_per_stage: 0,
         }
     }
 
@@ -427,6 +429,14 @@ impl ContractState {
         if !self.current_stage_disabled_suits.contains(&suit) {
             self.current_stage_disabled_suits.push(suit);
         }
+    }
+
+    pub fn set_barricade_cards_per_stage(&mut self, count: usize) {
+        self.barricade_cards_per_stage = count;
+    }
+
+    pub fn get_barricade_cards_per_stage(&self) -> usize {
+        self.barricade_cards_per_stage
     }
 }
 

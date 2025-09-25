@@ -75,6 +75,12 @@ impl EffectText {
                 Effect::SuitTowerDisableDuringContract { suit } => {
                     format!("{} 수트 타워 비활성화", suit)
                 }
+                Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
+                    format!(
+                        "매 스테이지 타워 설치 핸드에 바리케이드 카드 {}장 추가",
+                        count
+                    )
+                }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
@@ -206,6 +212,12 @@ impl EffectText {
                 Effect::SuitTowerDisableDuringContract { suit } => {
                     format!("계약 기간 동안 {} 수트 타워를 사용할 수 없습니다", suit)
                 }
+                Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
+                    format!(
+                        "계약 기간 동안 매 스테이지 타워 설치 핸드에 바리케이드 카드를 {}장 추가합니다",
+                        count
+                    )
+                }
             },
         }
     }
@@ -267,6 +279,12 @@ impl EffectText {
                 }
                 Effect::SuitTowerDisableDuringContract { suit } => {
                     format!("Disable {} Suit Towers", suit)
+                }
+                Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
+                    format!(
+                        "Add {} Barricade Cards to Tower Placement Hand Each Stage",
+                        count
+                    )
                 }
             },
             EffectText::Description(effect) => match effect {
@@ -395,6 +413,12 @@ impl EffectText {
                 }
                 Effect::SuitTowerDisableDuringContract { suit } => {
                     format!("Cannot use {} suit towers during contract", suit)
+                }
+                Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
+                    format!(
+                        "Add {} barricade cards to tower placement hand each stage during contract",
+                        count
+                    )
                 }
             },
         }

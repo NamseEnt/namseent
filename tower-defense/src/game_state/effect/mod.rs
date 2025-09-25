@@ -102,6 +102,9 @@ pub enum Effect {
     SuitTowerDisableDuringContract {
         suit: Suit,
     },
+    AddBarricadeCardsToTowerPlacementHandEachStageDuringContract {
+        count: usize,
+    },
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
@@ -272,6 +275,12 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
         }
         Effect::SuitTowerDisableDuringContract { suit } => {
             game_state.contract_state.disable_suit(*suit);
+        }
+        Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { count } => {
+            // This effect is handled in the stage start logic
+            game_state
+                .contract_state
+                .set_barricade_cards_per_stage(*count);
         }
     }
 }

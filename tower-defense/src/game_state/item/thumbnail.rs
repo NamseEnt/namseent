@@ -145,6 +145,11 @@ impl Effect {
                     IconAttribute::new(IconKind::Reject).position(IconAttributePosition::Center),
                 ])
                 .to_rendering_tree(),
+            Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Card)
+                    .build()
+            }
         }
     }
 }

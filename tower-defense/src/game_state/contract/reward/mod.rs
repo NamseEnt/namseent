@@ -169,7 +169,11 @@ fn effect_from_while_active_kind(kind: WhileActiveEffectKind, rarity: Rarity) ->
 
 fn effect_from_on_stage_start_kind(kind: OnStageStartEffectKind, rarity: Rarity) -> Effect {
     match kind {
-        OnStageStartEffectKind::AddBarricadeCardsToTowerPlacementHand => Effect::ExtraReroll, // placeholder
+        OnStageStartEffectKind::AddBarricadeCardsToTowerPlacementHand => {
+            Effect::AddBarricadeCardsToTowerPlacementHandEachStageDuringContract {
+                count: rarity_based_amount(rarity, 1.0, 2.0, 3.0, 4.0) as usize,
+            }
+        }
         OnStageStartEffectKind::GainShield => Effect::Shield {
             amount: rarity_based_amount(rarity, 20.0, 40.0, 60.0, 100.0),
         },
