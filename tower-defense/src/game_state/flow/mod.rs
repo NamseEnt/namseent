@@ -72,7 +72,7 @@ impl GameState {
         self.contracts.retain(|c| !c.is_expired());
         self.flow = GameFlow::Contract(contract::ContractFlow::new(contract_events));
 
-    self.stage_modifiers.reset_stage_state();
+        self.stage_modifiers.reset_stage_state();
         self.left_reroll_chance = self.max_reroll_chance();
         self.left_shop_refresh_chance = self.max_shop_refresh_chance();
         self.shield = 0.0;
@@ -85,7 +85,7 @@ impl GameState {
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
-    let barricade_count = 4 + self.stage_modifiers.get_barricade_cards_per_stage();
+        let barricade_count = 4 + self.stage_modifiers.get_barricade_cards_per_stage();
         let mut barricades = vec![];
         for _ in 0..barricade_count {
             barricades.push(TowerTemplate::barricade());
