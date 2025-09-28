@@ -57,7 +57,7 @@ impl<'a> Component for TowerSelectingHand<'a> {
                     return;
                 }
                 let health_cost = game_state
-                    .contract_state
+                    .stage_modifiers
                     .get_card_selection_hand_reroll_health_cost();
                 if (game_state.hp - health_cost as f32) < 1.0 {
                     return; // 체력이 부족하면 리롤하지 않음
@@ -165,7 +165,7 @@ impl Component for InteractionArea<'_> {
                                 },
                                 &|wh, color, ctx| {
                                     let health_cost = game_state
-                                        .contract_state
+                                        .stage_modifiers
                                         .get_card_selection_hand_reroll_health_cost();
                                     let mut text = format!(
                                         "{} {}/{}",
@@ -196,7 +196,7 @@ impl Component for InteractionArea<'_> {
                             .disabled(
                                 !some_selected || game_state.left_reroll_chance == 0 || {
                                     let health_cost = game_state
-                                        .contract_state
+                                        .stage_modifiers
                                         .get_card_selection_hand_reroll_health_cost();
                                     (game_state.hp - health_cost as f32) < 1.0
                                 },

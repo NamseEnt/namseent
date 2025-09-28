@@ -5,7 +5,7 @@ pub mod reward;
 pub mod risk;
 mod util;
 
-use crate::card::{Rank, Suit};
+// (Rank, Suit) no longer needed here after extracting StageModifiers
 use crate::game_state::GameState;
 use crate::game_state::effect::{Effect, run_effect};
 use crate::rarity::Rarity;
@@ -205,260 +205,6 @@ impl Contract {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct ContractState {
-    pub current_stage_damage_multiplier: f32,
-    pub current_stage_attack_speed_multiplier: f32,
-    pub current_stage_range_multiplier: f32,
-    pub current_stage_damage_reduction_multiplier: f32,
-    pub current_stage_incoming_damage_multiplier: f32,
-    pub current_stage_gold_gain_multiplier: f32,
-    pub current_stage_card_selection_hand_max_slots_bonus: usize,
-    pub current_stage_card_selection_hand_max_slots_penalty: usize,
-    pub current_stage_card_selection_hand_max_rerolls_bonus: usize,
-    pub current_stage_card_selection_hand_max_rerolls_penalty: usize,
-    pub current_stage_shop_max_rerolls_bonus: usize,
-    pub current_stage_shop_max_rerolls_penalty: usize,
-    pub current_stage_disable_item_and_upgrade_purchases: bool,
-    pub current_stage_disable_item_use: bool,
-    pub current_stage_card_selection_hand_reroll_health_cost: usize,
-    pub current_stage_shop_reroll_health_cost: usize,
-    pub current_stage_enemy_health_multiplier: f32,
-    pub current_stage_disabled_ranks: Vec<Rank>,
-    pub current_stage_disabled_suits: Vec<Suit>,
-    pub barricade_cards_per_stage: usize,
-    pub shield_per_stage_min: f32,
-    pub shield_per_stage_max: f32,
-}
-
-impl ContractState {
-    pub fn new() -> Self {
-        Self {
-            current_stage_damage_multiplier: 1.0,
-            current_stage_attack_speed_multiplier: 1.0,
-            current_stage_range_multiplier: 1.0,
-            current_stage_damage_reduction_multiplier: 1.0,
-            current_stage_incoming_damage_multiplier: 1.0,
-            current_stage_gold_gain_multiplier: 1.0,
-            current_stage_card_selection_hand_max_slots_bonus: 0,
-            current_stage_card_selection_hand_max_slots_penalty: 0,
-            current_stage_card_selection_hand_max_rerolls_bonus: 0,
-            current_stage_card_selection_hand_max_rerolls_penalty: 0,
-            current_stage_shop_max_rerolls_bonus: 0,
-            current_stage_shop_max_rerolls_penalty: 0,
-            current_stage_disable_item_and_upgrade_purchases: false,
-            current_stage_disable_item_use: false,
-            current_stage_card_selection_hand_reroll_health_cost: 0,
-            current_stage_shop_reroll_health_cost: 0,
-            current_stage_enemy_health_multiplier: 1.0,
-            current_stage_disabled_ranks: vec![],
-            current_stage_disabled_suits: vec![],
-            barricade_cards_per_stage: 0,
-            shield_per_stage_min: 0.0,
-            shield_per_stage_max: 0.0,
-        }
-    }
-
-    pub fn reset_stage_multipliers(&mut self) {
-        self.current_stage_damage_multiplier = 1.0;
-        self.current_stage_attack_speed_multiplier = 1.0;
-        self.current_stage_range_multiplier = 1.0;
-        self.current_stage_damage_reduction_multiplier = 1.0;
-        self.current_stage_incoming_damage_multiplier = 1.0;
-        self.current_stage_gold_gain_multiplier = 1.0;
-        self.current_stage_card_selection_hand_max_slots_bonus = 0;
-        self.current_stage_card_selection_hand_max_slots_penalty = 0;
-        self.current_stage_card_selection_hand_max_rerolls_bonus = 0;
-        self.current_stage_card_selection_hand_max_rerolls_penalty = 0;
-        self.current_stage_shop_max_rerolls_bonus = 0;
-        self.current_stage_shop_max_rerolls_penalty = 0;
-        self.current_stage_disable_item_and_upgrade_purchases = false;
-        self.current_stage_disable_item_use = false;
-        self.current_stage_card_selection_hand_reroll_health_cost = 0;
-        self.current_stage_shop_reroll_health_cost = 0;
-        self.current_stage_enemy_health_multiplier = 1.0;
-        self.current_stage_disabled_ranks = vec![];
-        self.current_stage_disabled_suits = vec![];
-    }
-
-    pub fn get_damage_multiplier(&self) -> f32 {
-        self.current_stage_damage_multiplier
-    }
-
-    pub fn get_attack_speed_multiplier(&self) -> f32 {
-        self.current_stage_attack_speed_multiplier
-    }
-
-    pub fn get_range_multiplier(&self) -> f32 {
-        self.current_stage_range_multiplier
-    }
-
-    pub fn get_damage_reduction_multiplier(&self) -> f32 {
-        self.current_stage_damage_reduction_multiplier
-    }
-
-    pub fn get_incoming_damage_multiplier(&self) -> f32 {
-        self.current_stage_incoming_damage_multiplier
-    }
-
-    pub fn get_gold_gain_multiplier(&self) -> f32 {
-        self.current_stage_gold_gain_multiplier
-    }
-
-    pub fn get_card_selection_hand_max_slots_bonus(&self) -> usize {
-        self.current_stage_card_selection_hand_max_slots_bonus
-    }
-
-    pub fn get_card_selection_hand_max_slots_penalty(&self) -> usize {
-        self.current_stage_card_selection_hand_max_slots_penalty
-    }
-
-    pub fn get_card_selection_hand_max_rerolls_bonus(&self) -> usize {
-        self.current_stage_card_selection_hand_max_rerolls_bonus
-    }
-
-    pub fn get_card_selection_hand_max_rerolls_penalty(&self) -> usize {
-        self.current_stage_card_selection_hand_max_rerolls_penalty
-    }
-
-    pub fn get_shop_max_rerolls_bonus(&self) -> usize {
-        self.current_stage_shop_max_rerolls_bonus
-    }
-
-    pub fn get_shop_max_rerolls_penalty(&self) -> usize {
-        self.current_stage_shop_max_rerolls_penalty
-    }
-
-    pub fn is_item_and_upgrade_purchases_disabled(&self) -> bool {
-        self.current_stage_disable_item_and_upgrade_purchases
-    }
-
-    pub fn is_item_use_disabled(&self) -> bool {
-        self.current_stage_disable_item_use
-    }
-
-    pub fn get_card_selection_hand_reroll_health_cost(&self) -> usize {
-        self.current_stage_card_selection_hand_reroll_health_cost
-    }
-
-    pub fn get_shop_reroll_health_cost(&self) -> usize {
-        self.current_stage_shop_reroll_health_cost
-    }
-
-    pub fn get_enemy_health_multiplier(&self) -> f32 {
-        self.current_stage_enemy_health_multiplier
-    }
-
-    pub fn apply_damage_multiplier(&mut self, multiplier: f32) {
-        self.current_stage_damage_multiplier *= multiplier;
-    }
-
-    pub fn apply_attack_speed_multiplier(&mut self, multiplier: f32) {
-        self.current_stage_attack_speed_multiplier *= multiplier;
-    }
-
-    pub fn apply_range_multiplier(&mut self, multiplier: f32) {
-        self.current_stage_range_multiplier *= multiplier;
-    }
-
-    pub fn apply_damage_reduction_multiplier(&mut self, multiplier: f32) {
-        self.current_stage_damage_reduction_multiplier *= multiplier;
-    }
-
-    pub fn apply_incoming_damage_multiplier(&mut self, multiplier: f32) {
-        self.current_stage_incoming_damage_multiplier *= multiplier;
-    }
-
-    pub fn apply_gold_gain_multiplier(&mut self, multiplier: f32) {
-        self.current_stage_gold_gain_multiplier *= multiplier;
-    }
-
-    pub fn apply_card_selection_hand_max_slots_bonus(&mut self, bonus: usize) {
-        self.current_stage_card_selection_hand_max_slots_bonus += bonus;
-    }
-
-    pub fn apply_card_selection_hand_max_slots_penalty(&mut self, penalty: usize) {
-        self.current_stage_card_selection_hand_max_slots_penalty += penalty;
-    }
-
-    pub fn apply_card_selection_hand_max_rerolls_bonus(&mut self, bonus: usize) {
-        self.current_stage_card_selection_hand_max_rerolls_bonus += bonus;
-    }
-
-    pub fn apply_card_selection_hand_max_rerolls_penalty(&mut self, penalty: usize) {
-        self.current_stage_card_selection_hand_max_rerolls_penalty += penalty;
-    }
-
-    pub fn apply_shop_max_rerolls_bonus(&mut self, bonus: usize) {
-        self.current_stage_shop_max_rerolls_bonus += bonus;
-    }
-
-    pub fn apply_shop_max_rerolls_penalty(&mut self, penalty: usize) {
-        self.current_stage_shop_max_rerolls_penalty += penalty;
-    }
-
-    pub fn disable_item_and_upgrade_purchases(&mut self) {
-        self.current_stage_disable_item_and_upgrade_purchases = true;
-    }
-
-    pub fn disable_item_use(&mut self) {
-        self.current_stage_disable_item_use = true;
-    }
-
-    pub fn apply_card_selection_hand_reroll_health_cost(&mut self, cost: usize) {
-        self.current_stage_card_selection_hand_reroll_health_cost += cost;
-    }
-
-    pub fn apply_shop_reroll_health_cost(&mut self, cost: usize) {
-        self.current_stage_shop_reroll_health_cost += cost;
-    }
-
-    pub fn apply_enemy_health_multiplier(&mut self, multiplier: f32) {
-        self.current_stage_enemy_health_multiplier *= multiplier;
-    }
-
-    pub fn get_disabled_ranks(&self) -> &Vec<Rank> {
-        &self.current_stage_disabled_ranks
-    }
-
-    pub fn disable_rank(&mut self, rank: Rank) {
-        if !self.current_stage_disabled_ranks.contains(&rank) {
-            self.current_stage_disabled_ranks.push(rank);
-        }
-    }
-
-    pub fn get_disabled_suits(&self) -> &Vec<Suit> {
-        &self.current_stage_disabled_suits
-    }
-
-    pub fn disable_suit(&mut self, suit: Suit) {
-        if !self.current_stage_disabled_suits.contains(&suit) {
-            self.current_stage_disabled_suits.push(suit);
-        }
-    }
-
-    pub fn set_barricade_cards_per_stage(&mut self, count: usize) {
-        self.barricade_cards_per_stage = count;
-    }
-
-    pub fn set_shield_per_stage(&mut self, min_amount: f32, max_amount: f32) {
-        self.shield_per_stage_min = min_amount;
-        self.shield_per_stage_max = max_amount;
-    }
-
-    pub fn get_shield_per_stage_min(&self) -> f32 {
-        self.shield_per_stage_min
-    }
-
-    pub fn get_shield_per_stage_max(&self) -> f32 {
-        self.shield_per_stage_max
-    }
-
-    pub fn get_barricade_cards_per_stage(&self) -> usize {
-        self.barricade_cards_per_stage
-    }
-}
-
 #[allow(dead_code)]
 pub fn sign_contract(game_state: &mut GameState, contract: Contract) {
     contract.on_sign_effects().iter().for_each(|effect| {
@@ -477,6 +223,7 @@ pub struct ContractEvent {
 #[cfg(test)]
 mod property_tests {
     use super::*;
+    use crate::game_state::stage_modifiers::StageModifiers;
     use rand::{SeedableRng, rngs::StdRng};
 
     #[test]
@@ -569,6 +316,43 @@ mod property_tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn adjustments_delta_consistency() {
+        let mut cs = StageModifiers::new();
+        assert_eq!(cs.get_card_selection_hand_max_slots_delta(), 0);
+        assert_eq!(cs.get_card_selection_hand_max_rerolls_delta(), 0);
+        assert_eq!(cs.get_shop_max_rerolls_delta(), 0);
+        cs.apply_card_selection_hand_max_slots_bonus(3);
+        assert_eq!(cs.get_card_selection_hand_max_slots_delta(), 3);
+        cs.apply_card_selection_hand_max_slots_penalty(1);
+        assert_eq!(cs.get_card_selection_hand_max_slots_delta(), 2);
+        cs.apply_card_selection_hand_max_rerolls_bonus(5);
+        cs.apply_card_selection_hand_max_rerolls_penalty(2);
+        assert_eq!(cs.get_card_selection_hand_max_rerolls_delta(), 3);
+        cs.apply_shop_max_rerolls_bonus(4);
+        cs.apply_shop_max_rerolls_penalty(4);
+        assert_eq!(cs.get_shop_max_rerolls_delta(), 0);
+    }
+
+    #[test]
+    fn stage_grants_persist_across_reset_and_clear_explicitly() {
+        let mut cs = StageModifiers::new();
+        // give grants
+        cs.set_barricade_cards_per_stage(5);
+        cs.set_shield_per_stage(10.0, 20.0);
+        // reset stage transient state
+        cs.reset_stage_state();
+        // grants should persist
+        assert_eq!(cs.get_barricade_cards_per_stage(), 5);
+        assert!((cs.get_shield_per_stage_min() - 10.0).abs() < f32::EPSILON);
+        assert!((cs.get_shield_per_stage_max() - 20.0).abs() < f32::EPSILON);
+        // now clear grants
+        cs.clear_stage_grants();
+        assert_eq!(cs.get_barricade_cards_per_stage(), 0);
+        assert_eq!(cs.get_shield_per_stage_min(), 0.0);
+        assert_eq!(cs.get_shield_per_stage_max(), 0.0);
     }
 
     #[test]

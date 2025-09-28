@@ -258,110 +258,110 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         }
         Effect::IncreaseAllTowersDamage { multiplier } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_damage_multiplier(*multiplier);
         }
         Effect::DecreaseAllTowersDamage { multiplier } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_damage_multiplier(*multiplier);
         }
         Effect::IncreaseIncomingDamage { multiplier } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_incoming_damage_multiplier(*multiplier);
         }
         Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_attack_speed_multiplier(*multiplier);
         }
         Effect::IncreaseAllTowersRange { multiplier } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_range_multiplier(*multiplier);
         }
         Effect::DecreaseIncomingDamage { multiplier } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_damage_reduction_multiplier(*multiplier);
         }
         Effect::IncreaseGoldGain { multiplier } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_gold_gain_multiplier(*multiplier);
         }
         Effect::DecreaseGoldGainPercent {
             reduction_percentage,
         } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_gold_gain_multiplier(1.0 - *reduction_percentage);
         }
         Effect::DisableItemAndUpgradePurchases => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .disable_item_and_upgrade_purchases();
         }
         Effect::DisableItemUse => {
-            game_state.contract_state.disable_item_use();
+            game_state.stage_modifiers.disable_item_use();
         }
         Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_card_selection_hand_max_slots_penalty(*penalty);
         }
         Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_card_selection_hand_max_slots_bonus(*bonus);
         }
         Effect::IncreaseCardSelectionHandMaxRerolls { bonus } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_card_selection_hand_max_rerolls_bonus(*bonus);
         }
         Effect::DecreaseCardSelectionHandMaxRerolls { penalty } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_card_selection_hand_max_rerolls_penalty(*penalty);
         }
         Effect::IncreaseShopMaxRerolls { bonus } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_shop_max_rerolls_bonus(*bonus);
         }
         Effect::DecreaseShopMaxRerolls { penalty } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_shop_max_rerolls_penalty(*penalty);
         }
         Effect::AddCardSelectionHandRerollHealthCost { cost } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_card_selection_hand_reroll_health_cost(*cost);
         }
         Effect::AddShopRerollHealthCost { cost } => {
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_shop_reroll_health_cost(*cost);
         }
         Effect::DecreaseEnemyHealthPercent { percentage } => {
             let multiplier = 1.0 + percentage / 100.0;
             game_state
-                .contract_state
+                .stage_modifiers
                 .apply_enemy_health_multiplier(multiplier);
         }
         Effect::RankTowerDisable { rank } => {
-            game_state.contract_state.disable_rank(*rank);
+            game_state.stage_modifiers.disable_rank(*rank);
         }
         Effect::SuitTowerDisable { suit } => {
-            game_state.contract_state.disable_suit(*suit);
+            game_state.stage_modifiers.disable_suit(*suit);
         }
         Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
             // This effect is handled in the stage start logic
             game_state
-                .contract_state
+                .stage_modifiers
                 .set_barricade_cards_per_stage(*count);
         }
         Effect::GainShield {
@@ -401,8 +401,9 @@ impl Effect {
 // ============================= Test Helpers =============================
 #[cfg(test)]
 pub mod tests_support {
+    use crate::game_state::stage_modifiers::StageModifiers;
     use crate::game_state::{
-        ContractState, GameState, MAP_SIZE, TRAVEL_POINTS, field_particle, flow::GameFlow,
+        GameState, MAP_SIZE, TRAVEL_POINTS, field_particle, flow::GameFlow,
         monster_spawn::MonsterSpawnState,
     };
     use namui::Instant;
@@ -444,7 +445,7 @@ pub mod tests_support {
             play_history: crate::game_state::play_history::PlayHistory::new(),
             opened_modal: None,
             contracts: vec![],
-            contract_state: ContractState::new(),
+            stage_modifiers: StageModifiers::new(),
         }
     }
 }

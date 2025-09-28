@@ -17,6 +17,7 @@ mod placed_towers;
 pub mod play_history;
 pub mod projectile;
 mod render;
+pub mod stage_modifiers;
 mod start_confirm_modal;
 mod tick;
 pub mod tower;
@@ -24,12 +25,12 @@ mod tower_info_popup;
 pub mod upgrade;
 mod user_status_effect;
 
+use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::HandSlotId;
 use crate::route::*;
 use crate::*;
 use background::{Background, generate_backgrounds};
 use camera::*;
-use contract::ContractState;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
@@ -95,7 +96,7 @@ pub struct GameState {
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
     pub contracts: Vec<contract::Contract>,
-    pub contract_state: ContractState,
+    pub stage_modifiers: StageModifiers,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -119,8 +120,8 @@ impl GameState {
     pub fn max_shop_refresh_chance(&self) -> usize {
         (self.upgrade_state.shop_refresh_chance_plus
             + 1
-            + self.contract_state.get_shop_max_rerolls_bonus())
-        .saturating_sub(self.contract_state.get_shop_max_rerolls_penalty())
+            + self.stage_modifiers.get_shop_max_rerolls_bonus())
+        .saturating_sub(self.stage_modifiers.get_shop_max_rerolls_penalty())
     }
     pub fn max_quest_board_refresh_chance(&self) -> usize {
         self.upgrade_state.quest_board_refresh_chance_plus + 1
@@ -129,10 +130,10 @@ impl GameState {
         (self.upgrade_state.reroll_chance_plus
             + 1
             + self
-                .contract_state
+                .stage_modifiers
                 .get_card_selection_hand_max_rerolls_bonus())
         .saturating_sub(
-            self.contract_state
+            self.stage_modifiers
                 .get_card_selection_hand_max_rerolls_penalty(),
         )
     }
@@ -162,7 +163,7 @@ impl GameState {
 
     pub fn calculate_tower_damage(&self, tower: &tower::Tower) -> f32 {
         let tower_upgrade_states = self.upgrade_state.tower_upgrades(tower);
-        let contract_multiplier: f32 = self.contract_state.get_damage_multiplier();
+        let contract_multiplier: f32 = self.stage_modifiers.get_damage_multiplier();
         tower.calculate_projectile_damage(&tower_upgrade_states, contract_multiplier)
     }
 }
@@ -246,7 +247,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             play_history: PlayHistory::new(),
             opened_modal: None,
             contracts: vec![],
-            contract_state: ContractState::new(),
+            stage_modifiers: StageModifiers::new(),
         }
     })
     .0

@@ -88,7 +88,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
         if monster.dead() {
             let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
             let earn =
-                (earn as f32 * game_state.contract_state.get_gold_gain_multiplier()) as usize;
+                (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;
             monsters.swap_remove(monster_index);
         }
@@ -132,7 +132,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
 
         // Check if tower rank is disabled by contract
         if game_state
-            .contract_state
+            .stage_modifiers
             .get_disabled_ranks()
             .contains(&tower.rank())
         {
@@ -141,7 +141,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
 
         // Check if tower suit is disabled by contract
         if game_state
-            .contract_state
+            .stage_modifiers
             .get_disabled_suits()
             .contains(&tower.suit())
         {
@@ -152,7 +152,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
 
         let attack_range_radius = tower.attack_range_radius(
             &tower_upgrades,
-            game_state.contract_state.get_range_multiplier(),
+            game_state.stage_modifiers.get_range_multiplier(),
         );
 
         let target = game_state.monsters.iter().find(|monster| {
@@ -160,7 +160,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
                 < attack_range_radius
         })?;
 
-        let contract_multiplier = game_state.contract_state.get_damage_multiplier();
+    let contract_multiplier = game_state.stage_modifiers.get_damage_multiplier();
 
         Some(tower.shoot(
             target.projectile_target_indicator,

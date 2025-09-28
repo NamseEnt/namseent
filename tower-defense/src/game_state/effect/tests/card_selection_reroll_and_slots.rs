@@ -1,5 +1,5 @@
 //! Card selection hand reroll & slot 관련 effect 통합 테스트
-//! run_effect 경로를 통해 ContractState와 GameState 계산(max_reroll_chance) 검증
+//! run_effect 경로를 통해 StageModifiers와 GameState 계산(max_reroll_chance) 검증
 
 use crate::game_state::effect::{Effect, run_effect, tests_support::make_test_state};
 
@@ -56,13 +56,13 @@ fn card_selection_reroll_penalty_then_bonus_sequence() {
 #[test]
 fn card_selection_slots_bonus_and_penalty_accumulation() {
     let mut gs = make_test_state();
-    // 슬롯의 최종 적용은 별도 계산 함수가 없으므로 ContractState의 getter 직접 확인
+    // 슬롯의 최종 적용은 별도 계산 함수가 없으므로 StageModifiers의 getter 직접 확인
     assert_eq!(
-        gs.contract_state.get_card_selection_hand_max_slots_bonus(),
+        gs.stage_modifiers.get_card_selection_hand_max_slots_bonus(),
         0
     );
     assert_eq!(
-        gs.contract_state
+        gs.stage_modifiers
             .get_card_selection_hand_max_slots_penalty(),
         0
     );
@@ -76,7 +76,7 @@ fn card_selection_slots_bonus_and_penalty_accumulation() {
         &Effect::IncreaseCardSelectionHandMaxSlots { bonus: 1 },
     );
     assert_eq!(
-        gs.contract_state.get_card_selection_hand_max_slots_bonus(),
+        gs.stage_modifiers.get_card_selection_hand_max_slots_bonus(),
         3,
         "+2 +1 누적 보너스 = 3"
     );
@@ -90,7 +90,7 @@ fn card_selection_slots_bonus_and_penalty_accumulation() {
         &Effect::DecreaseCardSelectionHandMaxSlots { penalty: 2 },
     );
     assert_eq!(
-        gs.contract_state
+        gs.stage_modifiers
             .get_card_selection_hand_max_slots_penalty(),
         3,
         "-1 -2 누적 패널티 = 3"

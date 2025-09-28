@@ -91,7 +91,7 @@ impl GameState {
                 }
 
                 // 아이템/업그레이드 구매 불가 효과 체크
-                if self.contract_state.is_item_and_upgrade_purchases_disabled() {
+                if self.stage_modifiers.is_item_and_upgrade_purchases_disabled() {
                     return; // 구매 불가 상태에서는 아무것도 하지 않음
                 }
 
@@ -120,7 +120,7 @@ impl GameState {
                 }
 
                 // 아이템/업그레이드 구매 불가 효과 체크
-                if self.contract_state.is_item_and_upgrade_purchases_disabled() {
+                if self.stage_modifiers.is_item_and_upgrade_purchases_disabled() {
                     return; // 구매 불가 상태에서는 아무것도 하지 않음
                 }
 
@@ -165,7 +165,7 @@ impl GameState {
 
     pub fn use_item(&mut self, item: &item::Item) {
         // 아이템 사용 불가 효과 체크
-        if self.contract_state.is_item_use_disabled() {
+    if self.stage_modifiers.is_item_use_disabled() {
             return; // 아이템 사용 불가 상태에서는 아무것도 하지 않음
         }
 
@@ -193,14 +193,14 @@ impl GameState {
                 !*purchased
                     && self.gold >= *cost
                     && self.items.len() < MAX_INVENTORY_SLOT
-                    && !self.contract_state.is_item_and_upgrade_purchases_disabled()
+                    && !self.stage_modifiers.is_item_and_upgrade_purchases_disabled()
             }
             ShopSlot::Upgrade {
                 cost, purchased, ..
             } => {
                 !*purchased
                     && self.gold >= *cost
-                    && !self.contract_state.is_item_and_upgrade_purchases_disabled()
+                    && !self.stage_modifiers.is_item_and_upgrade_purchases_disabled()
             }
             ShopSlot::Contract {
                 cost, purchased, ..

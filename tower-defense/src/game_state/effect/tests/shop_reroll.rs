@@ -1,6 +1,6 @@
 //! Shop reroll (shop refresh chance) 관련 effect 동작 테스트
 //!
-//! 이 테스트는 계약/이펙트 시스템을 직접 호출하지 않고, ContractState 변화를 통해
+//! 이 테스트는 계약/이펙트 시스템을 직접 호출하지 않고, StageModifiers 변화를 통해
 //! effect 적용 결과를 검증한다. 추후 필요 시 실제 Effect::IncreaseShopMaxRerolls 등을
 //! run_effect 경로로 호출하는 통합 테스트를 추가할 수 있다.
 
@@ -19,7 +19,7 @@ fn shop_reroll_baseline_is_one() {
 #[test]
 fn shop_reroll_increase_effect_applies() {
     let mut gs = make_test_state();
-    gs.contract_state.apply_shop_max_rerolls_bonus(1); // +1
+    gs.stage_modifiers.apply_shop_max_rerolls_bonus(1); // +1
     assert_eq!(
         gs.max_shop_refresh_chance(),
         2,
@@ -30,7 +30,7 @@ fn shop_reroll_increase_effect_applies() {
 #[test]
 fn shop_reroll_decrease_effect_applies() {
     let mut gs = make_test_state();
-    gs.contract_state.apply_shop_max_rerolls_penalty(1); // -1 (saturating)
+    gs.stage_modifiers.apply_shop_max_rerolls_penalty(1); // -1 (saturating)
     assert_eq!(
         gs.max_shop_refresh_chance(),
         0,
@@ -42,11 +42,11 @@ fn shop_reroll_decrease_effect_applies() {
 fn shop_reroll_stacking_sequence_penalty_then_bonus() {
     let mut gs = make_test_state();
     for _ in 0..4 {
-        gs.contract_state.apply_shop_max_rerolls_penalty(1);
+    gs.stage_modifiers.apply_shop_max_rerolls_penalty(1);
     }
     assert_eq!(gs.max_shop_refresh_chance(), 0, "패널티 4회 후 포화로 0");
     for _ in 0..6 {
-        gs.contract_state.apply_shop_max_rerolls_bonus(1);
+    gs.stage_modifiers.apply_shop_max_rerolls_bonus(1);
     }
     assert_eq!(
         gs.max_shop_refresh_chance(),

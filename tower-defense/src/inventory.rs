@@ -97,7 +97,7 @@ impl Component for Inventory {
                                                             )
                                                             .disabled(
                                                                 game_state
-                                                                    .contract_state
+                                                                    .stage_modifiers
                                                                     .is_item_use_disabled(),
                                                             ),
                                                         );

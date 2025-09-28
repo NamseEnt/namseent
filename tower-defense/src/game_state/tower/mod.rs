@@ -327,7 +327,7 @@ impl TowerKind {
 }
 
 pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
-    let attack_speed_multiplier = game_state.contract_state.get_attack_speed_multiplier();
+    let attack_speed_multiplier = game_state.stage_modifiers.get_attack_speed_multiplier();
 
     game_state.towers.iter_mut().for_each(|tower| {
         if tower.cooldown == Duration::from_secs(0) {
