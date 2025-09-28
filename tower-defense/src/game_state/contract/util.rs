@@ -35,9 +35,12 @@ pub(crate) fn rarity_table_random(
 
 /// Stage 단위로 total 값을 duration 에 나누어 (0.8x, 1.2x) 범위로 정수 경계 보정.
 /// 동일 패턴이 reward / risk stage start 생성 코드에 3회 반복되어 추출.
+/// 분포 범위를 조정하려면 아래 상수만 수정하면 된다.
+pub(crate) const STAGE_DISTRIBUTION_MIN_MULTIPLIER: f32 = 0.8; // 하한 배율
+pub(crate) const STAGE_DISTRIBUTION_MAX_MULTIPLIER: f32 = 1.2; // 상한 배율
 pub(crate) fn distribute_per_stage(total: f32, duration_stages: usize) -> (f32, f32) {
     let base = (total / duration_stages as f32).max(1.0);
-    let min_amount = (base * 0.8).floor();
-    let max_amount = (base * 1.2).ceil();
+    let min_amount = (base * STAGE_DISTRIBUTION_MIN_MULTIPLIER).floor();
+    let max_amount = (base * STAGE_DISTRIBUTION_MAX_MULTIPLIER).ceil();
     (min_amount, max_amount)
 }
