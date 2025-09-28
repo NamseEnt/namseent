@@ -3,7 +3,7 @@ use crate::{
     card::{Rank, Suit},
     game_state::{
         contract::Contract,
-        item::{Item, Effect},
+        item::{Effect, Item},
         upgrade::Upgrade,
     },
 };

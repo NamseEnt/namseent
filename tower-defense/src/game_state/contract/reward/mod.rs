@@ -1,12 +1,12 @@
-pub mod types;
-pub mod on_sign;
-pub mod while_active;
-pub mod on_stage_start;
 pub mod on_expire;
+pub mod on_sign;
+pub mod on_stage_start;
+pub mod types;
+pub mod while_active;
 
-use rand::prelude::*;
-use crate::{rarity::Rarity, game_state::effect::Effect};
 use super::effect_kinds::ContractEffectType;
+use crate::{game_state::effect::Effect, rarity::Rarity};
+use rand::prelude::*;
 use types::RewardGeneratorFn;
 
 pub(crate) fn generate_reward_effect_with_rng(
