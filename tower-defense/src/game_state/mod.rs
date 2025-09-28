@@ -260,6 +260,22 @@ pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static)
     GAME_STATE_ATOM.mutate(f);
 }
 
+pub fn set_modal(modal: Option<Modal>) {
+    mutate_game_state(|game_state| {
+        game_state.opened_modal = modal;
+    });
+}
+
+pub fn force_start() {
+    mutate_game_state(|game_state| {
+        game_state.goto_defense();
+    });
+}
+
+pub fn is_boss_stage(stage: usize) -> bool {
+    matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
+}
+
 /// Make sure that the tower can be placed at the given coord.
 pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
     crate::game_state::mutate_game_state(move |game_state| {
@@ -279,21 +295,5 @@ pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
         if hand.is_empty() {
             game_state.goto_defense();
         }
-    });
-}
-
-pub fn is_boss_stage(stage: usize) -> bool {
-    matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
-}
-
-pub fn set_modal(modal: Option<Modal>) {
-    mutate_game_state(|game_state| {
-        game_state.opened_modal = modal;
-    });
-}
-
-pub fn force_start() {
-    mutate_game_state(|game_state| {
-        game_state.goto_defense();
     });
 }

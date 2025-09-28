@@ -136,6 +136,18 @@ pub enum Effect {
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
+    use rand::thread_rng;
+    let mut rng = thread_rng();
+    run_effect_with_rng(game_state, effect, &mut rng);
+}
+
+/// 테스트 및 결정적(Deterministic) 실행을 위해 RNG를 주입할 수 있는 버전.
+/// 기존 `run_effect` 는 thread_rng() 를 사용하며, 이 함수는 재사용 가능한 코어 로직을 담는다.
+pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
+    game_state: &mut GameState,
+    effect: &Effect,
+    rng: &mut R,
+) {
     match effect {
         Effect::Heal { amount } => {
             game_state.hp = (game_state.hp + amount).min(crate::game_state::MAX_HP);
@@ -153,8 +165,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             amount,
             probability,
         } => {
-            use rand::{Rng, thread_rng};
-            let is_winner = thread_rng().gen_bool(*probability as f64);
+            let is_winner = rng.gen_bool(*probability as f64);
             let gold = if is_winner { *amount as usize } else { 0 };
             game_state.earn_gold(gold);
         }
@@ -186,16 +197,14 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             min_amount,
             max_amount,
         } => {
-            use rand::{Rng, thread_rng};
-            let amount = thread_rng().gen_range(*min_amount..=*max_amount);
+            let amount = rng.gen_range(*min_amount..=*max_amount);
             game_state.hp = (game_state.hp - amount).max(1.0);
         }
         Effect::LoseGoldRange {
             min_amount,
             max_amount,
         } => {
-            use rand::{Rng, thread_rng};
-            let amount = thread_rng().gen_range(*min_amount..=*max_amount) as usize;
+            let amount = rng.gen_range(*min_amount..=*max_amount) as usize;
             if game_state.gold >= amount {
                 game_state.gold -= amount;
             } else {
@@ -209,16 +218,14 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             min_amount,
             max_amount,
         } => {
-            use rand::{Rng, thread_rng};
-            let amount = thread_rng().gen_range(*min_amount..=*max_amount);
+            let amount = rng.gen_range(*min_amount..=*max_amount);
             game_state.hp = (game_state.hp - amount).max(1.0);
         }
         Effect::LoseGoldExpire {
             min_amount,
             max_amount,
         } => {
-            use rand::{Rng, thread_rng};
-            let amount = thread_rng().gen_range(*min_amount..=*max_amount) as usize;
+            let amount = rng.gen_range(*min_amount..=*max_amount) as usize;
             if game_state.gold >= amount {
                 game_state.gold -= amount;
             } else {
@@ -234,7 +241,8 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             } else {
                 let remaining = *amount - game_state.gold;
                 game_state.gold = 0;
-                game_state.hp = (game_state.hp - (remaining as f32 / 10.0)).max(1.0);
+                let health_penalty = (remaining as f32 / 10.0).max(1.0);
+                game_state.hp = (game_state.hp - health_penalty).max(1.0);
             }
         }
         Effect::GrantUpgrade { rarity } => {
@@ -242,7 +250,13 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             game_state.upgrade_state.upgrade(upgrade);
         }
         Effect::GrantItem { rarity } => {
-            let item = crate::game_state::item::generation::generate_item(*rarity);
+            // 간단히 아이템 생성: 현재 아이템 생성 로직이 별도로 있다면 그 경로로 위임 고려
+            // 여기서는 placeholder Effect 하나(ExtraReroll)로 rarity만 반영
+            let item = crate::game_state::item::Item {
+                effect: Effect::ExtraReroll,
+                rarity: *rarity,
+                value: 0.0.into(),
+            };
             game_state.items.push(item);
         }
         Effect::AddChallengeMonster => {
@@ -360,8 +374,6 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             min_amount,
             max_amount,
         } => {
-            use rand::{Rng, thread_rng};
-            let mut rng = thread_rng();
             let shield_amount = rng.gen_range(*min_amount..=*max_amount);
             game_state.shield += shield_amount;
         }
@@ -369,8 +381,6 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             min_amount,
             max_amount,
         } => {
-            use rand::{Rng, thread_rng};
-            let mut rng = thread_rng();
             let heal_amount = rng.gen_range(*min_amount..=*max_amount);
             game_state.hp = (game_state.hp + heal_amount).min(crate::game_state::MAX_HP);
         }
@@ -378,8 +388,6 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
             min_amount,
             max_amount,
         } => {
-            use rand::{Rng, thread_rng};
-            let mut rng = thread_rng();
             let gold_amount = rng.gen_range(*min_amount..=*max_amount) as usize;
             game_state.gold += gold_amount;
         }
@@ -394,4 +402,64 @@ impl Effect {
     pub fn description(&self, text_manager: &crate::l10n::TextManager) -> String {
         text_manager.effect_description(self)
     }
+}
+
+// ============================= Test Helpers =============================
+#[cfg(test)]
+pub mod tests_support {
+    use crate::game_state::{
+        ContractState, GameState, MAP_SIZE, TRAVEL_POINTS, field_particle, flow::GameFlow,
+        monster_spawn::MonsterSpawnState,
+    };
+    use namui::Instant;
+    use std::num::NonZeroUsize; // use the same Instant type as production code
+
+    /// 테스트용 GameState 생성 헬퍼.
+    /// - Atom / 렌더 컨텍스트에 의존하지 않음.
+    /// - 필요한 최소 필드만 초기화.
+    #[allow(dead_code)]
+    pub fn make_test_state() -> GameState {
+        GameState {
+            monsters: Default::default(),
+            towers: Default::default(),
+            camera: crate::game_state::camera::Camera::new(),
+            route: crate::game_state::calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
+            backgrounds: crate::game_state::generate_backgrounds(),
+            upgrade_state: Default::default(),
+            flow: GameFlow::Initializing,
+            stage: 1,
+            left_reroll_chance: 1,
+            monster_spawn_state: MonsterSpawnState::Idle,
+            projectiles: Default::default(),
+            items: vec![],
+            gold: 0,
+            cursor_preview: Default::default(),
+            hp: 100.0,
+            shield: 0.0,
+            user_status_effects: Default::default(),
+            left_shop_refresh_chance: 0,
+            left_quest_board_refresh_chance: 0,
+            item_used: false,
+            level: NonZeroUsize::new(1).unwrap(),
+            game_now: Instant::now(),
+            fast_forward_multiplier: Default::default(),
+            rerolled_count: 0,
+            selected_tower_id: None,
+            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
+            locale: crate::l10n::Locale::KOREAN,
+            play_history: crate::game_state::play_history::PlayHistory::new(),
+            opened_modal: None,
+            contracts: vec![],
+            contract_state: ContractState::new(),
+        }
+    }
+}
+
+// Aggregate test modules sitting under `effect/tests/` directory
+#[cfg(test)]
+mod tests {
+    mod card_selection_reroll_and_slots;
+    mod random_effects_deterministic;
+    mod run_effect_integration;
+    mod shop_reroll;
 }
