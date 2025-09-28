@@ -24,11 +24,10 @@ impl Component for ShopLayout<'_> {
         } = self;
 
         let game_state = use_game_state(ctx);
-        let disabled = game_state.left_shop_refresh_chance == 0
-            || {
-                let health_cost = game_state.contract_state.get_shop_reroll_health_cost();
-                (game_state.hp - health_cost as f32) < 1.0
-            };
+        let disabled = game_state.left_shop_refresh_chance == 0 || {
+            let health_cost = game_state.contract_state.get_shop_reroll_health_cost();
+            (game_state.hp - health_cost as f32) < 1.0
+        };
 
         let refresh_shop = || {
             mutate_game_state(|game_state| {
@@ -74,7 +73,9 @@ impl Component for ShopLayout<'_> {
                                             refresh_shop();
                                         },
                                         &|wh, color, ctx| {
-                                            let health_cost = game_state.contract_state.get_shop_reroll_health_cost();
+                                            let health_cost = game_state
+                                                .contract_state
+                                                .get_shop_reroll_health_cost();
                                             let mut text = format!(
                                                 "{}-{}",
                                                 Icon::new(IconKind::Refresh)
