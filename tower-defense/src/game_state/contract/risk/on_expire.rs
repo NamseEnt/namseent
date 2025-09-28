@@ -1,6 +1,6 @@
-use crate::game_state::effect::Effect;
 use super::types::RiskGeneratorFn;
 use crate::game_state::contract::util::rarity_based_amount;
+use crate::game_state::effect::Effect;
 
 pub(crate) fn list() -> &'static [RiskGeneratorFn] {
     const FNS: &[RiskGeneratorFn] = &[

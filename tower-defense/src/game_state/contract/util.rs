@@ -2,7 +2,13 @@ use crate::rarity::Rarity;
 use rand::{Rng, RngCore};
 
 /// 고정 rarity 값에 따른 숫자 선택
-pub(crate) fn rarity_based_amount(rarity: Rarity, common: f32, rare: f32, epic: f32, legendary: f32) -> f32 {
+pub(crate) fn rarity_based_amount(
+    rarity: Rarity,
+    common: f32,
+    rare: f32,
+    epic: f32,
+    legendary: f32,
+) -> f32 {
     match rarity {
         Rarity::Common => common,
         Rarity::Rare => rare,
@@ -11,10 +17,13 @@ pub(crate) fn rarity_based_amount(rarity: Rarity, common: f32, rare: f32, epic: 
     }
 }
 
-
 /// 간결화를 위한 헬퍼: (f32,f32) 튜플 4개짜리 rarity 테이블에서 해당 rarity 구간을 뽑아 난수.
 /// 기존 `rarity_based_random_amount_with_rng` 가 4개의 Range 를 직접 받는 패턴 중복을 줄이기 위해 추가.
-pub(crate) fn rarity_table_random(rng: &mut dyn RngCore, rarity: Rarity, table: &[(f32, f32); 4]) -> f32 {
+pub(crate) fn rarity_table_random(
+    rng: &mut dyn RngCore,
+    rarity: Rarity,
+    table: &[(f32, f32); 4],
+) -> f32 {
     let (lo, hi) = match rarity {
         Rarity::Common => table[0],
         Rarity::Rare => table[1],
