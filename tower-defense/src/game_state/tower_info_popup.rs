@@ -62,7 +62,10 @@ impl Component for TowerInfoPopup<'_> {
                                 );
                             }),
                             table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                let range = tower.attack_range_radius(tower_upgrades, game_state.contract_state.get_range_multiplier());
+                                let range = tower.attack_range_radius(
+                                    tower_upgrades,
+                                    game_state.contract_state.get_range_multiplier(),
+                                );
                                 ctx.add(
                                     paragraph(format!("사정거리: {range:.1}"))
                                         .size(FontSize::Medium)
