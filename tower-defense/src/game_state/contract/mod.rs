@@ -341,18 +341,13 @@ mod property_tests {
         let mut cs = StageModifiers::new();
         // give grants
         cs.set_barricade_cards_per_stage(5);
-        cs.set_shield_per_stage(10.0, 20.0);
         // reset stage transient state
         cs.reset_stage_state();
         // grants should persist
         assert_eq!(cs.get_barricade_cards_per_stage(), 5);
-        assert!((cs.get_shield_per_stage_min() - 10.0).abs() < f32::EPSILON);
-        assert!((cs.get_shield_per_stage_max() - 20.0).abs() < f32::EPSILON);
         // now clear grants
         cs.clear_stage_grants();
         assert_eq!(cs.get_barricade_cards_per_stage(), 0);
-        assert_eq!(cs.get_shield_per_stage_min(), 0.0);
-        assert_eq!(cs.get_shield_per_stage_max(), 0.0);
     }
 
     #[test]

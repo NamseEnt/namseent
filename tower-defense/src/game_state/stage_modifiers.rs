@@ -5,7 +5,7 @@
 //! - Track additive adjustments (bonus/penalty pairs) with net delta helpers
 //! - Maintain reroll health costs
 //! - Maintain temporary restrictions (disabled ranks/suits, purchase/use flags)
-//! - Keep certain grants (barricade cards, shield range) persistent across stage resets
+//! - Keep certain grants (barricade cards) persistent across stage resets
 //!
 //! Lifecycle:
 //! - Call `reset_stage_state` at stage start; this resets transient categories but leaves `StageGrants` intact
@@ -61,8 +61,6 @@ pub struct Restrictions {
 #[derive(Clone, Debug, Default)]
 pub struct StageGrants {
     pub barricade_cards_per_stage: usize,
-    pub shield_per_stage_min: f32,
-    pub shield_per_stage_max: f32,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -170,12 +168,6 @@ impl StageModifiers {
     pub fn get_disabled_suits(&self) -> &Vec<Suit> {
         &self.restrictions.disabled_suits
     }
-    pub fn get_shield_per_stage_min(&self) -> f32 {
-        self.stage_grants.shield_per_stage_min
-    }
-    pub fn get_shield_per_stage_max(&self) -> f32 {
-        self.stage_grants.shield_per_stage_max
-    }
     pub fn get_barricade_cards_per_stage(&self) -> usize {
         self.stage_grants.barricade_cards_per_stage
     }
@@ -268,9 +260,5 @@ impl StageModifiers {
 
     pub fn set_barricade_cards_per_stage(&mut self, c: usize) {
         self.stage_grants.barricade_cards_per_stage = c;
-    }
-    pub fn set_shield_per_stage(&mut self, min_a: f32, max_a: f32) {
-        self.stage_grants.shield_per_stage_min = min_a;
-        self.stage_grants.shield_per_stage_max = max_a;
     }
 }
