@@ -42,11 +42,11 @@ fn shop_reroll_decrease_effect_applies() {
 fn shop_reroll_stacking_sequence_penalty_then_bonus() {
     let mut gs = make_test_state();
     for _ in 0..4 {
-    gs.stage_modifiers.apply_shop_max_rerolls_penalty(1);
+        gs.stage_modifiers.apply_shop_max_rerolls_penalty(1);
     }
     assert_eq!(gs.max_shop_refresh_chance(), 0, "패널티 4회 후 포화로 0");
     for _ in 0..6 {
-    gs.stage_modifiers.apply_shop_max_rerolls_bonus(1);
+        gs.stage_modifiers.apply_shop_max_rerolls_bonus(1);
     }
     assert_eq!(
         gs.max_shop_refresh_chance(),

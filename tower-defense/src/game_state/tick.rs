@@ -160,7 +160,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
                 < attack_range_radius
         })?;
 
-    let contract_multiplier = game_state.stage_modifiers.get_damage_multiplier();
+        let contract_multiplier = game_state.stage_modifiers.get_damage_multiplier();
 
         Some(tower.shoot(
             target.projectile_target_indicator,
