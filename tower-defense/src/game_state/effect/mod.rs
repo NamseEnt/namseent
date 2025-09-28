@@ -250,13 +250,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             game_state.upgrade_state.upgrade(upgrade);
         }
         Effect::GrantItem { rarity } => {
-            // 간단히 아이템 생성: 현재 아이템 생성 로직이 별도로 있다면 그 경로로 위임 고려
-            // 여기서는 placeholder Effect 하나(ExtraReroll)로 rarity만 반영
-            let item = crate::game_state::item::Item {
-                effect: Effect::ExtraReroll,
-                rarity: *rarity,
-                value: 0.0.into(),
-            };
+            let item = crate::game_state::item::generation::generate_item_with_rng(*rarity, rng);
             game_state.items.push(item);
         }
         Effect::AddChallengeMonster => {

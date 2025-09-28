@@ -16,15 +16,15 @@ fn calculate_reverse_amount_from_value(value: f32, min_value: f32, max_value: f3
     max_value - (max_value - min_value) * clamped_value
 }
 
-pub fn generate_item(rarity: Rarity) -> Item {
+/// 외부에서 RNG를 주입할 수 있는 아이템 생성 함수 (테스트/결정성 보장 목적)
+pub fn generate_item_with_rng<R: Rng + ?Sized>(rarity: Rarity, rng: &mut R) -> Item {
     let candidates = generate_item_candidate_table(rarity);
     let candidate = &candidates
-        .choose_weighted(&mut rand::thread_rng(), |x| x.1)
-        .unwrap()
+        .choose_weighted(rng, |x| x.1)
+        .expect("item candidate table should not be empty")
         .0;
 
-    // 먼저 0~1 범위의 랜덤 value 생성
-    let value = thread_rng().gen_range(0.0..1.0);
+    let value = rng.gen_range(0.0..1.0);
 
     let effect = match candidate {
         ItemCandidate::Heal => {
@@ -92,6 +92,12 @@ pub fn generate_item(rarity: Rarity) -> Item {
         rarity,
         value: value.into(),
     }
+}
+
+/// 기존 외부 API: thread_rng() 사용 (기존 호출 코드 호환성 유지)
+pub fn generate_item(rarity: Rarity) -> Item {
+    let mut rng = thread_rng();
+    generate_item_with_rng(rarity, &mut rng)
 }
 
 fn generate_item_candidate_table(rarity: Rarity) -> Vec<(ItemCandidate, f32)> {
