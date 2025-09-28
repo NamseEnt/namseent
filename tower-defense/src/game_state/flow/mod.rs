@@ -74,6 +74,7 @@ impl GameState {
 
         self.contract_state.reset_stage_multipliers();
         self.left_reroll_chance = self.max_reroll_chance();
+        self.left_shop_refresh_chance = self.max_shop_refresh_chance();
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
