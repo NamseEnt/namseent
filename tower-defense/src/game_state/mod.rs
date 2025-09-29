@@ -169,11 +169,11 @@ impl GameState {
         tower.calculate_projectile_damage(&tower_upgrade_states, contract_multiplier)
     }
 
-    pub fn set_hovered_tower(&mut self, tower_id: Option<usize>) {
-        self.ui_state.set_hovered_tower(tower_id, self.now());
+    pub fn set_selected_tower(&mut self, tower_id: Option<usize>) {
+        self.ui_state.set_selected_tower(tower_id, self.now());
     }
 
-    pub fn cleanup_unused_tower_hover_states(&mut self) {
+    pub fn cleanup_unused_tower_popup_states(&mut self) {
         let existing_tower_ids: std::collections::HashSet<usize> =
             self.towers.iter().map(|tower| tower.id()).collect();
 

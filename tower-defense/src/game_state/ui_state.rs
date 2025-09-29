@@ -2,7 +2,7 @@ use namui::*;
 use std::collections::HashMap;
 
 #[derive(Clone, PartialEq)]
-pub struct HoverSpringState {
+pub struct TowerInfoSpringState {
     pub scale: f32,
     pub scale_velocity: f32,
     pub opacity: f32,
@@ -12,7 +12,7 @@ pub struct HoverSpringState {
     pub last_tick: Instant,
 }
 
-impl HoverSpringState {
+impl TowerInfoSpringState {
     pub fn new(now: Instant) -> Self {
         Self {
             scale: 0.0,
@@ -68,54 +68,54 @@ impl HoverSpringState {
 
 /// UI 관련 상태를 관리하는 별도 구조체
 pub struct UIState {
-    pub tower_hover_states: HashMap<usize, HoverSpringState>,
-    pub currently_hovered_tower_id: Option<usize>,
+    pub tower_popup_states: HashMap<usize, TowerInfoSpringState>,
+    pub selected_tower_id: Option<usize>,
     last_cleanup_time: Instant,
 }
 
 impl UIState {
     pub fn new() -> Self {
         Self {
-            tower_hover_states: HashMap::new(),
-            currently_hovered_tower_id: None,
+            tower_popup_states: HashMap::new(),
+            selected_tower_id: None,
             last_cleanup_time: Instant::now(),
         }
     }
 
-    pub fn ensure_tower_hover_state(&mut self, tower_id: usize, now: Instant) {
-        self.tower_hover_states
+    pub fn ensure_tower_popup_state(&mut self, tower_id: usize, now: Instant) {
+        self.tower_popup_states
             .entry(tower_id)
-            .or_insert_with(|| HoverSpringState::new(now));
+            .or_insert_with(|| TowerInfoSpringState::new(now));
     }
 
-    pub fn set_hovered_tower(&mut self, tower_id: Option<usize>, now: Instant) {
+    pub fn set_selected_tower(&mut self, tower_id: Option<usize>, now: Instant) {
         // Early return if same tower
-        if self.currently_hovered_tower_id == tower_id {
+        if self.selected_tower_id == tower_id {
             return;
         }
 
-        // Hide previously hovered tower
-        if let Some(prev_id) = self.currently_hovered_tower_id
-            && let Some(hover_state) = self.tower_hover_states.get_mut(&prev_id)
+        // Hide previously selected tower
+        if let Some(prev_id) = self.selected_tower_id
+            && let Some(popup_state) = self.tower_popup_states.get_mut(&prev_id)
         {
-            hover_state.hide();
+            popup_state.hide();
         }
 
-        // Show newly hovered tower
+        // Show newly selected tower
         if let Some(new_id) = tower_id {
-            self.ensure_tower_hover_state(new_id, now);
-            if let Some(hover_state) = self.tower_hover_states.get_mut(&new_id) {
-                hover_state.show();
+            self.ensure_tower_popup_state(new_id, now);
+            if let Some(popup_state) = self.tower_popup_states.get_mut(&new_id) {
+                popup_state.show();
             }
         }
 
-        self.currently_hovered_tower_id = tower_id;
+        self.selected_tower_id = tower_id;
     }
 
     pub fn tick(&mut self, now: Instant) {
-        // Update all hover spring states
-        for hover_state in self.tower_hover_states.values_mut() {
-            hover_state.tick(now);
+    // Update all popup spring states
+        for popup_state in self.tower_popup_states.values_mut() {
+            popup_state.tick(now);
         }
 
         // Cleanup unused states periodically (every 5 seconds)
@@ -126,19 +126,19 @@ impl UIState {
     }
 
     pub fn cleanup_unused_states(&mut self, existing_tower_ids: &std::collections::HashSet<usize>) {
-        self.tower_hover_states
+        self.tower_popup_states
             .retain(|&tower_id, _| existing_tower_ids.contains(&tower_id));
 
-        // Also clear currently_hovered_tower_id if the tower no longer exists
-        if let Some(hovered_id) = self.currently_hovered_tower_id
-            && !existing_tower_ids.contains(&hovered_id)
+        // Also clear selected_tower_id if the tower no longer exists
+        if let Some(selected_id) = self.selected_tower_id
+            && !existing_tower_ids.contains(&selected_id)
         {
-            self.currently_hovered_tower_id = None;
+            self.selected_tower_id = None;
         }
     }
 
-    pub fn get_hover_state(&self, tower_id: usize) -> Option<&HoverSpringState> {
-        self.tower_hover_states.get(&tower_id)
+    pub fn get_popup_state(&self, tower_id: usize) -> Option<&TowerInfoSpringState> {
+        self.tower_popup_states.get(&tower_id)
     }
 
     pub fn should_cleanup(&self, now: Instant) -> bool {

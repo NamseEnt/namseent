@@ -34,12 +34,12 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     tower::tower_animation_tick(game_state, now);
     monster::monster_animation_tick(game_state, dt);
     
-    // Update UI state (hover animations, etc.)
+    // Update UI state (info popup animations, etc.)
     game_state.ui_state.tick(now);
     
-    // Clean up unused hover states periodically (only when needed)
+    // Clean up unused popup states periodically (only when needed)
     if game_state.ui_state.should_cleanup(now) {
-        game_state.cleanup_unused_tower_hover_states();
+        game_state.cleanup_unused_tower_popup_states();
     }
 
     monster::remove_monster_finished_status_effects(game_state, now);

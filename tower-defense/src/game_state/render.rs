@@ -89,23 +89,23 @@ fn render_grid(ctx: &RenderCtx, game_state: &GameState) {
         .set_stroke_cap(StrokeCap::Round);
 
     ctx.add(namui::path(path, paint)).attach_event(|event| {
-        if let Event::MouseMove { event } = event {
+        if let Event::MouseUp { event } = event {
+            if event.button != Some(MouseButton::Left) {
+                return;
+            }
+            if !event.is_local_xy_in() {
+                return;
+            }
+
             let local_xy = event.local_xy();
             let tile_x = (local_xy.x / TILE_PX_SIZE.width).floor() as usize;
             let tile_y = (local_xy.y / TILE_PX_SIZE.height).floor() as usize;
 
             mutate_game_state(move |game_state| {
-                // Check if mouse is over any tower
                 let tower_at_position = game_state.towers.find_by_xy(MapCoord::new(tile_x, tile_y));
 
-                match tower_at_position {
-                    Some(_) => {
-                        // Mouse is over a tower, but the tower's own event handler will handle the hover
-                    }
-                    None => {
-                        // Mouse is not over any tower, hide all hover states
-                        game_state.set_hovered_tower(None);
-                    }
+                if tower_at_position.is_none() {
+                    game_state.set_selected_tower(None);
                 }
             });
         }
@@ -113,13 +113,73 @@ fn render_grid(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
-    game_state.render_stuffs(
-        ctx,
-        game_state
-            .backgrounds
-            .iter()
-            .map(|background| (background.coord, background)),
-    );
+    let camera = &game_state.camera;
+
+    let screen_rect = Rect::from_xy_wh(camera.left_top, {
+        let screen_size = namui::screen::size();
+        Wh::new(
+            screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
+            screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
+        ) / camera.zoom_level
+    });
+
+    for background in game_state.backgrounds.iter() {
+        let xy = background.coord;
+
+        if screen_rect.right() < xy.x || screen_rect.bottom() < xy.y {
+            continue;
+        }
+
+        let px_xy = Xy::new(
+            px(xy.x * TILE_PX_SIZE.width.as_f32()),
+            px(xy.y * TILE_PX_SIZE.height.as_f32()),
+        );
+
+        ctx.translate(px_xy).compose({
+            let background = *background;
+            move |ctx| {
+                let rendering_tree = ctx.ghost_add("", &background);
+                let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
+                    return;
+                };
+
+                let local_right = bounding_box.right() / TILE_PX_SIZE.width;
+                let local_bottom = bounding_box.bottom() / TILE_PX_SIZE.height;
+
+                if xy.x + local_right < screen_rect.left()
+                    || xy.y + local_bottom < screen_rect.top()
+                {
+                    return;
+                }
+
+                ctx.add(rendering_tree);
+
+                ctx.add(rect(RectParam {
+                    rect: bounding_box,
+                    style: RectStyle {
+                        fill: Some(RectFill {
+                            color: Color::TRANSPARENT,
+                        }),
+                        ..Default::default()
+                    },
+                }))
+                .attach_event(|event| {
+                    if let Event::MouseUp { event } = event {
+                        if event.button != Some(MouseButton::Left) {
+                            return;
+                        }
+                        if !event.is_local_xy_in() {
+                            return;
+                        }
+
+                        mutate_game_state(|game_state| {
+                            game_state.set_selected_tower(None);
+                        });
+                    }
+                });
+            }
+        });
+    }
 }
 
 fn render_projectiles(ctx: &RenderCtx, game_state: &GameState) {
@@ -170,17 +230,20 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
                 },
             }))
             .attach_event({
-                println!("Attaching hover event for tower {:?}", tower.id());
                 let tower_id = tower.id();
                 move |event| {
-                    let Event::MouseMove { event } = event else {
+                    let Event::MouseUp { event } = event else {
                         return;
                     };
+                    if event.button != Some(MouseButton::Left) {
+                        return;
+                    }
                     if !event.is_local_xy_in() {
                         return;
                     }
+                    event.stop_propagation();
                     mutate_game_state(move |game_state| {
-                        game_state.set_hovered_tower(Some(tower_id));
+                        game_state.set_selected_tower(Some(tower_id));
                     });
                 }
             });
@@ -192,13 +255,13 @@ fn render_tower_info_popup(ctx: &RenderCtx, game_state: &GameState) {
     use crate::game_state::tower_info_popup::TowerInfoPopup;
 
     for tower in game_state.towers.iter() {
-        if let Some(hover_state) = game_state.ui_state.get_hover_state(tower.id())
-            && hover_state.is_visible()
+        if let Some(popup_state) = game_state.ui_state.get_popup_state(tower.id())
+            && popup_state.is_visible()
         {
             let tower_upgrades = game_state.upgrade_state.tower_upgrades(tower);
 
-            let popup_scale = hover_state.scale;
-            let popup_opacity = hover_state.opacity;
+            let popup_scale = popup_state.scale;
+            let popup_opacity = popup_state.opacity;
 
             if popup_scale > 0.01 && popup_opacity > 0.01 {
                 let px_xy = TILE_PX_SIZE.to_xy() * tower.left_top.map(|t| t as f32)
