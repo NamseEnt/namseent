@@ -83,7 +83,6 @@ impl Component for TowerInfoPopup<'_> {
                                         &move || {
                                             mutate_game_state(move |game_state| {
                                                 game_state.towers.remove_tower(tower_id);
-                                                game_state.selected_tower_id = None;
                                             });
                                         },
                                         &|wh, text_color, ctx| {
