@@ -15,6 +15,7 @@ mod shop;
 mod theme;
 mod thumbnail;
 mod top_bar;
+mod tower_display;
 mod upgrade_board;
 mod upgrade_select;
 

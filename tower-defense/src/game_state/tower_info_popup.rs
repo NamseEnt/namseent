@@ -2,8 +2,9 @@ use super::{Tower, mutate_game_state, upgrade::TowerUpgradeState};
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
     palette,
-    typography::{FontSize, PARAGRAPH_FONT_SIZE_MEDIUM, TextAlign, paragraph},
+    typography::{FontSize, TextAlign, paragraph},
 };
+use crate::tower_display::tower_stat_display_from_tower;
 use namui::*;
 use namui_prebuilt::table;
 
@@ -30,51 +31,16 @@ impl Component for TowerInfoPopup<'_> {
                 ctx.compose(|ctx| {
                     table::padding(BUBBLE_PADDING, |wh, ctx| {
                         table::vertical([
-                            table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px() * 2.0, |wh, ctx| {
-                                ctx.add(
-                                    paragraph(format!("{} {}", tower.suit, tower.rank))
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::LeftTop)
-                                        .max_width(wh.width)
-                                        .build(),
-                                );
-                            }),
-                            table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                let damage = tower.calculate_projectile_damage(tower_upgrades, 1.0);
-                                ctx.add(
-                                    paragraph(format!("데미지: {damage:.1}"))
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::LeftTop)
-                                        .max_width(wh.width)
-                                        .build(),
-                                );
-                            }),
-                            table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                ctx.add(
-                                    paragraph(format!(
-                                        "속도: {:.2}s",
-                                        tower.shoot_interval.as_secs_f32()
-                                    ))
-                                    .size(FontSize::Medium)
-                                    .align(TextAlign::LeftTop)
-                                    .max_width(wh.width)
-                                    .build(),
-                                );
-                            }),
-                            table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                let range = tower.attack_range_radius(
+                            // 타워 스탯 표시 영역
+                            table::ratio(1.0, |wh, ctx| {
+                                ctx.add(tower_stat_display_from_tower(
+                                    tower,
                                     tower_upgrades,
-                                    game_state.stage_modifiers.get_range_multiplier(),
-                                );
-                                ctx.add(
-                                    paragraph(format!("사정거리: {range:.1}"))
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::LeftTop)
-                                        .max_width(wh.width)
-                                        .build(),
-                                );
+                                    game_state,
+                                    wh,
+                                ));
                             }),
-                            table::ratio(1.0, |_wh, _ctx| {}),
+                            // 철거 버튼
                             table::fixed(36.px(), |wh, ctx| {
                                 let tower_id = tower.id();
                                 ctx.add(
@@ -104,6 +70,7 @@ impl Component for TowerInfoPopup<'_> {
                     })(Wh::new(BUBBLE_WIDTH, BUBBLE_HEIGHT), ctx);
                 });
 
+                // 배경 및 테두리
                 ctx.add(rect(RectParam {
                     rect: Wh::new(BUBBLE_WIDTH, BUBBLE_HEIGHT).to_rect(),
                     style: RectStyle {
