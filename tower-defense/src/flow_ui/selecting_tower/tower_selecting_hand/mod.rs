@@ -56,6 +56,12 @@ impl<'a> Component for TowerSelectingHand<'a> {
                 if game_state.left_reroll_chance == 0 || selected_hand_slot_ids.is_empty() {
                     return;
                 }
+                let health_cost = game_state
+                    .stage_modifiers
+                    .get_card_selection_hand_reroll_health_cost();
+                if (game_state.hp - health_cost as f32) < 1.0 {
+                    return; // 체력이 부족하면 리롤하지 않음
+                }
                 {
                     let GameFlow::SelectingTower(flow) = &mut game_state.flow else {
                         unreachable!()
@@ -69,6 +75,7 @@ impl<'a> Component for TowerSelectingHand<'a> {
 
                 game_state.left_reroll_chance -= 1;
                 game_state.rerolled_count += 1;
+                game_state.take_damage(health_cost as f32);
             });
         };
 
@@ -157,24 +164,43 @@ impl Component for InteractionArea<'_> {
                                     reroll_selected();
                                 },
                                 &|wh, color, ctx| {
+                                    let health_cost = game_state
+                                        .stage_modifiers
+                                        .get_card_selection_hand_reroll_health_cost();
+                                    let mut text = format!(
+                                        "{} {}/{}",
+                                        Icon::new(IconKind::Refresh)
+                                            .size(IconSize::Large)
+                                            .wh(Wh::single(wh.height))
+                                            .as_tag(),
+                                        game_state.rerolled_count,
+                                        game_state.rerolled_count + game_state.left_reroll_chance,
+                                    );
+                                    if health_cost > 0 {
+                                        text.push_str(&format!(
+                                            " {}",
+                                            Icon::new(IconKind::Health)
+                                                .size(IconSize::Small)
+                                                .wh(Wh::single(wh.height * 0.5))
+                                                .as_tag()
+                                        ));
+                                    }
                                     ctx.add(
-                                        headline(format!(
-                                            "{} {}/{}",
-                                            Icon::new(IconKind::Refresh)
-                                                .size(IconSize::Large)
-                                                .wh(Wh::single(wh.height))
-                                                .as_tag(),
-                                            game_state.rerolled_count,
-                                            game_state.rerolled_count
-                                                + game_state.left_reroll_chance,
-                                        ))
-                                        .color(color)
-                                        .align(TextAlign::Center { wh })
-                                        .build_rich(),
+                                        headline(text)
+                                            .color(color)
+                                            .align(TextAlign::Center { wh })
+                                            .build_rich(),
                                     );
                                 },
                             )
-                            .disabled(!some_selected || game_state.left_reroll_chance == 0),
+                            .disabled(
+                                !some_selected || game_state.left_reroll_chance == 0 || {
+                                    let health_cost = game_state
+                                        .stage_modifiers
+                                        .get_card_selection_hand_reroll_health_cost();
+                                    (game_state.hp - health_cost as f32) < 1.0
+                                },
+                            ),
                         );
                     }),
                     table::ratio(1, |_, _| {}),

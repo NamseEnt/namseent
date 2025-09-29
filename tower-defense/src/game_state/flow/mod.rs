@@ -45,8 +45,17 @@ pub struct SelectingTowerFlow {
 
 impl SelectingTowerFlow {
     pub fn new(game_state: &GameState) -> Self {
+        let max_slots = (5 + game_state
+            .stage_modifiers
+            .get_card_selection_hand_max_slots_bonus())
+        .saturating_sub(
+            game_state
+                .stage_modifiers
+                .get_card_selection_hand_max_slots_penalty(),
+        )
+        .max(1);
         SelectingTowerFlow {
-            hand: Hand::new((0..5).map(|_| Card::new_random())),
+            hand: Hand::new((0..max_slots).map(|_| Card::new_random())),
             shop: Shop::new(game_state),
         }
     }
@@ -58,16 +67,14 @@ impl SelectingTowerFlow {
 
 impl GameState {
     pub fn goto_next_stage(&mut self) {
-        ContractFlow::step_all_contracts(&mut self.contracts);
-        let contract_events = ContractFlow::drain_all_events(&mut self.contracts);
+        contract::ContractFlow::step_all_contracts(&mut self.contracts);
+        let contract_events = contract::ContractFlow::drain_all_events(&mut self.contracts);
         self.contracts.retain(|c| !c.is_expired());
-        println!(
-            "Advanced to next stage. Active contracts: {:?}",
-            self.contracts
-        );
-        self.flow = GameFlow::Contract(ContractFlow::new(contract_events));
+        self.flow = GameFlow::Contract(contract::ContractFlow::new(contract_events));
 
+        self.stage_modifiers.reset_stage_state();
         self.left_reroll_chance = self.max_reroll_chance();
+        self.left_shop_refresh_chance = self.max_shop_refresh_chance();
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
@@ -78,13 +85,16 @@ impl GameState {
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
-        let mut hand = Hand::new([
-            tower_template,
-            TowerTemplate::barricade(),
-            TowerTemplate::barricade(),
-            TowerTemplate::barricade(),
-            TowerTemplate::barricade(),
-        ]);
+        let barricade_count = 4 + self.stage_modifiers.get_barricade_cards_per_stage();
+        let mut barricades = vec![];
+        for _ in 0..barricade_count {
+            barricades.push(TowerTemplate::barricade());
+        }
+
+        let mut hand_items = vec![tower_template];
+        hand_items.extend(barricades);
+
+        let mut hand = Hand::new(hand_items);
 
         // Auto-select the first card (tower or barricade)
         let first_slot_id = hand.get_slot_id_by_index(0).unwrap();

@@ -3,7 +3,7 @@ mod items;
 mod layout;
 mod open_button;
 
-use crate::game_state::mutate_game_state;
+use crate::game_state::{mutate_game_state, use_game_state};
 use crate::shop::Shop;
 use constants::SHOP_WH;
 use layout::ShopLayout;
@@ -31,6 +31,14 @@ impl Component for ShopModal<'_> {
             });
         };
 
+        let game_state = use_game_state(ctx);
+        let can_purchase_items: Vec<bool> = shop
+            .slots
+            .iter()
+            .enumerate()
+            .map(|(index, _)| game_state.can_purchase_shop_item(index))
+            .collect();
+
         let offset = ((screen_wh - SHOP_WH) * 0.5).to_xy();
 
         ctx.compose(|ctx| {
@@ -47,6 +55,7 @@ impl Component for ShopModal<'_> {
             ctx.translate(offset).add(ShopLayout {
                 shop,
                 purchase_item: &purchase_item,
+                can_purchase_items: &can_purchase_items,
             });
         });
     }

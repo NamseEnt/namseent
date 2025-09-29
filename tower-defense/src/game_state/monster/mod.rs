@@ -40,15 +40,21 @@ pub struct Monster {
     pub animation: MonsterAnimation,
 }
 impl Monster {
-    pub fn new(template: &MonsterTemplate, route: Arc<Route>, now: Instant) -> Self {
+    pub fn new(
+        template: &MonsterTemplate,
+        route: Arc<Route>,
+        now: Instant,
+        health_multiplier: f32,
+    ) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
+        let adjusted_max_hp = template.max_hp * health_multiplier;
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
             move_on_route: MoveOnRoute::new(route, template.velocity),
             kind: template.kind,
             projectile_target_indicator: ProjectileTargetIndicator::new(),
-            hp: template.max_hp,
-            max_hp: template.max_hp,
+            hp: adjusted_max_hp,
+            max_hp: adjusted_max_hp,
             skills: template
                 .skills
                 .iter()

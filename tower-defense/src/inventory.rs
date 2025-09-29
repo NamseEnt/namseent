@@ -1,10 +1,5 @@
 use crate::{
-    game_state::{
-        MAX_INVENTORY_SLOT,
-        cursor_preview::PreviewKind,
-        item::{ItemUsage, use_item},
-        mutate_game_state, use_game_state,
-    },
+    game_state::{MAX_INVENTORY_SLOT, item::use_item, mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
     l10n::ui::TopBarText,
     palette,
@@ -35,8 +30,8 @@ impl Component for Inventory {
                     content: |mut ctx| {
                         let content_width = wh.width - PADDING * 2.;
                         for (item_index, item) in game_state.items.iter().enumerate() {
-                            let name = item.kind.name(&game_state.text());
-                            let desc = item.kind.description(&game_state.text());
+                            let name = item.name(&game_state.text());
+                            let desc = item.description(&game_state.text());
                             let content = ctx.ghost_compose(
                                 format!("InventoryItemContent {item_index}"),
                                 |ctx| {
@@ -61,17 +56,17 @@ impl Component for Inventory {
                                                 table::fixed(
                                                     HEADLINE_FONT_SIZE_LARGE.into_px(),
                                                     |wh, ctx| {
-                                                        ctx.add(item.kind.thumbnail(wh));
+                                                        ctx.add(item.effect.thumbnail(wh));
                                                     },
                                                 ),
                                                 table::ratio(1, |_, _| {}),
                                                 table::fixed(
                                                     HEADLINE_FONT_SIZE_LARGE.into_px() * 3.0,
                                                     |wh, ctx| {
-                                                        ctx.add(Button::new(
-                                                            wh,
-                                                            &|| match item.kind.usage() {
-                                                                ItemUsage::Instant => {
+                                                        ctx.add(
+                                                            Button::new(
+                                                                wh,
+                                                                &|| {
                                                                     mutate_game_state(
                                                                         move |game_state| {
                                                                             let item = game_state
@@ -79,46 +74,33 @@ impl Component for Inventory {
                                                                                 .remove(item_index);
                                                                             use_item(
                                                                                 game_state, &item,
-                                                                                None,
                                                                             );
                                                                         },
                                                                     );
-                                                                }
-                                                                ItemUsage::CircularArea {
-                                                                    ..
-                                                                }
-                                                                | ItemUsage::LinearArea {
-                                                                    ..
-                                                                } => {
-                                                                    let item = item.clone();
-                                                                    mutate_game_state(
-                                                                        move |game_state| {
+                                                                },
+                                                                &|wh, color, ctx| {
+                                                                    ctx.add(
+                                                                        headline(
                                                                             game_state
-                                                                                .cursor_preview
-                                                                                .kind =
-                                                                                PreviewKind::Item {
-                                                                                    item,
-                                                                                    item_index,
-                                                                                };
-                                                                        },
+                                                                                .text()
+                                                                                .ui(TopBarText::Use)
+                                                                                .to_string(),
+                                                                        )
+                                                                        .size(FontSize::Small)
+                                                                        .align(TextAlign::Center {
+                                                                            wh,
+                                                                        })
+                                                                        .color(color)
+                                                                        .build(),
                                                                     );
-                                                                }
-                                                            },
-                                                            &|wh, color, ctx| {
-                                                                ctx.add(
-                                                                    headline(
-                                                                        game_state
-                                                                            .text()
-                                                                            .ui(TopBarText::Use)
-                                                                            .to_string(),
-                                                                    )
-                                                                    .size(FontSize::Small)
-                                                                    .align(TextAlign::Center { wh })
-                                                                    .color(color)
-                                                                    .build(),
-                                                                );
-                                                            },
-                                                        ));
+                                                                },
+                                                            )
+                                                            .disabled(
+                                                                game_state
+                                                                    .stage_modifiers
+                                                                    .is_item_use_disabled(),
+                                                            ),
+                                                        );
                                                     },
                                                 ),
                                             ]),

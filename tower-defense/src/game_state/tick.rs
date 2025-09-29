@@ -33,15 +33,11 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     tower::tower_cooldown_tick(game_state, dt);
     tower::tower_animation_tick(game_state, now);
     monster::monster_animation_tick(game_state, dt);
-    field_area_effect::field_area_effect_tick(game_state, now);
 
     monster::remove_monster_finished_status_effects(game_state, now);
     tower::remove_tower_finished_status_effects(game_state, now);
     user_status_effect::remove_user_finished_status_effects(game_state, now);
-    field_area_effect::remove_finished_field_area_effects(game_state, now);
     field_particle::remove_finished_field_particle_systems(game_state, now);
-
-    status_effect_particle_generator::tick_status_effect_particle_generator(game_state, now);
 
     monster::activate_monster_skills(game_state, now);
     tower::activate_tower_skills(game_state, now);
@@ -91,6 +87,8 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 
         if monster.dead() {
             let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
+            let earn =
+                (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;
             monsters.swap_remove(monster_index);
         }
@@ -132,16 +130,44 @@ fn shoot_projectiles(game_state: &mut GameState) {
             return None;
         }
 
+        // Check if tower rank is disabled by contract
+        if game_state
+            .stage_modifiers
+            .get_disabled_ranks()
+            .contains(&tower.rank())
+        {
+            return None;
+        }
+
+        // Check if tower suit is disabled by contract
+        if game_state
+            .stage_modifiers
+            .get_disabled_suits()
+            .contains(&tower.suit())
+        {
+            return None;
+        }
+
         let tower_upgrades = upgrade_state.tower_upgrades(tower);
 
-        let attack_range_radius = tower.attack_range_radius(&tower_upgrades);
+        let attack_range_radius = tower.attack_range_radius(
+            &tower_upgrades,
+            game_state.stage_modifiers.get_range_multiplier(),
+        );
 
         let target = game_state.monsters.iter().find(|monster| {
             (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
                 < attack_range_radius
         })?;
 
-        Some(tower.shoot(target.projectile_target_indicator, &tower_upgrades, now))
+        let contract_multiplier = game_state.stage_modifiers.get_damage_multiplier();
+
+        Some(tower.shoot(
+            target.projectile_target_indicator,
+            &tower_upgrades,
+            contract_multiplier,
+            now,
+        ))
     });
 
     game_state.projectiles.extend(projectiles);

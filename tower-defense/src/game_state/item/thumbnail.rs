@@ -1,86 +1,20 @@
 use crate::{
-    game_state::item::ItemKind,
+    game_state::effect::Effect,
     icon::{Icon, IconAttribute, IconAttributePosition, IconKind, IconSize},
     thumbnail::ThumbnailComposer,
 };
 use namui::*;
 
-impl ItemKind {
+impl Effect {
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
         match self {
-            ItemKind::Heal { .. } => ThumbnailComposer::new(width_height)
+            Effect::Heal { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),
-            ItemKind::AttackPowerPlusBuff { .. } => Icon::new(IconKind::AttackDamage)
-                .wh(width_height)
-                .size(IconSize::Custom {
-                    size: width_height.width,
-                })
-                .attributes(vec![
-                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
-                ])
-                .to_rendering_tree(),
-            ItemKind::AttackPowerMultiplyBuff { .. } => Icon::new(IconKind::AttackDamage)
-                .wh(width_height)
-                .size(IconSize::Custom {
-                    size: width_height.width,
-                })
-                .attributes(vec![
-                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
-                ])
-                .to_rendering_tree(),
-            ItemKind::AttackSpeedPlusBuff { .. } => Icon::new(IconKind::AttackSpeed)
-                .wh(width_height)
-                .size(IconSize::Custom {
-                    size: width_height.width,
-                })
-                .attributes(vec![
-                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
-                ])
-                .to_rendering_tree(),
-            ItemKind::AttackSpeedMultiplyBuff { .. } => Icon::new(IconKind::AttackSpeed)
-                .wh(width_height)
-                .size(IconSize::Custom {
-                    size: width_height.width,
-                })
-                .attributes(vec![
-                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
-                ])
-                .to_rendering_tree(),
-            ItemKind::AttackRangePlus { .. } => Icon::new(IconKind::AttackRange)
-                .wh(width_height)
-                .size(IconSize::Custom {
-                    size: width_height.width,
-                })
-                .attributes(vec![
-                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
-                ])
-                .to_rendering_tree(),
-            ItemKind::MovementSpeedDebuff { .. } => Icon::new(IconKind::MoveSpeed)
-                .wh(width_height)
-                .size(IconSize::Custom {
-                    size: width_height.width,
-                })
-                .attributes(vec![
-                    IconAttribute::new(IconKind::Down).position(IconAttributePosition::BottomRight),
-                ])
-                .to_rendering_tree(),
-            ItemKind::RoundDamage { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
-                .build(),
-            ItemKind::RoundDamageOverTime { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
-                .build(),
-            ItemKind::Lottery { .. } => ThumbnailComposer::new(width_height)
+            Effect::Lottery { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
-            ItemKind::LinearDamage { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
-                .build(),
-            ItemKind::LinearDamageOverTime { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
-                .build(),
-            ItemKind::ExtraReroll => Icon::new(IconKind::Refresh)
+            Effect::ExtraReroll => Icon::new(IconKind::Refresh)
                 .wh(width_height)
                 .size(IconSize::Custom {
                     size: width_height.width,
@@ -89,11 +23,149 @@ impl ItemKind {
                     IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
                 ])
                 .to_rendering_tree(),
-            ItemKind::Shield { .. } => ThumbnailComposer::new(width_height)
+            Effect::Shield { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Shield)
                 .build(),
-            ItemKind::DamageReduction { .. } => ThumbnailComposer::new(width_height)
+            Effect::EarnGold { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
+            Effect::DamageReduction { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::AttackDamage)
+                .build(),
+            Effect::UserDamageReduction { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
+            Effect::LoseHealth { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
+            Effect::LoseHealthRange { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
+            Effect::LoseGoldRange { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
+            Effect::LoseHealthExpire { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
+            Effect::LoseGoldExpire { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
+            Effect::LoseGold { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
+            Effect::GrantUpgrade { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Refresh)
+                .build(),
+            Effect::GrantItem { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Item)
+                .build(),
+            Effect::AddChallengeMonster => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
+            Effect::IncreaseAllTowersDamage { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
+            Effect::DecreaseAllTowersDamage { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
+            Effect::IncreaseAllTowersAttackSpeed { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackSpeed)
+                .build(),
+            Effect::IncreaseAllTowersRange { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackRange)
+                .build(),
+            Effect::DecreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
+            Effect::IncreaseCardSelectionHandMaxSlots { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Card)
+                    .build()
+            }
+            Effect::IncreaseCardSelectionHandMaxRerolls { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Refresh)
+                    .build()
+            }
+            Effect::IncreaseShopMaxRerolls { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Refresh)
+                .build(),
+            Effect::IncreaseGoldGain { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
+            Effect::DecreaseGoldGainPercent { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
+                .build(),
+            Effect::IncreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::AttackDamage)
+                .build(),
+            Effect::DisableItemAndUpgradePurchases => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Item)
+                .build(),
+            Effect::DisableItemUse => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Reject)
+                .build(),
+            Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Card)
+                    .build()
+            }
+            Effect::DecreaseCardSelectionHandMaxRerolls { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Refresh)
+                    .build()
+            }
+            Effect::DecreaseShopMaxRerolls { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Shop)
+                .build(),
+            Effect::AddCardSelectionHandRerollHealthCost { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Health)
+                    .build()
+            }
+            Effect::AddShopRerollHealthCost { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
+            Effect::DecreaseEnemyHealthPercent { .. } => Icon::new(IconKind::Health)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
+                ])
+                .to_rendering_tree(),
+            Effect::RankTowerDisable { .. } => Icon::new(IconKind::AttackDamage)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Reject).position(IconAttributePosition::Center),
+                ])
+                .to_rendering_tree(),
+            Effect::SuitTowerDisable { .. } => Icon::new(IconKind::Card)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Reject).position(IconAttributePosition::Center),
+                ])
+                .to_rendering_tree(),
+            Effect::AddBarricadeCardsToTowerPlacementHand { .. } => {
+                ThumbnailComposer::new(width_height)
+                    .with_icon_base(IconKind::Card)
+                    .build()
+            }
+            Effect::GainShield { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Shield)
+                .build(),
+            Effect::HealHealth { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Health)
+                .build(),
+            Effect::GainGold { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Gold)
                 .build(),
         }
     }

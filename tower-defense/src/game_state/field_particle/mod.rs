@@ -1,20 +1,15 @@
-mod emit;
 pub mod emitter;
 pub mod particle;
 
 use crate::game_state::{
     GameState,
-    field_particle::emitter::{
-        DamageTextEmitter, FieldAreaEffectEmitter, MonsterStatusEffectEmitter,
-        TowerStatusEffectEmitter,
-    },
+    field_particle::emitter::{DamageTextEmitter, MonsterStatusEffectEmitter},
 };
-pub use emit::*;
 use namui::{
     particle::{Emitter, Particle},
     *,
 };
-pub use particle::{DamageTextParticle, FieldAreaParticle, IconParticle};
+pub use particle::{DamageTextParticle, IconParticle};
 
 pub struct TempParticleEmitter {
     particles: Vec<FieldParticle>,
@@ -89,18 +84,14 @@ impl FieldParticleSystemManager {
 }
 
 pub enum FieldParticleEmitter {
-    FieldAreaEffect { emitter: FieldAreaEffectEmitter },
     TempParticle { emitter: TempParticleEmitter },
-    TowerStatusEffect { emitter: TowerStatusEffectEmitter },
     MonsterStatusEffect { emitter: MonsterStatusEffectEmitter },
     DamageText { emitter: DamageTextEmitter },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
         match self {
-            FieldParticleEmitter::FieldAreaEffect { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TempParticle { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::TowerStatusEffect { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterStatusEffect { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::DamageText { emitter } => emitter.emit(now, dt),
         }
@@ -108,9 +99,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
 
     fn is_done(&self, now: Instant) -> bool {
         match self {
-            FieldParticleEmitter::FieldAreaEffect { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TempParticle { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::TowerStatusEffect { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterStatusEffect { emitter } => emitter.is_done(now),
             FieldParticleEmitter::DamageText { emitter } => emitter.is_done(now),
         }
@@ -120,17 +109,12 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
 #[derive(Clone)]
 pub enum FieldParticle {
     Icon { particle: IconParticle },
-    FieldArea { particle: FieldAreaParticle },
     DamageText { particle: DamageTextParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
         match self {
             FieldParticle::Icon { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::FieldArea { particle } => {
                 particle.tick(now, dt);
                 vec![]
             }
@@ -144,7 +128,6 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
     fn render(&self) -> RenderingTree {
         match self {
             FieldParticle::Icon { particle } => particle.render(),
-            FieldParticle::FieldArea { particle } => particle.render(),
             FieldParticle::DamageText { particle } => particle.render(),
         }
     }
@@ -152,7 +135,6 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
     fn is_done(&self, now: Instant) -> bool {
         match self {
             FieldParticle::Icon { particle } => particle.is_done(now),
-            FieldParticle::FieldArea { particle } => particle.is_done(now),
             FieldParticle::DamageText { particle } => particle.is_done(now),
         }
     }

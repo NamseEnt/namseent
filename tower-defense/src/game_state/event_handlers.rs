@@ -1,9 +1,8 @@
 use super::*;
 use crate::{
-    MapCoordF32,
     game_state::{
-        contract::sign_contract, item, play_history::HistoryEventType, tower::Tower,
-        upgrade::Upgrade,
+        contract::sign_contract, effect::run_effect, item, play_history::HistoryEventType,
+        tower::Tower, upgrade::Upgrade,
     },
     shop::ShopSlot,
 };
@@ -91,6 +90,14 @@ impl GameState {
                     return;
                 }
 
+                // 아이템/업그레이드 구매 불가 효과 체크
+                if self
+                    .stage_modifiers
+                    .is_item_and_upgrade_purchases_disabled()
+                {
+                    return; // 구매 불가 상태에서는 아무것도 하지 않음
+                }
+
                 // Store values before borrowing self mutably
                 let item_clone = item.clone();
                 let cost_value = *cost;
@@ -113,6 +120,14 @@ impl GameState {
                 }
                 if self.gold < *cost {
                     return;
+                }
+
+                // 아이템/업그레이드 구매 불가 효과 체크
+                if self
+                    .stage_modifiers
+                    .is_item_and_upgrade_purchases_disabled()
+                {
+                    return; // 구매 불가 상태에서는 아무것도 하지 않음
                 }
 
                 // Store values before borrowing self mutably
@@ -154,13 +169,52 @@ impl GameState {
         }
     }
 
-    pub fn use_item(&mut self, item: &item::Item, xy: Option<MapCoordF32>) {
-        self.item_used = true;
-        let effect_kind = item.kind.effect_kind(xy, self.now());
-        item::effect_processor::process_item_effect(self, effect_kind);
+    pub fn use_item(&mut self, item: &item::Item) {
+        // 아이템 사용 불가 효과 체크
+        if self.stage_modifiers.is_item_use_disabled() {
+            return; // 아이템 사용 불가 상태에서는 아무것도 하지 않음
+        }
 
+        self.item_used = true;
+        run_effect(self, &item.effect);
         self.record_event(HistoryEventType::ItemUsed {
-            item_kind: item.kind,
+            item_effect: item.effect.clone(),
         });
+    }
+
+    pub fn can_purchase_shop_item(&self, slot_index: usize) -> bool {
+        let GameFlow::SelectingTower(flow) = &self.flow else {
+            return false;
+        };
+
+        let Some(slot) = flow.shop.slots.get(slot_index) else {
+            return false;
+        };
+
+        match slot {
+            ShopSlot::Locked => false,
+            ShopSlot::Item {
+                cost, purchased, ..
+            } => {
+                !*purchased
+                    && self.gold >= *cost
+                    && self.items.len() < MAX_INVENTORY_SLOT
+                    && !self
+                        .stage_modifiers
+                        .is_item_and_upgrade_purchases_disabled()
+            }
+            ShopSlot::Upgrade {
+                cost, purchased, ..
+            } => {
+                !*purchased
+                    && self.gold >= *cost
+                    && !self
+                        .stage_modifiers
+                        .is_item_and_upgrade_purchases_disabled()
+            }
+            ShopSlot::Contract {
+                cost, purchased, ..
+            } => !*purchased && self.gold >= *cost,
+        }
     }
 }

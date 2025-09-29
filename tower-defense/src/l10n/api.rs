@@ -1,7 +1,7 @@
 // 현대적 l10n API - 간결하고 효율적인 다국어 텍스트 관리
 
-use super::{Language, Locale};
-use super::{contract, item, quest, tower, tower_skill, ui, upgrade, upgrade_board};
+use super::{Language, Locale, LocalizedText};
+use super::{contract, effect, quest, tower, tower_skill, ui, upgrade, upgrade_board};
 
 /// 통합 다국어 텍스트 관리자
 #[derive(Debug, Clone, Copy)]
@@ -13,6 +13,11 @@ impl TextManager {
     /// 새로운 텍스트 관리자 생성
     pub const fn new(locale: Locale) -> Self {
         Self { locale }
+    }
+
+    /// 현재 언어 반환
+    pub fn language(&self) -> crate::l10n::Language {
+        self.locale.language
     }
 
     /// 한국어 텍스트 관리자
@@ -72,11 +77,12 @@ impl TextManager {
 
 /// 아이템 텍스트 처리
 impl TextManager {
-    pub fn item(&self, text: item::ItemKindText) -> String {
-        match self.locale.language {
-            Language::Korean => text.to_korean(),
-            Language::English => text.to_english(),
-        }
+    pub fn effect_name(&self, effect: &crate::game_state::effect::Effect) -> String {
+        effect::EffectText::Name(effect.clone()).localized_text(&self.locale)
+    }
+
+    pub fn effect_description(&self, effect: &crate::game_state::effect::Effect) -> String {
+        effect::EffectText::Description(effect.clone()).localized_text(&self.locale)
     }
 }
 

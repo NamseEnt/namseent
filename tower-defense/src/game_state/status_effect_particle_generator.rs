@@ -1,9 +1,8 @@
 use super::{
     GameState,
-    field_area_effect::FieldAreaEffectKind,
     field_particle::{
         FieldParticleEmitter,
-        emitter::{MonsterStatusEffectEmitter, TowerStatusEffectEmitter},
+        emitter::MonsterStatusEffectEmitter,
     },
     monster::MonsterStatusEffectKind,
     tower::TowerStatusEffectKind,

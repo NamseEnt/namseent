@@ -1,6 +1,4 @@
-use tower_defense::card::{Card, Rank, Suit};
-use tower_defense::game_state::tower::TowerKind;
-use tower_defense::game_state::upgrade::UpgradeState;
+use tower_defense::{Card, Rank, Suit, TowerKind, UpgradeState};
 use tower_defense::tower_selecting_hand::get_highest_tower::get_highest_tower_template;
 
 fn make_card(suit: Suit, rank: Rank) -> Card {

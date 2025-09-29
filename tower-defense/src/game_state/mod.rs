@@ -6,7 +6,6 @@ pub mod cursor_preview;
 pub mod effect;
 mod event_handlers;
 pub mod fast_forward;
-mod field_area_effect;
 pub mod field_particle;
 pub mod flow;
 pub mod item;
@@ -18,26 +17,24 @@ mod placed_towers;
 pub mod play_history;
 pub mod projectile;
 mod render;
-pub mod schedule;
+pub mod stage_modifiers;
 mod start_confirm_modal;
-mod status_effect_particle_generator;
 mod tick;
 pub mod tower;
 mod tower_info_popup;
 pub mod upgrade;
 mod user_status_effect;
 
+use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::HandSlotId;
 use crate::route::*;
 use crate::*;
 use background::{Background, generate_backgrounds};
 use camera::*;
-use contract::ContractState;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
-use field_area_effect::FieldAreaEffect;
 use flow::GameFlow;
-use item::Item;
+use item::{Effect, Item};
 pub use level_rarity_weight::level_rarity_weight;
 pub use modal::Modal;
 pub use monster::*;
@@ -46,7 +43,6 @@ use namui::*;
 use placed_towers::PlacedTowers;
 use play_history::PlayHistory;
 use projectile::*;
-use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
@@ -87,7 +83,6 @@ pub struct GameState {
     pub hp: f32,
     pub shield: f32,
     pub user_status_effects: Vec<UserStatusEffect>,
-    pub field_area_effects: Vec<FieldAreaEffect>,
     pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
@@ -97,12 +92,11 @@ pub struct GameState {
     pub rerolled_count: usize,
     pub selected_tower_id: Option<usize>,
     pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
-    status_effect_particle_generator: StatusEffectParticleGenerator,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
     pub contracts: Vec<contract::Contract>,
-    pub contract_state: ContractState,
+    pub stage_modifiers: StageModifiers,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -124,13 +118,24 @@ impl GameState {
         self.upgrade_state.quest_board_slot_expand + 1
     }
     pub fn max_shop_refresh_chance(&self) -> usize {
-        self.upgrade_state.shop_refresh_chance_plus + 1
+        (self.upgrade_state.shop_refresh_chance_plus
+            + 1
+            + self.stage_modifiers.get_shop_max_rerolls_bonus())
+        .saturating_sub(self.stage_modifiers.get_shop_max_rerolls_penalty())
     }
     pub fn max_quest_board_refresh_chance(&self) -> usize {
         self.upgrade_state.quest_board_refresh_chance_plus + 1
     }
     pub fn max_reroll_chance(&self) -> usize {
-        self.upgrade_state.reroll_chance_plus + 1
+        (self.upgrade_state.reroll_chance_plus
+            + 1
+            + self
+                .stage_modifiers
+                .get_card_selection_hand_max_rerolls_bonus())
+        .saturating_sub(
+            self.stage_modifiers
+                .get_card_selection_hand_max_rerolls_penalty(),
+        )
     }
     pub fn rerolled(&self) -> bool {
         self.rerolled_count > 0
@@ -154,6 +159,12 @@ impl GameState {
             10 => 0,
             _ => unreachable!("Level up cost not defined for level {}", self.level),
         }
+    }
+
+    pub fn calculate_tower_damage(&self, tower: &tower::Tower) -> f32 {
+        let tower_upgrade_states = self.upgrade_state.tower_upgrades(tower);
+        let contract_multiplier: f32 = self.stage_modifiers.get_damage_multiplier();
+        tower.calculate_projectile_damage(&tower_upgrade_states, contract_multiplier)
     }
 }
 
@@ -202,44 +213,20 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             projectiles: Default::default(),
             items: vec![
                 Item {
-                    kind: item::ItemKind::ExtraReroll,
+                    effect: Effect::ExtraReroll,
                     rarity: rarity::Rarity::Epic,
                     value: 0.5.into(),
                 },
                 Item {
-                    kind: item::ItemKind::ExtraReroll,
+                    effect: Effect::ExtraReroll,
                     rarity: rarity::Rarity::Epic,
                     value: 0.5.into(),
                 },
                 // For debugging purpose, should be removed in production.
                 Item {
-                    kind: item::ItemKind::RoundDamageOverTime {
-                        rank: crate::card::Rank::Ace,
-                        suit: crate::card::Suit::Hearts,
-                        damage: 20.0,
-                        radius: 2.5,
-                        duration: namui::Duration::from_secs_f32(3.0),
-                    },
+                    effect: Effect::Heal { amount: 20.0 },
                     rarity: rarity::Rarity::Epic,
                     value: 0.0.into(), // 디버깅용 - 최소값
-                },
-                Item {
-                    kind: item::ItemKind::AttackPowerMultiplyBuff {
-                        amount: 2.9,
-                        duration: 3.sec(),
-                        radius: 4.0,
-                    },
-                    rarity: rarity::Rarity::Epic,
-                    value: 0.75.into(), // 디버깅용 - 높은 값
-                },
-                Item {
-                    kind: item::ItemKind::MovementSpeedDebuff {
-                        amount: 0.4,
-                        duration: 3.sec(),
-                        radius: 4.0,
-                    },
-                    rarity: rarity::Rarity::Epic,
-                    value: 1.0.into(), // 디버깅용 - 최대값 (역산이므로 좋은 효과)
                 },
             ],
             gold: 100,
@@ -247,7 +234,6 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             hp: 100.0,
             shield: 0.0,
             user_status_effects: Default::default(),
-            field_area_effects: Default::default(),
             left_shop_refresh_chance: 0,
             left_quest_board_refresh_chance: 0,
             item_used: false,
@@ -257,17 +243,11 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             rerolled_count: 0,
             selected_tower_id: None,
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
-            status_effect_particle_generator: StatusEffectParticleGenerator::new(Instant::now()),
             locale: crate::l10n::Locale::KOREAN,
             play_history: PlayHistory::new(),
             opened_modal: None,
-            contracts: vec![
-                contract::generate_contract(rarity::Rarity::Common),
-                contract::generate_contract(rarity::Rarity::Rare),
-                contract::generate_contract(rarity::Rarity::Epic),
-                contract::generate_contract(rarity::Rarity::Legendary),
-            ],
-            contract_state: ContractState::default(),
+            contracts: vec![],
+            stage_modifiers: StageModifiers::new(),
         }
     })
     .0
@@ -279,6 +259,22 @@ pub fn use_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
 
 pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
     GAME_STATE_ATOM.mutate(f);
+}
+
+pub fn set_modal(modal: Option<Modal>) {
+    mutate_game_state(|game_state| {
+        game_state.opened_modal = modal;
+    });
+}
+
+pub fn force_start() {
+    mutate_game_state(|game_state| {
+        game_state.goto_defense();
+    });
+}
+
+pub fn is_boss_stage(stage: usize) -> bool {
+    matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
 }
 
 /// Make sure that the tower can be placed at the given coord.
@@ -300,21 +296,5 @@ pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
         if hand.is_empty() {
             game_state.goto_defense();
         }
-    });
-}
-
-pub fn is_boss_stage(stage: usize) -> bool {
-    matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
-}
-
-pub fn set_modal(modal: Option<Modal>) {
-    mutate_game_state(|game_state| {
-        game_state.opened_modal = modal;
-    });
-}
-
-pub fn force_start() {
-    mutate_game_state(|game_state| {
-        game_state.goto_defense();
     });
 }

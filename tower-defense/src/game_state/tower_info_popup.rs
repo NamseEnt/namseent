@@ -14,6 +14,7 @@ const BUBBLE_HEIGHT: Px = px(200.);
 pub struct TowerInfoPopup<'a> {
     pub tower: &'a Tower,
     pub tower_upgrades: &'a [TowerUpgradeState],
+    pub game_state: &'a super::GameState,
 }
 
 impl Component for TowerInfoPopup<'_> {
@@ -21,6 +22,7 @@ impl Component for TowerInfoPopup<'_> {
         let Self {
             tower,
             tower_upgrades,
+            game_state,
         } = self;
 
         ctx.translate((-BUBBLE_WIDTH * 0.5, -BUBBLE_HEIGHT))
@@ -38,7 +40,7 @@ impl Component for TowerInfoPopup<'_> {
                                 );
                             }),
                             table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                let damage = tower.calculate_projectile_damage(tower_upgrades);
+                                let damage = tower.calculate_projectile_damage(tower_upgrades, 1.0);
                                 ctx.add(
                                     paragraph(format!("데미지: {damage:.1}"))
                                         .size(FontSize::Medium)
@@ -60,7 +62,10 @@ impl Component for TowerInfoPopup<'_> {
                                 );
                             }),
                             table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                let range = tower.attack_range_radius(tower_upgrades);
+                                let range = tower.attack_range_radius(
+                                    tower_upgrades,
+                                    game_state.stage_modifiers.get_range_multiplier(),
+                                );
                                 ctx.add(
                                     paragraph(format!("사정거리: {range:.1}"))
                                         .size(FontSize::Medium)

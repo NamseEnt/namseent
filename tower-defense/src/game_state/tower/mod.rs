@@ -44,6 +44,7 @@ impl Tower {
         &mut self,
         target_indicator: ProjectileTargetIndicator,
         tower_upgrade_states: &[TowerUpgradeState],
+        contract_multiplier: f32,
         now: Instant,
     ) -> Projectile {
         self.cooldown = self.shoot_interval;
@@ -54,7 +55,7 @@ impl Tower {
             xy: self.left_top.map(|t| t as f32 + 0.5),
             velocity: self.projectile_speed,
             target_indicator,
-            damage: self.calculate_projectile_damage(tower_upgrade_states),
+            damage: self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
         }
     }
 
@@ -68,8 +69,18 @@ impl Tower {
     pub fn id(&self) -> usize {
         self.id
     }
+    pub fn rank(&self) -> Rank {
+        self.template.rank
+    }
+    pub fn suit(&self) -> Suit {
+        self.template.suit
+    }
 
-    pub fn calculate_projectile_damage(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
+    pub fn calculate_projectile_damage(
+        &self,
+        tower_upgrade_states: &[TowerUpgradeState],
+        contract_multiplier: f32,
+    ) -> f32 {
         let mut damage = self.default_damage;
 
         self.status_effects.iter().for_each(|status_effect| {
@@ -96,14 +107,21 @@ impl Tower {
             damage *= tower_upgrade_state.damage_multiplier;
         });
 
+        // Apply contract damage multiplier
+        damage *= contract_multiplier;
+
         damage
     }
 
-    pub(crate) fn attack_range_radius(&self, tower_upgrade_states: &[TowerUpgradeState]) -> f32 {
+    pub(crate) fn attack_range_radius(
+        &self,
+        tower_upgrade_states: &[TowerUpgradeState],
+        contract_range_multiplier: f32,
+    ) -> f32 {
         if self.kind == TowerKind::Barricade {
             return 0.0;
         }
-        self.status_effects.iter().fold(
+        let base_range = self.status_effects.iter().fold(
             self.default_attack_range_radius,
             |attack_range_radius, status_effect| {
                 if let TowerStatusEffectKind::AttackRangeAdd { add } = status_effect.kind {
@@ -116,7 +134,8 @@ impl Tower {
             .iter()
             .fold(0.0, |r, tower_upgrade_state| {
                 r + tower_upgrade_state.range_plus
-            })
+            });
+        base_range * contract_range_multiplier
     }
 }
 impl Deref for Tower {
@@ -308,6 +327,8 @@ impl TowerKind {
 }
 
 pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
+    let attack_speed_multiplier = game_state.stage_modifiers.get_attack_speed_multiplier();
+
     game_state.towers.iter_mut().for_each(|tower| {
         if tower.cooldown == Duration::from_secs(0) {
             return;
@@ -337,6 +358,9 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
         tower_upgrades.iter().for_each(|tower_upgrade_state| {
             time_multiple *= tower_upgrade_state.speed_multiplier;
         });
+
+        // Apply contract attack speed multiplier
+        time_multiple *= attack_speed_multiplier;
 
         let cooldown_sub = dt * time_multiple;
 

@@ -3,12 +3,12 @@ mod card;
 mod contracts;
 mod flow_ui;
 mod game_speed_indicator;
-mod game_state;
+mod game_state; // now private; selective re-exports below
 mod hand;
 mod icon;
 mod inventory;
 pub mod l10n;
-mod rarity;
+mod rarity; // private; re-export Rarity only
 mod route;
 mod settings;
 mod shop;
@@ -206,3 +206,10 @@ impl Component for Game {
 struct MiddleMouseButtonDragging {
     last_global_xy: Xy<Px>,
 }
+// --- Public API Surface (narrow) -------------------------------------------------
+// Re-export only the symbols required by integration tests / external consumers.
+pub use card::{Card, Rank, Suit};
+pub use game_state::contract::generation::generate_contract_with_rng;
+pub use game_state::tower::TowerKind;
+pub use game_state::upgrade::UpgradeState;
+pub use rarity::Rarity;

@@ -1,7 +1,6 @@
 use crate::MapCoordF32;
 use crate::game_state::TILE_PX_SIZE;
 use crate::game_state::{
-    field_area_effect::FieldAreaEffectKind,
     field_particle::{
         FieldParticle,
         particle::{IconParticle, IconParticleBehavior},

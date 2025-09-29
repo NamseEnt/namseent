@@ -1,22 +1,16 @@
+mod constants;
+pub mod effect_kinds;
+pub mod generation;
+pub mod reward;
+pub mod risk;
+mod util;
+
+// (Rank, Suit) no longer needed here after extracting StageModifiers
 use crate::game_state::GameState;
 use crate::game_state::effect::{Effect, run_effect};
 use crate::rarity::Rarity;
-use rand::{Rng, thread_rng};
 use std::fmt::Display;
 use std::sync::atomic::AtomicUsize;
-
-#[allow(dead_code)]
-pub fn generate_contract(rarity: Rarity) -> Contract {
-    let mut rng = thread_rng();
-    let duration_stages = rng.gen_range(1..=5);
-    let risk = ContractEffect::OnSign {
-        effect: Effect::Dummy,
-    };
-    let reward = ContractEffect::OnStageStart {
-        effect: Effect::Dummy,
-    };
-    Contract::new(rarity, duration_stages, risk, reward)
-}
 
 #[derive(Clone, Debug)]
 pub enum ContractEffect {
@@ -174,35 +168,34 @@ impl Contract {
         to_status: ContractStatus,
     ) -> Vec<ContractEvent> {
         match (from_status, to_status) {
-            // Pending -> Active: Generate stage start events
+            // Pending -> Active: Generate stage start events and while active effects
             (ContractStatus::Pending { .. }, ContractStatus::Active { .. }) => {
-                self.create_events_from_effects(&self.on_stage_start_effects(), false)
+                let mut events = self.create_events_from_effects(&self.on_stage_start_effects());
+                events.extend(self.create_events_from_effects(&self.while_active_effects()));
+                events
             }
             // Active -> Expired: Generate expire events
             (ContractStatus::Active { .. }, ContractStatus::Expired) => {
-                self.create_events_from_effects(&self.on_expire_effects(), true)
+                self.create_events_from_effects(&self.on_expire_effects())
             }
-            // Active -> Active: Generate ongoing stage events if any
+            // Active -> Active: Generate ongoing stage events including while active effects
             (ContractStatus::Active { .. }, ContractStatus::Active { .. }) => {
-                self.create_events_from_effects(&self.on_stage_start_effects(), false)
+                let mut events = self.create_events_from_effects(&self.on_stage_start_effects());
+                events.extend(self.create_events_from_effects(&self.while_active_effects()));
+                events
             }
             // No events for other transitions
             _ => vec![],
         }
     }
 
-    /// Creates ContractEvents from a list of effects with consistent structure.
-    fn create_events_from_effects(
-        &self,
-        effects: &[&Effect],
-        should_remove: bool,
-    ) -> Vec<ContractEvent> {
+    /// Creates ContractEvents from a list of effects.
+    fn create_events_from_effects(&self, effects: &[&Effect]) -> Vec<ContractEvent> {
         effects
             .iter()
             .map(|effect| ContractEvent {
                 contract_id: self.id,
                 effect: (*effect).clone(),
-                should_remove,
             })
             .collect()
     }
@@ -210,11 +203,6 @@ impl Contract {
     pub fn is_expired(&self) -> bool {
         matches!(self.status, ContractStatus::Expired)
     }
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct ContractState {
-    // TODO: like upgrade state
 }
 
 #[allow(dead_code)]
@@ -230,5 +218,311 @@ pub fn sign_contract(game_state: &mut GameState, contract: Contract) {
 pub struct ContractEvent {
     pub contract_id: ContractId,
     pub effect: Effect,
-    pub should_remove: bool,
+}
+
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use crate::game_state::stage_modifiers::StageModifiers;
+    use rand::{SeedableRng, rngs::StdRng};
+
+    #[test]
+    fn generated_contract_effect_values_are_within_expected_bounds() {
+        let rarities = [
+            Rarity::Common,
+            Rarity::Rare,
+            Rarity::Epic,
+            Rarity::Legendary,
+        ];
+        for (seed_offset, rarity) in rarities.iter().enumerate() {
+            let mut rng = StdRng::seed_from_u64(7777 + seed_offset as u64);
+            for _ in 0..50 {
+                // sample
+                let c = super::generation::generate_contract_with_rng(&mut rng, *rarity);
+                let groups = [
+                    c.on_sign_effects(),
+                    c.while_active_effects(),
+                    c.on_stage_start_effects(),
+                    c.on_expire_effects(),
+                ];
+                for eff in groups.into_iter().flatten() {
+                    use crate::game_state::effect::Effect::*;
+                    match eff {
+                        IncreaseAllTowersDamage { multiplier }
+                        | IncreaseAllTowersAttackSpeed { multiplier }
+                        | IncreaseAllTowersRange { multiplier }
+                        | IncreaseGoldGain { multiplier } => {
+                            assert!(*multiplier >= 1.0 && *multiplier < 3.0);
+                        }
+                        DecreaseIncomingDamage { multiplier }
+                        | DecreaseAllTowersDamage { multiplier } => {
+                            assert!(*multiplier > 0.0 && *multiplier <= 1.0);
+                        }
+                        IncreaseIncomingDamage { multiplier } => {
+                            assert!(*multiplier >= 1.0 && *multiplier <= 2.5);
+                        }
+                        LoseHealth { amount } => {
+                            assert!(*amount >= 1.0 && *amount <= 30.0);
+                        }
+                        LoseGold { amount } => {
+                            assert!(*amount >= 50 && *amount <= 2500);
+                        }
+                        EarnGold { amount } => {
+                            assert!(*amount >= 50 && *amount <= 3000);
+                        }
+                        Heal { amount } => {
+                            assert!(*amount >= 5.0 && *amount <= 60.0);
+                        }
+                        GainGold {
+                            min_amount,
+                            max_amount,
+                        }
+                        | LoseGoldRange {
+                            min_amount,
+                            max_amount,
+                        }
+                        | LoseHealthRange {
+                            min_amount,
+                            max_amount,
+                        }
+                        | GainShield {
+                            min_amount,
+                            max_amount,
+                        }
+                        | HealHealth {
+                            min_amount,
+                            max_amount,
+                        }
+                        | LoseHealthExpire {
+                            min_amount,
+                            max_amount,
+                        }
+                        | LoseGoldExpire {
+                            min_amount,
+                            max_amount,
+                        } => {
+                            assert!(*min_amount <= *max_amount);
+                            assert!(*min_amount >= 0.0);
+                        }
+                        AddCardSelectionHandRerollHealthCost { cost }
+                        | AddShopRerollHealthCost { cost } => {
+                            assert!(*cost >= 1 && *cost <= 10);
+                        }
+                        DecreaseEnemyHealthPercent { percentage } => {
+                            assert!((*percentage - 10.0).abs() < f32::EPSILON);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn adjustments_delta_consistency() {
+        let mut cs = StageModifiers::new();
+        assert_eq!(cs.get_card_selection_hand_max_slots_delta(), 0);
+        assert_eq!(cs.get_card_selection_hand_max_rerolls_delta(), 0);
+        assert_eq!(cs.get_shop_max_rerolls_delta(), 0);
+        cs.apply_card_selection_hand_max_slots_bonus(3);
+        assert_eq!(cs.get_card_selection_hand_max_slots_delta(), 3);
+        cs.apply_card_selection_hand_max_slots_penalty(1);
+        assert_eq!(cs.get_card_selection_hand_max_slots_delta(), 2);
+        cs.apply_card_selection_hand_max_rerolls_bonus(5);
+        cs.apply_card_selection_hand_max_rerolls_penalty(2);
+        assert_eq!(cs.get_card_selection_hand_max_rerolls_delta(), 3);
+        cs.apply_shop_max_rerolls_bonus(4);
+        cs.apply_shop_max_rerolls_penalty(4);
+        assert_eq!(cs.get_shop_max_rerolls_delta(), 0);
+    }
+
+    #[test]
+    fn stage_grants_persist_across_reset_and_clear_explicitly() {
+        let mut cs = StageModifiers::new();
+        // give grants
+        cs.set_barricade_cards_per_stage(5);
+        // reset stage transient state
+        cs.reset_stage_state();
+        // grants should persist
+        assert_eq!(cs.get_barricade_cards_per_stage(), 5);
+        // now clear grants
+        cs.clear_stage_grants();
+        assert_eq!(cs.get_barricade_cards_per_stage(), 0);
+    }
+
+    #[test]
+    fn rarity_scaling_monotonic_for_core_tables() {
+        // 특정 rarity 테이블들이 상위 rarity 로 갈수록 min/max 혹은 평균 기대값이 증가(또는 감소)하는지 검증
+        // 증가 기대: REWARD_EARN_GOLD, REWARD_HEAL_ON_SIGN, REWARD_INCREASE_TOWER_DAMAGE, REWARD_INCREASE_TOWER_RANGE, REWARD_INCREASE_GOLD_GAIN
+        // 감소 기대: REWARD_DECREASE_INCOMING_DAMAGE (값 자체는 데미지 감소 비율이므로 rarity 올라가면 더 작은 multiplier)
+        use crate::game_state::contract::constants::*;
+        // helper: (min,max) 배열이 rarity 순서(Common..Legendary)에 대해 단조성 충족하는지
+        fn assert_increasing(table: &[(f32, f32); 4], label: &str) {
+            for w in table.windows(2) {
+                assert!(
+                    w[0].0 <= w[1].0 && w[0].1 <= w[1].1,
+                    "{} not monotonic increasing",
+                    label
+                );
+            }
+        }
+        fn assert_decreasing(table: &[(f32, f32); 4], label: &str) {
+            for w in table.windows(2) {
+                assert!(
+                    w[0].0 >= w[1].0 && w[0].1 >= w[1].1,
+                    "{} not monotonic decreasing",
+                    label
+                );
+            }
+        }
+        assert_increasing(&REWARD_EARN_GOLD, "REWARD_EARN_GOLD");
+        assert_increasing(&REWARD_HEAL_ON_SIGN, "REWARD_HEAL_ON_SIGN");
+        assert_increasing(
+            &REWARD_INCREASE_TOWER_DAMAGE,
+            "REWARD_INCREASE_TOWER_DAMAGE",
+        );
+        assert_increasing(&REWARD_INCREASE_TOWER_RANGE, "REWARD_INCREASE_TOWER_RANGE");
+        assert_increasing(&REWARD_INCREASE_GOLD_GAIN, "REWARD_INCREASE_GOLD_GAIN");
+        assert_decreasing(
+            &REWARD_DECREASE_INCOMING_DAMAGE,
+            "REWARD_DECREASE_INCOMING_DAMAGE",
+        );
+    }
+
+    #[test]
+    fn per_stage_distribution_respects_total_range() {
+        // GainGold / LoseHealthRange / LoseGoldRange stage 분배 시 (0.8x,1.2x) 범위 적용이 총합 기대를 벗어나지 않는지 라프 검증
+        use crate::game_state::contract::{constants::*, generation::generate_contract_with_rng};
+        let mut rng = StdRng::seed_from_u64(999);
+        for rarity in [
+            Rarity::Common,
+            Rarity::Rare,
+            Rarity::Epic,
+            Rarity::Legendary,
+        ] {
+            for _ in 0..40 {
+                let c = generate_contract_with_rng(&mut rng, rarity);
+                // stage start effects 에 대해 range 기반인 것들 검사
+                for eff in c.on_stage_start_effects() {
+                    use crate::game_state::effect::Effect::*;
+                    match eff {
+                        GainGold {
+                            min_amount,
+                            max_amount,
+                        } => {
+                            assert!(*min_amount >= 0.0 && *min_amount <= *max_amount);
+                            // 상한은 전역 골드 테이블의 rarity 상한보다 과도하게 크지 않아야 함 (여유 계수 1.5 배)
+                            let cap = match rarity {
+                                Rarity::Common => REWARD_EARN_GOLD[0].1,
+                                Rarity::Rare => REWARD_EARN_GOLD[1].1,
+                                Rarity::Epic => REWARD_EARN_GOLD[2].1,
+                                Rarity::Legendary => REWARD_EARN_GOLD[3].1,
+                            } * 1.5;
+                            assert!(
+                                *max_amount <= cap,
+                                "per-stage gold chunk too large: {} > cap {}",
+                                max_amount,
+                                cap
+                            );
+                        }
+                        LoseHealthRange {
+                            min_amount,
+                            max_amount,
+                        } => {
+                            assert!(*min_amount >= 0.0 && *min_amount <= *max_amount);
+                            let base_hi = match rarity {
+                                Rarity::Common => RISK_LOSE_HEALTH[0].1,
+                                Rarity::Rare => RISK_LOSE_HEALTH[1].1,
+                                Rarity::Epic => RISK_LOSE_HEALTH[2].1,
+                                Rarity::Legendary => RISK_LOSE_HEALTH[3].1,
+                            };
+                            assert!(*max_amount <= base_hi * 1.5);
+                        }
+                        LoseGoldRange {
+                            min_amount,
+                            max_amount,
+                        } => {
+                            assert!(*min_amount >= 0.0 && *min_amount <= *max_amount);
+                            let base_hi = match rarity {
+                                Rarity::Common => RISK_STAGE_LOSE_GOLD[0].1,
+                                Rarity::Rare => RISK_STAGE_LOSE_GOLD[1].1,
+                                Rarity::Epic => RISK_STAGE_LOSE_GOLD[2].1,
+                                Rarity::Legendary => RISK_STAGE_LOSE_GOLD[3].1,
+                            };
+                            assert!(*max_amount <= base_hi * 2.0); // 골드는 stage 분배 후 반올림으로 다소 커질 수 있어 약간 더 관대
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn shield_and_barricade_counts_scale_with_rarity() {
+        // on_stage_start reward 에서 rarity 가 올라갈수록 barricade count 와 shield 범위 증가
+        use crate::game_state::contract::reward::on_stage_start;
+        let mut rng = StdRng::seed_from_u64(2024);
+        // 각 rarity 에 대해 여러번 생성 후 최소/최대 값 수집하여 단조성 확인
+        #[derive(Default)]
+        struct Agg {
+            min_barr: usize,
+            max_barr: usize,
+            min_shield: f32,
+            max_shield: f32,
+        }
+        let mut data: Vec<(Rarity, Agg)> = Vec::new();
+        for rarity in [
+            Rarity::Common,
+            Rarity::Rare,
+            Rarity::Epic,
+            Rarity::Legendary,
+        ] {
+            let mut agg = Agg {
+                min_barr: usize::MAX,
+                max_barr: 0,
+                min_shield: f32::MAX,
+                max_shield: 0.0,
+            };
+            for i in 0..30 {
+                let gens = on_stage_start::list();
+                // first entry adds barricades, second adds shield
+                let b = gens[0](&mut rng, rarity, 3); // barricade effect deterministic for given rarity
+                let s = gens[1](&mut rng, rarity, 3); // shield range effect deterministic for given rarity
+                use crate::game_state::effect::Effect::*;
+                if let AddBarricadeCardsToTowerPlacementHand { count } = b {
+                    agg.min_barr = agg.min_barr.min(count);
+                    agg.max_barr = agg.max_barr.max(count);
+                }
+                if let GainShield {
+                    min_amount,
+                    max_amount,
+                } = s
+                {
+                    agg.min_shield = agg.min_shield.min(min_amount);
+                    agg.max_shield = agg.max_shield.max(max_amount);
+                }
+                // extra RNG calls to vary rng state so deterministic assumption not required beyond structure
+                rng = StdRng::seed_from_u64(2024 + i as u64); // ensure different sequence
+            }
+            data.push((rarity, agg));
+        }
+        // 단조 증가 체크
+        for w in data.windows(2) {
+            let (r1, a1) = &w[0];
+            let (r2, a2) = &w[1];
+            assert!(
+                a1.min_barr <= a2.min_barr && a1.max_barr <= a2.max_barr,
+                "barricade count not non-decreasing from {:?} to {:?}",
+                r1,
+                r2
+            );
+            assert!(
+                a1.min_shield <= a2.min_shield && a1.max_shield <= a2.max_shield,
+                "shield range not non-decreasing from {:?} to {:?}",
+                r1,
+                r2
+            );
+        }
+    }
 }
