@@ -231,6 +231,7 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
             }))
             .attach_event({
                 let tower_id = tower.id();
+                let tower_kind = tower.kind;
                 move |event| {
                     let Event::MouseUp { event } = event else {
                         return;
@@ -239,6 +240,9 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
                         return;
                     }
                     if !event.is_local_xy_in() {
+                        return;
+                    }
+                    if tower_kind == crate::game_state::tower::TowerKind::Barricade {
                         return;
                     }
                     event.stop_propagation();
