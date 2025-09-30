@@ -113,7 +113,7 @@ impl UIState {
     }
 
     pub fn tick(&mut self, now: Instant) {
-    // Update all popup spring states
+        // Update all popup spring states
         for popup_state in self.tower_popup_states.values_mut() {
             popup_state.tick(now);
         }
