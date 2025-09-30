@@ -1,10 +1,10 @@
-use super::{Tower, mutate_game_state, upgrade::TowerUpgradeState};
+use super::{Tower, mutate_game_state};
+use crate::flow_ui::TowerPreviewContent;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
     palette,
     typography::{FontSize, TextAlign, paragraph},
 };
-use crate::tower_display::tower_stat_display_from_tower;
 use namui::*;
 use namui_prebuilt::table;
 
@@ -14,17 +14,11 @@ const BUBBLE_HEIGHT: Px = px(200.);
 
 pub struct TowerInfoPopup<'a> {
     pub tower: &'a Tower,
-    pub tower_upgrades: &'a [TowerUpgradeState],
-    pub game_state: &'a super::GameState,
 }
 
 impl Component for TowerInfoPopup<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self {
-            tower,
-            tower_upgrades,
-            game_state,
-        } = self;
+        let Self { tower } = self;
 
         ctx.translate((-BUBBLE_WIDTH * 0.5, -BUBBLE_HEIGHT))
             .compose(|ctx| {
@@ -33,12 +27,10 @@ impl Component for TowerInfoPopup<'_> {
                         table::vertical([
                             // 타워 스탯 표시 영역
                             table::ratio(1.0, |wh, ctx| {
-                                ctx.add(tower_stat_display_from_tower(
-                                    tower,
-                                    tower_upgrades,
-                                    game_state,
+                                ctx.add(TowerPreviewContent {
                                     wh,
-                                ));
+                                    tower_template: tower,
+                                });
                             }),
                             // 철거 버튼
                             table::fixed(36.px(), |wh, ctx| {

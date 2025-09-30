@@ -262,8 +262,6 @@ fn render_tower_info_popup(ctx: &RenderCtx, game_state: &GameState) {
         if let Some(popup_state) = game_state.ui_state.get_popup_state(tower.id())
             && popup_state.is_visible()
         {
-            let tower_upgrades = game_state.upgrade_state.tower_upgrades(tower);
-
             let popup_scale = popup_state.scale;
             let popup_opacity = popup_state.opacity;
 
@@ -273,11 +271,7 @@ fn render_tower_info_popup(ctx: &RenderCtx, game_state: &GameState) {
 
                 ctx.translate(px_xy)
                     .scale(Xy::single(popup_scale / game_state.camera.zoom_level))
-                    .add(TowerInfoPopup {
-                        tower,
-                        tower_upgrades: &tower_upgrades,
-                        game_state,
-                    });
+                    .add(TowerInfoPopup { tower });
             }
         }
     }

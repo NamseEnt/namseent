@@ -1,6 +1,8 @@
 mod get_highest_tower;
 mod tower_preview;
 
+pub use tower_preview::{TowerPreview, TowerPreviewContent};
+
 use crate::card::Card;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::mutate_game_state;
@@ -12,7 +14,6 @@ use crate::theme::typography::{TextAlign, headline};
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
 use namui_prebuilt::table;
-use tower_preview::TowerPreview;
 
 const PADDING: Px = px(4.);
 
