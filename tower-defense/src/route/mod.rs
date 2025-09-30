@@ -1,8 +1,10 @@
 mod move_on_route;
+mod render_route;
 mod route_find;
 
 use crate::*;
 pub use move_on_route::*;
+pub use render_route::*;
 pub use route_find::*;
 use std::sync::Arc;
 
