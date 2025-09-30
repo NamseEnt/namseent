@@ -8,7 +8,7 @@ use crate::game_state::{
 use namui::*;
 
 pub fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
-    let (image_number, set_image_number) = ctx.state(|| 1);
+    // Route texture is fixed to 1.jpg (previously cycled with F8)
     let cursor_coord = ctx.track_eq(
         &game_state
             .cursor_preview
@@ -51,18 +51,7 @@ pub fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
         game_state_route.clone_inner()
     });
 
-    ctx.on_raw_event(|event| {
-        if let RawEvent::KeyUp { event } = event
-            && event.code == Code::F8
-        {
-            let next_number = if *image_number == 4 {
-                1
-            } else {
-                *image_number + 1
-            };
-            set_image_number.set(next_number);
-        }
-    });
+    // Removed F8 key handler that changed route texture.
 
     let mut path = Path::new();
     for coord in route.iter_coords() {
@@ -86,10 +75,7 @@ pub fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
         cap: Some(StrokeCap::Round),
     });
 
-    let image = ctx.image(ResourceLocation::bundle(format!(
-        "asset/image/route/{}.jpg",
-        image_number
-    )));
+    let image = ctx.image(ResourceLocation::bundle("asset/image/route/1.jpg"));
 
     let Some(Ok(image)) = image.as_ref() else {
         return;
@@ -102,9 +88,9 @@ pub fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
             tile_mode: Xy::single(TileMode::Repeat),
         });
 
-    let border_paint = Paint::new(Color::grayscale_alpha_f01(1.0, 0.5))
+    let border_paint = Paint::new(Color::from_u8(205, 170, 125, 128))
         .set_style(PaintStyle::Stroke)
-        .set_stroke_width(4.px());
+        .set_stroke_width(12.px());
 
     ctx.add(namui::path(path.clone(), texture_paint));
     ctx.add(namui::path(path, border_paint));
