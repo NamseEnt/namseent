@@ -81,7 +81,7 @@ impl Component for TowerInfoPopup<'_> {
                 }));
             })
             .attach_event(|event| {
-                if let Event::MouseUp { event } = event
+                if let Event::MouseDown { event } = event
                     && let Some(MouseButton::Left) = event.button
                     && event.is_local_xy_in()
                 {

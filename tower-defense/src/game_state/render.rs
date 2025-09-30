@@ -89,7 +89,7 @@ fn render_grid(ctx: &RenderCtx, game_state: &GameState) {
         .set_stroke_cap(StrokeCap::Round);
 
     ctx.add(namui::path(path, paint)).attach_event(|event| {
-        if let Event::MouseUp { event } = event {
+        if let Event::MouseDown { event } = event {
             if event.button != Some(MouseButton::Left) {
                 return;
             }
@@ -164,7 +164,7 @@ fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
                     },
                 }))
                 .attach_event(|event| {
-                    if let Event::MouseUp { event } = event {
+                    if let Event::MouseDown { event } = event {
                         if event.button != Some(MouseButton::Left) {
                             return;
                         }
@@ -233,7 +233,7 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
                 let tower_id = tower.id();
                 let tower_kind = tower.kind;
                 move |event| {
-                    let Event::MouseUp { event } = event else {
+                    let Event::MouseDown { event } = event else {
                         return;
                     };
                     if event.button != Some(MouseButton::Left) {
