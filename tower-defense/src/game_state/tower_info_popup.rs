@@ -1,8 +1,9 @@
-use super::{Tower, mutate_game_state, upgrade::TowerUpgradeState};
+use super::{Tower, mutate_game_state};
+use crate::flow_ui::TowerPreviewContent;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
     palette,
-    typography::{FontSize, PARAGRAPH_FONT_SIZE_MEDIUM, TextAlign, paragraph},
+    typography::{FontSize, TextAlign, paragraph},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -13,68 +14,25 @@ const BUBBLE_HEIGHT: Px = px(200.);
 
 pub struct TowerInfoPopup<'a> {
     pub tower: &'a Tower,
-    pub tower_upgrades: &'a [TowerUpgradeState],
-    pub game_state: &'a super::GameState,
 }
 
 impl Component for TowerInfoPopup<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self {
-            tower,
-            tower_upgrades,
-            game_state,
-        } = self;
+        let Self { tower } = self;
 
         ctx.translate((-BUBBLE_WIDTH * 0.5, -BUBBLE_HEIGHT))
             .compose(|ctx| {
                 ctx.compose(|ctx| {
                     table::padding(BUBBLE_PADDING, |wh, ctx| {
                         table::vertical([
-                            table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px() * 2.0, |wh, ctx| {
-                                ctx.add(
-                                    paragraph(format!("{} {}", tower.suit, tower.rank))
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::LeftTop)
-                                        .max_width(wh.width)
-                                        .build(),
-                                );
+                            // 타워 스탯 표시 영역
+                            table::ratio(1.0, |wh, ctx| {
+                                ctx.add(TowerPreviewContent {
+                                    wh,
+                                    tower_template: tower,
+                                });
                             }),
-                            table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                let damage = tower.calculate_projectile_damage(tower_upgrades, 1.0);
-                                ctx.add(
-                                    paragraph(format!("데미지: {damage:.1}"))
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::LeftTop)
-                                        .max_width(wh.width)
-                                        .build(),
-                                );
-                            }),
-                            table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                ctx.add(
-                                    paragraph(format!(
-                                        "속도: {:.2}s",
-                                        tower.shoot_interval.as_secs_f32()
-                                    ))
-                                    .size(FontSize::Medium)
-                                    .align(TextAlign::LeftTop)
-                                    .max_width(wh.width)
-                                    .build(),
-                                );
-                            }),
-                            table::fixed(PARAGRAPH_FONT_SIZE_MEDIUM.into_px(), |wh, ctx| {
-                                let range = tower.attack_range_radius(
-                                    tower_upgrades,
-                                    game_state.stage_modifiers.get_range_multiplier(),
-                                );
-                                ctx.add(
-                                    paragraph(format!("사정거리: {range:.1}"))
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::LeftTop)
-                                        .max_width(wh.width)
-                                        .build(),
-                                );
-                            }),
-                            table::ratio(1.0, |_wh, _ctx| {}),
+                            // 철거 버튼
                             table::fixed(36.px(), |wh, ctx| {
                                 let tower_id = tower.id();
                                 ctx.add(
@@ -83,7 +41,6 @@ impl Component for TowerInfoPopup<'_> {
                                         &move || {
                                             mutate_game_state(move |game_state| {
                                                 game_state.towers.remove_tower(tower_id);
-                                                game_state.selected_tower_id = None;
                                             });
                                         },
                                         &|wh, text_color, ctx| {
@@ -105,6 +62,7 @@ impl Component for TowerInfoPopup<'_> {
                     })(Wh::new(BUBBLE_WIDTH, BUBBLE_HEIGHT), ctx);
                 });
 
+                // 배경 및 테두리
                 ctx.add(rect(RectParam {
                     rect: Wh::new(BUBBLE_WIDTH, BUBBLE_HEIGHT).to_rect(),
                     style: RectStyle {
@@ -123,7 +81,7 @@ impl Component for TowerInfoPopup<'_> {
                 }));
             })
             .attach_event(|event| {
-                if let Event::MouseUp { event } = event
+                if let Event::MouseDown { event } = event
                     && let Some(MouseButton::Left) = event.button
                     && event.is_local_xy_in()
                 {

@@ -22,6 +22,7 @@ mod start_confirm_modal;
 mod tick;
 pub mod tower;
 mod tower_info_popup;
+mod ui_state;
 pub mod upgrade;
 mod user_status_effect;
 
@@ -46,6 +47,7 @@ use projectile::*;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
+pub use ui_state::UIState;
 use upgrade::UpgradeState;
 use user_status_effect::UserStatusEffect;
 
@@ -90,13 +92,13 @@ pub struct GameState {
     game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
-    pub selected_tower_id: Option<usize>,
     pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
     pub contracts: Vec<contract::Contract>,
     pub stage_modifiers: StageModifiers,
+    pub ui_state: UIState,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -165,6 +167,17 @@ impl GameState {
         let tower_upgrade_states = self.upgrade_state.tower_upgrades(tower);
         let contract_multiplier: f32 = self.stage_modifiers.get_damage_multiplier();
         tower.calculate_projectile_damage(&tower_upgrade_states, contract_multiplier)
+    }
+
+    pub fn set_selected_tower(&mut self, tower_id: Option<usize>) {
+        self.ui_state.set_selected_tower(tower_id, self.now());
+    }
+
+    pub fn cleanup_unused_tower_popup_states(&mut self) {
+        let existing_tower_ids: std::collections::HashSet<usize> =
+            self.towers.iter().map(|tower| tower.id()).collect();
+
+        self.ui_state.cleanup_unused_states(&existing_tower_ids);
     }
 }
 
@@ -241,13 +254,13 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
-            selected_tower_id: None,
             field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             locale: crate::l10n::Locale::KOREAN,
             play_history: PlayHistory::new(),
             opened_modal: None,
             contracts: vec![],
             stage_modifiers: StageModifiers::new(),
+            ui_state: UIState::new(),
         }
     })
     .0

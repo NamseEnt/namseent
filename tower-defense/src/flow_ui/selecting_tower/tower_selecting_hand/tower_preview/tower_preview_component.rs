@@ -21,12 +21,12 @@ struct MouseHoveringSkill {
     offset: Xy<Px>,
 }
 
-pub struct TowerPreview<'a> {
+pub struct TowerPreviewContent<'a> {
     pub wh: Wh<Px>,
     pub tower_template: &'a TowerTemplate,
 }
 
-impl Component for TowerPreview<'_> {
+impl Component for TowerPreviewContent<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, tower_template } = self;
 
@@ -154,6 +154,19 @@ impl Component for TowerPreview<'_> {
                 ])(wh, ctx);
             })(wh, ctx);
         });
+    }
+}
+
+pub struct TowerPreview<'a> {
+    pub wh: Wh<Px>,
+    pub tower_template: &'a TowerTemplate,
+}
+
+impl Component for TowerPreview<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { wh, tower_template } = self;
+
+        ctx.add(TowerPreviewContent { wh, tower_template });
 
         ctx.add(rect(RectParam {
             rect: wh.to_rect(),
