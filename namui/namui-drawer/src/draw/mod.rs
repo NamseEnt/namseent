@@ -91,14 +91,6 @@ impl Draw for RenderingTree {
                     }
                 },
                 RenderingTree::Empty => {}
-                RenderingTree::Boxed(boxed) => {
-                    draw_internal(skia, boxed.as_ref(), rendering_tree_draw_context);
-                }
-                RenderingTree::BoxedChildren(children) => {
-                    for child in children.iter().rev() {
-                        draw_internal(skia, child, rendering_tree_draw_context);
-                    }
-                }
             }
         }
 
