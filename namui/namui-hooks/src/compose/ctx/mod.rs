@@ -98,15 +98,9 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
             return;
         }
 
-        if let RenderingTree::BoxedChildren(children) = &rendering_tree
-            && children.is_empty()
-        {
-            return;
-        }
-
         let stack_applied = self.apply_stack(rendering_tree);
 
-        self.rt_container.push(stack_applied.into());
+        self.rt_container.push(stack_applied);
     }
 
     fn add_rt_container(&self, rt_container: RtContainer) {

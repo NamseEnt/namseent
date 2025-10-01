@@ -10,8 +10,6 @@ pub enum RenderingTree {
     Node(DrawCommand),
     Children(Vec<RenderingTree>),
     Special(SpecialRenderingNode),
-    Boxed(Box<RenderingTree>),
-    BoxedChildren(Vec<Box<RenderingTree>>),
 }
 
 /// NOTE
@@ -29,14 +27,6 @@ impl RenderingTree {
             }
             RenderingTree::Node(_) | RenderingTree::Special(_) => vec.push(self),
             RenderingTree::Empty => {}
-            RenderingTree::Boxed(rendering_tree) => {
-                return rendering_tree.iter();
-            }
-            RenderingTree::BoxedChildren(children) => {
-                for child in children.iter() {
-                    vec.extend(child.iter());
-                }
-            }
         };
 
         vec.into_iter()
