@@ -94,7 +94,6 @@ impl Visit for RenderingTree {
                         result_xy = transform.matrix.inverse().unwrap().transform_xy(result_xy);
                     }
                     SpecialRenderingNode::Clip(_)
-                    | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::OnTop(_)
                     | SpecialRenderingNode::MouseCursor(_) => {}
                 }
@@ -132,7 +131,6 @@ impl Visit for RenderingTree {
                         xy = transform.matrix.transform_xy(xy);
                     }
                     SpecialRenderingNode::Clip(_)
-                    | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::OnTop(_)
                     | SpecialRenderingNode::MouseCursor(_) => {}
                 }
@@ -217,6 +215,16 @@ mod tests {
     use super::*;
     use float_cmp::assert_approx_eq;
 
+    // Helper function to create a dummy leaf node
+    fn dummy_leaf() -> RenderingTree {
+        RenderingTree::Node(crate::DrawCommand::Path {
+            command: Box::new(crate::PathDrawCommand {
+                path: crate::Path::new(),
+                paint: crate::Paint::default(),
+            }),
+        })
+    }
+
     #[test]
     fn rln_visiting_order_should_be_rln() {
         /*
@@ -231,49 +239,30 @@ mod tests {
 
             rln order: 8, 6, 5, 2, 7, 4, 3, 1, 0
         */
-        let id_8 = uuid();
-        let node_8 = RenderingTree::Empty.with_id(id_8);
+        let node_8 = RenderingTree::Empty;
+        let node_7 = RenderingTree::Empty;
+        let node_6 = RenderingTree::Children(vec![node_8.clone()]);
+        let node_5 = RenderingTree::Empty;
+        let node_4 = RenderingTree::Children(vec![node_7.clone()]);
+        let node_3 = RenderingTree::Empty;
+        let node_2 = RenderingTree::Children(vec![node_5.clone(), node_6.clone()]);
+        let node_1 = RenderingTree::Children(vec![node_3.clone(), node_4.clone()]);
+        let node_0 = RenderingTree::Children(vec![node_1.clone(), node_2.clone()]);
 
-        let id_7 = uuid();
-        let node_7 = RenderingTree::Empty.with_id(id_7);
-
-        let id_6 = uuid();
-        let node_6 = node_8.with_id(id_6);
-
-        let id_5 = uuid();
-        let node_5 = RenderingTree::Empty.with_id(id_5);
-
-        let id_4 = uuid();
-        let node_4 = node_7.with_id(id_4);
-
-        let id_3 = uuid();
-        let node_3 = RenderingTree::Empty.with_id(id_3);
-
-        let id_2 = uuid();
-        let node_2 = RenderingTree::wrap([node_5, node_6]).with_id(id_2);
-
-        let id_1 = uuid();
-        let node_1 = RenderingTree::wrap([node_3, node_4]).with_id(id_1);
-
-        let id_0 = uuid();
-        let node_0 = RenderingTree::wrap([node_1, node_2]).with_id(id_0);
-
-        let mut called_ids = vec![];
+        let mut rendering_trees = vec![];
         let _ = node_0.visit_rln(
             &mut |rendering_tree, _| {
-                if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
-                    rendering_tree
-                {
-                    called_ids.push(with_id.id);
-                }
+                rendering_trees.push(rendering_tree.clone());
                 ControlFlow::Continue(())
             },
             &[],
         );
 
         assert_eq!(
-            called_ids,
-            vec![id_8, id_6, id_5, id_2, id_7, id_4, id_3, id_1, id_0,]
+            rendering_trees,
+            vec![
+                node_8, node_6, node_5, node_2, node_7, node_4, node_3, node_1, node_0,
+            ]
         );
     }
 
@@ -291,116 +280,89 @@ mod tests {
             |
             10
         */
-        let id_10 = uuid();
-        let id_9 = uuid();
-        let id_8 = uuid();
-        let id_7 = uuid();
-        let id_6 = uuid();
-        let id_5 = uuid();
-        let id_4 = uuid();
-        let id_3 = uuid();
-        let id_2 = uuid();
-        let id_1 = uuid();
-        let id_0 = uuid();
 
-        let node_10 = crate::translate(px(20.0), px(20.0), RenderingTree::Empty.with_id(id_10));
-        let node_9 = crate::scale(2.0, 2.0, RenderingTree::wrap([node_10]).with_id(id_9));
-        let node_8 = crate::translate(px(20.0), px(20.0), RenderingTree::Empty.with_id(id_8));
-        let node_7 = crate::translate(px(10.0), px(20.0), RenderingTree::Empty.with_id(id_7));
+        let node_10 = crate::translate(px(20.0), px(20.0), dummy_leaf());
+        let node_9 = crate::scale(2.0, 2.0, RenderingTree::Children(vec![node_10.clone()]));
+        let node_8 = crate::translate(px(20.0), px(20.0), dummy_leaf());
+        let node_7 = crate::translate(px(10.0), px(20.0), dummy_leaf());
         let node_6 = crate::absolute(
             px(100.0),
             px(100.0),
-            RenderingTree::wrap([node_8]).with_id(id_6),
+            RenderingTree::Children(vec![node_8.clone()]),
         );
         let node_5 = crate::rotate(
             (std::f32::consts::PI / 2.0).rad(),
-            RenderingTree::wrap([node_7]).with_id(id_5),
+            RenderingTree::Children(vec![node_7.clone()]),
         );
-        let node_4 = crate::translate(px(20.0), px(30.0), RenderingTree::Empty.with_id(id_4));
-        let node_3 = RenderingTree::wrap([node_9]).with_id(id_3);
+        let node_4 = crate::translate(px(20.0), px(30.0), dummy_leaf());
+        let node_3 = RenderingTree::Children(vec![node_9.clone()]);
         let node_2 = crate::translate(
             px(50.0),
             px(100.0),
-            RenderingTree::wrap([node_5, node_6]).with_id(id_2),
+            RenderingTree::Children(vec![node_5.clone(), node_6.clone()]),
         );
         let node_1 = crate::translate(
             px(100.0),
             px(200.0),
-            RenderingTree::wrap([node_3, node_4]).with_id(id_1),
+            RenderingTree::Children(vec![node_3.clone(), node_4.clone()]),
         );
-        let node_0 = RenderingTree::wrap([node_1, node_2]).with_id(id_0);
+        let node_0 = RenderingTree::Children(vec![node_1.clone(), node_2.clone()]);
 
         let mut call_count = 0;
 
+        let answer = [
+            Xy::new(-110.px(), -110.px()),
+            Xy::new(-90.px(), -90.px()),
+            Xy::new(-100.px(), 20.px()),
+            Xy::new(-90.px(), 40.px()),
+            Xy::new(-40.px(), -90.px()),
+            Xy::new(-110.px(), -220.px()),
+            Xy::new(-65.px(), -115.px()),
+            Xy::new(-45.px(), -95.px()),
+            Xy::new(-90.px(), -190.px()),
+            Xy::new(-90.px(), -190.px()),
+            Xy::new(10.px(), 10.px()),
+        ];
+
         let _ = node_0.visit_rln(
             &mut |rendering_tree, utils| {
+                if matches!(rendering_tree, RenderingTree::Empty)
+                    || matches!(rendering_tree, RenderingTree::Special(_))
+                {
+                    return ControlFlow::Continue(());
+                }
+
+                let parent = utils.ancestors.last();
+                let is_direct_child_of_special =
+                    parent.is_some_and(|p| matches!(p, RenderingTree::Special(_)));
+                let is_direct_child_of_children =
+                    parent.is_some_and(|p| matches!(p, RenderingTree::Children(_)));
+                let is_top_level = utils.ancestors.is_empty();
+
+                if !is_direct_child_of_special && !is_direct_child_of_children && !is_top_level {
+                    return ControlFlow::Continue(());
+                }
+
                 let xy = Xy {
                     x: px(10.0),
                     y: px(10.0),
                 };
-                if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
-                    rendering_tree
-                {
-                    let local_xy = utils.to_local_xy(xy);
-                    match with_id.id {
-                        id if id == id_0 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_1 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_2 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_3 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_4 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_5 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_6 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_7 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_8 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_9 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_10 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        _ => {}
-                    }
-                }
+
+                let local_xy = utils.to_local_xy(xy);
+                assert_approx_eq!(
+                    f32,
+                    local_xy.x.as_f32(),
+                    answer[call_count].x.as_f32(),
+                    ulps = 2
+                );
+                assert_approx_eq!(
+                    f32,
+                    local_xy.y.as_f32(),
+                    answer[call_count].y.as_f32(),
+                    ulps = 2
+                );
+                call_count += 1;
+
                 ControlFlow::Continue(())
             },
             &[],
@@ -421,154 +383,98 @@ mod tests {
             |
             10
         */
-        let id_10 = uuid();
-        let id_9 = uuid();
-        let id_8 = uuid();
-        let id_7 = uuid();
-        let id_6 = uuid();
-        let id_5 = uuid();
-        let id_4 = uuid();
-        let id_3 = uuid();
-        let id_2 = uuid();
-        let id_1 = uuid();
-        let id_0 = uuid();
-
-        let node_10 = crate::transform(
-            TransformMatrix::from_translate(20.0, 20.0),
-            RenderingTree::Empty.with_id(id_10),
-        );
+        let node_10 = crate::transform(TransformMatrix::from_translate(20.0, 20.0), dummy_leaf());
         let node_9 = crate::transform(
             TransformMatrix::from_scale(2.0, 2.0),
-            RenderingTree::wrap([node_10]).with_id(id_9),
+            RenderingTree::wrap([node_10.clone()]),
         );
-        let node_8 = crate::transform(
-            TransformMatrix::from_translate(20.0, 20.0),
-            RenderingTree::Empty.with_id(id_8),
-        );
-        let node_7 = crate::transform(
-            TransformMatrix::from_translate(10.0, 20.0),
-            RenderingTree::Empty.with_id(id_7),
-        );
-        let node_6 = crate::absolute(
-            px(100.0),
-            px(100.0),
-            RenderingTree::wrap([node_8]).with_id(id_6),
-        );
+        let node_8 = crate::transform(TransformMatrix::from_translate(20.0, 20.0), dummy_leaf());
+        let node_7 = crate::transform(TransformMatrix::from_translate(10.0, 20.0), dummy_leaf());
+        let node_6 = crate::absolute(px(100.0), px(100.0), RenderingTree::wrap([node_8.clone()]));
         let node_5 = crate::transform(
             TransformMatrix::from_rotate(90.deg()),
-            RenderingTree::wrap([node_7]).with_id(id_5),
+            RenderingTree::wrap([node_7.clone()]),
         );
-        let node_4 = crate::transform(
-            TransformMatrix::from_translate(20.0, 30.0),
-            RenderingTree::Empty.with_id(id_4),
-        );
-        let node_3 = RenderingTree::wrap([node_9]).with_id(id_3);
+        let node_4 = crate::transform(TransformMatrix::from_translate(20.0, 30.0), dummy_leaf());
+        let node_3 = RenderingTree::wrap([node_9.clone()]);
         let node_2 = crate::transform(
             TransformMatrix::from_translate(50.0, 100.0),
-            RenderingTree::wrap([node_5, node_6]).with_id(id_2),
+            RenderingTree::wrap([node_5.clone(), node_6.clone()]),
         );
         let node_1 = crate::transform(
             TransformMatrix::from_translate(100.0, 200.0),
-            RenderingTree::wrap([node_3, node_4]).with_id(id_1),
+            RenderingTree::wrap([node_3.clone(), node_4.clone()]),
         );
-        let node_0 = RenderingTree::wrap([node_1, node_2]).with_id(id_0);
+        let node_0 = RenderingTree::wrap([node_1.clone(), node_2.clone()]);
 
         let mut call_count = 0;
 
+        let answer = [
+            Xy::new(-90.px(), -90.px()),
+            Xy::new(-40.px(), -90.px()),
+            Xy::new(-90.px(), 40.px()),
+            Xy::new(-40.px(), -90.px()),
+            Xy::new(10.px(), 10.px()),
+            Xy::new(-90.px(), -190.px()),
+            Xy::new(-45.px(), -95.px()),
+            Xy::new(-90.px(), -190.px()),
+            Xy::new(10.px(), 10.px()),
+        ];
+
         let _ = node_0.visit_rln(
             &mut |rendering_tree, utils| {
+                if !matches!(rendering_tree, RenderingTree::Special(_)) {
+                    return ControlFlow::Continue(());
+                }
+
                 let xy = Xy {
                     x: px(10.0),
                     y: px(10.0),
                 };
-                if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
-                    rendering_tree
-                {
-                    let local_xy = utils.to_local_xy(xy);
-                    match with_id.id {
-                        id if id == id_0 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_1 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_2 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_3 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_4 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_5 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_6 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_7 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_8 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_9 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_10 => {
-                            assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        _ => {}
-                    }
-                }
+
+                let local_xy = utils.to_local_xy(xy);
+                assert_approx_eq!(
+                    f32,
+                    local_xy.x.as_f32(),
+                    answer[call_count].x.as_f32(),
+                    ulps = 2
+                );
+                assert_approx_eq!(
+                    f32,
+                    local_xy.y.as_f32(),
+                    answer[call_count].y.as_f32(),
+                    ulps = 2
+                );
+                call_count += 1;
+
                 ControlFlow::Continue(())
             },
             &[],
         );
-        assert_eq!(call_count, 11);
+        assert_eq!(call_count, 9);
     }
 
     #[test]
     fn to_local_xy_translate_scale_translate_test() {
-        let id_2 = uuid();
-        let id_1 = uuid();
-        let id_0 = uuid();
-
-        let node_2 = crate::translate(px(2.0), px(2.0), RenderingTree::wrap([]).with_id(id_2));
-        let node_1 = crate::scale(2.0, 2.0, RenderingTree::wrap([node_2]).with_id(id_1));
-        let node_0 = crate::translate(
-            px(2.0),
-            px(2.0),
-            RenderingTree::wrap([node_1]).with_id(id_0),
-        );
+        let node_2 = crate::translate(px(2.0), px(2.0), dummy_leaf());
+        let node_1 = crate::scale(2.0, 2.0, RenderingTree::wrap([node_2.clone()]));
+        let node_0 = crate::translate(px(2.0), px(2.0), RenderingTree::wrap([node_1.clone()]));
 
         let mut call_count = 0;
 
+        // (xy_0_0, xy_10_10)
+        let answer = [
+            (Xy::new(-1.px(), -1.px()), Xy::new(4.px(), 4.px())),
+            (Xy::new(-2.px(), -2.px()), Xy::new(8.px(), 8.px())),
+            (Xy::new(0.px(), 0.px()), Xy::new(10.px(), 10.px())),
+        ];
+
         let _ = node_0.visit_rln(
             &mut |rendering_tree, utils| {
+                if !matches!(rendering_tree, RenderingTree::Special(_)) {
+                    return ControlFlow::Continue(());
+                }
+
                 let xy_0_0 = Xy {
                     x: px(0.0),
                     y: px(0.0),
@@ -577,36 +483,36 @@ mod tests {
                     x: px(10.0),
                     y: px(10.0),
                 };
-                if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
-                    rendering_tree
-                {
-                    let local_xy_0_0 = utils.to_local_xy(xy_0_0);
-                    let local_xy_10_10 = utils.to_local_xy(xy_10_10);
-                    match with_id.id {
-                        id if id == id_0 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 8.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 8.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_1 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -1.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -1.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 4.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 4.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_2 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 2.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        _ => {}
-                    }
-                }
+
+                let local_xy_0_0 = utils.to_local_xy(xy_0_0);
+                let local_xy_10_10 = utils.to_local_xy(xy_10_10);
+
+                assert_approx_eq!(
+                    f32,
+                    local_xy_0_0.x.as_f32(),
+                    answer[call_count].0.x.as_f32(),
+                    ulps = 2
+                );
+                assert_approx_eq!(
+                    f32,
+                    local_xy_0_0.y.as_f32(),
+                    answer[call_count].0.y.as_f32(),
+                    ulps = 2
+                );
+                assert_approx_eq!(
+                    f32,
+                    local_xy_10_10.x.as_f32(),
+                    answer[call_count].1.x.as_f32(),
+                    ulps = 2
+                );
+                assert_approx_eq!(
+                    f32,
+                    local_xy_10_10.y.as_f32(),
+                    answer[call_count].1.y.as_f32(),
+                    ulps = 2
+                );
+                call_count += 1;
+
                 ControlFlow::Continue(())
             },
             &[],
@@ -616,15 +522,23 @@ mod tests {
 
     #[test]
     fn to_local_xy_translate_after_scale_test() {
-        let id_1 = uuid();
-        let id_0 = uuid();
-        let node_1 = crate::translate(px(2.0), px(2.0), RenderingTree::wrap([]).with_id(id_1));
-        let node_0 = crate::scale(2.0, 2.0, RenderingTree::wrap([node_1]).with_id(id_0));
+        let node_1 = crate::translate(px(2.0), px(2.0), dummy_leaf());
+        let node_0 = crate::scale(2.0, 2.0, RenderingTree::wrap([node_1.clone()]));
 
         let mut call_count = 0;
 
+        // (xy_0_0, xy_10_10)
+        let answer = [
+            (Xy::new(0.px(), 0.px()), Xy::new(5.px(), 5.px())),
+            (Xy::new(0.px(), 0.px()), Xy::new(10.px(), 10.px())),
+        ];
+
         let _ = node_0.visit_rln(
             &mut |rendering_tree, utils| {
+                if !matches!(rendering_tree, RenderingTree::Special(_)) {
+                    return ControlFlow::Continue(());
+                }
+
                 let xy_0_0 = Xy {
                     x: px(0.0),
                     y: px(0.0),
@@ -633,29 +547,36 @@ mod tests {
                     x: px(10.0),
                     y: px(10.0),
                 };
-                if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
-                    rendering_tree
-                {
-                    let local_xy_0_0 = utils.to_local_xy(xy_0_0);
-                    let local_xy_10_10 = utils.to_local_xy(xy_10_10);
-                    match with_id.id {
-                        id if id == id_0 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), 0.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), 0.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 5.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 5.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        id if id == id_1 => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 3.0, ulps = 2);
-                            call_count += 1;
-                        }
-                        _ => {}
-                    }
-                }
+
+                let local_xy_0_0 = utils.to_local_xy(xy_0_0);
+                let local_xy_10_10 = utils.to_local_xy(xy_10_10);
+
+                assert_approx_eq!(
+                    f32,
+                    local_xy_0_0.x.as_f32(),
+                    answer[call_count].0.x.as_f32(),
+                    ulps = 2
+                );
+                assert_approx_eq!(
+                    f32,
+                    local_xy_0_0.y.as_f32(),
+                    answer[call_count].0.y.as_f32(),
+                    ulps = 2
+                );
+                assert_approx_eq!(
+                    f32,
+                    local_xy_10_10.x.as_f32(),
+                    answer[call_count].1.x.as_f32(),
+                    ulps = 2
+                );
+                assert_approx_eq!(
+                    f32,
+                    local_xy_10_10.y.as_f32(),
+                    answer[call_count].1.y.as_f32(),
+                    ulps = 2
+                );
+                call_count += 1;
+
                 ControlFlow::Continue(())
             },
             &[],
@@ -675,74 +596,33 @@ mod tests {
 
             rln order: 5, 2, 4, 3, 1, 0
         */
-        let id_5 = uuid();
-        let id_4 = uuid();
-        let id_3 = uuid();
-        let id_2 = uuid();
-        let id_1 = uuid();
-        let id_0 = uuid();
-        let node_5 = RenderingTree::Empty.with_id(id_5);
-        let node_4 = RenderingTree::Empty.with_id(id_4);
-        let node_3 = RenderingTree::Empty.with_id(id_3);
-        let node_2 = RenderingTree::wrap([node_5]).with_id(id_2);
-        let node_1 = RenderingTree::wrap([node_3, node_4]).with_id(id_1);
-        let node_0 = RenderingTree::wrap([node_1, node_2]).with_id(id_0);
+        let node_5 = RenderingTree::Empty;
+        let node_4 = RenderingTree::Empty;
+        let node_3 = RenderingTree::Empty;
+        let node_2 = RenderingTree::Children(vec![node_5.clone()]);
+        let node_1 = RenderingTree::Children(vec![node_3.clone(), node_4.clone()]);
+        let node_0 = RenderingTree::Children(vec![node_1.clone(), node_2.clone()]);
 
         let mut with_ancestors_call_count = 0;
 
-        fn get_ancestor_ids(ancestors: &[&RenderingTree]) -> Vec<u128> {
-            ancestors
-                .iter()
-                .filter_map(|node| {
-                    if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) = node {
-                        return Some(with_id.id);
-                    }
-                    None
-                })
-                .collect()
-        }
+        let expected_ancestors_list: Vec<Vec<&RenderingTree>> = vec![
+            vec![&node_0, &node_2], // node_5
+            vec![&node_0],          // node_2
+            vec![&node_0, &node_1], // node_4
+            vec![&node_0, &node_1], // node_3
+            vec![&node_0],          // node_1
+            vec![],                 // node_0
+        ];
 
         let _ = node_0.visit_rln(
-            &mut |rendering_tree, utils| {
-                if let RenderingTree::Special(SpecialRenderingNode::WithId(with_id)) =
-                    rendering_tree
-                {
-                    match with_id.id {
-                        id if id == id_0 => {
-                            utils.with_ancestors(|ancestors| {
-                                let ancestors_ids = get_ancestor_ids(ancestors);
-                                with_ancestors_call_count += 1;
-                                assert_eq!(ancestors_ids, Vec::<u128>::new());
-                            });
-                        }
-                        id if id == id_1 => utils.with_ancestors(|ancestors| {
-                            let ancestors_ids = get_ancestor_ids(ancestors);
-                            with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0]);
-                        }),
-                        id if id == id_2 => utils.with_ancestors(|ancestors| {
-                            let ancestors_ids = get_ancestor_ids(ancestors);
-                            with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0]);
-                        }),
-                        id if id == id_3 => utils.with_ancestors(|ancestors| {
-                            let ancestors_ids = get_ancestor_ids(ancestors);
-                            with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0, id_1]);
-                        }),
-                        id if id == id_4 => utils.with_ancestors(|ancestors| {
-                            let ancestors_ids = get_ancestor_ids(ancestors);
-                            with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0, id_1]);
-                        }),
-                        id if id == id_5 => utils.with_ancestors(|ancestors| {
-                            let ancestors_ids = get_ancestor_ids(ancestors);
-                            with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec![id_0, id_2]);
-                        }),
-                        _ => {}
-                    }
-                }
+            &mut |_rendering_tree, utils| {
+                utils.with_ancestors(|ancestors| {
+                    assert_eq!(
+                        ancestors,
+                        expected_ancestors_list[with_ancestors_call_count]
+                    );
+                    with_ancestors_call_count += 1;
+                });
                 ControlFlow::Continue(())
             },
             &[],

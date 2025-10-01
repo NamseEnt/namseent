@@ -181,7 +181,7 @@ impl BoundingBox for &RenderingTree {
                             .push(bounding_box);
                         bounding_box
                     }
-                    SpecialRenderingNode::WithId(_) | SpecialRenderingNode::MouseCursor(_) => {
+                    SpecialRenderingNode::MouseCursor(_) => {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [special.inner_rendering_tree_ref()],
                             matrix,
