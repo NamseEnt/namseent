@@ -21,7 +21,6 @@ namui-type = { path = "../namui-type" }
 rustc-hash = "1.1.0"
 smol_str = "0.2.1"
 tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt"] }
-typed-arena = "2.0.2"
 
 [dev-dependencies]
 tokio = { path = "../third-party-forks/tokio/tokio", features = [
