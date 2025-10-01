@@ -191,20 +191,6 @@ impl BoundingBox for &RenderingTree {
                     }
                 },
                 RenderingTree::Empty => None,
-                RenderingTree::Boxed(boxed) => get_bounding_box_with_matrix(
-                    boxed.borrow(),
-                    matrix,
-                    bounding_box_context,
-                    calculator,
-                ),
-                RenderingTree::BoxedChildren(children) => {
-                    get_bounding_box_with_matrix_of_rendering_trees(
-                        children.iter().map(|child| child.borrow()),
-                        matrix,
-                        bounding_box_context,
-                        calculator,
-                    )
-                }
             }
         }
 

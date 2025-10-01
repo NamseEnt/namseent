@@ -14,8 +14,9 @@ targets = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+boxcar = "0.2.14"
+elsa = { version = "1.11.2", features = ["indexmap"] }
 namui-skia = { path = "../skia" }
-elsa = { version = "1.10.0", features = ["indexmap"] }
 namui-type = { path = "../namui-type" }
 rustc-hash = "1.1.0"
 smol_str = "0.2.1"
