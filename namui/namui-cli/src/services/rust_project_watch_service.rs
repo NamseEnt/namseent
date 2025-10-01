@@ -73,11 +73,11 @@ impl RustProjectWatchService {
             for node in resolve.nodes {
                 for dependency in node.deps {
                     let path = dependency.pkg.repr;
-                    if let Some(captures) = local_path_in_repr.captures(&path) {
-                        if let Some(matched_path) = captures.get(1) {
-                            local_dependencies_root_paths
-                                .insert(PathBuf::from_str(matched_path.as_str())?);
-                        }
+                    if let Some(captures) = local_path_in_repr.captures(&path)
+                        && let Some(matched_path) = captures.get(1)
+                    {
+                        local_dependencies_root_paths
+                            .insert(PathBuf::from_str(matched_path.as_str())?);
                     }
                 }
             }

@@ -1,6 +1,6 @@
 use namui::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, bincode::Decode, bincode::Encode, Clone)]
 pub enum ClipboardItem {
     Empty,
     Text(String),

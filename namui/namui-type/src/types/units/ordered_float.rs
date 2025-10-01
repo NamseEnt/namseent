@@ -16,6 +16,12 @@ impl OrderedFloat {
     }
 }
 
+impl From<OrderedFloat> for f32 {
+    fn from(val: OrderedFloat) -> Self {
+        val.inner
+    }
+}
+
 impl PartialOrd for OrderedFloat {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))

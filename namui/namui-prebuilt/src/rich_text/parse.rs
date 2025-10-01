@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq)]
 pub(crate) enum Token {
     DefaultText { text: String },
     Image { tag: String },
@@ -10,7 +10,7 @@ pub(crate) enum Token {
     RenderingTree { tag: String },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq)]
 pub enum ParseError {
     /// Unclosed tag: found opening '|' but no closing '|'
     UnclosedTag,

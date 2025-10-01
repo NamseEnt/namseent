@@ -664,7 +664,7 @@ where
     }
 }
 
-#[cfg(feature = "skia")]
+
 impl From<Rect<Px>> for skia_safe::Rect {
     fn from(rect: Rect<Px>) -> Self {
         match rect {
@@ -689,7 +689,7 @@ impl From<Rect<Px>> for skia_safe::Rect {
     }
 }
 
-#[cfg(feature = "skia")]
+
 impl<T> From<skia_safe::Rect> for Rect<T>
 where
     T: From<f32> + Debug,

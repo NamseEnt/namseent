@@ -20,12 +20,14 @@ pub fn type_derives(attr: TokenStream, item: TokenStream) -> TokenStream {
         .iter()
         .partition::<Vec<_>, _>(|derive| !derive.is_excluded());
 
-    let default_derives: [syn::Path; 5] = [
+    let default_derives: [syn::Path; 7] = [
         syn::parse_str("Debug").unwrap(),
         syn::parse_str("Clone").unwrap(),
         syn::parse_str("PartialEq").unwrap(),
         syn::parse_str("serde::Serialize").unwrap(),
         syn::parse_str("serde::Deserialize").unwrap(),
+        syn::parse_str("bincode::Decode").unwrap(),
+        syn::parse_str("bincode::Encode").unwrap(),
     ];
 
     let mut type_derives = Vec::new();

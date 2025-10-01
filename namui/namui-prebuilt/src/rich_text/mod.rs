@@ -7,7 +7,7 @@ pub use parse::*;
 use regex::Regex;
 use std::{cmp::Ordering, collections::HashMap};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, bincode::Decode, bincode::Encode, Clone, Copy, PartialEq)]
 pub enum VerticalAlign {
     Top,
     Center,

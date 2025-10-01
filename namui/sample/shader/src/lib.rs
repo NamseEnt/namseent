@@ -6,7 +6,7 @@ pub fn main() {
     namui::start(&mut ShaderExample::new(), &()).await
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, bincode::Decode, bincode::Encode, Clone, Copy, PartialEq, Eq)]
 enum Tab {
     Spiral,
     Shake,

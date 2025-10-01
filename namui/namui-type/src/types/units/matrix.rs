@@ -266,7 +266,7 @@ crate::impl_op_forward_ref_reversed!(*|a: TransformMatrix, b: f32| -> TransformM
     }
 });
 
-#[cfg(feature = "skia")]
+
 impl From<skia_safe::Matrix> for TransformMatrix {
     fn from(matrix: skia_safe::Matrix) -> Self {
         Self::from_slice([
@@ -276,7 +276,7 @@ impl From<skia_safe::Matrix> for TransformMatrix {
     }
 }
 
-#[cfg(feature = "skia")]
+
 impl From<TransformMatrix> for skia_safe::Matrix {
     fn from(val: TransformMatrix) -> Self {
         skia_safe::Matrix::new_all(

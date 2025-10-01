@@ -135,7 +135,7 @@ pub fn horizontal<'a, Item: ToKeyCell<'a>>(
     slice_internal(Direction::Horizontal, items)
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Copy)]
 pub enum Direction {
     Vertical,
     Horizontal,
@@ -441,7 +441,7 @@ pub fn vertical_padding_no_clip<'a>(
     ])
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, bincode::Decode, bincode::Encode, Clone, Copy)]
 pub enum FitAlign {
     LeftTop,
     CenterMiddle,

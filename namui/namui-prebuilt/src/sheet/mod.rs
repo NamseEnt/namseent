@@ -67,7 +67,7 @@
 //     },
 // }
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+// #[derive(Debug, bincode::Decode, bincode::Encode, Clone, Copy, PartialEq, Eq, Hash)]
 // struct CellIndex {
 //     pub row: usize,
 //     pub column: usize,

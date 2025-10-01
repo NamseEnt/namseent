@@ -206,7 +206,7 @@ pub fn shader(item: TokenStream) -> TokenStream {
 
     let result = format!(
         "
-#[derive(Debug, Clone)]
+#[derive(Debug, bincode::Decode, bincode::Encode, Clone)]
 pub struct {shader_ident} {{
     {struct_fields}
 }}
