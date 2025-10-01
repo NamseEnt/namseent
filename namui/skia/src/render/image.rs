@@ -17,7 +17,10 @@ impl Image {
     }
     #[allow(dead_code)]
     pub(crate) fn get_default_shader(&self) -> Shader {
-        Shader::Image { src: self.clone() }
+        Shader::Image {
+            src: self.clone(),
+            tile_mode: Xy::single(TileMode::Clamp),
+        }
     }
 }
 

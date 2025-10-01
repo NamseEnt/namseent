@@ -5,6 +5,7 @@ use std::hash::Hash;
 pub enum Shader {
     Image {
         src: Image,
+        tile_mode: Xy<TileMode>,
     },
     Blend {
         blend_mode: BlendMode,
@@ -32,8 +33,9 @@ impl Shader {
 impl Hash for Shader {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Shader::Image { src } => {
+            Shader::Image { src, tile_mode } => {
                 src.hash(state);
+                tile_mode.hash(state);
             }
             Shader::Blend {
                 blend_mode,
