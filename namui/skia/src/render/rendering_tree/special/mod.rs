@@ -6,7 +6,6 @@ pub mod rotate;
 pub mod scale;
 pub mod transform;
 pub mod translate;
-pub mod with_id;
 
 use crate::*;
 pub use absolute::*;
@@ -17,13 +16,11 @@ pub use rotate::*;
 pub use scale::*;
 pub use transform::*;
 pub use translate::*;
-pub use with_id::*;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum SpecialRenderingNode {
     Translate(TranslateNode),
     Clip(ClipNode),
-    WithId(WithIdNode),
     Absolute(AbsoluteNode),
     Rotate(RotateNode),
     Scale(ScaleNode),
@@ -37,7 +34,6 @@ impl SpecialRenderingNode {
         match self {
             SpecialRenderingNode::Translate(node) => node.rendering_tree.as_ref(),
             SpecialRenderingNode::Clip(node) => node.rendering_tree.as_ref(),
-            SpecialRenderingNode::WithId(node) => node.rendering_tree.as_ref(),
             SpecialRenderingNode::Absolute(node) => node.rendering_tree.as_ref(),
             SpecialRenderingNode::Rotate(node) => node.rendering_tree.as_ref(),
             SpecialRenderingNode::Scale(node) => node.rendering_tree.as_ref(),
@@ -50,7 +46,6 @@ impl SpecialRenderingNode {
         match self {
             SpecialRenderingNode::Translate(node) => *node.rendering_tree,
             SpecialRenderingNode::Clip(node) => *node.rendering_tree,
-            SpecialRenderingNode::WithId(node) => *node.rendering_tree,
             SpecialRenderingNode::Absolute(node) => *node.rendering_tree,
             SpecialRenderingNode::Rotate(node) => *node.rendering_tree,
             SpecialRenderingNode::Scale(node) => *node.rendering_tree,
