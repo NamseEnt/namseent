@@ -82,7 +82,7 @@ impl Draw for RenderingTree {
                             .on_top_node_matrix_tuples
                             .push((on_top.clone(), matrix));
                     }
-                    SpecialRenderingNode::WithId(_) | SpecialRenderingNode::MouseCursor(_) => {
+                    SpecialRenderingNode::MouseCursor(_) => {
                         draw_internal(
                             skia,
                             special.inner_rendering_tree_ref(),
