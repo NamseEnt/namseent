@@ -1,6 +1,8 @@
 mod shop_modal;
 mod tower_selecting_hand;
 
+pub use tower_selecting_hand::TowerPreviewContent;
+
 use crate::game_state::flow::SelectingTowerFlow;
 use namui::*;
 use shop_modal::ShopModal;
