@@ -13,6 +13,7 @@ struct KeyboardSystem {
 
 impl KeyboardSystem {
     pub(crate) fn new() -> Self {
+        println!("here");
         let pressing_code_set = Arc::new(RwLock::new(HashSet::new()));
 
         KeyboardSystem { pressing_code_set }

@@ -55,6 +55,7 @@ pub fn start<Root: Fn(&RenderCtx) + Send + Sync + 'static>(component: Root) -> R
     println!("looper new done");
 
     setup_rayon_concurrency()?;
+    println!("after setup_rayon_concurrency");
     Ok(())
 }
 unsafe extern "C" {

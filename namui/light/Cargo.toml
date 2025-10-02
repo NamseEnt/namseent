@@ -37,7 +37,7 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "fs",
 ] }
 tokio-stream = { path = "../third-party-forks/tokio/tokio-stream" }
-rayon = "1.10.0"
+rayon = { path = "../third-party-forks/rayon" }
 http = "1.1.0"
 http-body = "1.0.1"
 bytes = "1.7.1"

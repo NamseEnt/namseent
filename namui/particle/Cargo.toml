@@ -8,7 +8,7 @@ namui-type = { path = "../namui-type" }
 namui-hooks = { path = "../namui-hooks" }
 namui-skia = { path = "../skia" }  
 arc-swap = "1"
-rayon = "1"
+rayon = { path = "../third-party-forks/rayon" }
 tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "sync",
     "macros",

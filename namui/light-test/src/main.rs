@@ -21,17 +21,17 @@ fn main() {
 }
 
 fn render(ctx: &RenderCtx) {
-    let (content, set_content) = ctx.state(|| None);
+    let (content, set_content) = ctx.state(|| None::<String>);
 
-    ctx.effect("load media", || {
-        namui_light::spawn(async move {
-            let buffer = namui_light::system::file::bundle::read("resources/text.txt")
-                .await
-                .unwrap();
-            let content = std::str::from_utf8(&buffer).unwrap();
-            set_content.set(Some(content.to_string()));
-        });
-    });
+    // ctx.effect("load media", || {
+    //     namui_light::spawn(async move {
+    //         let buffer = namui_light::system::file::bundle::read("resources/text.txt")
+    //             .await
+    //             .unwrap();
+    //         let content = std::str::from_utf8(&buffer).unwrap();
+    //         set_content.set(Some(content.to_string()));
+    //     });
+    // });
 
     ctx.add(namui_light::text(TextParam {
         text: match content.as_ref() {

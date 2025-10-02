@@ -49,7 +49,6 @@ export async function threadMain(supplies: ThreadStartSupplies) {
                     0,
                     1,
                 );
-                console.log("try spawn thread", tid);
                 const worker = new ThreadWorker();
                 worker.postMessage({
                     ...supplies,
@@ -62,7 +61,6 @@ export async function threadMain(supplies: ThreadStartSupplies) {
             },
         },
     });
-    console.log("hi");
 
     const exports = instance.exports as any;
 
@@ -71,9 +69,7 @@ export async function threadMain(supplies: ThreadStartSupplies) {
         wasi.start(instance as any);
         console.log("main thread end");
     } else {
-        console.log(`thread ${supplies.tid} start`);
         wasi.initialize(instance as any);
         exports.wasi_thread_start(supplies.tid, supplies.startArgPtr);
-        console.log(`thread ${supplies.tid} end`);
     }
 }
