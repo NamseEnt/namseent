@@ -3,7 +3,7 @@ use namui_type::*;
 use std::borrow::Borrow;
 
 impl BoundingBox for &RenderingTree {
-    fn bounding_box(self, calculator: &dyn SkCalculate) -> Option<Rect<Px>> {
+    fn bounding_box(self) -> Option<Rect<Px>> {
         static CACHE: LruCache<RenderingTree, Rect<Px>> = LruCache::new();
 
         if let Some(cached) = CACHE.get(self) {
@@ -17,23 +17,16 @@ impl BoundingBox for &RenderingTree {
             rendering_tree: &RenderingTree,
             matrix: &TransformMatrix,
             bounding_box_context: &mut BoundingBoxContext,
-            calculator: &dyn SkCalculate,
         ) -> Option<Rect<Px>> {
             fn get_bounding_box_with_matrix_of_rendering_trees<'a>(
                 rendering_trees: impl IntoIterator<Item = &'a RenderingTree>,
                 matrix: &TransformMatrix,
                 bounding_box_context: &mut BoundingBoxContext,
-                calculator: &dyn SkCalculate,
             ) -> Option<Rect<Px>> {
                 rendering_trees
                     .into_iter()
                     .filter_map(|child| {
-                        get_bounding_box_with_matrix(
-                            child,
-                            matrix,
-                            bounding_box_context,
-                            calculator,
-                        )
+                        get_bounding_box_with_matrix(child, matrix, bounding_box_context)
                     })
                     .reduce(|acc, bounding_box| {
                         Rect::get_minimum_rectangle_containing(&acc, bounding_box)
@@ -46,11 +39,10 @@ impl BoundingBox for &RenderingTree {
                         children,
                         matrix,
                         bounding_box_context,
-                        calculator,
                     )
                 }
                 RenderingTree::Node(draw_command) => draw_command
-                    .bounding_box(calculator)
+                    .bounding_box()
                     .map(|bounding_box| matrix.transform_rect(bounding_box)),
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::Translate(translate) => {
@@ -59,7 +51,6 @@ impl BoundingBox for &RenderingTree {
                             [translate.rendering_tree.borrow()],
                             &matrix,
                             bounding_box_context,
-                            calculator,
                         )
                     }
                     SpecialRenderingNode::Clip(clip) => {
@@ -67,12 +58,11 @@ impl BoundingBox for &RenderingTree {
                             [clip.rendering_tree.borrow()],
                             matrix,
                             bounding_box_context,
-                            calculator,
                         )
                         .and_then(|bounding_box| {
                             let clip_bounding_box = clip
                                 .path
-                                .bounding_box(calculator)
+                                .bounding_box()
                                 .map(|bounding_box| matrix.transform_rect(bounding_box));
 
                             match clip.clip_op {
@@ -136,7 +126,6 @@ impl BoundingBox for &RenderingTree {
                             [absolute.rendering_tree.borrow()],
                             &absolute.get_matrix(),
                             bounding_box_context,
-                            calculator,
                         )
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
@@ -146,7 +135,6 @@ impl BoundingBox for &RenderingTree {
                             [rotate.rendering_tree.borrow()],
                             &matrix,
                             bounding_box_context,
-                            calculator,
                         )
                     }
                     SpecialRenderingNode::Scale(scale) => {
@@ -156,7 +144,6 @@ impl BoundingBox for &RenderingTree {
                             [scale.rendering_tree.borrow()],
                             &matrix,
                             bounding_box_context,
-                            calculator,
                         )
                     }
                     SpecialRenderingNode::Transform(transform) => {
@@ -166,7 +153,6 @@ impl BoundingBox for &RenderingTree {
                             [transform.rendering_tree.borrow()],
                             &matrix,
                             bounding_box_context,
-                            calculator,
                         )
                     }
                     SpecialRenderingNode::OnTop(on_top) => {
@@ -174,7 +160,6 @@ impl BoundingBox for &RenderingTree {
                             [on_top.rendering_tree.borrow()],
                             matrix,
                             bounding_box_context,
-                            calculator,
                         );
                         bounding_box_context
                             .bounding_boxes_on_top
@@ -186,7 +171,6 @@ impl BoundingBox for &RenderingTree {
                             [special.inner_rendering_tree_ref()],
                             matrix,
                             bounding_box_context,
-                            calculator,
                         )
                     }
                 },
@@ -201,7 +185,6 @@ impl BoundingBox for &RenderingTree {
             self,
             &TransformMatrix::identity(),
             &mut bounding_box_context,
-            calculator,
         );
 
         let bounding_box = bounding_box_context
@@ -224,8 +207,8 @@ impl<'a, T> BoundingBox for T
 where
     T: Iterator<Item = &'a RenderingTree>,
 {
-    fn bounding_box(self, calculator: &dyn SkCalculate) -> Option<Rect<Px>> {
-        self.filter_map(|rendering_tree| rendering_tree.bounding_box(calculator))
+    fn bounding_box(self) -> Option<Rect<Px>> {
+        self.filter_map(|rendering_tree| rendering_tree.bounding_box())
             .reduce(|acc, bounding_box| Rect::get_minimum_rectangle_containing(&acc, bounding_box))
     }
 }

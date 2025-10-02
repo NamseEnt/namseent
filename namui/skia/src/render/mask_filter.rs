@@ -44,17 +44,6 @@ pub enum BlurStyle {
     Inner,
 }
 
-impl From<BlurStyle> for skia_safe::BlurStyle {
-    fn from(blur_style: BlurStyle) -> Self {
-        match blur_style {
-            BlurStyle::Normal => skia_safe::BlurStyle::Normal,
-            BlurStyle::Solid => skia_safe::BlurStyle::Solid,
-            BlurStyle::Outer => skia_safe::BlurStyle::Outer,
-            BlurStyle::Inner => skia_safe::BlurStyle::Inner,
-        }
-    }
-}
-
 /// https://android.googlesource.com/platform/frameworks/base/+/41fceb4/libs/hwui/utils/Blur.cpp
 /// This constant approximates the scaling done in the software path's
 /// "high quality" mode, in SkBlurMask::Blur() (1 / sqrt(3)).

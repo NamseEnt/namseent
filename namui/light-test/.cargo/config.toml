@@ -1,0 +1,35 @@
+
+[build]
+rustflags = [
+    "-Ctarget-feature=-crt-static",
+    "-L/Users/namse/namseent2/namui/namui-cli/wasi-sdk/share/wasi-sysroot/lib/wasm32-wasip1-threads",
+    "-L/Users/namse/namseent2/namui/namui-cli/wasi-sdk/lib/clang/19/lib/wasip1",
+    # 2MB: 2097152
+    # 8MB: 8388608
+    # 256MB: 268435456
+    # 4GB: 4294967296
+    # stack size 8MB
+
+    "-Clink-arg=--initial-memory=8388608",
+    "-Clink-arg=--max-memory=4294967296",
+    "-Clink-arg=--stack-first",
+
+    "-Clink-arg=--export=__heap_base",
+    "-Clink-arg=--export=__data_end",
+    "-Clink-arg=--export=malloc",
+    "-Clink-arg=--export=free",
+
+    # Supported by every main browser: https://caniuse.com/wasm-simd
+    "-Ctarget-feature=+simd128",
+]
+
+[env]
+CLANGCC = "/Users/namse/namseent2/namui/namui-cli/wasi-sdk/bin/clang"
+CLANGCXX = "/Users/namse/namseent2/namui/namui-cli/wasi-sdk/bin/clang++"
+CC = "/Users/namse/namseent2/namui/namui-cli/wasi-sdk/bin/clang"
+CXX = "/Users/namse/namseent2/namui/namui-cli/wasi-sdk/bin/clang++"
+WASI_SDK = "/Users/namse/namseent2/namui/namui-cli/wasi-sdk"
+WASI_SYSROOT = "/Users/namse/namseent2/namui/namui-cli/wasi-sdk/share/wasi-sysroot"
+EMSDK_SYSTEM_INCLUDE = "/Users/namse/namseent2/namui/namui-cliemscripten/system/include"
+CLANG_PATH = "/Users/namse/namseent2/namui/namui-cli/wasi-sdk/bin/clang"
+CARGO_TARGET_WASM32_WASIP1_THREADS_LINKER = "/Users/namse/namseent2/namui/namui-cli/wasi-sdk/bin/wasm-ld"

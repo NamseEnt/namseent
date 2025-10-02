@@ -1,0 +1,25 @@
+[package]
+name = "bundle"
+version = "0.1.0"
+edition = "2024"
+
+[package.metadata.namui]
+targets = [
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+    "wasm32-wasi-web",
+    "aarch64-apple-darwin",
+]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+namui-light = { path = "../light" }
+wit-bindgen = "0.46.0"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1 # Reduce number of codegen units to increase optimizations
+strip = "debuginfo"

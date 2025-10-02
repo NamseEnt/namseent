@@ -20,7 +20,7 @@ namui-skia = { path = "../skia" }
 namui-type = { path = "../namui-type" }
 rustc-hash = "1.1.0"
 smol_str = "0.2.1"
-tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt"] }
+tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt", "rt-multi-thread"] }
 
 [dev-dependencies]
 tokio = { path = "../third-party-forks/tokio/tokio", features = [

@@ -187,20 +187,6 @@ impl Color {
     }
 }
 
-impl From<Color> for skia_safe::Color4f {
-    fn from(color: Color) -> Self {
-        skia_safe::Color4f::from_bytes_rgba(u32::from_le_bytes([
-            color.r, color.g, color.b, color.a,
-        ]))
-    }
-}
-
-impl From<Color> for skia_safe::Color {
-    fn from(color: Color) -> Self {
-        skia_safe::Color::from_argb(color.a, color.r, color.g, color.b)
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Copy)]
 struct Hsl01 {
     hue: f32,
@@ -215,15 +201,6 @@ pub enum PaintStyle {
     Stroke,
 }
 
-impl From<PaintStyle> for skia_safe::PaintStyle {
-    fn from(paint_style: PaintStyle) -> Self {
-        match paint_style {
-            PaintStyle::Fill => skia_safe::PaintStyle::Fill,
-            PaintStyle::Stroke => skia_safe::PaintStyle::Stroke,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum StrokeCap {
     Butt,
@@ -231,31 +208,11 @@ pub enum StrokeCap {
     Square,
 }
 
-impl From<StrokeCap> for skia_safe::PaintCap {
-    fn from(stroke_cap: StrokeCap) -> Self {
-        match stroke_cap {
-            StrokeCap::Butt => skia_safe::PaintCap::Butt,
-            StrokeCap::Round => skia_safe::PaintCap::Round,
-            StrokeCap::Square => skia_safe::PaintCap::Square,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum StrokeJoin {
     Bevel,
     Miter,
     Round,
-}
-
-impl From<StrokeJoin> for skia_safe::PaintJoin {
-    fn from(stroke_join: StrokeJoin) -> Self {
-        match stroke_join {
-            StrokeJoin::Bevel => skia_safe::PaintJoin::Bevel,
-            StrokeJoin::Miter => skia_safe::PaintJoin::Miter,
-            StrokeJoin::Round => skia_safe::PaintJoin::Round,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
@@ -277,45 +234,12 @@ pub enum ClipOp {
     Difference,
 }
 
-impl From<ClipOp> for skia_safe::ClipOp {
-    fn from(clip_op: ClipOp) -> Self {
-        match clip_op {
-            ClipOp::Intersect => skia_safe::ClipOp::Intersect,
-            ClipOp::Difference => skia_safe::ClipOp::Difference,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Copy, Hash)]
 pub enum AlphaType {
     Opaque,
     Premul,
     Unpremul,
     // Unknown, // not support by canvaskit
-}
-
-impl From<skia_safe::AlphaType> for AlphaType {
-    fn from(val: skia_safe::AlphaType) -> Self {
-        match val {
-            skia_safe::AlphaType::Opaque => AlphaType::Opaque,
-            skia_safe::AlphaType::Premul => AlphaType::Premul,
-            skia_safe::AlphaType::Unpremul => AlphaType::Unpremul,
-            skia_safe::AlphaType::Unknown => {
-                unimplemented!("canvaskit doesn't support AlphaType::Unknown")
-            }
-        }
-    }
-}
-
-impl From<AlphaType> for skia_safe::AlphaType {
-    fn from(val: AlphaType) -> Self {
-        match val {
-            AlphaType::Opaque => skia_safe::AlphaType::Opaque,
-            AlphaType::Premul => skia_safe::AlphaType::Premul,
-            AlphaType::Unpremul => skia_safe::AlphaType::Unpremul,
-            // AlphaType::Unknown => skia_safe::AlphaType::Unknown,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
@@ -380,84 +304,10 @@ impl ColorType {
     }
 }
 
-impl From<skia_safe::ColorType> for ColorType {
-    fn from(val: skia_safe::ColorType) -> Self {
-        match val {
-            skia_safe::ColorType::Alpha8 => ColorType::Alpha8,
-            skia_safe::ColorType::RGB565 => ColorType::Rgb565,
-            skia_safe::ColorType::RGBA8888 => ColorType::Rgba8888,
-            skia_safe::ColorType::BGRA8888 => ColorType::Bgra8888,
-            skia_safe::ColorType::RGBA1010102 => ColorType::Rgba1010102,
-            skia_safe::ColorType::RGB101010x => ColorType::Rgb101010x,
-            skia_safe::ColorType::Gray8 => ColorType::Gray8,
-            skia_safe::ColorType::RGBAF16 => ColorType::RgbaF16,
-            skia_safe::ColorType::RGBAF32 => ColorType::RgbaF32,
-            _ => unimplemented!(),
-            // skia_safe::ColorType::ARGB4444 => ColorType::ARGB4444,
-            // skia_safe::ColorType::RGB888x => ColorType::RGB888x,
-            // skia_safe::ColorType::BGRA1010102 => ColorType::BGRA1010102,
-            // skia_safe::ColorType::BGR101010x => ColorType::BGR101010x,
-            // skia_safe::ColorType::BGR101010xXR => ColorType::BGR101010xXR,
-            // skia_safe::ColorType::RGBA10x6 => ColorType::RGBA10x6,
-            // skia_safe::ColorType::RGBAF16Norm => ColorType::RGBAF16Norm,
-            // skia_safe::ColorType::R8G8UNorm => ColorType::R8G8UNorm,
-            // skia_safe::ColorType::A16Float => ColorType::A16Float,
-            // skia_safe::ColorType::R16G16Float => ColorType::R16G16Float,
-            // skia_safe::ColorType::A16UNorm => ColorType::A16UNorm,
-            // skia_safe::ColorType::R16G16UNorm => ColorType::R16G16UNorm,
-            // skia_safe::ColorType::R16G16B16A16UNorm => ColorType::R16G16B16A16UNorm,
-            // skia_safe::ColorType::SRGBA8888 => ColorType::SRGBA8888,
-            // skia_safe::ColorType::R8UNorm => ColorType::R8UNorm,
-            // skia_safe::ColorType::Unknown => ColorType::Unknown,
-        }
-    }
-}
-
-impl From<ColorType> for skia_safe::ColorType {
-    fn from(val: ColorType) -> Self {
-        match val {
-            ColorType::Alpha8 => skia_safe::ColorType::Alpha8,
-            ColorType::Rgb565 => skia_safe::ColorType::RGB565,
-            ColorType::Rgba8888 => skia_safe::ColorType::RGBA8888,
-            ColorType::Bgra8888 => skia_safe::ColorType::BGRA8888,
-            ColorType::Rgba1010102 => skia_safe::ColorType::RGBA1010102,
-            ColorType::Rgb101010x => skia_safe::ColorType::RGB101010x,
-            ColorType::Gray8 => skia_safe::ColorType::Gray8,
-            ColorType::RgbaF16 => skia_safe::ColorType::RGBAF16,
-            ColorType::RgbaF32 => skia_safe::ColorType::RGBAF32,
-            // ColorType::ARGB4444 => skia_safe::ColorType::ARGB4444,
-            // ColorType::RGB888x => skia_safe::ColorType::RGB888x,
-            // ColorType::BGRA1010102 => skia_safe::ColorType::BGRA1010102,
-            // ColorType::BGR101010x => skia_safe::ColorType::BGR101010x,
-            // ColorType::BGR101010xXR => skia_safe::ColorType::BGR101010xXR,
-            // ColorType::RGBA10x6 => skia_safe::ColorType::RGBA10x6,
-            // ColorType::RGBAF16Norm => skia_safe::ColorType::RGBAF16Norm,
-            // ColorType::R8G8UNorm => skia_safe::ColorType::R8G8UNorm,
-            // ColorType::A16Float => skia_safe::ColorType::A16Float,
-            // ColorType::R16G16Float => skia_safe::ColorType::R16G16Float,
-            // ColorType::A16UNorm => skia_safe::ColorType::A16UNorm,
-            // ColorType::R16G16UNorm => skia_safe::ColorType::R16G16UNorm,
-            // ColorType::R16G16B16A16UNorm => skia_safe::ColorType::R16G16B16A16UNorm,
-            // ColorType::SRGBA8888 => skia_safe::ColorType::SRGBA8888,
-            // ColorType::R8UNorm => skia_safe::ColorType::R8UNorm,
-            // ColorType::Unknown => skia_safe::ColorType::Unknown,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FilterMode {
     Linear,
     Nearest,
-}
-
-impl From<FilterMode> for skia_safe::FilterMode {
-    fn from(filter_mode: FilterMode) -> Self {
-        match filter_mode {
-            FilterMode::Linear => skia_safe::FilterMode::Linear,
-            FilterMode::Nearest => skia_safe::FilterMode::Nearest,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -465,16 +315,6 @@ pub enum MipmapMode {
     None,
     Nearest,
     Linear,
-}
-
-impl From<MipmapMode> for skia_safe::MipmapMode {
-    fn from(mipmap_mode: MipmapMode) -> Self {
-        match mipmap_mode {
-            MipmapMode::None => skia_safe::MipmapMode::None,
-            MipmapMode::Nearest => skia_safe::MipmapMode::Nearest,
-            MipmapMode::Linear => skia_safe::MipmapMode::Linear,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
@@ -510,42 +350,6 @@ pub enum BlendMode {
     Luminosity,
 }
 
-impl From<BlendMode> for skia_safe::BlendMode {
-    fn from(blend_mode: BlendMode) -> Self {
-        match blend_mode {
-            BlendMode::Clear => skia_safe::BlendMode::Clear,
-            BlendMode::Src => skia_safe::BlendMode::Src,
-            BlendMode::Dst => skia_safe::BlendMode::Dst,
-            BlendMode::SrcOver => skia_safe::BlendMode::SrcOver,
-            BlendMode::DstOver => skia_safe::BlendMode::DstOver,
-            BlendMode::SrcIn => skia_safe::BlendMode::SrcIn,
-            BlendMode::DstIn => skia_safe::BlendMode::DstIn,
-            BlendMode::SrcOut => skia_safe::BlendMode::SrcOut,
-            BlendMode::DstOut => skia_safe::BlendMode::DstOut,
-            BlendMode::SrcATop => skia_safe::BlendMode::SrcATop,
-            BlendMode::DstATop => skia_safe::BlendMode::DstATop,
-            BlendMode::Xor => skia_safe::BlendMode::Xor,
-            BlendMode::Plus => skia_safe::BlendMode::Plus,
-            BlendMode::Modulate => skia_safe::BlendMode::Modulate,
-            BlendMode::Screen => skia_safe::BlendMode::Screen,
-            BlendMode::Overlay => skia_safe::BlendMode::Overlay,
-            BlendMode::Darken => skia_safe::BlendMode::Darken,
-            BlendMode::Lighten => skia_safe::BlendMode::Lighten,
-            BlendMode::ColorDodge => skia_safe::BlendMode::ColorDodge,
-            BlendMode::ColorBurn => skia_safe::BlendMode::ColorBurn,
-            BlendMode::HardLight => skia_safe::BlendMode::HardLight,
-            BlendMode::SoftLight => skia_safe::BlendMode::SoftLight,
-            BlendMode::Difference => skia_safe::BlendMode::Difference,
-            BlendMode::Exclusion => skia_safe::BlendMode::Exclusion,
-            BlendMode::Multiply => skia_safe::BlendMode::Multiply,
-            BlendMode::Hue => skia_safe::BlendMode::Hue,
-            BlendMode::Saturation => skia_safe::BlendMode::Saturation,
-            BlendMode::Color => skia_safe::BlendMode::Color,
-            BlendMode::Luminosity => skia_safe::BlendMode::Luminosity,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 /// Explain: https://developer.android.com/reference/android/graphics/Shader.TileMode#summary
 pub enum TileMode {
@@ -557,17 +361,6 @@ pub enum TileMode {
     Mirror,
     /// Repeat the shader's image horizontally and vertically.
     Repeat,
-}
-
-impl From<TileMode> for skia_safe::TileMode {
-    fn from(tile_mode: TileMode) -> Self {
-        match tile_mode {
-            TileMode::Clamp => skia_safe::TileMode::Clamp,
-            TileMode::Decal => skia_safe::TileMode::Decal,
-            TileMode::Mirror => skia_safe::TileMode::Mirror,
-            TileMode::Repeat => skia_safe::TileMode::Repeat,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -612,7 +405,7 @@ pub enum ImageFit {
     None,
 }
 
-pub type GlyphId = skia_safe::GlyphId;
+pub type GlyphId = u32;
 pub type GlyphIds = Vec<GlyphId>;
 
 #[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]

@@ -4,7 +4,6 @@ use crate::*;
 use elsa::*;
 use rustc_hash::FxHashSet;
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, AtomicUsize},
     mpsc,
 };
@@ -21,7 +20,7 @@ pub struct World {
     pub(crate) atom_index: AtomicUsize,
     pub(crate) raw_event: Option<RawEvent>,
     pub(crate) is_stop_event_propagation: AtomicBool,
-    pub(crate) sk_calculate: Arc<dyn SkCalculate>,
+    pub(crate) tokio_runtime: tokio::runtime::Runtime,
 }
 
 impl World {

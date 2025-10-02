@@ -13,45 +13,16 @@ targets = [
 
 [dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
-namui-type = { path = "../namui-type", features = ["skia"] }
+namui-type = { path = "../namui-type" }
 num = { version = "0.4.0", features = ["std"] }
 ordered-float = { version = "4.2.0" }
 textwrap = "0.16.0"
 unicode-segmentation = "1.10.1"
 tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt"] }
-skia-safe = { path = "../third-party-forks/rust-skia/skia-safe" }
 derive_more = { version = "1.0.0", features = ["debug"] }
 bytes = "1.10.1"
 bincode = "2.0.1"
-
-[target.'cfg(target_os="wasi")'.dependencies]
-skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", features = [
-    "gl",
-    "freetype-woff2",
-    "embed-freetype",
-] }
-
-[target.'cfg(not(target_os="wasi"))'.dependencies]
-winit = { version = "0.29.4" }
-
-[target.'cfg(target_os="windows")'.dependencies]
-skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", features = [
-    "d3d",
-    "freetype-woff2",
-    "embed-freetype",
-] }
-windows = { version = "0.61.1", features = [
-    "Win32",
-    "Win32_Graphics",
-    "Win32_Graphics_Dxgi",
-    "Win32_Graphics_Direct3D12",
-    "Win32_Graphics_Direct3D",
-    "Win32_Foundation",
-    "Win32_Graphics_Dxgi_Common",
-    "Win32_Security",
-    "Win32_System_Threading",
-    "Win32_System",
-] }
+lyon = "1.0.16"
 
 [dev-dependencies]
 float-cmp = "0.9.0"

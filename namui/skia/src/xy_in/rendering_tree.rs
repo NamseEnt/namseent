@@ -2,14 +2,14 @@ use crate::*;
 use std::ops::ControlFlow;
 
 impl XyIn for RenderingTree {
-    fn xy_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>) -> bool {
-        xy_in(self, calculator, xy, &[])
+    fn xy_in(&self, xy: Xy<Px>) -> bool {
+        xy_in(self, xy, &[])
     }
 }
 
 impl XyIn for [&RenderingTree] {
-    fn xy_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>) -> bool {
-        self.iter().any(|node| node.xy_in(calculator, xy))
+    fn xy_in(&self, xy: Xy<Px>) -> bool {
+        self.iter().any(|node| node.xy_in(xy))
     }
 }
 
@@ -140,20 +140,13 @@ impl Visit for RenderingTree {
     }
 }
 
-fn xy_in(
-    rendering_tree: &RenderingTree,
-    calculator: &dyn SkCalculate,
-    xy: Xy<Px>,
-    ancestors: &[&RenderingTree],
-) -> bool {
+fn xy_in(rendering_tree: &RenderingTree, xy: Xy<Px>, ancestors: &[&RenderingTree]) -> bool {
     let mut result = false;
     let _ = rendering_tree.visit_rln(
         &mut |node, utils| {
             if let RenderingTree::Node(node) = node {
                 let local_xy = utils.to_local_xy(xy);
-                if node.xy_in(calculator, local_xy)
-                    && is_xy_clip_in_by_ancestors(calculator, xy, utils.ancestors)
-                {
+                if node.xy_in(local_xy) && is_xy_clip_in_by_ancestors(xy, utils.ancestors) {
                     result = true;
                     ControlFlow::Break(())
                 } else {
@@ -169,11 +162,7 @@ fn xy_in(
     result
 }
 
-fn is_xy_clip_in_by_ancestors(
-    calculator: &dyn SkCalculate,
-    xy: Xy<Px>,
-    ancestors: &[&RenderingTree],
-) -> bool {
+fn is_xy_clip_in_by_ancestors(xy: Xy<Px>, ancestors: &[&RenderingTree]) -> bool {
     let mut ancestors = ancestors.to_vec();
     while let Some(closest_ancestor) = ancestors.pop() {
         if let RenderingTree::Special(special) = closest_ancestor {
@@ -183,7 +172,7 @@ fn is_xy_clip_in_by_ancestors(
                     rendering_tree: closest_ancestor,
                 };
                 let local_xy = utils.to_local_xy(xy);
-                if !clip.clip_in(calculator, local_xy) {
+                if !clip.clip_in(local_xy) {
                     return false;
                 }
             } else if let SpecialRenderingNode::OnTop(_) = special {
@@ -196,12 +185,12 @@ fn is_xy_clip_in_by_ancestors(
 }
 
 trait ClipIn {
-    fn clip_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>) -> bool;
+    fn clip_in(&self, xy: Xy<Px>) -> bool;
 }
 
 impl ClipIn for ClipNode {
-    fn clip_in(&self, calculator: &dyn SkCalculate, xy: Xy<Px>) -> bool {
-        let xy_in = self.path.xy_in(calculator, xy);
+    fn clip_in(&self, xy: Xy<Px>) -> bool {
+        let xy_in = self.path.xy_in(xy);
 
         match self.clip_op {
             ClipOp::Intersect => xy_in,

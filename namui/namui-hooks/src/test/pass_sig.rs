@@ -4,7 +4,7 @@ use super::*;
 fn pass_sig_to_child_should_work() {
     use std::sync::{Arc, atomic::AtomicUsize};
 
-    let mut world = World::init(Instant::now, namui_skia::init_calculate().unwrap());
+    let mut world = World::init(Instant::now);
 
     let record = Arc::new(AtomicUsize::new(0));
 
