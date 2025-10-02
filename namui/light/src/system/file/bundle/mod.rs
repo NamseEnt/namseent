@@ -2,6 +2,7 @@ use crate::file::types::PathLike;
 use tokio::io::{self, Error};
 
 pub async fn read(path_like: impl PathLike) -> io::Result<Vec<u8>> {
+    println!("bundle read");
     todo!()
 }
 

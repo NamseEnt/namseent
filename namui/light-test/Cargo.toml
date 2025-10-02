@@ -11,9 +11,6 @@ targets = [
     "aarch64-apple-darwin",
 ]
 
-[lib]
-crate-type = ["cdylib"]
-
 [dependencies]
 namui-light = { path = "../light" }
 

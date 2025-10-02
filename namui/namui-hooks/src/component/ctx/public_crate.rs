@@ -438,7 +438,7 @@ impl ComponentCtx<'_> {
         Fut: std::future::Future + Send + 'static,
         Fut::Output: Send + 'static,
     {
-        let handle = self.world.tokio_runtime.spawn(future);
+        let handle = tokio::spawn(future);
 
         self.instance
             .abort_handle_list

@@ -62,9 +62,7 @@ pub(crate) fn on_window_resize(wh: Wh<IntPx>) {
     send_command(DrawingCommand::Resize { wh });
 }
 
-pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
-    send_command(DrawingCommand::Draw { rendering_tree });
-}
+pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {}
 
 fn send_command(command: DrawingCommand) {
     let Some(tx) = DRAW_COMMAND_TX.get() else {

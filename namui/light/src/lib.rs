@@ -29,17 +29,30 @@ pub use system::{
     *,
 };
 pub use tokio;
-pub use tokio::task::{spawn, spawn_local};
+pub use tokio::task::spawn_local;
 
 pub mod particle {
     pub use namui_particle::{Emitter, Particle, System, fire_and_forget};
 }
 
 static COMPONENT: OnceLock<Box<dyn Fn(&RenderCtx) + Send + Sync + 'static>> = OnceLock::new();
+static TOKIO_RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+
+pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    TOKIO_RUNTIME.get().unwrap().spawn(future)
+}
 
 pub fn start<Root: Fn(&RenderCtx) + Send + Sync + 'static>(component: Root) -> Result<()> {
     COMPONENT.set(Box::new(component));
+    TOKIO_RUNTIME.set(tokio_runtime()?);
+    let runtime = TOKIO_RUNTIME.get().unwrap();
+    let _guard = runtime.enter();
     Looper::new(COMPONENT.get().unwrap());
+    println!("looper new done");
 
     setup_rayon_concurrency()?;
     Ok(())
@@ -59,7 +72,8 @@ fn tokio_runtime() -> Result<tokio::runtime::Runtime> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .thread_stack_size(2 * 1024 * 1024)
-        .max_blocking_threads(32)
+        .worker_threads(unsafe { _hardware_concurrency() } as usize)
+        .max_blocking_threads(unsafe { _hardware_concurrency() } as usize)
         .build()
         .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e))
 }

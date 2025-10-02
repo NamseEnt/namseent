@@ -8,7 +8,7 @@ import {
 import "./style.css";
 import wasmUrl from "/bundle.wasm?url";
 import { patchWasi } from "./patchWasi";
-import { spawnThread } from "./thread/spawnThread";
+import { threadMain } from "./thread/threadMain";
 // import { run } from "./out/bundle";
 
 // run();
@@ -34,7 +34,7 @@ const memory = new WebAssembly.Memory({
     shared: true,
 });
 
-spawnThread({
+threadMain({
     memory,
     module,
     nextTid: new SharedArrayBuffer(4),

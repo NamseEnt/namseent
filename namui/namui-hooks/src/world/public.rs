@@ -16,12 +16,6 @@ impl World {
             atom_index: Default::default(),
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
-            tokio_runtime: tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .thread_stack_size(2 * 1024 * 1024)
-                .max_blocking_threads(32)
-                .build()
-                .unwrap(),
         }
     }
 

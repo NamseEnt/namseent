@@ -6,7 +6,7 @@ import {
     type Fd,
 } from "@bjorn3/browser_wasi_shim";
 import { patchWasi } from "../patchWasi";
-import { spawnThread } from "./spawnThread";
+import ThreadWorker from "./ThreadWorker?worker";
 
 export type ThreadStartSupplies = {
     nextTid: SharedArrayBuffer; // 4 bytes
@@ -49,7 +49,9 @@ export async function threadMain(supplies: ThreadStartSupplies) {
                     0,
                     1,
                 );
-                spawnThread({
+                console.log("try spawn thread", tid);
+                const worker = new ThreadWorker();
+                worker.postMessage({
                     ...supplies,
                     type: "spawn",
                     startArgPtr,
@@ -60,17 +62,18 @@ export async function threadMain(supplies: ThreadStartSupplies) {
             },
         },
     });
+    console.log("hi");
 
     const exports = instance.exports as any;
 
     if (supplies.type === "main") {
+        console.log("main thread start");
         wasi.start(instance as any);
-        exports.callable_from_c();
-        exports.callable_from_c();
-        exports.callable_from_c();
-        exports.callable_from_c();
+        console.log("main thread end");
     } else {
+        console.log(`thread ${supplies.tid} start`);
         wasi.initialize(instance as any);
         exports.wasi_thread_start(supplies.tid, supplies.startArgPtr);
+        console.log(`thread ${supplies.tid} end`);
     }
 }
