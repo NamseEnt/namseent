@@ -23,7 +23,10 @@ pub use rand;
 pub use rayon;
 pub use render::*;
 pub use serde;
-use std::sync::OnceLock;
+use std::{
+    cell::RefCell,
+    sync::{Once, OnceLock},
+};
 pub use system::{
     network::http::{RequestExt, ResponseExt},
     *,
@@ -38,6 +41,10 @@ pub mod particle {
 static COMPONENT: OnceLock<Box<dyn Fn(&RenderCtx) + Send + Sync + 'static>> = OnceLock::new();
 static TOKIO_RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
 
+thread_local! {
+    static WORLD: RefCell<World> = RefCell::new(World::init(crate::Instant::now));
+}
+
 pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
 where
     F: Future + Send + 'static,
@@ -47,15 +54,20 @@ where
 }
 
 pub fn start<Root: Fn(&RenderCtx) + Send + Sync + 'static>(component: Root) -> Result<()> {
-    COMPONENT.set(Box::new(component));
-    TOKIO_RUNTIME.set(tokio_runtime()?);
-    let runtime = TOKIO_RUNTIME.get().unwrap();
-    let _guard = runtime.enter();
-    Looper::new(COMPONENT.get().unwrap());
-    println!("looper new done");
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| {
+        setup_rayon_concurrency().unwrap();
+    });
 
-    setup_rayon_concurrency()?;
-    println!("after setup_rayon_concurrency");
+    let runtime = TOKIO_RUNTIME.get_or_init(|| tokio_runtime().unwrap());
+    let _guard = runtime.enter();
+
+    let internal_root = InternalRoot::new(component);
+    WORLD.with(|world_cell| {
+        let mut world = world_cell.borrow_mut();
+        let rendering_tree = world.run(&internal_root);
+        println!("rendering_tree: {:?}", rendering_tree);
+    });
     Ok(())
 }
 unsafe extern "C" {

@@ -1,10 +1,10 @@
 use super::{HttpError, ResponseBody};
 use anyhow::Result;
-use bytes::{Buf, Bytes};
+use bytes::{Buf, Bytes, BytesMut};
 use dashmap::DashMap;
 use futures::StreamExt;
 use http::{HeaderName, HeaderValue, Request, Response, StatusCode};
-use std::{str::FromStr, sync::OnceLock};
+use std::{ptr::null, str::FromStr, sync::OnceLock};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     oneshot,
@@ -20,12 +20,9 @@ where
 {
     let (parts, body) = request.into_parts();
 
-    let fetch_id = unsafe {
-        let uri = parts.uri.to_string();
-        let uri = uri.as_bytes();
-        let method = parts.method.as_str().as_bytes();
-        _http_fetch_init(uri.as_ptr(), uri.len(), method.as_ptr(), method.len())
-    };
+    let uri = parts.uri.to_string();
+    let method = parts.method.to_string();
+    let mut headers = BytesMut::new();
 
     for key in parts.headers.keys() {
         let values = parts.headers.get_all(key);
@@ -35,56 +32,36 @@ where
             .collect::<Vec<&str>>()
             .join(", ");
 
-        unsafe {
-            let key_bytes = key.as_str().as_bytes();
-            let value_bytes = value_string.as_bytes();
-            _http_fetch_set_header(
-                fetch_id,
-                key_bytes.as_ptr(),
-                key_bytes.len(),
-                value_bytes.as_ptr(),
-                value_bytes.len(),
-            );
-        }
+        let key_bytes = key.as_str().as_bytes();
+        let value_bytes = value_string.as_bytes();
+
+        headers.extend_from_slice(&key_bytes.len().to_le_bytes());
+        headers.extend_from_slice(key_bytes);
+        headers.extend_from_slice(&value_bytes.len().to_le_bytes());
+        headers.extend_from_slice(value_bytes);
     }
 
-    unsafe { _http_fetch_start(fetch_id) }
+    // TODO: send body
 
-    let (error_from_js_tx, mut error_from_js_rx) = oneshot::channel::<String>();
+    let fetch_id = unsafe {
+        _http_fetch_start(
+            uri.as_ptr(),
+            uri.len(),
+            method.as_ptr(),
+            method.len(),
+            headers.as_ptr(),
+            headers.len(),
+            null(),
+            0,
+        )
+    };
+
+    let (error_from_js_tx, error_from_js_rx) = oneshot::channel::<String>();
 
     error_from_js_txs().insert(fetch_id, error_from_js_tx);
 
-    // TODO: send body in same time with receiving response
-    let mut body_stream = http_body_util::BodyStream::new(body);
-
-    loop {
-        tokio::select! {
-            error_from_js = &mut error_from_js_rx => {
-                error_from_js_txs().remove(&fetch_id);
-                return Err(HttpError::Unknown(format!("error_from_js: {error_from_js:?}")));
-            },
-            frame = body_stream.next() => {
-                let frame = match frame {
-                    None => break,
-                    Some(Ok(frame)) => frame,
-                    Some(Err(error)) => {
-                        return Err(HttpError::ReqBodyErr(Box::new(error)));
-                    },
-                };
-                let data = frame.into_data().map_err(|_| HttpError::TrailerNotSupported)?;
-                let chunk = data.chunk();
-                unsafe {
-                    _http_fetch_push_request_body_chunk(fetch_id, chunk.as_ptr(), chunk.len());
-                }
-            }
-        }
-    }
-
-    unsafe {
-        _http_fetch_finish_request_body_stream(fetch_id);
-    }
-
-    let (response_sender, response_receiver) = oneshot::channel();
+    let (response_sender, response_receiver) =
+        oneshot::channel::<Result<Response<ResBody>, HttpError>>();
     RESPONSE_WAITERS
         .get_or_init(Default::default)
         .insert(fetch_id, response_sender);
@@ -104,23 +81,123 @@ where
 }
 
 unsafe extern "C" {
-    fn _http_fetch_init(
-        url_ptr: *const u8,
-        url_len: usize,
+    fn _http_fetch_start(
+        uri_ptr: *const u8,
+        uri_byte_len: usize,
         method_ptr: *const u8,
-        method_len: usize,
+        method_byte_len: usize,
+        headers_ptr: *const u8,
+        headers_byte_len: usize,
+        body_ptr: *const u8,
+        body_byte_len: usize,
     ) -> u32;
-    fn _http_fetch_set_header(
-        fetch_id: u32,
-        key_ptr: *const u8,
-        key_len: usize,
-        value_ptr: *const u8,
-        value_len: usize,
-    );
-    fn _http_fetch_start(fetch_id: u32);
-    fn _http_fetch_push_request_body_chunk(fetch_id: u32, data_ptr: *const u8, data_len: usize);
-    fn _http_fetch_finish_request_body_stream(fetch_id: u32);
-    fn _http_fetch_error_on_rust_side(fetch_id: u32);
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn _http_fetch_response(
+    fetch_id: u32,
+    status: u16,
+    headers_ptr: *const u8,
+    headers_byte_len: usize,
+    body_ptr: *const u8,
+    body_byte_len: usize,
+) {
+    // headers 파싱: key-len(u32), key-bytes, value-len(u32), value-bytes 형식
+    let headers_slice = unsafe { std::slice::from_raw_parts(headers_ptr, headers_byte_len) };
+    let mut headers = Vec::new();
+    let mut offset = 0;
+
+    while offset < headers_byte_len {
+        // key length 읽기 (little-endian u32)
+        if offset + 4 > headers_byte_len {
+            break;
+        }
+        let key_len = u32::from_le_bytes([
+            headers_slice[offset],
+            headers_slice[offset + 1],
+            headers_slice[offset + 2],
+            headers_slice[offset + 3],
+        ]) as usize;
+        offset += 4;
+
+        // key bytes 읽기
+        if offset + key_len > headers_byte_len {
+            break;
+        }
+        let key = String::from_utf8_lossy(&headers_slice[offset..offset + key_len]).to_string();
+        offset += key_len;
+
+        // value length 읽기 (little-endian u32)
+        if offset + 4 > headers_byte_len {
+            break;
+        }
+        let value_len = u32::from_le_bytes([
+            headers_slice[offset],
+            headers_slice[offset + 1],
+            headers_slice[offset + 2],
+            headers_slice[offset + 3],
+        ]) as usize;
+        offset += 4;
+
+        // value bytes 읽기
+        if offset + value_len > headers_byte_len {
+            break;
+        }
+        let value = String::from_utf8_lossy(&headers_slice[offset..offset + value_len]).to_string();
+        offset += value_len;
+
+        headers.push((key, value));
+    }
+
+    let (_, response_sender) = response_waiters().remove(&fetch_id).unwrap();
+
+    let response = 'outer: {
+        let status_code = match StatusCode::from_u16(status) {
+            Ok(status_code) => status_code,
+            Err(error) => break 'outer Err(HttpError::HttpError(error.into())),
+        };
+        let mut builder = Response::builder().status(status_code);
+
+        let headers_mut = builder.headers_mut().unwrap();
+        for (key, value) in headers {
+            let header_name = match HeaderName::from_str(&key) {
+                Ok(header_name) => header_name,
+                Err(error) => break 'outer Err(HttpError::HttpError(error.into())),
+            };
+            let header_value = match HeaderValue::from_str(&value) {
+                Ok(header_value) => header_value,
+                Err(error) => break 'outer Err(HttpError::HttpError(error.into())),
+            };
+            headers_mut.insert(header_name, header_value);
+        }
+
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        res_body_txs().insert(fetch_id, tx);
+
+        let response = match builder.body(ResBody {
+            instance: ResponseBodyInstance { fetch_id },
+            rx,
+        }) {
+            Ok(response) => response,
+            Err(error) => break 'outer Err(HttpError::HttpError(error)),
+        };
+
+        Ok(response)
+    };
+
+    let _ = response_sender.send(response);
+
+    // body 전송
+    if body_byte_len > 0 {
+        let body_slice = unsafe { std::slice::from_raw_parts(body_ptr, body_byte_len) };
+        let body_bytes = Bytes::copy_from_slice(body_slice);
+
+        let Some(tx) = res_body_txs().get(&fetch_id) else {
+            return;
+        };
+        let _ = tx.send(Ok(body_bytes));
+    }
+    let _ = res_body_txs().remove(&fetch_id);
 }
 
 type ResBodyChunk = Result<Bytes, HttpError>;
@@ -168,11 +245,9 @@ impl ResponseBody for ResBody {
                 bytes.extend_from_slice(&chunk);
             }
             if bytes.len() > content_length {
-                unsafe {
-                    _http_fetch_error_on_rust_side(self.instance.fetch_id);
-                }
-                res_body_txs().remove(&self.instance.fetch_id);
-                return Err(HttpError::TooManyBytes);
+                todo!("cancel fetch");
+                // res_body_txs().remove(&self.instance.fetch_id);
+                // return Err(HttpError::TooManyBytes);
             }
             Ok(bytes)
         } else {
@@ -210,57 +285,6 @@ impl futures::Stream for ResStreamBody {
     ) -> std::task::Poll<Option<Self::Item>> {
         self.stream.poll_next_unpin(cx)
     }
-}
-
-pub(crate) fn http_fetch_on_response(fetch_id: u32, status: u16, headers: Vec<(String, String)>) {
-    let (_, response_sender) = response_waiters().remove(&fetch_id).unwrap();
-
-    let response = 'outer: {
-        let status_code = match StatusCode::from_u16(status) {
-            Ok(status_code) => status_code,
-            Err(error) => break 'outer Err(HttpError::HttpError(error.into())),
-        };
-        let mut builder = Response::builder().status(status_code);
-
-        let headers_mut = builder.headers_mut().unwrap();
-        for (key, value) in headers {
-            let header_name = match HeaderName::from_str(&key) {
-                Ok(header_name) => header_name,
-                Err(error) => break 'outer Err(HttpError::HttpError(error.into())),
-            };
-            let header_value = match HeaderValue::from_str(&value) {
-                Ok(header_value) => header_value,
-                Err(error) => break 'outer Err(HttpError::HttpError(error.into())),
-            };
-            headers_mut.insert(header_name, header_value);
-        }
-
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-        res_body_txs().insert(fetch_id, tx);
-
-        let response = match builder.body(ResBody {
-            instance: ResponseBodyInstance { fetch_id },
-            rx,
-        }) {
-            Ok(response) => response,
-            Err(error) => break 'outer Err(HttpError::HttpError(error)),
-        };
-
-        Ok(response)
-    };
-
-    let _ = response_sender.send(response);
-}
-
-pub(crate) fn http_fetch_on_response_body_chunk(fetch_id: u32, data: Bytes) {
-    let Some(tx) = res_body_txs().get(&fetch_id) else {
-        return;
-    };
-    let _ = tx.send(Ok(data));
-}
-
-pub(crate) fn http_fetch_on_response_body_done(fetch_id: u32) {
-    let _ = res_body_txs().remove(&fetch_id);
 }
 
 pub(crate) fn http_fetch_on_error(fetch_id: u32, message: String) {
