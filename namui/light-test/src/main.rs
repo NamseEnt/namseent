@@ -34,10 +34,11 @@ fn render(ctx: &RenderCtx) {
     });
 
     ctx.add(namui_light::text(TextParam {
-        text: match content.as_ref() {
-            Some(content) => content.to_string(),
-            None => "loading...".to_string(),
-        },
+        // text: match content.as_ref() {
+        //     Some(content) => content.to_string(),
+        //     None => "loading...".to_string(),
+        // },
+        text: "Hello world!".to_string(),
         x: 0.px(),
         y: 0.px(),
         align: TextAlign::Left,
@@ -46,9 +47,14 @@ fn render(ctx: &RenderCtx) {
             size: 12.int_px(),
             name: "NotoSansKR-Regular".to_string(),
         },
-        style: TextStyle::default(),
+        style: TextStyle {
+            border: None,
+            drop_shadow: None,
+            color: Color::RED,
+            background: None,
+            line_height_percent: 100.percent(),
+            underline: None,
+        },
         max_width: None,
     }));
-
-    println!("component done");
 }
