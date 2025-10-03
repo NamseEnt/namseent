@@ -660,7 +660,6 @@ dependencies = [
  "lyon",
  "namui-type",
  "num",
- "ordered-float",
  "textwrap",
  "tokio",
  "unicode-segmentation",
@@ -672,6 +671,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "auto_ops",
+ "bincode",
  "chrono",
  "derivative",
  "derive-macro",
@@ -786,15 +786,6 @@ name = "oorandom"
 version = "11.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b410bbe7e14ab526a0e86877eb47c6996a2bd7746f027ba551028c925390e4e9"
-
-[[package]]
-name = "ordered-float"
-version = "4.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bb71e1b3fa6ca1c61f383464aaf2bb0e2f8e772a1f01d486832464de363b951"
-dependencies = [
- "num-traits",
-]
 
 [[package]]
 name = "pin-project-lite"

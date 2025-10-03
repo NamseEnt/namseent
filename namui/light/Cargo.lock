@@ -817,7 +817,6 @@ dependencies = [
  "lyon",
  "namui-type",
  "num",
- "ordered-float",
  "textwrap",
  "tokio 1.38.0",
  "unicode-segmentation",
@@ -829,6 +828,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "auto_ops",
+ "bincode",
  "chrono",
  "derivative",
  "derive-macro",
@@ -947,15 +947,6 @@ name = "once_cell"
 version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
-
-[[package]]
-name = "ordered-float"
-version = "4.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bb71e1b3fa6ca1c61f383464aaf2bb0e2f8e772a1f01d486832464de363b951"
-dependencies = [
- "num-traits",
-]
 
 [[package]]
 name = "parking_lot_core"

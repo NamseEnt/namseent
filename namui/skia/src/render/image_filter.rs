@@ -1,12 +1,12 @@
 use crate::*;
 use std::fmt::Debug;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq, Default)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq, Default, bincode::Encode, bincode::Decode)]
 pub enum ImageFilter {
     #[default]
     Empty,
     Blur {
-        sigma_xy: Xy<OrderedFloat<f32>>,
+        sigma_xy: Xy<OrderedFloat>,
         tile_mode: Option<TileMode>,
         input: Option<Box<ImageFilter>>,
         /// crop_rect is not supported in wasm

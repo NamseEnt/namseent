@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub struct TextDrawCommand {
     pub text: String,
     pub font: Font,

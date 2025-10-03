@@ -15,7 +15,6 @@ targets = [
 anyhow = { version = "1.0.75", features = ["backtrace"] }
 namui-type = { path = "../namui-type" }
 num = { version = "0.4.0", features = ["std"] }
-ordered-float = { version = "4.2.0" }
 textwrap = "0.16.0"
 unicode-segmentation = "1.10.1"
 tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt"] }

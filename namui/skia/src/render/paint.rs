@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, PartialEq, Clone, Default, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Default, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub struct Paint {
     pub color: Color,
     pub paint_style: Option<PaintStyle>,

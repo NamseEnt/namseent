@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, PartialEq, Clone, Default, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Default, Eq, Hash, bincode::Encode, bincode::Decode)]
 pub struct Path {
     commands: Vec<PathCommand>,
 }
@@ -95,7 +95,7 @@ impl Path {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash, bincode::Encode, bincode::Decode)]
 pub enum PathCommand {
     AddRect {
         rect: Rect<Px>,
@@ -125,7 +125,7 @@ pub enum PathCommand {
         delta_angle: Angle,
     },
     Scale {
-        xy: Xy<OrderedFloat<f32>>,
+        xy: Xy<OrderedFloat>,
     },
     Translate {
         xy: Xy<Px>,

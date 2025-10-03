@@ -4,7 +4,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-#[derive(Debug, PartialEq, Clone, Copy, Default)]
+#[derive(Debug, PartialEq, Clone, Copy, Default, bincode::Encode, bincode::Decode)]
 pub struct FontMetrics {
     /// suggested space above the baseline. < 0
     pub ascent: Px,
@@ -20,7 +20,7 @@ impl FontMetrics {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Default, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Default, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -187,7 +187,7 @@ impl Color {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, bincode::Encode, bincode::Decode)]
 struct Hsl01 {
     hue: f32,
     saturation: f32,
@@ -195,27 +195,27 @@ struct Hsl01 {
     alpha: f32,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub enum PaintStyle {
     Fill,
     Stroke,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash, bincode::Encode, bincode::Decode)]
 pub enum StrokeCap {
     Butt,
     Round,
     Square,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash, bincode::Encode, bincode::Decode)]
 pub enum StrokeJoin {
     Bevel,
     Miter,
     Round,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash, bincode::Encode, bincode::Decode)]
 pub struct StrokeOptions {
     pub width: Option<Px>,
     pub miter_limit: Option<Px>,
@@ -223,18 +223,18 @@ pub struct StrokeOptions {
     /// if > 1, increase precision, else if (0 < resScale < 1) reduce precision to
     /// favor speed and size
     ///
-    pub precision: Option<OrderedFloat<f32>>,
+    pub precision: Option<OrderedFloat>,
     pub join: Option<StrokeJoin>,
     pub cap: Option<StrokeCap>,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub enum ClipOp {
     Intersect,
     Difference,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, bincode::Encode, bincode::Decode)]
 pub enum AlphaType {
     Opaque,
     Premul,
@@ -242,7 +242,7 @@ pub enum AlphaType {
     // Unknown, // not support by canvaskit
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash, bincode::Encode, bincode::Decode)]
 pub enum ColorType {
     Alpha8,
     Rgb565,
@@ -304,20 +304,20 @@ impl ColorType {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, bincode::Encode, bincode::Decode)]
 pub enum FilterMode {
     Linear,
     Nearest,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, bincode::Encode, bincode::Decode)]
 pub enum MipmapMode {
     None,
     Nearest,
     Linear,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash, bincode::Encode, bincode::Decode)]
 pub enum BlendMode {
     Clear,
     Src,
@@ -350,7 +350,7 @@ pub enum BlendMode {
     Luminosity,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode, bincode::Decode)]
 /// Explain: https://developer.android.com/reference/android/graphics/Shader.TileMode#summary
 pub enum TileMode {
     /// Replicate the edge color if the shader draws outside of its original bounds
@@ -363,21 +363,21 @@ pub enum TileMode {
     Repeat,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, bincode::Encode, bincode::Decode)]
 pub enum ColorSpace {
     Srgb,
     DisplayP3,
     AdobeRgb,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub enum TextAlign {
     Left,
     Center,
     Right,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub enum TextBaseline {
     Top,
     Middle,
@@ -385,7 +385,7 @@ pub enum TextBaseline {
 }
 
 /// Example: https://developer.mozilla.org/ko/docs/Web/CSS/object-fit
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub enum ImageFit {
     /// The replaced content is sized to fill the element's content box.
     /// The entire object will completely fill the box.
@@ -408,7 +408,7 @@ pub enum ImageFit {
 pub type GlyphId = u32;
 pub type GlyphIds = Vec<GlyphId>;
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub enum MouseButton {
     Left,
     Middle,

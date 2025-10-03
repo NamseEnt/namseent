@@ -3,7 +3,7 @@ mod special;
 use crate::*;
 pub use special::*;
 
-#[derive(Debug, PartialEq, Clone, Default, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Default, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub enum RenderingTree {
     #[default]
     Empty,

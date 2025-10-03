@@ -1,7 +1,7 @@
 use crate::*;
 use std::hash::Hash;
 
-#[derive(Debug, PartialEq, Clone, Eq)]
+#[derive(Debug, PartialEq, Clone, Eq, bincode::Encode, bincode::Decode)]
 pub enum Shader {
     Image {
         src: Image,

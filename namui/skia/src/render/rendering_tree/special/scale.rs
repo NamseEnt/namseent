@@ -1,9 +1,9 @@
 use super::*;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub struct ScaleNode {
-    pub x: OrderedFloat<f32>,
-    pub y: OrderedFloat<f32>,
+    pub x: OrderedFloat,
+    pub y: OrderedFloat,
     pub rendering_tree: Box<RenderingTree>,
 }
 
@@ -19,6 +19,6 @@ pub fn scale(x: f32, y: f32, rendering_tree: RenderingTree) -> RenderingTree {
 }
 impl ScaleNode {
     pub fn get_matrix(&self) -> TransformMatrix {
-        TransformMatrix::from_scale(self.x.into(), self.y.into())
+        TransformMatrix::from_scale(*self.x, *self.y)
     }
 }

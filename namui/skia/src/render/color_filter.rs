@@ -1,16 +1,16 @@
 use crate::*;
 
-#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub enum ColorFilter {
     Blend {
         color: Color,
         blend_mode: BlendMode,
     },
     ScaleMatrix {
-        r: OrderedFloat<f32>,
-        g: OrderedFloat<f32>,
-        b: OrderedFloat<f32>,
-        a: OrderedFloat<f32>,
+        r: OrderedFloat,
+        g: OrderedFloat,
+        b: OrderedFloat,
+        a: OrderedFloat,
     },
 }
 

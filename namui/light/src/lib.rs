@@ -67,6 +67,7 @@ pub fn start<Root: Fn(&RenderCtx) + Send + Sync + 'static>(component: Root) -> R
         let mut world = world_cell.borrow_mut();
         let rendering_tree = world.run(&internal_root);
         println!("rendering_tree: {:?}", rendering_tree);
+        let bytes = bincode::encode_to_vec(rendering_tree, bincode::config::standard()).unwrap();
     });
     Ok(())
 }

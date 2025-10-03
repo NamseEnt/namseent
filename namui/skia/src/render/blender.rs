@@ -1,14 +1,14 @@
 use crate::*;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq, bincode::Encode, bincode::Decode)]
 pub enum Blender {
     BlendMode(BlendMode),
     Sksl(String),
     Arithmetic {
-        k1: OrderedFloat<f32>,
-        k2: OrderedFloat<f32>,
-        k3: OrderedFloat<f32>,
-        k4: OrderedFloat<f32>,
+        k1: OrderedFloat,
+        k2: OrderedFloat,
+        k3: OrderedFloat,
+        k4: OrderedFloat,
     },
 }
 
