@@ -25,7 +25,8 @@ pub use render::*;
 pub use serde;
 use std::{
     cell::RefCell,
-    sync::{Once, OnceLock},
+    ptr::null_mut,
+    sync::{Once, OnceLock, atomic::AtomicPtr},
 };
 pub use system::{
     network::http::{RequestExt, ResponseExt},
@@ -62,6 +63,11 @@ pub fn start<Root: Fn(&RenderCtx) + Send + Sync + 'static>(component: Root) -> R
     let runtime = TOKIO_RUNTIME.get_or_init(|| tokio_runtime().unwrap());
     let _guard = runtime.enter();
 
+    COMPONENT
+        .set(Box::new(component))
+        .map_err(|_| anyhow!("Component already initialized"))?;
+
+    let component = COMPONENT.get().unwrap();
     let internal_root = InternalRoot::new(component);
     WORLD.with(|world_cell| {
         let mut world = world_cell.borrow_mut();
@@ -90,4 +96,36 @@ fn tokio_runtime() -> Result<tokio::runtime::Runtime> {
         .max_blocking_threads(unsafe { _hardware_concurrency() } as usize)
         .build()
         .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e))
+}
+
+thread_local! {
+    static LAST_RENDERING_TREE_BYTES: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn _get_last_rendering_tree_bytes_ptr() -> *const u8 {
+    LAST_RENDERING_TREE_BYTES.with(|cell| cell.borrow().as_ptr())
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn _get_last_rendering_tree_bytes_len() -> usize {
+    LAST_RENDERING_TREE_BYTES.with(|cell| cell.borrow().len())
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn _on_event() {
+    let runtime = TOKIO_RUNTIME.get().unwrap();
+    let _guard = runtime.enter();
+
+    WORLD.with(|world_cell| {
+        let mut world = world_cell.borrow_mut();
+        let component = COMPONENT
+            .get()
+            .expect("Component not initialized. Call start() first.");
+        let internal_root = InternalRoot::new(component);
+        let rendering_tree = world.run(&internal_root);
+
+        LAST_RENDERING_TREE_BYTES.with(|cell| {
+            let mut bytes = cell.borrow_mut();
+            *bytes = bincode::encode_to_vec(rendering_tree, bincode::config::standard()).unwrap();
+        });
+    })
 }

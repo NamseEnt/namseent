@@ -9,6 +9,8 @@ import "./style.css";
 import wasmUrl from "/bundle.wasm?url";
 import { patchWasi } from "./patchWasi";
 import { threadMain } from "./thread/threadMain";
+import { BincodeReader } from "./reader";
+import { visitRenderingTree, type Canvas } from "./draw";
 
 const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
 
@@ -40,6 +42,44 @@ const instance = await threadMain({
 });
 
 console.log("exports", instance.exports);
+
+// Canvas setup
+const canvas = document.createElement("canvas");
+canvas.width = 800;
+canvas.height = 600;
+document.body.appendChild(canvas);
+
+const ctx = canvas.getContext("2d")!;
+
+// Canvas adapter for draw.ts
+const canvasAdapter: Canvas = {
+    save: () => ctx.save(),
+    restore: () => ctx.restore(),
+    translate: (x, y) => ctx.translate(x, y),
+    rotate: (angle) => ctx.rotate(angle),
+    scale: (x, y) => ctx.scale(x, y),
+    setMatrix: (matrix) => {
+        ctx.setTransform(
+            matrix[0][0],
+            matrix[1][0],
+            matrix[0][1],
+            matrix[1][1],
+            matrix[0][2],
+            matrix[1][2],
+        );
+    },
+    getMatrix: () => {
+        const transform = ctx.getTransform();
+        return [
+            [transform.a, transform.c, transform.e],
+            [transform.b, transform.d, transform.f],
+        ];
+    },
+    clipPath: (clipOp) => {
+        // TODO: Implement clip path with clipOp
+        ctx.clip();
+    },
+};
 
 // const app = document.getElementById("app")!;
 // app.innerHTML = `
@@ -127,3 +167,36 @@ type BroadcastChannelMessageEvent = {
     method: string;
     headers: Record<string, string>;
 };
+
+// Animation loop with on_event
+function render() {
+    const exports = instance.exports as any;
+
+    // Call on_event to get rendering tree
+    exports._on_event();
+    const ptr = exports._get_last_rendering_tree_bytes_ptr();
+    const len = exports._get_last_rendering_tree_bytes_len();
+
+    // Read bytes from WASM memory
+    const bytes = new Uint8Array(memory.buffer, ptr, len);
+
+    // Parse rendering tree
+    const reader = new BincodeReader(bytes.buffer);
+    const onTopNodes: any[] = [];
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw rendering tree
+    try {
+        visitRenderingTree(reader, canvasAdapter, onTopNodes);
+    } catch (e) {
+        console.error("Error rendering:", e);
+    }
+
+    // Continue animation loop
+    requestAnimationFrame(render);
+}
+
+// Start animation loop
+requestAnimationFrame(render);
