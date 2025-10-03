@@ -1,0 +1,8 @@
+[package]
+name = "bincode-test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+namui-type = { path = "../namui-type" }
+namui-skia = { path = "../skia" }
