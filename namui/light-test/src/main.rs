@@ -33,12 +33,15 @@ fn render(ctx: &RenderCtx) {
         });
     });
 
+    println!("content: {:?}", content);
+    println!("fuck");
+
     ctx.add(namui_light::text(TextParam {
         // text: match content.as_ref() {
         //     Some(content) => content.to_string(),
         //     None => "loading...".to_string(),
         // },
-        text: "Hello world!".to_string(),
+        text: "Hello world!123".to_string(),
         x: 0.px(),
         y: 0.px(),
         align: TextAlign::Left,
