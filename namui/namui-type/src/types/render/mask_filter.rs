@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-#[derive(Debug, bincode::Decode, bincode::Encode, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum MaskFilter {
     Blur { blur_style: BlurStyle, sigma: f32 },
 }
@@ -32,7 +32,7 @@ impl PartialEq for MaskFilter {
 }
 impl Eq for MaskFilter {}
 
-#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum BlurStyle {
     /// Fuzzy inside and outside
     Normal,

@@ -1,27 +1,27 @@
 use crate::*;
 
 impl BoundingBox for &DrawCommand {
-    fn bounding_box(self, calculator: &dyn SkCalculate) -> Option<Rect<Px>> {
+    fn bounding_box(self) -> Option<Rect<Px>> {
         match self {
-            DrawCommand::Path { command } => command.bounding_box(calculator),
-            DrawCommand::Text { command } => command.bounding_box(calculator),
-            DrawCommand::Image { command } => command.bounding_box(calculator),
+            DrawCommand::Path { command } => command.bounding_box(),
+            DrawCommand::Text { command } => command.bounding_box(),
+            DrawCommand::Image { command } => command.bounding_box(),
         }
     }
 }
 
 impl BoundingBox for &PathDrawCommand {
-    fn bounding_box(self, calculator: &dyn SkCalculate) -> Option<Rect<Px>> {
-        calculator.path_bounding_box(&self.path, Some(&self.paint))
+    fn bounding_box(self) -> Option<Rect<Px>> {
+        SkCalculate::path_bounding_box(&self.path, Some(&self.paint))
     }
 }
 impl BoundingBox for &TextDrawCommand {
-    fn bounding_box(self, calculator: &dyn SkCalculate) -> Option<Rect<Px>> {
+    fn bounding_box(self) -> Option<Rect<Px>> {
         if self.text.is_empty() {
             return None;
         }
 
-        let group_glyph = calculator.group_glyph(&self.font, &self.paint);
+        let group_glyph = SkCalculate::group_glyph(&self.font, &self.paint);
         let paragraph = Paragraph::new(&self.text, group_glyph.clone(), self.max_width);
 
         let line_height = self.line_height_px();
@@ -80,10 +80,10 @@ impl BoundingBox for &TextDrawCommand {
 }
 
 impl BoundingBox for &ImageDrawCommand {
-    fn bounding_box(self, calculator: &dyn SkCalculate) -> Option<Rect<Px>> {
+    fn bounding_box(self) -> Option<Rect<Px>> {
         match &self.paint {
             Some(paint) => {
-                calculator.path_bounding_box(&Path::new().add_rect(self.rect), Some(paint))
+                SkCalculate::path_bounding_box(&Path::new().add_rect(self.rect), Some(paint))
             }
             _ => Some(self.rect),
         }

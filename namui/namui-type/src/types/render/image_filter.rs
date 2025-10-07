@@ -1,7 +1,7 @@
 use crate::*;
 use std::fmt::Debug;
 
-#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Hash, Eq, Default)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq, Default)]
 pub enum ImageFilter {
     #[default]
     Empty,

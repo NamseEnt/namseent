@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct ClipNode {
     pub path: Path,
     pub clip_op: ClipOp,

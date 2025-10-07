@@ -3,7 +3,7 @@
 // NOTE : YOU MUST NOT CHANGE ENUM NAMES!
 use std::str::FromStr;
 
-#[derive(Debug, bincode::Decode, bincode::Encode, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Code {
     Escape = 0,

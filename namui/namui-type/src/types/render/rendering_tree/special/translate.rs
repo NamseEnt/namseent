@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct TranslateNode {
     pub x: Px,
     pub y: Px,

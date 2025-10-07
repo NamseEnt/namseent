@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Default, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Default, Eq, Hash)]
 pub struct Path {
     commands: Vec<PathCommand>,
 }
@@ -95,7 +95,7 @@ impl Path {
     }
 }
 
-#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub enum PathCommand {
     AddRect {
         rect: Rect<Px>,

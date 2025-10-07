@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Copy, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum ColorFilter {
     Blend {
         color: Color,

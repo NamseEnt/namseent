@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub enum Blender {
     BlendMode(BlendMode),
     Sksl(String),

@@ -2,13 +2,13 @@ use super::*;
 use crate::*;
 use std::{fmt::Debug, hash::Hash};
 
-#[derive(Debug, bincode::Decode, bincode::Encode, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Image {
     pub info: ImageInfo,
     pub image_id: std::sync::Arc<SkiaImageId>,
 }
 
-#[derive(Debug, bincode::Decode, bincode::Encode, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SkiaImageId {
     pub id: u64,
 }
@@ -37,7 +37,14 @@ impl PartialEq for Image {
 }
 impl Eq for Image {}
 
-#[derive(Debug, bincode::Decode, bincode::Encode, PartialEq, Clone, Copy, Hash)]
+impl Hash for Image {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.image_id.hash(state);
+        self.info.hash(state);
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy, Hash)]
 pub struct ImageInfo {
     pub alpha_type: AlphaType,
     pub color_type: ColorType,
