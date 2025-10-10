@@ -1,4 +1,6 @@
-#[derive(Clone, Copy)]
+use crate::*;
+
+#[derive(Clone, Copy, State)]
 pub enum MonsterKind {
     Mob01,
     Mob02,

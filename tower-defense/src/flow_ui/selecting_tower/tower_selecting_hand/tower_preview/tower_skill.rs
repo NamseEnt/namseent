@@ -226,7 +226,7 @@ impl Component for TowerEffectDescription<'_> {
                 );
             });
 
-            let Some(text_content_wh) = bounding_box(&text_content).map(|rect| rect.wh()) else {
+            let Some(text_content_wh) = text_content.bounding_box().map(|rect| rect.wh()) else {
                 return;
             };
 

@@ -91,7 +91,9 @@ where
             on_mouse_up_in,
         } = self;
         let center_text = center_text_full_height(Wh::new(0.px(), height), text.into(), text_color);
-        let width = namui::bounding_box(&center_text).map(|bounding_box| bounding_box.width());
+        let width = center_text
+            .bounding_box()
+            .map(|bounding_box| bounding_box.width());
 
         ctx.compose(|ctx| {
             if let Some(width) = width {
@@ -136,8 +138,9 @@ impl Component for TextButtonFitAlign<'_> {
             on_mouse_up_in,
         } = self;
         let center_text = center_text_full_height(Wh::new(0.px(), wh.height), text, text_color);
-        let center_text_width =
-            namui::bounding_box(&center_text).map(|bounding_box| bounding_box.width());
+        let center_text_width = center_text
+            .bounding_box()
+            .map(|bounding_box| bounding_box.width());
 
         ctx.compose(|ctx| {
             if let Some(center_text_width) = center_text_width {

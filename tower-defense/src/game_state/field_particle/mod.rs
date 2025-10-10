@@ -11,6 +11,7 @@ use namui::{
 };
 pub use particle::{DamageTextParticle, IconParticle};
 
+#[derive(State)]
 pub struct TempParticleEmitter {
     particles: Vec<FieldParticle>,
     emitted: bool,
@@ -83,6 +84,7 @@ impl FieldParticleSystemManager {
     }
 }
 
+#[derive(State)]
 pub enum FieldParticleEmitter {
     TempParticle { emitter: TempParticleEmitter },
     MonsterStatusEffect { emitter: MonsterStatusEffectEmitter },
@@ -106,7 +108,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub enum FieldParticle {
     Icon { particle: IconParticle },
     DamageText { particle: DamageTextParticle },

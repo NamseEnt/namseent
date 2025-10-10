@@ -13,7 +13,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, State)]
 pub struct Tower {
     id: usize,
     pub left_top: MapCoord,
@@ -146,7 +146,7 @@ impl Deref for Tower {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerTemplate {
     pub kind: TowerKind,
     pub shoot_interval: Duration,
@@ -190,7 +190,7 @@ impl PartialOrd for TowerTemplate {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, State)]
 pub enum TowerKind {
     Barricade,
     High,

@@ -247,6 +247,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "bincode"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36eaf5d7b090263e8150820482d5d93cd964a81e4019913c972f4edcc6edb740"
+dependencies = [
+ "bincode_derive",
+ "serde",
+ "unty",
+]
+
+[[package]]
+name = "bincode_derive"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf95709a440f45e986983918d0e8a1f30a9b1df04918fc828670606804ac3c09"
+dependencies = [
+ "virtue",
+]
+
+[[package]]
 name = "bindgen"
 version = "0.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -337,6 +357,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "boxcar"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36f64beae40a84da1b4b26ff2761a5b895c12adc41dc25aaee1c4f2bbfe97a6e"
+
+[[package]]
 name = "bstr"
 version = "1.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -379,9 +405,9 @@ checksum = "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495"
 
 [[package]]
 name = "bytes"
-version = "1.10.0"
+version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f61dac84819c6588b558454b194026eb1f09c293b9036ae9b159e74e73ab6cf9"
+checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
 name = "calloop"
@@ -830,9 +856,9 @@ checksum = "b7914353092ddf589ad78f25c5c1c21b7f80b0ff8621e7c814c3485b5306da9d"
 
 [[package]]
 name = "elsa"
-version = "1.11.0"
+version = "1.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2343daaeabe09879d4ea058bb4f1e63da3fc07dadc6634e01bda1b3d6a9d9d2b"
+checksum = "9abf33c656a7256451ebb7d0082c5a471820c31269e49d807c538c252352186e"
 dependencies = [
  "indexmap",
  "stable_deref_trait",
@@ -1832,6 +1858,7 @@ dependencies = [
  "hyper-rustls",
  "hyper-util",
  "lazy_static",
+ "namui-asset-macro",
  "namui-cfg",
  "namui-drawer",
  "namui-hooks",
@@ -1859,6 +1886,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "namui-asset-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
 name = "namui-cfg"
 version = "0.1.0"
 dependencies = [
@@ -1871,6 +1907,7 @@ dependencies = [
 name = "namui-drawer"
 version = "0.1.0"
 dependencies = [
+ "namui-rendering-tree",
  "namui-skia",
  "namui-type",
 ]
@@ -1879,6 +1916,7 @@ dependencies = [
 name = "namui-hooks"
 version = "0.1.0"
 dependencies = [
+ "boxcar",
  "elsa",
  "namui-skia",
  "namui-type",
@@ -1891,11 +1929,9 @@ dependencies = [
 name = "namui-particle"
 version = "0.1.0"
 dependencies = [
- "arc-swap",
  "namui-hooks",
  "namui-skia",
  "namui-type",
- "rayon",
  "tokio 1.38.0",
 ]
 
@@ -1909,14 +1945,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "namui-rendering-tree"
+version = "0.1.0"
+dependencies = [
+ "namui-type",
+ "skia-safe",
+ "textwrap",
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "namui-skia"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "derive_more",
+ "namui-rendering-tree",
  "namui-type",
- "num",
- "ordered-float",
  "skia-safe",
  "textwrap",
  "tokio 1.38.0",
@@ -1931,13 +1977,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "auto_ops",
+ "bincode",
  "chrono",
  "derivative",
  "derive-macro",
  "lru",
  "num",
  "rand",
- "serde",
  "sha2",
  "skia-safe",
  "url",
@@ -2233,15 +2279,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba0b26cec2e24f08ed8bb31519a9333140a6599b867dac464bb150bdb796fd43"
 dependencies = [
  "libredox",
-]
-
-[[package]]
-name = "ordered-float"
-version = "4.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bb71e1b3fa6ca1c61f383464aaf2bb0e2f8e772a1f01d486832464de363b951"
-dependencies = [
- "num-traits",
 ]
 
 [[package]]
@@ -3519,6 +3556,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
+name = "unty"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
+
+[[package]]
 name = "url"
 version = "2.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3597,6 +3640,12 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "virtue"
+version = "0.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 
 [[package]]
 name = "walkdir"

@@ -90,7 +90,7 @@ impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                 )
                 .translate((0.px(), -scroll_y.floor()))
                 .ghost_compose(0_usize, content);
-            let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
+            let Some(bounding_box) = rendering_tree.bounding_box() else {
                 return;
             };
 

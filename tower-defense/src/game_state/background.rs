@@ -14,7 +14,7 @@ impl Component for &Background {
         let image = get_background_asset(self.kind);
 
         if let Some(image) = image {
-            let image_wh = image.info.wh();
+            let image_wh = image.info().wh();
             ctx.compose(|mut ctx| {
                 if self.flip_horizontally {
                     ctx = ctx
@@ -23,7 +23,7 @@ impl Component for &Background {
                 }
 
                 ctx.add(namui::image(ImageParam {
-                    rect: Rect::from_xy_wh(Xy::zero(), image.info.wh()),
+                    rect: Rect::from_xy_wh(Xy::zero(), image.info().wh()),
                     image,
                     style: ImageStyle {
                         fit: ImageFit::None,

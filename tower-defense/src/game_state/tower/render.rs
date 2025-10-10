@@ -7,7 +7,7 @@ impl Component for &Tower {
         let image = get_tower_asset((self.kind, self.animation.kind));
 
         if let Some(image) = image {
-            let image_wh = image.info.wh();
+            let image_wh = image.info().wh();
             let scale = Xy::new(
                 1.0 + self.animation.y_ratio_offset * -0.5,
                 1.0 + self.animation.y_ratio_offset,
@@ -17,7 +17,7 @@ impl Component for &Tower {
                 .add(namui::image(ImageParam {
                     rect: Rect::from_xy_wh(
                         Xy::new(-image_wh.width * 0.5, -image_wh.height),
-                        image.info.wh(),
+                        image.info().wh(),
                     ),
                     image,
                     style: ImageStyle {
@@ -82,7 +82,7 @@ pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
     });
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, State)]
 pub(super) struct Animation {
     kind: AnimationKind,
     transited_at: Instant,
@@ -132,13 +132,13 @@ impl Animation {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, State)]
 struct TransitForce {
     force: f32,
     end_at: Instant,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, State)]
 pub enum AnimationKind {
     Idle1,
     Idle2,

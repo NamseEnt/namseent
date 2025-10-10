@@ -66,6 +66,7 @@ pub const TRAVEL_POINTS: [MapCoord; 7] = [
 pub const MAX_HP: f32 = 100.0;
 pub const MAX_INVENTORY_SLOT: usize = 9;
 
+#[derive(State)]
 pub struct GameState {
     pub monsters: Vec<Monster>,
     pub towers: PlacedTowers,

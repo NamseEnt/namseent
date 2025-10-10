@@ -130,7 +130,7 @@ impl Component for Inventory {
                                     );
                                 },
                             );
-                            let Some(content_wh) = bounding_box(&content).map(|rect| rect.wh())
+                            let Some(content_wh) = content.bounding_box().map(|rect| rect.wh())
                             else {
                                 return;
                             };

@@ -46,7 +46,7 @@ impl Component for ContractsPanel {
                                     evaluating_contract_id,
                                 });
                             });
-                            let Some(container_wh) = bounding_box(&item).map(|rect| rect.wh())
+                            let Some(container_wh) = item.bounding_box().map(|rect| rect.wh())
                             else {
                                 return;
                             };

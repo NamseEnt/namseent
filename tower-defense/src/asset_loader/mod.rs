@@ -5,7 +5,6 @@ use crate::game_state::tower::{AnimationKind, TowerKind};
 use crate::icon::IconKind;
 use crate::rarity::Rarity;
 use crate::theme::{palette, typography};
-use namui::skia::load_image_from_resource_location;
 use namui::tokio::task::JoinSet;
 use namui::*;
 use namui_prebuilt::simple_rect;
@@ -387,15 +386,16 @@ fn load<Key: ToResourceLocation + Copy + Send + Sync + 'static>(
     for key in keys {
         let location = key.to_resource_location();
         let tx = tx.clone();
-        set.spawn(async move {
-            match load_image_from_resource_location(location.clone()).await {
-                Ok(image) => match tx.send((key, image)) {
-                    Ok(_) => Ok(()),
-                    Err(err) => Err((location, anyhow!(err))),
-                },
-                Err(err) => Err((location, err)),
-            }
-        });
+        // TODO
+        // set.spawn(async move {
+        //     match load_image_from_resource_location(location.clone()).await {
+        //         Ok(image) => match tx.send((key, image)) {
+        //             Ok(_) => Ok(()),
+        //             Err(err) => Err((location, anyhow!(err))),
+        //         },
+        //         Err(err) => Err((location, err)),
+        //     }
+        // });
     }
 
     set.spawn(async move {

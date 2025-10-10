@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(State)]
 pub struct Camera {
     pub left_top: MapCoordF32,
     pub zoom_level: f32,

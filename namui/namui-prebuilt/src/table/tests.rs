@@ -3,37 +3,6 @@ use crate::scroll_view::AutoScrollViewWithCtx;
 use crate::simple_rect;
 use std::sync::{Arc, Mutex, atomic::AtomicBool};
 
-struct MockSkCalculate;
-impl SkCalculate for MockSkCalculate {
-    fn group_glyph(&self, _font: &Font, _paint: &Paint) -> Arc<dyn GroupGlyph> {
-        unimplemented!()
-    }
-
-    fn font_metrics(&self, _font: &Font) -> Option<FontMetrics> {
-        unimplemented!()
-    }
-
-    fn load_typeface(&self, _typeface_name: String, _bytes: Vec<u8>) -> JoinHandle<Result<()>> {
-        unimplemented!()
-    }
-
-    fn path_contains_xy(&self, _path: &Path, _paint: Option<&Paint>, _xy: Xy<Px>) -> bool {
-        unimplemented!()
-    }
-
-    fn path_bounding_box(&self, _path: &Path, _paint: Option<&Paint>) -> Option<Rect<Px>> {
-        unimplemented!()
-    }
-
-    fn load_image_from_raw(&self, _image_info: ImageInfo, _bitmap: &[u8]) -> JoinHandle<Image> {
-        unimplemented!()
-    }
-
-    fn load_image_from_encoded(&self, _bytes: &[u8]) -> JoinHandle<Image> {
-        todo!()
-    }
-}
-
 #[tokio::test]
 async fn closure_should_give_right_wh() {
     namui::system::init_for_test().await.unwrap();
@@ -42,7 +11,7 @@ async fn closure_should_give_right_wh() {
     let body_render_called = Arc::new(AtomicBool::new(false));
     let body_inner_render_called = Arc::new(AtomicBool::new(false));
 
-    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
+    let mut world = World::init(Instant::now);
 
     struct Test {
         button_render_called: Arc<AtomicBool>,
@@ -134,7 +103,7 @@ async fn fit_should_work() {
     namui::system::init_for_test().await.unwrap();
     let a_width = Arc::new(Mutex::new(0.px()));
 
-    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
+    let mut world = World::init(Instant::now);
 
     struct Test {
         a_width: Arc<Mutex<Px>>,
@@ -195,7 +164,7 @@ async fn auto_scroll_view_with_fit_timing_issue() {
     let content_height_tracker = Arc::new(Mutex::new(Vec::<Px>::new()));
     let scroll_bounding_box_tracker = Arc::new(Mutex::new(Vec::<Option<Px>>::new()));
 
-    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
+    let mut world = World::init(Instant::now);
 
     struct Test {
         content_height_tracker: Arc<Mutex<Vec<Px>>>,
@@ -237,7 +206,7 @@ async fn auto_scroll_view_with_fit_timing_issue() {
                     });
 
                     // bounding_box 계산 시점의 높이 추적 - AutoScrollView가 실제로 계산하는 방식과 동일
-                    let bounding_box = namui::bounding_box(&content);
+                    let bounding_box = content.bounding_box();
                     scroll_bounding_box_tracker
                         .lock()
                         .unwrap()
@@ -335,7 +304,7 @@ async fn fit_first_frame_rendering_behavior() {
     namui::system::init_for_test().await.unwrap();
 
     let render_call_tracker = Arc::new(Mutex::new(Vec::<(usize, bool)>::new()));
-    let mut world = World::init(Instant::now, Arc::new(MockSkCalculate));
+    let mut world = World::init(Instant::now);
 
     struct Test {
         render_call_tracker: Arc<Mutex<Vec<(usize, bool)>>>,

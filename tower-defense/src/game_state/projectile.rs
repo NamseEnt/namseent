@@ -1,7 +1,7 @@
 use super::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub struct Projectile {
     pub xy: MapCoordF32,
     pub kind: ProjectileKind,
@@ -30,12 +30,12 @@ impl Component for &Projectile {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, State)]
 pub enum ProjectileKind {
     Ball,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, State)]
 pub struct ProjectileTargetIndicator {
     id: usize,
 }

@@ -117,7 +117,7 @@ impl Component for TowerImage<'_> {
             return;
         };
 
-        let image_wh = tower_image.info.wh();
+        let image_wh = tower_image.info().wh();
         let rect = Rect::from_xy_wh(image_wh.to_xy() / -2.0, image_wh);
         let paint = Paint::new(Color::grayscale_alpha_f01(0.0, 0.5));
         ctx.add(namui::image(ImageParam {

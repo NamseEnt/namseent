@@ -71,7 +71,7 @@ pub fn text_fit(
         max_width: None,
     });
 
-    let width = match namui::bounding_box(&center_text) {
+    let width = match center_text.bounding_box() {
         Some(bounding_box) => bounding_box.width(),
         None => return RenderingTree::Empty,
     };

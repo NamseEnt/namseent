@@ -47,7 +47,7 @@ impl Component for StatPreview<'_> {
                     max_width: TOOLTIP_MAX_WIDTH,
                 },
             );
-            let Some(tooltip_wh) = bounding_box(&tooltip).map(|rect| rect.wh()) else {
+            let Some(tooltip_wh) = tooltip.bounding_box().map(|rect| rect.wh()) else {
                 return;
             };
             if tooltip_wh.height == 0.px() {
@@ -154,7 +154,8 @@ impl Component for Tooltip<'_> {
                     .max_width(text_max_width)
                     .build_rich(),
             );
-            let stat_text_height = bounding_box(&stat_text)
+            let stat_text_height = stat_text
+                .bounding_box()
                 .map(|rect| rect.height())
                 .unwrap_or_default();
             ctx.add(stat_text);
@@ -175,7 +176,8 @@ impl Component for Tooltip<'_> {
                         .max_width(text_max_width)
                         .build_rich(),
                 );
-                let text_height = bounding_box(&rendered_text)
+                let text_height = rendered_text
+                    .bounding_box()
                     .map(|rect| rect.height())
                     .unwrap_or_default();
                 ctx.add(rendered_text);
@@ -183,7 +185,7 @@ impl Component for Tooltip<'_> {
             }
         });
 
-        let Some(content_wh) = bounding_box(&content).map(|rect| rect.wh()) else {
+        let Some(content_wh) = content.bounding_box().map(|rect| rect.wh()) else {
             return;
         };
         if content_wh.height == 0.px() {

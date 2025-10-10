@@ -2,6 +2,7 @@ use super::*;
 use crate::*;
 use std::sync::Arc;
 
+#[derive(State)]
 pub struct MoveOnRoute {
     route: Arc<Route>,
     route_index: usize,

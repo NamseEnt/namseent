@@ -75,16 +75,10 @@ pub fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
         cap: Some(StrokeCap::Round),
     });
 
-    let image = ctx.image(ResourceLocation::bundle("asset/image/route/1.jpg"));
-
-    let Some(Ok(image)) = image.as_ref() else {
-        return;
-    };
-
     let texture_paint = Paint::new(Color::WHITE)
         .set_style(PaintStyle::Fill)
         .set_shader(Shader::Image {
-            src: image.clone(),
+            src: asset::image::route::ROUTE_1.clone(),
             tile_mode: Xy::single(TileMode::Repeat),
         });
 

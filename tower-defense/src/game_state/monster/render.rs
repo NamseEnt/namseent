@@ -119,6 +119,7 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
     });
 }
 
+#[derive(State)]
 pub struct MonsterAnimation {
     rotation: Angle,
     rotation_velocity: f32,
@@ -144,6 +145,7 @@ impl MonsterAnimation {
     }
 }
 
+#[derive(State)]
 enum MonsterAnimationRotatedSide {
     Left,
     Right,

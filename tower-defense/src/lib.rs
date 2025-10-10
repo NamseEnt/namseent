@@ -34,6 +34,8 @@ use theme::palette;
 use top_bar::TopBar;
 use upgrade_select::UpgradeSelectModal;
 
+register_assets!();
+
 type BlockUnit = usize;
 type BlockUnitF32 = f32;
 type MapCoord = Xy<BlockUnit>;
@@ -203,6 +205,7 @@ impl Component for Game {
     }
 }
 
+#[derive(State)]
 struct MiddleMouseButtonDragging {
     last_global_xy: Xy<Px>,
 }

@@ -6,9 +6,10 @@ use crate::*;
 pub use move_on_route::*;
 pub use render_route::*;
 pub use route_find::*;
+use namui::State;
 use std::sync::Arc;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, State)]
 pub struct Route {
     map_coords: Vec<MapCoord>,
 }

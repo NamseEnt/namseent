@@ -19,6 +19,7 @@ const MONSTER_DEBUFF_INITIAL_OPACITY: f32 = 0.9;
 const MIN_INSTANT_PARTICLE_COUNT: usize = 1;
 const MAX_INSTANT_PARTICLE_COUNT: usize = 2;
 
+#[derive(State)]
 pub struct MonsterStatusEffectEmitter {
     monster_xy: MapCoordF32,
     debuff_kind: MonsterStatusEffectKind,

@@ -93,7 +93,7 @@ impl Component for ContractItemContent<'_> {
                 }),
             ])(Wh::new(content_width, f32::MAX.px()), ctx);
         });
-        let Some(content_wh) = bounding_box(&content).map(|rect| rect.wh()) else {
+        let Some(content_wh) = content.bounding_box().map(|rect| rect.wh()) else {
             return;
         };
         let container_wh = content_wh + Wh::single(PADDING * 2.);

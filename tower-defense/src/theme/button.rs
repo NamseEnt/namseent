@@ -1,7 +1,7 @@
 use super::palette;
 use namui::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 #[allow(dead_code)]
 pub enum ButtonVariant {
     Text,
@@ -10,7 +10,7 @@ pub enum ButtonVariant {
     Fab,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 #[allow(dead_code)]
 pub enum ButtonColor {
     Primary,
@@ -20,7 +20,7 @@ pub enum ButtonColor {
     Info,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 enum ButtonState {
     Normal,
     Hovered,
