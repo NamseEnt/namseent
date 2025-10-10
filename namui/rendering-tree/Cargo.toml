@@ -1,0 +1,16 @@
+[package]
+name = "namui-rendering-tree"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+drawer = []
+
+[dependencies]
+skia-safe = { path = "../third-party-forks/rust-skia/skia-safe" }
+namui-type = { path = "../namui-type" }
+textwrap = "0.16.0"
+unicode-segmentation = "1.10.1"
+
+[dev-dependencies]
+float-cmp = "0.10.0"

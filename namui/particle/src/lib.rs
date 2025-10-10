@@ -1,14 +1,12 @@
-mod fire_and_forget;
-
-use arc_swap::{ArcSwap, ArcSwapOption};
-pub use fire_and_forget::*;
 use namui_hooks::*;
 use namui_skia::*;
 use namui_type::*;
-use rayon::prelude::*;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{
+    cell::RefCell,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
 pub trait Emitter<P> {
@@ -22,23 +20,28 @@ pub trait Particle<E> {
     fn is_done(&self, now: Instant) -> bool;
 }
 
-pub struct System<E, P> {
+#[derive(State)]
+pub struct System<E, P>
+where
+    E: State,
+    P: State,
+{
     _emitter: std::marker::PhantomData<E>,
     _particle: std::marker::PhantomData<P>,
-    initial_emitters: ArcSwapOption<Vec<E>>,
+    initial_emitters: RefCell<Vec<E>>,
     is_done: Arc<AtomicBool>,
 }
 
 impl<E, P> System<E, P>
 where
-    E: Emitter<P> + 'static + Send + Sync,
-    P: Particle<E> + 'static + Send,
+    E: Emitter<P> + State,
+    P: Particle<E> + State,
 {
     pub fn new(emitters: Vec<E>) -> Self {
         Self {
             _emitter: std::marker::PhantomData,
             _particle: std::marker::PhantomData,
-            initial_emitters: ArcSwapOption::new(Some(Arc::new(emitters))),
+            initial_emitters: emitters.into(),
             is_done: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -58,80 +61,69 @@ where
 
 struct SystemComponent<'a, E, P> {
     now: Instant,
-    initial_emitters: &'a ArcSwapOption<Vec<E>>,
+    initial_emitters: &'a RefCell<Vec<E>>,
     system_is_done: &'a Arc<AtomicBool>,
     _p: std::marker::PhantomData<P>,
 }
 
 impl<E, P> Component for SystemComponent<'_, E, P>
 where
-    E: Emitter<P> + 'static + Send + Sync,
-    P: Particle<E> + 'static + Send,
+    E: Emitter<P> + State,
+    P: Particle<E> + State,
 {
     fn render(self, ctx: &RenderCtx) {
-        let (req_tx, set_req_tx) = ctx.state(|| None);
-        let rendering_trees_list = ctx.memo(|| Arc::new(ArcSwap::<_>::new(Default::default())));
-
-        ctx.async_effect("run system on thread pool", (), {
-            |()| {
-                let (req_tx, mut req_rx) = tokio::sync::watch::channel(self.now);
-                set_req_tx.set(Some(req_tx));
-
-                let rendering_trees_list = rendering_trees_list.clone_inner();
-                let system_is_done = self.system_is_done.clone();
-                let mut emitters: Vec<E> = self
-                    .initial_emitters
-                    .swap(None)
-                    .and_then(Arc::into_inner)
-                    .unwrap_or_default();
-                let mut particles: Vec<P> = Vec::with_capacity(65536);
-                let mut last_now = self.now;
-
-                async move {
-                    while req_rx.changed().await.is_ok() {
-                        let now = *req_rx.borrow_and_update();
-                        let dt = now - last_now;
-
-                        // NOTE: Assume emitters are not too many, so no need to use multithreading
-                        emitters.retain_mut(|emitter| {
-                            particles.extend(emitter.emit(now, dt));
-                            !emitter.is_done(now)
-                        });
-
-                        let new_emitters = particles
-                            .par_iter_mut()
-                            .flat_map(|particle| particle.tick(now, dt))
-                            .collect_vec_list();
-                        emitters.extend(new_emitters.into_iter().flatten());
-
-                        particles.retain_mut(|particle| !particle.is_done(now));
-
-                        rendering_trees_list.store(Arc::new(
-                            particles
-                                .par_iter_mut()
-                                .map(|particle| particle.render())
-                                .collect_vec_list(),
-                        ));
-
-                        if emitters.is_empty() && particles.is_empty() {
-                            system_is_done.store(true, Ordering::Release);
-                            break;
-                        }
-
-                        last_now = now;
-                    }
-                }
-            }
+        let Self {
+            now,
+            initial_emitters,
+            system_is_done,
+            ..
+        } = self;
+        #[derive(State)]
+        struct State<E, P>
+        where
+            E: bincode::Encode + bincode::Decode<()>,
+            P: bincode::Encode + bincode::Decode<()>,
+        {
+            emitters: Vec<E>,
+            particles: Vec<P>,
+            last_now: Instant,
+        }
+        let (state, set_state) = ctx.state(|| State {
+            emitters: initial_emitters.replace(vec![]),
+            particles: Vec::<P>::with_capacity(65536),
+            last_now: Instant::now(),
         });
 
         ctx.attach_event(|_| {
-            if let Some(req_tx) = req_tx.as_ref() {
-                _ = req_tx.send(self.now);
-            }
+            let system_is_done = system_is_done.clone();
+            set_state.mutate(move |state| {
+                let &mut State {
+                    ref mut emitters,
+                    ref mut particles,
+                    ref mut last_now,
+                } = state;
+                let dt = now - *last_now;
+
+                emitters.retain_mut(|emitter| {
+                    particles.extend(emitter.emit(now, dt));
+                    !emitter.is_done(now)
+                });
+
+                let new_emitters = particles
+                    .iter_mut()
+                    .flat_map(|particle| particle.tick(now, dt));
+                emitters.extend(new_emitters);
+
+                particles.retain_mut(|particle| !particle.is_done(now));
+
+                if emitters.is_empty() && particles.is_empty() {
+                    system_is_done.store(true, Ordering::Release);
+                }
+            });
         });
 
-        for rendering_tree in rendering_trees_list.load().iter().flatten().cloned() {
-            ctx.add(rendering_tree);
+        for particle in state.particles.iter() {
+            ctx.add(particle.render());
         }
     }
 }

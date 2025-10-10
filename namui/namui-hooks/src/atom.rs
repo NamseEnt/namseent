@@ -5,14 +5,14 @@ use std::{
 };
 
 #[derive(Debug)]
-pub struct Atom<State: 'static + Send + Sync> {
+pub struct Atom<State: crate::State> {
     index: OnceLock<usize>,
     sig_id: OnceLock<SigId>,
     set_state_tx: OnceLock<&'static mpsc::Sender<SetStateItem>>,
     _phantom: std::marker::PhantomData<State>,
 }
 
-impl<State: 'static + Send + Sync> Atom<State> {
+impl<State: crate::State> Atom<State> {
     pub const fn uninitialized() -> Self {
         Self {
             index: OnceLock::new(),

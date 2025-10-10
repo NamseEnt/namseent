@@ -27,10 +27,10 @@ impl RenderCtx<'_, '_> {
 
 // Component
 impl RenderCtx<'_, '_> {
-    pub fn state<T: 'static + Send>(&self, init: impl FnOnce() -> T) -> (Sig<'_, T>, SetState<T>) {
+    pub fn state<T: State>(&self, init: impl FnOnce() -> T) -> (Sig<'_, T>, SetState<T>) {
         self.component_ctx.state(init)
     }
-    pub fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<'_, T> {
+    pub fn memo<T: State>(&self, func: impl FnOnce() -> T) -> Sig<'_, T> {
         self.component_ctx.memo(func)
     }
     pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
@@ -71,17 +71,14 @@ impl RenderCtx<'_, '_> {
     ) -> Sig<'_, T> {
         self.component_ctx.controlled_memo(func)
     }
-    pub fn init_atom<T: Send + Sync + 'static>(
+    pub fn init_atom<T: State>(
         &self,
         atom: &'static Atom<T>,
         init: impl Fn() -> T,
     ) -> (Sig<'_, T>, SetState<T>) {
         self.component_ctx.init_atom(atom, init)
     }
-    pub fn atom<T: Send + Sync + 'static>(
-        &self,
-        atom: &'static Atom<T>,
-    ) -> (Sig<'_, T>, SetState<T>) {
+    pub fn atom<T: State>(&self, atom: &'static Atom<T>) -> (Sig<'_, T>, SetState<T>) {
         self.component_ctx.atom(atom)
     }
     /// This method just keep JoinHandle to abort when the component is unmounted.

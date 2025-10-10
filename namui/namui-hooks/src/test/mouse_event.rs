@@ -3,8 +3,7 @@ use std::sync::{Arc, atomic::AtomicUsize};
 
 #[test]
 fn event_local_xy_in_on_compose_translate() {
-    let sk_calculate = namui_skia::init_calculate().unwrap();
-    let mut world = World::init(Instant::now, sk_calculate);
+    let mut world = World::init(Instant::now);
 
     #[derive(Debug)]
     struct A {
@@ -90,8 +89,7 @@ fn event_local_xy_in_on_compose_translate() {
 
 #[test]
 fn event_local_xy_in_after_translate_at_out() {
-    let sk_calculate = namui_skia::init_calculate().unwrap();
-    let mut world = World::init(Instant::now, sk_calculate);
+    let mut world = World::init(Instant::now);
 
     #[derive(Debug)]
     struct A {

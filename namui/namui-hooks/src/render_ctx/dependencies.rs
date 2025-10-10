@@ -162,47 +162,7 @@ mod tests {
 
     #[test]
     fn sig_dependencies_should_be_inner() {
-        use std::sync::Arc;
-        struct MockSkCalculate;
-        impl SkCalculate for MockSkCalculate {
-            fn group_glyph(&self, _font: &Font, _paint: &Paint) -> Arc<dyn GroupGlyph> {
-                unimplemented!()
-            }
-
-            fn font_metrics(&self, _font: &Font) -> Option<FontMetrics> {
-                unimplemented!()
-            }
-
-            fn load_typeface(
-                &self,
-                _typeface_name: String,
-                _bytes: Vec<u8>,
-            ) -> JoinHandle<Result<()>> {
-                unimplemented!()
-            }
-
-            fn path_contains_xy(&self, _path: &Path, _paint: Option<&Paint>, _xy: Xy<Px>) -> bool {
-                unimplemented!()
-            }
-
-            fn path_bounding_box(&self, _path: &Path, _paint: Option<&Paint>) -> Option<Rect<Px>> {
-                unimplemented!()
-            }
-
-            fn load_image_from_raw(
-                &self,
-                _image_info: ImageInfo,
-                _bitmap: &[u8],
-            ) -> JoinHandle<Image> {
-                unimplemented!()
-            }
-
-            fn load_image_from_encoded(&self, _bytes: &[u8]) -> JoinHandle<Image> {
-                todo!()
-            }
-        }
-
-        let world = World::init(Instant::now, Arc::new(MockSkCalculate));
+        let world = World::init(Instant::now);
         let sig = Sig::new(&1, SigId::Atom { index: 0 }, &world);
         let _cloned: i32 = sig.to_owned();
     }

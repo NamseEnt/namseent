@@ -1,4 +1,3 @@
-mod bounding_box;
 mod common;
 pub mod hooks;
 pub mod math;
@@ -11,7 +10,6 @@ pub use self::random::*;
 pub use ::anyhow::{self, Result, anyhow, bail};
 pub use ::url::Url;
 pub use auto_ops;
-pub use bounding_box::*;
 pub use common::*;
 pub use futures::{StreamExt, future::join_all, future::try_join_all, join, try_join};
 pub use hooks::*;
@@ -34,7 +32,7 @@ pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
 
 pub mod particle {
-    pub use namui_particle::{Emitter, Particle, System, fire_and_forget};
+    pub use namui_particle::{Emitter, Particle, System};
 }
 
 pub fn start<Root: Component + Clone + Send + 'static>(component: Root) {

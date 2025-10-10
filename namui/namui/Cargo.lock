@@ -135,12 +135,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "arc-swap"
-version = "1.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
-
-[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -189,6 +183,26 @@ dependencies = [
  "object",
  "rustc-demangle",
  "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "bincode"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36eaf5d7b090263e8150820482d5d93cd964a81e4019913c972f4edcc6edb740"
+dependencies = [
+ "bincode_derive",
+ "serde",
+ "unty",
+]
+
+[[package]]
+name = "bincode_derive"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf95709a440f45e986983918d0e8a1f30a9b1df04918fc828670606804ac3c09"
+dependencies = [
+ "virtue",
 ]
 
 [[package]]
@@ -1542,6 +1556,7 @@ dependencies = [
 name = "namui-drawer"
 version = "0.1.0"
 dependencies = [
+ "namui-rendering-tree",
  "namui-skia",
  "namui-type",
 ]
@@ -1563,12 +1578,20 @@ dependencies = [
 name = "namui-particle"
 version = "0.1.0"
 dependencies = [
- "arc-swap",
  "namui-hooks",
  "namui-skia",
  "namui-type",
- "rayon",
  "tokio 1.38.0",
+]
+
+[[package]]
+name = "namui-rendering-tree"
+version = "0.1.0"
+dependencies = [
+ "namui-type",
+ "skia-safe",
+ "textwrap",
+ "unicode-segmentation",
 ]
 
 [[package]]
@@ -1576,10 +1599,10 @@ name = "namui-skia"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "derive_more",
+ "namui-rendering-tree",
  "namui-type",
- "num",
- "ordered-float",
  "skia-safe",
  "textwrap",
  "tokio 1.38.0",
@@ -1594,13 +1617,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "auto_ops",
+ "bincode",
  "chrono",
  "derivative",
  "derive-macro",
  "lru",
  "num",
  "rand",
- "serde",
  "sha2",
  "skia-safe",
  "url",
@@ -1884,15 +1907,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba0b26cec2e24f08ed8bb31519a9333140a6599b867dac464bb150bdb796fd43"
 dependencies = [
  "libredox",
-]
-
-[[package]]
-name = "ordered-float"
-version = "4.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bb71e1b3fa6ca1c61f383464aaf2bb0e2f8e772a1f01d486832464de363b951"
-dependencies = [
- "num-traits",
 ]
 
 [[package]]
@@ -2892,6 +2906,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
+name = "unty"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
+
+[[package]]
 name = "url"
 version = "2.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2920,6 +2940,12 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "virtue"
+version = "0.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 
 [[package]]
 name = "walkdir"

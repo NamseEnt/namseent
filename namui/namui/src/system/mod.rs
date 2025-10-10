@@ -1,7 +1,6 @@
 pub mod audio;
 pub mod cache;
 pub mod file;
-pub mod font;
 pub mod image;
 pub mod keyboard;
 pub mod mouse;
@@ -34,7 +33,6 @@ pub(super) async fn init_system() -> InitResult {
         audio::init(),
         cache::init(),
         file::init(),
-        font::init(),
         image::init(),
         keyboard::init(),
         network::init(),

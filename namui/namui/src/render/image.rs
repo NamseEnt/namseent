@@ -54,9 +54,10 @@ impl Component for ImageRender {
                 }));
             }
             ImageSource::ResourceLocation { resource_location } => {
-                let image = ctx.image(resource_location);
+                let image_result = ctx.image(resource_location);
+                let image_guard = image_result.lock().unwrap();
 
-                let Some(Ok(image)) = image.as_ref() else {
+                let Some(Ok(image)) = image_guard.as_ref() else {
                     return;
                 };
 

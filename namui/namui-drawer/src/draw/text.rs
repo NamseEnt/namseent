@@ -1,14 +1,17 @@
 use crate::*;
 
 impl Draw for &TextDrawCommand {
-    fn draw(self, skia: &mut impl SkSkia) {
+    fn draw(self, skia: &mut NativeSkia) {
         if self.text.is_empty() {
             return;
         }
 
-        let group_glyph = skia.group_glyph(&self.font, &self.paint);
-
-        let paragraph = Paragraph::new(&self.text, group_glyph.clone(), self.max_width);
+        let paragraph = Paragraph::new(
+            &self.text,
+            self.font.clone(),
+            self.paint.clone(),
+            self.max_width,
+        );
 
         let line_height = line_height_px(self);
 
@@ -25,7 +28,7 @@ impl Draw for &TextDrawCommand {
                 )
             })
             .for_each(|(y, line)| {
-                let glyph_groups = group_glyph.groups(&line);
+                let glyph_groups = self.font.groups(&line, &self.paint);
 
                 let total_width = glyph_groups.iter().map(|group| group.width).sum();
 
@@ -45,7 +48,7 @@ impl Draw for &TextDrawCommand {
                         continue;
                     }
 
-                    let font_metrics = skia.font_metrics(&font).unwrap();
+                    let font_metrics = font.font_metrics();
                     let bottom = y + get_bottom_of_baseline(self.baseline, font_metrics);
 
                     if let Some(underline_paint) = &self.underline {

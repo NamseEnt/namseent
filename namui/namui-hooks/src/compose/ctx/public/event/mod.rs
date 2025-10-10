@@ -39,7 +39,7 @@ impl ComposeCtx<'_, '_> {
                     ComposeCommand::Translate { xy } => global_xy -= xy,
                     ComposeCommand::Absolute { xy } => global_xy = original_xy - xy,
                     ComposeCommand::Clip { path, clip_op } => {
-                        let path_xy_in = path.xy_in(self.world.sk_calculate.as_ref(), global_xy);
+                        let path_xy_in = path.xy_in(global_xy);
                         match clip_op {
                             ClipOp::Intersect => {
                                 if !path_xy_in {
@@ -81,11 +81,7 @@ impl ComposeCtx<'_, '_> {
         let to_parent_local_xy = |xy| apply_commands_to_xy(xy, self.parent_stack());
 
         let xy_in = |global_xy: Xy<Px>| -> bool {
-            let Some(bounding_box) = self
-                .rt_container
-                .iter()
-                .bounding_box(self.world.sk_calculate.as_ref())
-            else {
+            let Some(bounding_box) = self.rt_container.iter().bounding_box() else {
                 return false;
             };
             let parent_local_xy = to_parent_local_xy(global_xy);
@@ -93,9 +89,7 @@ impl ComposeCtx<'_, '_> {
                 return false;
             }
 
-            self.rt_container
-                .iter()
-                .any(|rt| rt.xy_in(self.world.sk_calculate.as_ref(), parent_local_xy))
+            self.rt_container.iter().any(|rt| rt.xy_in(parent_local_xy))
         };
 
         match raw_event {

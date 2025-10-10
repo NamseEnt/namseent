@@ -2,20 +2,19 @@ mod image;
 mod path;
 mod text;
 
-use namui_skia::*;
-use namui_type::*;
+use crate::*;
 
 pub(crate) trait Draw {
-    fn draw(self, skia: &mut impl SkSkia);
+    fn draw(self, skia: &mut NativeSkia);
 }
 
 impl Draw for RenderingTree {
-    fn draw(self, skia: &mut impl SkSkia) {
+    fn draw(self, skia: &mut NativeSkia) {
         struct RenderingTreeDrawContext {
             on_top_node_matrix_tuples: Vec<(OnTopNode, TransformMatrix)>,
         }
         fn draw_internal(
-            skia: &mut impl SkSkia,
+            skia: &mut NativeSkia,
             rendering_tree: &RenderingTree,
             rendering_tree_draw_context: &mut RenderingTreeDrawContext,
         ) {
@@ -64,9 +63,7 @@ impl Draw for RenderingTree {
                     }
                     SpecialRenderingNode::Scale(scale) => {
                         skia.surface().canvas().save();
-                        skia.surface()
-                            .canvas()
-                            .scale(scale.x.into(), scale.y.into());
+                        skia.surface().canvas().scale(*scale.x, *scale.y);
                         draw_internal(skia, &scale.rendering_tree, rendering_tree_draw_context);
                         skia.surface().canvas().restore();
                     }
@@ -109,7 +106,7 @@ impl Draw for RenderingTree {
 }
 
 impl Draw for &DrawCommand {
-    fn draw(self, skia: &mut impl SkSkia) {
+    fn draw(self, skia: &mut NativeSkia) {
         match self {
             DrawCommand::Path { command } => command.draw(skia),
             DrawCommand::Text { command } => command.draw(skia),
@@ -119,7 +116,7 @@ impl Draw for &DrawCommand {
 }
 
 pub fn draw_mouse_cursor(
-    skia: &mut impl SkSkia,
+    skia: &mut NativeSkia,
     mouse_xy: Xy<Px>,
     mouse_cursor: MouseCursor,
     sprite_set: &StandardCursorSpriteSet,
@@ -166,7 +163,7 @@ pub fn draw_mouse_cursor(
                     false,
                 );
                 ImageDrawCommand {
-                    rect: Rect::from_xy_wh(-offset_xy - hotspot_xy, sprite_set.sheet.info.wh()),
+                    rect: Rect::from_xy_wh(-offset_xy - hotspot_xy, sprite_set.sheet.info().wh()),
                     image: sprite_set.sheet.clone(),
                     fit: ImageFit::None,
                     paint: None,

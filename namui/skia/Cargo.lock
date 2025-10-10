@@ -1029,17 +1029,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "namui-rendering-tree"
+version = "0.1.0"
+dependencies = [
+ "namui-type",
+ "skia-safe",
+ "textwrap",
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "namui-skia"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bincode",
  "bytes",
  "derive_more",
  "float-cmp",
+ "namui-rendering-tree",
  "namui-type",
- "num",
- "ordered-float",
  "skia-safe",
  "textwrap",
  "tokio",
@@ -1054,13 +1062,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "auto_ops",
+ "bincode",
  "chrono",
  "derivative",
  "derive-macro",
  "lru",
  "num",
  "rand",
- "serde",
  "sha2",
  "skia-safe",
  "url",
@@ -1244,15 +1252,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba0b26cec2e24f08ed8bb31519a9333140a6599b867dac464bb150bdb796fd43"
 dependencies = [
  "libredox",
-]
-
-[[package]]
-name = "ordered-float"
-version = "4.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bb71e1b3fa6ca1c61f383464aaf2bb0e2f8e772a1f01d486832464de363b951"
-dependencies = [
- "num-traits",
 ]
 
 [[package]]

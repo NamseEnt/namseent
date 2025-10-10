@@ -2,10 +2,7 @@ use super::*;
 use std::borrow::Cow;
 
 impl World {
-    pub fn init(
-        get_now: impl Fn() -> Instant + 'static,
-        sk_calculate: Arc<dyn SkCalculate>,
-    ) -> Self {
+    pub fn init(get_now: impl Fn() -> Instant + 'static) -> Self {
         let (set_state_tx, set_state_rx) = std::sync::mpsc::channel();
         Self {
             composers: Default::default(),
@@ -19,7 +16,6 @@ impl World {
             atom_index: Default::default(),
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
-            sk_calculate,
         }
     }
 

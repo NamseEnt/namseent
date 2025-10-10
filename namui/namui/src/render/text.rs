@@ -125,12 +125,9 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
 
     let paint = get_text_paint(param.style.color);
 
-    let Some(font_metrics) = system::font::font_metrics(font) else {
-        println!("Font metrics not found for font: {font:?}");
-        return RenderingTree::Empty;
-    };
+    let font_metrics = font.font_metrics();
 
-    let width = system::font::group_glyph(font, &paint).width(&param.text);
+    let width = font.width(&param.text, &paint);
 
     let height = param.line_height_px();
     let bottom_of_baseline = get_bottom_of_baseline(param.baseline, font_metrics);

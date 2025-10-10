@@ -54,7 +54,6 @@ where
     }
 }
 
-#[cfg(feature = "skia")]
 impl From<Xy<Px>> for skia_safe::Point {
     fn from(val: Xy<Px>) -> Self {
         skia_safe::Point::new(val.x.into(), val.y.into())

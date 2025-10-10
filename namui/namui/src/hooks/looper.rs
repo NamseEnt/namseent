@@ -17,7 +17,7 @@ impl<Root: Component + Clone> Looper<Root> {
     pub(crate) fn new(root_component: Root) -> Looper<Root> {
         let internal_root = InternalRoot::new(root_component);
 
-        let mut world = World::init(crate::time::now, crate::system::skia::sk_calculate_arc());
+        let mut world = World::init(crate::time::now);
         let rendering_tree = world.run(&internal_root);
         crate::system::skia::request_draw_rendering_tree(rendering_tree);
 

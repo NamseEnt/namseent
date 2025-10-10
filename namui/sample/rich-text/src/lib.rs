@@ -5,7 +5,8 @@ use namui_prebuilt::rich_text::*;
 
 pub fn main() {
     namui::start(|ctx: &RenderCtx| {
-        let Some(Ok(ref apple_image)) = *ctx.image(ResourceLocation::bundle("resources/apple.png"))
+        let image_result = ctx.image(ResourceLocation::bundle("resources/apple.png"));
+        let Some(Ok(ref apple_image)) = *image_result.lock().unwrap()
         else {
             return;
         };

@@ -2,7 +2,7 @@ use super::*;
 use std::ops::Deref;
 
 impl ComponentCtx<'_> {
-    pub(crate) fn state<State: 'static + Send>(
+    pub(crate) fn state<State: crate::State>(
         &self,
         init: impl FnOnce() -> State,
     ) -> (Sig<'_, State>, SetState<State>) {
@@ -38,7 +38,7 @@ impl ComponentCtx<'_> {
         (sig, set_state)
     }
 
-    pub(crate) fn memo<T: 'static>(&self, func: impl FnOnce() -> T) -> Sig<'_, T> {
+    pub(crate) fn memo<T: crate::State>(&self, func: impl FnOnce() -> T) -> Sig<'_, T> {
         let memo_index = self
             .memo_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -378,7 +378,7 @@ impl ComponentCtx<'_> {
         }
     }
 
-    pub(crate) fn init_atom<State: Send + Sync + 'static>(
+    pub(crate) fn init_atom<State: crate::State>(
         &self,
         atom: &'static Atom<State>,
         init: impl Fn() -> State,
@@ -414,7 +414,7 @@ impl ComponentCtx<'_> {
 
         (sig, set_state)
     }
-    pub(crate) fn atom<State: Send + Sync + 'static>(
+    pub(crate) fn atom<State: crate::State>(
         &self,
         atom: &'static Atom<State>,
     ) -> (Sig<'_, State>, SetState<State>) {
