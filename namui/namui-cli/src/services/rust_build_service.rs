@@ -17,15 +17,11 @@ pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoB
     tokio::spawn(async move {
         let output = run_build_process(&build_option).await?;
 
-        let stderr = String::from_utf8(output.stderr)?
-            // last 256 lines
-            .lines()
-            .rev()
-            .take(256)
-            .collect::<Vec<&str>>()
-            .iter()
-            .rev()
-            .fold(String::new(), |acc, line| acc + line + "\n");
+        let stderr = String::from_utf8(output.stderr)?;
+
+        if !output.status.success() {
+            return Err(anyhow!("Failed to build project: stderr: {stderr}"));
+        }
 
         parse_cargo_build_result(&output.stdout).map_err(|err| {
             anyhow!("Failed to parse build result: stderr: {stderr} \n cargo err:  {err}")
@@ -44,7 +40,6 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 "wasm32-wasip1-threads",
                 "--message-format",
                 "json",
-                "-vv",
             ]);
 
             if build_option.release {

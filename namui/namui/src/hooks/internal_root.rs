@@ -1,17 +1,17 @@
 use super::*;
 
-pub(crate) struct InternalRoot<Root: Component + Clone> {
-    root_component: Root,
+pub(crate) struct InternalRoot {
+    root_component: RootComponent,
 }
-impl<Root: Component + Clone> InternalRoot<Root> {
-    pub(crate) fn new(root_component: Root) -> Self {
+impl InternalRoot {
+    pub(crate) fn new(root_component: RootComponent) -> Self {
         Self { root_component }
     }
 }
 
-impl<Root: Component + Clone> Component for &InternalRoot<Root> {
+impl Component for &InternalRoot {
     fn render(self, ctx: &RenderCtx) {
         // TODO: Add global systems like fire-and-forget particle.
-        ctx.add(self.root_component.clone());
+        ctx.add(self.root_component);
     }
 }

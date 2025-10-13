@@ -1,25 +1,31 @@
 use super::*;
+use crate::*;
 use namui_hooks::*;
-use namui_skia::RawEvent;
 use namui_type::*;
 
-pub(crate) struct Looper<Root: Component + Clone> {
+use std::cell::RefCell;
+thread_local! {
+    static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
+}
+
+pub(crate) type RootComponent = fn(&RenderCtx);
+
+pub(crate) struct Looper {
     world: World,
     one_sec_timer: std::time::Instant,
     one_sec_render_count: i32,
     render_time_sum: Duration,
     render_time_worst: Duration,
     event_type_count: Vec<(EventType, i32)>,
-    internal_root: InternalRoot<Root>,
-    _root: std::marker::PhantomData<Root>,
+    internal_root: InternalRoot,
 }
-impl<Root: Component + Clone> Looper<Root> {
-    pub(crate) fn new(root_component: Root) -> Looper<Root> {
+impl Looper {
+    pub(crate) fn new(root_component: RootComponent) -> Looper {
         let internal_root = InternalRoot::new(root_component);
 
         let mut world = World::init(crate::time::now);
         let rendering_tree = world.run(&internal_root);
-        crate::system::skia::request_draw_rendering_tree(rendering_tree);
+        // TODO: Draw rendering_tree
 
         Looper {
             world,
@@ -43,7 +49,6 @@ impl<Root: Component + Clone> Looper<Root> {
                 (EventType::TextInputSelectionChange, 0),
             ],
             internal_root,
-            _root: std::marker::PhantomData,
         }
     }
 
@@ -58,7 +63,7 @@ impl<Root: Component + Clone> Looper<Root> {
         let now = crate::time::now();
 
         let rendering_tree = self.world.run_with_event(&self.internal_root, event);
-        crate::system::skia::request_draw_rendering_tree(rendering_tree);
+        // TODO: Draw rendering_tree
 
         let elapsed = crate::time::now() - now;
         if elapsed > 33.ms() {

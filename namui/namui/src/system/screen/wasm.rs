@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 use std::sync::atomic::AtomicU32;
 
 pub(crate) async fn init() -> InitResult {
-    let window_wh = unsafe { initial_window_wh() };
+    let window_wh = unsafe { _initial_window_wh() };
     on_resize((window_wh >> 16) as u16, (window_wh & 0xffff) as u16);
 
     Ok(())
@@ -62,60 +62,58 @@ enum EventType {
 }
 
 unsafe extern "C" {
-    fn poll_event(ptr: *const u8, wait_timeout_ms: usize) -> u8;
-    fn initial_window_wh() -> u32;
+    fn _initial_window_wh() -> u32;
 }
 
-pub(crate) fn run_event_hook_loop<Root: Component + Clone + Send + 'static>(component: Root) {
-    tokio::task::spawn_blocking(|| {
-        let mut looper = Looper::new(component);
-        let buffer = [0u8; 8096];
-        let mut next_raw_event = None;
-        loop {
-            let mut raw_event = next_raw_event
-                .take()
-                .unwrap_or_else(|| get_event(&buffer, usize::MAX).unwrap());
+#[unsafe(no_mangle)]
+pub extern "C" fn _on_event(ptr: *const u8, len: usize) {
+    let packet = unsafe { std::slice::from_raw_parts(ptr, len) };
+    let event_type: EventType = unsafe { std::mem::transmute(packet[0]) };
+    let event = parse_event(event_type, packet, on_resize);
 
-            while let Some(peek_raw_event) = get_event(&buffer, 0) {
-                match (&mut raw_event, &peek_raw_event) {
-                    (RawEvent::Wheel { event }, RawEvent::Wheel { event: peek_event }) => {
-                        event.delta_xy += peek_event.delta_xy;
-                        event.mouse_xy = peek_event.mouse_xy;
-                    }
-                    (RawEvent::MouseMove { .. }, RawEvent::MouseMove { .. })
-                    | (RawEvent::MouseMove { .. }, RawEvent::MouseDown { .. })
-                    | (RawEvent::MouseMove { .. }, RawEvent::MouseUp { .. })
-                    | (RawEvent::ScreenResize { .. }, RawEvent::ScreenResize { .. })
-                    | (RawEvent::ScreenRedraw, _)
-                    | (
-                        RawEvent::TextInputSelectionChange { .. },
-                        RawEvent::TextInputSelectionChange { .. },
-                    ) => {
-                        raw_event = peek_raw_event;
-                    }
-                    _ => {
-                        next_raw_event = Some(peek_raw_event);
-                        break;
-                    }
-                }
-            }
-
-            looper.tick(raw_event);
-        }
+    LOOPER.with_borrow_mut(|looper_cell| {
+        looper_cell.as_mut().unwrap().tick(event);
     });
 }
 
-fn get_event(buffer: &[u8], wait_timeout_ms: usize) -> Option<RawEvent> {
-    unsafe {
-        let length = poll_event(buffer.as_ptr(), wait_timeout_ms);
-        if length == 0 {
-            return None;
-        }
-        let packet = &buffer[0..(length as usize)];
-        let event_type: EventType = std::mem::transmute(packet[0]);
-        Some(parse_event(event_type, packet, on_resize))
-    }
-}
+// pub(crate) fn run_event_hook_loop<Root: Component + Clone + Send + 'static>(component: Root) {
+//     tokio::task::spawn_blocking(|| {
+//         let mut looper = Looper::new(component);
+//         let buffer = [0u8; 8096];
+//         let mut next_raw_event = None;
+//         loop {
+//             let mut raw_event = next_raw_event
+//                 .take()
+//                 .unwrap_or_else(|| get_event(&buffer, usize::MAX).unwrap());
+
+//             while let Some(peek_raw_event) = get_event(&buffer, 0) {
+//                 match (&mut raw_event, &peek_raw_event) {
+//                     (RawEvent::Wheel { event }, RawEvent::Wheel { event: peek_event }) => {
+//                         event.delta_xy += peek_event.delta_xy;
+//                         event.mouse_xy = peek_event.mouse_xy;
+//                     }
+//                     (RawEvent::MouseMove { .. }, RawEvent::MouseMove { .. })
+//                     | (RawEvent::MouseMove { .. }, RawEvent::MouseDown { .. })
+//                     | (RawEvent::MouseMove { .. }, RawEvent::MouseUp { .. })
+//                     | (RawEvent::ScreenResize { .. }, RawEvent::ScreenResize { .. })
+//                     | (RawEvent::ScreenRedraw, _)
+//                     | (
+//                         RawEvent::TextInputSelectionChange { .. },
+//                         RawEvent::TextInputSelectionChange { .. },
+//                     ) => {
+//                         raw_event = peek_raw_event;
+//                     }
+//                     _ => {
+//                         next_raw_event = Some(peek_raw_event);
+//                         break;
+//                     }
+//                 }
+//             }
+
+//             looper.tick(raw_event);
+//         }
+//     });
+// }
 
 fn parse_event(event_type: EventType, packet: &[u8], on_resize: impl Fn(u16, u16)) -> RawEvent {
     match event_type {
@@ -245,7 +243,7 @@ fn parse_event(event_type: EventType, packet: &[u8], on_resize: impl Fn(u16, u16
 static SIZE: OnceLock<AtomicU32> = OnceLock::new();
 
 fn on_resize(width: u16, height: u16) {
-    SIZE.get_or_init(|| AtomicU32::new(unsafe { initial_window_wh() }))
+    SIZE.get_or_init(|| AtomicU32::new(unsafe { _initial_window_wh() }))
         .store(
             (width as u32) << 16 | height as u32,
             std::sync::atomic::Ordering::Relaxed,
@@ -256,14 +254,12 @@ fn on_resize(width: u16, height: u16) {
         height: (height as i32).int_px(),
     };
 
-    skia::on_window_resize(wh);
-
     // crate::hooks::on_raw_event(RawEvent::ScreenResize { wh });
 }
 
 pub fn size() -> crate::Wh<IntPx> {
     let size = SIZE
-        .get_or_init(|| AtomicU32::new(unsafe { initial_window_wh() }))
+        .get_or_init(|| AtomicU32::new(unsafe { _initial_window_wh() }))
         .load(std::sync::atomic::Ordering::Relaxed);
     crate::Wh {
         width: ((size >> 16) as i32).int_px(),

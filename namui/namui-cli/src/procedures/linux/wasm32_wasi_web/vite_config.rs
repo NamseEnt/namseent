@@ -30,6 +30,7 @@ pub async fn update_vite_config(config: &ViteConfig<'_>) -> Result<()> {
             r#"
 import {{ defineConfig }} from "vite";
 import expressPlugin from './expressPlugin'
+import path from 'path'
 
 export default defineConfig({{
     clearScreen: false,
@@ -50,6 +51,7 @@ export default defineConfig({{
         alias: {{
             "namui-runtime-wasm.wasm?url": "{namui_runtime_wasm}?url",
             "bundle.sqlite?url": "{bundle_sqlite}?url",
+            "@": path.resolve(__dirname, "./src"),
         }},
     }},
     plugins: [

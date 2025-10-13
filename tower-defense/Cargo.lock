@@ -766,27 +766,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_more"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
-dependencies = [
- "derive_more-impl",
-]
-
-[[package]]
-name = "derive_more-impl"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.98",
- "unicode-xid",
-]
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1860,10 +1839,9 @@ dependencies = [
  "lazy_static",
  "namui-asset-macro",
  "namui-cfg",
- "namui-drawer",
  "namui-hooks",
  "namui-particle",
- "namui-skia",
+ "namui-rendering-tree",
  "namui-type",
  "num",
  "ogg",
@@ -1904,21 +1882,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "namui-drawer"
-version = "0.1.0"
-dependencies = [
- "namui-rendering-tree",
- "namui-skia",
- "namui-type",
-]
-
-[[package]]
 name = "namui-hooks"
 version = "0.1.0"
 dependencies = [
  "boxcar",
  "elsa",
- "namui-skia",
+ "namui-rendering-tree",
  "namui-type",
  "rustc-hash 1.1.0",
  "smol_str",
@@ -1930,7 +1899,7 @@ name = "namui-particle"
 version = "0.1.0"
 dependencies = [
  "namui-hooks",
- "namui-skia",
+ "namui-rendering-tree",
  "namui-type",
  "tokio 1.38.0",
 ]
@@ -1952,23 +1921,6 @@ dependencies = [
  "skia-safe",
  "textwrap",
  "unicode-segmentation",
-]
-
-[[package]]
-name = "namui-skia"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytes",
- "derive_more",
- "namui-rendering-tree",
- "namui-type",
- "skia-safe",
- "textwrap",
- "tokio 1.38.0",
- "unicode-segmentation",
- "windows 0.61.1",
- "winit",
 ]
 
 [[package]]
@@ -3036,7 +2988,6 @@ dependencies = [
  "bitflags 2.8.0",
  "lazy_static",
  "skia-bindings",
- "windows 0.61.1",
 ]
 
 [[package]]
@@ -3544,12 +3495,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
 
 [[package]]
-name = "unicode-xid"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
-
-[[package]]
 name = "untrusted"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3950,28 +3895,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "windows"
-version = "0.61.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5ee8f3d025738cb02bad7868bbb5f8a6327501e870bf51f1b455b0a2454a419"
-dependencies = [
- "windows-collections",
- "windows-core 0.61.2",
- "windows-future",
- "windows-link",
- "windows-numerics",
-]
-
-[[package]]
-name = "windows-collections"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3beeceb5e5cfd9eb1d76b381630e82c4241ccd0d27f1a39ed41b2760b255c5e8"
-dependencies = [
- "windows-core 0.61.2",
-]
-
-[[package]]
 name = "windows-core"
 version = "0.51.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4001,17 +3924,6 @@ dependencies = [
  "windows-link",
  "windows-result 0.3.4",
  "windows-strings",
-]
-
-[[package]]
-name = "windows-future"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc6a41e98427b19fe4b73c550f060b59fa592d7d686537eebf9385621bfbad8e"
-dependencies = [
- "windows-core 0.61.2",
- "windows-link",
- "windows-threading",
 ]
 
 [[package]]
@@ -4063,16 +3975,6 @@ name = "windows-link"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76840935b766e1b0a05c0066835fb9ec80071d4c09a16f6bd5f7e655e3c14c38"
-
-[[package]]
-name = "windows-numerics"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9150af68066c4c5c07ddc0ce30421554771e528bde427614c61038bc2c92c2b1"
-dependencies = [
- "windows-core 0.61.2",
- "windows-link",
-]
 
 [[package]]
 name = "windows-result"
@@ -4181,15 +4083,6 @@ dependencies = [
  "windows_x86_64_gnu 0.52.6",
  "windows_x86_64_gnullvm 0.52.6",
  "windows_x86_64_msvc 0.52.6",
-]
-
-[[package]]
-name = "windows-threading"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b66463ad2e0ea3bbf808b7f1d371311c80e115c0b71d60efc142cafbcfb057a6"
-dependencies = [
- "windows-link",
 ]
 
 [[package]]

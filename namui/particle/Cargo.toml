@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 namui-type = { path = "../namui-type" }
 namui-hooks = { path = "../namui-hooks" }
-namui-skia = { path = "../skia" }
+namui-rendering-tree = { path = "../rendering-tree" }
 tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "sync",
     "macros",

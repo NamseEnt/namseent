@@ -5,7 +5,7 @@ import {
 } from "./getSizePerPixel";
 
 export function envGl({
-    canvas,
+    canvas = new OffscreenCanvas(0, 0),
     memory,
     exports,
 }: {
@@ -13,7 +13,7 @@ export function envGl({
     memory: WebAssembly.Memory;
     exports: () => Exports;
 }) {
-    const webgl = canvas?.getContext("webgl2");
+    const webgl = canvas.getContext("webgl2");
     const stringCache = new Map<number, number>();
 
     const webglBufferMap = new Map<number, WebGLBuffer>();

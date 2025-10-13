@@ -12,15 +12,15 @@ targets = [
 ]
 
 [dependencies]
-anyhow = { version = "1.0.75", features = ["backtrace"] }
 namui-type = { path = "../namui-type" }
+namui-rendering-tree = { path = "../rendering-tree" }
+skia-safe = { path = "../third-party-forks/rust-skia/skia-safe" }
+tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt"] }
+anyhow = { version = "1.0.75", features = ["backtrace"] }
 textwrap = "0.16.0"
 unicode-segmentation = "1.10.1"
-tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt"] }
-skia-safe = { path = "../third-party-forks/rust-skia/skia-safe" }
 derive_more = { version = "1.0.0", features = ["debug"] }
 bytes = "1.10.1"
-namui-rendering-tree = { path = "../rendering-tree" }
 
 [target.'cfg(target_os="wasi")'.dependencies]
 skia-safe = { path = "../third-party-forks/rust-skia/skia-safe", features = [

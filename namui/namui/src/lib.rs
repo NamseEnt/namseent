@@ -6,6 +6,8 @@ mod render;
 pub mod system;
 pub mod utils;
 
+use std::sync::OnceLock;
+
 pub use self::random::*;
 pub use ::anyhow::{self, Result, anyhow, bail};
 pub use ::url::Url;
@@ -16,7 +18,7 @@ pub use hooks::*;
 pub use lazy_static::lazy_static;
 pub use namui_asset_macro::register_assets;
 pub use namui_cfg::*;
-pub use namui_skia::*;
+pub use namui_rendering_tree::*;
 pub use namui_type as types;
 pub use namui_type::*;
 pub use rand;
@@ -24,6 +26,7 @@ pub use rayon;
 pub use render::*;
 pub use serde;
 pub use shader_macro::shader;
+use std::cell::RefCell;
 pub use system::{
     audio::Audio,
     network::http::{RequestExt, ResponseExt},
@@ -36,9 +39,17 @@ pub mod particle {
     pub use namui_particle::{Emitter, Particle, System};
 }
 
-pub fn start<Root: Component + Clone + Send + 'static>(component: Root) {
-    let tokio_runtime: tokio::runtime::Runtime =
-        tokio_runtime().expect("Failed to create tokio runtime");
+static TOKIO_RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+
+thread_local! {
+    static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
+}
+
+pub fn start(root_component: RootComponent) {
+    LOOPER.with(|looper| looper.replace(Some(Looper::new(root_component))));
+
+    let tokio_runtime = TOKIO_RUNTIME.get_or_init(|| tokio_runtime().unwrap());
+
     tokio_runtime.spawn(async move {
         system::init_system()
             .await
@@ -48,20 +59,20 @@ pub fn start<Root: Component + Clone + Send + 'static>(component: Root) {
 
         #[cfg(target_os = "wasi")]
         {
-            crate::screen::run_event_hook_loop(component)
+            // crate::screen::run_event_hook_loop(component)
         }
     });
 
     #[cfg(target_os = "wasi")]
     {
-        skia::on_skia_drawing_thread().unwrap();
+        // skia::on_skia_drawing_thread().unwrap();
     }
-    #[cfg(not(target_os = "wasi"))]
-    {
-        tokio_runtime.block_on(async move {
-            screen::take_main_thread(component);
-        });
-    }
+    // #[cfg(not(target_os = "wasi"))]
+    // {
+    //     tokio_runtime.block_on(async move {
+    //         screen::take_main_thread(component);
+    //     });
+    // }
 }
 
 fn tokio_runtime() -> Result<tokio::runtime::Runtime> {

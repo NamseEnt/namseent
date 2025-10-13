@@ -42,6 +42,7 @@ event type and body
     - u8: code
 */
 
+import { Exports } from "./exports";
 import { CODES } from "./imports/codes";
 
 export const EVENT_TYPE = {
@@ -61,107 +62,6 @@ export const EVENT_TYPE = {
     TEXT_INPUT_KEY_DOWN: 0x0c,
 };
 
-export class EventSystemOnWorker {
-    private eventBufferIndex: number = 4;
-    constructor(
-        private readonly eventBuffer: SharedArrayBuffer,
-        private readonly memory: WebAssembly.Memory,
-    ) {}
-
-    /**
-     * @param {number} waitTimeoutMs < 0 for wait indefinitely.
-     * @return {number} the byte length of event. 0 if no event.
-     */
-    public pollEvent(wasmBufferPtr: number, waitTimeoutMs: number): number {
-        const eventBufferView = new DataView(this.eventBuffer);
-        const eventBufferI32Array = new Int32Array(this.eventBuffer);
-        const wasmBuffer = new DataView(this.memory.buffer, wasmBufferPtr, 32);
-
-        if (waitTimeoutMs) {
-            Atomics.wait(
-                eventBufferI32Array,
-                0,
-                0,
-                waitTimeoutMs < 0 ? NaN : waitTimeoutMs,
-            );
-        }
-        if (Atomics.load(eventBufferI32Array, 0) === 0) {
-            return 0;
-        }
-
-        Atomics.sub(eventBufferI32Array, 0, 1);
-        // TODO: Monitor how many event are in queue.
-
-        const eventType = eventBufferView.getUint8(this.eventBufferIndex);
-        let packetSize: number;
-
-        switch (eventType) {
-            case EVENT_TYPE.END_OF_BUFFER: {
-                this.eventBufferIndex = 4;
-                return this.pollEvent(wasmBufferPtr, waitTimeoutMs);
-            }
-            case EVENT_TYPE.ANIMATION_FRAME:
-                packetSize = 1;
-                break;
-            case EVENT_TYPE.RESIZE:
-                packetSize = 5;
-                break;
-            case EVENT_TYPE.KEY_DOWN:
-            case EVENT_TYPE.KEY_UP: {
-                packetSize = 2;
-                break;
-            }
-            case EVENT_TYPE.MOUSE_DOWN:
-            case EVENT_TYPE.MOUSE_MOVE:
-            case EVENT_TYPE.MOUSE_UP: {
-                packetSize = 7;
-                break;
-            }
-            case EVENT_TYPE.WHEEL: {
-                packetSize = 13;
-                break;
-            }
-            case EVENT_TYPE.BLUR:
-            case EVENT_TYPE.VISIBILITY_CHANGE: {
-                packetSize = 1;
-                break;
-            }
-            case EVENT_TYPE.TEXT_INPUT:
-            case EVENT_TYPE.SELECTION_CHANGE: {
-                packetSize =
-                    8 + eventBufferView.getUint16(this.eventBufferIndex + 1);
-                break;
-            }
-            case EVENT_TYPE.TEXT_INPUT_KEY_DOWN: {
-                packetSize =
-                    8 +
-                    eventBufferView.getUint16(this.eventBufferIndex + 1) +
-                    1;
-                break;
-            }
-            default: {
-                throw new Error(`Unknown event type: ${eventType}`);
-            }
-        }
-
-        wasmBuffer.setUint8(0, eventType);
-        new Uint8Array(
-            this.memory.buffer,
-            wasmBufferPtr + 1,
-            packetSize - 1,
-        ).set(
-            new Uint8Array(
-                this.eventBuffer,
-                this.eventBufferIndex + 1,
-                packetSize - 1,
-            ),
-        );
-
-        this.eventBufferIndex += packetSize;
-        return packetSize;
-    }
-}
-
 export type OnTextInputEvent = (
     textarea: HTMLTextAreaElement,
     eventType:
@@ -171,58 +71,68 @@ export type OnTextInputEvent = (
     code?: number,
 ) => void;
 
-export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer): {
+export function startEventSystem(instance: WebAssembly.Instance): {
     onTextInputEvent: OnTextInputEvent;
 } {
-    let eventBufferIndex = 4;
-
-    const eventBufferView = new DataView(eventBuffer);
-    const i32Array = new Int32Array(eventBuffer);
-
-    function checkIndexOverflow(packetSize: number) {
-        const margin = packetSize + 8;
-        if (eventBufferIndex + margin >= eventBuffer.byteLength) {
-            eventBufferView.setUint8(
-                eventBufferIndex,
-                EVENT_TYPE.END_OF_BUFFER,
+    const exports = instance.exports as Exports;
+    const memory = exports.memory;
+    function sendEvent(
+        packetSize: number,
+        on: (buffer: {
+            u8: (value: number) => void;
+            u16: (value: number) => void;
+            u32: (value: number) => void;
+            f32: (value: number) => void;
+        }) => void,
+    ) {
+        const ptr = exports.malloc(packetSize);
+        const view = new DataView(memory.buffer, ptr, packetSize);
+        let index = 0;
+        on({
+            u8: (value: number) => {
+                view.setUint8(index, value);
+                index += 1;
+            },
+            u16: (value: number) => {
+                view.setUint16(index, value);
+                index += 2;
+            },
+            u32: (value: number) => {
+                view.setUint32(index, value);
+                index += 4;
+            },
+            f32: (value: number) => {
+                view.setFloat32(index, value);
+                index += 4;
+            },
+        });
+        if (index !== packetSize) {
+            throw new Error(
+                `Event packet size mismatch: expected ${packetSize}, got ${index}`,
             );
-            eventBufferIndex = 4;
-
-            Atomics.add(i32Array, 0, 1);
-            Atomics.notify(i32Array, 0);
         }
+        exports._on_event(ptr, packetSize);
+        exports.free(ptr);
     }
 
     function onAnimationFrame() {
-        const packetSize = 1;
-        checkIndexOverflow(packetSize);
-
-        eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.ANIMATION_FRAME);
-        eventBufferIndex += packetSize;
-
-        Atomics.add(i32Array, 0, 1);
-        Atomics.notify(i32Array, 0);
+        sendEvent(1, (buffer) => {
+            buffer.u8(EVENT_TYPE.ANIMATION_FRAME);
+        });
 
         requestAnimationFrame(onAnimationFrame);
     }
     requestAnimationFrame(onAnimationFrame);
 
     window.addEventListener("resize", () => {
-        const packetSize = 5;
-        checkIndexOverflow(packetSize);
-
-        eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.RESIZE);
-        eventBufferView.setUint16(eventBufferIndex + 1, window.innerWidth);
-        eventBufferView.setUint16(eventBufferIndex + 3, window.innerHeight);
-        eventBufferIndex += 5;
-
-        Atomics.add(i32Array, 0, 1);
-        Atomics.notify(i32Array, 0);
+        sendEvent(5, (buffer) => {
+            buffer.u8(EVENT_TYPE.RESIZE);
+            buffer.u16(window.innerWidth);
+            buffer.u16(window.innerHeight);
+        });
     });
 
     function onKeyEvent(type: "down" | "up", event: KeyboardEvent) {
-        const packetSize = 2;
-
         const code = CODES[event.code as keyof typeof CODES];
         if (!code) {
             console.warn(`Unknown key code: ${event.code}`);
@@ -232,17 +142,12 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer): {
             event.preventDefault();
         }
 
-        checkIndexOverflow(packetSize);
-
-        eventBufferView.setUint8(
-            eventBufferIndex,
-            type === "down" ? EVENT_TYPE.KEY_DOWN : EVENT_TYPE.KEY_UP,
-        );
-        eventBufferView.setUint8(eventBufferIndex + 1, code);
-        eventBufferIndex += 2;
-
-        Atomics.add(i32Array, 0, 1);
-        Atomics.notify(i32Array, 0);
+        sendEvent(2, (buffer) => {
+            buffer.u8(
+                type === "down" ? EVENT_TYPE.KEY_DOWN : EVENT_TYPE.KEY_UP,
+            );
+            buffer.u8(code);
+        });
     }
     document.addEventListener("keydown", (e) => {
         onKeyEvent("down", e);
@@ -253,25 +158,20 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer): {
 
     function onMouseEvent(type: "down" | "move" | "up", event: MouseEvent) {
         event.preventDefault();
-        const packetSize = 7;
-        checkIndexOverflow(packetSize);
 
-        eventBufferView.setUint8(
-            eventBufferIndex,
-            type === "down"
-                ? EVENT_TYPE.MOUSE_DOWN
-                : type === "move"
-                ? EVENT_TYPE.MOUSE_MOVE
-                : EVENT_TYPE.MOUSE_UP,
-        );
-        eventBufferView.setUint8(eventBufferIndex + 1, event.button);
-        eventBufferView.setUint8(eventBufferIndex + 2, event.buttons);
-        eventBufferView.setUint16(eventBufferIndex + 3, event.clientX);
-        eventBufferView.setUint16(eventBufferIndex + 5, event.clientY);
-        eventBufferIndex += 7;
-
-        Atomics.add(i32Array, 0, 1);
-        Atomics.notify(i32Array, 0);
+        sendEvent(7, (buffer) => {
+            buffer.u8(
+                type === "down"
+                    ? EVENT_TYPE.MOUSE_DOWN
+                    : type === "move"
+                    ? EVENT_TYPE.MOUSE_MOVE
+                    : EVENT_TYPE.MOUSE_UP,
+            );
+            buffer.u8(event.button);
+            buffer.u8(event.buttons);
+            buffer.u16(event.clientX);
+            buffer.u16(event.clientY);
+        });
     }
     document.addEventListener("mousedown", (e) => {
         onMouseEvent("down", e);
@@ -284,81 +184,46 @@ export function startEventSystemOnMainThread(eventBuffer: SharedArrayBuffer): {
     });
 
     document.addEventListener("wheel", (event) => {
-        const packetSize = 13;
-        checkIndexOverflow(packetSize);
-
-        eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.WHEEL);
-        eventBufferView.setFloat32(eventBufferIndex + 1, event.deltaX);
-        eventBufferView.setFloat32(eventBufferIndex + 5, event.deltaY);
-        eventBufferView.setUint16(eventBufferIndex + 9, event.clientX);
-        eventBufferView.setUint16(eventBufferIndex + 11, event.clientY);
-        eventBufferIndex += 13;
-
-        Atomics.add(i32Array, 0, 1);
-        Atomics.notify(i32Array, 0);
+        sendEvent(13, (buffer) => {
+            buffer.u8(EVENT_TYPE.WHEEL);
+            buffer.f32(event.deltaX);
+            buffer.f32(event.deltaY);
+            buffer.u16(event.clientX);
+            buffer.u16(event.clientY);
+        });
     });
 
     window.addEventListener("blur", () => {
-        const packetSize = 1;
-        checkIndexOverflow(packetSize);
-
-        eventBufferView.setUint8(eventBufferIndex, EVENT_TYPE.BLUR);
-        eventBufferIndex += 1;
-
-        Atomics.add(i32Array, 0, 1);
-        Atomics.notify(i32Array, 0);
+        sendEvent(1, (buffer) => {
+            buffer.u8(EVENT_TYPE.BLUR);
+        });
     });
 
     document.addEventListener("visibilitychange", () => {
-        const packetSize = 1;
-        checkIndexOverflow(packetSize);
-
-        eventBufferView.setUint8(
-            eventBufferIndex,
-            EVENT_TYPE.VISIBILITY_CHANGE,
-        );
-        eventBufferIndex += 1;
-
-        Atomics.add(i32Array, 0, 1);
-        Atomics.notify(i32Array, 0);
+        sendEvent(1, (buffer) => {
+            buffer.u8(EVENT_TYPE.VISIBILITY_CHANGE);
+        });
     });
 
     const onTextInputEvent: OnTextInputEvent = (textarea, eventType, code) => {
         const textBuffer = new TextEncoder().encode(textarea.value);
 
-        const packetSize = 8 + textBuffer.byteLength + (code ? 1 : 0);
-
-        checkIndexOverflow(packetSize);
-
-        eventBufferView.setUint8(eventBufferIndex, eventType);
-        eventBufferView.setUint16(eventBufferIndex + 1, textBuffer.byteLength);
-        new Uint8Array(eventBuffer, eventBufferIndex + 3).set(textBuffer);
-        eventBufferView.setUint8(
-            eventBufferIndex + 3 + textBuffer.byteLength,
-            textarea.selectionDirection === "forward"
-                ? 1
-                : textarea.selectionDirection === "backward"
-                ? 2
-                : 0,
-        );
-        eventBufferView.setUint16(
-            eventBufferIndex + 4 + textBuffer.byteLength,
-            textarea.selectionStart || 0,
-        );
-        eventBufferView.setUint16(
-            eventBufferIndex + 6 + textBuffer.byteLength,
-            textarea.selectionEnd || 0,
-        );
-        if (code) {
-            eventBufferView.setUint8(
-                eventBufferIndex + 8 + textBuffer.byteLength,
-                code,
+        sendEvent(8 + textBuffer.byteLength + (code ? 1 : 0), (buffer) => {
+            buffer.u8(eventType);
+            buffer.u16(textBuffer.byteLength);
+            buffer.u8(
+                textarea.selectionDirection === "forward"
+                    ? 1
+                    : textarea.selectionDirection === "backward"
+                    ? 2
+                    : 0,
             );
-        }
-        eventBufferIndex += packetSize;
-
-        Atomics.add(i32Array, 0, 1);
-        Atomics.notify(i32Array, 0);
+            buffer.u16(textarea.selectionStart || 0);
+            buffer.u16(textarea.selectionEnd || 0);
+            if (code) {
+                buffer.u8(code);
+            }
+        });
     };
 
     return { onTextInputEvent };

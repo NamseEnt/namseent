@@ -5,10 +5,22 @@ pub fn wasi_cargo_envs() -> [(&'static str, PathBuf); 9] {
     let cli_root_path = get_cli_root_path();
 
     [
-        ("CLANGCC", cli_root_path.join("wasi-sdk/bin/clang")),
-        ("CLANGCXX", cli_root_path.join("wasi-sdk/bin/clang++")),
-        ("CC", cli_root_path.join("wasi-sdk/bin/clang")),
-        ("CXX", cli_root_path.join("wasi-sdk/bin/clang++")),
+        (
+            "CLANGCC_wasm32-wasip1-threads",
+            cli_root_path.join("wasi-sdk/bin/clang"),
+        ),
+        (
+            "CLANGCXX_wasm32-wasip1-threads",
+            cli_root_path.join("wasi-sdk/bin/clang++"),
+        ),
+        (
+            "CC_wasm32-wasip1-threads",
+            cli_root_path.join("wasi-sdk/bin/clang"),
+        ),
+        (
+            "CXX_wasm32-wasip1-threads",
+            cli_root_path.join("wasi-sdk/bin/clang++"),
+        ),
         ("WASI_SDK", cli_root_path.join("wasi-sdk")),
         (
             "WASI_SYSROOT",

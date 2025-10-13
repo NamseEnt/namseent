@@ -7,7 +7,6 @@ pub mod mouse;
 pub mod network;
 pub mod platform;
 pub mod screen;
-pub mod skia;
 pub mod time;
 pub mod typeface;
 #[cfg(target_os = "wasi")]
@@ -41,8 +40,6 @@ pub(super) async fn init_system() -> InitResult {
         setup_rayon_concurrency(),
     )?;
 
-    skia::init()?;
-
     // #[cfg(target_os = "wasi")]
     // futures::try_join!(
     //     deep_link::init(),
@@ -53,25 +50,6 @@ pub(super) async fn init_system() -> InitResult {
     futures::try_join!(mouse::init(), typeface::init())?;
 
     SYSTEM_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
-
-    Ok(())
-}
-
-pub async fn init_for_test() -> InitResult {
-    static INITIALIZED: std::sync::OnceLock<tokio::sync::Mutex<bool>> = std::sync::OnceLock::new();
-
-    let mut initialized = INITIALIZED
-        .get_or_init(|| tokio::sync::Mutex::new(false))
-        .lock()
-        .await;
-
-    if *initialized {
-        return Ok(());
-    }
-
-    skia::init()?;
-
-    *initialized = true;
 
     Ok(())
 }

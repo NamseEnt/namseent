@@ -1,19 +1,7 @@
-import {
-    ConsoleStdout,
-} from "@bjorn3/browser_wasi_shim";
-import { sendMessageToMainThread } from "./interWorkerProtocol";
+import { ConsoleStdout } from "@bjorn3/browser_wasi_shim";
 
 export function stdout(threadId: number) {
-    return ConsoleStdout.lineBuffered((msg) =>
-    {
-        if (msg.startsWith("\u0081")) {
-            sendMessageToMainThread({
-                type: "log",
-                threadId,
-                msg: msg.slice(1),
-            });
-        } else {
-            console.log(`[${threadId}] ${msg}`);
-        }
+    return ConsoleStdout.lineBuffered((msg) => {
+        console.log(`[${threadId}] ${msg}`);
     });
 }

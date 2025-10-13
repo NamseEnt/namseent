@@ -1,59 +1,48 @@
 import { envGl } from "./envGl";
-import { EventSystemOnWorker } from "../eventSystem";
-import { sendMessageToMainThread } from "../interWorkerProtocol";
+import { EventSystemOnWorker } from "@/eventSystem";
 import { textInputImports } from "./textInput";
-import { Exports } from "../exports";
-import { webSocketImports } from "../webSocket";
-import { insertJsImports } from "../insertJs";
-import { storageImports } from "../storage/imports";
-import { bufferPoolImports } from "../bufferPool";
-import { newEventSystemImports } from "../newEventSystem";
-import { httpFetchImports } from "../httpFetch/httpFetch";
-import { audioImports } from "../audio";
+import { type Exports } from "@/exports";
+import { webSocketImports } from "@/webSocket";
+import { insertJsImports } from "@/insertJs";
+import { storageImports } from "@/storage/imports";
+import { bufferPoolImports } from "@/bufferPool";
+import { newEventSystemImports } from "@/newEventSystem";
+import { httpFetchImports } from "@/httpFetch/httpFetch";
+import { audioImports } from "@/audio";
+import { ThreadStartSupplies } from "@/thread/startThread";
+import SubThreadWorker from "@/thread/SubThreadWorker?worker";
 
 export function createImportObject({
-    memory,
-    module,
-    nextTid,
+    supplies,
     wasiImport,
-    canvas,
-    eventBuffer,
-    initialWindowWh,
     exports,
-    bundleSqlite,
     storageProtocolBuffer,
 }: {
-    memory: WebAssembly.Memory;
-    module: WebAssembly.Module;
-    nextTid: SharedArrayBuffer;
+    supplies: ThreadStartSupplies;
     wasiImport: Record<string, any>;
-    canvas?: OffscreenCanvas;
-    eventBuffer: SharedArrayBuffer;
-    initialWindowWh: number;
     exports: () => Exports;
-    bundleSqlite: () => SharedArrayBuffer;
     storageProtocolBuffer: SharedArrayBuffer;
 }) {
+    const { memory } = supplies;
     const glFunctions = envGl({
         exports,
-        canvas,
         memory,
     }) as any;
 
-    const glDebug = false;
+    // const glDebug = false;
 
-    if (glDebug) {
-        for (const key in glFunctions) {
-            const original = glFunctions[key];
-            glFunctions[key] = (...args: (number | bigint)[]) => {
-                console.debug(
-                    key,
-                    args.map((x) => `0x${x.toString(16)}`).join(","),
-                );
-                return original(...args);
-            };
-        }
-    }
+    // if (glDebug) {
+    //     for (const key in glFunctions) {
+    //         const original = glFunctions[key];
+    //         glFunctions[key] = (...args: (number | bigint)[]) => {
+    //             console.debug(
+    //                 key,
+    //                 args.map((x) => `0x${x.toString(16)}`).join(","),
+    //             );
+    //             return original(...args);
+    //         };
+    //     }
+    // }
 
     const wasiDebug = false;
 
@@ -101,44 +90,7 @@ export function createImportObject({
             ...newEventSystemImports({ memory }),
             ...httpFetchImports({ memory }),
             ...audioImports({ memory }),
-            poll_event: (
-                wasmBufferPtr: number,
-                waitTimeoutMs: number,
-            ): number => {
-                if (!eventSystem) {
-                    eventSystem = new EventSystemOnWorker(eventBuffer, memory);
-                }
-                return eventSystem.pollEvent(wasmBufferPtr, waitTimeoutMs);
-            },
-            initial_window_wh: (): number => {
-                return initialWindowWh;
-            },
-            update_canvas_wh: (width: number, height: number) => {
-                if (!canvas) {
-                    throw new Error("Canvas is not available");
-                }
-                if (canvas.width !== width) {
-                    canvas.width = width;
-                }
-                if (canvas.height !== height) {
-                    canvas.height = height;
-                }
-                sendMessageToMainThread({
-                    type: "update-canvas-wh",
-                    width,
-                    height,
-                });
-            },
-            take_bitmap: () => {
-                if (!canvas) {
-                    throw new Error("Canvas is not available");
-                }
-                const bitmap = canvas.transferToImageBitmap();
-                sendMessageToMainThread({
-                    type: "bitmap",
-                    bitmap,
-                });
-            },
+            _initial_window_wh: () => supplies.initialWindowWh,
             _hardware_concurrency: () => {
                 return navigator.hardwareConcurrency;
             },
@@ -146,18 +98,18 @@ export function createImportObject({
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {
             "thread-spawn": (startArgPtr: number) => {
-                const tid = Atomics.add(new Uint32Array(nextTid), 0, 1);
-                sendMessageToMainThread({
-                    type: "thread-spawn",
-                    tid,
-                    nextTid,
-                    wasmMemory: memory,
-                    module,
+                const tid = Atomics.add(
+                    new Uint32Array(supplies.nextTid),
+                    0,
+                    1,
+                );
+                const worker = new SubThreadWorker();
+                worker.postMessage({
+                    ...supplies,
+                    type: "sub",
                     startArgPtr,
-                    eventBuffer,
-                    initialWindowWh,
-                    bundleSqlite: bundleSqlite(),
-                });
+                    tid,
+                } satisfies ThreadStartSupplies);
 
                 return tid;
             },

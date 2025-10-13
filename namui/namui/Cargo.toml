@@ -15,10 +15,9 @@ targets = [
 [dependencies]
 namui-type = { path = "../namui-type" }
 namui-hooks = { path = "../namui-hooks" }
-namui-skia = { path = "../skia" }
 namui-cfg = { path = "../namui-cfg" }
-namui-drawer = { path = "../namui-drawer" }
 namui-particle = { path = "../particle" }
+namui-rendering-tree = { path = "../rendering-tree" }
 namui-asset-macro = { path = "../asset-macro" }
 lazy_static = "1.4.0"
 url = { version = "2", features = ["serde"] }

@@ -14,5 +14,4 @@ targets = [
 
 [dependencies]
 namui-type = { path = "../namui-type" }
-namui-rendering-tree = { path = "../rendering-tree" }
 namui-skia = { path = "../skia" }
