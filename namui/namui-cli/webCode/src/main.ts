@@ -1,4 +1,4 @@
-import { startEventSystem, startEventSystemOnMainThread } from "./eventSystem";
+import { startEventSystem } from "./eventSystem";
 import { insertJsHandleOnMainThread } from "./insertJs";
 import { WorkerMessagePayload, sendToWorker } from "./interWorkerProtocol";
 import { TextInput } from "./textInput";
@@ -15,6 +15,7 @@ import { audioHandleOnMainThread } from "./audio";
 import { pushLog } from "./logger";
 import { startThread } from "./thread/startThread";
 import wasmUrl from "/Users/namse/namseent2/tower-defense/target/namui/target/wasm32-wasip1-threads/debug/namui-runtime-wasm.wasm?url";
+import "./drawer";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -43,7 +44,6 @@ const memory = new WebAssembly.Memory({
     maximum: 16384,
     shared: true,
 });
-const tabId = crypto.randomUUID();
 
 // const storageWorker = new StorageWorker();
 // sendToWorker(storageWorker, {
@@ -54,18 +54,18 @@ const tabId = crypto.randomUUID();
 const nextTid = new SharedArrayBuffer(4);
 new Uint32Array(nextTid)[0] = 1;
 
-const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
+// const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
 
-const instance = await startThread({
-    type: "main",
-    memory,
-    module,
-    tabId,
-    nextTid,
-    initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
-});
-const { onTextInputEvent } = startEventSystem(instance);
-const textInput = new TextInput(onTextInputEvent);
+// const instance = await startThread({
+//     type: "main",
+//     memory,
+//     module,
+//     nextTid,
+//     initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
+// });
+// console.log("main instance.exports", instance.exports);
+// const { onTextInputEvent } = startEventSystem(instance);
+// const textInput = new TextInput(onTextInputEvent);
 
 // let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;
 // let insertJsHandle: ReturnType<typeof insertJsHandleOnMainThread>;

@@ -51,6 +51,7 @@ export default defineConfig({{
         alias: {{
             "namui-runtime-wasm.wasm?url": "{namui_runtime_wasm}?url",
             "bundle.sqlite?url": "{bundle_sqlite}?url",
+            "namui-drawer.wasm?url": "{drawer_runtime_wasm}?url",
             "@": path.resolve(__dirname, "./src"),
         }},
     }},
@@ -62,6 +63,9 @@ export default defineConfig({{
             namui_runtime_wasm = namui_runtime_wasm_path.to_string_lossy(),
             cli_root = get_cli_root_path().to_string_lossy(),
             bundle_sqlite = bundle_sqlite_path.to_string_lossy(),
+            drawer_runtime_wasm = get_cli_root_path()
+                .join("../namui-drawer/target/wasm32-wasip1-threads/release/namui-drawer.wasm")
+                .to_string_lossy(),
             host = config.host.as_deref().unwrap_or("localhost"),
         ),
     )

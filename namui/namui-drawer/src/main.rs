@@ -1,10 +1,13 @@
 mod draw;
+mod images;
 
 use draw::*;
 use namui_rendering_tree::*;
 use namui_skia::*;
 use namui_type::*;
 use std::{cell::RefCell, sync::OnceLock};
+
+fn main() {}
 
 thread_local! {
     static SKIA: RefCell<Option<NativeSkia>> = const { RefCell::new(None) };

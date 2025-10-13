@@ -14,7 +14,6 @@ export type ThreadStartSupplies = {
     nextTid: SharedArrayBuffer; // 4 bytes
     memory: WebAssembly.Memory;
     module: WebAssembly.Module;
-    tabId: string;
     initialWindowWh: number;
 } & (
     | {
@@ -25,12 +24,18 @@ export type ThreadStartSupplies = {
           startArgPtr: number;
           tid: number;
       }
+    | {
+          type: "drawer";
+      }
+    | {
+          type: "drawer-sub";
+          startArgPtr: number;
+          tid: number;
+      }
 );
 
 export async function startThread(supplies: ThreadStartSupplies) {
-    const { module, tabId } = supplies;
-
-    const broadcastChannel = new BroadcastChannel(tabId);
+    const { module } = supplies;
 
     const env = ["RUST_BACKTRACE=full"];
 
@@ -59,13 +64,15 @@ export async function startThread(supplies: ThreadStartSupplies) {
     const instance = await WebAssembly.instantiate(module, importObject);
     const exports = instance.exports as Exports;
 
+    wasi.initialize(instance as any);
+
     switch (supplies.type) {
         case "main":
-            wasi.start(instance as any);
             break;
         case "sub":
-            wasi.initialize(instance as any);
             exports.wasi_thread_start(supplies.tid, supplies.startArgPtr);
+            break;
+        case "drawer":
             break;
     }
 

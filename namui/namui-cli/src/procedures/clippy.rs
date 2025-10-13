@@ -1,4 +1,5 @@
 use crate::cli::Target;
+use crate::services::wasi_cargo_envs::WasiType;
 use crate::*;
 use services::wasi_cargo_envs::wasi_cargo_envs;
 use std::path::PathBuf;
@@ -25,7 +26,7 @@ pub async fn clippy(target: Target, manifest_path: PathBuf) -> Result<()> {
                 // .envs(get_envs(build_option)) << TODO
                 .stdout(std::process::Stdio::inherit())
                 .stderr(std::process::Stdio::inherit())
-                .envs(wasi_cargo_envs())
+                .envs(wasi_cargo_envs(WasiType::App))
                 .spawn()?
                 .wait()
                 .await?;

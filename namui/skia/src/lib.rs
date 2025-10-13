@@ -12,6 +12,7 @@ mod windows;
 use anyhow::Result;
 pub use namui_rendering_tree::*;
 use namui_type::*;
+pub use skia_safe;
 pub use traits::*;
 
 #[cfg(target_os = "linux")]

@@ -326,6 +326,16 @@ impl From<u8> for AlphaType {
     }
 }
 
+impl From<AlphaType> for u8 {
+    fn from(val: AlphaType) -> Self {
+        match val {
+            AlphaType::Opaque => 0,
+            AlphaType::Premul => 1,
+            AlphaType::Unpremul => 2,
+        }
+    }
+}
+
 impl From<skia_safe::AlphaType> for AlphaType {
     fn from(val: skia_safe::AlphaType) -> Self {
         match val {
@@ -425,6 +435,22 @@ impl From<u8> for ColorType {
             7 => ColorType::RgbaF16,
             8 => ColorType::RgbaF32,
             _ => unreachable!("invalid color type {val}"),
+        }
+    }
+}
+
+impl From<ColorType> for u8 {
+    fn from(val: ColorType) -> Self {
+        match val {
+            ColorType::Alpha8 => 0,
+            ColorType::Rgb565 => 1,
+            ColorType::Rgba8888 => 2,
+            ColorType::Bgra8888 => 3,
+            ColorType::Rgba1010102 => 4,
+            ColorType::Rgb101010x => 5,
+            ColorType::Gray8 => 6,
+            ColorType::RgbaF16 => 7,
+            ColorType::RgbaF32 => 8,
         }
     }
 }

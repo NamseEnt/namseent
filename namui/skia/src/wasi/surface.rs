@@ -2,7 +2,7 @@ use crate::*;
 use anyhow::Result;
 use namui_type::*;
 
-pub(crate) struct NativeSurface {
+pub struct NativeSurface {
     surface: skia_safe::surface::Surface,
     framebuffer_info: skia_safe::gpu::gl::FramebufferInfo,
     context: skia_safe::gpu::DirectContext,
@@ -15,6 +15,15 @@ unsafe extern "C" {
 }
 
 impl NativeSurface {
+    pub fn flush(&mut self) {
+        self.context
+            .flush_and_submit_surface(&mut self.surface, Some(skia_safe::gpu::SyncCpu::Yes));
+    }
+
+    pub fn canvas(&mut self) -> &dyn SkCanvas {
+        self.surface.canvas()
+    }
+
     pub(crate) fn new(
         mut context: skia_safe::gpu::DirectContext,
         window_wh: Wh<IntPx>,
@@ -58,16 +67,5 @@ impl NativeSurface {
         }
         let surface = Self::make_gl_surface(&mut self.context, self.framebuffer_info, window_wh);
         self.surface = surface;
-    }
-}
-
-impl SkSurface for NativeSurface {
-    fn flush(&mut self) {
-        self.context
-            .flush_and_submit_surface(&mut self.surface, Some(skia_safe::gpu::SyncCpu::Yes));
-    }
-
-    fn canvas(&mut self) -> &dyn SkCanvas {
-        self.surface.canvas()
     }
 }

@@ -1,3 +1,4 @@
+use crate::services::wasi_cargo_envs::{WasiType, wasi_cargo_envs};
 use crate::*;
 use crate::{cli::Target, types::ErrorMessage};
 use cargo_metadata::{CompilerMessage, Message, diagnostic::DiagnosticLevel};
@@ -94,36 +95,40 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
     }
 }
 
-fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
+fn get_envs(build_option: &BuildOption) -> Vec<(&str, String)> {
     let mut envs = match build_option.target {
         Target::Wasm32WasiWeb => vec![
-            ("NAMUI_CFG_TARGET_ARCH", "wasm32"),
-            ("NAMUI_CFG_TARGET_OS", "wasip1"),
-            ("NAMUI_CFG_TARGET_ENV", ""),
+            ("NAMUI_CFG_TARGET_ARCH", "wasm32".to_string()),
+            ("NAMUI_CFG_TARGET_OS", "wasip1".to_string()),
+            ("NAMUI_CFG_TARGET_ENV", "".to_string()),
         ],
         Target::X86_64PcWindowsMsvc => vec![
-            ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
-            ("NAMUI_CFG_TARGET_OS", "windows"),
-            ("NAMUI_CFG_TARGET_ENV", "msvc"),
+            ("NAMUI_CFG_TARGET_ARCH", "x86_64".to_string()),
+            ("NAMUI_CFG_TARGET_OS", "windows".to_string()),
+            ("NAMUI_CFG_TARGET_ENV", "msvc".to_string()),
         ],
         Target::X86_64UnknownLinuxGnu => vec![
-            ("NAMUI_CFG_TARGET_ARCH", "x86_64"),
-            ("NAMUI_CFG_TARGET_OS", "linux"),
-            ("NAMUI_CFG_TARGET_ENV", "gnu"),
+            ("NAMUI_CFG_TARGET_ARCH", "x86_64".to_string()),
+            ("NAMUI_CFG_TARGET_OS", "linux".to_string()),
+            ("NAMUI_CFG_TARGET_ENV", "gnu".to_string()),
         ],
         Target::Aarch64AppleDarwin => vec![
-            ("NAMUI_CFG_TARGET_ARCH", "aarch64"),
-            ("NAMUI_CFG_TARGET_OS", "macos"),
-            ("NAMUI_CFG_TARGET_ENV", "darwin"),
+            ("NAMUI_CFG_TARGET_ARCH", "aarch64".to_string()),
+            ("NAMUI_CFG_TARGET_OS", "macos".to_string()),
+            ("NAMUI_CFG_TARGET_ENV", "darwin".to_string()),
         ],
     };
 
     if build_option.watch {
-        envs.push(("NAMUI_CFG_WATCH_RELOAD", ""));
+        envs.push(("NAMUI_CFG_WATCH_RELOAD", "".to_string()));
     }
 
     if !build_option.release {
-        envs.push(("RUST_BACKTRACE", "1"));
+        envs.push(("RUST_BACKTRACE", "1".to_string()));
+    }
+
+    if matches!(build_option.target, Target::Wasm32WasiWeb) {
+        envs.extend(wasi_cargo_envs(WasiType::App));
     }
 
     envs

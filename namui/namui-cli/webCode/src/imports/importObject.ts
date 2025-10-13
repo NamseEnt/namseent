@@ -94,6 +94,12 @@ export function createImportObject({
             _hardware_concurrency: () => {
                 return navigator.hardwareConcurrency;
             },
+            _get_image_count: () => {
+                return __IMAGE_COUNT__;
+            },
+            _get_image_infos: () => {
+                throw new Error("Not implemented");
+            },
         },
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {

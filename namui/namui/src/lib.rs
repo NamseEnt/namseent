@@ -46,22 +46,23 @@ thread_local! {
 }
 
 pub fn start(root_component: RootComponent) {
-    LOOPER.with(|looper| looper.replace(Some(Looper::new(root_component))));
-
     let tokio_runtime = TOKIO_RUNTIME.get_or_init(|| tokio_runtime().unwrap());
+    let _ = tokio_runtime.enter();
 
-    tokio_runtime.spawn(async move {
-        system::init_system()
-            .await
-            .expect("Failed to initialize namui system");
+    // LOOPER.with(|looper| looper.replace(Some(Looper::new(root_component))));
 
-        println!("Namui system initialized");
+    // tokio_runtime.spawn(async move {
+    //     system::init_system()
+    //         .await
+    //         .expect("Failed to initialize namui system");
 
-        #[cfg(target_os = "wasi")]
-        {
-            // crate::screen::run_event_hook_loop(component)
-        }
-    });
+    //     println!("Namui system initialized");
+
+    //     #[cfg(target_os = "wasi")]
+    //     {
+    //         // crate::screen::run_event_hook_loop(component)
+    //     }
+    // });
 
     #[cfg(target_os = "wasi")]
     {
