@@ -55,48 +55,6 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     move_projectiles(game_state, dt);
     shoot_projectiles(game_state);
     check_defense_end(game_state);
-
-    // Handle continuous camera movement by keyboard input
-    apply_keyboard_camera_movement(game_state, dt);
-}
-
-fn apply_keyboard_camera_movement(game_state: &mut GameState, dt: Duration) {
-    let nav = game_state.keyboard_nav;
-    if !(nav.up || nav.down || nav.left || nav.right) {
-        return;
-    }
-
-    // Base speed in pixels per second. Tune as needed.
-    let speed_px_per_sec: f32 = 800.0;
-    let dt_secs = dt.as_millis() as f32 / 1000.0;
-    let step = (speed_px_per_sec * dt_secs).max(0.0);
-
-    let mut dir_x: f32 = 0.0;
-    let mut dir_y: f32 = 0.0;
-    if nav.left {
-        dir_x -= 1.0;
-    }
-    if nav.right {
-        dir_x += 1.0;
-    }
-    if nav.up {
-        dir_y -= 1.0;
-    }
-    if nav.down {
-        dir_y += 1.0;
-    }
-
-    // Normalize diagonal movement to keep consistent speed
-    let len = (dir_x * dir_x + dir_y * dir_y).sqrt();
-    if len == 0.0 {
-        return;
-    }
-    let nx = dir_x / len;
-    let ny = dir_y / len;
-
-    let dx = (nx * step).px();
-    let dy = (ny * step).px();
-    game_state.camera.move_by(Xy::new(dx, dy));
 }
 
 fn move_projectiles(game_state: &mut GameState, dt: Duration) {

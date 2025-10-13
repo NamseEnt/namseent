@@ -1,4 +1,5 @@
 mod asset_loader;
+mod camera_controller;
 mod card;
 mod contracts;
 mod flow_ui;
@@ -19,6 +20,7 @@ mod upgrade_board;
 mod upgrade_select;
 
 use crate::{
+    camera_controller::CameraController,
     game_state::{Modal, set_modal},
     icon::{Icon, IconKind, IconSize},
     theme::button::{Button, ButtonVariant},
@@ -108,6 +110,8 @@ impl Component for Game {
 
         ctx.add(game_state.as_ref());
 
+        ctx.add(CameraController);
+
         ctx.add(simple_rect(
             screen_wh,
             Color::TRANSPARENT,
@@ -115,60 +119,30 @@ impl Component for Game {
             palette::SURFACE_CONTAINER_LOWEST,
         ));
 
-        ctx.attach_event(|event| {
+        ctx.attach_event(move |event| {
             match event {
-                Event::KeyDown { event } => {
-                    match event.code {
-                        Code::Tab => {
-                            mutate_game_state(|game_state| {
-                                if matches!(game_state.opened_modal, Some(Modal::UpgradeBoard)) {
-                                    game_state.opened_modal = None;
-                                } else {
-                                    game_state.opened_modal = Some(Modal::UpgradeBoard);
-                                }
-                            });
-                        }
-                        Code::KeyQ => {
-                            mutate_game_state(|game_state| {
-                                game_state.fast_forward_multiplier =
-                                    game_state.fast_forward_multiplier.prev();
-                            });
-                        }
-                        Code::KeyE => {
-                            mutate_game_state(|game_state| {
-                                game_state.fast_forward_multiplier =
-                                    game_state.fast_forward_multiplier.next();
-                            });
-                        }
-                        // Camera move flags: WASD
-                        Code::KeyW => {
-                            mutate_game_state(|game_state| {
-                                game_state.keyboard_nav.up = true;
-                            });
-                        }
-                        Code::KeyS => {
-                            mutate_game_state(|game_state| {
-                                game_state.keyboard_nav.down = true;
-                            });
-                        }
-                        Code::KeyA => {
-                            mutate_game_state(|game_state| {
-                                game_state.keyboard_nav.left = true;
-                            });
-                        }
-                        Code::KeyD => {
-                            mutate_game_state(|game_state| {
-                                game_state.keyboard_nav.right = true;
-                            });
-                        }
-                        _ => {}
-                    };
-                }
-                Event::KeyUp { event } => match event.code {
-                    Code::KeyW => mutate_game_state(|gs| gs.keyboard_nav.up = false),
-                    Code::KeyS => mutate_game_state(|gs| gs.keyboard_nav.down = false),
-                    Code::KeyA => mutate_game_state(|gs| gs.keyboard_nav.left = false),
-                    Code::KeyD => mutate_game_state(|gs| gs.keyboard_nav.right = false),
+                Event::KeyDown { event } => match event.code {
+                    Code::Tab => {
+                        mutate_game_state(|game_state| {
+                            if matches!(game_state.opened_modal, Some(Modal::UpgradeBoard)) {
+                                game_state.opened_modal = None;
+                            } else {
+                                game_state.opened_modal = Some(Modal::UpgradeBoard);
+                            }
+                        });
+                    }
+                    Code::KeyQ => {
+                        mutate_game_state(|game_state| {
+                            game_state.fast_forward_multiplier =
+                                game_state.fast_forward_multiplier.prev();
+                        });
+                    }
+                    Code::KeyE => {
+                        mutate_game_state(|game_state| {
+                            game_state.fast_forward_multiplier =
+                                game_state.fast_forward_multiplier.next();
+                        });
+                    }
                     _ => {}
                 },
                 Event::Wheel { event } => {
