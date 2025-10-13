@@ -134,9 +134,37 @@ impl Component for Game {
                                     game_state.fast_forward_multiplier.next();
                             });
                         }
+                        // Camera move flags: WASD
+                        Code::KeyW => {
+                            mutate_game_state(|game_state| {
+                                game_state.keyboard_nav.up = true;
+                            });
+                        }
+                        Code::KeyS => {
+                            mutate_game_state(|game_state| {
+                                game_state.keyboard_nav.down = true;
+                            });
+                        }
+                        Code::KeyA => {
+                            mutate_game_state(|game_state| {
+                                game_state.keyboard_nav.left = true;
+                            });
+                        }
+                        Code::KeyD => {
+                            mutate_game_state(|game_state| {
+                                game_state.keyboard_nav.right = true;
+                            });
+                        }
                         _ => {}
                     };
                 }
+                Event::KeyUp { event } => match event.code {
+                    Code::KeyW => mutate_game_state(|gs| gs.keyboard_nav.up = false),
+                    Code::KeyS => mutate_game_state(|gs| gs.keyboard_nav.down = false),
+                    Code::KeyA => mutate_game_state(|gs| gs.keyboard_nav.left = false),
+                    Code::KeyD => mutate_game_state(|gs| gs.keyboard_nav.right = false),
+                    _ => {}
+                },
                 Event::Wheel { event } => {
                     let delta = -event.delta_xy.y / 2048.0;
                     let origin = event.local_xy();

@@ -99,6 +99,7 @@ pub struct GameState {
     pub contracts: Vec<contract::Contract>,
     pub stage_modifiers: StageModifiers,
     pub ui_state: UIState,
+    pub keyboard_nav: KeyboardNav,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -261,6 +262,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             contracts: vec![],
             stage_modifiers: StageModifiers::new(),
             ui_state: UIState::new(),
+            keyboard_nav: KeyboardNav::default(),
         }
     })
     .0
@@ -310,4 +312,12 @@ pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
             game_state.goto_defense();
         }
     });
+}
+
+#[derive(Clone, Copy, Default)]
+pub struct KeyboardNav {
+    pub up: bool,
+    pub down: bool,
+    pub left: bool,
+    pub right: bool,
 }
