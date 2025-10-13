@@ -120,7 +120,13 @@ impl Component for Game {
                 Event::KeyDown { event } => {
                     match event.code {
                         Code::Tab => {
-                            set_modal(Some(Modal::UpgradeBoard));
+                            mutate_game_state(|game_state| {
+                                if matches!(game_state.opened_modal, Some(Modal::UpgradeBoard)) {
+                                    game_state.opened_modal = None;
+                                } else {
+                                    game_state.opened_modal = Some(Modal::UpgradeBoard);
+                                }
+                            });
                         }
                         Code::KeyQ => {
                             mutate_game_state(|game_state| {
