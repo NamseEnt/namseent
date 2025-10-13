@@ -10,7 +10,7 @@ use crate::{
 use namui::*;
 
 /// 오버레이 위치를 계산하는 열거형
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 pub enum OverlayPosition {
     TopLeft,
     TopRight,

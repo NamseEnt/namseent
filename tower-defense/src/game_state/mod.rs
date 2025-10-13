@@ -194,7 +194,7 @@ impl Component for &GameState {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 pub struct FloorTile {
     pub coord: MapCoord,
 }

@@ -6,13 +6,18 @@ pub mod risk;
 mod util;
 
 // (Rank, Suit) no longer needed here after extracting StageModifiers
-use crate::game_state::GameState;
-use crate::game_state::effect::{Effect, run_effect};
-use crate::rarity::Rarity;
+use crate::{
+    game_state::{
+        GameState,
+        effect::{Effect, run_effect},
+    },
+    rarity::Rarity,
+    *,
+};
 use std::fmt::Display;
 use std::sync::atomic::AtomicUsize;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, State)]
 pub enum ContractEffect {
     OnSign { effect: Effect },
     WhileActive { effect: Effect },
@@ -20,7 +25,7 @@ pub enum ContractEffect {
     OnExpire { effect: Effect },
 }
 
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy, State)]
 pub enum ContractStatus {
     Pending { duration_stages: usize },
     Active { remaining_stages: usize },
@@ -41,7 +46,7 @@ impl Display for ContractStatus {
 
 pub type ContractId = usize;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, State)]
 pub struct Contract {
     pub id: usize,
     pub rarity: Rarity,
@@ -214,7 +219,7 @@ pub fn sign_contract(game_state: &mut GameState, contract: Contract) {
     game_state.contracts.push(contract);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, State)]
 pub struct ContractEvent {
     pub contract_id: ContractId,
     pub effect: Effect,

@@ -40,7 +40,7 @@ impl TempParticleEmitter {
 
 pub type FieldParticleSystem = namui::particle::System<FieldParticleEmitter, FieldParticle>;
 
-#[derive(Default)]
+#[derive(Default, State)]
 pub struct FieldParticleSystemManager {
     systems: Vec<FieldParticleSystem>,
 }

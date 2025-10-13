@@ -1,6 +1,7 @@
 use super::{Language, Locale, LocalizedStaticText};
+use crate::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub enum TopBarText {
     Stage,
     Quest,
@@ -13,7 +14,7 @@ pub enum TopBarText {
     UseTower,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub enum StartConfirmModalText {
     Title,
     Message,

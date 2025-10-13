@@ -5,7 +5,7 @@ pub mod rich_text;
 use crate::{card::Suit, rarity::Rarity, theme::palette};
 use namui::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum IconKind {
     Accept,
     AttackDamage,
@@ -174,7 +174,7 @@ impl IconKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub struct IconAttribute {
     pub icon_kind: IconKind,
     pub position: IconAttributePosition,
@@ -197,7 +197,7 @@ impl IconAttribute {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum IconAttributePosition {
     TopLeft,
     TopRight,
@@ -299,7 +299,7 @@ impl IconAttribute {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum IconSize {
     Small,
     Medium,
@@ -317,7 +317,7 @@ impl IconSize {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub struct Icon {
     pub kind: IconKind,
     pub size: IconSize,

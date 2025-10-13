@@ -1,7 +1,8 @@
+use crate::*;
 use rand::Rng;
 use std::fmt::Display;
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
 pub enum Suit {
     Spades,
     Hearts,
@@ -21,7 +22,7 @@ impl Display for Suit {
 }
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
 pub enum Rank {
     Seven,
     Eight,
@@ -81,7 +82,7 @@ pub const REVERSED_RANKS: [Rank; 8] = [
     Rank::Seven,
 ];
 
-#[derive(Eq, Debug, PartialEq, Hash, Clone, Copy)]
+#[derive(Eq, Debug, PartialEq, Hash, Clone, Copy, State)]
 pub struct Card {
     pub suit: Suit,
     pub rank: Rank,

@@ -1,7 +1,7 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
-use crate::card::Suit;
+use crate::{card::Suit, *};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, State)]
 pub enum QuestText {
     BuildTowerRankNew {
         rank: String,
@@ -175,7 +175,7 @@ impl LocalizedText for QuestText {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, State)]
 pub enum QuestRewardText {
     Money { amount: usize },
     Item,

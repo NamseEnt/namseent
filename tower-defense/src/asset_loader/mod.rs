@@ -1,12 +1,15 @@
-use crate::card::{Rank, Suit};
-use crate::game_state::MonsterKind;
-use crate::game_state::background::BackgroundKind;
-use crate::game_state::tower::{AnimationKind, TowerKind};
-use crate::icon::IconKind;
-use crate::rarity::Rarity;
-use crate::theme::{palette, typography};
-use namui::tokio::task::JoinSet;
-use namui::*;
+use crate::{
+    card::{Rank, Suit},
+    game_state::{
+        MonsterKind,
+        background::BackgroundKind,
+        tower::{AnimationKind, TowerKind},
+    },
+    icon::IconKind,
+    rarity::Rarity,
+    theme::{palette, typography},
+};
+use namui::{tokio::task::JoinSet, *};
 use namui_prebuilt::simple_rect;
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
@@ -39,14 +42,28 @@ pub struct LoadingScreen<'a> {
     pub on_complete: &'a dyn Fn(),
 }
 
+#[derive(State)]
 enum State {
     Loading {
         progress: f32,
     },
     Error {
         resource_location: ResourceLocation,
-        error: anyhow::Error,
+        error: Error,
     },
+}
+
+#[derive(State)]
+enum Error {
+    Todo,
+}
+
+impl ToString for Error {
+    fn to_string(&self) -> String {
+        match self {
+            Error::Todo => todo!(),
+        }
+    }
 }
 
 impl Component for LoadingScreen<'_> {
@@ -167,7 +184,7 @@ impl Component for LoadingScreen<'_> {
     }
 }
 
-fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, anyhow::Error)>> {
+fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, Error)>> {
     let mut set = JoinSet::new();
     load(
         &mut set,
@@ -377,16 +394,17 @@ impl ToResourceLocation for (TowerKind, AnimationKind) {
 }
 
 fn load<Key: ToResourceLocation + Copy + Send + Sync + 'static>(
-    set: &mut JoinSet<Result<(), (ResourceLocation, anyhow::Error)>>,
+    set: &mut JoinSet<Result<(), (ResourceLocation, Error)>>,
     keys: impl IntoIterator<Item = Key>,
     loader: &'static OnceLock<AssetLoader<Key>>,
 ) {
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    // let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
     for key in keys {
         let location = key.to_resource_location();
-        let tx = tx.clone();
+
         // TODO
+        // let tx = tx.clone();
         // set.spawn(async move {
         //     match load_image_from_resource_location(location.clone()).await {
         //         Ok(image) => match tx.send((key, image)) {
@@ -398,19 +416,19 @@ fn load<Key: ToResourceLocation + Copy + Send + Sync + 'static>(
         // });
     }
 
-    set.spawn(async move {
-        let mut map = BTreeMap::new();
-        while let Some((key, image)) = rx.recv().await {
-            map.insert(key.to_resource_location(), image);
-        }
-        loader
-            .set(AssetLoader {
-                inner: map,
-                _key: Default::default(),
-            })
-            .unwrap_or_else(|_| unreachable!("AssetLoader already initialized"));
-        Ok(())
-    });
+    // set.spawn(async move {
+    //     let mut map = BTreeMap::new();
+    //     while let Some((key, image)) = rx.recv().await {
+    //         map.insert(key.to_resource_location(), image);
+    //     }
+    //     loader
+    //         .set(AssetLoader {
+    //             inner: map,
+    //             _key: Default::default(),
+    //         })
+    //         .unwrap_or_else(|_| unreachable!("AssetLoader already initialized"));
+    //     Ok(())
+    // });
 }
 trait ToResourceLocation {
     fn to_resource_location(self) -> ResourceLocation;

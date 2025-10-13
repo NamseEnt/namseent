@@ -1,7 +1,7 @@
-use crate::palette;
+use crate::*;
 use namui::Color;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum Rarity {
     Common,
     Rare,

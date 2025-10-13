@@ -60,7 +60,7 @@ pub fn can_place_tower(
     true
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, State)]
 enum Disrupt {
     One { coord: MapCoord },
     Path { coord1: MapCoord, coord2: MapCoord },

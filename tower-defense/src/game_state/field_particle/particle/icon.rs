@@ -104,7 +104,7 @@ impl IconParticle {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub enum IconParticleBehavior {
     FadeRise {
         duration: Duration,

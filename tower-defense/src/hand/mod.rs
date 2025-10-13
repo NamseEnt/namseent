@@ -19,11 +19,11 @@ pub const HAND_WH: Wh<Px> = Wh::new(px(600.), px(160.));
 // 레이아웃 관련 상수들
 const DEFAULT_SLOT_GAP: Px = px(8.0);
 
-#[derive(Default, Clone, Debug)]
-pub struct Hand<Item: Debug> {
+#[derive(Default, Clone, Debug, State)]
+pub struct Hand<Item: State + Debug> {
     slots: Vec<HandSlot<Item>>,
 }
-impl<Item: PartialOrd + Debug> Hand<Item> {
+impl<Item: State + PartialOrd + Debug> Hand<Item> {
     pub fn new(items: impl IntoIterator<Item = Item>) -> Self {
         let slots = items.into_iter().map(|item| HandSlot::new(item)).collect();
         let mut hand = Self { slots };
@@ -185,13 +185,13 @@ impl<Item: PartialOrd + Debug> Hand<Item> {
     }
 }
 
-pub struct HandComponent<'a, Item: Debug> {
+pub struct HandComponent<'a, Item: State + Debug> {
     pub hand: &'a Hand<Item>,
     pub on_click: &'a dyn Fn(HandSlotId),
 }
-impl<'a, Item: Debug> Component for HandComponent<'a, Item>
+impl<'a, Item> Component for HandComponent<'a, Item>
 where
-    Item: Any,
+    Item: State + Debug + Any,
 {
     fn render(self, ctx: &RenderCtx) {
         let HandComponent { hand, on_click } = self;

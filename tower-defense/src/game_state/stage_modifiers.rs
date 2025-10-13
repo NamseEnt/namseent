@@ -22,8 +22,9 @@
 //! - Introduce a generic stacking abstraction if new modifier categories grow
 
 use crate::card::{Rank, Suit};
+use crate::*;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, State)]
 pub struct Multipliers {
     pub damage: f32,
     pub attack_speed: f32,
@@ -34,7 +35,7 @@ pub struct Multipliers {
     pub enemy_health: f32,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, State)]
 pub struct Adjustments {
     pub card_selection_hand_max_slots_bonus: usize,
     pub card_selection_hand_max_slots_penalty: usize,
@@ -44,13 +45,13 @@ pub struct Adjustments {
     pub shop_max_rerolls_penalty: usize,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, State)]
 pub struct RerollCosts {
     pub card_selection_hand_reroll_health_cost: usize,
     pub shop_reroll_health_cost: usize,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, State)]
 pub struct Restrictions {
     pub disable_item_and_upgrade_purchases: bool,
     pub disable_item_use: bool,
@@ -58,12 +59,12 @@ pub struct Restrictions {
     pub disabled_suits: Vec<Suit>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, State)]
 pub struct StageGrants {
     pub barricade_cards_per_stage: usize,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, State)]
 pub struct StageModifiers {
     multipliers: Multipliers,
     adjustments: Adjustments,

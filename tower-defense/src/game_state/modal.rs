@@ -4,6 +4,7 @@ use crate::{
 };
 use namui::*;
 
+#[derive(State)]
 pub enum Modal {
     UpgradeBoard,
     Settings,

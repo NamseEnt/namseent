@@ -1,6 +1,9 @@
-use crate::game_state::{contract::Contract, item::Item, upgrade::Upgrade};
+use crate::{
+    game_state::{contract::Contract, item::Item, upgrade::Upgrade},
+    *,
+};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, State)]
 pub enum ShopSlot {
     #[default]
     Locked,

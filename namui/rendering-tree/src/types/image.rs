@@ -8,7 +8,7 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn new(id: usize) -> Self {
+    pub const fn new(id: usize) -> Self {
         Self { id }
     }
     #[allow(dead_code)]

@@ -1,10 +1,12 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use crate::*;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum Language {
     Korean,
     English,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub struct Locale {
     pub language: Language,
 }

@@ -3,7 +3,7 @@ use namui::*;
 use namui_prebuilt::simple_rect;
 use rand::{Rng, thread_rng};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 pub struct Background {
     pub coord: MapCoordF32,
     kind: BackgroundKind,
@@ -42,7 +42,7 @@ impl Component for &Background {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 pub enum BackgroundKind {
     Tile0,
     Tile1,

@@ -1,6 +1,7 @@
 use super::*;
 use std::{collections::VecDeque, iter, vec};
 
+#[derive(State)]
 pub enum MonsterSpawnState {
     Idle,
     Spawning {

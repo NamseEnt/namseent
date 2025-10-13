@@ -11,6 +11,8 @@ pub struct Atom<State: crate::State> {
     set_state_tx: OnceLock<&'static mpsc::Sender<SetStateItem>>,
     _phantom: std::marker::PhantomData<State>,
 }
+unsafe impl<State: crate::State> Send for Atom<State> {}
+unsafe impl<State: crate::State> Sync for Atom<State> {}
 
 impl<State: crate::State> Atom<State> {
     pub const fn uninitialized() -> Self {

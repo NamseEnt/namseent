@@ -6,21 +6,22 @@ use crate::{
         item::{Effect, Item},
         upgrade::Upgrade,
     },
+    *,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, State)]
 pub struct PlayHistory {
     pub events: Vec<HistoryEvent>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, State)]
 pub struct HistoryEvent {
     pub stage: usize,
     pub timestamp: Instant,
     pub event_type: HistoryEventType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, State)]
 pub enum HistoryEventType {
     TowerPlaced {
         tower_kind: TowerKind,

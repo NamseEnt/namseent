@@ -44,7 +44,7 @@ impl ModuleNode {
         for (name, id) in &self.images {
             let const_name = quote::format_ident!("{}", name);
             images.push(quote! {
-                pub static #const_name: Image = Image { id: #id };
+                pub static #const_name: Image = Image::new(#id);
             });
         }
 

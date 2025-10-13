@@ -5,7 +5,7 @@ use std::{any::Any, sync::atomic::AtomicUsize};
 
 static HAND_SLOT_ID: AtomicUsize = AtomicUsize::new(0);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, State)]
 pub struct HandSlotId(usize);
 impl HandSlotId {
     pub fn new() -> Self {
@@ -24,7 +24,7 @@ impl From<HandSlotId> for AddKey {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub(super) struct ExitAnimation {
     pub start_time: Instant,
 }
@@ -40,15 +40,15 @@ impl ExitAnimation {
     }
 }
 
-#[derive(Clone, Debug)]
-pub(super) struct HandSlot<Item> {
+#[derive(Clone, Debug, State)]
+pub(super) struct HandSlot<Item: State> {
     pub id: HandSlotId,
     pub item: Item,
     pub selected: bool,
     pub xy: Xy<Px>,
     pub exit_animation: Option<ExitAnimation>,
 }
-impl<Item> HandSlot<Item> {
+impl<Item: State> HandSlot<Item> {
     pub fn new(item: Item) -> Self {
         Self {
             id: HandSlotId::new(),
@@ -78,7 +78,7 @@ impl<Item> HandSlot<Item> {
 
 impl<Item> Component for &HandSlot<Item>
 where
-    Item: Any,
+    Item: State + Any,
 {
     fn render(self, ctx: &RenderCtx) {
         // Exit 애니메이션이 있는 경우 처리
