@@ -25,14 +25,23 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
 
     console.log(`Collected ${imageInfos.length} image files from ${assetDir}`);
 
+    // Collect font assets
+    const fontInfos: FontInfo[] = collectFontFiles(systemBundleDir);
+    console.log(`Collected ${fontInfos.length} font files from system_bundle`);
+
     const virtualModuleId = "virtual:asset-list";
     const resolvedVirtualModuleId = "\0" + virtualModuleId;
+    const virtualFontModuleId = "virtual:font-asset";
+    const resolvedVirtualFontModuleId = "\0" + virtualFontModuleId;
 
     return {
         name: "asset-collector-plugin",
         resolveId(id) {
             if (id === virtualModuleId) {
                 return resolvedVirtualModuleId;
+            }
+            if (id === virtualFontModuleId) {
+                return resolvedVirtualFontModuleId;
             }
         },
         load(id) {
@@ -47,6 +56,17 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
                     2,
                 )};`;
             }
+            if (id === resolvedVirtualFontModuleId) {
+                const fontAsset = fontInfos.map((info) => ({
+                    name: info.name,
+                    path: "/@fs" + info.path,
+                }));
+                return `export const fontAsset = ${JSON.stringify(
+                    fontAsset,
+                    null,
+                    2,
+                )};`;
+            }
         },
     };
 }
@@ -55,6 +75,35 @@ interface ImageInfo {
     path: string;
     relativePath: string;
     id: number;
+}
+
+interface FontInfo {
+    name: string;
+    path: string;
+}
+
+function collectFontFiles(systemBundleDir: string): FontInfo[] {
+    const fontPaths = [
+        "font/Ko/NotoSansKR-Thin.woff2",
+        "font/Ko/NotoSansKR-Light.woff2",
+        "font/Ko/NotoSansKR-Regular.woff2",
+        "font/Ko/NotoSansKR-Medium.woff2",
+        "font/Ko/NotoSansKR-Bold.woff2",
+        "font/Ko/NotoSansKR-Black.woff2",
+    ];
+
+    const fontInfos: FontInfo[] = [];
+
+    for (const fontPath of fontPaths) {
+        const absolutePath = path.join(systemBundleDir, fontPath);
+
+        fontInfos.push({
+            name: path.basename(fontPath),
+            path: absolutePath,
+        });
+    }
+
+    return fontInfos;
 }
 
 function collectImageFiles(assetDir: string): string[] {

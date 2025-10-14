@@ -1,8 +1,8 @@
 import { startThread } from "../thread/startThread";
 import drawerUrl from "namui-drawer.wasm?url";
 import { assetList } from "virtual:asset-list";
-import { DrawerExports } from "./types";
 import cursorMetadata from "../../../system_bundle/cursor/capitaine_24.txt?raw";
+import { DrawerExports } from "@/exports";
 
 export async function readyDrawer(): Promise<{
     drawerExports: DrawerExports;
@@ -61,8 +61,6 @@ async function loadAssets({
     memory: WebAssembly.Memory;
     exports: DrawerExports;
 }) {
-    const startTime = performance.now();
-
     await Promise.all(
         assetList.map(async ({ id, path }) => {
             try {
@@ -77,22 +75,16 @@ async function loadAssets({
                 const bytes = new Uint8Array(arrayBuffer);
                 const len = bytes.length;
 
-                const ptr = exports._malloc_image_buffer(id, len);
+                const ptr = exports.malloc(len);
                 const wasmMemory = new Uint8Array(memory.buffer);
                 wasmMemory.set(bytes, ptr);
 
-                exports._register_image(id);
+                exports._register_image(id, ptr, len);
             } catch (error) {
                 console.error(`Error loading image ${id} from ${path}:`, error);
                 throw error;
             }
         }),
-    );
-
-    console.log(
-        `All images loaded successfully, ${(
-            performance.now() - startTime
-        ).toFixed(2)}ms`,
     );
 }
 

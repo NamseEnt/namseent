@@ -1,6 +1,6 @@
 import { envGl } from "./envGl";
 import { textInputImports } from "./textInput";
-import { type Exports } from "@/exports";
+import { type DrawerExports, type Exports } from "@/exports";
 import { webSocketImports } from "@/webSocket";
 import { insertJsImports } from "@/insertJs";
 import { storageImports } from "@/storage/imports";
@@ -10,7 +10,6 @@ import { httpFetchImports } from "@/httpFetch/httpFetch";
 import { audioImports } from "@/audio";
 import { ThreadStartSupplies } from "@/thread/startThread";
 import SubThreadWorker from "@/thread/SubThreadWorker?worker";
-import { DrawerExports } from "@/drawer/types";
 
 export function createImportObject({
     supplies,
@@ -117,23 +116,27 @@ export function createImportObject({
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {
             "thread-spawn": (startArgPtr: number) => {
-                if (supplies.type !== "main" && supplies.type !== "sub") {
-                    throw new Error(
-                        `thread on ${supplies.type} is not supported`,
-                    );
-                }
                 const tid = Atomics.add(
                     new Uint32Array(supplies.nextTid),
                     0,
                     1,
                 );
                 const worker = new SubThreadWorker();
-                worker.postMessage({
-                    ...supplies,
-                    type: "sub",
-                    startArgPtr,
-                    tid,
-                } satisfies ThreadStartSupplies);
+                const nextSupplies =
+                    supplies.type === "main" || supplies.type === "sub"
+                        ? {
+                              ...supplies,
+                              type: "sub",
+                              startArgPtr,
+                              tid,
+                          }
+                        : ({
+                              ...{ ...supplies, canvas: undefined },
+                              type: "drawer-sub",
+                              startArgPtr,
+                              tid,
+                          } satisfies ThreadStartSupplies);
+                worker.postMessage(nextSupplies);
 
                 return tid;
             },

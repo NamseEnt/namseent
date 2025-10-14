@@ -42,8 +42,7 @@ event type and body
     - u8: code
 */
 
-import { DrawerExports } from "./drawer/types";
-import { Exports } from "./exports";
+import { DrawerExports, Exports } from "./exports";
 import { CODES } from "./imports/codes";
 
 export const EVENT_TYPE = {

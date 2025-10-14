@@ -19,6 +19,7 @@ import "./drawer";
 import { readyDrawer } from "./drawer";
 import { Exports } from "./exports";
 import { assetList } from "virtual:asset-list";
+import { loadFonts } from "./loadFont";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -62,6 +63,11 @@ const instance = await startThread({
 });
 const exports = instance.exports as Exports;
 console.log("main exports", exports);
+
+const fontLoadStart = performance.now();
+await Promise.all([loadFonts(exports), loadFonts(drawerExports)]);
+console.log(`main loadFonts took: ${performance.now() - fontLoadStart}ms`);
+
 const { onTextInputEvent } = startEventSystem({
     exports,
     drawerExports,

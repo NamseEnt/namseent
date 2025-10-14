@@ -7,3 +7,12 @@ declare module "virtual:asset-list" {
     }
     export const assetList: AssetInfo[];
 }
+
+declare module "virtual:font-asset" {
+    export interface FontInfo {
+        name: string;
+        weight: string;
+        path: string;
+    }
+    export const fontAsset: FontInfo[];
+}

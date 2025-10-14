@@ -32,6 +32,11 @@ export type ThreadStartSupplies = {
           type: "drawer";
           canvas: HTMLCanvasElement;
       }
+    | {
+          type: "drawer-sub";
+          tid: number;
+          startArgPtr: number;
+      }
 );
 
 export async function startThread(supplies: ThreadStartSupplies) {
@@ -78,6 +83,9 @@ export async function startThread(supplies: ThreadStartSupplies) {
             break;
         case "drawer":
             wasi.start(instance as any);
+            break;
+        case "drawer-sub":
+            exports.wasi_thread_start(supplies.tid, supplies.startArgPtr);
             break;
     }
 

@@ -1075,6 +1075,7 @@ dependencies = [
 name = "namui-rendering-tree"
 version = "0.1.0"
 dependencies = [
+ "dashmap",
  "namui-type",
  "skia-safe",
  "textwrap",
