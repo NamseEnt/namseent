@@ -1,4 +1,4 @@
-import { Exports } from "../exports";
+import { Exports } from "@/exports";
 import {
     computeUnpackAlignedImageSize,
     getSizePerPixel,

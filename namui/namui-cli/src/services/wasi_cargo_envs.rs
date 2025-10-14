@@ -112,7 +112,7 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                 "-Clink-arg=-Wl,--export=free".to_string(),
                 match wasi_type {
                     WasiType::App => ["_on_event"].iter(),
-                    WasiType::Drawer => ["_test"].iter(),
+                    WasiType::Drawer => ["_register_image", "_malloc_image_buffer"].iter(),
                 }
                 .map(|e| format!("-Clink-arg=-Wl,--export={}", e))
                 .join(" "),

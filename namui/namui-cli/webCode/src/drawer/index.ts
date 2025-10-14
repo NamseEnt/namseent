@@ -1,5 +1,8 @@
-import { startThread } from "./thread/startThread";
+import { startThread } from "../thread/startThread";
 import drawerUrl from "namui-drawer.wasm?url";
+import { assetList } from "virtual:asset-list";
+import { DrawerExports } from "./types";
+import { processImages } from "./imageLoader";
 
 const memory = new WebAssembly.Memory({
     initial: 128,
@@ -20,18 +23,14 @@ const instance = await startThread({
     initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
 });
 
+console.log("Main drawer instance created");
 console.log("instance.exports", instance.exports);
-console.log("before test");
-(instance.exports as any)._test();
-console.log("after test");
 
-const instance2 = await startThread({
-    type: "drawer",
-    memory,
-    module,
-    nextTid,
-    initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
-});
+const startTime = performance.now();
+await processImages(assetList, instance.exports as DrawerExports, memory);
 
-(instance2.exports as any)._test();
-(instance.exports as any)._test();
+console.log(
+    `All images loaded successfully, ${(performance.now() - startTime).toFixed(
+        2,
+    )}ms`,
+);

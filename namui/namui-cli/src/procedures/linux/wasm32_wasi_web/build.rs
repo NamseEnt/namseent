@@ -1,9 +1,9 @@
-use super::vite_config::{ViteConfig, update_vite_config};
 use crate::cli::Target;
 use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
 use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runtime_project};
 use services::rust_build_service::{self, BuildOption};
+use services::vite_config::{ViteConfig, update_vite_config};
 use util::get_cli_root_path;
 
 pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) -> Result<()> {

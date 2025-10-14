@@ -1,38 +1,31 @@
 use namui_skia::skia_safe;
-use std::sync::{
-    OnceLock,
-    atomic::{AtomicUsize, Ordering},
-};
+use std::sync::OnceLock;
 
 static IMAGES: OnceLock<dashmap::DashMap<usize, skia_safe::image::Image>> = OnceLock::new();
-
-static VALUE: AtomicUsize = AtomicUsize::new(0);
+static IMAGE_BUFFER: OnceLock<dashmap::DashMap<usize, Vec<u8>>> = OnceLock::new();
 
 #[unsafe(no_mangle)]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn _test() {
-    println!("test {}", VALUE.fetch_add(1, Ordering::SeqCst));
+pub unsafe extern "C" fn _malloc_image_buffer(
+    image_id: usize,
+    image_bytes_len: usize,
+) -> *const u8 {
+    IMAGE_BUFFER
+        .get_or_init(dashmap::DashMap::new)
+        .insert(image_id, vec![0u8; image_bytes_len]);
+
+    IMAGE_BUFFER.get().unwrap().get(&image_id).unwrap().as_ptr()
 }
 
 #[unsafe(no_mangle)]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn _register_image(
-    image_id: usize,
-    image_bytes_ptr: *const u8,
-    image_bytes_len: usize,
-) {
-    let bytes = unsafe { std::slice::from_raw_parts(image_bytes_ptr, image_bytes_len) };
-    let data = skia_safe::Data::new_copy(bytes);
+pub unsafe extern "C" fn _register_image(image_id: usize) {
+    let buffer = IMAGE_BUFFER.get().unwrap().get(&image_id).unwrap();
+    let data = unsafe { skia_safe::Data::new_bytes(&buffer) };
     let image = skia_safe::image::Image::from_encoded(data).unwrap();
     IMAGES
         .get_or_init(dashmap::DashMap::new)
         .insert(image_id, image);
-}
-
-#[unsafe(no_mangle)]
-#[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn _image_count() -> usize {
-    IMAGES.get().unwrap().len()
 }
 
 #[unsafe(no_mangle)]

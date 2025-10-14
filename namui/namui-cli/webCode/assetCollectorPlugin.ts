@@ -47,6 +47,9 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
 
     console.log(`Collected ${imageInfos.length} image files from ${assetDir}`);
 
+    const virtualModuleId = "virtual:asset-list";
+    const resolvedVirtualModuleId = "\0" + virtualModuleId;
+
     return {
         name: "asset-collector-plugin",
         config() {
@@ -55,6 +58,20 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
                     __IMAGE_COUNT__: imageInfos.length.toString(),
                 },
             };
+        },
+        resolveId(id) {
+            if (id === virtualModuleId) {
+                return resolvedVirtualModuleId;
+            }
+        },
+        load(id) {
+            if (id === resolvedVirtualModuleId) {
+                const assetList = imageInfos.map((info) => ({
+                    id: info.id,
+                    path: "/@fs" + info.path,
+                }));
+                return `export const assetList = ${JSON.stringify(assetList, null, 2)};`;
+            }
         },
     };
 }
