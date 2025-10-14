@@ -1,6 +1,7 @@
 use crate::card::{Rank, Suit};
 use crate::game_state::MonsterKind;
 use crate::game_state::background::BackgroundKind;
+use crate::game_state::field_particle::particle_kind::ParticleKind;
 use crate::game_state::tower::{AnimationKind, TowerKind};
 use crate::icon::IconKind;
 use crate::rarity::Rarity;
@@ -17,6 +18,7 @@ static BACKGROUND_ASSET_LOADER: OnceLock<AssetLoader<BackgroundKind>> = OnceLock
 static FACE_CARD_ASSET_LOADER: OnceLock<AssetLoader<(Rank, Suit)>> = OnceLock::new();
 static ICON_ASSET_LOADER: OnceLock<AssetLoader<IconKind>> = OnceLock::new();
 static MONSTER_ASSET_LOADER: OnceLock<AssetLoader<MonsterKind>> = OnceLock::new();
+static PARTICLE_ASSET_LOADER: OnceLock<AssetLoader<ParticleKind>> = OnceLock::new();
 static TOWER_ASSET_LOADER: OnceLock<AssetLoader<(TowerKind, AnimationKind)>> = OnceLock::new();
 
 pub fn get_background_asset(key: BackgroundKind) -> Option<Image> {
@@ -30,6 +32,9 @@ pub fn get_icon_asset(key: IconKind) -> Option<Image> {
 }
 pub fn get_monster_asset(key: MonsterKind) -> Option<Image> {
     MONSTER_ASSET_LOADER.get()?.get(key)
+}
+pub fn get_particle_asset(key: ParticleKind) -> Option<Image> {
+    PARTICLE_ASSET_LOADER.get()?.get(key)
 }
 pub fn get_tower_asset(key: (TowerKind, AnimationKind)) -> Option<Image> {
     TOWER_ASSET_LOADER.get()?.get(key)
@@ -297,6 +302,11 @@ fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, anyhow::Error)>>
         ],
         &MONSTER_ASSET_LOADER,
     );
+    load(
+        &mut set,
+        [ParticleKind::MonsterSpirit],
+        &PARTICLE_ASSET_LOADER,
+    );
 
     const ALL: &[AnimationKind] = &[
         AnimationKind::Idle1,
@@ -364,6 +374,11 @@ impl ToResourceLocation for IconKind {
 impl ToResourceLocation for MonsterKind {
     fn to_resource_location(self) -> ResourceLocation {
         ResourceLocation::bundle(format!("asset/image/monster/{}.png", self.asset_id(),))
+    }
+}
+impl ToResourceLocation for ParticleKind {
+    fn to_resource_location(self) -> ResourceLocation {
+        ResourceLocation::bundle(self.resource_location())
     }
 }
 impl ToResourceLocation for (TowerKind, AnimationKind) {

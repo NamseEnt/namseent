@@ -1,15 +1,18 @@
 pub mod emitter;
 pub mod particle;
+pub mod particle_kind;
 
 use crate::game_state::{
     GameState,
-    field_particle::emitter::{DamageTextEmitter, MonsterStatusEffectEmitter},
+    field_particle::emitter::{
+        DamageTextEmitter, MonsterSpiritParticleEmitter, MonsterStatusEffectEmitter,
+    },
 };
 use namui::{
     particle::{Emitter, Particle},
     *,
 };
-pub use particle::{DamageTextParticle, IconParticle};
+pub use particle::{DamageTextParticle, IconParticle, MonsterSpiritParticle};
 
 pub struct TempParticleEmitter {
     particles: Vec<FieldParticle>,
@@ -84,9 +87,18 @@ impl FieldParticleSystemManager {
 }
 
 pub enum FieldParticleEmitter {
-    TempParticle { emitter: TempParticleEmitter },
-    MonsterStatusEffect { emitter: MonsterStatusEffectEmitter },
-    DamageText { emitter: DamageTextEmitter },
+    TempParticle {
+        emitter: TempParticleEmitter,
+    },
+    MonsterStatusEffect {
+        emitter: MonsterStatusEffectEmitter,
+    },
+    DamageText {
+        emitter: DamageTextEmitter,
+    },
+    SoulParticle {
+        emitter: MonsterSpiritParticleEmitter,
+    },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
@@ -94,6 +106,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::TempParticle { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterStatusEffect { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::DamageText { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::SoulParticle { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -102,6 +115,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::TempParticle { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterStatusEffect { emitter } => emitter.is_done(now),
             FieldParticleEmitter::DamageText { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::SoulParticle { emitter } => emitter.is_done(now),
         }
     }
 }
@@ -110,6 +124,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
 pub enum FieldParticle {
     Icon { particle: IconParticle },
     DamageText { particle: DamageTextParticle },
+    MonsterSpirit { particle: MonsterSpiritParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -122,6 +137,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 particle.tick(now, dt);
                 vec![]
             }
+            FieldParticle::MonsterSpirit { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
         }
     }
 
@@ -129,6 +148,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
         match self {
             FieldParticle::Icon { particle } => particle.render(),
             FieldParticle::DamageText { particle } => particle.render(),
+            FieldParticle::MonsterSpirit { particle } => particle.render(),
         }
     }
 
@@ -136,6 +156,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
         match self {
             FieldParticle::Icon { particle } => particle.is_done(now),
             FieldParticle::DamageText { particle } => particle.is_done(now),
+            FieldParticle::MonsterSpirit { particle } => particle.is_done(now),
         }
     }
 }
