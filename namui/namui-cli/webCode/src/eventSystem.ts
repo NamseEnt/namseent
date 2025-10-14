@@ -72,10 +72,15 @@ export type OnTextInputEvent = (
     code?: number,
 ) => void;
 
-export function startEventSystem(
-    exports: Exports,
-    drawerExports: DrawerExports,
-): {
+export function startEventSystem({
+    exports,
+    drawerExports,
+    canvas,
+}: {
+    exports: Exports;
+    drawerExports: DrawerExports;
+    canvas: HTMLCanvasElement;
+}): {
     onTextInputEvent: OnTextInputEvent;
 } {
     let mouseX = 0;
@@ -184,10 +189,16 @@ export function startEventSystem(
     requestAnimationFrame(onAnimationFrame);
 
     window.addEventListener("resize", () => {
+        const { innerHeight, innerWidth } = window;
+        canvas.width = innerWidth;
+        canvas.height = innerHeight;
+
+        drawerExports._on_window_resize(innerWidth, innerHeight);
+
         sendEvent(5, (buffer) => {
             buffer.u8(EVENT_TYPE.RESIZE);
-            buffer.u16(window.innerWidth);
-            buffer.u16(window.innerHeight);
+            buffer.u16(innerWidth);
+            buffer.u16(innerHeight);
         });
     });
 

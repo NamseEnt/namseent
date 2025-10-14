@@ -119,7 +119,9 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                         "_malloc_image_buffer",
                         "_init_skia",
                         "_init_standard_cursor_sprite_set",
+                        "_on_window_resize",
                         "_draw_rendering_tree",
+                        "_on_screen_resize",
                     ]
                     .iter(),
                 }

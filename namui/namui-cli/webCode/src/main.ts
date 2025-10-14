@@ -35,12 +35,11 @@ const memory = new WebAssembly.Memory({
 const nextTid = new SharedArrayBuffer(4);
 new Uint32Array(nextTid)[0] = 1;
 
-const [drawerExports, module] = await Promise.all([
+const [{ drawerExports, canvas }, module] = await Promise.all([
     readyDrawer(),
     WebAssembly.compileStreaming(fetch(wasmUrl)),
 ]);
 
-console.log("drawerExports", drawerExports);
 const imageCount = drawerExports._image_count();
 const imageInfoSize = 14;
 const imageInfoBytes = new Uint8Array(imageCount * imageInfoSize);
@@ -63,7 +62,11 @@ const instance = await startThread({
 });
 const exports = instance.exports as Exports;
 console.log("main exports", exports);
-const { onTextInputEvent } = startEventSystem(exports, drawerExports);
+const { onTextInputEvent } = startEventSystem({
+    exports,
+    drawerExports,
+    canvas,
+});
 const textInput = new TextInput(onTextInputEvent);
 
 // let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;

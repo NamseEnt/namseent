@@ -1,6 +1,5 @@
 use crate::*;
 use anyhow::Result;
-use std::sync::Arc;
 
 pub struct NativeSkia {
     surface: NativeSurface,

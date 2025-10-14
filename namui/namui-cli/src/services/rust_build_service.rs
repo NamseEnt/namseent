@@ -20,15 +20,13 @@ pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoB
 
         let stderr = String::from_utf8(output.stderr)?;
 
-        let build_result = parse_cargo_build_result(&output.stdout).map_err(|err| {
+        let mut build_result = parse_cargo_build_result(&output.stdout).map_err(|err| {
             anyhow!("Failed to parse build result: stderr: {stderr} \n cargo err:  {err}")
         })?;
 
         if !output.status.success() {
-            return Err(anyhow!(
-                "Failed to build project: stderr: {stderr} \n errors: {:#?}",
-                build_result.error_messages,
-            ));
+            build_result.is_successful = false;
+            println!("Build error: {stderr}");
         }
 
         Ok(build_result)

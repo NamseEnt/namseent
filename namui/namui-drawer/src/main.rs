@@ -47,6 +47,18 @@ pub unsafe extern "C" fn _init_standard_cursor_sprite_set(
 
 #[unsafe(no_mangle)]
 #[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn _on_window_resize(window_width: usize, window_height: usize) {
+    SKIA.with_borrow_mut(|skia_cell| {
+        let skia = skia_cell.as_mut().unwrap();
+        skia.surface().resize(Wh::new(
+            int_px(window_width as i32),
+            int_px(window_height as i32),
+        ));
+    });
+}
+
+#[unsafe(no_mangle)]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn _draw_rendering_tree(
     rendering_tree_bytes_ptr: *const u8,
     rendering_tree_bytes_len: usize,

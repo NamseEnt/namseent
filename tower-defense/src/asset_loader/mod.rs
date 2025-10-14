@@ -11,9 +11,9 @@ use crate::{
 };
 use namui::{tokio::task::JoinSet, *};
 use namui_prebuilt::simple_rect;
-use std::collections::BTreeMap;
 use std::marker::PhantomData;
 use std::sync::OnceLock;
+use std::{collections::BTreeMap, fmt::Display};
 
 static BACKGROUND_ASSET_LOADER: OnceLock<AssetLoader<BackgroundKind>> = OnceLock::new();
 static FACE_CARD_ASSET_LOADER: OnceLock<AssetLoader<(Rank, Suit)>> = OnceLock::new();
@@ -42,7 +42,7 @@ pub struct LoadingScreen<'a> {
     pub on_complete: &'a dyn Fn(),
 }
 
-#[derive(State)]
+#[derive(State, Debug)]
 enum State {
     Loading {
         progress: f32,
@@ -53,13 +53,13 @@ enum State {
     },
 }
 
-#[derive(State)]
+#[derive(State, Debug)]
 enum Error {
     Todo,
 }
 
-impl ToString for Error {
-    fn to_string(&self) -> String {
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Todo => todo!(),
         }
@@ -68,7 +68,8 @@ impl ToString for Error {
 
 impl Component for LoadingScreen<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let (state, set_state) = ctx.state(|| State::Loading { progress: 0.0 });
+        let (state, set_state) = ctx.state(|| State::Loading { progress: 1.0 });
+        println!("state: {:?}", state.as_ref());
 
         ctx.effect("complete on progress 1", || {
             if let State::Loading { progress } = state.as_ref()
@@ -78,29 +79,29 @@ impl Component for LoadingScreen<'_> {
             }
         });
 
-        ctx.effect("start load", || {
-            let mut set = start_load_assets();
+        // ctx.effect("start load", || {
+        //     let mut set = start_load_assets();
 
-            ctx.spawn(async move {
-                let total_count = set.len();
-                while let Some(result) = set.join_next().await {
-                    match result.unwrap() {
-                        Ok(_) => {
-                            set_state.set(State::Loading {
-                                progress: (total_count - set.len()) as f32 / total_count as f32,
-                            });
-                        }
-                        Err((location, error)) => {
-                            set_state.set(State::Error {
-                                resource_location: location,
-                                error,
-                            });
-                            return;
-                        }
-                    }
-                }
-            });
-        });
+        //     ctx.spawn(async move {
+        //         let total_count = set.len();
+        //         while let Some(result) = set.join_next().await {
+        //             match result.unwrap() {
+        //                 Ok(_) => {
+        //                     set_state.set(State::Loading {
+        //                         progress: (total_count - set.len()) as f32 / total_count as f32,
+        //                     });
+        //                 }
+        //                 Err((location, error)) => {
+        //                     set_state.set(State::Error {
+        //                         resource_location: location,
+        //                         error,
+        //                     });
+        //                     return;
+        //                 }
+        //             }
+        //         }
+        //     });
+        // });
 
         match state.as_ref() {
             State::Error {

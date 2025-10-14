@@ -26,4 +26,5 @@ export type DrawerExports = {
         mouseX: number,
         mouseY: number,
     ) => void;
+    _on_window_resize: (windowWidth: number, windowHeight: number) => void;
 };

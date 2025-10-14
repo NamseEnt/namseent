@@ -4,7 +4,10 @@ import { assetList } from "virtual:asset-list";
 import { DrawerExports } from "./types";
 import cursorMetadata from "../../../system_bundle/cursor/capitaine_24.txt?raw";
 
-export async function readyDrawer(): Promise<DrawerExports> {
+export async function readyDrawer(): Promise<{
+    drawerExports: DrawerExports;
+    canvas: HTMLCanvasElement;
+}> {
     const canvas = document.createElement("canvas");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -45,7 +48,10 @@ export async function readyDrawer(): Promise<DrawerExports> {
     initCursorSpriteSet({ memory, exports });
     console.log(`initCursorSpriteSet took: ${performance.now() - now}ms`);
 
-    return exports;
+    return {
+        drawerExports: exports,
+        canvas,
+    };
 }
 
 async function loadAssets({

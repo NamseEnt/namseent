@@ -10,10 +10,6 @@ pub struct NativeSurface {
 unsafe impl Send for NativeSurface {}
 unsafe impl Sync for NativeSurface {}
 
-unsafe extern "C" {
-    fn update_canvas_wh(width: i32, height: i32);
-}
-
 impl NativeSurface {
     pub fn flush(&mut self) {
         self.context
@@ -22,6 +18,11 @@ impl NativeSurface {
 
     pub fn canvas(&mut self) -> &dyn SkCanvas {
         self.surface.canvas()
+    }
+
+    pub fn resize(&mut self, window_wh: Wh<IntPx>) {
+        let surface = Self::make_gl_surface(&mut self.context, self.framebuffer_info, window_wh);
+        self.surface = surface;
     }
 
     pub(crate) fn new(
@@ -59,13 +60,5 @@ impl NativeSurface {
             None,
         )
         .expect("failed to wrap backend render target")
-    }
-
-    pub(crate) fn resize(&mut self, window_wh: Wh<IntPx>) {
-        unsafe {
-            update_canvas_wh(window_wh.width.as_i32(), window_wh.height.as_i32());
-        }
-        let surface = Self::make_gl_surface(&mut self.context, self.framebuffer_info, window_wh);
-        self.surface = surface;
     }
 }

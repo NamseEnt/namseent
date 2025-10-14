@@ -1,7 +1,7 @@
 use crate::system::InitResult;
 use crate::*;
-use std::sync::OnceLock;
 use std::sync::atomic::AtomicU32;
+use std::sync::OnceLock;
 
 pub(crate) fn init() -> InitResult {
     let window_wh = unsafe { _initial_window_wh() };
@@ -94,8 +94,6 @@ pub extern "C" fn _on_event(ptr: *const u8, len: usize, out_ptr: *mut u8, out_le
                 .into_boxed_slice();
 
             let len = bytes.len();
-            println!("len: {len}");
-            println!("bytes: {:?}", bytes);
             unsafe { std::slice::from_raw_parts_mut(out_ptr, std::mem::size_of::<usize>()) }
                 .copy_from_slice(&(bytes.as_ptr() as usize).to_le_bytes());
             unsafe { std::slice::from_raw_parts_mut(out_len, std::mem::size_of::<usize>()) }
