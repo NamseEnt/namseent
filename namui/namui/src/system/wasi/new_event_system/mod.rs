@@ -5,7 +5,7 @@ use namui_type::RingBuffer;
 
 // TODO: Move other event related code to this system.
 
-pub(crate) async fn init() -> InitResult {
+pub(crate) fn init() -> InitResult {
     spawn_thread();
     Ok(())
 }

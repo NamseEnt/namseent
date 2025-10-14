@@ -21,14 +21,14 @@ pub use namui_cfg::*;
 pub use namui_rendering_tree::*;
 pub use namui_type as types;
 pub use namui_type::*;
+pub use orx_parallel::*;
 pub use rand;
-pub use rayon;
 pub use render::*;
 pub use serde;
 pub use shader_macro::shader;
 use std::cell::RefCell;
 pub use system::{
-    audio::Audio,
+    // audio::Audio,
     network::http::{RequestExt, ResponseExt},
     *,
 };
@@ -46,10 +46,10 @@ thread_local! {
 }
 
 pub fn start(root_component: RootComponent) {
-    let tokio_runtime = TOKIO_RUNTIME.get_or_init(|| tokio_runtime().unwrap());
-    let _ = tokio_runtime.enter();
-
-    // LOOPER.with(|looper| looper.replace(Some(Looper::new(root_component))));
+    println!("start");
+    TOKIO_RUNTIME.set(tokio_runtime().unwrap());
+    system::init_system().unwrap();
+    LOOPER.set(Some(Looper::new(root_component)));
 
     // tokio_runtime.spawn(async move {
     //     system::init_system()

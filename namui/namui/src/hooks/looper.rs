@@ -3,11 +3,6 @@ use crate::*;
 use namui_hooks::*;
 use namui_type::*;
 
-use std::cell::RefCell;
-thread_local! {
-    static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
-}
-
 pub(crate) type RootComponent = fn(&RenderCtx);
 
 pub(crate) struct Looper {
@@ -18,17 +13,12 @@ pub(crate) struct Looper {
     render_time_worst: Duration,
     event_type_count: Vec<(EventType, i32)>,
     internal_root: InternalRoot,
+    last_rendering_tree: Option<RenderingTree>,
 }
 impl Looper {
     pub(crate) fn new(root_component: RootComponent) -> Looper {
-        let internal_root = InternalRoot::new(root_component);
-
-        let mut world = World::init(crate::time::now);
-        let rendering_tree = world.run(&internal_root);
-        // TODO: Draw rendering_tree
-
         Looper {
-            world,
+            world: World::init(crate::time::now),
             one_sec_timer: std::time::Instant::now(),
             one_sec_render_count: 0,
             render_time_sum: 0.ms(),
@@ -48,11 +38,12 @@ impl Looper {
                 (EventType::TextInputKeyDown, 0),
                 (EventType::TextInputSelectionChange, 0),
             ],
-            internal_root,
+            internal_root: InternalRoot::new(root_component),
+            last_rendering_tree: None,
         }
     }
 
-    pub(crate) fn tick(&mut self, event: RawEvent) {
+    pub(crate) fn tick(&mut self, event: RawEvent) -> &Option<RenderingTree> {
         self.one_sec_render_count += 1;
         self.event_type_count
             .iter_mut()
@@ -60,12 +51,24 @@ impl Looper {
             .unwrap()
             .1 += 1;
 
-        let now = crate::time::now();
+        let before_run = crate::time::now();
 
         let rendering_tree = self.world.run_with_event(&self.internal_root, event);
-        // TODO: Draw rendering_tree
 
-        let elapsed = crate::time::now() - now;
+        self.post_run(before_run);
+
+        if let Some(last_rendering_tree) = &self.last_rendering_tree
+            && last_rendering_tree == &rendering_tree
+        {
+            return &None;
+        }
+
+        self.last_rendering_tree = Some(rendering_tree);
+        &self.last_rendering_tree
+    }
+
+    fn post_run(&mut self, before_run: Instant) {
+        let elapsed = crate::time::now() - before_run;
         if elapsed > 33.ms() {
             println!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
         }

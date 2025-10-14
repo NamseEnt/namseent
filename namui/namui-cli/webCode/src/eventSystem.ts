@@ -42,6 +42,7 @@ event type and body
     - u8: code
 */
 
+import { DrawerExports } from "./drawer/types";
 import { Exports } from "./exports";
 import { CODES } from "./imports/codes";
 
@@ -71,10 +72,15 @@ export type OnTextInputEvent = (
     code?: number,
 ) => void;
 
-export function startEventSystem(instance: WebAssembly.Instance): {
+export function startEventSystem(
+    exports: Exports,
+    drawerExports: DrawerExports,
+): {
     onTextInputEvent: OnTextInputEvent;
 } {
-    const exports = instance.exports as Exports;
+    let mouseX = 0;
+    let mouseY = 0;
+
     const memory = exports.memory;
     function sendEvent(
         packetSize: number,
@@ -86,33 +92,86 @@ export function startEventSystem(instance: WebAssembly.Instance): {
         }) => void,
     ) {
         const ptr = exports.malloc(packetSize);
-        const view = new DataView(memory.buffer, ptr, packetSize);
-        let index = 0;
-        on({
-            u8: (value: number) => {
-                view.setUint8(index, value);
-                index += 1;
-            },
-            u16: (value: number) => {
-                view.setUint16(index, value);
-                index += 2;
-            },
-            u32: (value: number) => {
-                view.setUint32(index, value);
-                index += 4;
-            },
-            f32: (value: number) => {
-                view.setFloat32(index, value);
-                index += 4;
-            },
-        });
-        if (index !== packetSize) {
-            throw new Error(
-                `Event packet size mismatch: expected ${packetSize}, got ${index}`,
+        const renderingTreeOutPtrPtr = exports.malloc(4);
+        const renderingTreeOutLenPtr = exports.malloc(4);
+        try {
+            const view = new DataView(memory.buffer, ptr, packetSize);
+            let index = 0;
+            on({
+                u8: (value: number) => {
+                    view.setUint8(index, value);
+                    index += 1;
+                },
+                u16: (value: number) => {
+                    view.setUint16(index, value);
+                    index += 2;
+                },
+                u32: (value: number) => {
+                    view.setUint32(index, value);
+                    index += 4;
+                },
+                f32: (value: number) => {
+                    view.setFloat32(index, value);
+                    index += 4;
+                },
+            });
+            if (index !== packetSize) {
+                throw new Error(
+                    `Event packet size mismatch: expected ${packetSize}, got ${index}`,
+                );
+            }
+            exports._on_event(
+                ptr,
+                packetSize,
+                renderingTreeOutPtrPtr,
+                renderingTreeOutLenPtr,
             );
+
+            const renderingTreePtr = new DataView(
+                memory.buffer,
+                renderingTreeOutPtrPtr,
+                4,
+            ).getUint32(0, true);
+            const renderingTreeLen = new DataView(
+                memory.buffer,
+                renderingTreeOutLenPtr,
+                4,
+            ).getUint32(0, true);
+
+            if (!renderingTreeLen) {
+                return;
+            }
+
+            const renderingTreePtrOnDrawer =
+                drawerExports.malloc(renderingTreeLen);
+
+            try {
+                const renderingTreeView = new Uint8Array(
+                    memory.buffer,
+                    renderingTreePtr,
+                    renderingTreeLen,
+                );
+                const renderingTreeViewOnDrawer = new Uint8Array(
+                    drawerExports.memory.buffer,
+                    renderingTreePtrOnDrawer,
+                    renderingTreeLen,
+                );
+                renderingTreeViewOnDrawer.set(renderingTreeView);
+
+                drawerExports._draw_rendering_tree(
+                    renderingTreePtrOnDrawer,
+                    renderingTreeLen,
+                    mouseX,
+                    mouseY,
+                );
+            } finally {
+                drawerExports.free(renderingTreePtrOnDrawer);
+            }
+        } finally {
+            exports.free(ptr);
+            exports.free(renderingTreeOutPtrPtr);
+            exports.free(renderingTreeOutLenPtr);
         }
-        exports._on_event(ptr, packetSize);
-        exports.free(ptr);
     }
 
     function onAnimationFrame() {
@@ -158,6 +217,9 @@ export function startEventSystem(instance: WebAssembly.Instance): {
 
     function onMouseEvent(type: "down" | "move" | "up", event: MouseEvent) {
         event.preventDefault();
+
+        mouseX = event.clientX;
+        mouseY = event.clientY;
 
         sendEvent(7, (buffer) => {
             buffer.u8(

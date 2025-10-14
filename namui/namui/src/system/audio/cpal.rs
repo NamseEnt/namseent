@@ -34,7 +34,7 @@ fn all_sample_stores() -> &'static DashMap<usize, Weak<SampleStore>> {
     ALL_SAMPLE_STORES.get_or_init(Default::default)
 }
 
-pub(super) async fn init() -> InitResult {
+pub(super) fn init() -> InitResult {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     PLAY_REQUEST_TX.set(tx).unwrap();
 

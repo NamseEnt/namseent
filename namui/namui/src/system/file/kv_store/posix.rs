@@ -3,7 +3,7 @@ use anyhow::{Result, anyhow};
 use rusqlite::{Connection, OptionalExtension};
 use std::path::PathBuf;
 
-pub async fn init() -> InitResult {
+pub fn init() -> InitResult {
     sqlite(|conn| {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, value BLOB)",

@@ -24,21 +24,18 @@ type InitResult = Result<()>;
 
 static SYSTEM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
-pub(super) async fn init_system() -> InitResult {
+pub(super) fn init_system() -> InitResult {
     #[cfg(target_os = "wasi")]
-    wasi::init().await?;
+    wasi::init()?;
 
-    futures::try_join!(
-        audio::init(),
-        cache::init(),
-        file::init(),
-        image::init(),
-        keyboard::init(),
-        network::init(),
-        screen::init(),
-        time::init(),
-        setup_rayon_concurrency(),
-    )?;
+    // audio::init()?;
+    // cache::init()?;
+    // file::init()?;
+    // image::init()?;
+    keyboard::init()?;
+    network::init()?;
+    screen::init()?;
+    time::init()?;
 
     // #[cfg(target_os = "wasi")]
     // futures::try_join!(
@@ -47,7 +44,8 @@ pub(super) async fn init_system() -> InitResult {
     //     web::init(),
     // )?;
 
-    futures::try_join!(mouse::init(), typeface::init())?;
+    mouse::init()?;
+    typeface::init()?;
 
     SYSTEM_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
 
@@ -57,12 +55,4 @@ pub(super) async fn init_system() -> InitResult {
 #[allow(dead_code)]
 pub(crate) fn system_initialized() -> bool {
     SYSTEM_INITIALIZED.load(std::sync::atomic::Ordering::SeqCst)
-}
-
-async fn setup_rayon_concurrency() -> InitResult {
-    let concurrency = utils::hardware_concurrency();
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(concurrency as usize)
-        .build_global()?;
-    anyhow::Ok(())
 }

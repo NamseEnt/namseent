@@ -1,6 +1,6 @@
 use super::*;
 use crate::*;
-use std::{fmt::Debug, hash::Hash, sync::OnceLock};
+use std::{collections::BTreeMap, fmt::Debug, hash::Hash, sync::OnceLock};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, State)]
 pub struct Image {
@@ -8,6 +8,7 @@ pub struct Image {
 }
 
 impl Image {
+    pub const STANDARD_CURSOR_SPRITE_SET: Image = Image { id: 100000 };
     pub const fn new(id: usize) -> Self {
         Self { id }
     }
@@ -23,28 +24,43 @@ impl Image {
             image_infos
                 .get_or_init(|| {
                     let image_count = unsafe { _get_image_count() };
-                    let mut image_infos = Vec::with_capacity(image_count);
-                    let mut buffer = vec![0u8; image_count * 10];
+                    let mut image_infos = BTreeMap::new();
+                    let image_info_size = 14;
+                    let mut buffer = vec![0u8; image_count * image_info_size];
                     unsafe { _get_image_infos(buffer.as_mut_ptr()) };
                     for i in 0..image_count {
-                        let alpha_type = AlphaType::from(buffer[i * 10]);
-                        let color_type = ColorType::from(buffer[i * 10 + 1]);
-                        let width =
-                            f32::from_le_bytes(buffer[i * 10 + 2..i * 10 + 6].try_into().unwrap())
-                                .px();
-                        let height =
-                            f32::from_le_bytes(buffer[i * 10 + 6..i * 10 + 10].try_into().unwrap())
-                                .px();
-                        image_infos.push(ImageInfo {
-                            alpha_type,
-                            color_type,
-                            width,
-                            height,
-                        });
+                        let id = usize::from_le_bytes(
+                            buffer[i * image_info_size..i * image_info_size + 4]
+                                .try_into()
+                                .unwrap(),
+                        );
+                        let alpha_type = AlphaType::from(buffer[i * image_info_size + 4]);
+                        let color_type = ColorType::from(buffer[i * image_info_size + 5]);
+                        let width = f32::from_le_bytes(
+                            buffer[i * image_info_size + 6..i * image_info_size + 10]
+                                .try_into()
+                                .unwrap(),
+                        )
+                        .px();
+                        let height = f32::from_le_bytes(
+                            buffer[i * image_info_size + 10..i * image_info_size + 14]
+                                .try_into()
+                                .unwrap(),
+                        )
+                        .px();
+                        image_infos.insert(
+                            id,
+                            ImageInfo {
+                                alpha_type,
+                                color_type,
+                                width,
+                                height,
+                            },
+                        );
                     }
                     image_infos
                 })
-                .get(self.id)
+                .get(&self.id)
                 .cloned()
                 .unwrap_or_else(|| panic!("Image {} not found", self.id))
         })
@@ -52,12 +68,19 @@ impl Image {
 }
 
 thread_local! {
-    static IMAGE_INFOS: OnceLock<Vec<ImageInfo>> = const { OnceLock::new() };
+    static IMAGE_INFOS: OnceLock<BTreeMap<usize, ImageInfo>> = const { OnceLock::new() };
 }
 
 unsafe extern "C" {
     fn _get_image_count() -> usize;
-    // buffer length = (1 + 1 + 4 + 4 = 10) * n
+    /**
+     * image info layout
+     * - id: u32
+     * - alpha_type: u8
+     * - color_type: u8
+     * - width: u32
+     * - height: u32
+     */
     fn _get_image_infos(buffer: *mut u8);
 }
 

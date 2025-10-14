@@ -1,6 +1,6 @@
 use crate::{system::InitResult, *};
 
-pub(super) async fn init() -> InitResult {
+pub(super) fn init() -> InitResult {
     Ok(())
 }
 

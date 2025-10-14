@@ -29,10 +29,16 @@ pub extern "C" fn _init_skia(screen_id: usize, window_width: usize, window_heigh
 
 #[unsafe(no_mangle)]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn _init_standard_cursor_sprite_set(bytes_ptr: *const u8, bytes_len: usize) {
-    let slice = unsafe { std::slice::from_raw_parts(bytes_ptr, bytes_len) };
-    let (standard_cursor_sprite_set, _): (StandardCursorSpriteSet, usize) =
-        bincode::decode_from_slice(slice, bincode::config::standard()).unwrap();
+pub unsafe extern "C" fn _init_standard_cursor_sprite_set(
+    metadata_bytes_ptr: *const u8,
+    metadata_bytes_len: usize,
+) {
+    let metadata_slice =
+        unsafe { std::slice::from_raw_parts(metadata_bytes_ptr, metadata_bytes_len) };
+    let metadata_text = str::from_utf8(metadata_slice).unwrap();
+
+    let standard_cursor_sprite_set =
+        StandardCursorSpriteSet::parse(Image::STANDARD_CURSOR_SPRITE_SET, metadata_text).unwrap();
 
     STANDARD_CURSOR_SPRITE_SET
         .set(standard_cursor_sprite_set)

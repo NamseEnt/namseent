@@ -1,7 +1,7 @@
 use crate::*;
 use futures::future::try_join_all;
 
-pub async fn load_all_typefaces() -> Result<()> {
+pub fn load_all_typefaces() -> Result<()> {
     // TODO
     // let default_typefaces = [
     //     (

@@ -2,7 +2,7 @@ use super::InterleavedAllSamples;
 use crate::system::InitResult;
 use std::sync::{Arc, Mutex, OnceLock};
 
-pub(super) async fn init() -> InitResult {
+pub(super) fn init() -> InitResult {
     Ok(())
 }
 

@@ -3,10 +3,11 @@ use std::sync::OnceLock;
 
 static WINDOW: OnceLock<winit::window::Window> = OnceLock::new();
 
-pub(crate) async fn init() -> InitResult {
-    while WINDOW.get().is_none() {
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-    }
+pub(crate) fn init() -> InitResult {
+    // TODO
+    // while WINDOW.get().is_none() {
+    //     tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    // }
 
     Ok(())
 }

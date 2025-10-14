@@ -52,6 +52,7 @@ export default defineConfig({{
             allow: [
                 "./",
                 "{asset_dir}",
+                "{cli_root}/system_bundle",
             ],
         }},
         host: "{host}",

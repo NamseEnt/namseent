@@ -16,6 +16,9 @@ import { pushLog } from "./logger";
 import { startThread } from "./thread/startThread";
 import wasmUrl from "/Users/namse/namseent2/tower-defense/target/namui/target/wasm32-wasip1-threads/debug/namui-runtime-wasm.wasm?url";
 import "./drawer";
+import { readyDrawer } from "./drawer";
+import { Exports } from "./exports";
+import { assetList } from "virtual:asset-list";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -23,49 +26,45 @@ if (!crossOriginIsolated) {
     throw new Error("Not cross-origin isolated");
 }
 
-const canvas = document.createElement("canvas");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-canvas.style.cursor = "none";
-document.body.appendChild(canvas);
-
-const bitmapCtx = canvas.getContext("bitmaprenderer")!;
-if (!bitmapCtx) {
-    throw new Error("Failed to get bitmap context");
-}
-
-const eventBuffer = new SharedArrayBuffer(512 * 1024);
-
-// const { onTextInputEvent } = startEventSystemOnMainThread(eventBuffer);
-// const textInput = new TextInput(onTextInputEvent);
-
 const memory = new WebAssembly.Memory({
     initial: 128,
     maximum: 16384,
     shared: true,
 });
 
-// const storageWorker = new StorageWorker();
-// sendToWorker(storageWorker, {
-//     type: "storage-init",
-//     wasmMemory,
-// });
-
 const nextTid = new SharedArrayBuffer(4);
 new Uint32Array(nextTid)[0] = 1;
 
-// const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
+const [drawerExports, module] = await Promise.all([
+    readyDrawer(),
+    WebAssembly.compileStreaming(fetch(wasmUrl)),
+]);
 
-// const instance = await startThread({
-//     type: "main",
-//     memory,
-//     module,
-//     nextTid,
-//     initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
-// });
-// console.log("main instance.exports", instance.exports);
-// const { onTextInputEvent } = startEventSystem(instance);
-// const textInput = new TextInput(onTextInputEvent);
+console.log("drawerExports", drawerExports);
+const imageCount = drawerExports._image_count();
+const imageInfoSize = 14;
+const imageInfoBytes = new Uint8Array(imageCount * imageInfoSize);
+
+const imageInfosPtr = drawerExports.malloc(imageInfoBytes.byteLength);
+drawerExports._image_infos(imageInfosPtr);
+imageInfoBytes.set(
+    new Uint8Array(memory.buffer, imageInfosPtr, imageInfoBytes.byteLength),
+);
+drawerExports.free(imageInfosPtr);
+
+const instance = await startThread({
+    type: "main",
+    memory,
+    module,
+    nextTid,
+    initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
+    imageCount,
+    imageInfoBytes,
+});
+const exports = instance.exports as Exports;
+console.log("main exports", exports);
+const { onTextInputEvent } = startEventSystem(exports, drawerExports);
+const textInput = new TextInput(onTextInputEvent);
 
 // let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;
 // let insertJsHandle: ReturnType<typeof insertJsHandleOnMainThread>;

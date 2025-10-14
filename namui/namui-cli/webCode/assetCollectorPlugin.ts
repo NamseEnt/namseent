@@ -2,6 +2,55 @@ import { Plugin } from "vite";
 import * as fs from "fs";
 import * as path from "path";
 
+export function assetCollectorPlugin(assetDir: string): Plugin {
+    const imageFiles = collectImageFiles(assetDir);
+    imageFiles.sort();
+
+    const imageInfos: ImageInfo[] = imageFiles.map((file, id) => ({
+        path: file,
+        relativePath: path.relative(assetDir, file),
+        id,
+    }));
+
+    const systemBundleDir = path.join(__dirname, "../system_bundle");
+    const cursorSpritePath = path.join(
+        systemBundleDir,
+        "cursor/capitaine_24.png",
+    );
+    imageInfos.push({
+        path: cursorSpritePath,
+        relativePath: "cursor/capitaine_24.png",
+        id: 100000,
+    });
+
+    console.log(`Collected ${imageInfos.length} image files from ${assetDir}`);
+
+    const virtualModuleId = "virtual:asset-list";
+    const resolvedVirtualModuleId = "\0" + virtualModuleId;
+
+    return {
+        name: "asset-collector-plugin",
+        resolveId(id) {
+            if (id === virtualModuleId) {
+                return resolvedVirtualModuleId;
+            }
+        },
+        load(id) {
+            if (id === resolvedVirtualModuleId) {
+                const assetList = imageInfos.map((info) => ({
+                    id: info.id,
+                    path: "/@fs" + info.path,
+                }));
+                return `export const assetList = ${JSON.stringify(
+                    assetList,
+                    null,
+                    2,
+                )};`;
+            }
+        },
+    };
+}
+
 interface ImageInfo {
     path: string;
     relativePath: string;
@@ -32,46 +81,4 @@ function collectImageFiles(assetDir: string): string[] {
 
     visitDirs(assetDir);
     return files;
-}
-
-export function assetCollectorPlugin(assetDir: string): Plugin {
-    // Collect and sort image files (same as asset-macro)
-    const imageFiles = collectImageFiles(assetDir);
-    imageFiles.sort(); // Sort alphabetically like asset-macro does
-
-    const imageInfos: ImageInfo[] = imageFiles.map((file, id) => ({
-        path: file,
-        relativePath: path.relative(assetDir, file),
-        id,
-    }));
-
-    console.log(`Collected ${imageInfos.length} image files from ${assetDir}`);
-
-    const virtualModuleId = "virtual:asset-list";
-    const resolvedVirtualModuleId = "\0" + virtualModuleId;
-
-    return {
-        name: "asset-collector-plugin",
-        config() {
-            return {
-                define: {
-                    __IMAGE_COUNT__: imageInfos.length.toString(),
-                },
-            };
-        },
-        resolveId(id) {
-            if (id === virtualModuleId) {
-                return resolvedVirtualModuleId;
-            }
-        },
-        load(id) {
-            if (id === resolvedVirtualModuleId) {
-                const assetList = imageInfos.map((info) => ({
-                    id: info.id,
-                    path: "/@fs" + info.path,
-                }));
-                return `export const assetList = ${JSON.stringify(assetList, null, 2)};`;
-            }
-        },
-    };
 }

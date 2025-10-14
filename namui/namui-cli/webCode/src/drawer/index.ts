@@ -2,35 +2,108 @@ import { startThread } from "../thread/startThread";
 import drawerUrl from "namui-drawer.wasm?url";
 import { assetList } from "virtual:asset-list";
 import { DrawerExports } from "./types";
-import { processImages } from "./imageLoader";
+import cursorMetadata from "../../../system_bundle/cursor/capitaine_24.txt?raw";
 
-const memory = new WebAssembly.Memory({
-    initial: 128,
-    maximum: 16384,
-    shared: true,
-});
+export async function readyDrawer(): Promise<DrawerExports> {
+    const canvas = document.createElement("canvas");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.cursor = "none";
+    document.body.appendChild(canvas);
 
-const nextTid = new SharedArrayBuffer(4);
-new Uint32Array(nextTid)[0] = 1;
+    const memory = new WebAssembly.Memory({
+        initial: 128,
+        maximum: 16384,
+        shared: true,
+    });
 
-const module = await WebAssembly.compileStreaming(fetch(drawerUrl));
+    const nextTid = new SharedArrayBuffer(4);
+    new Uint32Array(nextTid)[0] = 1;
 
-const instance = await startThread({
-    type: "drawer",
+    const module = await WebAssembly.compileStreaming(fetch(drawerUrl));
+
+    const instance = await startThread({
+        type: "drawer",
+        memory,
+        module,
+        nextTid,
+        initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
+        canvas,
+    });
+    console.log("drawer instance initialized");
+    const exports = instance.exports as DrawerExports;
+
+    let now = performance.now();
+    exports._init_skia(0, window.innerWidth, window.innerHeight);
+    console.log(`_init_skia took: ${performance.now() - now}ms`);
+
+    now = performance.now();
+    await loadAssets({ memory, exports });
+    console.log(`loadAssets took: ${performance.now() - now}ms`);
+
+    now = performance.now();
+    initCursorSpriteSet({ memory, exports });
+    console.log(`initCursorSpriteSet took: ${performance.now() - now}ms`);
+
+    return exports;
+}
+
+async function loadAssets({
     memory,
-    module,
-    nextTid,
-    initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
-});
+    exports,
+}: {
+    memory: WebAssembly.Memory;
+    exports: DrawerExports;
+}) {
+    const startTime = performance.now();
 
-console.log("Main drawer instance created");
-console.log("instance.exports", instance.exports);
+    await Promise.all(
+        assetList.map(async ({ id, path }) => {
+            try {
+                const response = await fetch(path);
+                if (!response.ok) {
+                    throw new Error(
+                        `Failed to fetch image ${id} from ${path}: ${response.statusText}`,
+                    );
+                }
 
-const startTime = performance.now();
-await processImages(assetList, instance.exports as DrawerExports, memory);
+                const arrayBuffer = await response.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+                const len = bytes.length;
 
-console.log(
-    `All images loaded successfully, ${(performance.now() - startTime).toFixed(
-        2,
-    )}ms`,
-);
+                const ptr = exports._malloc_image_buffer(id, len);
+                const wasmMemory = new Uint8Array(memory.buffer);
+                wasmMemory.set(bytes, ptr);
+
+                exports._register_image(id);
+            } catch (error) {
+                console.error(`Error loading image ${id} from ${path}:`, error);
+                throw error;
+            }
+        }),
+    );
+
+    console.log(
+        `All images loaded successfully, ${(
+            performance.now() - startTime
+        ).toFixed(2)}ms`,
+    );
+}
+
+function initCursorSpriteSet({
+    memory,
+    exports,
+}: {
+    memory: WebAssembly.Memory;
+    exports: DrawerExports;
+}) {
+    const metadataBytes = new TextEncoder().encode(cursorMetadata);
+    const metadataLen = metadataBytes.length;
+    const metadataPtr = exports.malloc(metadataLen);
+    const wasmMemory = new Uint8Array(memory.buffer);
+    wasmMemory.set(metadataBytes, metadataPtr);
+
+    exports._init_standard_cursor_sprite_set(metadataPtr, metadataLen);
+
+    exports.free(metadataPtr);
+}

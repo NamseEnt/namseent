@@ -17,8 +17,8 @@ use tokio::time;
 
 static TIME_SYSTEM: OnceLock<Arc<dyn TimeSystem + Send + Sync>> = OnceLock::new();
 
-pub(crate) async fn init() -> InitResult {
-    inner::init().await?;
+pub(crate) fn init() -> InitResult {
+    inner::init()?;
 
     Ok(())
 }

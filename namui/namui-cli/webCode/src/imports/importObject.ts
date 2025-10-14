@@ -1,5 +1,4 @@
 import { envGl } from "./envGl";
-import { EventSystemOnWorker } from "@/eventSystem";
 import { textInputImports } from "./textInput";
 import { type Exports } from "@/exports";
 import { webSocketImports } from "@/webSocket";
@@ -11,6 +10,7 @@ import { httpFetchImports } from "@/httpFetch/httpFetch";
 import { audioImports } from "@/audio";
 import { ThreadStartSupplies } from "@/thread/startThread";
 import SubThreadWorker from "@/thread/SubThreadWorker?worker";
+import { DrawerExports } from "@/drawer/types";
 
 export function createImportObject({
     supplies,
@@ -20,13 +20,14 @@ export function createImportObject({
 }: {
     supplies: ThreadStartSupplies;
     wasiImport: Record<string, any>;
-    exports: () => Exports;
+    exports: () => DrawerExports | Exports;
     storageProtocolBuffer: SharedArrayBuffer;
 }) {
     const { memory } = supplies;
     const glFunctions = envGl({
         exports,
         memory,
+        canvas: supplies.type === "drawer" ? supplies.canvas : undefined,
     }) as any;
 
     // const glDebug = false;
@@ -63,8 +64,6 @@ export function createImportObject({
           }, {} as Record<string, any>)
         : wasiImport;
 
-    let eventSystem: EventSystemOnWorker;
-
     return {
         env: {
             memory,
@@ -91,19 +90,38 @@ export function createImportObject({
             ...httpFetchImports({ memory }),
             ...audioImports({ memory }),
             _initial_window_wh: () => supplies.initialWindowWh,
-            _hardware_concurrency: () => {
-                return navigator.hardwareConcurrency;
-            },
+            _hardware_concurrency: () => navigator.hardwareConcurrency,
             _get_image_count: () => {
-                return __IMAGE_COUNT__;
+                switch (supplies.type) {
+                    case "main":
+                    case "sub":
+                        return supplies.imageCount;
+                    case "drawer":
+                        return (exports() as DrawerExports)._image_count();
+                }
             },
-            _get_image_infos: () => {
-                throw new Error("Not implemented");
+            _get_image_infos: (ptr: number) => {
+                switch (supplies.type) {
+                    case "main":
+                    case "sub":
+                        return new Uint8Array(
+                            memory.buffer,
+                            ptr,
+                            supplies.imageInfoBytes.length,
+                        ).set(supplies.imageInfoBytes);
+                    case "drawer":
+                        return (exports() as DrawerExports)._image_infos(ptr);
+                }
             },
         },
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {
             "thread-spawn": (startArgPtr: number) => {
+                if (supplies.type !== "main" && supplies.type !== "sub") {
+                    throw new Error(
+                        `thread on ${supplies.type} is not supported`,
+                    );
+                }
                 const tid = Atomics.add(
                     new Uint32Array(supplies.nextTid),
                     0,
@@ -130,7 +148,10 @@ function implSetJmp({
     exports,
 }: {
     memory: WebAssembly.Memory;
-    exports: () => Exports;
+    exports: () => {
+        free: (ptr: number) => void;
+        malloc: (size: number) => number;
+    };
 }): {
     saveSetjmp: Function;
     testSetjmp: Function;

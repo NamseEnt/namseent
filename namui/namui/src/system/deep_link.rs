@@ -14,9 +14,9 @@ unsafe extern "C" {
 }
 
 #[namui_cfg(target_env = "electron")]
-pub(crate) async fn init() -> InitResult {
+pub(crate) fn init() -> InitResult {
     use crate::{DeepLinkOpenedEvent, NamuiEvent};
-    use wasm_bindgen::{prelude::Closure, JsCast};
+    use wasm_bindgen::{JsCast, prelude::Closure};
     let callback = Closure::wrap(Box::new(|url: String| {
         crate::event::send(NamuiEvent::DeepLinkOpened(DeepLinkOpenedEvent { url }));
     }) as Box<dyn Fn(String)>);
@@ -25,7 +25,7 @@ pub(crate) async fn init() -> InitResult {
 }
 
 #[namui_cfg(not(target_env = "electron"))]
-pub(crate) async fn init() -> InitResult {
+pub(crate) fn init() -> InitResult {
     Ok(())
 }
 

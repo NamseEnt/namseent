@@ -3,7 +3,7 @@ use crate::*;
 use std::sync::OnceLock;
 use std::sync::atomic::AtomicU32;
 
-pub(crate) async fn init() -> InitResult {
+pub(crate) fn init() -> InitResult {
     let window_wh = unsafe { _initial_window_wh() };
     on_resize((window_wh >> 16) as u16, (window_wh & 0xffff) as u16);
 
@@ -45,6 +45,7 @@ pub(crate) async fn init() -> InitResult {
 
 #[repr(u8)]
 #[allow(dead_code)]
+#[derive(Debug)]
 enum EventType {
     OnAnimationFrame = 0,
     ScreenResize,
@@ -65,55 +66,43 @@ unsafe extern "C" {
     fn _initial_window_wh() -> u32;
 }
 
+thread_local! {
+    static RENDERING_TREE_BYTES: RefCell<Box<[u8]>> = Default::default();
+}
+
 #[unsafe(no_mangle)]
-pub extern "C" fn _on_event(ptr: *const u8, len: usize) {
+pub extern "C" fn _on_event(ptr: *const u8, len: usize, out_ptr: *mut u8, out_len: *mut u8) {
+    let tokio_runtime = TOKIO_RUNTIME.get().unwrap();
+    let _guard = tokio_runtime.enter();
+
     let packet = unsafe { std::slice::from_raw_parts(ptr, len) };
     let event_type: EventType = unsafe { std::mem::transmute(packet[0]) };
     let event = parse_event(event_type, packet, on_resize);
 
     LOOPER.with_borrow_mut(|looper_cell| {
-        looper_cell.as_mut().unwrap().tick(event);
-    });
+        let Some(rendering_tree) = looper_cell.as_mut().unwrap().tick(event) else {
+            unsafe { std::slice::from_raw_parts_mut(out_ptr, std::mem::size_of::<usize>()) }
+                .copy_from_slice(&(0_usize).to_le_bytes());
+            unsafe { std::slice::from_raw_parts_mut(out_len, std::mem::size_of::<usize>()) }
+                .copy_from_slice(&(0_usize).to_le_bytes());
+            return;
+        };
+
+        RENDERING_TREE_BYTES.with_borrow_mut(|bytes| {
+            *bytes = bincode::encode_to_vec(rendering_tree, bincode::config::standard())
+                .unwrap()
+                .into_boxed_slice();
+
+            let len = bytes.len();
+            println!("len: {len}");
+            println!("bytes: {:?}", bytes);
+            unsafe { std::slice::from_raw_parts_mut(out_ptr, std::mem::size_of::<usize>()) }
+                .copy_from_slice(&(bytes.as_ptr() as usize).to_le_bytes());
+            unsafe { std::slice::from_raw_parts_mut(out_len, std::mem::size_of::<usize>()) }
+                .copy_from_slice(&(len).to_le_bytes());
+        });
+    })
 }
-
-// pub(crate) fn run_event_hook_loop<Root: Component + Clone + Send + 'static>(component: Root) {
-//     tokio::task::spawn_blocking(|| {
-//         let mut looper = Looper::new(component);
-//         let buffer = [0u8; 8096];
-//         let mut next_raw_event = None;
-//         loop {
-//             let mut raw_event = next_raw_event
-//                 .take()
-//                 .unwrap_or_else(|| get_event(&buffer, usize::MAX).unwrap());
-
-//             while let Some(peek_raw_event) = get_event(&buffer, 0) {
-//                 match (&mut raw_event, &peek_raw_event) {
-//                     (RawEvent::Wheel { event }, RawEvent::Wheel { event: peek_event }) => {
-//                         event.delta_xy += peek_event.delta_xy;
-//                         event.mouse_xy = peek_event.mouse_xy;
-//                     }
-//                     (RawEvent::MouseMove { .. }, RawEvent::MouseMove { .. })
-//                     | (RawEvent::MouseMove { .. }, RawEvent::MouseDown { .. })
-//                     | (RawEvent::MouseMove { .. }, RawEvent::MouseUp { .. })
-//                     | (RawEvent::ScreenResize { .. }, RawEvent::ScreenResize { .. })
-//                     | (RawEvent::ScreenRedraw, _)
-//                     | (
-//                         RawEvent::TextInputSelectionChange { .. },
-//                         RawEvent::TextInputSelectionChange { .. },
-//                     ) => {
-//                         raw_event = peek_raw_event;
-//                     }
-//                     _ => {
-//                         next_raw_event = Some(peek_raw_event);
-//                         break;
-//                     }
-//                 }
-//             }
-
-//             looper.tick(raw_event);
-//         }
-//     });
-// }
 
 fn parse_event(event_type: EventType, packet: &[u8], on_resize: impl Fn(u16, u16)) -> RawEvent {
     match event_type {

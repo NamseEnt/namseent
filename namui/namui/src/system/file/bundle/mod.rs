@@ -8,7 +8,7 @@ use std::io::ErrorKind;
 use std::path::PathBuf;
 use tokio::io::{self, Error};
 
-pub async fn init() -> InitResult {
+pub fn init() -> InitResult {
     Ok(())
 }
 
