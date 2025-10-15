@@ -76,8 +76,7 @@ impl TransformMatrix {
 
     pub fn transform_xy<T>(&self, xy: crate::Xy<T>) -> crate::Xy<T>
     where
-        T: Into<f32> + From<f32>,
-        T: std::fmt::Debug,
+        T: Into<f32> + From<f32> + std::fmt::Debug + State,
     {
         let x: f32 = xy.x.into();
         let y: f32 = xy.y.into();
@@ -98,7 +97,8 @@ impl TransformMatrix {
             + std::ops::Mul<f32, Output = T>
             + From<f32>
             + PartialOrd
-            + Debug,
+            + Debug
+            + State,
         f32: From<T>,
     {
         let Ltrb {

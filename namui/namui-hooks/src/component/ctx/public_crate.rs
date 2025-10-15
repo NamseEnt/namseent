@@ -94,7 +94,7 @@ impl ComponentCtx<'_> {
         Sig::new(state, sig_id, self.world)
     }
 
-    pub(crate) fn controlled_memo<T: 'static>(
+    pub(crate) fn controlled_memo<T: State>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
     ) -> Sig<'_, T> {
@@ -176,7 +176,7 @@ impl ComponentCtx<'_> {
         Sig::new(state, sig_id, self.world)
     }
 
-    pub(crate) fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
+    pub(crate) fn track_eq<T: State + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
         let track_eq_index = self
             .track_eq_index
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -230,7 +230,7 @@ impl ComponentCtx<'_> {
         cmp: impl FnOnce(&T, &P) -> bool,
     ) -> Sig<'_, P>
     where
-        P: 'static,
+        P: State,
     {
         let track_eq_index = self
             .track_eq_index

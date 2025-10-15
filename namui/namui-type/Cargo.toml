@@ -26,8 +26,9 @@ skia-safe = { path = "../third-party-forks/rust-skia/skia-safe" }
 rand = "0.8"
 sha2 = "0.10"
 chrono = "0.4.41"
-bincode = "2.0.1"
 bytes = "1.10.1"
+erased-serde = "0.4.8"
+bincode = "2.0.1"
 
 [dev-dependencies]
 float-cmp = "0.9"

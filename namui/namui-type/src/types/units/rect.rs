@@ -5,7 +5,7 @@ use std::fmt::Debug;
 #[type_derives(Copy, Eq, Hash)]
 pub enum Rect<T>
 where
-    T: Debug,
+    T: Debug + State,
 {
     Xywh {
         x: T,
@@ -24,7 +24,7 @@ where
 #[type_derives(Copy, Eq)]
 pub struct Xywh<T>
 where
-    T: Debug,
+    T: Debug + State,
 {
     pub x: T,
     pub y: T,
@@ -34,7 +34,7 @@ where
 
 impl<T> Rect<T>
 where
-    T: Clone + Debug,
+    T: Clone + Debug + State,
 {
     pub fn from_xy_wh(xy: Xy<T>, wh: Wh<T>) -> Self {
         Rect::Xywh {
@@ -138,7 +138,7 @@ where
 
 impl<T> Rect<T>
 where
-    T: Clone + std::ops::Sub<Output = T> + Debug,
+    T: Clone + std::ops::Sub<Output = T> + Debug + State,
 {
     pub fn as_xywh(&self) -> Xywh<T> {
         match self {
@@ -271,7 +271,7 @@ where
 }
 impl<T> Rect<T>
 where
-    T: std::ops::Add<Output = T> + Clone + Debug,
+    T: std::ops::Add<Output = T> + Clone + Debug + State,
 {
     pub fn as_ltrb(&self) -> Ltrb<T> {
         match self {
@@ -388,7 +388,7 @@ where
 }
 impl<T> Rect<T>
 where
-    T: std::ops::Mul<f32, Output = T> + Clone + Debug,
+    T: std::ops::Mul<f32, Output = T> + Clone + Debug + State,
 {
     pub fn scale(&self, ratio: impl AsPrimitive<f32>) -> Self {
         let ratio = ratio.as_();
@@ -421,7 +421,7 @@ where
 
 impl<'a, T> Rect<T>
 where
-    T: 'a + std::ops::Div<f32, Output = T> + Debug,
+    T: 'a + std::ops::Div<f32, Output = T> + Debug + State,
     &'a T: std::ops::Add<&'a T, Output = T>
         + std::ops::Div<f32, Output = T>
         + std::ops::Add<T, Output = T>,
@@ -452,7 +452,7 @@ where
 
 impl<T> Rect<T>
 where
-    T: PartialOrd + std::ops::Add<T, Output = T> + Clone + Debug,
+    T: PartialOrd + std::ops::Add<T, Output = T> + Clone + Debug + State,
 {
     pub fn intersect(&self, other: Rect<T>) -> Option<Rect<T>> {
         let my_ltrb = self.as_ltrb();
@@ -551,7 +551,7 @@ where
 
 impl<T> Default for Rect<T>
 where
-    T: Default + Debug,
+    T: Default + Debug + State,
 {
     fn default() -> Self {
         Rect::Ltrb {
@@ -565,7 +565,7 @@ where
 
 impl<T> std::ops::Add<Xy<T>> for Rect<T>
 where
-    T: std::ops::Add<Output = T> + Clone + Debug,
+    T: std::ops::Add<Output = T> + Clone + Debug + State,
 {
     type Output = Rect<T>;
     fn add(self, rhs: Xy<T>) -> Self::Output {
@@ -598,7 +598,7 @@ where
 
 impl<T, Rhs> std::ops::Mul<Rhs> for Rect<T>
 where
-    T: std::ops::Mul<Rhs, Output = T> + Debug,
+    T: std::ops::Mul<Rhs, Output = T> + Debug + State,
     Rhs: Clone,
 {
     type Output = Rect<T>;
@@ -632,7 +632,7 @@ where
 
 impl<T, Rhs> std::ops::Div<Rhs> for Rect<T>
 where
-    T: std::ops::Div<Rhs, Output = T> + Debug,
+    T: std::ops::Div<Rhs, Output = T> + Debug + State,
     Rhs: Clone,
 {
     type Output = Rect<T>;
@@ -690,7 +690,7 @@ impl From<Rect<Px>> for skia_safe::Rect {
 
 impl<T> From<skia_safe::Rect> for Rect<T>
 where
-    T: From<f32> + Debug,
+    T: From<f32> + Debug + State,
 {
     fn from(val: skia_safe::Rect) -> Self {
         Rect::Ltrb {
@@ -704,11 +704,11 @@ where
 
 impl<T> Rect<T>
 where
-    T: Debug,
+    T: Debug + State,
 {
     pub fn map<U>(&self, f: impl Fn(&T) -> U) -> Rect<U>
     where
-        U: Debug,
+        U: Debug + State,
     {
         match self {
             Rect::Xywh {
