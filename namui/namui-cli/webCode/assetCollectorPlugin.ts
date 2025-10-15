@@ -98,7 +98,7 @@ function collectFontFiles(systemBundleDir: string): FontInfo[] {
         const absolutePath = path.join(systemBundleDir, fontPath);
 
         fontInfos.push({
-            name: path.basename(fontPath),
+            name: path.parse(fontPath).name,
             path: absolutePath,
         });
     }
