@@ -1,9 +1,7 @@
 pub mod audio;
-pub mod image;
 pub mod keyboard;
 pub mod mouse;
 pub mod network;
-pub mod platform;
 pub mod screen;
 pub mod time;
 

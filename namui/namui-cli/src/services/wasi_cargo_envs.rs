@@ -113,12 +113,20 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                 match wasi_type {
                     WasiType::App => [
                         "_register_font",
-                        "_on_event",
                         "_init_system",
                         "_on_mouse_down",
                         "_on_mouse_up",
                         "_on_mouse_move",
                         "_on_mouse_wheel",
+                        "_on_key_down",
+                        "_on_key_up",
+                        "_on_screen_resize",
+                        "_on_animation_frame",
+                        "_on_blur",
+                        "_on_visibility_change",
+                        "_on_text_input",
+                        "_on_text_input_key_down",
+                        "_on_text_input_selection_change",
                     ]
                     .iter(),
                     WasiType::Drawer => [

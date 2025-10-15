@@ -10,7 +10,6 @@ pub use self::random::*;
 pub use ::anyhow::{self, Result, anyhow, bail};
 pub use ::url::Url;
 pub use auto_ops;
-use bytes::BufMut;
 pub use common::*;
 pub use futures::{StreamExt, future::join_all, future::try_join_all, join, try_join};
 pub use hooks::*;
@@ -57,7 +56,7 @@ fn on_event(event: RawEvent) -> u64 {
     TOKIO_RUNTIME.with(|tokio_runtime| {
         let _guard = tokio_runtime.enter();
 
-        LOOPER.with_borrow_mut(|looper_cell| unsafe {
+        LOOPER.with_borrow_mut(|looper_cell| {
             let Some(rendering_tree) = looper_cell.as_mut().unwrap().tick(event) else {
                 return;
             };

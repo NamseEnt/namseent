@@ -1,66 +1,23 @@
-#[cfg(not(target_os = "wasi"))]
-mod non_wasm;
-#[cfg(target_os = "wasi")]
-mod wasm;
-
-#[cfg(not(target_os = "wasi"))]
-pub(crate) use non_wasm::*;
-#[cfg(target_os = "wasi")]
-pub(crate) use wasm::*;
-
 use super::InitResult;
 use crate::*;
-use std::{
-    collections::HashSet,
-    sync::{Arc, RwLock},
-};
+use dashmap::DashSet;
+use std::{collections::HashSet, sync::OnceLock};
 
-struct KeyboardSystem {
-    pressing_code_set: Arc<RwLock<HashSet<Code>>>,
-}
-
-impl KeyboardSystem {
-    pub(crate) fn new() -> Self {
-        let pressing_code_set = Arc::new(RwLock::new(HashSet::new()));
-
-        KeyboardSystem { pressing_code_set }
-    }
-}
+static PRESSING_CODE_SET: OnceLock<DashSet<Code>> = OnceLock::new();
 
 pub(super) fn init() -> InitResult {
+    let _ = PRESSING_CODE_SET.set(DashSet::new());
     Ok(())
 }
 
 pub fn any_code_press(codes: impl IntoIterator<Item = Code>) -> bool {
-    todo!()
-    // let pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.read().unwrap();
-    // for code in codes {
-    //     if pressing_code_set.contains(&code) {
-    //         return true;
-    //     }
-    // }
-    // false
-}
-
-fn record_key_down(code: Code) {
-    todo!()
-    // let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
-    // pressing_code_set.insert(code);
-}
-
-fn record_key_up(code: Code) {
-    todo!()
-    // let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
-    // pressing_code_set.remove(&code);
-}
-
-fn pressing_code_set() -> HashSet<Code> {
-    todo!()
-    // KEYBOARD_SYSTEM.pressing_code_set.read().unwrap().clone()
-}
-
-fn clear_pressing_code_set() {
-    // KEYBOARD_SYSTEM.pressing_code_set.write().unwrap().clear()
+    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
+    for code in codes {
+        if pressing_code_set.contains(&code) {
+            return true;
+        }
+    }
+    false
 }
 
 pub fn shift_press() -> bool {
@@ -71,4 +28,45 @@ pub fn ctrl_press() -> bool {
 }
 pub fn alt_press() -> bool {
     any_code_press([Code::AltLeft, Code::AltRight])
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn _on_key_down(code: u8) -> u64 {
+    let code = Code::try_from(code).unwrap_or_else(|_| panic!("invalid code {code}"));
+    record_key_down(code);
+
+    crate::on_event(RawEvent::KeyDown {
+        event: RawKeyboardEvent {
+            code,
+            pressing_codes: pressing_code_set(),
+        },
+    })
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn _on_key_up(code: u8) -> u64 {
+    let code = Code::try_from(code).unwrap_or_else(|_| panic!("invalid code {code}"));
+    record_key_up(code);
+
+    crate::on_event(RawEvent::KeyUp {
+        event: RawKeyboardEvent {
+            code,
+            pressing_codes: pressing_code_set(),
+        },
+    })
+}
+
+fn record_key_down(code: Code) {
+    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
+    pressing_code_set.insert(code);
+}
+
+fn record_key_up(code: Code) {
+    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
+    pressing_code_set.remove(&code);
+}
+
+fn pressing_code_set() -> HashSet<Code> {
+    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
+    pressing_code_set.iter().map(|code| *code).collect()
 }

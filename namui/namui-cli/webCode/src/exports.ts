@@ -1,11 +1,5 @@
 export type Exports = CommonExports & {
     _init_system: () => void;
-    _on_event: (
-        ptr: number,
-        len: number,
-        outPtrPtr: number,
-        outLenPtr: number,
-    ) => number;
     _on_mouse_down: (
         x: number,
         y: number,
@@ -29,6 +23,34 @@ export type Exports = CommonExports & {
         delta_y: number,
         x: number,
         y: number,
+    ) => bigint;
+    _on_key_down: (code: number) => bigint;
+    _on_key_up: (code: number) => bigint;
+    _on_blur: () => bigint;
+    _on_visibility_change: () => bigint;
+    _on_screen_resize: (width: number, height: number) => bigint;
+    _on_animation_frame: () => bigint;
+    _on_text_input: (
+        text_ptr: number,
+        text_len: number,
+        selection_direction: number,
+        selection_start: number,
+        selection_end: number,
+    ) => bigint;
+    _on_text_input_key_down: (
+        text_ptr: number,
+        text_len: number,
+        selection_direction: number,
+        selection_start: number,
+        selection_end: number,
+        code: number,
+    ) => bigint;
+    _on_text_input_selection_change: (
+        text_ptr: number,
+        text_len: number,
+        selection_direction: number,
+        selection_start: number,
+        selection_end: number,
     ) => bigint;
 };
 
