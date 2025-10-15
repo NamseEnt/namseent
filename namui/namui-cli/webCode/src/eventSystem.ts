@@ -94,6 +94,7 @@ export function startEventSystem({
             u32: (value: number) => void;
             f32: (value: number) => void;
         }) => void,
+        shouldRedraw: boolean = false,
     ) {
         const ptr = exports.malloc(packetSize);
         const renderingTreeOutPtrPtr = exports.malloc(4);
@@ -143,6 +144,10 @@ export function startEventSystem({
             ).getUint32(0, true);
 
             if (!renderingTreeLen) {
+                if (shouldRedraw) {
+                    drawerExports._redraw(mouseX, mouseY);
+                }
+
                 return;
             }
 
@@ -194,11 +199,15 @@ export function startEventSystem({
 
         drawerExports._on_window_resize(innerWidth, innerHeight);
 
-        sendEvent(5, (buffer) => {
-            buffer.u8(EVENT_TYPE.RESIZE);
-            buffer.u16(innerWidth);
-            buffer.u16(innerHeight);
-        });
+        sendEvent(
+            5,
+            (buffer) => {
+                buffer.u8(EVENT_TYPE.RESIZE);
+                buffer.u16(innerWidth);
+                buffer.u16(innerHeight);
+            },
+            true,
+        );
     });
 
     function onKeyEvent(type: "down" | "up", event: KeyboardEvent) {
@@ -231,19 +240,23 @@ export function startEventSystem({
         mouseX = event.clientX;
         mouseY = event.clientY;
 
-        sendEvent(7, (buffer) => {
-            buffer.u8(
-                type === "down"
-                    ? EVENT_TYPE.MOUSE_DOWN
-                    : type === "move"
-                    ? EVENT_TYPE.MOUSE_MOVE
-                    : EVENT_TYPE.MOUSE_UP,
-            );
-            buffer.u8(event.button);
-            buffer.u8(event.buttons);
-            buffer.u16(event.clientX);
-            buffer.u16(event.clientY);
-        });
+        sendEvent(
+            7,
+            (buffer) => {
+                buffer.u8(
+                    type === "down"
+                        ? EVENT_TYPE.MOUSE_DOWN
+                        : type === "move"
+                        ? EVENT_TYPE.MOUSE_MOVE
+                        : EVENT_TYPE.MOUSE_UP,
+                );
+                buffer.u8(event.button);
+                buffer.u8(event.buttons);
+                buffer.u16(event.clientX);
+                buffer.u16(event.clientY);
+            },
+            true,
+        );
     }
     document.addEventListener("mousedown", (e) => {
         onMouseEvent("down", e);

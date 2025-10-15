@@ -56,6 +56,10 @@ pub unsafe extern "C" fn _on_window_resize(window_width: usize, window_height: u
     });
 }
 
+thread_local! {
+    static RENDERING_TREE: RefCell<Option<RenderingTree>> = const { RefCell::new(None) };
+}
+
 #[unsafe(no_mangle)]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn _draw_rendering_tree(
@@ -68,25 +72,38 @@ pub unsafe extern "C" fn _draw_rendering_tree(
         unsafe { std::slice::from_raw_parts(rendering_tree_bytes_ptr, rendering_tree_bytes_len) };
     let (rendering_tree, _): (RenderingTree, usize) =
         bincode::decode_from_slice(slice, bincode::config::standard()).unwrap();
+    RENDERING_TREE.with(|rendering_tree_cell| {
+        *rendering_tree_cell.borrow_mut() = Some(rendering_tree);
+    });
+    unsafe { _redraw(mouse_x, mouse_y) };
+}
 
-    SKIA.with_borrow_mut(|skia_cell| {
-        let skia = skia_cell.as_mut().unwrap();
-        skia.surface().canvas().clear(Color::WHITE);
+#[unsafe(no_mangle)]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn _redraw(mouse_x: usize, mouse_y: usize) {
+    RENDERING_TREE.with_borrow_mut(|rendering_tree| {
+        let Some(rendering_tree) = rendering_tree else {
+            return;
+        };
+        SKIA.with_borrow_mut(|skia_cell| {
+            let skia = skia_cell.as_mut().unwrap();
+            skia.surface().canvas().clear(Color::WHITE);
 
-        let mouse_xy = Xy::new(px(mouse_x as f32), px(mouse_y as f32));
+            let mouse_xy = Xy::new(px(mouse_x as f32), px(mouse_y as f32));
 
-        let mouse_cursor = calculate_mouse_cursor(&rendering_tree, mouse_xy);
+            let mouse_cursor = calculate_mouse_cursor(rendering_tree, mouse_xy);
 
-        rendering_tree.draw(skia);
+            rendering_tree.clone().draw(skia);
 
-        draw_mouse_cursor(
-            skia,
-            mouse_xy,
-            mouse_cursor,
-            STANDARD_CURSOR_SPRITE_SET.get().unwrap(),
-        );
+            draw_mouse_cursor(
+                skia,
+                mouse_xy,
+                mouse_cursor,
+                STANDARD_CURSOR_SPRITE_SET.get().unwrap(),
+            );
 
-        skia.surface().flush();
+            skia.surface().flush();
+        });
     });
 }
 
