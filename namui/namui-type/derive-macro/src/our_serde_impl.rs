@@ -9,7 +9,7 @@ pub fn generate_struct_serialize(data: &syn::DataStruct) -> proc_macro2::TokenSt
                 let field_name = &f.ident;
                 let field_name_str = field_name.as_ref().unwrap().to_string();
                 quote! {
-                    buffer.write_name(#field_name_str);
+                    buffer.write_string(#field_name_str);
                     let field_bytes = Serialize::serialize(&self.#field_name);
                     buffer.put_slice(&field_bytes);
                 }
@@ -34,7 +34,7 @@ pub fn generate_struct_serialize(data: &syn::DataStruct) -> proc_macro2::TokenSt
         use bytes::BufMut;
         use BufMutExt;
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         #(#serialize_fields)*
         buffer
     }
@@ -101,27 +101,28 @@ pub fn generate_enum_serialize(data: &syn::DataEnum) -> proc_macro2::TokenStream
         let variant_name = &variant.ident;
         let variant_name_str = variant_name.to_string();
 
-        let (field_names, serialize_fields) = match &variant.fields {
+        match &variant.fields {
             syn::Fields::Named(fields) => {
-                let field_names: Vec<_> = fields
+                let field_names = fields
                     .named
                     .iter()
-                    .map(|f| f.ident.as_ref().unwrap().clone())
-                    .collect();
-                let serialize_fields = fields
-                    .named
-                    .iter()
-                    .map(|f| {
-                        let field_name = &f.ident;
-                        let field_name_str = field_name.as_ref().unwrap().to_string();
-                        quote! {
-                            buffer.write_name(#field_name_str);
-                            let field_bytes = Serialize::serialize(#field_name);
-                            buffer.put_slice(&field_bytes);
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                (field_names, serialize_fields)
+                    .map(|f| f.ident.as_ref().unwrap().clone());
+                let serialize_fields = fields.named.iter().map(|f| {
+                    let field_name = &f.ident;
+                    let field_name_str = field_name.as_ref().unwrap().to_string();
+                    quote! {
+                        buffer.write_string(#field_name_str);
+                        let field_bytes = Serialize::serialize(#field_name);
+                        buffer.put_slice(&field_bytes);
+                    }
+                });
+
+                quote! {
+                    Self::#variant_name { #(#field_names),* } => {
+                        buffer.write_string(#variant_name_str);
+                        #(#serialize_fields)*
+                    }
+                }
             }
             syn::Fields::Unnamed(fields) => {
                 let field_names: Vec<_> = (0..fields.unnamed.len())
@@ -136,16 +137,18 @@ pub fn generate_enum_serialize(data: &syn::DataEnum) -> proc_macro2::TokenStream
                         }
                     })
                     .collect::<Vec<_>>();
-                (field_names, serialize_fields)
+                quote! {
+                    Self::#variant_name ( #(#field_names),* ) => {
+                        buffer.write_string(#variant_name_str);
+                        #(#serialize_fields)*
+                    }
+                }
             }
-            syn::Fields::Unit => (vec![], vec![]),
-        };
-
-        quote! {
-            Self::#variant_name { #(#field_names),* } => {
-                buffer.write_name(#variant_name_str);
-                #(#serialize_fields)*
-            }
+            syn::Fields::Unit => quote! {
+                Self::#variant_name => {
+                    buffer.write_string(#variant_name_str);
+                }
+            },
         }
     });
 
@@ -153,7 +156,7 @@ pub fn generate_enum_serialize(data: &syn::DataEnum) -> proc_macro2::TokenStream
         use bytes::BufMut;
         use BufMutExt;
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         match self {
             #(#variants)*
         }
@@ -191,11 +194,7 @@ pub fn generate_enum_deserialize(data: &syn::DataEnum) -> proc_macro2::TokenStre
                     let field_name = format_ident!("field{}", i);
                     quote! {
                         let #field_name = {
-                            use bytes::Buf;
-                            let field_len = buf.get_u64() as usize;
-                            let field_bytes = &buf[..field_len];
-                            buf = &buf[field_len..];
-                            Deserialize::deserialize(field_bytes)?
+                            Deserialize::deserialize(buf)?
                         };
                     }
                 });
@@ -223,7 +222,7 @@ pub fn generate_enum_deserialize(data: &syn::DataEnum) -> proc_macro2::TokenStre
         use BufExt;
         use bytes::Buf;
         buf.read_name(std::any::type_name::<Self>())?;
-        let variant_name = buf.read_name_unknown();
+        let variant_name = buf.read_string();
         match variant_name.as_ref() {
             #(#variants,)*
             _ => Err(DeserializeError::InvalidEnumVariant {

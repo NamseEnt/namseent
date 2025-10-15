@@ -24,11 +24,11 @@ pub enum DeserializeError {
 }
 
 pub trait BufMutExt {
-    fn write_name(&mut self, name: &str);
+    fn write_string(&mut self, name: &str);
 }
 
 impl BufMutExt for Vec<u8> {
-    fn write_name(&mut self, name: &str) {
+    fn write_string(&mut self, name: &str) {
         self.put_u16(name.len() as u16);
         self.put_slice(name.as_bytes());
     }
@@ -36,7 +36,7 @@ impl BufMutExt for Vec<u8> {
 
 pub trait BufExt {
     fn read_name(&mut self, expected: &'static str) -> Result<String, DeserializeError>;
-    fn read_name_unknown(&mut self) -> String;
+    fn read_string(&mut self) -> String;
 }
 
 impl<T> BufExt for T
@@ -44,7 +44,7 @@ where
     T: Buf + ?Sized,
 {
     fn read_name(&mut self, expected: &'static str) -> Result<String, DeserializeError> {
-        let name = self.read_name_unknown();
+        let name = self.read_string();
         if name != expected {
             return Err(DeserializeError::InvalidName {
                 expected: expected.to_string(),
@@ -54,7 +54,7 @@ where
         Ok(name)
     }
 
-    fn read_name_unknown(&mut self) -> String {
+    fn read_string(&mut self) -> String {
         let name_len = self.get_u16();
         let name =
             std::string::String::from_utf8(self.chunk()[..name_len as usize].to_vec()).unwrap();
@@ -66,7 +66,7 @@ where
 impl Serialize for () {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer
     }
 }
@@ -81,7 +81,7 @@ impl Deserialize for () {
 impl Serialize for bool {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u8(*self as u8);
         buffer
     }
@@ -97,7 +97,7 @@ impl Deserialize for bool {
 impl Serialize for i8 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_i8(*self);
         buffer
     }
@@ -113,7 +113,7 @@ impl Deserialize for i8 {
 impl Serialize for i16 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_i16(*self);
         buffer
     }
@@ -129,7 +129,7 @@ impl Deserialize for i16 {
 impl Serialize for i32 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_i32(*self);
         buffer
     }
@@ -145,7 +145,7 @@ impl Deserialize for i32 {
 impl Serialize for i64 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_i64(*self);
         buffer
     }
@@ -161,7 +161,7 @@ impl Deserialize for i64 {
 impl Serialize for i128 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_i128(*self);
         buffer
     }
@@ -177,7 +177,7 @@ impl Deserialize for i128 {
 impl Serialize for isize {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_i64(*self as i64);
         buffer
     }
@@ -193,7 +193,7 @@ impl Deserialize for isize {
 impl Serialize for u8 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u8(*self);
         buffer
     }
@@ -209,7 +209,7 @@ impl Deserialize for u8 {
 impl Serialize for u16 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u16(*self);
         buffer
     }
@@ -225,7 +225,7 @@ impl Deserialize for u16 {
 impl Serialize for u32 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u32(*self);
         buffer
     }
@@ -241,7 +241,7 @@ impl Deserialize for u32 {
 impl Serialize for u64 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u64(*self);
         buffer
     }
@@ -257,7 +257,7 @@ impl Deserialize for u64 {
 impl Serialize for u128 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u128(*self);
         buffer
     }
@@ -273,7 +273,7 @@ impl Deserialize for u128 {
 impl Serialize for usize {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u64(*self as u64);
         buffer
     }
@@ -289,7 +289,7 @@ impl Deserialize for usize {
 impl Serialize for f32 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_f32(*self);
         buffer
     }
@@ -305,7 +305,7 @@ impl Deserialize for f32 {
 impl Serialize for f64 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_f64(*self);
         buffer
     }
@@ -321,7 +321,7 @@ impl Deserialize for f64 {
 impl Serialize for char {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u32(*self as u32);
         buffer
     }
@@ -338,7 +338,7 @@ impl Deserialize for char {
 impl Serialize for String {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u64(self.len() as u64);
         buffer.put_slice(self.as_bytes());
         buffer
@@ -357,7 +357,7 @@ impl Deserialize for String {
 impl<T: Serialize> Serialize for Vec<T> {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u64(self.len() as u64);
         for item in self {
             let item_bytes = item.serialize();
@@ -382,7 +382,7 @@ impl<T: Deserialize> Deserialize for Vec<T> {
 impl<T: Serialize, const N: usize> Serialize for [T; N] {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u64(N as u64);
         for item in self {
             let item_bytes = item.serialize();
@@ -414,7 +414,7 @@ impl<T: Deserialize, const N: usize> Deserialize for [T; N] {
 impl Serialize for std::time::Duration {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u64(self.as_nanos() as u64);
         buffer
     }
@@ -430,7 +430,7 @@ impl Deserialize for std::time::Duration {
 impl Serialize for std::time::SystemTime {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u64(self.elapsed().unwrap().as_nanos() as u64);
         buffer
     }
@@ -449,7 +449,7 @@ where
 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u8(self.is_some() as u8);
         if let Some(value) = self {
             let value_bytes = value.serialize();
@@ -480,7 +480,7 @@ where
 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u64(std::ptr::addr_of!(*self) as u64);
         buffer
     }
@@ -503,7 +503,7 @@ where
 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer.put_u64(self.len() as u64);
         for (key, value) in self {
             let key_bytes = key.serialize();
@@ -531,10 +531,45 @@ where
     }
 }
 
+impl<Key, Value> Serialize for std::collections::HashMap<Key, Value>
+where
+    Key: Serialize,
+    Value: Serialize,
+{
+    fn serialize(&self) -> Vec<u8> {
+        let mut buffer = vec![];
+        buffer.write_string(std::any::type_name::<Self>());
+        buffer.put_u64(self.len() as u64);
+        for (key, value) in self {
+            let key_bytes = key.serialize();
+            let value_bytes = value.serialize();
+            buffer.put_slice(&key_bytes);
+            buffer.put_slice(&value_bytes);
+        }
+        buffer
+    }
+}
+
+impl<Key, Value> Deserialize for std::collections::HashMap<Key, Value>
+where
+    Key: Deserialize + std::cmp::Eq + std::hash::Hash,
+    Value: Deserialize,
+{
+    fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+        buf.read_name(std::any::type_name::<Self>())?;
+        let len = buf.get_u64() as usize;
+        let mut result = std::collections::HashMap::new();
+        for _ in 0..len {
+            result.insert(Key::deserialize(buf)?, Value::deserialize(buf)?);
+        }
+        Ok(result)
+    }
+}
+
 impl<T> Serialize for std::marker::PhantomData<T> {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         buffer
     }
 }
@@ -552,7 +587,7 @@ where
 {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
-        buffer.write_name(std::any::type_name::<Self>());
+        buffer.write_string(std::any::type_name::<Self>());
         let value_bytes = self.borrow().serialize();
         buffer.put_slice(&value_bytes);
         buffer
@@ -566,5 +601,60 @@ where
     fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
         buf.read_name(std::any::type_name::<Self>())?;
         Ok(std::cell::RefCell::new(T::deserialize(buf)?))
+    }
+}
+
+impl<T> Serialize for std::sync::Arc<T>
+where
+    T: Serialize,
+{
+    fn serialize(&self) -> Vec<u8> {
+        let mut buffer = vec![];
+        buffer.write_string(std::any::type_name::<Self>());
+        let value_bytes = self.as_ref().serialize();
+        buffer.put_slice(&value_bytes);
+        buffer
+    }
+}
+
+impl<T> Deserialize for std::sync::Arc<T>
+where
+    T: Deserialize,
+{
+    fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+        buf.read_name(std::any::type_name::<Self>())?;
+        Ok(std::sync::Arc::new(T::deserialize(buf)?))
+    }
+}
+
+impl Serialize for std::sync::atomic::AtomicBool {
+    fn serialize(&self) -> Vec<u8> {
+        let mut buffer = vec![];
+        buffer.write_string(std::any::type_name::<Self>());
+        buffer.put_u8(self.load(std::sync::atomic::Ordering::Acquire) as u8);
+        buffer
+    }
+}
+
+impl Deserialize for std::sync::atomic::AtomicBool {
+    fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+        buf.read_name(std::any::type_name::<Self>())?;
+        Ok(std::sync::atomic::AtomicBool::new(buf.get_u8() != 0))
+    }
+}
+
+impl Serialize for std::path::PathBuf {
+    fn serialize(&self) -> Vec<u8> {
+        let mut buffer = vec![];
+        buffer.write_string(std::any::type_name::<Self>());
+        buffer.write_string(&self.as_os_str().to_string_lossy());
+        buffer
+    }
+}
+
+impl Deserialize for std::path::PathBuf {
+    fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+        buf.read_name(std::any::type_name::<Self>())?;
+        Ok(std::path::PathBuf::from(buf.read_string()))
     }
 }

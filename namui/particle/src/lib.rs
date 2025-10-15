@@ -79,7 +79,7 @@ where
             ..
         } = self;
         #[derive(State)]
-        struct State<E, P> {
+        struct State<E: namui_type::State, P: namui_type::State> {
             emitters: Vec<E>,
             particles: Vec<P>,
             last_now: Instant,
