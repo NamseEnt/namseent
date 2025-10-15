@@ -1,7 +1,7 @@
 use crate::system::InitResult;
 use crate::*;
-use std::sync::atomic::AtomicU32;
 use std::sync::OnceLock;
+use std::sync::atomic::AtomicU32;
 
 pub(crate) fn init() -> InitResult {
     let window_wh = unsafe { _initial_window_wh() };
@@ -72,33 +72,34 @@ thread_local! {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _on_event(ptr: *const u8, len: usize, out_ptr: *mut u8, out_len: *mut u8) {
-    let tokio_runtime = TOKIO_RUNTIME.get().unwrap();
-    let _guard = tokio_runtime.enter();
+    TOKIO_RUNTIME.with(|tokio_runtime| {
+        let _guard = tokio_runtime.enter();
 
-    let packet = unsafe { std::slice::from_raw_parts(ptr, len) };
-    let event_type: EventType = unsafe { std::mem::transmute(packet[0]) };
-    let event = parse_event(event_type, packet, on_resize);
+        let packet = unsafe { std::slice::from_raw_parts(ptr, len) };
+        let event_type: EventType = unsafe { std::mem::transmute(packet[0]) };
+        let event = parse_event(event_type, packet, on_resize);
 
-    LOOPER.with_borrow_mut(|looper_cell| {
-        let Some(rendering_tree) = looper_cell.as_mut().unwrap().tick(event) else {
-            unsafe { std::slice::from_raw_parts_mut(out_ptr, std::mem::size_of::<usize>()) }
-                .copy_from_slice(&(0_usize).to_le_bytes());
-            unsafe { std::slice::from_raw_parts_mut(out_len, std::mem::size_of::<usize>()) }
-                .copy_from_slice(&(0_usize).to_le_bytes());
-            return;
-        };
+        LOOPER.with_borrow_mut(|looper_cell| {
+            let Some(rendering_tree) = looper_cell.as_mut().unwrap().tick(event) else {
+                unsafe { std::slice::from_raw_parts_mut(out_ptr, std::mem::size_of::<usize>()) }
+                    .copy_from_slice(&(0_usize).to_le_bytes());
+                unsafe { std::slice::from_raw_parts_mut(out_len, std::mem::size_of::<usize>()) }
+                    .copy_from_slice(&(0_usize).to_le_bytes());
+                return;
+            };
 
-        RENDERING_TREE_BYTES.with_borrow_mut(|bytes| {
-            *bytes = bincode::encode_to_vec(rendering_tree, bincode::config::standard())
-                .unwrap()
-                .into_boxed_slice();
+            RENDERING_TREE_BYTES.with_borrow_mut(|bytes| {
+                *bytes = bincode::encode_to_vec(rendering_tree, bincode::config::standard())
+                    .unwrap()
+                    .into_boxed_slice();
 
-            let len = bytes.len();
-            unsafe { std::slice::from_raw_parts_mut(out_ptr, std::mem::size_of::<usize>()) }
-                .copy_from_slice(&(bytes.as_ptr() as usize).to_le_bytes());
-            unsafe { std::slice::from_raw_parts_mut(out_len, std::mem::size_of::<usize>()) }
-                .copy_from_slice(&(len).to_le_bytes());
-        });
+                let len = bytes.len();
+                unsafe { std::slice::from_raw_parts_mut(out_ptr, std::mem::size_of::<usize>()) }
+                    .copy_from_slice(&(bytes.as_ptr() as usize).to_le_bytes());
+                unsafe { std::slice::from_raw_parts_mut(out_len, std::mem::size_of::<usize>()) }
+                    .copy_from_slice(&(len).to_le_bytes());
+            })
+        })
     })
 }
 

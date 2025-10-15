@@ -1,12 +1,35 @@
+import { CommonExports } from "@/exports";
+import { startThread } from "@/thread/startThread";
 import { fontAsset } from "virtual:font-asset";
-import { CommonExports } from "./exports";
 
-export async function loadFonts(exports: CommonExports): Promise<void> {
+self.onmessage = async (event) => {
+    const { memory, module } = event.data as {
+        memory: WebAssembly.Memory;
+        module: WebAssembly.Module;
+    };
+
+    const instance = await startThread({
+        type: "font-load",
+        memory,
+        module,
+        initialWindowWh: 0,
+        nextTid: new SharedArrayBuffer(4),
+    });
+
+    const exports = instance.exports as CommonExports;
+
     await Promise.all(
         fontAsset.map(async ({ name, path }) => {
             try {
+                console.log("Start Font loading:", name);
                 const response = await fetch(path);
                 if (!response.ok) {
+                    console.log(
+                        "Failed to fetch font",
+                        name,
+                        path,
+                        response.statusText,
+                    );
                     throw new Error(
                         `Failed to fetch font ${name} from ${path}: ${response.statusText}`,
                     );
@@ -25,12 +48,14 @@ export async function loadFonts(exports: CommonExports): Promise<void> {
                     nameBytes,
                 );
 
+                console.log("ready to register font", name);
+
                 exports._register_font(namePtr, nameLen, fontPtr, len);
 
                 exports.free(fontPtr);
                 exports.free(namePtr);
 
-                console.log(`Font ${name} loaded successfully`);
+                console.log("Font loaded:", name);
             } catch (error) {
                 console.error(
                     "_on_window_resize" in exports ? "drawer" : "main",
@@ -41,4 +66,6 @@ export async function loadFonts(exports: CommonExports): Promise<void> {
             }
         }),
     );
-}
+
+    self.postMessage({});
+};

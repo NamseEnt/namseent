@@ -5,6 +5,7 @@ export type Exports = CommonExports & {
         outPtr: number,
         outLen: number,
     ) => void;
+    _init_system: () => void;
 };
 
 export type DrawerExports = CommonExports & {

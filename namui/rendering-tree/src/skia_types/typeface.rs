@@ -20,7 +20,7 @@ impl NativeTypeface {
     }
     pub fn load(name: impl AsRef<str>, bytes: &[u8]) -> anyhow::Result<()> {
         let skia_typeface = skia_safe::FontMgr::default()
-            .new_from_data2(bytes, None)
+            .new_from_data(bytes, None)
             .ok_or_else(|| anyhow::anyhow!("Failed to create a typeface from data."))?;
 
         typeface_map().insert(

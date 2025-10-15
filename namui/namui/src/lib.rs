@@ -6,8 +6,6 @@ mod render;
 pub mod system;
 pub mod utils;
 
-use std::sync::OnceLock;
-
 pub use self::random::*;
 pub use ::anyhow::{self, Result, anyhow, bail};
 pub use ::url::Url;
@@ -38,17 +36,22 @@ pub use tokio::task::{spawn, spawn_local};
 pub mod particle {
     pub use namui_particle::{Emitter, Particle, System};
 }
-
-static TOKIO_RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
-
+thread_local! {
+    static TOKIO_RUNTIME: tokio::runtime::Runtime = tokio_runtime().unwrap();
+}
 thread_local! {
     static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
 }
 
+#[unsafe(no_mangle)]
+extern "C" fn _init_system() {
+    system::init_system().unwrap();
+}
+
 pub fn start(root_component: RootComponent) {
     println!("start");
-    TOKIO_RUNTIME.set(tokio_runtime().unwrap());
-    system::init_system().unwrap();
+    // let _ = TOKIO_RUNTIME.set(tokio_runtime().unwrap());
+    // system::init_system().unwrap();
     LOOPER.set(Some(Looper::new(root_component)));
 
     // tokio_runtime.spawn(async move {

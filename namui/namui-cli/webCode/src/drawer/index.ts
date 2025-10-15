@@ -3,6 +3,7 @@ import drawerUrl from "namui-drawer.wasm?url";
 import { assetList } from "virtual:asset-list";
 import cursorMetadata from "../../../system_bundle/cursor/capitaine_24.txt?raw";
 import { DrawerExports } from "@/exports";
+import { loadFonts } from "@/font/loadFont";
 
 export async function readyDrawer(): Promise<{
     drawerExports: DrawerExports;
@@ -40,13 +41,27 @@ export async function readyDrawer(): Promise<{
     exports._init_skia(0, window.innerWidth, window.innerHeight);
     console.log(`_init_skia took: ${performance.now() - now}ms`);
 
-    now = performance.now();
-    await loadAssets({ memory, exports });
-    console.log(`loadAssets took: ${performance.now() - now}ms`);
+    await Promise.all([
+        (async () => {
+            now = performance.now();
+            await loadAssets({ memory, exports });
+            console.log(`loadAssets took: ${performance.now() - now}ms`);
 
-    now = performance.now();
-    initCursorSpriteSet({ memory, exports });
-    console.log(`initCursorSpriteSet took: ${performance.now() - now}ms`);
+            now = performance.now();
+            initCursorSpriteSet({ memory, exports });
+            console.log(
+                `initCursorSpriteSet took: ${performance.now() - now}ms`,
+            );
+        })(),
+        (async () => {
+            now = performance.now();
+            await loadFonts({
+                memory,
+                module,
+            });
+            console.log(`loadFonts took: ${performance.now() - now}ms`);
+        })(),
+    ]);
 
     return {
         drawerExports: exports,

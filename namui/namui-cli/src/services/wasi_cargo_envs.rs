@@ -111,7 +111,7 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                 "-Clink-arg=-Wl,--export=malloc".to_string(),
                 "-Clink-arg=-Wl,--export=free".to_string(),
                 match wasi_type {
-                    WasiType::App => ["_register_font", "_on_event"].iter(),
+                    WasiType::App => ["_register_font", "_on_event", "_init_system"].iter(),
                     WasiType::Drawer => [
                         "_register_font",
                         "_register_image",

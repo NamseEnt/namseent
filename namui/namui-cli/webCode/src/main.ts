@@ -19,7 +19,7 @@ import "./drawer";
 import { readyDrawer } from "./drawer";
 import { Exports } from "./exports";
 import { assetList } from "virtual:asset-list";
-import { loadFonts } from "./loadFont";
+import { loadFonts } from "@/font/loadFont";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -48,7 +48,11 @@ const imageInfoBytes = new Uint8Array(imageCount * imageInfoSize);
 const imageInfosPtr = drawerExports.malloc(imageInfoBytes.byteLength);
 drawerExports._image_infos(imageInfosPtr);
 imageInfoBytes.set(
-    new Uint8Array(memory.buffer, imageInfosPtr, imageInfoBytes.byteLength),
+    new Uint8Array(
+        drawerExports.memory.buffer,
+        imageInfosPtr,
+        imageInfoBytes.byteLength,
+    ),
 );
 drawerExports.free(imageInfosPtr);
 
@@ -62,11 +66,17 @@ const instance = await startThread({
     imageInfoBytes,
 });
 const exports = instance.exports as Exports;
-console.log("main exports", exports);
 
-const fontLoadStart = performance.now();
-await Promise.all([loadFonts(exports), loadFonts(drawerExports)]);
-console.log(`main loadFonts took: ${performance.now() - fontLoadStart}ms`);
+let now = performance.now();
+await loadFonts({
+    memory: exports.memory,
+    module,
+});
+console.log(`main loadFonts took: ${performance.now() - now}ms`);
+
+now = performance.now();
+exports._init_system();
+console.log(`main initSystem took: ${performance.now() - now}ms`);
 
 const { onTextInputEvent } = startEventSystem({
     exports,

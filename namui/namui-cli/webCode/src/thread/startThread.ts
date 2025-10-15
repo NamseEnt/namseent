@@ -37,6 +37,9 @@ export type ThreadStartSupplies = {
           tid: number;
           startArgPtr: number;
       }
+    | {
+          type: "font-load";
+      }
 );
 
 export async function startThread(supplies: ThreadStartSupplies) {
@@ -86,6 +89,8 @@ export async function startThread(supplies: ThreadStartSupplies) {
             break;
         case "drawer-sub":
             exports.wasi_thread_start(supplies.tid, supplies.startArgPtr);
+            break;
+        case "font-load":
             break;
     }
 
