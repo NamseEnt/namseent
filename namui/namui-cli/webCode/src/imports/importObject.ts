@@ -94,9 +94,11 @@ export function createImportObject({
                 switch (supplies.type) {
                     case "main":
                     case "sub":
-                        return supplies.imageCount;
                     case "drawer":
-                        return (exports() as DrawerExports)._image_count();
+                        return supplies.imageCount;
+                    case "drawer-sub":
+                    case "font-load":
+                        throw new Error(`unreachable on ${supplies.type}`);
                 }
             },
             _get_image_infos: (ptr: number) => {
@@ -110,6 +112,9 @@ export function createImportObject({
                         ).set(supplies.imageInfoBytes);
                     case "drawer":
                         return (exports() as DrawerExports)._image_infos(ptr);
+                    case "drawer-sub":
+                    case "font-load":
+                        throw new Error(`unreachable on ${supplies.type}`);
                 }
             },
         },

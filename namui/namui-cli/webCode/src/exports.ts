@@ -14,7 +14,6 @@ export type DrawerExports = CommonExports & {
         bufferPtr: number,
         bufferLen: number,
     ) => void;
-    _image_count: () => number;
     _image_infos: (ptr: number) => void;
     _register_font: (
         namePtr: number,

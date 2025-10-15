@@ -115,7 +115,6 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                     WasiType::Drawer => [
                         "_register_font",
                         "_register_image",
-                        "_image_count",
                         "_image_infos",
                         "_init_skia",
                         "_init_standard_cursor_sprite_set",

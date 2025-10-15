@@ -18,19 +18,20 @@ export type ThreadStartSupplies = {
 } & (
     | {
           type: "main";
-          imageCount: number;
           imageInfoBytes: Uint8Array;
+          imageCount: number;
       }
     | {
           type: "sub";
           startArgPtr: number;
           tid: number;
-          imageCount: number;
           imageInfoBytes: Uint8Array;
+          imageCount: number;
       }
     | {
           type: "drawer";
           canvas: HTMLCanvasElement;
+          imageCount: number;
       }
     | {
           type: "drawer-sub";

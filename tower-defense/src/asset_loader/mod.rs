@@ -15,15 +15,11 @@ use std::marker::PhantomData;
 use std::sync::OnceLock;
 use std::{collections::BTreeMap, fmt::Display};
 
-static BACKGROUND_ASSET_LOADER: OnceLock<AssetLoader<BackgroundKind>> = OnceLock::new();
 static FACE_CARD_ASSET_LOADER: OnceLock<AssetLoader<(Rank, Suit)>> = OnceLock::new();
 static ICON_ASSET_LOADER: OnceLock<AssetLoader<IconKind>> = OnceLock::new();
 static MONSTER_ASSET_LOADER: OnceLock<AssetLoader<MonsterKind>> = OnceLock::new();
 static TOWER_ASSET_LOADER: OnceLock<AssetLoader<(TowerKind, AnimationKind)>> = OnceLock::new();
 
-pub fn get_background_asset(key: BackgroundKind) -> Option<Image> {
-    BACKGROUND_ASSET_LOADER.get()?.get(key)
-}
 pub fn get_face_card_asset(key: (Rank, Suit)) -> Option<Image> {
     FACE_CARD_ASSET_LOADER.get()?.get(key)
 }
@@ -69,7 +65,6 @@ impl Display for Error {
 impl Component for LoadingScreen<'_> {
     fn render(self, ctx: &RenderCtx) {
         let (state, set_state) = ctx.state(|| State::Loading { progress: 1.0 });
-        println!("state: {:?}", state.as_ref());
 
         ctx.effect("complete on progress 1", || {
             if let State::Loading { progress } = state.as_ref()
@@ -187,16 +182,7 @@ impl Component for LoadingScreen<'_> {
 
 fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, Error)>> {
     let mut set = JoinSet::new();
-    load(
-        &mut set,
-        [
-            BackgroundKind::Tile0,
-            BackgroundKind::Tile1,
-            BackgroundKind::Tile2,
-            BackgroundKind::Tile3,
-        ],
-        &BACKGROUND_ASSET_LOADER,
-    );
+
     load(
         &mut set,
         [
@@ -348,11 +334,6 @@ fn start_load_assets() -> JoinSet<Result<(), (ResourceLocation, Error)>> {
     set
 }
 
-impl ToResourceLocation for BackgroundKind {
-    fn to_resource_location(self) -> ResourceLocation {
-        ResourceLocation::bundle(format!("asset/image/background/{}.jpg", self.asset_id()))
-    }
-}
 impl ToResourceLocation for (Rank, Suit) {
     fn to_resource_location(self) -> ResourceLocation {
         let (rank, suit) = self;

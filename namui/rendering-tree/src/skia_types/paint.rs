@@ -30,15 +30,10 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
         stroke_cap,
         stroke_join,
         stroke_miter,
-        #[cfg(feature = "drawer")]
         color_filter,
-        #[cfg(feature = "drawer")]
         blend_mode,
-        #[cfg(feature = "drawer")]
         ref shader,
-        #[cfg(feature = "drawer")]
         mask_filter,
-        #[cfg(feature = "drawer")]
         ref image_filter,
         ..
     } = paint;
@@ -61,29 +56,26 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
         skia_paint.set_stroke_miter(stroke_miter.as_f32());
     }
 
-    #[cfg(feature = "drawer")]
-    {
-        if let Some(color_filter) = color_filter {
-            let native_color_filter = NativeColorFilter::get(color_filter);
-            skia_paint.set_color_filter(Some(native_color_filter.skia().clone()));
-        }
-        if let Some(blend_mode) = blend_mode {
-            skia_paint.set_blend_mode(blend_mode.into());
-        }
-        if let Some(shader) = shader {
-            let native_shader = NativeShader::get(shader);
-            skia_paint.set_shader(Some(native_shader.skia().clone()));
-        }
-        if let Some(mask_filter) = mask_filter {
-            skia_paint.set_mask_filter(match mask_filter {
-                MaskFilter::Blur { blur_style, sigma } => {
-                    skia_safe::MaskFilter::blur(blur_style.into(), sigma, false)
-                }
-            });
-        }
-        if let Some(image_filter) = image_filter {
-            skia_paint.set_image_filter(Some(image_filter.as_ref().into()));
-        }
+    if let Some(color_filter) = color_filter {
+        let native_color_filter = NativeColorFilter::get(color_filter);
+        skia_paint.set_color_filter(Some(native_color_filter.skia().clone()));
+    }
+    if let Some(blend_mode) = blend_mode {
+        skia_paint.set_blend_mode(blend_mode.into());
+    }
+    if let Some(shader) = shader {
+        let native_shader = NativeShader::get(shader);
+        skia_paint.set_shader(Some(native_shader.skia().clone()));
+    }
+    if let Some(mask_filter) = mask_filter {
+        skia_paint.set_mask_filter(match mask_filter {
+            MaskFilter::Blur { blur_style, sigma } => {
+                skia_safe::MaskFilter::blur(blur_style.into(), sigma, false)
+            }
+        });
+    }
+    if let Some(image_filter) = image_filter {
+        skia_paint.set_image_filter(Some(image_filter.as_ref().into()));
     }
 
     skia_paint

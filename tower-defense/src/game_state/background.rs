@@ -1,4 +1,4 @@
-use crate::{MapCoordF32, asset_loader::get_background_asset};
+use crate::MapCoordF32;
 use namui::*;
 use namui_prebuilt::simple_rect;
 use rand::{Rng, thread_rng};
@@ -11,34 +11,31 @@ pub struct Background {
 }
 impl Component for &Background {
     fn render(self, ctx: &RenderCtx) {
-        let image = get_background_asset(self.kind);
+        let image = self.kind.image();
+        let image_wh = image.info().wh();
+        ctx.compose(|mut ctx| {
+            if self.flip_horizontally {
+                ctx = ctx
+                    .scale(Xy::new(-1.0, 1.0))
+                    .translate((-image_wh.width, 0.px()));
+            }
 
-        if let Some(image) = image {
-            let image_wh = image.info().wh();
-            ctx.compose(|mut ctx| {
-                if self.flip_horizontally {
-                    ctx = ctx
-                        .scale(Xy::new(-1.0, 1.0))
-                        .translate((-image_wh.width, 0.px()));
-                }
+            ctx.add(namui::image(ImageParam {
+                rect: Rect::from_xy_wh(Xy::zero(), image.info().wh()),
+                image,
+                style: ImageStyle {
+                    fit: ImageFit::None,
+                    paint: None,
+                },
+            }));
+        });
 
-                ctx.add(namui::image(ImageParam {
-                    rect: Rect::from_xy_wh(Xy::zero(), image.info().wh()),
-                    image,
-                    style: ImageStyle {
-                        fit: ImageFit::None,
-                        paint: None,
-                    },
-                }));
-            });
-
-            ctx.add(simple_rect(
-                image_wh,
-                Color::TRANSPARENT,
-                0.px(),
-                Color::TRANSPARENT,
-            ));
-        }
+        ctx.add(simple_rect(
+            image_wh,
+            Color::TRANSPARENT,
+            0.px(),
+            Color::TRANSPARENT,
+        ));
     }
 }
 
@@ -50,12 +47,12 @@ pub enum BackgroundKind {
     Tile3,
 }
 impl BackgroundKind {
-    pub fn asset_id(self) -> &'static str {
+    pub fn image(self) -> Image {
         match self {
-            BackgroundKind::Tile0 => "tile0",
-            BackgroundKind::Tile1 => "tile1",
-            BackgroundKind::Tile2 => "tile2",
-            BackgroundKind::Tile3 => "tile3",
+            BackgroundKind::Tile0 => crate::asset::image::background::TILE0,
+            BackgroundKind::Tile1 => crate::asset::image::background::TILE1,
+            BackgroundKind::Tile2 => crate::asset::image::background::TILE2,
+            BackgroundKind::Tile3 => crate::asset::image::background::TILE3,
         }
     }
 }

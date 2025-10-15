@@ -1,5 +1,4 @@
 mod draw;
-mod images;
 
 use draw::*;
 use namui_rendering_tree::*;

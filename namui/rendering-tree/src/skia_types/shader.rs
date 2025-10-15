@@ -14,7 +14,7 @@ impl NativeShader {
         NATIVE_SHADER_MAP.get_or_create(shader, |shader| match shader {
             Shader::Image { src, tile_mode } => NativeShader {
                 skia_shader: src
-                    .skia_image
+                    .skia_image()
                     .to_shader(
                         Some((tile_mode.x.into(), tile_mode.y.into())),
                         skia_safe::SamplingOptions::new(

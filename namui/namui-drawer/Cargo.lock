@@ -1106,6 +1106,7 @@ dependencies = [
  "anyhow",
  "auto_ops",
  "bincode",
+ "bytes",
  "chrono",
  "derivative",
  "derive-macro",

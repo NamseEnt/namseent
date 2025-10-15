@@ -3,6 +3,7 @@ mod color_filter;
 mod font;
 mod paint;
 mod path;
+mod shader;
 mod text_blob;
 mod typeface;
 // TODO
@@ -13,14 +14,6 @@ pub use color_filter::*;
 pub use font::*;
 pub use paint::*;
 pub use path::*;
+pub use shader::*;
 pub use text_blob::*;
 pub use typeface::*;
-
-#[cfg(feature = "drawer")]
-mod dawer_mods {
-    mod shader;
-
-    pub use shader::*;
-}
-#[cfg(feature = "drawer")]
-pub use dawer_mods::*;

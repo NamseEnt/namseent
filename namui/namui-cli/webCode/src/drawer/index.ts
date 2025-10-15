@@ -33,6 +33,7 @@ export async function readyDrawer(): Promise<{
         nextTid,
         initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
         canvas,
+        imageCount: assetList.length,
     });
     console.log("drawer instance initialized");
     const exports = instance.exports as DrawerExports;

@@ -41,7 +41,7 @@ const [{ drawerExports, canvas }, module] = await Promise.all([
     WebAssembly.compileStreaming(fetch(wasmUrl)),
 ]);
 
-const imageCount = drawerExports._image_count();
+const imageCount = assetList.length;
 const imageInfoSize = 14;
 const imageInfoBytes = new Uint8Array(imageCount * imageInfoSize);
 
@@ -54,6 +54,7 @@ imageInfoBytes.set(
         imageInfoBytes.byteLength,
     ),
 );
+console.log("imageInfoBytes", imageInfoBytes);
 drawerExports.free(imageInfosPtr);
 
 const instance = await startThread({

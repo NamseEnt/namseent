@@ -21,15 +21,8 @@ self.onmessage = async (event) => {
     await Promise.all(
         fontAsset.map(async ({ name, path }) => {
             try {
-                console.log("Start Font loading:", name);
                 const response = await fetch(path);
                 if (!response.ok) {
-                    console.log(
-                        "Failed to fetch font",
-                        name,
-                        path,
-                        response.statusText,
-                    );
                     throw new Error(
                         `Failed to fetch font ${name} from ${path}: ${response.statusText}`,
                     );
@@ -48,14 +41,10 @@ self.onmessage = async (event) => {
                     nameBytes,
                 );
 
-                console.log("ready to register font", name);
-
                 exports._register_font(namePtr, nameLen, fontPtr, len);
 
                 exports.free(fontPtr);
                 exports.free(namePtr);
-
-                console.log("Font loaded:", name);
             } catch (error) {
                 console.error(
                     "_on_window_resize" in exports ? "drawer" : "main",
