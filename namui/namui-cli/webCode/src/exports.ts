@@ -1,11 +1,35 @@
 export type Exports = CommonExports & {
+    _init_system: () => void;
     _on_event: (
         ptr: number,
         len: number,
-        outPtr: number,
-        outLen: number,
-    ) => void;
-    _init_system: () => void;
+        outPtrPtr: number,
+        outLenPtr: number,
+    ) => number;
+    _on_mouse_down: (
+        x: number,
+        y: number,
+        mouseEventButton: number,
+        mouseEventButtons: number,
+    ) => bigint;
+    _on_mouse_up: (
+        x: number,
+        y: number,
+        mouseEventButton: number,
+        mouseEventButtons: number,
+    ) => bigint;
+    _on_mouse_move: (
+        x: number,
+        y: number,
+        mouseEventButton: number,
+        mouseEventButtons: number,
+    ) => bigint;
+    _on_mouse_wheel: (
+        delta_x: number,
+        delta_y: number,
+        x: number,
+        y: number,
+    ) => bigint;
 };
 
 export type DrawerExports = CommonExports & {

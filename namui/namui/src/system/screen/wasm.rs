@@ -129,27 +129,10 @@ fn parse_event(event_type: EventType, packet: &[u8], on_resize: impl Fn(u16, u16
             func(code)
         }
         EventType::MouseDown | EventType::MouseMove | EventType::MouseUp => {
-            let button: u8 = packet[1];
-            let buttons: u8 = packet[2];
-            let x = u16::from_be_bytes(packet[3..5].try_into().expect("invalid x bytes"));
-            let y = u16::from_be_bytes(packet[5..7].try_into().expect("invalid y bytes"));
-
-            let func = match event_type {
-                EventType::MouseDown => crate::mouse::on_mouse_down,
-                EventType::MouseMove => crate::mouse::on_mouse_move,
-                EventType::MouseUp => crate::mouse::on_mouse_up,
-                _ => unreachable!(),
-            };
-
-            func(x, y, button, buttons)
+            todo!()
         }
         EventType::Wheel => {
-            let delta_x = f32::from_be_bytes(packet[1..5].try_into().expect("invalid x bytes"));
-            let delta_y = f32::from_be_bytes(packet[5..9].try_into().expect("invalid y bytes"));
-            let x = u16::from_be_bytes(packet[9..11].try_into().expect("invalid x bytes"));
-            let y = u16::from_be_bytes(packet[11..13].try_into().expect("invalid y bytes"));
-
-            crate::mouse::on_mouse_wheel(delta_x, delta_y, x, y)
+            todo!()
         }
         EventType::Blur => {
             crate::keyboard::on_blur();

@@ -27,42 +27,40 @@ impl KeyboardSystem {
     }
 }
 
-lazy_static::lazy_static! {
-    static ref KEYBOARD_SYSTEM: Arc<KeyboardSystem> = Arc::new(KeyboardSystem::new());
-}
-
 pub(super) fn init() -> InitResult {
-    lazy_static::initialize(&KEYBOARD_SYSTEM);
     Ok(())
 }
 
 pub fn any_code_press(codes: impl IntoIterator<Item = Code>) -> bool {
-    let pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.read().unwrap();
-    for code in codes {
-        if pressing_code_set.contains(&code) {
-            return true;
-        }
-    }
-    false
+    todo!()
+    // let pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.read().unwrap();
+    // for code in codes {
+    //     if pressing_code_set.contains(&code) {
+    //         return true;
+    //     }
+    // }
+    // false
 }
 
 fn record_key_down(code: Code) {
-    let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
-    pressing_code_set.insert(code);
+    todo!()
+    // let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
+    // pressing_code_set.insert(code);
 }
 
 fn record_key_up(code: Code) {
-    let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
-    pressing_code_set.remove(&code);
+    todo!()
+    // let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
+    // pressing_code_set.remove(&code);
 }
 
 fn pressing_code_set() -> HashSet<Code> {
-    KEYBOARD_SYSTEM.pressing_code_set.read().unwrap().clone()
+    todo!()
+    // KEYBOARD_SYSTEM.pressing_code_set.read().unwrap().clone()
 }
 
-#[cfg(target_os = "wasi")]
 fn clear_pressing_code_set() {
-    KEYBOARD_SYSTEM.pressing_code_set.write().unwrap().clear()
+    // KEYBOARD_SYSTEM.pressing_code_set.write().unwrap().clear()
 }
 
 pub fn shift_press() -> bool {

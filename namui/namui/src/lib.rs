@@ -10,10 +10,10 @@ pub use self::random::*;
 pub use ::anyhow::{self, Result, anyhow, bail};
 pub use ::url::Url;
 pub use auto_ops;
+use bytes::BufMut;
 pub use common::*;
 pub use futures::{StreamExt, future::join_all, future::try_join_all, join, try_join};
 pub use hooks::*;
-pub use lazy_static::lazy_static;
 pub use namui_asset_macro::register_assets;
 pub use namui_cfg::*;
 pub use namui_rendering_tree::*;
@@ -38,9 +38,8 @@ pub mod particle {
 }
 thread_local! {
     static TOKIO_RUNTIME: tokio::runtime::Runtime = tokio_runtime().unwrap();
-}
-thread_local! {
     static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
+    static RENDERING_TREE_BYTES: RefCell<Box<[u8]>> = Default::default();
 }
 
 #[unsafe(no_mangle)]
@@ -49,34 +48,33 @@ extern "C" fn _init_system() {
 }
 
 pub fn start(root_component: RootComponent) {
-    println!("start");
-    // let _ = TOKIO_RUNTIME.set(tokio_runtime().unwrap());
-    // system::init_system().unwrap();
     LOOPER.set(Some(Looper::new(root_component)));
+}
 
-    // tokio_runtime.spawn(async move {
-    //     system::init_system()
-    //         .await
-    //         .expect("Failed to initialize namui system");
+fn on_event(event: RawEvent) -> u64 {
+    let mut out_ptr = 0;
+    let mut out_len_ptr = 0;
+    TOKIO_RUNTIME.with(|tokio_runtime| {
+        let _guard = tokio_runtime.enter();
 
-    //     println!("Namui system initialized");
+        LOOPER.with_borrow_mut(|looper_cell| unsafe {
+            let Some(rendering_tree) = looper_cell.as_mut().unwrap().tick(event) else {
+                return;
+            };
 
-    //     #[cfg(target_os = "wasi")]
-    //     {
-    //         // crate::screen::run_event_hook_loop(component)
-    //     }
-    // });
+            RENDERING_TREE_BYTES.with_borrow_mut(|bytes| {
+                *bytes = bincode::encode_to_vec(rendering_tree, bincode::config::standard())
+                    .unwrap()
+                    .into_boxed_slice();
 
-    #[cfg(target_os = "wasi")]
-    {
-        // skia::on_skia_drawing_thread().unwrap();
-    }
-    // #[cfg(not(target_os = "wasi"))]
-    // {
-    //     tokio_runtime.block_on(async move {
-    //         screen::take_main_thread(component);
-    //     });
-    // }
+                let len = bytes.len();
+                out_ptr = bytes.as_ptr() as usize;
+                out_len_ptr = len;
+            })
+        })
+    });
+
+    (out_ptr as u64) << 32 | out_len_ptr as u64
 }
 
 fn tokio_runtime() -> Result<tokio::runtime::Runtime> {

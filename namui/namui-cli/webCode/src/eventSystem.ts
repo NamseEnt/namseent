@@ -183,6 +183,43 @@ export function startEventSystem({
         }
     }
 
+    function onEventHandlerReturn(out: bigint, shouldRedraw: boolean = false) {
+        const outPtr = Number(out >> 32n);
+        const outLen = Number(out & 0xffffffffn);
+
+        if (!outLen) {
+            if (shouldRedraw) {
+                drawerExports._redraw(mouseX, mouseY);
+            }
+
+            return;
+        }
+
+        const renderingTreePtrOnDrawer = drawerExports.malloc(outLen);
+        try {
+            const renderingTreeView = new Uint8Array(
+                memory.buffer,
+                outPtr,
+                outLen,
+            );
+            const renderingTreeViewOnDrawer = new Uint8Array(
+                drawerExports.memory.buffer,
+                renderingTreePtrOnDrawer,
+                outLen,
+            );
+            renderingTreeViewOnDrawer.set(renderingTreeView);
+
+            drawerExports._draw_rendering_tree(
+                renderingTreePtrOnDrawer,
+                outLen,
+                mouseX,
+                mouseY,
+            );
+        } finally {
+            drawerExports.free(renderingTreePtrOnDrawer);
+        }
+    }
+
     function onAnimationFrame() {
         sendEvent(1, (buffer) => {
             buffer.u8(EVENT_TYPE.ANIMATION_FRAME);
@@ -240,21 +277,14 @@ export function startEventSystem({
         mouseX = event.clientX;
         mouseY = event.clientY;
 
-        sendEvent(
-            7,
-            (buffer) => {
-                buffer.u8(
-                    type === "down"
-                        ? EVENT_TYPE.MOUSE_DOWN
-                        : type === "move"
-                        ? EVENT_TYPE.MOUSE_MOVE
-                        : EVENT_TYPE.MOUSE_UP,
-                );
-                buffer.u8(event.button);
-                buffer.u8(event.buttons);
-                buffer.u16(event.clientX);
-                buffer.u16(event.clientY);
-            },
+        const fn =
+            type === "down"
+                ? exports._on_mouse_down
+                : type === "move"
+                ? exports._on_mouse_move
+                : exports._on_mouse_up;
+        onEventHandlerReturn(
+            fn(event.clientX, event.clientY, event.button, event.buttons),
             true,
         );
     }
