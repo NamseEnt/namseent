@@ -20,6 +20,7 @@ pub trait Deserialize: Sized {
 
 pub enum DeserializeError {
     InvalidName { expected: String, actual: String },
+    InvalidEnumVariant { expected: String, actual: String },
 }
 
 pub trait BufMutExt {
@@ -35,6 +36,7 @@ impl BufMutExt for Vec<u8> {
 
 pub trait BufExt {
     fn read_name(&mut self, expected: &'static str) -> Result<String, DeserializeError>;
+    fn read_name_unknown(&mut self) -> String;
 }
 
 impl<T> BufExt for T
@@ -42,18 +44,22 @@ where
     T: Buf + ?Sized,
 {
     fn read_name(&mut self, expected: &'static str) -> Result<String, DeserializeError> {
-        let type_name_len = self.get_u16();
-        let type_name =
-            std::string::String::from_utf8(self.chunk()[..type_name_len as usize].to_vec())
-                .unwrap();
-        self.advance(type_name_len as usize);
-        if type_name != expected {
+        let name = self.read_name_unknown();
+        if name != expected {
             return Err(DeserializeError::InvalidName {
                 expected: expected.to_string(),
-                actual: type_name.to_string(),
+                actual: name.to_string(),
             });
         }
-        Ok(type_name)
+        Ok(name)
+    }
+
+    fn read_name_unknown(&mut self) -> String {
+        let name_len = self.get_u16();
+        let name =
+            std::string::String::from_utf8(self.chunk()[..name_len as usize].to_vec()).unwrap();
+        self.advance(name_len as usize);
+        name
     }
 }
 
