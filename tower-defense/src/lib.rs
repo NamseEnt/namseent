@@ -1,4 +1,3 @@
-mod asset_loader;
 mod card;
 mod contracts;
 mod flow_ui;
@@ -23,7 +22,6 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     theme::button::{Button, ButtonVariant},
 };
-use asset_loader::LoadingScreen;
 use contracts::Contracts;
 use game_speed_indicator::GameSpeedIndicator;
 use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
@@ -53,18 +51,6 @@ impl Component for Game {
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = game_state::init_game_state(ctx);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
-
-        if matches!(&game_state.flow, GameFlow::Initializing) {
-            ctx.add(LoadingScreen {
-                screen_wh,
-                on_complete: &|| {
-                    mutate_game_state(|game_state| {
-                        game_state.goto_next_stage();
-                    });
-                },
-            });
-            return;
-        }
 
         ctx.compose(|ctx| {
             let Some(modal) = game_state.opened_modal.as_ref() else {

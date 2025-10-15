@@ -1,9 +1,7 @@
 use super::*;
 use crate::{
-    asset_loader::get_face_card_asset,
-    card::{Card, Rank},
+    card::{Card, FaceCardImage, Rank},
     icon::{Icon, IconKind, IconSize},
-    theme::typography::{FontSize, TextAlign, headline},
 };
 use namui::*;
 
@@ -16,14 +14,11 @@ impl Component for RenderCard<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, card } = self;
 
-        // 좌상단에 숫자와 문양 수직 배치
         render_top_left_rank_and_suit(ctx, card.rank, card.suit);
 
-        // 중앙에 알맞은 수의 문양 배치 (숫자 카드만)
         if !card.rank.is_face() {
             self.render_center_suits(ctx, wh, card);
         } else {
-            // JQK 그림카드 이미지 렌더링
             self.render_face_card(ctx, wh, card);
         }
 
@@ -61,32 +56,15 @@ impl<'a> RenderCard<'a> {
             height: wh.height - px(24.0),
         };
 
-        if let Some(face_image) = get_face_card_asset((card.rank, card.suit)) {
-            ctx.add(image(ImageParam {
-                image: face_image.clone(),
-                rect: center_area,
-                style: ImageStyle {
-                    fit: ImageFit::Contain,
-                    paint: None,
-                },
-            }));
-            return;
-        }
-
-        // fallback: asset loader가 없거나 이미지가 없는 경우 기존 텍스트 표시
-        ctx.translate(Xy::new(
-            center_area.width() / 2.0,
-            center_area.height() / 2.0,
-        ))
-        .add(
-            headline("TODO\nFace Card".to_string())
-                .size(FontSize::Small)
-                .color(Color::BLACK)
-                .align(TextAlign::Center {
-                    wh: Wh::new(center_area.width(), center_area.height()),
-                })
-                .build(),
-        );
+        let face_image = (card.rank, card.suit).image();
+        ctx.add(image(ImageParam {
+            image: face_image,
+            rect: center_area,
+            style: ImageStyle {
+                fit: ImageFit::Contain,
+                paint: None,
+            },
+        }));
     }
 
     fn get_suit_positions_for_rank(&self, rank: Rank, center_area: Rect<Px>) -> Vec<Xy<Px>> {
@@ -147,12 +125,8 @@ impl<'a> RenderCard<'a> {
                 Xy::new(left_x, y8),
                 Xy::new(right_x, y8),
             ],
-            Rank::Ace => vec![
-                // 중앙 1개만
-                Xy::new(center_x, y4),
-            ],
+            Rank::Ace => vec![Xy::new(center_x, y4)],
             Rank::Jack | Rank::Queen | Rank::King => {
-                // 이 경우는 발생하지 않아야 함 (is_face()로 이미 필터링됨)
                 vec![]
             }
         }

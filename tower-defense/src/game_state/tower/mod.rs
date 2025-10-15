@@ -1,4 +1,4 @@
-mod render;
+pub mod render;
 mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
@@ -206,21 +206,6 @@ pub enum TowerKind {
 }
 
 impl TowerKind {
-    pub fn asset_id(&self) -> &'static str {
-        match self {
-            TowerKind::Barricade => "barricade",
-            TowerKind::High => "high",
-            TowerKind::OnePair => "one_pair",
-            TowerKind::TwoPair => "two_pair",
-            TowerKind::ThreeOfAKind => "three_of_a_kind",
-            TowerKind::Straight => "straight",
-            TowerKind::Flush => "flush",
-            TowerKind::FullHouse => "full_house",
-            TowerKind::FourOfAKind => "four_of_a_kind",
-            TowerKind::StraightFlush => "straight_flush",
-            TowerKind::RoyalFlush => "royal_flush",
-        }
-    }
     pub fn shoot_interval(&self) -> Duration {
         match self {
             Self::Barricade => 1.sec(),

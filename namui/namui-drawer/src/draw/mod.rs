@@ -164,7 +164,7 @@ pub fn draw_mouse_cursor(
                 );
                 ImageDrawCommand {
                     rect: Rect::from_xy_wh(-offset_xy - hotspot_xy, sprite_set.sheet.info().wh()),
-                    image: sprite_set.sheet.clone(),
+                    image: sprite_set.sheet,
                     fit: ImageFit::None,
                     paint: None,
                 }

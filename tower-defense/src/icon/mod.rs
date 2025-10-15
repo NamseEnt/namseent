@@ -38,6 +38,50 @@ pub enum IconKind {
     Rarity { rarity: Rarity },
 }
 impl IconKind {
+    pub fn image(self) -> Image {
+        match self {
+            IconKind::Accept => crate::asset::image::icon::ACCEPT,
+            IconKind::AttackDamage => crate::asset::image::icon::ATTACK_DAMAGE,
+            IconKind::AttackRange => crate::asset::image::icon::ATTACK_RANGE,
+            IconKind::AttackSpeed => crate::asset::image::icon::ATTACK_SPEED,
+            IconKind::Config => crate::asset::image::icon::CONFIG,
+            IconKind::EnemyBoss => crate::asset::image::icon::ENEMY_BOSS,
+            IconKind::EnemyNamed => crate::asset::image::icon::ENEMY_NAMED,
+            IconKind::EnemyNormal => crate::asset::image::icon::ENEMY_NORMAL,
+            IconKind::Gold => crate::asset::image::icon::GOLD,
+            IconKind::Health => crate::asset::image::icon::HEALTH,
+            IconKind::Invincible => crate::asset::image::icon::INVINCIBLE,
+            IconKind::Item => crate::asset::image::icon::ITEM,
+            IconKind::Level => crate::asset::image::icon::LEVEL,
+            IconKind::Lock => crate::asset::image::icon::LOCK,
+            IconKind::MoveSpeed => crate::asset::image::icon::MOVE_SPEED,
+            IconKind::Quest => crate::asset::image::icon::QUEST,
+            IconKind::Refresh => crate::asset::image::icon::REFRESH,
+            IconKind::Reject => crate::asset::image::icon::REJECT,
+            IconKind::Shield => crate::asset::image::icon::SHIELD,
+            IconKind::Shop => crate::asset::image::icon::SHOP,
+            IconKind::Speaker => crate::asset::image::icon::SPEAKER,
+            IconKind::Suit { suit } => match suit {
+                Suit::Spades => crate::asset::image::icon::SUIT_SPADES,
+                Suit::Hearts => crate::asset::image::icon::SUIT_HEARTS,
+                Suit::Diamonds => crate::asset::image::icon::SUIT_DIAMONDS,
+                Suit::Clubs => crate::asset::image::icon::SUIT_CLUBS,
+            },
+            IconKind::Up => crate::asset::image::icon::UP,
+            IconKind::Down => crate::asset::image::icon::DOWN,
+            IconKind::Card => crate::asset::image::icon::CARD,
+            IconKind::New => crate::asset::image::icon::NEW,
+            IconKind::Add => crate::asset::image::icon::ADD,
+            IconKind::Multiply => crate::asset::image::icon::MULTIPLY,
+            IconKind::Rarity { rarity } => match rarity {
+                Rarity::Common => crate::asset::image::icon::RARITY_COMMON,
+                Rarity::Rare => crate::asset::image::icon::RARITY_RARE,
+                Rarity::Epic => crate::asset::image::icon::RARITY_EPIC,
+                Rarity::Legendary => crate::asset::image::icon::RARITY_LEGENDARY,
+            },
+        }
+    }
+
     pub fn asset_id(&self) -> &'static str {
         match self {
             IconKind::Accept => "accept",

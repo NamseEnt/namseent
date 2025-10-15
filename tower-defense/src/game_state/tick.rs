@@ -24,8 +24,6 @@ impl Component for Ticker {
 }
 
 fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
-    check_game_initialized(game_state);
-
     game_state.flow.update();
     flow::contract::update_contract_flow(game_state);
 
@@ -204,12 +202,4 @@ fn check_defense_end(game_state: &mut GameState) {
     } else {
         game_state.goto_next_stage();
     }
-}
-
-fn check_game_initialized(game_state: &mut GameState) {
-    if !matches!(game_state.flow, GameFlow::Initializing) {
-        return;
-    }
-
-    game_state.goto_next_stage();
 }

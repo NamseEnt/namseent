@@ -78,7 +78,7 @@ pub fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
     let texture_paint = Paint::new(Color::WHITE)
         .set_style(PaintStyle::Fill)
         .set_shader(Shader::Image {
-            src: asset::image::route::ROUTE_1.clone(),
+            src: asset::image::route::ROUTE_1,
             tile_mode: Xy::single(TileMode::Repeat),
         });
 

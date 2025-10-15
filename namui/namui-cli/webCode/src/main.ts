@@ -54,7 +54,6 @@ imageInfoBytes.set(
         imageInfoBytes.byteLength,
     ),
 );
-console.log("imageInfoBytes", imageInfoBytes);
 drawerExports.free(imageInfosPtr);
 
 const instance = await startThread({

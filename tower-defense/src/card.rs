@@ -125,4 +125,32 @@ impl Card {
         };
         Self { suit, rank }
     }
+    pub fn face_image(&self) -> Image {
+        (self.rank, self.suit).image()
+    }
+}
+
+pub trait FaceCardImage {
+    fn image(self) -> Image;
+}
+
+impl FaceCardImage for (Rank, Suit) {
+    fn image(self) -> Image {
+        let (rank, suit) = self;
+        match (rank, suit) {
+            (Rank::Jack, Suit::Spades) => crate::asset::image::face::spades::JACK,
+            (Rank::Jack, Suit::Hearts) => crate::asset::image::face::hearts::JACK,
+            (Rank::Jack, Suit::Diamonds) => crate::asset::image::face::diamonds::JACK,
+            (Rank::Jack, Suit::Clubs) => crate::asset::image::face::clubs::JACK,
+            (Rank::Queen, Suit::Spades) => crate::asset::image::face::spades::QUEEN,
+            (Rank::Queen, Suit::Hearts) => crate::asset::image::face::hearts::QUEEN,
+            (Rank::Queen, Suit::Diamonds) => crate::asset::image::face::diamonds::QUEEN,
+            (Rank::Queen, Suit::Clubs) => crate::asset::image::face::clubs::QUEEN,
+            (Rank::King, Suit::Spades) => crate::asset::image::face::spades::KING,
+            (Rank::King, Suit::Hearts) => crate::asset::image::face::hearts::KING,
+            (Rank::King, Suit::Diamonds) => crate::asset::image::face::diamonds::KING,
+            (Rank::King, Suit::Clubs) => crate::asset::image::face::clubs::KING,
+            _ => panic!("Not a face card: {:?} {:?}", rank, suit),
+        }
+    }
 }
