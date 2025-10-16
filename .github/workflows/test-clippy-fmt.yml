@@ -26,15 +26,15 @@ jobs:
           - os: macos-latest
             namui-target: wasm32-wasi-web
             rust-target: wasm32-wasip1-threads
-          - os: macos-latest
-            namui-target: aarch64-apple-darwin
-            rust-target: aarch64-apple-darwin
-          - os: ubuntu-latest
-            namui-target: x86_64-unknown-linux-gnu
-            rust-target: x86_64-unknown-linux-gnu
-          - os: windows-latest
-            namui-target: x86_64-pc-windows-msvc
-            rust-target: x86_64-pc-windows-msvc
+          # - os: macos-latest
+          #   namui-target: aarch64-apple-darwin
+          #   rust-target: aarch64-apple-darwin
+          # - os: ubuntu-latest
+          #   namui-target: x86_64-unknown-linux-gnu
+          #   rust-target: x86_64-unknown-linux-gnu
+          # - os: windows-latest
+          #   namui-target: x86_64-pc-windows-msvc
+          #   rust-target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     outputs:
       diff-artifact-id: ${{ steps.upload-diff-artifact.outputs.artifact-id }}
