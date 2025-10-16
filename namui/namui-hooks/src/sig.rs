@@ -71,19 +71,8 @@ impl<T: ?Sized> AsRef<T> for Sig<'_, T> {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub(crate) enum SigId {
-    State {
-        instance_id: InstanceId,
-        index: usize,
-    },
-    Memo {
-        instance_id: InstanceId,
-        index: usize,
-    },
-    TrackEq {
-        instance_id: InstanceId,
-        index: usize,
-    },
-    Atom {
-        index: usize,
-    },
+    State { instance_id: usize, index: usize },
+    Memo { instance_id: usize, index: usize },
+    TrackEq { instance_id: usize, index: usize },
+    Atom { index: usize },
 }

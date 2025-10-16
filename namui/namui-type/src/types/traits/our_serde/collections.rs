@@ -1,4 +1,5 @@
 use super::*;
+
 impl<T: Serialize> Serialize for Vec<T> {
     fn serialize(&self) -> Vec<u8> {
         let mut buffer = vec![];
@@ -222,7 +223,6 @@ impl Deserialize for () {
     }
 }
 
-// Tuple implementations for 1 to 8 elements using macros
 macro_rules! impl_tuple_serialize {
     ($($T:ident),* ; $($idx:tt),*) => {
         impl<$($T: Serialize),*> Serialize for ($($T,)*) {
@@ -247,7 +247,6 @@ macro_rules! impl_tuple_deserialize {
     };
 }
 
-// Generate implementations for tuples of size 1 to 8
 impl_tuple_serialize!(T0; 0);
 impl_tuple_deserialize!(T0; 0);
 

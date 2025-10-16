@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 /// For Compose
 pub(crate) struct Composer {
     pub(crate) compose_id_map: FrozenIndexMap<ChildKey, Box<ComposerId>>,
-    pub(crate) instance_id_map: FrozenIndexMap<ChildKey, Box<InstanceId>>,
+    pub(crate) instance_id_map: FrozenIndexMap<ChildKey, Box<usize>>,
     rendered_flag: AtomicBool,
     next_component_index: AtomicUsize,
     next_compose_index: AtomicUsize,

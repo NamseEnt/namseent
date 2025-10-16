@@ -16,6 +16,7 @@ impl World {
             atom_index: Default::default(),
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
+            next_instance_id: Default::default(),
         }
     }
 
@@ -48,12 +49,14 @@ impl World {
                 .insert(ComposerId::root(), Composer::new().into()),
         };
 
-        let root_instance = match self.instances.get(&InstanceId::root()) {
+        let root_instance = match self.instances.get(&0) {
             Some(instance) => instance,
-            None => self.instances.insert(
-                InstanceId::root(),
-                Box::new(Instance::new(InstanceId::root())),
-            ),
+            None => {
+                let instance_id = self.next_instance_id();
+                assert_eq!(instance_id, 0);
+                self.instances
+                    .insert(instance_id, Box::new(Instance::new(instance_id)))
+            }
         };
 
         self.raw_event = event;

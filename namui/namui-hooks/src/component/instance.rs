@@ -6,7 +6,7 @@ use std::{
 
 /// the state of component.
 pub(crate) struct Instance {
-    pub(crate) id: InstanceId,
+    pub(crate) id: usize,
     rendered_flag: AtomicBool,
     pub(crate) state_list: UnsafeCell<Vec<Box<dyn Value>>>,
     pub(crate) memo_list: UnsafeCell<Vec<Memo>>,
@@ -17,7 +17,7 @@ pub(crate) struct Instance {
     pub(crate) abort_handle_list: RefCell<Vec<tokio::task::AbortHandle>>,
 }
 impl Instance {
-    pub(crate) fn new(id: InstanceId) -> Self {
+    pub(crate) fn new(id: usize) -> Self {
         Self {
             id,
             rendered_flag: Default::default(),
@@ -39,6 +39,38 @@ impl Instance {
     pub(crate) fn take_rendered_flag(&mut self) -> bool {
         self.rendered_flag
             .swap(false, std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub(crate) fn freeze(mut self) -> Vec<u8> {
+        use bytes::BufMut;
+        let mut bytes = Vec::new();
+        bytes.put_slice(&self.id.to_le_bytes());
+
+        let state_list = std::mem::take(&mut self.state_list).into_inner();
+        bytes.put_u16(state_list.len() as u16);
+        for state in state_list {
+            bytes.put_slice(&state.serialize());
+        }
+
+        let memo_list = std::mem::take(&mut self.memo_list).into_inner();
+        bytes.put_u16(memo_list.len() as u16);
+        for memo in memo_list {
+            bytes.put_slice(&memo.serialize());
+        }
+
+        let track_eq_list = std::mem::take(&mut self.track_eq_list).into_inner();
+        bytes.put_u16(track_eq_list.len() as u16);
+        for track_eq in track_eq_list {
+            bytes.put_slice(&track_eq.serialize());
+        }
+
+        let track_eq_tuple_list = std::mem::take(&mut self.track_eq_tuple_list).into_inner();
+        bytes.put_u16(track_eq_tuple_list.len() as u16);
+        for track_eq_tuple in track_eq_tuple_list {
+            bytes.put_slice(&track_eq_tuple.serialize());
+        }
+
+        bytes
     }
 }
 

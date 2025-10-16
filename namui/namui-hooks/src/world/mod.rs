@@ -10,7 +10,7 @@ use std::sync::{
 
 pub struct World {
     composers: FrozenIndexMap<ComposerId, Box<Composer>>,
-    instances: FrozenIndexMap<InstanceId, Box<Instance>>,
+    instances: FrozenIndexMap<usize, Box<Instance>>,
     set_state_rx: mpsc::Receiver<SetStateItem>,
     pub(crate) set_state_tx: &'static mpsc::Sender<SetStateItem>,
     updated_sig_ids: FrozenIndexSet<Box<SigId>>,
@@ -20,6 +20,7 @@ pub struct World {
     pub(crate) atom_index: AtomicUsize,
     pub(crate) raw_event: Option<RawEvent>,
     pub(crate) is_stop_event_propagation: AtomicBool,
+    next_instance_id: AtomicUsize,
 }
 
 impl World {
@@ -63,7 +64,7 @@ impl World {
         match parent_composer.instance_id_map.get(child_key) {
             Some(child_instance_id) => self.instances.get(child_instance_id).unwrap(),
             None => {
-                let child_instance_id = InstanceId::generate();
+                let child_instance_id = self.next_instance_id();
 
                 parent_composer
                     .instance_id_map
@@ -328,5 +329,10 @@ impl World {
     pub(crate) fn is_stop_event_propagation(&self) -> bool {
         self.is_stop_event_propagation
             .load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    fn next_instance_id(&self) -> usize {
+        self.next_instance_id
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 }

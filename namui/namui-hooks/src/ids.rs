@@ -15,22 +15,3 @@ impl ComposerId {
         }
     }
 }
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
-#[repr(transparent)]
-pub(crate) struct InstanceId {
-    id: usize,
-}
-
-impl InstanceId {
-    pub(crate) fn root() -> InstanceId {
-        InstanceId { id: 0 }
-    }
-    pub(crate) fn generate() -> InstanceId {
-        static ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
-
-        InstanceId {
-            id: ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
-        }
-    }
-}
