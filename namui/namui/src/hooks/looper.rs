@@ -6,7 +6,7 @@ use namui_type::*;
 pub(crate) type RootComponent = fn(&RenderCtx);
 
 pub(crate) struct Looper {
-    world: World,
+    pub(crate) world: World,
     one_sec_timer: std::time::Instant,
     one_sec_render_count: i32,
     render_time_sum: Duration,

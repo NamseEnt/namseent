@@ -73,17 +73,20 @@ export type OnTextInputEvent = (
 
 export function startEventSystem({
     exports,
-    drawerExports,
-    canvas,
+    drawer,
 }: {
     exports: Exports;
-    drawerExports: DrawerExports;
-    canvas: HTMLCanvasElement;
+    drawer: {
+        exports: DrawerExports;
+        canvas: HTMLCanvasElement;
+    };
 }): {
     onTextInputEvent: OnTextInputEvent;
+    terminate: () => void;
 } {
     let mouseX = 0;
     let mouseY = 0;
+    let animationFrameId: number | null = null;
 
     const memory = exports.memory;
 
@@ -93,13 +96,13 @@ export function startEventSystem({
 
         if (!outLen) {
             if (shouldRedraw) {
-                drawerExports._redraw(mouseX, mouseY);
+                drawer.exports._redraw(mouseX, mouseY);
             }
 
             return;
         }
 
-        const renderingTreePtrOnDrawer = drawerExports.malloc(outLen);
+        const renderingTreePtrOnDrawer = drawer.exports.malloc(outLen);
         try {
             const renderingTreeView = new Uint8Array(
                 memory.buffer,
@@ -107,42 +110,43 @@ export function startEventSystem({
                 outLen,
             );
             const renderingTreeViewOnDrawer = new Uint8Array(
-                drawerExports.memory.buffer,
+                drawer.exports.memory.buffer,
                 renderingTreePtrOnDrawer,
                 outLen,
             );
             renderingTreeViewOnDrawer.set(renderingTreeView);
 
-            drawerExports._draw_rendering_tree(
+            drawer.exports._draw_rendering_tree(
                 renderingTreePtrOnDrawer,
                 outLen,
                 mouseX,
                 mouseY,
             );
         } finally {
-            drawerExports.free(renderingTreePtrOnDrawer);
+            drawer.exports.free(renderingTreePtrOnDrawer);
         }
     }
 
     function onAnimationFrame() {
         onEventHandlerReturn(exports._on_animation_frame());
 
-        requestAnimationFrame(onAnimationFrame);
+        animationFrameId = requestAnimationFrame(onAnimationFrame);
     }
-    requestAnimationFrame(onAnimationFrame);
+    animationFrameId = requestAnimationFrame(onAnimationFrame);
 
-    window.addEventListener("resize", () => {
+    function onResize() {
         const { innerHeight, innerWidth } = window;
-        canvas.width = innerWidth;
-        canvas.height = innerHeight;
+        drawer.canvas.width = innerWidth;
+        drawer.canvas.height = innerHeight;
 
-        drawerExports._on_window_resize(innerWidth, innerHeight);
+        drawer.exports._on_window_resize(innerWidth, innerHeight);
 
         onEventHandlerReturn(
             exports._on_screen_resize(innerWidth, innerHeight),
             true,
         );
-    });
+    }
+    window.addEventListener("resize", onResize);
 
     function onKeyEvent(type: "down" | "up", event: KeyboardEvent) {
         const code = CODES[event.code as keyof typeof CODES];
@@ -154,16 +158,17 @@ export function startEventSystem({
             event.preventDefault();
         }
 
-        const fn =
-            type === "down" ? exports._on_key_down : exports._on_key_up;
+        const fn = type === "down" ? exports._on_key_down : exports._on_key_up;
         onEventHandlerReturn(fn(code));
     }
-    document.addEventListener("keydown", (e) => {
-        onKeyEvent("down", e);
-    });
-    document.addEventListener("keyup", (e) => {
-        onKeyEvent("up", e);
-    });
+    function onKeyDown(event: KeyboardEvent) {
+        onKeyEvent("down", event);
+    }
+    function onKeyUp(event: KeyboardEvent) {
+        onKeyEvent("up", event);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keyup", onKeyUp);
 
     function onMouseEvent(type: "down" | "move" | "up", event: MouseEvent) {
         event.preventDefault();
@@ -182,17 +187,20 @@ export function startEventSystem({
             true,
         );
     }
-    document.addEventListener("mousedown", (e) => {
-        onMouseEvent("down", e);
-    });
-    document.addEventListener("mousemove", (e) => {
-        onMouseEvent("move", e);
-    });
-    document.addEventListener("mouseup", (e) => {
-        onMouseEvent("up", e);
-    });
+    function onMouseDown(event: MouseEvent) {
+        onMouseEvent("down", event);
+    }
+    function onMouseMove(event: MouseEvent) {
+        onMouseEvent("move", event);
+    }
+    function onMouseUp(event: MouseEvent) {
+        onMouseEvent("up", event);
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
 
-    document.addEventListener("wheel", (event) => {
+    function onWheel(event: WheelEvent) {
         onEventHandlerReturn(
             exports._on_mouse_wheel(
                 event.deltaX,
@@ -201,15 +209,18 @@ export function startEventSystem({
                 event.clientY,
             ),
         );
-    });
+    }
+    document.addEventListener("wheel", onWheel);
 
-    window.addEventListener("blur", () => {
+    function onBlur() {
         onEventHandlerReturn(exports._on_blur());
-    });
+    }
+    window.addEventListener("blur", onBlur);
 
-    document.addEventListener("visibilitychange", () => {
+    function onVisibilityChange() {
         onEventHandlerReturn(exports._on_visibility_change());
-    });
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     const onTextInputEvent: OnTextInputEvent = (textarea, eventType, code) => {
         const textBuffer = new TextEncoder().encode(textarea.value);
@@ -267,7 +278,23 @@ export function startEventSystem({
         }
     };
 
-    return { onTextInputEvent };
+    function terminate() {
+        if (animationFrameId !== null) {
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        window.removeEventListener("resize", onResize);
+        document.removeEventListener("keydown", onKeyDown);
+        document.removeEventListener("keyup", onKeyUp);
+        document.removeEventListener("mousedown", onMouseDown);
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        document.removeEventListener("wheel", onWheel);
+        window.removeEventListener("blur", onBlur);
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+    }
+
+    return { onTextInputEvent, terminate };
 }
 
 export function isKeyPreventDefaultException(event: KeyboardEvent): boolean {

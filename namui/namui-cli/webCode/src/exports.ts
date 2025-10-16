@@ -52,6 +52,8 @@ export type Exports = CommonExports & {
         selection_start: number,
         selection_end: number,
     ) => bigint;
+    _freeze_world: () => number;
+    _set_freeze_states(ptr: number, len: number): void;
 };
 
 export type DrawerExports = CommonExports & {

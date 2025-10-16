@@ -1,6 +1,8 @@
 import { ViteDevServer } from "vite";
 import { watch } from "fs/promises";
-import { existsSync } from "fs";
+import path from "path";
+
+let configureServerUpdated = () => {};
 
 export function namuiHmrPlugin() {
     const wasmPath = process.env.NAMUI_RUNTIME_WASM_PATH;
@@ -28,22 +30,42 @@ export function namuiHmrPlugin() {
             }
         },
         configureServer(server: ViteDevServer) {
-            (async () => {
+            configureServerUpdated();
+
+            (async (
+                registerUpdatedCallback: (callback: () => void) => void,
+            ) => {
+                let updated = false;
+                registerUpdatedCallback(() => {
+                    updated = true;
+                });
+
                 try {
-                    const watcher = watch(wasmPath);
+                    let id: NodeJS.Timeout | undefined;
+                    const watcher = watch(path.resolve(wasmPath, "../"));
                     for await (const event of watcher) {
+                        if (updated) {
+                            return;
+                        }
                         if (
-                            event.eventType === "change" ||
-                            (event.eventType === "rename" &&
-                                existsSync(wasmPath))
+                            event.eventType === "change" &&
+                            event.filename === "namui-runtime-wasm.wasm"
                         ) {
-                            server.hot.send("namui-wasm-updated", { wasmPath });
+                            clearTimeout(id);
+                            id = setTimeout(() => {
+                                server.hot.send("namui-wasm-updated", {
+                                    wasmPath,
+                                });
+                            }, 500);
                         }
                     }
+                    console.log("watcher done");
                 } catch (err) {
                     console.error("Error watching wasm file:", err);
                 }
-            })();
+            })((callback) => {
+                configureServerUpdated = callback;
+            });
         },
     };
 }

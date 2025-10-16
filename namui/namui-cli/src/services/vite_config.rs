@@ -8,7 +8,20 @@ pub struct ViteConfig<'a> {
     pub release: bool,
     pub host: Option<String>,
 }
-pub async fn update_vite_config(config: &ViteConfig<'_>) -> Result<()> {
+
+pub struct ViteEnvVars {
+    pub namui_runtime_wasm_path: String,
+    pub namui_cli_root: String,
+    pub namui_bundle_sqlite_path: String,
+    pub namui_drawer_wasm_path: String,
+    pub namui_host: String,
+    pub namui_asset_dir: String,
+    pub namui_target_dir: String,
+    pub namui_server_allow: String,
+    pub namui_server_fs_allow: String,
+}
+
+pub async fn prepare_vite_env(config: &ViteConfig<'_>) -> Result<ViteEnvVars> {
     let bundle_manifest = NamuiBundleManifest::parse(config.project_root_path)?;
 
     let target_project_path = config.project_root_path.join(format!(
@@ -25,64 +38,38 @@ pub async fn update_vite_config(config: &ViteConfig<'_>) -> Result<()> {
     create_dir_all(&generated_dist).await?;
 
     let asset_dir = config.project_root_path.join("asset");
+    let cli_root = get_cli_root_path();
+    let drawer_wasm_path = cli_root.join("../namui-drawer/target/wasm32-wasip1-threads/release/namui-drawer.wasm");
 
-    tokio::fs::write(
-        get_cli_root_path().join("webCode/vite.config.js"),
-        format!(
-            r#"
-import {{ defineConfig }} from "vite";
-import expressPlugin from './expressPlugin'
-import {{ assetCollectorPlugin }} from './assetCollectorPlugin'
-import {{ namuiHmrPlugin }} from './namuiHmrPlugin'
-import path from 'path'
+    // Prepare server.allow array
+    let server_allow = serde_json::json!([
+        namui_runtime_wasm_path.to_string_lossy().to_string(),
+        format!("{}/", cli_root.to_string_lossy()),
+    ]);
 
-export default defineConfig({{
-    clearScreen: false,
-    server: {{
-        headers: {{
-            "Cross-Origin-Resource-Policy": "same-origin",
-            "Cross-Origin-Embedder-Policy": "require-corp",
-            "Cross-Origin-Opener-Policy": "same-origin",
-            "Referrer-Policy": "no-referrer-when-downgrade",
-        }},
-        allow: [
-            "{namui_runtime_wasm}",
-            "{cli_root}/",
-        ],
-        fs: {{
-            allow: [
-                "./",
-                "{asset_dir}",
-                "{cli_root}/system_bundle",
-            ],
-        }},
-        host: "{host}",
-    }},
-    resolve: {{
-        alias: {{
-            "bundle.sqlite?url": "{bundle_sqlite}?url",
-            "namui-drawer.wasm?url": "{drawer_runtime_wasm}?url",
-            "@": path.resolve(__dirname, "./src"),
-        }},
-    }},
-    plugins: [
-        namuiHmrPlugin(),
-        expressPlugin(),
-        assetCollectorPlugin("{asset_dir}"),
-    ],
-}});
-"#,
-            namui_runtime_wasm = namui_runtime_wasm_path.to_string_lossy(),
-            cli_root = get_cli_root_path().to_string_lossy(),
-            bundle_sqlite = bundle_sqlite_path.to_string_lossy(),
-            drawer_runtime_wasm = get_cli_root_path()
-                .join("../namui-drawer/target/wasm32-wasip1-threads/release/namui-drawer.wasm")
-                .to_string_lossy(),
-            host = config.host.as_deref().unwrap_or("localhost"),
-            asset_dir = asset_dir.to_string_lossy(),
-        ),
-    )
-    .await?;
+    // Prepare server.fs.allow array
+    let server_fs_allow = serde_json::json!([
+        "./",
+        asset_dir.to_string_lossy().to_string(),
+        target_project_path.to_string_lossy().to_string(),
+        format!("{}/system_bundle", cli_root.to_string_lossy()),
+    ]);
 
+    Ok(ViteEnvVars {
+        namui_runtime_wasm_path: namui_runtime_wasm_path.to_string_lossy().to_string(),
+        namui_cli_root: cli_root.to_string_lossy().to_string(),
+        namui_bundle_sqlite_path: bundle_sqlite_path.to_string_lossy().to_string(),
+        namui_drawer_wasm_path: drawer_wasm_path.to_string_lossy().to_string(),
+        namui_host: config.host.as_deref().unwrap_or("localhost").to_string(),
+        namui_asset_dir: asset_dir.to_string_lossy().to_string(),
+        namui_target_dir: target_project_path.to_string_lossy().to_string(),
+        namui_server_allow: server_allow.to_string(),
+        namui_server_fs_allow: server_fs_allow.to_string(),
+    })
+}
+
+// Deprecated: Use prepare_vite_env instead
+pub async fn update_vite_config(config: &ViteConfig<'_>) -> Result<()> {
+    let _ = prepare_vite_env(config).await?;
     Ok(())
 }

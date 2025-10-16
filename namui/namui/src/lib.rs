@@ -36,14 +36,41 @@ pub mod particle {
     pub use namui_particle::{Emitter, Particle, System};
 }
 thread_local! {
-    static TOKIO_RUNTIME: tokio::runtime::Runtime = tokio_runtime().unwrap();
+    static TOKIO_RUNTIME: tokio::runtime::Runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(2 * 1024 * 1024)
+        .max_blocking_threads(32)
+        .build()
+        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e)).unwrap();
     static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
     static RENDERING_TREE_BYTES: RefCell<Box<[u8]>> = Default::default();
+    static FROZEN_STATES: RefCell<Box<[u8]>> = Default::default();
 }
 
 #[unsafe(no_mangle)]
 extern "C" fn _init_system() {
     system::init_system().unwrap();
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn _freeze_world() -> *const u8 {
+    let looper = LOOPER.with_borrow_mut(|looper| looper.take().unwrap());
+    let frozen_states = looper.world.freeze_states();
+    FROZEN_STATES.with_borrow_mut(|bytes| {
+        *bytes = frozen_states.into_boxed_slice();
+        bytes.as_ptr()
+    })
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn _set_freeze_states(ptr: *const u8, len: usize) {
+    LOOPER.with_borrow_mut(|looper| {
+        looper
+            .as_mut()
+            .unwrap()
+            .world
+            .set_frozen_states(unsafe { std::slice::from_raw_parts(ptr, len) });
+    });
 }
 
 pub fn start(root_component: RootComponent) {
@@ -56,8 +83,8 @@ fn on_event(event: RawEvent) -> u64 {
     TOKIO_RUNTIME.with(|tokio_runtime| {
         let _guard = tokio_runtime.enter();
 
-        LOOPER.with_borrow_mut(|looper_cell| {
-            let Some(rendering_tree) = looper_cell.as_mut().unwrap().tick(event) else {
+        LOOPER.with_borrow_mut(|looper| {
+            let Some(rendering_tree) = looper.as_mut().unwrap().tick(event) else {
                 return;
             };
 
@@ -74,15 +101,6 @@ fn on_event(event: RawEvent) -> u64 {
     });
 
     (out_ptr as u64) << 32 | out_len_ptr as u64
-}
-
-fn tokio_runtime() -> Result<tokio::runtime::Runtime> {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .thread_stack_size(2 * 1024 * 1024)
-        .max_blocking_threads(32)
-        .build()
-        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e))
 }
 
 #[macro_export]
