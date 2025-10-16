@@ -4,8 +4,7 @@ crate::vector_types!(Wh, { width, height });
 
 impl<T> Wh<T>
 where
-    T: Clone,
-    T: std::fmt::Debug,
+    T: Clone + std::fmt::Debug + State,
 {
     pub fn to_xy(&self) -> Xy<T> {
         Xy {

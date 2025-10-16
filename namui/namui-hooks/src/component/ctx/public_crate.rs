@@ -10,19 +10,7 @@ impl ComponentCtx<'_> {
             .state_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        let value = unsafe {
-            let state_list = &mut *self.instance.state_list.get();
-
-            let no_state = state_list.len() <= state_index;
-
-            if no_state {
-                let state = init();
-                state_list.push(Box::new(state));
-                assert_eq!(state_list.len(), state_index + 1);
-            };
-
-            state_list.get(state_index).unwrap().deref()
-        };
+        let value = self.instance.state_value(state_index, init);
 
         let state: &State = value.as_any().downcast_ref().unwrap();
 
@@ -94,7 +82,7 @@ impl ComponentCtx<'_> {
         Sig::new(state, sig_id, self.world)
     }
 
-    pub(crate) fn controlled_memo<T: 'static>(
+    pub(crate) fn controlled_memo<T: State>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
     ) -> Sig<'_, T> {
@@ -176,7 +164,7 @@ impl ComponentCtx<'_> {
         Sig::new(state, sig_id, self.world)
     }
 
-    pub(crate) fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
+    pub(crate) fn track_eq<T: State + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
         let track_eq_index = self
             .track_eq_index
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -230,7 +218,7 @@ impl ComponentCtx<'_> {
         cmp: impl FnOnce(&T, &P) -> bool,
     ) -> Sig<'_, P>
     where
-        P: 'static,
+        P: State,
     {
         let track_eq_index = self
             .track_eq_index
@@ -401,7 +389,14 @@ impl ComponentCtx<'_> {
             Some(atom_value) => atom_value,
             None => {
                 // NOTE: This code could be problematic on multi-threaded environment.
-                let value = init();
+                let value = {
+                    let frozen_atoms = self.world.frozen_atoms.borrow();
+                    if let Some(frozen_bytes) = frozen_atoms.get(atom_index) {
+                        State::deserialize(&mut frozen_bytes.as_slice()).unwrap()
+                    } else {
+                        init()
+                    }
+                };
                 atom_list.push(Box::new(value));
                 atom_list.get(atom_index).unwrap()
             }

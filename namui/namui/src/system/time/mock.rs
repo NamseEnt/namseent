@@ -2,7 +2,7 @@ use super::*;
 use crate::system::InitResult;
 use anyhow::*;
 use namui_type::*;
-use std::sync::Arc;
+use std::sync::Mutex;
 
 pub(crate) fn init() -> InitResult {
     super::TIME_SYSTEM
@@ -12,28 +12,39 @@ pub(crate) fn init() -> InitResult {
     Ok(())
 }
 
-lazy_static::lazy_static! {
-    static ref INSTANT_NOW: std::sync::Mutex<std::time::Instant> = std::sync::Mutex::new(std::time::Instant::now());
-    static ref SYSTEM_TIME_NOW: std::sync::Mutex<SystemTime> = std::sync::Mutex::new(SystemTime::now());
-}
+static INSTANT_NOW: OnceLock<Mutex<std::time::Instant>> = OnceLock::new();
+static SYSTEM_TIME_NOW: OnceLock<Mutex<SystemTime>> = OnceLock::new();
 
 pub fn set_instant_now(now: std::time::Instant) {
-    *INSTANT_NOW.lock().unwrap() = now;
+    *INSTANT_NOW.get_or_init(|| Mutex::new(now)).lock().unwrap() = now;
 }
 
 pub fn set_system_time_now(now: SystemTime) {
-    *SYSTEM_TIME_NOW.lock().unwrap() = now;
+    *SYSTEM_TIME_NOW
+        .get_or_init(|| Mutex::new(now))
+        .lock()
+        .unwrap() = now;
 }
 
 struct MockTimeSystem;
 
 impl TimeSystem for MockTimeSystem {
     fn since_start(&self) -> Duration {
-        Duration::from_std(true, INSTANT_NOW.lock().unwrap().elapsed())
+        Duration::from_std(
+            true,
+            INSTANT_NOW
+                .get_or_init(|| Mutex::new(std::time::Instant::now()))
+                .lock()
+                .unwrap()
+                .elapsed(),
+        )
     }
 
     fn system_time_now(&self) -> SystemTime {
-        *SYSTEM_TIME_NOW.lock().unwrap()
+        *SYSTEM_TIME_NOW
+            .get_or_init(|| Mutex::new(SystemTime::now()))
+            .lock()
+            .unwrap()
     }
 
     fn now(&self) -> Instant {

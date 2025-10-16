@@ -33,7 +33,7 @@ impl RenderCtx<'_, '_> {
     pub fn memo<T: State>(&self, func: impl FnOnce() -> T) -> Sig<'_, T> {
         self.component_ctx.memo(func)
     }
-    pub fn track_eq<T: 'static + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
+    pub fn track_eq<T: State + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
         self.component_ctx.track_eq(target)
     }
     pub fn track_eq_tuple(&self, track_eq_tuple: &impl TrackEqTuple) -> bool {
@@ -65,7 +65,7 @@ impl RenderCtx<'_, '_> {
         self.component_ctx.interval(title, interval, job)
     }
     /// Returning `ControlledMemo::Unchanged(value)` will not update sig, but it will return `Sig(value)`.
-    pub fn controlled_memo<T: 'static>(
+    pub fn controlled_memo<T: State>(
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
     ) -> Sig<'_, T> {

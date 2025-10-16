@@ -1,5 +1,6 @@
+use namui_type::bytes::Buf;
+
 use super::*;
-use std::borrow::Cow;
 
 impl World {
     pub fn init(get_now: impl Fn() -> Instant + 'static) -> Self {
@@ -7,6 +8,8 @@ impl World {
         Self {
             composers: Default::default(),
             instances: Default::default(),
+            frozen_instances: Default::default(),
+            frozen_atoms: Default::default(),
             set_state_tx: Box::leak(Box::new(set_state_tx)),
             set_state_rx,
             updated_sig_ids: Default::default(),
@@ -31,44 +34,79 @@ impl World {
         self.run_impl(root_component, Some(event))
     }
 
-    fn run_impl(
-        &mut self,
-        root_component: impl Component,
-        event: Option<RawEvent>,
-    ) -> RenderingTree {
-        self.is_stop_event_propagation
-            .store(false, std::sync::atomic::Ordering::Relaxed);
-        self.reset_updated_sig_ids();
-        self.handle_set_states();
+    pub fn set_frozen_states(&mut self, mut bytes: &[u8]) {
+        let instance_count = bytes.get_u32() as usize;
 
-        let root_composer = match self.composers.get(&ComposerId::root()) {
-            Some(composer) => composer,
-            None => self
-                .composers
-                .insert(ComposerId::root(), Composer::new().into()),
-        };
+        let mut frozen_instances = self.frozen_instances.borrow_mut();
+        for _ in 0..instance_count {
+            let len = bytes.get_u32() as usize;
+            let (slice, rest) = bytes.split_at(len);
+            bytes = rest;
 
-        let root_instance = match self.instances.get(&InstanceId::root()) {
-            Some(instance) => instance,
-            None => self.instances.insert(
-                InstanceId::root(),
-                Box::new(Instance::new(InstanceId::root())),
-            ),
-        };
+            let frozen_instance = FrozenInstance::from_bytes(slice);
+            frozen_instances.insert(frozen_instance.child_key_chain.clone(), frozen_instance);
+        }
+        drop(frozen_instances);
 
-        self.raw_event = event;
+        if bytes.is_empty() {
+            return;
+        }
 
-        let rendering_tree = render_ctx::run(
-            self,
-            root_component,
-            root_composer,
-            root_instance,
-            Cow::Owned(vec![]),
+        let atom_count = bytes.get_u32() as usize;
+
+        let mut frozen_atoms = self.frozen_atoms.borrow_mut();
+        for _ in 0..atom_count {
+            let len = bytes.get_u32() as usize;
+            let (slice, rest) = bytes.split_at(len);
+            bytes = rest;
+
+            frozen_atoms.push(slice.to_vec());
+        }
+    }
+
+    pub fn freeze_states(self) -> Vec<u8> {
+        let frozen_instance_bytes = self
+            .instances
+            .into_map()
+            .into_values()
+            .map(|instance| instance.freeze())
+            .collect::<Vec<Vec<u8>>>();
+
+        let frozen_atom_bytes = self
+            .atom_list
+            .into_vec()
+            .into_iter()
+            .map(|atom| {
+                let mut bytes = vec![];
+                atom.serialize(&mut bytes);
+                bytes
+            })
+            .collect::<Vec<Vec<u8>>>();
+
+        let mut buffer = Vec::with_capacity(
+            4 + frozen_instance_bytes.iter().map(|x| x.len()).sum::<usize>()
+                + frozen_instance_bytes.len() * 4
+                + 4
+                + frozen_atom_bytes.iter().map(|x| x.len()).sum::<usize>()
+                + frozen_atom_bytes.len() * 4,
         );
 
-        self.remove_unused_guys();
-        self.record_used_sig_ids.as_mut().clear();
+        use bytes::BufMut;
 
-        rendering_tree
+        buffer.put_u32(frozen_instance_bytes.len() as u32);
+
+        for bytes in frozen_instance_bytes {
+            buffer.put_u32(bytes.len() as u32);
+            buffer.put_slice(&bytes);
+        }
+
+        buffer.put_u32(frozen_atom_bytes.len() as u32);
+
+        for bytes in frozen_atom_bytes {
+            buffer.put_u32(bytes.len() as u32);
+            buffer.put_slice(&bytes);
+        }
+
+        buffer
     }
 }

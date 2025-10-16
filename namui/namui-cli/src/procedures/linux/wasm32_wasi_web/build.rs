@@ -3,7 +3,7 @@ use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
 use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runtime_project};
 use services::rust_build_service::{self, BuildOption};
-use services::vite_config::{ViteConfig, update_vite_config};
+use services::vite_config::{ViteConfig, prepare_vite_env};
 use util::get_cli_root_path;
 
 pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) -> Result<()> {
@@ -51,8 +51,8 @@ pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
         .build_started(BuildStatusCategory::WebRuntime)
         .await;
 
-    update_vite_config(&vite_config).await?;
-    build_web_code().await?;
+    let vite_env_vars = prepare_vite_env(&vite_config).await?;
+    build_web_code(&vite_env_vars).await?;
 
     build_status_service
         .build_finished(BuildStatusCategory::WebRuntime, vec![], vec![])
@@ -118,7 +118,7 @@ async fn run_wasm_opt(target_project_path: &std::path::Path, release: bool) -> R
     Ok(())
 }
 
-async fn build_web_code() -> Result<()> {
+async fn build_web_code(vite_env_vars: &services::vite_config::ViteEnvVars) -> Result<()> {
     let output = tokio::process::Command::new("npm")
         .current_dir(get_cli_root_path().join("webCode"))
         .args(["ci"])
@@ -133,6 +133,15 @@ async fn build_web_code() -> Result<()> {
     let output = tokio::process::Command::new("npm")
         .current_dir(get_cli_root_path().join("webCode"))
         .args(["run", "build"])
+        .env("NAMUI_RUNTIME_WASM_PATH", &vite_env_vars.namui_runtime_wasm_path)
+        .env("NAMUI_CLI_ROOT", &vite_env_vars.namui_cli_root)
+        .env("NAMUI_BUNDLE_SQLITE_PATH", &vite_env_vars.namui_bundle_sqlite_path)
+        .env("NAMUI_DRAWER_WASM_PATH", &vite_env_vars.namui_drawer_wasm_path)
+        .env("NAMUI_HOST", &vite_env_vars.namui_host)
+        .env("NAMUI_ASSET_DIR", &vite_env_vars.namui_asset_dir)
+        .env("NAMUI_TARGET_DIR", &vite_env_vars.namui_target_dir)
+        .env("NAMUI_SERVER_ALLOW", &vite_env_vars.namui_server_allow)
+        .env("NAMUI_SERVER_FS_ALLOW", &vite_env_vars.namui_server_fs_allow)
         .spawn()?
         .wait()
         .await?;

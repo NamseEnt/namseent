@@ -1,6 +1,8 @@
+use super::*;
 use crate::*;
 use std::{
     cell::{RefCell, UnsafeCell},
+    ops::Deref,
     sync::atomic::AtomicBool,
 };
 
@@ -15,9 +17,15 @@ pub(crate) struct Instance {
     pub(crate) effect_list: RefCell<Vec<Effect>>,
     pub(crate) interval_called_list: RefCell<Vec<Instant>>,
     pub(crate) abort_handle_list: RefCell<Vec<tokio::task::AbortHandle>>,
+    frozen_instance: Option<FrozenInstance>,
+    child_key_chain: ChildKeyChain,
 }
 impl Instance {
-    pub(crate) fn new(id: InstanceId) -> Self {
+    pub(crate) fn new(
+        id: InstanceId,
+        frozen_instance: Option<FrozenInstance>,
+        child_key_chain: ChildKeyChain,
+    ) -> Self {
         Self {
             id,
             rendered_flag: Default::default(),
@@ -28,6 +36,8 @@ impl Instance {
             effect_list: Default::default(),
             interval_called_list: Default::default(),
             abort_handle_list: Default::default(),
+            frozen_instance,
+            child_key_chain,
         }
     }
 
@@ -39,6 +49,38 @@ impl Instance {
     pub(crate) fn take_rendered_flag(&mut self) -> bool {
         self.rendered_flag
             .swap(false, std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub(crate) fn freeze(self) -> Vec<u8> {
+        let mut buf = vec![];
+        FrozenInstance::from_instance(self).serialize(&mut buf);
+        buf
+    }
+
+    pub(crate) fn state_value<State: crate::State>(
+        &self,
+        state_index: usize,
+        init: impl FnOnce() -> State,
+    ) -> &dyn Value {
+        unsafe {
+            let state_list = &mut *self.state_list.get();
+
+            let no_state = state_list.len() <= state_index;
+
+            if no_state {
+                let state = if let Some(frozen_instance) = &self.frozen_instance
+                    && let Some(bytes) = frozen_instance.state_list.get(state_index)
+                {
+                    State::deserialize(&mut bytes.as_slice()).unwrap()
+                } else {
+                    init()
+                };
+                state_list.push(Box::new(state));
+                assert_eq!(state_list.len(), state_index + 1);
+            };
+
+            state_list.get(state_index).unwrap().deref()
+        }
     }
 }
 
@@ -55,6 +97,7 @@ impl Drop for Instance {
     }
 }
 
+#[derive(OurSer)]
 pub(crate) struct Memo {
     pub(crate) value: Box<dyn Value>,
     pub(crate) used_sig_ids: Vec<SigId>,
@@ -64,4 +107,29 @@ pub(crate) struct Memo {
 pub(crate) struct Effect {
     pub(crate) used_sig_ids: Vec<SigId>,
     pub(crate) clean_up: EffectCleanUp,
+}
+
+#[derive(OurSerde)]
+pub(crate) struct FrozenInstance {
+    pub(crate) child_key_chain: ChildKeyChain,
+    pub(crate) state_list: Vec<Vec<u8>>,
+}
+impl FrozenInstance {
+    pub(crate) fn from_instance(mut instance: Instance) -> Self {
+        Self {
+            child_key_chain: std::mem::take(&mut instance.child_key_chain),
+            state_list: std::mem::take(&mut instance.state_list)
+                .into_inner()
+                .into_iter()
+                .map(|state| {
+                    let mut bytes = vec![];
+                    state.serialize(&mut bytes);
+                    bytes
+                })
+                .collect(),
+        }
+    }
+    pub(crate) fn from_bytes(mut bytes: &[u8]) -> Self {
+        Self::deserialize(&mut bytes).unwrap()
+    }
 }

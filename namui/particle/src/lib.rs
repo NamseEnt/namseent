@@ -79,11 +79,7 @@ where
             ..
         } = self;
         #[derive(State)]
-        struct State<E, P>
-        where
-            E: bincode::Encode + bincode::Decode<()>,
-            P: bincode::Encode + bincode::Decode<()>,
-        {
+        struct State<E: namui_type::State, P: namui_type::State> {
             emitters: Vec<E>,
             particles: Vec<P>,
             last_now: Instant,

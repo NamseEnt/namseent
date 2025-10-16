@@ -4,7 +4,7 @@ use std::fmt::Debug;
 #[type_derives(Copy)]
 pub struct Ltrb<T>
 where
-    T: Debug,
+    T: Debug + State,
 {
     pub left: T,
     pub top: T,
@@ -14,8 +14,7 @@ where
 
 impl<T> Ltrb<T>
 where
-    T: Clone,
-    T: Debug,
+    T: Clone + Debug + State,
 {
     pub fn all(value: T) -> Self
     where
@@ -32,8 +31,7 @@ where
 
 impl<T: Default> Default for Ltrb<T>
 where
-    T: Default,
-    T: Debug,
+    T: Default + Debug + State,
 {
     fn default() -> Self {
         Self {

@@ -6,7 +6,7 @@ import { DrawerExports } from "@/exports";
 import { loadFonts } from "@/font/loadFont";
 
 export async function readyDrawer(): Promise<{
-    drawerExports: DrawerExports;
+    exports: DrawerExports;
     canvas: HTMLCanvasElement;
 }> {
     const canvas = document.createElement("canvas");
@@ -65,7 +65,7 @@ export async function readyDrawer(): Promise<{
     ]);
 
     return {
-        drawerExports: exports,
+        exports: exports,
         canvas,
     };
 }

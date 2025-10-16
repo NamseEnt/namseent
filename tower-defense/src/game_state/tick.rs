@@ -2,7 +2,7 @@ use super::*;
 
 const TICK_MAX_DURATION: Duration = Duration::from_millis(16);
 
-pub struct Ticker {}
+pub struct Ticker;
 
 impl Component for Ticker {
     fn render(self, ctx: &RenderCtx) {

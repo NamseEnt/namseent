@@ -10,7 +10,7 @@ pub trait ImageTrait {
 }
 
 impl ImageTrait for RenderCtx<'_, '_> {
-    fn image(&self, resource_location: impl AsRef<ResourceLocation>) -> Arc<Mutex<Load<Image>>> {
+    fn image(&self, _resource_location: impl AsRef<ResourceLocation>) -> Arc<Mutex<Load<Image>>> {
         // let resource_location = self.track_eq(resource_location.as_ref());
         // let (load, set_load) = self.state(|| None);
 

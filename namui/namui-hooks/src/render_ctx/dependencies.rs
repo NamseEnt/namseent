@@ -52,7 +52,7 @@ impl<T> TrackEqTuple for Sig<'_, T> {
 
 impl<T> TrackEqTuple for &T
 where
-    T: 'static + PartialEq + Clone,
+    T: State + PartialEq + Clone,
 {
     fn track_eq(&self, ctx: &ComponentCtx) -> bool {
         let sig = ctx.track_eq(*self);
@@ -62,7 +62,8 @@ where
 
 impl<T> TrackEqTuple for Option<&T>
 where
-    T: 'static + PartialEq + Clone,
+    T: State + PartialEq + Clone,
+    Option<T>: State,
 {
     fn track_eq(&self, ctx: &ComponentCtx) -> bool {
         let sig =

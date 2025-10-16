@@ -19,7 +19,6 @@ namui-cfg = { path = "../namui-cfg" }
 namui-particle = { path = "../particle" }
 namui-rendering-tree = { path = "../rendering-tree" }
 namui-asset-macro = { path = "../asset-macro" }
-lazy_static = "1.4.0"
 url = { version = "2", features = ["serde"] }
 anyhow = { version = "1.0.77", features = ["backtrace"] }
 shader-macro = { path = "../shader-macro" }
@@ -40,7 +39,6 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "fs",
 ] }
 tokio-stream = { path = "../third-party-forks/tokio/tokio-stream" }
-rusqlite = { path = "../third-party-forks/rusqlite", features = ["bundled"] }
 http = "1.1.0"
 http-body = "1.0.1"
 bytes = "1.7.1"

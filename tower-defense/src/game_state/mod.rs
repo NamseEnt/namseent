@@ -44,6 +44,7 @@ use namui::*;
 use placed_towers::PlacedTowers;
 use play_history::PlayHistory;
 use projectile::*;
+pub use render::*;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
@@ -179,18 +180,6 @@ impl GameState {
             self.towers.iter().map(|tower| tower.id()).collect();
 
         self.ui_state.cleanup_unused_states(&existing_tower_ids);
-    }
-}
-
-impl Component for &GameState {
-    fn render(self, ctx: &RenderCtx) {
-        ctx.add(tick::Ticker {});
-
-        ctx.scale(Xy::single(self.camera.zoom_level))
-            .translate(TILE_PX_SIZE.to_xy() * self.camera.left_top * -1.0)
-            .compose(|ctx| {
-                render::render(self, ctx);
-            });
     }
 }
 

@@ -48,7 +48,7 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
             if (id === resolvedVirtualModuleId) {
                 const assetList = imageInfos.map((info) => ({
                     id: info.id,
-                    path: "/@fs" + info.path,
+                    path: `/@fs${info.path}`,
                 }));
                 return `export const assetList = ${JSON.stringify(
                     assetList,
@@ -59,7 +59,7 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
             if (id === resolvedVirtualFontModuleId) {
                 const fontAsset = fontInfos.map((info) => ({
                     name: info.name,
-                    path: "/@fs" + info.path,
+                    path: `/@fs${info.path}`,
                 }));
                 return `export const fontAsset = ${JSON.stringify(
                     fontAsset,

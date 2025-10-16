@@ -69,7 +69,7 @@ impl<T: ?Sized> AsRef<T> for Sig<'_, T> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, OurSer)]
 pub(crate) enum SigId {
     State {
         instance_id: InstanceId,

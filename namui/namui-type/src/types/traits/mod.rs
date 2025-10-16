@@ -1,3 +1,13 @@
-pub trait State: Send + bincode::Encode + bincode::Decode<()> + 'static {}
+mod our_serde;
 
-impl<T: Send + bincode::Encode + bincode::Decode<()> + 'static> State for T {}
+pub use our_serde::*;
+
+pub trait State:
+    Send + 'static + Serialize + Deserialize + bincode::Encode + bincode::Decode<()>
+{
+}
+
+impl<T: Send + 'static + Serialize + Deserialize + bincode::Encode + bincode::Decode<()>> State
+    for T
+{
+}

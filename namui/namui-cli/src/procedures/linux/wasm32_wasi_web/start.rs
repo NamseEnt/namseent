@@ -1,10 +1,11 @@
 use crate::cli::Target;
+use crate::services::wasi_cargo_envs::{WasiType, wasi_cargo_envs};
 use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
 use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runtime_project};
 use services::rust_build_service::{self, BuildOption};
 use services::rust_project_watch_service::RustProjectWatchService;
-use services::vite_config::{ViteConfig, update_vite_config};
+use services::vite_config::{ViteConfig, prepare_vite_env};
 use tokio::process::Child;
 use util::get_cli_root_path;
 
@@ -12,6 +13,8 @@ pub async fn start(
     manifest_path: impl AsRef<std::path::Path>,
     start_option: StartOption,
 ) -> Result<()> {
+    build_drawer().await?;
+
     let manifest_path = manifest_path.as_ref();
     let target = Target::Wasm32WasiWeb;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
@@ -50,8 +53,9 @@ pub async fn start(
         .build_started(BuildStatusCategory::WebRuntime)
         .await;
 
-    update_vite_config(&vite_config).await?;
-    let _web_builder = start_web_code().await?;
+    let vite_env_vars = prepare_vite_env(&vite_config).await?;
+
+    let _web_builder = start_web_code(&vite_env_vars).await?;
 
     build_status_service
         .build_finished(BuildStatusCategory::WebRuntime, vec![], vec![])
@@ -73,13 +77,23 @@ pub async fn start(
         build_status_service
             .build_finished(BuildStatusCategory::Namui, result.error_messages, vec![])
             .await;
-        update_vite_config(&vite_config).await?;
+        let _ = prepare_vite_env(&vite_config).await?;
     }
 
     Ok(())
 }
 
-async fn start_web_code() -> Result<Child> {
+async fn start_web_code(vite_env_vars: &services::vite_config::ViteEnvVars) -> Result<Child> {
+    let npm_check = tokio::process::Command::new("npm")
+        .arg("--version")
+        .output()
+        .await;
+
+    if npm_check.is_err() {
+        return Err(anyhow::anyhow!(
+            "npm is not installed. Please install Node.js"
+        ));
+    }
     let mut process = tokio::process::Command::new("npm")
         .current_dir(get_cli_root_path().join("webCode"))
         .args(["ci"])
@@ -89,7 +103,46 @@ async fn start_web_code() -> Result<Child> {
     let process = tokio::process::Command::new("npm")
         .current_dir(get_cli_root_path().join("webCode"))
         .args(["run", "dev"])
+        .env(
+            "NAMUI_RUNTIME_WASM_PATH",
+            &vite_env_vars.namui_runtime_wasm_path,
+        )
+        .env("NAMUI_CLI_ROOT", &vite_env_vars.namui_cli_root)
+        .env(
+            "NAMUI_BUNDLE_SQLITE_PATH",
+            &vite_env_vars.namui_bundle_sqlite_path,
+        )
+        .env(
+            "NAMUI_DRAWER_WASM_PATH",
+            &vite_env_vars.namui_drawer_wasm_path,
+        )
+        .env("NAMUI_HOST", &vite_env_vars.namui_host)
+        .env("NAMUI_ASSET_DIR", &vite_env_vars.namui_asset_dir)
+        .env("NAMUI_TARGET_DIR", &vite_env_vars.namui_target_dir)
+        .env("NAMUI_SERVER_ALLOW", &vite_env_vars.namui_server_allow)
+        .env(
+            "NAMUI_SERVER_FS_ALLOW",
+            &vite_env_vars.namui_server_fs_allow,
+        )
         .spawn()?;
 
     Ok(process)
+}
+
+async fn build_drawer() -> Result<()> {
+    let drawer_target_dir = get_cli_root_path().join("../namui-drawer");
+    let output = tokio::process::Command::new("cargo")
+        .args(["build", "--target", "wasm32-wasip1-threads", "--release"])
+        .current_dir(drawer_target_dir)
+        .envs(wasi_cargo_envs(WasiType::Drawer))
+        .spawn()?
+        .wait_with_output()
+        .await?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow::anyhow!("Failed to build drawer {}", stderr));
+    }
+
+    Ok(())
 }

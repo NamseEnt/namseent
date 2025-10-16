@@ -19,7 +19,6 @@ elsa = { version = "1.11.2", features = ["indexmap"] }
 namui-rendering-tree = { path = "../rendering-tree" }
 namui-type = { path = "../namui-type" }
 rustc-hash = "1.1.0"
-smol_str = "0.2.1"
 tokio = { path = "../third-party-forks/tokio/tokio", features = ["rt"] }
 
 [dev-dependencies]

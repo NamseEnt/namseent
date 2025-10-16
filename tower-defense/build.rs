@@ -1,5 +1,7 @@
 // include!("src/game_state/monster/monster_kind.rs");
 
+// include!("src/game_state/monster/monster_kind.rs");
+
 // const MONSTER_KINDS: [MonsterKind; 42] = [
 //     MonsterKind::Mob01,
 //     MonsterKind::Mob02,

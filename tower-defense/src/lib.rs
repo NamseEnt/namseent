@@ -96,7 +96,9 @@ impl Component for Game {
 
         ctx.add(TopBar { screen_wh });
 
-        ctx.add(game_state.as_ref());
+        ctx.add(game_state::RenderGameState {
+            game_state: game_state.as_ref(),
+        });
 
         ctx.add(CameraController);
 

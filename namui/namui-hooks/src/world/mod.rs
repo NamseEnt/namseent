@@ -3,14 +3,21 @@ mod public;
 use crate::*;
 use elsa::*;
 use rustc_hash::FxHashSet;
-use std::sync::{
-    atomic::{AtomicBool, AtomicUsize},
-    mpsc,
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    collections::BTreeMap,
+    sync::{
+        atomic::{AtomicBool, AtomicUsize},
+        mpsc,
+    },
 };
 
 pub struct World {
     composers: FrozenIndexMap<ComposerId, Box<Composer>>,
     instances: FrozenIndexMap<InstanceId, Box<Instance>>,
+    frozen_instances: RefCell<BTreeMap<ChildKeyChain, FrozenInstance>>,
+    pub(crate) frozen_atoms: RefCell<Vec<Vec<u8>>>,
     set_state_rx: mpsc::Receiver<SetStateItem>,
     pub(crate) set_state_tx: &'static mpsc::Sender<SetStateItem>,
     updated_sig_ids: FrozenIndexSet<Box<SigId>>,
@@ -35,11 +42,12 @@ impl World {
 
                 parent_composer
                     .compose_id_map
-                    .insert(child_key, child_composer_id.into());
+                    .insert(child_key.clone(), child_composer_id.into());
 
-                (self
-                    .composers
-                    .insert(child_composer_id, Composer::new().into())) as _
+                (self.composers.insert(
+                    child_composer_id,
+                    Composer::new(parent_composer.child_key_chain.append(child_key.clone())).into(),
+                )) as _
             }
         }
     }
@@ -69,10 +77,16 @@ impl World {
                     .instance_id_map
                     .insert(child_key.clone(), child_instance_id.into());
 
-                (self.instances.insert(
+                self.instances.insert(
                     child_instance_id,
-                    Box::new(Instance::new(child_instance_id)),
-                )) as _
+                    Box::new(Instance::new(
+                        child_instance_id,
+                        self.frozen_instances
+                            .borrow_mut()
+                            .remove(&parent_composer.child_key_chain.append(child_key.clone())),
+                        parent_composer.child_key_chain.append(child_key.clone()),
+                    )),
+                )
             }
         }
     }
@@ -328,5 +342,55 @@ impl World {
     pub(crate) fn is_stop_event_propagation(&self) -> bool {
         self.is_stop_event_propagation
             .load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    fn run_impl(
+        &mut self,
+        root_component: impl Component,
+        event: Option<RawEvent>,
+    ) -> RenderingTree {
+        self.is_stop_event_propagation
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+        self.reset_updated_sig_ids();
+        self.handle_set_states();
+
+        let root_child_key_chain = ChildKeyChain::ROOT;
+
+        let root_composer = match self.composers.get(&ComposerId::ROOT) {
+            Some(composer) => composer,
+            None => self.composers.insert(
+                ComposerId::ROOT,
+                Composer::new(root_child_key_chain.clone()).into(),
+            ),
+        };
+
+        let root_instance = match self.instances.get(&InstanceId::ROOT) {
+            Some(instance) => instance,
+            None => self.instances.insert(
+                InstanceId::ROOT,
+                Box::new(Instance::new(
+                    InstanceId::ROOT,
+                    self.frozen_instances
+                        .borrow_mut()
+                        .remove(&ChildKeyChain::ROOT),
+                    root_child_key_chain,
+                )),
+            ),
+        };
+
+        self.raw_event = event;
+
+        let rendering_tree = render_ctx::run(
+            self,
+            root_component,
+            root_composer,
+            root_instance,
+            Cow::Owned(vec![]),
+        );
+
+        self.remove_unused_guys();
+        self.record_used_sig_ids.as_mut().clear();
+
+        rendering_tree
     }
 }

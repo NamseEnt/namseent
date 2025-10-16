@@ -1,12 +1,12 @@
+use crate::*;
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub(crate) struct ComposerId {
     id: usize,
 }
 
 impl ComposerId {
-    pub(crate) fn root() -> ComposerId {
-        ComposerId { id: 0 }
-    }
+    pub(crate) const ROOT: ComposerId = ComposerId { id: 0 };
     pub(crate) fn generate() -> ComposerId {
         static ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
 
@@ -16,16 +16,14 @@ impl ComposerId {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord, OurSerde)]
 #[repr(transparent)]
 pub(crate) struct InstanceId {
     id: usize,
 }
 
 impl InstanceId {
-    pub(crate) fn root() -> InstanceId {
-        InstanceId { id: 0 }
-    }
+    pub(crate) const ROOT: InstanceId = InstanceId { id: 0 };
     pub(crate) fn generate() -> InstanceId {
         static ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
 
