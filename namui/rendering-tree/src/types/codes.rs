@@ -1,9 +1,10 @@
 // NOTE : Reference 1 - https://www.w3.org/TR/uievents-code/
 // NOTE : Reference 2 - https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values
 // NOTE : YOU MUST NOT CHANGE ENUM NAMES!
+use crate::*;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, State)]
 #[repr(u8)]
 pub enum Code {
     Escape = 0,
