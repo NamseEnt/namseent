@@ -359,7 +359,7 @@ mod tests {
             std::time::Duration::from_nanos(1),
             std::time::Duration::from_millis(1000),
             std::time::Duration::from_secs(60),
-            std::time::Duration::from_secs_f64(3.14),
+            std::time::Duration::from_secs_f64(std::f64::consts::PI),
         ];
         for original in test_durations {
             let mut buf = Vec::new();
@@ -377,7 +377,9 @@ mod tests {
         original.serialize(&mut buf);
         let mut buf_slice = buf.as_slice();
         let deserialized = std::time::SystemTime::deserialize(&mut buf_slice).unwrap();
-        let original_diff = original.elapsed().unwrap_or_else(|_| std::time::Duration::from_secs(0));
+        let original_diff = original
+            .elapsed()
+            .unwrap_or_else(|_| std::time::Duration::from_secs(0));
         let deserialized_diff = deserialized
             .elapsed()
             .unwrap_or_else(|_| std::time::Duration::from_secs(0));
@@ -387,11 +389,8 @@ mod tests {
 
     #[test]
     fn test_option_serde() {
-        let test_options: Vec<Option<String>> = vec![
-            Some(String::from("hello")),
-            None,
-            Some(String::from("")),
-        ];
+        let test_options: Vec<Option<String>> =
+            vec![Some(String::from("hello")), None, Some(String::from(""))];
         for original in test_options {
             let mut buf = Vec::new();
             original.serialize(&mut buf);

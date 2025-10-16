@@ -427,8 +427,7 @@ mod tests {
         let mut buf = Vec::new();
         original.serialize(&mut buf);
         let mut buf_slice = buf.as_slice();
-        let deserialized =
-            std::collections::VecDeque::<i32>::deserialize(&mut buf_slice).unwrap();
+        let deserialized = std::collections::VecDeque::<i32>::deserialize(&mut buf_slice).unwrap();
         assert_eq!(original, deserialized);
     }
 
@@ -438,8 +437,7 @@ mod tests {
         let mut buf = Vec::new();
         original.serialize(&mut buf);
         let mut buf_slice = buf.as_slice();
-        let deserialized = <()>::deserialize(&mut buf_slice).unwrap();
-        assert_eq!(original, deserialized);
+        <()>::deserialize(&mut buf_slice).unwrap();
     }
 
     #[test]
@@ -464,7 +462,7 @@ mod tests {
 
     #[test]
     fn test_tuple_3_serde() {
-        let original: (i32, String, f64) = (42, String::from("test"), 3.14);
+        let original: (i32, String, f64) = (42, String::from("test"), std::f64::consts::PI);
         let mut buf = Vec::new();
         original.serialize(&mut buf);
         let mut buf_slice = buf.as_slice();
@@ -474,7 +472,8 @@ mod tests {
 
     #[test]
     fn test_tuple_4_serde() {
-        let original: (i32, String, f64, bool) = (42, String::from("test"), 3.14, true);
+        let original: (i32, String, f64, bool) =
+            (42, String::from("test"), std::f64::consts::PI, true);
         let mut buf = Vec::new();
         original.serialize(&mut buf);
         let mut buf_slice = buf.as_slice();

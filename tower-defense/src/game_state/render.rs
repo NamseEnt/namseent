@@ -1,17 +1,27 @@
 use super::*;
 
-// ASSUME: NO EFFECT AND STATE IN INNER RENDER
-// Render in the 1:1 scale, without thinking about the camera zoom level.
-pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
-    ctx.add((render_tower_info_popup, game_state));
-    // ctx.add((render_cursor_preview, game_state));
-    // ctx.add((render_field_particles, game_state));
-    // ctx.add((render_projectiles, game_state));
-    // ctx.add((render_monsters, game_state));
-    // ctx.add((render_route_guide, game_state));
-    // ctx.add((render_towers, game_state));
-    // ctx.add((render_grid, game_state));
-    // ctx.add((render_backgrounds, game_state));
+pub struct RenderGameState<'a> {
+    pub game_state: &'a GameState,
+}
+
+impl Component for RenderGameState<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        ctx.add(tick::Ticker);
+
+        ctx.scale(Xy::single(self.game_state.camera.zoom_level))
+            .translate(TILE_PX_SIZE.to_xy() * self.game_state.camera.left_top * -1.0)
+            .compose(|ctx| {
+                ctx.add((render_tower_info_popup, self.game_state));
+                ctx.add((render_cursor_preview, self.game_state));
+                ctx.add((render_field_particles, self.game_state));
+                ctx.add((render_projectiles, self.game_state));
+                ctx.add((render_monsters, self.game_state));
+                ctx.add((render_route_guide, self.game_state));
+                ctx.add((render_towers, self.game_state));
+                ctx.add((render_grid, self.game_state));
+                ctx.add((render_backgrounds, self.game_state));
+            });
+    }
 }
 
 impl GameState {

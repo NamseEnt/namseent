@@ -18,9 +18,14 @@ pub(crate) struct Instance {
     pub(crate) interval_called_list: RefCell<Vec<Instant>>,
     pub(crate) abort_handle_list: RefCell<Vec<tokio::task::AbortHandle>>,
     frozen_instance: Option<FrozenInstance>,
+    child_key_chain: ChildKeyChain,
 }
 impl Instance {
-    pub(crate) fn new(id: InstanceId, frozen_instance: Option<FrozenInstance>) -> Self {
+    pub(crate) fn new(
+        id: InstanceId,
+        frozen_instance: Option<FrozenInstance>,
+        child_key_chain: ChildKeyChain,
+    ) -> Self {
         Self {
             id,
             rendered_flag: Default::default(),
@@ -32,6 +37,7 @@ impl Instance {
             interval_called_list: Default::default(),
             abort_handle_list: Default::default(),
             frozen_instance,
+            child_key_chain,
         }
     }
 
@@ -105,24 +111,22 @@ pub(crate) struct Effect {
 
 #[derive(OurSerde)]
 pub(crate) struct FrozenInstance {
-    pub(crate) id: InstanceId,
+    pub(crate) child_key_chain: ChildKeyChain,
     pub(crate) state_list: Vec<Vec<u8>>,
 }
 impl FrozenInstance {
     pub(crate) fn from_instance(mut instance: Instance) -> Self {
-        let state_list = std::mem::take(&mut instance.state_list)
-            .into_inner()
-            .into_iter()
-            .map(|state| {
-                let mut bytes = vec![];
-                state.serialize(&mut bytes);
-                bytes
-            })
-            .collect();
-
         Self {
-            id: instance.id,
-            state_list,
+            child_key_chain: std::mem::take(&mut instance.child_key_chain),
+            state_list: std::mem::take(&mut instance.state_list)
+                .into_inner()
+                .into_iter()
+                .map(|state| {
+                    let mut bytes = vec![];
+                    state.serialize(&mut bytes);
+                    bytes
+                })
+                .collect(),
         }
     }
     pub(crate) fn from_bytes(mut bytes: &[u8]) -> Self {

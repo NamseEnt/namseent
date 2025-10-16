@@ -16,7 +16,7 @@ use std::{
 pub struct World {
     composers: FrozenIndexMap<ComposerId, Box<Composer>>,
     instances: FrozenIndexMap<InstanceId, Box<Instance>>,
-    frozen_instances: RefCell<BTreeMap<InstanceId, FrozenInstance>>,
+    frozen_instances: RefCell<BTreeMap<ChildKeyChain, FrozenInstance>>,
     pub(crate) frozen_atoms: RefCell<Vec<Vec<u8>>>,
     set_state_rx: mpsc::Receiver<SetStateItem>,
     pub(crate) set_state_tx: &'static mpsc::Sender<SetStateItem>,
@@ -42,11 +42,12 @@ impl World {
 
                 parent_composer
                     .compose_id_map
-                    .insert(child_key, child_composer_id.into());
+                    .insert(child_key.clone(), child_composer_id.into());
 
-                (self
-                    .composers
-                    .insert(child_composer_id, Composer::new().into())) as _
+                (self.composers.insert(
+                    child_composer_id,
+                    Composer::new(parent_composer.child_key_chain.append(child_key.clone())).into(),
+                )) as _
             }
         }
     }
@@ -82,7 +83,8 @@ impl World {
                         child_instance_id,
                         self.frozen_instances
                             .borrow_mut()
-                            .remove(&child_instance_id),
+                            .remove(&parent_composer.child_key_chain.append(child_key.clone())),
+                        parent_composer.child_key_chain.append(child_key.clone()),
                     )),
                 )
             }
@@ -352,22 +354,26 @@ impl World {
         self.reset_updated_sig_ids();
         self.handle_set_states();
 
-        let root_composer = match self.composers.get(&ComposerId::root()) {
+        let root_child_key_chain = ChildKeyChain::ROOT;
+
+        let root_composer = match self.composers.get(&ComposerId::ROOT) {
             Some(composer) => composer,
-            None => self
-                .composers
-                .insert(ComposerId::root(), Composer::new().into()),
+            None => self.composers.insert(
+                ComposerId::ROOT,
+                Composer::new(root_child_key_chain.clone()).into(),
+            ),
         };
 
-        let root_instance = match self.instances.get(&InstanceId::root()) {
+        let root_instance = match self.instances.get(&InstanceId::ROOT) {
             Some(instance) => instance,
             None => self.instances.insert(
-                InstanceId::root(),
+                InstanceId::ROOT,
                 Box::new(Instance::new(
-                    InstanceId::root(),
+                    InstanceId::ROOT,
                     self.frozen_instances
                         .borrow_mut()
-                        .remove(&InstanceId::root()),
+                        .remove(&ChildKeyChain::ROOT),
+                    root_child_key_chain,
                 )),
             ),
         };

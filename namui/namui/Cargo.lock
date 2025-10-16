@@ -1523,7 +1523,6 @@ dependencies = [
  "namui-rendering-tree",
  "namui-type",
  "rustc-hash 1.1.0",
- "smol_str",
  "tokio 1.38.0",
 ]
 

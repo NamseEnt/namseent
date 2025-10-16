@@ -100,14 +100,14 @@ impl Component for Game {
             game_state: game_state.as_ref(),
         });
 
-        // ctx.add(CameraController);
+        ctx.add(CameraController);
 
-        // ctx.add(simple_rect(
-        //     screen_wh,
-        //     Color::TRANSPARENT,
-        //     0.px(),
-        //     palette::SURFACE_CONTAINER_LOWEST,
-        // ));
+        ctx.add(simple_rect(
+            screen_wh,
+            Color::TRANSPARENT,
+            0.px(),
+            palette::SURFACE_CONTAINER_LOWEST,
+        ));
 
         ctx.attach_event(move |event| {
             match event {

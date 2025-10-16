@@ -9,16 +9,18 @@ pub(crate) struct Composer {
     rendered_flag: AtomicBool,
     next_component_index: AtomicUsize,
     next_compose_index: AtomicUsize,
+    pub(crate) child_key_chain: ChildKeyChain,
 }
 
 impl Composer {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(child_key_chain: ChildKeyChain) -> Self {
         Self {
             compose_id_map: Default::default(),
             instance_id_map: Default::default(),
             rendered_flag: Default::default(),
             next_component_index: Default::default(),
             next_compose_index: Default::default(),
+            child_key_chain,
         }
     }
 

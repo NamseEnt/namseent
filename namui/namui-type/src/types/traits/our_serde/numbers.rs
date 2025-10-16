@@ -362,16 +362,14 @@ mod tests {
     use super::*;
 
     macro_rules! test_serde_roundtrip {
-        ($type_name:ident, $value:expr) => {
-            {
-                let original = $value;
-                let mut buf = Vec::new();
-                original.serialize(&mut buf);
-                let mut buf_slice = buf.as_slice();
-                let deserialized = $type_name::deserialize(&mut buf_slice).unwrap();
-                assert_eq!(original, deserialized);
-            }
-        };
+        ($type_name:ident, $value:expr) => {{
+            let original = $value;
+            let mut buf = Vec::new();
+            original.serialize(&mut buf);
+            let mut buf_slice = buf.as_slice();
+            let deserialized = $type_name::deserialize(&mut buf_slice).unwrap();
+            assert_eq!(original, deserialized);
+        }};
     }
 
     #[test]
@@ -461,14 +459,14 @@ mod tests {
     #[test]
     fn test_f32_serde() {
         test_serde_roundtrip!(f32, 0.0f32);
-        test_serde_roundtrip!(f32, 3.14159f32);
+        test_serde_roundtrip!(f32, std::f32::consts::PI);
         test_serde_roundtrip!(f32, -42.5f32);
     }
 
     #[test]
     fn test_f64_serde() {
         test_serde_roundtrip!(f64, 0.0f64);
-        test_serde_roundtrip!(f64, 3.14159265359f64);
+        test_serde_roundtrip!(f64, std::f64::consts::PI);
         test_serde_roundtrip!(f64, -42.5f64);
     }
 
@@ -478,8 +476,7 @@ mod tests {
         let mut buf = Vec::new();
         original.serialize(&mut buf);
         let mut buf_slice = buf.as_slice();
-        let deserialized =
-            std::sync::atomic::AtomicBool::deserialize(&mut buf_slice).unwrap();
+        let deserialized = std::sync::atomic::AtomicBool::deserialize(&mut buf_slice).unwrap();
         assert_eq!(
             original.load(std::sync::atomic::Ordering::Acquire),
             deserialized.load(std::sync::atomic::Ordering::Acquire)
@@ -489,8 +486,7 @@ mod tests {
         let mut buf = Vec::new();
         original.serialize(&mut buf);
         let mut buf_slice = buf.as_slice();
-        let deserialized =
-            std::sync::atomic::AtomicBool::deserialize(&mut buf_slice).unwrap();
+        let deserialized = std::sync::atomic::AtomicBool::deserialize(&mut buf_slice).unwrap();
         assert_eq!(
             original.load(std::sync::atomic::Ordering::Acquire),
             deserialized.load(std::sync::atomic::Ordering::Acquire)
