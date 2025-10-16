@@ -1,12 +1,14 @@
+use super::*;
 use crate::*;
 use std::{
     cell::{RefCell, UnsafeCell},
+    ops::Deref,
     sync::atomic::AtomicBool,
 };
 
 /// the state of component.
 pub(crate) struct Instance {
-    pub(crate) id: usize,
+    pub(crate) id: InstanceId,
     rendered_flag: AtomicBool,
     pub(crate) state_list: UnsafeCell<Vec<Box<dyn Value>>>,
     pub(crate) memo_list: UnsafeCell<Vec<Memo>>,
@@ -15,9 +17,10 @@ pub(crate) struct Instance {
     pub(crate) effect_list: RefCell<Vec<Effect>>,
     pub(crate) interval_called_list: RefCell<Vec<Instant>>,
     pub(crate) abort_handle_list: RefCell<Vec<tokio::task::AbortHandle>>,
+    frozen_instance: Option<FrozenInstance>,
 }
 impl Instance {
-    pub(crate) fn new(id: usize) -> Self {
+    pub(crate) fn new(id: InstanceId, frozen_instance: Option<FrozenInstance>) -> Self {
         Self {
             id,
             rendered_flag: Default::default(),
@@ -28,6 +31,7 @@ impl Instance {
             effect_list: Default::default(),
             interval_called_list: Default::default(),
             abort_handle_list: Default::default(),
+            frozen_instance,
         }
     }
 
@@ -41,36 +45,36 @@ impl Instance {
             .swap(false, std::sync::atomic::Ordering::Relaxed)
     }
 
-    pub(crate) fn freeze(mut self) -> Vec<u8> {
-        use bytes::BufMut;
-        let mut bytes = Vec::new();
-        bytes.put_slice(&self.id.to_le_bytes());
+    pub(crate) fn freeze(self) -> Vec<u8> {
+        let mut buf = vec![];
+        FrozenInstance::from_instance(self).serialize(&mut buf);
+        buf
+    }
 
-        let state_list = std::mem::take(&mut self.state_list).into_inner();
-        bytes.put_u16(state_list.len() as u16);
-        for state in state_list {
-            bytes.put_slice(&state.serialize());
+    pub(crate) fn state_value<State: crate::State>(
+        &self,
+        state_index: usize,
+        init: impl FnOnce() -> State,
+    ) -> &dyn Value {
+        unsafe {
+            let state_list = &mut *self.state_list.get();
+
+            let no_state = state_list.len() <= state_index;
+
+            if no_state {
+                let state = if let Some(frozen_instance) = &self.frozen_instance
+                    && let Some(bytes) = frozen_instance.state_list.get(state_index)
+                {
+                    State::deserialize(&mut bytes.as_slice()).unwrap()
+                } else {
+                    init()
+                };
+                state_list.push(Box::new(state));
+                assert_eq!(state_list.len(), state_index + 1);
+            };
+
+            state_list.get(state_index).unwrap().deref()
         }
-
-        let memo_list = std::mem::take(&mut self.memo_list).into_inner();
-        bytes.put_u16(memo_list.len() as u16);
-        for memo in memo_list {
-            bytes.put_slice(&memo.serialize());
-        }
-
-        let track_eq_list = std::mem::take(&mut self.track_eq_list).into_inner();
-        bytes.put_u16(track_eq_list.len() as u16);
-        for track_eq in track_eq_list {
-            bytes.put_slice(&track_eq.serialize());
-        }
-
-        let track_eq_tuple_list = std::mem::take(&mut self.track_eq_tuple_list).into_inner();
-        bytes.put_u16(track_eq_tuple_list.len() as u16);
-        for track_eq_tuple in track_eq_tuple_list {
-            bytes.put_slice(&track_eq_tuple.serialize());
-        }
-
-        bytes
     }
 }
 
@@ -87,6 +91,7 @@ impl Drop for Instance {
     }
 }
 
+#[derive(OurSer)]
 pub(crate) struct Memo {
     pub(crate) value: Box<dyn Value>,
     pub(crate) used_sig_ids: Vec<SigId>,
@@ -96,4 +101,31 @@ pub(crate) struct Memo {
 pub(crate) struct Effect {
     pub(crate) used_sig_ids: Vec<SigId>,
     pub(crate) clean_up: EffectCleanUp,
+}
+
+#[derive(OurSerde)]
+pub(crate) struct FrozenInstance {
+    pub(crate) id: InstanceId,
+    pub(crate) state_list: Vec<Vec<u8>>,
+}
+impl FrozenInstance {
+    pub(crate) fn from_instance(mut instance: Instance) -> Self {
+        let state_list = std::mem::take(&mut instance.state_list)
+            .into_inner()
+            .into_iter()
+            .map(|state| {
+                let mut bytes = vec![];
+                state.serialize(&mut bytes);
+                bytes
+            })
+            .collect();
+
+        Self {
+            id: instance.id,
+            state_list,
+        }
+    }
+    pub(crate) fn from_bytes(mut bytes: &[u8]) -> Self {
+        Self::deserialize(&mut bytes).unwrap()
+    }
 }

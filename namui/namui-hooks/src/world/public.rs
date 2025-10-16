@@ -1,5 +1,6 @@
+use namui_type::bytes::Buf;
+
 use super::*;
-use std::borrow::Cow;
 
 impl World {
     pub fn init(get_now: impl Fn() -> Instant + 'static) -> Self {
@@ -7,6 +8,7 @@ impl World {
         Self {
             composers: Default::default(),
             instances: Default::default(),
+            frozen_instances: Default::default(),
             set_state_tx: Box::leak(Box::new(set_state_tx)),
             set_state_rx,
             updated_sig_ids: Default::default(),
@@ -16,7 +18,6 @@ impl World {
             atom_index: Default::default(),
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
-            next_instance_id: Default::default(),
         }
     }
 
@@ -32,46 +33,37 @@ impl World {
         self.run_impl(root_component, Some(event))
     }
 
-    fn run_impl(
-        &mut self,
-        root_component: impl Component,
-        event: Option<RawEvent>,
-    ) -> RenderingTree {
-        self.is_stop_event_propagation
-            .store(false, std::sync::atomic::Ordering::Relaxed);
-        self.reset_updated_sig_ids();
-        self.handle_set_states();
+    pub fn set_frozen_states(&mut self, mut bytes: &[u8]) {
+        let mut frozen_instances = self.frozen_instances.borrow_mut();
+        while !bytes.is_empty() {
+            let len = bytes.get_u32() as usize;
+            let (slice, rest) = bytes.split_at(len);
+            bytes = rest;
 
-        let root_composer = match self.composers.get(&ComposerId::root()) {
-            Some(composer) => composer,
-            None => self
-                .composers
-                .insert(ComposerId::root(), Composer::new().into()),
-        };
+            let frozen_instance = FrozenInstance::from_bytes(slice);
+            frozen_instances.insert(frozen_instance.id, frozen_instance);
+        }
+    }
 
-        let root_instance = match self.instances.get(&0) {
-            Some(instance) => instance,
-            None => {
-                let instance_id = self.next_instance_id();
-                assert_eq!(instance_id, 0);
-                self.instances
-                    .insert(instance_id, Box::new(Instance::new(instance_id)))
-            }
-        };
+    pub fn freeze_states(self) -> Vec<u8> {
+        let frozen_instance_bytes = self
+            .instances
+            .into_map()
+            .into_values()
+            .map(|instance| instance.freeze())
+            .collect::<Vec<Vec<u8>>>();
 
-        self.raw_event = event;
-
-        let rendering_tree = render_ctx::run(
-            self,
-            root_component,
-            root_composer,
-            root_instance,
-            Cow::Owned(vec![]),
+        let mut buffer = Vec::with_capacity(
+            frozen_instance_bytes.iter().map(|x| x.len()).sum::<usize>()
+                + frozen_instance_bytes.len() * 4,
         );
 
-        self.remove_unused_guys();
-        self.record_used_sig_ids.as_mut().clear();
+        use bytes::BufMut;
+        for bytes in frozen_instance_bytes {
+            buffer.put_u32(bytes.len() as u32);
+            buffer.put_slice(&bytes);
+        }
 
-        rendering_tree
+        buffer
     }
 }

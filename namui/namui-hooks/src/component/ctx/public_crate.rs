@@ -10,19 +10,7 @@ impl ComponentCtx<'_> {
             .state_index
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        let value = unsafe {
-            let state_list = &mut *self.instance.state_list.get();
-
-            let no_state = state_list.len() <= state_index;
-
-            if no_state {
-                let state = init();
-                state_list.push(Box::new(state));
-                assert_eq!(state_list.len(), state_index + 1);
-            };
-
-            state_list.get(state_index).unwrap().deref()
-        };
+        let value = self.instance.state_value(state_index, init);
 
         let state: &State = value.as_any().downcast_ref().unwrap();
 

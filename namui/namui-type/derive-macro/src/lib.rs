@@ -121,9 +121,29 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
         }
     };
 
+    let serialize_without_name_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_serialize_without_name(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_serialize_without_name(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "State cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
     let deserialize_impl = match &input.data {
         syn::Data::Struct(data) => our_serde_impl::generate_struct_deserialize(data),
         syn::Data::Enum(data) => our_serde_impl::generate_enum_deserialize(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "State cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let deserialize_without_name_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_deserialize_without_name(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_deserialize_without_name(data),
         syn::Data::Union(_) => {
             return syn::Error::new_spanned(input, "State cannot be derived for unions")
                 .to_compile_error()
@@ -150,14 +170,175 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
         }
 
         impl #impl_generics Serialize for #name #ty_generics #where_clause {
-            fn serialize(&self) -> Vec<u8> {
+            fn serialize(&self, buf: &mut Vec<u8>) {
                 #serialize_impl
+            }
+            fn serialize_without_name(&self, buf: &mut Vec<u8>) {
+                #serialize_without_name_impl
             }
         }
 
         impl #impl_generics Deserialize for #name #ty_generics #where_clause {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 #deserialize_impl
+            }
+            fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+                #deserialize_without_name_impl
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(OurSerde)]
+pub fn derive_our_serde(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+
+    let name = &input.ident;
+    let generics = &input.generics;
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let serialize_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_serialize(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_serialize(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "OurSerde cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let serialize_without_name_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_serialize_without_name(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_serialize_without_name(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "OurSerde cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let deserialize_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_deserialize(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_deserialize(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "OurSerde cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let deserialize_without_name_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_deserialize_without_name(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_deserialize_without_name(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "OurSerde cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let expanded = quote! {
+        impl #impl_generics Serialize for #name #ty_generics #where_clause {
+            fn serialize(&self, buf: &mut Vec<u8>) {
+                #serialize_impl
+            }
+            fn serialize_without_name(&self, buf: &mut Vec<u8>) {
+                #serialize_without_name_impl
+            }
+        }
+
+        impl #impl_generics Deserialize for #name #ty_generics #where_clause {
+            fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+                #deserialize_impl
+            }
+            fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+                #deserialize_without_name_impl
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(OurSer)]
+pub fn derive_our_ser(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+
+    let name = &input.ident;
+    let generics = &input.generics;
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let serialize_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_serialize(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_serialize(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "OurSer cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let serialize_without_name_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_serialize_without_name(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_serialize_without_name(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "OurSer cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let expanded = quote! {
+        impl #impl_generics Serialize for #name #ty_generics #where_clause {
+            fn serialize(&self, buf: &mut Vec<u8>) {
+                #serialize_impl
+            }
+            fn serialize_without_name(&self, buf: &mut Vec<u8>) {
+                #serialize_without_name_impl
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(OurDe)]
+pub fn derive_our_de(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+
+    let name = &input.ident;
+    let generics = &input.generics;
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let deserialize_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_deserialize(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_deserialize(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "OurDe cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let deserialize_without_name_impl = match &input.data {
+        syn::Data::Struct(data) => our_serde_impl::generate_struct_deserialize_without_name(data),
+        syn::Data::Enum(data) => our_serde_impl::generate_enum_deserialize_without_name(data),
+        syn::Data::Union(_) => {
+            return syn::Error::new_spanned(input, "OurDe cannot be derived for unions")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    let expanded = quote! {
+        impl #impl_generics Deserialize for #name #ty_generics #where_clause {
+            fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+                #deserialize_impl
+            }
+            fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+                #deserialize_without_name_impl
             }
         }
     };

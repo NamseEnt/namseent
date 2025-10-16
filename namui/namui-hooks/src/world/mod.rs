@@ -3,14 +3,20 @@ mod public;
 use crate::*;
 use elsa::*;
 use rustc_hash::FxHashSet;
-use std::sync::{
-    atomic::{AtomicBool, AtomicUsize},
-    mpsc,
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    collections::BTreeMap,
+    sync::{
+        atomic::{AtomicBool, AtomicUsize},
+        mpsc,
+    },
 };
 
 pub struct World {
     composers: FrozenIndexMap<ComposerId, Box<Composer>>,
-    instances: FrozenIndexMap<usize, Box<Instance>>,
+    instances: FrozenIndexMap<InstanceId, Box<Instance>>,
+    frozen_instances: RefCell<BTreeMap<InstanceId, FrozenInstance>>,
     set_state_rx: mpsc::Receiver<SetStateItem>,
     pub(crate) set_state_tx: &'static mpsc::Sender<SetStateItem>,
     updated_sig_ids: FrozenIndexSet<Box<SigId>>,
@@ -20,7 +26,6 @@ pub struct World {
     pub(crate) atom_index: AtomicUsize,
     pub(crate) raw_event: Option<RawEvent>,
     pub(crate) is_stop_event_propagation: AtomicBool,
-    next_instance_id: AtomicUsize,
 }
 
 impl World {
@@ -64,16 +69,21 @@ impl World {
         match parent_composer.instance_id_map.get(child_key) {
             Some(child_instance_id) => self.instances.get(child_instance_id).unwrap(),
             None => {
-                let child_instance_id = self.next_instance_id();
+                let child_instance_id = InstanceId::generate();
 
                 parent_composer
                     .instance_id_map
                     .insert(child_key.clone(), child_instance_id.into());
 
-                (self.instances.insert(
+                self.instances.insert(
                     child_instance_id,
-                    Box::new(Instance::new(child_instance_id)),
-                )) as _
+                    Box::new(Instance::new(
+                        child_instance_id,
+                        self.frozen_instances
+                            .borrow_mut()
+                            .remove(&child_instance_id),
+                    )),
+                )
             }
         }
     }
@@ -331,8 +341,49 @@ impl World {
             .load(std::sync::atomic::Ordering::Relaxed)
     }
 
-    fn next_instance_id(&self) -> usize {
-        self.next_instance_id
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    fn run_impl(
+        &mut self,
+        root_component: impl Component,
+        event: Option<RawEvent>,
+    ) -> RenderingTree {
+        self.is_stop_event_propagation
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+        self.reset_updated_sig_ids();
+        self.handle_set_states();
+
+        let root_composer = match self.composers.get(&ComposerId::root()) {
+            Some(composer) => composer,
+            None => self
+                .composers
+                .insert(ComposerId::root(), Composer::new().into()),
+        };
+
+        let root_instance = match self.instances.get(&InstanceId::root()) {
+            Some(instance) => instance,
+            None => self.instances.insert(
+                InstanceId::root(),
+                Box::new(Instance::new(
+                    InstanceId::root(),
+                    self.frozen_instances
+                        .borrow_mut()
+                        .remove(&InstanceId::root()),
+                )),
+            ),
+        };
+
+        self.raw_event = event;
+
+        let rendering_tree = render_ctx::run(
+            self,
+            root_component,
+            root_composer,
+            root_instance,
+            Cow::Owned(vec![]),
+        );
+
+        self.remove_unused_guys();
+        self.record_used_sig_ids.as_mut().clear();
+
+        rendering_tree
     }
 }

@@ -18,3 +18,12 @@ impl<T: Any + 'static + State + Serialize> Value for T {
         self
     }
 }
+
+impl Serialize for Box<dyn Value> {
+    fn serialize(&self, buf: &mut Vec<u8>) {
+        self.as_ref().serialize(buf)
+    }
+    fn serialize_without_name(&self, buf: &mut Vec<u8>) {
+        self.as_ref().serialize_without_name(buf)
+    }
+}

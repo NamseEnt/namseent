@@ -337,12 +337,12 @@ macro_rules! vector_types {
         where
             T: $crate::Serialize,
         {
-            fn serialize(&self) -> Vec<u8> {
-                use bytes::BufMut;
-                let mut buffer = vec![];
-                buffer.write_string(std::any::type_name::<Self>());
-                $( buffer.put_slice(&self.$field_ident.serialize()); )*
-                buffer
+            fn serialize(&self, buf: &mut Vec<u8>) {
+                buf.write_string(std::any::type_name::<Self>());
+self.serialize_without_name(buf);
+}
+fn serialize_without_name(&self, buf: &mut Vec<u8>) {
+                $( self.$field_ident.serialize(buf); )*
             }
         }
         impl<T> $crate::Deserialize for $type_name<T>
@@ -351,7 +351,10 @@ macro_rules! vector_types {
         {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 buf.read_name(std::any::type_name::<Self>())?;
-                $( let $field_ident = T::deserialize(buf)?; )*
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        $( let $field_ident = T::deserialize(buf)?; )*
                 Ok($type_name { $( $field_ident ),* })
             }
         }

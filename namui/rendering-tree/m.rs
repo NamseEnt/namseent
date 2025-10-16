@@ -436,7 +436,10 @@ mod command {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 use BufExt;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let field_name = buf.read_name("rect")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let field_name = buf.read_name("rect")?;
                 let rect = Deserialize::deserialize(buf)?;
                 let field_name = buf.read_name("image")?;
                 let image = Deserialize::deserialize(buf)?;
@@ -549,7 +552,10 @@ mod command {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 use BufExt;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let field_name = buf.read_name("path")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let field_name = buf.read_name("path")?;
                 let path = Deserialize::deserialize(buf)?;
                 let field_name = buf.read_name("paint")?;
                 let paint = Deserialize::deserialize(buf)?;
@@ -755,7 +761,10 @@ mod command {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 use BufExt;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let field_name = buf.read_name("text")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let field_name = buf.read_name("text")?;
                 let text = Deserialize::deserialize(buf)?;
                 let field_name = buf.read_name("font")?;
                 let font = Deserialize::deserialize(buf)?;
@@ -979,7 +988,10 @@ mod command {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Path" => {
                     let field_name = buf.read_name("command")?;
@@ -2389,7 +2401,10 @@ mod rendering_tree {
                 fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                     use BufExt;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let field_name = buf.read_name("x")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let field_name = buf.read_name("x")?;
                     let x = Deserialize::deserialize(buf)?;
                     let field_name = buf.read_name("y")?;
                     let y = Deserialize::deserialize(buf)?;
@@ -2527,7 +2542,10 @@ mod rendering_tree {
                 fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                     use BufExt;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let field_name = buf.read_name("path")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let field_name = buf.read_name("path")?;
                     let path = Deserialize::deserialize(buf)?;
                     let field_name = buf.read_name("clip_op")?;
                     let clip_op = Deserialize::deserialize(buf)?;
@@ -2638,7 +2656,10 @@ mod rendering_tree {
                 fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                     use BufExt;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let field_name = buf.read_name("cursor")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let field_name = buf.read_name("cursor")?;
                     let cursor = Deserialize::deserialize(buf)?;
                     let field_name = buf.read_name("rendering_tree")?;
                     let rendering_tree = Deserialize::deserialize(buf)?;
@@ -2791,7 +2812,10 @@ mod rendering_tree {
                     use BufExt;
                     use bytes::Buf;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let variant_name = buf.read_string();
                     match variant_name.as_ref() {
                         "Standard" => {
                             let field0 = { Deserialize::deserialize(buf)? };
@@ -3279,7 +3303,10 @@ mod rendering_tree {
                     use BufExt;
                     use bytes::Buf;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let variant_name = buf.read_string();
                     match variant_name.as_ref() {
                         "Default" => Ok(Self::Default),
                         "Pointer" => Ok(Self::Pointer),
@@ -3446,7 +3473,10 @@ mod rendering_tree {
                 fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                     use BufExt;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let field_name = buf.read_name("sheet")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let field_name = buf.read_name("sheet")?;
                     let sheet = Deserialize::deserialize(buf)?;
                     let field_name = buf.read_name("columns")?;
                     let columns = Deserialize::deserialize(buf)?;
@@ -3663,7 +3693,10 @@ mod rendering_tree {
                     use BufExt;
                     use bytes::Buf;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let variant_name = buf.read_string();
                     match variant_name.as_ref() {
                         "Static" => {
                             let field_name = buf.read_name("index")?;
@@ -3806,7 +3839,10 @@ mod rendering_tree {
                 fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                     use BufExt;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let field_name = buf.read_name("rendering_tree")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let field_name = buf.read_name("rendering_tree")?;
                     let rendering_tree = Deserialize::deserialize(buf)?;
                     Ok(Self { rendering_tree })
                 }
@@ -3924,7 +3960,10 @@ mod rendering_tree {
                 fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                     use BufExt;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let field_name = buf.read_name("angle")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let field_name = buf.read_name("angle")?;
                     let angle = Deserialize::deserialize(buf)?;
                     let field_name = buf.read_name("rendering_tree")?;
                     let rendering_tree = Deserialize::deserialize(buf)?;
@@ -4061,7 +4100,10 @@ mod rendering_tree {
                 fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                     use BufExt;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let field_name = buf.read_name("x")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let field_name = buf.read_name("x")?;
                     let x = Deserialize::deserialize(buf)?;
                     let field_name = buf.read_name("y")?;
                     let y = Deserialize::deserialize(buf)?;
@@ -4186,7 +4228,10 @@ mod rendering_tree {
                 fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                     use BufExt;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let field_name = buf.read_name("matrix")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let field_name = buf.read_name("matrix")?;
                     let matrix = Deserialize::deserialize(buf)?;
                     let field_name = buf.read_name("rendering_tree")?;
                     let rendering_tree = Deserialize::deserialize(buf)?;
@@ -4317,7 +4362,10 @@ mod rendering_tree {
                 fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                     use BufExt;
                     buf.read_name(std::any::type_name::<Self>())?;
-                    let field_name = buf.read_name("x")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {            let field_name = buf.read_name("x")?;
                     let x = Deserialize::deserialize(buf)?;
                     let field_name = buf.read_name("y")?;
                     let y = Deserialize::deserialize(buf)?;
@@ -4649,7 +4697,10 @@ mod rendering_tree {
                 use BufExt;
                 use bytes::Buf;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let variant_name = buf.read_string();
                 match variant_name.as_ref() {
                     "Translate" => {
                         let field0 = { Deserialize::deserialize(buf)? };
@@ -4894,7 +4945,10 @@ mod rendering_tree {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Empty" => Ok(Self::Empty),
                 "Node" => {
@@ -5785,7 +5839,10 @@ mod types {
                 use BufExt;
                 use bytes::Buf;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let variant_name = buf.read_string();
                 match variant_name.as_ref() {
                     "BlendMode" => {
                         let field0 = { Deserialize::deserialize(buf)? };
@@ -7033,7 +7090,10 @@ mod types {
                 use BufExt;
                 use bytes::Buf;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let variant_name = buf.read_string();
                 match variant_name.as_ref() {
                     "Blend" => {
                         let field_name = buf.read_name("color")?;
@@ -7187,7 +7247,10 @@ mod types {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 use BufExt;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let field_name = buf.read_name("size")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let field_name = buf.read_name("size")?;
                 let size = Deserialize::deserialize(buf)?;
                 let field_name = buf.read_name("name")?;
                 let name = Deserialize::deserialize(buf)?;
@@ -7336,7 +7399,10 @@ mod types {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 use BufExt;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let field_name = buf.read_name("id")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let field_name = buf.read_name("id")?;
                 let id = Deserialize::deserialize(buf)?;
                 Ok(Self { id })
             }
@@ -7527,7 +7593,10 @@ mod types {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 use BufExt;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let field_name = buf.read_name("alpha_type")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let field_name = buf.read_name("alpha_type")?;
                 let alpha_type = Deserialize::deserialize(buf)?;
                 let field_name = buf.read_name("color_type")?;
                 let color_type = Deserialize::deserialize(buf)?;
@@ -8070,7 +8139,10 @@ mod types {
                 use BufExt;
                 use bytes::Buf;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let variant_name = buf.read_string();
                 match variant_name.as_ref() {
                     "Empty" => Ok(Self::Empty),
                     "Blur" => {
@@ -8303,7 +8375,10 @@ mod types {
                 use BufExt;
                 use bytes::Buf;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let variant_name = buf.read_string();
                 match variant_name.as_ref() {
                     "Blur" => {
                         let field_name = buf.read_name("blur_style")?;
@@ -8474,7 +8549,10 @@ mod types {
                 use BufExt;
                 use bytes::Buf;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let variant_name = buf.read_string();
                 match variant_name.as_ref() {
                     "Normal" => Ok(Self::Normal),
                     "Solid" => Ok(Self::Solid),
@@ -8753,7 +8831,10 @@ mod types {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 use BufExt;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let field_name = buf.read_name("color")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let field_name = buf.read_name("color")?;
                 let color = Deserialize::deserialize(buf)?;
                 let field_name = buf.read_name("paint_style")?;
                 let paint_style = Deserialize::deserialize(buf)?;
@@ -8940,7 +9021,10 @@ mod types {
             fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
                 use BufExt;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let field_name = buf.read_name("commands")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let field_name = buf.read_name("commands")?;
                 let commands = Deserialize::deserialize(buf)?;
                 Ok(Self { commands })
             }
@@ -9783,7 +9867,10 @@ mod types {
                 use BufExt;
                 use bytes::Buf;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let variant_name = buf.read_string();
                 match variant_name.as_ref() {
                     "AddRect" => {
                         let field_name = buf.read_name("rect")?;
@@ -10193,7 +10280,10 @@ mod types {
                 use BufExt;
                 use bytes::Buf;
                 buf.read_name(std::any::type_name::<Self>())?;
-                let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {        let variant_name = buf.read_string();
                 match variant_name.as_ref() {
                     "Image" => {
                         let field_name = buf.read_name("src")?;
@@ -10468,7 +10558,10 @@ mod types {
         fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
             use BufExt;
             buf.read_name(std::any::type_name::<Self>())?;
-            let field_name = buf.read_name("r")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let field_name = buf.read_name("r")?;
             let r = Deserialize::deserialize(buf)?;
             let field_name = buf.read_name("g")?;
             let g = Deserialize::deserialize(buf)?;
@@ -10792,7 +10885,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Fill" => Ok(Self::Fill),
                 "Stroke" => Ok(Self::Stroke),
@@ -10926,7 +11022,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Butt" => Ok(Self::Butt),
                 "Round" => Ok(Self::Round),
@@ -11062,7 +11161,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Bevel" => Ok(Self::Bevel),
                 "Miter" => Ok(Self::Miter),
@@ -11219,7 +11321,10 @@ mod types {
         fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
             use BufExt;
             buf.read_name(std::any::type_name::<Self>())?;
-            let field_name = buf.read_name("width")?;
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let field_name = buf.read_name("width")?;
             let width = Deserialize::deserialize(buf)?;
             let field_name = buf.read_name("miter_limit")?;
             let miter_limit = Deserialize::deserialize(buf)?;
@@ -11344,7 +11449,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Intersect" => Ok(Self::Intersect),
                 "Difference" => Ok(Self::Difference),
@@ -11471,7 +11579,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Opaque" => Ok(Self::Opaque),
                 "Premul" => Ok(Self::Premul),
@@ -11700,7 +11811,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Alpha8" => Ok(Self::Alpha8),
                 "Rgb565" => Ok(Self::Rgb565),
@@ -12242,7 +12356,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Clear" => Ok(Self::Clear),
                 "Src" => Ok(Self::Src),
@@ -12444,7 +12561,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Clamp" => Ok(Self::Clamp),
                 "Decal" => Ok(Self::Decal),
@@ -12621,7 +12741,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Left" => Ok(Self::Left),
                 "Center" => Ok(Self::Center),
@@ -12748,7 +12871,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Top" => Ok(Self::Top),
                 "Middle" => Ok(Self::Middle),
@@ -12905,7 +13031,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Fill" => Ok(Self::Fill),
                 "Contain" => Ok(Self::Contain),
@@ -13036,7 +13165,10 @@ mod types {
             use BufExt;
             use bytes::Buf;
             buf.read_name(std::any::type_name::<Self>())?;
-            let variant_name = buf.read_string();
+
+        Self::deserialize_without_name(buf)
+    }
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {    let variant_name = buf.read_string();
             match variant_name.as_ref() {
                 "Left" => Ok(Self::Left),
                 "Middle" => Ok(Self::Middle),
