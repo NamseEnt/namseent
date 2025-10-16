@@ -1,8 +1,6 @@
-use crate::{
-    game_state::{
-        GameState, MonsterKind, TILE_PX_SIZE,
-        monster::{MONSTER_HP_BAR_HEIGHT, Monster, monster_hp_bar::MonsterHpBar},
-    },
+use crate::game_state::{
+    GameState, MonsterKind, TILE_PX_SIZE,
+    monster::{MONSTER_HP_BAR_HEIGHT, Monster, monster_hp_bar::MonsterHpBar},
 };
 use namui::*;
 
