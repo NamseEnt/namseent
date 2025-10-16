@@ -3,8 +3,8 @@ name = "insert-js"
 version = "0.1.0"
 edition = "2024"
 
-[package.metadata.namui]
-targets = ["wasm32-wasi-web"]
+# [package.metadata.namui]
+# targets = ["wasm32-wasi-web"]
 
 [dependencies]
 namui = { path = "../../namui" }

@@ -3,8 +3,8 @@ name = "media"
 version = "0.1.0"
 edition = "2024"
 
-[package.metadata.namui]
-targets = ["x86_64-pc-windows-msvc"]
+# [package.metadata.namui]
+# targets = ["x86_64-pc-windows-msvc"]
 
 [dependencies]
 namui = { path = "../../namui" }
