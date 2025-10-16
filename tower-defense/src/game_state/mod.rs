@@ -182,15 +182,19 @@ impl GameState {
     }
 }
 
-impl Component for &GameState {
-    fn render(self, ctx: &RenderCtx) {
-        ctx.add(tick::Ticker {});
+pub struct RenderGameState<'a> {
+    pub game_state: &'a GameState,
+}
 
-        ctx.scale(Xy::single(self.camera.zoom_level))
-            .translate(TILE_PX_SIZE.to_xy() * self.camera.left_top * -1.0)
-            .compose(|ctx| {
-                render::render(self, ctx);
-            });
+impl Component for RenderGameState<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        ctx.add(tick::Ticker);
+
+        // ctx.scale(Xy::single(self.game_state.camera.zoom_level))
+        //     .translate(TILE_PX_SIZE.to_xy() * self.game_state.camera.left_top * -1.0)
+        //     .compose(|ctx| {
+        //         render::render(self.game_state, ctx);
+        //     });
     }
 }
 

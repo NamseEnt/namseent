@@ -148,3 +148,9 @@ async function startMainThread() {
 }
 
 startMainThread();
+
+document.addEventListener("keyup", (e) => {
+    if (e.key === "F13") {
+        startMainThread();
+    }
+});

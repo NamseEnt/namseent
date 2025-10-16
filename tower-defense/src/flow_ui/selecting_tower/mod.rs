@@ -22,8 +22,8 @@ impl Component for SelectingTowerUi<'_> {
             hand: &selecting_tower_flow.hand,
         });
 
-        ctx.add(ShopModal {
-            shop: &selecting_tower_flow.shop,
-        });
+        // ctx.add(ShopModal {
+        //     shop: &selecting_tower_flow.shop,
+        // });
     }
 }

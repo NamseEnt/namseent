@@ -1,3 +1,4 @@
+mod freeze;
 mod mouse_event;
 mod pass_sig;
 

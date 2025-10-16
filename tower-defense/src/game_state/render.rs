@@ -4,14 +4,14 @@ use super::*;
 // Render in the 1:1 scale, without thinking about the camera zoom level.
 pub(crate) fn render(game_state: &GameState, ctx: ComposeCtx<'_, '_>) {
     ctx.add((render_tower_info_popup, game_state));
-    ctx.add((render_cursor_preview, game_state));
-    ctx.add((render_field_particles, game_state));
-    ctx.add((render_projectiles, game_state));
-    ctx.add((render_monsters, game_state));
-    ctx.add((render_route_guide, game_state));
-    ctx.add((render_towers, game_state));
-    ctx.add((render_grid, game_state));
-    ctx.add((render_backgrounds, game_state));
+    // ctx.add((render_cursor_preview, game_state));
+    // ctx.add((render_field_particles, game_state));
+    // ctx.add((render_projectiles, game_state));
+    // ctx.add((render_monsters, game_state));
+    // ctx.add((render_route_guide, game_state));
+    // ctx.add((render_towers, game_state));
+    // ctx.add((render_grid, game_state));
+    // ctx.add((render_backgrounds, game_state));
 }
 
 impl GameState {
