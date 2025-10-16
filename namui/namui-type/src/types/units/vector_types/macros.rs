@@ -9,16 +9,12 @@ macro_rules! vector_types {
     }) => {
         use $crate::*;
 
-        #[type_derives(Copy, Eq, Hash)]
+        #[derive(bincode::Encode, bincode::Decode)]
         pub struct $type_name<T>
-        where
-            T: std::fmt::Debug + State,
         {
             $( pub $field_ident: T ),*
         }
         impl<T> $type_name<T>
-        where
-            T: std::fmt::Debug + State,
         {
             #[inline(always)]
             pub const fn new($($field_ident: T),*) -> Self {
@@ -28,7 +24,6 @@ macro_rules! vector_types {
             pub fn map<U, F>(self, f: F) -> $type_name<U>
             where
                 F: Fn(T) -> U,
-                U: std::fmt::Debug + State,
             {
                 $type_name {
                     $( $field_ident: f(self.$field_ident) ),*
@@ -37,7 +32,7 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T>
         where
-            T: Clone + std::fmt::Debug + State,
+            T: Clone,
         {
             pub fn single(value: T) -> $type_name<T> {
                 $type_name {
@@ -47,7 +42,6 @@ macro_rules! vector_types {
             pub fn into_type<U>(&self) -> $type_name<U>
             where
                 T: Into<U>,
-                U: std::fmt::Debug + State,
             {
                 $type_name {
                     $( $field_ident: self.$field_ident.clone().into() ),*
@@ -78,8 +72,8 @@ macro_rules! vector_types {
 
         impl<Lhs, Rhs> std::ops::Div<Rhs> for $type_name<Lhs>
         where
-            Lhs: std::ops::Div<Rhs, Output = Lhs> + std::fmt::Debug + State,
-            Rhs: $crate::Ratio + Clone + std::fmt::Debug + State,
+            Lhs: std::ops::Div<Rhs, Output = Lhs>,
+            Rhs: $crate::Ratio + Clone,
         {
             type Output = $type_name<Lhs>;
             fn div(self, rhs: Rhs) -> Self::Output {
@@ -91,8 +85,8 @@ macro_rules! vector_types {
 
         impl<'a, Lhs, Rhs> std::ops::Div<Rhs> for &'a $type_name<Lhs>
         where
-            Lhs: std::ops::Div<Rhs, Output = Lhs> + Clone + std::fmt::Debug + State,
-            Rhs: $crate::Ratio + Clone + std::fmt::Debug + State,
+            Lhs: std::ops::Div<Rhs, Output = Lhs> + Clone,
+            Rhs: $crate::Ratio + Clone,
         {
             type Output = $type_name<Lhs>;
             fn div(self, rhs: Rhs) -> Self::Output {
@@ -104,8 +98,8 @@ macro_rules! vector_types {
 
         impl<Lhs, Rhs> std::ops::DivAssign<Rhs> for $type_name<Lhs>
         where
-            Lhs: std::ops::DivAssign<Rhs> + std::fmt::Debug + State,
-            Rhs: $crate::Ratio + Clone + std::fmt::Debug + State,
+            Lhs: std::ops::DivAssign<Rhs>,
+            Rhs: $crate::Ratio + Clone,
         {
             fn div_assign(&mut self, rhs: Rhs) {
                 $( self.$field_ident.div_assign(rhs.clone()); )*
@@ -114,8 +108,8 @@ macro_rules! vector_types {
 
         impl<Lhs, Rhs> std::ops::Mul<Rhs> for $type_name<Lhs>
         where
-            Lhs: std::ops::Mul<Rhs, Output = Lhs> + std::fmt::Debug + State,
-            Rhs: $crate::Ratio + Clone + std::fmt::Debug + State,
+            Lhs: std::ops::Mul<Rhs, Output = Lhs>,
+            Rhs: $crate::Ratio + Clone,
         {
             type Output = $type_name<Lhs>;
             fn mul(self, rhs: Rhs) -> Self::Output {
@@ -127,8 +121,8 @@ macro_rules! vector_types {
 
         impl<'a, Lhs, Rhs> std::ops::Mul<Rhs> for &'a $type_name<Lhs>
         where
-            Lhs: std::ops::Mul<Rhs, Output = Lhs> + Clone + std::fmt::Debug + State,
-            Rhs: $crate::Ratio + Clone + std::fmt::Debug + State,
+            Lhs: std::ops::Mul<Rhs, Output = Lhs> + Clone,
+            Rhs: $crate::Ratio + Clone,
         {
             type Output = $type_name<Lhs>;
             fn mul(self, rhs: Rhs) -> Self::Output {
@@ -140,8 +134,8 @@ macro_rules! vector_types {
 
         impl<Lhs, Rhs> std::ops::MulAssign<Rhs> for $type_name<Lhs>
         where
-            Lhs: std::ops::MulAssign<Rhs> + std::fmt::Debug + State,
-            Rhs: $crate::Ratio + Clone + std::fmt::Debug + State,
+            Lhs: std::ops::MulAssign<Rhs>,
+            Rhs: $crate::Ratio + Clone,
         {
             fn mul_assign(&mut self, rhs: Rhs) {
                 $( self.$field_ident.mul_assign(rhs.clone()); )*
@@ -150,7 +144,7 @@ macro_rules! vector_types {
 
         impl<T> std::ops::AddAssign<$type_name<T>> for $type_name<T>
         where
-            T: std::ops::AddAssign + Clone + std::fmt::Debug + State,
+            T: std::ops::AddAssign + Clone,
         {
             fn add_assign(&mut self, rhs: $type_name<T>) {
                 $( self.$field_ident.add_assign(rhs.$field_ident.clone()); )*
@@ -159,7 +153,7 @@ macro_rules! vector_types {
 
         impl<'a, T> std::ops::AddAssign<&'a $type_name<T>> for $type_name<T>
         where
-            T: std::ops::AddAssign + Clone + std::fmt::Debug + State,
+            T: std::ops::AddAssign + Clone,
         {
             fn add_assign(&mut self, rhs: &$type_name<T>) {
                 $( self.$field_ident.add_assign(rhs.$field_ident.clone()); )*
@@ -168,7 +162,7 @@ macro_rules! vector_types {
 
         impl<T> std::ops::SubAssign<$type_name<T>> for $type_name<T>
         where
-            T: std::ops::SubAssign + Clone + std::fmt::Debug + State,
+            T: std::ops::SubAssign + Clone,
         {
             fn sub_assign(&mut self, rhs: $type_name<T>) {
                 $( self.$field_ident.sub_assign(rhs.$field_ident.clone()); )*
@@ -177,7 +171,7 @@ macro_rules! vector_types {
 
         impl<'a, T> std::ops::SubAssign<&'a $type_name<T>> for $type_name<T>
         where
-            T: std::ops::SubAssign + Clone + std::fmt::Debug + State,
+            T: std::ops::SubAssign + Clone,
         {
             fn sub_assign(&mut self, rhs: &$type_name<T>) {
                 $( self.$field_ident.sub_assign(rhs.$field_ident.clone()); )*
@@ -186,7 +180,7 @@ macro_rules! vector_types {
 
         impl<T> std::ops::Neg for $type_name<T>
         where
-            T: std::ops::Neg<Output = T> + std::fmt::Debug + State,
+            T: std::ops::Neg<Output = T>,
         {
             type Output = $type_name<T>;
             fn neg(self) -> Self::Output {
@@ -199,7 +193,7 @@ macro_rules! vector_types {
 
         impl<T> $type_name<T>
         where
-            T: From<f32> + std::fmt::Debug + State,
+            T: From<f32>,
         {
             #[inline(always)]
             pub fn zero() -> $type_name<T> {
@@ -215,7 +209,7 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T>
         where
-            T: From<f32> + Into<f32> + Copy + std::fmt::Debug + State,
+            T: From<f32> + Into<f32> + Copy,
         {
             pub fn length(&self) -> T {
                 let length_in_f32 = {
@@ -230,7 +224,7 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T>
         where
-            T: From<f32> + Into<f32> + Copy + std::fmt::Debug + State,
+            T: From<f32> + Into<f32> + Copy,
         {
             pub fn length_squared(&self) -> T {
                 let mut sum = 0.0;
@@ -242,7 +236,7 @@ macro_rules! vector_types {
         }
         impl<T> $type_name<T>
         where
-            T: From<f32> + Into<f32> + Copy + std::fmt::Debug + std::ops::Sub<Output = T> + State,
+            T: From<f32> + Into<f32> + Copy + std::ops::Sub<Output = T>,
         {
             pub fn distance(&self, rhs: $type_name<T>) -> T {
                 (self - rhs).length()
@@ -253,8 +247,8 @@ macro_rules! vector_types {
             T: std::ops::Div<f32, Output = T>
                 + $crate::Ratio
                 + Clone
-                + std::fmt::Debug
-                + From<f32> + Into<f32> + Copy + std::fmt::Debug + State,
+
+                + From<f32> + Into<f32> + Copy,
         {
             pub fn normalize(&self) -> $type_name<T> {
                 let length: f32 = self.length().into();
@@ -269,7 +263,7 @@ macro_rules! vector_types {
 
         impl<T> $type_name<T>
         where
-            T: std::ops::Mul<Output = T> + std::ops::AddAssign + Clone + Default + std::fmt::Debug + State,
+            T: std::ops::Mul<Output = T> + std::ops::AddAssign + Clone + Default,
         {
             pub fn dot(&self, rhs: &$type_name<T>) -> T {
                 let mut sum = T::default();
@@ -281,11 +275,84 @@ macro_rules! vector_types {
         }
 
         impl<T> AsRef<$type_name<T>> for $type_name<T>
-        where
-            T: std::fmt::Debug + State,
         {
             fn as_ref(&self) -> &$type_name<T> {
                 self
+            }
+        }
+
+        impl<T> std::fmt::Debug for $type_name<T>
+        where
+            T: std::fmt::Debug,
+        {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_struct(stringify!($type_name))
+                    $(.field(stringify!($field_ident), &self.$field_ident))*
+                    .finish()
+            }
+        }
+
+        impl<T> Clone for $type_name<T>
+        where
+            T: Clone,
+        {
+            fn clone(&self) -> Self {
+                $type_name {
+                    $( $field_ident: self.$field_ident.clone() ),*
+                }
+            }
+        }
+
+        impl<T> Copy for $type_name<T>
+        where
+            T: Copy,
+        {
+        }
+
+        impl<T> PartialEq for $type_name<T>
+        where
+            T: PartialEq,
+        {
+            fn eq(&self, other: &Self) -> bool {
+                true $(&& self.$field_ident == other.$field_ident )*
+            }
+        }
+
+        impl<T> Eq for $type_name<T>
+        where
+            T: Eq,
+        {
+        }
+
+        impl<T> std::hash::Hash for $type_name<T>
+        where
+            T: std::hash::Hash,
+        {
+            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                $( self.$field_ident.hash(state) );*
+            }
+        }
+
+        impl<T> $crate::Serialize for $type_name<T>
+        where
+            T: $crate::Serialize,
+        {
+            fn serialize(&self) -> Vec<u8> {
+                use bytes::BufMut;
+                let mut buffer = vec![];
+                buffer.write_string(std::any::type_name::<Self>());
+                $( buffer.put_slice(&self.$field_ident.serialize()); )*
+                buffer
+            }
+        }
+        impl<T> $crate::Deserialize for $type_name<T>
+        where
+            T: $crate::Deserialize,
+        {
+            fn deserialize(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+                buf.read_name(std::any::type_name::<Self>())?;
+                $( let $field_ident = T::deserialize(buf)?; )*
+                Ok($type_name { $( $field_ident ),* })
             }
         }
     };
@@ -296,9 +363,7 @@ macro_rules! overload_tuple_types_binary_operator {
     ($ops_trait: tt, $fn_name: ident, $type_name: ident, { $($field_ident:ident),* $(,)? }) => {
         impl<Lhs, Rhs, TOutput> std::ops::$ops_trait<$type_name<Rhs>> for $type_name<Lhs>
         where
-            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + std::fmt::Debug + State,
-            Rhs: std::fmt::Debug + State,
-            TOutput: std::fmt::Debug + State,
+            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput>,
         {
             type Output = $type_name<TOutput>;
             fn $fn_name(self, rhs: $type_name<Rhs>) -> Self::Output {
@@ -309,9 +374,7 @@ macro_rules! overload_tuple_types_binary_operator {
         }
         impl<'a, Lhs, Rhs, TOutput> std::ops::$ops_trait<$type_name<Rhs>> for &'a $type_name<Lhs>
         where
-            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + Clone + std::fmt::Debug + State,
-            Rhs: std::fmt::Debug + State,
-            TOutput: std::fmt::Debug + State,
+            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + Clone,
         {
             type Output = $type_name<TOutput>;
             fn $fn_name(self, rhs: $type_name<Rhs>) -> Self::Output {
@@ -322,9 +385,8 @@ macro_rules! overload_tuple_types_binary_operator {
         }
         impl<'b, Lhs, Rhs, TOutput> std::ops::$ops_trait<&'b $type_name<Rhs>> for $type_name<Lhs>
         where
-            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + std::fmt::Debug + State,
-            Rhs: Clone + std::fmt::Debug + State,
-            TOutput: std::fmt::Debug + State,
+            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput>,
+            Rhs: Clone,
         {
             type Output = $type_name<TOutput>;
             fn $fn_name(self, rhs: &'b $type_name<Rhs>) -> Self::Output {
@@ -335,9 +397,8 @@ macro_rules! overload_tuple_types_binary_operator {
         }
         impl<'a, 'b, Lhs, Rhs, TOutput> std::ops::$ops_trait<&'b $type_name<Rhs>> for &'a $type_name<Lhs>
         where
-            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + Clone + std::fmt::Debug + State,
-            Rhs: Clone + std::fmt::Debug + State,
-            TOutput: std::fmt::Debug + State,
+            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + Clone,
+            Rhs: Clone,
         {
             type Output = $type_name<TOutput>;
             fn $fn_name(self, rhs: &'b $type_name<Rhs>) -> Self::Output {
