@@ -7,7 +7,7 @@ pub mod system;
 pub mod utils;
 
 pub use self::random::*;
-pub use anyhow::anyhow;
+pub use anyhow::{Result, anyhow};
 pub use auto_ops;
 pub use common::*;
 pub use futures::{StreamExt, future::join_all, future::try_join_all, join, try_join};

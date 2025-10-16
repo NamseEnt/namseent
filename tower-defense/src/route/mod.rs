@@ -7,7 +7,6 @@ pub use move_on_route::*;
 use namui::State;
 pub use render_route::*;
 pub use route_find::*;
-use namui::State;
 use std::sync::Arc;
 
 #[derive(Debug, PartialEq, State)]
