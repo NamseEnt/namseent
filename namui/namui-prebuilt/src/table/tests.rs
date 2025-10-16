@@ -3,9 +3,8 @@ use crate::scroll_view::AutoScrollViewWithCtx;
 use crate::simple_rect;
 use std::sync::{Arc, Mutex, atomic::AtomicBool};
 
-#[tokio::test]
-async fn closure_should_give_right_wh() {
-    namui::system::init_for_test().await.unwrap();
+#[test]
+fn closure_should_give_right_wh() {
     let button_render_called = Arc::new(AtomicBool::new(false));
     let label_render_called = Arc::new(AtomicBool::new(false));
     let body_render_called = Arc::new(AtomicBool::new(false));
@@ -98,9 +97,8 @@ async fn closure_should_give_right_wh() {
     assert!(body_inner_render_called.load(std::sync::atomic::Ordering::Relaxed));
 }
 
-#[tokio::test]
-async fn fit_should_work() {
-    namui::system::init_for_test().await.unwrap();
+#[test]
+fn fit_should_work() {
     let a_width = Arc::new(Mutex::new(0.px()));
 
     let mut world = World::init(Instant::now);
@@ -157,10 +155,8 @@ async fn fit_should_work() {
     assert_eq!(px(900.0), *a_width.lock().unwrap());
 }
 
-#[tokio::test]
-async fn auto_scroll_view_with_fit_timing_issue() {
-    namui::system::init_for_test().await.unwrap();
-
+#[test]
+fn auto_scroll_view_with_fit_timing_issue() {
     let content_height_tracker = Arc::new(Mutex::new(Vec::<Px>::new()));
     let scroll_bounding_box_tracker = Arc::new(Mutex::new(Vec::<Option<Px>>::new()));
 
@@ -299,10 +295,8 @@ async fn auto_scroll_view_with_fit_timing_issue() {
     }
 }
 
-#[tokio::test]
-async fn fit_first_frame_rendering_behavior() {
-    namui::system::init_for_test().await.unwrap();
-
+#[test]
+fn fit_first_frame_rendering_behavior() {
     let render_call_tracker = Arc::new(Mutex::new(Vec::<(usize, bool)>::new()));
     let mut world = World::init(Instant::now);
 
