@@ -14,12 +14,14 @@ import { BufferPoolHandleOnMainThread } from "./bufferPool";
 import { audioHandleOnMainThread } from "./audio";
 import { pushLog } from "./logger";
 import { startThread } from "./thread/startThread";
-import wasmUrl from "namui-runtime-wasm.wasm?url";
+import wasmUrl from "virtual:namui-runtime-wasm.wasm?url";
 import "./drawer";
 import { readyDrawer } from "./drawer";
 import { Exports } from "./exports";
 import { assetList } from "virtual:asset-list";
 import { loadFonts } from "@/font/loadFont";
+
+console.log("wasmUrl", wasmUrl);
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -84,6 +86,13 @@ const { onTextInputEvent } = startEventSystem({
     canvas,
 });
 const textInput = new TextInput(onTextInputEvent);
+
+// HMR: namui-wasm-updated 이벤트 수신
+if (import.meta.hot) {
+    import.meta.hot.on("namui-wasm-updated", (data) => {
+        console.log("namui-wasm-updated event received:", data);
+    });
+}
 
 // let webSocketHandle: ReturnType<typeof webSocketHandleOnMainThread>;
 // let insertJsHandle: ReturnType<typeof insertJsHandleOnMainThread>;

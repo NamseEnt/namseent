@@ -33,6 +33,7 @@ pub async fn update_vite_config(config: &ViteConfig<'_>) -> Result<()> {
 import {{ defineConfig }} from "vite";
 import expressPlugin from './expressPlugin'
 import {{ assetCollectorPlugin }} from './assetCollectorPlugin'
+import {{ namuiHmrPlugin }} from './namuiHmrPlugin'
 import path from 'path'
 
 export default defineConfig({{
@@ -59,13 +60,13 @@ export default defineConfig({{
     }},
     resolve: {{
         alias: {{
-            "namui-runtime-wasm.wasm?url": "{namui_runtime_wasm}?url",
             "bundle.sqlite?url": "{bundle_sqlite}?url",
             "namui-drawer.wasm?url": "{drawer_runtime_wasm}?url",
             "@": path.resolve(__dirname, "./src"),
         }},
     }},
     plugins: [
+        namuiHmrPlugin(),
         expressPlugin(),
         assetCollectorPlugin("{asset_dir}"),
     ],

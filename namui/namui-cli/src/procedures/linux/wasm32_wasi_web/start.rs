@@ -51,7 +51,14 @@ pub async fn start(
         .await;
 
     update_vite_config(&vite_config).await?;
-    let _web_builder = start_web_code().await?;
+
+    let target_project_path = project_root_path.join(format!(
+        "target/namui/target/wasm32-wasip1-threads/{}",
+        if start_option.release { "release" } else { "debug" }
+    ));
+    let namui_runtime_wasm_path = target_project_path.join("namui-runtime-wasm.wasm");
+
+    let _web_builder = start_web_code(&namui_runtime_wasm_path).await?;
 
     build_status_service
         .build_finished(BuildStatusCategory::WebRuntime, vec![], vec![])
@@ -79,7 +86,7 @@ pub async fn start(
     Ok(())
 }
 
-async fn start_web_code() -> Result<Child> {
+async fn start_web_code(namui_runtime_wasm_path: &std::path::Path) -> Result<Child> {
     let mut process = tokio::process::Command::new("npm")
         .current_dir(get_cli_root_path().join("webCode"))
         .args(["ci"])
@@ -89,6 +96,7 @@ async fn start_web_code() -> Result<Child> {
     let process = tokio::process::Command::new("npm")
         .current_dir(get_cli_root_path().join("webCode"))
         .args(["run", "dev"])
+        .env("NAMUI_RUNTIME_WASM_PATH", namui_runtime_wasm_path.to_string_lossy().to_string())
         .spawn()?;
 
     Ok(process)
