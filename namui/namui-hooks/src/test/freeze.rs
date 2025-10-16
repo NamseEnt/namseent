@@ -341,7 +341,10 @@ fn freeze_and_restore_mixed_state_and_atom() {
     );
 
     let value_in_world1 = record.load(Ordering::Relaxed);
-    assert_eq!(value_in_world1, 300, "Initial state should be 100 + 200 = 300");
+    assert_eq!(
+        value_in_world1, 300,
+        "Initial state should be 100 + 200 = 300"
+    );
 
     // 2. Freeze the World
     let frozen_bytes = world1.freeze_states();

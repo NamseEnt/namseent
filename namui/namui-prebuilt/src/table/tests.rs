@@ -1,7 +1,7 @@
 use super::*;
 use crate::scroll_view::AutoScrollViewWithCtx;
 use crate::simple_rect;
-use std::sync::{atomic::AtomicBool, Arc, Mutex};
+use std::sync::{Arc, Mutex, atomic::AtomicBool};
 
 #[test]
 fn closure_should_give_right_wh() {

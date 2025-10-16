@@ -47,7 +47,9 @@ pub fn generate_struct_deserialize(_data: &syn::DataStruct) -> proc_macro2::Toke
     }
 }
 
-pub fn generate_struct_deserialize_without_name(data: &syn::DataStruct) -> proc_macro2::TokenStream {
+pub fn generate_struct_deserialize_without_name(
+    data: &syn::DataStruct,
+) -> proc_macro2::TokenStream {
     let output = match &data.fields {
         syn::Fields::Named(fields) => {
             let deserialize_fields = fields.named.iter().map(|f| {

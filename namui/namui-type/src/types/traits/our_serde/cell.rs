@@ -22,7 +22,8 @@ where
 
         Self::deserialize_without_name(buf)
     }
-    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {Ok(std::cell::RefCell::new(T::deserialize(buf)?))
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+        Ok(std::cell::RefCell::new(T::deserialize(buf)?))
     }
 }
 
@@ -48,7 +49,8 @@ where
 
         Self::deserialize_without_name(buf)
     }
-    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {Ok(std::cell::UnsafeCell::new(T::deserialize(buf)?))
+    fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
+        Ok(std::cell::UnsafeCell::new(T::deserialize(buf)?))
     }
 }
 
@@ -63,10 +65,7 @@ mod tests {
         original.serialize(&mut buf);
         let mut buf_slice = buf.as_slice();
         let deserialized = std::cell::RefCell::<String>::deserialize(&mut buf_slice).unwrap();
-        assert_eq!(
-            *original.borrow(),
-            *deserialized.borrow()
-        );
+        assert_eq!(*original.borrow(), *deserialized.borrow());
 
         let original = std::cell::RefCell::new(42i32);
         let mut buf = Vec::new();
