@@ -17,6 +17,7 @@ pub struct World {
     composers: FrozenIndexMap<ComposerId, Box<Composer>>,
     instances: FrozenIndexMap<InstanceId, Box<Instance>>,
     frozen_instances: RefCell<BTreeMap<InstanceId, FrozenInstance>>,
+    pub(crate) frozen_atoms: RefCell<Vec<Vec<u8>>>,
     set_state_rx: mpsc::Receiver<SetStateItem>,
     pub(crate) set_state_tx: &'static mpsc::Sender<SetStateItem>,
     updated_sig_ids: FrozenIndexSet<Box<SigId>>,

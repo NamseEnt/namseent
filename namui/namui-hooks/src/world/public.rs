@@ -9,6 +9,7 @@ impl World {
             composers: Default::default(),
             instances: Default::default(),
             frozen_instances: Default::default(),
+            frozen_atoms: Default::default(),
             set_state_tx: Box::leak(Box::new(set_state_tx)),
             set_state_rx,
             updated_sig_ids: Default::default(),
@@ -34,14 +35,37 @@ impl World {
     }
 
     pub fn set_frozen_states(&mut self, mut bytes: &[u8]) {
+        // Read instance count
+        let instance_count = bytes.get_u32() as usize;
+
+        // Read instances
         let mut frozen_instances = self.frozen_instances.borrow_mut();
-        while !bytes.is_empty() {
+        for _ in 0..instance_count {
             let len = bytes.get_u32() as usize;
             let (slice, rest) = bytes.split_at(len);
             bytes = rest;
 
             let frozen_instance = FrozenInstance::from_bytes(slice);
             frozen_instances.insert(frozen_instance.id, frozen_instance);
+        }
+        drop(frozen_instances);
+
+        // Check if there are atom states
+        if bytes.is_empty() {
+            return;
+        }
+
+        // Read atom count
+        let atom_count = bytes.get_u32() as usize;
+
+        // Read atoms
+        let mut frozen_atoms = self.frozen_atoms.borrow_mut();
+        for _ in 0..atom_count {
+            let len = bytes.get_u32() as usize;
+            let (slice, rest) = bytes.split_at(len);
+            bytes = rest;
+
+            frozen_atoms.push(slice.to_vec());
         }
     }
 
@@ -53,13 +77,40 @@ impl World {
             .map(|instance| instance.freeze())
             .collect::<Vec<Vec<u8>>>();
 
+        let frozen_atom_bytes = self
+            .atom_list
+            .into_vec()
+            .into_iter()
+            .map(|atom| {
+                let mut bytes = vec![];
+                atom.serialize(&mut bytes);
+                bytes
+            })
+            .collect::<Vec<Vec<u8>>>();
+
         let mut buffer = Vec::with_capacity(
-            frozen_instance_bytes.iter().map(|x| x.len()).sum::<usize>()
-                + frozen_instance_bytes.len() * 4,
+            4 + frozen_instance_bytes.iter().map(|x| x.len()).sum::<usize>()
+                + frozen_instance_bytes.len() * 4
+                + 4 + frozen_atom_bytes.iter().map(|x| x.len()).sum::<usize>()
+                + frozen_atom_bytes.len() * 4,
         );
 
         use bytes::BufMut;
+
+        // Write instance count
+        buffer.put_u32(frozen_instance_bytes.len() as u32);
+
+        // Write instances
         for bytes in frozen_instance_bytes {
+            buffer.put_u32(bytes.len() as u32);
+            buffer.put_slice(&bytes);
+        }
+
+        // Write atom count
+        buffer.put_u32(frozen_atom_bytes.len() as u32);
+
+        // Write atoms
+        for bytes in frozen_atom_bytes {
             buffer.put_u32(bytes.len() as u32);
             buffer.put_slice(&bytes);
         }

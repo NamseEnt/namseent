@@ -389,7 +389,14 @@ impl ComponentCtx<'_> {
             Some(atom_value) => atom_value,
             None => {
                 // NOTE: This code could be problematic on multi-threaded environment.
-                let value = init();
+                let value = {
+                    let frozen_atoms = self.world.frozen_atoms.borrow();
+                    if let Some(frozen_bytes) = frozen_atoms.get(atom_index) {
+                        State::deserialize(&mut frozen_bytes.as_slice()).unwrap()
+                    } else {
+                        init()
+                    }
+                };
                 atom_list.push(Box::new(value));
                 atom_list.get(atom_index).unwrap()
             }

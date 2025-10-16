@@ -226,3 +226,148 @@ fn freeze_with_nested_components() {
         "Child state should be restored"
     );
 }
+
+#[test]
+fn freeze_and_restore_atom_state() {
+    use std::sync::atomic::Ordering;
+
+    static COUNTER_ATOM: Atom<usize> = Atom::uninitialized();
+    static MESSAGE_ATOM: Atom<String> = Atom::uninitialized();
+
+    // 1. Create first World and run component
+    let mut world1 = World::init(Instant::now);
+
+    let record = Arc::new(AtomicUsize::new(0));
+
+    #[derive(Debug)]
+    struct TestComponent {
+        record: Arc<AtomicUsize>,
+    }
+
+    impl Component for TestComponent {
+        fn render(self, ctx: &RenderCtx) {
+            let (counter, _set_counter) = ctx.init_atom(&COUNTER_ATOM, || 42);
+            let (message, _set_message) = ctx.init_atom(&MESSAGE_ATOM, || "Hello Atom".to_string());
+
+            self.record
+                .store(*counter + message.len(), Ordering::Relaxed);
+        }
+    }
+
+    // Run in first World
+    World::run(
+        &mut world1,
+        TestComponent {
+            record: record.clone(),
+        },
+    );
+
+    let value_in_world1 = record.load(Ordering::Relaxed);
+
+    // 2. Freeze the World
+    let frozen_bytes = world1.freeze_states();
+
+    // 3. Create new World and restore frozen state
+    let mut world2 = World::init(Instant::now);
+    world2.set_frozen_states(&frozen_bytes);
+
+    // 4. Run same component in new World
+    let record2 = Arc::new(AtomicUsize::new(0));
+    World::run(
+        &mut world2,
+        TestComponent {
+            record: record2.clone(),
+        },
+    );
+
+    let value_in_world2 = record2.load(Ordering::Relaxed);
+
+    // 5. Verify restored value matches original value
+    assert_eq!(
+        value_in_world1, value_in_world2,
+        "Restored atom state should match frozen state"
+    );
+
+    // 6. Run once more in restored World to verify state persistence
+    World::run(
+        &mut world2,
+        TestComponent {
+            record: record2.clone(),
+        },
+    );
+
+    let value_after_second_run = record2.load(Ordering::Relaxed);
+    assert_eq!(
+        value_in_world2, value_after_second_run,
+        "Atom state should persist across multiple runs"
+    );
+}
+
+#[test]
+fn freeze_and_restore_mixed_state_and_atom() {
+    use std::sync::atomic::Ordering;
+
+    static GLOBAL_COUNTER: Atom<usize> = Atom::uninitialized();
+
+    // 1. Create first World
+    let mut world1 = World::init(Instant::now);
+
+    let record = Arc::new(AtomicUsize::new(0));
+
+    #[derive(Debug)]
+    struct TestComponent {
+        record: Arc<AtomicUsize>,
+    }
+
+    impl Component for TestComponent {
+        fn render(self, ctx: &RenderCtx) {
+            // Local instance state
+            let (local_state, _) = ctx.state(|| 100usize);
+
+            // Global atom state
+            let (global_counter, _) = ctx.init_atom(&GLOBAL_COUNTER, || 200);
+
+            self.record
+                .store(*local_state + *global_counter, Ordering::Relaxed);
+        }
+    }
+
+    // Run in first World
+    World::run(
+        &mut world1,
+        TestComponent {
+            record: record.clone(),
+        },
+    );
+
+    let value_in_world1 = record.load(Ordering::Relaxed);
+    assert_eq!(value_in_world1, 300, "Initial state should be 100 + 200 = 300");
+
+    // 2. Freeze the World
+    let frozen_bytes = world1.freeze_states();
+
+    // 3. Create new World and restore frozen state
+    let mut world2 = World::init(Instant::now);
+    world2.set_frozen_states(&frozen_bytes);
+
+    // 4. Run same component in new World
+    let record2 = Arc::new(AtomicUsize::new(0));
+    World::run(
+        &mut world2,
+        TestComponent {
+            record: record2.clone(),
+        },
+    );
+
+    let value_in_world2 = record2.load(Ordering::Relaxed);
+
+    // 5. Verify both instance state and atom state are restored correctly
+    assert_eq!(
+        value_in_world1, value_in_world2,
+        "Both instance state and atom state should be restored"
+    );
+    assert_eq!(
+        value_in_world2, 300,
+        "Restored state should still be 100 + 200 = 300"
+    );
+}
