@@ -54,6 +54,8 @@ if (import.meta.hot) {
 let terminate = () => {};
 let requestedDuringStart = false;
 let starting = false;
+let exports: Exports | undefined;
+let frozenWorldBytes: Uint8Array | undefined;
 
 async function startMainThread() {
     if (starting) {
@@ -65,6 +67,17 @@ async function startMainThread() {
             starting = true;
             requestedDuringStart = false;
             terminate();
+
+            if (exports) {
+                const ptrAndLen = exports._freeze_world();
+                const ptr = Number(ptrAndLen >> 32n);
+                const len = Number(ptrAndLen & 0xffffffffn);
+                frozenWorldBytes = new Uint8Array(
+                    exports.memory.buffer,
+                    ptr,
+                    len,
+                );
+            }
 
             const memory = new WebAssembly.Memory({
                 initial: 128,
@@ -89,7 +102,25 @@ async function startMainThread() {
                 imageCount: drawer.imageCount,
                 imageInfoBytes: drawer.imageInfoBytes,
             });
-            const exports = instance.exports as Exports;
+            exports = instance.exports as Exports;
+
+            if (frozenWorldBytes) {
+                const ptr = exports.malloc(frozenWorldBytes.byteLength);
+                try {
+                    new Uint8Array(
+                        exports.memory.buffer,
+                        ptr,
+                        frozenWorldBytes.byteLength,
+                    ).set(frozenWorldBytes);
+                    exports._set_freeze_states(
+                        ptr,
+                        frozenWorldBytes.byteLength,
+                    );
+                } finally {
+                    exports.free(ptr);
+                    frozenWorldBytes = undefined;
+                }
+            }
 
             let now = performance.now();
             await loadFonts({

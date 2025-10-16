@@ -53,12 +53,12 @@ extern "C" fn _init_system() {
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn _freeze_world() -> *const u8 {
+extern "C" fn _freeze_world() -> u64 {
     let looper = LOOPER.with_borrow_mut(|looper| looper.take().unwrap());
     let frozen_states = looper.world.freeze_states();
     FROZEN_STATES.with_borrow_mut(|bytes| {
         *bytes = frozen_states.into_boxed_slice();
-        bytes.as_ptr()
+        (bytes.as_ptr() as u64) << 32 | bytes.len() as u64
     })
 }
 
