@@ -124,7 +124,9 @@ impl Deserialize for String {
     fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
         let len = buf.get_u64() as usize;
         let string_bytes = &buf[..len];
-        Ok(String::from_utf8(string_bytes.to_vec()).unwrap())
+        let result = String::from_utf8(string_bytes.to_vec()).unwrap();
+        buf.advance(len);
+        Ok(result)
     }
 }
 
@@ -158,7 +160,10 @@ impl Serialize for std::time::SystemTime {
     }
 
     fn serialize_without_name(&self, buf: &mut Vec<u8>) {
-        buf.put_u64(self.elapsed().unwrap().as_nanos() as u64);
+        let duration = self
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .unwrap();
+        buf.put_u64(duration.as_nanos() as u64);
     }
 }
 
@@ -221,7 +226,7 @@ where
     }
 
     fn serialize_without_name(&self, buf: &mut Vec<u8>) {
-        buf.put_u64(std::ptr::addr_of!(*self) as u64);
+        self.as_ref().serialize_without_name(buf);
     }
 }
 
@@ -236,7 +241,7 @@ where
     }
 
     fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
-        Ok(Box::new(T::deserialize(buf)?))
+        Ok(Box::new(T::deserialize_without_name(buf)?))
     }
 }
 
@@ -310,5 +315,136 @@ impl Deserialize for std::path::PathBuf {
 
     fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
         Ok(std::path::PathBuf::from(buf.read_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_char_serde() {
+        let test_chars = vec!['a', 'z', 'A', 'Z', '0', '9', ' ', '!', '한', '글', '中'];
+        for original in test_chars {
+            let mut buf = Vec::new();
+            original.serialize(&mut buf);
+            let mut buf_slice = buf.as_slice();
+            let deserialized = char::deserialize(&mut buf_slice).unwrap();
+            assert_eq!(original, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_string_serde() {
+        let test_strings = vec![
+            String::from(""),
+            String::from("hello"),
+            String::from("world123"),
+            String::from("한글 테스트"),
+            String::from("🦀 Rust"),
+        ];
+        for original in test_strings {
+            let mut buf = Vec::new();
+            original.serialize(&mut buf);
+            let mut buf_slice = buf.as_slice();
+            let deserialized = String::deserialize(&mut buf_slice).unwrap();
+            assert_eq!(original, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_duration_serde() {
+        let test_durations = vec![
+            std::time::Duration::from_nanos(0),
+            std::time::Duration::from_nanos(1),
+            std::time::Duration::from_millis(1000),
+            std::time::Duration::from_secs(60),
+            std::time::Duration::from_secs_f64(3.14),
+        ];
+        for original in test_durations {
+            let mut buf = Vec::new();
+            original.serialize(&mut buf);
+            let mut buf_slice = buf.as_slice();
+            let deserialized = std::time::Duration::deserialize(&mut buf_slice).unwrap();
+            assert_eq!(original, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_systemtime_serde() {
+        let original = std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1000);
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = std::time::SystemTime::deserialize(&mut buf_slice).unwrap();
+        let original_diff = original.elapsed().unwrap_or_else(|_| std::time::Duration::from_secs(0));
+        let deserialized_diff = deserialized
+            .elapsed()
+            .unwrap_or_else(|_| std::time::Duration::from_secs(0));
+        let diff = original_diff.abs_diff(deserialized_diff);
+        assert!(diff.as_millis() < 100);
+    }
+
+    #[test]
+    fn test_option_serde() {
+        let test_options: Vec<Option<String>> = vec![
+            Some(String::from("hello")),
+            None,
+            Some(String::from("")),
+        ];
+        for original in test_options {
+            let mut buf = Vec::new();
+            original.serialize(&mut buf);
+            let mut buf_slice = buf.as_slice();
+            let deserialized = Option::<String>::deserialize(&mut buf_slice).unwrap();
+            assert_eq!(original, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_box_serde() {
+        let original = Box::new(String::from("boxed string"));
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = Box::<String>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(*original, *deserialized);
+    }
+
+    #[test]
+    fn test_phantomdata_serde() {
+        let original: std::marker::PhantomData<String> = std::marker::PhantomData;
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let _deserialized: std::marker::PhantomData<String> =
+            std::marker::PhantomData::<String>::deserialize(&mut buf_slice).unwrap();
+    }
+
+    #[test]
+    fn test_arc_serde() {
+        let original = std::sync::Arc::new(String::from("arc string"));
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = std::sync::Arc::<String>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(*original, *deserialized);
+    }
+
+    #[test]
+    fn test_pathbuf_serde() {
+        let test_paths = vec![
+            std::path::PathBuf::from("/"),
+            std::path::PathBuf::from("/home/user"),
+            std::path::PathBuf::from("./relative/path"),
+            std::path::PathBuf::from("file.txt"),
+        ];
+        for original in test_paths {
+            let mut buf = Vec::new();
+            original.serialize(&mut buf);
+            let mut buf_slice = buf.as_slice();
+            let deserialized = std::path::PathBuf::deserialize(&mut buf_slice).unwrap();
+            assert_eq!(original, deserialized);
+        }
     }
 }

@@ -356,3 +356,154 @@ impl Deserialize for std::num::NonZero<usize> {
         Ok(std::num::NonZero::new(buf.get_u64() as usize).unwrap())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! test_serde_roundtrip {
+        ($type_name:ident, $value:expr) => {
+            {
+                let original = $value;
+                let mut buf = Vec::new();
+                original.serialize(&mut buf);
+                let mut buf_slice = buf.as_slice();
+                let deserialized = $type_name::deserialize(&mut buf_slice).unwrap();
+                assert_eq!(original, deserialized);
+            }
+        };
+    }
+
+    #[test]
+    fn test_bool_serde() {
+        test_serde_roundtrip!(bool, true);
+        test_serde_roundtrip!(bool, false);
+    }
+
+    #[test]
+    fn test_i8_serde() {
+        test_serde_roundtrip!(i8, 0i8);
+        test_serde_roundtrip!(i8, 127i8);
+        test_serde_roundtrip!(i8, -128i8);
+    }
+
+    #[test]
+    fn test_i16_serde() {
+        test_serde_roundtrip!(i16, 0i16);
+        test_serde_roundtrip!(i16, 32767i16);
+        test_serde_roundtrip!(i16, -32768i16);
+    }
+
+    #[test]
+    fn test_i32_serde() {
+        test_serde_roundtrip!(i32, 0i32);
+        test_serde_roundtrip!(i32, 2147483647i32);
+        test_serde_roundtrip!(i32, -2147483648i32);
+    }
+
+    #[test]
+    fn test_i64_serde() {
+        test_serde_roundtrip!(i64, 0i64);
+        test_serde_roundtrip!(i64, 9223372036854775807i64);
+        test_serde_roundtrip!(i64, -9223372036854775808i64);
+    }
+
+    #[test]
+    fn test_i128_serde() {
+        test_serde_roundtrip!(i128, 0i128);
+        test_serde_roundtrip!(i128, 170141183460469231731687303715884105727i128);
+        test_serde_roundtrip!(i128, -170141183460469231731687303715884105728i128);
+    }
+
+    #[test]
+    fn test_isize_serde() {
+        test_serde_roundtrip!(isize, 0isize);
+        test_serde_roundtrip!(isize, 1000isize);
+        test_serde_roundtrip!(isize, -1000isize);
+    }
+
+    #[test]
+    fn test_u8_serde() {
+        test_serde_roundtrip!(u8, 0u8);
+        test_serde_roundtrip!(u8, 255u8);
+    }
+
+    #[test]
+    fn test_u16_serde() {
+        test_serde_roundtrip!(u16, 0u16);
+        test_serde_roundtrip!(u16, 65535u16);
+    }
+
+    #[test]
+    fn test_u32_serde() {
+        test_serde_roundtrip!(u32, 0u32);
+        test_serde_roundtrip!(u32, 4294967295u32);
+    }
+
+    #[test]
+    fn test_u64_serde() {
+        test_serde_roundtrip!(u64, 0u64);
+        test_serde_roundtrip!(u64, 18446744073709551615u64);
+    }
+
+    #[test]
+    fn test_u128_serde() {
+        test_serde_roundtrip!(u128, 0u128);
+        test_serde_roundtrip!(u128, 340282366920938463463374607431768211455u128);
+    }
+
+    #[test]
+    fn test_usize_serde() {
+        test_serde_roundtrip!(usize, 0usize);
+        test_serde_roundtrip!(usize, 1000usize);
+    }
+
+    #[test]
+    fn test_f32_serde() {
+        test_serde_roundtrip!(f32, 0.0f32);
+        test_serde_roundtrip!(f32, 3.14159f32);
+        test_serde_roundtrip!(f32, -42.5f32);
+    }
+
+    #[test]
+    fn test_f64_serde() {
+        test_serde_roundtrip!(f64, 0.0f64);
+        test_serde_roundtrip!(f64, 3.14159265359f64);
+        test_serde_roundtrip!(f64, -42.5f64);
+    }
+
+    #[test]
+    fn test_atomic_bool_serde() {
+        let original = std::sync::atomic::AtomicBool::new(true);
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized =
+            std::sync::atomic::AtomicBool::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(
+            original.load(std::sync::atomic::Ordering::Acquire),
+            deserialized.load(std::sync::atomic::Ordering::Acquire)
+        );
+
+        let original = std::sync::atomic::AtomicBool::new(false);
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized =
+            std::sync::atomic::AtomicBool::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(
+            original.load(std::sync::atomic::Ordering::Acquire),
+            deserialized.load(std::sync::atomic::Ordering::Acquire)
+        );
+    }
+
+    #[test]
+    fn test_nonzero_usize_serde() {
+        let original = std::num::NonZero::new(42usize).unwrap();
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = std::num::NonZero::<usize>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original.get(), deserialized.get());
+    }
+}

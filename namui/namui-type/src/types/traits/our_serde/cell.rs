@@ -51,3 +51,49 @@ where
     fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {Ok(std::cell::UnsafeCell::new(T::deserialize(buf)?))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_refcell_serde() {
+        let original = std::cell::RefCell::new(String::from("hello"));
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = std::cell::RefCell::<String>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(
+            *original.borrow(),
+            *deserialized.borrow()
+        );
+
+        let original = std::cell::RefCell::new(42i32);
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = std::cell::RefCell::<i32>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(*original.borrow(), *deserialized.borrow());
+    }
+
+    #[test]
+    fn test_unsafecell_serde() {
+        let original = std::cell::UnsafeCell::new(String::from("test"));
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = std::cell::UnsafeCell::<String>::deserialize(&mut buf_slice).unwrap();
+        unsafe {
+            assert_eq!(*original.get(), *deserialized.get());
+        }
+
+        let original = std::cell::UnsafeCell::new(vec![1, 2, 3]);
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = std::cell::UnsafeCell::<Vec<i32>>::deserialize(&mut buf_slice).unwrap();
+        unsafe {
+            assert_eq!(*original.get(), *deserialized.get());
+        }
+    }
+}

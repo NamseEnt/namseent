@@ -281,7 +281,7 @@ macro_rules! impl_tuple_deserialize {
                 Self::deserialize_without_name(buf)
             }
             fn deserialize_without_name(buf: &mut &[u8]) -> Result<Self, DeserializeError> {
-                Ok(($($T::deserialize_without_name(buf)?,)*))
+                Ok(($($T::deserialize(buf)?,)*))
             }
         }
     };
@@ -310,3 +310,190 @@ impl_tuple_deserialize!(T0, T1, T2, T3, T4, T5, T6; 0, 1, 2, 3, 4, 5, 6);
 
 impl_tuple_serialize!(T0, T1, T2, T3, T4, T5, T6, T7; 0, 1, 2, 3, 4, 5, 6, 7);
 impl_tuple_deserialize!(T0, T1, T2, T3, T4, T5, T6, T7; 0, 1, 2, 3, 4, 5, 6, 7);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vec_serde() {
+        let original: Vec<i32> = vec![1, 2, 3, 4, 5];
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = Vec::<i32>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+
+        let original: Vec<String> = vec![
+            String::from("hello"),
+            String::from("world"),
+            String::from(""),
+        ];
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = Vec::<String>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+
+        let original: Vec<i32> = vec![];
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = Vec::<i32>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_array_serde() {
+        let original: [i32; 5] = [1, 2, 3, 4, 5];
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = <[i32; 5]>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+
+        let original: [u64; 3] = [100, 200, 300];
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = <[u64; 3]>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_btreemap_serde() {
+        let mut original = std::collections::BTreeMap::new();
+        original.insert(String::from("a"), 1);
+        original.insert(String::from("b"), 2);
+        original.insert(String::from("c"), 3);
+
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized =
+            std::collections::BTreeMap::<String, i32>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_hashmap_serde() {
+        let mut original = std::collections::HashMap::new();
+        original.insert(String::from("key1"), 100);
+        original.insert(String::from("key2"), 200);
+
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized =
+            std::collections::HashMap::<String, i32>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_hashset_serde() {
+        let mut original = std::collections::HashSet::new();
+        original.insert(String::from("hello"));
+        original.insert(String::from("world"));
+
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized =
+            std::collections::HashSet::<String>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_btreeset_serde() {
+        let mut original = std::collections::BTreeSet::new();
+        original.insert(1);
+        original.insert(2);
+        original.insert(3);
+
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = std::collections::BTreeSet::<i32>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_vecdeque_serde() {
+        let mut original = std::collections::VecDeque::new();
+        original.push_back(10);
+        original.push_back(20);
+        original.push_back(30);
+
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized =
+            std::collections::VecDeque::<i32>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_unit_serde() {
+        let original = ();
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = <()>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_tuple_1_serde() {
+        let original: (String,) = (String::from("hello"),);
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = <(String,)>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_tuple_2_serde() {
+        let original: (i32, String) = (42, String::from("test"));
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = <(i32, String)>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_tuple_3_serde() {
+        let original: (i32, String, f64) = (42, String::from("test"), 3.14);
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = <(i32, String, f64)>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_tuple_4_serde() {
+        let original: (i32, String, f64, bool) = (42, String::from("test"), 3.14, true);
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized = <(i32, String, f64, bool)>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_nested_collections_serde() {
+        let mut inner_map = std::collections::BTreeMap::new();
+        inner_map.insert(1, String::from("a"));
+        inner_map.insert(2, String::from("b"));
+
+        let original: Vec<std::collections::BTreeMap<i32, String>> = vec![inner_map];
+        let mut buf = Vec::new();
+        original.serialize(&mut buf);
+        let mut buf_slice = buf.as_slice();
+        let deserialized =
+            Vec::<std::collections::BTreeMap<i32, String>>::deserialize(&mut buf_slice).unwrap();
+        assert_eq!(original, deserialized);
+    }
+}
