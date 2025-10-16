@@ -14,7 +14,7 @@ import { BufferPoolHandleOnMainThread } from "./bufferPool";
 import { audioHandleOnMainThread } from "./audio";
 import { pushLog } from "./logger";
 import { startThread } from "./thread/startThread";
-import wasmUrl from "/Users/namse/namseent2/tower-defense/target/namui/target/wasm32-wasip1-threads/debug/namui-runtime-wasm.wasm?url";
+import wasmUrl from "namui-runtime-wasm.wasm?url";
 import "./drawer";
 import { readyDrawer } from "./drawer";
 import { Exports } from "./exports";

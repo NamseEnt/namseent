@@ -26,7 +26,6 @@ pub use serde;
 pub use shader_macro::shader;
 use std::cell::RefCell;
 pub use system::{
-    // audio::Audio,
     network::http::{RequestExt, ResponseExt},
     *,
 };
@@ -49,34 +48,7 @@ extern "C" fn _init_system() {
 }
 
 pub fn start(root_component: RootComponent) {
-    println!("start");
-    // let _ = TOKIO_RUNTIME.set(tokio_runtime().unwrap());
-    // system::init_system().unwrap();
     LOOPER.set(Some(Looper::new(root_component)));
-
-    // tokio_runtime.spawn(async move {
-    //     system::init_system()
-    //         .await
-    //         .expect("Failed to initialize namui system");
-
-    //     println!("Namui system initialized");
-
-    //     #[cfg(target_os = "wasi")]
-    //     {
-    //         // crate::screen::run_event_hook_loop(component)
-    //     }
-    // });
-
-    #[cfg(target_os = "wasi")]
-    {
-        // skia::on_skia_drawing_thread().unwrap();
-    }
-    // #[cfg(not(target_os = "wasi"))]
-    // {
-    //     tokio_runtime.block_on(async move {
-    //         screen::take_main_thread(component);
-    //     });
-    // }
 }
 
 fn tokio_runtime() -> Result<tokio::runtime::Runtime> {
