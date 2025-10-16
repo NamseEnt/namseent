@@ -1,10 +1,7 @@
 use crate::*;
 use anyhow::Result;
 use namui_hooks::*;
-use std::{
-    ops::Deref,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 pub type Load<T> = Option<Result<T>>;
 

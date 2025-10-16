@@ -1,6 +1,6 @@
 use super::*;
-use crate::{
-    game_state::tower::{AnimationKind, TowerKind, TowerTemplate, render::TowerImage as TowerImageTrait},
+use crate::game_state::tower::{
+    AnimationKind, TowerKind, TowerTemplate, render::TowerImage as TowerImageTrait,
 };
 use namui::*;
 

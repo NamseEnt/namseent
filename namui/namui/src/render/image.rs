@@ -63,7 +63,7 @@ impl Component for ImageRender {
 
                 ctx.add(crate::image(crate::ImageParam {
                     rect,
-                    image: image.clone(),
+                    image: *image,
                     style: ImageStyle { fit, paint },
                 }));
             }

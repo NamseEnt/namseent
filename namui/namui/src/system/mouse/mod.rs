@@ -12,7 +12,7 @@ use crate::system::InitResult;
 use crate::*;
 #[cfg(not(target_os = "wasi"))]
 use std::collections::HashSet;
-use std::sync::{Arc, OnceLock, RwLock};
+use std::sync::{Arc, RwLock};
 
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,

@@ -131,10 +131,7 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-fn generate_struct_encode(
-    _name: &syn::Ident,
-    data: &syn::DataStruct,
-) -> proc_macro2::TokenStream {
+fn generate_struct_encode(_name: &syn::Ident, data: &syn::DataStruct) -> proc_macro2::TokenStream {
     match &data.fields {
         syn::Fields::Named(fields) => {
             let encode_fields = fields.named.iter().map(|f| {
@@ -168,10 +165,7 @@ fn generate_struct_encode(
     }
 }
 
-fn generate_struct_decode(
-    _name: &syn::Ident,
-    data: &syn::DataStruct,
-) -> proc_macro2::TokenStream {
+fn generate_struct_decode(_name: &syn::Ident, data: &syn::DataStruct) -> proc_macro2::TokenStream {
     match &data.fields {
         syn::Fields::Named(fields) => {
             let decode_fields = fields.named.iter().map(|f| {
@@ -206,10 +200,7 @@ fn generate_struct_decode(
     }
 }
 
-fn generate_enum_encode(
-    _name: &syn::Ident,
-    data: &syn::DataEnum,
-) -> proc_macro2::TokenStream {
+fn generate_enum_encode(_name: &syn::Ident, data: &syn::DataEnum) -> proc_macro2::TokenStream {
     let variants = data.variants.iter().enumerate().map(|(i, variant)| {
         let variant_name = &variant.ident;
         let discriminant = i as u32;
@@ -263,10 +254,7 @@ fn generate_enum_encode(
     }
 }
 
-fn generate_enum_decode(
-    _name: &syn::Ident,
-    data: &syn::DataEnum,
-) -> proc_macro2::TokenStream {
+fn generate_enum_decode(_name: &syn::Ident, data: &syn::DataEnum) -> proc_macro2::TokenStream {
     let variant_count = data.variants.len();
     let max_discriminant = (variant_count as u32).saturating_sub(1);
 

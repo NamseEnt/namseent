@@ -1,5 +1,4 @@
 use crate::*;
-use futures::future::try_join_all;
 
 pub fn load_all_typefaces() -> Result<()> {
     // TODO
