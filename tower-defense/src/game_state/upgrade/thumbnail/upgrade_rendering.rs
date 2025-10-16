@@ -394,7 +394,7 @@ impl UpgradeKind {
 }
 
 // 스탯 타입을 정의하는 열거형
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 enum StatType {
     Damage,
     Speed,
@@ -412,7 +412,7 @@ impl StatType {
 }
 
 // 연산 타입을 정의하는 열거형
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 enum OperationType {
     Plus,
     Multiply,
@@ -428,7 +428,7 @@ impl OperationType {
 }
 
 // 조건 타입을 정의하는 열거형
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 enum ConditionType {
     LowCard,
     NoReroll,

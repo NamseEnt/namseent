@@ -4,7 +4,7 @@ use anyhow::*;
 use namui_type::*;
 use std::sync::Arc;
 
-pub(crate) async fn init() -> InitResult {
+pub(crate) fn init() -> InitResult {
     super::TIME_SYSTEM
         .set(Arc::new(MockTimeSystem {}))
         .map_err(|_| anyhow!("Failed to set time system"))?;

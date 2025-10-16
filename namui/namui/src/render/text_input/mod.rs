@@ -125,7 +125,8 @@ impl Component for TextInput<'_> {
 
         let paragraph = Paragraph::new(
             &text,
-            system::font::group_glyph(&self.font, &paint),
+            self.font.clone(),
+            paint.clone(),
             self.text_param(&text).max_width,
         );
 

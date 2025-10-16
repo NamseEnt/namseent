@@ -1,13 +1,16 @@
-use crate::game_state::upgrade::{TowerSelectUpgradeTarget, TowerUpgradeTarget, UpgradeKind};
+use crate::{
+    game_state::upgrade::{TowerSelectUpgradeTarget, TowerUpgradeTarget, UpgradeKind},
+    *,
+};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub enum UpgradeStatType {
     Damage,
     Speed,
     Range,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, State)]
 pub enum UpgradeTargetType {
     Tower(TowerUpgradeTarget),
     TowerSelect(TowerSelectUpgradeTarget),

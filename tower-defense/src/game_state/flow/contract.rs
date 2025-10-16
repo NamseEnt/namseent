@@ -1,8 +1,8 @@
 use crate::game_state::{
-    GameState,
     contract::{Contract, ContractEvent},
     effect::run_effect,
     flow::GameFlow,
+    *,
 };
 use namui::*;
 use std::collections::VecDeque;
@@ -10,7 +10,7 @@ use std::collections::VecDeque;
 const STANDBY_DURATION: Duration = Duration::from_millis(250);
 const ACTIVE_DURATION: Duration = Duration::from_millis(750);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, State)]
 pub struct ContractFlow {
     pub contract_event_queue: VecDeque<ContractEvent>,
     pub state: ContractFlowState,
@@ -49,7 +49,7 @@ impl ContractFlow {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, State)]
 pub enum ContractFlowState {
     #[default]
     Unset,

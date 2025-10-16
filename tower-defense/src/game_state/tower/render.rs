@@ -1,31 +1,95 @@
 use super::{Tower, TowerKind};
-use crate::{asset_loader::get_tower_asset, game_state::GameState};
+use crate::game_state::GameState;
 use namui::*;
+
+pub trait TowerImage {
+    fn image(self) -> Image;
+}
+
+impl TowerImage for (TowerKind, AnimationKind) {
+    fn image(self) -> Image {
+        let (tower_kind, animation_kind) = self;
+        match tower_kind {
+            TowerKind::Barricade => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::barricade::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::barricade::IDLE1,
+                AnimationKind::Attack => crate::asset::image::tower::barricade::IDLE1,
+            },
+            TowerKind::High => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::high::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::high::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::high::ATTACK,
+            },
+            TowerKind::OnePair => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::one_pair::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::one_pair::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::one_pair::ATTACK,
+            },
+            TowerKind::TwoPair => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::two_pair::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::two_pair::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::two_pair::ATTACK,
+            },
+            TowerKind::ThreeOfAKind => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::three_of_a_kind::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::three_of_a_kind::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::three_of_a_kind::ATTACK,
+            },
+            TowerKind::Straight => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::straight::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::straight::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::straight::ATTACK,
+            },
+            TowerKind::Flush => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::flush::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::flush::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::flush::ATTACK,
+            },
+            TowerKind::FullHouse => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::full_house::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::full_house::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::full_house::ATTACK,
+            },
+            TowerKind::FourOfAKind => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::four_of_a_kind::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::four_of_a_kind::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::four_of_a_kind::ATTACK,
+            },
+            TowerKind::StraightFlush => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::straight_flush::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::straight_flush::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::straight_flush::ATTACK,
+            },
+            TowerKind::RoyalFlush => match animation_kind {
+                AnimationKind::Idle1 => crate::asset::image::tower::royal_flush::IDLE1,
+                AnimationKind::Idle2 => crate::asset::image::tower::royal_flush::IDLE2,
+                AnimationKind::Attack => crate::asset::image::tower::royal_flush::ATTACK,
+            },
+        }
+    }
+}
 
 impl Component for &Tower {
     fn render(self, ctx: &RenderCtx) {
-        let image = get_tower_asset((self.kind, self.animation.kind));
-
-        if let Some(image) = image {
-            let image_wh = image.info.wh();
-            let scale = Xy::new(
-                1.0 + self.animation.y_ratio_offset * -0.5,
-                1.0 + self.animation.y_ratio_offset,
-            );
-            ctx.translate((image_wh.width * 0.5, image_wh.height))
-                .scale(scale)
-                .add(namui::image(ImageParam {
-                    rect: Rect::from_xy_wh(
-                        Xy::new(-image_wh.width * 0.5, -image_wh.height),
-                        image.info.wh(),
-                    ),
-                    image,
-                    style: ImageStyle {
-                        fit: ImageFit::None,
-                        paint: None,
-                    },
-                }));
-        }
+        let image = (self.kind, self.animation.kind).image();
+        let image_wh = image.info().wh();
+        let scale = Xy::new(
+            1.0 + self.animation.y_ratio_offset * -0.5,
+            1.0 + self.animation.y_ratio_offset,
+        );
+        ctx.translate((image_wh.width * 0.5, image_wh.height))
+            .scale(scale)
+            .add(namui::image(ImageParam {
+                rect: Rect::from_xy_wh(
+                    Xy::new(-image_wh.width * 0.5, -image_wh.height),
+                    image.info().wh(),
+                ),
+                image,
+                style: ImageStyle {
+                    fit: ImageFit::None,
+                    paint: None,
+                },
+            }));
     }
 }
 
@@ -82,7 +146,7 @@ pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
     });
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, State)]
 pub(super) struct Animation {
     kind: AnimationKind,
     transited_at: Instant,
@@ -132,26 +196,19 @@ impl Animation {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, State)]
 struct TransitForce {
     force: f32,
     end_at: Instant,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, State)]
 pub enum AnimationKind {
     Idle1,
     Idle2,
     Attack,
 }
 impl AnimationKind {
-    pub fn asset_id(&self) -> &str {
-        match self {
-            Self::Idle1 => "idle1",
-            Self::Idle2 => "idle2",
-            Self::Attack => "attack",
-        }
-    }
     fn duration(&self) -> Duration {
         match self {
             Self::Idle1 => Duration::from_millis(1500),

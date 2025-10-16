@@ -7,7 +7,7 @@ use crate::rarity::Rarity;
 use namui::*;
 pub use usage::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, State)]
 pub struct Item {
     pub effect: Effect,
     pub rarity: Rarity,

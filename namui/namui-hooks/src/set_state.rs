@@ -2,21 +2,21 @@ use crate::*;
 use std::{fmt::Debug, sync::mpsc};
 
 #[derive(Debug)]
-pub struct SetState<State: 'static + Send> {
+pub struct SetState<State: crate::State> {
     sig_id: SigId,
     set_state_tx: &'static mpsc::Sender<SetStateItem>,
     _state: std::marker::PhantomData<State>,
 }
 
-impl<State: 'static + Send> Clone for SetState<State> {
+impl<State: crate::State> Clone for SetState<State> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<State: 'static + Send> Copy for SetState<State> {}
+impl<State: crate::State> Copy for SetState<State> {}
 
-impl<State: 'static + Send> SetState<State> {
+impl<State: crate::State> SetState<State> {
     pub(crate) fn new(sig_id: SigId, set_state_tx: &'static mpsc::Sender<SetStateItem>) -> Self {
         Self {
             sig_id,
@@ -82,7 +82,7 @@ pub(crate) type MutateFnOnce4 = Box<
 pub trait MutateState2<S1, S2> {
     fn mutate(&self, mutate: impl FnOnce((&mut S1, &mut S2)) + 'static + Send);
 }
-impl<S1: 'static + Send, S2: 'static + Send> MutateState2<S1, S2> for (SetState<S1>, SetState<S2>) {
+impl<S1: State, S2: State> MutateState2<S1, S2> for (SetState<S1>, SetState<S2>) {
     fn mutate(&self, mutate: impl FnOnce((&mut S1, &mut S2)) + 'static + Send) {
         self.0
             .set_state_tx
@@ -102,7 +102,7 @@ impl<S1: 'static + Send, S2: 'static + Send> MutateState2<S1, S2> for (SetState<
 pub trait MutateState3<S1, S2, S3> {
     fn mutate(&self, mutate: impl FnOnce((&mut S1, &mut S2, &mut S3)) + 'static + Send);
 }
-impl<S1: 'static + Send, S2: 'static + Send, S3: 'static + Send> MutateState3<S1, S2, S3>
+impl<S1: State, S2: State, S3: State> MutateState3<S1, S2, S3>
     for (SetState<S1>, SetState<S2>, SetState<S3>)
 {
     fn mutate(&self, mutate: impl FnOnce((&mut S1, &mut S2, &mut S3)) + 'static + Send) {
@@ -125,8 +125,8 @@ impl<S1: 'static + Send, S2: 'static + Send, S3: 'static + Send> MutateState3<S1
 pub trait MutateState4<S1, S2, S3, S4> {
     fn mutate(&self, mutate: impl FnOnce((&mut S1, &mut S2, &mut S3, &mut S4)) + 'static + Send);
 }
-impl<S1: 'static + Send, S2: 'static + Send, S3: 'static + Send, S4: 'static + Send>
-    MutateState4<S1, S2, S3, S4> for (SetState<S1>, SetState<S2>, SetState<S3>, SetState<S4>)
+impl<S1: State, S2: State, S3: State, S4: State> MutateState4<S1, S2, S3, S4>
+    for (SetState<S1>, SetState<S2>, SetState<S3>, SetState<S4>)
 {
     fn mutate(&self, mutate: impl FnOnce((&mut S1, &mut S2, &mut S3, &mut S4)) + 'static + Send) {
         self.0

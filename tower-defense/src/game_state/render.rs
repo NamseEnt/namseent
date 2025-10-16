@@ -43,7 +43,7 @@ impl GameState {
             let px_xy = TILE_PX_SIZE.to_xy() * xy.map(|t| t.as_f32());
             ctx.translate(px_xy).compose(move |ctx| {
                 let rendering_tree = ctx.ghost_add("", stuff);
-                let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
+                let Some(bounding_box) = rendering_tree.bounding_box() else {
                     return;
                 };
 
@@ -139,7 +139,7 @@ fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
             let background = *background;
             move |ctx| {
                 let rendering_tree = ctx.ghost_add("", &background);
-                let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
+                let Some(bounding_box) = rendering_tree.bounding_box() else {
                     return;
                 };
 

@@ -4,7 +4,7 @@ use crate::{
 use std::path::PathBuf;
 use tokio::io;
 
-pub(crate) async fn init() -> InitResult {
+pub(crate) fn init() -> InitResult {
     Ok(())
 }
 

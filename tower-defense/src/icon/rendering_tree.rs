@@ -1,4 +1,4 @@
-use crate::{asset_loader::get_icon_asset, icon::Icon};
+use crate::icon::Icon;
 use namui::*;
 use namui_prebuilt::simple_rect;
 
@@ -24,43 +24,40 @@ impl Icon {
 
         let mut rendering_trees = Vec::new();
 
-        // Try to get images from global asset loader
         // Add attribute images
         for attribute in attributes {
-            if let Some(attribute_image) = get_icon_asset(attribute.icon_kind) {
-                let attribute_render_rect = attribute.attribute_render_rect(rect);
-                let paint = if *opacity < 1.0 {
-                    Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
-                } else {
-                    None
-                };
-                rendering_trees.push(namui::image(ImageParam {
-                    rect: attribute_render_rect,
-                    image: attribute_image,
-                    style: ImageStyle {
-                        fit: ImageFit::Contain,
-                        paint: paint.clone(),
-                    },
-                }));
-            }
-        }
-
-        // Add main icon image
-        if let Some(image) = get_icon_asset(*kind) {
+            let attribute_image = attribute.icon_kind.image();
+            let attribute_render_rect = attribute.attribute_render_rect(rect);
             let paint = if *opacity < 1.0 {
                 Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
             } else {
                 None
             };
             rendering_trees.push(namui::image(ImageParam {
-                rect,
-                image,
+                rect: attribute_render_rect,
+                image: attribute_image,
                 style: ImageStyle {
                     fit: ImageFit::Contain,
-                    paint,
+                    paint: paint.clone(),
                 },
             }));
         }
+
+        // Add main icon image
+        let image = kind.image();
+        let paint = if *opacity < 1.0 {
+            Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
+        } else {
+            None
+        };
+        rendering_trees.push(namui::image(ImageParam {
+            rect,
+            image,
+            style: ImageStyle {
+                fit: ImageFit::Contain,
+                paint,
+            },
+        }));
 
         rendering_trees.push(simple_rect(
             *wh,

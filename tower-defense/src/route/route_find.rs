@@ -77,7 +77,7 @@ fn neighbor(last_xy: Xy<usize>) -> impl Iterator<Item = Xy<usize>> {
     })
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, State)]
 enum Block {
     Empty,
     Blocker,

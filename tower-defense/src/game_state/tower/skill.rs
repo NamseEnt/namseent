@@ -1,7 +1,7 @@
 use super::*;
 use std::ops::Deref;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct TowerSkillTemplate {
     pub kind: TowerSkillKind,
     pub cooldown: Duration,
@@ -17,7 +17,7 @@ impl TowerSkillTemplate {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, State)]
 pub struct TowerSkill {
     pub last_used_at: Instant,
     pub template: TowerSkillTemplate,
@@ -40,7 +40,7 @@ impl Deref for TowerSkill {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, State)]
 pub enum TowerSkillKind {
     NearbyTowerDamageMul { mul: f32, range_radius: f32 },
     NearbyTowerDamageAdd { add: f32, range_radius: f32 },
@@ -52,13 +52,13 @@ pub enum TowerSkillKind {
     TopCardBonus { rank: Rank, bonus_damage: usize },
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerStatusEffect {
     pub kind: TowerStatusEffectKind,
     pub end_at: TowerStatusEffectEnd,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, State)]
 pub enum TowerStatusEffectKind {
     DamageMul { mul: f32 },
     DamageAdd { add: f32 },
@@ -67,7 +67,7 @@ pub enum TowerStatusEffectKind {
     AttackRangeAdd { add: f32 },
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, State)]
 pub enum TowerStatusEffectEnd {
     Time { end_at: Instant },
     NeverEnd,

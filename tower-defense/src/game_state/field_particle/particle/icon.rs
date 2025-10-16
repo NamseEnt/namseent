@@ -1,7 +1,7 @@
 use crate::icon::Icon;
 use namui::*;
 
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub struct IconParticle {
     pub icon: Icon,
     pub xy: Xy<Px>,
@@ -104,7 +104,7 @@ impl IconParticle {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub enum IconParticleBehavior {
     FadeRise {
         duration: Duration,

@@ -1,6 +1,7 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
+use crate::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, State)]
 pub enum TowerSkillText {
     NearbyTowerDamageMulTitle,
     NearbyTowerDamageAddTitle,

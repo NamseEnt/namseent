@@ -1,13 +1,19 @@
-use super::stat::StatPreview;
-use super::tower_skill::{TowerEffectDescription, TowerSkillTemplateIcon};
-use super::upgrade_helpers::*;
-use crate::game_state::tower::{TowerSkillTemplate, TowerTemplate};
-use crate::game_state::upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget};
-use crate::game_state::{self, GameState};
-use crate::icon::{Icon, IconKind};
-use crate::l10n::upgrade::UpgradeKindText;
-use crate::palette;
-use crate::theme::typography::{FontSize, TextAlign, headline};
+use super::{
+    stat::StatPreview,
+    tower_skill::{TowerEffectDescription, TowerSkillTemplateIcon},
+    upgrade_helpers::*,
+};
+use crate::{
+    game_state::{
+        self, GameState,
+        tower::{TowerSkillTemplate, TowerTemplate},
+        upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
+    },
+    icon::{Icon, IconKind},
+    l10n::upgrade::UpgradeKindText,
+    palette,
+    theme::typography::{FontSize, TextAlign, headline},
+};
 use namui::*;
 use namui_prebuilt::table;
 
@@ -16,6 +22,7 @@ const HEADLINE_FONT_SIZE_SMALL: Px = px(16.0);
 const PARAGRAPH_FONT_SIZE_LARGE: Px = px(16.0);
 const PREVIEW_ICON_SIZE: Px = px(40.0);
 
+#[derive(State)]
 struct MouseHoveringSkill {
     skill: TowerSkillTemplate,
     offset: Xy<Px>,
@@ -187,6 +194,7 @@ impl Component for TowerPreview<'_> {
     }
 }
 
+#[derive(State)]
 struct UpgradeTexts {
     damage: Vec<String>,
     speed: Vec<String>,

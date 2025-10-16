@@ -1,6 +1,7 @@
+use crate::*;
 use std::num::NonZeroUsize;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, State)]
 pub enum FastForwardMultiplier {
     #[default]
     X1,

@@ -24,7 +24,8 @@ where
         + std::fmt::Debug
         + Send
         + Sync
-        + 'static,
+        + 'static
+        + State,
     T: From<f32> + Into<f32>,
 {
     let now = Instant::now();
@@ -92,7 +93,8 @@ where
     new_position
 }
 
-struct SpringAnimationContext<T: std::fmt::Debug> {
+#[derive(State)]
+struct SpringAnimationContext<T: std::fmt::Debug + State> {
     last_tick_at: Instant,
     velocity: Xy<T>,
     position: Xy<T>,

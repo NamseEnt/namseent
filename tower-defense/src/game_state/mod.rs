@@ -66,6 +66,7 @@ pub const TRAVEL_POINTS: [MapCoord; 7] = [
 pub const MAX_HP: f32 = 100.0;
 pub const MAX_INVENTORY_SLOT: usize = 9;
 
+#[derive(State)]
 pub struct GameState {
     pub monsters: Vec<Monster>,
     pub towers: PlacedTowers,
@@ -193,7 +194,7 @@ impl Component for &GameState {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 pub struct FloorTile {
     pub coord: MapCoord,
 }
@@ -212,14 +213,14 @@ static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
 pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
     ctx.init_atom(&GAME_STATE_ATOM, || {
-        GameState {
+        let mut game_state = GameState {
             monsters: Default::default(),
             towers: Default::default(),
             camera: Camera::new(),
             route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
             backgrounds: generate_backgrounds(),
             upgrade_state: Default::default(),
-            flow: GameFlow::Initializing,
+            flow: GameFlow::Defense,
             stage: 1,
             left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::Idle,
@@ -261,7 +262,10 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             contracts: vec![],
             stage_modifiers: StageModifiers::new(),
             ui_state: UIState::new(),
-        }
+        };
+
+        game_state.goto_next_stage();
+        game_state
     })
     .0
 }

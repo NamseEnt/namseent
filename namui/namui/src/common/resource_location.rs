@@ -1,15 +1,15 @@
-use serde::{Deserialize, Serialize};
+use crate::*;
 use std::{
     fmt::Display,
     path::{Path, PathBuf},
 };
-use url::Url;
+// use url::Url;
 
-#[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone, Serialize, Deserialize)]
+#[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone, State)]
 pub enum ResourceLocation {
     Bundle(PathBuf),
     KvStore(String),
-    Network(Url),
+    // Network(Url),
 }
 
 impl ResourceLocation {
@@ -29,7 +29,7 @@ impl Display for ResourceLocation {
         match self {
             ResourceLocation::Bundle(path) => write!(f, "Bundle>> {}", path.display()),
             ResourceLocation::KvStore(key) => write!(f, "KvStore>> {key}"),
-            ResourceLocation::Network(url) => write!(f, "Network>> {url}"),
+            // ResourceLocation::Network(url) => write!(f, "Network>> {url}"),
         }
     }
 }

@@ -1,5 +1,5 @@
 use super::GameState;
-use crate::rarity::Rarity;
+use crate::{rarity::Rarity, *};
 use std::num::NonZero;
 
 pub const LEVEL_RARITY_WEIGHT: [[usize; 4]; 10] = [
@@ -15,7 +15,7 @@ pub const LEVEL_RARITY_WEIGHT: [[usize; 4]; 10] = [
     [5, 20, 30, 40],
 ];
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, State)]
 pub struct RarityGenerationOption {
     pub no_common: bool,
 }

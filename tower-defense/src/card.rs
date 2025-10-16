@@ -1,7 +1,8 @@
+use crate::*;
 use rand::Rng;
 use std::fmt::Display;
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
 pub enum Suit {
     Spades,
     Hearts,
@@ -21,7 +22,7 @@ impl Display for Suit {
 }
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
 pub enum Rank {
     Seven,
     Eight,
@@ -81,7 +82,7 @@ pub const REVERSED_RANKS: [Rank; 8] = [
     Rank::Seven,
 ];
 
-#[derive(Eq, Debug, PartialEq, Hash, Clone, Copy)]
+#[derive(Eq, Debug, PartialEq, Hash, Clone, Copy, State)]
 pub struct Card {
     pub suit: Suit,
     pub rank: Rank,
@@ -123,5 +124,33 @@ impl Card {
             _ => unreachable!(),
         };
         Self { suit, rank }
+    }
+    pub fn face_image(&self) -> Image {
+        (self.rank, self.suit).image()
+    }
+}
+
+pub trait FaceCardImage {
+    fn image(self) -> Image;
+}
+
+impl FaceCardImage for (Rank, Suit) {
+    fn image(self) -> Image {
+        let (rank, suit) = self;
+        match (rank, suit) {
+            (Rank::Jack, Suit::Spades) => crate::asset::image::face::spades::JACK,
+            (Rank::Jack, Suit::Hearts) => crate::asset::image::face::hearts::JACK,
+            (Rank::Jack, Suit::Diamonds) => crate::asset::image::face::diamonds::JACK,
+            (Rank::Jack, Suit::Clubs) => crate::asset::image::face::clubs::JACK,
+            (Rank::Queen, Suit::Spades) => crate::asset::image::face::spades::QUEEN,
+            (Rank::Queen, Suit::Hearts) => crate::asset::image::face::hearts::QUEEN,
+            (Rank::Queen, Suit::Diamonds) => crate::asset::image::face::diamonds::QUEEN,
+            (Rank::Queen, Suit::Clubs) => crate::asset::image::face::clubs::QUEEN,
+            (Rank::King, Suit::Spades) => crate::asset::image::face::spades::KING,
+            (Rank::King, Suit::Hearts) => crate::asset::image::face::hearts::KING,
+            (Rank::King, Suit::Diamonds) => crate::asset::image::face::diamonds::KING,
+            (Rank::King, Suit::Clubs) => crate::asset::image::face::clubs::KING,
+            _ => panic!("Not a face card: {:?} {:?}", rank, suit),
+        }
     }
 }

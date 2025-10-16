@@ -3,6 +3,7 @@ pub mod tower;
 use crate::MapCoordF32;
 use namui::*;
 
+#[derive(State)]
 pub struct CursorPreview {
     pub kind: PreviewKind,
     pub map_coord: MapCoordF32,
@@ -42,7 +43,7 @@ impl Component for RenderCursorPreview<'_> {
     }
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq, State)]
 pub enum PreviewKind {
     #[default]
     None,

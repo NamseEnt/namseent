@@ -1,6 +1,6 @@
 use namui::*;
 
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub struct DamageTextParticle {
     pub position: Xy<Px>,
     pub display_value: String,

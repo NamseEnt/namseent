@@ -4,7 +4,7 @@ use anyhow::*;
 use namui_type::*;
 use std::sync::Arc;
 
-pub(crate) async fn init() -> InitResult {
+pub(crate) fn init() -> InitResult {
     super::TIME_SYSTEM
         .set(Arc::new(NonWasmTimeSystem {
             start_instant: std::time::Instant::now(),

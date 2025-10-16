@@ -1,19 +1,20 @@
-import { Exports } from "../exports";
 import {
     computeUnpackAlignedImageSize,
     getSizePerPixel,
 } from "./getSizePerPixel";
 
 export function envGl({
-    canvas,
+    canvas = new OffscreenCanvas(0, 0),
     memory,
     exports,
 }: {
-    canvas: OffscreenCanvas | undefined;
+    canvas: HTMLCanvasElement | OffscreenCanvas | undefined;
     memory: WebAssembly.Memory;
-    exports: () => Exports;
+    exports: () => {
+        malloc: (size: number) => number;
+    };
 }) {
-    const webgl = canvas?.getContext("webgl2");
+    const webgl = canvas.getContext("webgl2");
     const stringCache = new Map<number, number>();
 
     const webglBufferMap = new Map<number, WebGLBuffer>();

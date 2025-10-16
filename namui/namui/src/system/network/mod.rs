@@ -3,6 +3,6 @@ pub mod ws;
 
 use super::InitResult;
 
-pub(super) async fn init() -> InitResult {
+pub(super) fn init() -> InitResult {
     Ok(())
 }

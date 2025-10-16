@@ -1,7 +1,7 @@
 use crate::icon::{Icon, IconAttribute, IconAttributePosition, IconKind, IconSize};
 use namui::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, State)]
 pub enum IconParseError {
     Format,
     Kind,

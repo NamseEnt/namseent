@@ -31,7 +31,7 @@ lazy_static::lazy_static! {
     static ref KEYBOARD_SYSTEM: Arc<KeyboardSystem> = Arc::new(KeyboardSystem::new());
 }
 
-pub(super) async fn init() -> InitResult {
+pub(super) fn init() -> InitResult {
     lazy_static::initialize(&KEYBOARD_SYSTEM);
     Ok(())
 }

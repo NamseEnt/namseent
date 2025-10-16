@@ -5,8 +5,8 @@ pub(crate) mod new_event_system;
 use super::InitResult;
 pub use insert_js::*;
 
-pub(crate) async fn init() -> InitResult {
-    new_event_system::init().await?;
+pub(crate) fn init() -> InitResult {
+    new_event_system::init()?;
 
     Ok(())
 }

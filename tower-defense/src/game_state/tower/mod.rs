@@ -1,4 +1,4 @@
-mod render;
+pub mod render;
 mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
@@ -13,7 +13,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, State)]
 pub struct Tower {
     id: usize,
     pub left_top: MapCoord,
@@ -146,7 +146,7 @@ impl Deref for Tower {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerTemplate {
     pub kind: TowerKind,
     pub shoot_interval: Duration,
@@ -190,7 +190,7 @@ impl PartialOrd for TowerTemplate {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, State)]
 pub enum TowerKind {
     Barricade,
     High,
@@ -206,21 +206,6 @@ pub enum TowerKind {
 }
 
 impl TowerKind {
-    pub fn asset_id(&self) -> &'static str {
-        match self {
-            TowerKind::Barricade => "barricade",
-            TowerKind::High => "high",
-            TowerKind::OnePair => "one_pair",
-            TowerKind::TwoPair => "two_pair",
-            TowerKind::ThreeOfAKind => "three_of_a_kind",
-            TowerKind::Straight => "straight",
-            TowerKind::Flush => "flush",
-            TowerKind::FullHouse => "full_house",
-            TowerKind::FourOfAKind => "four_of_a_kind",
-            TowerKind::StraightFlush => "straight_flush",
-            TowerKind::RoyalFlush => "royal_flush",
-        }
-    }
     pub fn shoot_interval(&self) -> Duration {
         match self {
             Self::Barricade => 1.sec(),

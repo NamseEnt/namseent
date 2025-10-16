@@ -26,6 +26,7 @@ use std::sync::{
 
 const MONSTER_HP_BAR_HEIGHT: Px = px(4.);
 
+#[derive(State)]
 pub struct Monster {
     id: usize,
     pub move_on_route: MoveOnRoute,

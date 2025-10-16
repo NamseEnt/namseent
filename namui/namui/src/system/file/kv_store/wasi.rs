@@ -2,7 +2,7 @@ use crate::system::InitResult;
 use anyhow::Result;
 use std::io::{Read, Write};
 
-pub async fn init() -> InitResult {
+pub fn init() -> InitResult {
     Ok(())
 }
 

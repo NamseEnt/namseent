@@ -1,13 +1,12 @@
 use crate::{
     MapCoordF32,
-    asset_loader::get_tower_asset,
     game_state::{
         MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
         can_place_tower::can_place_tower,
         flow::GameFlow,
         hand::HandSlotId,
         mutate_game_state, place_tower,
-        tower::{AnimationKind, Tower, TowerTemplate},
+        tower::{AnimationKind, Tower, TowerTemplate, render::TowerImage as TowerImageTrait},
         use_game_state,
     },
     palette,
@@ -111,18 +110,14 @@ impl Component for TowerImage<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { tower_template } = self;
 
-        let tower_image = get_tower_asset((tower_template.kind, AnimationKind::Idle1));
+        let tower_image = (tower_template.kind, AnimationKind::Idle1).image();
 
-        let Some(tower_image) = tower_image else {
-            return;
-        };
-
-        let image_wh = tower_image.info.wh();
+        let image_wh = tower_image.info().wh();
         let rect = Rect::from_xy_wh(image_wh.to_xy() / -2.0, image_wh);
         let paint = Paint::new(Color::grayscale_alpha_f01(0.0, 0.5));
         ctx.add(namui::image(ImageParam {
             rect,
-            image: tower_image.clone(),
+            image: tower_image,
             style: ImageStyle {
                 fit: ImageFit::None,
                 paint: Some(paint),

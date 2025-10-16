@@ -6,7 +6,7 @@ use crate::game_state::{
 use crate::rarity::Rarity;
 use namui::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, State)]
 pub enum Effect {
     Heal {
         amount: f32,

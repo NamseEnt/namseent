@@ -4,9 +4,10 @@ use crate::{
         UpgradeKind, UpgradeState,
     },
     l10n::upgrade_board::UpgradeBoardText,
+    *,
 };
 
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub struct UpgradeInfo {
     pub upgrade_kind: UpgradeKind,
     pub description: String,

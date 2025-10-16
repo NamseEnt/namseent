@@ -4,11 +4,12 @@ mod route_find;
 
 use crate::*;
 pub use move_on_route::*;
+use namui::State;
 pub use render_route::*;
 pub use route_find::*;
 use std::sync::Arc;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, State)]
 pub struct Route {
     map_coords: Vec<MapCoord>,
 }

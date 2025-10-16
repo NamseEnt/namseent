@@ -10,9 +10,10 @@ use crate::{
     card::Card,
     game_state::{flow::contract::ContractFlow, hand::Hand},
     shop::Shop,
+    *,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, State)]
 #[allow(clippy::large_enum_variant)]
 pub enum GameFlow {
     Initializing,
@@ -37,7 +38,7 @@ impl GameFlow {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, State)]
 pub struct SelectingTowerFlow {
     pub hand: Hand<Card>,
     pub shop: Shop,

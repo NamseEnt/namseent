@@ -1,17 +1,17 @@
 use crate::*;
 
 impl Draw for &ImageDrawCommand {
-    fn draw(self, skia: &mut impl SkSkia) {
+    fn draw(self, skia: &mut NativeSkia) {
         let rect_wh = self.rect.wh();
         if rect_wh.width == 0.px()
             || rect_wh.height == 0.px()
-            || self.image.info.width == 0.px()
-            || self.image.info.height == 0.px()
+            || self.image.info().width == 0.px()
+            || self.image.info().height == 0.px()
         {
             return;
         }
 
-        let wh = self.image.info.wh();
+        let wh = self.image.info().wh();
         let (src_rect, dest_rect) = get_src_dest_rects_in_fit(self.fit, wh, self.rect);
 
         skia.surface()

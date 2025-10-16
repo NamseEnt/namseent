@@ -22,8 +22,8 @@ use wasi as inner;
 use crate::system::InitResult;
 use anyhow::Result;
 
-pub async fn init() -> InitResult {
-    inner::init().await
+pub fn init() -> InitResult {
+    inner::init()
 }
 pub fn get(key: impl AsRef<str>) -> Result<Option<Vec<u8>>> {
     inner::get(key)

@@ -6,4 +6,5 @@ pub mod resource_collect_service;
 pub mod runtime_project;
 pub mod rust_build_service;
 pub mod rust_project_watch_service;
+pub mod vite_config;
 pub mod wasi_cargo_envs;

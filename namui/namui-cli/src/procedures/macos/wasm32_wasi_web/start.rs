@@ -1,10 +1,11 @@
-use super::vite_config::{ViteConfig, update_vite_config};
 use crate::cli::Target;
+use crate::services::wasi_cargo_envs::{WasiType, wasi_cargo_envs};
 use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
 use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runtime_project};
 use services::rust_build_service::{self, BuildOption};
 use services::rust_project_watch_service::RustProjectWatchService;
+use services::vite_config::{ViteConfig, update_vite_config};
 use tokio::process::Child;
 use util::get_cli_root_path;
 
@@ -12,6 +13,8 @@ pub async fn start(
     manifest_path: impl AsRef<std::path::Path>,
     start_option: StartOption,
 ) -> Result<()> {
+    build_drawer().await?;
+
     let manifest_path = manifest_path.as_ref();
     let target = Target::Wasm32WasiWeb;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
@@ -102,4 +105,22 @@ async fn start_web_code() -> Result<Child> {
         .spawn()?;
 
     Ok(process)
+}
+
+async fn build_drawer() -> Result<()> {
+    let drawer_target_dir = get_cli_root_path().join("../namui-drawer");
+    let output = tokio::process::Command::new("cargo")
+        .args(["build", "--target", "wasm32-wasip1-threads", "--release"])
+        .current_dir(drawer_target_dir)
+        .envs(wasi_cargo_envs(WasiType::Drawer))
+        .spawn()?
+        .wait_with_output()
+        .await?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow::anyhow!("Failed to build drawer {}", stderr));
+    }
+
+    Ok(())
 }

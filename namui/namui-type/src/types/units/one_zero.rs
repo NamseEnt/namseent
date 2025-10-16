@@ -3,7 +3,7 @@ use std::fmt::Display;
 super::common_for_f32_type!(
     OneZero,
     |lhs: OneZero| -> f32 { *lhs.0 },
-    |lhs: f32| -> OneZero { OneZero(OrderedFloat::new(num::clamp(lhs, 0.0, 1.0))) },
+    |lhs: f32| -> OneZero { OneZero(OrderedFloat::new(lhs.clamp(0.0, 1.0))) },
     one_zero,
     OneZeroExt
 );

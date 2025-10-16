@@ -2,7 +2,7 @@ use super::*;
 
 /// Assume that the tower's size is 2x2.
 /// All iteration in this struct will be in the order of left-top, right-top, left-bottom, right-bottom.
-#[derive(Default, Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq, State)]
 pub struct PlacedTowers {
     /// key is the left-top coord of the tower.
     inner: Vec<Tower>,

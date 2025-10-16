@@ -6,12 +6,13 @@ use crate::{
         item::generation::generate_item, upgrade::generate_upgrade,
     },
     rarity::Rarity,
+    *,
 };
 use namui::OneZero;
 use rand::{Rng, thread_rng};
 pub use shop_slot::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, State)]
 pub struct Shop {
     pub slots: [ShopSlot; 4],
     pub left_refresh_chance: usize,

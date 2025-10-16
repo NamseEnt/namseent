@@ -7,6 +7,7 @@ use crate::{
     card::{Rank, Suit},
     game_state::tower::Tower,
     rarity::Rarity,
+    *,
 };
 pub use generation::*;
 use std::collections::BTreeMap;
@@ -20,7 +21,7 @@ pub const MAX_QUEST_BOARD_REFRESH_CHANCE_PLUS: usize = 2;
 pub const MAX_REROLL_CHANCE_PLUS: usize = 2;
 pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, State)]
 pub struct UpgradeState {
     pub gold_earn_plus: usize,
     pub shop_slot_expand: usize,
@@ -37,7 +38,7 @@ pub struct UpgradeState {
     pub treat_suits_as_same: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub struct Upgrade {
     pub kind: UpgradeKind,
     pub rarity: Rarity,
@@ -484,7 +485,7 @@ impl UpgradeState {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub enum UpgradeKind {
     GoldEarnPlus,
     RankAttackDamagePlus {
@@ -644,7 +645,7 @@ pub enum UpgradeKind {
     },
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord, State)]
 pub enum TowerUpgradeTarget {
     Rank { rank: Rank },
     Suit { suit: Suit },
@@ -652,7 +653,7 @@ pub enum TowerUpgradeTarget {
     EvenOdd { even: bool },
     FaceNumber { face: bool },
 }
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub enum TowerUpgrade {
     DamagePlus { damage: f32 },
     DamageMultiplier { multiplier: f32 },
@@ -660,7 +661,7 @@ pub enum TowerUpgrade {
     SpeedMultiplier { multiplier: f32 },
     RangePlus { range: f32 },
 }
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub struct TowerUpgradeState {
     pub damage_plus: f32,
     pub damage_multiplier: f32,
@@ -691,7 +692,7 @@ impl Default for TowerUpgradeState {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord, State)]
 pub enum TowerSelectUpgradeTarget {
     LowCard,
     NoReroll,

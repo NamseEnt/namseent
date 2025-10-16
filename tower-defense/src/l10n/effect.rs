@@ -1,8 +1,8 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
-use crate::game_state::effect::Effect;
+use crate::{game_state::effect::Effect, *};
 
 #[allow(unreachable_patterns)]
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub enum EffectText {
     Name(Effect),
     Description(Effect),

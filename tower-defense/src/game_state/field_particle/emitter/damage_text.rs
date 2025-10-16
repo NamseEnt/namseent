@@ -2,6 +2,7 @@ use crate::{MapCoordF32, game_state::field_particle::DamageTextParticle};
 use namui::*;
 use rand::Rng;
 
+#[derive(State)]
 pub struct DamageTextEmitter {
     monster_xy: MapCoordF32,
     damage: f32,

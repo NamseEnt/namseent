@@ -10,7 +10,7 @@ pub struct RawFileDropEvent {
     pub global_xy: Xy<Px>,
 }
 
-pub(super) async fn init() -> InitResult {
+pub(super) fn init() -> InitResult {
     let document = window().unwrap().document().unwrap();
 
     document

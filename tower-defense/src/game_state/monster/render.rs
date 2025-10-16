@@ -1,9 +1,6 @@
-use crate::{
-    asset_loader::get_monster_asset,
-    game_state::{
-        GameState, MonsterKind, TILE_PX_SIZE,
-        monster::{MONSTER_HP_BAR_HEIGHT, Monster, monster_hp_bar::MonsterHpBar},
-    },
+use crate::game_state::{
+    GameState, MonsterKind, TILE_PX_SIZE,
+    monster::{MONSTER_HP_BAR_HEIGHT, Monster, monster_hp_bar::MonsterHpBar},
 };
 use namui::*;
 
@@ -13,25 +10,23 @@ impl Component for &Monster {
             kind, animation, ..
         } = self;
 
-        let image = get_monster_asset(*kind);
+        let image = kind.image();
         let monster_wh = monster_wh(*kind);
 
-        if let Some(image) = image {
-            ctx.translate(Xy::new(
-                TILE_PX_SIZE.width * 0.5,
-                TILE_PX_SIZE.height - monster_wh.height * 0.5
-                    + TILE_PX_SIZE.height * animation.y_offset,
-            ))
-            .rotate(animation.rotation)
-            .add(namui::image(ImageParam {
-                rect: Rect::from_xy_wh(monster_wh.to_xy() * -0.5, monster_wh),
-                image,
-                style: ImageStyle {
-                    fit: ImageFit::Contain,
-                    paint: None,
-                },
-            }));
-        }
+        ctx.translate(Xy::new(
+            TILE_PX_SIZE.width * 0.5,
+            TILE_PX_SIZE.height - monster_wh.height * 0.5
+                + TILE_PX_SIZE.height * animation.y_offset,
+        ))
+        .rotate(animation.rotation)
+        .add(namui::image(ImageParam {
+            rect: Rect::from_xy_wh(monster_wh.to_xy() * -0.5, monster_wh),
+            image,
+            style: ImageStyle {
+                fit: ImageFit::Contain,
+                paint: None,
+            },
+        }));
 
         let hp_bar_wh = Wh::new(monster_wh.width, MONSTER_HP_BAR_HEIGHT);
         ctx.translate(Xy::new(
@@ -119,6 +114,7 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
     });
 }
 
+#[derive(State)]
 pub struct MonsterAnimation {
     rotation: Angle,
     rotation_velocity: f32,
@@ -144,6 +140,7 @@ impl MonsterAnimation {
     }
 }
 
+#[derive(State)]
 enum MonsterAnimationRotatedSide {
     Left,
     Right,

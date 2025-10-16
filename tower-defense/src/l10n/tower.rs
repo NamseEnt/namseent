@@ -1,6 +1,7 @@
 use super::{Language, Locale, LocalizedStaticText};
+use crate::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub enum TowerKindText {
     Barricade,
     High,

@@ -1,10 +1,10 @@
-use super::vite_config::{ViteConfig, update_vite_config};
 use crate::cli::Target;
 use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
 use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runtime_project};
 use services::rust_build_service::{self, BuildOption};
 use services::rust_project_watch_service::RustProjectWatchService;
+use services::vite_config::{ViteConfig, update_vite_config};
 use tokio::process::Child;
 use util::get_cli_root_path;
 

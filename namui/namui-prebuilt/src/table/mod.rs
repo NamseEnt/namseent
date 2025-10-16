@@ -342,7 +342,7 @@ impl Component for InternalSlice<'_> {
 
                     if let TableCellType::Fit { .. } = table_cell_type {
                         let is_first_draw = fit_bounding_box_map.get(&index).is_none();
-                        let bounding_box = namui::bounding_box(&rendering_tree);
+                        let bounding_box = rendering_tree.bounding_box();
                         set_bounding_box_map.mutate({
                             move |bounding_box_map| {
                                 bounding_box_map.insert(index, bounding_box);

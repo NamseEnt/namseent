@@ -1,4 +1,3 @@
-mod asset_loader;
 mod camera_controller;
 mod card;
 mod contracts;
@@ -25,7 +24,6 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     theme::button::{Button, ButtonVariant},
 };
-use asset_loader::LoadingScreen;
 use contracts::Contracts;
 use game_speed_indicator::GameSpeedIndicator;
 use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
@@ -35,6 +33,8 @@ use namui_prebuilt::simple_rect;
 use theme::palette;
 use top_bar::TopBar;
 use upgrade_select::UpgradeSelectModal;
+
+register_assets!();
 
 type BlockUnit = usize;
 type BlockUnitF32 = f32;
@@ -53,18 +53,6 @@ impl Component for Game {
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = game_state::init_game_state(ctx);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
-
-        if matches!(&game_state.flow, GameFlow::Initializing) {
-            ctx.add(LoadingScreen {
-                screen_wh,
-                on_complete: &|| {
-                    mutate_game_state(|game_state| {
-                        game_state.goto_next_stage();
-                    });
-                },
-            });
-            return;
-        }
 
         ctx.compose(|ctx| {
             let Some(modal) = game_state.opened_modal.as_ref() else {
@@ -211,6 +199,7 @@ impl Component for Game {
     }
 }
 
+#[derive(State)]
 struct MiddleMouseButtonDragging {
     last_global_xy: Xy<Px>,
 }

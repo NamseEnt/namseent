@@ -15,10 +15,10 @@ targets = [
 [dependencies]
 namui-type = { path = "../namui-type" }
 namui-hooks = { path = "../namui-hooks" }
-namui-skia = { path = "../skia" }
 namui-cfg = { path = "../namui-cfg" }
-namui-drawer = { path = "../namui-drawer" }
 namui-particle = { path = "../particle" }
+namui-rendering-tree = { path = "../rendering-tree" }
+namui-asset-macro = { path = "../asset-macro" }
 lazy_static = "1.4.0"
 url = { version = "2", features = ["serde"] }
 anyhow = { version = "1.0.77", features = ["backtrace"] }
@@ -41,7 +41,6 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
 ] }
 tokio-stream = { path = "../third-party-forks/tokio/tokio-stream" }
 rusqlite = { path = "../third-party-forks/rusqlite", features = ["bundled"] }
-rayon = "1.10.0"
 http = "1.1.0"
 http-body = "1.0.1"
 bytes = "1.7.1"
@@ -50,6 +49,7 @@ http-body-util = "0.1.2"
 ogg = { version = "0.9.1" }
 pin-project = "1"
 opusic-sys = "0.5.2"
+orx-parallel = "3.3.0"
 
 [target.'cfg(not(target_os="wasi"))'.dependencies]
 hyper-rustls = { version = "0.27.2", default-features = false, features = [

@@ -16,7 +16,7 @@ targets = [
 [dependencies]
 boxcar = "0.2.14"
 elsa = { version = "1.11.2", features = ["indexmap"] }
-namui-skia = { path = "../skia" }
+namui-rendering-tree = { path = "../rendering-tree" }
 namui-type = { path = "../namui-type" }
 rustc-hash = "1.1.0"
 smol_str = "0.2.1"

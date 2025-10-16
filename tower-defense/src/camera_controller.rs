@@ -1,7 +1,7 @@
 use crate::game_state::mutate_game_state;
 use crate::*;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, State)]
 struct KeyboardNav {
     up: bool,
     down: bool,

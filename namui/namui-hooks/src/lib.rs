@@ -13,7 +13,7 @@ pub use atom::*;
 pub use component::*;
 pub use compose::*;
 pub(crate) use ids::*;
-use namui_skia::*;
+use namui_rendering_tree::*;
 use namui_type::*;
 pub use render_child_key::*;
 pub use render_ctx::*;

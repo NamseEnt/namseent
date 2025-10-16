@@ -2,8 +2,10 @@ use super::MonsterSkillTemplate;
 use super::PrebuiltSkill;
 use crate::game_state::monster::MonsterKind;
 use crate::game_state::route::Velocity;
-use namui::Duration;
+use crate::*;
+use namui::{Duration, State};
 
+#[derive(State)]
 pub struct MonsterTemplate {
     pub kind: MonsterKind,
     pub max_hp: f32,

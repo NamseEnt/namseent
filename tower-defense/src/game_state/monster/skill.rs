@@ -3,7 +3,7 @@ use crate::game_state::GameState;
 use namui::Instant;
 use std::ops::Deref;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 pub struct MonsterSkillTemplate {
     pub kind: MonsterSkillKind,
     pub target: Target,
@@ -11,6 +11,7 @@ pub struct MonsterSkillTemplate {
     pub duration: Duration,
 }
 
+#[derive(State)]
 pub struct MonsterSkill {
     pub last_used_at: Instant,
     pub template: MonsterSkillTemplate,
@@ -33,7 +34,7 @@ impl Deref for MonsterSkill {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 pub enum MonsterSkillKind {
     Invincible,
     SpeedMul { mul: f32 },
@@ -41,19 +42,19 @@ pub enum MonsterSkillKind {
     HealByMaxHp { ratio: f32 },
 }
 
-#[derive(Clone)]
+#[derive(Clone, State)]
 pub struct MonsterStatusEffect {
     pub kind: MonsterStatusEffectKind,
     pub end_at: Instant,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, State)]
 pub enum Target {
     MySelf,
     MeAndNearby { radius: f32 },
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, State)]
 pub enum MonsterStatusEffectKind {
     SpeedMul { mul: f32 },
     Invincible,
@@ -141,6 +142,7 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
     }
 }
 
+#[derive(State)]
 pub enum PrebuiltSkill {
     AreaHeal01,
     AreaHeal02,

@@ -1,10 +1,13 @@
 // 현대적 l10n API - 간결하고 효율적인 다국어 텍스트 관리
 
-use super::{Language, Locale, LocalizedText};
-use super::{contract, effect, quest, tower, tower_skill, ui, upgrade, upgrade_board};
+use super::{
+    Language, Locale, LocalizedText, contract, effect, quest, tower, tower_skill, ui, upgrade,
+    upgrade_board,
+};
+use crate::*;
 
 /// 통합 다국어 텍스트 관리자
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, State)]
 pub struct TextManager {
     locale: Locale,
 }
@@ -143,12 +146,12 @@ pub const ENGLISH_TEXT: TextManager = TextManager::english();
 // ===== 레거시 호환성 지원 (점진적 마이그레이션용) =====
 
 /// 기존 호환성을 위한 레거시 API
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, State)]
 pub enum LegacyLocales {
     KoKR(LegacyKoKRLocale),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, State)]
 pub struct LegacyKoKRLocale;
 
 impl LegacyKoKRLocale {

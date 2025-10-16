@@ -1,8 +1,9 @@
 //! This module implemented by AI(Gemini 2.5 Experimental 03-25)
 
+use namui::*;
 use std::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, State)]
 pub(crate) enum Token {
     DefaultText { text: String },
     Image { tag: String },

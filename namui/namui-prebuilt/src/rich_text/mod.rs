@@ -244,7 +244,7 @@ impl<'a> Processor<'a> {
     }
 
     fn add(&mut self, ctx: &RenderCtx, rendering_tree: RenderingTree) {
-        let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
+        let Some(bounding_box) = rendering_tree.bounding_box() else {
             return;
         };
 
@@ -389,7 +389,7 @@ impl<'a> Processor<'a> {
 
         {
             let rendering_tree = get_rendering_tree(text);
-            let Some(bounding_box) = namui::bounding_box(&rendering_tree) else {
+            let Some(bounding_box) = rendering_tree.bounding_box() else {
                 return;
             };
 
@@ -405,7 +405,7 @@ impl<'a> Processor<'a> {
             if !left_text.is_empty() {
                 // Force add left_text to current line without line break check
                 let left_rendering_tree = get_rendering_tree(&left_text);
-                if let Some(bounding_box) = namui::bounding_box(&left_rendering_tree) {
+                if let Some(bounding_box) = left_rendering_tree.bounding_box() {
                     self.current_line_items.push(LineItem {
                         rendering_tree: left_rendering_tree,
                         width: bounding_box.right(),
@@ -472,7 +472,7 @@ impl<'a> Processor<'a> {
             let test_text: String = text.chars().take(boundary).collect();
             let rendering_tree = get_rendering_tree(&test_text);
 
-            if let Some(bounding_box) = namui::bounding_box(&rendering_tree)
+            if let Some(bounding_box) = rendering_tree.bounding_box()
                 && self.cursor_x + bounding_box.right() <= self.max_width
             {
                 best_boundary = Some(boundary);
@@ -514,7 +514,7 @@ impl<'a> Processor<'a> {
 
             if middle_point == low || middle_point == high {
                 let left_rendering_tree = get_rendering_tree(&left_text);
-                if let Some(bounding_box) = namui::bounding_box(&left_rendering_tree) {
+                if let Some(bounding_box) = left_rendering_tree.bounding_box() {
                     // Only add left_text if it fits OR if it's the first item in line
                     // This prevents character separation within words
                     if self.is_first_in_line
@@ -569,7 +569,7 @@ impl<'a> Processor<'a> {
             }
 
             let left_rendering_tree = get_rendering_tree(&left_text);
-            let Some(left_bounding_box) = namui::bounding_box(&left_rendering_tree) else {
+            let Some(left_bounding_box) = left_rendering_tree.bounding_box() else {
                 if !right_text.is_empty() {
                     // Force a line break before processing the right part
                     self.flush_current_line(ctx);
