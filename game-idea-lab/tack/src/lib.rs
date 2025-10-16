@@ -137,6 +137,7 @@ fn game(ctx: &RenderCtx) {
     ));
 }
 
+#[derive(State)]
 enum MotionFsm {
     Idle,
     Attacked { start_at: Instant },
