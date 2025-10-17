@@ -7,8 +7,6 @@ import { DrawerExports, Exports } from "./exports";
 import { assetList } from "virtual:asset-list";
 import { loadFonts } from "@/font/loadFont";
 
-console.log("wasmUrl", wasmUrl);
-
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
 if (!crossOriginIsolated) {
