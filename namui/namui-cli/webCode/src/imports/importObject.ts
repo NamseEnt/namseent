@@ -2,7 +2,6 @@ import { envGl } from "./envGl";
 import { textInputImports } from "./textInput";
 import { type DrawerExports, type Exports } from "@/exports";
 import { storageImports } from "@/storage/imports";
-import { bufferPoolImports } from "@/bufferPool";
 import { ThreadStartSupplies } from "@/thread/startThread";
 import SubThreadWorker from "@/thread/SubThreadWorker?worker";
 
@@ -58,7 +57,6 @@ export function createImportObject({
                 memory,
                 storageProtocolBuffer,
             }),
-            ...bufferPoolImports({ memory }),
             _initial_window_wh: () => supplies.initialWindowWh,
             _hardware_concurrency: () => navigator.hardwareConcurrency,
             _get_image_count: () => {

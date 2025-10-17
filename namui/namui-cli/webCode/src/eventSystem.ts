@@ -19,35 +19,37 @@ export function startEventSystem({
 
     const memory = exports.memory;
 
-    function onEventHandlerReturn(out: bigint, shouldRedraw: boolean = false) {
-        const outPtr = Number(out >> 32n);
-        const outLen = Number(out & 0xffffffffn);
-
-        if (!outLen) {
-            if (shouldRedraw) {
-                drawer.exports._redraw(mouseX, mouseY);
-            }
-
+    function onEventHandlerReturn(renderingTreePtrLen: bigint) {
+        if (renderingTreePtrLen === 0xffffffffffffffffn) {
+            drawer.exports._redraw(mouseX, mouseY);
             return;
         }
 
-        const renderingTreePtrOnDrawer = drawer.exports.malloc(outLen);
+        if (!renderingTreePtrLen) {
+            return;
+        }
+
+        const renderingTreePtr = Number(renderingTreePtrLen >> 32n);
+        const renderingTreeLen = Number(renderingTreePtrLen & 0xffffffffn);
+
+        const renderingTreePtrOnDrawer =
+            drawer.exports.malloc(renderingTreeLen);
         try {
-            const renderingTreeView = new Uint8Array(
-                memory.buffer,
-                outPtr,
-                outLen,
-            );
-            const renderingTreeViewOnDrawer = new Uint8Array(
+            new Uint8Array(
                 drawer.exports.memory.buffer,
                 renderingTreePtrOnDrawer,
-                outLen,
+                renderingTreeLen,
+            ).set(
+                new Uint8Array(
+                    memory.buffer,
+                    renderingTreePtr,
+                    renderingTreeLen,
+                ),
             );
-            renderingTreeViewOnDrawer.set(renderingTreeView);
 
             drawer.exports._draw_rendering_tree(
                 renderingTreePtrOnDrawer,
-                outLen,
+                renderingTreeLen,
                 mouseX,
                 mouseY,
             );
@@ -72,7 +74,6 @@ export function startEventSystem({
 
         onEventHandlerReturn(
             exports._on_screen_resize(innerWidth, innerHeight),
-            true,
         );
     }
     window.addEventListener("resize", onResize);
@@ -111,9 +112,9 @@ export function startEventSystem({
                 : type === "move"
                 ? exports._on_mouse_move
                 : exports._on_mouse_up;
+
         onEventHandlerReturn(
             fn(event.clientX, event.clientY, event.button, event.buttons),
-            true,
         );
     }
     function onMouseDown(event: MouseEvent) {
