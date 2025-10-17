@@ -50,6 +50,7 @@ pub fn main() {
 struct Game {}
 impl Component for Game {
     fn render(self, ctx: &RenderCtx) {
+        println!("hi");
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = game_state::init_game_state(ctx);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);

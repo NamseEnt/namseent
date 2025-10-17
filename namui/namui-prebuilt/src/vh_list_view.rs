@@ -138,7 +138,7 @@ where
 
             let total_item_height = items.iter().map(&item_height).sum();
             let max_scroll_y = total_item_height - wh.height;
-            let scroll_y = namui::math::num::clamp(scroll_y, px(0.0), px(0.0).max(max_scroll_y));
+            let scroll_y = scroll_y.clamp(0.px(), 0.px().max(max_scroll_y));
 
             let mut bottom = 0.px();
             for item in items {

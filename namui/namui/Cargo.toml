@@ -19,14 +19,9 @@ namui-cfg = { path = "../namui-cfg" }
 namui-particle = { path = "../particle" }
 namui-rendering-tree = { path = "../rendering-tree" }
 namui-asset-macro = { path = "../asset-macro" }
-url = { version = "2", features = ["serde"] }
 anyhow = { version = "1.0.77", features = ["backtrace"] }
 shader-macro = { path = "../shader-macro" }
-serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = "1.0"
-percent-encoding = "2"
 futures = "0.3.17"
-num = { version = "0.4.0", features = ["std"] }
 dashmap = "5"
 rand = "0.8.5"
 tokio = { path = "../third-party-forks/tokio/tokio", features = [
@@ -38,33 +33,7 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "rt-multi-thread",
     "fs",
 ] }
-tokio-stream = { path = "../third-party-forks/tokio/tokio-stream" }
-http = "1.1.0"
-http-body = "1.0.1"
-bytes = "1.7.1"
-hyper = "1.4.1"
-http-body-util = "0.1.2"
-ogg = { version = "0.9.1" }
-pin-project = "1"
-opusic-sys = "0.5.2"
 orx-parallel = "3.3.0"
-
-[target.'cfg(not(target_os="wasi"))'.dependencies]
-hyper-rustls = { version = "0.27.2", default-features = false, features = [
-    "http1",
-    "http2",
-    "native-tokio",
-    "ring",
-    "tls12",
-] }
-winit = "0.29.4"
-opener = "0.7.1"
-hyper-util = { version = "0.1.7", features = ["client", "http1", "http2"] }
-cpal = "0.15.3"
-rubato = "0.15.0"
-
-[target.'cfg(target_os="windows")'.dependencies]
-wasapi = "0.14.0"
 
 [dev-dependencies]
 float-cmp = "0.9"

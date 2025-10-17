@@ -29,6 +29,8 @@ codegen-units = 1 # Reduce number of codegen units to increase optimizations
 [profile.dev]
 opt-level = 1
 # opt-level = 3
+strip = "debuginfo"
+debug = "line-tables-only"
 "#,
         ),
     )?;
