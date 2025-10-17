@@ -1,13 +1,8 @@
 import { envGl } from "./envGl";
 import { textInputImports } from "./textInput";
 import { type DrawerExports, type Exports } from "@/exports";
-import { webSocketImports } from "@/webSocket";
-import { insertJsImports } from "@/insertJs";
 import { storageImports } from "@/storage/imports";
 import { bufferPoolImports } from "@/bufferPool";
-import { newEventSystemImports } from "@/newEventSystem";
-import { httpFetchImports } from "@/httpFetch/httpFetch";
-import { audioImports } from "@/audio";
 import { ThreadStartSupplies } from "@/thread/startThread";
 import SubThreadWorker from "@/thread/SubThreadWorker?worker";
 
@@ -28,21 +23,6 @@ export function createImportObject({
         memory,
         canvas: supplies.type === "drawer" ? supplies.canvas : undefined,
     }) as any;
-
-    // const glDebug = false;
-
-    // if (glDebug) {
-    //     for (const key in glFunctions) {
-    //         const original = glFunctions[key];
-    //         glFunctions[key] = (...args: (number | bigint)[]) => {
-    //             console.debug(
-    //                 key,
-    //                 args.map((x) => `0x${x.toString(16)}`).join(","),
-    //             );
-    //             return original(...args);
-    //         };
-    //     }
-    // }
 
     const wasiDebug = false;
 
@@ -74,20 +54,11 @@ export function createImportObject({
             ...textInputImports({
                 memory,
             }),
-            ...webSocketImports({
-                memory,
-            }),
-            ...insertJsImports({
-                memory,
-            }),
             ...storageImports({
                 memory,
                 storageProtocolBuffer,
             }),
             ...bufferPoolImports({ memory }),
-            ...newEventSystemImports({ memory }),
-            ...httpFetchImports({ memory }),
-            ...audioImports({ memory }),
             _initial_window_wh: () => supplies.initialWindowWh,
             _hardware_concurrency: () => navigator.hardwareConcurrency,
             _get_image_count: () => {
