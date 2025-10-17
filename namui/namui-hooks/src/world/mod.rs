@@ -77,14 +77,14 @@ impl World {
                     .instance_id_map
                     .insert(child_key.clone(), child_instance_id.into());
 
+                let child_key_chain = parent_composer.child_key_chain.append(child_key.clone());
+
                 self.instances.insert(
                     child_instance_id,
                     Box::new(Instance::new(
                         child_instance_id,
-                        self.frozen_instances
-                            .borrow_mut()
-                            .remove(&parent_composer.child_key_chain.append(child_key.clone())),
-                        parent_composer.child_key_chain.append(child_key.clone()),
+                        self.frozen_instances.borrow_mut().remove(&child_key_chain),
+                        child_key_chain,
                     )),
                 )
             }
@@ -354,14 +354,11 @@ impl World {
         self.reset_updated_sig_ids();
         self.handle_set_states();
 
-        let root_child_key_chain = ChildKeyChain::ROOT;
-
         let root_composer = match self.composers.get(&ComposerId::ROOT) {
             Some(composer) => composer,
-            None => self.composers.insert(
-                ComposerId::ROOT,
-                Composer::new(root_child_key_chain.clone()).into(),
-            ),
+            None => self
+                .composers
+                .insert(ComposerId::ROOT, Composer::new(ChildKeyChain::ROOT).into()),
         };
 
         let root_instance = match self.instances.get(&InstanceId::ROOT) {
@@ -373,7 +370,7 @@ impl World {
                     self.frozen_instances
                         .borrow_mut()
                         .remove(&ChildKeyChain::ROOT),
-                    root_child_key_chain,
+                    ChildKeyChain::ROOT,
                 )),
             ),
         };

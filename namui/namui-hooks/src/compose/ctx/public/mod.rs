@@ -32,11 +32,11 @@ impl ComposeCtx<'_, '_> {
     }
     fn ghost_impl(&self, key: impl Into<AddKey>, compose: impl FnOnce(ComposeCtx)) -> RtContainer {
         let child_key = match key.into() {
-            AddKey::String(key) => ChildKey::String(key),
-            AddKey::U128(uuid) => ChildKey::U128(uuid),
-            AddKey::Incremental => ChildKey::IncrementalCompose {
-                index: self.composer.get_next_compose_index(),
-            },
+            AddKey::String(key) => ChildKey::string(key),
+            AddKey::U128(uuid) => ChildKey::u128(uuid),
+            AddKey::Incremental => {
+                ChildKey::incremental_compose(self.composer.get_next_compose_index())
+            }
         };
         let child_composer = self.world.get_or_create_composer(self.composer, child_key);
 
@@ -70,12 +70,12 @@ impl ComposeCtx<'_, '_> {
         };
 
         let child_key = match key.into() {
-            AddKey::String(key) => ChildKey::String(key),
-            AddKey::U128(uuid) => ChildKey::U128(uuid),
-            AddKey::Incremental => ChildKey::IncrementalComponent {
-                index: self.composer.get_next_component_index(),
-                type_name: std::any::type_name_of_val(&component).to_string(),
-            },
+            AddKey::String(key) => ChildKey::string(key),
+            AddKey::U128(uuid) => ChildKey::u128(uuid),
+            AddKey::Incremental => ChildKey::incremental_component(
+                self.composer.get_next_component_index(),
+                std::any::type_name_of_val(&component),
+            ),
         };
 
         let (child_composer, child_instance) =
