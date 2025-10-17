@@ -17,11 +17,9 @@ default = []
 [dependencies]
 num = { version = "0.4.0", features = ["std"] }
 auto_ops = "0.3"
-url = { version = "2.4.0", features = ["serde"] }
 derive-macro = { path = "./derive-macro" }
 lru = "0.11.0"
 anyhow = { version = "1.0.77", features = ["backtrace"] }
-derivative = "2.2.0"
 skia-safe = { path = "../third-party-forks/rust-skia/skia-safe" }
 rand = "0.8"
 sha2 = "0.10"

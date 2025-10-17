@@ -26,6 +26,10 @@ fn update_mouse_position(x: u16, y: u16) {
     );
 }
 
+pub(crate) fn mouse_position_u32() -> u32 {
+    MOUSE_POSITION.load(std::sync::atomic::Ordering::SeqCst)
+}
+
 /// 16 bit x, 16 bit y
 static MOUSE_POSITION: AtomicU32 = AtomicU32::new(0);
 

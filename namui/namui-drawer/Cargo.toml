@@ -16,4 +16,3 @@ targets = [
 namui-type = { path = "../namui-type" }
 namui-skia = { path = "../skia" }
 namui-rendering-tree = { path = "../rendering-tree" }
-dashmap = "6.1.0"

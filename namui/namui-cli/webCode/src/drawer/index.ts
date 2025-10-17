@@ -1,5 +1,5 @@
 import { startThread } from "../thread/startThread";
-import drawerUrl from "namui-drawer.wasm?url";
+import drawerUrl from "virtual:namui-drawer.wasm?url";
 import { assetList } from "virtual:asset-list";
 import cursorMetadata from "../../../system_bundle/cursor/capitaine_24.txt?raw";
 import { DrawerExports } from "@/exports";

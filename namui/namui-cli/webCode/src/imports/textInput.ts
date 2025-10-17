@@ -1,6 +1,8 @@
-import { sendMessageToMainThread } from "../interWorkerProtocol";
-
-export function textInputImports({ memory }: { memory: WebAssembly.Memory }): {
+export function textInputImports({
+    memory: _,
+}: {
+    memory: WebAssembly.Memory;
+}): {
     text_input_set_selection_range: (
         start: number,
         end: number,
@@ -20,59 +22,26 @@ export function textInputImports({ memory }: { memory: WebAssembly.Memory }): {
 } {
     return {
         text_input_set_selection_range: (
-            start: number,
-            end: number,
-            direction: number,
+            _start: number,
+            _end: number,
+            _direction: number,
         ) => {
-            sendMessageToMainThread({
-                type: "text-input-set-selection-range",
-                start,
-                end,
-                direction:
-                    direction === 0
-                        ? "none"
-                        : direction === 1
-                        ? "forward"
-                        : "backward",
-            });
+            throw new Error("Not implemented");
         },
         text_input_focus: (
-            width: number,
-            text_ptr: number,
-            text_len: number,
-            selection_start: number,
-            selection_end: number,
-            direction: number,
-            prevent_default_codes_ptr: number,
-            prevent_default_codes_len: number,
+            _width: number,
+            _text_ptr: number,
+            _text_len: number,
+            _selection_start: number,
+            _selection_end: number,
+            _direction: number,
+            _prevent_default_codes_ptr: number,
+            _prevent_default_codes_len: number,
         ) => {
-            const buffer = new Uint8Array(text_len);
-            buffer.set(new Uint8Array(memory.buffer, text_ptr, text_len));
-            const text = new TextDecoder().decode(buffer);
-            const preventDefaultCodes = new Uint8Array(
-                memory.buffer,
-                prevent_default_codes_ptr,
-                prevent_default_codes_len,
-            );
-            sendMessageToMainThread({
-                type: "text-input-focus",
-                width,
-                text,
-                selection_start,
-                selection_end,
-                direction:
-                    direction === 0
-                        ? "none"
-                        : direction === 1
-                        ? "forward"
-                        : "backward",
-                prevent_default_codes: Array.from(preventDefaultCodes),
-            });
+            throw new Error("Not implemented");
         },
         text_input_blur: () => {
-            sendMessageToMainThread({
-                type: "text-input-blur",
-            });
+            throw new Error("Not implemented");
         },
     };
 }

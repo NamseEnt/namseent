@@ -114,6 +114,7 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                     WasiType::App => [
                         "_register_font",
                         "_init_system",
+                        "_shutdown",
                         "_on_mouse_down",
                         "_on_mouse_up",
                         "_on_mouse_move",

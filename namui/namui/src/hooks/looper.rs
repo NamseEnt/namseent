@@ -13,7 +13,6 @@ pub(crate) struct Looper {
     render_time_worst: Duration,
     event_type_count: Vec<(EventType, i32)>,
     internal_root: InternalRoot,
-    last_rendering_tree: Option<RenderingTree>,
 }
 impl Looper {
     pub(crate) fn new(root_component: RootComponent) -> Looper {
@@ -39,11 +38,10 @@ impl Looper {
                 (EventType::TextInputSelectionChange, 0),
             ],
             internal_root: InternalRoot::new(root_component),
-            last_rendering_tree: None,
         }
     }
 
-    pub(crate) fn tick(&mut self, event: RawEvent) -> &Option<RenderingTree> {
+    pub(crate) fn tick(&mut self, event: RawEvent) -> RenderingTree {
         self.one_sec_render_count += 1;
         self.event_type_count
             .iter_mut()
@@ -57,14 +55,7 @@ impl Looper {
 
         self.post_run(before_run);
 
-        if let Some(last_rendering_tree) = &self.last_rendering_tree
-            && last_rendering_tree == &rendering_tree
-        {
-            return &None;
-        }
-
-        self.last_rendering_tree = Some(rendering_tree);
-        &self.last_rendering_tree
+        rendering_tree
     }
 
     fn post_run(&mut self, before_run: Instant) {

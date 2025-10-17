@@ -1,7 +1,5 @@
-pub mod audio;
 pub mod keyboard;
 pub mod mouse;
-pub mod network;
 pub mod screen;
 pub mod time;
 
@@ -14,7 +12,6 @@ static SYSTEM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 pub(super) fn init_system() -> InitResult {
     keyboard::init()?;
-    network::init()?;
     screen::init()?;
     time::init()?;
     mouse::init()?;

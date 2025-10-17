@@ -7,8 +7,6 @@ import { DrawerExports, Exports } from "./exports";
 import { assetList } from "virtual:asset-list";
 import { loadFonts } from "@/font/loadFont";
 
-console.log("wasmUrl", wasmUrl);
-
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
 if (!crossOriginIsolated) {
@@ -46,8 +44,12 @@ const drawerPromise: Promise<{
 })();
 
 if (import.meta.hot) {
-    import.meta.hot.on("namui-wasm-updated", () => {
+    import.meta.hot.on("namui-app-wasm-updated", () => {
         startMainThread();
+    });
+
+    import.meta.hot.on("namui-drawer-wasm-updated", () => {
+        window.location.reload();
     });
 }
 
@@ -138,7 +140,10 @@ async function startMainThread() {
                 drawer,
             });
 
-            terminate = eventSystem.terminate;
+            terminate = () => {
+                eventSystem.terminate();
+                exports!._shutdown();
+            };
         }
         while (requestedDuringStart);
     } finally {
