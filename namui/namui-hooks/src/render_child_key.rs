@@ -1,4 +1,5 @@
 use crate::*;
+use crc32fast::Hasher;
 use std::hash::Hash;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, OurSerde)]
@@ -12,27 +13,35 @@ impl ChildKey {
     }
 
     pub(crate) fn string(key: String) -> ChildKey {
+        let mut hasher = Hasher::new();
+        hasher.update(key.as_bytes());
         ChildKey {
-            value: gxhash::gxhash32(key.as_bytes(), 0),
+            value: hasher.finalize(),
         }
     }
 
     pub(crate) fn u128(uuid: u128) -> ChildKey {
+        let mut hasher = Hasher::new();
+        hasher.update(&uuid.to_le_bytes());
         ChildKey {
-            value: gxhash::gxhash32(&uuid.to_le_bytes(), 1),
+            value: hasher.finalize(),
         }
     }
 
     pub(crate) fn incremental_compose(index: usize) -> ChildKey {
+        let mut hasher = Hasher::new();
+        hasher.update(&index.to_le_bytes());
         ChildKey {
-            value: gxhash::gxhash32(&index.to_le_bytes(), 2),
+            value: hasher.finalize(),
         }
     }
 
     pub(crate) fn incremental_component(index: usize, type_name: &str) -> ChildKey {
+        let mut hasher = Hasher::new();
+        hasher.update(&index.to_le_bytes());
+        hasher.update(type_name.as_bytes());
         ChildKey {
-            value: gxhash::gxhash32(&index.to_le_bytes(), 3)
-                ^ gxhash::gxhash32(type_name.as_bytes(), 3),
+            value: hasher.finalize(),
         }
     }
 }
