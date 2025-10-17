@@ -1,46 +1,39 @@
 use crate::*;
+use std::hash::Hash;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, OurSerde)]
-pub(crate) enum ChildKey {
-    String(String),
-    U128(u128),
-    IncrementalComponent { index: usize, type_name: String },
-    IncrementalCompose { index: usize },
+pub(crate) struct ChildKey {
+    value: u32,
 }
 
-impl From<String> for ChildKey {
-    fn from(value: String) -> Self {
-        ChildKey::String(value)
+impl ChildKey {
+    fn hash(&self) -> u32 {
+        self.value
     }
-}
 
-impl<'a> From<&'a String> for ChildKey {
-    fn from(value: &'a String) -> Self {
-        ChildKey::String(value.clone())
+    pub(crate) fn string(key: String) -> ChildKey {
+        ChildKey {
+            value: gxhash::gxhash32(key.as_bytes(), 0),
+        }
     }
-}
 
-impl<'a> From<&'a str> for ChildKey {
-    fn from(value: &'a str) -> Self {
-        ChildKey::String(value.to_string())
+    pub(crate) fn u128(uuid: u128) -> ChildKey {
+        ChildKey {
+            value: gxhash::gxhash32(&uuid.to_le_bytes(), 1),
+        }
     }
-}
 
-impl From<usize> for ChildKey {
-    fn from(value: usize) -> Self {
-        ChildKey::U128(value as u128)
+    pub(crate) fn incremental_compose(index: usize) -> ChildKey {
+        ChildKey {
+            value: gxhash::gxhash32(&index.to_le_bytes(), 2),
+        }
     }
-}
 
-impl From<u128> for ChildKey {
-    fn from(value: u128) -> Self {
-        ChildKey::U128(value)
-    }
-}
-
-impl From<&u128> for ChildKey {
-    fn from(value: &u128) -> Self {
-        ChildKey::U128(*value)
+    pub(crate) fn incremental_component(index: usize, type_name: &str) -> ChildKey {
+        ChildKey {
+            value: gxhash::gxhash32(&index.to_le_bytes(), 3)
+                ^ gxhash::gxhash32(type_name.as_bytes(), 3),
+        }
     }
 }
 
@@ -82,15 +75,14 @@ impl From<u128> for AddKey {
 
 #[derive(Clone, OurSerde, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct ChildKeyChain {
-    keys: Vec<ChildKey>,
+    hashed: u32,
 }
 
 impl ChildKeyChain {
-    pub const ROOT: Self = Self { keys: Vec::new() };
+    pub const ROOT: Self = Self { hashed: 0 };
 
     pub fn append(&self, key: ChildKey) -> Self {
-        let mut keys = self.keys.clone();
-        keys.push(key);
-        Self { keys }
+        let hashed = self.hashed ^ key.hash();
+        Self { hashed }
     }
 }
