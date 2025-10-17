@@ -14,7 +14,7 @@ export function namuiPlugin() {
     );
     const drawerWasmPath = path.join(
         __dirname,
-        "../../namui-drawer/target/wasm32-wasip1-threads/debug/namui-drawer.wasm",
+        "../../namui-drawer/target/wasm32-wasip1-threads/release/namui-drawer.wasm",
     );
 
     const VIRTUAL_MODULE_ID_APP = "virtual:namui-runtime-wasm.wasm?url";

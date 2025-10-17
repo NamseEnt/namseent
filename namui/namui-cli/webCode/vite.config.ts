@@ -9,7 +9,12 @@ if (!process.env.NAMUI_APP_PATH) {
 }
 const { NAMUI_APP_PATH } = process.env;
 
-const serverFsAllow = ["./"];
+const serverFsAllow = [
+    "./",
+    "../system_bundle",
+    "../../namui-drawer",
+    NAMUI_APP_PATH,
+];
 
 export default defineConfig({
     clearScreen: false,

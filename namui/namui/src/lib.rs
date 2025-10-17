@@ -38,12 +38,12 @@ pub mod particle {
     pub use namui_particle::{Emitter, Particle, System};
 }
 thread_local! {
-    static TOKIO_RUNTIME: tokio::runtime::Runtime = tokio::runtime::Builder::new_multi_thread()
+    static TOKIO_RUNTIME: RefCell<Option<tokio::runtime::Runtime>> = RefCell::new(Some(tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .thread_stack_size(2 * 1024 * 1024)
         .max_blocking_threads(32)
         .build()
-        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e)).unwrap();
+        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e)).unwrap()));
     static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
     static FROZEN_STATES: RefCell<Box<[u8]>> = Default::default();
 }
@@ -51,6 +51,11 @@ thread_local! {
 #[unsafe(no_mangle)]
 extern "C" fn _init_system() {
     system::init_system().unwrap();
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn _shutdown() {
+    TOKIO_RUNTIME.take().unwrap().shutdown_background();
 }
 
 #[unsafe(no_mangle)]
@@ -97,7 +102,7 @@ fn on_event(event: RawEvent) -> u64 {
     let mut out_len_ptr = 0;
 
     TOKIO_RUNTIME.with(|tokio_runtime| {
-        let _guard = tokio_runtime.enter();
+        let _guard = tokio_runtime.borrow().as_ref().unwrap().enter();
 
         LOOPER.with_borrow_mut(|looper| {
             let rendering_tree = looper.as_mut().unwrap().tick(event);

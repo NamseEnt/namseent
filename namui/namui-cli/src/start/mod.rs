@@ -32,23 +32,31 @@ pub fn start(project_path: &Path) -> Result<()> {
 
     let mut vite = None;
 
+    build_drawer_step()?;
+    build_app_step(project_path)?;
+
+    static VITE: std::sync::Once = std::sync::Once::new();
+    VITE.call_once(|| {
+        vite = Some(
+            Command::new("npm")
+                .args(["run", "dev"])
+                .current_dir(get_cli_root_path().join("webCode"))
+                .envs([("NAMUI_APP_PATH", project_path.to_str().unwrap())])
+                .spawn()
+                .unwrap(),
+        );
+    });
+
     loop {
-        build_drawer_step()?;
-        build_app_step(project_path)?;
-
-        static VITE: std::sync::Once = std::sync::Once::new();
-        VITE.call_once(|| {
-            vite = Some(
-                Command::new("npm")
-                    .args(["run", "dev"])
-                    .current_dir(get_cli_root_path().join("webCode"))
-                    .envs([("NAMUI_APP_PATH", project_path.to_str().unwrap())])
-                    .spawn()
-                    .unwrap(),
-            );
-        });
-
         wait_changes(&[&DRAWER_CODE_CHANGED, &APP_CODE_CHANGED]);
+
+        if DRAWER_CODE_CHANGED.load(Ordering::Relaxed) {
+            build_drawer_step()?;
+        }
+
+        if APP_CODE_CHANGED.load(Ordering::Relaxed) {
+            build_app_step(project_path)?;
+        }
     }
 }
 
@@ -82,7 +90,7 @@ fn build_app_step(project_path: &Path) -> Result<()> {
         app_wrapper::generate_app_wrapper_project(project_path)?;
 
         let status = Command::new("cargo")
-            .args(["build", "--target", "wasm32-wasip1-threads", "--release"])
+            .args(["build", "--target", "wasm32-wasip1-threads"])
             .current_dir(project_path.join("target/namui"))
             .envs(wasi_cargo_envs(WasiType::App))
             .status()?;

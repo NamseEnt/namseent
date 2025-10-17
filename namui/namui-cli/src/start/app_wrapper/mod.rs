@@ -2,8 +2,6 @@ use crate::{util::recreate_dir_all, *};
 use std::path::Path;
 
 pub fn generate_app_wrapper_project(app_project_path: &Path) -> Result<()> {
-    println!("app_project_path: {app_project_path:?}");
-
     let app_name = get_app_name(app_project_path);
     let wrapper_project_path = app_project_path.join("target/namui");
 

@@ -65,7 +65,6 @@ export function createImportObject({
                     case "sub":
                     case "drawer":
                         return supplies.imageCount;
-                    case "drawer-sub":
                     case "font-load":
                         throw new Error(`unreachable on ${supplies.type}`);
                 }
@@ -81,7 +80,6 @@ export function createImportObject({
                         ).set(supplies.imageInfoBytes);
                     case "drawer":
                         return (exports() as DrawerExports)._image_infos(ptr);
-                    case "drawer-sub":
                     case "font-load":
                         throw new Error(`unreachable on ${supplies.type}`);
                 }
@@ -96,20 +94,18 @@ export function createImportObject({
                     1,
                 );
                 const worker = new SubThreadWorker();
-                const nextSupplies =
-                    supplies.type === "main" || supplies.type === "sub"
-                        ? {
-                              ...supplies,
-                              type: "sub",
-                              startArgPtr,
-                              tid,
-                          }
-                        : ({
-                              ...{ ...supplies, canvas: undefined },
-                              type: "drawer-sub",
-                              startArgPtr,
-                              tid,
-                          } satisfies ThreadStartSupplies);
+                if (
+                    supplies.type === "drawer" ||
+                    supplies.type === "font-load"
+                ) {
+                    throw new Error("not implemented");
+                }
+                const nextSupplies = {
+                    ...supplies,
+                    type: "sub",
+                    startArgPtr,
+                    tid,
+                } satisfies ThreadStartSupplies;
                 worker.postMessage(nextSupplies);
 
                 return tid;
