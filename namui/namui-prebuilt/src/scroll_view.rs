@@ -94,11 +94,8 @@ impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                 return;
             };
 
-            let clamped_scroll_y = namui::math::num::clamp(
-                scroll_y,
-                px(0.0),
-                px(0.0).max(bounding_box.height() - height),
-            );
+            let clamped_scroll_y =
+                scroll_y.clamp(px(0.0), px(0.0).max(bounding_box.height() - height));
 
             if clamped_scroll_y != scroll_y {
                 set_scroll_y.set(clamped_scroll_y);
@@ -152,11 +149,8 @@ impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                         if let Event::Wheel { event } = event
                             && event.is_local_xy_in()
                         {
-                            let next_scroll_y = namui::math::num::clamp(
-                                scroll_y + px(event.delta_xy.y),
-                                px(0.0),
-                                (px(0.0)).max(bounding_box.height() - height),
-                            );
+                            let next_scroll_y = (scroll_y + px(event.delta_xy.y))
+                                .clamp(px(0.0), (px(0.0)).max(bounding_box.height() - height));
 
                             set_scroll_y.set(next_scroll_y);
                             event.stop_propagation();

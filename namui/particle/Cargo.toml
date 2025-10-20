@@ -7,12 +7,3 @@ edition = "2021"
 namui-type = { path = "../namui-type" }
 namui-hooks = { path = "../namui-hooks" }
 namui-rendering-tree = { path = "../rendering-tree" }
-tokio = { path = "../third-party-forks/tokio/tokio", features = [
-    "sync",
-    "macros",
-    "io-util",
-    "rt",
-    "time",
-    "rt-multi-thread",
-    "fs",
-] }

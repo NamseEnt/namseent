@@ -1,6 +1,4 @@
-mod common;
 pub mod hooks;
-pub mod math;
 mod random;
 mod render;
 pub mod system;
@@ -9,7 +7,6 @@ pub mod utils;
 pub use self::random::*;
 pub use anyhow::{Result, anyhow};
 pub use auto_ops;
-pub use common::*;
 pub use futures::{StreamExt, future::join_all, future::try_join_all, join, try_join};
 pub use hooks::*;
 pub use namui_asset_macro::register_assets;
@@ -20,30 +17,25 @@ pub use namui_type::*;
 pub use orx_parallel::*;
 pub use rand;
 pub use render::*;
-pub use serde;
 pub use shader_macro::shader;
 use std::{
     cell::RefCell,
     sync::atomic::{AtomicBool, AtomicU32, Ordering},
 };
-pub use system::{
-    network::http::{RequestExt, ResponseExt},
-    *,
-};
+pub use system::*;
 pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
-pub use url::Url;
 
 pub mod particle {
     pub use namui_particle::{Emitter, Particle, System};
 }
 thread_local! {
-    static TOKIO_RUNTIME: tokio::runtime::Runtime = tokio::runtime::Builder::new_multi_thread()
+    static TOKIO_RUNTIME: RefCell<Option<tokio::runtime::Runtime>> = RefCell::new(Some(tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .thread_stack_size(2 * 1024 * 1024)
         .max_blocking_threads(32)
         .build()
-        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e)).unwrap();
+        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e)).unwrap()));
     static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
     static FROZEN_STATES: RefCell<Box<[u8]>> = Default::default();
 }
@@ -51,6 +43,11 @@ thread_local! {
 #[unsafe(no_mangle)]
 extern "C" fn _init_system() {
     system::init_system().unwrap();
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn _shutdown() {
+    TOKIO_RUNTIME.take().unwrap().shutdown_background();
 }
 
 #[unsafe(no_mangle)]
@@ -97,7 +94,7 @@ fn on_event(event: RawEvent) -> u64 {
     let mut out_len_ptr = 0;
 
     TOKIO_RUNTIME.with(|tokio_runtime| {
-        let _guard = tokio_runtime.enter();
+        let _guard = tokio_runtime.borrow().as_ref().unwrap().enter();
 
         LOOPER.with_borrow_mut(|looper| {
             let rendering_tree = looper.as_mut().unwrap().tick(event);
@@ -151,4 +148,32 @@ macro_rules! log {
     ($($arg:tt)*) => {{
         $println!::log(format!($($arg)*));
     }}
+}
+
+pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
+    let mut iter = rendering_trees.into_iter();
+    let first = 'outer: {
+        for x in iter.by_ref() {
+            if x != RenderingTree::Empty {
+                break 'outer x;
+            }
+        }
+        return RenderingTree::Empty;
+    };
+    let second = 'outer: {
+        for x in iter.by_ref() {
+            if x != RenderingTree::Empty {
+                break 'outer x;
+            }
+        }
+        return first;
+    };
+
+    let mut children = vec![first, second];
+    children.extend(iter.filter(|x| *x != RenderingTree::Empty));
+    RenderingTree::Children(children)
+}
+
+pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree {
+    func().unwrap_or(RenderingTree::Empty)
 }

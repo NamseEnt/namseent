@@ -1,5 +1,6 @@
 export type Exports = CommonExports & {
     _init_system: () => void;
+    _shutdown: () => void;
     _on_mouse_down: (
         x: number,
         y: number,
