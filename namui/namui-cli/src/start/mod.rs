@@ -1,11 +1,8 @@
 mod app_wrapper;
+mod wasi_cargo_envs;
 mod watcher;
 
-use crate::{
-    services::wasi_cargo_envs::{WasiType, wasi_cargo_envs},
-    util::get_cli_root_path,
-    *,
-};
+use crate::{util::get_cli_root_path, *};
 use std::{
     path::{Path, PathBuf},
     process::Command,
@@ -13,6 +10,7 @@ use std::{
     thread,
     time::Duration,
 };
+use wasi_cargo_envs::{WasiType, wasi_cargo_envs};
 
 static DRAWER_CODE_CHANGED: AtomicBool = AtomicBool::new(false);
 static APP_CODE_CHANGED: AtomicBool = AtomicBool::new(false);

@@ -2,19 +2,12 @@
 #![allow(unused_variables)]
 // temporary allow dead code for cross platform development. it will be removed when the project is stable.
 
-mod cli;
-mod procedures;
-mod services;
 mod start;
 mod types;
 mod util;
 
-use anyhow::{Result, anyhow, bail};
-use clap::Parser;
-use cli::{Cli, Commands, StartOption};
-use namui_user_config::set_user_config;
+use anyhow::Result;
 use std::env::current_dir;
-use util::{get_current_target, print_namui_cfg, print_namui_target};
 
 #[tokio::main]
 async fn main() -> Result<()> {
