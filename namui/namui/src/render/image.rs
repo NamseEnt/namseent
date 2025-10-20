@@ -52,21 +52,20 @@ impl Component for ImageRender {
                     image,
                     style: ImageStyle { fit, paint },
                 }));
-            }
-            // ImageSource::ResourceLocation { resource_location } => {
-            //     let image_result = ctx.image(resource_location);
-            //     let image_guard = image_result.lock().unwrap();
+            } // ImageSource::ResourceLocation { resource_location } => {
+              //     let image_result = ctx.image(resource_location);
+              //     let image_guard = image_result.lock().unwrap();
 
-            //     let Some(Ok(image)) = image_guard.as_ref() else {
-            //         return;
-            //     };
+              //     let Some(Ok(image)) = image_guard.as_ref() else {
+              //         return;
+              //     };
 
-            //     ctx.add(crate::image(crate::ImageParam {
-            //         rect,
-            //         image: *image,
-            //         style: ImageStyle { fit, paint },
-            //     }));
-            // }
+              //     ctx.add(crate::image(crate::ImageParam {
+              //         rect,
+              //         image: *image,
+              //         style: ImageStyle { fit, paint },
+              //     }));
+              // }
         }
     }
 }
