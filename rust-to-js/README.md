@@ -1,9 +1,11 @@
-`rust-to-js` is Rust to JavaScript transpiler.
+# Prerequisites
 
-This doesn't check Rust's safety. It assumes that the Rust code already checked by `cargo check`.
+```
+rustup component add rust-src rustc-dev llvm-tools-preview
+```
 
-This changes rust code to `MIR` first, and then change `MIR` to JavaScript.
+# Test
 
-`rust-to-js` provides glue code to run Rust code in JavaScript.
-
-This tests with `QuickJS`.
+```
+cargo +nightly check
+```
