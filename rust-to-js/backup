@@ -1,0 +1,70 @@
+function core__fmt__rt__Argument__new_display(arg) {
+  return arg.toString();
+}
+function core__fmt__rt__Arguments__new_v1(format_strings, args) {
+  return { format_strings, args };
+}
+function core__fmt__rt__Arguments__new_const(format_strings) {
+  return { format_strings, args: [] };
+}
+function std__io__print(args) {
+  let output = "";
+  for (let i = 0; i < args.format_strings.length; i++) {
+    output += args.format_strings[i];
+    if (i < args.args.length) {
+      output += args.args[i];
+    }
+  }
+  console.log(output);
+}
+class Enum {
+  constructor(value, discriminant) {
+    this[0] = value;
+    this.discriminant = discriminant;
+  }
+}
+function std__iter__IntoIterator__into_iter(iter) {
+  if (Array.isArray(iter)) {
+    let i = 0;
+    return {
+      next() {
+        if (i < iter.length) {
+          return new Enum(iter[i++], 1);
+        }
+        return new Enum(undefined, 0);
+      },
+    };
+  }
+  return {
+    iter,
+    next() {
+      return iter.next();
+    },
+  };
+}
+function std__iter__Iterator__next(arg) {
+  return arg.next();
+}
+function discriminant(arg) {
+  if (!(arg instanceof Enum)) {
+    throw new Error("arg is not enum");
+  }
+  return arg.discriminant;
+}
+function switchInt(value) {
+  if (typeof value === "number") {
+    return value;
+  }
+  throw new Error();
+}
+let nextPtr = 0;
+class AllocatedMemory {
+  constructor(ptr) {
+    this[0] = ptr;
+  }
+}
+function alloc__alloc__exchange_malloc(size, align) {
+  const ptr = nextPtr + (nextPtr % align);
+  nextPtr = ptr + size;
+  return new AllocatedMemory(ptr);
+}

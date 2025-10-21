@@ -1,11 +1,13 @@
 #![feature(rustc_private)]
 
 extern crate rustc_abi;
+extern crate rustc_apfloat;
 extern crate rustc_driver;
 extern crate rustc_interface;
 extern crate rustc_middle;
 extern crate rustc_span;
 
+mod body_local_decls;
 #[cfg(test)]
 mod tests;
 
@@ -58,22 +60,25 @@ struct MyVisitor<'tcx> {
 
 impl<'tcx> Visitor<'tcx> for MyVisitor<'tcx> {
     fn visit_body(&mut self, body: &Body<'tcx>) {
-        println!("body: {body:#?}");
-
         match &self.promoted {
             Some(promoted) => {
                 let fn_name = self.tcx.def_path_str(self.def_id);
                 self.output += &format!("const {fn_name}__promoted_{promoted} = (() => {{\n");
             }
             None => {
-                let fn_name = self.tcx.def_path_str(self.def_id);
+                let fn_name = self
+                    .tcx
+                    .def_path_str(self.def_id)
+                    .replace("::", "__")
+                    .replace("<", "__")
+                    .replace(">", "__")
+                    .replace(" ", "__");
                 self.output += &format!("function {fn_name}() {{\n");
             }
         }
 
-        for i in 0..body.local_decls.len() {
-            self.output += &format!("let _{};\n", i);
-        }
+        self.on_body_local_decls(body);
+
         self.super_body(body);
         self.output += "bb0();\nreturn _0;\n";
 
@@ -92,7 +97,6 @@ impl<'tcx> Visitor<'tcx> for MyVisitor<'tcx> {
     }
 
     fn visit_statement(&mut self, statement: &Statement<'tcx>, location: Location) {
-        println!("visit_statement: {statement:?}");
         self.on_statement(statement);
         self.super_statement(statement, location);
     }
@@ -105,13 +109,47 @@ impl<'tcx> Visitor<'tcx> for MyVisitor<'tcx> {
 }
 
 impl<'tcx> MyVisitor<'tcx> {
-    fn on_statement(&mut self, statemenet: &Statement<'tcx>) {
-        match &statemenet.kind {
+    fn on_statement(&mut self, statement: &Statement<'tcx>) {
+        println!("visit_statement: {statement:?}");
+        match &statement.kind {
             StatementKind::Assign(boxed) => {
                 let (place, rvalue) = boxed.as_ref();
 
-                self.output += &format!("_{} = ", place.local.as_u32());
-                self.on_rvalue(rvalue);
+                println!("projection: {:?}", place.projection);
+
+                let mut projection_iter = place.projection.iter();
+
+                self.output += &format!("_{}", place.local.as_u32());
+
+                match projection_iter.len() {
+                    0 => {
+                        self.output += " = ";
+                        self.on_rvalue(rvalue);
+                    }
+                    1 => {
+                        let projection = projection_iter.next().unwrap();
+                        match projection {
+                            ProjectionElem::Deref => {
+                                self.output += ".derefAssign(";
+                                self.on_rvalue(rvalue);
+                                self.output += ")";
+                            }
+                            _ => todo!(),
+                        }
+                    }
+                    2 => {
+                        let p1 = projection_iter.next().unwrap();
+                        let p2 = projection_iter.next().unwrap();
+                        match (p1, p2) {
+                            (ProjectionElem::Deref, ProjectionElem::Field(field_idx, _)) => {
+                                self.output += &format!(".deref()[{}] = ", field_idx.as_u32());
+                                self.on_rvalue(rvalue);
+                            }
+                            _ => todo!(),
+                        }
+                    }
+                    _ => todo!(),
+                }
             }
             StatementKind::FakeRead(_) => todo!(),
             StatementKind::SetDiscriminant {
@@ -127,7 +165,10 @@ impl<'tcx> MyVisitor<'tcx> {
             StatementKind::Intrinsic(_non_diverging_intrinsic) => todo!(),
             StatementKind::ConstEvalCounter => todo!(),
             StatementKind::Nop => todo!(),
-            StatementKind::BackwardIncompatibleDropHint { place: _, reason: _ } => todo!(),
+            StatementKind::BackwardIncompatibleDropHint {
+                place: _,
+                reason: _,
+            } => todo!(),
         }
 
         self.output += ";\n";
@@ -138,74 +179,151 @@ impl<'tcx> MyVisitor<'tcx> {
         match rvalue {
             Rvalue::Use(operand) => self.on_operand(operand),
             Rvalue::Repeat(_operand, _) => todo!("Rvalue::Repeat"),
-            Rvalue::Ref(_region, _borrow_kind, place) => {
-                self.output += &format!("_{}", place.local.as_u32());
-            }
+            Rvalue::Ref(_region, _borrow_kind, place) => self.on_place(place),
             Rvalue::ThreadLocalRef(_def_id) => todo!("Rvalue::ThreadLocalRef"),
             Rvalue::RawPtr(_raw_ptr_kind, _place) => todo!("Rvalue::RawPtr"),
-            Rvalue::Cast(_cast_kind, _operand, _ty) => todo!("Rvalue::Cast"),
-            Rvalue::BinaryOp(_bin_op, _) => todo!("Rvalue::BinaryOp"),
-            Rvalue::NullaryOp(_null_op, _ty) => todo!("Rvalue::NullaryOp"),
-            Rvalue::UnaryOp(_un_op, _operand) => todo!("Rvalue::UnaryOp"),
-            Rvalue::Discriminant(_place) => todo!("Rvalue::Discriminant"),
-            Rvalue::Aggregate(aggregate_kind, index_vec) => match aggregate_kind.as_ref() {
-                AggregateKind::Array(_ty) => {
-                    self.output.push('[');
-                    for operand in index_vec {
-                        self.on_operand(operand);
-                        self.output.push(',');
-                    }
-                    self.output.push(']');
+            Rvalue::Cast(_cast_kind, operand, _ty) => {
+                self.on_operand(operand);
+            }
+            Rvalue::BinaryOp(bin_op, lr) => {
+                let (left, right) = lr.as_ref();
+                self.on_operand(left);
+
+                self.output += match bin_op {
+                    BinOp::Add => "+",
+                    BinOp::AddUnchecked => todo!(),
+                    BinOp::AddWithOverflow => "+",
+                    BinOp::Sub => "-",
+                    BinOp::SubUnchecked => todo!(),
+                    BinOp::SubWithOverflow => todo!(),
+                    BinOp::Mul => "*",
+                    BinOp::MulUnchecked => todo!(),
+                    BinOp::MulWithOverflow => todo!(),
+                    BinOp::Div => "/",
+                    BinOp::Rem => "%",
+                    BinOp::BitXor => "^",
+                    BinOp::BitAnd => "&",
+                    BinOp::BitOr => "|",
+                    BinOp::Shl => "<<",
+                    BinOp::ShlUnchecked => todo!(),
+                    BinOp::Shr => ">>",
+                    BinOp::ShrUnchecked => todo!(),
+                    BinOp::Eq => "==",
+                    BinOp::Lt => "<",
+                    BinOp::Le => "<=",
+                    BinOp::Ne => "!=",
+                    BinOp::Ge => ">=",
+                    BinOp::Gt => ">",
+                    BinOp::Cmp => todo!(),
+                    BinOp::Offset => todo!(),
+                };
+                self.on_operand(right);
+            }
+            Rvalue::NullaryOp(null_op, ty) => match null_op {
+                NullOp::SizeOf => {
+                    let size = self.sizeof(ty);
+                    self.output += &size.to_string();
                 }
-                AggregateKind::Tuple => {
-                    self.output.push('[');
-                    for operand in index_vec {
-                        self.on_operand(operand);
-                        self.output.push(',');
-                    }
-                    self.output.push(']');
+                NullOp::AlignOf => {
+                    let size = self.sizeof(ty);
+                    self.output += &size.to_string();
                 }
-                AggregateKind::Adt(
-                    _def_id,
-                    _variant_idx,
-                    _raw_list,
-                    _user_type_annotation_index,
-                    _field_idx,
-                ) => todo!(),
-                AggregateKind::Closure(_def_id, _raw_list) => todo!(),
-                AggregateKind::Coroutine(_def_id, _raw_list) => todo!(),
-                AggregateKind::CoroutineClosure(_def_id, _raw_list) => todo!(),
-                AggregateKind::RawPtr(_ty, _mutability) => todo!(),
+                NullOp::OffsetOf(_raw_list) => todo!(),
+                NullOp::UbChecks => todo!(),
+                NullOp::ContractChecks => todo!(),
             },
-            Rvalue::ShallowInitBox(_operand, _ty) => todo!("Rvalue::ShallowInitBox"),
+            Rvalue::UnaryOp(un_op, operand) => {
+                match un_op {
+                    UnOp::Not => self.output += "!",
+                    UnOp::Neg => self.output += "-",
+                    UnOp::PtrMetadata => todo!(),
+                }
+                self.on_operand(operand);
+            }
+            Rvalue::Discriminant(place) => {
+                self.output += "discriminant(";
+                self.on_place(place);
+                self.output += ")";
+            }
+            Rvalue::Aggregate(aggregate_kind, index_vec) => {
+                println!(
+                    "Aggregate -> aggregate_kind: {aggregate_kind:?}, index_vec: {index_vec:?}"
+                );
+                match aggregate_kind.as_ref() {
+                    AggregateKind::Array(_ty) => {
+                        self.output += "[";
+                        for (i, operand) in index_vec.iter().enumerate() {
+                            self.on_operand(operand);
+                            if i < index_vec.len() - 1 {
+                                self.output += ", ";
+                            }
+                        }
+                        self.output += "]";
+                    }
+                    AggregateKind::Tuple => {
+                        self.output += "[";
+                        for (i, operand) in index_vec.iter().enumerate() {
+                            self.on_operand(operand);
+                            if i < index_vec.len() - 1 {
+                                self.output += ", ";
+                            }
+                        }
+                        self.output += "]";
+                    }
+                    AggregateKind::Adt(
+                        def_id,
+                        variant_idx,
+                        raw_list,
+                        user_type_annotation_index,
+                        field_idx,
+                    ) => {
+                        let adt_def = self.tcx.adt_def(def_id);
+                        println!("adt_def: {adt_def:?}");
+                        println!("variant_idx: {variant_idx:?}");
+                        println!("raw_list: {raw_list:?}");
+                        println!("user_type_annotation_index: {user_type_annotation_index:?}");
+                        println!("field_idx: {field_idx:?}");
+                        println!("index_vec: {index_vec:?}");
+
+                        let name = self.tcx.def_path_str(def_id);
+                        if name == "std::option::Option" {
+                            match variant_idx.as_usize() {
+                                0 => self.output += "new Enum(undefined, 0)",
+                                _ => {
+                                    self.output += "new Enum(";
+                                    self.on_operand(index_vec.iter().next().unwrap());
+                                    self.output += ", 1)";
+                                }
+                            }
+                        } else {
+                            self.output += "[";
+                            for (i, operand) in index_vec.iter().enumerate() {
+                                self.on_operand(operand);
+                                if i < index_vec.len() - 1 {
+                                    self.output += ", ";
+                                }
+                            }
+                            self.output += "]";
+                        }
+                    }
+                    AggregateKind::Closure(_def_id, _raw_list) => todo!(),
+                    AggregateKind::Coroutine(_def_id, _raw_list) => todo!(),
+                    AggregateKind::CoroutineClosure(_def_id, _raw_list) => todo!(),
+                    AggregateKind::RawPtr(_ty, _mutability) => todo!(),
+                }
+            }
+            Rvalue::ShallowInitBox(operand, _ty) => {
+                self.on_operand(operand);
+            }
             Rvalue::CopyForDeref(_place) => todo!("Rvalue::CopyForDeref"),
             Rvalue::WrapUnsafeBinder(_operand, _ty) => todo!("Rvalue::WrapUnsafeBinder"),
         }
     }
 
     fn on_operand(&mut self, operand: &Operand<'tcx>) {
+        println!("visit_operand: {operand:?}");
         match operand {
-            Operand::Move(place) | Operand::Copy(place) => {
-                self.output += &format!("_{}", place.local.as_u32());
-                for projection_element in place.projection {
-                    match projection_element.kind() {
-                        ProjectionElem::Deref => todo!(),
-                        ProjectionElem::Field(field_idx, _) => {
-                            self.output += &format!("[{}]", field_idx.as_u32());
-                        }
-                        ProjectionElem::Index(_) => todo!(),
-                        ProjectionElem::ConstantIndex {
-                            offset: _,
-                            min_length: _,
-                            from_end: _,
-                        } => todo!(),
-                        ProjectionElem::Subslice { from: _, to: _, from_end: _ } => todo!(),
-                        ProjectionElem::Downcast(_symbol, _variant_idx) => todo!(),
-                        ProjectionElem::OpaqueCast(_) => todo!(),
-                        ProjectionElem::UnwrapUnsafeBinder(_) => todo!(),
-                    }
-                }
-            }
+            Operand::Move(place) | Operand::Copy(place) => self.on_place(place),
             Operand::Constant(const_operand) => self.on_const_operarnd(const_operand),
         }
     }
@@ -227,6 +345,18 @@ impl<'tcx> MyVisitor<'tcx> {
                 ConstValue::Scalar(scalar) => {
                     self.output += &if ty.is_bool() {
                         scalar.to_bool().unwrap().to_string()
+                    } else if ty.is_floating_point() {
+                        if scalar.size().bytes() == 8 {
+                            scalar
+                                .to_float::<rustc_apfloat::ieee::Double>()
+                                .unwrap()
+                                .to_string()
+                        } else {
+                            scalar
+                                .to_float::<rustc_apfloat::ieee::Single>()
+                                .unwrap()
+                                .to_string()
+                        }
                     } else {
                         format!("{scalar}")
                     };
@@ -245,8 +375,9 @@ impl<'tcx> MyVisitor<'tcx> {
                     Slice(_) => todo!("Slice"),
                     RawPtr(_, _mutability) => todo!("RawPtr"),
                     Ref(_, _, _mutability) => todo!("Ref"),
-                    FnDef(function_id, _generic_args) => {
+                    FnDef(function_id, generic_args) => {
                         let fn_name = self.tcx.def_path_str(function_id);
+                        println!("fn_name: {fn_name}");
                         self.output += match fn_name.as_str() {
                             "core::fmt::rt::Argument::<'_>::new_display" => {
                                 "core__fmt__rt__Argument__new_display"
@@ -258,6 +389,27 @@ impl<'tcx> MyVisitor<'tcx> {
                                 "core__fmt__rt__Arguments__new_const"
                             }
                             "std::io::_print" => "std__io__print",
+                            "std::convert::From::from" => {
+                                let from = generic_args[0];
+                                let to = generic_args[1];
+
+                                if let Some(from) = from.as_type()
+                                    && from.to_string() == "std::string::String"
+                                    && let Some(to) = to.as_type()
+                                    && to.is_ref()
+                                    && to.peel_refs().is_str()
+                                {
+                                    ""
+                                } else {
+                                    todo!()
+                                }
+                            }
+                            "std::iter::IntoIterator::into_iter" => {
+                                "std__iter__IntoIterator__into_iter"
+                            }
+                            "std::iter::Iterator::next" => "std__iter__Iterator__next",
+                            "alloc::alloc::exchange_malloc" => "alloc__alloc__exchange_malloc",
+                            "std::slice::<impl [T]>::into_vec" => "std__slice__impl__T__into_vec",
                             _ => todo!("FnDef, {fn_name}"),
                         };
                     }
@@ -297,29 +449,51 @@ impl<'tcx> MyVisitor<'tcx> {
                         interpret::GlobalAlloc::TypeId { ty: _ } => todo!("GlobalAlloc::TypeId"),
                     }
                 }
-                ConstValue::Indirect { alloc_id: _, offset: _ } => todo!(),
+                ConstValue::Indirect {
+                    alloc_id: _,
+                    offset: _,
+                } => todo!(),
             },
         };
     }
 
     fn on_terminator(&mut self, terminator: &Terminator<'tcx>) {
         match &terminator.kind {
-            TerminatorKind::Goto { target: _ } => todo!(),
-            TerminatorKind::SwitchInt { discr: _, targets: _ } => todo!(),
-            TerminatorKind::UnwindResume => todo!(),
+            TerminatorKind::Goto { target } => {
+                self.output += &format!("return bb{}();\n", target.as_u32());
+            }
+            TerminatorKind::SwitchInt { discr, targets } => {
+                self.output += "switch (switchInt(";
+                self.on_operand(discr);
+                self.output += ")) {\n";
+                println!("targets: {targets:?}");
+                for (i, value) in targets.iter() {
+                    self.output += &format!("case {i}:");
+                    self.output += &format!("return bb{}();\n", value.as_u32());
+                }
+                self.output += &format!("default: return bb{}();\n", targets.otherwise().as_u32());
+                self.output += "}\n";
+            }
+            TerminatorKind::UnwindResume => {
+                self.output += "// UnwindResume\n";
+            }
             TerminatorKind::UnwindTerminate(_unwind_terminate_reason) => todo!(),
             TerminatorKind::Return => {
                 self.output += "return;\n";
             }
-            TerminatorKind::Unreachable => todo!(),
+            TerminatorKind::Unreachable => {
+                self.output += "throw new Error('unreachable');\n";
+            }
             TerminatorKind::Drop {
                 place: _,
-                target: _,
+                target,
                 unwind: _,
                 replace: _,
                 drop: _,
                 async_fut: _,
-            } => todo!(),
+            } => {
+                self.output += &format!("return bb{}();\n", target.as_u32());
+            }
             TerminatorKind::Call {
                 func,
                 args,
@@ -332,9 +506,11 @@ impl<'tcx> MyVisitor<'tcx> {
                 self.output += &format!("_{} = ", destination.local.as_u32());
                 self.on_operand(func);
                 self.output += "(";
-                for arg in args {
+                for (i, arg) in args.iter().enumerate() {
                     self.on_operand(&arg.node);
-                    self.output += ", ";
+                    if i < args.len() - 1 {
+                        self.output += ", ";
+                    }
                 }
                 self.output += ");\n";
 
@@ -348,12 +524,22 @@ impl<'tcx> MyVisitor<'tcx> {
                 fn_span: _,
             } => todo!(),
             TerminatorKind::Assert {
-                cond: _,
-                expected: _,
-                msg: _,
-                target: _,
+                cond,
+                expected,
+                msg,
+                target,
                 unwind: _,
-            } => todo!(),
+            } => {
+                self.output += "if (";
+                self.on_operand(cond);
+                self.output += &format!("=== {}) {{\n", expected);
+                self.output += &format!("return bb{}();\n", target.as_u32());
+                self.output += "} else {\n";
+                self.output += "throw new Error('assert failed: ";
+                self.output += &format!("{:?}", msg).escape_debug().to_string();
+                self.output += "');\n";
+                self.output += "}\n";
+            }
             TerminatorKind::Yield {
                 value: _,
                 resume: _,
@@ -378,6 +564,70 @@ impl<'tcx> MyVisitor<'tcx> {
                 targets: _,
                 unwind: _,
             } => todo!(),
+        }
+    }
+
+    fn on_place(&mut self, place: &Place<'tcx>) {
+        println!("visit_place: {place:?}");
+        self.output += &format!("_{}", place.local.as_u32());
+        for projection_element in place.projection {
+            match projection_element.kind() {
+                ProjectionElem::Deref => {}
+                ProjectionElem::Field(field_idx, _) => {
+                    self.output += &format!("[{}]", field_idx.as_u32());
+                }
+                ProjectionElem::Index(_) => todo!(),
+                ProjectionElem::ConstantIndex {
+                    offset: _,
+                    min_length: _,
+                    from_end: _,
+                } => todo!(),
+                ProjectionElem::Subslice {
+                    from: _,
+                    to: _,
+                    from_end: _,
+                } => todo!(),
+                ProjectionElem::Downcast(_symbol, _variant_idx) => {}
+                ProjectionElem::OpaqueCast(_) => todo!(),
+                ProjectionElem::UnwrapUnsafeBinder(_) => todo!(),
+            }
+        }
+    }
+
+    fn sizeof(&self, ty: &Ty<'tcx>) -> usize {
+        match ty.kind() {
+            Bool => size_of::<bool>(),
+            Char => size_of::<char>(),
+            Int(int_ty) => int_ty.bit_width().unwrap() as usize / 8,
+            Uint(uint_ty) => uint_ty.bit_width().unwrap() as usize / 8,
+            Float(float_ty) => float_ty.bit_width() as usize / 8,
+            Adt(_, _) => todo!(),
+            Foreign(_) => todo!(),
+            Str => todo!(),
+            Array(ty, n) => {
+                let size = self.sizeof(ty);
+                size * n.to_value().try_to_target_usize(self.tcx).unwrap() as usize
+            }
+            Pat(_, _) => todo!(),
+            Slice(_) => todo!(),
+            RawPtr(_, _mutability) => todo!(),
+            Ref(_, _, _mutability) => todo!(),
+            FnDef(_, _) => todo!(),
+            FnPtr(_binder, _fn_header) => todo!(),
+            UnsafeBinder(_unsafe_binder_inner) => todo!(),
+            Dynamic(_, _) => todo!(),
+            Closure(_, _) => todo!(),
+            CoroutineClosure(_, _) => todo!(),
+            Coroutine(_, _) => todo!(),
+            CoroutineWitness(_, _) => todo!(),
+            Never => todo!(),
+            Tuple(_) => todo!(),
+            Alias(_alias_ty_kind, _alias_ty) => todo!(),
+            Param(_) => todo!(),
+            Bound(_bound_var_index_kind, _) => todo!(),
+            Infer(_infer_ty) => todo!(),
+            Error(_) => todo!(),
+            _ => todo!(),
         }
     }
 }
