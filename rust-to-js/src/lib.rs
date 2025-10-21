@@ -115,41 +115,10 @@ impl<'tcx> MyVisitor<'tcx> {
             StatementKind::Assign(boxed) => {
                 let (place, rvalue) = boxed.as_ref();
 
-                println!("projection: {:?}", place.projection);
-
-                let mut projection_iter = place.projection.iter();
-
-                self.output += &format!("_{}", place.local.as_u32());
-
-                match projection_iter.len() {
-                    0 => {
-                        self.output += " = ";
-                        self.on_rvalue(rvalue);
-                    }
-                    1 => {
-                        let projection = projection_iter.next().unwrap();
-                        match projection {
-                            ProjectionElem::Deref => {
-                                self.output += ".derefAssign(";
-                                self.on_rvalue(rvalue);
-                                self.output += ")";
-                            }
-                            _ => todo!(),
-                        }
-                    }
-                    2 => {
-                        let p1 = projection_iter.next().unwrap();
-                        let p2 = projection_iter.next().unwrap();
-                        match (p1, p2) {
-                            (ProjectionElem::Deref, ProjectionElem::Field(field_idx, _)) => {
-                                self.output += &format!(".deref()[{}] = ", field_idx.as_u32());
-                                self.on_rvalue(rvalue);
-                            }
-                            _ => todo!(),
-                        }
-                    }
-                    _ => todo!(),
-                }
+                self.on_place(place);
+                self.output += ".assign(";
+                self.on_rvalue(rvalue);
+                self.output += ")";
             }
             StatementKind::FakeRead(_) => todo!(),
             StatementKind::SetDiscriminant {
@@ -179,7 +148,11 @@ impl<'tcx> MyVisitor<'tcx> {
         match rvalue {
             Rvalue::Use(operand) => self.on_operand(operand),
             Rvalue::Repeat(_operand, _) => todo!("Rvalue::Repeat"),
-            Rvalue::Ref(_region, _borrow_kind, place) => self.on_place(place),
+            Rvalue::Ref(_region, _borrow_kind, place) => {
+                self.output += "_ref(";
+                self.on_place(place);
+                self.output += ")";
+            }
             Rvalue::ThreadLocalRef(_def_id) => todo!("Rvalue::ThreadLocalRef"),
             Rvalue::RawPtr(_raw_ptr_kind, _place) => todo!("Rvalue::RawPtr"),
             Rvalue::Cast(_cast_kind, operand, _ty) => {
@@ -187,37 +160,32 @@ impl<'tcx> MyVisitor<'tcx> {
             }
             Rvalue::BinaryOp(bin_op, lr) => {
                 let (left, right) = lr.as_ref();
-                self.on_operand(left);
 
                 self.output += match bin_op {
-                    BinOp::Add => "+",
-                    BinOp::AddUnchecked => todo!(),
-                    BinOp::AddWithOverflow => "+",
-                    BinOp::Sub => "-",
-                    BinOp::SubUnchecked => todo!(),
-                    BinOp::SubWithOverflow => todo!(),
-                    BinOp::Mul => "*",
-                    BinOp::MulUnchecked => todo!(),
-                    BinOp::MulWithOverflow => todo!(),
-                    BinOp::Div => "/",
-                    BinOp::Rem => "%",
-                    BinOp::BitXor => "^",
-                    BinOp::BitAnd => "&",
-                    BinOp::BitOr => "|",
-                    BinOp::Shl => "<<",
-                    BinOp::ShlUnchecked => todo!(),
-                    BinOp::Shr => ">>",
-                    BinOp::ShrUnchecked => todo!(),
-                    BinOp::Eq => "==",
-                    BinOp::Lt => "<",
-                    BinOp::Le => "<=",
-                    BinOp::Ne => "!=",
-                    BinOp::Ge => ">=",
-                    BinOp::Gt => ">",
+                    BinOp::Add | BinOp::AddUnchecked | BinOp::AddWithOverflow => "_add",
+                    BinOp::Sub | BinOp::SubUnchecked | BinOp::SubWithOverflow => "_sub",
+                    BinOp::Mul | BinOp::MulUnchecked | BinOp::MulWithOverflow => "_mul",
+                    BinOp::Div => "_div",
+                    BinOp::Rem => "_rem",
+                    BinOp::BitXor => "_xor",
+                    BinOp::BitAnd => "_and",
+                    BinOp::BitOr => "_or",
+                    BinOp::Shl | BinOp::ShlUnchecked => "_shl",
+                    BinOp::Shr | BinOp::ShrUnchecked => "_shr",
+                    BinOp::Eq => "_eq",
+                    BinOp::Lt => "_lt",
+                    BinOp::Le => "_le",
+                    BinOp::Ne => "_ne",
+                    BinOp::Ge => "_ge",
+                    BinOp::Gt => "_gt",
                     BinOp::Cmp => todo!(),
                     BinOp::Offset => todo!(),
                 };
+                self.output += "(";
+                self.on_operand(left);
+                self.output += ", ";
                 self.on_operand(right);
+                self.output += ")";
             }
             Rvalue::NullaryOp(null_op, ty) => match null_op {
                 NullOp::SizeOf => {
@@ -233,12 +201,13 @@ impl<'tcx> MyVisitor<'tcx> {
                 NullOp::ContractChecks => todo!(),
             },
             Rvalue::UnaryOp(un_op, operand) => {
-                match un_op {
-                    UnOp::Not => self.output += "!",
-                    UnOp::Neg => self.output += "-",
+                self.output += match un_op {
+                    UnOp::Not => "_not(",
+                    UnOp::Neg => "_neg(",
                     UnOp::PtrMetadata => todo!(),
-                }
+                };
                 self.on_operand(operand);
+                self.output += ")";
             }
             Rvalue::Discriminant(place) => {
                 self.output += "discriminant(";
@@ -251,24 +220,24 @@ impl<'tcx> MyVisitor<'tcx> {
                 );
                 match aggregate_kind.as_ref() {
                     AggregateKind::Array(_ty) => {
-                        self.output += "[";
+                        self.output += "new Array([";
                         for (i, operand) in index_vec.iter().enumerate() {
                             self.on_operand(operand);
                             if i < index_vec.len() - 1 {
                                 self.output += ", ";
                             }
                         }
-                        self.output += "]";
+                        self.output += "])";
                     }
                     AggregateKind::Tuple => {
-                        self.output += "[";
+                        self.output += "new Tuple([";
                         for (i, operand) in index_vec.iter().enumerate() {
                             self.on_operand(operand);
                             if i < index_vec.len() - 1 {
                                 self.output += ", ";
                             }
                         }
-                        self.output += "]";
+                        self.output += "])";
                     }
                     AggregateKind::Adt(
                         def_id,
@@ -343,22 +312,87 @@ impl<'tcx> MyVisitor<'tcx> {
             }
             rustc_middle::mir::Const::Val(const_value, ty) => match const_value {
                 ConstValue::Scalar(scalar) => {
-                    self.output += &if ty.is_bool() {
-                        scalar.to_bool().unwrap().to_string()
-                    } else if ty.is_floating_point() {
-                        if scalar.size().bytes() == 8 {
-                            scalar
-                                .to_float::<rustc_apfloat::ieee::Double>()
-                                .unwrap()
-                                .to_string()
-                        } else {
-                            scalar
-                                .to_float::<rustc_apfloat::ieee::Single>()
-                                .unwrap()
-                                .to_string()
-                        }
-                    } else {
-                        format!("{scalar}")
+                    println!("scalar: {scalar:?}");
+                    self.output += &match ty.kind() {
+                        Bool => todo!(),
+                        Char => todo!(),
+                        Int(int_ty) => match int_ty {
+                            IntTy::I8 => format!(
+                                "new Int8({})",
+                                scalar.to_int(rustc_abi::Size::from_bits(8)).unwrap()
+                            ),
+                            IntTy::I16 => format!(
+                                "new Int16({})",
+                                scalar.to_int(rustc_abi::Size::from_bits(16)).unwrap()
+                            ),
+                            IntTy::I32 => format!(
+                                "new Int32({})",
+                                scalar.to_int(rustc_abi::Size::from_bits(32)).unwrap()
+                            ),
+                            IntTy::I64 => format!(
+                                "new Int64({})",
+                                scalar.to_int(rustc_abi::Size::from_bits(64)).unwrap()
+                            ),
+                            IntTy::I128 => todo!(),
+                            IntTy::Isize => todo!(),
+                        },
+                        Uint(uint_ty) => match uint_ty {
+                            UintTy::U8 => format!(
+                                "new Uint8({})",
+                                scalar.to_uint(rustc_abi::Size::from_bits(8)).unwrap()
+                            ),
+                            UintTy::U16 => format!(
+                                "new Uint16({})",
+                                scalar.to_uint(rustc_abi::Size::from_bits(16)).unwrap()
+                            ),
+                            UintTy::U32 => format!(
+                                "new Uint32({})",
+                                scalar.to_uint(rustc_abi::Size::from_bits(32)).unwrap()
+                            ),
+                            UintTy::U64 => format!(
+                                "new Uint64({})",
+                                scalar.to_uint(rustc_abi::Size::from_bits(64)).unwrap()
+                            ),
+                            UintTy::U128 => todo!(),
+                            UintTy::Usize => {
+                                if cfg!(target_pointer_width = "64") {
+                                    format!(
+                                        "new Uint64({})",
+                                        scalar.to_uint(rustc_abi::Size::from_bits(64)).unwrap()
+                                    )
+                                } else {
+                                    format!(
+                                        "new Uint32({})",
+                                        scalar.to_uint(rustc_abi::Size::from_bits(32)).unwrap()
+                                    )
+                                }
+                            }
+                        },
+                        Float(float_ty) => todo!(),
+                        Adt(_, _) => todo!(),
+                        Foreign(_) => todo!(),
+                        Str => todo!(),
+                        Array(_, _) => todo!(),
+                        Pat(_, _) => todo!(),
+                        Slice(_) => todo!(),
+                        RawPtr(_, mutability) => todo!(),
+                        Ref(_, _, mutability) => todo!(),
+                        FnDef(_, _) => todo!(),
+                        FnPtr(binder, fn_header) => todo!(),
+                        UnsafeBinder(unsafe_binder_inner) => todo!(),
+                        Dynamic(_, _) => todo!(),
+                        Closure(_, _) => todo!(),
+                        CoroutineClosure(_, _) => todo!(),
+                        Coroutine(_, _) => todo!(),
+                        CoroutineWitness(_, _) => todo!(),
+                        Never => todo!(),
+                        Tuple(_) => todo!(),
+                        Alias(alias_ty_kind, alias_ty) => todo!(),
+                        Param(_) => todo!(),
+                        Bound(bound_var_index_kind, _) => todo!(),
+                        Infer(infer_ty) => todo!(),
+                        Error(_) => todo!(),
+                        _ => todo!(),
                     };
                 }
                 ConstValue::ZeroSized => match constant.ty().kind() {
@@ -377,18 +411,23 @@ impl<'tcx> MyVisitor<'tcx> {
                     Ref(_, _, _mutability) => todo!("Ref"),
                     FnDef(function_id, generic_args) => {
                         let fn_name = self.tcx.def_path_str(function_id);
+                        let generic_args_string = generic_args
+                            .iter()
+                            .map(|arg| arg.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ");
                         println!("fn_name: {fn_name}");
-                        self.output += match fn_name.as_str() {
+                        self.output += &match fn_name.as_str() {
                             "core::fmt::rt::Argument::<'_>::new_display" => {
-                                "core__fmt__rt__Argument__new_display"
+                                "core__fmt__rt__Argument__new_display".to_string()
                             }
                             "core::fmt::rt::<impl std::fmt::Arguments<'a>>::new_v1" => {
-                                "core__fmt__rt__Arguments__new_v1"
+                                "core__fmt__rt__Arguments__new_v1".to_string()
                             }
                             "core::fmt::rt::<impl std::fmt::Arguments<'a>>::new_const" => {
-                                "core__fmt__rt__Arguments__new_const"
+                                "core__fmt__rt__Arguments__new_const".to_string()
                             }
-                            "std::io::_print" => "std__io__print",
+                            "std::io::_print" => "std__io__print".to_string(),
                             "std::convert::From::from" => {
                                 let from = generic_args[0];
                                 let to = generic_args[1];
@@ -399,17 +438,24 @@ impl<'tcx> MyVisitor<'tcx> {
                                     && to.is_ref()
                                     && to.peel_refs().is_str()
                                 {
-                                    ""
+                                    "".to_string()
                                 } else {
                                     todo!()
                                 }
                             }
                             "std::iter::IntoIterator::into_iter" => {
-                                "std__iter__IntoIterator__into_iter"
+                                format!(
+                                    "std__iter__IntoIterator__into_iter__{}",
+                                    generic_args_string
+                                )
                             }
-                            "std::iter::Iterator::next" => "std__iter__Iterator__next",
-                            "alloc::alloc::exchange_malloc" => "alloc__alloc__exchange_malloc",
-                            "std::slice::<impl [T]>::into_vec" => "std__slice__impl__T__into_vec",
+                            "std::iter::Iterator::next" => "std__iter__Iterator__next".to_string(),
+                            "alloc::alloc::exchange_malloc" => {
+                                "alloc__alloc__exchange_malloc".to_string()
+                            }
+                            "std::slice::<impl [T]>::into_vec" => {
+                                "std__slice__impl__T__into_vec".to_string()
+                            }
                             _ => todo!("FnDef, {fn_name}"),
                         };
                     }
@@ -442,9 +488,15 @@ impl<'tcx> MyVisitor<'tcx> {
                         interpret::GlobalAlloc::Memory(memory) => {
                             let inner = memory.inner();
                             let bytes = inner.get_bytes_unchecked((0..inner.len()).into());
-                            let string =
-                                String::from_utf8_lossy(bytes).escape_default().to_string();
-                            self.output += &format!("\"{string}\"");
+
+                            self.output += "new Uint8Array([";
+                            for (i, byte) in bytes.iter().enumerate() {
+                                self.output += &format!("{byte}");
+                                if i < bytes.len() - 1 {
+                                    self.output += ", ";
+                                }
+                            }
+                            self.output += "])";
                         }
                         interpret::GlobalAlloc::TypeId { ty: _ } => todo!("GlobalAlloc::TypeId"),
                     }
@@ -503,7 +555,8 @@ impl<'tcx> MyVisitor<'tcx> {
                 call_source: _,
                 fn_span: _,
             } => {
-                self.output += &format!("_{} = ", destination.local.as_u32());
+                self.on_place(destination);
+                self.output += "=";
                 self.on_operand(func);
                 self.output += "(";
                 for (i, arg) in args.iter().enumerate() {
@@ -530,9 +583,9 @@ impl<'tcx> MyVisitor<'tcx> {
                 target,
                 unwind: _,
             } => {
-                self.output += "if (";
+                self.output += "if (_eq(";
                 self.on_operand(cond);
-                self.output += &format!("=== {}) {{\n", expected);
+                self.output += &format!(", {})) {{\n", expected);
                 self.output += &format!("return bb{}();\n", target.as_u32());
                 self.output += "} else {\n";
                 self.output += "throw new Error('assert failed: ";
@@ -572,9 +625,11 @@ impl<'tcx> MyVisitor<'tcx> {
         self.output += &format!("_{}", place.local.as_u32());
         for projection_element in place.projection {
             match projection_element.kind() {
-                ProjectionElem::Deref => {}
+                ProjectionElem::Deref => {
+                    self.output += ".deref()";
+                }
                 ProjectionElem::Field(field_idx, _) => {
-                    self.output += &format!("[{}]", field_idx.as_u32());
+                    self.output += &format!(".field({})", field_idx.as_u32());
                 }
                 ProjectionElem::Index(_) => todo!(),
                 ProjectionElem::ConstantIndex {
@@ -595,40 +650,18 @@ impl<'tcx> MyVisitor<'tcx> {
     }
 
     fn sizeof(&self, ty: &Ty<'tcx>) -> usize {
-        match ty.kind() {
-            Bool => size_of::<bool>(),
-            Char => size_of::<char>(),
-            Int(int_ty) => int_ty.bit_width().unwrap() as usize / 8,
-            Uint(uint_ty) => uint_ty.bit_width().unwrap() as usize / 8,
-            Float(float_ty) => float_ty.bit_width() as usize / 8,
-            Adt(_, _) => todo!(),
-            Foreign(_) => todo!(),
-            Str => todo!(),
-            Array(ty, n) => {
-                let size = self.sizeof(ty);
-                size * n.to_value().try_to_target_usize(self.tcx).unwrap() as usize
-            }
-            Pat(_, _) => todo!(),
-            Slice(_) => todo!(),
-            RawPtr(_, _mutability) => todo!(),
-            Ref(_, _, _mutability) => todo!(),
-            FnDef(_, _) => todo!(),
-            FnPtr(_binder, _fn_header) => todo!(),
-            UnsafeBinder(_unsafe_binder_inner) => todo!(),
-            Dynamic(_, _) => todo!(),
-            Closure(_, _) => todo!(),
-            CoroutineClosure(_, _) => todo!(),
-            Coroutine(_, _) => todo!(),
-            CoroutineWitness(_, _) => todo!(),
-            Never => todo!(),
-            Tuple(_) => todo!(),
-            Alias(_alias_ty_kind, _alias_ty) => todo!(),
-            Param(_) => todo!(),
-            Bound(_bound_var_index_kind, _) => todo!(),
-            Infer(_infer_ty) => todo!(),
-            Error(_) => todo!(),
-            _ => todo!(),
-        }
+        let param_env = self.tcx.param_env(self.def_id);
+
+        let param_env_and_ty = param_env.and(*ty);
+        let typing_env = rustc_middle::ty::TypingEnv {
+            param_env: param_env_and_ty.param_env,
+            // Assuming layout computation happens after the main analysis
+            typing_mode: rustc_middle::ty::TypingMode::PostAnalysis,
+        };
+        let query_input = typing_env.as_query_input(param_env_and_ty.value);
+        let layout = self.tcx.layout_of(query_input).unwrap();
+
+        layout.size.bytes() as usize
     }
 }
 
