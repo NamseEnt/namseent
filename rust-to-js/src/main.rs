@@ -5,7 +5,7 @@ use std::io::Write;
 use rust_to_js::run;
 
 fn main() {
-    let output = run("src/tests/_iter/main.rs");
+    let rx = run("src/tests/_iter/main.rs");
 
     let prev = std::fs::read_to_string("test.js").unwrap();
 
@@ -18,5 +18,7 @@ fn main() {
             break;
         }
     }
-    file.write_all(output.as_bytes()).unwrap();
+    while let Ok(line) = rx.recv() {
+        file.write_all(line.as_bytes()).unwrap();
+    }
 }
