@@ -1,0 +1,5 @@
+[build]
+target = "wasm32-wasip1-threads"
+
+[unstable]
+build-std = ["std", "core", "alloc", "panic_abort"]
