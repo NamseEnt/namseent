@@ -107,10 +107,6 @@ impl StageModifiers {
         self.restrictions = Restrictions::default();
     }
 
-    pub fn clear_stage_grants(&mut self) {
-        self.stage_grants = StageGrants::default();
-    }
-
     // ----- Getters -----
     pub fn get_damage_multiplier(&self) -> f32 {
         self.multipliers.damage
@@ -173,18 +169,26 @@ impl StageModifiers {
         self.stage_grants.barricade_cards_per_stage
     }
 
-    // Net deltas
+    // Net deltas (for testing)
+    #[cfg(test)]
     pub fn get_card_selection_hand_max_slots_delta(&self) -> isize {
         self.adjustments.card_selection_hand_max_slots_bonus as isize
             - self.adjustments.card_selection_hand_max_slots_penalty as isize
     }
+    #[cfg(test)]
     pub fn get_card_selection_hand_max_rerolls_delta(&self) -> isize {
         self.adjustments.card_selection_hand_max_rerolls_bonus as isize
             - self.adjustments.card_selection_hand_max_rerolls_penalty as isize
     }
+    #[cfg(test)]
     pub fn get_shop_max_rerolls_delta(&self) -> isize {
         self.adjustments.shop_max_rerolls_bonus as isize
             - self.adjustments.shop_max_rerolls_penalty as isize
+    }
+
+    #[cfg(test)]
+    pub fn clear_stage_grants(&mut self) {
+        self.stage_grants = StageGrants::default();
     }
 
     // ----- Mutators -----
@@ -247,16 +251,10 @@ impl StageModifiers {
             self.restrictions.disabled_ranks.push(rank);
         }
     }
-    pub fn is_rank_disabled(&self, rank: Rank) -> bool {
-        self.restrictions.disabled_ranks.contains(&rank)
-    }
     pub fn disable_suit(&mut self, suit: Suit) {
         if !self.restrictions.disabled_suits.contains(&suit) {
             self.restrictions.disabled_suits.push(suit);
         }
-    }
-    pub fn is_suit_disabled(&self, suit: Suit) -> bool {
-        self.restrictions.disabled_suits.contains(&suit)
     }
 
     pub fn set_barricade_cards_per_stage(&mut self, c: usize) {

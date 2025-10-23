@@ -18,13 +18,6 @@ pub struct TempParticleEmitter {
 }
 
 impl TempParticleEmitter {
-    pub fn new(particles: Vec<FieldParticle>) -> Self {
-        Self {
-            particles,
-            emitted: false,
-        }
-    }
-
     pub fn emit(&mut self, _now: Instant, _dt: Duration) -> Vec<FieldParticle> {
         if self.emitted {
             return vec![];
@@ -56,26 +49,10 @@ impl FieldParticleSystemManager {
         self.systems.push(system);
     }
 
-    pub fn add_emitter(&mut self, emitter: FieldParticleEmitter) {
-        let system = FieldParticleSystem::new(vec![emitter]);
-        self.add_system(system);
-    }
-
     pub fn add_emitters(&mut self, emitters: Vec<FieldParticleEmitter>) {
         if !emitters.is_empty() {
             let system = FieldParticleSystem::new(emitters);
             self.add_system(system);
-        }
-    }
-
-    pub fn add_particles(&mut self, particles: Vec<FieldParticle>) {
-        if !particles.is_empty() {
-            // Create a temporary emitter that emits all particles at once
-            let temp_emitter = TempParticleEmitter::new(particles);
-            let emitter = FieldParticleEmitter::TempParticle {
-                emitter: temp_emitter,
-            };
-            self.add_emitter(emitter);
         }
     }
 

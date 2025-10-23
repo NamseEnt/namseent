@@ -24,11 +24,6 @@ impl ContractFlow {
         }
     }
 
-    /// Creates an empty ContractFlow.
-    pub fn empty() -> Self {
-        Self::new(vec![])
-    }
-
     /// Steps all contracts to the next stage (Command - modifies state only).
     /// This follows Command-Query Separation by only modifying state.
     /// Events are stored internally in each contract.

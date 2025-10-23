@@ -23,18 +23,6 @@ impl DamageTextParticle {
             opacity: 255,
         }
     }
-    pub fn progress(&self, now: Instant) -> f32 {
-        ((now - self.created_at).as_secs_f32() / self.duration.as_secs_f32()).clamp(0.0, 1.0)
-    }
-    pub fn current_opacity(&self, now: Instant) -> u8 {
-        let progress = self.progress(now);
-        (self.opacity as f32 * (1.0 - progress))
-            .round()
-            .clamp(0.0, 255.0) as u8
-    }
-    pub fn y_offset(&self, now: Instant) -> Px {
-        px(self.progress(now) * 24.0)
-    }
     pub fn is_done(&self, now: Instant) -> bool {
         now - self.created_at >= self.duration
     }

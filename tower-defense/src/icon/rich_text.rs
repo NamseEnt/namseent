@@ -141,61 +141,6 @@ impl Icon {
         })
     }
 
-    /// Regular expression pattern for matching icon tags
-    pub fn tag_regex_pattern() -> &'static str {
-        r"icon<[^:>]+:[0-9]+(?:\.[0-9]+)?:[0-9]+(?:\.[0-9]+)?:[0-9]+(?:\.[0-9]+)?:[0-9]+(?:\.[0-9]+)?(?::[^>]*(?:_(?:top_left|top_right|bottom_left|bottom_right|center)(?:,[^>]*_(?:top_left|top_right|bottom_left|bottom_right|center))*)?)?>"
-    }
-
-    /// Check if a string matches the icon tag format using regex
-    pub fn is_valid_tag_format(tag: &str) -> bool {
-        // Basic structure check
-        if !tag.starts_with("icon<") || !tag.ends_with(">") || tag.len() <= 6 {
-            return false;
-        }
-
-        // Extract content and split by :
-        let content = &tag[5..tag.len() - 1];
-        let parts: Vec<&str> = content.split(':').collect();
-
-        // Must have at least 5 parts (kind, size, width, height, opacity)
-        if parts.len() < 5 {
-            return false;
-        }
-
-        // Check that numeric parts can be parsed
-        for part in parts.iter().take(5).skip(1) {
-            if part.parse::<f32>().is_err() {
-                return false;
-            }
-        }
-
-        // If there are attributes, check their format
-        if parts.len() > 5 {
-            let attr_content = parts[5];
-            if !attr_content.is_empty() {
-                let attr_items: Vec<&str> = attr_content.split(',').collect();
-                let position_suffixes = [
-                    "_top_left",
-                    "_top_right",
-                    "_bottom_left",
-                    "_bottom_right",
-                    "_center",
-                ];
-
-                for attr_item in attr_items {
-                    let has_valid_position = position_suffixes
-                        .iter()
-                        .any(|&suffix| attr_item.ends_with(suffix));
-                    if !has_valid_position {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        true
-    }
-
     /// Create regex handlers for icon pattern matching in rich text
     pub fn create_icon_regex_handlers() -> Vec<namui_prebuilt::rich_text::RegexHandler> {
         vec![
@@ -381,28 +326,6 @@ mod tests {
         let restored = Icon::from_tag(&complex_tag).unwrap();
         assert_eq!(complex_icon.kind, restored.kind);
         assert_eq!(complex_icon.attributes, restored.attributes);
-    }
-
-    #[test]
-    fn test_tag_format_validation() {
-        // Valid tags
-        assert!(Icon::is_valid_tag_format("icon<gold:24:32:32:1>"));
-        assert!(Icon::is_valid_tag_format(
-            "icon<attack_damage:16:20:20:0.8:shield_top_left>"
-        ));
-        assert!(Icon::is_valid_tag_format(
-            "icon<suit_hearts:12:16:16:1.0:gold_center,shield_bottom_right>"
-        ));
-
-        // Invalid tags
-        assert!(!Icon::is_valid_tag_format("not_icon<gold:24:32:32:1>"));
-        assert!(!Icon::is_valid_tag_format("icon<gold:24:32:32:1"));
-        assert!(!Icon::is_valid_tag_format("icon<gold:24:32:32>"));
-        assert!(!Icon::is_valid_tag_format("icon<gold:invalid:32:32:1>"));
-        assert!(!Icon::is_valid_tag_format("icon<gold:24:32:32:1:invalid>"));
-
-        // Show regex pattern for reference
-        println!("Icon tag regex pattern: {}", Icon::tag_regex_pattern());
     }
 
     #[test]
