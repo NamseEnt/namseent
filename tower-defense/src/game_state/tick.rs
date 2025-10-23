@@ -64,6 +64,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
 
     let mut total_earn_gold = 0;
     let mut damage_emitters = Vec::new();
+    let mut monster_death_emitters = Vec::new();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -96,6 +97,12 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
             let earn =
                 (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;
+
+            // Emit monster death particle
+            monster_death_emitters.push(field_particle::emitter::MonsterDeathEmitter::new(
+                monster_xy,
+            ));
+
             monsters.swap_remove(monster_index);
         }
 
@@ -103,6 +110,7 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration) {
     });
 
     emit_damage_text_particles(game_state, damage_emitters);
+    emit_monster_death_particles(game_state, monster_death_emitters);
 
     if total_earn_gold > 0 {
         game_state.earn_gold(total_earn_gold);
@@ -117,6 +125,21 @@ fn emit_damage_text_particles(
         let field_emitters = emitters
             .into_iter()
             .map(|emitter| field_particle::FieldParticleEmitter::DamageText { emitter })
+            .collect::<Vec<_>>();
+        game_state
+            .field_particle_system_manager
+            .add_emitters(field_emitters);
+    }
+}
+
+fn emit_monster_death_particles(
+    game_state: &mut GameState,
+    emitters: Vec<field_particle::emitter::MonsterDeathEmitter>,
+) {
+    if !emitters.is_empty() {
+        let field_emitters = emitters
+            .into_iter()
+            .map(|emitter| field_particle::FieldParticleEmitter::MonsterDeath { emitter })
             .collect::<Vec<_>>();
         game_state
             .field_particle_system_manager

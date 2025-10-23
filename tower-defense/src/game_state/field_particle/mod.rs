@@ -3,13 +3,13 @@ pub mod particle;
 
 use crate::game_state::{
     GameState,
-    field_particle::emitter::{DamageTextEmitter, MonsterStatusEffectEmitter},
+    field_particle::emitter::{DamageTextEmitter, MonsterDeathEmitter, MonsterStatusEffectEmitter},
 };
 use namui::{
     particle::{Emitter, Particle},
     *,
 };
-pub use particle::{DamageTextParticle, IconParticle};
+pub use particle::{DamageTextParticle, IconParticle, MonsterDeathParticle};
 
 #[derive(State)]
 pub struct TempParticleEmitter {
@@ -66,6 +66,7 @@ pub enum FieldParticleEmitter {
     TempParticle { emitter: TempParticleEmitter },
     MonsterStatusEffect { emitter: MonsterStatusEffectEmitter },
     DamageText { emitter: DamageTextEmitter },
+    MonsterDeath { emitter: MonsterDeathEmitter },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
@@ -73,6 +74,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::TempParticle { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterStatusEffect { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::DamageText { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::MonsterDeath { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -81,6 +83,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::TempParticle { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterStatusEffect { emitter } => emitter.is_done(now),
             FieldParticleEmitter::DamageText { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::MonsterDeath { emitter } => emitter.is_done(now),
         }
     }
 }
@@ -89,6 +92,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
 pub enum FieldParticle {
     Icon { particle: IconParticle },
     DamageText { particle: DamageTextParticle },
+    MonsterDeath { particle: MonsterDeathParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -101,6 +105,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 particle.tick(now, dt);
                 vec![]
             }
+            FieldParticle::MonsterDeath { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
         }
     }
 
@@ -108,6 +116,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
         match self {
             FieldParticle::Icon { particle } => particle.render(),
             FieldParticle::DamageText { particle } => particle.render(),
+            FieldParticle::MonsterDeath { particle } => particle.render(),
         }
     }
 
@@ -115,6 +124,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
         match self {
             FieldParticle::Icon { particle } => particle.is_done(now),
             FieldParticle::DamageText { particle } => particle.is_done(now),
+            FieldParticle::MonsterDeath { particle } => particle.is_done(now),
         }
     }
 }
