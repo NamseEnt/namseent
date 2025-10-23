@@ -27,27 +27,6 @@ pub struct MonsterStatusEffectEmitter {
 }
 
 impl MonsterStatusEffectEmitter {
-    pub fn new(
-        _now: Instant,
-        monster_xy: MapCoordF32,
-        debuff_kind: MonsterStatusEffectKind,
-        _duration: Duration,
-    ) -> Self {
-        Self {
-            monster_xy,
-            debuff_kind,
-            has_emitted: false,
-        }
-    }
-
-    pub fn new_with_default_duration(
-        now: Instant,
-        monster_xy: MapCoordF32,
-        debuff_kind: MonsterStatusEffectKind,
-    ) -> Self {
-        Self::new(now, monster_xy, debuff_kind, Duration::ZERO)
-    }
-
     fn create_monster_debuff_icon(&self) -> Icon {
         let (icon_kind, attribute_icon) = match &self.debuff_kind {
             MonsterStatusEffectKind::SpeedMul { mul } => {

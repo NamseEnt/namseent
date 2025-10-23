@@ -45,10 +45,6 @@ impl PlacedTowers {
         self.inner.retain(|tower| tower.id() != tower_id);
     }
 
-    pub fn find_by_id(&self, tower_id: usize) -> Option<&Tower> {
-        self.inner.iter().find(|tower| tower.id() == tower_id)
-    }
-
     pub fn find_by_xy(&self, xy: MapCoord) -> Option<&Tower> {
         self.inner.iter().find(|tower| {
             tower.left_top.x <= xy.x

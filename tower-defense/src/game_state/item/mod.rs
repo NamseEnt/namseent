@@ -22,8 +22,4 @@ impl Item {
     pub fn description(&self, text_manager: &crate::l10n::TextManager) -> String {
         self.effect.description(text_manager)
     }
-
-    pub fn effect_kind(&self) -> &Effect {
-        &self.effect
-    }
 }

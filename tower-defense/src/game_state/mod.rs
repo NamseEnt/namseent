@@ -108,27 +108,14 @@ impl GameState {
         crate::l10n::TextManager::new(self.locale)
     }
 
-    pub fn in_even_stage(&self) -> bool {
-        matches!(self.stage % 2, 0)
-    }
-
     pub fn max_shop_slot(&self) -> usize {
         self.upgrade_state.shop_slot_expand + 2
-    }
-    pub fn max_quest_slot(&self) -> usize {
-        self.upgrade_state.quest_slot_expand + 3
-    }
-    pub fn max_quest_board_slot(&self) -> usize {
-        self.upgrade_state.quest_board_slot_expand + 1
     }
     pub fn max_shop_refresh_chance(&self) -> usize {
         (self.upgrade_state.shop_refresh_chance_plus
             + 1
             + self.stage_modifiers.get_shop_max_rerolls_bonus())
         .saturating_sub(self.stage_modifiers.get_shop_max_rerolls_penalty())
-    }
-    pub fn max_quest_board_refresh_chance(&self) -> usize {
-        self.upgrade_state.quest_board_refresh_chance_plus + 1
     }
     pub fn max_reroll_chance(&self) -> usize {
         (self.upgrade_state.reroll_chance_plus
@@ -140,9 +127,6 @@ impl GameState {
             self.stage_modifiers
                 .get_card_selection_hand_max_rerolls_penalty(),
         )
-    }
-    pub fn rerolled(&self) -> bool {
-        self.rerolled_count > 0
     }
 
     pub fn now(&self) -> Instant {
@@ -163,12 +147,6 @@ impl GameState {
             10 => 0,
             _ => unreachable!("Level up cost not defined for level {}", self.level),
         }
-    }
-
-    pub fn calculate_tower_damage(&self, tower: &tower::Tower) -> f32 {
-        let tower_upgrade_states = self.upgrade_state.tower_upgrades(tower);
-        let contract_multiplier: f32 = self.stage_modifiers.get_damage_multiplier();
-        tower.calculate_projectile_damage(&tower_upgrade_states, contract_multiplier)
     }
 
     pub fn set_selected_tower(&mut self, tower_id: Option<usize>) {

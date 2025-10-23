@@ -2,7 +2,7 @@ mod component;
 mod rendering_tree;
 pub mod rich_text;
 
-use crate::{card::Suit, rarity::Rarity, theme::palette};
+use crate::{card::Suit, rarity::Rarity};
 use namui::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
@@ -126,46 +126,6 @@ impl IconKind {
         }
     }
 
-    /// Get the default color for this icon kind
-    pub fn default_color(&self) -> Color {
-        match self {
-            IconKind::Accept => Color::from_u8(0, 255, 0, 255), // Green for accept
-            IconKind::AttackDamage => Color::from_u8(255, 100, 100, 255),
-            IconKind::AttackRange => Color::from_u8(100, 255, 100, 255),
-            IconKind::AttackSpeed => Color::from_u8(100, 100, 255, 255),
-            IconKind::Config => Color::from_u8(128, 128, 128, 255), // Gray for config
-            IconKind::EnemyBoss => Color::from_u8(128, 0, 128, 255),
-            IconKind::EnemyNamed => Color::from_u8(255, 165, 0, 255),
-            IconKind::EnemyNormal => Color::from_u8(139, 69, 19, 255),
-            IconKind::Gold => Color::from_u8(255, 215, 0, 255),
-            IconKind::Health => Color::from_u8(255, 0, 0, 255),
-            IconKind::Invincible => Color::from_u8(255, 255, 255, 255),
-            IconKind::Item => Color::from_u8(255, 192, 203, 255),
-            IconKind::Level => Color::from_u8(0, 191, 255, 255), // Deep sky blue for level
-            IconKind::Lock => Color::from_u8(169, 169, 169, 255), // Dark gray for lock
-            IconKind::MoveSpeed => Color::from_u8(255, 255, 0, 255),
-            IconKind::Quest => Color::from_u8(0, 255, 255, 255),
-            IconKind::Refresh => Color::from_u8(124, 252, 0, 255), // Lawn green for refresh
-            IconKind::Reject => Color::from_u8(255, 0, 0, 255),    // Red for reject
-            IconKind::Shield => Color::from_u8(0, 0, 255, 255),
-            IconKind::Shop => Color::from_u8(150, 75, 0, 255),
-            IconKind::Speaker => Color::from_u8(75, 0, 130, 255), // Indigo for speaker
-            IconKind::Suit { .. } => Color::from_u8(128, 128, 128, 255),
-            IconKind::Up => Color::from_u8(0, 255, 0, 255),
-            IconKind::Down => Color::from_u8(255, 0, 0, 255),
-            IconKind::Card => Color::from_u8(255, 255, 255, 255), // White for card
-            IconKind::New => Color::from_u8(0, 255, 0, 255),      // Green for new
-            IconKind::Add => Color::from_u8(0, 255, 0, 255),      // Green for add
-            IconKind::Multiply => Color::from_u8(0, 0, 255, 255), // Blue for multiply
-            IconKind::Rarity { rarity } => match rarity {
-                Rarity::Common => palette::COMMON,
-                Rarity::Rare => palette::RARE,
-                Rarity::Epic => palette::EPIC,
-                Rarity::Legendary => palette::LEGENDARY,
-            },
-        }
-    }
-
     pub fn from_asset_id(asset_id: &str) -> Option<Self> {
         match asset_id {
             "accept" => Some(IconKind::Accept),
@@ -230,10 +190,6 @@ impl IconAttribute {
             icon_kind,
             position: IconAttributePosition::TopLeft,
         }
-    }
-    pub fn kind(mut self, icon_kind: IconKind) -> Self {
-        self.icon_kind = icon_kind;
-        self
     }
     pub fn position(mut self, position: IconAttributePosition) -> Self {
         self.position = position;
@@ -392,10 +348,6 @@ impl Icon {
             ..Default::default()
         }
     }
-    pub fn kind(mut self, kind: IconKind) -> Self {
-        self.kind = kind;
-        self
-    }
     pub fn size(mut self, size: IconSize) -> Self {
         self.size = size;
         self
@@ -406,10 +358,6 @@ impl Icon {
     }
     pub fn wh(mut self, wh: Wh<Px>) -> Self {
         self.wh = wh;
-        self
-    }
-    pub fn opacity(mut self, opacity: f32) -> Self {
-        self.opacity = opacity;
         self
     }
 }
