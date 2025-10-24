@@ -40,7 +40,7 @@ impl Component for &Monster {
     }
 }
 
-fn monster_wh(kind: MonsterKind) -> Wh<Px> {
+pub fn monster_wh(kind: MonsterKind) -> Wh<Px> {
     match kind {
         MonsterKind::Boss01
         | MonsterKind::Boss02
@@ -116,9 +116,9 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
 
 #[derive(State)]
 pub struct MonsterAnimation {
-    rotation: Angle,
+    pub rotation: Angle,
     rotation_velocity: f32,
-    y_offset: f32,
+    pub y_offset: f32,
     y_offset_velocity: f32,
     rotated_side: MonsterAnimationRotatedSide,
 }

@@ -87,10 +87,14 @@ where
         let (state, set_state) = ctx.state(|| State {
             emitters: initial_emitters.replace(vec![]),
             particles: Vec::<P>::with_capacity(65536),
-            last_now: Instant::now(),
+            last_now: now,
         });
 
-        ctx.attach_event(|_| {
+        ctx.attach_event(|event| {
+            let Event::ScreenRedraw = event else {
+                return;
+            };
+
             let system_is_done = system_is_done.clone();
             set_state.mutate(move |state| {
                 let &mut State {
@@ -115,6 +119,8 @@ where
                 if emitters.is_empty() && particles.is_empty() {
                     system_is_done.store(true, Ordering::Release);
                 }
+
+                *last_now = now;
             });
         });
 
