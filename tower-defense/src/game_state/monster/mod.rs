@@ -14,7 +14,7 @@ pub use monster_kind::MonsterKind;
 pub use monster_template::MonsterTemplate;
 pub use move_monsters::move_monsters;
 use namui::*;
-pub use render::monster_animation_tick;
+pub use render::{monster_animation_tick, monster_wh};
 pub use skill::{
     MonsterSkill, MonsterSkillTemplate, MonsterStatusEffect, MonsterStatusEffectKind,
     PrebuiltSkill, activate_monster_skills, remove_monster_finished_status_effects,
