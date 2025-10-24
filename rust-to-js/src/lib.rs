@@ -61,6 +61,11 @@ impl Callbacks for JsTranspileCallback {
         while !todo_instances.is_empty() {
             let instance = *todo_instances.iter().next().unwrap();
             todo_instances.remove(&instance);
+
+            if is_extern(tcx, instance.def_id()) {
+                println!("instance is extern: {instance:?}");
+                continue;
+            }
             self.run(tcx, instance, &mut fn_names, &mut todo_instances);
         }
 
@@ -68,6 +73,12 @@ impl Callbacks for JsTranspileCallback {
 
         Compilation::Stop
     }
+}
+
+fn is_extern(tcx: TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> bool {
+    let parent_id = tcx.parent(def_id);
+    let parent_kind = tcx.def_kind(parent_id);
+    matches!(parent_kind, rustc_hir::def::DefKind::ForeignMod)
 }
 
 impl JsTranspileCallback {
@@ -130,7 +141,7 @@ struct MyVisitor<'a, 'tcx> {
 
 impl<'tcx> Visitor<'tcx> for MyVisitor<'_, 'tcx> {
     fn visit_body(&mut self, body: &Body<'tcx>) {
-        let fn_name = self.def_normalized_name(self.instance.def_id(), self.instance.args);
+        let fn_name = self.def_normalized_name(&self.instance.def_id(), self.instance.args);
         println!("visit_body: {fn_name}");
         match &self.promoted {
             Some(promoted) => {
@@ -245,7 +256,13 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
         println!("visit_rvalue: {rvalue:?}");
         match rvalue {
             Rvalue::Use(operand) => self.on_operand(operand),
-            Rvalue::Repeat(_operand, _) => todo!("Rvalue::Repeat"),
+            Rvalue::Repeat(operand, const_) => {
+                self.out("_repeat(");
+                self.on_operand(operand);
+                self.out(", ");
+                self.out(const_);
+                self.out(")");
+            }
             Rvalue::Ref(_region, _borrow_kind, place) => {
                 self.out("_ref(");
                 self.on_place(place);
@@ -376,7 +393,10 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                             self.out("]");
                         }
                     }
-                    AggregateKind::Closure(_def_id, _raw_list) => todo!(),
+                    AggregateKind::Closure(id, args) => {
+                        let fn_name = self.on_function(&id, &args);
+                        self.out(fn_name);
+                    }
                     AggregateKind::Coroutine(_def_id, _raw_list) => todo!(),
                     AggregateKind::CoroutineClosure(_def_id, _raw_list) => todo!(),
                     AggregateKind::RawPtr(_ty, _mutability) => {
@@ -421,15 +441,9 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                 match unevaluated_const.promoted {
                     Some(promoted) => self.out(format!("main__promoted_{}", promoted.as_u32())),
                     None => {
-                        println!("panic");
-                        let instance = self
-                            .try_resolve(unevaluated_const.def, unevaluated_const.args)
-                            .unwrap_or_else(|| {
-                                todo!("Instance not found {:?}", unevaluated_const);
-                            });
-
-                        self.check_fn_defined(unevaluated_const.def, unevaluated_const.args);
-                        self.fn_name(unevaluated_const.def, unevaluated_const.args);
+                        let fn_name =
+                            self.on_function(&unevaluated_const.def, unevaluated_const.args);
+                        self.out(fn_name);
                     }
                 }
             }
@@ -438,7 +452,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                     println!("scalar: {scalar:?}");
                     self.out(match ty.kind() {
                         Bool => format!("new Bool({})", scalar.to_bool().unwrap()),
-                        Char => todo!(),
+                        Char => format!("new Char('{}')", scalar.to_char().unwrap()),
                         Int(int_ty) => match int_ty {
                             IntTy::I8 => format!(
                                 "new Int8({})",
@@ -493,7 +507,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                             println!("generic_args: {:?}", generic_args);
                             format!(
                                 "_adt(\"{}\", {})",
-                                self.def_normalized_name(adt_def.did(), generic_args),
+                                self.def_normalized_name(&adt_def.did(), generic_args),
                                 scalar
                             )
                         }
@@ -503,7 +517,9 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                         Pat(_, _) => todo!(),
                         Slice(_) => todo!(),
                         RawPtr(_, _mutability) => todo!(),
-                        Ref(_, _, _mutability) => todo!(),
+                        Ref(_, _, _mutability) => {
+                            format!("_ref({})", scalar)
+                        }
                         FnDef(_, _) => todo!(),
                         FnPtr(_binder, _fn_header) => todo!(),
                         UnsafeBinder(_unsafe_binder_inner) => todo!(),
@@ -529,7 +545,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                     Uint(_uint_ty) => todo!("Uint"),
                     Float(_float_ty) => todo!("Float"),
                     Adt(adt_def, generic_args) => {
-                        let name = self.def_normalized_name(adt_def.did(), generic_args);
+                        let name = self.def_normalized_name(&adt_def.did(), generic_args);
                         println!("name: {name}");
                         self.out(name);
                     }
@@ -540,21 +556,31 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                     Slice(_) => todo!("Slice"),
                     RawPtr(_, _mutability) => todo!("RawPtr"),
                     Ref(_, _, _mutability) => todo!("Ref"),
-                    FnDef(function_id, generic_args) => {
-                        println!("Zero Sized, generic_args: {generic_args:?}");
-                        self.check_fn_defined(*function_id, generic_args);
-                        let a = self.fn_name(*function_id, generic_args).clone();
-                        self.out(a);
+                    FnDef(id, args) => {
+                        let fn_name = self.on_function(id, args);
+                        self.out(fn_name);
                     }
                     FnPtr(_binder, _fn_header) => todo!("FnPtr"),
                     UnsafeBinder(_unsafe_binder_inner) => todo!("UnsafeBinder"),
                     Dynamic(_, _) => todo!("Dynamic"),
-                    Closure(_, _) => todo!("Closure"),
+                    Closure(id, args) => {
+                        let fn_name = self.on_function(id, args);
+                        self.out(fn_name);
+                    }
                     CoroutineClosure(_, _) => todo!("CoroutineClosure"),
                     Coroutine(_, _) => todo!("Coroutine"),
                     CoroutineWitness(_, _) => todo!("CoroutineWitness"),
                     Never => todo!("Never"),
-                    Tuple(_) => todo!("Tuple"),
+                    Tuple(tys) => {
+                        self.out("new Tuple([");
+                        for (i, ty) in tys.iter().enumerate() {
+                            self.ty_name(&ty);
+                            if i < tys.len() - 1 {
+                                self.out(", ");
+                            }
+                        }
+                        self.out("])");
+                    }
                     Alias(_alias_ty_kind, _alias_ty) => todo!("Alias"),
                     Param(_) => todo!("Param"),
                     Bound(_bound_var_index_kind, _) => todo!("Bound"),
@@ -761,38 +787,23 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
     }
 }
 
-fn build_custom_sysroot() -> std::path::PathBuf {
-    use rustc_build_sysroot::{BuildMode, SysrootBuilder, SysrootConfig};
-
-    let sysroot_dir = std::env::current_dir().unwrap().join("sysroot");
-    SysrootBuilder::new(&sysroot_dir, "wasm32-wasip1-threads")
-        .rustflags(["-Zalways-encode-mir"])
-        .build_mode(BuildMode::Check)
-        .sysroot_config(SysrootConfig::WithStd {
-            std_features: vec![],
-        })
-        .build_from_source(std::path::Path::new("./std"))
-        .expect("Failed to build sysroot");
-여기 실패해. 잡아봐.
-    sysroot_dir
-}
-
 pub fn run(path: &str) -> Receiver<String> {
     let (tx, rx) = std::sync::mpsc::channel();
     let path = path.to_string();
     std::thread::spawn(move || {
-        let sysroot = build_custom_sysroot();
+        let sysroot = "./custom-sysroot";
 
         let target = "wasm32-wasip1-threads";
 
-        let lib_path = sysroot.join("lib").join("rustlib").join(target).join("lib");
         let mut callback = JsTranspileCallback { tx };
         let args: Vec<String> = vec![
             "ignored".to_string(),
             path,
-            "--target=wasm32-wasip1-threads".to_string(),
+            format!("--target={target}",),
             "--sysroot".to_string(),
-            sysroot.to_str().unwrap().to_string(),
+            sysroot.to_string(),
+            "-Zunstable-options".to_string(),
+            "-Cpanic=immediate-abort".to_string(),
         ];
         rustc_driver::run_compiler(&args, &mut callback);
     });

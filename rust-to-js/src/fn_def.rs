@@ -1,59 +1,56 @@
 use crate::*;
 
 impl<'tcx> MyVisitor<'_, 'tcx> {
-    pub fn check_fn_defined(
+    pub fn on_function(
         &mut self,
-        function_id: rustc_hir::def_id::DefId,
-        generic_args: &'tcx rustc_middle::ty::List<GenericArg<'tcx>>,
-    ) {
-        if self.fn_names.contains_key(&(function_id, generic_args)) {
-            return;
+        id: &rustc_hir::def_id::DefId,
+        args: &'tcx rustc_middle::ty::List<GenericArg<'tcx>>,
+    ) -> String {
+        if let Some(value) = self.fn_names.get(&(*id, args)) {
+            return value.clone();
         }
 
-        let fn_name = self.def_normalized_name(function_id, generic_args);
-        println!(
-            "fn_name: {fn_name}, {}, {generic_args:?}",
-            self.tcx.def_path_str(function_id)
-        );
-        self.fn_names
-            .insert((function_id, generic_args), fn_name.clone());
-
-        let Some(instance) = self.try_resolve(function_id, generic_args) else {
-            panic!("try_resolve failed: {function_id:?}, {generic_args:?}");
-            return;
+        let Some(instance) = self.try_resolve(*id, args) else {
+            panic!("try_resolve failed: {id:?}, {args:?}");
         };
 
-        if is_known_fn(&fn_name) {
-            return;
+        if let InstanceKind::Virtual(_, _) = instance.def {
+            println!("fn_call, {instance:?}");
+            return "_fn_call".to_string();
         }
-        println!("fn is not known: {fn_name}");
 
-        println!("instance: {instance:?}");
-        println!("generic_args: {generic_args:?}");
-        // if self.tcx.is_mir_available(instance.def_id()) {
-        self.todo_instances.insert(instance);
-        // } else {
-        //     println!("fn {fn_name} is not available");
-        //     let mir = self.tcx.instance_mir(instance.def);
-        //     panic!("fn {fn_name} is not available, mir: {mir:?}");
-        // }
-    }
+        if self.tcx.def_path_str(id) == "std::ops::Fn::call" {
+            let closure = args[0];
+            println!("closure? {closure:?}");
+            match closure.as_type().unwrap().kind() {
+                FnDef(_, _) => todo!(),
+                FnPtr(_, _) => todo!(),
+                Closure(id, args) => return self.on_function(id, args),
+                _ => unreachable!(),
+            }
+        }
 
-    pub fn fn_name(
-        &mut self,
-        function_id: rustc_hir::def_id::DefId,
-        generic_args: &'tcx rustc_middle::ty::List<GenericArg<'tcx>>,
-    ) -> &String {
-        self.fn_names.get(&(function_id, generic_args)).unwrap()
+        let fn_name = self.def_normalized_name(id, args);
+
+        if !is_known_fn(&fn_name) {
+            self.todo_instances.insert(instance);
+        }
+
+        fn_name
     }
 }
 
 fn is_known_fn(fn_name: &str) -> bool {
-    if fn_name.starts_with("std__intrinsics__assert_inhabited") {
-        return true;
-    }
-
+    println!("is_known_fn: {fn_name}");
     [
+        "std__intrinsics__assert_inhabited",
+        "std__intrinsics__is_val_statically_known_ty_bool",
+        "core__intrinsics__atomic_load",
+        "std__sync__atomic__atomic_load",
+        "core__intrinsics__needs_drop",
+        "std__intrinsics__abort",
+        "core__core_arch__wasm32__atomic__llvm_atomic_wait_i32",
+        "std__intrinsics__cold_path",
         "std__option__unwrap_failed",
         "std__io___print",
         "core__panicking__panic_nounwind_fmt",
@@ -272,5 +269,6 @@ fn is_known_fn(fn_name: &str) -> bool {
         "std__intrinsics__va_arg",
         "std__intrinsics__va_end",
     ]
-    .contains(&fn_name)
+    .iter()
+    .any(|name| fn_name.starts_with(name))
 }

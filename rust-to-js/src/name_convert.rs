@@ -3,20 +3,18 @@ use crate::*;
 impl<'tcx> MyVisitor<'_, 'tcx> {
     pub fn def_normalized_name(
         &self,
-        def_id: rustc_span::def_id::DefId,
+        def_id: &rustc_span::def_id::DefId,
         generic_args: &'tcx rustc_middle::ty::List<rustc_middle::ty::GenericArg<'tcx>>,
     ) -> String {
-        (self.tcx.def_path_str(def_id) + &self.generic_args_names(generic_args))
+        let def_path_str = self.tcx.def_path_str(def_id);
+        let generic_args_name = self.generic_args_name(generic_args);
+        println!("def_path_str: {def_path_str}, generic_args_name: {generic_args_name}");
+        (def_path_str + &generic_args_name)
+            .replace(['<', '>', ' ', '[', ']', ';', '\'', '{', '}', '#'], "__")
             .replace("::", "__")
-            .replace("<", "__")
-            .replace(">", "__")
-            .replace(" ", "__")
-            .replace("[", "__")
-            .replace("]", "__")
-            .replace(";", "__")
     }
 
-    pub fn generic_args_names(
+    pub fn generic_args_name(
         &self,
         generic_args: &'tcx rustc_middle::ty::List<GenericArg<'tcx>>,
     ) -> String {
@@ -69,27 +67,32 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                 64 => "_ty_f64".to_string(),
                 _ => unreachable!(),
             },
-            Adt(adt_def, generic_args) => self.def_normalized_name(adt_def.did(), generic_args),
+            Adt(adt_def, generic_args) => self.def_normalized_name(&adt_def.did(), generic_args),
             Foreign(_) => todo!(),
-            Str => todo!(),
+            Str => "_ty_str".to_string(),
             Array(ty, const_) => {
-                format!("_ty_array_{}_{}", ty, const_)
+                format!("_ty_array_{}_{}", self.ty_name(ty), const_)
             }
             Pat(_, _) => todo!(),
-            Slice(_) => todo!(),
+            Slice(ty) => {
+                format!("_ty_slice_{}", self.ty_name(ty))
+            }
             RawPtr(_, _mutability) => todo!(),
             Ref(_region, ty, _mutability) => {
                 format!("_ref_{}", self.ty_name(ty))
             }
-            FnDef(_, _) => todo!(),
-            FnPtr(_binder, _fn_header) => todo!(),
+            FnDef(id, args) => self.def_normalized_name(id, args),
+            FnPtr(_binder, _fn_header) => {
+                // TODO
+                "_fn_ptr".to_string()
+            }
             UnsafeBinder(_unsafe_binder_inner) => todo!(),
-            Dynamic(_, _) => todo!(),
-            Closure(_, _) => todo!(),
+            Dynamic(_args, _region) => "_dyn".to_string(),
+            Closure(def_id, generic_args) => self.def_normalized_name(def_id, generic_args),
             CoroutineClosure(_, _) => todo!(),
             Coroutine(_, _) => todo!(),
             CoroutineWitness(_, _) => todo!(),
-            Never => todo!(),
+            Never => "_ty_never".to_string(),
             Tuple(tuple) => {
                 let mut s = "_ty_tuple".to_string();
                 for ty in tuple.iter() {

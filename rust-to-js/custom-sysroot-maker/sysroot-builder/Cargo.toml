@@ -1,0 +1,15 @@
+cargo-features = ["panic-immediate-abort"]
+
+[package]
+name = "sysroot-builder"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+
+[profile.release]
+panic = "immediate-abort"
+
+[profile.dev]
+panic = "immediate-abort"
