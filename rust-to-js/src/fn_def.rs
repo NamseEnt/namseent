@@ -19,21 +19,22 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
             return "_fn_call".to_string();
         }
 
-        if self.tcx.def_path_str(id) == "std::ops::Fn::call" {
-            // let closure = args[0];
-            // println!("closure? {closure:?}");
-            // match closure.as_type().unwrap().kind() {
-            //     FnDef(_, _) => todo!("FnDef"),
-            //     FnPtr(_, _) => todo!("FnPtr"),
-            //     Closure(id, args) => return self.on_function(id, args),
-            //     _ => unreachable!(),
-            // }
-            return "std__ops__Fn__call".to_string();
+        if [
+            "std::ops::FnOnce::call_once",
+            "std::ops::FnMut::call_mut",
+            "std::ops::Fn::call",
+        ]
+        .contains(&self.tcx.def_path_str(id).as_str())
+        {
+            return "_fn_call".to_string();
         }
 
         let fn_name = def_normalized_name(self.tcx, id, args);
 
-        if !is_known_fn(&fn_name) {
+        if !is_known_fn(&fn_name)
+            && !self.handled_instances.contains(&instance)
+            && !self.todo_instances.contains(&instance)
+        {
             self.todo_instances.insert(instance);
         }
 

@@ -36,6 +36,7 @@ impl Callbacks for JsTranspileCallback {
     fn after_analysis<'tcx>(&mut self, _compiler: &Compiler, tcx: TyCtxt<'tcx>) -> Compilation {
         let mut fn_names = Default::default();
         let mut todo_instances: HashSet<Instance<'tcx>> = Default::default();
+        let mut handled_instances: HashSet<Instance<'tcx>> = Default::default();
 
         let main_fn_id = tcx
             .hir_body_owners()
@@ -57,17 +58,30 @@ impl Callbacks for JsTranspileCallback {
         )
         .unwrap()
         .unwrap();
-        self.run(tcx, instance, &mut fn_names, &mut todo_instances);
+        self.run(
+            tcx,
+            instance,
+            &mut fn_names,
+            &mut todo_instances,
+            &mut handled_instances,
+        );
 
         while !todo_instances.is_empty() {
             let instance = *todo_instances.iter().next().unwrap();
             todo_instances.remove(&instance);
+            handled_instances.insert(instance);
 
             if is_extern(tcx, instance.def_id()) {
                 println!("instance is extern: {instance:?}");
                 continue;
             }
-            self.run(tcx, instance, &mut fn_names, &mut todo_instances);
+            self.run(
+                tcx,
+                instance,
+                &mut fn_names,
+                &mut todo_instances,
+                &mut handled_instances,
+            );
         }
 
         self.tx.send("main();\n".to_string()).unwrap();
@@ -95,6 +109,7 @@ impl JsTranspileCallback {
             String,
         >,
         todo_instances: &mut HashSet<Instance<'tcx>>,
+        handled_instances: &mut HashSet<Instance<'tcx>>,
     ) {
         let body = tcx.instance_mir(instance.def);
 
@@ -115,6 +130,11 @@ impl JsTranspileCallback {
             fn_name: def_normalized_name(tcx, &instance.def_id(), instance.args),
             fn_names,
             todo_instances,
+            handled_instances,
+            typing_env: rustc_middle::ty::TypingEnv {
+                param_env: tcx.param_env(instance.def_id()),
+                typing_mode: rustc_middle::ty::TypingMode::PostAnalysis,
+            },
         };
         visitor.visit_body(&body);
 
@@ -140,6 +160,8 @@ struct MyVisitor<'a, 'tcx> {
         String,
     >,
     todo_instances: &'a mut HashSet<Instance<'tcx>>,
+    handled_instances: &'a mut HashSet<Instance<'tcx>>,
+    typing_env: rustc_middle::ty::TypingEnv<'tcx>,
 }
 
 impl<'tcx> Visitor<'tcx> for MyVisitor<'_, 'tcx> {
@@ -436,7 +458,72 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                 rustc_type_ir::ConstKind::Bound(_bound_var_index_kind, _) => todo!("Bound"),
                 rustc_type_ir::ConstKind::Placeholder(_) => todo!("Placeholder"),
                 rustc_type_ir::ConstKind::Unevaluated(_unevaluated_const) => todo!("Unevaluated"),
-                rustc_type_ir::ConstKind::Value(value) => self.out(value),
+                rustc_type_ir::ConstKind::Value(value) => match value.ty.kind() {
+                    Bool => self.out(value.try_to_bool().unwrap()),
+                    Char => todo!("Char"),
+                    Int(int_ty) => {
+                        let bits = value.try_to_bits(self.tcx, self.typing_env).unwrap();
+                        let bytes = bits.to_ne_bytes();
+                        self.out(match int_ty {
+                            IntTy::I8 => {
+                                i8::from_ne_bytes(bytes[0..1].try_into().unwrap()).to_string()
+                            }
+                            IntTy::I16 => {
+                                i16::from_ne_bytes(bytes[0..2].try_into().unwrap()).to_string()
+                            }
+                            IntTy::I32 => {
+                                i32::from_ne_bytes(bytes[0..4].try_into().unwrap()).to_string()
+                            }
+                            IntTy::I64 => {
+                                i64::from_ne_bytes(bytes[0..8].try_into().unwrap()).to_string()
+                            }
+                            IntTy::I128 => {
+                                i128::from_ne_bytes(bytes[0..16].try_into().unwrap()).to_string()
+                            }
+                            IntTy::Isize => {
+                                i32::from_ne_bytes(bytes[0..4].try_into().unwrap()).to_string()
+                            }
+                        })
+                    }
+                    Uint(uint_ty) => {
+                        let bits = value.try_to_bits(self.tcx, self.typing_env).unwrap();
+                        self.out(match uint_ty {
+                            UintTy::U8 => (bits & 0xFF).to_string(),
+                            UintTy::U16 => (bits & 0xFFFF).to_string(),
+                            UintTy::U32 => (bits & 0xFFFFFFFF).to_string(),
+                            UintTy::U64 => (bits & 0xFFFFFFFFFFFFFFFF).to_string(),
+                            UintTy::U128 => bits.to_string(),
+                            UintTy::Usize => (bits & 0xFFFFFFFF).to_string(),
+                        })
+                    }
+                    Float(float_ty) => todo!("Float"),
+                    Adt(_, _) => todo!("Adt"),
+                    Foreign(_) => todo!("Foreign"),
+                    Str => todo!("Str"),
+                    Array(_, _) => todo!("Array"),
+                    Pat(_, _) => todo!("Pat"),
+                    Slice(_) => todo!("Slice"),
+                    RawPtr(_, mutability) => todo!("RawPtr"),
+                    Ref(_, _, mutability) => todo!("Ref"),
+                    FnDef(_, _) => todo!("FnDef"),
+                    FnPtr(binder, fn_header) => todo!("FnPtr"),
+                    UnsafeBinder(unsafe_binder_inner) => todo!("UnsafeBinder"),
+                    Dynamic(_, _) => todo!("Dynamic"),
+                    Closure(_, _) => todo!("Closure"),
+                    CoroutineClosure(_, _) => todo!("CoroutineClosure"),
+                    Coroutine(_, _) => todo!("Coroutine"),
+                    CoroutineWitness(_, _) => todo!("CoroutineWitness"),
+                    Never => todo!("Never"),
+                    Tuple(_) => todo!("Tuple"),
+                    Alias(alias_ty_kind, alias_ty) => todo!("Alias"),
+                    Param(_) => todo!("Param"),
+                    Bound(bound_var_index_kind, _) => todo!("Bound"),
+                    rustc_type_ir::TyKind::Placeholder(_) => {
+                        todo!("rustc_type_ir::TyKind::Placeholder")
+                    }
+                    Infer(infer_ty) => todo!("Infer"),
+                    Error(_) => todo!("Error"),
+                },
                 rustc_type_ir::ConstKind::Error(_) => todo!("Error"),
                 rustc_type_ir::ConstKind::Expr(_) => todo!("Expr"),
             },
@@ -778,14 +865,15 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
     }
 
     fn sizeof(&self, ty: &Ty<'tcx>) -> Option<usize> {
-        let param_env = self.tcx.param_env(self.instance.def_id());
-        let typing_env = rustc_middle::ty::TypingEnv {
-            param_env,
-            typing_mode: rustc_middle::ty::TypingMode::PostAnalysis,
-        };
-        let query_input = typing_env.as_query_input(*ty);
+        let ty = self.tcx.instantiate_and_normalize_erasing_regions(
+            self.instance.args,
+            self.typing_env,
+            EarlyBinder::bind(*ty),
+        );
+
+        let query_input = self.typing_env.as_query_input(ty);
         let Ok(layout) = self.tcx.layout_of(query_input) else {
-            panic!("layout_of failed: {query_input:?}");
+            panic!("layout_of failed: ty: {ty:?}, query_input: {query_input:?}");
         };
 
         Some(layout.size.bytes() as usize)

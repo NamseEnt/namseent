@@ -5,8 +5,10 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
         for (i, local_decl) in body.local_decls.iter().enumerate() {
             self.out(format!("const _{i} = ",));
 
+            println!("local_decl.ty: {:?}", local_decl.ty);
+
             if let Closure(id, args) = local_decl.ty.kind()
-                && args[2].as_type().unwrap().tuple_fields().is_empty()
+                && args[2].as_type().unwrap().is_unit()
             {
                 self.out("new ClosureVar(");
                 let name = self.on_function(id, args);

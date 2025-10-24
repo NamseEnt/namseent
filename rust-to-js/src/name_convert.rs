@@ -9,7 +9,10 @@ pub fn def_normalized_name<'tcx>(
     let generic_args_name = generic_args_name(tcx, generic_args);
     println!("def_path_str: {def_path_str}, generic_args_name: {generic_args_name}");
     (def_path_str + &generic_args_name)
-        .replace(['<', '>', ' ', '[', ']', ';', '\'', '{', '}', '#'], "__")
+        .replace(
+            ['<', '>', ' ', '[', ']', ';', '\'', '{', '}', '#', ','],
+            "__",
+        )
         .replace("::", "__")
 }
 pub fn generic_args_name<'tcx>(
