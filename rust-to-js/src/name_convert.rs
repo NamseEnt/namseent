@@ -24,14 +24,27 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
             .iter()
             .filter_map(|arg| match arg.kind() {
                 rustc_type_ir::GenericArgKind::Lifetime(_) => None,
-                rustc_type_ir::GenericArgKind::Type(ty) => Some(self.ty_name(ty)),
-                rustc_type_ir::GenericArgKind::Const(const_) => todo!(),
+                rustc_type_ir::GenericArgKind::Type(ty) => Some(self.ty_name(&ty)),
+                rustc_type_ir::GenericArgKind::Const(const_) => Some(self.const_name(const_)),
             })
             .collect::<Vec<_>>()
             .join("__")
     }
 
-    pub fn ty_name(&self, ty: Ty<'tcx>) -> String {
+    pub fn const_name(&self, const_: rustc_middle::ty::Const<'tcx>) -> String {
+        match const_.kind() {
+            rustc_type_ir::ConstKind::Param(_) => todo!("Param"),
+            rustc_type_ir::ConstKind::Infer(_infer_const) => todo!("Infer"),
+            rustc_type_ir::ConstKind::Bound(_bound_var_index_kind, _) => todo!("Bound"),
+            rustc_type_ir::ConstKind::Placeholder(_) => todo!("Placeholder"),
+            rustc_type_ir::ConstKind::Unevaluated(_unevaluated_const) => todo!("Unevaluated"),
+            rustc_type_ir::ConstKind::Value(value) => value.to_string(),
+            rustc_type_ir::ConstKind::Error(_) => todo!("Error"),
+            rustc_type_ir::ConstKind::Expr(_) => todo!("Expr"),
+        }
+    }
+
+    pub fn ty_name(&self, ty: &Ty<'tcx>) -> String {
         match ty.kind() {
             Bool => "_ty_bool".to_string(),
             Char => "_ty_char".to_string(),
@@ -56,29 +69,39 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                 64 => "_ty_f64".to_string(),
                 _ => unreachable!(),
             },
-            Adt(_, _) => todo!(),
+            Adt(adt_def, generic_args) => self.def_normalized_name(adt_def.did(), generic_args),
             Foreign(_) => todo!(),
             Str => todo!(),
-            Array(_, _) => todo!(),
+            Array(ty, const_) => {
+                format!("_ty_array_{}_{}", ty, const_)
+            }
             Pat(_, _) => todo!(),
             Slice(_) => todo!(),
-            RawPtr(_, mutability) => todo!(),
-            Ref(_, _, mutability) => todo!(),
+            RawPtr(_, _mutability) => todo!(),
+            Ref(_region, ty, _mutability) => {
+                format!("_ref_{}", self.ty_name(ty))
+            }
             FnDef(_, _) => todo!(),
-            FnPtr(binder, fn_header) => todo!(),
-            UnsafeBinder(unsafe_binder_inner) => todo!(),
+            FnPtr(_binder, _fn_header) => todo!(),
+            UnsafeBinder(_unsafe_binder_inner) => todo!(),
             Dynamic(_, _) => todo!(),
             Closure(_, _) => todo!(),
             CoroutineClosure(_, _) => todo!(),
             Coroutine(_, _) => todo!(),
             CoroutineWitness(_, _) => todo!(),
             Never => todo!(),
-            Tuple(_) => todo!(),
-            Alias(alias_ty_kind, alias_ty) => todo!(),
+            Tuple(tuple) => {
+                let mut s = "_ty_tuple".to_string();
+                for ty in tuple.iter() {
+                    s.push_str(&format!("_{}", self.ty_name(&ty)));
+                }
+                s
+            }
+            Alias(_alias_ty_kind, _alias_ty) => todo!(),
             Param(_) => todo!(),
-            Bound(bound_var_index_kind, _) => todo!(),
+            Bound(_bound_var_index_kind, _) => todo!(),
             rustc_type_ir::TyKind::Placeholder(_) => todo!(),
-            Infer(infer_ty) => todo!(),
+            Infer(_infer_ty) => todo!(),
             Error(_) => todo!(),
         }
     }

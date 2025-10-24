@@ -26,7 +26,6 @@ use rustc_middle::mir::visit::*;
 use rustc_middle::mir::*;
 use rustc_middle::ty::*;
 use rustc_type_ir::EarlyBinder;
-use rustc_type_ir::TyKind;
 
 struct JsTranspileCallback {
     pub tx: Sender<String>,
@@ -63,7 +62,6 @@ impl Callbacks for JsTranspileCallback {
             let instance = *todo_instances.iter().next().unwrap();
             todo_instances.remove(&instance);
             self.run(tcx, instance, &mut fn_names, &mut todo_instances);
-            todo!();
         }
 
         self.tx.send("main();\n".to_string()).unwrap();
@@ -79,7 +77,7 @@ impl JsTranspileCallback {
         instance: Instance<'tcx>,
         fn_names: &mut HashMap<
             (
-                &'tcx rustc_hir::def_id::DefId,
+                rustc_hir::def_id::DefId,
                 &'tcx rustc_middle::ty::List<GenericArg<'tcx>>,
             ),
             String,
@@ -122,7 +120,7 @@ struct MyVisitor<'a, 'tcx> {
     promoted: Option<usize>,
     fn_names: &'a mut HashMap<
         (
-            &'tcx rustc_hir::def_id::DefId,
+            rustc_hir::def_id::DefId,
             &'tcx rustc_middle::ty::List<GenericArg<'tcx>>,
         ),
         String,
@@ -410,15 +408,12 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
         println!("constant: {:?}", constant.const_);
         match constant.const_ {
             rustc_middle::mir::Const::Ty(_ty, const_) => match const_.kind() {
-                rustc_type_ir::ConstKind::Param(param) => {
-                    println!("param");
-                    self.out(param.name);
-                }
-                rustc_type_ir::ConstKind::Infer(infer_const) => todo!("Infer"),
-                rustc_type_ir::ConstKind::Bound(bound_var_index_kind, _) => todo!("Bound"),
+                rustc_type_ir::ConstKind::Param(param) => self.out(param.name),
+                rustc_type_ir::ConstKind::Infer(_infer_const) => todo!("Infer"),
+                rustc_type_ir::ConstKind::Bound(_bound_var_index_kind, _) => todo!("Bound"),
                 rustc_type_ir::ConstKind::Placeholder(_) => todo!("Placeholder"),
-                rustc_type_ir::ConstKind::Unevaluated(unevaluated_const) => todo!("Unevaluated"),
-                rustc_type_ir::ConstKind::Value(_) => todo!("Value"),
+                rustc_type_ir::ConstKind::Unevaluated(_unevaluated_const) => todo!("Unevaluated"),
+                rustc_type_ir::ConstKind::Value(value) => self.out(value),
                 rustc_type_ir::ConstKind::Error(_) => todo!("Error"),
                 rustc_type_ir::ConstKind::Expr(_) => todo!("Expr"),
             },
@@ -433,11 +428,8 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                                 todo!("Instance not found {:?}", unevaluated_const);
                             });
 
-                        let name =
-                            self.def_normalized_name(unevaluated_const.def, unevaluated_const.args);
-                        self.out(name);
-
-                        self.todo_instances.insert(instance);
+                        self.check_fn_defined(unevaluated_const.def, unevaluated_const.args);
+                        self.fn_name(unevaluated_const.def, unevaluated_const.args);
                     }
                 }
             }
@@ -550,8 +542,8 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                     Ref(_, _, _mutability) => todo!("Ref"),
                     FnDef(function_id, generic_args) => {
                         println!("Zero Sized, generic_args: {generic_args:?}");
-                        self.check_fn_defined(function_id, generic_args);
-                        let a = self.fn_name(function_id, generic_args).clone();
+                        self.check_fn_defined(*function_id, generic_args);
+                        let a = self.fn_name(*function_id, generic_args).clone();
                         self.out(a);
                     }
                     FnPtr(_binder, _fn_header) => todo!("FnPtr"),
@@ -732,11 +724,15 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                     self.out(format!(".index(_{})", index.as_u32()));
                 }
                 ProjectionElem::ConstantIndex {
-                    offset,
-                    min_length,
-                    from_end,
+                    offset: _,
+                    min_length: _,
+                    from_end: _,
                 } => todo!("ConstantIndex"),
-                ProjectionElem::Subslice { from, to, from_end } => todo!("Subslice"),
+                ProjectionElem::Subslice {
+                    from: _,
+                    to: _,
+                    from_end: _,
+                } => todo!("Subslice"),
                 ProjectionElem::Downcast(symbol, variant_idx) => {
                     self.out(format!(
                         ".downcast({}, {})",
@@ -751,35 +747,52 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
     }
 
     fn sizeof(&self, ty: &Ty<'tcx>) -> Option<usize> {
-        println!("sizeof {ty:?}");
         let param_env = self.tcx.param_env(self.instance.def_id());
         let typing_env = rustc_middle::ty::TypingEnv {
             param_env,
             typing_mode: rustc_middle::ty::TypingMode::PostAnalysis,
         };
         let query_input = typing_env.as_query_input(*ty);
-        println!("self.instance: {:?}", self.instance);
         let Ok(layout) = self.tcx.layout_of(query_input) else {
-            if let TyKind::Adt(adt_def, generic_args) = ty.kind() {
-                println!("adt_def: {adt_def:?}, generic_args: {generic_args:?}");
-            }
-            return None;
+            panic!("layout_of failed: {query_input:?}");
         };
-        println!("{}", layout.size.bytes());
 
         Some(layout.size.bytes() as usize)
     }
+}
+
+fn build_custom_sysroot() -> std::path::PathBuf {
+    use rustc_build_sysroot::{BuildMode, SysrootBuilder, SysrootConfig};
+
+    let sysroot_dir = std::env::current_dir().unwrap().join("sysroot");
+    SysrootBuilder::new(&sysroot_dir, "wasm32-wasip1-threads")
+        .rustflags(["-Zalways-encode-mir"])
+        .build_mode(BuildMode::Check)
+        .sysroot_config(SysrootConfig::WithStd {
+            std_features: vec![],
+        })
+        .build_from_source(std::path::Path::new("./std"))
+        .expect("Failed to build sysroot");
+여기 실패해. 잡아봐.
+    sysroot_dir
 }
 
 pub fn run(path: &str) -> Receiver<String> {
     let (tx, rx) = std::sync::mpsc::channel();
     let path = path.to_string();
     std::thread::spawn(move || {
+        let sysroot = build_custom_sysroot();
+
+        let target = "wasm32-wasip1-threads";
+
+        let lib_path = sysroot.join("lib").join("rustlib").join(target).join("lib");
         let mut callback = JsTranspileCallback { tx };
         let args: Vec<String> = vec![
             "ignored".to_string(),
             path,
             "--target=wasm32-wasip1-threads".to_string(),
+            "--sysroot".to_string(),
+            sysroot.to_str().unwrap().to_string(),
         ];
         rustc_driver::run_compiler(&args, &mut callback);
     });

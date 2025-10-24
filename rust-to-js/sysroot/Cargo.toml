@@ -1,0 +1,7 @@
+[package]
+name = "sysroot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rustc-build-sysroot = "0.5.11"

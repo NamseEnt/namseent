@@ -3,39 +3,45 @@ use crate::*;
 impl<'tcx> MyVisitor<'_, 'tcx> {
     pub fn check_fn_defined(
         &mut self,
-        function_id: &'tcx rustc_hir::def_id::DefId,
+        function_id: rustc_hir::def_id::DefId,
         generic_args: &'tcx rustc_middle::ty::List<GenericArg<'tcx>>,
     ) {
         if self.fn_names.contains_key(&(function_id, generic_args)) {
             return;
         }
 
-        let fn_name = self.def_normalized_name(*function_id, generic_args);
+        let fn_name = self.def_normalized_name(function_id, generic_args);
         println!(
             "fn_name: {fn_name}, {}, {generic_args:?}",
-            self.tcx.def_path_str(*function_id)
+            self.tcx.def_path_str(function_id)
         );
         self.fn_names
             .insert((function_id, generic_args), fn_name.clone());
 
-        let Some(instance) = self.try_resolve(*function_id, generic_args) else {
+        let Some(instance) = self.try_resolve(function_id, generic_args) else {
+            panic!("try_resolve failed: {function_id:?}, {generic_args:?}");
             return;
         };
 
         if is_known_fn(&fn_name) {
             return;
         }
+        println!("fn is not known: {fn_name}");
 
-        if self.tcx.is_mir_available(instance.def_id()) {
-            self.todo_instances.insert(instance);
-        } else {
-            panic!("fn {fn_name} is not available");
-        }
+        println!("instance: {instance:?}");
+        println!("generic_args: {generic_args:?}");
+        // if self.tcx.is_mir_available(instance.def_id()) {
+        self.todo_instances.insert(instance);
+        // } else {
+        //     println!("fn {fn_name} is not available");
+        //     let mir = self.tcx.instance_mir(instance.def);
+        //     panic!("fn {fn_name} is not available, mir: {mir:?}");
+        // }
     }
 
     pub fn fn_name(
         &mut self,
-        function_id: &'tcx rustc_hir::def_id::DefId,
+        function_id: rustc_hir::def_id::DefId,
         generic_args: &'tcx rustc_middle::ty::List<GenericArg<'tcx>>,
     ) -> &String {
         self.fn_names.get(&(function_id, generic_args)).unwrap()
@@ -43,13 +49,16 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
 }
 
 fn is_known_fn(fn_name: &str) -> bool {
+    if fn_name.starts_with("std__intrinsics__assert_inhabited") {
+        return true;
+    }
+
     [
         "std__option__unwrap_failed",
         "std__io___print",
         "core__panicking__panic_nounwind_fmt",
         "std__alloc__handle_alloc_error",
         "std__intrinsics__arith_offset",
-        "std__intrinsics__assert_inhabited",
         "std__alloc__Layout__is_size_align_valid",
         "alloc__alloc____rust_alloc",
         "alloc__alloc____rust_dealloc",
@@ -87,7 +96,18 @@ fn is_known_fn(fn_name: &str) -> bool {
         "std__intrinsics__transmute_unchecked",
         "std__intrinsics__needs_drop",
         "std__intrinsics__offset",
-        "std__intrinsics__arith_offset",
+        "std__intrinsics__arith_offset_ty_u8",
+        "std__intrinsics__arith_offset_ty_u16",
+        "std__intrinsics__arith_offset_ty_u32",
+        "std__intrinsics__arith_offset_ty_u64",
+        "std__intrinsics__arith_offset_ty_u128",
+        "std__intrinsics__arith_offset_ty_usize",
+        "std__intrinsics__arith_offset_ty_i8",
+        "std__intrinsics__arith_offset_ty_i16",
+        "std__intrinsics__arith_offset_ty_i32",
+        "std__intrinsics__arith_offset_ty_i64",
+        "std__intrinsics__arith_offset_ty_i128",
+        "std__intrinsics__arith_offset_ty_isize",
         "std__intrinsics__slice_get_unchecked",
         "std__intrinsics__ptr_mask",
         "std__intrinsics__volatile_copy_nonoverlapping_memory",

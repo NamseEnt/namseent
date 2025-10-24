@@ -5,7 +5,7 @@ use std::io::Write;
 use rust_to_js::run;
 
 fn main() {
-    let rx = run("src/tests/_iter/main.rs");
+    let rx = run("src/tests/_iter/src/main.rs");
 
     let prev = std::fs::read_to_string("test.js").unwrap();
 
