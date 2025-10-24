@@ -3,6 +3,21 @@ fn main() {
         println!("hello");
     };
     a();
+
+    let mut b = 5;
+    let mut captures = || {
+        b += 1;
+        println!("{}", b);
+    };
+    captures();
+
+    let b = 5;
+    let move_captures = move || {
+        let mut b = b;
+        b += 1;
+        println!("{}", b);
+    };
+    move_captures();
 }
 
 // mod foo;

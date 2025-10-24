@@ -20,17 +20,18 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
         }
 
         if self.tcx.def_path_str(id) == "std::ops::Fn::call" {
-            let closure = args[0];
-            println!("closure? {closure:?}");
-            match closure.as_type().unwrap().kind() {
-                FnDef(_, _) => todo!(),
-                FnPtr(_, _) => todo!(),
-                Closure(id, args) => return self.on_function(id, args),
-                _ => unreachable!(),
-            }
+            // let closure = args[0];
+            // println!("closure? {closure:?}");
+            // match closure.as_type().unwrap().kind() {
+            //     FnDef(_, _) => todo!("FnDef"),
+            //     FnPtr(_, _) => todo!("FnPtr"),
+            //     Closure(id, args) => return self.on_function(id, args),
+            //     _ => unreachable!(),
+            // }
+            return "std__ops__Fn__call".to_string();
         }
 
-        let fn_name = self.def_normalized_name(id, args);
+        let fn_name = def_normalized_name(self.tcx, id, args);
 
         if !is_known_fn(&fn_name) {
             self.todo_instances.insert(instance);
@@ -41,7 +42,6 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
 }
 
 fn is_known_fn(fn_name: &str) -> bool {
-    println!("is_known_fn: {fn_name}");
     [
         "std__intrinsics__assert_inhabited",
         "std__intrinsics__is_val_statically_known_ty_bool",

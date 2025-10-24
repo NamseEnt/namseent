@@ -20,6 +20,7 @@ use std::collections::HashSet;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 
+use crate::name_convert::*;
 use rustc_driver::{Callbacks, Compilation};
 use rustc_interface::interface::Compiler;
 use rustc_middle::mir::visit::*;
@@ -111,6 +112,7 @@ impl JsTranspileCallback {
             instance,
             tx: self.tx.clone(),
             promoted: None,
+            fn_name: def_normalized_name(tcx, &instance.def_id(), instance.args),
             fn_names,
             todo_instances,
         };
@@ -129,6 +131,7 @@ struct MyVisitor<'a, 'tcx> {
     instance: Instance<'tcx>,
     tx: Sender<String>,
     promoted: Option<usize>,
+    fn_name: String,
     fn_names: &'a mut HashMap<
         (
             rustc_hir::def_id::DefId,
@@ -141,7 +144,7 @@ struct MyVisitor<'a, 'tcx> {
 
 impl<'tcx> Visitor<'tcx> for MyVisitor<'_, 'tcx> {
     fn visit_body(&mut self, body: &Body<'tcx>) {
-        let fn_name = self.def_normalized_name(&self.instance.def_id(), self.instance.args);
+        let fn_name = &self.fn_name;
         println!("visit_body: {fn_name}");
         match &self.promoted {
             Some(promoted) => {
@@ -394,7 +397,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                         }
                     }
                     AggregateKind::Closure(id, args) => {
-                        let fn_name = self.on_function(&id, &args);
+                        let fn_name = self.on_function(id, args);
                         self.out(fn_name);
                     }
                     AggregateKind::Coroutine(_def_id, _raw_list) => todo!(),
@@ -439,7 +442,9 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
             },
             rustc_middle::mir::Const::Unevaluated(unevaluated_const, _ty) => {
                 match unevaluated_const.promoted {
-                    Some(promoted) => self.out(format!("main__promoted_{}", promoted.as_u32())),
+                    Some(promoted) => {
+                        self.out(format!("{}__promoted_{}", self.fn_name, promoted.as_u32()))
+                    }
                     None => {
                         let fn_name =
                             self.on_function(&unevaluated_const.def, unevaluated_const.args);
@@ -507,7 +512,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                             println!("generic_args: {:?}", generic_args);
                             format!(
                                 "_adt(\"{}\", {})",
-                                self.def_normalized_name(&adt_def.did(), generic_args),
+                                def_normalized_name(self.tcx, &adt_def.did(), generic_args),
                                 scalar
                             )
                         }
@@ -545,7 +550,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                     Uint(_uint_ty) => todo!("Uint"),
                     Float(_float_ty) => todo!("Float"),
                     Adt(adt_def, generic_args) => {
-                        let name = self.def_normalized_name(&adt_def.did(), generic_args);
+                        let name = def_normalized_name(self.tcx, &adt_def.did(), generic_args);
                         println!("name: {name}");
                         self.out(name);
                     }
@@ -574,7 +579,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                     Tuple(tys) => {
                         self.out("new Tuple([");
                         for (i, ty) in tys.iter().enumerate() {
-                            self.ty_name(&ty);
+                            ty_name(self.tcx, &ty);
                             if i < tys.len() - 1 {
                                 self.out(", ");
                             }
