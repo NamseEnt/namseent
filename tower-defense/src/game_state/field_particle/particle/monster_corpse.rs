@@ -2,12 +2,12 @@ use crate::game_state::MonsterKind;
 use namui::*;
 use rand::{Rng, thread_rng};
 
-const CORPSE_DURATION_SEC: f32 = 2.0;
-const INITIAL_SPEED_PX_PER_SEC: f32 = 420.0; // 초기 발사 속도
-const GRAVITY_PX_PER_SEC2: f32 = 128.0; // 아래 방향 +Y
-const LINEAR_DRAG_PER_SEC: f32 = 5.0; // 강한 공기저항
-const ANGULAR_VELOCITY_INIT_DEG_PER_SEC: f32 = 540.0; // 빠른 시작 회전 속도
-const ANGULAR_DRAG_PER_SEC: f32 = 3.0;
+const CORPSE_DURATION_SEC: f32 = 0.6;
+const INITIAL_SPEED_PX_PER_SEC: f32 = 64.0;
+const GRAVITY_PX_PER_SEC2: f32 = 4.0;
+const LINEAR_DRAG_PER_SEC: f32 = 0.025;
+const ANGULAR_VELOCITY_INIT_DEG_PER_SEC: f32 = 180.0;
+const ANGULAR_DRAG_PER_SEC: f32 = 0.0125;
 
 #[derive(Clone, State)]
 pub struct MonsterCorpseParticle {
@@ -30,7 +30,6 @@ impl MonsterCorpseParticle {
         monster_kind: MonsterKind,
         wh: Wh<Px>,
     ) -> Self {
-        // 초기 방향: 수직 상단(위쪽, -90deg)을 기준으로 좌/우 45도 랜덤
         let mut rng = thread_rng();
         let offset_deg: f32 = rng.gen_range(-45.0..=45.0);
         let launch_deg: f32 = -90.0 + offset_deg;
@@ -38,7 +37,6 @@ impl MonsterCorpseParticle {
         let vx = INITIAL_SPEED_PX_PER_SEC * launch_rad.cos();
         let vy = INITIAL_SPEED_PX_PER_SEC * launch_rad.sin();
 
-        // 각속도는 빠르게 시작
         let angular_velocity_deg_per_sec =
             ANGULAR_VELOCITY_INIT_DEG_PER_SEC * if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
 
