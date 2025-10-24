@@ -87,7 +87,7 @@ where
         let (state, set_state) = ctx.state(|| State {
             emitters: initial_emitters.replace(vec![]),
             particles: Vec::<P>::with_capacity(65536),
-            last_now: Instant::now(),
+            last_now: now,
         });
 
         ctx.attach_event(|_| {
