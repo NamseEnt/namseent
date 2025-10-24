@@ -3,11 +3,11 @@ use namui::*;
 use rand::{Rng, thread_rng};
 
 const CORPSE_DURATION_SEC: f32 = 0.6;
-const INITIAL_SPEED_PX_PER_SEC: f32 = 64.0;
-const GRAVITY_PX_PER_SEC2: f32 = 4.0;
-const LINEAR_DRAG_PER_SEC: f32 = 0.025;
-const ANGULAR_VELOCITY_INIT_DEG_PER_SEC: f32 = 180.0;
-const ANGULAR_DRAG_PER_SEC: f32 = 0.0125;
+const INITIAL_SPEED_PX_PER_SEC: f32 = 1024.0;
+const GRAVITY_PX_PER_SEC2: f32 = 1024.0;
+const LINEAR_DRAG_PER_SEC: f32 = 2.0;
+const ANGULAR_VELOCITY_INIT_DEG_PER_SEC: f32 = 1080.0;
+const ANGULAR_DRAG_PER_SEC: f32 = 0.125;
 
 #[derive(Clone, State)]
 pub struct MonsterCorpseParticle {
