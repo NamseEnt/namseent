@@ -31,7 +31,7 @@ impl namui::particle::Emitter<FieldParticle> for MonsterDeathEmitter {
         let xy = self.map_coord_to_pixel(self.monster_xy + MapCoordF32::new(0.5, 0.5));
         let rotation = thread_rng().gen_range(-15.0..15.0).deg();
 
-        let particle = crate::game_state::field_particle::particle::MonsterDeathParticle::new(
+        let particle = crate::game_state::field_particle::particle::MonsterSoulParticle::new(
             xy, now, rotation,
         );
 

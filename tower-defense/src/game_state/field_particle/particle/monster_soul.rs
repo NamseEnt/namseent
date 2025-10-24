@@ -6,7 +6,7 @@ const SOUL_SCALE_MIN: f32 = 0.0;
 const SOUL_SCALE_MAX: f32 = 1.0;
 
 #[derive(Clone, State)]
-pub struct MonsterDeathParticle {
+pub struct MonsterSoulParticle {
     pub position: Xy<Px>,
     pub created_at: Instant,
     pub duration: Duration,
@@ -16,7 +16,7 @@ pub struct MonsterDeathParticle {
     pub offset: Px,
 }
 
-impl MonsterDeathParticle {
+impl MonsterSoulParticle {
     pub fn new(position: Xy<Px>, now: Instant, rotation: Angle) -> Self {
         Self {
             position,

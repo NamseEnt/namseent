@@ -9,7 +9,7 @@ use namui::{
     particle::{Emitter, Particle},
     *,
 };
-pub use particle::{DamageTextParticle, IconParticle, MonsterDeathParticle};
+pub use particle::{DamageTextParticle, IconParticle, MonsterSoulParticle};
 
 #[derive(State)]
 pub struct TempParticleEmitter {
@@ -92,7 +92,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
 pub enum FieldParticle {
     Icon { particle: IconParticle },
     DamageText { particle: DamageTextParticle },
-    MonsterDeath { particle: MonsterDeathParticle },
+    MonsterDeath { particle: MonsterSoulParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
