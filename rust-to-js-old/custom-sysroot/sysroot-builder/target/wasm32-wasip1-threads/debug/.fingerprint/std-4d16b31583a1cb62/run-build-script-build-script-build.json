@@ -1,0 +1,1 @@
+{"rustc":520395286324978193,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[3778966308548958430,"build_script_build",false,8737787682442096011]],"local":[{"RerunIfChanged":{"output":"wasm32-wasip1-threads/debug/build/std-4d16b31583a1cb62/output","paths":["build.rs"]}}],"rustflags":["-Zalways-encode-mir"],"config":0,"compile_kind":0}
