@@ -71,6 +71,16 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
             self.generate_bb(basic_block);
         }
 
+        println!(
+            "{}();",
+            function
+                .get_first_basic_block()
+                .unwrap()
+                .get_name()
+                .to_str()
+                .unwrap()
+        );
+
         println!("}}");
     }
 
@@ -177,7 +187,19 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
                 InstructionOpcode::ShuffleVector => todo!(),
                 InstructionOpcode::SIToFP => todo!(),
                 InstructionOpcode::SRem => todo!(),
-                InstructionOpcode::Store => todo!(),
+                InstructionOpcode::Store => {
+                    print!("ops_store(");
+
+                    let pointer = instruction.get_operand(1).unwrap().unwrap_left();
+                    self.print_value_name(pointer);
+
+                    print!(", ");
+
+                    let value = instruction.get_operand(0).unwrap().unwrap_left();
+                    self.print_value_name(value);
+
+                    println!(");");
+                }
                 InstructionOpcode::Sub => todo!(),
                 InstructionOpcode::Switch => todo!(),
                 InstructionOpcode::Trunc => {
