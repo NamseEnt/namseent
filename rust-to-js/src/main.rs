@@ -154,7 +154,20 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
                 InstructionOpcode::IntToPtr => todo!(),
                 InstructionOpcode::Invoke => todo!(),
                 InstructionOpcode::LandingPad => todo!(),
-                InstructionOpcode::Load => todo!(),
+                InstructionOpcode::Load => {
+                    self.print_value_name(instruction);
+                    print!(" = ops_load(");
+
+                    let pointer = instruction.get_operand(0).unwrap().unwrap_left();
+                    self.print_value_name(pointer);
+
+                    print!(", ");
+
+                    let size = self.target_data.get_store_size(&instruction.get_type());
+                    print!("{size}");
+
+                    println!(");");
+                }
                 InstructionOpcode::LShr => todo!(),
                 InstructionOpcode::Mul => todo!(),
                 InstructionOpcode::Or => todo!(),
