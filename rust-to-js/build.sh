@@ -1,0 +1,1 @@
+rustc -C panic=abort sample-projects/hello-world.rs --target wasm32-wasip1-threads --emit=llvm-ir
