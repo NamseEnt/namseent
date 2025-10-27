@@ -5,7 +5,8 @@ use inkwell::{
     memory_buffer::MemoryBuffer,
     module::Module,
     targets::{InitializationConfig, Target, TargetData},
-    values::{self, *},
+    types::BasicTypeEnum,
+    values::*,
 };
 use std::{
     collections::{BTreeSet, HashMap},
@@ -310,11 +311,173 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
                         self.as_bytes_string(pointer)
                     );
                 }
+                InstructionOpcode::Fence => {
+                    println!("// fence;");
+                }
+                InstructionOpcode::AtomicCmpXchg => {
+                    // cmpxchg [weak] [volatile] ptr <pointer>, <ty> <cmp>, <ty> <new> [syncscope("<target-scope>")] <success ordering> <failure ordering>[, align <alignment>] ; yields  { ty, i1 }
 
-                InstructionOpcode::Fence => todo!("{instruction:?}"),
-                InstructionOpcode::AtomicCmpXchg => todo!("{instruction:?}"),
-                InstructionOpcode::AtomicRMW => todo!("{instruction:?}"),
-                InstructionOpcode::GetElementPtr => todo!("{instruction:?}"),
+                    let ptr = instruction.get_operand(0).unwrap().unwrap_left();
+                    let cmp = instruction.get_operand(1).unwrap().unwrap_left();
+                    let new = instruction.get_operand(2).unwrap().unwrap_left();
+
+                    println!(
+                        "ops_cmpxchg({}, {}, {});",
+                        self.value_name(ptr),
+                        self.as_bytes_string(cmp),
+                        self.as_bytes_string(new)
+                    );
+                }
+                InstructionOpcode::AtomicRMW => {
+                    let op_str = match instruction.get_atomic_rmw_bin_op().unwrap() {
+                        inkwell::AtomicRMWBinOp::Xchg => "xchg",
+                        inkwell::AtomicRMWBinOp::Add => "add",
+                        inkwell::AtomicRMWBinOp::Sub => "sub",
+                        inkwell::AtomicRMWBinOp::And => "and",
+                        inkwell::AtomicRMWBinOp::Nand => "nand",
+                        inkwell::AtomicRMWBinOp::Or => "or",
+                        inkwell::AtomicRMWBinOp::Xor => "xor",
+                        inkwell::AtomicRMWBinOp::Max => "max",
+                        inkwell::AtomicRMWBinOp::Min => "min",
+                        inkwell::AtomicRMWBinOp::UMax => "umax",
+                        inkwell::AtomicRMWBinOp::UMin => "umin",
+                        inkwell::AtomicRMWBinOp::FAdd => "fadd",
+                        inkwell::AtomicRMWBinOp::FSub => "fsub",
+                        inkwell::AtomicRMWBinOp::FMax => "fmax",
+                        inkwell::AtomicRMWBinOp::FMin => "fmin",
+                    };
+
+                    let ptr = instruction.get_operand(0).unwrap().unwrap_left();
+                    let value = instruction.get_operand(1).unwrap().unwrap_left();
+                    println!(
+                        "ops_atomic_rmw_{op_str}({}, {});",
+                        self.value_name(ptr),
+                        self.as_bytes_string(value)
+                    );
+                }
+                InstructionOpcode::GetElementPtr => {
+                    self.print_lhs_local(instruction);
+
+                    let base_ptr = instruction.get_operand(0).unwrap().unwrap_left();
+                    let base_ptr_name = self.value_name(base_ptr);
+
+                    let mut current_type = instruction.get_gep_source_element_type().unwrap();
+
+                    let mut offset_parts: Vec<String> = Vec::new();
+
+                    let num_operands = instruction.get_num_operands();
+                    for i in 1..num_operands {
+                        let index_value = instruction.get_operand(i).unwrap().unwrap_left();
+
+                        if i == 1 {
+                            let element_size = self.target_data.get_store_size(&current_type);
+
+                            match index_value {
+                                BasicValueEnum::IntValue(int_val) => {
+                                    if int_val.is_constant_int() {
+                                        if let Some(idx) = int_val.get_zero_extended_constant() {
+                                            let offset = idx * element_size;
+                                            if offset > 0 {
+                                                offset_parts.push(format!("{}", offset));
+                                            }
+                                        }
+                                    } else {
+                                        offset_parts.push(format!(
+                                            "toInt({}) * {}",
+                                            self.as_bytes_string(BasicValueEnum::IntValue(int_val)),
+                                            element_size
+                                        ));
+                                    }
+                                }
+                                _ => {
+                                    offset_parts.push(format!(
+                                        "toInt({}) * {}",
+                                        self.as_bytes_string(index_value),
+                                        element_size
+                                    ));
+                                }
+                            }
+                            continue;
+                        }
+
+                        let element_size = match current_type {
+                            BasicTypeEnum::ArrayType(arr_ty) => {
+                                let size =
+                                    self.target_data.get_store_size(&arr_ty.get_element_type());
+                                current_type = arr_ty.get_element_type();
+                                size
+                            }
+                            BasicTypeEnum::StructType(struct_ty) => {
+                                if let BasicValueEnum::IntValue(int_val) = index_value
+                                    && let Some(field_idx) = int_val.get_zero_extended_constant()
+                                {
+                                    let field_idx = field_idx as usize;
+                                    let field_types = struct_ty.get_field_types();
+
+                                    let field_offset: u64 = field_types
+                                        .iter()
+                                        .take(field_idx)
+                                        .map(|field| self.target_data.get_store_size(field))
+                                        .sum();
+
+                                    if field_offset > 0 {
+                                        offset_parts.push(format!("{}", field_offset));
+                                    }
+
+                                    if field_idx < field_types.len() {
+                                        current_type = field_types[field_idx];
+                                        continue;
+                                    } else {
+                                        panic!(
+                                            "Struct field index {} out of bounds (struct has {} fields)",
+                                            field_idx,
+                                            field_types.len()
+                                        );
+                                    }
+                                }
+                                panic!("Struct GEP index must be constant");
+                            }
+                            BasicTypeEnum::PointerType(ptr_ty) => {
+                                self.target_data.get_store_size(&ptr_ty)
+                            }
+                            _ => self.target_data.get_store_size(&current_type),
+                        };
+
+                        match index_value {
+                            BasicValueEnum::IntValue(int_val) => {
+                                if int_val.is_constant_int() {
+                                    if let Some(idx) = int_val.get_zero_extended_constant() {
+                                        let offset = idx * element_size;
+                                        if offset > 0 {
+                                            offset_parts.push(format!("{}", offset));
+                                        }
+                                    }
+                                } else {
+                                    offset_parts.push(format!(
+                                        "toInt({}) * {}",
+                                        self.as_bytes_string(BasicValueEnum::IntValue(int_val)),
+                                        element_size
+                                    ));
+                                }
+                            }
+                            _ => {
+                                offset_parts.push(format!(
+                                    "toInt({}) * {}",
+                                    self.as_bytes_string(index_value),
+                                    element_size
+                                ));
+                            }
+                        }
+                    }
+
+                    let offset_expr = if offset_parts.is_empty() {
+                        "0".to_string()
+                    } else {
+                        offset_parts.join(" + ")
+                    };
+
+                    println!(" = ops_gep({}, {});", base_ptr_name, offset_expr);
+                }
 
                 // Bitwise Binary Operations
                 InstructionOpcode::Shl
@@ -534,7 +697,6 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
                 if !int_value.is_constant_int() {
                     int_value.get_name().to_string()
                 } else {
-                    println!("\n\nint_value {int_value:?}");
                     let str = int_value.print_to_string().to_string();
                     let str = str.split(" ").last().unwrap();
                     let width = int_value.get_type().get_bit_width();
