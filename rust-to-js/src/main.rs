@@ -1,12 +1,17 @@
+use inkwell::{
+    basic_block::BasicBlock,
+    context::Context,
+    llvm_sys::prelude::LLVMValueRef,
+    memory_buffer::MemoryBuffer,
+    module::Module,
+    targets::{InitializationConfig, Target, TargetData},
+    types::BasicType,
+    values::*,
+};
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     ffi::CStr,
     path::Path,
-};
-
-use inkwell::{
-    basic_block::BasicBlock, context::Context, llvm_sys::prelude::LLVMValueRef,
-    memory_buffer::MemoryBuffer, module::Module, values::*,
 };
 
 fn main() {
@@ -18,11 +23,20 @@ fn main() {
 }
 
 fn generate(module: &Module) {
+    Target::initialize_webassembly(&InitializationConfig::default());
+
+    let engine = module
+        .create_jit_execution_engine(inkwell::OptimizationLevel::None)
+        .unwrap();
+
+    let target_data = engine.get_target_data();
+
     for function in module.get_functions() {
         let mut function_generator = FunctionGenerator {
             module,
             next_unnamed_local_name: Default::default(),
             unnamed_local_names: Default::default(),
+            target_data,
         };
         function_generator.generate_function(function.get_name());
     }
@@ -32,6 +46,7 @@ struct FunctionGenerator<'a, 'ctx> {
     module: &'a Module<'ctx>,
     next_unnamed_local_name: usize,
     unnamed_local_names: HashMap<LLVMValueRef, usize>,
+    target_data: &'a TargetData,
 }
 impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
     fn generate_function(&mut self, function_name: &CStr) {
@@ -67,7 +82,12 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
                 InstructionOpcode::Add => todo!(),
                 InstructionOpcode::AddrSpaceCast => todo!(),
                 InstructionOpcode::Alloca => {
-                    todo!()
+                    self.print_value_name(instruction);
+
+                    let size = self
+                        .target_data
+                        .get_store_size(&instruction.get_allocated_type().unwrap());
+                    println!(" = ops_alloca({size});");
                 }
                 InstructionOpcode::And => todo!(),
                 InstructionOpcode::AShr => todo!(),
