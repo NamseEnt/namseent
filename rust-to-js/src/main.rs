@@ -1,8 +1,12 @@
-use std::{collections::BTreeSet, ffi::CStr, path::Path};
+use std::{
+    collections::{BTreeMap, BTreeSet, HashMap},
+    ffi::CStr,
+    path::Path,
+};
 
 use inkwell::{
-    basic_block::BasicBlock, context::Context, memory_buffer::MemoryBuffer, module::Module,
-    values::*,
+    basic_block::BasicBlock, context::Context, llvm_sys::prelude::LLVMValueRef,
+    memory_buffer::MemoryBuffer, module::Module, values::*,
 };
 
 fn main() {
@@ -14,32 +18,20 @@ fn main() {
 }
 
 fn generate(module: &Module) {
-    let mut fn_to_generates: BTreeSet<&CStr> = BTreeSet::new();
-    let mut fn_generated: BTreeSet<&CStr> = BTreeSet::new();
-
-    fn_to_generates.insert(CStr::from_bytes_with_nul(b"main\0").unwrap());
-
-    loop {
-        if fn_to_generates.is_empty() {
-            break;
-        }
-        let function_name = fn_to_generates.pop_first().unwrap();
-        fn_generated.insert(function_name);
+    for function in module.get_functions() {
         let mut function_generator = FunctionGenerator {
-            fn_to_generates: &mut fn_to_generates,
-            fn_generated: &mut fn_generated,
             module,
-            local_unnamed_var_index: 0,
+            next_unnamed_local_name: Default::default(),
+            unnamed_local_names: Default::default(),
         };
-        function_generator.generate_function(function_name);
+        function_generator.generate_function(function.get_name());
     }
 }
 
 struct FunctionGenerator<'a, 'ctx> {
-    fn_to_generates: &'a mut BTreeSet<&'ctx CStr>,
-    fn_generated: &'a mut BTreeSet<&'ctx CStr>,
     module: &'a Module<'ctx>,
-    local_unnamed_var_index: usize,
+    next_unnamed_local_name: usize,
+    unnamed_local_names: HashMap<LLVMValueRef, usize>,
 }
 impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
     fn generate_function(&mut self, function_name: &CStr) {
@@ -54,7 +46,7 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
                 print!(", ");
             }
 
-            self.print_local_name(arg.get_name());
+            self.print_value_name(arg);
         }
         print!(")");
 
@@ -67,21 +59,42 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
         println!("}}");
     }
 
-    fn generate_bb(&mut self, basic_block: BasicBlock<'_>) {
+    fn generate_bb(&mut self, basic_block: BasicBlock<'ctx>) {
         let name = basic_block.get_name().to_str().unwrap();
         println!("function {name}() {{");
         for instruction in basic_block.get_instructions() {
             match instruction.get_opcode() {
                 InstructionOpcode::Add => todo!(),
                 InstructionOpcode::AddrSpaceCast => todo!(),
-                InstructionOpcode::Alloca => todo!(),
+                InstructionOpcode::Alloca => {
+                    todo!()
+                }
                 InstructionOpcode::And => todo!(),
                 InstructionOpcode::AShr => todo!(),
                 InstructionOpcode::AtomicCmpXchg => todo!(),
                 InstructionOpcode::AtomicRMW => todo!(),
                 InstructionOpcode::BitCast => todo!(),
                 InstructionOpcode::Br => todo!(),
-                InstructionOpcode::Call => todo!(),
+                InstructionOpcode::Call => {
+                    self.print_value_name(instruction);
+                    print!(" = ops_call(");
+                    let num_operands = instruction.get_num_operands();
+                    self.print_value_name(
+                        instruction
+                            .get_operand(num_operands - 1)
+                            .unwrap()
+                            .unwrap_left(),
+                    );
+                    for operand in instruction
+                        .get_operands()
+                        .take(num_operands as usize - 1)
+                        .map(|x| x.unwrap().unwrap_left())
+                    {
+                        print!(", ");
+                        self.print_value_name(operand);
+                    }
+                    println!(");")
+                }
                 InstructionOpcode::CallBr => todo!(),
                 InstructionOpcode::CatchPad => todo!(),
                 InstructionOpcode::CatchRet => todo!(),
@@ -118,17 +131,27 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
                 InstructionOpcode::Phi => todo!(),
                 InstructionOpcode::PtrToInt => todo!(),
                 InstructionOpcode::Resume => todo!(),
-                InstructionOpcode::Return => todo!(),
+                InstructionOpcode::Return => {
+                    print!("return ");
+                    let Some(operand) = instruction.get_operand(0) else {
+                        println!(";");
+                        return;
+                    };
+                    self.print_value_name(operand.unwrap_left());
+                    println!(";");
+                }
                 InstructionOpcode::SDiv => todo!(),
                 InstructionOpcode::Select => todo!(),
                 InstructionOpcode::SExt => {
-                    println!("instruction: {instruction:?}");
+                    self.print_value_name(instruction);
+                    print!(" = ops_sext(");
+
                     let left = instruction.get_operand(0).unwrap().unwrap_left();
-                    println!("left: {left:?}");
+                    self.print_value_name(left);
+
                     let width = left.get_type().into_int_type().get_bit_width();
                     let dest_width = instruction.get_type().into_int_type().get_bit_width();
-                    self.print_local_name(instruction.get_name().unwrap());
-                    let rhs = println!("ops_sext({left}, {width}, {dest_width});");
+                    println!(", {width}, {dest_width});");
                 }
                 InstructionOpcode::Shl => todo!(),
                 InstructionOpcode::ShuffleVector => todo!(),
@@ -137,7 +160,17 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
                 InstructionOpcode::Store => todo!(),
                 InstructionOpcode::Sub => todo!(),
                 InstructionOpcode::Switch => todo!(),
-                InstructionOpcode::Trunc => todo!(),
+                InstructionOpcode::Trunc => {
+                    self.print_value_name(instruction);
+                    print!(" = ops_trunc(");
+
+                    let left = instruction.get_operand(0).unwrap().unwrap_left();
+                    self.print_value_name(left);
+
+                    let width = left.get_type().into_int_type().get_bit_width();
+                    let dest_width = instruction.get_type().into_int_type().get_bit_width();
+                    println!(", {width}, {dest_width});");
+                }
                 InstructionOpcode::UDiv => todo!(),
                 InstructionOpcode::UIToFP => todo!(),
                 InstructionOpcode::Unreachable => todo!(),
@@ -151,12 +184,61 @@ impl<'a, 'ctx> FunctionGenerator<'a, 'ctx> {
         }
         println!("}}");
     }
-    fn print_local_name(&mut self, name: &CStr) {
-        if name.is_empty() {
-            print!("l{}", self.local_unnamed_var_index);
-            self.local_unnamed_var_index += 1;
-        } else {
-            print!("{}", name.to_str().unwrap());
+    fn print_value_name(&mut self, value: impl Into<AnyValueEnum<'ctx>>) {
+        let value = value.into();
+        let mut with_name = |name: &CStr| {
+            if !name.is_empty() {
+                print!("{}", name.to_str().unwrap());
+            } else if let Some(index) = self.unnamed_local_names.get(&value.as_value_ref()) {
+                print!("l{index}");
+            } else {
+                let name = self.next_unnamed_local_name;
+                self.next_unnamed_local_name += 1;
+                self.unnamed_local_names.insert(value.as_value_ref(), name);
+                print!("l{name}");
+            };
+        };
+        match value {
+            AnyValueEnum::ArrayValue(array_value) => todo!(),
+            AnyValueEnum::IntValue(int_value) => {
+                if !int_value.is_constant_int() {
+                    with_name(int_value.get_name());
+                    return;
+                }
+                let value = int_value.get_zero_extended_constant().unwrap();
+                let width = int_value.get_type().get_bit_width();
+                match width {
+                    1 => print!("{}", if value == 0 { "false" } else { "true" }),
+                    8 => print!(
+                        "{}",
+                        i8::from_ne_bytes(value.to_ne_bytes()[0..1].try_into().unwrap())
+                    ),
+                    16 => print!(
+                        "{}",
+                        i16::from_ne_bytes(value.to_ne_bytes()[0..2].try_into().unwrap())
+                    ),
+                    32 => print!(
+                        "{}",
+                        i32::from_ne_bytes(value.to_ne_bytes()[0..4].try_into().unwrap())
+                    ),
+                    64 => print!(
+                        "{}",
+                        i64::from_ne_bytes(value.to_ne_bytes()[0..8].try_into().unwrap())
+                    ),
+                    _ => todo!(),
+                }
+            }
+            AnyValueEnum::FloatValue(float_value) => with_name(float_value.get_name()),
+            AnyValueEnum::PhiValue(phi_value) => todo!(),
+            AnyValueEnum::FunctionValue(function_value) => with_name(function_value.get_name()),
+            AnyValueEnum::PointerValue(pointer_value) => with_name(pointer_value.get_name()),
+            AnyValueEnum::StructValue(struct_value) => todo!(),
+            AnyValueEnum::VectorValue(vector_value) => todo!(),
+            AnyValueEnum::ScalableVectorValue(scalable_vector_value) => todo!(),
+            AnyValueEnum::InstructionValue(instruction_value) => {
+                with_name(instruction_value.get_name().unwrap())
+            }
+            AnyValueEnum::MetadataValue(metadata_value) => todo!(),
         };
     }
 }
