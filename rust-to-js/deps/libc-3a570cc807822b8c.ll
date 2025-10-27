@@ -1,0 +1,42 @@
+; ModuleID = 'libc.13c8d6cc2527bd28-cgu.0'
+source_filename = "libc.13c8d6cc2527bd28-cgu.0"
+target datalayout = "e-m:e-p:32:32-p10:8:8-p20:8:8-i64:64-i128:128-n32:64-S128-ni:1:10:20"
+target triple = "wasm32-unknown-wasi"
+
+@_ZN4libc4wasi14CLOCK_REALTIME17hf705d03d13d095c5E = dso_local constant ptr @_CLOCK_REALTIME, align 4, !dbg !0
+@_ZN4libc4wasi15CLOCK_MONOTONIC17hc1fffc884c3e92bfE = dso_local constant ptr @_CLOCK_MONOTONIC, align 4, !dbg !12
+@_ZN4libc4wasi23CLOCK_THREAD_CPUTIME_ID17ha39670268a40c1b4E = dso_local constant ptr @_CLOCK_THREAD_CPUTIME_ID, align 4, !dbg !14
+@_ZN4libc4wasi24CLOCK_PROCESS_CPUTIME_ID17h696c4be99edf9c4aE = dso_local constant ptr @_CLOCK_PROCESS_CPUTIME_ID, align 4, !dbg !16
+@_CLOCK_REALTIME = external dso_local global i8
+@_CLOCK_MONOTONIC = external dso_local global i8
+@_CLOCK_THREAD_CPUTIME_ID = external dso_local global i8
+@_CLOCK_PROCESS_CPUTIME_ID = external dso_local global i8
+
+!llvm.ident = !{!18}
+!llvm.dbg.cu = !{!19}
+!llvm.module.flags = !{!22, !23}
+
+!0 = !DIGlobalVariableExpression(var: !1, expr: !DIExpression())
+!1 = distinct !DIGlobalVariable(name: "CLOCK_REALTIME", linkageName: "_ZN4libc4wasi14CLOCK_REALTIME17hf705d03d13d095c5E", scope: !2, file: !4, line: 371, type: !5, isLocal: false, isDefinition: true, align: 32)
+!2 = !DINamespace(name: "wasi", scope: !3)
+!3 = !DINamespace(name: "libc", scope: null)
+!4 = !DIFile(filename: "src/wasi/mod.rs", directory: "/Users/namse/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.177", checksumkind: CSK_MD5, checksum: "8cec1e1afc6a51454f68492c008a7473")
+!5 = !DICompositeType(tag: DW_TAG_structure_type, name: "clockid_t", scope: !2, file: !6, size: 32, align: 32, flags: DIFlagPublic, elements: !7, templateParams: !11, identifier: "8c6fb50e0ccdd7bb29456349f8f656d0")
+!6 = !DIFile(filename: "<unknown>", directory: "")
+!7 = !{!8}
+!8 = !DIDerivedType(tag: DW_TAG_member, name: "__0", scope: !5, file: !6, baseType: !9, size: 32, align: 32, flags: DIFlagPrivate)
+!9 = !DIDerivedType(tag: DW_TAG_pointer_type, name: "*const u8", baseType: !10, size: 32, align: 32, dwarfAddressSpace: 0)
+!10 = !DIBasicType(name: "u8", size: 8, encoding: DW_ATE_unsigned)
+!11 = !{}
+!12 = !DIGlobalVariableExpression(var: !13, expr: !DIExpression())
+!13 = distinct !DIGlobalVariable(name: "CLOCK_MONOTONIC", linkageName: "_ZN4libc4wasi15CLOCK_MONOTONIC17hc1fffc884c3e92bfE", scope: !2, file: !4, line: 366, type: !5, isLocal: false, isDefinition: true, align: 32)
+!14 = !DIGlobalVariableExpression(var: !15, expr: !DIExpression())
+!15 = distinct !DIGlobalVariable(name: "CLOCK_THREAD_CPUTIME_ID", linkageName: "_ZN4libc4wasi23CLOCK_THREAD_CPUTIME_ID17ha39670268a40c1b4E", scope: !2, file: !4, line: 373, type: !5, isLocal: false, isDefinition: true, align: 32)
+!16 = !DIGlobalVariableExpression(var: !17, expr: !DIExpression())
+!17 = distinct !DIGlobalVariable(name: "CLOCK_PROCESS_CPUTIME_ID", linkageName: "_ZN4libc4wasi24CLOCK_PROCESS_CPUTIME_ID17h696c4be99edf9c4aE", scope: !2, file: !4, line: 368, type: !5, isLocal: false, isDefinition: true, align: 32)
+!18 = !{!"rustc version 1.92.0-nightly (6380899f3 2025-10-18)"}
+!19 = distinct !DICompileUnit(language: DW_LANG_Rust, file: !20, producer: "clang LLVM (rustc version 1.92.0-nightly (6380899f3 2025-10-18))", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug, globals: !21, splitDebugInlining: false, nameTableKind: None)
+!20 = !DIFile(filename: "/Users/namse/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.177/src/lib.rs/@/libc.13c8d6cc2527bd28-cgu.0", directory: "/Users/namse/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.177")
+!21 = !{!0, !12, !14, !16}
+!22 = !{i32 7, !"Dwarf Version", i32 4}
+!23 = !{i32 2, !"Debug Info Version", i32 3}
