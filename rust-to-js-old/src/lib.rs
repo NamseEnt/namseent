@@ -38,9 +38,6 @@ static START_TIME: OnceLock<Instant> = OnceLock::new();
 
 impl Callbacks for JsTranspileCallback {
     fn after_analysis<'tcx>(&mut self, _compiler: &Compiler, tcx: TyCtxt<'tcx>) -> Compilation {
-        let elapsed = START_TIME.get().unwrap().elapsed();
-        println!("after_analysis: {}", elapsed.as_millis());
-        todo!();
         let mut fn_names = Default::default();
         let mut todo_instances: HashSet<Instance<'tcx>> = Default::default();
         let mut handled_instances: HashSet<Instance<'tcx>> = Default::default();
@@ -78,6 +75,10 @@ impl Callbacks for JsTranspileCallback {
             todo_instances.remove(&instance);
             handled_instances.insert(instance);
 
+            if !tcx.is_mir_available(instance.def_id()) {
+                println!("instance is not available: {instance:?}");
+                continue;
+            }
             if is_extern(tcx, instance.def_id()) {
                 println!("instance is extern: {instance:?}");
                 continue;
@@ -142,13 +143,17 @@ impl JsTranspileCallback {
                 param_env: tcx.param_env(instance.def_id()),
                 typing_mode: rustc_middle::ty::TypingMode::PostAnalysis,
             },
+            body: &body,
+            indent_size: 0,
+            is_new_line: true,
         };
-        visitor.visit_body(&body);
+        visitor.run();
 
         let promoteds = tcx.promoted_mir(instance.def_id());
         for (i, promoted) in promoteds.iter().enumerate() {
             visitor.promoted = Some(i);
-            visitor.visit_body(promoted);
+            visitor.body = promoted;
+            visitor.run();
         }
     }
 }
@@ -169,40 +174,19 @@ struct MyVisitor<'a, 'tcx> {
     todo_instances: &'a mut HashSet<Instance<'tcx>>,
     handled_instances: &'a mut HashSet<Instance<'tcx>>,
     typing_env: rustc_middle::ty::TypingEnv<'tcx>,
+    body: &'a Body<'tcx>,
+    indent_size: i32,
+    is_new_line: bool,
 }
 
 impl<'tcx> Visitor<'tcx> for MyVisitor<'_, 'tcx> {
-    fn visit_body(&mut self, body: &Body<'tcx>) {
-        let fn_name = &self.fn_name;
-        println!("visit_body: {fn_name}");
-        match &self.promoted {
-            Some(promoted) => {
-                self.out(format!(
-                    "const {fn_name}__promoted_{promoted} = (() => {{\n"
-                ));
-            }
-            None => {
-                self.out(format!("function {fn_name}() {{\n"));
-            }
-        }
-
-        self.on_body_local_decls(body);
-
-        self.super_body(body);
-        self.out("bb0();\nreturn _0;\n");
-
-        if self.promoted.is_some() {
-            self.out("})();\n");
-        } else {
-            self.out("}\n");
-        }
-    }
-
     fn visit_basic_block_data(&mut self, block: BasicBlock, data: &BasicBlockData<'tcx>) {
         println!("visit_basic_block_data: {block:?}, {data:?}");
-        self.out(format!("function bb{}() {{\n", block.as_u32()));
+        self.outln(format!("function bb{}() {{", block.as_u32()));
+        self.indent(4);
         self.super_basic_block_data(block, data);
-        self.out("}\n");
+        self.indent(-4);
+        self.outln("}");
     }
 
     fn visit_statement(&mut self, statement: &Statement<'tcx>, location: Location) {
@@ -218,8 +202,67 @@ impl<'tcx> Visitor<'tcx> for MyVisitor<'_, 'tcx> {
 }
 
 impl<'tcx> MyVisitor<'_, 'tcx> {
-    fn out(&self, str: impl ToString) {
-        self.tx.send(str.to_string()).unwrap();
+    fn run(&mut self) {
+        let fn_name = &self.fn_name;
+        println!("visit_body: {fn_name}");
+        match &self.promoted {
+            Some(promoted) => {
+                self.outln(format!("const {fn_name}__promoted_{promoted} = (() => {{"));
+            }
+            None => {
+                self.outln(format!("function {fn_name}() {{"));
+            }
+        }
+
+        self.indent(4);
+
+        let stack_local_size_sum = self.on_body_local_decls(self.body);
+
+        self.super_body(self.body);
+        self.outln("bb0();");
+        self.outln(format!("stackDealloc({stack_local_size_sum});"));
+        self.outln("return _0;");
+
+        self.indent(-4);
+
+        if self.promoted.is_some() {
+            self.outln("})();");
+        } else {
+            self.outln("}");
+        }
+    }
+    fn out(&mut self, str: impl ToString) {
+        self.tx
+            .send(format!(
+                "{}{}",
+                " ".repeat(if self.is_new_line {
+                    self.indent_size
+                } else {
+                    0
+                } as usize),
+                str.to_string()
+            ))
+            .unwrap();
+
+        self.is_new_line = false;
+    }
+    fn outln(&mut self, str: impl ToString) {
+        self.tx
+            .send(format!(
+                "{}{}\n",
+                " ".repeat(if self.is_new_line {
+                    self.indent_size
+                } else {
+                    0
+                } as usize),
+                str.to_string()
+            ))
+            .unwrap();
+
+        self.is_new_line = true;
+    }
+    fn indent(&mut self, size: i32) {
+        self.indent_size += size;
     }
     fn try_resolve(
         &self,
@@ -281,7 +324,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
             } => todo!(),
         }
 
-        self.out(";\n");
+        self.outln(";");
     }
 
     fn on_rvalue(&mut self, rvalue: &Rvalue<'tcx>) {
@@ -296,15 +339,13 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                 self.out(")");
             }
             Rvalue::Ref(_region, _borrow_kind, place) => {
-                self.out("_ref(");
                 self.on_place(place);
-                self.out(")");
+                self.out(".ptr");
             }
             Rvalue::ThreadLocalRef(_def_id) => todo!("Rvalue::ThreadLocalRef"),
             Rvalue::RawPtr(_raw_ptr_kind, _place) => {
-                self.out("_raw_ptr(");
                 self.on_place(_place);
-                self.out(")");
+                self.out(".ptr");
             }
             Rvalue::Cast(_cast_kind, operand, _ty) => {
                 self.on_operand(operand);
@@ -339,13 +380,13 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                 self.out(")");
             }
             Rvalue::NullaryOp(null_op, ty) => match null_op {
-                NullOp::SizeOf | NullOp::AlignOf => {
-                    if let Some(size) = self.sizeof(ty) {
-                        self.out(size);
-                    } else {
-                        self.out(format!("sizeof({ty})"));
-                    }
-                }
+                // NullOp::SizeOf | NullOp::AlignOf => {
+                //     if let Some(size) = self.sizeof(ty) {
+                //         self.out(size);
+                //     } else {
+                //         self.out(format!("sizeof({ty})"));
+                //     }
+                // }
                 NullOp::OffsetOf(_raw_list) => todo!(),
                 NullOp::UbChecks => self.out("_ub_checks()"),
                 NullOp::ContractChecks => todo!(),
@@ -441,6 +482,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                 }
             }
             Rvalue::ShallowInitBox(operand, _ty) => {
+                println!("Rvalue::ShallowInitBox, operand: {operand:?}");
                 self.on_operand(operand);
             }
             Rvalue::CopyForDeref(_place) => todo!("Rvalue::CopyForDeref"),
@@ -657,6 +699,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                     Ref(_, _, _mutability) => todo!("Ref"),
                     FnDef(id, args) => {
                         let fn_name = self.on_function(id, args);
+                        println!("fn_name: {fn_name}");
                         self.out(fn_name);
                     }
                     FnPtr(_binder, _fn_header) => todo!("FnPtr"),
@@ -723,42 +766,57 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
     fn on_terminator(&mut self, terminator: &Terminator<'tcx>) {
         match &terminator.kind {
             TerminatorKind::Goto { target } => {
-                self.out(format!("return bb{}();\n", target.as_u32()));
+                self.outln(format!("bb{}();", target.as_u32()));
             }
             TerminatorKind::SwitchInt { discr, targets } => {
                 self.out("switch (switchInt(");
                 self.on_operand(discr);
-                self.out(")) {\n");
+                self.outln(")) {");
                 println!("targets: {targets:?}");
                 for (i, value) in targets.iter() {
-                    self.out(format!("case {i}:"));
-                    self.out(format!("return bb{}();\n", value.as_u32()));
+                    self.outln(format!("case {i}: bb{}();", value.as_u32()));
                 }
-                self.out(format!(
-                    "default: return bb{}();\n",
-                    targets.otherwise().as_u32()
-                ));
-                self.out("}\n");
+                self.outln(format!("default: bb{}();", targets.otherwise().as_u32()));
+                self.outln("}");
             }
             TerminatorKind::UnwindResume => {
-                self.out("// UnwindResume\n");
+                self.outln("// UnwindResume");
             }
             TerminatorKind::UnwindTerminate(_unwind_terminate_reason) => todo!(),
             TerminatorKind::Return => {
-                self.out("return;\n");
+                self.outln("// Return");
             }
             TerminatorKind::Unreachable => {
-                self.out("throw new Error('unreachable');\n");
+                self.outln("throw new Error('unreachable');");
             }
             TerminatorKind::Drop {
-                place: _,
+                place,
                 target,
-                unwind: _,
-                replace: _,
-                drop: _,
-                async_fut: _,
+                unwind,
+                replace,
+                drop,
+                async_fut,
             } => {
-                self.out(format!("return bb{}();\n", target.as_u32()));
+                println!("place: {:?}", place);
+                println!("target: {:?}", target);
+                println!("unwind: {:?}", unwind);
+                println!("replace: {:?}", replace);
+                println!("drop: {:?}", drop);
+                println!("async_fut: {:?}", async_fut);
+
+                let a = self.body.local_decls[place.local].ty.ty_adt_def().unwrap();
+
+                let drop_trait_def_id = self.tcx.lang_items().drop_trait().unwrap();
+                self.tcx.for_each_relevant_impl(
+                    drop_trait_def_id,
+                    self.body.local_decls[place.local].ty,
+                    |id| {
+                        println!("id: {id:?}");
+                    },
+                );
+
+                self.outln("// Drop");
+                self.outln(format!("bb{}();", target.as_u32()));
             }
             TerminatorKind::Call {
                 func,
@@ -769,8 +827,9 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                 call_source: _,
                 fn_span: _,
             } => {
+                self.out("assign(");
                 self.on_place(destination);
-                self.out("=");
+                self.out(", ");
                 self.on_operand(func);
                 self.out("(");
                 for (i, arg) in args.iter().enumerate() {
@@ -779,10 +838,10 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                         self.out(", ");
                     }
                 }
-                self.out(");\n");
+                self.outln("));");
 
                 if let Some(target) = target {
-                    self.out(format!("return bb{}();\n", target.as_u32()));
+                    self.outln(format!("bb{}();", target.as_u32()));
                 }
             }
             TerminatorKind::TailCall {
@@ -799,13 +858,13 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
             } => {
                 self.out("if (_eq(");
                 self.on_operand(cond);
-                self.out(format!(", {})) {{\n", expected));
-                self.out(format!("return bb{}();\n", target.as_u32()));
-                self.out("} else {\n");
+                self.outln(format!(", {})) {{", expected));
+                self.outln(format!("return bb{}();", target.as_u32()));
+                self.outln("} else {");
                 self.out("throw new Error('assert failed: ");
                 self.out(format!("{:?}", msg).escape_debug().to_string());
-                self.out("');\n");
-                self.out("}\n");
+                self.outln("');");
+                self.outln("}");
             }
             TerminatorKind::Yield {
                 value: _,
@@ -900,8 +959,8 @@ pub fn run(path: &str) -> Receiver<String> {
             "ignored".to_string(),
             path,
             format!("--target={target}",),
-            "--sysroot".to_string(),
-            sysroot.to_string(),
+            // "--sysroot".to_string(),
+            // sysroot.to_string(),
             "-Zunstable-options".to_string(),
             "-Cpanic=immediate-abort".to_string(),
         ];

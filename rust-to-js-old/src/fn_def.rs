@@ -29,7 +29,7 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
             return "_fn_call".to_string();
         }
 
-        let fn_name = def_normalized_name(self.tcx, id, args);
+        let fn_name = def_normalized_name(self.tcx, &instance.def_id(), instance.args);
 
         if !is_known_fn(&fn_name)
             && !self.handled_instances.contains(&instance)

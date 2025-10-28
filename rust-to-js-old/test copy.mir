@@ -1,0 +1,179 @@
+fn <impl at ./test.rs:12:1: 12:23>::print(_1: &StructA) -> () {
+    let mut _0: (); const _0 = stackAlloc(0);
+                    const _1 = stackAlloc(sizeof structA);
+    let _2: ();     const _2 = stackAlloc(0);
+    let mut _3: std::fmt::Arguments<'_>; // const _3 = ..;
+    let _4: &[&str; 1]; // const _4 = ..; // stackAlloc => { size: number, ptr: number }
+
+    bb0: {
+        _4 = const <StructA as First>::print::promoted[0];  
+                                                            // assign(_4, symbol of promoted(const <StructA as First>::print::promoted[0]));
+        _3 = core::fmt::rt::<impl Arguments<'_>>::new_const::<1>(copy _4) -> [return: bb1, unwind continue];
+                                                            // assign(_3, symbol of Arguments<'_>::new_const::<1>(_4));
+                                                            // return bb1();
+    }
+
+    bb1: {
+        _2 = _print(move _3) -> [return: bb2, unwind continue];
+                                                            // assign(_2, symbol of _print(move _3));
+                                                            // return bb2();
+    }
+
+    bb2: {
+        return;
+                                                            // stackDealloc(size of this function stack frame)
+                                                            // return _0;
+    }
+}
+
+// const symbol of `const "StructA\n"` = constAllocStr("StructA\n");
+
+const <impl at ./test.rs:12:1: 12:23>::print::promoted[0]: &[&str; 1] = { // const symbol of promoted = (() => {
+    let mut _0: &[&str; 1]; // const _0 = stackAlloc(4);
+    let mut _1: [&str; 1]; // const _1 = stackAlloc(sizeof [&str; 1]);
+
+    bb0: {
+        _1 = [const "StructA\n"]; 
+            // assign(_1, array([symbol of `const "StructA\n"`]) ) // TODO: Array를 어떻게 할 것인지?
+        _0 = &_1; // assign(_0, _1.ptr);
+        return; // return _0;
+    }
+}       // })();
+
+alloc1 (size: 8, align: 1) {
+    53 74 72 75 63 74 41 0a                         │ StructA.
+}
+
+fn <impl at ./test.rs:17:1: 17:29>::print(_1: &StructA, _2: i32) -> () {
+    let mut _0: ();
+    let _3: ();
+    let mut _4: std::fmt::Arguments<'_>;
+    let _5: (&i32,);
+    let mut _6: &i32;
+    let mut _8: core::fmt::rt::Argument<'_>;
+    let _9: &[&str; 2];
+    let _10: &[core::fmt::rt::Argument<'_>; 1];
+    let mut _11: &i32;
+    scope 1 {
+        debug args => _5;
+        let _7: [core::fmt::rt::Argument<'_>; 1];
+        scope 2 {
+            debug args => _7;
+        }
+    }
+
+    bb0: {
+        _6 = &_2;
+        _5 = (move _6,);
+        _11 = copy (_5.0: &i32);
+        _8 = core::fmt::rt::Argument::<'_>::new_display::<i32>(copy _11) -> [return: bb1, unwind continue];
+    }
+
+    bb1: {
+        _7 = [move _8];
+        _9 = const <StructA as Second<i32>>::print::promoted[0];
+        _10 = &_7;
+        _4 = core::fmt::rt::<impl Arguments<'_>>::new_v1::<2, 1>(copy _9, copy _10) -> [return: bb2, unwind continue];
+    }
+
+    bb2: {
+        _3 = _print(move _4) -> [return: bb3, unwind continue];
+    }
+
+    bb3: {
+        return;
+    }
+}
+
+const <impl at ./test.rs:17:1: 17:29>::print::promoted[0]: &[&str; 2] = {
+    let mut _0: &[&str; 2];
+    let mut _1: [&str; 2];
+
+    bb0: {
+        _1 = [const "StructA: ", const "\n"];
+        _0 = &_1;
+        return;
+    }
+}
+
+alloc5 (size: 1, align: 1) {
+    0a                                              │ .
+}
+
+alloc4 (size: 9, align: 1) {
+    53 74 72 75 63 74 41 3a 20                      │ StructA: 
+}
+
+fn <impl at ./test.rs:22:1: 22:20>::print(_1: &T) -> () {
+    debug self => _1;
+    let mut _0: ();
+    let _2: ();
+    let mut _3: std::fmt::Arguments<'_>;
+    let _4: &[&str; 1];
+
+    bb0: {
+        _4 = const <T as Thrid>::print::promoted[0];
+        _3 = core::fmt::rt::<impl Arguments<'_>>::new_const::<1>(copy _4) -> [return: bb1, unwind continue];
+    }
+
+    bb1: {
+        _2 = _print(move _3) -> [return: bb2, unwind continue];
+    }
+
+    bb2: {
+        return;
+    }
+}
+
+const <impl at ./test.rs:22:1: 22:20>::print::promoted[0]: &[&str; 1] = {
+    let mut _0: &[&str; 1];
+    let mut _1: [&str; 1];
+
+    bb0: {
+        _1 = [const "Thrid\n"];
+        _0 = &_1;
+        return;
+    }
+}
+
+alloc8 (size: 6, align: 1) {
+    54 68 72 69 64 0a                               │ Thrid.
+}
+
+fn main() -> () {
+    let mut _0: ();
+    let _1: StructA;
+    let _2: ();
+    let _3: &StructA;
+    let _4: ();
+    let _5: &StructA;
+    let _6: ();
+    let _7: &StructA;
+    scope 1 {
+        debug a => const StructA;
+        let _8: StructB;
+        scope 2 {
+            debug b => _8;
+        }
+    }
+
+    bb0: {
+        _3 = &_1;
+        _2 = <StructA as First>::print(copy _3) -> [return: bb1, unwind continue];
+    }
+
+    bb1: {
+        _5 = &_1;
+        _4 = <StructA as Second<i32>>::print(copy _5, const 1_i32) -> [return: bb2, unwind continue];
+    }
+
+    bb2: {
+        _7 = &_1;
+        _6 = <StructA as Thrid>::print(copy _7) -> [return: bb3, unwind continue];
+    }
+
+    bb3: {
+        _8 = StructB { q: const 1_i32 };
+        return;
+    }
+}

@@ -1,37 +1,15 @@
 use crate::*;
 
 impl<'tcx> MyVisitor<'_, 'tcx> {
-    pub fn on_body_local_decls(&mut self, body: &Body<'tcx>) {
+    pub fn on_body_local_decls(&mut self, body: &Body<'tcx>) -> usize {
+        println!("arg_count: {}", body.arg_count);
+        let mut stack_local_size_sum = 0;
         for (i, local_decl) in body.local_decls.iter().enumerate() {
-            self.out(format!("const _{i} = ",));
-
             println!("local_decl.ty: {:?}", local_decl.ty);
-
-            if let Closure(id, args) = local_decl.ty.kind()
-                && args[2].as_type().unwrap().is_unit()
-            {
-                self.out("new ClosureVar(");
-                let name = self.on_function(id, args);
-                self.out(name);
-                self.out(");\n");
-            } else {
-                self.out(match local_decl.ty.ref_mutability() {
-                    None => "new NoRefVar(",
-                    Some(mutability) => match mutability {
-                        Mutability::Not => "new RefVar(",
-                        Mutability::Mut => "new MutRefVar(",
-                    },
-                });
-
-                self.out(format!(
-                    "sizeof({}));\n",
-                    if let Some(size) = self.sizeof(&local_decl.ty) {
-                        size.to_string()
-                    } else {
-                        local_decl.ty.to_string()
-                    }
-                ));
-            }
+            let size = self.sizeof(&local_decl.ty).unwrap();
+            self.outln(format!("const _{i} = stackAlloc({size});"));
+            stack_local_size_sum += size;
         }
+        stack_local_size_sum
     }
 }

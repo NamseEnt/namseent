@@ -1,24 +1,64 @@
-fn main() {
-    let a = || {
-        println!("hello");
-    };
-    a();
-
-    let mut b = 5;
-    let mut captures = || {
-        b += 1;
-        println!("{}", b);
-    };
-    captures();
-
-    let b = 5;
-    let move_captures = move || {
-        let mut b = b;
-        b += 1;
-        println!("{}", b);
-    };
-    move_captures();
+trait First {
+    fn print(&self);
 }
+struct StructA;
+impl First for StructA {
+    fn print(&self) {
+        println!("StructA");
+    }
+}
+
+fn main() {
+    let a = StructA;
+    First::print(&a);
+}
+
+// struct HaveDrop {
+//     i: i32,
+// }
+// impl Drop for HaveDrop {
+//     fn drop(&mut self) {
+//         println!("drop {}", self.i);
+//     }
+// }
+
+// struct InnerDrop {
+//     i: HaveDrop,
+// }
+
+// fn main() {
+//     let a = || {
+//         println!("hello");
+//     };
+//     a();
+
+//     let mut b = 5;
+//     let mut captures = || {
+//         b += 1;
+//         println!("{}", b);
+//     };
+//     captures();
+
+//     let b = 5;
+//     let move_captures = move || {
+//         let mut b = b;
+//         b += 1;
+//         println!("{}", b);
+//     };
+//     move_captures();
+
+//     {
+//         let c = HaveDrop { i: 1 };
+//     }
+//     println!("after drop");
+
+//     {
+//         let c = InnerDrop {
+//             i: HaveDrop { i: 1 },
+//         };
+//     }
+//     println!("after inner drop");
+// }
 
 // mod foo;
 
