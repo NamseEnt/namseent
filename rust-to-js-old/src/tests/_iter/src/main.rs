@@ -8,9 +8,21 @@ impl First for StructA {
     }
 }
 
+trait FirstB {
+    fn print(&self);
+}
+impl FirstB for StructA {
+    fn print(&self) {
+        println!("StructA");
+    }
+}
+
 fn main() {
+    let b = 4;
+    let a = &[b, 2, 3];
     let a = StructA;
     First::print(&a);
+    FirstB::print(&a);
 }
 
 // struct HaveDrop {
