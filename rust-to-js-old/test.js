@@ -58,7 +58,7 @@ function main() {
     const _2 = stackAlloc(0);
     const _3 = stackAlloc(4);
     function bb0() {
-        _3.assign(_1.ptr);
+        assign(_3, _1.ptr);
         assign(_2, __StructA__as__First____print(_3));
         bb1();
     }
@@ -69,14 +69,15 @@ function main() {
     stackDealloc(4);
     return _0;
 }
-function __StructA__as__First____print() {
+function __StructA__as__First____print(arg0) {
     const _0 = stackAlloc(0);
     const _1 = stackAlloc(4);
+    assign(_1, arg0);
     const _2 = stackAlloc(0);
     const _3 = stackAlloc(24);
     const _4 = stackAlloc(4);
     function bb0() {
-        _4.assign(__StructA__as__First____print__promoted_0);
+        assign(_4, __StructA__as__First____print__promoted_0);
         assign(_3, core__fmt__rt____impl__std__fmt__Arguments____a______new_const1_usize(_4));
         bb1();
     }
@@ -95,23 +96,24 @@ const __StructA__as__First____print__promoted_0 = (() => {
     const _0 = stackAlloc(4);
     const _1 = stackAlloc(8);
     function bb0() {
-        _1.assign(new Array([new Uint8Array([83, 116, 114, 117, 99, 116, 65, 10])]));
-        _0.assign(_1.ptr);
+        assign(_1, new Array([new Uint8Array([83, 116, 114, 117, 99, 116, 65, 10])]));
+        assign(_0, _1.ptr);
         // Return
     }
     bb0();
     stackDealloc(12);
     return _0;
 })();
-function core__fmt__rt____impl__std__fmt__Arguments____a______new_const1_usize() {
+function core__fmt__rt____impl__std__fmt__Arguments____a______new_const1_usize(arg0) {
     const _0 = stackAlloc(24);
     const _1 = stackAlloc(4);
+    assign(_1, arg0);
     const _2 = stackAlloc(8);
     const _3 = stackAlloc(8);
     function bb0() {
-        _2.assign(_1);
-        _3.assign(core__fmt__rt____impl__std__fmt__Arguments____a______new_const1_usize__promoted_0);
-        _0.assign([_2, _indirect(4, 0), _3]);
+        assign(_2, _1);
+        assign(_3, core__fmt__rt____impl__std__fmt__Arguments____a______new_const1_usize__promoted_0);
+        assign(_0, [_2, _indirect(4, 0), _3]);
         // Return
     }
     bb0();
@@ -122,8 +124,8 @@ const core__fmt__rt____impl__std__fmt__Arguments____a______new_const1_usize__pro
     const _0 = stackAlloc(4);
     const _1 = stackAlloc(0);
     function bb0() {
-        _1.assign(new Array([]));
-        _0.assign(_1.ptr);
+        assign(_1, new Array([]));
+        assign(_0, _1.ptr);
         // Return
     }
     bb0();

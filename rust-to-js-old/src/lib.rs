@@ -210,7 +210,11 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
                 self.outln(format!("const {fn_name}__promoted_{promoted} = (() => {{"));
             }
             None => {
-                self.outln(format!("function {fn_name}() {{"));
+                let args = (0..self.body.arg_count)
+                    .map(|i| format!("arg{i}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                self.outln(format!("function {fn_name}({args}) {{"));
             }
         }
 
@@ -289,8 +293,9 @@ impl<'tcx> MyVisitor<'_, 'tcx> {
             StatementKind::Assign(boxed) => {
                 let (place, rvalue) = boxed.as_ref();
 
+                self.out("assign(");
                 self.on_place(place);
-                self.out(".assign(");
+                self.out(", ");
                 self.on_rvalue(rvalue);
                 self.out(")");
             }
