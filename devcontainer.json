@@ -1,0 +1,6 @@
+{
+  "image":"mcr.microsoft.com/devcontainers/rust",
+  "containerEnv": {
+    "CARGO_TARGET_DIR": "/tmp/cargo-target"
+  }
+}
