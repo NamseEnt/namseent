@@ -17,8 +17,10 @@ mod tests;
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::sync::OnceLock;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
+use std::time::Instant;
 
 use crate::name_convert::*;
 use rustc_driver::{Callbacks, Compilation};
@@ -32,8 +34,13 @@ struct JsTranspileCallback {
     pub tx: Sender<String>,
 }
 
+static START_TIME: OnceLock<Instant> = OnceLock::new();
+
 impl Callbacks for JsTranspileCallback {
     fn after_analysis<'tcx>(&mut self, _compiler: &Compiler, tcx: TyCtxt<'tcx>) -> Compilation {
+        let elapsed = START_TIME.get().unwrap().elapsed();
+        println!("after_analysis: {}", elapsed.as_millis());
+        todo!();
         let mut fn_names = Default::default();
         let mut todo_instances: HashSet<Instance<'tcx>> = Default::default();
         let mut handled_instances: HashSet<Instance<'tcx>> = Default::default();
@@ -898,6 +905,7 @@ pub fn run(path: &str) -> Receiver<String> {
             "-Zunstable-options".to_string(),
             "-Cpanic=immediate-abort".to_string(),
         ];
+        START_TIME.get_or_init(Instant::now);
         rustc_driver::run_compiler(&args, &mut callback);
     });
     rx
